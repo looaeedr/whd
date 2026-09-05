@@ -226,6 +226,8 @@ Authoritative session state
 
 ### 5.2 禁止雙重座標演算法
 
+Geometry 與 assembly placement 必須只有一套 authoritative 座標定義。現有專案已具備共用 assembly geometry layer；本任務應將中隔、內門框及其他受影響零件納入該層，而不是再建立 GUI-only 或 viewer-only 的第二套算法。
+
 以下方式禁止：
 
 - 3D viewer 自己計算中隔位置、2D 再算一次。
@@ -233,6 +235,43 @@ Authoritative session state
 - DXF exporter 重新猜 3D placement。
 - scene rebuild 使用 unknown part 的 `(0,0,0)` 作為有效 placement。
 - 以 widget / canvas pixel 座標當製造幾何座標。
+- 在一次遷移中直接刪除所有既有座標 workaround，卻沒有先建立 authoritative transform 並逐層替換消費者。
+
+#### 5.2.1 大規模重構風險：座標演算法遷移
+
+消除重複座標演算法本身是高風險重構。舊有 GUI、2D、3D、DXF 或 workaround 可能雖然架構上不應存在，卻仍暫時承擔既有行為；若一次全部刪除，容易造成「座標系統陣痛期」的大量回歸。
+
+實作必須採**漸進式遷移**：
+
+1. 先建立／確認 authoritative geometry + assembly transform contract。
+2. 先讓單一 authoritative transform 成為新消費者的唯一來源。
+3. 依 GUI → 2D → 3D → DXF／其他消費者逐層替換舊座標算法。
+4. 每替換一層，保留並執行既有 regression tests，確認 geometry、placement、projection 與 collision 沒有偏移。
+5. 舊 workaround 只有在所有消費者已遷移且測試證明不再需要後才能刪除。
+6. 任何涉及 Geometry、Topology、Assembly placement、2D/3D sync 或 DXF 的遷移，視為高風險變更；不能只以局部 UI／單元測試判定安全，必須進入 Headless + GUI Gate 的完整驗證門檻。
+
+驗收重點不是「新算法能算出一個位置」，而是**所有既有消費者最後都只剩同一個 authoritative placement source，且遷移過程沒有製造新的第二套座標邏輯**。
+
+### 5.3 Complete workspace snapshot 的效能風險
+
+3D → 2D 必須採完整、可還原的 resolved workspace snapshot，才能避免只回傳少數尺寸欄位而遺失 divider、frame、features、placements 或其他 3D 修改。然而完整 snapshot 若在互動期間反覆深拷貝、序列化或跨 UI 邊界傳輸，可能造成拖曳／操作延遲與 UI serialization/transfer lag。
+
+因此 snapshot 的效能設計必須遵守：
+
+1. **互動期間不做完整 snapshot 序列化**：拖動、旋轉、即時預覽等操作直接作用於記憶體中的 authoritative resolved state，不得每一幀 deep-copy 整個 workspace。
+2. **Confirm 時才凍結 snapshot**：只有使用者確認 3D 修改時，才建立 immutable／stable 的完整 snapshot 作為 3D→2D 邊界資料。
+3. **snapshot 不重新計算幾何**：snapshot 的責任是攜帶已 resolved 的 state；不得因建立 snapshot 又重跑一套 geometry algorithm。
+4. **跨 2D/3D 邊界才序列化**：能以同一 process 的 authoritative object/state 傳遞時，不應無必要轉成大型文字或 JSON payload。
+5. **保持完整性優先於過早壓縮**：第一版不得為了效能退回「只傳尺寸欄位」的 partial snapshot。若後續量測證實 payload 過大，才可研究 diff、lazy materialization、copy-on-write 或其他增量策略，但不得破壞完整可還原的語意。
+6. **效能驗收與一致性驗收分開**：snapshot 的建立成本、UI response time、payload size 可量測，但不能以省略 authoritative state 來換取表面效能。
+
+驗收至少包含：
+
+- 3D 互動拖動期間不因每幀 snapshot 造成明顯卡頓。
+- Confirm 後產生的 snapshot 能完整重建同一 workspace state。
+- 2D apply 不需要重新猜測或補算 3D placement。
+- Save/Reload 後仍能還原 snapshot 所代表的 stable ids、geometry、features、placement 與 structure。
+- 若後續引入 diff／lazy snapshot，完整 snapshot 仍須可由 authoritative state 無歧義重建，且 round-trip 結果與完整 snapshot 相同。
 
 ## 6. 測試規格
 
