@@ -6,6 +6,7 @@ import pytest
 
 from ae_engine.assembly_placement import AssemblyPlacement, resolve_assembly_placement
 from ae_engine.door_dividers import derive_box_body_dividers
+from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
 from phase6_fold_profiles import build_box_body_profile
 import fold_designer_bridge as bridge
 import gui
@@ -105,6 +106,25 @@ def make_dummy_gui(workspace_data=None):
     app._apply_existing_parts_from_fold_workspace = lambda parts: set(parts)
     app._collect_main_setting_values = lambda: {'fw': 25.0}
 
+    def _dummy_new_column(width, heights, *, width_auto=False, height_auto=None):
+        height_values = list(heights)
+        if height_auto is None:
+            height_auto = [False] * len(height_values)
+        return {
+            'width_var': DummyVar(str(width)),
+            'width_auto': bool(width_auto),
+            'width_committed': float(width),
+            'height_vars': [DummyVar(str(v)) for v in height_values],
+            'height_auto': [bool(v) for v in height_auto],
+            'height_committed': [float(v) for v in height_values],
+            'height_completion': None,
+        }
+    app._new_door_layout_column = _dummy_new_column
+    app.door_layout_selected_var = DummyVar('0:0')
+    app._door_layout_number_text = lambda v: str(int(v)) if float(v).is_integer() else str(v)
+    app._parse_layout_value = lambda var, name: float(var.get() if hasattr(var, 'get') else var)
+    app._recompute_door_layout_remainders = lambda **kw: None
+
     if workspace_data:
         app.workspace_controller.commit_workspace(workspace_data)
     return app
@@ -114,9 +134,9 @@ def _canonical_round_trip_workspace():
     return {
         'existing_parts': ['box_body', 'head', 'tail', 'door', 'base_plate'],
         'active_part': 'head',
-        'part_profiles': {'head': {'X': [{'len': 25.0}], 'Y': []}},
+        'part_profiles': {'head': {'X': [{'len': 25.0}], 'Y': []}, 'door': {'X': [{'len': 20.0}], 'Y': []}},
         'box_body_profile': build_box_body_profile({'w': 800.0, 'd': 350.0, 'zl1': 15.0, 'zl2': 15.0, 'zr1': 15.0, 'zr2': 15.0}),
-        'box_body_structure': {'schema_version': 1, 'active_type': 'INTEGRAL', 'locked': False, 'configs': {}},
+        'box_body_structure': normalize_box_body_structure_state({'active_type': 'integral', 'locked': False}),
         'part_features': {'head': [{'type': 'round_hole', 'x': 50.0, 'y': 50.0, 'diameter': 10.0}]},
         'part_face_features': {'box_body': {'top': [{'type': 'square_hole', 'x': 20.0, 'y': 20.0}]}},
         'assembly_placements': {
@@ -124,7 +144,7 @@ def _canonical_round_trip_workspace():
                 'stable_id': 'box_body:divider:receiving-main:HORIZONTAL:C0:R0|R1',
                 'parent_assembly_node': 'box_body',
                 'placement_kind': 'divider_horizontal',
-                'world_offset': (-150.0, 50.0, 0.0),
+                'world_offset': [-150.0, 50.0, 0.0],
             }
         },
     }
@@ -177,12 +197,12 @@ def test_2d_to_3d_modify_divider_confirm_to_2d():
         'stable_id': 'box_body:divider:receiving-main:HORIZONTAL:C0:R0|R1',
         'parent_assembly_node': 'box_body',
         'placement_kind': 'divider_horizontal',
-        'world_offset': (-150.0, 80.0, 0.0),
+        'world_offset': [-150.0, 80.0, 0.0],
     }
     ws3d.replace_assembly_placements({modified_placement['stable_id']: modified_placement})
 
     # Modify door_layout_columns in 3D
-    new_columns = [[800.0, [1000.0, 600.0]]]
+    new_columns = [(800.0, [1000.0, 600.0])]
     payload = {
         'workspace': ws3d.export_shared_snapshot(),
         'door_layout_columns': new_columns,
@@ -196,25 +216,25 @@ def test_2d_to_3d_modify_divider_confirm_to_2d():
     app._apply_fold_designer_live_snapshot(payload)
 
     # Verify 2D received modified divider state
-    assert app.door_layout_columns == new_columns
+    assert app.get_door_layout_columns() == new_columns
     after_ws = app.workspace_controller.workspace_snapshot()
-    assert after_ws['assembly_placements'][modified_placement['stable_id']]['world_offset'] == (-150.0, 80.0, 0.0)
+    assert after_ws['assembly_placements'][modified_placement['stable_id']]['world_offset'] == [-150.0, 80.0, 0.0]
 
     # Second 3D resolve yields the same modified state
     re_snap = app._compose_phase6_project_snapshot_from_main_gui()
     re_ws3d = Phase6DesignerWorkspace.from_snapshot(re_snap)
-    assert re_ws3d.assembly_placements_snapshot()[modified_placement['stable_id']]['world_offset'] == (-150.0, 80.0, 0.0)
+    assert re_ws3d.assembly_placements_snapshot()[modified_placement['stable_id']]['world_offset'] == [-150.0, 80.0, 0.0]
 
 
-def test_2d_to_3d_modify_head_tail_confirm_to_2d():
+def test_2d_to_3d_modify_door_profile_and_tail_features_confirm_to_2d():
     canonical = _canonical_round_trip_workspace()
     app = make_dummy_gui(canonical)
 
     snapshot = app._compose_phase6_project_snapshot_from_main_gui()
     ws3d = Phase6DesignerWorkspace.from_snapshot(snapshot)
 
-    # Modify head profile & add tail feature
-    ws3d.stash_profiles('head', {'X': [{'len': 35.0}], 'Y': []})
+    # Modify non-derived part profile (door) & add tail feature
+    ws3d.stash_profiles('door', {'X': [{'len': 35.0}], 'Y': []})
     tail_feature = [{'type': 'center_hole', 'diameter': 20.0}]
     ws3d.replace_part_features({'tail': tail_feature})
 
@@ -227,7 +247,7 @@ def test_2d_to_3d_modify_head_tail_confirm_to_2d():
 
     app._apply_fold_designer_live_snapshot(payload)
 
-    assert app.workspace_controller.profile_for('head')['X'][0]['len'] == 35.0
+    assert app.workspace_controller.profile_for('door')['X'][0]['len'] == 35.0
     assert 'tail' in app.surface_features
     assert app.workspace_controller.part_features_snapshot()['tail'] == tail_feature
 
@@ -240,7 +260,11 @@ def test_2d_to_3d_modify_structure_confirm_to_2d():
     ws3d = Phase6DesignerWorkspace.from_snapshot(snapshot)
 
     # Modify box body structure
-    new_structure = {'schema_version': 1, 'active_type': 'THREE_PIECE', 'locked': False, 'configs': {'gap': 1.0}}
+    new_structure = normalize_box_body_structure_state({
+        'active_type': BoxBodyStructureType.THREE_PIECE_W_SPLIT.value,
+        'locked': False,
+        'configs': {BoxBodyStructureType.THREE_PIECE_W_SPLIT.value: {'seam_bend': 15.0}},
+    })
     ws3d.set_box_body_structure_state(new_structure)
 
     payload = {
@@ -252,8 +276,8 @@ def test_2d_to_3d_modify_structure_confirm_to_2d():
     app._apply_fold_designer_live_snapshot(payload)
 
     after_struct = app.workspace_controller.box_body_structure_state()
-    assert after_struct['active_type'] == 'THREE_PIECE'
-    assert after_struct['configs'] == {'gap': 1.0}
+    assert after_struct['active_type'] == BoxBodyStructureType.THREE_PIECE_W_SPLIT.value
+    assert after_struct['configs'][BoxBodyStructureType.THREE_PIECE_W_SPLIT.value]['seam_bend'] == 15.0
 
 
 def test_save_reload_to_3d_to_2d_round_trip(tmp_path):
