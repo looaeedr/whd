@@ -2104,8 +2104,18 @@ class BoxCalculatorGUI:
             "endcap_bottom_wrap": deepcopy(snapshot.get("endcap_bottom_wrap") or getattr(self, "endcap_bottom_wrap_state", {})),
             "box_body_structure": deepcopy(workspace_state["box_body_structure"]),
         }
+        if "part_features" in workspace_state:
+            workspace["part_features"] = deepcopy(workspace_state["part_features"])
+        elif "part_features" in snapshot:
+            workspace["part_features"] = deepcopy(snapshot["part_features"])
+        if "part_face_features" in workspace_state:
+            workspace["part_face_features"] = deepcopy(workspace_state["part_face_features"])
+        elif "part_face_features" in snapshot:
+            workspace["part_face_features"] = deepcopy(snapshot["part_face_features"])
         if "assembly_placements" in workspace_state:
             workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
+        elif "assembly_placements" in snapshot:
+            workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
         snapshot["workspace"] = workspace
         return snapshot
 
@@ -2282,6 +2292,12 @@ class BoxCalculatorGUI:
             committed_workspace["box_body_profile"] = (
                 None if profile is None else [dict(seg) for seg in profile]
             )
+        if "part_features" in workspace:
+            committed_workspace["part_features"] = deepcopy(workspace["part_features"])
+        if "part_face_features" in workspace:
+            committed_workspace["part_face_features"] = deepcopy(workspace["part_face_features"])
+        if "assembly_placements" in workspace:
+            committed_workspace["assembly_placements"] = deepcopy(workspace["assembly_placements"])
         self.workspace_controller.commit_workspace(committed_workspace)
 
     def _apply_fold_designer_live_snapshot(self, payload):

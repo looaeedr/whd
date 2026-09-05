@@ -1881,6 +1881,19 @@ def _phase6_collect_workspace_state(self):
     part_face_features_snapshot = getattr(self.designer_workspace, "part_face_features_snapshot", None)
     if callable(part_face_features_snapshot):
         owner["part_face_features"] = part_face_features_snapshot()
+    assembly_placements_snapshot = getattr(self.designer_workspace, "assembly_placements_snapshot", None)
+    if callable(assembly_placements_snapshot):
+        owner["assembly_placements"] = assembly_placements_snapshot()
+    resolve_and_store = getattr(self.designer_workspace, "resolve_and_store_assembly_placements", None)
+    if callable(resolve_and_store):
+        try:
+            from ae_engine.assembly_placement import resolve_assembly_placement
+            owner["assembly_placements"] = resolve_and_store(
+                dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
+                resolver=resolve_assembly_placement,
+            )
+        except Exception:
+            pass
     graph_state = migrate_legacy_snapshot_joints(
         dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     )
@@ -2128,6 +2141,7 @@ def _phase6_serialize_assembly_relief_state(self):
 def _phase6_corner_transaction_payload(self):
     source = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     graph_state = migrate_legacy_snapshot_joints(source)
+    workspace = _phase6_collect_workspace_state(self)
     return {
         "model": str(self.baseline_model_var.get() or "").strip(),
         "settings": dict(getattr(self, "_settings_values", {})),
@@ -2146,7 +2160,14 @@ def _phase6_corner_transaction_payload(self):
         "corner_pair_same": deepcopy(getattr(self, "_phase6_corner_pair_same", {})),
         "active_part": getattr(self, "active_part_key", None),
         "assembly_relief": _phase6_serialize_assembly_relief_state(self),
-        "workspace": _phase6_collect_workspace_state(self),
+        "workspace": workspace,
+        "existing_parts": list(workspace.get("existing_parts", [])),
+        "part_profiles": deepcopy(workspace.get("part_profiles", {})),
+        "box_body_structure": deepcopy(workspace.get("box_body_structure", {})),
+        "box_body_profile": clone_profile(workspace.get("box_body_profile", [])),
+        "part_features": deepcopy(workspace.get("part_features", {})),
+        "part_face_features": deepcopy(workspace.get("part_face_features", {})),
+        "assembly_placements": deepcopy(workspace.get("assembly_placements", {})),
     }
 
 
@@ -2275,6 +2296,7 @@ def _phase6_build_project_snapshot(self):
         "part_profiles": deepcopy(workspace.get("part_profiles", {})),
         "part_features": deepcopy(owner_workspace["part_features"]),
         "part_face_features": deepcopy(owner_workspace["part_face_features"]),
+        "assembly_placements": deepcopy(owner_workspace.get("assembly_placements", {})),
         "assembly_relief": _phase6_serialize_assembly_relief_state(self),
     })
 

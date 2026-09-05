@@ -7,7 +7,6 @@ from typing import Any, Mapping
 
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
-from ae_engine.assembly_placement import resolve_assembly_placement
 
 
 class Phase6DesignerWorkspace:
@@ -256,15 +255,15 @@ class Phase6DesignerWorkspace:
             self._dirty = True
         return deepcopy(payload)
 
-    def assembly_placement_for(self, stable_id: str, *, snapshot: Mapping[str, object] | None = None):
+    def assembly_placement_for(self, stable_id: str, *, snapshot: Mapping[str, object] | None = None, resolver=None):
         key = str(stable_id or "").strip()
         cached = self._assembly_placements.get(key)
         if cached is not None:
             return deepcopy(cached)
-        if snapshot is None:
+        if snapshot is None or resolver is None:
             return None
-        placement = resolve_assembly_placement(snapshot, key)
-        return placement.to_dict()
+        placement = resolver(snapshot, key)
+        return placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
 
     def replace_assembly_placements(self, value: Mapping[str, object] | None) -> dict[str, dict[str, object]]:
         self._assembly_placements = deepcopy(dict(value or {}))
@@ -274,18 +273,16 @@ class Phase6DesignerWorkspace:
     def assembly_placements_snapshot(self) -> dict[str, dict[str, object]]:
         return deepcopy(self._assembly_placements)
 
-    def resolve_and_store_assembly_placements(self, snapshot: Mapping[str, object]) -> dict[str, dict[str, object]]:
-        """Resolve divider and shared lower-frame placements from authoritative topology."""
+    def resolve_and_store_assembly_placements(self, snapshot: Mapping[str, object], *, resolver=None) -> dict[str, dict[str, object]]:
+        """Resolve divider and shared lower-frame placements via injected resolver."""
         result = self.assembly_placements_snapshot()
+        if resolver is None:
+            return result
         for stable_id in self.available_parts:
             key = str(stable_id)
-            if key.startswith("box_body:divider:"):
-                placement = resolve_assembly_placement(snapshot, key)
-            elif key.startswith("inner_door:") and key.endswith(":bottom_frame"):
-                placement = resolve_assembly_placement(snapshot, key)
-            else:
-                continue
-            result[key] = placement.to_dict()
+            if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+                placement = resolver(snapshot, key)
+                result[key] = placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
         self._assembly_placements = deepcopy(result)
         return self.assembly_placements_snapshot()
 

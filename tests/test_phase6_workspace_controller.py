@@ -286,3 +286,42 @@ def test_designer_workspace_owns_draft_box_body_structure_and_round_trips_it():
     ws.set_box_body_structure_state(changed)
     assert ws.dirty is True
     assert ws.snapshot()["box_body_structure"]["locked"] is False
+
+
+def test_workspace_controller_commits_and_snapshots_part_features_and_placements():
+    controller = Phase6WorkspaceController()
+    features = {"door": [{"type": "circle", "x": 10.0, "y": 20.0, "r": 5.0}]}
+    face_features = {"box_body": {"front": [{"type": "rect", "x": 0.0, "y": 0.0, "w": 50.0, "h": 50.0}]}}
+    placements = {
+        "box_body:divider:main:HORIZONTAL:C0:R0|R1": {
+            "stable_id": "box_body:divider:main:HORIZONTAL:C0:R0|R1",
+            "placement_kind": "divider_horizontal",
+            "world_offset": (-150.0, 50.0, 0.0),
+        }
+    }
+    saved = controller.commit_workspace({
+        "existing_parts": ["box_body", "door"],
+        "active_part": "door",
+        "part_profiles": {"door": {"X": [{"len": 100.0}], "Y": []}},
+        "part_features": features,
+        "part_face_features": face_features,
+        "assembly_placements": placements,
+    })
+
+    assert saved["part_features"] == features
+    assert saved["part_face_features"] == face_features
+    assert saved["assembly_placements"] == placements
+
+    # Defensive copy check: mutate input and returned dict
+    features["door"][0]["x"] = 999.0
+    saved["part_features"]["door"][0]["y"] = 888.0
+    snap = controller.workspace_snapshot()
+    assert snap["part_features"]["door"][0]["x"] == 10.0
+    assert snap["part_features"]["door"][0]["y"] == 20.0
+
+    # Clear resets them
+    controller.clear_authoritative_workspace()
+    cleared = controller.workspace_snapshot()
+    assert "part_features" not in cleared or not cleared["part_features"]
+    assert "part_face_features" not in cleared or not cleared["part_face_features"]
+    assert "assembly_placements" not in cleared or not cleared["assembly_placements"]

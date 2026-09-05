@@ -21,6 +21,8 @@ class Phase6WorkspaceController:
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile: list | None = None
         self._assembly_placements: dict[str, dict[str, object]] = {}
+        self._part_features: dict[str, list] = {}
+        self._part_face_features: dict[str, dict] = {}
 
     @staticmethod
     def _clone(value):
@@ -142,6 +144,10 @@ class Phase6WorkspaceController:
             self._box_body_profile = None if profile is None else self._clone(list(profile))
         if "assembly_placements" in raw:
             self._assembly_placements = self._clone(dict(raw.get("assembly_placements") or {}))
+        if "part_features" in raw:
+            self._part_features = self._clone(dict(raw.get("part_features") or {}))
+        if "part_face_features" in raw:
+            self._part_face_features = self._clone(dict(raw.get("part_face_features") or {}))
         return self.workspace_snapshot()
 
     def clear_authoritative_workspace(self) -> None:
@@ -149,6 +155,8 @@ class Phase6WorkspaceController:
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile = None
         self._assembly_placements = {}
+        self._part_features = {}
+        self._part_face_features = {}
 
     def assembly_placements_snapshot(self) -> dict[str, dict[str, object]]:
         return self._clone(getattr(self, "_assembly_placements", {}))
@@ -156,6 +164,20 @@ class Phase6WorkspaceController:
     def replace_assembly_placements(self, value: Mapping[str, object] | None) -> dict[str, dict[str, object]]:
         self._assembly_placements = self._clone(dict(value or {}))
         return self.assembly_placements_snapshot()
+
+    def part_features_snapshot(self) -> dict[str, list]:
+        return self._clone(getattr(self, "_part_features", {}))
+
+    def replace_part_features(self, value: Mapping[str, object] | None) -> dict[str, list]:
+        self._part_features = self._clone(dict(value or {}))
+        return self.part_features_snapshot()
+
+    def part_face_features_snapshot(self) -> dict[str, dict]:
+        return self._clone(getattr(self, "_part_face_features", {}))
+
+    def replace_part_face_features(self, value: Mapping[str, object] | None) -> dict[str, dict]:
+        self._part_face_features = self._clone(dict(value or {}))
+        return self.part_face_features_snapshot()
 
     def workspace_snapshot(self) -> dict:
         if not self._authoritative:
@@ -169,6 +191,10 @@ class Phase6WorkspaceController:
             "active_part": result["active_part"],
             "part_profiles": result["part_profiles"],
         }
+        if getattr(self, "_part_features", None):
+            snapshot["part_features"] = self._clone(self._part_features)
+        if getattr(self, "_part_face_features", None):
+            snapshot["part_face_features"] = self._clone(self._part_face_features)
         if getattr(self, "_assembly_placements", None):
             snapshot["assembly_placements"] = self._clone(self._assembly_placements)
         return snapshot

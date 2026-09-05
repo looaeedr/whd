@@ -92,3 +92,68 @@ def test_bridge_collects_shared_fields_through_designer_owner_export_seam():
 def test_bridge_compatibility_properties_delegate_through_designer_owner_api():
     source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     assert "_designer_workspace(self)._" not in source
+
+
+def test_3d_confirm_payload_contains_complete_authoritative_workspace_snapshot():
+    import fold_designer_bridge as bridge
+    from phase6_box_body_structure import default_box_body_structure_state
+
+    canonical = _canonical_shared()
+    canonical["box_body_structure"] = default_box_body_structure_state()
+    canonical["part_features"] = {"head": [{"type": "hole"}]}
+    canonical["part_face_features"] = {"box_body": {"top": []}}
+    canonical["assembly_placements"] = {
+        "box_body:divider:main:HORIZONTAL:C0:R0|R1": {
+            "stable_id": "box_body:divider:main:HORIZONTAL:C0:R0|R1",
+            "placement_kind": "divider_horizontal",
+            "world_offset": (-150.0, 50.0, 0.0),
+        }
+    }
+
+    class CompleteDesignerOwner:
+        active_part = "head"
+        def export_shared_snapshot(self, *, live_active_profiles=None):
+            res = deepcopy(canonical)
+            if live_active_profiles is not None:
+                res["part_profiles"]["head"] = deepcopy(live_active_profiles)
+            return {k: res[k] for k in ("existing_parts", "active_part", "part_profiles", "box_body_structure")}
+        def part_features_snapshot(self):
+            return deepcopy(canonical["part_features"])
+        def part_face_features_snapshot(self):
+            return deepcopy(canonical["part_face_features"])
+        def assembly_placements_snapshot(self):
+            return deepcopy(canonical["assembly_placements"])
+        def box_body_structure_state(self):
+            return deepcopy(canonical["box_body_structure"])
+
+    holder = SimpleNamespace(
+        designer_workspace=CompleteDesignerOwner(),
+        state=SimpleNamespace(
+            profiles={"X": [{"len": 44.0}], "Y": []},
+            profiles_vault={"??": [{"phase6_key": "w", "len": 400.0}]},
+        ),
+        baseline_model_var=SimpleNamespace(get=lambda: "??"),
+        _settings_values={"fw": 25.0},
+        _phase6_assembly_type=bridge.CornerTypeId.INSERT_OVERLAY,
+        _phase6_endcap_fw_state={},
+        _phase6_corner_state={},
+        _phase6_corner_pair_same={},
+        _phase6_input_snapshot={"fw": 25.0},
+        active_part_key="head",
+    )
+
+    payload = bridge._phase6_corner_transaction_payload(holder)
+    assert "workspace" in payload
+    ws = payload["workspace"]
+    for required_key in (
+        "existing_parts", "active_part", "part_profiles", "box_body_structure",
+        "box_body_profile", "part_features", "part_face_features", "assembly_placements"
+    ):
+        assert required_key in ws, f"missing {required_key} in workspace"
+
+    # Lossless round-trip test: ingest into Phase6WorkspaceController
+    from phase6_workspace_controller import Phase6WorkspaceController
+    controller = Phase6WorkspaceController()
+    reconstructed = controller.commit_workspace(ws)
+    for check_key in ("existing_parts", "active_part", "part_profiles", "box_body_structure", "part_features", "part_face_features", "assembly_placements"):
+        assert reconstructed[check_key] == ws[check_key]
