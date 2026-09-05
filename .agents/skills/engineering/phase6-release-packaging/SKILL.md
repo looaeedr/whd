@@ -35,6 +35,33 @@ UPDATE = **目前工作樹相對唯一原始基準的所有新增/變更檔** + 
 ## 中文與檔案完整性
 ZIP entry 必須保留真實 Unicode/UTF-8 名稱；任何 entry 含 literal `#U` 絕對拒絕交付。所有本輪 `.md/.py` 必須 UTF-8 strict decode，且不得含 U+FFFD replacement character。解壓後必須能找到 `個人AI檔案庫/README.md` 與中文 SOP 路徑。
 
+## 修改與測試分級策略
+不是每一次小修改都需要立即執行完整回歸。測試成本應與修改風險及累積變更量匹配，但任何修改都不得因此免除必要的局部驗證。
+
+### 1. 小修改：快速驗證並累積測試債
+以下屬低風險小修改時，可暫不執行完整 Headless + GUI Gate：
+- 單一檔案的小範圍文字、UI、樣式或非核心行為調整。
+- 不改 Geometry、Topology、求解器、2D/3D 同步、DXF、資料格式或跨模組介面的局部修正。
+- 有對應既有測試時，至少執行該測試；沒有對應測試時，至少做語法／匯入／靜態或其他與修改直接相關的快速檢查。
+
+每個小修改都必須在 durable checkpoint 中累積「測試債」記錄，不得只存在聊天記憶。測試債達到以下任一條件，就必須升級完整回歸：
+- 累積 **5 個小修改**；或
+- 累積修改已涉及 **3 個以上相關 production 檔案／模組**；或
+- 雖然修改數量未達門檻，但總控判定已有明顯跨模組影響。
+
+### 2. 大修改／高風險修改：立即完整驗證
+以下情況不得延後，必須直接執行完整 Headless + GUI Gate：
+- Geometry、Topology、Factory Policy、求解器或碰撞／穿透邏輯。
+- 2D / 3D 同步、DXF 結構、Save/Reload、資料格式或核心 API。
+- 跨多個核心模組、可能影響大量既有測試的修改。
+- 任何使用者明確指定為「大改」、「高風險」或要求完整驗證的修改。
+- 小修改累積達上述任一完整回歸門檻。
+
+### 3. 完整 Gate 通過後清零
+完整 Headless + GUI Gate 成功後，將 durable checkpoint 的測試債清零，重新開始累積。
+
+**重要：這個分級策略只控制日常開發期間的完整回歸頻率。正式出包仍必須依「出包流程」執行完整相關 regression matrix；不能用累積測試債尚未達門檻作為跳過 release gate 的理由。**
+
 ## 長回歸的可續跑硬閘門
 Release QA 禁止再用人工記憶切 `pytest` 批次、等外層工具 timeout 後猜哪一段跑完。長回歸固定使用 `tools/phase6_release_test_runner.py`，每批結果立即 fsync 到 JSONL journal，並寫對應 state JSON。
 
