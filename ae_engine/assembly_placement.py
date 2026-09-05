@@ -74,7 +74,7 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
     if axis == "VERTICAL":
         match = re.fullmatch(r"C(\d+)\|C(\d+)", boundary)
         if match is None:
-            raise ValueError(f"invalid authoritative vertical divider boundary: {boundary}")
+            raise ValueError(f"invalid authoritative divider topology for vertical divider boundary: {boundary}")
         left_col, right_col = (int(match.group(1)), int(match.group(2)))
         if right_col != left_col + 1:
             raise ValueError(f"non-adjacent vertical divider boundary: {boundary}")
@@ -88,9 +88,9 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
         x = -total_w / 2.0 + sum(width for width, _ in columns[:left_col + 1])
         return (x, 0.0, 0.0)
 
-    match = re.fullmatch(r"C(\d+):R(\d+)\|R(\d+)", boundary)
+    match = re.fullmatch(r"C(\d+)[:_]R(\d+)\|R(\d+)", boundary)
     if match is None:
-        raise ValueError(f"invalid authoritative horizontal divider boundary: {boundary}")
+        raise ValueError(f"invalid authoritative divider topology for horizontal divider boundary: {boundary}")
     col, upper_row, lower_row = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
     if not (0 <= col < len(columns)):
         raise ValueError(f"horizontal divider column outside Door topology: {boundary}")
@@ -101,9 +101,7 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
         raise ValueError(f"horizontal divider lower cell outside Door topology: {boundary}")
     if lower_row != upper_row + 1:
         raise ValueError(f"non-adjacent horizontal divider boundary: {boundary}")
-    y_before = sum(columns[col][1][:lower_row])
-    upper_height = float(columns[col][1][upper_row])
-    y = total_h / 2.0 - y_before - upper_height
+    y = total_h / 2.0 - sum(columns[col][1][:upper_row + 1])
     return (0.0, y, 0.0)
 
 
