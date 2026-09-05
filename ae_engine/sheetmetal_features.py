@@ -950,6 +950,72 @@ def resolve_vault_endcap_fixed_features(
     return tuple(features)
 
 
+DEFAULT_VAULT_ENDCAP_FEATURE_POLICY = VaultEndCapFeaturePolicy(
+    hanging_hole_radius=3.2,
+    hanging_hole_y_from_top_bend=6.0,
+    square_hole_origin=Vec2(3.0, 18.0),
+    square_hole_size=Vec2(4.0, 4.0),
+    tail_bottom_hole_radius=2.5,
+    tail_bottom_hole_y=5.0,
+)
+
+
+@dataclass(frozen=True)
+class ReceivingEndCapFeaturePolicy:
+    """Receiving (受電箱) 封頭/封尾特徵策略。
+
+    依 T5 Provenance Trace 結果：
+    - 左右吊掛孔、方孔與尾底圓孔皆為 Vault-only (DO_NOT_SHARE)。
+    - Receiving 預設不具備上述固定特徵，避免在非金庫拓撲下破孔或錯位。
+    """
+    fixed_features_enabled: bool = False
+
+
+RECEIVING_ENDCAP_FEATURE_POLICY = ReceivingEndCapFeaturePolicy()
+
+
+def resolve_receiving_endcap_fixed_features(
+    geometry: EndCapGeometry,
+    *,
+    relief_config: ReliefConfig | None = None,
+    policy: ReceivingEndCapFeaturePolicy | None = None,
+    is_tail: bool = False,
+) -> tuple[ResolvedFeature, ...]:
+    """Receiving 固定特徵解析器：預設回傳空 tuple，保證與 Vault 隔離。"""
+    active_policy = policy or RECEIVING_ENDCAP_FEATURE_POLICY
+    if not active_policy.fixed_features_enabled:
+        return ()
+    return ()
+
+
+def resolve_endcap_fixed_features_for_model(
+    geometry: EndCapGeometry,
+    *,
+    model_name: str | None = None,
+    relief_config: ReliefConfig | None = None,
+    is_tail: bool = False,
+    feature_policy: VaultEndCapFeaturePolicy | ReceivingEndCapFeaturePolicy | None = None,
+) -> tuple[ResolvedFeature, ...]:
+    """根據箱體型態或明確 policy 解析封頭/尾固定特徵，杜絕盲目共用。"""
+    if feature_policy is not None:
+        if isinstance(feature_policy, ReceivingEndCapFeaturePolicy):
+            return resolve_receiving_endcap_fixed_features(
+                geometry, relief_config=relief_config, policy=feature_policy, is_tail=is_tail
+            )
+        if isinstance(feature_policy, VaultEndCapFeaturePolicy):
+            return resolve_vault_endcap_fixed_features(
+                geometry, relief_config=relief_config or ReliefConfig(), policy=feature_policy, is_tail=is_tail
+            )
+    name = str(model_name or "").strip()
+    if name in {"受電箱", "RECEIVING"}:
+        return resolve_receiving_endcap_fixed_features(
+            geometry, relief_config=relief_config, is_tail=is_tail
+        )
+    return resolve_vault_endcap_fixed_features(
+        geometry, relief_config=relief_config or ReliefConfig(), policy=DEFAULT_VAULT_ENDCAP_FEATURE_POLICY, is_tail=is_tail
+    )
+
+
 
 @dataclass(frozen=True)
 class CanvasTransform:

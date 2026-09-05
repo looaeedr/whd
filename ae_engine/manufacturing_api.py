@@ -903,7 +903,7 @@ def build_part_scene(
                     **common,
                 )
             else:
-                scene = _call(ae._build_end_cap_scene, **common)
+                scene = _call(ae._build_end_cap_scene, model_name=resolved.model_name, **common)
             if not used_stretched_baseline:
                 scene = _merge_baseline_endcap_holes(
                     scene, _baseline_endcap_holes_for_request(resolved, ctx)

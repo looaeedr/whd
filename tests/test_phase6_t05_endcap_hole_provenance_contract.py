@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """T5 Contract Tests: EndCap Hole and Feature Provenance Trace."""
 from pathlib import Path
 import pytest

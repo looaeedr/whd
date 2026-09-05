@@ -83,7 +83,11 @@ from .sheetmetal_features import (
     resolved_circles_from_baseline,
     identify_door_baseline_nameplate_circles,
     resolve_vault_endcap_fixed_features,
+    resolve_receiving_endcap_fixed_features,
+    resolve_endcap_fixed_features_for_model,
     VaultEndCapFeaturePolicy,
+    ReceivingEndCapFeaturePolicy,
+    RECEIVING_ENDCAP_FEATURE_POLICY,
     endcap_finished_feature_surface,
     feature_is_within_surface,
     feature_surface_from_structural_result,
@@ -1273,7 +1277,8 @@ def _resolve_user_holes(holes, geometry, finished_width, finished_depth, *, norm
 
 
 def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
-                         x_topology="folded", depth_comp_t=3.0, draw_stock=False, is_tail=False, holes=None):
+                         x_topology="folded", depth_comp_t=3.0, draw_stock=False, is_tail=False, holes=None,
+                         model_name=None, feature_policy=None):
     """Build complete End Cap/Tail DrawingScene without DXF serialization."""
     result = build_endcap_result(
         w=w, d=d, t=t, fw=fw, yl1=yl1, yr1=yr1,
@@ -1286,10 +1291,14 @@ def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
     if draw_stock:
         scene.add(build_stock_outline(result.width, result.height))
     scene.extend(structural_result_to_primitives(result))
-    scene.extend(resolved_features_to_primitives(resolve_vault_endcap_fixed_features(
-        geometry, relief_config=RELIEF_CONFIG,
-        policy=VAULT_ENDCAP_FEATURE_POLICY, is_tail=is_tail,
-    )))
+    fixed_features = resolve_endcap_fixed_features_for_model(
+        geometry,
+        model_name=model_name,
+        relief_config=RELIEF_CONFIG,
+        is_tail=is_tail,
+        feature_policy=feature_policy,
+    )
+    scene.extend(resolved_features_to_primitives(fixed_features))
     scene.extend(build_endcap_check(
         geometry=geometry, relief=relief,
         finished_width=w, finished_depth=d, part_label='End Cap (Y)',
@@ -1305,7 +1314,7 @@ def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
 
 def export_end_cap_dxf(filepath, W_val=None, H_val=None, D_val=None, T_val=None, FW_val=None,
                         yl1=None, yr1=None, ytop1=None, ybottom1=None, zl1=None, zr1=None,
-                        draw_stock=None, is_tail=False, holes=None):
+                        draw_stock=None, is_tail=False, holes=None, model_name=None):
     """輸出封頭尾 Y 展開 DXF；parameter adaptation → scene builder → single save path。"""
     w = W_val if W_val is not None else W
     d = D_val if D_val is not None else D
@@ -1318,7 +1327,7 @@ def export_end_cap_dxf(filepath, W_val=None, H_val=None, D_val=None, T_val=None,
     scene = _build_end_cap_scene(
         w=w, d=d, t=t, fw=fw, yl1=yl1, yr1=yr1, ytop1=ytop1, ybottom1=ybottom1,
         draw_stock=(draw_stock if draw_stock is not None else DRAW_STOCK),
-        is_tail=is_tail, holes=holes,
+        is_tail=is_tail, holes=holes, model_name=model_name,
     )
     _save_scene_dxf(filepath, scene)
     print(f"成功輸出封頭尾 DXF: {filepath}")

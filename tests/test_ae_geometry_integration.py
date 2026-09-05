@@ -280,7 +280,9 @@ def test_endcap_scene_builder_uses_shared_fixed_feature_resolver():
     import ae_engine.ae as ae
     builder_src = inspect.getsource(ae._build_end_cap_scene)
     exporter_src = inspect.getsource(ae.export_end_cap_dxf)
-    assert 'resolve_vault_endcap_fixed_features' in builder_src
+    # T6: _build_end_cap_scene 已升級為呼叫 resolve_endcap_fixed_features_for_model
+    # 以支援依 model_name 路由 Vault vs Receiving 固定特徵，不再直接呼叫 Vault 專用函式
+    assert 'resolve_endcap_fixed_features_for_model' in builder_src
     assert '_build_end_cap_scene' in exporter_src
     combined = builder_src + exporter_src
     assert 'lx = notch_tl_x + 10.5' not in combined
