@@ -215,6 +215,7 @@ from phase6_settings_center import (
     UI_TEXT_SIZE_LABELS,
     normalize_ui_text_size,
     ui_text_size_label,
+    ui_text_size_factor,
     SettingsService,
     load_factory_defaults_from_ae,
     load_corner_defaults_from_ini,
@@ -2612,6 +2613,16 @@ class BoxCalculatorGUI:
             label = ui_text_size_label(key)
             if self.ui_text_size_var.get() != label:
                 self.ui_text_size_var.set(label)
+        paned = getattr(self, "main_paned", None)
+        left = getattr(self, "left_container", None)
+        if paned is not None and left is not None:
+            base_width = 320
+            factor = ui_text_size_factor(key)
+            scaled_width = int(round(base_width * factor))
+            try:
+                paned.paneconfig(left, width=scaled_width)
+            except Exception:
+                pass
         if persist:
             self.settings_service.persist_defaults(keys=("ui_text_size",))
         if notify_designer:
@@ -3544,12 +3555,14 @@ class BoxCalculatorGUI:
         # 主內容區域 (左右分欄)
         main_paned = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg=self.COLOR_BG, bd=0, sashwidth=4)
         main_paned.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
+        self.main_paned = main_paned
         
         # ==========================================
         # 左側：控制面板
         # ==========================================
         left_container = tk.Frame(main_paned, bg=self.COLOR_BG)
         main_paned.add(left_container, width=320)
+        self.left_container = left_container
         
         # 控制面板卡片
         ctrl_card = tk.Frame(left_container, bg=self.COLOR_PANEL, bd=0)

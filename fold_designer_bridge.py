@@ -3064,7 +3064,7 @@ def _phase6_render_endcap_edge_controls(self, *, part_key):
         var = original.tk.StringVar(master=host, value=row["value"])
         widget = build_choice_menubutton(
             host, variable=var, values=row["allowed"],
-            state=("normal" if row["editable"] else "disabled"), width=9,
+            state=("normal" if row["editable"] else "disabled"), width=7,
             command=lambda p=part_key, e=edge: _phase6_on_endcap_edge_relation_selected(self, p, e),
         )
         widget.pack(side=original.tk.LEFT)
@@ -8284,6 +8284,9 @@ Phase6FoldDesignerApp.save_diagnostic_file = _phase6_save_diagnostic_file
 Phase6FoldDesignerApp.save_project_file = _phase6_save_project_file
 Phase6FoldDesignerApp.save_project_file_as = _phase6_save_project_file_as
 Phase6FoldDesignerApp.load_project_file = _phase6_load_project_file
+Phase6FoldDesignerApp._phase6_on_endcap_edge_relation_selected = _phase6_on_endcap_edge_relation_selected
+Phase6FoldDesignerApp._phase6_render_endcap_edge_controls = _phase6_render_endcap_edge_controls
+Phase6FoldDesignerApp._phase6_commit_base_plate_edge_shrink = _phase6_commit_base_plate_edge_shrink
 
 
 
