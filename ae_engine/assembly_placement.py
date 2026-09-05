@@ -80,7 +80,12 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
             raise ValueError(f"non-adjacent vertical divider boundary: {boundary}")
         if not (0 <= left_col < len(columns) and right_col < len(columns)):
             raise ValueError(f"vertical divider boundary outside Door topology: {boundary}")
-        x = -total_w / 2.0 + sum(width for width, _ in columns[:right_col])
+        # Stable IDs are zero-based column topology identities (C0|C1, C1|C2,
+        # ...).  The physical boundary is the right edge of the left column,
+        # not the right edge of the right column.  Using ``[:right_col]`` here
+        # placed every divider one whole column too far right and made the 3D
+        # part appear to jump as the adjacent column widths changed.
+        x = -total_w / 2.0 + sum(width for width, _ in columns[:left_col + 1])
         return (x, 0.0, 0.0)
 
     match = re.fullmatch(r"C(\d+):R(\d+)\|R(\d+)", boundary)
