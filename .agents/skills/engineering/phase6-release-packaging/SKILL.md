@@ -1,4 +1,3 @@
-
 ---
 name: phase6-release-packaging
 description: Use when preparing, rebuilding, validating, or delivering Phase6 FULL/UPDATE ZIP packages, especially after code, geometry, GUI, registry, AI/SOP, or release-policy changes.
@@ -87,12 +86,12 @@ python tools/phase6_release_test_runner.py --mode xvfb --journal logs/release_xv
 4. 使用 `tools/phase6_release.py` 依 policy 自動收 FULL/UPDATE。Asia/Taipei 時間只取得一次，格式 `YYYYMMDD_HHMMSS`，兩包共用同一時間戳。
 5. 對 FULL/UPDATE 跑 ZIP CRC、entry policy、UTF-8 路徑、逐檔 SHA256；各自解壓到全新目錄再比對來源。entry policy 必須明確斷言 `excluded_package_roots`（目前至少 `.git/**`、`.scratch/**`）在兩包都是 0 entry，不能只靠 pristine parity 間接推論。
 6. UPDATE 額外驗證：`個人AI檔案庫/**` 全數存在、`config.ini` 不存在、archive root 可直接覆蓋專案根目錄。若 manifest 有 `update_cleanup_paths`，必須把 UPDATE 覆蓋到本次 runtime baseline 的 fresh extraction，執行 `python tools/apply_phase6_update_cleanup.py`（Windows 等價 `APPLY_PHASE6_UPDATE_CLEANUP.bat`），再驗證刪除/搬移後的實際樹。
-7. 從**打包後重新解壓的 FULL** 再跑正式交付 gate；工作目錄測試結果不能冒充封包驗證。
+7. **打包後不重跑完整 GUI gate。** 只有在封裝流程本身改變執行環境或交付內容（例如 Python runtime、DLL、啟動腳本、資源載入方式、插件、解壓後檔案結構）時，才追加一次針對該風險的 package GUI Smoke；單純 ZIP/CRC/UTF-8/逐檔 SHA256 驗證與 pristine fresh extraction，不要求再次跑完整 GUI。正常情況下，以第 3 步的正式 regression/GUI gate 加上第 5、6 步的封包完整性、pristine extraction 與逐檔 SHA256 證據，確認「打包內容 = 已驗證來源樹」即可。
 
 ## 禁止交付
 以下任一成立就禁止交付：基準錯、`config.ini` 被改或混入 UPDATE、`.git/**` 或 `.scratch/**` 混入 FULL/UPDATE、mandatory 檔/樹缺失、FULL/UPDATE 時間戳不同、ZIP CRC/解壓/SHA256 不一致、中文路徑出現 `#U`、相關回歸有新增失敗、本輪明確提供且列為 required fixture 的使用者實檔無法重現驗證結果。
 
-**完成定義：不是 ZIP 建好了，而是「正確基準 + 正確收檔 + 打包後重解壓 + 功能 gate」全部有證據。**
+**完成定義：不是 ZIP 建好了，而是「正確基準 + 正確收檔 + 封包完整性/來源樹一致性 + 必要的功能 gate」全部有證據。**
 
 ## Durable checkpoint 與 runner cleanup（2026-09-03 補強）
 
@@ -105,4 +104,3 @@ Process cleanup 的完成條件是**整個 process group 消失**。送 TERM 後
 FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh extraction**：兩邊都未跑過 Python、pytest、compileall 或 GUI。禁止拿已產生 `__pycache__`、`.pytest_cache`、`.pyc` 的測試目錄與 pristine overlay 直接比檔案數，否則會製造假 missing/extra。
 
 正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
-
