@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
+from ae_engine.assembly_placement import resolve_assembly_placement
 
 
 class Phase6DesignerWorkspace:
@@ -17,6 +18,7 @@ class Phase6DesignerWorkspace:
         selected_part: str | None = None,
         part_features: Mapping[str, object] | None = None,
         part_face_features: Mapping[str, object] | None = None,
+        assembly_placements: Mapping[str, object] | None = None,
         dirty: bool = False,
         switching: bool = False,
     ) -> None:
@@ -24,6 +26,7 @@ class Phase6DesignerWorkspace:
         self._selected_part = selected_part
         self._part_features = deepcopy(dict(part_features or {}))
         self._part_face_features = deepcopy(dict(part_face_features or {}))
+        self._assembly_placements = deepcopy(dict(assembly_placements or {}))
         self._dirty = bool(dirty)
         self._switching = bool(switching)
 
@@ -50,6 +53,7 @@ class Phase6DesignerWorkspace:
             selected_part=None,
             part_features=source.get("part_features"),
             part_face_features=source.get("part_face_features"),
+            assembly_placements=source.get("assembly_placements"),
             dirty=False,
             switching=False,
         )
@@ -62,6 +66,7 @@ class Phase6DesignerWorkspace:
         parts = self._shared_state.set_existing_parts(values, active_repair="none")
         if self._selected_part not in parts:
             self._selected_part = None
+        self._prune_assembly_placements(parts)
         return parts
 
     @property
@@ -160,6 +165,7 @@ class Phase6DesignerWorkspace:
         self._shared_state.set_part_presence(key, False, active_repair="none")
         if self._selected_part == key:
             self._selected_part = None
+        self._assembly_placements.pop(key, None)
         self._dirty = True
         return True
 
@@ -206,7 +212,7 @@ class Phase6DesignerWorkspace:
     def part_face_features_snapshot(self) -> dict[str, dict[str, list[Any]]]:
         return deepcopy(self._part_face_features)
 
-    def replace_part_face_features(self, value: Mapping[str, object] | None) -> dict[str, dict[str, list[Any]]]:
+    def replace_part_face_features(self, value: Mapping[str, object] | None) -> dict[str, list[Any]]:
         self._part_face_features = deepcopy(dict(value or {}))
         return self.part_face_features_snapshot()
 
@@ -237,6 +243,58 @@ class Phase6DesignerWorkspace:
                 self.add_part(key, default_profiles=profiles)
         return tuple(key for key in self.available_parts if key in desired)
 
+    def set_assembly_placement(self, placement) -> dict[str, object]:
+        """Store a resolved placement contract keyed by its stable physical id."""
+        stable_id = str(getattr(placement, "stable_id", "") or "").strip()
+        if not stable_id:
+            raise ValueError("assembly placement stable_id must not be empty")
+        if stable_id not in self.available_parts:
+            raise ValueError(f"assembly placement part does not exist: {stable_id}")
+        payload = placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
+        if self._assembly_placements.get(stable_id) != payload:
+            self._assembly_placements[stable_id] = deepcopy(payload)
+            self._dirty = True
+        return deepcopy(payload)
+
+    def assembly_placement_for(self, stable_id: str, *, snapshot: Mapping[str, object] | None = None):
+        key = str(stable_id or "").strip()
+        cached = self._assembly_placements.get(key)
+        if cached is not None:
+            return deepcopy(cached)
+        if snapshot is None:
+            return None
+        placement = resolve_assembly_placement(snapshot, key)
+        return placement.to_dict()
+
+    def replace_assembly_placements(self, value: Mapping[str, object] | None) -> dict[str, dict[str, object]]:
+        self._assembly_placements = deepcopy(dict(value or {}))
+        self._prune_assembly_placements(self.available_parts)
+        return self.assembly_placements_snapshot()
+
+    def assembly_placements_snapshot(self) -> dict[str, dict[str, object]]:
+        return deepcopy(self._assembly_placements)
+
+    def resolve_and_store_assembly_placements(self, snapshot: Mapping[str, object]) -> dict[str, dict[str, object]]:
+        """Resolve all currently present supported derived placements once."""
+        result = self.assembly_placements_snapshot()
+        for stable_id in self.available_parts:
+            if not (
+                stable_id.startswith("box_body:divider:")
+                or stable_id.startswith("inner_door:")
+            ):
+                continue
+            placement = resolve_assembly_placement(snapshot, stable_id)
+            result[stable_id] = placement.to_dict()
+        self._assembly_placements = deepcopy(result)
+        return self.assembly_placements_snapshot()
+
+    def _prune_assembly_placements(self, available_parts) -> None:
+        allowed = set(available_parts)
+        self._assembly_placements = {
+            key: value for key, value in self._assembly_placements.items()
+            if key in allowed
+        }
+
     def mark_dirty(self) -> None:
         self._dirty = True
 
@@ -265,5 +323,6 @@ class Phase6DesignerWorkspace:
         result.update({
             "part_features": deepcopy(self._part_features),
             "part_face_features": deepcopy(self._part_face_features),
+            "assembly_placements": self.assembly_placements_snapshot(),
         })
         return result
