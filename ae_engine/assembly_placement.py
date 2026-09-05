@@ -102,7 +102,9 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
     if lower_row != upper_row + 1:
         raise ValueError(f"non-adjacent horizontal divider boundary: {boundary}")
     y = total_h / 2.0 - sum(columns[col][1][:upper_row + 1])
-    return (0.0, y, 0.0)
+    col_left = -total_w / 2.0 + sum(width for width, _ in columns[:col])
+    x = col_left + columns[col][0] / 2.0
+    return (x, y, 0.0)
 
 
 def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) -> AssemblyPlacement:

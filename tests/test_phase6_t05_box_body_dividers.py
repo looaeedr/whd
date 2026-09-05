@@ -16,7 +16,7 @@ def test_layout_topology_derives_vertical_and_horizontal_box_body_dividers_witho
         ("HORIZONTAL", "C0:R1|R2", "box_body"),
         ("HORIZONTAL", "C1:R0|R1", "box_body"),
     ]
-    assert [p.span for p in parts] == pytest.approx([1800, 600, 600, 500])
+    assert [p.span for p in parts] == pytest.approx([1800.0, 598.0, 598.0, 496.0])
 
 
 def test_divider_fold_chain_uses_per_door_handle_edge_and_converts_formed_depth_through_topology():

@@ -146,6 +146,10 @@ def place_assembly_points(points, reference_triangles, placement, dimensions, of
             wx, wy, wz = cx, cy, -depth / 2.0 - cz
         elif placement == "base":
             wx, wy, wz = cx, -height / 2.0 + cy, cz
+        elif placement in {"divider_horizontal", "horizontal_divider"}:
+            wx, wy, wz = cy, cz, cx
+        elif placement in {"divider_vertical", "vertical_divider"}:
+            wx, wy, wz = cz, cy, cx
         else:
             wx, wy, wz = cx, cy, cz
         return (wx + dx, wy + dy, wz + dz)

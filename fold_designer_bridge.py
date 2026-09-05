@@ -258,7 +258,7 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
             placement = resolve_assembly_placement(snapshot, key)
-            return "offset", tuple(float(v) for v in placement.world_offset)
+            return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
         except Exception:
             pass
     return _PHASE6_ASSEMBLY_PLACEMENTS.get(key, "offset"), (0.0, 0.0, 0.0)
@@ -5019,7 +5019,15 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
         profiles = getattr(self.state, "profiles", {}) or {}
     else:
         profiles = self.designer_workspace.profiles_for(key, {}) or {}
-    return list(profiles.get("X", ())), list(profiles.get("Y", ()))
+    x_prof = list(profiles.get("X", ()))
+    y_prof = list(profiles.get("Y", ()))
+    if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith("_frame")):
+        minx, miny, maxx, maxy = material.bounds
+        if x_prof and not y_prof:
+            y_prof = [{"len": float(maxy - miny)}]
+        elif y_prof and not x_prof:
+            x_prof = [{"len": float(maxx - minx)}]
+    return x_prof, y_prof
 
 
 def _phase6_assembly_relief_clearance(self):

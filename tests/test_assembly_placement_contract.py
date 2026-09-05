@@ -49,7 +49,7 @@ def test_horizontal_divider_resolves_from_authoritative_door_boundary():
     assert placement.placement_kind == "divider_horizontal"
     # The boundary between the two 300-high cells is at the authoritative
     # Door layout Y coordinate; it must not be a GUI/default-origin fallback.
-    assert placement.semantic_position == (0.0, 0.0, 0.0)
+    assert placement.semantic_position == (-125.0, 0.0, 0.0)
 
 
 def test_unknown_part_does_not_receive_silent_origin_fallback():

@@ -198,11 +198,16 @@ def derive_box_body_dividers(
         upper_key = f"{col}:{row}"
         lower_key = f"{col}:{row + 1}"
         handle_side = handles.get(upper_key) == "BOTTOM" or handles.get(lower_key) == "TOP"
+        span = float(cell.start_width)
+        if getattr(cell.edges, "left", False):
+            span -= float(thickness)
+        if getattr(cell.edges, "right", False):
+            span -= float(thickness)
         result.append(_part(
             layout_scope=layout_scope,
             axis="HORIZONTAL",
             boundary_key=f"C{col}:R{row}|R{row + 1}",
-            span=float(cell.start_width),
+            span=span,
             depth=depth,
             thickness=thickness,
             handle_side=handle_side,
