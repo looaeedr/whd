@@ -255,6 +255,16 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
     if re.fullmatch(r"door_c\d+_r\d+", key):
         return _phase6_door_part_assembly_placement(snapshot, key)
     if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+        placements = (
+            snapshot.get("assembly_placements")
+            or (snapshot.get("workspace") or {}).get("assembly_placements")
+            or {}
+        )
+        if key in placements:
+            item = placements[key]
+            kind = item.get("placement_kind", "offset")
+            offset = tuple(float(v) for v in item.get("world_offset", (0.0, 0.0, 0.0)))
+            return kind, offset
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
             placement = resolve_assembly_placement(snapshot, key)
@@ -7234,7 +7244,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         key: _copy_features(snapshot, key) for key in initial_parts
     }
     workspace_snapshot["part_face_features"] = deepcopy(
-        dict(snapshot.get("part_face_features") or {})
+        dict(snapshot.get("part_face_features") or (snapshot.get("workspace") or {}).get("part_face_features") or {})
+    )
+    workspace_snapshot["assembly_placements"] = deepcopy(
+        dict(snapshot.get("assembly_placements") or (snapshot.get("workspace") or {}).get("assembly_placements") or {})
     )
     self.designer_workspace = Phase6DesignerWorkspace.from_snapshot(workspace_snapshot)
     self._phase6_box_whd = {

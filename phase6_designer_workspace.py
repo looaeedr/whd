@@ -40,19 +40,20 @@ class Phase6DesignerWorkspace:
             raw_structure,
             legacy_locked=legacy_box_body_structure_locked(source.get("model")),
         )
+        ws_source = source.get("workspace") if isinstance(source.get("workspace"), Mapping) else {}
         shared = SharedWorkspaceState(
-            existing_parts=source.get("existing_parts", (MANDATORY_PART,)),
-            active_part=source.get("active_part"),
-            part_profiles=source.get("part_profiles"),
+            existing_parts=source.get("existing_parts") or ws_source.get("existing_parts") or (MANDATORY_PART,),
+            active_part=source.get("active_part") or ws_source.get("active_part"),
+            part_profiles=source.get("part_profiles") or ws_source.get("part_profiles"),
             box_body_structure=structure,
             active_repair="none",
         )
         return cls(
             shared_state=shared,
             selected_part=None,
-            part_features=source.get("part_features"),
-            part_face_features=source.get("part_face_features"),
-            assembly_placements=source.get("assembly_placements"),
+            part_features=source.get("part_features") or ws_source.get("part_features"),
+            part_face_features=source.get("part_face_features") or ws_source.get("part_face_features"),
+            assembly_placements=source.get("assembly_placements") or ws_source.get("assembly_placements"),
             dirty=False,
             switching=False,
         )
@@ -288,9 +289,27 @@ class Phase6DesignerWorkspace:
 
     def _prune_assembly_placements(self, available_parts) -> None:
         allowed = set(available_parts)
+
+        def _is_allowed(key, val):
+            if key in allowed:
+                return True
+            parent = (
+                val.get("parent_assembly_node")
+                if isinstance(val, dict)
+                else getattr(val, "parent_assembly_node", None)
+            )
+            if parent and parent in allowed:
+                return True
+            prefix = str(key).split(":")[0]
+            if prefix in allowed:
+                return True
+            if prefix == "inner_door" and "door" in allowed:
+                return True
+            return False
+
         self._assembly_placements = {
             key: value for key, value in self._assembly_placements.items()
-            if key in allowed
+            if _is_allowed(key, value)
         }
 
     def mark_dirty(self) -> None:

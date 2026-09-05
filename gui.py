@@ -2117,6 +2117,12 @@ class BoxCalculatorGUI:
         elif "assembly_placements" in snapshot:
             workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
         snapshot["workspace"] = workspace
+        if "assembly_placements" in workspace:
+            snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
+        if "part_features" in workspace:
+            snapshot["part_features"] = deepcopy(workspace["part_features"])
+        if "part_face_features" in workspace:
+            snapshot["part_face_features"] = deepcopy(workspace["part_face_features"])
         return snapshot
 
     def _capture_phase6_committed_snapshot(self):
@@ -2232,13 +2238,17 @@ class BoxCalculatorGUI:
         self.receiving_inner_doors = deepcopy(list(snapshot.get("inner_doors") or ()))
         datum = snapshot.get("door_nameplate_center_datum_top")
         self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+        ws_source = dict(snapshot.get("workspace") or {})
         self._store_fold_designer_workspace({
-            "box_body_profile": snapshot.get("box_body_profile"),
-            "existing_parts": list(snapshot.get("existing_parts", ())),
-            "active_part": snapshot.get("active_part"),
-            "part_profiles": snapshot.get("part_profiles", {}),
-            "endcap_fw": snapshot.get("endcap_fw", {}),
-            "box_body_structure": (snapshot.get("workspace") or {}).get("box_body_structure", snapshot.get("box_body_structure")),
+            "box_body_profile": snapshot.get("box_body_profile", ws_source.get("box_body_profile")),
+            "existing_parts": list(snapshot.get("existing_parts") or ws_source.get("existing_parts") or ()),
+            "active_part": snapshot.get("active_part") or ws_source.get("active_part"),
+            "part_profiles": snapshot.get("part_profiles") or ws_source.get("part_profiles", {}),
+            "endcap_fw": snapshot.get("endcap_fw") or ws_source.get("endcap_fw", {}),
+            "box_body_structure": ws_source.get("box_body_structure", snapshot.get("box_body_structure")),
+            "assembly_placements": snapshot.get("assembly_placements") or ws_source.get("assembly_placements", {}),
+            "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
+            "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
         })
         self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
         self._reload_current_baseline_features()
@@ -2362,15 +2372,46 @@ class BoxCalculatorGUI:
             if workspace:
                 self._store_fold_designer_workspace(workspace)
                 self._apply_existing_parts_from_fold_workspace(workspace.get("existing_parts", ()))
-                part_features = dict(workspace.get("part_features") or {})
+                part_features = dict(workspace.get("part_features") or payload.get("part_features") or {})
                 for key, features in part_features.items():
-                    if str(key).startswith("door_c"):
-                        self.surface_features[str(key)] = list(features or ())
+                    self.surface_features[str(key)] = list(features or ())
+                try:
+                    width = float(payload.get("w", self.w_var.get()))
+                    depth = float(payload.get("d", self.d_var.get()))
+                    if "head" in self.surface_features:
+                        self.head_holes = [
+                            feature_to_legacy_hole(feature, width, depth)
+                            for feature in self.surface_features.get("head", ())
+                        ]
+                    if "tail" in self.surface_features:
+                        self.tail_holes = [
+                            feature_to_legacy_hole(feature, width, depth)
+                            for feature in self.surface_features.get("tail", ())
+                        ]
+                except Exception:
+                    pass
+                face_features = dict(workspace.get("part_face_features") or payload.get("part_face_features") or {})
+                if "box_body" in face_features:
+                    self.box_body_face_features = {
+                        face: list(items or ()) for face, items in dict(face_features["box_body"] or {}).items()
+                    }
                 raw_columns = (
                     payload.get("door_layout_columns")
                     or dict(payload.get("settings") or {}).get("door_layout_columns")
                 )
-                if not raw_columns:
+                if raw_columns:
+                    setter = getattr(self, "set_door_layout_columns", None)
+                    if callable(setter):
+                        setter([
+                            (float(row[0]), [float(v) for v in row[1]])
+                            for row in raw_columns
+                        ])
+                    else:
+                        self.door_layout_columns = [
+                            (float(row[0]), [float(v) for v in row[1]])
+                            for row in raw_columns
+                        ]
+                else:
                     getter = getattr(self, "get_door_layout_columns", None)
                     raw_columns = getter() if callable(getter) else ()
                 columns = tuple(
@@ -2379,6 +2420,16 @@ class BoxCalculatorGUI:
                 )
                 if columns and part_features:
                     self.door_layout_features = door_part_features_to_layout_feature_map(columns, part_features)
+                if "multi_door_enabled" in payload:
+                    var = getattr(self, "multi_door_enabled_var", None)
+                    if var is not None:
+                        var.set(bool(payload.get("multi_door_enabled", False)))
+                if "door_layout_scope" in payload:
+                    self.door_layout_scope = str(payload.get("door_layout_scope") or "main")
+                if "door_handle_edges" in payload:
+                    self.door_layout_handle_edges = deepcopy(dict(payload.get("door_handle_edges") or {}))
+                if "inner_doors" in payload:
+                    self.receiving_inner_doors = deepcopy(list(payload.get("inner_doors") or ()))
             self._sync_fold_designer_manual_corner_context(payload.get("active_part"))
             if baseline_changed:
                 self._reload_current_baseline_features()
@@ -4249,6 +4300,9 @@ class BoxCalculatorGUI:
             self._ensure_door_layout_default()
         columns = []
         for column_index, column in enumerate(self.door_layout_columns, start=1):
+            if isinstance(column, (list, tuple)):
+                columns.append((float(column[0]), [float(h) for h in list(column[1])]))
+                continue
             width = self._parse_layout_value(column["width_var"], f"欄 {column_index} 寬度")
             heights = [
                 self._parse_layout_value(var, f"欄 {column_index} 第 {row_index} 層高度")
