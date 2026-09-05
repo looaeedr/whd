@@ -1,0 +1,28 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_project_controller_keeps_session_internal_and_exposes_defensive_snapshots _
+
+    def test_project_controller_keeps_session_internal_and_exposes_defensive_snapshots():
+        controller = _controller()
+        controller.capture_committed({"w": 400.0, "nested": {"value": 1}})
+    
+        assert not hasattr(controller, "session")
+        committed = controller.committed_snapshot()
+        assert committed["w"] == 400.0
+        committed["nested"]["value"] = 99
+        assert controller.committed_snapshot()["nested"]["value"] == 1
+        assert controller.loaded_baseline_snapshot() is None
+        assert controller.draft_snapshot() is None
+>       assert "session" not in inspect.signature(Phase6ProjectController).parameters
+E       assert 'session' not in mappingproxy(OrderedDict({'read_project': <Parameter "read_project">, 'write_project': <Parameter "write_project">, 's...schema: 'str'">, 'session': <Parameter "session: 'ProjectSession | None' = None">, 'clock': <Parameter "clock=None">}))
+E        +  where mappingproxy(OrderedDict({'read_project': <Parameter "read_project">, 'write_project': <Parameter "write_project">, 's...schema: 'str'">, 'session': <Parameter "session: 'ProjectSession | None' = None">, 'clock': <Parameter "clock=None">})) = <Signature (*, read_project, write_project, schema: 'str', session: 'ProjectSession | None' = None, clock=None) -> 'None'>.parameters
+E        +    where <Signature (*, read_project, write_project, schema: 'str', session: 'ProjectSession | None' = None, clock=None) -> 'None'> = <function signature at 0x7f8e9b3c2fc0>(Phase6ProjectController)
+E        +      where <function signature at 0x7f8e9b3c2fc0> = inspect.signature
+
+tests/test_phase6_project_ownership.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_project_ownership.py::test_project_controller_keeps_session_internal_and_exposes_defensive_snapshots - assert 'session' not in mappingproxy(OrderedDict({'read_project': <Parameter "read_project">, 'write_project': <Parameter "write_project">, 's...schema: 'str'">, 'session': <Parameter "session: 'ProjectSession | None' = None">, 'clock': <Parameter "clock=None">}))
+ +  where mappingproxy(OrderedDict({'read_project': <Parameter "read_project">, 'write_project': <Parameter "write_project">, 's...schema: 'str'">, 'session': <Parameter "session: 'ProjectSession | None' = None">, 'clock': <Parameter "clock=None">})) = <Signature (*, read_project, write_project, schema: 'str', session: 'ProjectSession | None' = None, clock=None) -> 'None'>.parameters
+ +    where <Signature (*, read_project, write_project, schema: 'str', session: 'ProjectSession | None' = None, clock=None) -> 'None'> = <function signature at 0x7f8e9b3c2fc0>(Phase6ProjectController)
+ +      where <function signature at 0x7f8e9b3c2fc0> = inspect.signature
+1 failed in 0.09s

@@ -1,0 +1,67 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________________ test_receiving_multipart_end_to_end_round_trip ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-19/test_receiving_multipart_end_t0')
+
+    def test_receiving_multipart_end_to_end_round_trip(tmp_path):
+        import phase6_project_file as project
+        from ae_engine.assembly_joint import edge_relation_for_part
+    
+>       tk, root, app, designer, bridge = _open_receiving()
+                                          ^^^^^^^^^^^^^^^^^
+
+tests/test_phase6_receiving_multipart_integration.py:63: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_phase6_receiving_multipart_integration.py:29: in _open_receiving
+    designer = app.open_original_fold_designer()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+gui.py:2502: in open_original_fold_designer
+    designer = Phase6FoldDesignerApp(
+fold_designer_bridge.py:7402: in _fix11_init
+    initial_live_state = _phase6_corner_transaction_payload(self)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fold_designer_bridge.py:2123: in _phase6_corner_transaction_payload
+    "workspace": _phase6_collect_workspace_state(self),
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <fold_designer_bridge.Phase6FoldDesignerApp object at 0x7f33ed84ba10>
+
+    def _phase6_collect_workspace_state(self):
+        active = self.designer_workspace.active_part
+        live_active_profiles = None
+        # The visible fold editor is live canonical state.  The adapter only supplies
+        # that editor payload; DesignerWorkspace owns how it projects the shared schema.
+        if active and active != "box_body":
+            profiles = getattr(self.state, "profiles", {}) or {}
+            live_x = profiles.get("X", ()) or ()
+            live_y = profiles.get("Y", ()) or ()
+            if live_x or live_y:
+                live_active_profiles = {
+                    "X": clone_profile(live_x),
+                    "Y": clone_profile(live_y),
+                }
+        owner = self.designer_workspace.export_shared_snapshot(
+            live_active_profiles=live_active_profiles
+        )
+        owner["part_features"] = self.designer_workspace.part_features_snapshot()
+        owner["part_face_features"] = self.designer_workspace.part_face_features_snapshot()
+        return {
+            "assembly_type": assembly_intent_value(getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)),
+>           "assembly_joint_schema_version": graph_state["assembly_joint_schema_version"],
+                                             ^^^^^^^^^^^
+            "assembly_joints": deepcopy(graph_state["assembly_joints"]),
+            "endcap_fw": deepcopy(
+                getattr(self, "_phase6_endcap_fw_state", None)
+                or normalize_endcap_fw_state(getattr(self, "_phase6_input_snapshot", {}) or {})
+            ),
+            "box_body_profile": clone_profile(self.state.profiles_vault.get("箱身", [])),
+            **owner,
+        }
+E       NameError: name 'graph_state' is not defined
+
+fold_designer_bridge.py:1865: NameError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_multipart_integration.py::test_receiving_multipart_end_to_end_round_trip - NameError: name 'graph_state' is not defined
+1 failed in 2.13s

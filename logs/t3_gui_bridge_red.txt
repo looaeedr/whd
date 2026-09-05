@@ -1,0 +1,35 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_gui_and_bridge_use_family_facade_not_direct_receiving_imports ______
+
+    def test_gui_and_bridge_use_family_facade_not_direct_receiving_imports():
+        violations = []
+        for name in ("gui.py", "fold_designer_bridge.py"):
+            source = Path(name).read_text(encoding="utf-8")
+            if "cabinet_types.receiving" in source or "cabinet_types import receiving" in source:
+                violations.append(name)
+>       assert violations == []
+E       AssertionError: assert ['gui.py', 'f...er_bridge.py'] == []
+E         
+E         Left contains 2 more items, first extra item: 'gui.py'
+E         
+E         Full diff:
+E         - []
+E         + [
+E         +     'gui.py',
+E         +     'fold_designer_bridge.py',
+E         + ]
+
+tests/test_phase6_cabinet_family_policy.py:91: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_cabinet_family_policy.py::test_gui_and_bridge_use_family_facade_not_direct_receiving_imports - AssertionError: assert ['gui.py', 'f...er_bridge.py'] == []
+  
+  Left contains 2 more items, first extra item: 'gui.py'
+  
+  Full diff:
+  - []
+  + [
+  +     'gui.py',
+  +     'fold_designer_bridge.py',
+  + ]
+1 failed in 0.10s

@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PHASE6 Certified Relief Registry v2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "standard_rules",
+    "rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "standard_rules": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "dimension_semantics",
+          "standard_geometry",
+          "revision"
+        ],
+        "properties": {
+          "dimension_semantics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "standard_geometry": {
+            "type": "object"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "revision",
+          "trust_level",
+          "active",
+          "assembly_intent",
+          "joint_signature",
+          "topology_levels",
+          "formula",
+          "preconditions",
+          "source",
+          "standard_ref",
+          "affected_zone",
+          "dimension_space",
+          "target_semantics",
+          "adjustment_type",
+          "adjustment_amount",
+          "certification_evidence"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "trust_level": {
+            "enum": [
+              "CERTIFIED",
+              "CERTIFIED_FROM_3D"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "assembly_intent": {
+            "enum": [
+              "INSERT",
+              "OVERLAY",
+              "INSERT_OVERLAY",
+              "ANY"
+            ]
+          },
+          "joint_signature": {
+            "type": "array",
+            "minItems": 1
+          },
+          "topology_levels": {
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "formula": {
+            "type": "object"
+          },
+          "preconditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affected_zone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dimension_space": {
+            "enum": [
+              "MATERIAL",
+              "OUTSIDE",
+              "FORMED_OCCUPATION"
+            ]
+          },
+          "target_semantics": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adjustment_type": {
+            "enum": [
+              "STANDARD",
+              "INSERT",
+              "OVERLAY",
+              "INSERT_OVERLAY",
+              "WRAP"
+            ]
+          },
+          "adjustment_amount": {
+            "type": "object"
+          },
+          "certification_evidence": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "geometry_inputs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "BOX_BODY_FORMED_FW",
+                "ENDCAP_SIDE_FOLD",
+                "ENDCAP_FW",
+                "ENDCAP_YTOP1",
+                "ENDCAP_YBOTTOM1",
+                "BOX_SIDE_REAR_BEND",
+                "SHEET_THICKNESS",
+                "BOTTOM_RELIEF_RESERVE_U",
+                "BOTTOM_RELIEF_RESERVE_V"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,133 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked _
+
+    def test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked():
+        tk, root, win, app, bridge = _build_app()
+        try:
+            assert app._phase6_parameters_unlocked is False
+            app.activate_part("head")
+            win.update_idletasks(); win.update()
+    
+            assert set(app.endcap_joint_widgets) == {"TOP", "BOTTOM", "LEFT", "RIGHT"}
+>           hosts = app.drawing_edge_hosts
+                    ^^^^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'drawing_edge_hosts'
+
+tests/test_phase6_receiving_edge_controls_gui.py:59: AttributeError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+_____ test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls _____
+
+    def test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls():
+        tk, root, win, app, bridge = _build_app()
+        try:
+            app.activate_part("head")
+            win.update_idletasks(); win.update()
+            before = dict(app.endcap_joint_widgets)
+            before_parents = {edge: widget.winfo_parent() for edge, widget in before.items()}
+    
+            bridge._phase6_toggle_parameter_panel(app)
+            win.update_idletasks(); win.update()
+    
+            assert app._phase6_parameters_unlocked is True
+            assert set(app.endcap_joint_widgets) == set(before)
+>           assert {edge: widget.winfo_parent() for edge, widget in app.endcap_joint_widgets.items()} == before_parents
+E           AssertionError: assert {'BOTTOM': '....frame.!frame'} == {'BOTTOM': '....frame.!frame'}
+E             
+E             Differing items:
+E             {'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame'} != {'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame'}
+E             {'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame3'} != {'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame3'}
+E             {'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame4'} != {'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame4'}
+E             {'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame2'} != {'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame2'}
+E             
+E             Full diff:
+E               {
+E             -     'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame2',
+E             ?                                                             ^
+E             +     'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame2',
+E             ?                                                             ^
+E             -     'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame3',
+E             ?                                                           ^
+E             +     'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame3',
+E             ?                                                           ^
+E             -     'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame4',
+E             ?                                                            ^
+E             +     'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame4',
+E             ?                                                            ^
+E             -     'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame',
+E             ?                                                          ^
+E             +     'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame',
+E             ?                                                          ^
+E               }
+
+tests/test_phase6_receiving_edge_controls_gui.py:91: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+WARNING  matplotlib.font_manager:font_manager.py:1425 findfont: Generic family 'sans-serif' not found because none of the following families were found: Microsoft JhengHei, PingFang TC, Heiti TC, sans-serif
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked - AttributeError: 'Phase6FoldDesignerApp' object has no attribute 'drawing_edge_hosts'
+FAILED tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls - AssertionError: assert {'BOTTOM': '....frame.!frame'} == {'BOTTOM': '....frame.!frame'}
+  
+  Differing items:
+  {'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame'} != {'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame'}
+  {'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame3'} != {'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame3'}
+  {'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame4'} != {'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame4'}
+  {'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame2'} != {'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame2'}
+  
+  Full diff:
+    {
+  -     'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame2',
+  ?                                                             ^
+  +     'BOTTOM': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame2',
+  ?                                                             ^
+  -     'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame3',
+  ?                                                           ^
+  +     'LEFT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame3',
+  ?                                                           ^
+  -     'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame4',
+  ?                                                            ^
+  +     'RIGHT': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame4',
+  ?                                                            ^
+  -     'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame2.!labelframe.!frame',
+  ?                                                          ^
+  +     'TOP': '.!toplevel.!frame2.!labelframe.!frame2.!frame3.!labelframe.!frame',
+  ?                                                          ^
+    }
+2 failed, 8 warnings in 1.25s

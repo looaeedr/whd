@@ -1,0 +1,677 @@
+....F....F..FFFF.............................F.FFFFFFFF......            [100%]
+=================================== FAILURES ===================================
+_____ test_head_settings_publish_four_edge_controls_directly_from_registry _____
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_head_settings_publish_four_edge_controls_directly_from_registry():
+        import tkinter as tk
+        import fold_designer_bridge as bridge
+        from test_phase6_settings_center_bridge import _snapshot
+    
+>       root = tk.Tk(); root.withdraw(); win = tk.Toplevel(root)
+               ^^^^^^^
+
+tests/test_phase6_t02_endcap_edge_controls.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_ test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions _
+
+    def test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions():
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+        import fold_designer_bridge as bridge
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_t03_piece_dimensions.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+__ test_main_gui_fresh_receiving_switch_sets_wrap_overlay_and_1100_500_layout __
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_main_gui_fresh_receiving_switch_sets_wrap_overlay_and_1100_500_layout():
+        import tkinter as tk
+        import gui
+        from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
+    
+>       root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+               ^^^^^^^
+
+tests/test_phase6_t06_receiving_fresh_family.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+______ test_receiving_family_round_trip_keeps_explicit_runtime_overrides _______
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_receiving_family_round_trip_keeps_explicit_runtime_overrides():
+        import tkinter as tk
+        import gui
+        from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part, set_part_edge_relation
+    
+>       root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+               ^^^^^^^
+
+tests/test_phase6_t06_receiving_fresh_family.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+__ test_fold_designer_fresh_receiving_switch_materializes_wrap_overlay_graph ___
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_fold_designer_fresh_receiving_switch_materializes_wrap_overlay_graph():
+        import tkinter as tk
+        import gui
+        from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
+    
+>       root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+               ^^^^^^^
+
+tests/test_phase6_t06_receiving_fresh_family.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+______ test_saved_receiving_project_values_win_over_fresh_family_defaults ______
+
+    @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+    def test_saved_receiving_project_values_win_over_fresh_family_defaults():
+        import tkinter as tk
+        import gui
+        from ae_engine.assembly_joint import edge_relation_for_part, AssemblyJointRelation, migrate_legacy_snapshot_joints
+        from ae_engine.cabinet_types.receiving import resolve_box_body_structure_state
+    
+>       root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+               ^^^^^^^
+
+tests/test_phase6_t06_receiving_fresh_family.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+________ test_real_designer_load_button_replaces_workspace_from_p6fold _________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-2/test_real_designer_load_button0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc8b11cb770>
+
+    def test_real_designer_load_button_replaces_workspace_from_p6fold(tmp_path, monkeypatch):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import tkinter.filedialog as filedialog
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_______ test_real_main_gui_load_restores_workspace_and_opens_saved_part ________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-2/test_real_main_gui_load_restor0')
+
+    def test_real_main_gui_load_restores_workspace_and_opens_saved_part(tmp_path):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_ test_main_gui_has_global_project_controls_and_3d_footer_has_no_project_file_buttons _
+
+    def test_main_gui_has_global_project_controls_and_3d_footer_has_no_project_file_buttons():
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+___ test_global_save_save_as_and_open_round_trip_project_without_forcing_3d ____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-2/test_global_save_save_as_and_o0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc8b098f130>
+
+    def test_global_save_save_as_and_open_round_trip_project_without_forcing_3d(tmp_path, monkeypatch):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import tkinter.filedialog as filedialog
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:264: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+____ test_loaded_project_session_baseline_survives_main_committed_recapture ____
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-2/test_loaded_project_session_ba0')
+
+    def test_loaded_project_session_baseline_survives_main_committed_recapture(tmp_path):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:320: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_______ test_3d_live_edit_updates_committed_state_without_project_draft ________
+
+    def test_3d_live_edit_updates_committed_state_without_project_draft():
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:353: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+___________ test_3d_window_close_keeps_already_live_committed_width ____________
+
+    def test_3d_window_close_keeps_already_live_committed_width():
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:389: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_ test_main_connected_designer_project_save_as_persists_current_live_canonical_state _
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-2/test_main_connected_designer_p0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fc8b098ef10>
+
+    def test_main_connected_designer_project_save_as_persists_current_live_canonical_state(tmp_path, monkeypatch):
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import tkinter.filedialog as filedialog
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:430: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+_ test_main_gui_exposes_project_controller_as_the_project_transaction_boundary _
+
+    def test_main_gui_exposes_project_controller_as_the_project_transaction_boundary():
+        import os
+        if not os.environ.get("DISPLAY"):
+            pytest.skip("需要 Tk 顯示環境")
+        import tkinter as tk
+        import gui
+    
+>       root = tk.Tk(); root.withdraw()
+               ^^^^^^^
+
+tests/test_phase6_project_file.py:467: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tkinter.Tk object .>, screenName = None, baseName = 'pytest'
+className = 'Tk', useTk = True, sync = False, use = None
+
+    def __init__(self, screenName=None, baseName=None, className='Tk',
+                 useTk=True, sync=False, use=None):
+        """Return a new top level widget on screen SCREENNAME. A new Tcl interpreter will
+        be created. BASENAME will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class."""
+        self.master = None
+        self.children = {}
+        self._tkloaded = False
+        # to avoid recursions in the getattr code in case of failure, we
+        # ensure that self.tk is always _something_.
+        self.tk = None
+        if baseName is None:
+            import os
+            baseName = os.path.basename(sys.argv[0])
+            baseName, ext = os.path.splitext(baseName)
+            if ext not in ('.py', '.pyc'):
+                baseName = baseName + ext
+        interactive = False
+>       self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       _tkinter.TclError: couldn't connect to display ":0"
+
+/usr/lib/python3.13/tkinter/__init__.py:2462: TclError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_t06_receiving_fresh_family.py::test_main_gui_fresh_receiving_switch_sets_wrap_overlay_and_1100_500_layout - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_t06_receiving_fresh_family.py::test_receiving_family_round_trip_keeps_explicit_runtime_overrides - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_t06_receiving_fresh_family.py::test_fold_designer_fresh_receiving_switch_materializes_wrap_overlay_graph - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_t06_receiving_fresh_family.py::test_saved_receiving_project_values_win_over_fresh_family_defaults - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_real_designer_load_button_replaces_workspace_from_p6fold - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_real_main_gui_load_restores_workspace_and_opens_saved_part - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_main_gui_has_global_project_controls_and_3d_footer_has_no_project_file_buttons - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_global_save_save_as_and_open_round_trip_project_without_forcing_3d - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_loaded_project_session_baseline_survives_main_committed_recapture - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_3d_live_edit_updates_committed_state_without_project_draft - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_3d_window_close_keeps_already_live_committed_width - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_main_connected_designer_project_save_as_persists_current_live_canonical_state - _tkinter.TclError: couldn't connect to display ":0"
+FAILED tests/test_phase6_project_file.py::test_main_gui_exposes_project_controller_as_the_project_transaction_boundary - _tkinter.TclError: couldn't connect to display ":0"
+15 failed, 46 passed in 1.90s

@@ -1,0 +1,72 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_generic_family_policy_resolves_receiving_and_vault_capabilities _____
+
+    def test_generic_family_policy_resolves_receiving_and_vault_capabilities():
+>       from ae_engine.cabinet_types import policy
+E       ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+
+tests/test_phase6_cabinet_family_policy.py:5: ImportError
+___ test_policy_exposes_geometry_parameters_without_owning_registry_answers ____
+
+    def test_policy_exposes_geometry_parameters_without_owning_registry_answers():
+>       from ae_engine.cabinet_types import policy
+E       ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+
+tests/test_phase6_cabinet_family_policy.py:29: ImportError
+______ test_policy_exposes_family_fold_semantics_without_ui_family_branch ______
+
+    def test_policy_exposes_family_fold_semantics_without_ui_family_branch():
+>       from ae_engine.cabinet_types import policy
+E       ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+
+tests/test_phase6_cabinet_family_policy.py:45: ImportError
+________ test_mechanical_layers_do_not_import_receiving_module_directly ________
+
+    def test_mechanical_layers_do_not_import_receiving_module_directly():
+        files = (
+            "phase6_fold_profiles.py",
+            "phase6_endcap_semantics.py",
+            "ae_engine/manufacturing_api.py",
+        )
+        violations = []
+        for name in files:
+            source = Path(name).read_text(encoding="utf-8")
+            if "cabinet_types.receiving" in source or "cabinet_types import receiving" in source:
+                violations.append(name)
+>       assert violations == []
+E       AssertionError: assert ['phase6_fold...uring_api.py'] == []
+E         
+E         Left contains 2 more items, first extra item: 'phase6_fold_profiles.py'
+E         
+E         Full diff:
+E         - []
+E         + [
+E         +     'phase6_fold_profiles.py',
+E         +     'ae_engine/manufacturing_api.py',
+E         + ]
+
+tests/test_phase6_cabinet_family_policy.py:74: AssertionError
+______ test_policy_module_stays_out_of_ui_project_and_registry_ownership _______
+
+    def test_policy_module_stays_out_of_ui_project_and_registry_ownership():
+>       from ae_engine.cabinet_types import policy
+E       ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+
+tests/test_phase6_cabinet_family_policy.py:78: ImportError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_cabinet_family_policy.py::test_generic_family_policy_resolves_receiving_and_vault_capabilities - ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+FAILED tests/test_phase6_cabinet_family_policy.py::test_policy_exposes_geometry_parameters_without_owning_registry_answers - ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+FAILED tests/test_phase6_cabinet_family_policy.py::test_policy_exposes_family_fold_semantics_without_ui_family_branch - ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+FAILED tests/test_phase6_cabinet_family_policy.py::test_mechanical_layers_do_not_import_receiving_module_directly - AssertionError: assert ['phase6_fold...uring_api.py'] == []
+  
+  Left contains 2 more items, first extra item: 'phase6_fold_profiles.py'
+  
+  Full diff:
+  - []
+  + [
+  +     'phase6_fold_profiles.py',
+  +     'ae_engine/manufacturing_api.py',
+  + ]
+FAILED tests/test_phase6_cabinet_family_policy.py::test_policy_module_stays_out_of_ui_project_and_registry_ownership - ImportError: cannot import name 'policy' from 'ae_engine.cabinet_types' (/mnt/data/phase6_120434_work/ae_engine/cabinet_types/__init__.py)
+5 failed in 0.40s

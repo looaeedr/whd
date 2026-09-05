@@ -1,0 +1,286 @@
+.                                                                        [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32068 (\N{CJK UNIFIED IDEOGRAPH-7D44}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21512 (\N{CJK UNIFIED IDEOGRAPH-5408}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 39636 (\N{CJK UNIFIED IDEOGRAPH-9AD4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24178 (\N{CJK UNIFIED IDEOGRAPH-5E72}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28041 (\N{CJK UNIFIED IDEOGRAPH-6D89}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30896 (\N{CJK UNIFIED IDEOGRAPH-78B0}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25758 (\N{CJK UNIFIED IDEOGRAPH-649E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21312 (\N{CJK UNIFIED IDEOGRAPH-5340}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27573 (\N{CJK UNIFIED IDEOGRAPH-6BB5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20132 (\N{CJK UNIFIED IDEOGRAPH-4EA4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32218 (\N{CJK UNIFIED IDEOGRAPH-7DDA}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23553 (\N{CJK UNIFIED IDEOGRAPH-5C01}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38957 (\N{CJK UNIFIED IDEOGRAPH-982D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23614 (\N{CJK UNIFIED IDEOGRAPH-5C3E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38272 (\N{CJK UNIFIED IDEOGRAPH-9580}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24213 (\N{CJK UNIFIED IDEOGRAPH-5E95}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26495 (\N{CJK UNIFIED IDEOGRAPH-677F}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24038 (\N{CJK UNIFIED IDEOGRAPH-5DE6}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20596 (\N{CJK UNIFIED IDEOGRAPH-5074}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25104 (\N{CJK UNIFIED IDEOGRAPH-6210}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24418 (\N{CJK UNIFIED IDEOGRAPH-5F62}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65307 (\N{FULLWIDTH SEMICOLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24460 (\N{CJK UNIFIED IDEOGRAPH-5F8C}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38754 (\N{CJK UNIFIED IDEOGRAPH-9762}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21491 (\N{CJK UNIFIED IDEOGRAPH-53F3}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19978 (\N{CJK UNIFIED IDEOGRAPH-4E0A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19979 (\N{CJK UNIFIED IDEOGRAPH-4E0B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20013 (\N{CJK UNIFIED IDEOGRAPH-4E2D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38548 (\N{CJK UNIFIED IDEOGRAPH-9694}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27243 (\N{CJK UNIFIED IDEOGRAPH-6A6B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21521 (\N{CJK UNIFIED IDEOGRAPH-5411}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23652 (\N{CJK UNIFIED IDEOGRAPH-5C64}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20839 (\N{CJK UNIFIED IDEOGRAPH-5167}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26694 (\N{CJK UNIFIED IDEOGRAPH-6846}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25240 (\N{CJK UNIFIED IDEOGRAPH-6298}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21253 (\N{CJK UNIFIED IDEOGRAPH-5305}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22806 (\N{CJK UNIFIED IDEOGRAPH-5916}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25130 (\N{CJK UNIFIED IDEOGRAPH-622A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 35282 (\N{CJK UNIFIED IDEOGRAPH-89D2}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26009 (\N{CJK UNIFIED IDEOGRAPH-6599}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 135 warnings in 5.23s

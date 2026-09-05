@@ -1,0 +1,28 @@
+.......                                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked
+tests/test_phase6_receiving_edge_controls_gui.py::test_unlock_does_not_reparent_or_duplicate_endcap_four_edge_controls
+tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 12 warnings in 1.45s

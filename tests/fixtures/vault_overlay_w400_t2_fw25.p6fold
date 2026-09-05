@@ -1,0 +1,1254 @@
+{
+  "schema": "phase6-fold-project-v1",
+  "saved_at": "2026-08-29T21:12:04+08:00",
+  "snapshot": {
+    "model": "金庫型",
+    "w": 400.0,
+    "h": 600.0,
+    "d": 250.0,
+    "t": 2.0,
+    "fw": 25.0,
+    "zl1": 15.0,
+    "zl2": 20.0,
+    "zr2": 20.0,
+    "zr1": 15.0,
+    "yl1": 15.0,
+    "yr1": 15.0,
+    "ytop1": 16.0,
+    "ybottom1": 15.0,
+    "door_gap_w": 3.5,
+    "door_gap_h": 3.5,
+    "door_fold_l": 19.0,
+    "door_fold_r": 15.0,
+    "door_fold_t": 15.0,
+    "door_fold_b": 15.0,
+    "base_plate_shrink_top": 55.0,
+    "base_plate_shrink_bottom": 55.0,
+    "base_plate_shrink_left": 55.0,
+    "base_plate_shrink_right": 55.0,
+    "base_plate_bend": 15.0,
+    "indicator_box_fold": 49.0,
+    "indicator_door_fold": 19.0,
+    "use_box_distance": false,
+    "assembly_type": "OVERLAY",
+    "endcap_fw": {
+      "mode": "FOLLOW_BODY",
+      "head": {
+        "follow_box": true,
+        "value": 25.0
+      },
+      "tail": {
+        "follow_box": true,
+        "value": 25.0
+      }
+    },
+    "assembly_relief": {
+      "enabled": true,
+      "fallback_enabled": true,
+      "clearance": 0.0,
+      "source": {
+        "w": 400,
+        "h": 600,
+        "d": 250,
+        "t": 2.0,
+        "fw": 25.0,
+        "zl1": 15.0,
+        "zl2": 20.0,
+        "zr1": 15.0,
+        "zr2": 20.0,
+        "yl1": 15.0,
+        "yr1": 15.0,
+        "ytop1": 16.0,
+        "ybottom1": 15.0,
+        "assembly_type": "OVERLAY",
+        "box_body_profile": [
+          {
+            "len": 15,
+            "angle": 90,
+            "phase6_key": "zl1",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 20,
+            "angle": -90,
+            "phase6_key": "zl2",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw_left",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 246,
+            "angle": -90,
+            "core": "D",
+            "phase6_key": "d_left",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 396,
+            "angle": -90,
+            "core": "W",
+            "phase6_key": "w",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 246,
+            "angle": -90,
+            "core": "D",
+            "phase6_key": "d_right",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw_right",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 20,
+            "angle": 90,
+            "phase6_key": "zr2",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "zr1",
+            "ui_len_add": 2.0
+          }
+        ],
+        "part_profiles": {
+          "head": {
+            "X": [
+              {
+                "len": 400,
+                "phase6_key": "endcap_w_flat",
+                "core": "W-FLAT"
+              }
+            ],
+            "Y": [
+              {
+                "len": 16,
+                "angle": -90,
+                "phase6_key": "ytop1",
+                "ui_len_add": 2.0
+              },
+              {
+                "len": 25,
+                "angle": -90,
+                "phase6_key": "fw",
+                "ui_len_add": 4.0
+              },
+              {
+                "len": 244,
+                "angle": -90,
+                "phase6_key": "endcap_d_core",
+                "core": "D-T",
+                "ui_len_add": 4.0
+              },
+              {
+                "len": 15,
+                "phase6_key": "ybottom1",
+                "ui_len_add": 2.0
+              }
+            ]
+          },
+          "tail": {
+            "X": [
+              {
+                "len": 400,
+                "phase6_key": "endcap_w_flat",
+                "core": "W-FLAT"
+              }
+            ],
+            "Y": [
+              {
+                "len": 15,
+                "angle": -90,
+                "phase6_key": "ybottom1",
+                "ui_len_add": 2.0
+              },
+              {
+                "len": 244,
+                "angle": -90,
+                "phase6_key": "endcap_d_core",
+                "core": "D-T",
+                "ui_len_add": 4.0
+              },
+              {
+                "len": 25,
+                "angle": -90,
+                "phase6_key": "fw",
+                "ui_len_add": 4.0
+              },
+              {
+                "len": 16,
+                "phase6_key": "ytop1",
+                "ui_len_add": 2.0
+              }
+            ]
+          }
+        }
+      },
+      "parts": {
+        "head": {
+          "verified": true,
+          "canonical_accepted": true,
+          "trust_level": "CERTIFIED",
+          "rule_id": "ENDCAP_TOP_OVERLAY_STANDARD_V1",
+          "rule_revision": 1,
+          "joint_signature": [
+            {
+              "relation": "OVERLAY",
+              "subject_role": "HEAD_OR_TAIL",
+              "target_role": "BOX_SIDE",
+              "subject_region": "TOP",
+              "target_region": "OUTER_SURFACE"
+            }
+          ],
+          "shadow_validation": {
+            "policy": "REQUIRED_NO_OVERRIDE",
+            "verified": true,
+            "residual_pair_count": 0
+          },
+          "cuts": [
+            [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                39.0
+              ],
+              [
+                40.0,
+                39.0
+              ],
+              [
+                40.0,
+                0.0
+              ]
+            ],
+            [
+              [
+                360.0,
+                0.0
+              ],
+              [
+                360.0,
+                39.0
+              ],
+              [
+                400.0,
+                39.0
+              ],
+              [
+                400.0,
+                0.0
+              ]
+            ]
+          ],
+          "measurements": [
+            {
+              "corner_name": "bottom_left",
+              "primary_u": 40.0,
+              "primary_v": 39.0,
+              "secondary_u": null,
+              "secondary_depth": null,
+              "clearance_a": 0.0
+            },
+            {
+              "corner_name": "bottom_right",
+              "primary_u": 40.0,
+              "primary_v": 39.0,
+              "secondary_u": null,
+              "secondary_depth": null,
+              "clearance_a": 0.0
+            }
+          ]
+        },
+        "tail": {
+          "verified": true,
+          "canonical_accepted": true,
+          "trust_level": "CERTIFIED",
+          "rule_id": "ENDCAP_TOP_OVERLAY_STANDARD_V1",
+          "rule_revision": 1,
+          "joint_signature": [
+            {
+              "relation": "OVERLAY",
+              "subject_role": "HEAD_OR_TAIL",
+              "target_role": "BOX_SIDE",
+              "subject_region": "TOP",
+              "target_region": "OUTER_SURFACE"
+            }
+          ],
+          "shadow_validation": {
+            "policy": "REQUIRED_NO_OVERRIDE",
+            "verified": true,
+            "residual_pair_count": 0
+          },
+          "cuts": [
+            [
+              [
+                0.0,
+                261.0
+              ],
+              [
+                0.0,
+                300.0
+              ],
+              [
+                40.0,
+                300.0
+              ],
+              [
+                40.0,
+                261.0
+              ]
+            ],
+            [
+              [
+                360.0,
+                261.0
+              ],
+              [
+                360.0,
+                300.0
+              ],
+              [
+                400.0,
+                300.0
+              ],
+              [
+                400.0,
+                261.0
+              ]
+            ]
+          ],
+          "measurements": [
+            {
+              "corner_name": "top_left",
+              "primary_u": 40.0,
+              "primary_v": 39.0,
+              "secondary_u": null,
+              "secondary_depth": null,
+              "clearance_a": 0.0
+            },
+            {
+              "corner_name": "top_right",
+              "primary_u": 40.0,
+              "primary_v": 39.0,
+              "secondary_u": null,
+              "secondary_depth": null,
+              "clearance_a": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "settings": {
+      "w": 400.0,
+      "h": 600.0,
+      "d": 250.0,
+      "t": 2.0,
+      "fw": 25.0,
+      "draw_stock": false,
+      "ui_text_size": "medium",
+      "relief_top_secondary_x_factor": 0.5,
+      "relief_top_secondary_depth_factor": 2.0,
+      "relief_bottom_x_factor": 0.5,
+      "relief_bottom_y_factor": 0.5,
+      "notch_bottom_gap": 0.5,
+      "notch_sub_x_half": 0.5,
+      "notch_sub_y_factor": 2.0,
+      "zl1": 15.0,
+      "zl2": 20.0,
+      "zr1": 15.0,
+      "zr2": 20.0,
+      "z_comp": 2.0,
+      "yl1": 15.0,
+      "yr1": 15.0,
+      "ytop1": 16.0,
+      "ybottom1": 15.0,
+      "hang_hole_r": 3.2,
+      "hang_hole_x": 35.5,
+      "hang_hole_y_up": 6.0,
+      "sq_x_left": 3.0,
+      "sq_width": 4.0,
+      "sq_y_bottom": 18.0,
+      "sq_height": 4.0,
+      "bottom_hole_r": 2.5,
+      "bottom_hole_y": 5.0,
+      "door_gap_w": 3.5,
+      "door_gap_h": 3.5,
+      "door_fold_l": 19.0,
+      "door_fold_r": 15.0,
+      "door_fold_t": 15.0,
+      "door_fold_b": 15.0,
+      "base_plate_shrink_top": 55.0,
+      "base_plate_shrink_bottom": 55.0,
+      "base_plate_shrink_left": 55.0,
+      "base_plate_shrink_right": 55.0,
+      "base_plate_bend": 15.0,
+      "indicator_box_fold": 49.0,
+      "indicator_door_fold": 19.0
+    },
+    "corner_state": {
+      "head": {
+        "top_left": {
+          "type_id": "OVERLAY",
+          "rotation_quadrants": 0,
+          "direction": "height",
+          "amount_t": 1.0
+        },
+        "top_right": {
+          "type_id": "OVERLAY",
+          "rotation_quadrants": 0,
+          "direction": "height",
+          "amount_t": 1.0
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "extra_cut",
+          "direction": "width",
+          "amount_t": 1.5
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "extra_cut",
+          "direction": "width",
+          "amount_t": 1.5
+        }
+      },
+      "tail": {
+        "top_left": {
+          "type_id": "OVERLAY",
+          "rotation_quadrants": 0,
+          "direction": "height",
+          "amount_t": 1.0
+        },
+        "top_right": {
+          "type_id": "OVERLAY",
+          "rotation_quadrants": 0,
+          "direction": "height",
+          "amount_t": 1.0
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "extra_cut",
+          "direction": "width",
+          "amount_t": 1.5
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "extra_cut",
+          "direction": "width",
+          "amount_t": 1.5
+        }
+      },
+      "door": {
+        "top_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "top_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        }
+      },
+      "base_plate": {
+        "top_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "standard"
+        },
+        "top_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "standard"
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "standard"
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "standard"
+        }
+      },
+      "indicator_box": {
+        "top_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "top_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        }
+      },
+      "indicator_door": {
+        "top_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "top_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_left": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        },
+        "bottom_right": {
+          "type_id": "CROSS",
+          "rotation_quadrants": 0,
+          "cross_mode": "retain",
+          "direction": "width",
+          "amount_t": 1.0
+        }
+      }
+    },
+    "corner_pair_same": {
+      "head": {
+        "top": true,
+        "bottom": true
+      },
+      "tail": {
+        "top": true,
+        "bottom": true
+      },
+      "door": {
+        "top": true,
+        "bottom": true
+      },
+      "base_plate": {
+        "top": true,
+        "bottom": true
+      },
+      "indicator_box": {
+        "top": true,
+        "bottom": true
+      },
+      "indicator_door": {
+        "top": true,
+        "bottom": true
+      }
+    },
+    "corner_editable": false,
+    "corner_type_labels": {
+      "CROSS": "十字截角",
+      "OVERLAY": "貼外型",
+      "INSERT": "嵌入型",
+      "INSERT_OVERLAY": "嵌入貼外型"
+    },
+    "baseline_models": [
+      "金庫型",
+      "受電箱",
+      "自訂"
+    ],
+    "baseline_unknown_value": "自訂",
+    "factory_defaults": {
+      "w": 400.0,
+      "h": 600.0,
+      "d": 250.0,
+      "t": 2.0,
+      "fw": 25.0,
+      "draw_stock": false,
+      "ui_text_size": "small",
+      "relief_top_secondary_x_factor": 0.5,
+      "relief_top_secondary_depth_factor": 2.0,
+      "relief_bottom_x_factor": 0.5,
+      "relief_bottom_y_factor": 0.5,
+      "notch_bottom_gap": 0.5,
+      "notch_sub_x_half": 0.5,
+      "notch_sub_y_factor": 2.0,
+      "zl1": 15.0,
+      "zl2": 20.0,
+      "zr1": 15.0,
+      "zr2": 20.0,
+      "z_comp": 2.0,
+      "yl1": 15.0,
+      "yr1": 15.0,
+      "ytop1": 16.0,
+      "ybottom1": 15.0,
+      "hang_hole_r": 3.2,
+      "hang_hole_x": 35.5,
+      "hang_hole_y_up": 6.0,
+      "sq_x_left": 3.0,
+      "sq_width": 4.0,
+      "sq_y_bottom": 18.0,
+      "sq_height": 4.0,
+      "bottom_hole_r": 2.5,
+      "bottom_hole_y": 5.0,
+      "door_gap_w": 3.5,
+      "door_gap_h": 3.5,
+      "door_fold_l": 19.0,
+      "door_fold_r": 15.0,
+      "door_fold_t": 15.0,
+      "door_fold_b": 15.0,
+      "base_plate_shrink_top": 55.0,
+      "base_plate_shrink_bottom": 55.0,
+      "base_plate_shrink_left": 55.0,
+      "base_plate_shrink_right": 55.0,
+      "base_plate_bend": 15.0,
+      "indicator_box_fold": 49.0,
+      "indicator_door_fold": 19.0
+    },
+    "box_body_profile": [
+      {
+        "len": 15,
+        "angle": 90,
+        "phase6_key": "zl1",
+        "ui_len_add": 2.0
+      },
+      {
+        "len": 20,
+        "angle": -90,
+        "phase6_key": "zl2",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 25,
+        "angle": -90,
+        "phase6_key": "fw_left",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 246,
+        "angle": -90,
+        "core": "D",
+        "phase6_key": "d_left",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 396,
+        "angle": -90,
+        "core": "W",
+        "phase6_key": "w",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 246,
+        "angle": -90,
+        "core": "D",
+        "phase6_key": "d_right",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 25,
+        "angle": -90,
+        "phase6_key": "fw_right",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 20,
+        "angle": 90,
+        "phase6_key": "zr2",
+        "ui_len_add": 4.0
+      },
+      {
+        "len": 15,
+        "phase6_key": "zr1",
+        "ui_len_add": 2.0
+      }
+    ],
+    "existing_parts": [
+      "box_body",
+      "head",
+      "tail",
+      "door",
+      "base_plate"
+    ],
+    "active_part": "head",
+    "part_features": {
+      "box_body": [],
+      "head": [],
+      "tail": [],
+      "door": [],
+      "base_plate": [],
+      "indicator_box": [],
+      "indicator_door": []
+    },
+    "part_face_features": {
+      "box_body": {
+        "left": [],
+        "back": [],
+        "right": []
+      }
+    },
+    "indicator_layer_groups": [
+      2
+    ],
+    "door_indicator_groups": [],
+    "door_indicator_offset": [
+      0.0,
+      0.0
+    ],
+    "door_indicator_box_enabled": false,
+    "part_dimensions": {
+      "box_body": {
+        "width": 400.0,
+        "height": 600.0
+      },
+      "head": {
+        "width": 400.0,
+        "height": 250.0
+      },
+      "tail": {
+        "width": 400.0,
+        "height": 250.0
+      },
+      "door": {
+        "width": 335.0,
+        "height": 535.0
+      },
+      "base_plate": {
+        "width": 290.0,
+        "height": 490.0
+      },
+      "indicator_box": {
+        "width": 396.0,
+        "height": 445.0
+      },
+      "indicator_door": {
+        "width": 323.0,
+        "height": 372.0
+      }
+    },
+    "part_profiles": {
+      "head": {
+        "X": [
+          {
+            "len": 400,
+            "phase6_key": "endcap_w_flat",
+            "core": "W-FLAT"
+          }
+        ],
+        "Y": [
+          {
+            "len": 16,
+            "angle": -90,
+            "phase6_key": "ytop1",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 244,
+            "angle": -90,
+            "phase6_key": "endcap_d_core",
+            "core": "D-T",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "ybottom1",
+            "ui_len_add": 2.0
+          }
+        ]
+      },
+      "tail": {
+        "X": [
+          {
+            "len": 400,
+            "phase6_key": "endcap_w_flat",
+            "core": "W-FLAT"
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "ybottom1",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 244,
+            "angle": -90,
+            "phase6_key": "endcap_d_core",
+            "core": "D-T",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 25,
+            "angle": -90,
+            "phase6_key": "fw",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 16,
+            "phase6_key": "ytop1",
+            "ui_len_add": 2.0
+          }
+        ]
+      },
+      "door": {
+        "X": [
+          {
+            "len": 19,
+            "angle": -90,
+            "phase6_key": "door_fold_l",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 331,
+            "angle": -90,
+            "phase6_key": "door_face_w",
+            "core": "門包外 W",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "door_fold_r",
+            "ui_len_add": 2.0
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "door_fold_b",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 531,
+            "angle": -90,
+            "phase6_key": "door_face_h",
+            "core": "門包外 H",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "door_fold_t",
+            "ui_len_add": 2.0
+          }
+        ]
+      },
+      "base_plate": {
+        "X": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_l",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 290,
+            "angle": -90,
+            "phase6_key": "base_face_w",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_r",
+            "ui_len_add": 2.0
+          }
+        ],
+        "Y": [
+          {
+            "len": 15,
+            "angle": -90,
+            "phase6_key": "base_bend_b",
+            "ui_len_add": 2.0
+          },
+          {
+            "len": 490,
+            "angle": -90,
+            "phase6_key": "base_face_h",
+            "ui_len_add": 4.0
+          },
+          {
+            "len": 15,
+            "phase6_key": "base_bend_t",
+            "ui_len_add": 2.0
+          }
+        ]
+      }
+    },
+    "workspace": {
+      "box_body_profile": [
+        {
+          "len": 15,
+          "angle": 90,
+          "phase6_key": "zl1",
+          "ui_len_add": 2.0
+        },
+        {
+          "len": 20,
+          "angle": -90,
+          "phase6_key": "zl2",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 25,
+          "angle": -90,
+          "phase6_key": "fw_left",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 246,
+          "angle": -90,
+          "core": "D",
+          "phase6_key": "d_left",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 396,
+          "angle": -90,
+          "core": "W",
+          "phase6_key": "w",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 246,
+          "angle": -90,
+          "core": "D",
+          "phase6_key": "d_right",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 25,
+          "angle": -90,
+          "phase6_key": "fw_right",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 20,
+          "angle": 90,
+          "phase6_key": "zr2",
+          "ui_len_add": 4.0
+        },
+        {
+          "len": 15,
+          "phase6_key": "zr1",
+          "ui_len_add": 2.0
+        }
+      ],
+      "existing_parts": [
+        "box_body",
+        "head",
+        "tail",
+        "door",
+        "base_plate"
+      ],
+      "active_part": "head",
+      "part_profiles": {
+        "head": {
+          "X": [
+            {
+              "len": 400,
+              "phase6_key": "endcap_w_flat",
+              "core": "W-FLAT"
+            }
+          ],
+          "Y": [
+            {
+              "len": 16,
+              "angle": -90,
+              "phase6_key": "ytop1",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 25,
+              "angle": -90,
+              "phase6_key": "fw",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 244,
+              "angle": -90,
+              "phase6_key": "endcap_d_core",
+              "core": "D-T",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 15,
+              "phase6_key": "ybottom1",
+              "ui_len_add": 2.0
+            }
+          ]
+        },
+        "tail": {
+          "X": [
+            {
+              "len": 400,
+              "phase6_key": "endcap_w_flat",
+              "core": "W-FLAT"
+            }
+          ],
+          "Y": [
+            {
+              "len": 15,
+              "angle": -90,
+              "phase6_key": "ybottom1",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 244,
+              "angle": -90,
+              "phase6_key": "endcap_d_core",
+              "core": "D-T",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 25,
+              "angle": -90,
+              "phase6_key": "fw",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 16,
+              "phase6_key": "ytop1",
+              "ui_len_add": 2.0
+            }
+          ]
+        },
+        "door": {
+          "X": [
+            {
+              "len": 19,
+              "angle": -90,
+              "phase6_key": "door_fold_l",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 331,
+              "angle": -90,
+              "phase6_key": "door_face_w",
+              "core": "門包外 W",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 15,
+              "phase6_key": "door_fold_r",
+              "ui_len_add": 2.0
+            }
+          ],
+          "Y": [
+            {
+              "len": 15,
+              "angle": -90,
+              "phase6_key": "door_fold_b",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 531,
+              "angle": -90,
+              "phase6_key": "door_face_h",
+              "core": "門包外 H",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 15,
+              "phase6_key": "door_fold_t",
+              "ui_len_add": 2.0
+            }
+          ]
+        },
+        "base_plate": {
+          "X": [
+            {
+              "len": 15,
+              "angle": -90,
+              "phase6_key": "base_bend_l",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 290,
+              "angle": -90,
+              "phase6_key": "base_face_w",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 15,
+              "phase6_key": "base_bend_r",
+              "ui_len_add": 2.0
+            }
+          ],
+          "Y": [
+            {
+              "len": 15,
+              "angle": -90,
+              "phase6_key": "base_bend_b",
+              "ui_len_add": 2.0
+            },
+            {
+              "len": 490,
+              "angle": -90,
+              "phase6_key": "base_face_h",
+              "ui_len_add": 4.0
+            },
+            {
+              "len": 15,
+              "phase6_key": "base_bend_t",
+              "ui_len_add": 2.0
+            }
+          ]
+        }
+      },
+      "endcap_fw": {
+        "mode": "FOLLOW_BODY",
+        "head": {
+          "follow_box": true,
+          "value": 25.0
+        },
+        "tail": {
+          "follow_box": true,
+          "value": 25.0
+        }
+      },
+      "box_body_structure": {
+        "active_type": "integral",
+        "locked": true,
+        "configs": {
+          "integral": {},
+          "two_piece_w_split": {
+            "left_w": null,
+            "right_w": null,
+            "seam_bend": 12.0,
+            "endcap_extra_relief": 5.0,
+            "endcap_single_side_meat_t": 0.5,
+            "baseplate_relief_length": 20.0,
+            "baseplate_single_side_meat_t": 0.5
+          },
+          "three_piece_w_split": {
+            "left_w": null,
+            "middle_w": null,
+            "right_w": null,
+            "seam_bend": 12.0,
+            "endcap_extra_relief": 5.0,
+            "endcap_single_side_meat_t": 0.5,
+            "baseplate_relief_length": 20.0,
+            "baseplate_single_side_meat_t": 0.5
+          },
+          "three_piece_side_back_split": {
+            "side_rear_bend": 15.0,
+            "back_width_comp_t": 0.5
+          }
+        }
+      }
+    },
+    "assembly_joint_schema_version": 1,
+    "assembly_joints": [
+      {
+        "joint_id": "head:box_body:left:OVERLAY:legacy",
+        "subject_part": "head",
+        "target_part": "box_body",
+        "subject_region": "left_side",
+        "target_region": "left_mating_zone",
+        "relation": "OVERLAY",
+        "contact_mode": "AUTO",
+        "preserve_side": "AUTO",
+        "relief_intent": "AUTO",
+        "clearance_policy": "ZERO",
+        "solver_constraints": {},
+        "source": "LEGACY_MIGRATED"
+      },
+      {
+        "joint_id": "head:box_body:right:OVERLAY:legacy",
+        "subject_part": "head",
+        "target_part": "box_body",
+        "subject_region": "right_side",
+        "target_region": "right_mating_zone",
+        "relation": "OVERLAY",
+        "contact_mode": "AUTO",
+        "preserve_side": "AUTO",
+        "relief_intent": "AUTO",
+        "clearance_policy": "ZERO",
+        "solver_constraints": {},
+        "source": "LEGACY_MIGRATED"
+      },
+      {
+        "joint_id": "tail:box_body:left:OVERLAY:legacy",
+        "subject_part": "tail",
+        "target_part": "box_body",
+        "subject_region": "left_side",
+        "target_region": "left_mating_zone",
+        "relation": "OVERLAY",
+        "contact_mode": "AUTO",
+        "preserve_side": "AUTO",
+        "relief_intent": "AUTO",
+        "clearance_policy": "ZERO",
+        "solver_constraints": {},
+        "source": "LEGACY_MIGRATED"
+      },
+      {
+        "joint_id": "tail:box_body:right:OVERLAY:legacy",
+        "subject_part": "tail",
+        "target_part": "box_body",
+        "subject_region": "right_side",
+        "target_region": "right_mating_zone",
+        "relation": "OVERLAY",
+        "contact_mode": "AUTO",
+        "preserve_side": "AUTO",
+        "relief_intent": "AUTO",
+        "clearance_policy": "ZERO",
+        "solver_constraints": {},
+        "source": "LEGACY_MIGRATED"
+      }
+    ]
+  },
+  "final_geometry": {}
+}

@@ -1,0 +1,700 @@
+--- DIFF controller ---
+--- /tmp/phase6_orig_t1/phase6_workspace_controller.py	2026-09-04 00:16:08.000000000 +0000
++++ phase6_workspace_controller.py	2026-09-04 07:18:24.996020195 +0000
+@@ -5,33 +5,21 @@
+ from copy import deepcopy
+ from typing import Mapping
+ 
+-from phase6_box_body_structure import normalize_box_body_structure_state
++from phase6_workspace_state import PART_ORDER, SharedWorkspaceState, normalize_existing_parts
+ 
+ 
+-PART_ORDER = (
+-    "box_body",
+-    "head",
+-    "tail",
+-    "door",
+-    "base_plate",
+-    "indicator_box",
+-    "indicator_door",
+-)
+ DEFAULT_EXISTING_PARTS = {"box_body", "head", "tail", "door", "base_plate"}
+ 
+ 
+ class Phase6WorkspaceController:
+-    """保存工作區 presence / active / profile stash，並隱藏一致性規則。"""
++    """保存 Main committed workspace lifecycle；共同 invariant 委派 shared core。"""
+ 
+     def __init__(self, *, default_existing_parts=None) -> None:
+         defaults = DEFAULT_EXISTING_PARTS if default_existing_parts is None else default_existing_parts
+-        self._fallback_existing_parts = set(self._normalize_existing(defaults))
++        self._fallback_existing_parts = set(normalize_existing_parts(defaults))
+         self._authoritative = False
+-        self._existing_parts = set(self._fallback_existing_parts)
+-        self._active_part: str | None = None
+-        self._part_profiles: dict = {}
++        self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
+         self._box_body_profile: list | None = None
+-        self._box_body_structure: dict = normalize_box_body_structure_state(None)
+ 
+     @staticmethod
+     def _clone(value):
+@@ -39,19 +27,7 @@
+ 
+     @staticmethod
+     def _ordered(existing) -> list[str]:
+-        raw = []
+-        seen = set()
+-        for item in existing or ():
+-            key = str(item)
+-            if key and key not in seen:
+-                seen.add(key)
+-                raw.append(key)
+-        if "box_body" not in seen:
+-            raw.insert(0, "box_body")
+-            seen.add("box_body")
+-        ordered = [key for key in PART_ORDER if key in seen]
+-        ordered.extend(key for key in raw if key not in PART_ORDER)
+-        return ordered
++        return list(normalize_existing_parts(existing))
+ 
+     @classmethod
+     def _normalize_existing(cls, existing) -> list[str]:
+@@ -63,15 +39,16 @@
+ 
+     @property
+     def active_part(self) -> str | None:
+-        return self._active_part
++        return self._shared_state.active_part
+ 
+     def raw_existing_parts(self) -> set[str]:
+-        source = self._existing_parts if self._authoritative else self._fallback_existing_parts
+-        return set(source)
++        if self._authoritative:
++            return set(self._shared_state.existing_parts)
++        return set(self._fallback_existing_parts)
+ 
+     def current_existing_parts(self, *, indicator_box_enabled: bool = False) -> set[str]:
+         if self._authoritative:
+-            existing = set(self._existing_parts)
++            existing = set(self._shared_state.existing_parts)
+         else:
+             existing = set(self._fallback_existing_parts)
+             if indicator_box_enabled:
+@@ -82,51 +59,47 @@
+         existing.add("box_body")
+         return existing
+ 
++    def _sync_fallback_into_shared(self) -> None:
++        self._shared_state.set_existing_parts(self._fallback_existing_parts, active_repair="first")
++
+     def replace_legacy_existing_parts(self, existing_parts) -> set[str]:
+-        normalized = set(self._normalize_existing(existing_parts))
++        normalized = set(normalize_existing_parts(existing_parts))
+         if self._authoritative:
+-            self._existing_parts = normalized
++            self._shared_state.set_existing_parts(normalized, active_repair="first")
+         else:
+             self._fallback_existing_parts = normalized
+-            self._existing_parts = set(normalized)
+-        self._repair_active_part()
++            self._sync_fallback_into_shared()
+         return self.raw_existing_parts()
+ 
+     def apply_authoritative_existing_parts(self, existing_parts) -> set[str]:
+         """Replace exact physical presence without touching profile stash."""
+-        self._existing_parts = set(self._normalize_existing(existing_parts))
+-        self._existing_parts.add("box_body")
++        self._shared_state.set_existing_parts(existing_parts, active_repair="first")
+         self._authoritative = True
+-        self._repair_active_part()
+-        return set(self._existing_parts)
++        return set(self._shared_state.existing_parts)
+ 
+     def set_part_presence(self, key: str, present: bool) -> set[str]:
+-        key = str(key)
+-        target = self._existing_parts if self._authoritative else self._fallback_existing_parts
++        if self._authoritative:
++            self._shared_state.set_part_presence(key, present, active_repair="first")
++            return set(self._shared_state.existing_parts)
++        candidate = str(key or "").strip()
++        if not candidate:
++            raise ValueError("板件名稱不得為空")
+         if present:
+-            target.add(key)
+-        elif key != "box_body":
+-            target.discard(key)
+-        target.add("box_body")
+-        if not self._authoritative:
+-            self._existing_parts = set(target)
+-        self._repair_active_part()
+-        return set(target)
++            self._fallback_existing_parts.add(candidate)
++        elif candidate != "box_body":
++            self._fallback_existing_parts.discard(candidate)
++        self._fallback_existing_parts.add("box_body")
++        self._sync_fallback_into_shared()
++        return set(self._fallback_existing_parts)
+ 
+     def _repair_active_part(self) -> None:
+-        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
+-        if self._active_part is not None and self._active_part not in existing:
+-            self._active_part = self._ordered(existing)[0] if existing else "box_body"
++        existing = self._shared_state.existing_parts if self._authoritative else tuple(normalize_existing_parts(self._fallback_existing_parts))
++        self._shared_state.set_existing_parts(existing, active_repair="first")
+ 
+     def set_active_part(self, key: str | None) -> str | None:
+-        if key is None:
+-            self._active_part = None
+-            return None
+-        candidate = str(key)
+-        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
+-        if candidate in existing:
+-            self._active_part = candidate
+-        return self._active_part
++        # Existing committed-owner compatibility: invalid explicit hints do not
++        # escape presence and repair to the first canonical part.
++        return self._shared_state.set_active_part(key, invalid="first")
+ 
+     def set_box_body_profile(self, profile) -> list | None:
+         self._box_body_profile = None if profile is None else self._clone(list(profile))
+@@ -136,60 +109,54 @@
+         return self._clone(self._box_body_profile)
+ 
+     def set_box_body_structure_state(self, state) -> dict:
+-        self._box_body_structure = normalize_box_body_structure_state(state)
+-        return self.box_body_structure_state()
++        return self._shared_state.set_box_body_structure_state(state)
+ 
+     def box_body_structure_state(self) -> dict:
+-        return self._clone(self._box_body_structure)
++        return self._shared_state.box_body_structure_state()
+ 
+     def part_profiles_snapshot(self) -> dict:
+-        return self._clone(self._part_profiles)
++        return self._shared_state.part_profiles_snapshot()
+ 
+     def profile_for(self, key: str):
+-        return self._clone(self._part_profiles.get(str(key)))
++        return self._shared_state.profile_for(key)
+ 
+     def commit_workspace(self, workspace: Mapping[str, object]) -> dict:
+         raw = dict(workspace or {})
+-        if "existing_parts" in raw:
+-            self._existing_parts = set(self._normalize_existing(raw.get("existing_parts") or ()))
+-        elif not self._authoritative:
+-            self._existing_parts = set(self._fallback_existing_parts)
+-        self._existing_parts.add("box_body")
++        existing = raw.get("existing_parts") if "existing_parts" in raw else (
++            self._shared_state.existing_parts if self._authoritative else self._fallback_existing_parts
++        )
++        profiles = raw.get("part_profiles") if "part_profiles" in raw else self._shared_state.part_profiles_snapshot()
++        structure = raw.get("box_body_structure") if "box_body_structure" in raw else self._shared_state.box_body_structure_state()
++        requested_active = raw.get("active_part")
++        self._shared_state.replace(
++            existing_parts=existing,
++            active_part=requested_active,
++            part_profiles=profiles,
++            box_body_structure=structure,
++            active_repair="first",
++        )
+         self._authoritative = True
+-
+-        if "part_profiles" in raw:
+-            self._part_profiles = self._clone(dict(raw.get("part_profiles") or {}))
+         if "box_body_profile" in raw:
+             profile = raw.get("box_body_profile")
+             self._box_body_profile = None if profile is None else self._clone(list(profile))
+-        if "box_body_structure" in raw:
+-            self._box_body_structure = normalize_box_body_structure_state(raw.get("box_body_structure"))
+-
+-        requested_active = raw.get("active_part")
+-        if requested_active is None:
+-            self._active_part = None
+-        elif str(requested_active) in self._existing_parts:
+-            self._active_part = str(requested_active)
+-        else:
+-            self._active_part = self._ordered(self._existing_parts)[0]
+         return self.workspace_snapshot()
+ 
+     def clear_authoritative_workspace(self) -> None:
+         self._authoritative = False
+-        self._existing_parts = set(self._fallback_existing_parts)
+-        self._active_part = None
+-        self._part_profiles = {}
++        self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
+         self._box_body_profile = None
+-        self._box_body_structure = normalize_box_body_structure_state(None)
+ 
+     def workspace_snapshot(self) -> dict:
+-        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
++        if not self._authoritative:
++            self._sync_fallback_into_shared()
++        result = self._shared_state.snapshot()
++        result["box_body_profile"] = self.box_body_profile() or []
+         return {
+-            "box_body_profile": self.box_body_profile() or [],
+-            "box_body_structure": self.box_body_structure_state(),
+-            "existing_parts": self._ordered(existing),
+-            "active_part": self._active_part,
+-            "part_profiles": self.part_profiles_snapshot(),
++            "box_body_profile": result["box_body_profile"],
++            "box_body_structure": result["box_body_structure"],
++            "existing_parts": result["existing_parts"],
++            "active_part": result["active_part"],
++            "part_profiles": result["part_profiles"],
+         }
+ 
+     def legacy_bundle(self) -> dict | None:
+--- DIFF designer ---
+--- /tmp/phase6_orig_t1/phase6_designer_workspace.py	2026-09-04 00:16:08.000000000 +0000
++++ phase6_designer_workspace.py	2026-09-04 07:18:24.997947770 +0000
+@@ -3,50 +3,33 @@
+ from __future__ import annotations
+ 
+ from copy import deepcopy
+-from dataclasses import dataclass, field
+ from typing import Any, Mapping
+ 
+-from phase6_box_body_structure import (
+-    normalize_box_body_structure_state, legacy_box_body_structure_locked,
+-)
++from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
++from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
+ 
+ 
+-MANDATORY_PART = "box_body"
+-
+-
+-def _normalize_parts(values) -> list[str]:
+-    ordered: list[str] = []
+-    for raw in values or ():
+-        key = str(raw or "").strip()
+-        if key and key not in ordered:
+-            ordered.append(key)
+-    if MANDATORY_PART in ordered:
+-        ordered.remove(MANDATORY_PART)
+-    ordered.insert(0, MANDATORY_PART)
+-    return ordered
+-
+-
+-@dataclass
+ class Phase6DesignerWorkspace:
+-    _available_parts: list[str] = field(default_factory=lambda: [MANDATORY_PART])
+-    _active_part: str | None = None
+-    _selected_part: str | None = None
+-    _part_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
+-    _part_features: dict[str, list[Any]] = field(default_factory=dict)
+-    _part_face_features: dict[str, dict[str, list[Any]]] = field(default_factory=dict)
+-    _box_body_structure: dict[str, object] = field(default_factory=lambda: normalize_box_body_structure_state(None))
+-    _dirty: bool = False
+-    _switching: bool = False
++    def __init__(
++        self,
++        *,
++        shared_state: SharedWorkspaceState | None = None,
++        selected_part: str | None = None,
++        part_features: Mapping[str, object] | None = None,
++        part_face_features: Mapping[str, object] | None = None,
++        dirty: bool = False,
++        switching: bool = False,
++    ) -> None:
++        self._shared_state = shared_state or SharedWorkspaceState(active_repair="none")
++        self._selected_part = selected_part
++        self._part_features = deepcopy(dict(part_features or {}))
++        self._part_face_features = deepcopy(dict(part_face_features or {}))
++        self._dirty = bool(dirty)
++        self._switching = bool(switching)
+ 
+     @classmethod
+     def from_snapshot(cls, snapshot: Mapping[str, object] | None) -> "Phase6DesignerWorkspace":
+         source = dict(snapshot or {})
+-        parts = _normalize_parts(source.get("existing_parts", (MANDATORY_PART,)))
+-        active_raw = str(source.get("active_part") or "").strip() or None
+-        active = active_raw if active_raw in parts else None
+-        profiles = deepcopy(dict(source.get("part_profiles") or {}))
+-        features = deepcopy(dict(source.get("part_features") or {}))
+-        face_features = deepcopy(dict(source.get("part_face_features") or {}))
+         raw_structure = (
+             (source.get("workspace") or {}).get("box_body_structure", source.get("box_body_structure"))
+             if isinstance(source.get("workspace"), Mapping) else source.get("box_body_structure")
+@@ -55,35 +38,36 @@
+             raw_structure,
+             legacy_locked=legacy_box_body_structure_locked(source.get("model")),
+         )
++        shared = SharedWorkspaceState(
++            existing_parts=source.get("existing_parts", (MANDATORY_PART,)),
++            active_part=source.get("active_part"),
++            part_profiles=source.get("part_profiles"),
++            box_body_structure=structure,
++            active_repair="none",
++        )
+         return cls(
+-            _available_parts=parts,
+-            _active_part=active,
+-            _selected_part=None,
+-            _part_profiles=profiles,
+-            _part_features=features,
+-            _part_face_features=face_features,
+-            _box_body_structure=structure,
+-            _dirty=False,
+-            _switching=False,
++            shared_state=shared,
++            selected_part=None,
++            part_features=source.get("part_features"),
++            part_face_features=source.get("part_face_features"),
++            dirty=False,
++            switching=False,
+         )
+ 
+     @property
+     def available_parts(self) -> tuple[str, ...]:
+-        return tuple(self._available_parts)
++        return self._shared_state.existing_parts
+ 
+     @property
+     def active_part(self) -> str | None:
+-        return self._active_part
++        return self._shared_state.active_part
+ 
+     @active_part.setter
+     def active_part(self, value: str | None) -> None:
+-        if value is None or value == "":
+-            self._active_part = None
+-            return
+-        key = str(value)
+-        if key not in self._available_parts:
+-            raise ValueError(f"板件不存在: {key}")
+-        self._active_part = key
++        try:
++            self._shared_state.set_active_part(value, invalid="raise")
++        except ValueError as exc:
++            raise ValueError(f"板件不存在: {str(value)}") from exc
+ 
+     @property
+     def selected_part(self) -> str | None:
+@@ -95,7 +79,7 @@
+             self._selected_part = None
+             return
+         key = str(value)
+-        if key not in self._available_parts:
++        if key not in self.available_parts:
+             raise ValueError(f"板件不存在: {key}")
+         self._selected_part = key
+ 
+@@ -117,24 +101,24 @@
+ 
+     def select_part(self, key: str) -> bool:
+         key = str(key or "")
+-        if key not in self._available_parts:
++        if key not in self.available_parts:
+             return False
+         self._selected_part = key
+         return True
+ 
+     def begin_switch(self, key: str) -> None:
+         key = str(key or "")
+-        if key not in self._available_parts:
++        if key not in self.available_parts:
+             raise ValueError(f"板件不存在: {key}")
+         self._switching = True
+         self._selected_part = key
+-        self._active_part = key
++        self._shared_state.set_active_part(key, invalid="raise")
+ 
+     def finish_switch(self) -> None:
+         self._switching = False
+ 
+     def show_home(self) -> None:
+-        self._active_part = None
++        self._shared_state.set_active_part(None, invalid="none")
+         self._selected_part = None
+         self._switching = False
+ 
+@@ -149,11 +133,11 @@
+         key = str(key or "").strip()
+         if not key:
+             raise ValueError("板件名稱不得為空")
+-        if key in self._available_parts:
++        if key in self.available_parts:
+             return False
+-        self._available_parts.append(key)
+-        if key not in self._part_profiles and default_profiles is not None:
+-            self._part_profiles[key] = deepcopy(dict(default_profiles))
++        self._shared_state.set_part_presence(key, True, active_repair="none")
++        if not self._shared_state.has_profile(key) and default_profiles is not None:
++            self._shared_state.stash_profiles(key, default_profiles)
+         if key not in self._part_features:
+             self._part_features[key] = deepcopy(list(default_features or ()))
+         if key not in self._part_face_features and default_face_features is not None:
+@@ -165,28 +149,20 @@
+         key = str(key or "")
+         if key == MANDATORY_PART:
+             raise ValueError("箱身是折法主資料，不能刪除")
+-        if key not in self._available_parts:
++        if key not in self.available_parts:
+             return False
+-        self._available_parts.remove(key)
++        self._shared_state.set_part_presence(key, False, active_repair="none")
+         if self._selected_part == key:
+             self._selected_part = None
+-        if self._active_part == key:
+-            self._active_part = None
+         self._dirty = True
+         return True
+ 
+     def stash_profiles(self, key: str, profiles: Mapping[str, object]) -> None:
+-        key = str(key or "")
+-        copied = deepcopy(dict(profiles or {}))
+-        if self._part_profiles.get(key) != copied:
+-            self._part_profiles[key] = copied
++        if self._shared_state.stash_profiles(key, profiles):
+             self._dirty = True
+ 
+     def profiles_for(self, key: str, default=None):
+-        key = str(key or "")
+-        if key not in self._part_profiles:
+-            return deepcopy(default)
+-        return deepcopy(self._part_profiles[key])
++        return self._shared_state.profile_for(key, default)
+ 
+     def stash_features(self, key: str, features) -> None:
+         key = str(key or "")
+@@ -209,7 +185,7 @@
+         return deepcopy(dict(self._part_face_features.get(str(key or ""), {})))
+ 
+     def part_profiles_snapshot(self) -> dict[str, dict[str, Any]]:
+-        return deepcopy(self._part_profiles)
++        return self._shared_state.part_profiles_snapshot()
+ 
+     def part_features_snapshot(self) -> dict[str, list[Any]]:
+         return deepcopy(self._part_features)
+@@ -218,12 +194,12 @@
+         return deepcopy(self._part_face_features)
+ 
+     def box_body_structure_state(self) -> dict[str, object]:
+-        return deepcopy(self._box_body_structure)
++        return self._shared_state.box_body_structure_state()
+ 
+     def set_box_body_structure_state(self, state) -> dict[str, object]:
+         normalized = normalize_box_body_structure_state(state)
+-        if self._box_body_structure != normalized:
+-            self._box_body_structure = normalized
++        if self._shared_state.box_body_structure_state() != normalized:
++            self._shared_state.set_box_body_structure_state(normalized)
+             self._dirty = True
+         return self.box_body_structure_state()
+ 
+@@ -234,15 +210,15 @@
+             raise ValueError("derived part namespace must be non-empty")
+         desired_profiles = {str(key): deepcopy(value) for key, value in dict(part_profiles or {}).items()}
+         desired = set(desired_profiles)
+-        current = {key for key in self._available_parts if str(key).startswith(prefix)}
++        current = {key for key in self.available_parts if str(key).startswith(prefix)}
+         for key in tuple(current - desired):
+             self.remove_part(key)
+         for key, profiles in desired_profiles.items():
+-            if key in self._available_parts:
++            if key in self.available_parts:
+                 self.stash_profiles(key, profiles)
+             else:
+                 self.add_part(key, default_profiles=profiles)
+-        return tuple(key for key in self._available_parts if key in desired)
++        return tuple(key for key in self.available_parts if key in desired)
+ 
+     def mark_dirty(self) -> None:
+         self._dirty = True
+@@ -250,12 +226,13 @@
+     def mark_clean(self) -> None:
+         self._dirty = False
+ 
++    def shared_snapshot(self) -> dict[str, object]:
++        return self._shared_state.snapshot()
++
+     def snapshot(self) -> dict[str, object]:
+-        return {
+-            "existing_parts": list(self._available_parts),
+-            "active_part": self._active_part,
+-            "part_profiles": deepcopy(self._part_profiles),
++        result = self._shared_state.snapshot()
++        result.update({
+             "part_features": deepcopy(self._part_features),
+             "part_face_features": deepcopy(self._part_face_features),
+-            "box_body_structure": deepcopy(self._box_body_structure),
+-        }
++        })
++        return result
+--- NEW shared ---
+# -*- coding: utf-8 -*-
+"""Phase6 committed/draft 共用的純 workspace state contract。
+
+本模組只擁有 presence / active / profile stash / box-body structure 的共同
+資料形狀與 invariant。它不知道 Main/Designer 生命週期，也不保存跨 owner
+共享的 mutable singleton。
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Mapping
+
+from phase6_box_body_structure import normalize_box_body_structure_state
+
+
+MANDATORY_PART = "box_body"
+PART_ORDER = (
+    "box_body",
+    "head",
+    "tail",
+    "door",
+    "base_plate",
+    "indicator_box",
+    "indicator_door",
+)
+ACTIVE_REPAIR_POLICIES = frozenset({"first", "none", "raise"})
+
+
+def normalize_existing_parts(values) -> tuple[str, ...]:
+    """Normalize presence once, preserving a deterministic stable order."""
+    raw: list[str] = []
+    seen: set[str] = set()
+    for item in values or ():
+        key = str(item or "").strip()
+        if key and key not in seen:
+            seen.add(key)
+            raw.append(key)
+    if MANDATORY_PART not in seen:
+        raw.insert(0, MANDATORY_PART)
+        seen.add(MANDATORY_PART)
+    ordered = [key for key in PART_ORDER if key in seen]
+    ordered.extend(key for key in raw if key not in PART_ORDER)
+    return tuple(ordered)
+
+
+def _repair_active(active_part, existing_parts, policy: str) -> str | None:
+    policy = str(policy or "").strip().lower()
+    if policy not in ACTIVE_REPAIR_POLICIES:
+        raise ValueError(f"unknown active repair policy: {policy!r}")
+    active = str(active_part or "").strip() or None
+    existing = tuple(existing_parts)
+    if active is None or active in existing:
+        return active
+    if policy == "none":
+        return None
+    if policy == "first":
+        return existing[0] if existing else MANDATORY_PART
+    raise ValueError(f"active_part 不存在於 existing_parts: {active}")
+
+
+class SharedWorkspaceState:
+    """Four-field state contract instantiated independently by each lifecycle owner."""
+
+    def __init__(
+        self,
+        *,
+        existing_parts=None,
+        active_part=None,
+        part_profiles: Mapping[str, object] | None = None,
+        box_body_structure=None,
+        active_repair: str = "first",
+    ) -> None:
+        self._existing_parts = list(normalize_existing_parts(existing_parts or (MANDATORY_PART,)))
+        self._active_part = _repair_active(active_part, self._existing_parts, active_repair)
+        self._part_profiles = deepcopy(dict(part_profiles or {}))
+        self._box_body_structure = normalize_box_body_structure_state(box_body_structure)
+
+    @property
+    def existing_parts(self) -> tuple[str, ...]:
+        return tuple(self._existing_parts)
+
+    @property
+    def active_part(self) -> str | None:
+        return self._active_part
+
+    def set_existing_parts(self, values, *, active_repair: str) -> tuple[str, ...]:
+        self._existing_parts = list(normalize_existing_parts(values))
+        self._active_part = _repair_active(self._active_part, self._existing_parts, active_repair)
+        return self.existing_parts
+
+    def set_part_presence(self, key: str, present: bool, *, active_repair: str) -> tuple[str, ...]:
+        candidate = str(key or "").strip()
+        if not candidate:
+            raise ValueError("板件名稱不得為空")
+        values = list(self._existing_parts)
+        if present:
+            if candidate not in values:
+                values.append(candidate)
+        elif candidate != MANDATORY_PART:
+            values = [item for item in values if item != candidate]
+        return self.set_existing_parts(values, active_repair=active_repair)
+
+    def set_active_part(self, value: str | None, *, invalid: str) -> str | None:
+        if value is None or value == "":
+            self._active_part = None
+            return None
+        candidate = str(value).strip()
+        if candidate in self._existing_parts:
+            self._active_part = candidate
+            return candidate
+        if invalid == "first":
+            self._active_part = self._existing_parts[0] if self._existing_parts else MANDATORY_PART
+            return self._active_part
+        if invalid == "none":
+            self._active_part = None
+            return None
+        if invalid == "raise":
+            raise ValueError(f"active_part 不存在於 existing_parts: {candidate}")
+        raise ValueError(f"unknown active repair policy: {invalid!r}")
+
+    def replace_part_profiles(self, profiles: Mapping[str, object] | None) -> dict:
+        self._part_profiles = deepcopy(dict(profiles or {}))
+        return self.part_profiles_snapshot()
+
+    def has_profile(self, key: str) -> bool:
+        return str(key or "") in self._part_profiles
+
+    def stash_profiles(self, key: str, profiles: Mapping[str, object]) -> bool:
+        candidate = str(key or "")
+        copied = deepcopy(dict(profiles or {}))
+        changed = self._part_profiles.get(candidate) != copied
+        if changed:
+            self._part_profiles[candidate] = copied
+        return changed
+
+    def profile_for(self, key: str, default=None):
+        candidate = str(key or "")
+        if candidate not in self._part_profiles:
+            return deepcopy(default)
+        return deepcopy(self._part_profiles[candidate])
+
+    def part_profiles_snapshot(self) -> dict:
+        return deepcopy(self._part_profiles)
+
+    def set_box_body_structure_state(self, state) -> dict:
+        self._box_body_structure = normalize_box_body_structure_state(state)
+        return self.box_body_structure_state()
+
+    def box_body_structure_state(self) -> dict:
+        return deepcopy(self._box_body_structure)
+
+    def replace(
+        self,
+        *,
+        existing_parts,
+        active_part,
+        part_profiles,
+        box_body_structure,
+        active_repair: str,
+    ) -> dict:
+        self._existing_parts = list(normalize_existing_parts(existing_parts))
+        self._active_part = _repair_active(active_part, self._existing_parts, active_repair)
+        self._part_profiles = deepcopy(dict(part_profiles or {}))
+        self._box_body_structure = normalize_box_body_structure_state(box_body_structure)
+        return self.snapshot()
+
+    def snapshot(self) -> dict:
+        return {
+            "existing_parts": list(self._existing_parts),
+            "active_part": self._active_part,
+            "part_profiles": self.part_profiles_snapshot(),
+            "box_body_structure": self.box_body_structure_state(),
+        }

@@ -1,0 +1,12 @@
+{
+  "completed_nodeids": 216,
+  "failed_batches": 0,
+  "last_status": "complete",
+  "mode": "headless",
+  "passed": 194,
+  "pending_nodeids": 1224,
+  "skipped": 22,
+  "teardown_timeout_batches": 0,
+  "total_nodeids": 1440,
+  "updated_at": 1788529073.7992134
+}

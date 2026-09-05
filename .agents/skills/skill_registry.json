@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
+  "routes": [
+    {
+      "id": "phase6-corner-relief-3d",
+      "keywords": [
+        "corner",
+        "截角",
+        "relief",
+        "避讓",
+        "INSERT",
+        "INSERT_OVERLAY",
+        "WRAP",
+        "3D",
+        "FinalScene",
+        "AssemblyJoint",
+        "Fold",
+        "placement",
+        "collision",
+        "碰撞",
+        "組合"
+      ],
+      "file_globs": [
+        "ae_engine/certified_relief_registry.py",
+        "ae_engine/assembly_*.py",
+        "ae_engine/sheetmetal_geometry.py",
+        "phase6_final_scene_view.py",
+        "fold_designer_bridge.py",
+        "基準檔/截角資料庫/**"
+      ],
+      "required_skills": [
+        "phase6-corner-3d-model-integrity"
+      ],
+      "required_references": [
+        "基準檔/截角資料庫/README_母規則說明.md",
+        "基準檔/截角資料庫/certified_relief_rules.json",
+        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      ]
+    },
+    {
+      "id": "phase6-overlay-basis",
+      "keywords": [
+        "OVERLAY",
+        "flat-X",
+        "formed FW",
+        "BOX_BODY_FORMED_FW",
+        "貼外",
+        "面齊"
+      ],
+      "file_globs": [
+        "基準檔/截角資料庫/certified_relief_rules.json",
+        "基準檔/截角資料庫/README_母規則說明.md",
+        "ae_engine/certified_relief_registry.py",
+        "tests/test_overlay_*.py"
+      ],
+      "required_skills": [
+        "phase6-corner-3d-model-integrity",
+        "phase6-overlay-relief-basis"
+      ],
+      "required_references": [
+        "基準檔/截角資料庫/README_母規則說明.md",
+        "基準檔/截角資料庫/certified_relief_rules.json",
+        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      ]
+    },
+    {
+      "id": "phase6-gui-performance",
+      "keywords": [
+        "GUI 效能",
+        "效能",
+        "卡頓",
+        "卡住",
+        "slow",
+        "freeze",
+        "stutter",
+        "live-sync",
+        "live sync",
+        "trace",
+        "重算",
+        "recalculation",
+        "Scheduler",
+        "DXF cache",
+        "debounce",
+        "3D designer"
+      ],
+      "file_globs": [
+        "tests/test_phase6_gui_*performance*.py",
+        "tests/test_phase6_*live_sync*.py",
+        "tests/test_phase6_*scheduler*.py",
+        "tools/*gui*perf*.py"
+      ],
+      "required_skills": [
+        "phase6-gui-performance-integrity"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "phase6-release-packaging",
+      "keywords": [
+        "release",
+        "FULL",
+        "UPDATE",
+        "package",
+        "packaging",
+        "打包",
+        "出包",
+        "交付"
+      ],
+      "file_globs": [
+        "release_required_artifacts.json",
+        "tools/phase6_release.py",
+        "tools/phase6_skill_preflight.py",
+        ".agents/skills/**",
+        "AGENTS.md"
+      ],
+      "required_skills": [
+        "phase6-release-packaging"
+      ],
+      "required_references": [
+        "release_required_artifacts.json"
+      ]
+    },
+    {
+      "id": "bugfix-tdd",
+      "keywords": [
+        "bug",
+        "debug",
+        "fix",
+        "regression",
+        "失敗",
+        "錯誤",
+        "修正",
+        "除錯"
+      ],
+      "file_globs": [],
+      "required_skills": [
+        "diagnosing-bugs",
+        "tdd"
+      ],
+      "required_references": []
+    }
+  ]
+}

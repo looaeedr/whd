@@ -1,0 +1,12 @@
+﻿__pycache__/
+*.pyc
+dist/
+*.exe
+scratch/
+restore_temp/
+*.rar
+*.bak
+*tmp*
+*temp*
+run_output.txt
+GIT儲存庫.MD

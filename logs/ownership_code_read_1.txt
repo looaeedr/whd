@@ -1,0 +1,1565 @@
+===== phase6_workspace_controller.py =====
+# -*- coding: utf-8 -*-
+"""Phase6 主 GUI committed workspace 的單一所有權模組。"""
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Mapping
+
+from phase6_box_body_structure import normalize_box_body_structure_state
+
+
+PART_ORDER = (
+    "box_body",
+    "head",
+    "tail",
+    "door",
+    "base_plate",
+    "indicator_box",
+    "indicator_door",
+)
+DEFAULT_EXISTING_PARTS = {"box_body", "head", "tail", "door", "base_plate"}
+
+
+class Phase6WorkspaceController:
+    """保存工作區 presence / active / profile stash，並隱藏一致性規則。"""
+
+    def __init__(self, *, default_existing_parts=None) -> None:
+        defaults = DEFAULT_EXISTING_PARTS if default_existing_parts is None else default_existing_parts
+        self._fallback_existing_parts = set(self._normalize_existing(defaults))
+        self._authoritative = False
+        self._existing_parts = set(self._fallback_existing_parts)
+        self._active_part: str | None = None
+        self._part_profiles: dict = {}
+        self._box_body_profile: list | None = None
+        self._box_body_structure: dict = normalize_box_body_structure_state(None)
+
+    @staticmethod
+    def _clone(value):
+        return deepcopy(value)
+
+    @staticmethod
+    def _ordered(existing) -> list[str]:
+        raw = []
+        seen = set()
+        for item in existing or ():
+            key = str(item)
+            if key and key not in seen:
+                seen.add(key)
+                raw.append(key)
+        if "box_body" not in seen:
+            raw.insert(0, "box_body")
+            seen.add("box_body")
+        ordered = [key for key in PART_ORDER if key in seen]
+        ordered.extend(key for key in raw if key not in PART_ORDER)
+        return ordered
+
+    @classmethod
+    def _normalize_existing(cls, existing) -> list[str]:
+        return cls._ordered(existing)
+
+    @property
+    def has_authoritative_workspace(self) -> bool:
+        return self._authoritative
+
+    @property
+    def active_part(self) -> str | None:
+        return self._active_part
+
+    def raw_existing_parts(self) -> set[str]:
+        source = self._existing_parts if self._authoritative else self._fallback_existing_parts
+        return set(source)
+
+    def current_existing_parts(self, *, indicator_box_enabled: bool = False) -> set[str]:
+        if self._authoritative:
+            existing = set(self._existing_parts)
+        else:
+            existing = set(self._fallback_existing_parts)
+            if indicator_box_enabled:
+                existing.update({"indicator_box", "indicator_door"})
+            else:
+                existing.discard("indicator_box")
+                existing.discard("indicator_door")
+        existing.add("box_body")
+        return existing
+
+    def replace_legacy_existing_parts(self, existing_parts) -> set[str]:
+        normalized = set(self._normalize_existing(existing_parts))
+        if self._authoritative:
+            self._existing_parts = normalized
+        else:
+            self._fallback_existing_parts = normalized
+            self._existing_parts = set(normalized)
+        self._repair_active_part()
+        return self.raw_existing_parts()
+
+    def apply_authoritative_existing_parts(self, existing_parts) -> set[str]:
+        """Replace exact physical presence without touching profile stash."""
+        self._existing_parts = set(self._normalize_existing(existing_parts))
+        self._existing_parts.add("box_body")
+        self._authoritative = True
+        self._repair_active_part()
+        return set(self._existing_parts)
+
+    def set_part_presence(self, key: str, present: bool) -> set[str]:
+        key = str(key)
+        target = self._existing_parts if self._authoritative else self._fallback_existing_parts
+        if present:
+            target.add(key)
+        elif key != "box_body":
+            target.discard(key)
+        target.add("box_body")
+        if not self._authoritative:
+            self._existing_parts = set(target)
+        self._repair_active_part()
+        return set(target)
+
+    def _repair_active_part(self) -> None:
+        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
+        if self._active_part is not None and self._active_part not in existing:
+            self._active_part = self._ordered(existing)[0] if existing else "box_body"
+
+    def set_active_part(self, key: str | None) -> str | None:
+        if key is None:
+            self._active_part = None
+            return None
+        candidate = str(key)
+        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
+        if candidate in existing:
+            self._active_part = candidate
+        return self._active_part
+
+    def set_box_body_profile(self, profile) -> list | None:
+        self._box_body_profile = None if profile is None else self._clone(list(profile))
+        return self.box_body_profile()
+
+    def box_body_profile(self) -> list | None:
+        return self._clone(self._box_body_profile)
+
+    def set_box_body_structure_state(self, state) -> dict:
+        self._box_body_structure = normalize_box_body_structure_state(state)
+        return self.box_body_structure_state()
+
+    def box_body_structure_state(self) -> dict:
+        return self._clone(self._box_body_structure)
+
+    def part_profiles_snapshot(self) -> dict:
+        return self._clone(self._part_profiles)
+
+    def profile_for(self, key: str):
+        return self._clone(self._part_profiles.get(str(key)))
+
+    def commit_workspace(self, workspace: Mapping[str, object]) -> dict:
+        raw = dict(workspace or {})
+        if "existing_parts" in raw:
+            self._existing_parts = set(self._normalize_existing(raw.get("existing_parts") or ()))
+        elif not self._authoritative:
+            self._existing_parts = set(self._fallback_existing_parts)
+        self._existing_parts.add("box_body")
+        self._authoritative = True
+
+        if "part_profiles" in raw:
+            self._part_profiles = self._clone(dict(raw.get("part_profiles") or {}))
+        if "box_body_profile" in raw:
+            profile = raw.get("box_body_profile")
+            self._box_body_profile = None if profile is None else self._clone(list(profile))
+        if "box_body_structure" in raw:
+            self._box_body_structure = normalize_box_body_structure_state(raw.get("box_body_structure"))
+
+        requested_active = raw.get("active_part")
+        if requested_active is None:
+            self._active_part = None
+        elif str(requested_active) in self._existing_parts:
+            self._active_part = str(requested_active)
+        else:
+            self._active_part = self._ordered(self._existing_parts)[0]
+        return self.workspace_snapshot()
+
+    def clear_authoritative_workspace(self) -> None:
+        self._authoritative = False
+        self._existing_parts = set(self._fallback_existing_parts)
+        self._active_part = None
+        self._part_profiles = {}
+        self._box_body_profile = None
+        self._box_body_structure = normalize_box_body_structure_state(None)
+
+    def workspace_snapshot(self) -> dict:
+        existing = self._existing_parts if self._authoritative else self._fallback_existing_parts
+        return {
+            "box_body_profile": self.box_body_profile() or [],
+            "box_body_structure": self.box_body_structure_state(),
+            "existing_parts": self._ordered(existing),
+            "active_part": self._active_part,
+            "part_profiles": self.part_profiles_snapshot(),
+        }
+
+    def legacy_bundle(self) -> dict | None:
+        if not self._authoritative:
+            return None
+        snapshot = self.workspace_snapshot()
+        return {
+            "existing_parts": snapshot["existing_parts"],
+            "active_part": snapshot["active_part"],
+            "part_profiles": snapshot["part_profiles"],
+        }
+
+    def load_legacy_bundle(self, bundle) -> dict | None:
+        if bundle is None:
+            self.clear_authoritative_workspace()
+            return None
+        raw = dict(bundle or {})
+        return self.commit_workspace({
+            "existing_parts": raw.get("existing_parts", self.raw_existing_parts()),
+            "active_part": raw.get("active_part"),
+            "part_profiles": raw.get("part_profiles", {}),
+            **({"box_body_profile": raw["box_body_profile"]} if "box_body_profile" in raw else {}),
+        })
+===== phase6_designer_workspace.py =====
+"""Phase6 3D Designer 草稿工作區的純狀態 owner。"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import Any, Mapping
+
+from phase6_box_body_structure import (
+    normalize_box_body_structure_state, legacy_box_body_structure_locked,
+)
+
+
+MANDATORY_PART = "box_body"
+
+
+def _normalize_parts(values) -> list[str]:
+    ordered: list[str] = []
+    for raw in values or ():
+        key = str(raw or "").strip()
+        if key and key not in ordered:
+            ordered.append(key)
+    if MANDATORY_PART in ordered:
+        ordered.remove(MANDATORY_PART)
+    ordered.insert(0, MANDATORY_PART)
+    return ordered
+
+
+@dataclass
+class Phase6DesignerWorkspace:
+    _available_parts: list[str] = field(default_factory=lambda: [MANDATORY_PART])
+    _active_part: str | None = None
+    _selected_part: str | None = None
+    _part_profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
+    _part_features: dict[str, list[Any]] = field(default_factory=dict)
+    _part_face_features: dict[str, dict[str, list[Any]]] = field(default_factory=dict)
+    _box_body_structure: dict[str, object] = field(default_factory=lambda: normalize_box_body_structure_state(None))
+    _dirty: bool = False
+    _switching: bool = False
+
+    @classmethod
+    def from_snapshot(cls, snapshot: Mapping[str, object] | None) -> "Phase6DesignerWorkspace":
+        source = dict(snapshot or {})
+        parts = _normalize_parts(source.get("existing_parts", (MANDATORY_PART,)))
+        active_raw = str(source.get("active_part") or "").strip() or None
+        active = active_raw if active_raw in parts else None
+        profiles = deepcopy(dict(source.get("part_profiles") or {}))
+        features = deepcopy(dict(source.get("part_features") or {}))
+        face_features = deepcopy(dict(source.get("part_face_features") or {}))
+        raw_structure = (
+            (source.get("workspace") or {}).get("box_body_structure", source.get("box_body_structure"))
+            if isinstance(source.get("workspace"), Mapping) else source.get("box_body_structure")
+        )
+        structure = normalize_box_body_structure_state(
+            raw_structure,
+            legacy_locked=legacy_box_body_structure_locked(source.get("model")),
+        )
+        return cls(
+            _available_parts=parts,
+            _active_part=active,
+            _selected_part=None,
+            _part_profiles=profiles,
+            _part_features=features,
+            _part_face_features=face_features,
+            _box_body_structure=structure,
+            _dirty=False,
+            _switching=False,
+        )
+
+    @property
+    def available_parts(self) -> tuple[str, ...]:
+        return tuple(self._available_parts)
+
+    @property
+    def active_part(self) -> str | None:
+        return self._active_part
+
+    @active_part.setter
+    def active_part(self, value: str | None) -> None:
+        if value is None or value == "":
+            self._active_part = None
+            return
+        key = str(value)
+        if key not in self._available_parts:
+            raise ValueError(f"板件不存在: {key}")
+        self._active_part = key
+
+    @property
+    def selected_part(self) -> str | None:
+        return self._selected_part
+
+    @selected_part.setter
+    def selected_part(self, value: str | None) -> None:
+        if value is None or value == "":
+            self._selected_part = None
+            return
+        key = str(value)
+        if key not in self._available_parts:
+            raise ValueError(f"板件不存在: {key}")
+        self._selected_part = key
+
+    @property
+    def dirty(self) -> bool:
+        return self._dirty
+
+    @dirty.setter
+    def dirty(self, value: bool) -> None:
+        self._dirty = bool(value)
+
+    @property
+    def switching(self) -> bool:
+        return self._switching
+
+    @switching.setter
+    def switching(self, value: bool) -> None:
+        self._switching = bool(value)
+
+    def select_part(self, key: str) -> bool:
+        key = str(key or "")
+        if key not in self._available_parts:
+            return False
+        self._selected_part = key
+        return True
+
+    def begin_switch(self, key: str) -> None:
+        key = str(key or "")
+        if key not in self._available_parts:
+            raise ValueError(f"板件不存在: {key}")
+        self._switching = True
+        self._selected_part = key
+        self._active_part = key
+
+    def finish_switch(self) -> None:
+        self._switching = False
+
+    def show_home(self) -> None:
+        self._active_part = None
+        self._selected_part = None
+        self._switching = False
+
+    def add_part(
+        self,
+        key: str,
+        *,
+        default_profiles: Mapping[str, object] | None = None,
+        default_features=(),
+        default_face_features: Mapping[str, object] | None = None,
+    ) -> bool:
+        key = str(key or "").strip()
+        if not key:
+            raise ValueError("板件名稱不得為空")
+        if key in self._available_parts:
+            return False
+        self._available_parts.append(key)
+        if key not in self._part_profiles and default_profiles is not None:
+            self._part_profiles[key] = deepcopy(dict(default_profiles))
+        if key not in self._part_features:
+            self._part_features[key] = deepcopy(list(default_features or ()))
+        if key not in self._part_face_features and default_face_features is not None:
+            self._part_face_features[key] = deepcopy(dict(default_face_features))
+        self._dirty = True
+        return True
+
+    def remove_part(self, key: str) -> bool:
+        key = str(key or "")
+        if key == MANDATORY_PART:
+            raise ValueError("箱身是折法主資料，不能刪除")
+        if key not in self._available_parts:
+            return False
+        self._available_parts.remove(key)
+        if self._selected_part == key:
+            self._selected_part = None
+        if self._active_part == key:
+            self._active_part = None
+        self._dirty = True
+        return True
+
+    def stash_profiles(self, key: str, profiles: Mapping[str, object]) -> None:
+        key = str(key or "")
+        copied = deepcopy(dict(profiles or {}))
+        if self._part_profiles.get(key) != copied:
+            self._part_profiles[key] = copied
+            self._dirty = True
+
+    def profiles_for(self, key: str, default=None):
+        key = str(key or "")
+        if key not in self._part_profiles:
+            return deepcopy(default)
+        return deepcopy(self._part_profiles[key])
+
+    def stash_features(self, key: str, features) -> None:
+        key = str(key or "")
+        copied = deepcopy(list(features or ()))
+        if self._part_features.get(key) != copied:
+            self._part_features[key] = copied
+            self._dirty = True
+
+    def features_for(self, key: str) -> list[Any]:
+        return deepcopy(list(self._part_features.get(str(key or ""), ())))
+
+    def stash_face_features(self, key: str, face_features: Mapping[str, object]) -> None:
+        key = str(key or "")
+        copied = deepcopy(dict(face_features or {}))
+        if self._part_face_features.get(key) != copied:
+            self._part_face_features[key] = copied
+            self._dirty = True
+
+    def face_features_for(self, key: str) -> dict[str, list[Any]]:
+        return deepcopy(dict(self._part_face_features.get(str(key or ""), {})))
+
+    def part_profiles_snapshot(self) -> dict[str, dict[str, Any]]:
+        return deepcopy(self._part_profiles)
+
+    def part_features_snapshot(self) -> dict[str, list[Any]]:
+        return deepcopy(self._part_features)
+
+    def part_face_features_snapshot(self) -> dict[str, dict[str, list[Any]]]:
+        return deepcopy(self._part_face_features)
+
+    def box_body_structure_state(self) -> dict[str, object]:
+        return deepcopy(self._box_body_structure)
+
+    def set_box_body_structure_state(self, state) -> dict[str, object]:
+        normalized = normalize_box_body_structure_state(state)
+        if self._box_body_structure != normalized:
+            self._box_body_structure = normalized
+            self._dirty = True
+        return self.box_body_structure_state()
+
+    def sync_derived_parts(self, *, namespace: str, part_profiles: Mapping[str, object]) -> tuple[str, ...]:
+        """Replace one derived-part namespace without importing domain/manufacturing code."""
+        prefix = str(namespace or "").strip()
+        if not prefix:
+            raise ValueError("derived part namespace must be non-empty")
+        desired_profiles = {str(key): deepcopy(value) for key, value in dict(part_profiles or {}).items()}
+        desired = set(desired_profiles)
+        current = {key for key in self._available_parts if str(key).startswith(prefix)}
+        for key in tuple(current - desired):
+            self.remove_part(key)
+        for key, profiles in desired_profiles.items():
+            if key in self._available_parts:
+                self.stash_profiles(key, profiles)
+            else:
+                self.add_part(key, default_profiles=profiles)
+        return tuple(key for key in self._available_parts if key in desired)
+
+    def mark_dirty(self) -> None:
+        self._dirty = True
+
+    def mark_clean(self) -> None:
+        self._dirty = False
+
+    def snapshot(self) -> dict[str, object]:
+        return {
+            "existing_parts": list(self._available_parts),
+            "active_part": self._active_part,
+            "part_profiles": deepcopy(self._part_profiles),
+            "part_features": deepcopy(self._part_features),
+            "part_face_features": deepcopy(self._part_face_features),
+            "box_body_structure": deepcopy(self._box_body_structure),
+        }
+===== ae_engine/cabinet_types/__init__.py =====
+from .registry import CabinetTypeRegistration, register_cabinet_type, registered_cabinet_types, resolve_cabinet_type
+from .vault import REGISTRATION as VAULT_REGISTRATION
+from .ro import REGISTRATION as RO_REGISTRATION
+from .receiving import REGISTRATION as RECEIVING_REGISTRATION
+register_cabinet_type(VAULT_REGISTRATION)
+register_cabinet_type(RO_REGISTRATION)
+register_cabinet_type(RECEIVING_REGISTRATION)
+__all__ = ["CabinetTypeRegistration", "register_cabinet_type", "registered_cabinet_types", "resolve_cabinet_type"]
+===== ae_engine/cabinet_types/registry.py =====
+# -*- coding: utf-8 -*-
+"""Cabinet-family registry for the replaceable AE engine package.
+
+Phase 5 only establishes dispatch identity.  Cabinet-specific manufacturing
+rules belong in each family adapter and must be added from confirmed factory
+rules; the registry never invents geometry.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class CabinetTypeRegistration:
+    canonical_name: str
+    aliases: tuple[str, ...]
+    module_name: str
+    implemented: bool = True
+
+
+_REGISTRY: dict[str, CabinetTypeRegistration] = {}
+
+
+def _key(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise KeyError("empty cabinet type")
+    return text.casefold()
+
+
+def register_cabinet_type(registration: CabinetTypeRegistration) -> CabinetTypeRegistration:
+    """Register one cabinet family and all of its aliases."""
+    names = (registration.canonical_name, *registration.aliases)
+    for name in names:
+        key = _key(name)
+        previous = _REGISTRY.get(key)
+        if previous is not None and previous != registration:
+            raise ValueError(f"cabinet type alias already registered: {name!r}")
+    for name in names:
+        _REGISTRY[_key(name)] = registration
+    return registration
+
+
+def resolve_cabinet_type(name: str) -> CabinetTypeRegistration:
+    """Resolve canonical cabinet-family metadata from a name or alias."""
+    key = _key(name)
+    try:
+        return _REGISTRY[key]
+    except KeyError as exc:
+        raise KeyError(f"unknown cabinet type: {name!r}") from exc
+
+
+def registered_cabinet_types() -> tuple[CabinetTypeRegistration, ...]:
+    """Return unique registrations in deterministic canonical-name order."""
+    unique = {item.canonical_name: item for item in _REGISTRY.values()}
+    return tuple(unique[name] for name in sorted(unique))
+===== ae_engine/cabinet_types/receiving.py =====
+# -*- coding: utf-8 -*-
+"""受電箱 cabinet-family policy.
+
+受電箱與金庫型是同層盤體型態。與金庫型相同的幾何仍走既有共用引擎；
+本模組只保存受電箱已確認的 family 差異與預設值。
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+
+from .registry import CabinetTypeRegistration
+
+REGISTRATION = CabinetTypeRegistration(
+    canonical_name="受電箱",
+    aliases=(),
+    module_name=__name__,
+    implemented=True,
+)
+
+BOX_BODY_DEFAULTS = {
+    "w": 800.0,
+    "h": 1600.0,
+    "d": 350.0,
+    "fw": 29.0,
+    "zl1": 24.0,
+    "zl2": 24.0,
+    "zr2": 18.0,
+}
+
+DOOR_DEFAULTS = {
+    "door_gap_w": 3.5,
+    "door_gap_h": 3.5,
+    "door_fold_l": 19.0,
+    "door_fold_r": 19.0,
+    "door_fold_t": 19.0,
+    "door_fold_b": 19.0,
+}
+
+ENDCAP_DEFAULTS = {
+    "ybottom1": 15.0,
+}
+
+DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
+
+FRESH_ASSEMBLY_INTENT = "WRAP_OVERLAY"
+DEFAULT_DOOR_LAYOUT_SCOPE = "receiving-main"
+DEFAULT_DOOR_LAYOUT_COLUMNS = ((800.0, (1100.0, 500.0)),)
+DEFAULT_INNER_DOOR_ID = "upper"
+INNER_DOOR_INSET_LEFT = 50.0
+INNER_DOOR_INSET_RIGHT = 50.0
+INNER_DOOR_INSET_TOP = 50.0
+
+
+def default_door_layout_columns() -> list[list[object]]:
+    """Return the canonical fresh receiving multi-door layout as JSON-safe data."""
+    return [[float(width), [float(value) for value in heights]] for width, heights in DEFAULT_DOOR_LAYOUT_COLUMNS]
+
+
+def default_inner_doors(*, thickness: float, depth: float = BOX_BODY_DEFAULTS["d"], layout_scope: str = DEFAULT_DOOR_LAYOUT_SCOPE) -> list[dict[str, object]]:
+    """Return fresh receiving inner-door authoritative topology/config.
+
+    Frame spans are not duplicated here: ``derive_inner_door_frame_sets``
+    recomputes them from Door finished geometry and the confirmed 50 mm insets.
+    """
+    from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
+
+    dividers = derive_box_body_dividers(
+        DEFAULT_DOOR_LAYOUT_COLUMNS,
+        depth=float(depth),
+        thickness=float(thickness),
+        layout_scope=str(layout_scope),
+    )
+    role = resolve_inner_door_lower_frame_role(DEFAULT_INNER_DOOR_ID, dividers)
+    if role is None:
+        raise ValueError("receiving fresh layout must provide one horizontal divider")
+    return [{
+        "stable_id": DEFAULT_INNER_DOOR_ID,
+        "cell_key": "0:0",
+        "included_frame_sides": ["top", "left", "right"],
+        "lower_frame_role": {
+            "role": role.role,
+            "divider_stable_id": role.divider_stable_id,
+        },
+    }]
+
+
+def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
+    """Derive receiving inner-door frame spans from canonical Door geometry.
+
+    The upper inner door follows its outer-door cell.  Door gaps are consumed by
+    the shared Door finished-size resolver first; the confirmed receiving rule
+    then moves the inner-door boundary another 50 mm inward on left/right/top.
+    The lower boundary is the shared box-body divider, so receiving produces no
+    separate bottom frame.  Returned spans are derived data and are intentionally
+    not required to be persisted in project state.
+    """
+    from ae_engine.inner_door_frames import InnerDoorFrameSet
+    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells
+
+    data = dict(snapshot or {})
+    columns = list(data.get("door_layout_columns") or ())
+    if not columns or not bool(data.get("multi_door_enabled", False)):
+        return ()
+    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
+    cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
+    t = float(data.get("t", 2.0))
+    fw = float(data.get("fw", BOX_BODY_DEFAULTS["fw"]))
+    gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
+    gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
+
+    result = []
+    for item in list(data.get("inner_doors") or ()):
+        if not isinstance(item, dict):
+            continue
+        stable_id = str(item.get("stable_id") or "").strip()
+        cell_key = str(item.get("cell_key") or "").strip()
+        if not stable_id or cell_key not in cells:
+            continue
+        cell = cells[cell_key]
+        outer_w, outer_h = calculate_door_finished_size(
+            w=cell.start_width, h=cell.start_height, t=t, fw=fw,
+            gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
+        )
+        inner_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
+        inner_h = float(outer_h) - INNER_DOOR_INSET_TOP
+        if inner_w <= 0 or inner_h <= 0:
+            raise ValueError("receiving inner-door 50 mm inset leaves no valid finished area")
+        included = tuple(
+            side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
+            if side != "bottom"
+        )
+        spans = {
+            "top": inner_w,
+            "left": inner_h,
+            "right": inner_h,
+        }
+        result.append(InnerDoorFrameSet(
+            inner_door_id=stable_id,
+            spans={side: spans[side] for side in included},
+            thickness=t,
+            included_sides=included,
+        ))
+    return tuple(result)
+
+
+def shared_baseline_feature_model_name() -> str:
+    """Receiving reuses certified Vault baseline features, not Vault family state."""
+    return "金庫型"
+
+
+def apply_family_defaults(snapshot):
+    """套用受電箱 *fresh family* 預設；未列出的全域值保持原樣。
+
+    Saved-project state is restored by the project/runtime adapters and must not
+    call this helper as a migration normalizer.
+    """
+    result = deepcopy(dict(snapshot or {}))
+    result.pop("cabinet_type", None)
+    result["model"] = "受電箱"
+    result.update(BOX_BODY_DEFAULTS)
+    result.update(DOOR_DEFAULTS)
+    result.update(ENDCAP_DEFAULTS)
+    result["assembly_type"] = FRESH_ASSEMBLY_INTENT
+    result["multi_door_enabled"] = True
+    result["door_layout_scope"] = DEFAULT_DOOR_LAYOUT_SCOPE
+    result["door_layout_columns"] = default_door_layout_columns()
+    result["door_handle_edges"] = deepcopy(dict(result.get("door_handle_edges") or {}))
+    result["door_nameplate_center_datum_top"] = float(DOOR_NAMEPLATE_CENTER_DATUM_TOP)
+    try:
+        thickness = float(result.get("t", 2.0))
+    except (TypeError, ValueError):
+        thickness = 2.0
+    result["inner_doors"] = default_inner_doors(
+        thickness=thickness, depth=float(result["d"]), layout_scope=DEFAULT_DOOR_LAYOUT_SCOPE
+    )
+    return result
+
+
+def is_receiving_snapshot(snapshot) -> bool:
+    """Recognize the one model Source of Truth plus the short-lived legacy split field."""
+    data = dict(snapshot or {})
+    model = str(data.get("model") or "").strip()
+    if model == "受電箱":
+        return True
+    return str(data.get("cabinet_type") or "").strip() == "受電箱"
+
+
+def resolve_box_body_structure_state(state=None):
+    """受電箱固定使用既有側背分離結構，不建立第二套結構引擎。"""
+    from phase6_box_body_structure import (
+        BoxBodyStructureType,
+        normalize_box_body_structure_state,
+        set_active_structure,
+        set_structure_locked,
+    )
+
+    result = normalize_box_body_structure_state(state)
+    result = set_active_structure(result, BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT)
+    result = set_structure_locked(result, True)
+    cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg.setdefault("side_rear_bend", 15.0)
+    # 受電箱後面板是無折彎平板；已確認成形/下料寬 = W - 2.5T。
+    cfg["back_width_comp_t"] = 2.5
+    return result
+
+
+def _side_back_config(state=None):
+    from phase6_box_body_structure import BoxBodyStructureType
+
+    result = resolve_box_body_structure_state(state)
+    cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg.setdefault("bottom_external_wrap", True)
+    cfg.setdefault("bottom_relief_reserve_u", 2.0)
+    cfg.setdefault("bottom_relief_reserve_v", 1.0)
+    return result, cfg
+
+
+def bottom_external_wrap_enabled(state=None) -> bool:
+    """Return the receiving EndCap lower-face external-WRAP option."""
+    _state, cfg = _side_back_config(state)
+    return bool(cfg.get("bottom_external_wrap", True))
+
+
+def set_bottom_external_wrap(state, enabled: bool) -> dict:
+    """Return a canonical structure-state copy with lower WRAP enabled/disabled."""
+    result, cfg = _side_back_config(state)
+    cfg["bottom_external_wrap"] = bool(enabled)
+    return result
+
+
+def bottom_relief_reserves(state=None) -> tuple[float, float]:
+    """Return explicit millimetre reserves ``(X, Y)`` for receiving lower WRAP."""
+    _state, cfg = _side_back_config(state)
+    try:
+        reserve_u = max(0.0, float(cfg.get("bottom_relief_reserve_u", 2.0)))
+    except (TypeError, ValueError):
+        reserve_u = 2.0
+    try:
+        reserve_v = max(0.0, float(cfg.get("bottom_relief_reserve_v", 1.0)))
+    except (TypeError, ValueError):
+        reserve_v = 1.0
+    return reserve_u, reserve_v
+
+
+def set_bottom_relief_reserves(state, *, reserve_u=None, reserve_v=None) -> dict:
+    """Return a canonical structure-state copy with explicit X/Y reserve values."""
+    result, cfg = _side_back_config(state)
+    if reserve_u is not None:
+        cfg["bottom_relief_reserve_u"] = max(0.0, float(reserve_u))
+    if reserve_v is not None:
+        cfg["bottom_relief_reserve_v"] = max(0.0, float(reserve_v))
+    return result
+
+
+def transform_box_body_profile(profile):
+    """受電箱沿用金庫型 Fold Chain，只移除終端 zr1。"""
+    rows = [dict(row) for row in (profile or ()) if str(row.get("phase6_key") or "") != "zr1"]
+    if rows:
+        rows[-1].pop("angle", None)
+    return rows
+
+
+def endcap_depth_comp_t() -> float:
+    """受電箱 ybottom1 外貼 W，EndCap D 材料核心固定採 D-2T。"""
+    return 2.0
+
+
+def bottom_effective_fw(*, side_rear_bend: float, thickness: float) -> float:
+    return float(side_rear_bend) + float(thickness)
+
+
+def endcap_bottom_selection():
+    """受電箱封頭/尾下方永遠以 STANDARD 15×15 為母體。
+
+    外側包覆 WRAP 是獨立 Joint/Registry 衍生，不得把下方母體改成
+    INSERT_OVERLAY 或其他組合方式。
+    """
+    from ae_engine.sheetmetal_geometry import CornerTypeId, CornerTypeSelection, CrossCornerMode
+    return CornerTypeSelection(CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD)
+
+
+def endcap_corner_policy(*, frame_width: float, thickness: float, side_rear_bend: float):
+    """受電箱封頭尾：上方依組合語意；下方 STANDARD，WRAP 另由 Joint Registry 衍生。"""
+    from ae_engine.corner_type_ui import known_model_corner_state
+    from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
+
+    top = known_model_corner_state(("head",), cabinet_family="受電箱")["head"]
+    bottom = endcap_bottom_selection()
+    return FourCornerTypePolicy(
+        bottom_left=bottom,
+        bottom_right=bottom,
+        top_left=top["top_left"],
+        top_right=top["top_right"],
+        fw=float(frame_width),
+        bottom_fw=bottom_effective_fw(
+            side_rear_bend=float(side_rear_bend), thickness=float(thickness)
+        ),
+    )
+===== phase6_fold_profiles.py =====
+# -*- coding: utf-8 -*-
+"""Phase6 Fold Profile 與 linked EndCap mating chain 的單一所有權模組。"""
+from __future__ import annotations
+
+from copy import deepcopy
+from typing import Mapping, Sequence
+
+from ae_engine.sheetmetal_geometry import CornerTypeId
+from ae_engine.contracts import FoldProfileSegment
+from phase6_endcap_semantics import (
+    ENDCAP_FW_PARTS, normalize_endcap_fw_state, resolve_endcap_fw, resolve_box_assembly_type,
+)
+
+_BOX_BODY_TURNS = (90, -90, -90, -90, -90, -90, -90, 90)
+
+def _num(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+def _ui_len(value):
+    """The user's fold editor displays operator fold lengths as integers."""
+    return int(round(abs(_num(value))))
+
+def _has_real_bend(segment: Mapping[str, object]) -> bool:
+    """A segment owns the bend on its right boundary when angle is non-zero."""
+    return "angle" in segment and abs(_num(segment.get("angle"))) > 1e-9
+
+def apply_outside_dimension_compensation(profile: Sequence[dict], thickness) -> list[dict]:
+    """Annotate material segments with operator outside-dimension compensation.
+
+    Material/profile ``len`` values never change.  Each real bend adjacent to a
+    segment contributes one sheet thickness to the operator-facing outside
+    dimension: outer segments normally gain 1T and interior segments 2T.
+    """
+    t = max(0.0, _num(thickness))
+    segs = list(profile)
+    for index, seg in enumerate(segs):
+        bend_count = 0
+        if index > 0 and _has_real_bend(segs[index - 1]):
+            bend_count += 1
+        if index < len(segs) - 1 and _has_real_bend(seg):
+            bend_count += 1
+        if bend_count:
+            seg["ui_len_add"] = bend_count * t
+        else:
+            seg.pop("ui_len_add", None)
+    return segs
+
+
+
+def _outside_profile_to_material(profile: Sequence[dict], thickness) -> list[dict]:
+    """Convert operator outside segment lengths to canonical material lengths.
+
+    Each real adjacent BEND contributes exactly 1T.  The bend count comes from
+    the actual current topology, so deleting a bend automatically changes the
+    conversion.  ``ui_len_add`` remains presentation metadata only.
+    """
+    t = max(0.0, _num(thickness))
+    rows = apply_outside_dimension_compensation([dict(row) for row in profile], t)
+    for seg in rows:
+        outside = abs(_num(seg.get("len")))
+        seg["len"] = _ui_len(max(0.0, outside - abs(_num(seg.get("ui_len_add")))))
+    return apply_outside_dimension_compensation(rows, t)
+
+def build_box_body_profile(snapshot: Mapping[str, object]) -> list[dict]:
+    """Map Phase6 box-body values into the original editor's segment list.
+
+    D-W-D are explicit, fixed-position core segments.  Extra fold geometry is
+    represented only by the existing Phase6 values surrounding that core.
+    """
+    t = _num(snapshot.get("t", 2), 2)
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    receiving = is_receiving_snapshot(snapshot)
+    outside_add = max(0.0, 2.0 * t)
+    if receiving:
+        # Receiving Family defaults are operator outside dimensions. Build the
+        # topology first, then convert every segment by its real adjacent bends.
+        lengths = (
+            _ui_len(snapshot.get("zl1")), _ui_len(snapshot.get("zl2")),
+            _ui_len(snapshot.get("fw")), _ui_len(snapshot.get("d")),
+            _ui_len(snapshot.get("w")), _ui_len(snapshot.get("d")),
+            _ui_len(snapshot.get("fw")), _ui_len(snapshot.get("zr2")),
+            _ui_len(snapshot.get("zr1")),
+        )
+    else:
+        lengths = (
+            _ui_len(snapshot.get("zl1")),
+            _ui_len(snapshot.get("zl2")),
+            _ui_len(snapshot.get("fw")),
+            _ui_len(max(0.0, _num(snapshot.get("d")) - outside_add)),
+            _ui_len(max(0.0, _num(snapshot.get("w")) - outside_add)),
+            _ui_len(max(0.0, _num(snapshot.get("d")) - outside_add)),
+            _ui_len(snapshot.get("fw")),
+            _ui_len(snapshot.get("zr2")),
+            _ui_len(snapshot.get("zr1")),
+        )
+    cores = (None, None, None, "D", "W", "D", None, None, None)
+    phase6_keys = ("zl1", "zl2", "fw_left", "d_left", "w", "d_right", "fw_right", "zr2", "zr1")
+    result = []
+    for index, (length, core, phase6_key) in enumerate(zip(lengths, cores, phase6_keys)):
+        seg = {"len": length, "phase6_key": phase6_key}
+        if index < len(_BOX_BODY_TURNS):
+            seg["angle"] = _BOX_BODY_TURNS[index]
+        if core:
+            seg["core"] = core
+        result.append(seg)
+    if receiving:
+        from ae_engine.cabinet_types.receiving import transform_box_body_profile
+        result = transform_box_body_profile(result)
+        return _outside_profile_to_material(result, t)
+    return apply_outside_dimension_compensation(result, t)
+
+def _signed_like(original, magnitude):
+    return -abs(magnitude) if _num(original) < 0 else abs(magnitude)
+
+def build_endcap_profile(snapshot: Mapping[str, object]) -> list[dict]:
+    """Feed Phase6 top/depth/bottom material lengths into the original tab."""
+    profile = [
+        {"len": _ui_len(snapshot.get("ytop1")), "angle": -90, "phase6_key": "ytop1"},
+        {"len": _ui_len(snapshot.get("d")), "angle": -90, "phase6_key": "endcap_d"},
+        {"len": _ui_len(snapshot.get("ybottom1")), "phase6_key": "ybottom1"},
+    ]
+    return apply_outside_dimension_compensation(profile, snapshot.get("t", 2))
+
+def read_endcap_profile(profile: Sequence[Mapping[str, object]]) -> dict:
+    by_key = {str(seg.get("phase6_key")): seg for seg in profile if seg.get("phase6_key")}
+    if not {"ytop1", "endcap_d", "ybottom1"}.issubset(by_key):
+        raise ValueError("封頭/封尾折彎資料缺少原本三段")
+    return {
+        "ytop1": _ui_len(by_key["ytop1"].get("len")),
+        "d": _ui_len(by_key["endcap_d"].get("len")),
+        "ybottom1": _ui_len(by_key["ybottom1"].get("len")),
+    }
+
+def build_endcap_xy_profiles(snapshot: Mapping[str, object], *, part_key: str = "head") -> dict[str, list[dict]]:
+    """Map authoritative EndCap bends into the editor without mirroring tail.
+
+    Head manufacturing scenes are Y-normalized once by AE, while tail scenes stay
+    in their native orientation.  Therefore the editor Y-chain order must be
+    part-aware: head walks top->bottom after normalization; tail walks the native
+    bottom->top scene.  Lengths remain authoritative material lengths.
+    """
+    w = _num(snapshot.get("w", 500), 500)
+    d = _num(snapshot.get("d", 200), 200)
+    t = _num(snapshot.get("t", 2), 2)
+    fw = resolve_endcap_fw(snapshot, part_key)
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    receiving = is_receiving_snapshot(snapshot)
+    if receiving:
+        # Receiving operator FW is outside 29; canonical Y Fold Profile stores material 25.
+        fw = max(0.0, float(fw) - 2.0 * t)
+    x_core = max(0.0, w - 4.0 * t)
+    depth_comp_t = 3.0
+    if receiving:
+        from ae_engine.cabinet_types.receiving import endcap_depth_comp_t
+        depth_comp_t = endcap_depth_comp_t()
+    y_core = max(0.0, d - depth_comp_t * t)
+    outside_add = max(0.0, 2.0 * t)
+    x_profile = [
+        {"len": _ui_len(snapshot.get("yl1", 15)), "angle": -90, "phase6_key": "yl1"},
+        {"len": _ui_len(x_core), "angle": -90, "phase6_key": "endcap_w_core",
+         "core": "W-2T"},
+        {"len": _ui_len(snapshot.get("yr1", 15)), "phase6_key": "yr1"},
+    ]
+    if resolve_box_assembly_type(snapshot) is CornerTypeId.OVERLAY:
+        # 貼外型封頭／封尾沒有左右 X 折彎，因此整片 X 向材料寬就是 W。
+        # 下方 CROSS + EXTRA_CUT 的 1.5T 只改角落 CUTTING，不得把
+        # 原本 INSERT 型的 yl1 / yr1 折邊寬度加回整張材料外框。
+        x_profile = [
+            {"len": _ui_len(w), "phase6_key": "endcap_w_flat", "core": "W-FLAT"}
+        ]
+
+    profiles = {
+        "X": x_profile,
+        "Y": (
+            [
+                {"len": _ui_len(snapshot.get("ybottom1", 15)), "angle": -90, "phase6_key": "ybottom1"},
+                {"len": _ui_len(y_core), "angle": -90, "phase6_key": "endcap_d_core",
+                 "core": "D-T"},
+                {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
+                {"len": _ui_len(snapshot.get("ytop1", 16)), "phase6_key": "ytop1"},
+            ]
+            if str(part_key) == "tail" else
+            [
+                {"len": _ui_len(snapshot.get("ytop1", 16)), "angle": -90, "phase6_key": "ytop1"},
+                {"len": _ui_len(fw), "angle": -90, "phase6_key": "fw"},
+                {"len": _ui_len(y_core), "angle": -90, "phase6_key": "endcap_d_core",
+                 "core": "D-T"},
+                {"len": _ui_len(snapshot.get("ybottom1", 15)), "phase6_key": "ybottom1"},
+            ]
+        ),
+    }
+    profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
+    profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
+    return profiles
+
+def _phase6_fold_tabs_for_part(snapshot: Mapping[str, object], part_key: str):
+    """Return an explicit Fold-editor tab set only when topology requires it."""
+    key = str(part_key or "")
+    if key in ENDCAP_FW_PARTS and resolve_box_assembly_type(snapshot) is CornerTypeId.OVERLAY:
+        # OVERLAY has no left/right X bends, so the 3D Fold editor must not offer
+        # a fictitious X-axis bend page. Y remains the real editable fold chain.
+        return ["Y"]
+    return None
+
+def _phase6_normalize_endcap_profile_order(profiles, snapshot, part_key):
+    """Migrate legacy stored head/tail canonical profiles without touching extras."""
+    copied = {
+        "X": clone_profile((profiles or {}).get("X", ())),
+        "Y": clone_profile((profiles or {}).get("Y", ())),
+    }
+    if str(part_key) != "tail":
+        return copied
+    canonical = ("ybottom1", "endcap_d_core", "fw", "ytop1")
+    current = copied.get("Y", [])
+    keyed = [seg.get("phase6_key") for seg in current if seg.get("phase6_key")]
+    if len(current) != 4 or set(keyed) != set(canonical):
+        return copied
+    by_key = {seg.get("phase6_key"): dict(seg) for seg in current}
+    defaults = build_endcap_xy_profiles(snapshot, part_key="tail")["Y"]
+    reordered = []
+    for default in defaults:
+        key = default.get("phase6_key")
+        seg = by_key[key]
+        if "angle" in default:
+            seg["angle"] = default["angle"]
+        else:
+            seg.pop("angle", None)
+        for name in ("ui_len_add", "core"):
+            if name in default:
+                seg[name] = default[name]
+            else:
+                seg.pop(name, None)
+        reordered.append(seg)
+    copied["Y"] = reordered
+    return copied
+
+def read_endcap_xy_profiles(profiles: Mapping[str, Sequence[Mapping[str, object]]], original_snapshot: Mapping[str, object]) -> dict:
+    """Read EndCap editor topology back into legacy scalar adapter values.
+
+    ``ytop1`` is no longer structurally mandatory: when the BoxBody front
+    topology removes its outer fold, linked EndCaps legitimately contain only
+    FW -> D-core -> bottom (head) or the native reverse (tail).  Extra mating
+    rows, when present, are aggregated only for the legacy ``fold_top`` scalar;
+    authoritative BEND order/angles remain in the full Fold Profile.
+    """
+    x_rows = [dict(seg) for seg in profiles.get("X", ())]
+    y_rows = [dict(seg) for seg in profiles.get("Y", ())]
+    x = {str(seg.get("phase6_key")): seg for seg in x_rows if seg.get("phase6_key")}
+    y = {str(seg.get("phase6_key")): seg for seg in y_rows if seg.get("phase6_key")}
+    required_x = {"yl1", "endcap_w_core", "yr1"}
+    required_y = {"fw", "endcap_d_core", "ybottom1"}
+    flat_x = len(x_rows) == 1 and x_rows[0].get("phase6_key") == "endcap_w_flat"
+    if (not required_x.issubset(x) and not flat_x) or not required_y.issubset(y):
+        raise ValueError("封頭/封尾 X/Y 折彎資料不完整")
+    t = _num(original_snapshot.get("t", 2), 2)
+    top_fold = sum(
+        _ui_len(seg.get("len"))
+        for seg in y_rows
+        if seg.get("phase6_key") not in {"fw", "endcap_d_core", "ybottom1"}
+    )
+    depth_comp_t = 3.0
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    if is_receiving_snapshot(original_snapshot):
+        from ae_engine.cabinet_types.receiving import endcap_depth_comp_t
+        depth_comp_t = endcap_depth_comp_t()
+    return {
+        "w": (
+            _ui_len(original_snapshot.get("w", 0))
+            if flat_x else _ui_len(x["endcap_w_core"].get("len")) + 4.0 * t
+        ),
+        # The editor stores canonical EndCap material core. Convert back with
+        # the same family compensation used by build_endcap_xy_profiles().
+        # Using the vault legacy 3T here for receiving (2T) grew global D by
+        # exactly +1T every time Head/Tail was saved during part switching.
+        "d": _ui_len(y["endcap_d_core"].get("len")) + depth_comp_t * t,
+        "fw": (engine_segment_length_to_ui(y["fw"]) if is_receiving_snapshot(original_snapshot) else _ui_len(y["fw"].get("len"))),
+        "yl1": (
+            _ui_len(original_snapshot.get("yl1", 15))
+            if flat_x else _ui_len(x["yl1"].get("len"))
+        ),
+        "yr1": (
+            _ui_len(original_snapshot.get("yr1", 15))
+            if flat_x else _ui_len(x["yr1"].get("len"))
+        ),
+        "ytop1": _ui_len(top_fold),
+        "ybottom1": _ui_len(y["ybottom1"].get("len")),
+    }
+
+def engine_angle_to_ui(value):
+    """Return the exact operator-facing angle for the stored engine convention."""
+    angle = _num(value)
+    if angle in (90.0, -90.0):
+        angle = -angle
+    return int(angle) if float(angle).is_integer() else angle
+
+def ui_angle_to_engine(value):
+    """Preserve the operator input through the existing engine sign convention."""
+    angle = _num(value)
+    if angle in (90.0, -90.0):
+        angle = -angle
+    return int(angle) if float(angle).is_integer() else angle
+
+def formed_box_body_fw_widths(profile: Sequence[Mapping[str, object]], thickness) -> tuple[float | None, float | None]:
+    """Return formed left/right Box Body FW outside widths from the actual fold topology.
+
+    ``len`` is the flat/material FW.  Assembly insertion clearance must use the
+    formed outside occupation, so adjacent real bends contribute their actual
+    thickness compensation.  Recompute that compensation from the current
+    profile instead of trusting stale saved ``ui_len_add`` metadata.
+    """
+    rows = apply_outside_dimension_compensation(clone_profile(profile), thickness)
+    by_key = {str(seg.get("phase6_key") or ""): seg for seg in rows}
+    def one(key):
+        seg = by_key.get(key)
+        if seg is None:
+            return None
+        return abs(_num(seg.get("len"))) + abs(_num(seg.get("ui_len_add")))
+    return one("fw_left"), one("fw_right")
+
+
+def engine_segment_length_to_ui(seg: Mapping[str, object]):
+    """Return the operator-facing outside fold length for one engine segment.
+
+    ``len`` remains the real Renderer/BEND-line span.  ``ui_len_add`` is only
+    the outside-dimension compensation shown in the editor.
+    """
+    return _ui_len(_num(seg.get("len")) + _num(seg.get("ui_len_add")))
+
+def ui_segment_length_to_engine(seg: Mapping[str, object], ui_value):
+    """Convert an operator outside dimension back to the Renderer span."""
+    return _ui_len(max(0.0, _num(ui_value) - _num(seg.get("ui_len_add"))))
+
+def read_box_body_profile(profile: Sequence[Mapping[str, object]], original: Mapping[str, object]) -> dict:
+    """Convert known Phase6 positions back while allowing extra outer folds."""
+    by_key = {str(seg.get("phase6_key")): seg for seg in profile if seg.get("phase6_key")}
+    d_segments = [seg for seg in profile if seg.get("core") == "D"]
+    w_segments = [seg for seg in profile if seg.get("core") == "W"]
+    if len(d_segments) != 2 or len(w_segments) != 1:
+        raise ValueError("中央三段必須固定為 D-W-D")
+
+    d_left = engine_segment_length_to_ui(d_segments[0])
+    d_right = engine_segment_length_to_ui(d_segments[1])
+    if d_left != d_right:
+        raise ValueError("D-W-D 的兩個 D 必須相同")
+    w_value = engine_segment_length_to_ui(w_segments[0])
+
+    from ae_engine.cabinet_types.receiving import is_receiving_snapshot
+    receiving = is_receiving_snapshot(original)
+    fw_left_seg = by_key.get("fw_left")
+    fw_right_seg = by_key.get("fw_right")
+    if fw_left_seg is not None and fw_right_seg is not None:
+        fw_left = engine_segment_length_to_ui(fw_left_seg) if receiving else _ui_len(fw_left_seg.get("len"))
+        fw_right = engine_segment_length_to_ui(fw_right_seg) if receiving else _ui_len(fw_right_seg.get("len"))
+        if fw_left != fw_right:
+            raise ValueError("左右 FW 必須相同")
+        fw_value = fw_left
+    elif fw_left_seg is not None:
+===== phase6_endcap_semantics.py =====
+# -*- coding: utf-8 -*-
+"""Phase6 封頭／封尾裝配與 CornerType 狀態語意。
+
+此模組不依賴 Tk、renderer、ProjectSession 或 SettingsService。
+"""
+from __future__ import annotations
+
+from typing import Mapping
+
+from ae_engine.sheetmetal_geometry import (
+    CornerTypeId, CornerTypeSelection, normalize_corner_selection,
+)
+from ae_engine.corner_type_ui import (
+    apply_box_assembly_type, assembly_type_from_corner_state,
+)
+
+ASSEMBLY_TYPE_LABELS = {
+    CornerTypeId.INSERT: "嵌入",
+    CornerTypeId.OVERLAY: "貼外",
+    CornerTypeId.INSERT_OVERLAY: "嵌入貼外",
+    "WRAP_OVERLAY": "包覆貼外",
+}
+ASSEMBLY_LABEL_TO_TYPE = {label: type_id for type_id, label in ASSEMBLY_TYPE_LABELS.items()}
+
+
+def assembly_intent_value(value) -> str:
+    raw = getattr(value, "value", value)
+    from ae_engine.assembly_intent import normalize_assembly_intent_id
+    return normalize_assembly_intent_id(raw)
+
+
+def assembly_intent_label(value) -> str:
+    stable = assembly_intent_value(value)
+    for key, label in ASSEMBLY_TYPE_LABELS.items():
+        if getattr(key, "value", key) == stable:
+            return label
+    raise ValueError(f"不支援的箱體組合方式：{stable}")
+
+
+def legacy_corner_projection_for_intent(value) -> CornerTypeId:
+    stable = assembly_intent_value(value)
+    if stable == "WRAP_OVERLAY":
+        return CornerTypeId.OVERLAY
+    return CornerTypeId(stable)
+ENDCAP_FW_PARTS = ("head", "tail")
+
+FW_FOLLOW_BODY = "FOLLOW_BODY"
+FW_FOLLOW_HEAD = "FOLLOW_HEAD"
+FW_FOLLOW_TAIL = "FOLLOW_TAIL"
+FW_INDEPENDENT = "INDEPENDENT"
+ENDCAP_FW_MODES = (FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL, FW_INDEPENDENT)
+
+WRAP_LINKED = "LINKED"
+WRAP_FOLLOW_HEAD = "FOLLOW_HEAD"
+WRAP_FOLLOW_TAIL = "FOLLOW_TAIL"
+WRAP_INDEPENDENT = "INDEPENDENT"
+ENDCAP_BOTTOM_WRAP_MODES = (WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT)
+
+
+def _default_bottom_wrap_item(snapshot: Mapping[str, object]) -> dict[str, object]:
+    receiving = str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip() == "受電箱"
+    return {"enabled": bool(receiving), "reserve_u": 2.0, "reserve_v": 1.0}
+
+
+def _normalize_bottom_wrap_item(raw, default):
+    raw = raw if isinstance(raw, Mapping) else {}
+    try:
+        reserve_u = max(0.0, float(raw.get("reserve_u", default["reserve_u"])))
+    except (TypeError, ValueError):
+        reserve_u = float(default["reserve_u"])
+    try:
+        reserve_v = max(0.0, float(raw.get("reserve_v", default["reserve_v"])))
+    except (TypeError, ValueError):
+        reserve_v = float(default["reserve_v"])
+    return {
+        "enabled": bool(raw.get("enabled", default["enabled"])),
+        "reserve_u": reserve_u,
+        "reserve_v": reserve_v,
+    }
+
+
+def normalize_endcap_bottom_wrap_state(snapshot: Mapping[str, object]) -> dict[str, object]:
+    """Canonical Head/Tail lower-WRAP pair state.
+
+    Default receiving behaviour is linked.  Editing one side makes it the pair
+    leader; editing the opposite side afterwards splits the pair to independent
+    values, matching the existing EndCap FW linkage semantics.
+    """
+    raw = snapshot.get("endcap_bottom_wrap")
+    if raw is None:
+        workspace = snapshot.get("workspace")
+        if isinstance(workspace, Mapping):
+            raw = workspace.get("endcap_bottom_wrap")
+    raw = raw if isinstance(raw, Mapping) else {}
+    default = _default_bottom_wrap_item(snapshot)
+    head = _normalize_bottom_wrap_item(raw.get("head"), default)
+    tail = _normalize_bottom_wrap_item(raw.get("tail"), default)
+    mode = str(raw.get("mode", WRAP_LINKED) or WRAP_LINKED).upper()
+    if mode not in ENDCAP_BOTTOM_WRAP_MODES:
+        mode = WRAP_LINKED
+    result = {"mode": mode, "head": head, "tail": tail}
+    if mode == WRAP_LINKED:
+        # A linked snapshot stores one effective value; prefer Head as stable source.
+        result["tail"] = dict(result["head"])
+    elif mode == WRAP_FOLLOW_HEAD:
+        result["tail"] = dict(result["head"])
+    elif mode == WRAP_FOLLOW_TAIL:
+        result["head"] = dict(result["tail"])
+    return result
+
+
+def resolve_endcap_bottom_wrap(snapshot: Mapping[str, object], part_key: str, *, state=None) -> dict[str, object]:
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    normalized = normalize_endcap_bottom_wrap_state(snapshot) if state is None else state
+    item = dict((normalized or {}).get(part_key) or _default_bottom_wrap_item(snapshot))
+    enabled = bool(item.get("enabled", False))
+    # Once an explicit Joint Graph exists, UI state is only a projection of the
+    # BOTTOM relation.  The legacy enabled mirror may still carry reserve/link
+    # persistence but may not override the graph.
+    if "assembly_joints" in snapshot or "assembly_joint_schema_version" in snapshot:
+        try:
+            from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
+            relation = edge_relation_for_part(snapshot, part_key, "BOTTOM")
+            if relation is not None:
+                enabled = relation is AssemblyJointRelation.WRAP
+        except Exception:
+            pass
+    return {
+        "enabled": enabled,
+        "reserve_u": max(0.0, _num(item.get("reserve_u", 2.0), 2.0)),
+        "reserve_v": max(0.0, _num(item.get("reserve_v", 1.0), 1.0)),
+    }
+
+
+def commit_endcap_bottom_wrap_joint(snapshot: Mapping[str, object], part_key: str, enabled: bool) -> dict[str, object]:
+    """Write the receiving switch to the canonical BOTTOM AssemblyJoint."""
+    from ae_engine.assembly_joint import AssemblyJointRelation, set_part_edge_relation
+    return set_part_edge_relation(
+        snapshot, str(part_key), "BOTTOM",
+        AssemblyJointRelation.WRAP if bool(enabled) else AssemblyJointRelation.INSERT,
+    )
+
+
+def commit_endcap_bottom_wrap(state, part_key: str, *, enabled=None, reserve_u=None, reserve_v=None) -> dict:
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    mode = str(state.get("mode", WRAP_LINKED) or WRAP_LINKED)
+    leader = WRAP_FOLLOW_HEAD if part_key == "head" else WRAP_FOLLOW_TAIL
+    opposite = WRAP_FOLLOW_TAIL if part_key == "head" else WRAP_FOLLOW_HEAD
+    base = dict(state.get(part_key) or {"enabled": True, "reserve_u": 2.0, "reserve_v": 1.0})
+    if enabled is not None:
+        base["enabled"] = bool(enabled)
+    if reserve_u is not None:
+        base["reserve_u"] = max(0.0, float(reserve_u))
+    if reserve_v is not None:
+        base["reserve_v"] = max(0.0, float(reserve_v))
+    if mode in {WRAP_LINKED, leader}:
+        state["mode"] = leader
+        state["head"] = dict(base)
+        state["tail"] = dict(base)
+    elif mode == opposite:
+        state["mode"] = WRAP_INDEPENDENT
+        state.setdefault("head", dict(base))
+        state.setdefault("tail", dict(base))
+        state[part_key] = dict(base)
+    else:
+        state["mode"] = WRAP_INDEPENDENT
+        state.setdefault("head", dict(base))
+        state.setdefault("tail", dict(base))
+        state[part_key] = dict(base)
+    return state
+
+
+def _num(value, default=0.0):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(default)
+
+
+def selection_to_raw(selection):
+    selection = normalize_corner_selection(selection)
+    raw = {"type_id": selection.type_id.value, "rotation_quadrants": 0}
+    if selection.cross_mode is not None:
+        raw["cross_mode"] = selection.cross_mode.value
+    if selection.direction is not None:
+        raw["direction"] = selection.direction.value
+    if selection.amount_t is not None:
+        raw["amount_t"] = float(selection.amount_t)
+    if selection.secondary_retain_t is not None:
+        raw["secondary_retain_t"] = float(selection.secondary_retain_t)
+    if selection.secondary_depth_t is not None:
+        raw["secondary_depth_t"] = float(selection.secondary_depth_t)
+    return raw
+
+
+def selection_from_raw(raw):
+    if not isinstance(raw, Mapping):
+        return CornerTypeSelection(CornerTypeId.CROSS)
+    try:
+        selection = CornerTypeSelection(
+            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
+            int(raw.get("rotation_quadrants", 0) or 0),
+            cross_mode=raw.get("cross_mode"),
+            direction=raw.get("direction"),
+            amount_t=raw.get("amount_t"),
+            secondary_retain_t=raw.get("secondary_retain_t"),
+            secondary_depth_t=raw.get("secondary_depth_t"),
+        )
+        return normalize_corner_selection(selection)
+    except (TypeError, ValueError):
+        return CornerTypeSelection(CornerTypeId.CROSS)
+
+
+def normalize_endcap_fw_state(snapshot: Mapping[str, object]) -> dict[str, object]:
+    """Return the canonical Head/Tail FW control state.
+
+    Operator semantics are four-state:
+    ``FOLLOW_BODY`` -> box FW controls both end caps;
+    ``FOLLOW_HEAD`` / ``FOLLOW_TAIL`` -> the first edited end cap controls the pair;
+    ``INDEPENDENT`` -> after the opposite end cap is edited, each keeps its own value.
+
+    Legacy files had only per-part ``follow_box`` flags.  Mixed legacy state is
+    preserved as independent values/flags instead of inventing a pair leader.
+    """
+    box_fw = _num(snapshot.get("fw", 25), 25)
+    raw = snapshot.get("endcap_fw")
+    if raw is None:
+        workspace = snapshot.get("workspace")
+        if isinstance(workspace, Mapping):
+            raw = workspace.get("endcap_fw")
+    raw = raw if isinstance(raw, Mapping) else {}
+
+    raw_items = {}
+    for part in ENDCAP_FW_PARTS:
+        item = raw.get(part) if isinstance(raw, Mapping) else None
+        item = item if isinstance(item, Mapping) else {}
+        raw_items[part] = {
+            "follow_box": bool(item.get("follow_box", True)),
+            "value": _num(item.get("value", box_fw), box_fw),
+        }
+
+    requested_mode = str(raw.get("mode", "") or "").upper()
+    if requested_mode in ENDCAP_FW_MODES:
+        mode = requested_mode
+    elif all(raw_items[p]["follow_box"] for p in ENDCAP_FW_PARTS):
+        mode = FW_FOLLOW_BODY
+    else:
+        # Old files cannot express which end cap became the pair leader, so do
+        # not guess.  Keep their numerical/follow-box behaviour as independent.
+        mode = FW_INDEPENDENT
+
+    result = {"mode": mode, **raw_items}
+    if mode == FW_FOLLOW_BODY:
+        for part in ENDCAP_FW_PARTS:
+            result[part]["follow_box"] = True
+            result[part]["value"] = box_fw
+    elif mode == FW_FOLLOW_HEAD:
+        value = _num(result["head"].get("value", box_fw), box_fw)
+        for part in ENDCAP_FW_PARTS:
+            result[part]["follow_box"] = False
+            result[part]["value"] = value
+    elif mode == FW_FOLLOW_TAIL:
+        value = _num(result["tail"].get("value", box_fw), box_fw)
+        for part in ENDCAP_FW_PARTS:
+            result[part]["follow_box"] = False
+            result[part]["value"] = value
+    return result
+
+
+def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=None) -> float:
+    part_key = str(part_key)
+    box_fw = _num(snapshot.get("fw", 25), 25)
+    state = normalize_endcap_fw_state(snapshot) if state is None else state
+    mode = str((state or {}).get("mode", FW_INDEPENDENT))
+    item = dict((state or {}).get(part_key) or {})
+    if mode == FW_FOLLOW_BODY or bool(item.get("follow_box", False)):
+        return box_fw
+    return _num(item.get("value", box_fw), box_fw)
+
+
+def commit_box_fw(state, value: float) -> dict:
+    """Explicit box-FW operator commit: box immediately retakes both end caps."""
+    value = float(value)
+    state["mode"] = FW_FOLLOW_BODY
+    for part in ENDCAP_FW_PARTS:
+        item = state.setdefault(part, {})
+        item["follow_box"] = True
+        item["value"] = value
+    return state
+
+
+def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None = None) -> dict:
+    """Apply one explicit Head/Tail FW edit using the pair-then-split state machine."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    if "mode" not in state:
+        normalized = normalize_endcap_fw_state({"fw": 25.0 if box_fw is None else box_fw, "endcap_fw": state})
+        state.clear()
+        state.update(normalized)
+
+    value = float(value)
+    mode = str(state.get("mode", FW_INDEPENDENT))
+    leader_mode = FW_FOLLOW_HEAD if part_key == "head" else FW_FOLLOW_TAIL
+    opposite_leader = FW_FOLLOW_TAIL if part_key == "head" else FW_FOLLOW_HEAD
+
+    for part in ENDCAP_FW_PARTS:
+        state.setdefault(part, {"follow_box": False, "value": float(box_fw or value)})
+
+    if mode == FW_FOLLOW_BODY:
+        state["mode"] = leader_mode
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+            state[part]["value"] = value
+    elif mode == leader_mode:
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+            state[part]["value"] = value
+    elif mode == opposite_leader:
+        state["mode"] = FW_INDEPENDENT
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+        state[part_key]["value"] = value
+    else:
+        state["mode"] = FW_INDEPENDENT
+        for part in ENDCAP_FW_PARTS:
+            state[part]["follow_box"] = False
+        state[part_key]["value"] = value
+    return state
+
+
+def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: float) -> dict:
+    """Legacy/manual follow control retained for old callers and old projects."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    item = state.setdefault(part_key, {})
+    if not follow_box and bool(item.get("follow_box", True)):
+        item["value"] = float(box_fw)
+    item["follow_box"] = bool(follow_box)
+    item.setdefault("value", float(box_fw))
+    if all(bool((state.get(p) or {}).get("follow_box", True)) for p in ENDCAP_FW_PARTS):
+        state["mode"] = FW_FOLLOW_BODY
+    else:
+        state["mode"] = FW_INDEPENDENT
+    return item
+
+
+def set_endcap_fw_override(state, part_key: str, value: float) -> dict:
+    """Legacy per-part override; new operator UI should use ``commit_endcap_fw``."""
+    part_key = str(part_key)
+    if part_key not in ENDCAP_FW_PARTS:
+        raise ValueError(f"不支援的封頭尾板件: {part_key}")
+    item = state.setdefault(part_key, {"follow_box": False})
+    item["follow_box"] = False
+    item["value"] = float(value)

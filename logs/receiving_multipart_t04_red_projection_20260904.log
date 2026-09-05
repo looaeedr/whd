@@ -1,0 +1,34 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_door_part_projections_use_cell_identity_edges_and_resolved_finished_size _
+
+    def test_door_part_projections_use_cell_identity_edges_and_resolved_finished_size():
+        import fold_designer_bridge as bridge
+    
+        snapshot = {
+            "multi_door_enabled": True,
+            "door_layout_columns": [[600.0, [600.0, 500.0, 700.0]], [500.0, [800.0, 1000.0]]],
+            "t": 2.0, "fw": 25.0, "door_gap_w": 3.5, "door_gap_h": 3.5,
+        }
+>       rows = bridge._phase6_door_part_projections(snapshot)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_projections'
+
+tests/test_phase6_t04_multi_door_formal.py:14: AttributeError
+__________ test_single_door_snapshot_has_no_dynamic_door_projections ___________
+
+    def test_single_door_snapshot_has_no_dynamic_door_projections():
+        import fold_designer_bridge as bridge
+>       assert bridge._phase6_door_part_projections({
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            "multi_door_enabled": False,
+            "door_layout_columns": [[800.0, [1600.0]]],
+            "t": 2.0, "fw": 25.0, "door_gap_w": 3.5, "door_gap_h": 3.5,
+        }) == ()
+E       AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_projections'
+
+tests/test_phase6_t04_multi_door_formal.py:27: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_t04_multi_door_formal.py::test_door_part_projections_use_cell_identity_edges_and_resolved_finished_size - AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_projections'
+FAILED tests/test_phase6_t04_multi_door_formal.py::test_single_door_snapshot_has_no_dynamic_door_projections - AttributeError: module 'fold_designer_bridge' has no attribute '_phase6_door_part_projections'
+2 failed in 0.59s

@@ -1,0 +1,29 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_policy_exposes_family_fold_semantics_without_ui_family_branch ______
+
+    def test_policy_exposes_family_fold_semantics_without_ui_family_branch():
+        from ae_engine.cabinet_types import policy
+    
+        profile = [
+            {"phase6_key": "zl1", "len": 24.0, "angle": 90},
+            {"phase6_key": "w", "len": 800.0, "angle": 90},
+            {"phase6_key": "zr1", "len": 12.0},
+        ]
+        receiving = {"model": "受電箱"}
+        vault = {"model": "金庫型"}
+        transformed = policy.transform_box_body_profile(receiving, profile)
+        assert [row["phase6_key"] for row in transformed] == ["zl1", "w"]
+        assert "angle" not in transformed[-1]
+        assert policy.box_body_profile_uses_outside_dimensions(receiving) is True
+        assert policy.endcap_fw_profile_uses_material_dimensions(receiving) is True
+        assert policy.box_body_profile_uses_outside_dimensions(vault) is False
+        assert policy.endcap_fw_profile_uses_material_dimensions(vault) is False
+>       assert policy.family_fixes_box_body_structure(receiving) is True
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'ae_engine.cabinet_types.policy' has no attribute 'family_fixes_box_body_structure'
+
+tests/test_phase6_cabinet_family_policy.py:61: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_phase6_cabinet_family_policy.py::test_policy_exposes_family_fold_semantics_without_ui_family_branch - AttributeError: module 'ae_engine.cabinet_types.policy' has no attribute 'family_fixes_box_body_structure'
+1 failed in 0.41s

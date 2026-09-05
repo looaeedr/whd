@@ -1,0 +1,254 @@
+=== tests/test_phase6_assembly_registry_gui_matrix.py ===
+...                                                                      [100%]
+3 passed in 7.08s
+RC=0
+=== tests/test_phase6_assembly_view_skill_contract.py ===
+..                                                                       [100%]
+2 passed in 0.06s
+RC=0
+=== tests/test_phase6_core_fold_ownership.py ===
+....                                                                     [100%]
+4 passed in 0.62s
+RC=0
+=== tests/test_phase6_corner_3d_model_integrity_skill.py ===
+...                                                                      [100%]
+3 passed in 0.06s
+RC=0
+=== tests/test_phase6_corner_dimension_controls.py ===
+.......                                                                  [100%]
+7 passed in 0.67s
+RC=0
+=== tests/test_phase6_corner_transaction.py ===
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_corner_transaction.py::test_baseline_selector_is_in_3d_and_unknown_uses_existing_corner_state
+tests/test_phase6_corner_transaction.py::test_corner_pair_edit_publishes_live_without_confirm
+tests/test_phase6_corner_transaction.py::test_cancel_does_not_confirm_corner_transaction
+tests/test_phase6_corner_transaction.py::test_unmodified_workspace_close_path_skips_even_lightweight_save
+tests/test_phase6_corner_transaction.py::test_real_fold_entry_edit_marks_workspace_dirty
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36617 (\N{CJK UNIFIED IDEOGRAPH-8F09}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_corner_transaction.py::test_baseline_selector_is_in_3d_and_unknown_uses_existing_corner_state
+tests/test_phase6_corner_transaction.py::test_corner_pair_edit_publishes_live_without_confirm
+tests/test_phase6_corner_transaction.py::test_cancel_does_not_confirm_corner_transaction
+tests/test_phase6_corner_transaction.py::test_unmodified_workspace_close_path_skips_even_lightweight_save
+tests/test_phase6_corner_transaction.py::test_real_fold_entry_edit_marks_workspace_dirty
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20837 (\N{CJK UNIFIED IDEOGRAPH-5165}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_corner_transaction.py::test_baseline_selector_is_in_3d_and_unknown_uses_existing_corner_state
+tests/test_phase6_corner_transaction.py::test_corner_pair_edit_publishes_live_without_confirm
+tests/test_phase6_corner_transaction.py::test_cancel_does_not_confirm_corner_transaction
+tests/test_phase6_corner_transaction.py::test_unmodified_workspace_close_path_skips_even_lightweight_save
+tests/test_phase6_corner_transaction.py::test_real_fold_entry_edit_marks_workspace_dirty
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22833 (\N{CJK UNIFIED IDEOGRAPH-5931}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_corner_transaction.py::test_baseline_selector_is_in_3d_and_unknown_uses_existing_corner_state
+tests/test_phase6_corner_transaction.py::test_corner_pair_edit_publishes_live_without_confirm
+tests/test_phase6_corner_transaction.py::test_cancel_does_not_confirm_corner_transaction
+tests/test_phase6_corner_transaction.py::test_unmodified_workspace_close_path_skips_even_lightweight_save
+tests/test_phase6_corner_transaction.py::test_real_fold_entry_edit_marks_workspace_dirty
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25943 (\N{CJK UNIFIED IDEOGRAPH-6557}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+5 passed, 20 warnings in 1.75s
+RC=0
+=== tests/test_phase6_designer_workspace.py ===
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32068 (\N{CJK UNIFIED IDEOGRAPH-7D44}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21512 (\N{CJK UNIFIED IDEOGRAPH-5408}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 39636 (\N{CJK UNIFIED IDEOGRAPH-9AD4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24178 (\N{CJK UNIFIED IDEOGRAPH-5E72}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28041 (\N{CJK UNIFIED IDEOGRAPH-6D89}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 30896 (\N{CJK UNIFIED IDEOGRAPH-78B0}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25758 (\N{CJK UNIFIED IDEOGRAPH-649E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21312 (\N{CJK UNIFIED IDEOGRAPH-5340}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 27573 (\N{CJK UNIFIED IDEOGRAPH-6BB5}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 20132 (\N{CJK UNIFIED IDEOGRAPH-4EA4}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 32218 (\N{CJK UNIFIED IDEOGRAPH-7DDA}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23553 (\N{CJK UNIFIED IDEOGRAPH-5C01}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38957 (\N{CJK UNIFIED IDEOGRAPH-982D}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23614 (\N{CJK UNIFIED IDEOGRAPH-5C3E}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38272 (\N{CJK UNIFIED IDEOGRAPH-9580}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24213 (\N{CJK UNIFIED IDEOGRAPH-5E95}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_legacy_workspace_names_are_properties_over_one_owner
+tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26495 (\N{CJK UNIFIED IDEOGRAPH-677F}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25240 (\N{CJK UNIFIED IDEOGRAPH-6298}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24460 (\N{CJK UNIFIED IDEOGRAPH-5F8C}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21253 (\N{CJK UNIFIED IDEOGRAPH-5305}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22806 (\N{CJK UNIFIED IDEOGRAPH-5916}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25130 (\N{CJK UNIFIED IDEOGRAPH-622A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 35282 (\N{CJK UNIFIED IDEOGRAPH-89D2}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24038 (\N{CJK UNIFIED IDEOGRAPH-5DE6}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19979 (\N{CJK UNIFIED IDEOGRAPH-4E0B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65307 (\N{FULLWIDTH SEMICOLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21491 (\N{CJK UNIFIED IDEOGRAPH-53F3}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19978 (\N{CJK UNIFIED IDEOGRAPH-4E0A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+tests/test_phase6_designer_workspace.py::test_real_designer_switch_saves_outgoing_before_workspace_changes_active_part
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26009 (\N{CJK UNIFIED IDEOGRAPH-6599}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+12 passed, 82 warnings in 7.41s
+RC=0

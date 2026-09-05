@@ -1,0 +1,359 @@
+{
+  "schema_version": 2,
+  "standard_rules": {
+    "ENDCAP_TOP_STANDARD_V1": {
+      "revision": 1,
+      "dimension_semantics": [
+        "操作員輸入是包外尺寸；Fold Profile len 是料尺寸",
+        "料尺寸 = 包外尺寸 - 實際相鄰折彎數 × T",
+        "上方 STANDARD 量到最內部折彎線"
+      ],
+      "standard_geometry": {
+        "primary_u": "side_fold + FW",
+        "primary_v": "ytop1 + FW",
+        "meaning": "封頭尾上方母體：最內部折彎線"
+      }
+    },
+    "ENDCAP_BOTTOM_STANDARD_V1": {
+      "revision": 1,
+      "dimension_semantics": [
+        "下方 STANDARD 獨立於上方 INSERT / OVERLAY 語意",
+        "WRAP 是下方 Joint relation，不是包外尺寸量法"
+      ],
+      "standard_geometry": {
+        "primary_u": "side_fold",
+        "primary_v": "ybottom1",
+        "meaning": "封頭尾下方母體：最內部折彎線"
+      }
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "ENDCAP_TOP_INSERT_STRUCTURAL_CONTACT_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "ANY",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "TOP",
+      "assembly_intent": "INSERT",
+      "joint_signature": [
+        {
+          "relation": "INSERT",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "BOX_SIDE",
+          "subject_region": "TOP",
+          "target_region": "MATING_ZONE"
+        }
+      ],
+      "topology_levels": 1,
+      "preconditions": [
+        "ytop1_absent",
+        "x_folded"
+      ],
+      "formula": {
+        "primary_u": "side_fold + FW - T",
+        "primary_v": "FW + T"
+      },
+      "display_formula_x": "EndCap side fold + (effective FW - T) structural contact",
+      "display_formula_y": "EndCap FW + 1T",
+      "source": "自訂(9) 38×27；linked-FW 結構接合線回投影",
+      "standard_ref": "ENDCAP_TOP_STANDARD_V1",
+      "affected_zone": "top x folded structural contact",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "INSERT：進入箱身內緣以下，ytop1_absent linked-FW 結構接觸",
+      "adjustment_type": "INSERT",
+      "adjustment_amount": {
+        "basis": "STANDARD top with ytop1_absent",
+        "primary_u_delta": "-T from effective FW band",
+        "primary_v_delta": "+T against FW"
+      },
+      "certification_evidence": {
+        "fixture": "自訂(9)",
+        "expected_cut": "38×27",
+        "method": "linked-FW 結構接合線回投影"
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "ENDCAP_FW",
+        "SHEET_THICKNESS"
+      ]
+    },
+    {
+      "rule_id": "ENDCAP_TOP_INSERT_STANDARD_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "ANY",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "TOP",
+      "assembly_intent": "INSERT",
+      "joint_signature": [
+        {
+          "relation": "INSERT",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "BOX_SIDE",
+          "subject_region": "TOP",
+          "target_region": "MATING_ZONE"
+        }
+      ],
+      "topology_levels": 1,
+      "preconditions": [
+        "ytop1_present",
+        "x_folded"
+      ],
+      "formula": {
+        "primary_u": "side_fold + FW",
+        "primary_v": "ytop1 + FW + T"
+      },
+      "display_formula_x": "side_fold + FW",
+      "display_formula_y": "ytop1 + FW + amount_t*T (default 1T)",
+      "source": "CornerType INSERT 正式製造公式；限 ytop1 存在的標準拓撲",
+      "standard_ref": "ENDCAP_TOP_STANDARD_V1",
+      "affected_zone": "top x folded FW band",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "INSERT：從 STANDARD 多切 1T，進入對方內緣",
+      "adjustment_type": "INSERT",
+      "adjustment_amount": {
+        "basis": "ENDCAP_TOP_STANDARD_V1",
+        "primary_u_delta": "0",
+        "primary_v_delta": "+1T"
+      },
+      "certification_evidence": {
+        "method": "CornerType INSERT regression",
+        "status": "CERTIFIED"
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "ENDCAP_FW",
+        "ENDCAP_YTOP1",
+        "SHEET_THICKNESS"
+      ]
+    },
+    {
+      "rule_id": "ENDCAP_TOP_OVERLAY_STANDARD_V1",
+      "revision": 3,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "ANY",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "TOP",
+      "assembly_intent": "OVERLAY",
+      "joint_signature": [
+        {
+          "relation": "OVERLAY",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "BOX_SIDE",
+          "subject_region": "TOP",
+          "target_region": "OUTER_SURFACE"
+        }
+      ],
+      "topology_levels": 2,
+      "preconditions": [
+        "ytop1_present",
+        "x_flat"
+      ],
+      "formula": {
+        "primary_u": "side_fold + FW",
+        "primary_v": "ytop1 + FW - T",
+        "secondary_u": "side_fold",
+        "secondary_depth": "T"
+      },
+      "display_formula_x": "STANDARD X = side_fold + FW；OVERLAY FW band 留肉 1T",
+      "display_formula_y": "STANDARD Y = ytop1 + FW；OVERLAY 留肉 1T",
+      "source": "STANDARD 母體：最內部折彎線 side_fold+FW / ytop1+FW。OVERLAY 是面齊語意，只在 FW band 留肉 1T；formed FW 僅作 3D shadow evidence，不參與正式公式。",
+      "standard_ref": "ENDCAP_TOP_STANDARD_V1",
+      "affected_zone": "top flat-X FW band",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "OVERLAY：從 STANDARD 留肉，使外側面齊；formed FW 只作 shadow evidence",
+      "adjustment_type": "OVERLAY",
+      "adjustment_amount": {
+        "basis": "ENDCAP_TOP_STANDARD_V1",
+        "primary_u_delta": "0",
+        "primary_v_delta": "-1T",
+        "secondary_u": "side_fold",
+        "secondary_depth": "1T retained FW band"
+      },
+      "certification_evidence": {
+        "fixture": "金庫型貼外 W400 T2 FW25",
+        "expected_top": "40×39 + 15×2",
+        "method": "STANDARD 母體 + OVERLAY 面齊留肉 regression"
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "ENDCAP_FW",
+        "ENDCAP_YTOP1",
+        "SHEET_THICKNESS"
+      ]
+    },
+    {
+      "rule_id": "ENDCAP_TOP_INSERT_OVERLAY_LINKED_FW_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "ANY",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "TOP",
+      "assembly_intent": "INSERT_OVERLAY",
+      "joint_signature": [
+        {
+          "relation": "INSERT_OVERLAY",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "BOX_SIDE",
+          "subject_region": "TOP",
+          "target_region": "MATING_ZONE"
+        }
+      ],
+      "topology_levels": 2,
+      "preconditions": [
+        "ytop1_absent",
+        "x_folded"
+      ],
+      "formula": {
+        "primary_u": "side_fold + FW",
+        "primary_v": "FW - T",
+        "secondary_u": "side_fold + 0.5*T",
+        "secondary_depth": "2*T"
+      },
+      "display_formula_x": "primary_u = side_fold + FW; secondary_u = side_fold + 0.5T",
+      "display_formula_y": "primary_v = FW - 1T",
+      "display_formula_secondary": "secondary_depth = 2T",
+      "source": "C04 manufacturing contract；linked-FW 移除獨立 ytop1 base",
+      "standard_ref": "ENDCAP_TOP_STANDARD_V1",
+      "affected_zone": "top linked-FW insert-overlay band",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "INSERT_OVERLAY：STANDARD 上局部多切加留肉，ytop1_absent linked-FW",
+      "adjustment_type": "INSERT_OVERLAY",
+      "adjustment_amount": {
+        "basis": "ENDCAP_TOP_STANDARD_V1",
+        "primary_u_delta": "0",
+        "primary_v_delta": "-1T from FW",
+        "secondary_u_delta": "+0.5T from side_fold",
+        "secondary_depth": "2T"
+      },
+      "certification_evidence": {
+        "method": "C04 linked-FW manufacturing contract regression",
+        "status": "CERTIFIED"
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "ENDCAP_FW",
+        "SHEET_THICKNESS"
+      ]
+    },
+    {
+      "rule_id": "ENDCAP_TOP_INSERT_OVERLAY_STANDARD_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "ANY",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "TOP",
+      "assembly_intent": "INSERT_OVERLAY",
+      "joint_signature": [
+        {
+          "relation": "INSERT_OVERLAY",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "BOX_SIDE",
+          "subject_region": "TOP",
+          "target_region": "MATING_ZONE"
+        }
+      ],
+      "topology_levels": 2,
+      "preconditions": [
+        "ytop1_present",
+        "x_folded"
+      ],
+      "formula": {
+        "primary_u": "side_fold + FW",
+        "primary_v": "ytop1 + FW - T",
+        "secondary_u": "side_fold + 0.5*T",
+        "secondary_depth": "2*T"
+      },
+      "display_formula_x": "side_fold + FW",
+      "display_formula_y": "ytop1 + FW - 1T",
+      "display_formula_secondary": "secondary_u = side_fold + 0.5T; depth = 2T",
+      "source": "金庫型 C04 / INSERT_OVERLAY 既有固定製造公式",
+      "standard_ref": "ENDCAP_TOP_STANDARD_V1",
+      "affected_zone": "top x folded insert-overlay band",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "INSERT_OVERLAY：STANDARD 上局部多切加留肉",
+      "adjustment_type": "INSERT_OVERLAY",
+      "adjustment_amount": {
+        "basis": "ENDCAP_TOP_STANDARD_V1",
+        "primary_u_delta": "0",
+        "primary_v_delta": "-1T",
+        "secondary_u_delta": "+0.5T from side_fold",
+        "secondary_depth": "2T"
+      },
+      "certification_evidence": {
+        "method": "金庫型 C04 既有固定製造公式 regression",
+        "status": "CERTIFIED"
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "ENDCAP_FW",
+        "ENDCAP_YTOP1",
+        "SHEET_THICKNESS"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING_ENDCAP_BOTTOM_WRAP_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED_FROM_3D",
+      "active": true,
+      "cabinet_family": "受電箱",
+      "part_role": "HEAD_OR_TAIL",
+      "joint_face": "BOTTOM",
+      "assembly_intent": "ANY",
+      "joint_signature": [
+        {
+          "relation": "WRAP",
+          "subject_role": "HEAD_OR_TAIL",
+          "target_role": "REAR_PANEL",
+          "subject_region": "BOTTOM",
+          "target_region": "OUTER_SURFACE"
+        }
+      ],
+      "topology_levels": 2,
+      "preconditions": [
+        "ybottom1_present",
+        "x_folded"
+      ],
+      "formula": {
+        "primary_u": "side_fold + rear_bend - reserve_u",
+        "primary_v": "ybottom1 - reserve_v",
+        "secondary_u": "side_fold",
+        "secondary_depth": "reserve_v"
+      },
+      "display_formula_x": "封頭/尾側折 + 側板後折 - X預留；第二級寬 = 封頭/尾側折",
+      "display_formula_y": "下折 - Y預留；第二級深度 = Y預留",
+      "display_formula_secondary": "X/Y 預留為可調 mm；WRAP 接觸與非法穿透由 3D shadow 驗證",
+      "source": "受電箱下方外側包覆（WRAP）獨立算法；不依附 INSERT / OVERLAY / INSERT_OVERLAY。X/Y 預留為可調 mm 製造參數；3D face projection 保存幾何基準與碰撞證據，Registry HIT 直接用公式。",
+      "standard_ref": "ENDCAP_BOTTOM_STANDARD_V1",
+      "affected_zone": "bottom rear wrap zone",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "WRAP：下方 STANDARD 衍生的局部面齊/包覆，保留合法接觸並移除非法穿透",
+      "adjustment_type": "WRAP",
+      "adjustment_amount": {
+        "basis": "ENDCAP_BOTTOM_STANDARD_V1 + BOX_SIDE_REAR_BEND",
+        "primary_u": "side_fold + rear_bend - reserve_u",
+        "primary_v": "ybottom1 - reserve_v",
+        "secondary_depth": "reserve_v"
+      },
+      "certification_evidence": {
+        "method": "3D face projection shadow validation",
+        "trust_level": "CERTIFIED_FROM_3D",
+        "requires_zero_penetration": true
+      },
+      "geometry_inputs": [
+        "ENDCAP_SIDE_FOLD",
+        "BOX_SIDE_REAR_BEND",
+        "ENDCAP_YBOTTOM1",
+        "SHEET_THICKNESS",
+        "BOTTOM_RELIEF_RESERVE_U",
+        "BOTTOM_RELIEF_RESERVE_V"
+      ]
+    }
+  ]
+}

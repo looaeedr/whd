@@ -1,0 +1,1177 @@
+===== .agents/skills/engineering/派工/SKILL.md =====
+---
+name: dispatching
+description: 人工指定時使用：套用專案內角色自動切換與進度落盤協定。
+disable-model-invocation: true
+---
+
+# 角色自動切換與進度落盤協定 (Role Auto-Switching & Checkpoint Protocol)
+
+當收到開發任務時，若當前環境不支援真正的背景獨立 Subagent Runtime，你必須**自動在內部完成角色切換**，嚴禁停止對話等待不存在的第三方回報。
+
+## 1. 狀態機流程 (State Machine)
+[ 階段 1：總控 PM ] ➔ [ 階段 2：實作者 Worker (含實體檔案落盤) ] ➔ [ 階段 3：審查者 QA ]
+
+## 2. 各階段行為與自動切換觸發條件
+
+### 階段 1：總控 (PM Mode)
+- **職責**：分析規格、拆解工單（如 T1, T2...），建立驗收測試條件。
+- **自動轉移條件**：當工單定義完成後，直接在同一次回覆中標記 `[轉移至：實作者]`，並自動進入階段 2。
+
+### 階段 2：實作者 (Implementer Mode)
+- **輸出標示**：回覆開頭必須加上 `[當前角色：T1 實作者]`（依實際工單編號替換）。
+- **職責**：禁止發表 PM 評論，完全專注於撰寫或修改 Production Code。
+- **強制實體落盤 (Artifact Checkpoint)**：為防止 Runtime / 工具回合被清空，每次完成單一工單的實質修改後，**必須產出包含本次修改的實體檔案或 ZIP checkpoint，並在對話中直接提供下載連結**。嚴禁只有口頭進度、背景靜默修改或只貼長篇程式碼。
+- **長回歸前 checkpoint**：若已有尚未封裝的 production / test / skill 變更，且下一步要跑長時間測試，**先封 checkpoint 再進長回歸**，避免 TIMEOUT 後只剩口頭進度。
+- **自動轉移條件**：確認產出實體 checkpoint 後，標記 `[轉移至：總控審查]`，自動進入階段 3。
+
+### 階段 3：審查整合 (QA/PM Reviewer Mode)
+- **輸出標示**：回覆開頭必須加上 `[當前角色：總控審查]`。
+- **職責**：以第三人稱視角做規格對照、邏輯檢查與回歸驗證。
+- **測試策略**：優先採**單一模組／小批次**執行；不得用「一次跑全套然後等超時」取代可恢復的小批 runner。若不合格則退回階段 2；合格才封存工單並推進下一項。
+
+## 3. 測試 Runner / TIMEOUT 硬協定
+
+### 3.1 每批必須有獨立 Process Group
+- 每個 pytest / GUI 測試批次必須建立**獨立 process group / session**（例如 `start_new_session=True` 或等價機制）。
+- timeout、取消或外層工具回合中斷時，必須終止**整個 process group**，不能只 kill 父 pytest。
+- 優先先送 TERM，再於短暫 grace period 後送 KILL；結束後必須確認沒有殘留 `pytest` / `Xvfb` / child Python process。
+- **禁止**讓 99% CPU 的孤兒 pytest 留在背景繼續跑，因為它會讓後續批次看起來全部 timeout。
+
+### 3.2 GUI 測試的 Xvfb Ownership
+- 長批 GUI 測試**不得依賴 `xvfb-run` 當生命週期 owner**；它可能在 pytest 已完成後卡在 wrapper / teardown。
+- 優先由 runner 自己啟動 Xvfb、等待 DISPLAY ready、把 DISPLAY 傳入 pytest，最後由 runner 自己終止 Xvfb。
+- **外層 hard kill 防線**：只靠 Python `finally` 不足以處理 runner 本身被 `SIGKILL` 的情況。Linux runner 啟動 Xvfb 時必須使用 kernel parent-death guard（例如 `prctl(PR_SET_PDEATHSIG, SIGTERM)` / `PDEATHSIG` 等價機制），確保父 runner 消失時 Xvfb 不會被 PID 1 收養成 orphan。
+- hard-kill regression 必須真的 `SIGKILL` 父 runner，再驗 Xvfb PID 已死亡／成 zombie，不得只 mock cleanup callback。
+- 若環境只能使用 `xvfb-run`，只准跑短批次，且必須用 log summary 判讀 pytest 本體結果，不能用 wrapper timeout 直接判成 fail。
+
+### 3.3 TIMEOUT 分類：先看 pytest 證據，不能看到 timeout 就喊失敗
+收到 timeout / 外層工具時間切斷後，**第一動作是讀 log 與檢查 process 狀態，不得直接重跑**。
+
+將結果分成三類：
+
+1. **complete**
+   - log 已出現完整 pytest summary（例如 `[100%]`、`N passed` / `N skipped`），且沒有 `failed` / `error` / collection error。
+   - 即使 shell / Xvfb wrapper 後續 timeout，也視為**測試本體完成**。
+
+2. **complete_teardown_timeout**
+   - pytest 已明確印出完整 PASS summary，但 interpreter、Tk、Matplotlib、Xvfb 或 wrapper 在 teardown 不退出。
+   - 記錄為完成，kill 掉殘留 process group，**不得重跑已完成的測試**，並另開 harness/teardown 工單追原因。
+
+3. **incomplete_timeout**
+   - log 沒有完整 summary，或只跑到中途點號 / 百分比。
+   - 不得判 PASS，也不得判 production FAIL。
+   - kill process group，保留已完成節點證據，只重跑**未完成範圍**。
+
+只有看到 pytest 自己的 `FAILED` / `ERROR` / collection failure 才是**真 RED**。
+
+### 3.4 Timeout 後必須縮小批次，不准整段重跑
+- 一批 `incomplete_timeout` 後，優先把未完成範圍**二分**（例如 100 → 50 → 25 → 10 → 單檔／單 nodeid）。
+- 已經有完整 PASS summary 的批次／nodeid 必須從 pending 集合移除，**禁止為了方便重跑已通過區段**。
+- 若單一測試單跑 PASS、放在前置測試後才 hang/fail，依序做 prefix/binary bisection 找 order-dependent 污染源，不得修改幾何常數或放寬 oracle 來遮掉污染。
+
+### 3.5 Journal / Resume：每批結果立即落盤
+長回歸必須維護可恢復 journal（JSONL 或等價格式），每批結束立即寫入，至少包含：
+- test collection 數量；
+- collection SHA / nodeid 清單 hash；
+- batch / nodeids；
+- 狀態：`complete` / `complete_teardown_timeout` / `incomplete_timeout` / `failed`；
+- passed / skipped / failed 數；
+- log 路徑；
+- elapsed time。
+
+Resume 時：
+- collection 數量或 SHA 改變 → **拒絕沿用舊 journal**；
+- collection 相同 → 只跑 pending 節點；
+- 外層工具回合被切掉 → 先讀既有 log/journal，再決定是否需要續跑，**不得憑記憶重建進度**。
+
+### 3.6 QA 完成條件
+只有同時滿足以下條件，才准宣告該回歸批次完成：
+- [ ] intended nodeids 全部有終態（complete / skipped / failed），沒有 pending；
+- [ ] failed = 0（若本工單要求全綠）；
+- [ ] collection count / SHA 與 journal 相符；
+- [ ] 無殘留 pytest / Xvfb / child Python process；
+- [ ] timeout 造成的 teardown/harness 問題另有明確紀錄，不得混成 production failure；
+- [ ] 任何已通過區段沒有因 timeout 被無意義重跑。
+
+## 4. 核心限制條款
+- **嚴禁虛構等待**：嚴禁出現「工單已派發給其他工程師，請等待」等虛構話術。你「本人」就是唯一執行者。
+- **絕不停頓**：未完成任務前，不得以單純回報進度作為終點。若工具／Runtime 不可抗力中斷，先以最近 checkpoint + journal 恢復，然後直接續工。
+- **禁止憑文字記憶重構**：環境重置後若完整工作樹不存在，必須從最近的實體 checkpoint ZIP 還原；缺 checkpoint 才向使用者要求上傳。
+- **目標導向**：未完成前不得等待不存在的第三方；「TIMEOUT」本身不是停工理由，而是進入 log 判讀、killpg、縮批與 resume 流程的觸發條件。
+
+## 5. Skill 自我檢查
+修改本 Skill 後必須確認：
+- [ ] frontmatter `name: dispatching` 不變；
+- [ ] description 只描述觸發邊界，不塞 workflow；
+- [ ] Skill 本體少於 500 行；
+- [ ] 明確包含 process group + killpg；
+- [ ] 明確區分 `complete_teardown_timeout` 與 `incomplete_timeout`；
+- [ ] 明確要求 journal/resume 與 collection SHA 防舊證據誤用；
+- [ ] 明確禁止 timeout 後重跑已通過區段；
+- [ ] checkpoint / journal 可讓下一回合不靠口頭記憶續工。
+
+===== .agents/skills/engineering/phase6-release-packaging/SKILL.md =====
+
+---
+name: phase6-release-packaging
+description: Use when preparing, rebuilding, validating, or delivering Phase6 FULL/UPDATE ZIP packages, especially after code, geometry, GUI, registry, AI/SOP, or release-policy changes.
+---
+
+# Phase6 正確打包交付
+
+## 核心原則
+Phase6 出包不是「把這輪改到的幾個檔案壓起來」。**FULL 是可獨立使用的完整專案；UPDATE 是相對指定原始基準的累積覆蓋包。** 缺依賴、缺 AI/SOP、拿錯基準、改到 `config.ini`、中文路徑壞掉、只驗工作目錄，都算交付失敗。
+
+## 必要輸入資料
+1. **目前工作樹**：本輪已完成的 production / tests / docs / skills / registry / AI/SOP 全部真值。
+2. **唯一累積 UPDATE 基準**：使用者上傳的zip。不得拿上一個 ChatGPT FULL/UPDATE 當基準。
+3. **Release policy**：`release_required_artifacts.json`，是 machine-readable Source of Truth。
+   - 目前 canonical cumulative baseline archive 固定由 policy 指定為 `PHASE6_GUI_PERFORMANCE_KNOWLEDGE_FULL_20260903_124853.zip`。正式 cumulative UPDATE 一律相對此基準計算；不得再要求或回退到 2026-08-23 的舊 FW_LINK_BUGFIX baseline。若使用者明確指定其他基準，只能產生清楚標示 `UPDATE_FROM_<該基準>` 的非 canonical 更新包。
+4. **原始 `config.ini` SHA256**：除非使用者明確要求，交付前必須與基準完全相同。
+5. **本輪實檔與 regression fixtures**：例如使用者本輪實際提供的 `.p6fold`，只作驗證輸入；沒有明確需求不得塞進正式包。**永久 suite 禁止硬編碼 ephemeral `/mnt/data/自訂*.p6fold` 路徑**。使用者已不再提供某實檔時，不得保留 `exists() → pytest.skip` 的 conditional skip 測試；仍有長期價值的 oracle 必須轉成 repo 內 canonical/synthetic fixture，否則移除該外部實檔測試。
+
+## FULL 契約
+FULL 收目前專案完整檔案樹；排除 `__pycache__`、`.pytest_cache`、`.pyc`、本輪輸出 ZIP，以及**版本控制／工作暫存根目錄 `.git/**`、`.scratch/**`**。`.git/**` 不只是多餘檔案，若使用者直接覆蓋可能污染或改寫其本機 repository metadata；`.scratch/**` 則屬測試 journal/checkpoint/debug 中繼證據，兩者在 FULL 與 UPDATE 都永遠禁止收檔。全域封包排除根目錄必須由 `release_required_artifacts.json:excluded_package_roots` 驅動，不得只在某一個 collector 手寫例外。不得因「這輪沒改」省略 production、tests、docs、skills、`個人AI檔案庫/**`、基準資料或工具。FULL 可包含 `config.ini`，但內容必須保持原始 SHA256。
+
+## UPDATE 契約
+UPDATE = **目前工作樹相對唯一原始基準的所有新增/變更檔** + manifest 的 `mandatory_update_files` + `mandatory_update_trees` 全樹。
+- `個人AI檔案庫/**`：每次 UPDATE **強制全收**，即使 SHA256 與基準相同。
+- `config.ini`：永遠禁止進 UPDATE。
+- `.git/**`、`.scratch/**`：屬全域 `excluded_package_roots`，FULL / UPDATE **一律禁止**；不能因為與 baseline 不同就被 collector 當成正常差異檔。
+- `BACKUP/**`、`BACKUP_*/*`、快取與 `.pyc`：禁止進 UPDATE。
+- Archive root 必須直接是專案根目錄；不得多包一層 `新WHD/` 或其他外層資料夾。
+- 禁止手工挑「我覺得有改到的檔案」取代 collector。
+- 若相對基準存在會影響執行的**刪除/改名**，單純覆蓋 ZIP 無法正確表達；必須提供可執行清理機制或改交 FULL，不能假裝 UPDATE 能完成刪除。
+- 刪除/搬移清單的 Source of Truth 是 `release_required_artifacts.json:update_cleanup_paths`；清理工具固定為 `tools/apply_phase6_update_cleanup.py`，Windows 入口固定為 `APPLY_PHASE6_UPDATE_CLEANUP.bat`。
+- **[CURRENT 2026-09-03]** canonical baseline `PHASE6_GUI_PERFORMANCE_KNOWLEDGE_FULL_20260903_124853.zip` 已完成 `skills/ → .agents/skills/` 與 retired user-fixture 清理，因此現行 `update_cleanup_paths` 必須為空；不得再要求 2026-08-23 baseline 才存在的 legacy cleanup。未來若 canonical baseline 之後再次發生刪除/搬移，才新增新的 cleanup path。
+- cleanup path 必須是專案根下安全相對路徑；禁止 absolute path、`..` traversal，且不得刪除目前 source tree 仍存在的路徑。
+
+## 中文與檔案完整性
+ZIP entry 必須保留真實 Unicode/UTF-8 名稱；任何 entry 含 literal `#U` 絕對拒絕交付。所有本輪 `.md/.py` 必須 UTF-8 strict decode，且不得含 U+FFFD replacement character。解壓後必須能找到 `個人AI檔案庫/README.md` 與中文 SOP 路徑。
+
+## 長回歸的可續跑硬閘門
+Release QA 禁止再用人工記憶切 `pytest` 批次、等外層工具 timeout 後猜哪一段跑完。長回歸固定使用 `tools/phase6_release_test_runner.py`，每批結果立即 fsync 到 JSONL journal，並寫對應 state JSON。
+
+- `--budget-seconds` 必須小於外層執行時間窗；runner 會在預算耗盡時主動以 **exit 75** 結束。`exit 75` 代表「安全 checkpoint / 尚有 pending tests」，不是測試 failure。下一次用**同一 journal**執行同一命令，必須只跑未完成 nodeid。
+- journal 會綁定 pytest collection SHA256/count；收集清單改變時禁止沿用舊 journal，必須開新 journal，避免把 1270 顆的舊證據套到 1275 顆新 suite。
+- `--reset` 是破壞性 journal 操作，**必須先取得該 journal 的 run lock，再刪除/重建 journal 與 state**。若同一 journal 已被另一 runner 持鎖，第二個 `--reset` 必須 fail closed，且原 journal 的 collection header/bytes 必須完全保留；禁止「先 unlink、後搶 lock」。
+- 每個 pytest batch 必須由獨立 process group 執行；batch timeout 時 runner 必須終止整個 process group，避免殘留 pytest/Xvfb 99% CPU 污染下一批。
+- runner 自管 Xvfb 時，正常 `finally` cleanup 只覆蓋可攔截退出；Linux 外層若對 runner 送 `SIGKILL`，Xvfb child 必須另有 kernel parent-death guard（`PR_SET_PDEATHSIG`/等價機制），並由真 hard-kill regression 驗證不會留下 orphan display。
+- timeout/failed batch 不得標記 complete；多顆 batch timeout/fail 時下一次自動二分縮批，直到定位到單顆。只有單顆 failure / timeout 才視為真正阻塞並回 root-cause/TDD。
+- 若 pytest 已輸出完整 summary，且 `passed + skipped + xfailed + xpassed == batch nodeid count`、`failed=0`、`errors=0`，但 interpreter / GUI teardown 沒有退出，runner 必須 kill process group 並記為 `complete_teardown_timeout`；此狀態算測試完成，但保留 teardown 證據，禁止誤報成 production failure。
+- Headless 與 Xvfb 使用不同 journal，不得混用；正式 GUI gate 必須用 `--mode xvfb`。
+
+### 合批 timeout 判定：先算「總耗時」，不要先怪 production
+GUI/Tk/Matplotlib 測試的 batch wall-clock 近似為各 nodeid 執行時間加上 setup/teardown。**多顆 batch 超過 `--batch-timeout`，只代表這一批在時間窗內跑不完；不代表其中任何單顆測試失敗、卡死或 production regression。**
+
+2026-09-02 實測曾出現：4 顆 GUI 測試合批在 25 秒 timeout，但四顆拆成單顆後分別約 `7.18s / 12.22s / 9.15s / 7.44s` 全部 PASS；單顆總和約 `38s`，因此 4 顆合批超過 25 秒是必然的 batch-budget 現象。**16 → 8 → 4 都 timeout 仍不能判定真阻塞；必須繼續縮到 2 → 1。**
+
+判定順序固定如下：
+1. 先看 journal/state：timeout batch 的 nodeid **不得算 completed**；只相信已 fsync 的 durable completed 數。
+2. 保持同一 collection SHA 與同一 journal，讓 runner 依 timeout 記錄自動二分：`N → N/2 → ... → 1`。禁止靠對話記憶手工跳過 nodeid。
+3. 若縮到單顆後每一顆都能在 `--batch-timeout` 內 PASS，分類為 **aggregate batch-budget timeout**；這不是 production failure。讓這些單顆/小批 PASS 正式寫回同一 journal，離開慢區後再恢復正常 batch size。
+4. **只有單顆仍 timeout 或 assertion/error fail**，才升級成真正阻塞，回 `diagnosing-bugs` / TDD 做 root-cause。
+5. 若 stdout 已有完整成功 summary，只差 interpreter/Tk/Matplotlib teardown 沒退出，分類為 `complete_teardown_timeout`，與「未跑完的 aggregate batch timeout」分開記錄。
+6. 外層工具若先殺 runner，只能從 journal/state 判斷最後 durable checkpoint，並檢查 orphan pytest/Xvfb；**不得從進度點數、終端輸出長度或「看起來都跑完」推算 PASS**。
+
+調參原則：優先縮 batch，不要為了讓慢 GUI 合批一次塞完就任意提高全域 `--batch-timeout`。只有在外層 budget 仍能保證 `batch_timeout + safety margin`、且有明確單顆需求時才調整 timeout；否則會把 teardown/orphan 問題重新藏回長時間窗。
+
+建議正式 gate：
+
+```bash
+python tools/phase6_release_test_runner.py --mode headless --journal logs/release_headless.jsonl --budget-seconds 18 tests
+python tools/phase6_release_test_runner.py --mode xvfb --journal logs/release_xvfb.jsonl --budget-seconds 18 tests
+```
+
+重複執行到 exit 0；若 exit 75，直接續跑同一命令；不得從頭重跑或靠對話文字記錄 completed index。
+
+## 出包流程
+1. 記錄目前 `config.ini` SHA256，與原始基準比對。
+2. 驗證基準 ZIP **檔名完全等於 canonical baseline**，CRC 正常，再解壓到全新目錄。
+3. 跑完整相關 regression matrix：registry 自動列舉所有 Assembly Intent；Head/Tail；求解前碰撞顯示；求解後零穿透；2D / 單板3D / 組合圖尺寸一致；Save/Reload；以及使用者實檔。
+4. 使用 `tools/phase6_release.py` 依 policy 自動收 FULL/UPDATE。Asia/Taipei 時間只取得一次，格式 `YYYYMMDD_HHMMSS`，兩包共用同一時間戳。
+5. 對 FULL/UPDATE 跑 ZIP CRC、entry policy、UTF-8 路徑、逐檔 SHA256；各自解壓到全新目錄再比對來源。entry policy 必須明確斷言 `excluded_package_roots`（目前至少 `.git/**`、`.scratch/**`）在兩包都是 0 entry，不能只靠 pristine parity 間接推論。
+6. UPDATE 額外驗證：`個人AI檔案庫/**` 全數存在、`config.ini` 不存在、archive root 可直接覆蓋專案根目錄。若 manifest 有 `update_cleanup_paths`，必須把 UPDATE 覆蓋到 canonical baseline 的 fresh extraction，執行 `python tools/apply_phase6_update_cleanup.py`（Windows 等價 `APPLY_PHASE6_UPDATE_CLEANUP.bat`），再驗證刪除/搬移後的實際樹。
+7. 從**打包後重新解壓的 FULL** 再跑正式交付 gate；工作目錄測試結果不能冒充封包驗證。
+
+## 禁止交付
+以下任一成立就禁止交付：基準錯、`config.ini` 被改或混入 UPDATE、`.git/**` 或 `.scratch/**` 混入 FULL/UPDATE、mandatory 檔/樹缺失、FULL/UPDATE 時間戳不同、ZIP CRC/解壓/SHA256 不一致、中文路徑出現 `#U`、相關回歸有新增失敗、本輪明確提供且列為 required fixture 的使用者實檔無法重現驗證結果。
+
+**完成定義：不是 ZIP 建好了，而是「正確基準 + 正確收檔 + 打包後重解壓 + 功能 gate」全部有證據。**
+
+## Durable checkpoint 與 runner cleanup（2026-09-03 補強）
+
+長回歸、profiling、GUI stress 的續跑點不得只存在對話或臨時工作樹。每個長任務都要有 **durable checkpoint**，至少保存：來源 archive、工作樹/patch hash、collection SHA/count、journal/state 路徑、completed/pending/failed、最近效能數據與下一步命令。外層 timeout 後只讀 durable state，不從聊天文字推算進度。
+
+Process cleanup 的完成條件是**整個 process group 消失**。送 TERM 後即使父程序先退出，也不得立刻 return；仍要確認 descendants/process group 已消失，必要時送 KILL。測試必須先確認 child tree 已建立，再驗 timeout 後 child 真正消失，避免把環境啟動速度誤當 cleanup oracle。
+
+## pristine 封包比對（2026-09-03 補強）
+
+FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh extraction**：兩邊都未跑過 Python、pytest、compileall 或 GUI。禁止拿已產生 `__pycache__`、`.pytest_cache`、`.pyc` 的測試目錄與 pristine overlay 直接比檔案數，否則會製造假 missing/extra。
+
+正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
+
+
+===== .agents/skills/engineering/diagnosing-bugs/SKILL.md =====
+---
+name: diagnosing-bugs
+description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+---
+
+# Diagnosing Bugs
+
+A discipline for hard bugs. Skip phases only when explicitly justified.
+
+When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
+
+## Redact
+
+This skill has you show commands, outputs and captured artifacts. **Redact every secret first**: write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.
+
+If the redacted output is not enough to diagnose the bug, say so and ask the user.
+
+## Phase 1: Build a feedback loop
+
+**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug (one that goes red on _this_ bug), you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.
+
+Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
+
+### Ways to construct one, in roughly this order
+
+1. **Failing test** at whatever seam reaches the bug: unit, integration, e2e.
+2. **Curl / HTTP script** against a running dev server.
+3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
+4. **Headless browser script** (Playwright / Puppeteer) that drives the UI and asserts on DOM/console/network.
+5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.
+6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
+7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
+8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate "boot at state X, check, repeat" so you can `git bisect run` it.
+9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
+10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.
+
+Build the right feedback loop, and the bug is 90% fixed.
+
+### Tighten the loop
+
+Treat the loop as a product. Once you have _a_ loop, **tighten** it:
+
+- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
+- Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
+- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+
+A 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight, a debugging superpower.
+
+### Non-deterministic bugs
+
+The goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not, so keep raising the rate until it's debuggable.
+
+### When you genuinely cannot build a loop
+
+Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.
+
+### Completion criterion: a tight loop that goes red
+
+Phase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** (a script path, a test invocation, a curl) that you have **already run at least once** (show the invocation and its output, redacted), and that is:
+
+- [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring"; it must be able to _catch this specific bug_.
+- [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
+- [ ] **Fast**: seconds, not minutes.
+- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+
+If you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
+
+## Phase 2: Reproduce + minimise
+
+Run the loop. Watch it go red as the bug appears.
+
+Confirm:
+
+- [ ] The loop produces the failure mode the **user** described, not a different failure that happens to be nearby. Wrong bug = wrong fix.
+- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).
+- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.
+
+### Minimise
+
+Once it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut, and keep only what's load-bearing for the failure.
+
+Why bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.
+
+Done when **every remaining element is load-bearing**: removing any one of them makes the loop go green.
+
+Do not proceed until you have reproduced **and** minimised.
+
+## Phase 3: Hypothesise
+
+Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.
+
+Each hypothesis must be **falsifiable**: state the prediction it makes.
+
+> Format: "If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse."
+
+If you cannot state the prediction, the hypothesis is a vibe: discard or sharpen it.
+
+**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly ("we just deployed a change to #3"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.
+
+## Phase 4: Instrument
+
+Each probe must map to a specific prediction from Phase 3. **Change one variable at a time.**
+
+Tool preference:
+
+1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.
+2. **Targeted logs** at the boundaries that distinguish hypotheses.
+3. Never "log everything and grep".
+
+**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
+
+**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.
+
+## Phase 5: Fix + regression test
+
+Write the regression test **before the fix**, but only if there is a **correct seam** for it.
+
+A correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.
+
+**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.
+
+If a correct seam exists:
+
+1. Turn the minimised repro into a failing test at that seam.
+2. Watch it fail.
+3. Apply the fix.
+4. Watch it pass.
+5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+
+## Phase 6: Cleanup
+
+Required before declaring done:
+
+- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
+- [ ] Regression test passes (or absence of seam is documented)
+- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
+- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
+- [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns
+
+===== .agents/skills/engineering/tdd/SKILL.md =====
+---
+name: tdd
+description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+---
+
+# Test-Driven Development
+
+TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle: consult them before and during the loop, not after.
+
+When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
+
+## What a good test is
+
+Tests verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't. A good test reads like a specification: "user can checkout with valid cart" tells you exactly what capability exists, and it survives refactors because it doesn't care about internal structure.
+
+See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+
+## Seams: where tests go
+
+A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests live at seams, never against internals.
+
+**Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. You can't test everything, so agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
+
+Ask: "What's the public interface, and which seams should we test?"
+
+When the shape of that interface is itself in question (how deep the module is, where the seam belongs, what the interface should expose), call the Skill tool with "codebase-design" for the vocabulary. It is the shared source of the module, interface, depth, seam, adapter, leverage and locality terms, and it is a reference to consult, not a session to run.
+
+## Anti-patterns
+
+- **Implementation-coupled**: mocks internal collaborators, tests private methods, or verifies through a side channel (querying the database instead of using the interface). The tell: the test breaks when you refactor but behavior hasn't changed.
+- **Tautological**: the assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so it passes by construction and can never disagree with the code. Expected values must come from an independent source of truth: a known-good literal, a worked example, the spec.
+- **Horizontal slicing**: writing all tests first, then all implementation. Bulk tests verify _imagined_ behavior: you test the _shape_ of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in **vertical slices** instead: one test → one implementation → repeat, each test a **tracer bullet** that responds to what the last cycle taught you.
+
+## Rules of the loop
+
+- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
+- **One slice at a time.** One seam, one test, one minimal implementation per cycle.
+- **Refactoring is not part of the loop.** It belongs to the review stage (see the `code-review` skill), not the red → green implementation cycle.
+
+===== 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md =====
+# ⚠️ 06. 踩坑記錄與防錯經驗庫 (Bad Patterns & Lessons Learned)
+
+> 本文件記錄 ㄚ凱 在 CAD/CAM、WHD 幾何展開與 Ollama 拆圖實戰中「踩過的坑」與「反面教材」。
+> 所有 AI 在進行架構設計或代碼修改前，**必須先檢核本清單，嚴禁重蹈覆轍**。
+
+---
+
+## 🚫 幾何與演算法避坑指南
+
+### 1. 視圖裁切範圍 (crop_bbox) vs 主箱體幾何範圍 (geometry_bbox) 混淆
+- **踩坑情境**：將正視圖的裁圖範圍（含標註、PANEL 文字）直接拿來當成箱體實體幾何計算，導致幾何中心偏移（如 1385.27 vs 正確實體 1432.02）。
+- **正確做法**：嚴格區分 `crop_bbox`（裁圖區）與 `geometry_bbox`（實體幾何），驗證尺寸只對準主幾何。
+
+### 2. 箱體總高含底座導致展開尺寸錯誤
+- **踩坑情境**：來源總外高為 2200（含 50mm 底座），若未扣除底座直接計算，會導致門板與箱身高度過大（如門算成 2161 而非正確 2111）。
+- **正確做法**：使用 `detect_child_bottom_base()` 做幾何交叉驗證，確認底座後，箱體實際高扣除底座高，底座獨立輸出。
+
+### 3. 硬編碼 12/16/17 點主外框陣列
+- **踩坑情境**：為每個新零件手推頂點陣列，導致維護困難且無法通用。
+- **正確做法**：全面使用 Shapely 布林運算（`Base Polygon - Relief Polygon`），新零件只需傳入折邊尺寸與扣量。
+
+### 4. 任意把金庫型規則推廣為宇宙通則
+- **踩坑情境**：直接將金庫型的 `0.5T` / `2T` 插入退讓套用到其他箱型（如戶外箱、落地盤）。
+- **正確做法**：Topology（折彎結構）可共用，Factory Policy（退讓規則）必須依箱型獨立配置。
+
+
+### 5. 把 `FW` 當成一般 Fold Segment，導致框寬被重新分配
+- **踩坑情境**：箱身 `FW=25`，封頭／封尾旁邊另有 16mm 折邊；推導 arbitrary Fold Chain 時把兩者合併成 `16 + 25 = 41`，最後專案檔竟儲存成 `fw=41`，造成封頭尾與箱身門框基準失去一致。
+- **根本原因**：混淆「成品框寬尺寸語意」與「展開折彎鏈 segment/span」。
+- **正確做法**：`FW` 永遠是邊框寬度／框寬的獨立 Source of Truth；Fold Chain 可以引用 FW，但不得重新分配、合併後再冒充 FW。相鄰的 16mm、15mm 等折邊必須保留自己的語意。
+
+### 6. 把 2D 展開 `bbox` 當成 3D 折後包外尺寸
+- **踩坑情境**：箱身 2D 展開 material bounds 為約 `938 × 596`，3D 尺寸標註直接沿用該範圍，導致把展開寬 938 誤標成成品寬；或直接用 core `396 / 246` 當成成品 `W / D`。
+- **根本原因**：未區分「展開板尺寸」、「core 尺寸」、「單件折後包外」與「整箱組裝包外」四種不同尺寸空間。
+- **正確做法**：3D 尺寸從折後實際外表面 envelope 計算並包含板厚；單件視圖標單件折後包外，整箱視圖標組裝後 `W / H / D`。
+
+### 7. 忽略組合方式，錯把箱身單件高度永遠等同整箱 `H`
+- **踩坑情境**：設定箱體 `H=600, T=2` 時，不論封頭／封尾是嵌入、貼外或嵌入貼外，都把箱身單件高度硬寫成 600；或反過來看到箱身 596 就誤認整箱成品高只有 596。
+- **根本原因**：混淆「完整箱體包外 H」與「箱身單件折後高度」，沒有把封頭／封尾在外部占用的板厚納入尺寸鏈。
+- **正確做法**：`INSERT=0T`、`OVERLAY=1T`、`INSERT_OVERLAY=1T`（每一端）。`BoxBodyFinishedHeight = H - HeadOutsideOccupancy - TailOutsideOccupancy`；完整組裝後仍回到輸入 `H`。下方 `CROSS / extra_cut` 不參與此高度扣量。
+
+### 8. 封頭／封尾各自保存一份折法，與箱身 Fold Chain 漂移
+- **踩坑情境**：箱身由 9 段改為 5 段後，專案檔仍保留舊封頭／封尾 profile；3D、2D、DXF 甚至可能各自看到不同 BEND 數量。
+- **根本原因**：把 derived end-cap mating profile 當成與箱身同等的獨立 Source of Truth。
+- **正確做法**：箱身 Fold Chain 為折法權威來源；封頭／封尾接合 profile 依箱身拓撲、FW 與組合方式即時推導。按「確定」後同一份狀態必須回到 2D 與 DXF。
+
+### 9. 用固定段數判斷 Fold Chain
+- **踩坑情境**：為 5 段、9 段各寫一套 if/else，新增 6、7、12、20 段時立刻失效。
+- **根本原因**：把實例的段數誤當成拓撲規格。
+- **正確做法**：以 ordered Fold Chain + semantic dimensions/core/assembly policy 驅動；測試可覆蓋 3/5/9/12/20 段，但 production code 不得依賴固定段數。
+
+### 10. 板件「刪除」只做 UI 隱藏或要求先進入板件頁
+- **踩坑情境**：沒有的板件必須先切進該頁才可刪除，或畫面看似刪除但 `existing_parts`、2D tab、DXF export、`.p6fold` 仍把它當存在。
+- **根本原因**：把「目前選中頁面」與「板件存在狀態」綁在一起。
+- **正確做法**：板件選擇區選中即可刪除；`existing_parts` 是正式狀態並同步 2D/3D/export/project。箱身為主體不可刪；其他板件可刪除與加回。
+
+### 11. 把 FW 連動做成「永久鎖死」或「兩端各自 override」
+- **踩坑情境**：為避免 FW 漂移，直接把封頭／封尾 FW 欄位設成唯讀；或反過來讓封頭、封尾一開始就各自獨立 override，導致實際操作時無法符合「先改一端就帶另一端、再改另一端才分離」的習慣。
+- **根本原因**：只用兩個 `follow_box` 布林值描述控制權，無法表達「箱身主導 → 封頭主導／封尾主導 → 兩端獨立」的操作歷程。
+- **正確做法**：使用四態 `FOLLOW_BODY / FOLLOW_HEAD / FOLLOW_TAIL / INDEPENDENT`。初始箱身主導；先改封頭則封尾跟封頭，先改封尾則封頭跟封尾；之後再改原 follower 才解除連動。任何狀態下，只要使用者重新提交箱身 FW（即使同值），箱身立即重新接管兩端。
+- **UI 要求**：封頭／封尾 FW 欄位保持可直接輸入，不靠 disabled/readonly 來維持資料一致性；一般 redraw/refresh 不得偷偷切換控制權。
+- **一致性要求**：2D、3D、CornerPolicy、FinalScene、DXF export、`.p6fold` 必須使用同一個有效 FW 解析結果，禁止 UI 顯示一套、加工端使用另一套。
+
+### 12. 箱身已刪外側折，封頭／封尾卻仍硬補舊折段
+- **踩坑情境**：箱身 Fold Chain 從原本較多段改成 `FW → D → W → D → FW` 後，封頭／封尾 2D 仍保留舊 `ytop1=16` 類外側折，使用者必須手動刪掉才看起來正確。
+- **根本原因**：end-cap derivation 把舊固定 profile 當 fallback，而不是把「該折段是否存在」直接由箱身 topology 決定。
+- **正確做法**：箱身刪折就自動刪除封頭／封尾對應折；新增/改角度亦同步。可選 segment 缺席是合法狀態，不得自行補回 legacy fold。
+
+### 13. 只刪 BEND，沒有同步縮短 2D blank / material 外框
+- **踩坑情境**：封頭／封尾視覺上少了一條 BEND，但 2D 外框仍沿用舊 fold_top 尺寸，導致板件尺寸沒有真正跟箱身對齊。
+- **根本原因**：BEND profile 與 Base Polygon / structural dimensions 分開計算，形成兩套幾何。
+- **正確做法**：Fold Profile 改變時，BEND、Base Polygon、material bounds、blank size 與 DXF 必須從同一份 derived profile 一次重建。
+
+### 14. 沒有 `angle` 的 boundary 仍被畫成 BEND，造成 2D/3D 分叉
+- **踩坑情境**：2D 因 cumulative boundary 存在而畫出一條 BEND，但該 segment 沒有 angle；3D 因沒有 angle 不會折，最後出現「2D 有折線、3D 卻共線 180°」的怪圖。
+- **根本原因**：BEND 生成只看 segment 邊界，不看是否真的存在折彎指令。
+- **正確做法**：只有明確具 `angle` 的 segment boundary 才能生成 BEND；Final 2D BEND 與 3D fold 必須 1:1。90° 是否正確要直接驗證相鄰折後面的夾角。
+
+### 15. 封尾 native order 反轉時遺失／錯置折彎角度
+- **踩坑情境**：封尾本身沒有被使用者修改，但反向 profile 中某個 FW segment 失去 angle，造成最後兩段折後共線或折向錯誤。
+- **根本原因**：直接拿已經 native/reversed 的 tail profile 再當 canonical 模板，反轉 segment 順序時沒有保留「angle 屬於哪一道 boundary」的語意。
+- **正確做法**：先從箱身建立 canonical mating chain，再轉換成封頭/封尾 local/native order；轉換時以 bend boundary 為單位搬移 angle，不以 list index 或 terminal segment 猜測。
+
+### 16. 合法缺少可選折段，reader 卻判成「資料不完整」並 fallback 舊幾何
+- **踩坑情境**：2D 已正確刪除 `ytop1` 對應折段，但 3D payload reader 因找不到 `ytop1` 就拋錯，最後退回舊固定 profile，造成 2D 正確、3D 又回到舊尺寸／舊 BEND。
+- **根本原因**：把 legacy 固定欄位當成必要欄位，沒有支援任意 topology 的「segment 可以不存在」。
+- **正確做法**：缺少可選 segment 應解析為 absent/0，而不是資料損壞；3D 必須直接使用同一 FinalScene / derived profile，不得 silent fallback 成舊 topology。
+
+---
+
+## 💻 程式開發與環境避坑指南
+
+### 1. 硬編碼絕對路徑或暫存目錄
+- **踩坑情境**：程式中寫死 `C:/Users/looae/.../my_debug.txt` 或固定輸出至特定專案目錄，換環境即崩潰。
+- **正確做法**：輸出路徑一律跟隨使用者在 GUI 指定的「輸出根目錄」；臨時檔案放 `tmp/`。
+
+### 2. 測試斷言未經真圖/真 CSV 驗證
+- **踩坑情境**：單靠腦補或修改測試碼讓它表面通過，實際上線處理真實 DXF 時出錯。
+- **正確做法**：嚴格遵守 TDD，先跑真圖 regression，確認尺寸與 DXF 圖元無誤。
+
+### 3. 未備份直接覆寫目標檔案
+- **踩坑情境**：手滑改錯造成原始圖檔或關鍵代碼損壞。
+- **正確做法**：修改前必須強制備份至 `BACKUP/YYYYMMDD-HHMMSS-檔名`。
+
+### 4. 程式已改規則，卻等使用者再次提醒才更新 SOP
+- **踩坑情境**：程式已新增/修正幾何、資料契約或 UI 行為，但規範仍停留在舊版本；後續 AI 讀到舊 SOP 又把已修好的行為改回去，或使用者必須重複提醒「把這條寫進文件」。
+- **根本原因**：把文件更新當成額外任務，而不是程式修改的完成條件。
+- **正確做法**：凡新增/修改正式行為或解掉可重現 Bug，本輪交付時直接同步對應 SOP 與本踩坑庫；**不等待使用者再次要求**。程式、測試、README/SOP 必須同版。
+
+---
+
+## 🔄 經驗追加範本
+每次遇到新 Bug 解決後，依此格式追加：
+```markdown
+### [YYYY-MM-DD] 問題簡述
+- **錯誤現象**：...
+- **根本原因**：...
+- **防錯規則**：...
+```
+
+### 17. 為避免 ZIP 中文問題擅自把原始檔名改成 ASCII
+- **踩坑情境**：遇到 Windows / ZIP 中文 entry 相容性問題時，為求方便把 `04_WHD鈑金展開幾何引擎規範.md` 等使用者原始檔名改成英文 ASCII 名稱，導致檔案庫結構與使用者既有命名不一致。
+- **根本原因**：把「封裝／編碼問題」錯當成「檔名問題」，用改名規避真正的 UTF-8/ZIP 相容性問題。
+- **正確做法**：保留原始中文檔名與資料夾結構；ZIP entry 明確使用 UTF-8，完成後實際解壓並逐檔比對 SHA256。只有使用者明確要求時才重新命名。
+
+### 18. 封頭／封尾折角被硬寫成 90°，忽略 Fold Chain 輸入
+- **踩坑情境**：箱身 Fold Chain 已輸入 45°、60° 或其他角度，但 linked EndCap derivation 只因「常見鈑金折彎」就把所有 angle 強制改成 `-90`，導致 3D 與操作員輸入不一致。
+- **根本原因**：把「常見預設值」誤當成「製造規則」，derived topology 越權改寫 angle。
+- **正確做法**：輸入幾度就折幾度；derived profile 只搬移 bend boundary 的 angle ownership，不得重設 angle magnitude/value。UI/engine 內部表示轉換必須 round-trip 無損。
+
+### 19. 用相機投影設定掩蓋折彎角度 Bug
+- **踩坑情境**：3D 看起來不像直角時，先改成 orthographic projection，希望畫面「看起來比較 90°」，但真正 Fold Chain/derived angle 仍然錯。
+- **根本原因**：混淆 view/render policy 與 geometry。
+- **正確做法**：視角只管顯示；角度只由 Fold Chain 輸入與折彎幾何決定。除非是獨立的顯示需求，不得修改 projection 來修幾何問題。
+
+### 20. Phase6 已 commit 正確 FinalScene，主 2D 卻變成 `-` 或仍顯示舊尺寸
+- **踩坑情境**：Phase6 封頭／封尾已是新 profile，但主 GUI `update_calculations()` 某分支沒有初始化後續共用變數，例外又被最外層 catch 吃掉，結果所有尺寸顯示 `-`；或仍走 legacy 尺寸公式。
+- **根本原因**：主 2D 沒有完全沿用 committed FinalScene，且 silent exception 隱藏資料鏈斷點。
+- **正確做法**：commit 後主 2D 尺寸直接量 authoritative RenderData/FinalScene；共用狀態在分支前初始化，真檔 GUI regression 必須驗證實際顯示值而不只 helper。
+
+### 21. 板件按鈕要求雙擊／再按編輯，刪除動作位置不符合操作流程
+- **踩坑情境**：單擊只選中，還要雙擊或再按一次「編輯」才進板件；刪除按鈕又藏在板件頁內，增加不必要操作。
+- **根本原因**：把 selection 與 navigation 過度拆開，沒有依實際操作習慣設計。
+- **正確做法**：板件按鈕**單擊一次直接進入**；不另設 Edit。刪除按鈕固定在板件按鈕區下方，箱身 disabled，其餘板件依存在狀態啟用。
+### 22. AI 把「沒有重新驗證」誤判成「已確認機械規則可能是錯的」
+- **錯誤現象**：使用者指出 AI 其實沒有真正理解「箱身＋封頭／封尾」組合關係後，AI 雖然正確承認先前有瞎猜，但接著又過度修正，把下列已經確認的正確規則一起說成「應撤回、不能當已知事實」：
+  1. 箱身刪除組合接合鏈上的外側一折時，封頭／封尾對應折也要同步刪除。
+  2. 封頭／封尾上方截角本身就是組合方式／裝配語意。
+  3. 貼外關係每端占用 `1T`：`INSERT=0T`、`OVERLAY=1T`、`INSERT_OVERLAY=1T`。
+  4. 五段箱身 `FW-D-W-D-FW` 時，封頭為 `FW-D-後折`，封尾 native orientation 為 `後折-D-FW`，不得補回舊 `ytop1` 外側折。
+- **這次 AI 犯的真正錯誤**：
+  - 把「我之前沒有親自重新證明這條」偷換成「這條本身可能是錯的」。
+  - 看到程式存在 `assembly_type`，就武斷解讀成它和上方 CornerType 是兩套互相競爭的機械真值，沒有先確認它是否只是 UI／保存／映射層。
+  - 因為 ZIP 當下沒有真 DXF／實體案例，就錯誤認為不能維持先前已由使用者確認的機械規則。
+  - 一度想用「目前程式怎麼寫、測試怎麼斷言」來反推機械關係，形成循環論證：AI 猜規則 → 規則被寫進程式／測試 → AI 再拿程式／測試證明自己的猜法。
+  - 沒有先區分「已確認的機械真值」「目前實作」「AI 尚未理解的部分」三個層次。
+- **正確理解**：
+  - 上述四條是使用者已確認的箱身 ↔ 封頭／封尾組合基準，後續檢查程式要問的是「哪裡沒有遵守」，不是再把四條拿回來猜一次。
+  - 「箱身刪一折」必須精確限定在**組合接合鏈的外側可選折**，不能擴張成 D-W-D 核心也可隨意刪除。
+  - 上方 CornerType 是機械裝配語意；額外欄位若存在，必須確認只是 representation / persistence，不得先假定為第二套真值。
+  - `OVERLAY` 與 `INSERT_OVERLAY` 每端都占 `1T`；箱身單件高度據此從完整箱高 `H` 扣除，但完整組裝包外仍回到 `H`。
+  - 5 段箱身的 end-cap mating profile 不得重新長回已被箱身 topology 刪除的 legacy 外側折。
+- **防錯規則**：
+  1. 使用者已明確確認並固化的機械關係，優先級高於目前程式、測試與舊設計文件。
+  2. 缺少新證據只代表「不能再新增推論」，不代表「既有已確認規則失效」。
+  3. 程式與規則衝突時，先把程式列為嫌疑對象，沿 Source of Truth → derived profile → FinalScene → 2D/3D/DXF 追資料流。
+  4. 只有出現新的直接幾何證據、現場裝配證據或使用者明確更正，才可以提出修改既有機械基準。
+  5. 測試通過只能證明「程式符合測試」，不能單獨證明「測試所描述的機械關係真實」。
+
+
+### 23. AI 把封頭／封尾誤想成箱身「前後折」或單側 Fold Chain 的延伸
+- **錯誤現象**：在討論箱身兩側外加折數不對稱時，AI 先問「封頭尾到底跟左邊還是右邊」，甚至把 Head/Tail 想成箱身前後兩側 Fold Chain 的延伸，試圖用單一 `source_front` / canonical chain 解釋整片端板。
+- **根本原因**：只盯著 2D 一維 Fold Chain 與陣列順序，沒有先在腦中完成箱身折起後的實體拓撲。`FW-D-W-D-FW` 折起後形成的是背面 `W` + 左右側面 `D`，兩個 `FW` 是正面框邊；真正留下的是正面、上端、下端三個開口。
+- **正確理解**：門補正面開口；封頭補上端開口；封尾補下端開口。封頭／封尾是上下端板，不是箱身前折／後折，也不能直接等同箱身某一側 Fold Chain。
+- **防錯規則**：
+  1. 遇到箱體組合問題，先畫出／描述折後實體的面與開口，再談 2D segment 對應。
+  2. 不得由 `rows[:first_D]`、list 左右順序或「front/back」變數名稱直接推斷物理接合關係。
+  3. 當左右外加折數不相同時，**在使用者確認前不要回答『跟誰』**；必須保留為待確認機械映射問題。
+  4. 不得為了讓現有 helper 看起來合理，就把整個端口四周關係降維成一條 chain。
+
+### 24. `assembly_type` 反向覆寫上方 CornerType，形成第二套機械真值
+- **錯誤現象**：資料同時存在 `assembly_type` 與 Head/Tail 上方 CornerType 時，載入流程若優先相信 `assembly_type`，會把原本的上方 CornerType 改掉，連帶造成 2D 截角／組合語意被改寫。
+- **根本原因**：把方便 UI／保存的 mirror 欄位提升成 Source of Truth。
+- **正確理解**：封頭／封尾上方 CornerType 本身就是組合方式的機械語意；`assembly_type` 若保留，只能是 mirror/compatibility state。
+- **防錯規則**：載入時不得以 `assembly_type` 覆寫上方 CornerType；不一致時以上方 CornerType 為準並同步 mirror，或明確報資料不一致。任何 2D 截角生成也必須直接消費 authoritative CornerType。
+
+### 25. 用展開圖左右／折數直接猜封頭尾要跟誰
+- **錯誤現象**：面對箱身一側 FW 外多 2 折、另一側多 1 折時，AI 直接回答「左側跟左側、右側跟右側」，或想以 segment 數量決定封頭／封尾對應。
+- **根本原因**：仍把 2D Fold Chain 當成機械接合本體，沒有先判斷每一道 Fold 折起後的實體形態。
+- **正確理解**：是否需要由封頭／封尾跟隨，必須看折後形態：該段最後落在哪個面、折向、是否形成上／下端口邊界、是否實際與端板搭接／包覆／嵌入。『跟誰』是折後形態分析的結果，不是用左右位置或折數先決定的規則。
+- **目前範圍決策**：依折後形態會衍生多個新接合型態，使用者目前明確暫不處理。程式不得先發明新型態或猜配對；先只修既有 `assembly_type` 覆寫 Top CornerType 的資料真值 Bug。
+- **防錯規則**：看到非對稱 Fold Chain 時，先標示為尚未建模的形態問題；除非已有使用者確認的形態分類，不得自動衍生 EndCap mapping。
+
+### 26. 組合方式 Combobox 在自己的選擇事件中被重建，造成整頁／控制項消失
+- **錯誤現象**：使用者在箱身選擇 `INSERT / OVERLAY / INSERT_OVERLAY` 後，組合方式控制或整個設定頁突然消失。
+- **根本原因**：`<<ComboboxSelected>>` callback 裡立即 invalidate + destroy/rebuild 目前 box_body page，Tk 還在 dispatch 原 widget 的事件時就把來源 widget 銷毀。
+- **正確做法**：目前 box_body page 保持存活；只 invalidate 依賴組合結果的 Head/Tail cache，derived geometry 即時更新，Head/Tail 等使用者切入時再重建。
+
+### 27. 自訂模式雖隱藏「基準檔開孔資料」，卻又從進階設定把固定孔資料露回來
+- **錯誤現象**：選 `自訂` 後表面上沒有基準檔區，但封頭／封尾「進階設定」仍出現掛孔、固定方孔、封尾固定孔等基準檔欄位。
+- **根本原因**：同一 Setting group 同時被分類為 baseline-only 與 advanced，UI 分類重疊。
+- **正確做法**：`固定孔 / 封尾固定孔` 只能屬於 baseline-only；自訂模式整組不存在，且不得進 advanced_specs。
+
+### 28. 對稱折彎只同步輸入值，刪除卻只刪單側
+- **錯誤現象**：勾選「對稱折彎」後改長度／角度會鏡像，但刪折段仍只刪點到的一側，箱身立即變成非對稱。
+- **根本原因**：remove path 沒走既有 mirror mapping，只做單一 `pop(idx)`。
+- **正確做法**：對稱箱身刪除使用同一 mirror index 規則；先確認兩側都可刪，再由高 index 到低 index 同一交易刪除。任一側不可刪則全部不動。
+
+### 29. 3D draft 與主 2D 可同時編輯，造成 committed state 競爭
+- **錯誤現象**：3D Fold Designer 開著時，主 GUI 2D 仍可修改；之後按 3D「確定」可能用較舊 draft 覆蓋剛在 2D 做的修改。
+- **根本原因**：3D Toplevel 只是普通視窗，沒有建立 modal transaction 邊界。
+- **正確做法**：3D 開啟期間以 modal grab 鎖住主 2D；確定才提交 draft，取消/X 丟棄並釋放 grab。禁止用兩邊同步寫入來掩蓋競爭。
+
+### 30. 把 `OVERLAY` 只當 Corner relief 差異，忘了貼外型本身沒有左右 X 折彎
+- **錯誤現象**：選貼外後，封頭／封尾 2D/3D 還保留左右折線，X 軸 Fold editor 也仍可編輯不存在的折彎，因此圖形明顯不符合實際貼外形態。
+- **根本原因**：只換 Top CornerType/切口公式，卻沿用 `yl1 - W-core - yr1` 的有折 X profile。
+- **正確做法**：`OVERLAY` 的 EndCap X profile 從資料源即表達為無 angle 的 flat span；FinalScene 不得產生 X BEND，3D Fold editor 隱藏 X 軸折彎頁。2D、3D、DXF 必須由同一 topology 得到相同結果。
+
+### 31. 把既有 `CROSS + EXTRA_CUT` 能力誤判成「需要新增 1.5T CornerType」
+- **錯誤現象**：AI 看到 `OVERLAY` 沒有左右 X 折彎，就認為十字多切不能用，進而主張為 1.5T 另外新增 CornerType；或把「不能直接改全域 0.5T」誤解成「現有模型無法表示 1.5T」。
+- **根本原因**：混淆了 `CornerType`、`cross_mode`、`direction`、`amount_t` 四個層級，也把「多切的幾何手段」和「為什麼需要避讓的機械目的」綁成同一件事。
+- **正確理解**：`CROSS + EXTRA_CUT` 本來就能選 `WIDTH / HEIGHT / BOTH`，`amount_t` 也可為任意正值。即使 X Fold 基底為 0，`WIDTH + 1.5T` 仍可合法形成 1.5T 寬向避讓，不需新增 CornerType。
+- **OVERLAY 已確認預設**：使用者明確選擇貼外型時，封頭／封尾下方初始帶 `CROSS + EXTRA_CUT + WIDTH + 1.5T`；這只在明確切換組合方式時套用。後續人工修改下方方向／amount 後，普通刷新不可洗回預設。
+- **防錯規則**：不得把全域舊預設 `C03 = BOTH + 0.5T` 改成 1.5T；也不得看到另一板金干涉就發明新 CornerType。先確認現有 `CROSS` 參數是否已能精確表達所需幾何。
+### 32. 只刪 `OVERLAY` 的 X BEND，卻保留 INSERT 型 422 材料外框
+- **錯誤現象**：貼外封頭／封尾畫面看起來已沒有左右 X 折線，Fold editor 也只剩 Y，但主 2D／FinalScene 展開寬仍顯示 `422`（例如 `W=400, T=2, yl1=yr1=15`）。
+- **根因**：Bridge 先用舊 INSERT 型 `15 + (W-4T) + 15 = 422` 建 X profile，再只是把三段壓成一段無 angle 的 flat profile；同時 AE `build_unknown_endcap_result()` 的 structural blank 仍用 `W-4T+|yl1|+|yr1|`。也就是 BEND topology 改了，但 CUTTING/material topology 沒改。
+- **正確做法**：`OVERLAY` 上方 CornerType 已表示封頭／封尾無左右 X 折彎，因此 X structural blank 必須直接使用 `W`，`left_fold/right_fold=0`，且 structural bends 不得包含 `left/right`。Bridge 的 `endcap_w_flat` 同樣直接取 `W`。
+- **重要邊界**：下方 `CROSS + EXTRA_CUT + WIDTH + 1.5T` 是局部角落避讓，不能拿來加減整張封頭／封尾材料寬度。
+- **真檔回歸**：`自訂(4).p6fold` 保存了舊 workspace `endcap_w_flat=422`；載入後必須依現在的 OVERLAY topology 重建為 `400`，Head/Tail FinalScene material bounds 為 `400 × 284`。
+
+### 33. 截角縮圖只做全域翻轉，沒有區分上方／下方
+- **錯誤現象**：先前為符合操作視角，把所有 CornerType 小圖一起垂直翻轉；當使用者切到下方截角時，小圖方向反而與下方實體閱讀方向相反。
+- **根因**：preview transform 沒有接收目前 active corner target，只存在單一全域 Y 翻轉。
+- **正確做法**：上方／左上／右上維持翻轉；下方／左下／右下恢復原始方向。小型 CornerType 選擇圖與大型預覽必須使用同一 target orientation。此改動只屬 UI。
+
+### 34. UI 直接輸出 float，讓 `400` 顯示成 `400.0000000000006`
+- **錯誤現象**：幾何意義是 400mm，但某些 UI formatter 以 `is_integer()` 精確比較後直接 `str(float)`，因此把二進位浮點尾差完整顯示。
+- **根因**：把浮點表示誤差當成有效尺寸差異。
+- **正確做法**：只在顯示層以極小容差判定近整數；近整數顯示整數，合法小數保持原值。禁止用顯示需求反向 round 製造幾何或 DXF。
+
+
+### 35. 刪掉板件只藏 3D／右側 Tab，左側結果與輸出仍殘留
+- **錯誤現象**：3D 已刪除 Door/底板等板件，主 GUI 右側 tab 可能已隱藏，但左側「展開尺寸計算結果」仍顯示該板件列、佔空間；輸出零件 checkbox 也仍留著。更危險的是，stashed `part_profiles` 或 stale checkbox 還可能讓不存在板件被重新計算／輸出。
+- **根本原因**：只把 `existing_parts` 當成某一個 UI 元件的顯示條件，沒有把它提升成全鏈 physical presence Source of Truth；同時把「是否勾選 DXF」錯當成「板件是否存在」。
+- **正確做法**：physical presence 與 export selection 分離。所有 2D/3D UI、結果計算、FinalScene、保存/重載、DXF/NC/批次輸出都先檢查同一份 `existing_parts`；不存在的 UI 元件用 `pack_forget`/hidden 完整移除，不留下空白。stashed profile 只供重新新增恢復，不得觸發 Scene/輸出。
+- **防錯驗證**：至少要有三類 regression：不存在板件零佔位；stale checkbox=True 仍不能輸出；stashed profile 存在但 physical presence=false 時不得建 FinalScene。
+
+### 36. 有存檔核心卻沒有讀檔 UI 入口
+- **錯誤現象**：3D Fold Designer 右下已有「存檔」可輸出 `.p6fold`，程式核心也已有 `load_phase6_project()`、argv／雙擊副檔名載入能力，但工作區沒有「讀檔」按鈕，使用者在程式內形成「能存不能讀」的操作斷鏈。
+- **根本原因**：只驗證 persistence backend，沒有把成對的使用流程（Save / Load）列入同一條驗收鏈。
+- **後續更正後的正確做法**：`.p6fold` 是全專案檔，入口應放在主視窗左上角全域 `開啟專案 / 儲存專案 / 另存新檔`；3D Footer 不再承擔專案檔讀／存。所有入口仍共用主 GUI authoritative `load_phase6_project()`／project writer。
+- **全鏈要求**：讀檔後 `W/H/D/T/FW`、CornerType、Fold profiles、holes/features、`existing_parts`、2D/3D、輸出選項與 active part 必須來自同一份 snapshot。不得只把檔案讀進記憶體卻漏刷新 UI，亦不得讓刪除板件因舊 checkbox/profile stash 復活。
+- **Windows EXE**：`.p6fold` 雙擊開檔與 UI「讀檔」共用同一 authoritative loader；兩種入口不得分叉成兩套還原邏輯。
+
+
+### 37. 只讓已知盤型 UI 可解鎖，卻沒有把人工參數送完整製造鏈
+- **錯誤現象**：已知盤型畫面可以解鎖修改截角細參數，但存檔 snapshot 又用 `known_model_corner_state()` 重建 factory 值，或 PartSpec/manufacturing 只在自訂盤型傳 corner policy，造成「畫面改得到，存檔／2D／3D／DXF 不一定真的用」。
+- **根因**：把「可編輯 UI」當成需求終點，沒有沿 Source of Truth → Save/Load → PartSpec → baseline manufacturing 追完整鏈。
+- **正確做法**：已知盤型 type_id 固定，只允許同 type 細參數覆寫；實際 `manual_corner_state` 必須序列化並傳到底。baseline DXF 優先，corner policy 只換 structural outline/BEND，固定孔與 MARKING 保留。
+- **防錯**：需要 known-model round-trip 測試與 baseline secondary-feature regression，不能只測 input state。
+
+### 38. 把全專案 Save/Load 放進某一個板件／3D Footer
+- **錯誤現象**：功能本身能讀寫 `.p6fold`，但按鈕綁在 Fold Designer Footer，造成專案層級能力看起來像 3D 頁面的局部功能，也讓其他頁面操作不對稱。
+- **根因**：UI scope 與資料 scope 不一致；`.p6fold` 保存的是整個 project state，卻把入口放進 part-level transaction。
+- **正確做法**：主視窗左上角全域提供 `開啟專案 / 儲存專案 / 另存新檔`；因 3D 是 modal、主視窗此時不能按，所以 3D 視窗左上也提供同一組全域入口。3D Footer 只留板件 `確定 / 取消`。雙擊 `.p6fold` 與 GUI/3D 開啟共用同一 loader。
+
+### 39. 測到「鎖定 flag」卻沒測到使用者真的看到鎖、參數真的消失
+- **錯誤現象**：自動測試顯示 `_corner_param_unlocked=False`，細部 entry 的某個 frame 也被隱藏，但實際畫面仍攤著大部分上/下、左右相同等編輯控制；鎖按鈕只顯示不明顯的圖示/短文字，使用者感受就是「沒有鎖也沒有隱藏」。
+- **根因**：把 state test 當成 visual/layout 驗收，只檢查 helper boolean / widget object，沒有檢查實際 geometry manager 與零佔位。
+- **正確做法**：2D 與 3D 鎖定時都必須顯示明確 `參數鎖定` 文字；細部參數 frame、`左右相同` 等進階控制實際 `pack_forget/grid_remove`。解鎖才重新顯示；CornerType 類型/摘要仍可保留辨識。
+- **防錯驗證**：Tk regression 必須 assert 鎖鈕 `winfo_manager()` 有值、細節容器鎖定時 `winfo_manager()==''`、解鎖後恢復；不能只測內部 dict。
+
+### 40. 3D draft 與 committed 靠 callback 默契維持，讓全域 Save 可把未確定草稿寫進專案
+- **錯誤現象**：主 GUI 原本 W=400，開啟 3D 後把 staged W 改成 500，尚未按「確定」就從 3D 執行「另存新檔」；舊 Bridge 會直接序列化自己的 staged workspace，結果 `.p6fold` 被寫成 W=500。取消 3D 後畫面雖回 400，但檔案已被未確認草稿污染。
+- **根本原因**：專案交易所有權分散在 `_phase6_loaded_project_path`、`fold_designer_part_bundle`、`_phase6_existing_parts`、`_fold_designer_last_part_key` 與 Bridge `_phase6_input_snapshot`；「取消就是不呼叫 commit」只是 caller 默契，沒有一個 deep module 能回答目前哪份資料才是 loaded baseline、committed、draft。
+- **正確做法**：新增純 Python `ProjectSession`，正式擁有 `project_path / loaded_baseline / committed / draft` 交易生命週期；所有 snapshot crossing interface 做 defensive deepcopy。main-connected 3D project save 一律回委 main GUI，以 `snapshot_for_save()` 保存 committed；active draft 期間 `capture_committed()` 必須拒絕，防止 caller 偷繞過 transaction。
+- **3D 編輯邊界**：ProjectSession 的 draft 是隔離種子／交易生命週期，不是每次 Tk 修改都同步的第二份 live state。Fold Designer 編輯自己的 defensive copy；「取消」丟棄 transaction，「確定」先把 payload 套回 main GUI，再以 canonical main snapshot `commit_draft()`。
+- **導航 metadata 例外**：既有回歸要求 3D 全域 Save 可記住目前 `active_part`。這不是機械狀態，因此可當 `active_part_hint` 寫入輸出 payload，但只接受已存在於 committed `existing_parts` 的板件；不得藉此提交 draft 新增板件、尺寸、CornerType、Fold Profile 或 features。
+- **執行期欄位**：`_runtime_project_path` 只用來讓 3D 知道目前檔案路徑，不能跟著 canonical snapshot 寫入 `.p6fold`。
+- **防錯測試**：至少鎖住四條：draft 500 + Cancel → committed 400；draft 500 + Confirm → committed 500；draft 500 + Save → file 400；active draft 時直接 `capture_committed()` 必須拒絕。另驗證既有 committed 板件的 `active_part` 可保存，但未 committed 新板件不能偷渡。
+
+### 41. 把「儲存為預設值」誤當成「提交目前 Runtime」，讓 3D draft 偷改 AE
+- **錯誤現象**：主 GUI committed W=400，進 3D 把 draft W 改成 500，尚未按「確定」先按「儲存為預設值」。舊 `save_defaults_to_ini()` 會同時寫 `config.ini` 與呼叫 `apply_settings_to_ae()`，結果 INI=500、AE.W=500；之後即使取消 3D，主 GUI／ProjectSession 仍是 400，但 AE compatibility globals 已漂移成 500，造成不同下游可能各拿到不同答案。
+- **根本原因**：把「持久化給下次啟動」和「提交目前 Runtime」綁成同一個 helper side effect；同時 GUI `_settings_state`、Tk vars、AE globals、INI 都可能被當成 current settings owner。
+- **正確做法**：`SettingsService` 是 committed runtime 唯一所有者。`update()` 只更新 service + AE compatibility mirror，不寫 INI；`persist_defaults()` 只寫 persisted defaults，不更新 service/AE；`Phase6Settings` 以 immutable/defensive snapshot 跨 interface。
+- **3D transaction**：Fold Designer `_settings_values` 是合法 draft，不必消滅。Cancel 不呼叫 committed update；Confirm 才把 payload 套回 main GUI 並經 service commit。「儲存為預設值」可保存 draft 給下次啟動，但不可等同 Confirm。
+- **Factory Defaults**：`ae.default_config` 是「還原初始值」來源；不能拿 persisted INI 或目前 service snapshot 假裝 Factory Defaults。
+- **相容層**：AE module globals 可暫時保留，但只能作 service 同步出的 compatibility mirror。低階 `save_defaults_to_ini(..., apply_runtime=True)` 只供舊 caller 相容，新 production path 必須經 service。
+- **防錯測試**：至少同時斷言 service / AE / INI 三者：runtime update → service/AE 改、INI 不改；persist draft → INI 改、service/AE 不改；3D Cancel → committed/AE 不變；3D Confirm → committed/AE 一起更新；新 service 啟動才讀取新 persisted defaults。
+
+
+### 42. 把 Controller 化做成「搬方法到新檔」，結果 caller 還是得知道交易順序
+- **錯誤現象**：看似新增了 `Controller`，但 GUI 仍要自己判斷 `has_draft`、決定何時 `capture_committed()`、何時 `snapshot_for_save()`、何時更新 path；新類別只是把原方法包一層，刪掉它幾乎沒有複雜度回到 caller，是典型 shallow module / Middle Man。
+- **根本原因**：把「拆大檔」誤當成架構目的。真正要收斂的是 interface knowledge，不是單純減少 `gui.py` 行數。
+- **正確做法**：建立 `Phase6ProjectController` 深模組，讓 GUI 只提供 canonical `snapshot_provider`。Controller 自己決定：無 draft 才呼叫 provider 並 capture；有 draft Save 完全不呼叫 provider、只讀 committed；load/confirm/cancel/path/write ordering 也集中在同一 seam。
+- **為什麼 provider 是重要 interface**：它讓「active draft Save 不得重新 capture View」可以被純 Python 測試直接證明，不需要啟動 Tk，也不靠 caller 自律。
+- **Source of Truth 邊界**：Controller 不能再保存一份 committed/draft/path；真正 state 仍由 `ProjectSession` 擁有。`app.project_session` 若為相容性保留，只能指向 `app.project_controller.session` 同一物件。
+- **失敗安全**：project writer 成功後才更新 path；寫入失敗不能留下假的新路徑。
+- **防錯測試**：至少鎖住 active draft 不呼叫 provider、非法 `active_part_hint` 不生效、load 取代 draft、confirm 提交 canonical snapshot、writer failure 不改 path，以及 GUI 不再直接呼叫 ProjectSession ordering / project read-write。
+
+### 42. 把 Workspace Controller 做成舊 dict 的包裝，或載入新專案時保留上一個 Fold Chain
+- **錯誤現象**：表面新增了 Controller，但 `gui.py` 還直接讀寫 `fold_designer_part_bundle / _phase6_existing_parts / _fold_designer_last_part_key / fold_designer_box_body_profile`，實際 Source of Truth 仍散在 caller；另一種更危險的情況是先載入有 `box_body_profile` 的專案，再載入沒有 profile 的專案，舊 Fold Chain 仍留在主 2D/3D 計算中。
+- **根本原因**：只把舊欄位搬進新 class，沒有把 invariant 與 replacement 語意一起收斂；同時把 `欄位不存在` 與 `欄位存在但值為 None` 混成同一件事。
+- **正確做法**：`Phase6WorkspaceController` 唯一擁有 physical presence、active part、part profile stash 與 box-body Fold Chain。`box_body` 永遠存在；刪除板件只改 presence、不刪 stash；active part 必須指向現存板件。Project/3D workspace replacement 時，`box_body_profile` 欄位存在且為 `None` 代表明確清除舊 profile；欄位完全不存在才代表 partial update、保留現況。
+- **相容層規則**：四個舊 GUI 欄位只可保留為直接委派同一 Controller 的 property，不能再有 backing state；production method 不得依賴這些 alias。
+- **幾何責任**：Head/Tail linked profile 仍由既有幾何 resolver 產生，Controller 只保存結果，禁止把機械公式搬進 workspace module 形成第二個 AE。
+- **防錯測試**：至少鎖住 mandatory box_body、authoritative presence 不受 export/indicator fallback 影響、刪除/重加 profile stash、active fallback、defensive copy、跨專案載入清除 stale Fold Chain、GUI production 不再依賴 legacy aliases。
+
+### 43. Bridge 瘦身只搬函式到新檔，caller 還是從 Bridge 取得 domain 規則
+- **錯誤現象**：`fold_designer_bridge.py` 行數看起來下降，但 `gui.py` 與其他 production caller 仍從 Bridge import CornerType、EndCap FW、Fold Profile 規則；新模組只是被 Bridge 包一層轉呼叫。刪掉新模組後複雜度沒有集中回單一 owner，反而多一層 Middle Man。
+- **根本原因**：把「縮檔案」誤當成「建立深模組」。真正要移動的是 ownership 與 interface knowledge，而不是程式碼位置。
+- **正確做法**：EndCap assembly/FW/raw-corner state 由 `phase6_endcap_semantics.py` 擁有；Fold Profile/linked mating chain 由 `phase6_fold_profiles.py` 擁有；`gui.py` 直接依賴 owner。Bridge 只可用 import alias 保留舊 caller compatibility，不可保留 wrapper body、第二套分支或重新計算。
+- **adapter 邊界**：Tk Notebook label、Fold Designer transaction、scene/view wiring 仍屬 Bridge。不要把 `_phase6_resolve_profile_key()` 這類 UI adapter 規則硬塞進 Fold Profile domain module，只為了追求行數下降。
+- **防錯測試**：用 AST/identity guard 鎖住：GUI 從 Bridge 只 import `Phase6FoldDesignerApp`；Bridge 不重新 `def` 已移出的 domain function；Bridge compatibility export 與 owner function 必須是同一函式物件；owner module 不 import Tk/GUI/renderer。
+
+### 44. 把 FinalScene View 留在 Bridge，讓 Adapter 同時變成第二套 Renderer
+- **錯誤現象**：`fold_designer_bridge.py` 同時負責 manufacturing query、profile folding、Shapely triangulation、BEND/MARKING 投影、operator 尺寸、Matplotlib axis fit、zoom。改任何 3D 顯示細節都必須理解整個 Bridge，也容易在 View 端偷偷重建第二份製造幾何。
+- **根本原因**：把「拿到 `PartRenderData`」與「如何顯示 `PartRenderData`」視為同一責任；為了補視覺問題，View 又去解析 BEND/CUTTING/CornerType，破壞 Final Geometry 單一所有權。
+- **正確做法**：以 `Phase6FinalSceneView` 建立 deep module。Bridge 只組 `FinalSceneViewRequest`；View 直接消費 manufacturing 已完成的 `material / scene / fold_guides`。CUTTING material 不重建，fold guide 不從 scene 再推一次，CornerType/Settings/ProjectSession 不進 View。
+- **operator dimensions 邊界**：尺寸的機械數值解析仍屬 Bridge/domain adapter；View 只負責 folded-mesh outside envelope 與圖形標示。不能因為「尺寸顯示在 3D」就把 CornerPolicy/WHD 規則塞進 View。
+- **相容 state**：舊 `_phase6_zoom_scale / _phase6_last_cutting_mesh` 可保留 property，但 backing state 只能在 `final_scene_view` 一份，禁止為相容性再建立 shadow state。
+- **防錯測試**：View source 禁止 `build_part_render_data/material_polygon_from_final_scene/fold_guides_from_final_scene`；Bridge ownership guard 禁止 Matplotlib mesh/triangulation 實作；含 CUTTING hole 的 authoritative material 經 3D triangulation 後 hole 不可被填回。
+
+### 45. 診斷序列化散在 Bridge 與 Project Snapshot，造成 schema／錯誤隔離雙軌
+- **錯誤現象**：standalone 折彎診斷與 `.p6fold.final_geometry` 都要輸出 Scene、material、FoldGuide，但各自在 Bridge 迴圈裡序列化；之後若只修其中一條，會出現欄位格式、GeoJSON、孔洞數或 error handling 不一致。
+- **根本原因**：把「如何取得 Designer state」和「如何把已完成 Final Geometry 轉成診斷資料」混在同一個 Bridge；Project Snapshot 又重複知道相同 serializer 規則。
+- **正確做法**：`phase6_diagnostics.py` 統一擁有 diagnostic schema、JSON-safe、Scene／Material／FoldGuide 序列化、active snapshot 與 all-part error isolation。Bridge 只組 plain context、payload provider、render provider 與檔案對話框。
+- **所有權邊界**：Diagnostics 只觀測 `PartRenderData`，不得建立／重建 CUTTING material、不得解析 CornerType/Fold Profile、不得讀 ProjectSession 或 SettingsService。`.p6fold` reloadable snapshot 仍由 Project owner 組裝。
+- **錯誤隔離**：all-part diagnostics 某一板件 render 失敗，只在該 row 寫 `error`，不得讓其他板件診斷跟著消失；payload adapter 失敗則 fail-fast，不能捏造 payload。
+- **相容規則**：Bridge 舊 serializer 名稱若保留，只能 direct re-export 同一 function object，不得 wrapper 或留第二套實作。
+
+### 46. Settings Panel 只搬 Tk widget，卻把 3D draft 或機械 editor 一起搬成第二套 owner
+- **錯誤現象**：看似把 `fold_designer_bridge.py` 的設定 UI 拆到新檔，但新 Panel 同時保存 `_settings_values`、重算 profile、判斷 CornerType/assembly/FW，結果只是把原本的 Bridge 巨石換成另一個巨石；取消／確定與 persisted defaults 也容易再度混線。
+- **根本原因**：把「UI 元件在哪個檔案」誤當成模組邊界，沒有先分清 UI-only state、transaction draft、domain semantics 與 committed runtime。
+- **正確做法**：`Phase6SettingsPanel` 只擁有 Tk vars、page cache、advanced/baseline 展示與左側全域 widgets；真正 `_settings_values` 仍是 3D draft，Panel 只能透過 callback stage/flush/save。CornerType、assembly、EndCap FW 由 extension seam 插入，Panel 不 import AE/Project/manufacturing。
+- **防錯驗證**：Panel source 不得出現 `_settings_values`；advanced toggle 不改 draft；baseline query 只在展開時執行；external apply 同步 widget 不得 re-stage；Cancel/Confirm 仍用既有完整交易回歸驗證。
+
+### 47. 只把 3D Workspace 欄位包成 property，卻讓 Bridge 繼續自行管理板件生命週期
+- **錯誤現象**：新增 `Workspace` 類別後，`available_parts`、`active_part_key`、`_phase6_part_profiles` 看似都指到同一物件，但 `add/remove/switch/save/home` 仍在 Bridge 直接 `append/remove`、改 dict、切 dirty/switching flag；結果新 owner 只是資料容器，真正 ordering knowledge 仍散在 caller。
+- **根本原因**：把「只有一份 backing state」誤當成「已有單一所有權」。深模組除了保存 state，還必須擁有 presence、stash、dirty、switching 的 invariant；否則下次加功能仍會繞過 owner API。
+- **正確做法**：`Phase6DesignerWorkspace` 唯一管理板件存在、active/selected、profile/feature stash、dirty 與 switching。Bridge 只負責 UI/domain adapter：先從 outgoing editor 收集資料並 `stash_*`，再 `begin_switch(target)`，完成 UI／holes／settings／render 後 `finish_switch()`。
+- **刪除／重加語意**：刪除只移除 presence，不刪 stash；重新加入優先恢復 stash，避免使用者暫時刪除板件後 Fold Profile／feature 資料永久遺失。`box_body` 永遠不可刪。
+- **跨輸出規則**：Project snapshot、Diagnostics、Scene query、FinalScene request 都必須從同一 Workspace owner 取得 active/presence/profile/features；禁止各自從 legacy alias 手拼另一套 snapshot。
+- **測試陷阱**：大量 `SimpleNamespace`／`object.__new__` 半初始化 fixture 會掩蓋必要依賴。owner 成為正式依賴後，應升級 fixture，而不是在 production 加「缺 Workspace 就退回舊欄位」的後門。
+- **防錯測試**：鎖 mandatory box_body、remove→add stash restore、home 保留 stash、switch outgoing-save-before-begin-switch、compatibility property 不落 `__dict__`、Bridge production 不直接 mutate legacy backing，以及 export/diagnostics/query 都以 owner 為準。
+
+### 48. 統一開孔編輯器把 Undo／取消／context snapshot 留在 Tk 巢狀函式，造成同一孔位有多套交易狀態
+- **錯誤現象**：單一 `_open_unified_hole_editor()` 同時保存 `selected`、`active_snapshot`、`undo_history_ref`、`context_feature_lists`、`context_original_features`；插入、拖曳、旋轉、reference edit、圓孔排列又各自修改這些 list。尤其圓孔排列另有 `seed_snapshot`，會和既有 active edit 疊成第二套局部交易。
+- **根本原因**：把「Tk callback 能直接改 feature list」誤當成方便。實際上 caller 必須知道何時 snapshot、何時 push Undo、何時 cancel transient、切 context 時要清什麼，交易 interface 等於散在 60 多個巢狀 callback。
+- **正確做法**：以純 Python `Phase6HoleEditorSession` 擁有 context、selection、active before snapshot、Undo 與 Confirm/Cancel ordering。Tk/Canvas 只計算 candidate feature，再用封閉 `HoleEditorAction` 交給 Session；`feature_list` identity 保持原 caller list，禁止建立第二份 committed source。
+- **active edit 規則**：用整個 context before snapshot 統一插入／拖曳／旋轉／基準／距離／round preview；Cancel 恢復 before，Commit 只有內容真的改變才 push Undo。
+- **多 context 規則**：切換前 transient edit 必須取消；切換後 selection 與 Undo scope 重置。Cancel All 恢復每個已登錄 context 的 original；Confirm All 保留全部現況。
+- **圓孔排列陷阱**：若 round dialog 開啟前已有未確認拖曳／旋轉，不能再直接建立另一份 `seed_snapshot` 當交易 owner。先把前一個 active edit 收斂，再由 Session preview transaction 管理排列預覽。
+- **防錯測試**：鎖 insert→cancel、insert→commit→undo、replace→cancel、toggle/delete→undo、context switch cancel transient、Cancel/Confirm All、多 context 隔離、Undo 上限 50、round preview transaction；AST 再禁止 GUI 自建舊 state 或直接 mutation `feature_list`。
+
+
+### 49. 開孔 redraw 與 hit-test 各自 resolve 一次，讓「看見的位置」與「點到的位置」可能分叉
+- **錯誤現象**：統一開孔 editor 的 `redraw()` 自己建立 `CanvasTransform` 並 resolve features；mouse hit-test 又再次 `resolve_surface_features()`，並靠另一個 `transform_box` 做 canvas/world 轉換。只要顯示 viewport、extra bounds 或 feature resolver 演進不同步，就可能出現畫面孔在 A，但點擊命中仍按 B 的問題。
+- **根本原因**：Canvas 顯示狀態沒有 owner。GUI callback 同時知道 transform、resolved geometry、hit tolerance、overlay placement，View interface 等於散在多個巢狀函式。
+- **正確做法**：`Phase6HoleEditorCanvasView` 唯一保存最近 render 的 `CanvasTransform` 與 resolved cache；`render()` 更新它們，`canvas_to_world()` 與 `hit_test()` 只能讀這同一份 cache。GUI event 不得再次 resolve。
+- **製造幾何邊界**：Door/Indicator manufacturing preview 仍由 domain/GUI adapter 算好再用 `draw_extra` 畫；View 不能 import `manufacturing_api`，也不能成為第二套製造幾何來源。
+- **防錯測試**：AST 鎖住 `_open_unified_hole_editor()` 不再引用 `CanvasTransform / resolve_surface_features / hit_test_resolved_features`；真 Tk 直接驗證點孔、拖曳與 Cancel All roundtrip。
+
+### 50. 先用截角公式猜 Assembly Relief，沒有從真實 Collision Region 反推 CUTTING
+- **錯誤現象**：面對箱身與封頭／封尾組裝干涉時，AI 直接先套 `0.5T / 1T / 2T` 或 CornerType 截角公式，試圖在 2D 端預先算出每個角要切多少；結果容易把「可能會撞」誤當成「真正撞到」，也可能多切未干涉材料或漏掉實際碰撞區。
+- **根本原因**：把 Factory Policy 的經驗扣量當成 collision solver，跳過折後實體、板件角色與 ownership 判定；仍停留在「先寫公式再看圖」的舊架構。
+- **正確做法**：先建立名義板件幾何與 resolved material，再做 SELF / Assembly 干涉檢查取得 `Collision Region`；接著依 ownership 判定誰保留、誰切除，將 collision 反投影成 `Relief Candidate`，最後更新 2D `CUTTING`、重建 `PartRenderData / FinalScene` 並再次驗證沒有殘留干涉。
+- **第一版已固化範圍**：`Box Body ↔ EndCap / Tail`，箱身 `RETAIN`，封頭／封尾 `CUT`；以 Shapely 2.5D footprint 作為可驗證第一版，不宣稱已完成完整 3D solid CAD kernel。
+- **防錯規則**：
+  1. 不得先由零件名稱、變數名稱或 CornerType 公式猜 relief。
+  2. 固定 T 倍數只能作為 clearance / policy 參數，不能取代 collision region。
+  3. 若切除面積與真實 intersection 不一致，優先檢查是否 over-cut；例如 `10 × 30` 的碰撞只應先移除 300，再依明確 clearance 擴張。
+  4. GUI / renderer 不得呼叫 solver；solver 留在 `ae_engine` manufacturing boundary，renderer 只消費完成後的 `PartRenderData`。
+
+
+### 51. 底層有 Assembly mode，卻沒有讓使用者直接看得到「組合體」入口
+- **錯誤現象**：程式已存在 `_phase6_3d_display_mode="assembly"`、render request 與 assembly scene，測試也能通過，但實際操作畫面只看到一個下拉控制或根本沒注意到「組合體」，使用者直接判定「沒看到組合體」。
+- **根本原因**：把 state / API / source-level contract 當成 UI 完成條件，沒有把「可發現性與實際 layout」列入驗收。
+- **當時修法（已廢止）**：曾改成 3D 置頂列固定顯示 `單件`、`組合體` 兩顆按鈕。此入口已由後續最新規格取代；現在 `組合體` 必須是左側 `板件選擇` 第一項，第一次進 3D 直接選中，禁止再恢復第二套模式按鈕。Assembly 第一階段仍只顯示箱身 + 封頭 + 封尾。
+- **防錯驗證**：使用真 Tk 建立 Fold Designer，確認兩顆按鈕 `winfo_viewable()==1`；invoke `組合體` 後 mode 必須變 `assembly`。只 assert dict / label / Menubutton values 不算驗收。
+
+### 52. ZIP 中文路徑被封裝成 literal `#Uxxxx`，AI 庫看似消失或整包像亂碼
+- **錯誤現象**：原本應是 `新WHD/個人AI檔案庫/...` 的路徑，在交付 ZIP 內變成 `#U65b0WHD/#U500b#U4ebaAI...`；這不是使用者電腦字型問題，而是 ZIP entry 名稱已在打包前被錯誤 escape。
+- **根本原因**：沿用會把 Unicode path 轉成 `#Uxxxx` literal 的封裝/中繼樹，再從錯誤樹打包；即使 Markdown 內容是 UTF-8，路徑本身已被破壞。
+- **正確做法**：從保有真實 Unicode 檔名的來源樹打包，使用支援 UTF-8 filename flag 的 ZIP writer；不得從 `#Uxxxx` 中繼目錄反向猜名修復。
+- **交付前硬性檢查**：
+  1. ZIP entries 不得含字串 `#U`。
+  2. 必須存在 `新WHD/個人AI檔案庫/README.md` 與中文 SOP 路徑。
+  3. 實際解壓後逐項確認中文檔名保留。
+  4. 新增/修改的 `.md/.py` 必須能以 UTF-8 strict decode；偵測到 Unicode replacement character（U+FFFD）即拒絕交付。
+
+### 2026-08-27：只把組合體做成內部 state／隱藏模式，使用者實際找不到入口
+- **錯誤現象**：程式有 `_phase6_3d_display_mode="assembly"`、renderer 也能組 mesh，但使用者在正式 3D Designer 看不到「組合體」，或入口藏在另一個控制列／下拉裡。
+- **根本原因**：把「底層能力存在」誤當成「UI 功能已交付」，而且同時存在 `板件選擇` 與 `單件/組合體模式` 兩套導航。
+- **正確做法**：`組合體` 直接成為 `板件選擇` 第一項；第一次進 3D 就選組合體。選實際板件自動回 single mode，不再保留第二套單件/組合體按鈕。
+- **防錯測試**：真 Tk 驗證 menu 第 0 項、初始 `part_var`、assembly mode、Fold Editor/板件設定隱藏；選箱身後 single mode + Fold Editor 顯示。
+
+### 2026-08-27：3D UI 控制散落在右側畫布上方，導致版面與使用者操作模型不一致
+- **錯誤現象**：`結構 / 組合方式 / 參數鎖定 / 3D模式` 被塞在右側畫布控制列，`文字大小` 又放在全域設定第三行；使用者指定的永久置頂兩行全域配置被破壞。
+- **根本原因**：每加一個功能就就近塞 widget，沒有維持固定 layout ownership。
+- **正確做法**：最上列只放檔案、3D 顯示視覺控制、全螢幕與 transaction；全域設定固定兩行；左側只負責板件/折彎；右側只負責解鎖後板件設定與 3D canvas。
+- **防錯測試**：assert widget master + grid row，而不是只測文字存在；並 assert `right_control_bar is None`，避免舊控制列復活。
+
+### 2026-08-27：UPDATE ZIP 多包一層專案目錄，導致使用者解壓後實際程式沒有被覆蓋
+- **錯誤現象**：UPDATE 內路徑是 `新WHD/fold_designer_bridge.py`；使用者已經在 `...\新WHD` 目錄內解壓時，檔案變成 `...\新WHD\新WHD\fold_designer_bridge.py`，執行的仍是舊版。
+- **根本原因**：FULL 與 UPDATE 使用同一 archive root 規則，沒有區分「完整包保留專案資料夾」與「更新包直接覆蓋專案根目錄」。
+- **正確做法**：FULL 可保留最外層專案資料夾；UPDATE 必須以專案根目錄為 archive root，直接包含 `fold_designer_bridge.py / ae_engine/... / tests/... / 個人AI檔案庫/...`。
+- **防錯驗證**：打包後列出 UPDATE 前幾個 entry，禁止所有檔案都以 `新WHD/` 開頭；實際解壓到空的模擬專案根目錄並 SHA256 比對。
+### 52. 組合體只用 EndCap bbox／旋轉名稱定位，造成留肉與折邊接合語意錯誤
+- **錯誤現象**：封頭／封尾雖被放到箱身上、下方，但留肉沒有真正貼在箱身接合面，或左右／下折邊跑到箱身外；曾把 Tail 做成 world-Y 180° 旋轉，導致 X 左右也被反掉。
+- **根本原因**：把 assembly 當成純視覺旋轉，而沒有沿用既有 `組合方式 -> CornerType -> resolved Fold Profile` 語意；另外用 EndCap 整體 bbox 中點重設 local Z，破壞 `z=0` 接合基準。
+- **正確做法（已由 2026-08-28 physical-sheet 規則補強）**：先由組合方式解析 Fold Profile topology。local `z=0` 是板厚中心面、local `+z` 代表真實折邊朝箱內。Head +Z 往 world-Y 下方；Tail 保持 native X/Y（不得再鏡射 local Y），+Z 往 world-Y 上方。實體接合面由 T 厚 physical sheet 的**內側 skin**提供：中心面向箱外偏移 T/2，使 inner skin 貼 box-body 上/下 mating plane。`OVERLAY` X 必須 flat；`INSERT / INSERT_OVERLAY` 才有左右 X 折邊。Viewer 與 collision 共用同一 helper。
+- **防錯驗證**：用非對稱 EndCap mesh 明確 assert Tail X 不反轉、local Y 也不反轉、local `+z` 進箱內；Tail Fold Profile 已是 native orientation，assembly 禁止二次上下鏡射；再用 `build_endcap_xy_profiles()` 對 `INSERT / OVERLAY / INSERT_OVERLAY` 跑真 profile，確認留肉/core 平面接觸箱身且所有正 Z 折邊都落在箱身高度範圍內。
+### 53. 專案內保留第二套可執行 GUI，更新正式程式後使用者仍看到舊畫面
+- **錯誤現象**：根目錄 `gui.py / fold_designer_bridge.py` 已更新，但使用者啟動後版面完全沒變；專案內其實還存在 `基準檔/gui.py` 的完整舊 GUI 副本。
+- **根本原因**：同一專案存在兩個可執行 Source of Truth，捷徑或工作目錄一旦落到 `基準檔` 就永遠跑舊碼。
+- **正確做法**：`基準檔/gui.py` 只能作 compatibility launcher，先切到專案根目錄並以 `runpy.run_path()` 執行唯一 authoritative `gui.py`；禁止再保存第二套完整 GUI。
+- **防錯驗證**：測試需確認 `基準檔/gui.py` 為短 redirect（<100 行），而不是數千行 GUI 副本。
+
+
+### 54. 組合體 backing active_part 與真實選單切換混用，造成「組合體 → 箱身」切不過去
+- **錯誤現象**：第一次進 3D 顯示組合體，使用者從 `板件選擇` 點 `箱身` 後選單文字變箱身，但左側 Fold Editor 仍隱藏，看起來完全切不過去。
+- **根本原因**：組合體模式為了取得幾何，底層仍保留 `box_body` 作 backing `active_part`；Tk Menu radiobutton 又會先把 `part_var` 改成 `箱身` 才呼叫 `activate_part()`。舊程式看到 `active_part == box_body` 且文字已不是 `組合體` 就 early-return，漏掉 assembly -> single 的真正 mode transition。
+- **正確做法**：進 `activate_part()` 第一時間先保存 `was_assembly`，再改 mode。只要 `was_assembly=True`，即使目標 key 等於 backing active part，也必須完整執行 single-part restore：顯示 Fold Editor、重建板件設定、刷新 3D。
+- **防錯驗證**：真 Tk 測試必須先手動 `part_var.set("箱身")` 模擬 Menu radiobutton 的真實順序，再呼叫 `activate_part("box_body")`；驗證 mode=`single` 且 `fold_editor_host.winfo_manager()` 非空。
+
+
+### 55. EndCap 組合體只畫零厚度中心皮，造成「成型外面消失／折邊像由內往外穿」
+- **錯誤現象**：標準金庫型封頭／封尾的 Fold Profile 與 BEND 數量其實完整（INSERT / INSERT_OVERLAY 標準狀態為 X 2 折 + Y 3 折），但組合體看起來沒有真正成型的外側板面，左右／下折邊像從箱身裡面往外穿。
+- **根本原因**：`folded_mesh_from_polygon()` 只產生零厚度 mid-surface；舊 assembly 又直接把 local `z=0` 中心皮貼在箱身 mating plane。`T` 沒有參與 EndCap 3D 實體化，因此不存在可區分的內側接觸面與外側成型面。
+- **正確做法**：保留 Fold Profile / 2D / DXF 不動；先依 authoritative profile 折出 mid-surface，再用真實 `T` 建立 ±T/2 兩個 skin、材料外周側壁與非共面 fold-edge miter bridge。Head/Tail 的中心面向箱外偏移 T/2，使「內側 skin」貼箱身、外側 skin 留在箱外，所有 local +Z 折邊仍朝箱內。viewer 與 3D collision 必須共用這套 physical-sheet geometry。
+- **防錯**：看到 EndCap 成型怪異時，先檢查 `Fold Profile/BEND count` 與 `physical sheet thickness` 兩層；不能因視覺像少折就擅自增刪 `ytop1/FW/ybottom1`。標準未修改金庫型仍必須保留完整 5 道 BEND。
+
+
+### 56. EndCap 實體化後直接畫 closed-solid boundary，造成「孔消失／第一折與留肉折線看不到」
+- **錯誤現象**：標準未修改金庫型的封頭／封尾在組合體中，底層 `material` 仍有 baseline CUTTING 孔、Fold Profile 仍有完整 X 2 + Y 3 = 5 道 BEND，但畫面看起來孔全部消失，`ytop1` 上面第一折與留肉附近的折彎稜線也像沒做。
+- **根本原因**：EndCap physical-sheet 改成封閉 solid 後，viewer 仍只對 thickened solid 執行 open-boundary edge extraction。封閉實體的 through-hole tunnel 與折彎 crease 都不是 open boundary：孔邊界被側壁封閉，折彎稜線則是兩個面共享的內部邊，因此視覺線全部被吃掉。這是 renderer regression，不是孔資料、CUTTING、Fold Profile 或 BEND 數量消失。
+- **正確做法**：physical solid 照舊渲染；另外必須從**加厚前、已依 final BEND guides 折好的 authoritative mid-surface**抽取可視特徵線：`edge adjacency == 1` 為外輪廓／through-hole 邊界；共享 edge 的相鄰三角面法向非共面時為真實 formed crease。共面 triangulation diagonal 必須排除。
+- **禁止誤修**：看到孔／折線沒顯示，不得去重建孔、增加 BEND、恢復已刪 segment、改 CornerType 或改 assembly placement；先確認 `PartRenderData.material.interiors`、Fold Profile、folded mid-surface 是否仍正確。
+- **永久驗證**：組合體 physical EndCap 測試必須同時鎖住：有孔 material 加厚後仍有 hole outline 可視線；有第一折的 folded surface 必須出現跨板面的非共面 crease，而不是只剩 T 厚度側邊。
+
+### 57. 孔輪廓畫在 EndCap 中心面，實體加厚後仍「看不到孔」
+- **錯誤現象**：`material.interiors` 明明存在、physical solid 也真的有 through-hole，但組合體上看不到孔；前一版甚至已從 folded mid-surface 抽 hole boundary，畫面仍像實心。
+- **根本原因**：mid-surface 是板厚中心面，不是可視外皮。加厚後它位在 ±T/2 skin 之間，深度排序會被實體面遮住；EndCap 又貼在 BoxBody 上時，孔後方是另一片實體面，更容易看成沒有孔。
+- **正確做法**：從 `thicken_triangle_surface()` 的 physical solid 抽 feature edges：共享 edge 的相鄰面法向非共面即為可視物理稜線，孔口會自然產生在兩個 skin 的 rim；共面 triangulation diagonal 排除。mid-surface crease 只能當 fallback，不能當孔口唯一線源。
+- **折彎線規則**：3D `BEND` guide 與 physical fold feature edge 全部畫實線；不得再用虛線讓使用者誤判為參考線或被透明面吃掉。
+- **防錯測試**：T=2 的有孔平板，hole rim 至少要在 z=+1/-1 skin 各有完整輪廓；`_draw_scene_bends()` 必須輸出 `linestyle='-'`。
+
+
+### 58. 組合體參數解鎖被 assembly guard 吃掉
+- **錯誤現象**：第一次進 3D 是組合體，按「參數鎖定」後 state 有切換但右側完全沒反應。
+- **根本原因**：`_phase6_toggle_parameter_panel()` 舊邏輯明確禁止 assembly mode 顯示任何右側 panel。
+- **正確做法**：組合體解鎖顯示獨立「組合體診斷」而不是箱身設定；切到實際板件才顯示該板件 settings。
+- **防錯測試**：真 Tk assert assembly unlock 後 diagnosis frame = `pack`，切回箱身時 diagnosis frame 隱藏且板件設定重新顯示。
+
+### 59. 固定截角診斷拿整片 EndCap 做碰撞，會把正常接合縫誤報成整圈干涉
+- **錯誤現象**：標準金庫型補回固定截角後，早期版本回報 947 段紅色交線，紅線沿整個上緣、左右接合縫與正常插入位置跑；即使不補回固定截角，整片 production EndCap 仍可產生數百段假交線。
+- **根本原因**：surface/triangle crossing 只能回答兩個 mesh 表面是否相交，無法自行理解「這條是設計上允許的 mating seam」。把整片 EndCap 當 target，就會把正常貼合／插入接觸也一起掃進來。這不是視覺顏色問題，而是 probe ownership 錯。
+- **正確做法**：固定截角診斷 target 必須先做 `restored - production`，只折起並加厚這個 **relief delta**；再拿它與 BoxBody physical solid 求穿越。標準金庫型本測試環境因此由 947 段整圈假紅縮成 454 段局部交線（Head 227 + Tail 227），只集中在固定截角角落。
+- **視覺規則**：因 target 已限制成 relief delta，可把真正命中的 delta triangles 畫成半透明紅面，再疊紅色實線 intersection segments；禁止把整片 EndCap 的 hit triangle 染紅。
+- **關閉診斷**：未勾 `診斷時忽略固定截角` 時，不得退回整片 EndCap 求碰撞；停止固定截角 probe 並提示使用者先啟用該診斷。
+- **ownership 防線**：renderer 不得直接 import `assembly_collision`；純幾何／delta helper 放既有 `assembly_geometry`，production relief solver 仍留在 `assembly_collision`。
+- **交付防線**：AI 在交付碰撞視覺前必須自己至少檢查 Head、Tail 兩個視角；若紅區沿正常長接縫擴散，視為不合格，不得叫使用者代驗收。
+- **防錯測試**：assert `restored_endcap_relief_delta` 只含補回材料；renderer collision target area 必須小於整片 EndCap；ignore=false 時 detector 不得被呼叫；delta hit triangles + solid intersection lines 可局部顯示。
+
+
+### 60. 3D 干涉能畫紅區，不代表已得到可生產截角尺寸
+- **錯誤現象**：只把 world-space 干涉線/紅區畫出來就宣稱截角完成；或直接拿舊固定截角尺寸、world bbox、Shapely buffer 當正式尺寸。
+- **根本原因**：世界座標交線沒有 EndCap/Tail 展開座標語意；板厚兩側 skin 還可能產生多條近似交線。若不保留 flat UV 並回折驗證，數字看起來精確也可能是假精準。
+- **正確做法**：folded triangle 保留 flat UV；3D crossing point 用 barycentric 回投 2D；依角落既有 topology band 取各級最大實際干涉深度；切除後重新折回 3D，只有剩餘 material interior 無穿透才 verified。
+- **迭代防線**：第一輪 cut 可能露出更深一層干涉，必須 `cut → refold → project` 迭代到收斂；A=0 的 CUTTING 邊界接觸不是材料穿透。
+- **淨空防線**：A 在收斂後做正交軸向精確擴張，不使用 polygon buffer 斜接；標準測件 A=5 應由 `39×38 + 14×4` 精確變成 `44×43 + 19×4`。
+- **數值防線**：對稱件若左右 canonical shape 只差 <0.01~0.02 mm 級 tessellation noise，可在嚴格 Hausdorff 容差內取 union；不得把真正非對稱差異抹掉。
+- **BEND 防線**：dynamic cut 比 legacy fixed cut 少切時，BEND 也必須依新 material 重 clip；本標準測件左 X BEND span_start 由 legacy `42` 恢復為 `38`，FW 水平 BEND 左端由 `16` 恢復為 `14`。CUTTING 對但 BEND 還舊，仍視為未完成。
+- **Source of Truth 防線**：verified cut 進 `EndCapPartSpec`，Manufacturing API 統一供 2D/3D/DXF；GUI/renderer 只顯示，不可另算一套截角。參數/Fold Profile 改變時舊 cut 必須失效。
+
+### 61. UPDATE 只更新 AssemblyScene caller、漏掉 dataclass contract，造成組合體整頁 3D 載入失敗
+- **錯誤現象**：正式主 GUI 第一次進 `組合體`，3D 畫布顯示 `AssemblySceneRenderData.__init__() got an unexpected keyword argument 'show_interference'`。
+- **實際重現**：`065113 FULL` 直接套 `130705 UPDATE` 可 100% 重現；130705 UPDATE 內有新的 `fold_designer_bridge.py`，但沒有 `phase6_final_scene_view.py`。
+- **根本原因**：caller 新增 `show_interference / ignore_fixed_corner_relief` constructor kwargs，而舊 `AssemblySceneRenderData` 只有 `assembly_parts / warnings`。這是 UPDATE 原子性破壞，不是 Tk、Matplotlib 或使用者環境問題。
+- **正確做法**：
+  1. caller 與其 dataclass/interface owner 視為同一個更新原子；其中一側 contract 變更，UPDATE 必須帶另一側。
+  2. `_phase6_make_assembly_scene_render_data()` 依 live constructor signature 過濾 optional kwargs，保留 mixed-version 相容底線。
+  3. 交付前除乾淨 FULL 外，必須實際建立「舊 FULL + 新 UPDATE」疊版副本，由主 `gui.py` 打開 3D Designer，驗證 `cutting_mesh_error is None`。
+- **禁止**：只跑當前工作樹測試就宣稱 UPDATE 可用；這抓不到 caller/contract 在使用者舊樹上的版本錯配。
+
+### 62. 3D 反投影 solver 全角 restore 造成未求解角落長回 16×16 角片
+- **錯誤現象**：組合體的封頭／封尾在非接合側兩角多出一片實體角料；標準金庫型可量到每片多出的角料各為 `16×16 = 256 mm²`。
+- **根本原因**：`restore_unrelieved_endcap_material()` 為了 3D 探測先把整個 EndCap 外框四角全部補回矩形，但 solver 實際只對有干涉的兩個 mating corners 產生新 cut。最終若直接用 `restored - cut_polygon` 當 production material，另外兩個沒有被本輪求解的 legacy corner relief 也會被永久補回。
+- **正確做法**：full restored blank 只能當 3D probe/reference。正式 `solved_material` 必須從 authoritative 原始 `endcap_render_data.material` 出發，只 union 回「本輪 `raw_cuts` 確實求解到的 corner delta components」，再 subtract verified dynamic cut；未求解角落保持原 material 不動。
+- **標準金庫型證據**：修正前 solved-original 新增 `528 mm² = 2×256 + 2×8`；修正後只新增正確留肉 `16 mm² = 2×(2×4)`，兩個錯誤 `16×16` 角片消失。
+- **防錯測試**：標準 Head/Tail dynamic relief 後，`solved.material.difference(original.material).area == 16 mm²`（A=0 regression），且新增材料 bounds 只能落在本輪兩個 mating corner bands，不能出現在對側 legacy corner。
+
+
+### 63. 封頭尾有實線 BEND，但組合體箱身只畫 mesh 外框，造成箱身折彎線消失
+- **錯誤現象**：單件箱身的 3D BEND 是實線，封頭／封尾組合體也能看到 crease，但組合體箱身看不到 authoritative 折彎線。
+- **根本原因**：assembly render path 對 EndCap 有 physical-sheet feature/crease overlay，對 Box Body 卻只呼叫 `_add_mesh_boundary_lines()`，完全沒有把 `PartRenderData.scene` 的 BEND 映射到組合 world-space。
+- **正確做法**：先用同一 Fold Profile 將 Box Body BEND 端點映成 local folded 3D，再以完整箱身 mesh 為 reference 呼叫共享 `place_assembly_points()`，最後以藍色實線疊到組合體。
+- **禁止**：以 BEND 線自身 bbox 做 placement；這會因中心基準不同而把線畫到錯位位置。
+- **防錯測試**：組合體 Box Body scene 含 BEND 時，`ax.lines` 必須至少存在一條 `color='#2563eb'` 且 `linestyle='-'`；真主 GUI 標準金庫型另需確認實際可見。
+
+
+### 64. 參數解鎖 state 已切換，但右側面板 pack 在 expand canvas 後面而實際只有 1×1
+- **錯誤現象**：第一次進組合體後按「參數鎖定」，button/state 已變成解鎖，`winfo_manager()` 也回報 `pack`，但右側設定／組合體診斷肉眼完全看不到。
+- **根本原因**：3D Matplotlib canvas 已先用 `pack(fill=BOTH, expand=True)` 吃滿右側空間；設定 frame 後 pack 時雖有 manager，實際 geometry 可能只剩 1×1。只 assert `winfo_manager()=="pack"` 會產生假綠燈。
+- **正確做法**：所有右側可切換 panel 統一走 `_phase6_pack_right_panel_above_canvas()`；若 canvas 已 pack 且同 parent，必須 `widget.pack(before=canvas_widget, side=TOP, fill=X, ...)`，保證 panel 排在 canvas 前面。組合體解鎖顯示 diagnostics；切實際板件後顯示 settings center。
+- **防錯測試**：必須真的 `parameter_lock_button.invoke()`，再 `update_idletasks()/update()`；驗 `winfo_viewable()==1` 且 `winfo_height()>1`，不能只驗 manager。另鎖 `組合體解鎖 -> 箱身` 後 diagnostics 隱藏、settings center 真可見。
+- **環境防線**：Tk/Matplotlib 自動驗證不以截圖或長時間 mainloop 作 completion gate；優先用 `invoke + geometry introspection`，避免 headless/虛擬顯示重繪阻塞。
+
+
+### 65. 3D solver 與 2D replay 各自持有 material，造成「組合體組錯」的雙 Source of Truth
+- **錯誤現象**：2D 看起來正確，但 3D 組合體的 Head/Tail 形狀、截角或組合狀態不同；實檔甚至可出現 project `assembly_type=INSERT_OVERLAY`，但保存 relief source 仍是舊 `INSERT`。
+- **根本原因**：3D solver 直接顯示自己的 `solved_render_data`，主 2D/DXF 則從 saved relief cuts 另走 Manufacturing replay；兩條資料鏈可在不同時間點、不同 assembly semantic 下各自成立。
+- **正確做法**：移除 3D 確定/取消 draft。3D solver 只產生 verified cut answer；production cut 必須回寫 canonical `assembly_relief_state`，再由同一 Manufacturing provider 重建 2D/3D/DXF。
+- **防錯**：任何來源 fingerprint 不符就清 stale relief；真實檔案回歸必須比較 2D vs assembly material symmetric difference = 0。
+
+### 66. Head/Tail relief 非原子更新造成半套新、半套舊組合
+- **錯誤現象**：Head solver verified、Tail failed 時，舊程式先把 Head 新 material 畫進組合體，Tail 卻仍用舊 2D，形成不可能的機械狀態。
+- **根本原因**：在逐片 solve loop 裡立即採用成功結果，而不是先收集兩片 verification 再提交。
+- **正確做法**：先 collect Head/Tail solutions；required parts 全部 verified 才一次 publish cuts。任一失敗，兩片都重新 query 目前 canonical provider，只顯示診斷錯誤。
+- **禁止**：把 `solution.solved_render_data` 當 production truth；它只允許作 solver verification/reference。
+
+### 67. 「winfo_manager()==pack」或 state 已變，不代表 UI/資料真的同步
+- **延伸教訓**：參數解鎖曾出現 frame 已 pack 但 1×1 不可見；2D/3D 同步也可能 state 欄位已更新但 geometry 仍是另一份。
+- **正確驗收**：UI 用 `winfo_viewable + geometry`；幾何同步用 authoritative `PartRenderData.material` symmetric difference；狀態同步用 canonical snapshot/fingerprint。禁止只驗 callback 被呼叫或只驗畫面看起來差不多。
+
+### 68. EndCap 真板厚兩張 skin 的外側交線被誤當 penetration，38 被算成 38.98→39
+- **錯誤現象**：同一 `自訂(9)`，2D／組合圖顯示約 `39×27`，而使用者確認真正製造尺寸應為 `38×27`。
+- **證據**：同一 mating corner 的兩側 physical skin 回投影約落在 `37.02` 與 `38.98`；真實折後接合邊界位於兩者中心 `38.00`。
+- **根本原因**：solver 把板厚 skin 與箱身正常貼合的 contact band 納入 crossing envelope，並取外側 extrema 當 relief 邊界。這違反「面／線接觸不是實體穿透」。
+- **正確做法**：單級 `INSERT` 排除 ±T/2 正常 contact 帶，以真實 mating boundary 求 primary relief；candidate 必須重新 refold，只有實際 penetration 為 0 才 verified。
+- **禁止**：把 38.98 四捨五入成 39 再宣稱正確；也禁止直接 `-0.5T` 硬修成 38。38 必須從 mating geometry 自己推導出來。
+- **防錯測試**：`test_deleted_fold_insert_relief_keeps_single_stage_topology_across_iterations` 要求 Head/Tail 兩角 `primary_u=38`、`primary_v=27`、無 secondary stage、`verified=True`。
+
+### 69. 程式已修但文件未跟同版交付，導致下一輪 AI 仍讀到舊規則
+- **錯誤現象**：`PHASE6_ENDCAP_RELIEF_38_SYNC_*_20260829_002730.zip` 已有程式與測試修正，但 `修改日誌`、Superpowers verification、AI/SOP、handoff/交付說明仍停在前一輪；使用者必須再提醒「該補的文件呢」。
+- **根本原因**：把「測試通過 + ZIP 可解壓」誤當 completion gate，沒有執行 README 已明定的「程式修改即同步文件」規則。
+- **正確做法**：出包前建立 documentation gate：至少檢查 `修改日誌/YYYYMMDD.md`、對應 verification、AI/SOP 規格、踩坑庫、handoff/交付說明是否反映本輪幾何與 UI 契約；再打 FULL/UPDATE。
+- **禁止**：先交程式包、等使用者問了才補文件。文件與程式不是兩次交付，而是同一 atomic delivery。
+
+### 70. 用已切完的 final material 畫碰撞診斷，UI 會假報「未偵測到碰撞」
+- **錯誤現象**：solver 明明已產生 relief，組合圖卻顯示 0 段／未偵測到穿越。
+- **根因**：renderer 對已套 relief 的 canonical final material 再跑 collision；原始干涉已經被自己切掉。
+- **正確做法**：bundle 同時保存 pre-solve diagnostic probe 與 solved production part；紅色碰撞區只讀 pre-solve probe，正式 3D/2D/DXF 只讀 solved canonical material。
+- **防錯**：registry GUI matrix 必須 assert `interference_probe_parts` 含 Head/Tail，並實際 render 後 `last_interference_diagnostic.has_interference=True` 且 segments > 0。
+
+### 71. OVERLAY flat-X 跳過 topology normalization，triangle crossing 會長出假二級
+- **錯誤現象**：合法單級角顯示 `25×11.332 + 24.231×0.15` 等微小第二級；左右甚至一邊 11.482、一邊 10.5。
+- **根因**：曾因 OVERLAY 沒有 X 折彎而整片跳過 topology normalization；三角化 skin crossing 的小階梯直接變成 manufacturing cut。
+- **正確做法**：assembly intent 決定合法 topology，3D 只決定尺寸；flat-X 也必須壓回 component topology。對真正鏡像對稱的 folded profiles/components，使用 mirrored collision evidence union 消除單側漏採樣。
+- **禁止**：看到 residual 0.x mm 就直接提高全域 collision tolerance；只能在 topology boundary band + mid-surface clear 雙條件下把 crossing 分類為 contact。
+
+### 72. 手工列 INSERT/OVERLAY/INSERT_OVERLAY 測試清單，新增組合仍會漏測
+- **錯誤現象**：現有三種修好了，但下一個新 assembly intent 上線後沒有自動進回歸，仍要使用者親自試才知道能不能用。
+- **根因**：測試 whitelist 與 production registry 分離。
+- **正確做法**：所有組合驗收 parametrized `BOX_ASSEMBLY_TYPE_IDS`；新增 intent = 自動增加 solver matrix + GUI matrix。未通過不得交付。
+
+### 73. [HISTORICAL/SUPERSEDED — 不可作 runtime oracle] OVERLAY v2 formed-FW 演進踩坑
+- **症狀**：同一 `W=400/T=2/FW=25` 貼外型曾先得到 40/320，之後又被改成 25/350；兩次都沒有用實際組裝占位做最後驗證。
+- **根因**：40 是把 nominal side=15 錯加進 flat-X；25 則是只看 EndCap nominal FW，忽略箱身 FW 折後成型占位。
+- **正解**：EndCap `frame_width` 仍是 25；Box Body Fold Profile 的 FW 材料段 25 在兩相鄰真折彎、T=2 下 formed occupation=29。OVERLAY 上方每側 X CUT=29，中央342，單側 `29+371=W400`。Y relief 仍用 EndCap FW25，不可被 29 放大。
+- **下方**：獨立 CROSS/EXTRA_CUT/WIDTH/1.5T，仍每側 3、中央394。
+- **[HISTORICAL/SUPERSEDED — 不可作 runtime oracle]** 當時 `ENDCAP_TOP_OVERLAY_STANDARD_V1@2` 宣告 `BOX_BODY_FORMED_FW`；此段只保留演進/fixture 證據。
+- **防錯**：禁止硬寫 29 或 `FW+2T`；formed occupation 必須從當前 Fold Profile + T 重新求。
+- **[CURRENT 2026-09-02]** Active rule 是 `ENDCAP_TOP_OVERLAY_STANDARD_V1@3`：STANDARD + semantic delta，`primary_u=side_fold+FW`、`primary_v=ytop1+FW-T`、`secondary_u=side_fold`、`secondary_depth=T`；T2/side15/FW25/ytop1=16 fixture = `40×39 + 15×2`。
+- **[CURRENT]** formed FW 只可作 3D shadow/collision evidence，**不得作 runtime oracle**；`40×23 + 16×4` 僅是 linked-FW INSERT_OVERLAY fixture。
+
+
+
+## 2026-08-29：Phase6 UPDATE 不可用「上一包」做窄差異
+- 症狀：FULL 看似正常，但 UPDATE 套到使用者既定底包後出現「缺東缺西」。
+- 根因：把上一個 ChatGPT FULL 當 baseline，只打本輪幾個差異檔，漏掉使用者尚未取得的前序累積變更與 `個人AI檔案庫/**`。
+- **[CURRENT 2026-09-03] 固定規則**：Phase6 UPDATE 唯一累積基準改為 `PHASE6_GUI_PERFORMANCE_KNOWLEDGE_FULL_20260903_124853.zip`；UPDATE = 相對此基準的全部真實差異 + mandatory files + `個人AI檔案庫/**` 全樹。2026-08-23 的 `PHASE6_FW_LINK_BUGFIX_FULL_20260823_212355(3).zip` 僅保留為歷史 release 紀錄，不再是現行 packaging gate。
+- 禁止：`config.ini`、`BACKUP/**`、快取不得進 UPDATE。
+- 驗證：FULL/UPDATE 必須同一 Asia/Taipei 時間戳；ZIP CRC、解壓後逐檔 SHA256、AI 全樹存在、`config.ini` 不存在全部通過才可交付。
+- 修改功能時禁止無驗證地順手改無關路徑；若另一條資料鏈屬既定交付 gate（例如 Door/Base Plate 單板 3D canonical FinalScene），必須用 red/green 證據決定是否保留，不得只靠「看似無關」撤掉。
+
+### 2026-09-02：把 Skill Preflight 當成完整開工 Preflight，導致踩坑庫仍可合法漏讀
+- **錯誤現象**：`AGENTS.md` 雖要求先跑 `phase6_skill_preflight.py` 並讀完 required Skills，但沒有要求全域踩坑庫與領域 reference evidence；Agent 可以「Preflight 全過」後直接修改，仍重踩已知坑。
+- **根本原因**：把 Skills、踩坑庫、canonical 規格誤當成同一層知識來源，只對 Skill 做 machine gate，沒有把完整開工知識載入建成單一 fail-closed Source of Truth。
+- **防錯規則**：Phase6 開工一律執行 Knowledge Preflight。`REQUIRED SKILLS` 與 `REQUIRED REFERENCES` 都必須完成；全域踩坑庫永遠必讀，領域踩坑庫/canonical references 由 `.agents/skills/skill_registry.json:required_references` 自動加入。Reference evidence 必須使用 `READ_REFERENCE: <repo-relative-path>`，少任一項即 exit 1；Subagent 必須自行重跑並留下自己的 evidence，總控 evidence 不可代用。
+- **回歸防線**：`tests/test_phase6_skill_preflight_gate.py` 必須驗證「無 route 仍要求全域踩坑庫」、「組合/OVERLAY route 自動要求領域踩坑庫」、「只有裸路徑不算 reference evidence」、「缺任一 reference fail closed」。
+
+### 2026-09-02：Release 長回歸靠人工切批與對話記憶，外層 TIMEOUT 後一直重跑
+- **錯誤現象**：Xvfb / pytest 本體其實已經 pass，但工具回合在 summary 前後被切掉；下一輪只能靠文字記憶「跑到第幾顆」，又從 25/50/100 顆手工切批。更糟時 timeout 留下孤兒 pytest/Xvfb 99% CPU，後續批次全部被拖慢，看起來像 production 一直卡住。
+- **根本原因**：測試完成狀態沒有 durable Source of Truth；外層工具生命週期、pytest process、Xvfb process 與人工回報混在一起。人工 completed index 既不能驗 collection 版本，也不能保證 timeout 後 process tree 被清乾淨。
+- **正確做法**：長回歸固定使用 `tools/phase6_release_test_runner.py`。每個成功 batch 立即 fsync 到 JSONL journal，另寫 state JSON；同一 journal 綁定 pytest collection SHA256/count。`exit 75` 代表本時間片安全結束、仍有 pending tests，下一輪直接用同一命令續跑，不得重頭來。
+- **Timeout 規則**：每個 pytest batch 必須在獨立 process group；batch timeout 時 kill 整個 process group。timeout/failed batch 不算 complete；多顆 batch 自動二分縮批，直到定位單顆。只有單顆 failure/timeout 才算真正阻塞，回 root-cause/TDD。若 pytest 已印出完整成功 summary、只是 interpreter/GUI teardown 不退出，記為 `complete_teardown_timeout` 後 kill group 並繼續，不能把健康測試誤判成紅燈。
+- **禁止**：不得把外層 TIMEOUT 當 pytest FAIL；不得拿 1270-test journal 套到 1275-test collection；不得只在對話中記「前 650 顆已過」而沒有 journal；Headless 與 Xvfb 必須使用不同 journal。
+
+
+### 2026-09-02：runner 自管 Xvfb 仍只靠 finally，外層 SIGKILL 後留下 orphan display
+- **錯誤現象**：batch timeout/process-group cleanup 都正常，但外層工具直接 hard-kill runner 後，pytest 已不在，`Xvfb :90` 卻被 PID 1 收養繼續存活；後續 GUI gate 可能撞 display／浪費 CPU。
+- **根本原因**：`managed_xvfb()` 的 `finally` 只有 Python interpreter 有機會收尾時才會執行；`SIGKILL` 不可攔截。把 Xvfb 放進獨立 session 又沒有 parent-death contract，等於主動讓 child 脫離父程序生命週期。
+- **正確做法**：Linux 啟動 Xvfb 時設定 kernel parent-death signal（`prctl(PR_SET_PDEATHSIG, SIGTERM)` 或等價），並處理 fork→prctl 之間父程序已死的 race；正常路徑仍保留 process-group TERM/KILL cleanup。
+- **防錯測試**：真啟動 parent runner + Xvfb，讀出 Xvfb PID，對 parent 送 `SIGKILL`，確認 child 在短時間內消失或成 zombie。mock `finally` 不算驗證。
+
+### 2026-09-02：live-canonical 已取消 Confirm/Cancel，舊實檔測試仍把 confirm callback 當 oracle並留下 Tk grab
+- **錯誤現象**：`自訂.p6fold` 的 remove/add 本身已即時同步主 GUI，舊測試卻要求 `confirm_corner_transaction() is True`；失敗後直接 `root.destroy()` 又可能把 designer grab 留給下一顆測試，造成 `another application has grab` 假紅燈。`自訂(6).p6fold` 另把已成功替換成 CERTIFIED INSERT_OVERLAY relief 的 state 誤判成「應 disabled」。
+- **根本原因**：測試 oracle 還停在已移除的 transaction/draft 架構，沒有跟第 65 條 live-canonical Source of Truth 一起遷移；cleanup 又繞過正式 Return-to-2D seam。
+- **正確做法**：remove/add 直接驗主 GUI 即時狀態；離開 designer 走 `_phase6_return_to_2d_corner(...)` 的 flush/save/publish/close 路徑；stale relief 測試應驗舊 intent 被目前 certified registry 解**原子替換**，而不是無條件清空。
+- **防錯**：真 `.p6fold` 回歸要合跑而非只單跑，確認前一顆不殘留 Tk grab；若單跑 PASS、接在某顆後才 fail，先做 prefix/order isolation，不得改幾何常數。
+
+### 74. Family snapshot 混有字串 setting 時，用「非 bool 一律 float」會把尺寸 transaction 截成半套
+- **錯誤現象**：切到受電箱後 snapshot 已是 `800/1600/350`，但 3D 輸入框、live settings、主 GUI 還是舊尺寸；畫面像是預設值偶爾失效。
+- **根本原因**：同一 settings snapshot 不只有數值，還有 `ui_text_size="medium"` 這類 enum/string。通用 store path 把所有非 bool 都 `float(value)`，拋例外後又被外層 broad `except: pass` 吞掉，transaction 只完成前半段。
+- **正確做法**：setting normalization 必須按 schema/key 分派；`ui_text_size` 走自己的 normalizer，bool/numeric 各自處理，並讓 snapshot/live settings 使用同一 normalized value。Family switch regression 必須同時驗 snapshot、settings、實際 Tk vars 與主 GUI，禁止只驗其中一層。
+
+### 75. Cabinet Family 不得自動擁有 AssemblyJoint relation；WRAP 不得有第二顆 enable UI
+- **錯誤現象**：只切「受電箱」就把 Head/Tail BOTTOM 變成 WRAP；3D 封頭尾同時又有「啟用外側包覆／啟用 WRAP」，導致 operator 不知道組合方式與 checkbox 哪個才是真值。
+- **根本原因**：把 Receiving 的 geometry/reserve policy 誤升格成 Joint ownership，並讓 legacy `endcap_bottom_wrap.enabled` / Tk checkbox 可以回寫 canonical Joint Graph，形成雙 Source of Truth。
+- **正確做法**：Cabinet Family 只提供 family geometry、structure、reserve defaults；mechanical relation 由 Assembly Intent → Resolved AssemblyJoint Graph 決定。正式 `包覆貼外` preset 才投影 `BOTTOM=WRAP`；Receiving family alone 不得猜 WRAP。3D 若 Joint 已是 WRAP，只能顯示 reserve X/Y editor，不能再提供 enable/disable relation 的第二入口。
+- **防錯測試**：切 Receiving 後先 assert BOTTOM 保持目前 Intent（例如 INSERT_OVERLAY 的 BOTTOM=INSERT）；再選 `包覆貼外` assert Head/Tail BOTTOM=WRAP；全域 3D 列不存在獨立 WRAP Checkbutton；reserve editor 改值後 Joint relation fingerprint 不變。
+
+
+
+### 76. 永久回歸不可依賴已不存在的 `/mnt/data/自訂*.p6fold` 外部實檔
+- **錯誤現象**：完整 Xvfb suite 每次固定留下 conditional skip，只因測試硬編碼 `/mnt/data/自訂.p6fold`、`自訂(2).p6fold`、`自訂(6).p6fold`，但使用者已不再持有或提供這些檔案。
+- **根本原因**：把一次性的使用者上傳檔案當成永久 regression fixture；用 `Path.exists() -> pytest.skip()` 掩蓋 fixture 已失效，導致 release 永遠帶著不可執行的測試。
+- **正確做法**：永久 suite 不得依賴 ephemeral `/mnt/data` 使用者檔。仍有長期價值的案例要轉成 repo 內可版本化的 canonical/synthetic fixture；若原始實檔已不存在且沒有可保存的 fixture，就移除該外部實檔測試。
+- **Release 防線**：tests 內不得重新出現上述 retired absolute paths；若刪除既有 test module，UPDATE policy 必須同步加入 cleanup path，避免舊基準覆蓋後殘留。
+
+### 77. GUI ↔ 3D live-sync echo 會把單次輸入放大成重算風暴
+- **錯誤現象**：只改一次 W/H/D，GUI 卻卡數秒；profiling 看到數十次 `update_calculations()`、FinalScene rebuild 與重複 render。
+- **根本原因**：Main GUI 把 state 送入 3D 後，3D 又 publish 同一份 state 回 Main GUI；整包 `var.set()` 再觸發 Tk trace，形成 GUI → 3D → GUI echo loop。相同值 `StringVar.set()` 仍會觸發 trace，不能用「值沒變」當安全假設。
+- **正確做法**：Scheduler 是唯一 calculation executor；Transaction Guard 只收 dirty/flush。同步 envelope 使用 `origin + revision + transaction_id + actual delta`；相同 state 不回送。批次套值使用 `set_var_if_changed`/canonical compare。
+- **防錯驗證**：單一 geometry edit 應 `recalculation <= 1`、live-state echo=0、render<=1；不能只驗 callback 有被呼叫。
+
+### 78. DXF source cache 與 derived geometry cache 混在一起，尺寸修改會反覆打網路磁碟
+- **錯誤現象**：改一個尺寸就重新讀同一 DXF 數十次；檔案在 `Z:\` 時卡頓被網路 I/O 成倍放大。
+- **根本原因**：live snapshot/geometry edit 無條件清 baseline cache，parsed DXF 與 W/H/D 衍生 geometry 沒有分層。
+- **正確做法**：DXF source cache 使用 path + size + mtime_ns + parser/schema version + reload generation；W/H/D/FW 只 invalid derived geometry。Force Reload 必須可繞過 fingerprint。
+- **網路失聯規則**：GUI preview 可暫用 last-known-good 並標記 `SOURCE_UNVERIFIED`；manufacturing / Export / DXF / NC 不得用 unverified source 冒充 fresh truth。
+
+### 79. 3D initialization publish default/舊 revision，會把使用者剛輸入的新 state 蓋回去
+- **錯誤現象**：主 GUI 剛改尺寸，同時開啟 3D 後數值又跳回舊值；或初始化時產生多輪 publish/rebuild。
+- **根本原因**：初始化中間 state 與 Main GUI live state 沒有 revision 優先級；3D default 被誤當 authoritative。
+- **正確做法**：`INITIALIZING` 期間只 ingest，不 publish intermediate/default。優先級固定為「使用者目前輸入 > authoritative application state > persisted state > 3D default」；初始化完成比對 current revision，一致則 publish=0，stale revision 必須 reject。
+
+### 80. 長任務只在聊天或臨時工作樹記進度，下一回合就失去真正續跑點
+- **錯誤現象**：已跑到 440/1291、940/1291 等進度，但容器/工作樹重置後只剩對話文字，無法證明 completed nodeids、collection SHA 或已套 patch，只能重跑或猜。
+- **根本原因**：把聊天回報當 durable Source of Truth，沒有獨立 **durable checkpoint**。
+- **正確做法**：長 profiling/stress/release 任務固定落 `/mnt/data` 或其他跨回合持久位置；保存來源包、patch/hash、collection SHA/count、journal/state、completed/pending/failed、效能計數與下一步命令。每個時間片結束更新同一 checkpoint。
+- **禁止**：下一回合不得從聊天文字猜「大概跑到哪」；先讀 durable state。
+
+### 81. 用跑過 pytest 的目錄做 FULL vs UPDATE overlay 比對，會被 __pycache__/.pytest_cache 製造假 mismatch
+- **錯誤現象**：UPDATE 覆蓋後共同檔案 SHA 全相同，但樹檔案數仍不一致，看起來像 UPDATE 漏檔。
+- **根本原因**：FULL 驗證目錄先跑過 Python/pytest，新增 `__pycache__/.pytest_cache/.pyc` 等測試產物；overlay 目錄是 pristine，兩邊不是同一比較條件。
+- **正確做法**：FULL/UPDATE overlay 最終逐檔比較必須使用兩個**pristine、從未執行 Python/pytest 的 fresh extraction**。測試目錄與封包完整性比較目錄分離。
+- **防錯**：先驗 archive entry/CRC，再在 pristine extraction 做 missing/extra/hash mismatch；測試產物一律排除。
+
+### 82. 1291 顆 regression 全過，不等於 GUI 真實連續操作一定順
+- **錯誤現象**：單元/整合測試全綠，但使用者快速改尺寸、切板件、切 Family/Assembly Intent、連續操作 3D 時仍可能卡頓或事件暴增。
+- **根本原因**：一般 regression 驗功能 oracle，未必覆蓋「短時間多事件」與 wall-time/call-count 行為。
+- **正確做法**：GUI 效能修改另設**真 GUI 壓力** gate：連續 W/H/D/T burst、箱身/封頭/封尾快速切換、Family/Assembly Intent 切換、3D 開關/互動；逐步記 wall time、recalculation、DXF disk read、manufacturing resolve、render，並驗最終 state/scene 不 stale。
+- **禁止**：只用 headless 或「1291 PASS」宣稱 GUI 不會卡。
+
+### 83. release runner 只看到父程序先退出就 return，process group 子程序可能仍存活
+- **錯誤現象**：timeout cleanup 後 pytest/Python parent 已退出，但 child process 偶發仍是 running；下一批被孤兒程序拖慢，測試又出現不穩定 timeout。
+- **根本原因**：`_kill_process_group()` 在送 SIGTERM 後只等待 parent exit；父程序先退出就提前 return，沒有確認同一 process group 的 descendants 已全部消失。
+- **正確做法**：process group cleanup 的完成條件是整個 group 消失，不是 parent `poll()!=None`。TERM 後仍需檢查 group，必要時 KILL；測試應驗 child tree 真正消失。
+- **測試防線**：不要把「child PID 必須在 1 秒內建立」混成 kill-tree oracle；先確保 child 已啟動，再驗 timeout cleanup。flaky startup timing 與 process-group cleanup correctness 必須分開。
+
+### 84. release runner `--reset` 先刪 journal 再搶 lock，會在「鎖拒絕」時仍破壞 durable evidence
+- **錯誤現象**：舊 runner 正持有 journal lock 並正常續跑；第二個 runner 對同一 journal 執行 `--reset`，最後雖回報「journal already in use」，原 journal 的 collection header 卻已被刪掉。舊 runner 接著只會追加 batch 記錄，形成「有 completed nodeids、沒有 collection SHA/count」的無效 release evidence。
+- **根本原因**：CLI reset 順序是 `unlink journal/state → acquire run lock`。run lock 只能阻止第二個 runner進入執行區，無法復原它在搶鎖之前已完成的破壞性檔案操作。
+- **正確做法**：所有 reset/unlink 必須搬進 `journal_run_lock(...)` 之內：`acquire lock → 若 reset 則 unlink journal/state → 建立/驗證 collection header → 執行 suite`。持鎖失敗必須 fail closed，不能觸碰既有 journal/state bytes。
+- **防錯測試**：真啟動一個持鎖 runner，再對同一 journal 執行第二個 `--reset`；第二個必須被拒絕，且前後 journal bytes/header 完全相同。只 mock lock helper 不算，因為這個坑就是 CLI ordering。
+
+### 85. Scheduler 已成唯一 executor 後，legacy partial GUI fixture 缺 seam 不能靠 production fallback 救
+- **錯誤現象**：完整 suite 只有舊 `SimpleNamespace` / `__new__` fixture 直接呼叫 GUI handler 時出現 `AttributeError: ... _request_phase6_update`；真 `BoxCalculatorGUI` 與正式 GUI 流程正常。若為了讓這顆舊測試過，在 handler 寫 `hasattr(...)` 後直接 `update_calculations()`，表面綠燈卻把 Scheduler 唯一執行權重新打破。
+- **根本原因**：架構 seam 已升級，但 partial test double 還停在舊 handler interface；把 fixture 缺介面誤判成 production 相容性需求。
+- **正確做法**：先確認真 production instance 一定擁有 Scheduler seam、且測試 oracle 並非在驗「沒有 Scheduler 時仍可運作」。若成立，更新 test fixture 使其提供 `_request_phase6_update(...)` 等正式 seam；禁止在 production 增加 direct calculation/do_update fallback。
+- **防錯測試**：Scheduler ownership regression 必須繼續鎖住 direct executor bypass；legacy handler fixture 只 stub 正式 request seam。等價 part switch/display-only 操作應驗 `render=1、full calculation=0`，不要保留舊的 `update=1` oracle。
+
+### 86. FULL / UPDATE 把 `.git/**`、`.scratch/**` 當正常差異檔收進正式包
+- **錯誤現象**：`PHASE6_BOXBODY_ENDCAP_DOOR_RECEIVING_*_20260904_092052.zip` 重驗時，FULL 與 UPDATE 都出現 270 個 `.git/**` entry，另有 69 個 `.scratch/**`；UPDATE 甚至包含 `.git/config`、`.git/index`、refs、objects、logs。功能 regression 可以全綠，但直接覆蓋 UPDATE 仍可能污染使用者本機 Git repository，`.scratch` 也把 journal/checkpoint/debug 中繼資料帶進正式交付。
+- **根本原因**：`tools/phase6_release.py` 的共用 `_is_packaged_file()` 只排除 cache/`.pyc`，而 `excluded_update_roots` 只處理 `BACKUP`。collector 因此把 `.git/.scratch` 視為一般 source files；pristine FULL vs baseline+UPDATE parity 若兩邊都使用同一套錯誤 collector，仍可能得到假綠燈。
+- **正確做法**：在 `release_required_artifacts.json` 建立 FULL/UPDATE 共用的 `excluded_package_roots` Source of Truth，至少包含 `.git`、`.scratch`；FULL collector、UPDATE diff collector、mandatory tree collector 與 final entry-policy gate 全部共用同一規則。
+- **防錯驗證**：release regression 必須建立含 `.git/config`、`.git/index`、`.scratch/*.jsonl` 的 synthetic source tree，先證明舊 collector 會收檔，再驗修正後 FULL/UPDATE 都為 0 entry。正式 ZIP 另直接列 entry 斷言 `.git/** == 0`、`.scratch/** == 0`；不能只看 CRC、SHA、功能測試或 pristine parity。
+- **禁止**：不得用「FULL 是完整專案」合理化把 repository internals 打進 FULL；不得只排 UPDATE 而讓 FULL 繼續帶 `.git`；不得只在壓縮後手工刪 entry，collector/policy/test 必須同時修正。
+
+===== release_required_artifacts.json =====
+{
+  "schema_version": 1,
+  "canonical_update_baseline_archive": "PHASE6_GUI_PERFORMANCE_KNOWLEDGE_FULL_20260903_124853.zip",
+  "mandatory_update_trees": [
+    "個人AI檔案庫"
+  ],
+  "forbidden_update_files": [
+    "config.ini"
+  ],
+  "excluded_package_roots": [
+    ".git",
+    ".scratch"
+  ],
+  "excluded_update_roots": [
+    "BACKUP"
+  ],
+  "mandatory_update_files": [
+    "tools/phase6_release.py",
+    "tools/phase6_skill_preflight.py",
+    "release_required_artifacts.json",
+    "AGENTS.md",
+    ".agents/skills/skill_registry.json",
+    ".agents/skills/engineering/phase6-release-packaging/SKILL.md",
+    "tests/test_phase6_skill_preflight_gate.py",
+    "tests/test_phase6_release_packaging_policy.py",
+    "tests/test_release_integrity_gate.py",
+    "tests/test_phase6_assembly_intent_registry_matrix.py",
+    "tests/test_phase6_assembly_registry_gui_matrix.py",
+    "tests/test_assembly_joint_registry_matrix.py",
+    "tests/test_certified_relief_registry_completion.py",
+    "基準檔/截角資料庫/README_母規則說明.md",
+    "基準檔/截角資料庫/certified_relief_rules.schema.json",
+    "基準檔/截角資料庫/certified_relief_rules.json",
+    "tests/test_joint_diagnostics_contract.py",
+    "tests/test_phase6_latest_layout_contract.py",
+    "tests/test_phase6_3d_single_source_renderer.py",
+    "tests/test_phase6_tail_native_orientation_and_save.py",
+    "docs/superpowers/verification/2026-08-29-assembly-collision-registry-gate.md",
+    "docs/superpowers/verification/2026-08-29-assembly-view-joint-debug-clean.md",
+    ".agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md",
+    ".agents/skills/engineering/phase6-overlay-relief-basis/SKILL.md",
+    ".agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md",
+    "tests/test_overlay_nominal_side_fold_contract.py",
+    "docs/superpowers/verification/2026-08-29-overlay-bottom-relief-basis-fix.md",
+    "修改日誌/20260829.md",
+    "tests/test_overlay_fw_width_invariant.py",
+    "tests/fixtures/vault_overlay_w400_t2_fw25.p6fold",
+    "docs/superpowers/verification/2026-08-29-overlay-fw-invariant-correction.md",
+    "tests/test_overlay_formed_fw_registry_contract.py",
+    "docs/superpowers/specs/2026-08-29-formed-fw-registry-3d-relief-design.md",
+    "docs/superpowers/plans/2026-08-29-formed-fw-registry-3d-relief.md",
+    "docs/superpowers/verification/2026-08-29-formed-fw-registry-3d-relief.md",
+    "tools/apply_phase6_update_cleanup.py",
+    "APPLY_PHASE6_UPDATE_CLEANUP.bat",
+    "修改日誌/20260830.md",
+    "docs/superpowers/verification/2026-08-30-receiving-wrap-reserves-blanks-skills.md",
+    "docs/superpowers/plans/2026-08-30-receiving-wrap-reserves-blanks-skills.md",
+    "tests/test_receiving_bottom_wrap_registry.py",
+    "tests/test_receiving_bottom_wrap_linkage.py",
+    "tests/test_canonical_unfolded_blank_info.py",
+    "tests/test_piece_level_joint_geometry.py",
+    "tests/test_corner_parameter_lock.py",
+    "tests/test_phase6_four_regressions.py",
+    "tests/test_phase6_project_file.py",
+    "tests/test_phase6_gui_3d_integrity_20260830.py",
+    "docs/superpowers/verification/2026-08-30-gui-3d-integrity-final.md",
+    "tests/test_phase6_receiving_followup_20260830.py",
+    "tests/test_receiving_cabinet_type.py",
+    "docs/superpowers/verification/2026-08-30-receiving-family-followup-fixes.md",
+    "docs/superpowers/verification/2026-08-31-skill-preflight-registry-gate.md",
+    "修改日誌/20260831.md",
+    "docs/superpowers/specs/2026-08-31-phase6-joint-graph-migration-spec.md",
+    "docs/superpowers/verification/2026-09-01-joint-graph-migration-verification.md",
+    "修改日誌/20260901.md",
+    "ae_engine/assembly_intent.py",
+    "ae_engine/corner_resolver.py",
+    "tests/test_rebuild_t1_t2_joint_graph.py",
+    "tests/test_rebuild_t3_intent_graph_ui.py",
+    "tests/test_rebuild_t4_corner_graph.py",
+    "tests/test_rebuild_t4_solver_graph_authority.py",
+    "tests/test_rebuild_t5_blank_topology.py",
+    "tests/test_rebuild_t6_receiving_joint_ownership.py",
+    "tests/test_rebuild_t7_joint_local_diagnostics.py",
+    "tests/test_rebuild_t7_replay_fingerprint.py",
+    "tests/test_phase6_diagnostics_ownership.py",
+    "tools/phase6_release_test_runner.py",
+    "tests/test_phase6_release_test_runner.py",
+    ".agents/skills/engineering/派工/SKILL.md",
+    "tests/test_dispatching_skill_timeout_contract.py",
+    "修改日誌/20260902.md",
+    ".agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md",
+    "tests/test_phase6_gui_performance_knowledge.py",
+    "修改日誌/20260903.md"
+  ],
+  "update_cleanup_paths": []
+}
+

@@ -1,0 +1,103 @@
+.......                                                                  [100%]
+=============================== warnings summary ===============================
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25240 (\N{CJK UNIFIED IDEOGRAPH-6298}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24460 (\N{CJK UNIFIED IDEOGRAPH-5F8C}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21253 (\N{CJK UNIFIED IDEOGRAPH-5305}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 22806 (\N{CJK UNIFIED IDEOGRAPH-5916}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65306 (\N{FULLWIDTH COLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25130 (\N{CJK UNIFIED IDEOGRAPH-622A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 35282 (\N{CJK UNIFIED IDEOGRAPH-89D2}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23610 (\N{CJK UNIFIED IDEOGRAPH-5C3A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23544 (\N{CJK UNIFIED IDEOGRAPH-5BF8}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 28961 (\N{CJK UNIFIED IDEOGRAPH-7121}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 23637 (\N{CJK UNIFIED IDEOGRAPH-5C55}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 38283 (\N{CJK UNIFIED IDEOGRAPH-958B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 26009 (\N{CJK UNIFIED IDEOGRAPH-6599}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 21491 (\N{CJK UNIFIED IDEOGRAPH-53F3}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19979 (\N{CJK UNIFIED IDEOGRAPH-4E0B}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 19978 (\N{CJK UNIFIED IDEOGRAPH-4E0A}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 65307 (\N{FULLWIDTH SEMICOLON}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24038 (\N{CJK UNIFIED IDEOGRAPH-5DE6}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 31665 (\N{CJK UNIFIED IDEOGRAPH-7BB1}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 36523 (\N{CJK UNIFIED IDEOGRAPH-8EAB}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 25104 (\N{CJK UNIFIED IDEOGRAPH-6210}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+tests/test_phase6_t03_piece_dimensions.py::test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_dimensions
+  /usr/lib/python3.13/tkinter/__init__.py:865: UserWarning: Glyph 24418 (\N{CJK UNIFIED IDEOGRAPH-5F62}) missing from font(s) DejaVu Sans.
+    func(*args)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+7 passed, 33 warnings in 2.52s
