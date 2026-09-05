@@ -78,17 +78,17 @@ def _divider_position(snapshot: Mapping[str, object], axis: str, boundary: str):
         left_col, right_col = (int(match.group(1)), int(match.group(2)))
         if right_col != left_col + 1:
             raise ValueError(f"non-adjacent vertical divider boundary: {boundary}")
-        if not (0 <= left_col < len(columns) - 0 and right_col < len(columns)):
+        if not (0 <= left_col < len(columns) and right_col < len(columns)):
             raise ValueError(f"vertical divider boundary outside Door topology: {boundary}")
         x = -total_w / 2.0 + sum(width for width, _ in columns[:right_col])
-        # Divider folded X-profile is the physical depth direction; the
-        # semantic placement itself is on the cabinet center Y plane.
         return (x, 0.0, 0.0)
 
     match = re.fullmatch(r"C(\d+):R(\d+)\|R(\d+)", boundary)
     if match is None:
         raise ValueError(f"invalid authoritative horizontal divider boundary: {boundary}")
     col, upper_row, lower_row = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    if not (0 <= col < len(columns)):
+        raise ValueError(f"horizontal divider column outside Door topology: {boundary}")
     column_cells = [cell for cell in cells if cell.column_index == col]
     if not any(cell.row_index == upper_row for cell in column_cells):
         raise ValueError(f"horizontal divider upper cell outside Door topology: {boundary}")
@@ -144,16 +144,18 @@ def resolve_inner_door_lower_frame_placement(
         raise ValueError(
             f"inner door {inner_door_id!r} has no unambiguous authoritative shared divider"
         )
-    return resolve_divider_placement(snapshot, role.divider_stable_id).__class__(
-        stable_id=f"inner_door:{str(inner_door_id).strip()}:bottom_frame",
+    divider_placement = resolve_divider_placement(snapshot, role.divider_stable_id)
+    stable_id = f"inner_door:{str(inner_door_id).strip()}:bottom_frame"
+    return AssemblyPlacement(
+        stable_id=stable_id,
         parent_assembly_node="box_body:door_layout:inner_door",
         anchor=f"shared_divider:{role.divider_stable_id}",
-        world_offset=resolve_divider_placement(snapshot, role.divider_stable_id).world_offset,
+        world_offset=divider_placement.world_offset,
         rotation=(0.0, 0.0, 0.0),
         mate_target=role.divider_stable_id,
         relationship="SHARED_LOWER_FRAME",
         placement_kind="inner_door_shared_divider",
-        semantic_position=resolve_divider_placement(snapshot, role.divider_stable_id).semantic_position,
+        semantic_position=divider_placement.semantic_position,
     )
 
 
