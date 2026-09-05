@@ -60,6 +60,8 @@ def default_box_body_structure_state() -> dict:
                 "bottom_external_wrap": True,
                 "bottom_relief_reserve_u": 2.0,
                 "bottom_relief_reserve_v": 1.0,
+                "baseplate_relief_length": 20.0,
+                "baseplate_single_side_meat_t": 0.5,
             },
         },
     }

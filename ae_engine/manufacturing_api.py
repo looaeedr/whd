@@ -913,13 +913,18 @@ def build_part_scene(
             )
 
         if isinstance(spec, BasePlatePartSpec):
+            is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+            st = 0.0 if is_receiving else spec.shrink_top
+            sb = 0.0 if is_receiving else spec.shrink_bottom
+            sl = 0.0 if is_receiving else spec.shrink_left
+            sr = 0.0 if is_receiving else spec.shrink_right
             if spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
                 result = _call(
                     build_unknown_base_plate_result,
                     w=spec.width, h=spec.height, t=spec.thickness,
-                    shrink_top=spec.shrink_top, shrink_bottom=spec.shrink_bottom,
-                    shrink_left=spec.shrink_left, shrink_right=spec.shrink_right,
+                    shrink_top=st, shrink_bottom=sb,
+                    shrink_left=sl, shrink_right=sr,
                     bend=spec.bend, corner_policy=spec.corner_policy,
                 )
             else:
@@ -927,26 +932,29 @@ def build_part_scene(
                 result = _call(
                     build_base_plate_result,
                     w=spec.width, h=spec.height, t=spec.thickness,
-                    shrink_top=spec.shrink_top, shrink_bottom=spec.shrink_bottom,
-                    shrink_left=spec.shrink_left, shrink_right=spec.shrink_right,
+                    shrink_top=st, shrink_bottom=sb,
+                    shrink_left=sl, shrink_right=sr,
                     bend=spec.bend,
                 )
-            if spec.box_body_fold_profile and spec.box_body_structure_state:
+            if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions:
                 from .box_body_structure import resolve_box_body_structure, apply_base_plate_structure_reliefs
-                box_structure = resolve_box_body_structure(
-                    spec.box_body_fold_profile, w=spec.width, h=spec.height, t=spec.thickness,
-                    structure_state=spec.box_body_structure_state,
-                )
+                box_structure = None
+                if spec.box_body_fold_profile and spec.box_body_structure_state:
+                    box_structure = resolve_box_body_structure(
+                        spec.box_body_fold_profile, w=spec.width, h=spec.height, t=spec.thickness,
+                        structure_state=spec.box_body_structure_state,
+                    )
                 result = apply_base_plate_structure_reliefs(
-                    result, box_w=spec.width, shrink_left=spec.shrink_left, shrink_right=spec.shrink_right,
+                    result, box_w=spec.width, shrink_left=sl, shrink_right=sr,
                     thickness=spec.thickness, structure=box_structure,
                     structure_state=spec.box_body_structure_state,
+                    seam_positions=(spec.seam_positions or None),
                 )
             return _call(
                 ae._build_base_plate_scene,
                 w=spec.width, h=spec.height, t=spec.thickness,
-                st=spec.shrink_top, sb=spec.shrink_bottom,
-                sl=spec.shrink_left, sr=spec.shrink_right, bend=spec.bend,
+                st=st, sb=sb,
+                sl=sl, sr=sr, bend=spec.bend,
                 draw_stock=ctx.draw_stock, user_features=list(spec.features),
                 structural_result=result,
             )
@@ -1994,7 +2002,8 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
 
 
 def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: ManufacturingContext):
-    if spec.box_body_fold_profile and spec.box_body_structure_state:
+    is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+    if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
         ae._save_scene_dxf(filepath, render_data.scene)
         return "final_scene_base_plate_structure_export", None, None

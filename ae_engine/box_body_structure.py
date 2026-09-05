@@ -507,6 +507,8 @@ def _split_horizontal_bend(bend: BendLine, gaps) -> tuple[BendLine, ...]:
 
 def box_body_seam_positions(resolved: ResolvedBoxBodyStructure) -> tuple[float, ...]:
     """Return formed-W seam positions in enclosure coordinates."""
+    if resolved.structure_type not in {BoxBodyStructureType.TWO_PIECE_W_SPLIT, BoxBodyStructureType.THREE_PIECE_W_SPLIT}:
+        return ()
     if len(resolved.pieces) <= 1:
         return ()
     positions = []
@@ -524,8 +526,9 @@ def apply_base_plate_structure_reliefs(
     shrink_left: float,
     shrink_right: float,
     thickness: float,
-    structure: ResolvedBoxBodyStructure,
+    structure: ResolvedBoxBodyStructure | None = None,
     structure_state=None,
+    seam_positions: tuple[float, ...] | None = None,
 ) -> StructuralGeometryResult:
     """Apply local cross-reliefs where box W seams cross Base Plate top/bottom folds.
 
@@ -536,9 +539,8 @@ def apply_base_plate_structure_reliefs(
 
     state = normalize_box_body_structure_state(structure_state)
     type_id = BoxBodyStructureType(state["active_type"])
-    if type_id not in {BoxBodyStructureType.TWO_PIECE_W_SPLIT, BoxBodyStructureType.THREE_PIECE_W_SPLIT}:
-        return base_result
-    cfg = state["configs"][type_id.value]
+    configs = state.get("configs", {})
+    cfg = configs.get(type_id.value, {}) if isinstance(configs, dict) else {}
     relief_length = float(cfg.get("baseplate_relief_length", 20.0))
     meat = _canonical_cross_retain_mm(
         amount_t=float(cfg.get("baseplate_single_side_meat_t", 0.5)),
@@ -557,12 +559,19 @@ def apply_base_plate_structure_reliefs(
     if meat < 0 or meat >= min(bottom_fold, top_fold):
         raise ValueError("底板單邊留肉必須小於底板折邊")
 
+    if seam_positions is not None:
+        raw_seams = tuple(float(s) for s in seam_positions)
+    elif structure is not None:
+        raw_seams = box_body_seam_positions(structure)
+    else:
+        raw_seams = ()
+
     finished_left = float(shrink_left)
     finished_right = float(box_w) - float(shrink_right)
     half = relief_length / 2.0
     centers = []
     gaps = []
-    for seam in box_body_seam_positions(structure):
+    for seam in raw_seams:
         if seam < finished_left - 1e-9 or seam > finished_right + 1e-9:
             continue
         x = float(geometry.left_fold) + (seam - finished_left)

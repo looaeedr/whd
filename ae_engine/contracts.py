@@ -182,6 +182,8 @@ class BasePlatePartSpec:
     # derived from actual W seam intersections instead of structure-name rules.
     box_body_structure_state: Mapping[str, object] = field(default_factory=dict)
     box_body_fold_profile: tuple[FoldProfileSegment, ...] = ()
+    model_name: str | None = None
+    seam_positions: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -40,6 +40,14 @@ ENDCAP_DEFAULTS = {
     "ybottom1": 15.0,
 }
 
+BASE_PLATE_DEFAULTS = {
+    "base_plate_shrink_top": 0.0,
+    "base_plate_shrink_bottom": 0.0,
+    "base_plate_shrink_left": 0.0,
+    "base_plate_shrink_right": 0.0,
+    "base_plate_bend": 15.0,
+}
+
 DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
 FRESH_ASSEMBLY_INTENT = "WRAP_OVERLAY"
@@ -160,6 +168,7 @@ def apply_family_defaults(snapshot):
     result.update(BOX_BODY_DEFAULTS)
     result.update(DOOR_DEFAULTS)
     result.update(ENDCAP_DEFAULTS)
+    result.update(BASE_PLATE_DEFAULTS)
     result["assembly_type"] = FRESH_ASSEMBLY_INTENT
     result["multi_door_enabled"] = True
     result["door_layout_scope"] = DEFAULT_DOOR_LAYOUT_SCOPE
