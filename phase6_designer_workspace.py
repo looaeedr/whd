@@ -298,3 +298,30 @@ class Phase6DesignerWorkspace:
 
     def mark_dirty(self) -> None:
         self._dirty = True
+
+    def mark_clean(self) -> None:
+        self._dirty = False
+
+    def shared_snapshot(self) -> dict[str, object]:
+        """Return the shared workspace state without exposing mutable backing data."""
+        return self._shared_state.snapshot()
+
+    def export_shared_snapshot(self, *, live_active_profiles: Mapping[str, object] | None = None) -> dict[str, object]:
+        """Project the shared owner once, with an optional live editor overlay."""
+        result = self._shared_state.snapshot()
+        active = result.get("active_part")
+        if active and active != MANDATORY_PART and live_active_profiles is not None:
+            profiles = deepcopy(result["part_profiles"])
+            profiles[str(active)] = deepcopy(dict(live_active_profiles or {}))
+            result["part_profiles"] = profiles
+        return result
+
+    def snapshot(self) -> dict[str, object]:
+        """Return the complete workspace payload used by save/reload adapters."""
+        result = self._shared_state.snapshot()
+        result.update({
+            "part_features": deepcopy(self._part_features),
+            "part_face_features": deepcopy(self._part_face_features),
+            "assembly_placements": self.assembly_placements_snapshot(),
+        })
+        return result
