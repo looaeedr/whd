@@ -20,6 +20,7 @@ class Phase6WorkspaceController:
         self._authoritative = False
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile: list | None = None
+        self._assembly_placements: dict[str, dict[str, object]] = {}
 
     @staticmethod
     def _clone(value):
@@ -139,25 +140,38 @@ class Phase6WorkspaceController:
         if "box_body_profile" in raw:
             profile = raw.get("box_body_profile")
             self._box_body_profile = None if profile is None else self._clone(list(profile))
+        if "assembly_placements" in raw:
+            self._assembly_placements = self._clone(dict(raw.get("assembly_placements") or {}))
         return self.workspace_snapshot()
 
     def clear_authoritative_workspace(self) -> None:
         self._authoritative = False
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile = None
+        self._assembly_placements = {}
+
+    def assembly_placements_snapshot(self) -> dict[str, dict[str, object]]:
+        return self._clone(getattr(self, "_assembly_placements", {}))
+
+    def replace_assembly_placements(self, value: Mapping[str, object] | None) -> dict[str, dict[str, object]]:
+        self._assembly_placements = self._clone(dict(value or {}))
+        return self.assembly_placements_snapshot()
 
     def workspace_snapshot(self) -> dict:
         if not self._authoritative:
             self._sync_fallback_into_shared()
         result = self._shared_state.snapshot()
         result["box_body_profile"] = self.box_body_profile() or []
-        return {
+        snapshot = {
             "box_body_profile": result["box_body_profile"],
             "box_body_structure": result["box_body_structure"],
             "existing_parts": result["existing_parts"],
             "active_part": result["active_part"],
             "part_profiles": result["part_profiles"],
         }
+        if getattr(self, "_assembly_placements", None):
+            snapshot["assembly_placements"] = self._clone(self._assembly_placements)
+        return snapshot
 
     def legacy_bundle(self) -> dict | None:
         if not self._authoritative:

@@ -254,6 +254,13 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
     key = str(part_key or "")
     if re.fullmatch(r"door_c\d+_r\d+", key):
         return _phase6_door_part_assembly_placement(snapshot, key)
+    if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+        try:
+            from ae_engine.assembly_placement import resolve_assembly_placement
+            placement = resolve_assembly_placement(snapshot, key)
+            return "offset", tuple(float(v) for v in placement.world_offset)
+        except Exception:
+            pass
     return _PHASE6_ASSEMBLY_PLACEMENTS.get(key, "offset"), (0.0, 0.0, 0.0)
 
 

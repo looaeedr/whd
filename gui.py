@@ -2104,6 +2104,8 @@ class BoxCalculatorGUI:
             "endcap_bottom_wrap": deepcopy(snapshot.get("endcap_bottom_wrap") or getattr(self, "endcap_bottom_wrap_state", {})),
             "box_body_structure": deepcopy(workspace_state["box_body_structure"]),
         }
+        if "assembly_placements" in workspace_state:
+            workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
         snapshot["workspace"] = workspace
         return snapshot
 
