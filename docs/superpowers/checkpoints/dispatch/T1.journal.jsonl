@@ -1,0 +1,1 @@
+{"task_id":"T1","issue":"#1","role":"Worker","status":"in_progress","completed":["PM decomposition","worker transition"],"pending":["phase6 preflight","trace","implementation","tests","QA"],"failed":[],"blocked":[],"files":[],"verification":null,"next":"python tools/phase6_skill_preflight.py --task \"T1 中隔／內門框 Assembly Placement Contract\""}
