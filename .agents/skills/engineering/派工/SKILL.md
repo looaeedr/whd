@@ -100,6 +100,13 @@ Resume 時：
 - 混合狀態的唯一安全恢復路徑：隔離/丟棄該執行目錄 → 從最近已驗收 checkpoint 在乾淨目錄完整還原 → 驗 fingerprint 一致 → 再重放尚未驗收工單。
 - journal 的 collection SHA 只能證明「測試集合 identity」，**不能代替 source tree provenance**；兩者都一致才可 resume。
 
+### 3.5.3 Remote QA 監控硬協定
+- **REQUIRED SUB-SKILL:** monitoring-remote-qa
+- 當任務已同步到遠端，並建立／啟動 GitHub Actions 或等價 remote CI/QA run 時，必須立即進入 `monitoring-remote-qa`；workflow trigger 只代表監控開始，不代表 QA 完成。
+- run 為 `queued` / `in_progress` 時，持續追 run → jobs → steps；**不得只回報「已啟動／還在跑」後停止或結束工單。**
+- 任一 job 失敗時立即讀 failed-job log，依本 Skill timeout/runner 分類與 `diagnosing-bugs` 判定 production failure 或 harness failure；修正／重跑受影響範圍後，繼續監控新的 run 到終態。
+- success 後仍必須抓 exact PASS/FAIL 與 invariant evidence、移除 one-shot workflow/trigger、遠端反讀確認 cleanup、更新 checkpoint/journal/state；全部完成才可進 QA ACCEPT / close。
+
 ### 3.6 QA 完成條件
 只有同時滿足以下條件，才准宣告該回歸批次完成：
 - [ ] intended nodeids 全部有終態（complete / skipped / failed），沒有 pending；
@@ -130,3 +137,4 @@ Resume 時：
 - [ ] complete_teardown_timeout 明確要求完整 PASS summary，只有點號不得算完成。
 - [ ] 若 PM 要拆解工單，明確引用 `.agents/skills/engineering/拆解任務工單/SKILL.md`，要求 RED-first + 使用者核准，且核准前不得拆解工單、不得轉移至：實作者。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
+- [ ] remote QA 建立 run 時強制啟動 `monitoring-remote-qa`，持續監控到終態；成功後仍需 cleanup + durable state 才可 ACCEPT。
