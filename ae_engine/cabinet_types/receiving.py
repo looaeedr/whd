@@ -60,6 +60,7 @@ INNER_DOOR_INSET_LEFT = 50.0
 INNER_DOOR_INSET_RIGHT = 50.0
 INNER_DOOR_INSET_TOP = 50.0
 INNER_DOOR_INSET_BOTTOM = 0.0
+DEFAULT_INNER_DOOR_INWARD_OFFSET_MM = 80.0
 
 
 def assembly_coordinate_contract(*, depth: float, thickness: float) -> dict[str, object]:
@@ -96,6 +97,11 @@ def inner_door_insets() -> dict[str, float]:
     }
 
 
+def default_inner_door_inward_offset_mm() -> float:
+    """Return the configurable fresh Receiving inner-door inward datum."""
+    return float(DEFAULT_INNER_DOOR_INWARD_OFFSET_MM)
+
+
 def default_door_layout_columns() -> list[list[object]]:
     """Return the canonical fresh receiving multi-door layout as JSON-safe data."""
     return [[float(width), [float(value) for value in heights]] for width, heights in DEFAULT_DOOR_LAYOUT_COLUMNS]
@@ -122,6 +128,7 @@ def default_inner_doors(*, thickness: float, depth: float = BOX_BODY_DEFAULTS["d
         "stable_id": DEFAULT_INNER_DOOR_ID,
         "cell_key": "0:0",
         "included_frame_sides": ["top", "left", "right"],
+        "inward_offset_mm": default_inner_door_inward_offset_mm(),
         "lower_frame_role": {
             "role": role.role,
             "divider_stable_id": role.divider_stable_id,
