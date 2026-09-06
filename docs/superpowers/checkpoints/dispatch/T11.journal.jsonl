@@ -6,3 +6,5 @@
 {"task_id":"T11","role":"T18 release gate","event":"t18_reopen_stale_oracle","source_run":34024938119,"result":"2 stale box-body GUI oracles; production correct","status":"complete"}
 {"task_id":"T11","role":"T11 QA","event":"reopen_green","run_id":34025269614,"passed":26,"failed":0,"production_changes":0,"status":"complete"}
 {"task_id":"T11","role":"controller","event":"reclosed","issue":11,"result":"closed completed; T18 must recollect"}
+{"task_id":"T11","role":"T18 release gate","event":"t18_reopen_stale_oracle_wave2","source_run":34025390923,"result":"2 manufacturing adapter stale oracles; production correct","status":"complete"}
+{"task_id":"T11","role":"T11 QA","event":"wave2_green","run_id":34028013223,"passed":30,"failed":0,"production_changes":0,"status":"complete"}
