@@ -13,3 +13,4 @@
 {"ticket":"T14","role":"controller","event":"reclosed_after_t18_side_depth_oracle","run_id":34029609787,"result":"34 PASS / 0 FAIL; production/test drift 0"}
 {"ticket":"T14","role":"T18 release gate","event":"t18_reopen_wave6_piece_dimension_oracle","source_run":34029782615,"result":"stale same-widget per-piece dimension presentation oracle"}
 {"ticket":"T14","role":"qa","event":"wave6_green","run_id":34030224332,"passed":41,"failed":0,"production_changes":0}
+{"ticket":"T14","role":"controller","event":"wave6_reclosed","run_id":34030224332,"result":"41 PASS / 0 FAIL; production/test drift 0"}
