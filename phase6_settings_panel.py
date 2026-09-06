@@ -189,6 +189,10 @@ class Phase6SettingsPanel:
 
         self.settings_center = None
         self.settings_fields = None
+        self.settings_scroll_host = None
+        self.settings_scroll_canvas = None
+        self.settings_scrollbar = None
+        self._settings_scroll_window = None
         self.settings_title_var = None
         self.settings_status_var = None
         self.unfolded_size_var = None
@@ -289,6 +293,58 @@ class Phase6SettingsPanel:
         if self._ui_text_size_changed is not None:
             self._ui_text_size_changed(normalize_ui_text_size(self.ui_text_size_var.get()))
 
+    def _refresh_settings_scrollregion(self, _event=None):
+        canvas = self.settings_scroll_canvas
+        if canvas is None:
+            return
+        try:
+            bbox = canvas.bbox("all")
+            canvas.configure(scrollregion=bbox or (0, 0, 1, 1))
+            if bbox is not None and canvas.winfo_height() >= max(0, int(bbox[3] - bbox[1])):
+                canvas.yview_moveto(0.0)
+        except tk.TclError:
+            pass
+
+    def _resize_settings_scroll_window(self, event):
+        canvas = self.settings_scroll_canvas
+        if canvas is None or self._settings_scroll_window is None:
+            return
+        try:
+            canvas.itemconfigure(self._settings_scroll_window, width=max(1, int(event.width)))
+        except tk.TclError:
+            return
+        self._refresh_settings_scrollregion()
+
+    def _scroll_settings_fields(self, event):
+        canvas = self.settings_scroll_canvas
+        if canvas is None:
+            return "break"
+        delta = int(getattr(event, "delta", 0) or 0)
+        number = int(getattr(event, "num", 0) or 0)
+        if number == 4:
+            steps = -1
+        elif number == 5:
+            steps = 1
+        elif delta:
+            steps = -1 if delta > 0 else 1
+        else:
+            return "break"
+        try:
+            canvas.yview_scroll(steps, "units")
+        except tk.TclError:
+            pass
+        return "break"
+
+    def _bind_settings_scroll_tree(self, widget):
+        try:
+            widget.bind("<MouseWheel>", self._scroll_settings_fields, add="+")
+            widget.bind("<Button-4>", self._scroll_settings_fields, add="+")
+            widget.bind("<Button-5>", self._scroll_settings_fields, add="+")
+        except tk.TclError:
+            pass
+        for child in tuple(widget.winfo_children()):
+            self._bind_settings_scroll_tree(child)
+
     def build_settings_center(self, parent):
         self.settings_center = ttk.LabelFrame(parent, text="板件設定", padding=6)
         self.settings_center.pack(side=tk.TOP, fill=tk.X, pady=(0, 6))
@@ -306,8 +362,37 @@ class Phase6SettingsPanel:
             textvariable=self.unfolded_size_var,
             font=("Microsoft JhengHei", 10, "bold"),
         ).pack(side=tk.RIGHT)
-        self.settings_fields = ttk.Frame(self.settings_center)
-        self.settings_fields.pack(fill=tk.X)
+
+        # Header/Footer stay fixed. Only the variable settings body owns scroll,
+        # so Medium text + unlocked parameters cannot consume the 3D viewport.
+        self.settings_scroll_host = ttk.Frame(self.settings_center)
+        self.settings_scroll_host.pack(fill=tk.X)
+        self.settings_scroll_canvas = tk.Canvas(
+            self.settings_scroll_host,
+            height=220,
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        self.settings_scrollbar = ttk.Scrollbar(
+            self.settings_scroll_host,
+            orient=tk.VERTICAL,
+            command=self.settings_scroll_canvas.yview,
+        )
+        self.settings_scroll_canvas.configure(yscrollcommand=self.settings_scrollbar.set)
+        self.settings_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.settings_scroll_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        self.settings_fields = ttk.Frame(self.settings_scroll_canvas)
+        self._settings_scroll_window = self.settings_scroll_canvas.create_window(
+            (0, 0),
+            window=self.settings_fields,
+            anchor="nw",
+        )
+        self.settings_fields.bind("<Configure>", self._refresh_settings_scrollregion, add="+")
+        self.settings_scroll_canvas.bind("<Configure>", self._resize_settings_scroll_window, add="+")
+        self._bind_settings_scroll_tree(self.settings_scroll_canvas)
+        self._bind_settings_scroll_tree(self.settings_fields)
+
         footer = ttk.Frame(self.settings_center)
         footer.pack(fill=tk.X, pady=(4, 0))
         self.settings_status_var = tk.StringVar(
@@ -475,6 +560,13 @@ class Phase6SettingsPanel:
                 page = self._build_page(context)
                 self.page_cache[context] = page
             page["frame"].pack(fill=tk.X)
+            self._bind_settings_scroll_tree(page["frame"])
+            self._refresh_settings_scrollregion()
+            if self.settings_scroll_canvas is not None:
+                try:
+                    self.settings_scroll_canvas.yview_moveto(0.0)
+                except tk.TclError:
+                    pass
             self.current_page = context
             self.setting_vars = page["setting_vars"]
             self.advanced_settings_frame = page["advanced_frame"]
@@ -583,6 +675,7 @@ class Phase6SettingsPanel:
             button.configure(text="▼ 基準檔開孔資料")
         self.baseline_data_frame = frame
         self.baseline_data_toggle_button = button
+        self._refresh_settings_scrollregion()
 
     def save_current_settings_as_defaults(self):
         self._flush_settings()
