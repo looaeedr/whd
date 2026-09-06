@@ -5532,9 +5532,20 @@ class BoxCalculatorGUI:
         }
 
     def _draw_door_layout_dividers_and_frames(self, canvas, scale, x0, y0, columns, cells, val):
-        """Render structural dividers and inner-door frames on the 2D layout canvas."""
+        """Render derived parts from the authoritative assembly placement owner."""
         t_val = float(val.get('t', 2.0))
+        snapshot = self._compose_phase6_project_snapshot_from_main_gui()
+        total_w = float(snapshot.get("w", val.get("w", 0.0)))
+        total_h = float(snapshot.get("h", val.get("h", 0.0)))
+
+        def world_to_canvas(world_x, world_y):
+            return (
+                x0 + (float(world_x) + total_w / 2.0) * scale,
+                y0 + (total_h / 2.0 - float(world_y)) * scale,
+            )
+
         try:
+            from ae_engine.assembly_placement import resolve_assembly_placement
             from ae_engine.door_dividers import derive_box_body_dividers
             normalized = tuple((float(c[0]), tuple(float(h) for h in c[1])) for c in columns)
             dividers = derive_box_body_dividers(
@@ -5545,70 +5556,66 @@ class BoxCalculatorGUI:
                 handle_edges=getattr(self, "door_layout_handle_edges", {}),
             )
             for div in dividers:
+                placement = resolve_assembly_placement(snapshot, div.stable_id)
+                cx, cy, _cz = placement.world_offset
                 if div.axis == "HORIZONTAL":
-                    m = re.fullmatch(r"C(\d+)[:_]R(\d+)\|R(\d+)", div.boundary_key)
-                    if m:
-                        c_idx, r_upper = int(m.group(1)), int(m.group(2))
-                        bounds = self.door_layout_cell_bounds.get(f"{c_idx}:{r_upper}")
-                        if bounds:
-                            bx1, by1, bx2, by2 = bounds
-                            canvas.create_rectangle(
-                                bx1 + 2, by2 - 3, bx2 - 2, by2 + 3,
-                                fill="#00d4d4", outline="#00a3a3", width=1,
-                                tags=("door_layout_divider",)
-                            )
-                            canvas.create_text(
-                                (bx1 + bx2) / 2.0, by2 + 14,
-                                text=f"中隔 W-2T={div.span:.1f} mm (成型深={div.formed_core_depth:.1f})",
-                                fill="#00d4d4", font=('Consolas', 9, 'bold'),
-                                tags=("door_layout_divider",)
-                            )
+                    x1, y = world_to_canvas(cx - float(div.span) / 2.0, cy)
+                    x2, _ = world_to_canvas(cx + float(div.span) / 2.0, cy)
+                    canvas.create_rectangle(
+                        x1, y - 3, x2, y + 3,
+                        fill="#00d4d4", outline="#00a3a3", width=1,
+                        tags=("door_layout_divider",)
+                    )
+                    canvas.create_text(
+                        (x1 + x2) / 2.0, y + 14,
+                        text=f"中隔 W-2T={div.span:.1f} mm (成型深={div.formed_core_depth:.1f})",
+                        fill="#00d4d4", font=('Consolas', 9, 'bold'),
+                        tags=("door_layout_divider",)
+                    )
                 elif div.axis == "VERTICAL":
-                    m = re.fullmatch(r"C(\d+)\|C(\d+)", div.boundary_key)
-                    if m:
-                        c_left = int(m.group(1))
-                        col_bounds = [
-                            self.door_layout_cell_bounds[k]
-                            for k in self.door_layout_cell_bounds
-                            if k.startswith(f"{c_left}:")
-                        ]
-                        if col_bounds:
-                            vx = col_bounds[0][2]
-                            vy1 = min(b[1] for b in col_bounds)
-                            vy2 = max(b[3] for b in col_bounds)
-                            canvas.create_rectangle(
-                                vx - 3, vy1 + 2, vx + 3, vy2 - 2,
-                                fill="#00d4d4", outline="#00a3a3", width=1,
-                                tags=("door_layout_divider",)
-                            )
+                    x, y1 = world_to_canvas(cx, cy + float(div.span) / 2.0)
+                    _, y2 = world_to_canvas(cx, cy - float(div.span) / 2.0)
+                    canvas.create_rectangle(
+                        x - 3, y1, x + 3, y2,
+                        fill="#00d4d4", outline="#00a3a3", width=1,
+                        tags=("door_layout_divider",)
+                    )
         except Exception:
             pass
 
         try:
-            snapshot = self._compose_phase6_project_snapshot_from_main_gui()
+            from ae_engine.assembly_placement import resolve_assembly_placement
+            from ae_engine.inner_door_frames import inner_door_frame_stable_id
             if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
                 frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
                 for fset in frame_sets:
-                    for item in list(getattr(self, "receiving_inner_doors", []) or []):
-                        if str(item.get("stable_id")) == str(fset.inner_door_id):
-                            cell_key = str(item.get("cell_key", "0:0"))
-                            bounds = self.door_layout_cell_bounds.get(cell_key)
-                            if bounds:
-                                bx1, by1, bx2, by2 = bounds
-                                inset_px = 50.0 * scale
-                                fx1 = bx1 + inset_px
-                                fx2 = bx2 - inset_px
-                                fy1 = by1 + inset_px
-                                fy2 = by2
-                                canvas.create_line(fx1, fy1, fx2, fy1, fill="#ff9f0a", width=2, dash=(6, 3), tags=("door_layout_frame",))
-                                canvas.create_line(fx1, fy1, fx1, fy2, fill="#ff9f0a", width=2, dash=(6, 3), tags=("door_layout_frame",))
-                                canvas.create_line(fx2, fy1, fx2, fy2, fill="#ff9f0a", width=2, dash=(6, 3), tags=("door_layout_frame",))
-                                canvas.create_text(
-                                    (fx1 + fx2) / 2.0, fy1 + 14,
-                                    text=f"內門框 (頂/左/右內縮50mm, 寬={fset.spans.get('top', 0):.1f})",
-                                    fill="#ff9f0a", font=('Microsoft JhengHei', 8, 'bold'),
-                                    tags=("door_layout_frame",)
-                                )
+                    for side in tuple(fset.included_sides):
+                        if side not in {"top", "left", "right"}:
+                            continue
+                        stable_id = inner_door_frame_stable_id(fset.inner_door_id, side)
+                        placement = resolve_assembly_placement(snapshot, stable_id)
+                        cx, cy, _cz = placement.world_offset
+                        span = float(fset.spans[side])
+                        if side == "top":
+                            x1, y = world_to_canvas(cx - span / 2.0, cy)
+                            x2, _ = world_to_canvas(cx + span / 2.0, cy)
+                            canvas.create_line(
+                                x1, y, x2, y, fill="#ff9f0a", width=2, dash=(6, 3),
+                                tags=("door_layout_frame",)
+                            )
+                            canvas.create_text(
+                                (x1 + x2) / 2.0, y + 14,
+                                text=f"內門框 (頂/左/右內縮50mm, 寬={span:.1f})",
+                                fill="#ff9f0a", font=('Microsoft JhengHei', 8, 'bold'),
+                                tags=("door_layout_frame",)
+                            )
+                        else:
+                            x, y1 = world_to_canvas(cx, cy + span / 2.0)
+                            _, y2 = world_to_canvas(cx, cy - span / 2.0)
+                            canvas.create_line(
+                                x, y1, x, y2, fill="#ff9f0a", width=2, dash=(6, 3),
+                                tags=("door_layout_frame",)
+                            )
         except Exception:
             pass
 
