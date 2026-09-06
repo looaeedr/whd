@@ -275,15 +275,22 @@ class Phase6DesignerWorkspace:
         return deepcopy(self._assembly_placements)
 
     def resolve_and_store_assembly_placements(self, snapshot: Mapping[str, object], *, resolver=None) -> dict[str, dict[str, object]]:
-        """Resolve divider and shared lower-frame placements via injected resolver."""
+        """Resolve every part supported by the authoritative placement owner.
+
+        Unsupported base parts remain untouched; Door/inner-door/divider parts
+        are not filtered here by UI naming rules, so the resolver remains the
+        one authority as new physical derived parts are added.
+        """
         result = self.assembly_placements_snapshot()
         if resolver is None:
             return result
         for stable_id in self.available_parts:
             key = str(stable_id)
-            if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
+            try:
                 placement = resolver(snapshot, key)
-                result[key] = placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
+            except ValueError:
+                continue
+            result[key] = placement.to_dict() if hasattr(placement, "to_dict") else deepcopy(dict(placement))
         self._assembly_placements = deepcopy(result)
         return self.assembly_placements_snapshot()
 
