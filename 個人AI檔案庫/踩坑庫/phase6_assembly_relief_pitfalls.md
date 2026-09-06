@@ -93,3 +93,24 @@
 - **正式規則**：Phase6 派工任務未完成期間，**每 30 秒至少回報一次目前進度**。每次至少包含：目前工單、正在做的事項、最新測試或進度數字、是否有阻塞。
 - **不中斷原則**：進度回報是觀測點，不是 checkpoint gate；不得因回報而暫停、等待、結束或重啟正在執行的任務。若單一不可中斷工具呼叫超過 30 秒，返回控制權後立即補報；不得為了湊 30 秒頻率殺掉正常測試或 process group。
 - **防線**：`.agents/skills/engineering/派工/SKILL.md` 與 `.agents/skills/engineering/執行開發任務/SKILL.md` 都必須保留此條；技能自檢需驗證「30 秒」「目前工單」「最新測試/進度」「不得中斷」四個語意存在。
+
+
+## 2026-09-06 — Receiving 底板：安裝關係、datum、orientation 是三個不同層
+- **事故**：使用者已確認「底板基準就是箱體底面，問題是幾何至少一半跑出箱體」，分析卻曾因「後方內側安裝、折邊落在後面板」而推論應換 placement 面／整片方向。
+- **正確分層**：
+  1. Assembly datum：使用者/產品已確認的基準。
+  2. Installed relation：成形後哪些折邊貼到哪個表面。
+  3. Local→world orientation / per-cell offset：真正可能造成越界、鏡像、半片出箱的變數。
+- **防線**：RED 同時 assert datum 不變 + world bounds 合法 + per-door ownership。只驗中心點或視覺位置不足。
+- **一門一底板**：Receiving 多門時 Base Plate topology 必須跟 Door cell stable id 1:1；先修 physical topology，再修 placement。
+
+## 2026-09-06 — Dynamic Door/Box Body GUI 必須分 fresh-open 與 live family-switch 兩條 lifecycle seam
+- **事故**：fresh-open Receiving dynamic Door 可切換，因此一度誤判 selector 已 GREEN；exact 操作 `金庫型 → 3D 已開 → baseline_model_var=受電箱` 下，workspace 已有 dynamic Door，visible menu 卻沒 refresh。
+- **遠端證據**：run `34040520812`：Door live-switch RED；同一 run 的 Receiving 三片 Box Body child sections live-switch probe PASS。
+- **防線**：family topology GUI regression 至少分 fresh-open 與 designer-open live-switch 兩條；兩者都驗 physical parts、selector entries、callback activation、settings-page rebuild。
+- **避免假修**：不得只在 designer init 建 selector；topology transaction 後必須由 authoritative available-parts state 驅動 refresh。
+
+## 2026-09-06 — GitHub branch 是 execution tree 時，不得拿 ZIP checkpoint 做 3D regression A/B
+- **事故**：曾以 ZIP extract 跑 3D/Base Plate 修改與 test，再拿 ZIP 原版單測作 A/B，與真正 `cleanup/2d-3d-sync@cf217e3` 無法建立 commit provenance。
+- **防線**：3D/placement regression A/B 兩端都要是可定位 Git ref / commit / checkpoint fingerprint。ZIP 只有使用者明確指定為 baseline 才可成為端點。
+- **處理**：execution tree 錯時，所有幾何 PASS/FAIL、world bounds、checkpoint ZIP 都標 REVOKED，從最近可信 Git HEAD 重新 RED。

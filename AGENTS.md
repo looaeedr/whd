@@ -701,3 +701,48 @@ python tools/phase6_skill_preflight.py --task "release FULL UPDATE" --changed-fi
 
 Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答案；production code 禁止另寫第二套公式。Registry MISS 才能進 3D discovery / candidate flow，且 PROVISIONAL 結果不得冒充 CERTIFIED。
 
+
+
+---
+
+## 0.0.2 2026-09-06 事故硬閘門：Remote Source of Truth、Exact Seam、真派工、Harness 分類
+
+> 本節來自 2026-09-06 Receiving 工單事故。屬永久 fail-closed 規則；優先級與 0.0.1 派工硬閘門相同。後續 AI 每次讀 AGENTS.md 都必須看到並遵守。
+
+### A. GitHub 專案已指定 branch 時，ZIP / sandbox / 聊天 checkpoint 一律不得冒充施工 Source of Truth
+- 使用者已指定 GitHub repository / branch 時，分析、RED、修改、QA 的 execution base 必須先鎖定 remote branch HEAD SHA。
+- 上傳 ZIP 只能是 fixture / archive / 參考輸入；除非使用者明確指定「這個 ZIP 就是本輪施工基準」，否則禁止拿 ZIP 當 production baseline、A/B good version、checkpoint parent 或 regression oracle。
+- 若已在錯誤 tree 做過修改、PASS/FAIL、checkpoint，發現後必須整批宣告 evidence 作廢；禁止挑其中看起來有用的結果續工。
+- 每張工單 checkpoint / journal 必須寫明 repository、branch、parent HEAD SHA；branch HEAD 漂移時先重新 compare / rebase execution plan。
+
+### B. 使用者回報 GUI / live-sync Bug 時，RED 必須逐步重現完全相同操作順序
+- fresh-open target family GREEN 不能證明「3D 已開啟 → live switch 到 target family」GREEN。
+- 驗收 seam 必須包含使用者回報的前置狀態、開啟順序、切換動作與 observable result。
+- 錯 seam 得到 GREEN，只能作 guard，不得關閉原 bug 工單。
+- 正式拆工單前，必須把 exact user path 跑成真 RED 或明確證明已 GREEN。
+
+### C. 使用者已確認的產品 datum / 語意，不得被文件片語重新解釋
+- 「後方內側安裝」「折邊落在後面板」等裝配描述，不等於可擅自更換 Base Plate datum、placement kind 或產品基準。
+- 使用者已確認「基準正確、錯在幾何跑出箱體」時，修正必須鎖住該 datum，只查尺寸、origin、transform、cell placement。
+- 任何與使用者明示產品語意衝突的推論，先停下並建立 exact RED，不得先改 production。
+
+### D. 「派工」必須先有實體工單，再進 Worker
+- 使用者核准拆票並要求派工後，若本專案以 GitHub Issues 作 owning tickets，必須先建立並反讀 Issues，確認標題、Issue number、依賴、RED、驗收內容正確，再出現 `[轉移至：實作者]` 或修改 production。
+- 只有聊天中的 T1/T2 清單、角色標記、sandbox checkpoint，不算已推工單。
+- 正式規格若要作施工 Source of Truth，也必須落 repo / owning Issue；聊天 copy 不是 durable execution artifact。
+
+### E. 外部工具回傳 schema / URL 不得猜；任何 undefined 關聯都視為阻塞
+- 建立 Issue / PR / workflow、讀 branch / commit metadata 後，先檢查工具 schema 與第一筆真 response，再引用 ID、SHA、tree 或 URL。
+- 禁止自行假設 `issue.number`、commit 的 nested `tree` 欄位、或擅自 URL-encode branch path；Connector 的 schema/URL contract 以工具定義與真 response 為準。
+- 依賴欄、checkpoint、comment 出現 `#undefined` / 空 SHA / 空 run_id 時，立即停止下游施工，修正資料並遠端反讀確認。
+- 批量建立工單後至少反讀一次 owning tickets，確認 cross-link 全部可解析。
+
+### F. Harness / Setup failure 永遠不是 requirement RED
+- 缺 dependency、錯 import、collection/setup error、runner bootstrap failure，全部先分類為 harness failure。
+- 只有 harness 成功進入目標 seam 後，由 pytest assertion / error 明確命中使用者症狀，才能記為 requirement RED。
+- 修 harness 後只重跑 unresolved 範圍；已取得終態的 RED/GREEN 不得為方便整批重跑。
+- remote QA 必須保存 `run_id + head_sha` 並追到 terminal state。
+
+### G. 發現錯誤證據後必須明確撤銷
+- 錯 baseline、錯 seam、harness failure 產生的 PASS/FAIL 必須在 journal / Issue / 回覆中標記 INVALID / REVOKED。
+- Combined Acceptance 只能引用同一 execution tree、正確 seam、terminal harness 的證據。
