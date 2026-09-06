@@ -137,3 +137,19 @@ def test_receiving_family_defaults_do_not_shorten_base_plate():
     assert snapshot.get("base_plate_shrink_bottom") == 0.0
     assert snapshot.get("base_plate_shrink_left") == 0.0
     assert snapshot.get("base_plate_shrink_right") == 0.0
+
+
+def test_receiving_base_plate_shrink_override_preserves_nominal_blank():
+    """Contract: 受電箱底板即使傳入非零 shrink，仍強制保持名義展開尺寸."""
+    spec = BasePlatePartSpec(
+        width=800.0, height=1600.0, thickness=2.0,
+        shrink_top=10.0, shrink_bottom=10.0, shrink_left=10.0, shrink_right=10.0,
+        bend=15.0,
+        model_name="受電箱",
+    )
+    render_data = build_part_render_data(spec)
+    minx, miny, maxx, maxy = render_data.material.bounds
+    # Nominal unfolded blank: W + 2*bend = 800 + 30 = 830, H + 2*bend = 1600 + 30 = 1630
+    assert maxx - minx == pytest.approx(830.0)
+    assert maxy - miny == pytest.approx(1630.0)
+

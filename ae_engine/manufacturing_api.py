@@ -913,6 +913,8 @@ def build_part_scene(
             )
 
         if isinstance(spec, BasePlatePartSpec):
+            # Receiving family preserves nominal blank; global shrink is suppressed
+            # in favor of local seam relief at physical intersections.
             is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
             st = 0.0 if is_receiving else spec.shrink_top
             sb = 0.0 if is_receiving else spec.shrink_bottom
@@ -948,7 +950,7 @@ def build_part_scene(
                     result, box_w=spec.width, shrink_left=sl, shrink_right=sr,
                     thickness=spec.thickness, structure=box_structure,
                     structure_state=spec.box_body_structure_state,
-                    seam_positions=(spec.seam_positions or None),
+                    seam_positions=spec.seam_positions if spec.seam_positions else None,
                 )
             return _call(
                 ae._build_base_plate_scene,
@@ -2003,6 +2005,8 @@ def _end_cap_export(spec: EndCapPartSpec, filepath: str, context: ManufacturingC
 
 def _base_plate_export(spec: BasePlatePartSpec, filepath: str, context: ManufacturingContext):
     is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
+    # Receiving base plate uses final_scene path to preserve nominal blank
+    # geometry and apply local seam reliefs consistently with 2D/render.
     if (spec.box_body_fold_profile and spec.box_body_structure_state) or spec.seam_positions or is_receiving:
         render_data = build_part_render_data(spec, context)
         ae._save_scene_dxf(filepath, render_data.scene)

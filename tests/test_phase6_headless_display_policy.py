@@ -2,38 +2,45 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_CONFTEST = PROJECT_ROOT / "tests" / "conftest.py"
 
 
 def _run_nested_pytest(tmp_path: Path, source: str) -> subprocess.CompletedProcess[str]:
-    nested = tmp_path / "nested"
-    nested.mkdir()
-    # Execute the real project conftest as the nested pytest plugin so this
-    # test verifies the actual repository policy rather than a copy.
-    (nested / "conftest.py").write_text(
-        "from pathlib import Path\n"
-        f"_p = Path({str(PROJECT_CONFTEST)!r})\n"
-        "exec(compile(_p.read_text(encoding='utf-8'), str(_p), 'exec'), globals())\n",
-        encoding="utf-8",
-    )
-    (nested / "test_sample.py").write_text(source, encoding="utf-8")
-    env = os.environ.copy()
-    env.pop("DISPLAY", None)
-    return subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "-rs", str(nested)],
-        cwd=PROJECT_ROOT,
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        timeout=20,
-        check=False,
-    )
+    target_dir = PROJECT_ROOT / "tmp" / "headless_policy" / tmp_path.name
+    nested = target_dir / "nested"
+    nested.mkdir(parents=True, exist_ok=True)
+    try:
+        # Execute the real project conftest as the nested pytest plugin so this
+        # test verifies the actual repository policy rather than a copy.
+        (nested / "conftest.py").write_text(
+            "from pathlib import Path\n"
+            f"_p = Path({str(PROJECT_CONFTEST)!r})\n"
+            "exec(compile(_p.read_text(encoding='utf-8'), str(_p), 'exec'), globals())\n",
+            encoding="utf-8",
+        )
+        (nested / "test_sample.py").write_text(source, encoding="utf-8")
+        env = os.environ.copy()
+        env.pop("DISPLAY", None)
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", "-q", "-rs", str(nested)],
+            cwd=PROJECT_ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=20,
+            check=False,
+        )
+    finally:
+        shutil.rmtree(target_dir, ignore_errors=True)
+
 
 
 def test_requires_tk_display_marker_skips_before_gui_body_without_display(tmp_path: Path) -> None:
@@ -53,6 +60,8 @@ def test_gui_body_must_not_run():
 
 
 def test_unmarked_legacy_tk_missing_display_error_is_reported_as_skip(tmp_path: Path) -> None:
+    if sys.platform == "win32":
+        pytest.skip("Windows Tkinter does not use $DISPLAY environment variable")
     result = _run_nested_pytest(
         tmp_path,
         """
@@ -65,6 +74,7 @@ def test_legacy_gui_without_marker():
     )
     assert result.returncode == 0, result.stdout
     assert "1 skipped" in result.stdout
+
 
 
 def test_non_display_tcl_error_is_not_hidden_by_headless_policy(tmp_path: Path) -> None:
