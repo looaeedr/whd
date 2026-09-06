@@ -115,6 +115,12 @@ Resume 時：
 - 若 Runtime 被切斷，下回合先從 durable state 的 `remote_qa_run_id` 恢復監控，禁止因聊天中斷從頭觸發新 run。
 - 詳細規則固定讀：`.agents/skills/engineering/monitoring-remote-qa/SKILL.md`。
 
+### 3.8 Runtime 切斷防線
+- **聊天／工具 Runtime 不得成為 remote QA 的 scheduler**。長 QA 一旦觸發，GitHub Actions / remote controller 必須自行完成 durable checkpoint → resume 迴圈；assistant poll 只能觀測，不能驅動下一批。
+- 每個長 remote run 必須在 `if: always()` 路徑保存 journal/state/artifact；terminal success/failure/cancel/timeout 都必須可由下一個 Runtime 從 `run_id + head_sha` 恢復。
+- 能寫 Issue 的 runner 應把 terminal/resume summary 自動寫回 owning Issue；至少包含 run_id、head_sha、Headless/Xvfb completed/pending、collection fingerprint、unresolved nodeids。
+- 若聊天回合被平台切斷，工作本身應繼續在 remote runner；下一回合只接管結果，不重新觸發、不從頭跑。
+
 ### 3.6 QA 完成條件
 只有同時滿足以下條件，才准宣告該回歸批次完成：
 - [ ] intended nodeids 全部有終態（complete / skipped / failed），沒有 pending；
