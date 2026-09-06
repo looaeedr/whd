@@ -14,6 +14,7 @@ import inspect
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 import threading
 from typing import Literal, Mapping
@@ -1849,8 +1850,9 @@ def save_part_render_data_dxf(
     if destination.exists() and not overwrite:
         raise FileExistsError(str(destination))
 
+    safe_stem = re.sub(r'[<>:"/\\|?*]', '_', destination.stem)
     fd, temp_name = tempfile.mkstemp(
-        prefix=f".{destination.stem}.tmp-",
+        prefix=f".{safe_stem}.tmp-",
         suffix=destination.suffix or ".dxf",
         dir=str(destination.parent),
     )

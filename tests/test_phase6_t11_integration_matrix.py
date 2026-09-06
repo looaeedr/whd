@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import ezdxf
 import pytest
@@ -92,7 +93,8 @@ def test_frame_and_divider_stable_parts_share_workspace_finalscene_and_dxf(tmp_p
         blank = measure_unfolded_blanks(render, part_key=part.stable_id)[0]
         assert blank.width == pytest.approx(sum(part.material_lengths))
         assert blank.height == pytest.approx(part.span)
-        output = tmp_path / f"{part.stable_id.replace(':', '_')}.dxf"
+        safe_name = re.sub(r'[^a-zA-Z0-9_.-]', '_', part.stable_id)
+        output = tmp_path / f"{safe_name}.dxf"
         save_part_render_data_dxf(render, output)
         doc = ezdxf.readfile(output)
         assert len(list(doc.modelspace())) > 0
