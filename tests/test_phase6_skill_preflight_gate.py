@@ -14,6 +14,7 @@ def test_agents_bootstrap_requires_machine_skill_preflight():
     for required in (
         "Skill Preflight",
         ".agents/skills/skill_registry.json",
+        ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
         "python tools/phase6_skill_preflight.py",
         "phase6-corner-3d-model-integrity",
         "phase6-overlay-relief-basis",
@@ -265,3 +266,63 @@ def test_certified_relief_rules_carry_standard_and_adjustment_metadata():
         assert rule["dimension_space"] in {"MATERIAL", "OUTSIDE", "FORMED_OCCUPATION"}
         assert rule["adjustment_type"] in {"STANDARD", "INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP"}
         assert rule["certification_evidence"]
+
+
+def test_git_remote_sync_fallback_skill_is_registry_routed_and_fail_closed(tmp_path, capsys):
+    registry = json.loads((ROOT / ".agents/skills/skill_registry.json").read_text(encoding="utf-8"))
+    routes = {item["id"]: item for item in registry["routes"]}
+    route = routes["git-remote-sync-fallback"]
+
+    assert "git-remote-sync-fallback" in route["required_skills"]
+    for keyword in ("git push", "GitHub Connector", "DNS", "remote sync"):
+        assert keyword in route["keywords"]
+
+    skill = (ROOT / ".agents/skills/misc/git-remote-sync-fallback/SKILL.md").read_text(encoding="utf-8")
+    for required in (
+        "GitHub Connector 內容同步 ≠ git push",
+        "force=false",
+        "遠端 HEAD",
+        "部分成功",
+        "先重新讀取遠端",
+        "不得盲目重送",
+        "遠端二次驗證",
+    ):
+        assert required in skill
+
+    from tools.phase6_skill_preflight import main
+
+    evidence = tmp_path / "evidence.md"
+    evidence.write_text(
+        "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md\n",
+        encoding="utf-8",
+    )
+    code = main(
+        [
+            "--task",
+            "git push 因 DNS 失敗，改用 GitHub Connector remote sync",
+            "--evidence",
+            str(evidence),
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "✗ git-remote-sync-fallback" in out
+
+    evidence.write_text(
+        "git-remote-sync-fallback\n"
+        "diagnosing-bugs\n"
+        "tdd\n"
+        "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md\n",
+        encoding="utf-8",
+    )
+    code = main(
+        [
+            "--task",
+            "git push 因 DNS 失敗，改用 GitHub Connector remote sync",
+            "--evidence",
+            str(evidence),
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "✓ git-remote-sync-fallback" in out
