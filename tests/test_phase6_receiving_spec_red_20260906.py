@@ -139,7 +139,7 @@ def test_red_rbp2_every_per_door_base_plate_has_authoritative_nonfallback_placem
 
 
 def test_red_rui1_medium_unlocked_settings_has_real_vertical_scroll_owner():
-    import tkinter as tk
+    from tkinter import ttk
 
     root, _app, designer = _open_receiving_designer()
     try:
