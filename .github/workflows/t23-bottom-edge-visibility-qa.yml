@@ -1,0 +1,46 @@
+name: T23 Bottom Edge Visibility QA
+
+on:
+  push:
+    branches:
+      - work/20260906-t5-bottom-edge-visibility
+    paths:
+      - fold_designer_bridge.py
+      - phase6_settings_panel.py
+      - tests/test_phase6_t23_bottom_edge_visibility.py
+
+permissions:
+  contents: read
+
+jobs:
+  t23:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb python3-tk libgl1
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest matplotlib
+      - name: Run T23 focused QA
+        shell: bash
+        run: |
+          set -o pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_t23_bottom_edge_visibility.py \
+            tests/test_phase6_t22_settings_vertical_scroll.py \
+            2>&1 | tee t23.log
+      - name: Upload focused log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t23-bottom-edge-visibility-log
+          path: t23.log
