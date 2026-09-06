@@ -668,7 +668,7 @@ def test_real_w_split_advanced_relief_controls_are_collapsed_by_default_and_expa
         root.destroy()
 
 
-def test_real_side_back_structure_shows_readonly_formed_depth_d():
+def test_real_side_back_structure_shows_formed_dimensions_in_each_physical_child_section():
     import os
     if not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
@@ -680,9 +680,38 @@ def test_real_side_back_structure_shows_readonly_formed_depth_d():
     try:
         app = gui.BoxCalculatorGUI(root)
         designer = app.open_original_fold_designer()
-        page = _phase6_test_unlock_and_choose(designer, root, "三件式（側背分離）")
-        texts = [str(w.cget("text")) for w in _phase6_test_descendants(page) if "text" in w.keys()]
-        assert any(text.startswith("側板成型深度 D：") and text.endswith(" mm") for text in texts)
+        _phase6_test_unlock_and_choose(designer, root, "三件式（側背分離）")
+
+        sections = dict(designer.box_body_piece_input_sections)
+        assert tuple(sections) == (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        )
+        assert all(
+            getattr(widget, "_phase6_part_key", None) == key
+            for key, widget in sections.items()
+        )
+
+        def section_texts(key):
+            return [
+                str(w.cget("text"))
+                for w in _phase6_test_descendants(sections[key])
+                if "text" in w.keys()
+            ]
+
+        for key in ("box_body:left_side", "box_body:right_side"):
+            texts = section_texts(key)
+            assert any(
+                text.startswith("成型深度 D：") and text.endswith(" mm")
+                for text in texts
+            )
+
+        back_texts = section_texts("box_body:back")
+        assert any(
+            text.startswith("成型寬：") and text.endswith(" mm")
+            for text in back_texts
+        )
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
