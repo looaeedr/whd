@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   release-gate:
@@ -226,6 +227,47 @@ jobs:
           diff -u t18_artifacts/tree_before.txt t18_artifacts/tree_after.txt
           git status --porcelain --untracked-files=no | tee t18_artifacts/tracked_status_after.txt
           test ! -s t18_artifacts/tracked_status_after.txt
+
+      - name: Publish resumable status to T18 issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY' > t18_issue_summary.md
+          import json
+          from pathlib import Path
+          import os
+
+          def state(name):
+              p = Path(f"t18_artifacts/{name}.state.json")
+              if not p.exists():
+                  return None
+              try:
+                  return json.loads(p.read_text(encoding="utf-8"))
+              except Exception:
+                  return {"error": "unreadable"}
+
+          h = state("headless")
+          x = state("xvfb")
+          print("[Remote QA durable status]")
+          print()
+          print(f"- run_id: {os.environ.get('GITHUB_RUN_ID')}")
+          print(f"- head_sha: {os.environ.get('GITHUB_SHA')}")
+          for name, value in (("headless", h), ("xvfb", x)):
+              if value is None:
+                  print(f"- {name}: state missing")
+              else:
+                  print(
+                      f"- {name}: completed={value.get('completed_nodeids')} "
+                      f"pending={value.get('pending_nodeids')} "
+                      f"failed_batches={value.get('failed_batches')} "
+                      f"last_status={value.get('last_status')}"
+                  )
+          print()
+          print("Durable artifact: t18-durable-release-gate")
+          print("若聊天 Runtime 被切斷，下一個 Runtime 從此 run_id/head_sha + artifact 接續，不重 trigger。")
+          PY
+          gh issue comment 18 --repo "${GITHUB_REPOSITORY}" --body-file t18_issue_summary.md || true
 
       - name: Upload T18 durable evidence
         if: always()
