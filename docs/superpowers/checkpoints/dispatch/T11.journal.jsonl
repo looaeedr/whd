@@ -10,3 +10,4 @@
 {"task_id":"T11","role":"T11 QA","event":"wave2_green","run_id":34028013223,"passed":30,"failed":0,"production_changes":0,"status":"complete"}
 {"task_id":"T11","role":"T18 release gate","event":"t18_reopen_wave3","source_run":34028206636,"result":"multi-door stale family-switch test setups","status":"complete"}
 {"task_id":"T11","role":"T11 QA","event":"wave3_green","run_id":34028808208,"passed":85,"failed":0,"production_changes":0,"status":"complete"}
+{"task_id":"T11","role":"controller","event":"wave3_reclosed","run_id":34028808208,"result":"85 PASS / 0 FAIL; production/test drift 0"}
