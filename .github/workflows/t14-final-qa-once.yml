@@ -1,0 +1,103 @@
+name: T14 final QA once
+
+on:
+  push:
+    branches: [cleanup/2d-3d-sync]
+    paths:
+      - '.github/t14_final_qa_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install QA dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb python3-tk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Compile
+        run: python -m py_compile fold_designer_bridge.py
+      - name: Record config SHA
+        run: sha256sum config.ini | tee /tmp/config_before
+      - name: T14 structure and multipart guards
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_phase6_t14_box_body_child_sections.py             tests/test_phase6_four_regressions.py             tests/test_phase6_receiving_multipart_integration.py
+      - name: T15 T16 T17 guards
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_phase6_t15_inner_door_panels.py             tests/test_phase6_t16_receiving_placement.py             tests/test_phase6_t17_receiving_inner_door_80.py
+      - name: Family and roundtrip guards
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_phase6_t06_receiving_fresh_family.py             tests/test_phase6_t11_integration_matrix.py             tests/test_phase6_2d_3d_round_trip.py
+      - name: Capture T14 Receiving 3D inspection
+        run: |
+          xvfb-run -a python - <<'PY'
+          import base64
+          from pathlib import Path
+          import tkinter as tk
+          from PIL import Image
+          import gui
+          import fold_designer_bridge as bridge
+
+          root = tk.Tk()
+          root.withdraw()
+          app = gui.BoxCalculatorGUI(root)
+          designer = None
+          try:
+              app.baseline_var.set("受電箱")
+              root.update_idletasks(); root.update()
+              designer = app.open_original_fold_designer()
+              root.update_idletasks(); root.update()
+              designer.activate_part("box_body")
+              bridge._phase6_invalidate_settings_page(designer, "box_body")
+              bridge._phase6_render_settings_context(designer, "box_body")
+              designer.do_update()
+              root.update_idletasks(); root.update()
+
+              data = bridge._phase6_query_final_render_data(designer)
+              pieces = tuple(f"box_body:{p.role}" for p in tuple(data.pieces))
+              sections = tuple(designer.box_body_piece_input_sections)
+              print("T14_VISUAL_PIECES", pieces)
+              print("T14_VISUAL_SECTIONS", sections)
+              assert sections == pieces
+
+              canvas = designer.renderer.canvas
+              figure = getattr(canvas, "figure", None) or designer.renderer.ax3d.figure
+              png = Path("t14_receiving_box_body.png")
+              jpg = Path("t14_receiving_box_body.jpg")
+              figure.savefig(png, dpi=70, bbox_inches="tight")
+              img = Image.open(png).convert("RGB")
+              img.thumbnail((420, 320))
+              img.save(jpg, format="JPEG", quality=42, optimize=True)
+              print("T14_VISUAL_JPEG_BASE64=" + base64.b64encode(jpg.read_bytes()).decode("ascii"))
+          finally:
+              try:
+                  if designer is not None:
+                      designer.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root.destroy()
+              except Exception:
+                  pass
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t14-3d-inspection
+          path: |
+            t14_receiving_box_body.png
+            t14_receiving_box_body.jpg
+          if-no-files-found: error
+      - name: Verify config unchanged
+        run: |
+          sha256sum config.ini | tee /tmp/config_after
+          diff -u /tmp/config_before /tmp/config_after
