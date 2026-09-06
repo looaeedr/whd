@@ -1,0 +1,5 @@
+{"task_id":"T11","role":"T11 實作者","event":"spec_corrected","contract":"known target preset; only custom carries current","status":"complete"}
+{"task_id":"T11","role":"T11 實作者","event":"red","result":"Receiving->Custom and Custom->Receiving exposed old runtime-cache semantics","status":"complete"}
+{"task_id":"T11","role":"T11 實作者","event":"green_batch_1","tests":21,"passed":21,"failed":0,"log":"logs/t11/t11_gui_roundtrip.log","status":"complete"}
+{"task_id":"T11","role":"總控審查","event":"green_batch_2","tests":22,"passed":22,"failed":0,"log":"logs/t11/t11_existing_integrity.log","status":"complete"}
+{"task_id":"T11","role":"總控審查","event":"config_integrity","sha256":"980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67","unchanged":true,"status":"complete"}
