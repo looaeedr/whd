@@ -746,3 +746,15 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 ### G. 發現錯誤證據後必須明確撤銷
 - 錯 baseline、錯 seam、harness failure 產生的 PASS/FAIL 必須在 journal / Issue / 回覆中標記 INVALID / REVOKED。
 - Combined Acceptance 只能引用同一 execution tree、正確 seam、terminal harness 的證據。
+
+
+### H. One-shot Remote QA 不得由 journal/state/docs push 誤觸發
+- 工單用的一次性 GitHub Actions workflow 若監看 work branch push，必須用 `paths` / `paths-ignore` 或等價條件，讓它只因 production/test/harness 真變更觸發。
+- 更新 `docs/superpowers/checkpoints/**`、`logs/preflight/**`、Issue provenance、state/journal 等 durable evidence 時，禁止再次啟動同一 focused QA，除非該 evidence 本身就是被測目標。
+- 若已誤觸發，該 run 必須追到 terminal state並標記 `ACCIDENTAL_RERUN / NON_ACCEPTANCE_EVIDENCE`；不得重算 RED/GREEN totals。
+- workflow trigger 自身也是工單 harness 的一部分，第一次建立前要檢查「哪些檔案會觸發」。
+
+### I. Orchestration / Code Mode 模板在任何遠端寫入前先做變數與 parent preflight
+- 任何批量建立 blob/tree/commit、Issue、workflow 的 orchestration script，在第一個副作用呼叫前必須完成：所有 template 變數已宣告、branch parent SHA 已鎖定、base tree SHA 可解析。
+- 出現 `ReferenceError` / `NameError` / undefined template variable 時，分類為 orchestration harness failure；不得算 production RED。
+- 若錯誤發生在第一個 blob/commit 前，必須反讀 branch 確認零副作用；若已有副作用，必須列出並清理後才能重送。
