@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - work/20260906-t1-receiving-baseplate-topology
+    paths:
+      - fold_designer_bridge.py
+      - tests/test_phase6_t19_receiving_baseplate_topology.py
 
 permissions:
   contents: read
