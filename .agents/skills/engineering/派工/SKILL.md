@@ -108,12 +108,12 @@ Resume 時：
 - success 後仍必須抓 exact PASS/FAIL 與 invariant evidence、移除 one-shot workflow/trigger、遠端反讀確認 cleanup、更新 checkpoint/journal/state；全部完成才可進 QA ACCEPT / close。
 
 ### 3.7 遠端 QA 強制監控
-- 只要工單進入「同步遠端 QA / GitHub Actions QA / remote current-head QA」，**必須立即啟動 `remote-qa-monitoring` Skill**。
+- 只要工單進入「同步遠端 QA / GitHub Actions QA / remote current-head QA」，**必須立即啟動 `monitoring-remote-qa` Skill**。
 - workflow run 建立後必須鎖定本輪 `run_id + head_sha`，持續查 jobs/steps 到 terminal state；不得以「已 trigger」「queued」「in_progress」「第一批已綠」作為停工點。
 - 每次工具重新取得控制權時，優先 poll 本輪 run；若某 step/job 紅燈，立即抓 logs 分類 production / harness / workflow，再直接修正與重跑。
 - 遠端 QA 只有在 `completed + success`、完整 pytest summary、必要 config/fingerprint guard、temp workflow cleanup、durable state/provenance 全部完成後才算 GREEN。
 - 若 Runtime 被切斷，下回合先從 durable state 的 `remote_qa_run_id` 恢復監控，禁止因聊天中斷從頭觸發新 run。
-- 詳細規則固定讀：`.agents/skills/engineering/remote-qa-monitoring/SKILL.md`。
+- 詳細規則固定讀：`.agents/skills/engineering/monitoring-remote-qa/SKILL.md`。
 
 ### 3.6 QA 完成條件
 只有同時滿足以下條件，才准宣告該回歸批次完成：
@@ -143,7 +143,7 @@ Resume 時：
 - [ ] checkpoint / journal 可讓下一回合不靠口頭記憶續工；
 - [ ] 明確包含 checkpoint provenance / execution tree fingerprint，禁止混合狀態續工；
 - [ ] complete_teardown_timeout 明確要求完整 PASS summary，只有點號不得算完成。
-- [ ] 明確要求同步遠端 QA 時啟動 `remote-qa-monitoring`，並追到 terminal state；不得停在 workflow trigger / in_progress。
+- [ ] 明確要求同步遠端 QA 時啟動 `monitoring-remote-qa`，並追到 terminal state；不得停在 workflow trigger / in_progress。
 - [ ] 若 PM 要拆解工單，明確引用 `.agents/skills/engineering/拆解任務工單/SKILL.md`，要求 RED-first + 使用者核准，且核准前不得拆解工單、不得轉移至：實作者。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
 - [ ] remote QA 建立 run 時強制啟動 `monitoring-remote-qa`，持續監控到終態；成功後仍需 cleanup + durable state 才可 ACCEPT。
