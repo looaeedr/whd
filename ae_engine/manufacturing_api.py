@@ -196,8 +196,12 @@ def _has_named_parameter(func, name: str) -> bool:
 
 def _resolved_door_params(spec: DoorPartSpec, context: ManufacturingContext | None = None):
     policy = resolve_policy(context)
+    t = float(spec.thickness)
+    material_fw = cabinet_family_policy.door_material_frame_width(
+        spec.model_name, frame_width=float(spec.frame_width), thickness=t,
+    )
     return dict(
-        w=float(spec.width), h=float(spec.height), t=float(spec.thickness), fw=float(spec.frame_width),
+        w=float(spec.width), h=float(spec.height), t=t, fw=material_fw,
         gap_w=float(spec.gap_w if spec.gap_w is not None else policy.door_gap_w),
         gap_h=float(spec.gap_h if spec.gap_h is not None else policy.door_gap_h),
         fold_left=float(spec.fold_left if spec.fold_left is not None else policy.door_fold_left),
@@ -205,6 +209,12 @@ def _resolved_door_params(spec: DoorPartSpec, context: ManufacturingContext | No
         fold_top=float(spec.fold_top if spec.fold_top is not None else policy.door_fold_top),
         fold_bottom=float(spec.fold_bottom if spec.fold_bottom is not None else policy.door_fold_bottom),
     )
+
+
+def _resolved_door_corner_policy(spec: DoorPartSpec, material_fw: float):
+    if spec.corner_policy is None:
+        return None
+    return replace(spec.corner_policy, fw=float(material_fw))
 
 
 def door_finished_face_size(
@@ -473,7 +483,8 @@ def _door_features_for_legacy_engine(spec: DoorPartSpec, context: ManufacturingC
         frame_edges=spec.frame_edges,
     )
 
-    builder = build_unknown_door_result if spec.corner_policy is not None else build_door_result
+    corner_policy = _resolved_door_corner_policy(spec, p["fw"])
+    builder = build_unknown_door_result if corner_policy is not None else build_door_result
     builder_kwargs = dict(
         w=p["w"], h=p["h"], t=p["t"], fw=p["fw"],
         gap_w=p["gap_w"], gap_h=p["gap_h"],
@@ -481,8 +492,8 @@ def _door_features_for_legacy_engine(spec: DoorPartSpec, context: ManufacturingC
         fold_top=p["fold_top"], fold_bottom=p["fold_bottom"],
         frame_edges=spec.frame_edges,
     )
-    if spec.corner_policy is not None:
-        builder_kwargs["corner_policy"] = spec.corner_policy
+    if corner_policy is not None:
+        builder_kwargs["corner_policy"] = corner_policy
     result = _call(builder, **builder_kwargs)
     guide = build_finished_reference_guide(
         "door", result, finished_width=float(finished_w), finished_height=float(finished_h)
@@ -788,6 +799,7 @@ def build_part_scene(
         if isinstance(spec, DoorPartSpec):
             _validate_door_part_indicator_fit(spec, ctx)
             p = _resolved_door_params(spec, ctx)
+            corner_policy = _resolved_door_corner_policy(spec, p["fw"])
             features = _door_features_for_legacy_engine(spec, ctx)
             is_small = spec.indicator_window_groups is not None
             baseline = (
@@ -804,7 +816,7 @@ def build_part_scene(
                     spec.indicator_hole, spec.door_indicator, spec.door_indicator_offset,
                     frame_edges=spec.frame_edges,
                     indicator_window_groups=spec.indicator_window_groups,
-                    corner_policy=spec.corner_policy,
+                    corner_policy=corner_policy,
                     nameplate_center_datum_top=_door_nameplate_datum_top(spec),
                 )
                 scene = ae.DrawingScene()
@@ -820,14 +832,14 @@ def build_part_scene(
                         )
                     ))
                 return scene
-            if spec.corner_policy is not None:
+            if corner_policy is not None:
                 result = _call(
                     build_unknown_door_result,
                     w=p["w"], h=p["h"], t=p["t"], fw=p["fw"],
                     gap_w=p["gap_w"], gap_h=p["gap_h"],
                     fold_left=p["fold_left"], fold_right=p["fold_right"],
                     fold_top=p["fold_top"], fold_bottom=p["fold_bottom"],
-                    corner_policy=spec.corner_policy, frame_edges=spec.frame_edges,
+                    corner_policy=corner_policy, frame_edges=spec.frame_edges,
                 )
                 return _call(
                     ae._build_door_scene,
@@ -1911,6 +1923,7 @@ def _door_export(spec: DoorPartSpec, filepath: str, context: ManufacturingContex
         expected = _expected_baseline_path(spec.model_name, "門.dxf", context)
         baseline = expected if expected is not None and expected.is_file() else None
     p = _resolved_door_params(spec, context)
+    corner_policy = _resolved_door_corner_policy(spec, p["fw"])
     common = dict(
         W_val=p["w"],
         H_val=p["h"],
@@ -1936,15 +1949,15 @@ def _door_export(spec: DoorPartSpec, filepath: str, context: ManufacturingContex
             ft_val=p["fold_top"],
             fb_val=p["fold_bottom"],
             indicator_window_groups=spec.indicator_window_groups,
-            corner_policy=spec.corner_policy,
+            corner_policy=corner_policy,
             **common,
         )
         return "export_stretched_door_dxf", baseline, expected
-    if spec.corner_policy is not None:
+    if corner_policy is not None:
         _call(
             ae.export_unknown_door_dxf,
             filepath,
-            corner_policy=spec.corner_policy,
+            corner_policy=corner_policy,
             gap_w=p["gap_w"], gap_h=p["gap_h"],
             fold_left=p["fold_left"], fold_right=p["fold_right"],
             fold_top=p["fold_top"], fold_bottom=p["fold_bottom"],

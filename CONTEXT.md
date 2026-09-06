@@ -148,3 +148,11 @@
 - 所有板金 Blank 從 canonical final material 量，不另算一套展開公式；多片箱身逐片列料。
 - 受電箱 EndCap 使用 core-origin placement；其他 Family 保留既有 placement 契約。
 - Skills 已搬至 `.agents/skills/`，截角／3D 變更必跑 phase6-corner-3d-model-integrity gate。
+
+
+## 2026-09-07 — Receiving Door FW dimension semantic
+
+- 金庫型 Door 的 `FW` 維持 MATERIAL 語意；例如 `FW=25, T=2`，成形框占位為 `25 + 2T = 29`。
+- 受電箱操作員/Family state 的 `FW` 是 FORMED_OCCUPATION；預設 `FW=29` 已包含 25 mm 材料折邊的兩側板厚補償。
+- Door 共用幾何仍只接受 MATERIAL FW，並在成品尺寸 resolver 內加 `2T` 一次。受電箱必須先由 Cabinet Family policy 做 `material_fw = formed_fw - 2T`，不得直接把 29 傳給共用 resolver 再變成 33。
+- 外門 2D / baseline stretch / DXF / 3D、內門板與內門框衍生、assembly placement 必須消費同一 family-aware Door FW resolver。

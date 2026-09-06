@@ -52,6 +52,23 @@ BASE_PLATE_DEFAULTS = {
 
 DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
+
+def door_material_frame_width(*, frame_width: float, thickness: float) -> float:
+    """Convert Receiving Door FW from formed outside occupation to material FW.
+
+    The Receiving operator value 29 mm already equals the formed occupation of
+    the 25 mm material flange at T=2.  The shared Door engine expects material
+    FW and adds 2T exactly once, so feeding 29 directly would incorrectly make
+    the frame occupation 33 mm.
+    """
+    formed = float(frame_width)
+    t = float(thickness)
+    material = formed - 2.0 * t
+    if material <= 0:
+        raise ValueError("Receiving Door formed FW must exceed 2T")
+    return material
+
+
 FRESH_ASSEMBLY_INTENT = "WRAP_OVERLAY"
 DEFAULT_DOOR_LAYOUT_SCOPE = "receiving-main"
 DEFAULT_DOOR_LAYOUT_COLUMNS = ((800.0, (1100.0, 500.0)),)
@@ -148,7 +165,9 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
     t = float(data.get("t", 2.0))
-    fw = float(data.get("fw", BOX_BODY_DEFAULTS["fw"]))
+    fw = door_material_frame_width(
+        frame_width=float(data.get("fw", BOX_BODY_DEFAULTS["fw"])), thickness=t
+    )
     gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
     gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
 
@@ -198,7 +217,9 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
     cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
     t = float(data.get("t", 2.0))
-    fw = float(data.get("fw", BOX_BODY_DEFAULTS["fw"]))
+    fw = door_material_frame_width(
+        frame_width=float(data.get("fw", BOX_BODY_DEFAULTS["fw"])), thickness=t
+    )
     gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
     gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
 

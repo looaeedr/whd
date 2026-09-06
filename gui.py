@@ -1378,8 +1378,9 @@ class BoxCalculatorGUI:
             if part_key == "door":
                 if hasattr(ae, "has_baseline_part") and not ae.has_baseline_part(model, "門.dxf"):
                     return []
+                door_fw = self._door_material_frame_width(fw, t, model_name=model)
                 data = ae.get_stretched_door_data(
-                    model, w, h, t, fw,
+                    model, w, h, t, door_fw,
                     float(v.get("door_gap_w", ae.door_gap_w_def)),
                     float(v.get("door_gap_h", ae.door_gap_h_def)),
                     float(v.get("door_fold_l", ae.door_fold_left_def)),
@@ -2834,6 +2835,13 @@ class BoxCalculatorGUI:
         if not value or is_unknown_model(value):
             return None
         return value
+
+    def _door_material_frame_width(self, frame_width, thickness, *, model_name=None):
+        """Resolve operator Door FW into the material-space value consumed by AE."""
+        source = self._baseline_source_model() if model_name is None else model_name
+        return cabinet_family_policy.door_material_frame_width(
+            source, frame_width=float(frame_width), thickness=float(thickness),
+        )
 
     def _sync_fold_designer_manual_corner_context(self, active_part):
         key = str(active_part or "")
@@ -5313,7 +5321,8 @@ class BoxCalculatorGUI:
     def _door_layout_cell_result(self, cell, val=None):
         val = val or self.get_float_values()
         return build_door_result(
-            w=cell.start_width, h=cell.start_height, t=val['t'], fw=val['fw'],
+            w=cell.start_width, h=cell.start_height, t=val['t'],
+            fw=self._door_material_frame_width(val['fw'], val['t']),
             gap_w=val['door_gap_w'], gap_h=val['door_gap_h'],
             fold_left=val['door_fold_l'], fold_right=val['door_fold_r'],
             fold_top=val['door_fold_t'], fold_bottom=val['door_fold_b'],
@@ -5333,8 +5342,11 @@ class BoxCalculatorGUI:
         mode = state.get("mode", "indicator" if state.get("enabled") else "none")
         if mode in {"indicator", "indicator_box"}:
             try:
+                material_fw = self._door_material_frame_width(
+                    self.fw_z_var.get(), self.t_var.get()
+                )
                 finished_w, finished_h = ae.calculate_door_finished_size(
-                    cell.start_width, cell.start_height, self.fw_z_var.get(),
+                    cell.start_width, cell.start_height, material_fw,
                     self.door_gap_w_var.get(), self.door_gap_h_var.get(), self.t_var.get(),
                     frame_edges=cell.edges,
                 )
@@ -5376,8 +5388,11 @@ class BoxCalculatorGUI:
         if cache_key in self._door_layout_baseline_cache:
             return self._door_layout_baseline_cache[cache_key], ae.baseline_source_label(model, "門.dxf")
         try:
+            material_fw = self._door_material_frame_width(
+                val['fw'], val['t'], model_name=model
+            )
             data = ae.get_stretched_door_data(
-                model, cell.start_width, cell.start_height, val['t'], val['fw'],
+                model, cell.start_width, cell.start_height, val['t'], material_fw,
                 val['door_gap_w'], val['door_gap_h'],
                 val['door_fold_l'], val['door_fold_r'], val['door_fold_t'], val['door_fold_b'],
                 frame_edges=cell.edges,
@@ -5482,8 +5497,9 @@ class BoxCalculatorGUI:
             val = self.get_float_values()
             result = self._door_layout_cell_result(cell, val)
             surface = feature_surface_from_structural_result("door", result)
+            material_fw = self._door_material_frame_width(val['fw'], val['t'])
             finished_w, finished_h = ae.calculate_door_finished_size(
-                cell.start_width, cell.start_height, val['fw'], val['door_gap_w'], val['door_gap_h'], val['t'],
+                cell.start_width, cell.start_height, material_fw, val['door_gap_w'], val['door_gap_h'], val['t'],
                 frame_edges=cell.edges,
             )
             reference_guide = build_finished_reference_guide(
@@ -5810,10 +5826,8 @@ class BoxCalculatorGUI:
             blank_h = maxy - miny
             if blank_w <= 0 or blank_h <= 0:
                 raise ValueError("門板 Final Part Geometry 尺寸無效")
-            finished_w, finished_h = ae.calculate_door_finished_size(
-                door_val['w'], door_val['h'], door_val['fw'],
-                door_val['door_gap_w'], door_val['door_gap_h'], door_val['t'],
-                frame_edges=spec.frame_edges,
+            finished_w, finished_h = manufacturing_api.door_finished_face_size(
+                spec, self._manufacturing_context(draw_stock=False)
             )
         except Exception as exc:
             canvas.create_text(
@@ -6588,7 +6602,12 @@ class BoxCalculatorGUI:
             # 3. 檢查並加載目前型號的門基準；GUI 不自行組 baseline 路徑。
             if ae.has_baseline_part(val, "門.dxf"):
                 try:
-                    geom_door = ae.get_stretched_door_data(val, 500, 500, t_val)
+                    door_fw = self._door_material_frame_width(
+                        self.fw_z_var.get(), t_val, model_name=val
+                    )
+                    geom_door = ae.get_stretched_door_data(
+                        val, 500, 500, t_val, door_fw
+                    )
                     pd = geom_door.params
                     self.door_fold_l_var.set(f"{pd['door_fold_l']:.1f}".replace(".0", ""))
                     self.door_fold_r_var.set(f"{pd['door_fold_r']:.1f}".replace(".0", ""))
@@ -6806,12 +6825,13 @@ class BoxCalculatorGUI:
                     )
             
             # 3. 計算門 Door。不存在的板件不建立/計算預覽資料。
+            door_material_fw = self._door_material_frame_width(val['fw'], val['t'])
             if "door" not in existing_parts:
                 door_w = door_h = None
             elif self.multi_door_enabled_var.get():
                 cell = self.get_selected_door_layout_cell()
                 door_w, door_h = ae.calculate_door_blank_size(
-                    cell.start_width, cell.start_height, val['t'], val['fw'],
+                    cell.start_width, cell.start_height, val['t'], door_material_fw,
                     val['door_gap_w'], val['door_gap_h'],
                     val['door_fold_l'], val['door_fold_r'],
                     val['door_fold_t'], val['door_fold_b'],
@@ -6819,7 +6839,7 @@ class BoxCalculatorGUI:
                 )
             elif baseline:
                 try:
-                    geom_door = ae.get_stretched_door_data(baseline, val['w'], val['h'], val['t'], val['fw'],
+                    geom_door = ae.get_stretched_door_data(baseline, val['w'], val['h'], val['t'], door_material_fw,
                                                           val['door_gap_w'], val['door_gap_h'],
                                                           val['door_fold_l'], val['door_fold_r'],
                                                           val['door_fold_t'], val['door_fold_b'])
@@ -6827,14 +6847,14 @@ class BoxCalculatorGUI:
                     door_h = geom_door.params['total_depth']
                 except Exception:
                     door_w, door_h = ae.calculate_door_blank_size(
-                        val['w'], val['h'], val['t'], val['fw'],
+                        val['w'], val['h'], val['t'], door_material_fw,
                         val['door_gap_w'], val['door_gap_h'],
                         val['door_fold_l'], val['door_fold_r'],
                         val['door_fold_t'], val['door_fold_b']
                     )
             else:
                 door_w, door_h = ae.calculate_door_blank_size(
-                    val['w'], val['h'], val['t'], val['fw'],
+                    val['w'], val['h'], val['t'], door_material_fw,
                     val['door_gap_w'], val['door_gap_h'],
                     val['door_fold_l'], val['door_fold_r'],
                     val['door_fold_t'], val['door_fold_b']
@@ -7528,7 +7548,9 @@ class BoxCalculatorGUI:
             door_indicator_offset=(self.door_indicator_offset_x, self.door_indicator_offset_y),
             use_box_distance=bool(self.is_box_dist_var.get()),
             corner_policy=(
-                self._manual_corner_policy('door', val['fw'])
+                self._manual_corner_policy(
+                    'door', self._door_material_frame_width(val['fw'], val['t'])
+                )
             ),
         )
 
@@ -7552,7 +7574,9 @@ class BoxCalculatorGUI:
             door_indicator_offset=(float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0))),
             use_box_distance=bool(state.get("is_box_dist", False)),
             corner_policy=(
-                self._manual_corner_policy('door', val['fw'])
+                self._manual_corner_policy(
+                    'door', self._door_material_frame_width(val['fw'], val['t'])
+                )
             ),
         )
 
@@ -8041,25 +8065,28 @@ class BoxCalculatorGUI:
                 part_key, result, finished_width=val['w'], finished_height=val['h']
             )
         elif part_key == "door":
+            door_material_fw = self._door_material_frame_width(val['fw'], val['t'])
             if is_unknown_model(self.baseline_var.get()):
                 result = build_unknown_door_result(
-                    w=val['w'], h=val['h'], t=val['t'], fw=val['fw'],
+                    w=val['w'], h=val['h'], t=val['t'], fw=door_material_fw,
                     gap_w=val['door_gap_w'], gap_h=val['door_gap_h'],
                     fold_left=val['door_fold_l'], fold_right=val['door_fold_r'],
                     fold_top=val['door_fold_t'], fold_bottom=val['door_fold_b'],
-                    corner_policy=self._manual_corner_policy('door', val['fw']),
+                    corner_policy=self._manual_corner_policy('door', door_material_fw),
                 )
             else:
                 result = build_door_result(
-                    w=val['w'], h=val['h'], t=val['t'], fw=val['fw'],
+                    w=val['w'], h=val['h'], t=val['t'], fw=door_material_fw,
                     gap_w=val['door_gap_w'], gap_h=val['door_gap_h'],
                     fold_left=val['door_fold_l'], fold_right=val['door_fold_r'],
                     fold_top=val['door_fold_t'], fold_bottom=val['door_fold_b'],
                 )
             surface = feature_surface_from_structural_result(part_key, result)
             width, height = result.width, result.height
-            finished_w = val['w'] - (val['fw'] + 2.0 * val['t']) * 2.0 - val['door_gap_w'] * 2.0
-            finished_h = val['h'] - (val['fw'] + 2.0 * val['t']) * 2.0 - val['door_gap_h'] * 2.0
+            finished_w, finished_h = ae.calculate_door_finished_size(
+                val['w'], val['h'], door_material_fw,
+                val['door_gap_w'], val['door_gap_h'], val['t'],
+            )
             reference_guide = build_finished_reference_guide(
                 part_key, result, finished_width=finished_w, finished_height=finished_h
             )
@@ -8073,7 +8100,7 @@ class BoxCalculatorGUI:
             if model and ae.has_baseline_part(model, "門.dxf"):
                 try:
                     baseline_data = ae.get_stretched_door_data(
-                        model, val['w'], val['h'], val['t'], val['fw'],
+                        model, val['w'], val['h'], val['t'], door_material_fw,
                         val['door_gap_w'], val['door_gap_h'],
                         val['door_fold_l'], val['door_fold_r'], val['door_fold_t'], val['door_fold_b'],
                         frame_edges=DoorFrameEdges(),

@@ -204,7 +204,9 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     top = float(insets.get("top", 0.0))
     bottom = float(insets.get("bottom", 0.0))
     t = float(snapshot.get("t", 0.0))
-    fw = float(snapshot.get("fw", 0.0))
+    fw = cabinet_family_policy.door_material_frame_width(
+        snapshot, frame_width=float(snapshot.get("fw", 0.0)), thickness=t,
+    )
     gap_w = float(snapshot.get("door_gap_w", 3.5))
     gap_h = float(snapshot.get("door_gap_h", 3.5))
     outer_w, outer_h = calculate_door_finished_size(

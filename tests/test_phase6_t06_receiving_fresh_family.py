@@ -32,9 +32,9 @@ def test_receiving_family_defaults_publish_fresh_intent_layout_and_upper_inner_d
     assert frame_sets[0].inner_door_id == "upper"
     assert frame_sets[0].included_sides == ("top", "left", "right")
     assert frame_sets[0].spans == {
-        "top": pytest.approx(627.0),
-        "left": pytest.approx(1010.0),
-        "right": pytest.approx(1010.0),
+        "top": pytest.approx(635.0),
+        "left": pytest.approx(1014.0),
+        "right": pytest.approx(1014.0),
     }
     # Frame spans are derived mechanical data, not duplicate project authority.
     assert "frame_spans" not in inner

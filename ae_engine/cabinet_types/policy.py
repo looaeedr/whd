@@ -122,6 +122,21 @@ def door_nameplate_center_datum_top(model_name: str | None) -> float | None:
     return None if value is None else float(value)
 
 
+def door_material_frame_width(source, *, frame_width: float, thickness: float) -> float:
+    """Return the canonical Door material FW for the selected cabinet family.
+
+    Most families expose Door FW in material space.  Families such as Receiving
+    expose the formed outside occupation instead and own the conversion locally.
+    """
+    material = float(_call(
+        source, "door_material_frame_width", float(frame_width),
+        frame_width=float(frame_width), thickness=float(thickness),
+    ))
+    if material <= 0:
+        raise ValueError("Door material frame width must be > 0")
+    return material
+
+
 def endcap_depth_comp_t(source) -> float:
     return float(_call(source, "endcap_depth_comp_t", 3.0))
 

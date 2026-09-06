@@ -8,9 +8,11 @@ on:
       - "ae_engine/cabinet_types/policy.py"
       - "ae_engine/cabinet_types/receiving.py"
       - "ae_engine/manufacturing_api.py"
+      - "ae_engine/assembly_placement.py"
       - "gui.py"
       - "tests/test_receiving_door_frame_width_semantics.py"
       - "tests/test_phase6_t06_receiving_fresh_family.py"
+      - ".github/workflows/door-fw-qa.yml"
 
 permissions:
   contents: read
@@ -27,22 +29,73 @@ jobs:
       - name: Install dependencies
         run: python -m pip install pytest -r requirements.txt
       - name: Focused Door FW regression
-        id: pytest
         shell: bash
         env:
           QA_RUN_ID: ${{ github.run_id }}
           QA_HEAD_SHA: ${{ github.sha }}
         run: |
           set +e
+          config_before="$(sha256sum config.ini | awk '{print $1}')"
           python -m pytest -q \
             tests/test_receiving_door_frame_width_semantics.py \
             tests/test_multi_door_layout.py \
             tests/test_phase6_t06_receiving_fresh_family.py \
+            tests/test_phase6_t15_inner_door_panels.py \
+            tests/test_phase6_t17_receiving_inner_door_80.py \
             > door_fw_pytest.log 2>&1
           rc=$?
+          config_after="$(sha256sum config.ini | awk '{print $1}')"
           cat door_fw_pytest.log
-          printf '{"run_id":"%s","head_sha":"%s","pytest_rc":%s}\n' "$QA_RUN_ID" "$QA_HEAD_SHA" "$rc" > door_fw_qa_state.json
+          printf '{"run_id":"%s","head_sha":"%s","pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' \
+            "$QA_RUN_ID" "$QA_HEAD_SHA" "$rc" "$config_before" "$config_after" > door_fw_qa_state.json
+          if [ "$config_before" != "$config_after" ]; then
+            echo "config.ini drift: $config_before -> $config_after"
+            exit 97
+          fi
           exit "$rc"
+      - name: Generate Receiving Door 3D evidence
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import matplotlib
+          matplotlib.use("Agg")
+          import matplotlib.pyplot as plt
+          from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+          from ae_engine.cabinet_types.receiving import apply_family_defaults
+          from ae_engine.cabinet_types import policy as family_policy
+          from ae_engine.assembly_placement import resolve_assembly_placement
+
+          snap = apply_family_defaults({
+              "model": "金庫型", "w": 400.0, "h": 600.0, "d": 250.0,
+              "t": 2.0, "fw": 25.0,
+          })
+          panel = family_policy.derive_inner_door_panels(snap)[0]
+          outer = resolve_assembly_placement(snap, "door_c1_r1")
+          inner = resolve_assembly_placement(snap, "inner_door:upper:panel")
+
+          # Outer finished face is 735 × 1064; inner face derives from the same
+          # canonical outer Door and 50 mm Receiving insets.
+          outer_w, outer_h = 735.0, 1064.0
+          inner_w, inner_h = float(panel.width), float(panel.height)
+
+          def rect(cx, cy, cz, w, h):
+              return [[
+                  (cx-w/2, cy-h/2, cz), (cx+w/2, cy-h/2, cz),
+                  (cx+w/2, cy+h/2, cz), (cx-w/2, cy+h/2, cz),
+              ]]
+
+          fig = plt.figure(figsize=(8, 6))
+          ax = fig.add_subplot(111, projection="3d")
+          ax.add_collection3d(Poly3DCollection(rect(*outer.world_offset, outer_w, outer_h), alpha=0.25))
+          ax.add_collection3d(Poly3DCollection(rect(*inner.world_offset, inner_w, inner_h), alpha=0.5))
+          ax.set_xlim(-450, 450); ax.set_ylim(-600, 850); ax.set_zlim(-100, 380)
+          ax.set_xlabel("X"); ax.set_ylabel("Y"); ax.set_zlabel("Z")
+          ax.set_title("Receiving Door FW semantic check: outer + inner")
+          fig.tight_layout()
+          fig.savefig("door_fw_3d_check.png", dpi=140)
+          PY
       - name: Upload durable QA evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -51,4 +104,5 @@ jobs:
           path: |
             door_fw_pytest.log
             door_fw_qa_state.json
+            door_fw_3d_check.png
           if-no-files-found: warn
