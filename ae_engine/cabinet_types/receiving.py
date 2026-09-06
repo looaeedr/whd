@@ -94,6 +94,48 @@ def default_inner_doors(*, thickness: float, depth: float = BOX_BODY_DEFAULTS["d
     }]
 
 
+def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
+    """Derive one real flat panel for every enabled outer-door inner-door item."""
+    from ae_engine.inner_door_panels import derive_inner_door_panel
+    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells
+
+    data = dict(snapshot or {})
+    columns = list(data.get("door_layout_columns") or ())
+    if not columns or not bool(data.get("multi_door_enabled", False)):
+        return ()
+    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
+    cells = {f"{cell.column_index}:{cell.row_index}": cell for cell in derive_door_layout_cells(normalized)}
+    t = float(data.get("t", 2.0))
+    fw = float(data.get("fw", BOX_BODY_DEFAULTS["fw"]))
+    gap_w = float(data.get("door_gap_w", DOOR_DEFAULTS["door_gap_w"]))
+    gap_h = float(data.get("door_gap_h", DOOR_DEFAULTS["door_gap_h"]))
+
+    result = []
+    seen = set()
+    for item in list(data.get("inner_doors") or ()):
+        if not isinstance(item, dict):
+            continue
+        stable_id = str(item.get("stable_id") or "").strip()
+        cell_key = str(item.get("cell_key") or "").strip()
+        if not stable_id or cell_key not in cells:
+            continue
+        panel_id = f"inner_door:{stable_id}:panel"
+        if panel_id in seen:
+            raise ValueError(f"duplicate inner-door panel stable_id: {panel_id}")
+        seen.add(panel_id)
+        cell = cells[cell_key]
+        outer_w, outer_h = calculate_door_finished_size(
+            w=cell.start_width, h=cell.start_height, t=t, fw=fw,
+            gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
+        )
+        panel_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
+        panel_h = float(outer_h) - INNER_DOOR_INSET_TOP
+        result.append(derive_inner_door_panel(
+            stable_id, cell_key=cell_key, width=panel_w, height=panel_h, thickness=t
+        ))
+    return tuple(result)
+
+
 def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     """Derive receiving inner-door frame spans from canonical Door geometry.
 
