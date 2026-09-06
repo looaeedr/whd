@@ -217,6 +217,12 @@ def _phase6_is_door_part_key(value) -> bool:
     key = str(value or "")
     return key == "door" or re.fullmatch(r"door_c\d+_r\d+", key) is not None
 
+
+def _phase6_is_base_plate_part_key(value) -> bool:
+    key = str(value or "")
+    return key == "base_plate" or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
+
+
 _PHASE6_ASSEMBLY_PLACEMENTS = {
     "box_body": "box_body",
     "head": "top",
@@ -255,6 +261,7 @@ def _phase6_assembly_placement_for_part(snapshot, part_key):
     family = cabinet_family_policy.canonical_family_name(snapshot)
     receiving_derived = (
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
+        or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
         or key.startswith("box_body:divider:")
         or key.startswith("inner_door:")
     )
@@ -375,18 +382,31 @@ def _phase6_sync_authoritative_derived_parts(self):
             )
 
     # Receiving multi-door Base Plates are physical parts owned 1:1 by the
-    # authoritative Door cells. T19 only establishes the physical topology;
-    # per-cell dimensions and assembly placement are resolved by the following
-    # placement work order rather than invented here.
+    # authoritative Door cells.  Their finished-face dimensions are the owning
+    # cell nominal W/H after the existing family shrink policy.
     base_plate_profiles = {}
     if door_rows:
-        canonical_base_profile = workspace.profiles_for(
-            "base_plate",
-            build_standard_part_profiles(snapshot, "base_plate"),
+        columns = tuple(
+            (float(row[0]), tuple(float(v) for v in row[1]))
+            for row in tuple(snapshot.get("door_layout_columns") or ())
         )
-        for row in door_rows:
-            base_key = str(row.part_key).replace("door_", "base_plate_", 1)
-            base_plate_profiles[base_key] = deepcopy(canonical_base_profile)
+        shrink_left = _num(snapshot.get("base_plate_shrink_left", 55), 55)
+        shrink_right = _num(snapshot.get("base_plate_shrink_right", 55), 55)
+        shrink_top = _num(snapshot.get("base_plate_shrink_top", 55), 55)
+        shrink_bottom = _num(snapshot.get("base_plate_shrink_bottom", 55), 55)
+        for cell in derive_door_layout_cells(columns):
+            base_key = door_layout_part_key(cell).replace("door_", "base_plate_", 1)
+            local = dict(snapshot)
+            local_dims = {
+                key: dict(value)
+                for key, value in dict(snapshot.get("part_dimensions") or {}).items()
+            }
+            local_dims[base_key] = {
+                "width": max(1.0, float(cell.start_width) - shrink_left - shrink_right),
+                "height": max(1.0, float(cell.start_height) - shrink_top - shrink_bottom),
+            }
+            local["part_dimensions"] = local_dims
+            base_plate_profiles[base_key] = build_standard_part_profiles(local, base_key)
 
     legacy_base_active = workspace.active_part == "base_plate"
     legacy_base_selected = workspace.selected_part == "base_plate"
@@ -1248,7 +1268,7 @@ def build_standard_part_profiles(snapshot: Mapping[str, object], part_key: str) 
         profiles["X"] = apply_outside_dimension_compensation(profiles["X"], t)
         profiles["Y"] = apply_outside_dimension_compensation(profiles["Y"], t)
         return profiles
-    if part_key == "base_plate":
+    if _phase6_is_base_plate_part_key(part_key):
         bend = snapshot.get("base_plate_bend", 20)
         profiles = {
             "X": _three_segment_profile(bend, w, bend, left_key="base_bend_l", center_key="base_face_w", right_key="base_bend_r"),
@@ -1318,7 +1338,7 @@ def read_standard_part_profiles(part_key, profiles, original_snapshot):
             "door_fold_b": _profile_value(y, "door_fold_b", original_snapshot.get("door_fold_b", 20)),
             "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
         }
-    if part_key == "base_plate":
+    if _phase6_is_base_plate_part_key(part_key):
         vals = [
             _profile_value(x, "base_bend_l", original_snapshot.get("base_plate_bend", 20)),
             _profile_value(x, "base_bend_r", original_snapshot.get("base_plate_bend", 20)),
@@ -1427,7 +1447,7 @@ def _phase6_recalculate_part_dimensions(self):
     dims["head"] = {"width": w, "height": d}
     dims["tail"] = {"width": w, "height": d}
     for key in tuple(dims):
-        if re.fullmatch(r"door_c\d+_r\d+", str(key)):
+        if re.fullmatch(r"door_c\d+_r\d+", str(key)) or re.fullmatch(r"base_plate_c\d+_r\d+", str(key)):
             dims.pop(key, None)
     door_rows = _phase6_door_part_projections(snapshot)
     if door_rows:
@@ -1438,9 +1458,26 @@ def _phase6_recalculate_part_dimensions(self):
         door_w = max(1.0, w - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_w", 3.5), 3.5))
         door_h = max(1.0, h - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_h", 3.5), 3.5))
         dims["door"] = {"width": door_w, "height": door_h}
-    base_w = max(1.0, w - _num(values.get("base_plate_shrink_left", 55), 55) - _num(values.get("base_plate_shrink_right", 55), 55))
-    base_h = max(1.0, h - _num(values.get("base_plate_shrink_top", 55), 55) - _num(values.get("base_plate_shrink_bottom", 55), 55))
+    shrink_left = _num(values.get("base_plate_shrink_left", 55), 55)
+    shrink_right = _num(values.get("base_plate_shrink_right", 55), 55)
+    shrink_top = _num(values.get("base_plate_shrink_top", 55), 55)
+    shrink_bottom = _num(values.get("base_plate_shrink_bottom", 55), 55)
+    base_w = max(1.0, w - shrink_left - shrink_right)
+    base_h = max(1.0, h - shrink_top - shrink_bottom)
+    # Preserve the legacy canonical template metadata for project compatibility;
+    # actual multi-door physical parts are the stable base_plate_cX_rY identities.
     dims["base_plate"] = {"width": base_w, "height": base_h}
+    if door_rows:
+        columns = tuple(
+            (float(row[0]), tuple(float(v) for v in row[1]))
+            for row in tuple(snapshot.get("door_layout_columns") or ())
+        )
+        for cell in derive_door_layout_cells(columns):
+            base_key = door_layout_part_key(cell).replace("door_", "base_plate_", 1)
+            dims[base_key] = {
+                "width": max(1.0, float(cell.start_width) - shrink_left - shrink_right),
+                "height": max(1.0, float(cell.start_height) - shrink_top - shrink_bottom),
+            }
     snapshot["part_dimensions"] = dims
     return dims
 

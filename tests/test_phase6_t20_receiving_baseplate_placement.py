@@ -58,7 +58,9 @@ def test_receiving_dynamic_base_plate_dimensions_are_scoped_to_owning_door_cells
         dims = bridge._phase6_recalculate_part_dimensions(designer)
         assert dims["base_plate_c1_r1"] == {"width": 690.0, "height": 990.0}
         assert dims["base_plate_c1_r2"] == {"width": 690.0, "height": 390.0}
-        assert "base_plate" not in dims
+        # Legacy template metadata remains for T13/project compatibility; it is
+        # not an available physical part after T19 topology materialization.
+        assert dims["base_plate"] == {"width": 690.0, "height": 1490.0}
     finally:
         try:
             if designer is not None:

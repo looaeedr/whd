@@ -52,6 +52,7 @@ _DIVIDER_RE = re.compile(
     r"^box_body:divider:(?P<scope>[^:]+):(?P<axis>VERTICAL|HORIZONTAL):(?P<boundary>.+)$"
 )
 _DOOR_RE = re.compile(r"^door_c(?P<column>\d+)_r(?P<row>\d+)$")
+_BASE_PLATE_RE = re.compile(r"^base_plate_c(?P<column>\d+)_r(?P<row>\d+)$")
 _FRAME_RE = re.compile(r"^inner_door:(?P<door>[^:]+):(?P<side>top|bottom|left|right)_frame$")
 _PANEL_RE = re.compile(r"^inner_door:(?P<door>[^:]+):panel$")
 
@@ -99,6 +100,14 @@ def _door_cell_from_part_key(snapshot: Mapping[str, object], stable_id: str):
     return columns, cell
 
 
+def _base_plate_cell_from_part_key(snapshot: Mapping[str, object], stable_id: str):
+    match = _BASE_PLATE_RE.fullmatch(str(stable_id or ""))
+    if match is None:
+        raise ValueError(f"not an authoritative Base Plate stable id: {stable_id!r}")
+    door_id = f"door_c{match.group('column')}_r{match.group('row')}"
+    return _door_cell_from_part_key(snapshot, door_id)
+
+
 def _receiving_coordinate_contract(snapshot: Mapping[str, object]) -> dict[str, object]:
     from .cabinet_types import policy as cabinet_family_policy
 
@@ -134,6 +143,28 @@ def resolve_outer_door_placement(snapshot: Mapping[str, object], stable_id: str)
         mate_target="box_body:front_opening",
         relationship="OUTER_DOOR",
         placement_kind="receiving_outer_door",
+        semantic_position=position,
+    )
+
+
+def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str) -> AssemblyPlacement:
+    """Resolve one Base Plate to the center of its owning authoritative Door cell.
+
+    Base Plate keeps the legacy vertical local orientation and Z plane.  Only the
+    erroneous whole-box -H/2 shift is replaced by the Door-cell X/Y datum.
+    """
+    columns, cell = _base_plate_cell_from_part_key(snapshot, stable_id)
+    x, y = _door_cell_center(snapshot, cell, columns)
+    position = (float(x), float(y), 0.0)
+    return AssemblyPlacement(
+        stable_id=str(stable_id),
+        parent_assembly_node="box_body",
+        anchor=f"door_layout_cell:{cell.column_index}:{cell.row_index}:base_plate",
+        world_offset=position,
+        rotation=(0.0, 0.0, 0.0),
+        mate_target="box_body:base_plate_plane",
+        relationship="BASE_PLATE",
+        placement_kind="receiving_base_plate",
         semantic_position=position,
     )
 
@@ -368,6 +399,8 @@ def resolve_assembly_placement(snapshot: Mapping[str, object], stable_id: str) -
     key = str(stable_id or "").strip()
     if _DOOR_RE.fullmatch(key):
         return resolve_outer_door_placement(snapshot, key)
+    if _BASE_PLATE_RE.fullmatch(key):
+        return resolve_base_plate_placement(snapshot, key)
     if _DIVIDER_RE.fullmatch(key):
         return resolve_divider_placement(snapshot, key)
     panel = _PANEL_RE.fullmatch(key)

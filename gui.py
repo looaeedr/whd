@@ -1542,6 +1542,7 @@ class BoxCalculatorGUI:
         features = tuple(data.get("features") or ())
         face_features = data.get("face_features") or {}
         door_cell = None
+        base_plate_cell = None
         if key.startswith("door_c"):
             columns = tuple(
                 (float(row[0]), tuple(float(value) for value in row[1]))
@@ -1558,6 +1559,23 @@ class BoxCalculatorGUI:
                 raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
             w = float(door_cell.start_width)
             h = float(door_cell.start_height)
+        elif key.startswith("base_plate_c"):
+            columns = tuple(
+                (float(row[0]), tuple(float(value) for value in row[1]))
+                for row in tuple(data.get("door_layout_columns") or ())
+            )
+            if not columns:
+                raise ValueError(f"底板缺少 authoritative multi-door topology: {key}")
+            owner_door_key = key.replace("base_plate_", "door_", 1)
+            base_plate_cell = next(
+                (cell for cell in derive_door_layout_cells(columns)
+                 if door_layout_export_filename(cell).removesuffix(".dxf") == owner_door_key),
+                None,
+            )
+            if base_plate_cell is None:
+                raise ValueError(f"底板 stable_id 不存在於 authoritative topology: {key}")
+            w = float(base_plate_cell.start_width)
+            h = float(base_plate_cell.start_height)
 
         def payload_policy(part):
             resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
@@ -1571,7 +1589,8 @@ class BoxCalculatorGUI:
                 structure_state=data.get("box_body_structure"),
             )
 
-        policy = payload_policy("door" if door_cell is not None else key)
+        policy_part = "door" if door_cell is not None else ("base_plate" if base_plate_cell is not None else key)
+        policy = payload_policy(policy_part)
 
         context = ManufacturingContext(draw_stock=False)
         if key == "box_body":
@@ -1655,6 +1674,7 @@ class BoxCalculatorGUI:
                     "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
                     "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
                     "base_plate_bend": float(data.get("base_plate_bend", 20)),
+                    "model": model,
                 },
                 features=features, corner_policy=policy,
             )
