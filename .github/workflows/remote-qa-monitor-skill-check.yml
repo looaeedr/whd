@@ -32,7 +32,7 @@ jobs:
           PY
       - name: Verify rule wiring
         run: |
-          grep -q 'name: remote-qa-monitoring' .agents/skills/engineering/remote-qa-monitoring/SKILL.md
-          grep -q 'remote-qa-monitoring' .agents/skills/skill_registry.json
-          grep -q 'remote-qa-monitoring' .agents/skills/engineering/派工/SKILL.md
-          grep -q 'remote-qa-monitoring' AGENTS.md
+          grep -q 'name: monitoring-remote-qa' .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+          grep -q 'monitoring-remote-qa' .agents/skills/skill_registry.json
+          grep -q 'monitoring-remote-qa' .agents/skills/engineering/派工/SKILL.md
+          grep -q 'monitoring-remote-qa' AGENTS.md
