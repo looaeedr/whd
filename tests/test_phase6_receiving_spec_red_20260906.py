@@ -207,3 +207,93 @@ def test_red_rui2_endcap_direction_selectors_are_narrower_than_previous_width_7(
         )
     finally:
         _close(root, designer)
+
+
+
+def _open_live_switch_designer():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    app.baseline_var.set("金庫型")
+    _pump(root)
+    designer = app.open_original_fold_designer()
+    try:
+        designer.root.deiconify()
+        designer.root.geometry("1120x720+0+0")
+    except Exception:
+        pass
+    _pump(root)
+    assert str(designer.baseline_model_var.get()) == "金庫型"
+    return root, app, designer
+
+
+def _selector_values(designer):
+    menu = designer.part_choice_menu
+    end = menu.index("end")
+    values = []
+    for index in range((end if end is not None else -1) + 1):
+        try:
+            values.append((index, str(menu.entrycget(index, "value"))))
+        except Exception:
+            pass
+    return tuple(values)
+
+
+def test_red_live_switch_to_receiving_refreshes_dynamic_door_selector_and_callbacks():
+    import fold_designer_bridge as bridge
+
+    root, _app, designer = _open_live_switch_designer()
+    try:
+        designer.baseline_model_var.set("受電箱")
+        _pump(root)
+
+        doors = _dynamic_doors(designer)
+        assert len(doors) >= 2, (
+            f"live family switch should materialize Receiving Door topology, got {doors!r}"
+        )
+
+        entries = _selector_values(designer)
+        for key in doors:
+            label = bridge._phase6_part_label(key)
+            matches = [index for index, value in entries if value == label]
+            assert matches, (
+                f"live 金庫型→受電箱 switch did not refresh selector for {key} ({label}); "
+                f"selector values={entries!r}"
+            )
+            designer.part_choice_menu.invoke(matches[0])
+            _pump(root)
+            assert designer.active_part_key == key, (
+                f"live-switch selector entry {label} did not activate {key}; "
+                f"active={designer.active_part_key!r}"
+            )
+    finally:
+        _close(root, designer)
+
+
+def test_red_live_switch_to_receiving_rebuilds_three_box_body_piece_input_sections():
+    import fold_designer_bridge as bridge
+
+    root, _app, designer = _open_live_switch_designer()
+    try:
+        designer.activate_part("box_body")
+        bridge._phase6_invalidate_settings_page(designer, "box_body")
+        bridge._phase6_render_settings_context(designer, "box_body")
+        _pump(root)
+
+        designer.baseline_model_var.set("受電箱")
+        _pump(root)
+
+        sections = tuple(dict(getattr(designer, "box_body_piece_input_sections", {}) or {}))
+        assert sections == (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        ), (
+            "live 金庫型→受電箱 switch must immediately rebuild the visible Box Body "
+            f"input sections from Receiving physical pieces; got {sections!r}"
+        )
+    finally:
+        _close(root, designer)
