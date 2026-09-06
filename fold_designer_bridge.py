@@ -1264,12 +1264,8 @@ def _phase6_recalculate_part_dimensions(self):
         door_w = max(1.0, w - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_w", 3.5), 3.5))
         door_h = max(1.0, h - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_h", 3.5), 3.5))
         dims["door"] = {"width": door_w, "height": door_h}
-    if str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
-        base_w = w
-        base_h = h
-    else:
-        base_w = max(1.0, w - _num(values.get("base_plate_shrink_left", 55), 55) - _num(values.get("base_plate_shrink_right", 55), 55))
-        base_h = max(1.0, h - _num(values.get("base_plate_shrink_top", 55), 55) - _num(values.get("base_plate_shrink_bottom", 55), 55))
+    base_w = max(1.0, w - _num(values.get("base_plate_shrink_left", 55), 55) - _num(values.get("base_plate_shrink_right", 55), 55))
+    base_h = max(1.0, h - _num(values.get("base_plate_shrink_top", 55), 55) - _num(values.get("base_plate_shrink_bottom", 55), 55))
     dims["base_plate"] = {"width": base_w, "height": base_h}
     snapshot["part_dimensions"] = dims
     return dims
