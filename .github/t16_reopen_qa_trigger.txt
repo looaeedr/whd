@@ -1,1 +1,1 @@
-run T16 reopened QA
+run combined T11 T16 reopened QA after multi-door oracle fixes
