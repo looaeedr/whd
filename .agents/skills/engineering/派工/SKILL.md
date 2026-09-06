@@ -14,8 +14,9 @@ disable-model-invocation: true
 ## 2. 各階段行為與自動切換觸發條件
 
 ### 階段 1：總控 (PM Mode)
-- **職責**：分析規格、拆解工單（如 T1, T2...），建立驗收測試條件。
-- **自動轉移條件**：當工單定義完成後，直接在同一次回覆中標記 `[轉移至：實作者]`，並自動進入階段 2。
+- **職責**：分析規格、建立需求驗收條件；若需要拆解工單（如 T1, T2...），必須先執行 `.agents/skills/engineering/拆解任務工單/SKILL.md` 的 **RED-first** gate。
+- **拆工單硬閘門**：先按 Requirement 寫並實跑 requirement-level RED，與使用者逐條論證；在 **使用者核准** RED 前，**不得拆解工單**、不得建立 tracker/local ticket，也**不得轉移至：實作者**。RED 核准後才可草擬工單；工單拆法本身仍需使用者第二次核准。
+- **自動轉移條件**：只有在「RED 已核准 + 工單 breakdown 已核准」後，才在同一次回覆中標記 `[轉移至：實作者]`，並自動進入階段 2。若任務本身不需要拆工單，則依該任務自己的設計/驗收核准 gate 決定是否轉移。
 
 ### 階段 2：實作者 (Implementer Mode)
 - **輸出標示**：回覆開頭必須加上 `[當前角色：T1 實作者]`（依實際工單編號替換）。
@@ -127,4 +128,5 @@ Resume 時：
 - [ ] checkpoint / journal 可讓下一回合不靠口頭記憶續工；
 - [ ] 明確包含 checkpoint provenance / execution tree fingerprint，禁止混合狀態續工；
 - [ ] complete_teardown_timeout 明確要求完整 PASS summary，只有點號不得算完成。
+- [ ] 若 PM 要拆解工單，明確引用 `.agents/skills/engineering/拆解任務工單/SKILL.md`，要求 RED-first + 使用者核准，且核准前不得拆解工單、不得轉移至：實作者。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
