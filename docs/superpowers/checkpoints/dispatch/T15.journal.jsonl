@@ -1,0 +1,6 @@
+{"task_id":"T15","role":"T15 實作者","event":"preflight","status":"complete"}
+{"task_id":"T15","role":"T15 實作者","event":"red","detail":"missing panel derivation/manufacturing/checkbox","status":"complete"}
+{"task_id":"T15","role":"T15 實作者","event":"local_green","passed":38,"failed":0,"status":"complete"}
+{"task_id":"T15","role":"總控審查","event":"remote_patch","run_id":34018802269,"conclusion":"success","commit":"98bb9b3420c682df20472dbb673035565eb2ad49","status":"complete"}
+{"task_id":"T15","role":"總控審查","event":"remote_targeted_qa","run_id":34018888166,"passed":11,"failed":0,"conclusion":"success","status":"complete"}
+{"task_id":"T15","role":"總控審查","event":"temporary_tools_cleanup","status":"complete"}
