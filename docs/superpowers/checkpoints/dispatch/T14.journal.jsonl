@@ -1,0 +1,7 @@
+{"ticket":"T14","role":"worker","event":"red","run_id":34022742938,"result":"3 failed at missing box_body_piece_input_sections seam"}
+{"ticket":"T14","role":"worker","event":"green","commit":"d80fc8446cbf085835b56100a2f8680630e3a61d","result":"physical piece projections rendered as per-piece input LabelFrames; edits retain existing structure state"}
+{"ticket":"T14","role":"qa","event":"focused","run_id":34022955136,"result":"3 R11 + 3 R10 = 6 PASS / 0 FAIL"}
+{"ticket":"T14","role":"qa","event":"config_invariant","result":"restored canonical CRLF bytes only; settings values unchanged"}
+{"ticket":"T14","role":"qa","event":"remote_final","run_id":34024564540,"head_sha":"094bb3b2c6a9be7791d5ef5b848785fb7e98a2be","result":"14+16+20 = 50 PASS / 0 FAIL; config canonical"}
+{"ticket":"T14","role":"qa","event":"visual","artifact_id":9986647459,"result":"Receiving physical pieces and input section stable IDs match; no fake child solid"}
+{"ticket":"T14","role":"controller","event":"accepted_pending_cleanup","result":"ready for one-shot cleanup, drift audit, issue close"}
