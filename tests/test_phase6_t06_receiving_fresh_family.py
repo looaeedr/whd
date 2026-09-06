@@ -88,7 +88,7 @@ def test_main_gui_fresh_receiving_switch_sets_wrap_overlay_and_1100_500_layout()
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
-def test_receiving_family_round_trip_keeps_explicit_runtime_overrides():
+def test_receiving_family_round_trip_reapplies_receiving_defaults():
     import tkinter as tk
     import gui
     from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part, set_part_edge_relation
@@ -108,9 +108,9 @@ def test_receiving_family_round_trip_keeps_explicit_runtime_overrides():
         app.baseline_var.set("受電箱")
         root.update_idletasks(); root.update()
 
-        assert float(app.w_var.get()) == 820.0
-        assert app.get_door_layout_columns() == [(820.0, [1000.0, 600.0])]
-        assert edge_relation_for_part(app.assembly_joint_state, "head", "LEFT") is AssemblyJointRelation.WRAP
+        assert float(app.w_var.get()) == 800.0
+        assert app.get_door_layout_columns() == [(800.0, [1100.0, 500.0])]
+        assert edge_relation_for_part(app.assembly_joint_state, "head", "LEFT") is AssemblyJointRelation.INSERT
         assert edge_relation_for_part(app.assembly_joint_state, "head", "BOTTOM") is AssemblyJointRelation.WRAP
     finally:
         try:
