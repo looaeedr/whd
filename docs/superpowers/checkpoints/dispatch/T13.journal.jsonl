@@ -1,0 +1,8 @@
+{"task_id":"T13","role":"T13 實作者","event":"red","approved_red":["R01","R02"],"result":"5/5 initial contract assertions red on legacy Receiving shrink=0 paths","status":"complete"}
+{"task_id":"T13","role":"T13 實作者","event":"headless_geometry","passed":10,"failed":0,"deselected":1,"status":"complete"}
+{"task_id":"T13","role":"T13 實作者","event":"gui_2d_3d","passed":1,"failed":0,"status":"complete"}
+{"task_id":"T13","role":"總控審查","event":"project_cabinet_workspace_xvfb","passed":38,"failed":0,"status":"complete"}
+{"task_id":"T13","role":"總控審查","event":"roundtrip_multipart_t06","passed":17,"failed":0,"status":"complete"}
+{"task_id":"T13","role":"總控審查","event":"fresh_55_save_reload_3d","passed":1,"failed":0,"status":"complete"}
+{"task_id":"T13","role":"總控審查","event":"headless_architecture","passed":13,"failed":0,"status":"complete"}
+{"task_id":"T13","role":"總控審查","event":"harness_note","classification":"DISPLAY=:0 Tk harness failure; Xvfb rerun PASS","production_failure":false,"status":"complete"}
