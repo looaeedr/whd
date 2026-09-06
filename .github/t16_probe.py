@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 
 def bounds(triangles):
     points = [point for tri in triangles or () for point in tri[:3]]
