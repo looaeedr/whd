@@ -7,3 +7,4 @@
 {"ticket":"T14","role":"controller","event":"accepted_pending_cleanup","result":"ready for one-shot cleanup, drift audit, issue close"}
 {"ticket":"T14","role":"qa","event":"cleanup_drift_audit","result":"6 one-shot files absent; accepted-head delta has 0 production/test drift"}
 {"ticket":"T14","role":"controller","event":"accepted","result":"all acceptance gates green; close #15 then dispatch T18"}
+{"ticket":"T14","role":"controller","event":"closed","issue":15,"result":"closed completed; dispatch T18"}
