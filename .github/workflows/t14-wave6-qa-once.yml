@@ -1,0 +1,47 @@
+name: T14 wave6 stale-oracle QA once
+
+on:
+  push:
+    branches: [cleanup/2d-3d-sync]
+    paths:
+      - '.github/t14_wave6_qa_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install QA dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb python3-tk
+          python -m pip install -q pytest matplotlib pillow ezdxf -r requirements.txt
+      - name: Canonical config before
+        run: |
+          sha256sum config.ini | tee /tmp/config_before
+          test "$(sha256sum config.ini | awk '{print $1}')" = "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67"
+      - name: Piece dimensions and child-section scope
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_t03_piece_dimensions.py \
+            tests/test_phase6_t14_box_body_child_sections.py
+      - name: Box Body structure and R10 guards
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_box_body_structure.py \
+            tests/test_phase6_receiving_multipart_integration.py \
+            tests/test_phase6_four_regressions.py::test_real_structure_selector_commits_defaults_and_changes_3d_piece_topology \
+            tests/test_phase6_four_regressions.py::test_receiving_structure_selector_is_family_locked_by_model_source_of_truth
+      - name: Canonical config after
+        run: |
+          sha256sum config.ini | tee /tmp/config_after
+          diff -u /tmp/config_before /tmp/config_after
