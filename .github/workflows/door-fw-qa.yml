@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: python -m pip install pytest -r requirements.txt
+        run: python -m pip install pytest matplotlib -r requirements.txt
       - name: Focused Door FW regression
         shell: bash
         env:
