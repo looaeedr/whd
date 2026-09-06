@@ -1871,12 +1871,8 @@ class BoxCalculatorGUI:
         w, h, d, t, fw = snapshot["w"], snapshot["h"], snapshot["d"], snapshot["t"], snapshot["fw"]
         door_w = max(1.0, w - (fw + 2.0 * t) * 2.0 - snapshot["door_gap_w"] * 2.0)
         door_h = max(1.0, h - (fw + 2.0 * t) * 2.0 - snapshot["door_gap_h"] * 2.0)
-        if str(snapshot.get("model") or "").strip() in {"受電箱", "RECEIVING"}:
-            base_w = w
-            base_h = h
-        else:
-            base_w = max(1.0, w - snapshot["base_plate_shrink_left"] - snapshot["base_plate_shrink_right"])
-            base_h = max(1.0, h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"])
+        base_w = max(1.0, w - snapshot["base_plate_shrink_left"] - snapshot["base_plate_shrink_right"])
+        base_h = max(1.0, h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"])
         try:
             layers = max(1, int(self.indicator_l_var.get()))
             groups = [int(self.indicator_layer_g_vars[i].get()) for i in range(layers)]
