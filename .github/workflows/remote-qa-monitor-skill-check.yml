@@ -28,7 +28,7 @@ jobs:
               changed_files=[".github/workflows/t17-qa-once.yml"],
           )
           print("REQUIRED", required)
-          assert "remote-qa-monitoring" in required
+          assert "monitoring-remote-qa" in required
           PY
       - name: Verify rule wiring
         run: |
