@@ -1,1 +1,1 @@
-run T18 durable release gate wave3 with runtime-cut resilience
+run T18 durable release gate after T11 wave3 and T16 stale-oracle corrections
