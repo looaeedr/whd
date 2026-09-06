@@ -31,6 +31,12 @@ jobs:
           test "$(sha256sum config.ini | awk '{print $1}')" = "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67"
       - name: Multi-door GUI scope
         run: xvfb-run -a python -m pytest -q tests/test_multi_door_gui.py
+      - name: T11 family contract guards
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_t11_family_preset_switching.py \
+            tests/test_phase6_t11_integration_matrix.py \
+            tests/test_phase6_t06_receiving_fresh_family.py
       - name: T16 placement and roundtrip guards
         run: |
           xvfb-run -a python -m pytest -q             tests/test_phase6_t16_receiving_placement.py             tests/test_phase6_2d_3d_round_trip.py             tests/test_phase6_receiving_multipart_integration.py
