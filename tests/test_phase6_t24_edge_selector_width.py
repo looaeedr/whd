@@ -25,6 +25,9 @@ def test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still
         app.baseline_var.set("受電箱")
         _pump(root)
         designer=app.open_original_fold_designer()
+        designer._ui_text_size_change_callback = lambda value: app._apply_ui_text_size_preference(
+            value, persist=False, notify_designer=False
+        )
         designer.activate_part(part)
         designer.ui_text_size_var.set("中")
         _pump(root)
