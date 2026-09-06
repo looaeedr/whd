@@ -2084,7 +2084,11 @@ def _phase6_on_baseline_model_changed(self, *_args):
     if hasattr(self, "bend_ui"):
         self.bend_ui._phase6_refresh_symmetry_bar()
     _phase6_sync_authoritative_derived_parts(self)
-    _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
+    refresh_parts = getattr(self, "_refresh_part_buttons", None)
+    if callable(refresh_parts) and getattr(self, "part_choice_menu", None) is not None:
+        refresh_parts()
+    else:
+        _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
     _phase6_refresh_persistent_structure_controls(self)
 
     # 快取頁面依 _corner_editable 決定是否建立可編輯截角控制項。
@@ -4143,6 +4147,18 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
             if row == 2:
                 return "下門"
         return f"第{col}欄第{row}門"
+    base_match = re.fullmatch(r"base_plate_c(\d+)_r(\d+)", key)
+    if base_match:
+        col, row = (int(base_match.group(1)), int(base_match.group(2)))
+        snap = dict(snapshot or {})
+        model = str(snap.get("model") or snap.get("baseline_model") or snap.get("cabinet_family") or "")
+        columns = list(snap.get("door_layout_columns") or ())
+        if model == "受電箱" and len(columns) == 1 and col == 1:
+            if row == 1:
+                return "上門底板"
+            if row == 2:
+                return "下門底板"
+        return f"第{col}欄第{row}門底板"
     if key.startswith("box_body:divider:"):
         axis = "橫向" if ":HORIZONTAL:" in key else ("直向" if ":VERTICAL:" in key else "")
         return f"箱身中隔（{axis}）" if axis else "箱身中隔"
@@ -7820,6 +7836,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
 def _fix11_refresh_part_buttons(self):
     self.part_buttons = {}
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     menu = getattr(self, "part_choice_menu", None)
     if menu is not None:
         menu.delete(0, original.tk.END)
@@ -7830,10 +7847,11 @@ def _fix11_refresh_part_buttons(self):
             command=lambda: _phase6_show_assembly(self),
         )
         for key in self.available_parts:
+            label = _phase6_part_label(key, snapshot=snapshot)
             menu.add_radiobutton(
-                label=_phase6_part_label(key),
+                label=label,
                 variable=self.part_var,
-                value=_phase6_part_label(key),
+                value=label,
                 command=lambda k=key: self.activate_part(k),
             )
     mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
@@ -7842,7 +7860,7 @@ def _fix11_refresh_part_buttons(self):
         if mode == "assembly":
             self.part_var.set("組合體")
         elif active in self.available_parts:
-            self.part_var.set(_phase6_part_label(active))
+            self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
     self._refresh_part_button_states()
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
