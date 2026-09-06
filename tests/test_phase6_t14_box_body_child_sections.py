@@ -110,6 +110,20 @@ def test_r11_real_structure_switch_and_project_reload_rebuild_child_sections_fro
             "final_geometry": {},
         })
 
+        # Project reload is a second application lifecycle. Tear down the first
+        # designer/root before creating it so Tk modal grabs cannot leak across
+        # independent application instances in the same pytest process.
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        designer = None
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+
         root2 = tk.Tk(); root2.withdraw()
         app2 = gui.BoxCalculatorGUI(root2)
         designer2 = app2.load_phase6_project(path, open_designer=True)
