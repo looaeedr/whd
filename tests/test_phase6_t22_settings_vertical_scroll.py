@@ -26,6 +26,9 @@ def _open_medium_unlocked_head():
     app.baseline_var.set("受電箱")
     _pump(root)
     designer = app.open_original_fold_designer()
+    designer._ui_text_size_change_callback = lambda value: app._apply_ui_text_size_preference(
+        value, persist=False, notify_designer=False
+    )
     designer.root.deiconify()
     designer.root.geometry("1120x720+0+0")
     designer.activate_part("head")
