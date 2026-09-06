@@ -2914,62 +2914,148 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
     frame = original.ttk.LabelFrame(parent, text="結構參數", padding=5)
     frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
 
+    # T14: this is a UI projection of the already-resolved physical Box Body
+    # pieces.  The stable IDs and dimensions come from render_data.pieces;
+    # edits still write the single canonical box_body_structure_state.
+    self.box_body_piece_input_host = original.ttk.Frame(frame)
+    self.box_body_piece_input_host.grid(row=0, column=0, columnspan=4, sticky="ew")
+    self.box_body_piece_input_sections = {}
+    self.box_body_piece_input_vars = {}
+    self.box_body_piece_input_entries = {}
+
     cfg = state["configs"][active.value]
-    row = 0
     total_w = _phase6_box_structure_w(self)
+    piece_values = {}
     if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
         left, right = resolve_two_piece_widths(state, total_w)
-        _phase6_structure_entry(frame, row, "W 左", left, lambda v: _phase6_apply_box_structure_numeric(self, active, "left", v)); row += 1
-        _phase6_structure_entry(frame, row, "W 右", right, lambda v: _phase6_apply_box_structure_numeric(self, active, "right", v)); row += 1
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
     elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
         left, middle, right = resolve_three_piece_widths(state, total_w)
-        for label, field, value in (("W 左", "left", left), ("W 中", "middle", middle), ("W 右", "right", right)):
-            _phase6_structure_entry(frame, row, label, value, lambda v, f=field: _phase6_apply_box_structure_numeric(self, active, f, v)); row += 1
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:middle": ("width", "W 包外", middle, "mm", "middle"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
     elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        _phase6_structure_entry(frame, row, "側板後折", cfg.get("side_rear_bend", 15), lambda v: _phase6_apply_box_structure_numeric(self, active, "side_rear_bend", v)); row += 1
-        original.ttk.Label(
-            frame, text=f"側板成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm"
-        ).grid(row=row, column=0, columnspan=3, sticky="w", pady=2); row += 1
-        _phase6_structure_entry(frame, row, "後面板寬補償", cfg.get("back_width_comp_t", 0.5), lambda v: _phase6_apply_box_structure_numeric(self, active, "back_width_comp_t", v), suffix="T"); row += 1
-        back_w = total_w - float(cfg.get("back_width_comp_t", 0.5)) * float((getattr(self, "_settings_values", {}) or {}).get("t", 2.0))
-        original.ttk.Label(frame, text=f"後面板成型寬：{_setting_number_text(back_w)} mm").grid(row=row, column=0, columnspan=3, sticky="w", pady=2); row += 1
+        rear_bend = float(cfg.get("side_rear_bend", 15))
+        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
+        piece_values = {
+            "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+            "box_body:back": ("width_comp_t", "寬補償", width_comp_t, "T", "back_width_comp_t"),
+            "box_body:right_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+        }
 
+    projections = ()
     if active is not BoxBodyStructureType.INTEGRAL:
         try:
             render_data = _phase6_query_final_render_data(self)
-            role_labels = {
-                "left": "左箱身", "middle": "中箱身", "right": "右箱身",
-                "left_side": "左側板", "back": "後面板", "right_side": "右側板",
-            }
-            for piece in tuple(getattr(render_data, "pieces", ()) or ()):
-                formed_w, formed_h = piece.formed_outer_dimensions
-                material_w, material_h = piece.material_dimensions
-                label = role_labels.get(str(piece.role), str(piece.role))
-                original.ttk.Label(
-                    frame,
-                    text=(
-                        f"{label}｜包外尺寸：{_setting_number_text(formed_w)} × {_setting_number_text(formed_h)} mm"
-                        f"；料尺寸：{_setting_number_text(material_w)} × {_setting_number_text(material_h)} mm"
-                    ),
-                ).grid(row=row, column=0, columnspan=4, sticky="w", pady=2)
-                row += 1
+            projections = _phase6_box_body_piece_dimension_projections(render_data)
         except Exception as exc:
             original.ttk.Label(
-                frame, text=f"逐片尺寸：無法解析（{exc}）", foreground="#b45309"
-            ).grid(row=row, column=0, columnspan=4, sticky="w", pady=2)
-            row += 1
+                self.box_body_piece_input_host,
+                text=f"逐片尺寸：無法解析（{exc}）",
+                foreground="#b45309",
+            ).pack(fill=original.tk.X, pady=2)
 
+    for projection in projections:
+        part_key = str(projection.part_key)
+        sub = original.ttk.LabelFrame(
+            self.box_body_piece_input_host, text=projection.label, padding=4
+        )
+        sub._phase6_part_key = part_key
+        sub.pack(fill=original.tk.X, pady=(2, 4))
+        self.box_body_piece_input_sections[part_key] = sub
+        self.box_body_piece_input_vars[part_key] = {}
+        self.box_body_piece_input_entries[part_key] = {}
+
+        spec = piece_values.get(part_key)
+        if spec is not None:
+            field_key, label, value, suffix, state_field = spec
+            original.ttk.Label(sub, text=label).grid(
+                row=0, column=0, sticky="w", padx=(0, 6), pady=2
+            )
+            var = original.tk.StringVar(
+                master=sub, value=_setting_number_text(value)
+            )
+            entry = original.ttk.Entry(
+                sub, textvariable=var, width=10, justify=original.tk.CENTER
+            )
+            entry.grid(row=0, column=1, sticky="w", pady=2)
+            original.ttk.Label(sub, text=suffix).grid(
+                row=0, column=2, sticky="w", padx=(5, 12), pady=2
+            )
+
+            if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
+                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
+                    self, active, f, v
+                )
+            elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
+                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
+                    self, active, f, v
+                )
+            else:
+                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
+                    self, active, f, v
+                )
+            entry.bind("<Return>", lambda _e, cb=callback: cb())
+            entry.bind("<FocusOut>", lambda _e, cb=callback: cb())
+            self.box_body_piece_input_vars[part_key][field_key] = var
+            self.box_body_piece_input_entries[part_key][field_key] = entry
+
+        original.ttk.Label(
+            sub,
+            text=(
+                f"包外尺寸：{_setting_number_text(projection.formed_width)} × "
+                f"{_setting_number_text(projection.formed_height)} mm"
+            ),
+        ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 0))
+        original.ttk.Label(
+            sub,
+            text=(
+                f"料尺寸：{_setting_number_text(projection.blank_width)} × "
+                f"{_setting_number_text(projection.blank_height)} mm"
+            ),
+        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(0, 2))
+
+        if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+            if part_key in {"box_body:left_side", "box_body:right_side"}:
+                original.ttk.Label(
+                    sub,
+                    text=f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm",
+                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
+            elif part_key == "box_body:back":
+                original.ttk.Label(
+                    sub,
+                    text=f"成型寬：{_setting_number_text(projection.formed_width)} mm",
+                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
+
+    # Shared seam/relief settings remain shared canonical structure settings;
+    # they are intentionally not duplicated into one child piece.
+    row = 1
     if active in {BoxBodyStructureType.TWO_PIECE_W_SPLIT, BoxBodyStructureType.THREE_PIECE_W_SPLIT}:
-        _phase6_structure_entry(frame, row, "中央接合折邊", cfg.get("seam_bend", 12), lambda v: _phase6_apply_box_structure_numeric(self, active, "seam_bend", v)); row += 1
+        _phase6_structure_entry(
+            frame, row, "中央接合折邊", cfg.get("seam_bend", 12),
+            lambda v: _phase6_apply_box_structure_numeric(self, active, "seam_bend", v)
+        )
+        row += 1
         seam = float(cfg.get("seam_bend", 12))
         if seam >= 50:
-            original.ttk.Label(frame, text=f"⚠ 中央接合折邊 {seam:g} mm 已達 50 mm 以上，請確認尺寸是否合理。", foreground="#b45309").grid(row=row, column=0, columnspan=4, sticky="w", pady=(2, 4)); row += 1
+            original.ttk.Label(
+                frame,
+                text=f"⚠ 中央接合折邊 {seam:g} mm 已達 50 mm 以上，請確認尺寸是否合理。",
+                foreground="#b45309",
+            ).grid(row=row, column=0, columnspan=4, sticky="w", pady=(2, 4))
+            row += 1
         advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
         advanced_open = bool(advanced_flags.get(active.value, False))
         original.ttk.Button(
             frame, text=("▼ 截角／避讓" if advanced_open else "▶ 截角／避讓"),
             command=lambda t=active: _phase6_toggle_structure_advanced(self, t),
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(5, 0)); row += 1
+        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        row += 1
         advanced = original.ttk.LabelFrame(frame, text="截角／避讓", padding=4)
         if advanced_open:
             advanced.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(3, 0))
@@ -2981,7 +3067,12 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
             ("底板避讓總長", "baseplate_relief_length", cfg.get("baseplate_relief_length", 20), "mm"),
             ("底板單邊留肉", "baseplate_single_side_meat_t", cfg.get("baseplate_single_side_meat_t", 0.5), "T"),
         ):
-            _phase6_structure_entry(advanced, ar, label, value, lambda v, f=field: _phase6_apply_box_structure_numeric(self, active, f, v), suffix=suffix); ar += 1
+            _phase6_structure_entry(
+                advanced, ar, label, value,
+                lambda v, f=field: _phase6_apply_box_structure_numeric(self, active, f, v),
+                suffix=suffix,
+            )
+            ar += 1
     return start_row + 1
 
 
