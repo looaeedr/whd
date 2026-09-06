@@ -290,9 +290,22 @@ def test_real_tk_unified_hole_editor_delete_undo_and_cancel_all_use_session():
             if isinstance(widget, tk.Button) and widget.cget("text") == "取消全部"
         )
 
-        created.selection_set(0)
-        created.event_generate("<<ListboxSelect>>")
-        root.update()
+        def _select_created(index: int) -> None:
+            created.selection_clear(0, tk.END)
+            created.selection_set(index)
+            created.event_generate("<<ListboxSelect>>")
+            # In Windows / headless / unmapped Tkinter environments, virtual <<ListboxSelect>>
+            # events may not be delivered to unmapped/modal child widgets automatically.
+            # Directly invoke the bound callback if needed to guarantee cross-platform test reliability:
+            binding = created.bind("<<ListboxSelect>>")
+            if binding:
+                import re
+                m = re.search(r"\[(\d+on_created_select\b)", binding)
+                if m:
+                    root.tk.call(m.group(1))
+            root.update()
+
+        _select_created(0)
         delete_btn.invoke()
         root.update()
         assert features == []
@@ -304,10 +317,7 @@ def test_real_tk_unified_hole_editor_delete_undo_and_cancel_all_use_session():
 
         # Make a committed mutation, then Cancel All must still restore the
         # original context snapshot captured when the editor opened.
-        created.selection_clear(0, tk.END)
-        created.selection_set(0)
-        created.event_generate("<<ListboxSelect>>")
-        root.update()
+        _select_created(0)
         delete_btn.invoke()
         root.update()
         assert features == []
