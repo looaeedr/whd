@@ -1789,59 +1789,82 @@ def _phase6_on_baseline_model_changed(self, *_args):
     old_snapshot_model = str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or old_model or "").strip()
     self._phase6_input_snapshot["model"] = new_model
     try:
+        if not editable and new_model and new_model != old_snapshot_model:
+            # Every known model switch is a preset transaction.  Use the
+            # immutable factory/startup snapshot supplied by Main GUI as the
+            # base, then let the selected family overlay its own defaults.
+            # ``自訂`` deliberately skips this block and keeps current values.
+            runtime_presets = dict(self._phase6_input_snapshot.get("_runtime_family_presets") or {})
+            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
+            preset_base = dict(preset_runtime.get("settings") or {})
+            if not preset_base:
+                preset_base = dict(self._phase6_input_snapshot.get("factory_defaults") or {})
+            if not preset_base:
+                preset_base = {
+                    key: value for key, value in self._phase6_input_snapshot.items()
+                    if key in getattr(self, "_settings_values", {})
+                }
+            defaults = cabinet_family_policy.apply_fresh_family_defaults(preset_base, new_model)
+            self._phase6_input_snapshot.update(defaults)
+
+            # Known-family runtime fields (structure, multi-door topology, etc.)
+            # belong to the target preset too.  Restore only explicit captured
+            # fields; Receiving then overlays its own fresh-family defaults.
+            if preset_runtime:
+                runtime_field_map = {
+                    "multi_door_enabled": "multi_door_enabled",
+                    "door_layout_columns": "door_layout_columns",
+                    "door_layout_scope": "door_layout_scope",
+                    "door_handle_edges": "door_handle_edges",
+                    "receiving_inner_doors": "inner_doors",
+                    "door_nameplate_center_datum_top": "door_nameplate_center_datum_top",
+                }
+                for source_key, target_key in runtime_field_map.items():
+                    if source_key in preset_runtime:
+                        self._phase6_input_snapshot[target_key] = deepcopy(preset_runtime[source_key])
+            family_values = {
+                key: value for key, value in defaults.items()
+                if key in getattr(self, "_settings_values", {})
+            }
+            _phase6_store_editor_values(self, family_values, notify=True)
+            self.state.w = original.get_int(defaults["w"])
+            self.state.h = original.get_int(defaults["h"])
+            self.state.d = original.get_int(defaults["d"])
+            self.v_w.set(str(self.state.w))
+            self.v_h.set(str(self.state.h))
+            self.v_d.set(str(self.state.d))
+            self._phase6_last_w = self.state.w
+            self._phase6_last_d = self.state.d
+            _phase6_refresh_profiles_from_settings(self)
+
+            fresh_intent = cabinet_family_policy.fresh_assembly_intent(new_model)
+            self._phase6_assembly_type = fresh_intent
+            self._phase6_input_snapshot["assembly_type"] = fresh_intent
+            _phase6_sync_joint_state_for_intent(self, fresh_intent)
+            assembly_var = getattr(self, "assembly_type_var", None)
+            if assembly_var is not None:
+                assembly_var.set(ASSEMBLY_TYPE_LABELS[fresh_intent])
+            self._phase6_endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(
+                {"model": new_model}
+            )
+            self._phase6_input_snapshot["endcap_bottom_wrap"] = deepcopy(
+                self._phase6_endcap_bottom_wrap_state
+            )
+
         if new_model == "受電箱":
             if old_snapshot_model != "受電箱":
                 self._phase6_non_receiving_structure_state = self.designer_workspace.box_body_structure_state()
-                # Selecting the receiving family is an explicit family change,
-                # so apply its operator defaults to the live W/H/D/settings
-                # instead of changing only the topology label.
-                defaults = cabinet_family_policy.apply_fresh_family_defaults(
-                    self._phase6_input_snapshot, new_model
-                )
-                self._phase6_input_snapshot.update(defaults)
-                family_values = {
-                    key: value for key, value in defaults.items()
-                    if key in getattr(self, "_settings_values", {})
-                }
-                _phase6_store_editor_values(self, family_values, notify=True)
-                # The currently active BoxBody editor still owns legacy v_w/v_h/v_d
-                # and Fold Chain controls. Rebase those immediately as part of
-                # the same family transaction; otherwise the next part switch
-                # saves the stale vault 400/600/250 values back over the new
-                # receiving defaults.
-                self.state.w = original.get_int(defaults["w"])
-                self.state.h = original.get_int(defaults["h"])
-                self.state.d = original.get_int(defaults["d"])
-                self.v_w.set(str(self.state.w))
-                self.v_h.set(str(self.state.h))
-                self.v_d.set(str(self.state.d))
-                self._phase6_last_w = self.state.w
-                self._phase6_last_d = self.state.d
-                _phase6_refresh_profiles_from_settings(self)
-                # 2026-09-03 receiving contract: a *fresh* family switch
-                # materializes 包覆貼外 as the canonical intent. Saved project
-                # payloads are restored by the project-load path and do not use
-                # this fresh-default transaction as migration truth.
-                fresh_intent = cabinet_family_policy.fresh_assembly_intent(new_model)
-                self._phase6_assembly_type = fresh_intent
-                self._phase6_input_snapshot["assembly_type"] = fresh_intent
-                _phase6_sync_joint_state_for_intent(self, fresh_intent)
-                assembly_var = getattr(self, "assembly_type_var", None)
-                if assembly_var is not None:
-                    assembly_var.set(ASSEMBLY_TYPE_LABELS[fresh_intent])
-                self._phase6_endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(
-                    {"model": new_model}
-                )
-                self._phase6_input_snapshot["endcap_bottom_wrap"] = deepcopy(
-                    self._phase6_endcap_bottom_wrap_state
-                )
             structure = cabinet_family_policy.resolve_box_body_structure_state(
                 new_model, self.designer_workspace.box_body_structure_state()
             )
             self.designer_workspace.set_box_body_structure_state(structure)
             self._phase6_input_snapshot["box_body_structure"] = deepcopy(structure)
         elif old_snapshot_model == "受電箱":
-            previous = getattr(self, "_phase6_non_receiving_structure_state", None)
+            runtime_presets = dict(self._phase6_input_snapshot.get("_runtime_family_presets") or {})
+            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
+            previous = preset_runtime.get("box_body_structure")
+            if previous is None:
+                previous = getattr(self, "_phase6_non_receiving_structure_state", None)
             if previous:
                 self.designer_workspace.set_box_body_structure_state(previous)
                 self._phase6_input_snapshot["box_body_structure"] = deepcopy(previous)
