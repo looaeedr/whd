@@ -405,6 +405,7 @@ def test_multi_door_overview_draws_only_each_cells_own_holes():
     try:
         root.deiconify()
         root.geometry("1200x900")
+        app.baseline_var.set("自訂")
         app.w_var.set("1100")
         app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
@@ -412,7 +413,6 @@ def test_multi_door_overview_draws_only_each_cells_own_holes():
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.baseline_var.set("")
         app.door_layout_features["0:0"] = [
             CircleFeature(30.0, FeatureAnchor.PANEL_CENTER, Vec2(0.0, 0.0))
         ]
@@ -435,6 +435,7 @@ def test_multi_door_export_keeps_user_holes_owned_by_their_cell(tmp_path):
 
     root, app = make_app()
     try:
+        app.baseline_var.set("自訂")
         app.w_var.set("1100")
         app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
@@ -442,7 +443,6 @@ def test_multi_door_export_keeps_user_holes_owned_by_their_cell(tmp_path):
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.baseline_var.set("")
         app.door_layout_features["0:0"] = [
             CircleFeature(30.0, FeatureAnchor.PANEL_CENTER, Vec2(35.0, 0.0))
         ]
@@ -461,6 +461,7 @@ def test_multi_door_export_keeps_indicator_settings_owned_by_their_cell(tmp_path
 
     root, app = make_app()
     try:
+        app.baseline_var.set("自訂")
         app.w_var.set("1100")
         app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
@@ -468,7 +469,6 @@ def test_multi_door_export_keeps_indicator_settings_owned_by_their_cell(tmp_path
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.baseline_var.set("")
         state = app._door_layout_indicator_state_for_key("0:0")
         state.update(mode="indicator", enabled=True, box_enabled=False, layers=1,
                      groups=[1, 2, 2, 2, 2, 2], offset_x=0.0, offset_y=0.0)
@@ -1016,6 +1016,7 @@ def test_multi_door_indicator_box_mode_passes_own_centered_cutout_to_door_export
     root, app = make_app()
     captured = {}
     try:
+        app.baseline_var.set("自訂")
         app.w_var.set("1100"); app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
         app.set_door_layout_columns([(600, [600, 500, 700]), (500, [800, 1000])])
@@ -1023,7 +1024,6 @@ def test_multi_door_indicator_box_mode_passes_own_centered_cutout_to_door_export
             "mode": "indicator_box", "layers": 1, "groups": [1,2,2,2,2,2],
             "offset_x": 0.0, "offset_y": 0.0, "is_box_dist": False,
         })
-        app.baseline_var.set("")
         def fake_export(spec, filepath, context):
             captured[str(filepath)] = spec
         monkeypatch.setattr(app, "_export_authoritative_part", fake_export)
@@ -1113,10 +1113,10 @@ def test_multi_door_export_uses_selected_door_baseline_when_available(monkeypatc
     root, app = make_app()
     captured = []
     try:
+        app.baseline_var.set("金庫型")
         app.w_var.set("1100"); app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
         app.set_door_layout_columns([(600, [600, 500, 700]), (500, [800, 1000])])
-        app.baseline_var.set("金庫型")
         monkeypatch.setattr(app, "_export_authoritative_part", lambda spec, fp, ctx: captured.append((fp, spec)))
         app.export_multi_door_layout_dxfs(str(tmp_path), app.get_float_values(), draw_stock=False)
         assert len(captured) == 5
@@ -1129,10 +1129,10 @@ def test_multi_door_export_uses_selected_door_baseline_when_available(monkeypatc
 def test_multi_door_editor_shows_explicit_baseline_source_status(monkeypatch):
     root, app = make_app()
     try:
+        app.baseline_var.set("金庫型")
         app.w_var.set("1100"); app.h_var.set("1800")
         app.multi_door_enabled_var.set(True)
         app.set_door_layout_columns([(600, [600, 500, 700]), (500, [800, 1000])])
-        app.baseline_var.set("金庫型")
         monkeypatch.setattr(gui.ae, "has_baseline_part", lambda model, filename: True)
         monkeypatch.setattr(gui.ae, "baseline_source_label", lambda model, filename: "基準檔：金庫型/門.dxf")
         app.open_door_layout_cell_editor(0, 0)
