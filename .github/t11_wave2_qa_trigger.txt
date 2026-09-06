@@ -1,1 +1,0 @@
-run T11 stale-oracle wave2 QA
