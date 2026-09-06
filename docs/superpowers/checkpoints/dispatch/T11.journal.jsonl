@@ -3,3 +3,5 @@
 {"task_id":"T11","role":"T11 實作者","event":"green_batch_1","tests":21,"passed":21,"failed":0,"log":"logs/t11/t11_gui_roundtrip.log","status":"complete"}
 {"task_id":"T11","role":"總控審查","event":"green_batch_2","tests":22,"passed":22,"failed":0,"log":"logs/t11/t11_existing_integrity.log","status":"complete"}
 {"task_id":"T11","role":"總控審查","event":"config_integrity","sha256":"980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67","unchanged":true,"status":"complete"}
+{"task_id":"T11","role":"T18 release gate","event":"t18_reopen_stale_oracle","source_run":34024938119,"result":"2 stale box-body GUI oracles; production correct","status":"complete"}
+{"task_id":"T11","role":"T11 QA","event":"reopen_green","run_id":34025269614,"passed":26,"failed":0,"production_changes":0,"status":"complete"}
