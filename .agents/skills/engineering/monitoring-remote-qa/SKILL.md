@@ -36,3 +36,15 @@ Remote QA is a monitored condition loop, not a fire-and-forget action. Triggerin
 - Ending a response because the run is still executing even though monitoring tools are available.
 - Polling only the run status and never checking which job/step failed.
 - Closing the ticket before temporary workflow cleanup and durable state are verified remotely.
+
+
+## Runtime-cut resilience
+
+聊天／工具 Runtime 的執行時間窗不是 remote QA 的生命週期 owner。長遠端 QA 必須設計成 **controller-independent**：
+
+1. **Remote run 自己續跑**：durable runner 的 exit 75/checkpoint 必須由同一 GitHub Actions job / remote controller 自動 resume，同一 journal 直到 terminal state；不得要求聊天端下一次 poll 才啟動下一批。
+2. **每輪 run 必須自帶 resume evidence**：至少上傳或落盤 `run_id`、`head_sha`、collection SHA/count、headless/xvfb state、journal、config/tree fingerprint、unresolved failed/timeout nodeids。
+3. **遠端可見狀態**：長 gate 應在 `if: always()` 終態 step 將 resumable summary 寫到對應 GitHub Issue / job summary。聊天被切後，下一個 Runtime 可直接從 Issue + artifact 恢復，不依賴前一回合文字。
+4. **聊天 polling 只做觀測，不做驅動**：即使 assistant poll 中斷，已觸發的 remote job 必須繼續到自己的 terminal state；不得把「下一次 ChatGPT 回合」當遠端 runner 的 scheduler。
+5. **terminal failure 也要 durable**：failure/cancel/timeout 仍必須 `always()` 上傳 journal/state，讓下一 Runtime 精確定位 owning ticket，不重跑已完成證據。
+6. **恢復順序**：取得控制權 → 讀最新 durable run_id/head_sha → 讀 terminal status → 下載 artifact/journal → 分類 blocker → 才決定修正/重跑。禁止先重 trigger。
