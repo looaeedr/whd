@@ -59,6 +59,41 @@ DEFAULT_INNER_DOOR_ID = "upper"
 INNER_DOOR_INSET_LEFT = 50.0
 INNER_DOOR_INSET_RIGHT = 50.0
 INNER_DOOR_INSET_TOP = 50.0
+INNER_DOOR_INSET_BOTTOM = 0.0
+
+
+def assembly_coordinate_contract(*, depth: float, thickness: float) -> dict[str, object]:
+    """Return the Receiving front/inward assembly datum contract.
+
+    The door plane is derived from the physical front skin of the Receiving
+    box body plus half a door sheet thickness. It is intentionally expressed
+    this way rather than as a consumer-side depth/2 shortcut so downstream
+    placements share the same family coordinate owner.
+    """
+    d = float(depth)
+    t = float(thickness)
+    if d <= 0 or t <= 0:
+        raise ValueError("Receiving assembly depth/thickness must be > 0")
+    body_front_skin = d / 2.0 - t / 2.0
+    outer_door_plane = body_front_skin + t / 2.0
+    return {
+        "front_axis": "Z",
+        "outward_sign": 1.0,
+        "body_front_skin": body_front_skin,
+        "outer_door_plane": outer_door_plane,
+        "outward_vector": (0.0, 0.0, 1.0),
+        "inward_vector": (0.0, 0.0, -1.0),
+    }
+
+
+def inner_door_insets() -> dict[str, float]:
+    """Return Receiving inner-door face insets in the outer-door plane."""
+    return {
+        "left": float(INNER_DOOR_INSET_LEFT),
+        "right": float(INNER_DOOR_INSET_RIGHT),
+        "top": float(INNER_DOOR_INSET_TOP),
+        "bottom": float(INNER_DOOR_INSET_BOTTOM),
+    }
 
 
 def default_door_layout_columns() -> list[list[object]]:
