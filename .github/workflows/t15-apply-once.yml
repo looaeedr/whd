@@ -5,6 +5,7 @@ on:
     branches: [cleanup/2d-3d-sync]
     paths:
       - '.github/t15_apply_patch.py'
+      - '.github/t15_guard_patch.py'
 
 permissions:
   contents: write
@@ -25,8 +26,10 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y xvfb python3-tk
           python -m pip install -q pytest matplotlib -r requirements.txt
-      - name: Apply T15 anchored patch
-        run: python .github/t15_apply_patch.py
+      - name: Apply T15 anchored patches
+        run: |
+          python .github/t15_apply_patch.py
+          python .github/t15_guard_patch.py
       - name: Compile changed production
         run: python -m py_compile gui.py fold_designer_bridge.py ae_engine/manufacturing_api.py ae_engine/inner_door_panels.py ae_engine/cabinet_types/receiving.py ae_engine/cabinet_types/policy.py
       - name: Run T15 and guard gates
