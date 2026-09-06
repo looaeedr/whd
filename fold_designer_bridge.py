@@ -585,6 +585,112 @@ def _phase6_resolve_profile_key(active_dict: Mapping[str, object], requested: ob
 import fold_designer_original as original
 
 
+def _phase6_box_symmetry_allowed(owner) -> bool:
+    """Resolve the current family symmetry capability from live/snapshot state."""
+    snapshot = dict(getattr(owner, "_phase6_input_snapshot", {}) or {})
+    model = str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
+    model_var = getattr(owner, "baseline_model_var", None)
+    if model_var is not None:
+        try:
+            live = str(model_var.get() or "").strip()
+        except Exception:
+            live = ""
+        if live:
+            model = live
+    return cabinet_family_policy.box_body_symmetry_allowed(model)
+
+
+def _phase6_legacy_symmetry_widgets(owner, *, exclude=None):
+    """Capture original Designer symmetry widgets so Receiving can hide them too."""
+    cached = getattr(owner, "_phase6_legacy_symmetry_widgets", None)
+    if cached is not None:
+        return cached
+    found = []
+
+    def walk(parent):
+        try:
+            children = tuple(parent.winfo_children())
+        except Exception:
+            return
+        for child in children:
+            if child is exclude:
+                continue
+            try:
+                text = str(child.cget("text") or "")
+            except Exception:
+                text = ""
+            if text == "對稱折彎":
+                try:
+                    info = dict(child.pack_info()) if child.winfo_manager() == "pack" else None
+                    siblings = list(child.master.pack_slaves()) if info is not None else []
+                    idx = siblings.index(child) if child in siblings else -1
+                    next_widget = siblings[idx + 1] if idx >= 0 and idx + 1 < len(siblings) else None
+                except Exception:
+                    info = None
+                    next_widget = None
+                found.append((child, info, next_widget))
+            walk(child)
+
+    left = getattr(owner, "left", None)
+    if left is not None:
+        walk(left)
+    owner._phase6_legacy_symmetry_widgets = found
+    return found
+
+
+def _phase6_set_legacy_symmetry_visibility(owner, allowed: bool, *, exclude=None):
+    for widget, info, next_widget in _phase6_legacy_symmetry_widgets(owner, exclude=exclude):
+        try:
+            managed = bool(widget.winfo_manager())
+        except Exception:
+            continue
+        if allowed:
+            if not managed and info is not None:
+                opts = {k: v for k, v in info.items() if k != "in"}
+                try:
+                    if next_widget is not None and next_widget.winfo_manager():
+                        widget.pack(in_=widget.master, before=next_widget, **opts)
+                    else:
+                        widget.pack(in_=widget.master, **opts)
+                except Exception:
+                    pass
+        elif managed:
+            try:
+                widget.pack_forget()
+            except Exception:
+                pass
+
+
+def _phase6_apply_box_symmetry_policy(owner, *, bending_ui=None) -> bool:
+    """Normalize state/UI so a disallowed family can never have effective symmetry."""
+    allowed = _phase6_box_symmetry_allowed(owner)
+    if not allowed:
+        try:
+            owner.state.symmetric = False
+        except Exception:
+            pass
+        var = getattr(owner, "v_sy", None)
+        if var is not None:
+            try:
+                if bool(var.get()):
+                    var.set(False)
+            except Exception:
+                pass
+    ui = bending_ui if bending_ui is not None else getattr(owner, "bend_ui", None)
+    if ui is not None:
+        phase_var = getattr(ui, "phase6_symmetry_var", None)
+        if not allowed and phase_var is not None:
+            try:
+                if bool(phase_var.get()):
+                    phase_var.set(False)
+            except Exception:
+                pass
+        _phase6_set_legacy_symmetry_visibility(
+            owner, allowed, exclude=getattr(ui, "phase6_symmetry_check", None)
+        )
+    return allowed
+
+
 class Phase6BendingUI(original.BendingUI):
     """Original BendingUI with Phase6 metadata and boundary-only conversion."""
 
@@ -621,7 +727,12 @@ class Phase6BendingUI(original.BendingUI):
         bar = getattr(self, "phase6_symmetry_bar", None)
         if bar is None:
             return
-        show = getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
+        owner = getattr(self.update_cb, "__self__", None)
+        allowed = _phase6_apply_box_symmetry_policy(owner, bending_ui=self) if owner is not None else True
+        show = (
+            allowed
+            and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
+        )
         if show:
             if not bar.winfo_manager():
                 bar.pack(fill=original.tk.X, pady=(0, 4), before=self.container)
@@ -658,7 +769,9 @@ class Phase6BendingUI(original.BendingUI):
         if getattr(self, "_phase6_refreshing_controls", False):
             return
         self._mark_workspace_dirty()
-        if getattr(self.state, "symmetric", False):
+        owner = getattr(self.update_cb, "__self__", None)
+        symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
+        if symmetry_allowed and getattr(self.state, "symmetric", False):
             active = self.get_active_dict()
             profile_key = self._active_profile_key(active)
             segs = active.get(profile_key, ())
@@ -892,8 +1005,11 @@ class Phase6BendingUI(original.BendingUI):
             return
 
         remove_indexes = [idx]
+        owner = getattr(self.update_cb, "__self__", None)
+        symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
         is_symmetric_box = (
-            bool(getattr(self.state, "symmetric", False))
+            symmetry_allowed
+            and bool(getattr(self.state, "symmetric", False))
             and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
         )
         if is_symmetric_box:
@@ -970,6 +1086,7 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.v_d.set(str(self.state.d))
         self.state.struct_mode = "vault"
         self.v_mode.set("vault")
+        _phase6_apply_box_symmetry_policy(self)
         self.bend_ui.rebuild_tabs()
         self._phase6_last_w = self.state.w
         self._phase6_last_d = self.state.d
@@ -1013,6 +1130,7 @@ class Phase6FoldDesignerApp(original.MainApp):
         self._phase6_last_d = d_value
 
     def do_update(self):
+        _phase6_apply_box_symmetry_policy(self)
         if getattr(self, "_phase6_sync_ready", False):
             self._sync_dwd_with_top_whd()
         return original.MainApp.do_update(self)
@@ -1869,6 +1987,9 @@ def _phase6_on_baseline_model_changed(self, *_args):
         # a second fallback structure here.
         pass
     self._phase6_baseline_last_model = new_model
+    _phase6_apply_box_symmetry_policy(self)
+    if hasattr(self, "bend_ui"):
+        self.bend_ui._phase6_refresh_symmetry_bar()
     _phase6_sync_authoritative_derived_parts(self)
     _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
     _phase6_refresh_persistent_structure_controls(self)
@@ -3191,14 +3312,19 @@ def _phase6_build_assembly_settings(self, parent, start_row):
 
 
 def _phase6_on_box_symmetry_changed(self):
-    """Keep the restored Phase6 box-body symmetry control authoritative."""
+    """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
     var = getattr(self, "v_sy", None)
     if var is None:
         return
-    try:
-        self.state.symmetric = bool(var.get())
-    except Exception:
-        return
+    if not _phase6_box_symmetry_allowed(self):
+        _phase6_apply_box_symmetry_policy(self)
+        if hasattr(self, "bend_ui"):
+            self.bend_ui._phase6_refresh_symmetry_bar()
+    else:
+        try:
+            self.state.symmetric = bool(var.get())
+        except Exception:
+            return
     self.designer_workspace.mark_dirty()
 
     # v_sy already owns an original trace to queue_update().  When this command
