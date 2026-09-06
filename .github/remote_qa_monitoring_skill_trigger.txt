@@ -1,1 +1,1 @@
-run remote QA monitoring skill validation
+rerun remote QA monitoring skill validation after AGENTS fix
