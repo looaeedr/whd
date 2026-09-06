@@ -46,10 +46,13 @@ def test_box_body_face_editor_receives_direct_whd_reference_guide_and_baseline_s
     root, app = make_app()
     captured = {}
     try:
+        # T11 known-family selection owns the canonical preset.  Select the
+        # family first, then exercise this test's actual seam: current WHD edits
+        # must flow directly into the Box Body face editor.
+        app.baseline_var.set("金庫型")
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
-        app.baseline_var.set("金庫型")
 
         def fake_open(part_key, title, surface, width, height, **kwargs):
             captured.update(
@@ -135,7 +138,7 @@ def test_selected_export_passes_three_face_stores_to_single_box_body_export(monk
         root.destroy()
 
 
-def test_box_body_baseline_selection_does_not_override_stripfold_formula_parameters(monkeypatch):
+def test_known_family_selection_applies_canonical_stripfold_parameters_without_parsing_box_body_baseline(monkeypatch):
     root, app = make_app()
     try:
         class Data:
@@ -148,6 +151,8 @@ def test_box_body_baseline_selection_does_not_override_stripfold_formula_paramet
         monkeypatch.setattr(gui.ae, "get_stretched_door_data", lambda *a, **k: door)
         monkeypatch.setattr(gui.ae, "get_stretched_box_body_data", lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not parse structural box body from baseline")))
 
+        # Seed stale runtime edits, then explicitly select the known Vault
+        # family.  T11 requires the target family's canonical preset to win.
         app.zl1_var.set("11")
         app.zl2_var.set("22")
         app.zr1_var.set("13")
@@ -155,11 +160,11 @@ def test_box_body_baseline_selection_does_not_override_stripfold_formula_paramet
         app.z_comp_var.set("5")
         app.baseline_var.set("金庫型")
 
-        assert app.zl1_var.get() == "11"
-        assert app.zl2_var.get() == "22"
-        assert app.zr1_var.get() == "13"
-        assert app.zr2_var.get() == "24"
-        assert app.z_comp_var.get() == "5"
+        assert app.zl1_var.get() == "15"
+        assert app.zl2_var.get() == "20"
+        assert app.zr1_var.get() == "15"
+        assert app.zr2_var.get() == "20"
+        assert app.z_comp_var.get() == "2"
     finally:
         root.destroy()
 
