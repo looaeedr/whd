@@ -1,0 +1,1 @@
+{"ts":"2026-09-06T23:48:00+08:00","task_id":"Receiving-20260906","work_order":"T4","issue":22,"role":"T4 實作者","base_head":"224283acc41803d6616e08a4d5d4a8d0c271c7e3","event":"red_setup","completed":["preflight","medium_unlock_red"],"pending":["remote_red","implementation","green","qa"],"failed":[]}\n
