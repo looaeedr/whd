@@ -9,7 +9,8 @@ from ae_engine.manufacturing_api import build_part_render_data, door_finished_fa
 from ae_engine.sheetmetal_part_adapters import DoorFrameEdges
 
 
-# Requirement RED: Receiving FW=29 is already the formed outside occupation.\nPROJECT_ROOT = Path(__file__).resolve().parents[1]
+# Requirement RED: Receiving FW=29 is already the formed outside occupation.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _door(*, model_name: str, height: float, frame_width: float, edges: DoorFrameEdges) -> DoorPartSpec:
