@@ -34,3 +34,20 @@ REMOTE QA: 26 PASS / 0 FAIL (9 + 17)
 CONFIG SHA256 BEFORE/AFTER: 980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67
 
 RESULT: GREEN / READY TO RECLOSE T11
+
+## Wave 2 — manufacturing adapter stale oracles
+Source T18 run: 34025390923
+Durable artifact: 9986926536
+
+Affected:
+- tests/test_gui_manufacturing_adapter.py::test_gui_builds_box_body_and_endcap_specs_from_existing_state
+- tests/test_gui_manufacturing_adapter.py::test_gui_builds_single_and_multidoor_specs_with_existing_feature_ownership
+
+Diagnosis:
+Both tests edited WHD first and explicitly selected Vault second. T11 correctly reapplied the Vault canonical preset, so the old test sequence contradicted the accepted contract.
+
+Correction boundary:
+- test sequence only
+- family selection first
+- per-test runtime edits second
+- production changes: 0
