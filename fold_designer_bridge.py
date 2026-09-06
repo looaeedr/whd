@@ -252,6 +252,19 @@ def _phase6_door_part_assembly_placement(snapshot, part_key):
 
 def _phase6_assembly_placement_for_part(snapshot, part_key):
     key = str(part_key or "")
+    family = cabinet_family_policy.canonical_family_name(snapshot)
+    receiving_derived = (
+        re.fullmatch(r"door_c\d+_r\d+", key) is not None
+        or key.startswith("box_body:divider:")
+        or key.startswith("inner_door:")
+    )
+    if family == "受電箱" and receiving_derived:
+        # T16: Receiving placement is domain-owned. Never consult a stale
+        # workspace origin fallback or recreate Door/front offsets here.
+        from ae_engine.assembly_placement import resolve_assembly_placement
+        placement = resolve_assembly_placement(snapshot, key)
+        return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
+
     if re.fullmatch(r"door_c\d+_r\d+", key):
         return _phase6_door_part_assembly_placement(snapshot, key)
     if key.startswith("box_body:divider:") or (key.startswith("inner_door:") and key.endswith(":bottom_frame")):
