@@ -1,1 +1,1 @@
-isolate config.ini drift after full green T18 gate
+verify config.ini isolation after UI text-size test fix
