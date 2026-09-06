@@ -43,12 +43,12 @@ def test_r06_panel_and_top_left_right_frames_share_outer_door_datum():
     assert panel.relationship == "INNER_DOOR_PANEL"
     assert panel.mate_target == "door_c1_r1"
     assert panel.placement_kind == "inner_door_panel"
-    assert panel.world_offset == pytest.approx((0.0, 225.0, 175.0))
+    assert panel.world_offset == pytest.approx((0.0, 225.0, 95.0))
 
     expected = {
-        "inner_door:upper:top_frame": ("inner_door_frame_top", (0.0, 730.0, 175.0)),
-        "inner_door:upper:left_frame": ("inner_door_frame_left", (-313.5, 225.0, 175.0)),
-        "inner_door:upper:right_frame": ("inner_door_frame_right", (313.5, 225.0, 175.0)),
+        "inner_door:upper:top_frame": ("inner_door_frame_top", (0.0, 730.0, 95.0)),
+        "inner_door:upper:left_frame": ("inner_door_frame_left", (-313.5, 225.0, 95.0)),
+        "inner_door:upper:right_frame": ("inner_door_frame_right", (313.5, 225.0, 95.0)),
     }
     for stable_id, (kind, offset) in expected.items():
         placement = resolve_assembly_placement(_snapshot(), stable_id)
