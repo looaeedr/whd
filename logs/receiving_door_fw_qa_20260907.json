@@ -1,0 +1,40 @@
+{
+  "task": "Receiving Door FW formed-occupation semantic correction",
+  "parent_sha": "eff366f652a001a1a7989f01920f0fb341028677",
+  "production_sha": "a3e50639370d9cd82ed5c5f5611201e51b48f357",
+  "green_head_sha": "966b79f01916093978434054038844d8a431959c",
+  "red_run": {
+    "run_id": 34066578746,
+    "head_sha": "cc230fd68a568b49ff0e29fd969a4a750ea38274",
+    "passed": 30,
+    "failed": 3,
+    "skipped": 4,
+    "classification": "requirement_red"
+  },
+  "green_run": {
+    "run_id": 34067119430,
+    "passed": 38,
+    "failed": 0,
+    "skipped": 7,
+    "artifact_id": 9999289925,
+    "artifact_digest": "sha256:02c9a87533c69dddec8190137e6fc883a0c9db95e88d48e7490bcbb65b26315b"
+  },
+  "config_ini_sha256": {
+    "before": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67",
+    "after": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67"
+  },
+  "visual_3d": {
+    "file": "door_fw_3d_check.png",
+    "inspected": true,
+    "result": "outer/inner Door planes and corrected inner-panel inset/size visually consistent"
+  },
+  "workflow_cleanup": {
+    "path": ".github/workflows/door-fw-qa.yml",
+    "cleanup_commit": "a4b10dfc8191524ca00b93777c07540d35ed1412",
+    "verified_absent": true
+  },
+  "review": {
+    "standards_spec": "PASS",
+    "code_quality_regression": "PASS"
+  }
+}
