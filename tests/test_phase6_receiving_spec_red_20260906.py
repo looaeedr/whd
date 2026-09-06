@@ -153,7 +153,7 @@ def test_red_rui1_medium_unlocked_settings_has_real_vertical_scroll_owner():
         scrollbars = []
         def walk(widget):
             for child in widget.winfo_children():
-                if isinstance(child, tk.ttk.Scrollbar):
+                if isinstance(child, ttk.Scrollbar):
                     try:
                         if str(child.cget("orient")) == "vertical":
                             scrollbars.append(child)
