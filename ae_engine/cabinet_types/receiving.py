@@ -12,7 +12,7 @@ from .registry import CabinetTypeRegistration
 
 REGISTRATION = CabinetTypeRegistration(
     canonical_name="受電箱",
-    aliases=(),
+    aliases=("RECEIVING",),
     module_name=__name__,
     implemented=True,
 )
@@ -218,6 +218,11 @@ def resolve_box_body_structure_state(state=None):
 def family_fixes_box_body_structure() -> bool:
     """Receiving owns a fixed side/back-split topology, independent of UI lock state."""
     return True
+
+
+def box_body_symmetry_allowed() -> bool:
+    """Receiving is an asymmetric family; generic mirrored BoxBody editing is invalid."""
+    return False
 
 
 def _side_back_config(state=None):
