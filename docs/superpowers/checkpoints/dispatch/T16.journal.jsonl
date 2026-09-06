@@ -5,3 +5,5 @@
 {"ticket":"T16","role":"qa","event":"remote","run_id":34020910357,"result":"18 + 27 + 22 = 67 passed / 0 failed; config diff unchanged"}
 {"ticket":"T16","role":"qa","event":"cleanup","result":"temporary probe and QA workflow files removed"}
 {"ticket":"T16","role":"controller","event":"accepted","result":"ready to close #16 and unblock T17"}
+{"ticket":"T16","role":"T18 release gate","event":"t18_reopen_stale_2d_text_oracle","source_run":34028206636,"result":"old test prohibited intentional authoritative divider/frame 2D annotations"}
+{"ticket":"T16","role":"qa","event":"reopen_green","run_id":34028808208,"passed":85,"failed":0,"production_changes":0}
