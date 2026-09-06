@@ -855,6 +855,8 @@ class BoxCalculatorGUI:
         # UI adapter only. Authoritative inner-door enable state remains
         # self.receiving_inner_doors; these vars are rebuilt from that state.
         self.door_layout_inner_door_vars = {}
+        self.door_layout_inner_door_offset_vars = {}
+        self.door_layout_inner_door_offset_entries = {}
         # Family-authoritative inner-door presence/config. Geometry spans are
         # deliberately not invented here; T04 frame parts consume explicit
         # spans once a family/caller owns them.
@@ -4631,6 +4633,64 @@ class BoxCalculatorGUI:
             for item in list(getattr(self, "receiving_inner_doors", []) or [])
         )
 
+    def _receiving_inner_door_inward_offset(self, cell_key):
+        key = str(cell_key or "").strip()
+        item = next((
+            item for item in list(getattr(self, "receiving_inner_doors", []) or [])
+            if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
+        ), None)
+        default = cabinet_family_policy.default_inner_door_inward_offset_mm(
+            {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
+        )
+        try:
+            return float((item or {}).get("inward_offset_mm", default))
+        except (TypeError, ValueError):
+            return float(default)
+
+    def _set_receiving_inner_door_inward_offset(self, cell_key, value):
+        key = str(cell_key or "").strip()
+        offset = float(value)
+        if offset < 0:
+            raise ValueError("內門內退尺寸不可小於 0")
+        found = False
+        items = []
+        for raw in list(getattr(self, "receiving_inner_doors", []) or []):
+            if not isinstance(raw, dict):
+                continue
+            item = deepcopy(raw)
+            if str(item.get("cell_key") or "").strip() == key:
+                item["inward_offset_mm"] = offset
+                found = True
+            items.append(item)
+        if not found:
+            raise ValueError(f"door cell has no enabled inner door: {key!r}")
+        self.receiving_inner_doors = items
+        return offset
+
+    def _commit_receiving_inner_door_inward_offset(self, cell_key):
+        key = str(cell_key or "").strip()
+        var = dict(getattr(self, "door_layout_inner_door_offset_vars", {}) or {}).get(key)
+        if var is None:
+            return False
+        try:
+            value = self._set_receiving_inner_door_inward_offset(key, var.get())
+        except (TypeError, ValueError):
+            var.set(self._fold_designer_number_text(self._receiving_inner_door_inward_offset(key)))
+            return False
+        var.set(self._fold_designer_number_text(value))
+        owner = getattr(self, "_derived_cache_owner", None)
+        if owner is not None:
+            owner.invalidate("geometry")
+        scheduler = getattr(self, "_phase6_update_scheduler", None)
+        if scheduler is not None:
+            scheduler.mark_dirty("inner_door_inward_offset")
+        if hasattr(self, "canvas_door"):
+            try:
+                self.draw_door_layout_overview()
+            except Exception:
+                pass
+        return True
+
     def _set_receiving_inner_door_enabled(self, cell_key, enabled):
         key = str(cell_key or "").strip()
         items = [deepcopy(item) for item in list(getattr(self, "receiving_inner_doors", []) or []) if isinstance(item, dict)]
@@ -4639,10 +4699,14 @@ class BoxCalculatorGUI:
         if bool(enabled):
             stable_id = str((existing or {}).get("stable_id") or self._receiving_inner_door_stable_id_for_cell(key)).strip()
             item = deepcopy(existing or {})
+            default_offset = cabinet_family_policy.default_inner_door_inward_offset_mm(
+                {"model": str(self.baseline_var.get() or "").strip()}, default=0.0
+            )
             item.update({
                 "stable_id": stable_id,
                 "cell_key": key,
                 "included_frame_sides": list(item.get("included_frame_sides") or ("top", "left", "right")),
+                "inward_offset_mm": float(item.get("inward_offset_mm", default_offset)),
             })
             items.append(item)
         def sort_key(item):
@@ -4660,6 +4724,12 @@ class BoxCalculatorGUI:
         var = dict(getattr(self, "door_layout_inner_door_vars", {}) or {}).get(key)
         enabled = bool(var.get()) if var is not None else False
         self._set_receiving_inner_door_enabled(key, enabled)
+        entry = dict(getattr(self, "door_layout_inner_door_offset_entries", {}) or {}).get(key)
+        if entry is not None:
+            try:
+                entry.configure(state=tk.NORMAL if enabled else tk.DISABLED)
+            except Exception:
+                pass
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
             owner.invalidate("geometry")
@@ -4706,6 +4776,8 @@ class BoxCalculatorGUI:
         for widget in self.door_layout_columns_frame.winfo_children():
             widget.destroy()
         self.door_layout_inner_door_vars = {}
+        self.door_layout_inner_door_offset_vars = {}
+        self.door_layout_inner_door_offset_entries = {}
         self._ensure_door_layout_default()
 
         for column_index, column in enumerate(self.door_layout_columns):
@@ -4780,6 +4852,33 @@ class BoxCalculatorGUI:
                         font=('Microsoft JhengHei', 8, 'bold'), cursor="hand2",
                         command=lambda key=cell_key: self._commit_receiving_inner_door_checkbox(key),
                     ).pack(side=tk.LEFT, padx=(5, 0))
+                    offset_var = tk.StringVar(
+                        master=self.root,
+                        value=self._fold_designer_number_text(self._receiving_inner_door_inward_offset(cell_key)),
+                    )
+                    self.door_layout_inner_door_offset_vars[cell_key] = offset_var
+                    tk.Label(
+                        height_row, text="內退", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
+                        font=('Microsoft JhengHei', 7, 'bold')
+                    ).pack(side=tk.LEFT, padx=(3, 1))
+                    offset_entry = tk.Entry(
+                        height_row, textvariable=offset_var, width=5,
+                        state=tk.NORMAL if inner_var.get() else tk.DISABLED,
+                        bg=self.COLOR_INPUT_BG, fg=self.COLOR_TEXT, disabledforeground=self.COLOR_TEXT_MUTED,
+                        insertbackground=self.COLOR_TEXT, font=('Consolas', 9), justify=tk.CENTER
+                    )
+                    offset_entry.pack(side=tk.LEFT, padx=(0, 1))
+                    offset_entry.bind(
+                        "<FocusOut>", lambda e, key=cell_key: self._commit_receiving_inner_door_inward_offset(key)
+                    )
+                    offset_entry.bind(
+                        "<Return>", lambda e, key=cell_key: self._commit_receiving_inner_door_inward_offset(key)
+                    )
+                    self.door_layout_inner_door_offset_entries[cell_key] = offset_entry
+                    tk.Label(
+                        height_row, text="mm", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
+                        font=('Consolas', 7)
+                    ).pack(side=tk.LEFT)
 
             if not column.get("width_auto"):
                 tk.Button(
