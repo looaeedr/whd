@@ -41,10 +41,12 @@ ENDCAP_DEFAULTS = {
 }
 
 BASE_PLATE_DEFAULTS = {
-    "base_plate_shrink_top": 0.0,
-    "base_plate_shrink_bottom": 0.0,
-    "base_plate_shrink_left": 0.0,
-    "base_plate_shrink_right": 0.0,
+    # Receiving family nominal finished-face contract.  Seam relief is a later
+    # local manufacturing operation and must never reset these values to zero.
+    "base_plate_shrink_top": 55.0,
+    "base_plate_shrink_bottom": 55.0,
+    "base_plate_shrink_left": 55.0,
+    "base_plate_shrink_right": 55.0,
     "base_plate_bend": 15.0,
 }
 
