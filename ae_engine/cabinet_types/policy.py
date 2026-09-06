@@ -83,6 +83,11 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     return tuple(result or ())
 
 
+def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
+    result = _call(snapshot, "derive_inner_door_panels", (), snapshot)
+    return tuple(result or ())
+
+
 def baseline_feature_model_name(model_name: str | None) -> str | None:
     canonical = canonical_family_name(model_name)
     if not canonical:
