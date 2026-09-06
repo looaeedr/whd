@@ -103,6 +103,10 @@ def inner_door_insets(source) -> dict[str, float] | None:
     return {str(key): float(value) for key, value in dict(result).items()}
 
 
+def default_inner_door_inward_offset_mm(source, default=0.0) -> float:
+    return float(_call(source, "default_inner_door_inward_offset_mm", float(default)))
+
+
 def baseline_feature_model_name(model_name: str | None) -> str | None:
     canonical = canonical_family_name(model_name)
     if not canonical:
