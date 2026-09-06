@@ -122,3 +122,65 @@ def test_receiving_2d_snapshot_and_3d_recalculation_keep_55_finished_dimensions(
             root.destroy()
         except tk.TclError:
             pass
+
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+def test_receiving_fresh_55_survives_project_save_reload_and_3d(tmp_path):
+    import tkinter as tk
+    import gui
+    import phase6_project_file as project
+
+    root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
+    root2 = None
+    designer2 = None
+    try:
+        app.baseline_var.set("受電箱")
+        root.update_idletasks(); root.update()
+        snapshot = app._compose_phase6_project_snapshot_from_main_gui()
+        shrink_keys = (
+            "base_plate_shrink_top", "base_plate_shrink_bottom",
+            "base_plate_shrink_left", "base_plate_shrink_right",
+        )
+        assert tuple(float(snapshot[k]) for k in shrink_keys) == (55.0, 55.0, 55.0, 55.0)
+
+        path = tmp_path / "receiving-fresh-55.p6fold"
+        project.write_project(path, {
+            "schema": project.PROJECT_SCHEMA,
+            "saved_at": "2026-09-06T14:00:00+08:00",
+            "snapshot": snapshot,
+            "final_geometry": {},
+        })
+        loaded = project.read_project(path)["snapshot"]
+        assert tuple(float(loaded[k]) for k in shrink_keys) == (55.0, 55.0, 55.0, 55.0)
+
+        root2 = tk.Tk(); root2.withdraw(); app2 = gui.BoxCalculatorGUI(root2)
+        app2._apply_phase6_project_snapshot(loaded)
+        root2.update_idletasks(); root2.update()
+        assert tuple(float(getattr(app2, f"{k}_var").get()) for k in shrink_keys) == (
+            55.0, 55.0, 55.0, 55.0
+        )
+
+        designer2 = app2.open_original_fold_designer()
+        root2.update_idletasks(); root2.update()
+        assert tuple(float(designer2._settings_values[k]) for k in shrink_keys) == (
+            55.0, 55.0, 55.0, 55.0
+        )
+        assert designer2._phase6_input_snapshot["part_dimensions"]["base_plate"] == {
+            "width": 690.0, "height": 1490.0
+        }
+    finally:
+        try:
+            if designer2 is not None:
+                designer2.root.destroy()
+        except Exception:
+            pass
+        try:
+            if root2 is not None:
+                root2.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
+
