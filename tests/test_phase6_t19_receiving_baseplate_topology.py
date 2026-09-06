@@ -156,3 +156,27 @@ def test_receiving_dynamic_base_plates_are_real_topology_owned_workspace_parts()
             root.destroy()
         except Exception:
             pass
+
+
+
+def test_receiving_dynamic_base_plate_stable_id_is_accepted_by_main_render_query():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("受電箱")
+        _pump(root)
+        snapshot = app._make_original_fold_designer_snapshot()
+        render_data = app._query_fold_designer_render_data(
+            "base_plate_c1_r1",
+            snapshot,
+        )
+        assert render_data is not None
+    finally:
+        try:
+            root.destroy()
+        except Exception:
+            pass
