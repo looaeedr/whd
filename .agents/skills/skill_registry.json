@@ -161,6 +161,28 @@
         "git-remote-sync-fallback"
       ],
       "required_references": []
+    },
+    {
+      "id": "remote-qa-monitoring",
+      "keywords": [
+        "遠端 QA",
+        "遠端QA",
+        "同步遠端QA",
+        "remote QA",
+        "GitHub Actions",
+        "workflow run",
+        "workflow job",
+        "run_id",
+        "remote CI"
+      ],
+      "file_globs": [
+        ".github/workflows/*qa*.yml",
+        ".github/workflows/*qa*.yaml"
+      ],
+      "required_skills": [
+        "monitoring-remote-qa"
+      ],
+      "required_references": []
     }
   ]
 }
