@@ -1,0 +1,38 @@
+name: Remote QA monitor skill check
+
+on:
+  push:
+    branches: [cleanup/2d-3d-sync]
+    paths:
+      - '.github/remote_qa_monitor_skill_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/2d-3d-sync
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify remote QA route
+        run: |
+          python - <<'PY'
+          from tools.phase6_skill_preflight import required_skills_for
+          required = required_skills_for(
+              task="同步遠端 QA，啟動 GitHub Actions QA 並監控到完成",
+              changed_files=[".github/workflows/t17-qa-once.yml"],
+          )
+          print("REQUIRED", required)
+          assert "remote-qa-monitoring" in required
+          PY
+      - name: Verify rule wiring
+        run: |
+          grep -q 'name: remote-qa-monitoring' .agents/skills/engineering/remote-qa-monitoring/SKILL.md
+          grep -q 'remote-qa-monitoring' .agents/skills/skill_registry.json
+          grep -q 'remote-qa-monitoring' .agents/skills/engineering/派工/SKILL.md
+          grep -q 'remote-qa-monitoring' AGENTS.md
