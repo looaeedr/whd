@@ -16,11 +16,14 @@ def test_gui_builds_box_body_and_endcap_specs_from_existing_state():
 
     root, app = make_app()
     try:
+        # T11: explicit known-family selection reapplies the canonical preset.
+        # Select the family first, then exercise this test's actual seam:
+        # manufacturing specs must consume the current edited GUI state.
+        app.baseline_var.set("金庫型")
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
         app.t_var.set("2")
-        app.baseline_var.set("金庫型")
         val = app.get_float_values()
 
         body = app._box_body_part_spec(val)
@@ -48,10 +51,12 @@ def test_gui_builds_single_and_multidoor_specs_with_existing_feature_ownership()
 
     root, app = make_app()
     try:
+        # T11 family selection is the reset seam; per-test runtime edits come
+        # after it so this test remains about DoorPartSpec ownership/contents.
+        app.baseline_var.set("金庫型")
         app.w_var.set("1000")
         app.h_var.set("1000")
         app.t_var.set("2")
-        app.baseline_var.set("金庫型")
         val = app.get_float_values()
         app.surface_features["door"].append("SINGLE")
 
