@@ -219,13 +219,21 @@ def test_fold_designer_auto_syncs_receiving_divider_and_three_confirmed_frame_pa
     try:
         app = Phase6FoldDesignerApp(root, snap)
         divider_keys = [k for k in app.designer_workspace.available_parts if k.startswith("box_body:divider:")]
-        frame_keys = {k for k in app.designer_workspace.available_parts if k.startswith("inner_door:")}
+        frame_keys = {
+            k for k in app.designer_workspace.available_parts
+            if k.startswith("inner_door:") and k.endswith("_frame")
+        }
+        panel_keys = {
+            k for k in app.designer_workspace.available_parts
+            if k.startswith("inner_door:") and k.endswith(":panel")
+        }
         assert divider_keys == ["box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"]
         assert frame_keys == {
             "inner_door:upper:top_frame",
             "inner_door:upper:left_frame",
             "inner_door:upper:right_frame",
         }
+        assert panel_keys == {"inner_door:upper:panel"}
         assert app.designer_workspace.profiles_for("inner_door:upper:top_frame")["Y"][0]["len"] == pytest.approx(627.0)
         assert app.designer_workspace.profiles_for("inner_door:upper:left_frame")["Y"][0]["len"] == pytest.approx(1010.0)
         assert app.designer_workspace.profiles_for("inner_door:upper:right_frame")["Y"][0]["len"] == pytest.approx(1010.0)
