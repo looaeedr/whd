@@ -25,4 +25,4 @@ jobs:
           sudo apt-get install -y xvfb python3-tk
           python -m pip install -q pytest matplotlib pillow ezdxf -r requirements.txt
       - name: Run multi-door state/export probe
-        run: xvfb-run -a python .github/t18_multidoor_probe.py
+        run: PYTHONPATH=. xvfb-run -a python .github/t18_multidoor_probe.py
