@@ -313,7 +313,7 @@ def test_multi_door_first_page_uses_canvas_entries_instead_of_layout_body():
         root.destroy()
 
 
-def test_multi_door_cells_contain_no_metadata_text_and_double_click_is_bound():
+def test_multi_door_cells_only_allow_authoritative_derived_part_text_and_double_click_is_bound():
     root, app = make_app()
     try:
         root.deiconify()
@@ -330,17 +330,33 @@ def test_multi_door_cells_contain_no_metadata_text_and_double_click_is_bound():
         app.draw_door(app.get_float_values())
         root.update_idletasks()
 
+        # T16 intentionally projects authoritative divider/frame placement
+        # information into the 2D layout.  Cell interiors may therefore contain
+        # those derived-part annotations, but no unrelated metadata text.
+        allowed_derived_tags = {"door_layout_divider", "door_layout_frame"}
+        derived_text_items = []
         for key, bounds in app.door_layout_cell_bounds.items():
             x1, y1, x2, y2 = bounds
             for item in app.canvas_door.find_all():
                 if app.canvas_door.type(item) != "text":
                     continue
                 coords = app.canvas_door.coords(item)
-                if len(coords) >= 2:
-                    x, y = coords[:2]
-                    assert not (x1 < x < x2 and y1 < y < y2), f"text item leaked into cell {key}"
+                if len(coords) < 2:
+                    continue
+                x, y = coords[:2]
+                if not (x1 < x < x2 and y1 < y < y2):
+                    continue
+                tags = set(app.canvas_door.gettags(item))
+                assert tags & allowed_derived_tags, (
+                    f"unowned metadata text leaked into cell {key}: tags={sorted(tags)}"
+                )
+                derived_text_items.append((item, tags))
 
-        # Interaction is canvas-level coordinate hit-testing; it must not depend on an item tag.
+        assert derived_text_items
+        assert any("door_layout_divider" in tags for _item, tags in derived_text_items)
+
+        # Interaction is canvas-level coordinate hit-testing; derived text must
+        # never become the ownership seam for double-click selection.
         x1, y1, x2, y2 = app.door_layout_cell_bounds["0:0"]
         assert app._door_layout_cell_at_canvas_point((x1 + x2) / 2, (y1 + y2) / 2) == (0, 0)
     finally:
