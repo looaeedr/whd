@@ -88,6 +88,21 @@ def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     return tuple(result or ())
 
 
+def assembly_coordinate_contract(source, *, depth: float, thickness: float) -> dict[str, object] | None:
+    result = _call(
+        source, "assembly_coordinate_contract", None,
+        depth=float(depth), thickness=float(thickness),
+    )
+    return None if result is None else dict(result)
+
+
+def inner_door_insets(source) -> dict[str, float] | None:
+    result = _call(source, "inner_door_insets", None)
+    if result is None:
+        return None
+    return {str(key): float(value) for key, value in dict(result).items()}
+
+
 def baseline_feature_model_name(model_name: str | None) -> str | None:
     canonical = canonical_family_name(model_name)
     if not canonical:
