@@ -25,3 +25,16 @@ Correction boundary:
 - assert formed information inside authoritative child sections and stable-id ownership
 
 RESULT: DIAGNOSED / READY FOR ORACLE CORRECTION
+
+
+ORACLE CORRECTION:
+- tests/test_phase6_box_body_structure.py
+- production changes: 0
+
+REMOTE QA RUN: 34029609787
+REMOTE QA HEAD: 1bc83840f272f2aa37fef955d72a4b4fb42da30a
+REMOTE QA: 34 PASS / 0 FAIL (25 + 9)
+CONFIG SHA256 BEFORE/AFTER:
+980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67
+
+RESULT: GREEN / READY TO RECLOSE T14
