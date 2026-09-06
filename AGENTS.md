@@ -758,3 +758,16 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 任何批量建立 blob/tree/commit、Issue、workflow 的 orchestration script，在第一個副作用呼叫前必須完成：所有 template 變數已宣告、branch parent SHA 已鎖定、base tree SHA 可解析。
 - 出現 `ReferenceError` / `NameError` / undefined template variable 時，分類為 orchestration harness failure；不得算 production RED。
 - 若錯誤發生在第一個 blob/commit 前，必須反讀 branch 確認零副作用；若已有副作用，必須列出並清理後才能重送。
+
+
+### J. Automated GUI Tests 不得把使用者偏好寫回 repository config.ini
+- `config.ini` 是專案 canonical configuration；除非測試目的本身就是 persistence，任何 GUI/Designer 測試都不得因操作文字大小、全域設定、預設值等 UI 而改寫它。
+- 只要測試會觸發 `_apply_ui_text_size_preference`、`persist_defaults`、Save Defaults 或等價 persistence callback，必須使用 `persist=False`、temporary settings backend、monkeypatch 或其他隔離 seam。
+- 「pytest assertion 全 PASS」不能證明測試沒有副作用。Combined / release / 高風險 GUI gate 必須在測試前後驗 `config.ini` SHA256 + `git diff --exit-code -- config.ini`。
+- 若 focused test 過去已 PASS 但後來被 invariant gate 證明會改 config，原 PASS 只能算 functional assertion evidence，不能算完整 QA evidence；修 isolation 後必須重跑 invariant gate。
+
+### K. Code Mode / Orchestration 工具呼叫預算也屬 fail-closed 邊界
+- 大型 orchestration 不得在單一 Code Mode 呼叫內串過多 fetch/blob/tree/commit/update_ref；先做純讀取與模板構造，再分小批執行副作用。
+- 若出現 `Code Mode exceeded the maximum number of tool calls`，不得猜前半段是否已寫入；第一步固定反讀 branch/ref HEAD 與必要檔案，確認實際 side effects。
+- branch/ref 未前進時，任何未引用 blob 都不得當成已完成修改；重新從反讀到的 parent HEAD 開始。
+- 為了「原子」而把工具呼叫塞成超長腳本不是原子性；真正原子性由 tree/commit/ref 更新與 parent SHA gate 保證。
