@@ -1,0 +1,7 @@
+{"ticket":"T16","role":"worker","event":"red","result":"2 failed / 2 passed","cause":"Door and top/left/right frame absent from authoritative resolver"}
+{"ticket":"T16","role":"worker","event":"probe","result":"body z [-174,174], divider [-172,172], Door consumer front, frames origin fallback"}
+{"ticket":"T16","role":"worker","event":"green","result":"family coordinate + Door/panel/frame/divider resolver implemented"}
+{"ticket":"T16","role":"qa","event":"local","result":"65 passed / 0 failed; config.ini unchanged"}
+{"ticket":"T16","role":"qa","event":"remote","run_id":34020910357,"result":"18 + 27 + 22 = 67 passed / 0 failed; config diff unchanged"}
+{"ticket":"T16","role":"qa","event":"cleanup","result":"temporary probe and QA workflow files removed"}
+{"ticket":"T16","role":"controller","event":"accepted","result":"ready to close #16 and unblock T17"}
