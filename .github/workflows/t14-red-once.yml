@@ -1,4 +1,4 @@
-name: T14 focused QA once
+name: T14 RED once
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  qa:
+  red:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,16 +20,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install QA dependencies
+      - name: Install RED dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y xvfb python3-tk
           python -m pip install -q pytest matplotlib -r requirements.txt
-      - name: Record remote head
-        run: git rev-parse HEAD
-      - name: Compile T14 production
-        run: python -m py_compile fold_designer_bridge.py
-      - name: T14 R11 focused
-        run: xvfb-run -a python -m pytest -q tests/test_phase6_t14_box_body_child_sections.py
-      - name: R10 physical-piece guard
-        run: xvfb-run -a python -m pytest -q tests/test_phase6_box_body_structure.py
+      - name: T14 approved RED
+        run: |
+          set +e
+          xvfb-run -a python -m pytest -q tests/test_phase6_t14_box_body_child_sections.py
+          code=$?
+          echo "T14_RED_EXIT=$code"
+          exit $code
