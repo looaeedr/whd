@@ -40,6 +40,7 @@ jobs:
             tests/test_phase6_t20_receiving_baseplate_placement.py \
             tests/test_phase6_t13_receiving_base_plate_55.py \
             tests/test_phase6_t16_receiving_placement.py \
+            tests/test_phase6_2d_3d_round_trip.py::test_2d_to_3d_confirm_to_2d_round_trip_preserves_state \
             2>&1 | tee t20.log
       - name: Upload focused log
         if: always()

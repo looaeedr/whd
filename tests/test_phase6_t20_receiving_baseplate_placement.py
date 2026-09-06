@@ -122,3 +122,46 @@ def test_receiving_base_plate_placement_keeps_vertical_plate_inside_owning_cell_
         ys = [point[1] for tri in world for point in tri]
         assert min(ys) >= cell_bounds[0] - 1e-6
         assert max(ys) <= cell_bounds[1] + 1e-6
+
+
+
+def test_receiving_dynamic_base_placements_survive_workspace_snapshot_rebuild():
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+
+    authoritative = _snapshot()
+    physical_parts = (
+        "box_body",
+        "door_c1_r1",
+        "door_c1_r2",
+        "base_plate_c1_r1",
+        "base_plate_c1_r2",
+    )
+    ws = Phase6DesignerWorkspace.from_snapshot({
+        "model": "受電箱",
+        "existing_parts": list(physical_parts),
+        "active_part": "base_plate_c1_r1",
+    })
+    first = ws.resolve_and_store_assembly_placements(
+        authoritative,
+        resolver=resolve_assembly_placement,
+    )
+    expected = {
+        key: first[key]
+        for key in ("base_plate_c1_r1", "base_plate_c1_r2")
+    }
+    assert expected["base_plate_c1_r1"]["world_offset"] == pytest.approx([0.0, 250.0, 0.0])
+    assert expected["base_plate_c1_r2"]["world_offset"] == pytest.approx([0.0, -550.0, 0.0])
+
+    frozen = ws.snapshot()
+    rebuilt = Phase6DesignerWorkspace.from_snapshot(frozen)
+    assert tuple(rebuilt.available_parts) == physical_parts
+    rebuilt_placements = rebuilt.assembly_placements_snapshot()
+    for key, value in expected.items():
+        assert rebuilt_placements[key] == value
+
+    second = rebuilt.resolve_and_store_assembly_placements(
+        authoritative,
+        resolver=resolve_assembly_placement,
+    )
+    for key, value in expected.items():
+        assert second[key] == value
