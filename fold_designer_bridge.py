@@ -3392,7 +3392,7 @@ def _phase6_render_endcap_edge_controls(self, *, part_key):
         var = original.tk.StringVar(master=host, value=row["value"])
         widget = build_choice_menubutton(
             host, variable=var, values=row["allowed"],
-            state=("normal" if row["editable"] else "disabled"), width=7,
+            state=("normal" if row["editable"] else "disabled"), width=5,
             command=lambda p=part_key, e=edge: _phase6_on_endcap_edge_relation_selected(self, p, e),
         )
         widget.pack(side=original.tk.LEFT)
