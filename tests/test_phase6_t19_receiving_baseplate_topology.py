@@ -115,3 +115,44 @@ def test_receiving_base_plate_count_tracks_one_and_three_door_topology(heights, 
             root.destroy()
         except Exception:
             pass
+
+
+
+def test_receiving_dynamic_base_plates_are_real_topology_owned_workspace_parts():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("受電箱")
+        _pump(root)
+        designer = app.open_original_fold_designer()
+        _pump(root)
+
+        bases = tuple(sorted(
+            str(key) for key in tuple(designer.available_parts)
+            if re.fullmatch(r"base_plate_c\d+_r\d+", str(key))
+        ))
+        assert bases == ("base_plate_c1_r1", "base_plate_c1_r2")
+
+        for key in bases:
+            profiles = designer.designer_workspace.profiles_for(key)
+            assert profiles is not None
+            assert profiles.get("X") and profiles.get("Y")
+            designer.activate_part(key)
+            _pump(root)
+            assert designer.active_part_key == key
+            assert str(designer.remove_part_button.cget("state")) == "disabled"
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except Exception:
+            pass

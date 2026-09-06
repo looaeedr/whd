@@ -35,6 +35,8 @@ jobs:
           set -o pipefail
           xvfb-run -a python -m pytest -q \
             tests/test_phase6_t19_receiving_baseplate_topology.py \
+            tests/test_phase6_receiving_multipart_integration.py::test_opening_receiving_designer_preserves_formal_door_features_and_authoritative_rows \
+            tests/test_phase6_receiving_multipart_integration.py::test_receiving_joint_shrinks_features_round_trip_from_designer_to_project \
             2>&1 | tee t19.log
       - name: Upload focused log
         if: always()
