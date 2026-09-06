@@ -1,1 +1,1 @@
-run monitor skill check
+run monitor skill check canonical
