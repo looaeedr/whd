@@ -7,3 +7,4 @@
 {"ticket":"T16","role":"controller","event":"accepted","result":"ready to close #16 and unblock T17"}
 {"ticket":"T16","role":"T18 release gate","event":"t18_reopen_stale_2d_text_oracle","source_run":34028206636,"result":"old test prohibited intentional authoritative divider/frame 2D annotations"}
 {"ticket":"T16","role":"qa","event":"reopen_green","run_id":34028808208,"passed":85,"failed":0,"production_changes":0}
+{"ticket":"T16","role":"controller","event":"reclosed_after_t18_oracle_repair","run_id":34028808208,"result":"85 PASS / 0 FAIL; production/test drift 0"}
