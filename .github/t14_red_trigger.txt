@@ -1,1 +1,1 @@
-run T14 R11 RED
+run T14 focused GREEN QA
