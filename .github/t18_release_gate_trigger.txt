@@ -1,1 +1,1 @@
-run T18 durable release gate after T16 wave7 oracle correction
+run T18 durable release gate after config isolation fix
