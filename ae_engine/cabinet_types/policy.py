@@ -122,6 +122,15 @@ def family_fixes_box_body_structure(source) -> bool:
     return bool(_call(source, "family_fixes_box_body_structure", False))
 
 
+def box_body_symmetry_allowed(source) -> bool:
+    """Return whether the cabinet family permits generic mirrored BoxBody editing.
+
+    This is a family capability, not a Tk/UI preference. Consumers must use it
+    both to hide the control and to reject effective ``symmetric=True`` state.
+    """
+    return bool(_call(source, "box_body_symmetry_allowed", True))
+
+
 def transform_box_body_profile(source, profile):
     module = _family_module(source)
     callback = getattr(module, "transform_box_body_profile", None) if module is not None else None
