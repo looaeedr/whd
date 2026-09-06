@@ -48,3 +48,15 @@ Remote QA is a monitored condition loop, not a fire-and-forget action. Triggerin
 4. **聊天 polling 只做觀測，不做驅動**：即使 assistant poll 中斷，已觸發的 remote job 必須繼續到自己的 terminal state；不得把「下一次 ChatGPT 回合」當遠端 runner 的 scheduler。
 5. **terminal failure 也要 durable**：failure/cancel/timeout 仍必須 `always()` 上傳 journal/state，讓下一 Runtime 精確定位 owning ticket，不重跑已完成證據。
 6. **恢復順序**：取得控制權 → 讀最新 durable run_id/head_sha → 讀 terminal status → 下載 artifact/journal → 分類 blocker → 才決定修正/重跑。禁止先重 trigger。
+
+## User-visible reporting cadence
+
+在 active remote QA 監控期間，對使用者的狀態回報節奏固定為 **每 30 秒一次**。
+
+- 只要 remote run 尚未 terminal，且聊天 Runtime 仍在線，就約每 30 秒回報一次目前狀態。
+- 回報內容至少包含：固定 `run_id`、`head_sha`、目前 step / mode（Headless 或 Xvfb）、最近一次 durable state（completed/pending/failed/timeout）。
+- 不因「沒有變化」而完全靜默；若 30 秒內沒有新結果，明確回報「仍在同一 run/step，無新 blocker」。
+- 若 run 已 terminal，立即回報，不必等滿 30 秒。
+- 30 秒 cadence 只影響聊天中的觀測回報；**不得用聊天回報節奏驅動 remote runner**。遠端 durable checkpoint/resume 仍必須 controller-independent。
+- 若聊天 Runtime 被平台切斷，remote runner 照常繼續；下一 Runtime 先讀 durable `run_id/head_sha/state/artifact` 後恢復監控，不補發缺失的 30 秒訊息。
+
