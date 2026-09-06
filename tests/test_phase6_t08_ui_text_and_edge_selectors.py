@@ -115,6 +115,12 @@ def test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed()
     try:
         app = gui.BoxCalculatorGUI(root)
         designer = app.open_original_fold_designer()
+        # This test owns only UI rescaling/selector behavior. Keep the real
+        # designer -> main-GUI callback, but disable disk persistence so the
+        # test cannot mutate the repository's canonical config.ini.
+        designer._ui_text_size_change_callback = lambda value: app._apply_ui_text_size_preference(
+            value, persist=False, notify_designer=False
+        )
         designer.root.geometry("1120x720")
         designer.activate_part("head")
         root.update_idletasks(); root.update()
