@@ -20,6 +20,7 @@
     "release_required_artifacts.json",
     "AGENTS.md",
     ".agents/skills/skill_registry.json",
+    ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
     ".agents/skills/engineering/phase6-release-packaging/SKILL.md",
     "tests/test_phase6_skill_preflight_gate.py",
     "tests/test_phase6_release_packaging_policy.py",
