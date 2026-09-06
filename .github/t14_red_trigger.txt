@@ -1,1 +1,1 @@
-run T14 focused GREEN QA
+rerun T14 focused GREEN QA after Tk lifecycle isolation
