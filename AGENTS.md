@@ -41,6 +41,7 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 3. checkpoint / journal 至少記錄 task id、工單 id、目前角色、已完成項、pending 項、failed/blocked 項、相關檔案、驗證命令與下一步 resume command。
 4. 若環境沒有真正背景 Subagent Runtime，執行者必須依派工 Skill 在同一工作上下文自動完成 PM → Worker → QA 角色切換，禁止回報「已派給其他人等待」。
 5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
+6. **同步遠端 QA 必須啟動 `remote-qa-monitoring`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
 
 ### 0.1 知識載入優先級
 
@@ -656,6 +657,9 @@ GUI 效能 / 卡頓 / live-sync / Tk trace / 重算 / DXF cache / debounce / 3D 
 bug / debug / regression / 修正
 → 必讀 diagnosing-bugs
 → 必讀 tdd
+
+remote QA / GitHub Actions QA / 同步遠端 QA
+→ 必讀 remote-qa-monitoring
 ```
 
 正式出包前必須再次執行：
