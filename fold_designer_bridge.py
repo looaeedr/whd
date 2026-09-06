@@ -411,11 +411,18 @@ def _phase6_sync_authoritative_derived_parts(self):
                 included_sides=included,
             ))
     frames = derive_all_inner_door_frames(tuple(frame_sets))
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+    panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
+    inner_profiles = inner_door_frame_part_profiles(frames)
+    inner_profiles.update(inner_door_panel_part_profiles(panels))
     sync_derived_parts(
         namespace="inner_door:",
-        part_profiles=inner_door_frame_part_profiles(frames),
+        part_profiles=inner_profiles,
     )
-    return tuple(divider_profiles), tuple(frame.stable_id for frame in frames)
+    return (
+        tuple(divider_profiles),
+        tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
+    )
 
 
 def _legacy_available_parts_get(self):
@@ -3930,6 +3937,7 @@ def _phase6_is_derived_physical_part_key(value):
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
         or key.startswith("box_body:divider:")
         or (key.startswith("inner_door:") and key.endswith("_frame"))
+        or (key.startswith("inner_door:") and key.endswith(":panel"))
     )
 
 
@@ -3960,6 +3968,10 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
     if key.startswith("box_body:divider:"):
         axis = "橫向" if ":HORIZONTAL:" in key else ("直向" if ":VERTICAL:" in key else "")
         return f"箱身中隔（{axis}）" if axis else "箱身中隔"
+    if key.startswith("inner_door:") and key.endswith(":panel"):
+        door_id = key.split(":", 2)[1]
+        door_label = {"upper": "上層內門", "lower": "下層內門"}.get(door_id, "內門")
+        return f"{door_label}門板"
     if key.startswith("inner_door:") and key.endswith("_frame"):
         side = key.rsplit(":", 1)[-1].removesuffix("_frame")
         side_label = {"top": "上框", "bottom": "下框", "left": "左框", "right": "右框"}.get(side, "框")

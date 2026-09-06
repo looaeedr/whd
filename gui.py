@@ -852,6 +852,9 @@ class BoxCalculatorGUI:
         self.multi_door_enabled_var = tk.BooleanVar(value=False)
         self.door_layout_selected_var = tk.StringVar(value="0:0")
         self.door_layout_columns = []
+        # UI adapter only. Authoritative inner-door enable state remains
+        # self.receiving_inner_doors; these vars are rebuilt from that state.
+        self.door_layout_inner_door_vars = {}
         # Family-authoritative inner-door presence/config. Geometry spans are
         # deliberately not invented here; T04 frame parts consume explicit
         # spans once a family/caller owns them.
@@ -1697,6 +1700,14 @@ class BoxCalculatorGUI:
             if divider is None:
                 raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
             return manufacturing_api.build_box_body_divider_render_data(divider)
+
+        if key.startswith("inner_door:") and key.endswith(":panel"):
+            data = dict(payload or {})
+            panels = cabinet_family_policy.derive_inner_door_panels(data)
+            panel = next((item for item in panels if item.stable_id == key), None)
+            if panel is None:
+                raise ValueError(f"內門板 stable_id 不存在於 authoritative topology: {key}")
+            return manufacturing_api.build_inner_door_panel_render_data(panel)
 
         if key.startswith("inner_door:") and key.endswith("_frame"):
             from ae_engine.inner_door_frames import (
@@ -4600,6 +4611,68 @@ class BoxCalculatorGUI:
     def _on_main_geometry_var_changed(self, reason="geometry"):
         self._phase6_update_scheduler.mark_dirty(reason)
 
+    @staticmethod
+    def _receiving_inner_door_stable_id_for_cell(cell_key):
+        key = str(cell_key or "").strip()
+        if key == "0:0":
+            return "upper"
+        if key == "0:1":
+            return "lower"
+        try:
+            column, row = (int(v) for v in key.split(":", 1))
+        except (TypeError, ValueError):
+            raise ValueError(f"invalid door cell key: {cell_key!r}")
+        return f"c{column + 1}r{row + 1}"
+
+    def _receiving_inner_door_enabled(self, cell_key):
+        key = str(cell_key or "").strip()
+        return any(
+            isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
+            for item in list(getattr(self, "receiving_inner_doors", []) or [])
+        )
+
+    def _set_receiving_inner_door_enabled(self, cell_key, enabled):
+        key = str(cell_key or "").strip()
+        items = [deepcopy(item) for item in list(getattr(self, "receiving_inner_doors", []) or []) if isinstance(item, dict)]
+        existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
+        items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
+        if bool(enabled):
+            stable_id = str((existing or {}).get("stable_id") or self._receiving_inner_door_stable_id_for_cell(key)).strip()
+            item = deepcopy(existing or {})
+            item.update({
+                "stable_id": stable_id,
+                "cell_key": key,
+                "included_frame_sides": list(item.get("included_frame_sides") or ("top", "left", "right")),
+            })
+            items.append(item)
+        def sort_key(item):
+            raw = str(item.get("cell_key") or "")
+            try:
+                return tuple(int(v) for v in raw.split(":", 1))
+            except Exception:
+                return (10**9, 10**9)
+        items.sort(key=sort_key)
+        self.receiving_inner_doors = items
+        return bool(enabled)
+
+    def _commit_receiving_inner_door_checkbox(self, cell_key):
+        key = str(cell_key or "").strip()
+        var = dict(getattr(self, "door_layout_inner_door_vars", {}) or {}).get(key)
+        enabled = bool(var.get()) if var is not None else False
+        self._set_receiving_inner_door_enabled(key, enabled)
+        owner = getattr(self, "_derived_cache_owner", None)
+        if owner is not None:
+            owner.invalidate("geometry")
+        scheduler = getattr(self, "_phase6_update_scheduler", None)
+        if scheduler is not None:
+            scheduler.mark_dirty("inner_door")
+        if hasattr(self, "canvas_door"):
+            try:
+                self.draw_door_layout_overview()
+            except Exception:
+                pass
+        return enabled
+
     def refresh_door_layout_status(self):
         if not hasattr(self, "door_layout_status_label"):
             return
@@ -4632,6 +4705,7 @@ class BoxCalculatorGUI:
             return
         for widget in self.door_layout_columns_frame.winfo_children():
             widget.destroy()
+        self.door_layout_inner_door_vars = {}
         self._ensure_door_layout_default()
 
         for column_index, column in enumerate(self.door_layout_columns):
@@ -4691,6 +4765,21 @@ class BoxCalculatorGUI:
                         bg=self.COLOR_BG, fg="#ff6b6b", bd=1, relief=tk.SOLID,
                         activebackground=self.COLOR_PANEL, activeforeground="#ff6b6b"
                     ).pack(side=tk.LEFT, padx=(1, 0))
+
+                if str(self.baseline_var.get() or "").strip() == "受電箱":
+                    cell_key = f"{column_index}:{row_index}"
+                    inner_var = tk.BooleanVar(
+                        master=self.root,
+                        value=self._receiving_inner_door_enabled(cell_key),
+                    )
+                    self.door_layout_inner_door_vars[cell_key] = inner_var
+                    tk.Checkbutton(
+                        height_row, text="內門", variable=inner_var,
+                        bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
+                        activebackground=self.COLOR_PANEL, activeforeground=self.COLOR_ACCENT,
+                        font=('Microsoft JhengHei', 8, 'bold'), cursor="hand2",
+                        command=lambda key=cell_key: self._commit_receiving_inner_door_checkbox(key),
+                    ).pack(side=tk.LEFT, padx=(5, 0))
 
             if not column.get("width_auto"):
                 tk.Button(

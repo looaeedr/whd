@@ -1405,6 +1405,41 @@ def _exploded_box_body_preview(pieces, *, gap=30.0):
     return PartRenderData(scene=scene, material=material, fold_guides=())
 
 
+def build_inner_door_panel_render_data(panel) -> PartRenderData:
+    """Build one flat physical inner-door panel from its canonical part."""
+    from .inner_door_panels import InnerDoorPanelPart
+    from .sheetmetal_drawing import DrawingScene, PolylinePrimitive
+    from .sheetmetal_geometry import Vec2
+
+    if not isinstance(panel, InnerDoorPanelPart):
+        raise TypeError("panel must be InnerDoorPanelPart")
+    w = float(panel.width)
+    h = float(panel.height)
+    scene = DrawingScene()
+    scene.add(PolylinePrimitive(
+        points=(Vec2(0.0, 0.0), Vec2(w, 0.0), Vec2(w, h), Vec2(0.0, h)),
+        layer="CUTTING", closed=True,
+    ))
+    topology = UnfoldedBlankTopology(
+        piece_id=str(panel.stable_id),
+        x_segments=(MaterialSegment("X", "inner_door_panel_width", w, "INNER_DOOR_PANEL_FINISHED_AREA"),),
+        y_segments=(MaterialSegment("Y", "inner_door_panel_height", h, "INNER_DOOR_PANEL_FINISHED_AREA"),),
+        source="INNER_DOOR_PANEL_FINISHED_AREA", revision=1,
+    )
+    return PartRenderData(
+        scene=scene,
+        material=material_polygon_from_final_scene(scene),
+        fold_guides=(),
+        metadata={
+            "stable_id": str(panel.stable_id),
+            "inner_door_id": str(panel.inner_door_id),
+            "cell_key": str(panel.cell_key),
+            "thickness": float(panel.thickness),
+        },
+        unfolded_topology=topology,
+    )
+
+
 def build_inner_door_frame_render_data(frame) -> PartRenderData:
     """Build one inner-door frame FinalScene from its canonical physical part.
 
