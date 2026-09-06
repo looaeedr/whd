@@ -5,3 +5,5 @@
 {"ticket":"T14","role":"qa","event":"remote_final","run_id":34024564540,"head_sha":"094bb3b2c6a9be7791d5ef5b848785fb7e98a2be","result":"14+16+20 = 50 PASS / 0 FAIL; config canonical"}
 {"ticket":"T14","role":"qa","event":"visual","artifact_id":9986647459,"result":"Receiving physical pieces and input section stable IDs match; no fake child solid"}
 {"ticket":"T14","role":"controller","event":"accepted_pending_cleanup","result":"ready for one-shot cleanup, drift audit, issue close"}
+{"ticket":"T14","role":"qa","event":"cleanup_drift_audit","result":"6 one-shot files absent; accepted-head delta has 0 production/test drift"}
+{"ticket":"T14","role":"controller","event":"accepted","result":"all acceptance gates green; close #15 then dispatch T18"}
