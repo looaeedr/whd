@@ -658,6 +658,13 @@ bug / debug / regression / 修正
 → 必讀 diagnosing-bugs
 → 必讀 tdd
 
+git push / GitHub Connector / DNS / remote sync / 遠端同步
+→ 必讀 .agents/skills/misc/git-remote-sync-fallback/SKILL.md
+
+同步遠端QA / 遠端 QA / GitHub Actions / workflow run
+→ 必讀 .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+→ workflow run 建立後必須持續監控 run / job / step 到終態；不得只觸發後停止。
+
 remote QA / GitHub Actions QA / 同步遠端 QA
 → 必讀 remote-qa-monitoring
 ```
