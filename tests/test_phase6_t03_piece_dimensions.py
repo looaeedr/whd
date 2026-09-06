@@ -111,12 +111,27 @@ def test_real_two_piece_settings_page_shows_per_piece_formed_outer_and_material_
         designer.structure_type_var.set("二件式（W 二分）")
         bridge._phase6_select_box_structure_type(designer, designer.structure_type_var)
         root.update_idletasks(); root.update()
-        page = designer.settings_panel.page_cache["box_body"]["frame"]
-        texts = [str(w.cget("text")) for w in _descendants(page) if "text" in w.keys()]
-        dimension_lines = [text for text in texts if "包外尺寸" in text and "料尺寸" in text]
-        assert len(dimension_lines) == 2
-        assert any("左箱身" in text for text in dimension_lines)
-        assert any("右箱身" in text for text in dimension_lines)
+
+        sections = dict(designer.box_body_piece_input_sections)
+        assert tuple(sections) == ("box_body:left", "box_body:right")
+        assert [str(sections[key].cget("text")) for key in sections] == ["左箱身", "右箱身"]
+        assert all(
+            getattr(widget, "_phase6_part_key", None) == key
+            for key, widget in sections.items()
+        )
+
+        for key in ("box_body:left", "box_body:right"):
+            texts = [
+                str(w.cget("text"))
+                for w in _descendants(sections[key])
+                if "text" in w.keys()
+            ]
+            formed = [text for text in texts if text.startswith("包外尺寸：")]
+            material = [text for text in texts if text.startswith("料尺寸：")]
+            assert len(formed) == 1
+            assert len(material) == 1
+            assert formed[0].endswith(" mm")
+            assert material[0].endswith(" mm")
     finally:
         try:
             if app is not None and app.fold_designer_window is not None:
