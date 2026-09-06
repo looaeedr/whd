@@ -374,6 +374,42 @@ def _phase6_sync_authoritative_derived_parts(self):
                 default_profiles=build_standard_part_profiles(snapshot, "door"),
             )
 
+    # Receiving multi-door Base Plates are physical parts owned 1:1 by the
+    # authoritative Door cells. T19 only establishes the physical topology;
+    # per-cell dimensions and assembly placement are resolved by the following
+    # placement work order rather than invented here.
+    base_plate_profiles = {}
+    if door_rows:
+        canonical_base_profile = workspace.profiles_for(
+            "base_plate",
+            build_standard_part_profiles(snapshot, "base_plate"),
+        )
+        for row in door_rows:
+            base_key = str(row.part_key).replace("door_", "base_plate_", 1)
+            base_plate_profiles[base_key] = deepcopy(canonical_base_profile)
+
+    legacy_base_active = workspace.active_part == "base_plate"
+    legacy_base_selected = workspace.selected_part == "base_plate"
+    if door_rows and "base_plate" in workspace.available_parts:
+        workspace.remove_part("base_plate")
+    sync_derived_parts(
+        namespace="base_plate_c",
+        part_profiles=base_plate_profiles,
+    )
+    if door_rows:
+        first_base = str(door_rows[0].part_key).replace("door_", "base_plate_", 1)
+        if legacy_base_active:
+            workspace.active_part = first_base
+        if legacy_base_selected:
+            workspace.selected_part = first_base
+    else:
+        source_parts = tuple(snapshot.get("existing_parts") or ())
+        if "base_plate" in source_parts and "base_plate" not in workspace.available_parts:
+            workspace.add_part(
+                "base_plate",
+                default_profiles=build_standard_part_profiles(snapshot, "base_plate"),
+            )
+
     divider_profiles = {}
     columns = list(snapshot.get("door_layout_columns") or ())
     if bool(snapshot.get("multi_door_enabled", False)) and columns:
@@ -4039,6 +4075,7 @@ def _phase6_is_derived_physical_part_key(value):
     key = str(value or "")
     return (
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
+        or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
         or key.startswith("box_body:divider:")
         or (key.startswith("inner_door:") and key.endswith("_frame"))
         or (key.startswith("inner_door:") and key.endswith(":panel"))
