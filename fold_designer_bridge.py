@@ -6525,15 +6525,17 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         for child in host.winfo_children():
             child.destroy()
         self.assembly_box_body_piece_labels = {}
+        self.assembly_box_body_piece_sections = {}
         self.assembly_box_body_piece_formed_vars = {}
         self.assembly_box_body_piece_blank_vars = {}
         self.assembly_box_body_piece_corner_vars = {}
         piece_by_role = {str(getattr(piece, "role", "")): piece for piece in tuple(getattr(render_data, "pieces", ()) or ())}
         for projection in projections:
-            sub = original.ttk.Frame(host)
-            sub.pack(fill=original.tk.X, padx=(18, 0), pady=(2, 3))
-            original.ttk.Label(sub, text=projection.label).pack(anchor=original.tk.W)
+            sub = original.ttk.LabelFrame(host, text=projection.label, padding=4)
+            sub._phase6_part_key = projection.part_key
+            sub.pack(fill=original.tk.X, padx=(18, 0), pady=(2, 4))
             self.assembly_box_body_piece_labels[projection.part_key] = projection.label
+            self.assembly_box_body_piece_sections[projection.part_key] = sub
             formed = original.tk.StringVar(master=sub)
             blank = original.tk.StringVar(master=sub)
             corner = original.tk.StringVar(master=sub)
@@ -7353,6 +7355,7 @@ def _phase6_refresh_assembly_parts_panel(self):
     self.assembly_part_checkbuttons = {}
     self.assembly_box_body_piece_host = None
     self.assembly_box_body_piece_labels = {}
+    self.assembly_box_body_piece_sections = {}
     self.assembly_box_body_piece_formed_vars = {}
     self.assembly_box_body_piece_blank_vars = {}
     self.assembly_box_body_piece_corner_vars = {}
