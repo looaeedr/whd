@@ -918,7 +918,10 @@ class BoxCalculatorGUI:
         self.export_ib_door_var = tk.BooleanVar(value=False)
         self.baseline_var    = tk.StringVar(master=self.root, value="")
         self._active_cabinet_type = "金庫型"
-        self._cabinet_family_runtime = {}
+        # Known-model switches always re-apply the target preset.  This map
+        # stores immutable startup presets only; it must never become a
+        # per-family "remember my last edits" session cache.
+        self._cabinet_family_defaults = {}
 
         # 箱身組合方式是封頭/封尾上方截角的唯一類型來源。
         self.box_assembly_type_var = tk.StringVar(value=ASSEMBLY_TYPE_LABELS[CornerTypeId.INSERT_OVERLAY])
@@ -2497,6 +2500,17 @@ class BoxCalculatorGUI:
         designer_snapshot = self._compose_phase6_project_snapshot_from_main_gui()
         self.project_controller.capture_committed(designer_snapshot)
         designer_snapshot["_runtime_project_path"] = self.project_controller.project_path
+        # Runtime-only known-family presets.  These are deliberately injected
+        # after composing/capturing the project snapshot so they can guide an
+        # explicit model switch inside 3D without becoming project-file state.
+        # At present Vault is the baseline-backed known family; Receiving is
+        # derived from that immutable preset by cabinet_family_policy.
+        designer_snapshot["_runtime_family_presets"] = {
+            "金庫型": deepcopy(
+                dict(getattr(self, "_cabinet_family_defaults", {}) or {}).get("金庫型")
+                or {}
+            )
+        }
 
         window = tk.Toplevel(self.root)
         window.transient(self.root)
@@ -3614,6 +3628,10 @@ class BoxCalculatorGUI:
             
         self._baseline_last_value = self.baseline_var.get().strip()
         self._enforce_known_model_corner_types(reset_all=True)
+        # Capture the canonical Vault startup state before the user can edit it.
+        # Returning to a known model must restore this preset, not the last
+        # runtime values used before switching away.
+        self._cabinet_family_defaults["金庫型"] = self._capture_cabinet_family_runtime()
         self.baseline_var.trace_add("write", lambda *args: self.on_baseline_changed())
 
         self.fold_designer_button = tk.Button(
@@ -6215,26 +6233,52 @@ class BoxCalculatorGUI:
         self.workspace_controller.set_box_body_profile(state.get("box_body_profile"))
 
     def _apply_cabinet_family_for_current_model(self):
-        """Apply family policy derived from the single baseline/model selector."""
+        """Apply an explicit model switch without remembering known-family edits.
+
+        Known models always load their own preset.  ``自訂`` is the sole
+        exception: entering custom leaves the current operator values in place
+        as the starting point.  Project/3D snapshot restoration uses the
+        baseline commit guard and therefore does not run this fresh-preset path.
+        """
+        raw_model = normalize_custom_model_name(
+            self.baseline_var.get() if getattr(self, "baseline_var", None) is not None else ""
+        )
         new_type = BoxCalculatorGUI._current_cabinet_type_name(self)
         previous = str(getattr(self, "_active_cabinet_type", "金庫型") or "金庫型")
-        runtime = getattr(self, "_cabinet_family_runtime", None)
-        if runtime is None:
-            runtime = self._cabinet_family_runtime = {}
-        if previous != new_type:
-            runtime[previous] = self._capture_cabinet_family_runtime()
 
-        if new_type in runtime:
-            self._restore_cabinet_family_runtime(runtime[new_type])
-        elif new_type == "受電箱":
-            values = cabinet_family_policy.apply_fresh_family_defaults(
-                self._collect_main_setting_values(), new_type
+        # Project load / 3D live-state application owns the complete snapshot.
+        # Do not wash saved values through a fresh family preset in that path.
+        if getattr(self, "_fold_designer_baseline_commit_guard", False):
+            self._active_cabinet_type = new_type
+            return previous != new_type
+
+        # Custom is intentionally not another family preset.  It inherits the
+        # current values exactly; later edits become the custom starting state.
+        if is_unknown_model(raw_model):
+            self._active_cabinet_type = new_type
+            owner = getattr(self, "_derived_cache_owner", None)
+            if owner is not None:
+                owner.invalidate("geometry")
+            return previous != new_type
+
+        if new_type == "金庫型":
+            defaults = deepcopy(
+                dict(getattr(self, "_cabinet_family_defaults", {}) or {}).get("金庫型")
+                or {}
             )
+            if defaults:
+                self._restore_cabinet_family_runtime(defaults)
+        elif new_type == "受電箱":
+            # Start from immutable/startup settings, never from the last edited
+            # Receiving runtime.  The family policy then overlays its canonical
+            # receiving defaults (800/1600/350, FW 29, structure, etc.).
+            vault_defaults = deepcopy(
+                dict(getattr(self, "_cabinet_family_defaults", {}) or {}).get("金庫型")
+                or {}
+            )
+            base_settings = dict(vault_defaults.get("settings") or self.settings_service.snapshot().as_dict())
+            values = cabinet_family_policy.apply_fresh_family_defaults(base_settings, new_type)
             self._apply_fold_designer_live_settings(values, recalculate=False)
-            # 2026-09-03 receiving contract: fresh family selection is the
-            # canonical 包覆貼外 preset. This is a preset reset, not migration
-            # of an already-saved project, so T02 intentionally materializes
-            # TOP=OVERLAY/BOTTOM=WRAP/L/R=INSERT defaults here.
             self._set_box_assembly_type(values["assembly_type"], recalculate=False, notify_designer=False)
             self.multi_door_enabled_var.set(bool(values.get("multi_door_enabled", True)))
             self.set_door_layout_columns([
@@ -6261,11 +6305,13 @@ class BoxCalculatorGUI:
             workspace["box_body_profile"] = box_profile
             workspace["box_body_structure"] = structure
             self._store_fold_designer_workspace(workspace)
+
         self._active_cabinet_type = new_type
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
             owner.invalidate("geometry")
         return previous != new_type
+
 
     def on_baseline_changed(self):
         self._reset_manual_corner_parameter_locks()
