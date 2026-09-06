@@ -17,11 +17,25 @@ jobs:
         with:
           ref: cleanup/2d-3d-sync
           fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install targeted QA dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb python3-tk
+          python -m pip install -q pytest matplotlib -r requirements.txt
       - name: Apply T15 anchored patch
         run: python .github/t15_apply_patch.py
       - name: Compile changed production
         run: python -m py_compile gui.py fold_designer_bridge.py ae_engine/manufacturing_api.py ae_engine/inner_door_panels.py ae_engine/cabinet_types/receiving.py ae_engine/cabinet_types/policy.py
-      - name: Commit T15 large-file patch
+      - name: Run T15 and guard gates
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_phase6_t15_inner_door_panels.py \
+            tests/test_phase6_t11_integration_matrix.py::test_fold_designer_auto_syncs_receiving_divider_and_three_confirmed_frame_parts \
+            tests/test_phase6_t05_box_body_dividers.py
+      - name: Commit T15 anchored patch
         run: |
           if git diff --quiet; then
             echo 'No patch changes needed'
@@ -29,6 +43,6 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add gui.py fold_designer_bridge.py ae_engine/manufacturing_api.py
-          git commit -m 'feat(T15): wire per-door inner panel into 2D and 3D'
+          git add gui.py fold_designer_bridge.py ae_engine/manufacturing_api.py tests/test_phase6_t11_integration_matrix.py
+          git commit -m 'test(T15): keep frame guards while adding inner panel'
           git push origin HEAD:cleanup/2d-3d-sync
