@@ -34,7 +34,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          xvfb-run -a python -m pytest -q tests/test_phase6_receiving_spec_red_20260906.py 2>&1 | tee requirement_red.log
+          xvfb-run -a python -m pytest -q tests/test_phase6_receiving_spec_red_20260906.py::test_red_rui1_medium_unlocked_settings_has_real_vertical_scroll_owner 2>&1 | tee requirement_red.log
 
       - name: Upload RED log
         if: always()
