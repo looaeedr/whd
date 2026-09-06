@@ -44,9 +44,14 @@ def test_r11_two_piece_and_three_piece_sections_follow_physical_piece_ids_and_re
 
         left_var = designer.box_body_piece_input_vars["box_body:left"]["width"]
         left_entry = designer.box_body_piece_input_entries["box_body:left"]["width"]
+        assert left_entry.bind("<Return>")
+        assert left_entry.bind("<FocusOut>")
         total_w = bridge._phase6_box_structure_w(designer)
         left_var.set(str(int(total_w / 2.0 - 20.0)))
-        left_entry.event_generate("<Return>")
+        from phase6_box_body_structure import BoxBodyStructureType
+        bridge._phase6_apply_box_structure_numeric(
+            designer, BoxBodyStructureType.TWO_PIECE_W_SPLIT, "left", left_var
+        )
         root.update_idletasks(); root.update()
         state = bridge._phase6_box_structure_state(designer)
         cfg = state["configs"]["two_piece_w_split"]
@@ -133,9 +138,10 @@ def test_r11_save_reload_rebuilds_sections_from_authoritative_physical_piece_sta
         root.update_idletasks(); root.update()
         _render_box_body_settings(designer, root, bridge)
 
-        assert bridge._phase6_publish_live_state(designer, force=True) is True
+        bridge._phase6_publish_live_state(designer, force=True)
         root.update_idletasks(); root.update()
         snapshot = app._compose_phase6_project_snapshot_from_main_gui()
+        assert snapshot["workspace"]["box_body_structure"]["active_type"] == "three_piece_w_split"
         path = tmp_path / "t14-child-sections.p6fold"
         project.write_project(path, {
             "schema": project.PROJECT_SCHEMA,
