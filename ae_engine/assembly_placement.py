@@ -184,9 +184,26 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
     panel_h = float(outer_h) - top - bottom
     if panel_w <= 0 or panel_h <= 0:
         raise ValueError("inner-door insets leave no valid authoritative panel area")
-    center_x = float(outer.world_offset[0]) + (left - right) / 2.0
-    center_y = float(outer.world_offset[1]) + (bottom - top) / 2.0
-    center_z = float(outer.world_offset[2])
+    contract = _receiving_coordinate_contract(snapshot)
+    inward_vector = tuple(float(v) for v in contract.get("inward_vector", (0.0, 0.0, 0.0)))
+    if len(inward_vector) != 3:
+        raise ValueError("authoritative inward vector must have three components")
+    raw_offset = item.get(
+        "inward_offset_mm",
+        cabinet_family_policy.default_inner_door_inward_offset_mm(snapshot, default=0.0),
+    )
+    inward_offset_mm = float(raw_offset)
+    if inward_offset_mm < 0:
+        raise ValueError("inner-door inward offset must be >= 0")
+    center_x = (
+        float(outer.world_offset[0]) + (left - right) / 2.0
+        + inward_vector[0] * inward_offset_mm
+    )
+    center_y = (
+        float(outer.world_offset[1]) + (bottom - top) / 2.0
+        + inward_vector[1] * inward_offset_mm
+    )
+    center_z = float(outer.world_offset[2]) + inward_vector[2] * inward_offset_mm
     return {
         "item": item,
         "outer_key": outer_key,
@@ -194,6 +211,7 @@ def _inner_door_geometry(snapshot: Mapping[str, object], inner_door_id: str) -> 
         "panel_center": (center_x, center_y, center_z),
         "panel_width": panel_w,
         "panel_height": panel_h,
+        "inward_offset_mm": inward_offset_mm,
     }
 
 
