@@ -180,3 +180,78 @@ def test_receiving_dynamic_base_plate_stable_id_is_accepted_by_main_render_query
             root.destroy()
         except Exception:
             pass
+
+
+
+def test_receiving_live_door_topology_add_remove_keeps_base_plate_ids_in_lockstep():
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("受電箱")
+        _pump(root)
+        designer = app.open_original_fold_designer()
+        _pump(root)
+
+        def sync_with(heights):
+            designer._phase6_input_snapshot["multi_door_enabled"] = True
+            designer._phase6_input_snapshot["door_layout_columns"] = (
+                (800.0, tuple(float(v) for v in heights)),
+            )
+            bridge._phase6_sync_authoritative_derived_parts(designer)
+            return tuple(sorted(
+                str(key) for key in tuple(designer.available_parts)
+                if re.fullmatch(r"base_plate_c\d+_r\d+", str(key))
+            ))
+
+        assert sync_with([1600.0]) == ("base_plate_c1_r1",)
+        assert sync_with([500.0, 500.0, 600.0]) == (
+            "base_plate_c1_r1",
+            "base_plate_c1_r2",
+            "base_plate_c1_r3",
+        )
+        assert sync_with([1600.0]) == ("base_plate_c1_r1",)
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except Exception:
+            pass
+
+
+def test_non_receiving_single_door_keeps_legacy_single_base_plate_contract():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("金庫型")
+        _pump(root)
+        designer = app.open_original_fold_designer()
+        _pump(root)
+
+        parts = tuple(str(key) for key in tuple(designer.available_parts))
+        assert "base_plate" in parts
+        assert not any(re.fullmatch(r"base_plate_c\d+_r\d+", key) for key in parts)
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except Exception:
+            pass
