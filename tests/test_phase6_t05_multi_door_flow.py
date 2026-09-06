@@ -129,8 +129,9 @@ def test_receiving_assembly_resolved_parts_place_upper_and_lower_doors_separatel
         resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
         doors = {part.part_key: part for part in resolved.parts if part.part_key.startswith("door_c")}
         assert tuple(doors) == ("door_c1_r1", "door_c1_r2")
-        assert doors["door_c1_r1"].placement == "front"
-        assert doors["door_c1_r2"].placement == "front"
+        assert doors["door_c1_r1"].placement == "receiving_outer_door"
+        assert doors["door_c1_r2"].placement == "receiving_outer_door"
+        assert doors["door_c1_r1"].offset[2] == doors["door_c1_r2"].offset[2]
         assert doors["door_c1_r1"].offset != doors["door_c1_r2"].offset
         assert doors["door_c1_r1"].offset[1] > doors["door_c1_r2"].offset[1]
     finally:
