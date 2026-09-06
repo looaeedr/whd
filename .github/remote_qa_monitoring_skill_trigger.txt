@@ -1,0 +1,1 @@
+run remote QA monitoring skill validation
