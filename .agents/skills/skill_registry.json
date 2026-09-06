@@ -139,6 +139,28 @@
         "tdd"
       ],
       "required_references": []
+    },
+    {
+      "id": "git-remote-sync-fallback",
+      "keywords": [
+        "git push",
+        "git fetch",
+        "git pull",
+        "GitHub Connector",
+        "DNS",
+        "remote sync",
+        "遠端同步",
+        "推送失敗",
+        "無法解析",
+        "Could not resolve host"
+      ],
+      "file_globs": [
+        ".agents/skills/misc/git-remote-sync-fallback/**"
+      ],
+      "required_skills": [
+        "git-remote-sync-fallback"
+      ],
+      "required_references": []
     }
   ]
 }
