@@ -1,0 +1,6 @@
+{"ticket":"T17","role":"worker","event":"red","result":"fresh missing inward_offset_mm; resolver ignored per-door depth"}
+{"ticket":"T17","role":"worker","event":"green","result":"Receiving default 80; per-door state; family inward_vector placement; GUI Entry commit"}
+{"ticket":"T17","role":"qa","event":"local","result":"main 34 PASS; slow GUI 9+7+6 PASS; fresh-family 6 PASS; 0 FAIL"}
+{"ticket":"T17","role":"qa","event":"remote","run_id":34021763827,"result":"23+17+22 = 62 PASS / 0 FAIL; config unchanged"}
+{"ticket":"T17","role":"qa","event":"cleanup","result":"temporary T17 QA workflow removed"}
+{"ticket":"T17","role":"controller","event":"accepted","result":"ready to close #17"}
