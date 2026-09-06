@@ -1,1 +1,1 @@
-run T18 durable release gate after T11 wave3 and T16 stale-oracle corrections
+run T18 durable release gate after T14 wave5 oracle correction
