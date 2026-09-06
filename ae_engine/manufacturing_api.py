@@ -914,13 +914,13 @@ def build_part_scene(
             )
 
         if isinstance(spec, BasePlatePartSpec):
-            # Receiving family preserves nominal blank; global shrink is suppressed
-            # in favor of local seam relief at physical intersections.
-            is_receiving = str(spec.model_name or "").strip() in {"受電箱", "RECEIVING"}
-            st = 0.0 if is_receiving else spec.shrink_top
-            sb = 0.0 if is_receiving else spec.shrink_bottom
-            sl = 0.0 if is_receiving else spec.shrink_left
-            sr = 0.0 if is_receiving else spec.shrink_right
+            # Family shrink defines the nominal finished face.  Local seam
+            # relief is applied afterwards to the already-resolved plate.
+            # Receiving is not a special zero-shrink case.
+            st = spec.shrink_top
+            sb = spec.shrink_bottom
+            sl = spec.shrink_left
+            sr = spec.shrink_right
             if spec.corner_policy is not None:
                 from .sheetmetal_part_adapters import build_unknown_base_plate_result
                 result = _call(
