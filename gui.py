@@ -1646,7 +1646,7 @@ class BoxCalculatorGUI:
                 corner_policy=policy,
                 frame_edges=(door_cell.edges if door_cell is not None else None),
             )
-        elif key == "base_plate":
+        elif key == "base_plate" or key.startswith("base_plate_c"):
             spec = self._base_plate_part_spec_from_values(
                 {
                     "w": w, "h": h, "t": t, "fw": fw,
