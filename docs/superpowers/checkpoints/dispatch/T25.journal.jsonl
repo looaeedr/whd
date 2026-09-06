@@ -1,0 +1,1 @@
+{"ts":"2026-09-07T00:08:00+08:00","task_id":"Receiving-20260906","work_order":"T7","issue":25,"role":"總控審查","base_head":"b14cc8a7e47a90e0d49ef3104e4688bb3c460d35","event":"combined_qa_setup","completed":["dependencies_accepted","pitfalls_persisted","combined_test","durable_runner","config_invariant"],"pending":["remote_terminal","journal_review","cleanup","accept"],"failed":[]}
