@@ -16,6 +16,7 @@ disable-model-invocation: true
 ### 階段 1：總控 (PM Mode)
 - **職責**：分析規格、建立需求驗收條件；若需要拆解工單（如 T1, T2...），必須先執行 `.agents/skills/engineering/拆解任務工單/SKILL.md` 的 **RED-first** gate。
 - **拆工單硬閘門**：先按 Requirement 寫並實跑 requirement-level RED，與使用者逐條論證；在 **使用者核准** RED 前，**不得拆解工單**、不得建立 tracker/local ticket，也**不得轉移至：實作者**。RED 核准後才可草擬工單；工單拆法本身仍需使用者第二次核准。
+- **AI 庫追溯硬閘門**：拆票前必須依 `.agents/skills/engineering/拆解任務工單/SKILL.md` 搜尋/讀取相關 `個人AI檔案庫/**`，並在每張票明列 `Requirement Authority`、`AI Library References`、`AI Library Writeback`。不得只口頭說「AI 庫已讀」。若 AI 庫與使用者本輪明確核准規格衝突，以**最新使用者核准規格**為 authority，並把 AI 庫修正列為 REQUIRED writeback。
 - **自動轉移條件**：只有在「RED 已核准 + 工單 breakdown 已核准」後，才在同一次回覆中標記 `[轉移至：實作者]`，並自動進入階段 2。若任務本身不需要拆工單，則依該任務自己的設計/驗收核准 gate 決定是否轉移。
 
 ### 階段 2：實作者 (Implementer Mode)
@@ -28,6 +29,7 @@ disable-model-invocation: true
 ### 階段 3：審查整合 (QA/PM Reviewer Mode)
 - **輸出標示**：回覆開頭必須加上 `[當前角色：總控審查]`。
 - **職責**：以第三人稱視角做規格對照、邏輯檢查與回歸驗證。
+- **AI 庫 QA**：若任何工單標記 `AI Library Writeback: REQUIRED`，QA 不得在 writeback 尚未落盤、引用路徑未反讀確認、或 AI 庫仍保留會誤導後續施工的 stale authority 時 ACCEPT/關票。
 - **測試策略**：優先採**單一模組／小批次**執行；不得用「一次跑全套然後等超時」取代可恢復的小批 runner。若不合格則退回階段 2；合格才封存工單並推進下一項。
 
 ## 3. 測試 Runner / TIMEOUT 硬協定
@@ -129,6 +131,7 @@ Resume 時：
 - [ ] 無殘留 pytest / Xvfb / child Python process；
 - [ ] timeout 造成的 teardown/harness 問題另有明確紀錄，不得混成 production failure；
 - [ ] 任何已通過區段沒有因 timeout 被無意義重跑。
+- [ ] 工單的 `AI Library References` 已逐項反讀；所有 REQUIRED `AI Library Writeback` 已落盤，且與最終已核准 requirement / production 結果一致。
 
 ## 4. 核心限制條款
 - **嚴禁虛構等待**：嚴禁出現「工單已派發給其他工程師，請等待」等虛構話術。你「本人」就是唯一執行者。
@@ -151,5 +154,6 @@ Resume 時：
 - [ ] complete_teardown_timeout 明確要求完整 PASS summary，只有點號不得算完成。
 - [ ] 明確要求同步遠端 QA 時啟動 `monitoring-remote-qa`，並追到 terminal state；不得停在 workflow trigger / in_progress。
 - [ ] 若 PM 要拆解工單，明確引用 `.agents/skills/engineering/拆解任務工單/SKILL.md`，要求 RED-first + 使用者核准，且核准前不得拆解工單、不得轉移至：實作者。
+- [ ] 拆票/派工明確要求每票 `Requirement Authority`、`AI Library References`、`AI Library Writeback`；使用者最新核准規格優先於 stale AI 庫，衝突必須回寫而不是靜默沿用。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
 - [ ] remote QA 建立 run 時強制啟動 `monitoring-remote-qa`，持續監控到終態；成功後仍需 cleanup + durable state 才可 ACCEPT。
