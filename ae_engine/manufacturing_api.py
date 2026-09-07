@@ -1848,6 +1848,7 @@ def build_box_body_divider_render_data(
             "boundary_key": str(divider.boundary_key),
             "handle_side": bool(divider.handle_side),
             "formed_core_depth": float(divider.formed_core_depth),
+            "core_segment_index": int(divider.core_segment_index),
             "signed_fold_chain": tuple(float(v) for v in divider.signed_fold_chain),
             "material_lengths": tuple(float(v) for v in divider.material_lengths),
             "adjacent_cells": tuple(divider.adjacent_cells),
