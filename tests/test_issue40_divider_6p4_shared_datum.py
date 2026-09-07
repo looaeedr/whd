@@ -239,3 +239,66 @@ def test_t4_red_editing_endcap_mother_moves_divider_ABC_rigidly(tmp_path):
     assert (float(c1.center.x-a1.center.x), float(c1.center.y-a1.center.y)) == pytest.approx(
         (float(c0.center.x-a0.center.x), float(c0.center.y-a0.center.y))
     )
+
+
+
+def _five3(render):
+    return sorted(
+        (
+            round(float(p.center.x), 6),
+            round(float(p.center.y), 6),
+            round(float(p.radius), 6),
+        )
+        for p in render.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and abs(float(p.radius) - 2.65) <= 1e-6
+    )
+
+
+def test_t4_editing_endcap_mother_inward_moves_divider_ABC_inward_only(tmp_path):
+    root = tmp_path
+    folder = root / "基準檔" / "金庫型"
+    folder.mkdir(parents=True)
+    for name in ("封頭尾.dxf", "中隔.dxf"):
+        shutil.copy2(Path("基準檔/金庫型") / name, folder / name)
+
+    ctx = ManufacturingContext(resource_root=root)
+    _divider, before = _solved(context=ctx)
+    a0, b0, c0 = _divider_anchor_group(before)
+    five3_before = _five3(before)
+
+    mother_path = folder / "封頭尾.dxf"
+    original_bytes = mother_path.read_bytes()
+    rule = _endcap_mother_rule(mother_path)
+    doc = ezdxf.readfile(mother_path)
+    entity = doc.entitydb[rule["handle"]]
+    entity.dxf.center = (
+        float(entity.dxf.center.x) + float(rule["inward_unit"][0]),
+        float(entity.dxf.center.y) + float(rule["inward_unit"][1]),
+        float(entity.dxf.center.z),
+    )
+    doc.saveas(mother_path)
+    edited_bytes = mother_path.read_bytes()
+    assert edited_bytes != original_bytes
+
+    _divider, after = _solved(context=ctx)
+    a1, b1, c1 = _divider_anchor_group(after)
+    delta = (float(a1.center.x-a0.center.x), float(a1.center.y-a0.center.y))
+    print("ABC_inward_delta=", delta)
+    assert delta == pytest.approx((1.0, 0.0), abs=1e-6)
+    assert (float(b1.center.x-b0.center.x), float(b1.center.y-b0.center.y)) == pytest.approx(delta)
+    assert (float(c1.center.x-c0.center.x), float(c1.center.y-c0.center.y)) == pytest.approx(delta)
+    assert _five3(after) == five3_before
+
+    # Resolver must consume, never rewrite, the EndCap mother DXF.
+    assert mother_path.read_bytes() == edited_bytes
+
+
+def test_t4_uses_no_third_common_dxf_and_records_semantic_datum():
+    _divider, render = _solved()
+    metadata = dict(render.metadata["divider_endcap_shared_6p4_datum"])
+    assert metadata["datum_kind"] == "POST_RELIEF_CENTER_SPAN_CENTER"
+    assert metadata["mother_source_file"] == "封頭尾.dxf"
+    assert tuple(metadata["rigid_delta"]) == pytest.approx((3.0, -50.4999999777035), abs=1e-6)
+    assert not Path("基準檔/金庫型/共用孔位.dxf").exists()
+    assert not Path("基準檔/金庫型/6.4共用孔位.dxf").exists()
