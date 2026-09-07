@@ -135,6 +135,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
         clearance=0.0,
     )
     by_key = {part.part_key: part for part in solved_parts}
+    print("family_divider_diagnostics=", diagnostics)
     solved = by_key[divider.stable_id]
     exterior = list(solved.render_data.material.exterior.coords)
 
