@@ -8,9 +8,21 @@ description: Use when a task has synchronized changes to a remote repository and
 ## Overview
 Remote QA is a monitored condition loop, not a fire-and-forget action. Triggering a workflow run starts this skill; it does not complete the QA stage.
 
+## Active polling is mandatory
+
+Remote QA monitoring is **active polling**, not event notification.
+
+- Once a remote `run_id + head_sha` is known, the assistant must proactively query the run state on a recurring loop while the current Runtime is available.
+- Each polling cycle must read at least: **run → jobs → active/pending/failed steps**. When a job or step fails, fetch its log immediately.
+- Do **not** wait for GitHub/webhook/UI/event notifications to tell the assistant that the run changed state. Notifications may be supplemental evidence only; they never replace polling.
+- A lack of new events/messages is **not** a reason to stop. If the run remains `queued` / `in_progress`, schedule the next poll in the same execution loop.
+- During normal active monitoring, poll approximately every **30 seconds** unless a tool call itself is still executing. If a terminal state appears sooner, handle it immediately.
+- Never create duplicate remote runs merely because a poll returned no change. Keep the same locked `run_id + head_sha` until it reaches terminal, unless a diagnosed fix explicitly creates a replacement run.
+- If the chat/tool Runtime is interrupted, the remote runner continues independently; when control returns, the first monitoring action is to re-read the durable `run_id + head_sha` and resume active polling from that exact run.
+
 ## Required loop
 1. Record the remote head SHA, workflow/run ID, intended QA gates, and any invariant such as `config.ini` SHA before treating the run as evidence.
-2. Poll the workflow run, then its jobs and steps, until every required job reaches a terminal state. A progress update to the user is only an observation point; it must not stop the loop.
+2. **Actively poll** the workflow run, then its jobs and steps, until every required job reaches a terminal state. Do not wait for event notifications/webhooks. A progress update to the user is only an observation point; it must not stop the polling loop.
 3. If a job fails, fetch that job log immediately. Classify the failure as production/test failure vs harness/runner/setup failure using the project debugging/timeout rules. Apply the smallest valid fix or rerun only the affected scope, then monitor the replacement run to terminal state.
 4. While the run is `queued` or `in_progress`, continue monitoring in the current execution. **不得只因「已觸發／已開始／還在跑」就停止任務或用進度回報收尾。**
 5. On success, extract exact pass/fail counts and required invariant checks from logs. Remove temporary QA workflow/trigger files, then re-read the remote branch to confirm cleanup.
@@ -34,6 +46,7 @@ Remote QA is a monitored condition loop, not a fire-and-forget action. Triggerin
 ## Common mistakes
 - Treating “workflow triggered” as completed work.
 - Ending a response because the run is still executing even though monitoring tools are available.
+- Treating GitHub/event notifications as the monitor instead of proactively polling the locked run.
 - Polling only the run status and never checking which job/step failed.
 - Closing the ticket before temporary workflow cleanup and durable state are verified remotely.
 
