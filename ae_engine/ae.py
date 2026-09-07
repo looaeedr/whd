@@ -1119,15 +1119,16 @@ def _make_box_body_chain(
 def _build_box_body_scene(*, w, h, d, t, fw, zl1, zl2, zr1, zr2, z_comp,
                           draw_stock=False, model_name=None, user_features=None,
                           face_features=None, head_corner_policy=None, tail_corner_policy=None,
-                          fold_profile=None):
+                          fold_profile=None, structural_result=None):
     """Build the complete Box Body DrawingScene from one authoritative Fold Chain."""
-    if fold_profile:
+    result = structural_result
+    if result is None and fold_profile:
         result = build_box_body_result_from_fold_profile(
             fold_profile, h=h, t=t,
             head_corner_policy=head_corner_policy,
             tail_corner_policy=tail_corner_policy,
         )
-    else:
+    elif result is None:
         result = build_box_body_result(
             w=w, h=h, d=d, t=t, fw=fw, zl1=zl1, zl2=zl2, zr1=zr1, zr2=zr2,
             z_comp=z_comp, include_right_fw=True,
