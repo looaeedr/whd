@@ -145,6 +145,213 @@ def _baseline_path(model_name: str | None, filename: str, context: Manufacturing
     return expected if expected is not None and expected.is_file() else None
 
 
+def _extract_endcap_shared_6p4_mother_rule(path: Path) -> dict[str, object] | None:
+    """Extract the semantic Ø6.4 mother offset from EndCap baseline geometry.
+
+    The datum is the center of the post-relief straight segment carrying the
+    shared Ø6.4 pair.  The returned offset is local (axial, inward), never raw
+    DXF XY, so parts with different overall widths can consume the same rule.
+    """
+    from math import hypot
+
+    import ezdxf
+    from shapely.geometry import Polygon
+
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    outlines = list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
+    if not outlines:
+        return None
+
+    polygons = []
+    for entity in outlines:
+        pts = [(float(x), float(y)) for x, y, *_ in entity.get_points()]
+        if len(pts) < 3:
+            continue
+        polygon = Polygon(pts)
+        if not polygon.is_valid:
+            polygon = polygon.buffer(0)
+        if not polygon.is_empty and float(polygon.area) > 1e-9:
+            polygons.append((float(polygon.area), polygon, pts))
+    if not polygons:
+        return None
+    _area, outer, pts = max(polygons, key=lambda row: row[0])
+    if pts[0] != pts[-1]:
+        pts = pts + [pts[0]]
+
+    holes = [
+        entity for entity in msp.query("CIRCLE")
+        if abs(float(entity.dxf.radius) - 3.2) <= 1e-6
+    ]
+    if len(holes) < 2:
+        return None
+
+    candidates = []
+    for p, q in zip(pts, pts[1:]):
+        vx, vy = float(q[0] - p[0]), float(q[1] - p[1])
+        length = hypot(vx, vy)
+        if length <= 1e-9:
+            continue
+        tangent = (vx / length, vy / length)
+        center = ((float(p[0]) + float(q[0])) / 2.0, (float(p[1]) + float(q[1])) / 2.0)
+        nearby = []
+        for entity in holes:
+            x, y = float(entity.dxf.center.x), float(entity.dxf.center.y)
+            axial = (x - center[0]) * tangent[0] + (y - center[1]) * tangent[1]
+            perpendicular = abs(
+                (x - center[0]) * (-tangent[1]) + (y - center[1]) * tangent[0]
+            )
+            if abs(axial) <= length / 2.0 + 1e-6:
+                nearby.append((perpendicular, axial, entity))
+        if len(nearby) < 2:
+            continue
+        nearby.sort(key=lambda row: row[0])
+        selected = nearby[:2]
+        candidates.append((
+            sum(row[0] for row in selected) / 2.0,
+            center,
+            tangent,
+            length,
+            selected,
+        ))
+    if not candidates:
+        return None
+
+    _distance, center, tangent, length, selected = min(candidates, key=lambda row: row[0])
+    # Canonical tangent orientation: lexicographically positive.
+    if tangent[0] < -1e-9 or (abs(tangent[0]) <= 1e-9 and tangent[1] < 0.0):
+        tangent = (-tangent[0], -tangent[1])
+
+    centroid = (float(outer.centroid.x), float(outer.centroid.y))
+    normal = (-tangent[1], tangent[0])
+    if (
+        (centroid[0] - center[0]) * normal[0]
+        + (centroid[1] - center[1]) * normal[1]
+    ) < 0.0:
+        inward = (-normal[0], -normal[1])
+    else:
+        inward = normal
+
+    ranked = []
+    for _perpendicular, _old_axial, entity in selected:
+        x, y = float(entity.dxf.center.x), float(entity.dxf.center.y)
+        axial = (x - center[0]) * tangent[0] + (y - center[1]) * tangent[1]
+        inward_offset = (x - center[0]) * inward[0] + (y - center[1]) * inward[1]
+        ranked.append((axial, inward_offset, entity))
+    axial, inward_offset, mother = max(ranked, key=lambda row: row[0])
+
+    return {
+        "datum_kind": "POST_RELIEF_CENTER_SPAN_CENTER",
+        "source_file": "封頭尾.dxf",
+        "source_handle": str(getattr(mother.dxf, "handle", "") or ""),
+        "axial_offset": float(axial),
+        "inward_offset": float(inward_offset),
+        "source_segment_length": float(length),
+    }
+
+
+def _divider_post_relief_center_frame(material):
+    """Return canonical Divider post-relief center, tangent and inward axes."""
+    minx, _miny, _maxx, _maxy = map(float, material.bounds)
+    coords = list(material.exterior.coords)
+    candidates = []
+    for p, q in zip(coords, coords[1:]):
+        if abs(float(p[0]) - minx) > 1e-5 or abs(float(q[0]) - minx) > 1e-5:
+            continue
+        length = abs(float(q[1]) - float(p[1]))
+        if length > 1e-6:
+            candidates.append((length, p, q))
+    if not candidates:
+        raise ValueError("Divider post-relief center span unavailable")
+    _length, p, q = max(candidates, key=lambda row: row[0])
+    y0, y1 = sorted((float(p[1]), float(q[1])))
+    return (
+        (float(minx), (y0 + y1) / 2.0),
+        (0.0, 1.0),
+        (1.0, 0.0),
+    )
+
+
+def apply_divider_endcap_shared_6p4_datum(render_data: "PartRenderData") -> "PartRenderData":
+    """Rigidly translate Divider A/B/C to the EndCap mother datum.
+
+    The outer relief is already final when this runs.  Only the three baseline
+    Ø6.4 circles move; their internal A→B / A→C vectors remain untouched.
+    """
+    from .sheetmetal_drawing import CirclePrimitive, DrawingScene
+
+    metadata = dict(getattr(render_data, "metadata", {}) or {})
+    mother = dict(metadata.get("endcap_shared_6p4_mother_rule") or {})
+    if not mother:
+        return render_data
+
+    holes = [
+        primitive for primitive in getattr(render_data.scene, "primitives", ())
+        if isinstance(primitive, CirclePrimitive)
+        and str(getattr(primitive, "source_type", "")) == "baseline_divider_hole"
+        and abs(float(primitive.radius) - 3.2) <= 1e-6
+    ]
+    if len(holes) != 3:
+        raise ValueError(f"Receiving Divider shared Ø6.4 requires exactly 3 baseline holes, got {len(holes)}")
+
+    anchor = min(holes, key=lambda primitive: float(primitive.center.x))
+    center, tangent, inward = _divider_post_relief_center_frame(render_data.material)
+    target = (
+        center[0]
+        + float(mother["axial_offset"]) * tangent[0]
+        + float(mother["inward_offset"]) * inward[0],
+        center[1]
+        + float(mother["axial_offset"]) * tangent[1]
+        + float(mother["inward_offset"]) * inward[1],
+    )
+    delta = (
+        float(target[0]) - float(anchor.center.x),
+        float(target[1]) - float(anchor.center.y),
+    )
+
+    original_vectors = tuple(
+        (
+            str(getattr(hole, "source_id", "") or ""),
+            float(hole.center.x) - float(anchor.center.x),
+            float(hole.center.y) - float(anchor.center.y),
+        )
+        for hole in holes
+        if hole is not anchor
+    )
+    moved_ids = {id(hole) for hole in holes}
+    scene = DrawingScene()
+    for primitive in getattr(render_data.scene, "primitives", ()):
+        if id(primitive) in moved_ids:
+            primitive = replace(
+                primitive,
+                center=Vec2(
+                    float(primitive.center.x) + delta[0],
+                    float(primitive.center.y) + delta[1],
+                ),
+            )
+        scene.add(primitive)
+
+    metadata["divider_endcap_shared_6p4_datum"] = {
+        "datum_kind": "POST_RELIEF_CENTER_SPAN_CENTER",
+        "mother_source_file": str(mother.get("source_file") or "封頭尾.dxf"),
+        "mother_source_handle": str(mother.get("source_handle") or ""),
+        "mother_axial_offset": float(mother["axial_offset"]),
+        "mother_inward_offset": float(mother["inward_offset"]),
+        "divider_center": tuple(float(v) for v in center),
+        "anchor_before": (float(anchor.center.x), float(anchor.center.y)),
+        "anchor_after": (float(target[0]), float(target[1])),
+        "rigid_delta": tuple(float(v) for v in delta),
+        "relative_vectors": original_vectors,
+    }
+    return replace(
+        render_data,
+        scene=scene,
+        material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
+        metadata=metadata,
+    )
+
+
 def _door_baseline_model_name(model_name: str | None) -> str | None:
     return cabinet_family_policy.baseline_feature_model_name(model_name)
 
@@ -1568,6 +1775,16 @@ def build_box_body_divider_render_data(
         getattr(divider, "model_name", None)
     )
     baseline_path = _baseline_path(baseline_model, "中隔.dxf", ctx)
+    mother_rule = None
+    if cabinet_family_policy.divider_uses_endcap_6p4_shared_datum(
+        getattr(divider, "model_name", None)
+    ):
+        endcap_path = _baseline_path(baseline_model, "封頭尾.dxf", ctx)
+        if endcap_path is None:
+            raise ValueError("Receiving Divider shared Ø6.4 requires 封頭尾.dxf")
+        mother_rule = _extract_endcap_shared_6p4_mother_rule(endcap_path)
+        if mother_rule is None:
+            raise ValueError("封頭尾.dxf shared Ø6.4 mother datum unavailable")
     baseline_hole_count = 0
     if baseline_path is not None:
         import ezdxf
@@ -1627,6 +1844,7 @@ def build_box_body_divider_render_data(
             "adjacent_cells": tuple(divider.adjacent_cells),
             "baseline_feature_model": baseline_model,
             "baseline_divider_hole_count": int(baseline_hole_count),
+            "endcap_shared_6p4_mother_rule": mother_rule,
         },
         unfolded_topology=topology,
     )
