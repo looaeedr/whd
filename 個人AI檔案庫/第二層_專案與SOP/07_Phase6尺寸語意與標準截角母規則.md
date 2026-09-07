@@ -1465,3 +1465,110 @@ Receiving 已確認：
 -> 把數字寫進測試
 -> 再把測試當產品規格證據
 ```
+
+
+---
+
+# 23. 共用尺寸語意的 Scope Gate（2026-09-08）
+
+## 23.1 先判斷 Scope，再定義名詞
+
+任何尺寸／語意出現在單一 Family 的任務中，都不能因此直接視為 Family 專屬。
+
+對下列類型：
+
+- `FW`
+- `W/H/D`
+- `T`
+- CornerType / Assembly Intent
+- outside / formed / material dimension
+- Fold Profile semantic key
+
+必須先查：
+
+```text
+shared/global definition
+→ each Family adapter / representation
+→ each part consumer
+→ Fold/material conversion
+→ 2D/3D/DXF
+→ save/reload
+→ cross-Family tests/fixtures
+```
+
+再決定它是：
+
+- 全域共用語意；
+- Family-specific policy；
+- 單一板件局部語意。
+
+## 23.2 FW 的 scope 已確認不是 Receiving 專屬
+
+`FW` 的全域語意是：
+
+> **Frame Width / 邊框寬度／框寬，是箱體正面門框的成品幾何基準尺寸。**
+
+Receiving 與 Vault/金庫型都使用 FW。
+
+不同的是**dimension space / representation**，不是 FW 的物理語意本身：
+
+```text
+Receiving:
+  operator FW = 包外 29
+  T=2 時對應 material = 25
+
+Vault / 金庫型既有路徑:
+  stored / engine FW material = 25
+  T=2、兩側折彎時 formed occupation = 29
+```
+
+因此禁止寫：
+
+```text
+Receiving FW 的正式定義 = ...
+```
+
+來取代全域定義。
+
+正確文件結構應為：
+
+```text
+全系統 FW 正式定義
+→ Receiving FW 輸入 / 轉換規則
+→ Vault FW 輸入 / 轉換規則
+→ 各板件如何消費 FW
+```
+
+## 23.3 Family value 不能反推 global definition
+
+即使目前某 Family 有：
+
+```text
+FW = 29
+```
+
+也只能先說：
+
+```text
+此 Family 此 dimension space 的 FW value = 29
+```
+
+不能直接推成：
+
+```text
+FW 就是 Receiving 的 29 mm 包外
+```
+
+同理，看到 Vault `FW=25` 也不能推成「FW 正式定義就是料 25」。
+
+## 23.4 規格前最低交叉驗證
+
+若名詞已知／疑似跨 Family，共用規格至少要有：
+
+1. shared/global source；
+2. 當前 Family；
+3. 另一個 Family 的實作或測試；
+4. dimension-space 對照；
+5. consumer chain 對照。
+
+少任一項，都只能標成「局部查讀」，不得宣稱「完整 Source of Truth 已確認」。
