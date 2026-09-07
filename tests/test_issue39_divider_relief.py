@@ -162,7 +162,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert diag.preserve_part == "box_body"
     assert diag.relief_part == divider.stable_id
     assert diag.illegal_penetration is False
-    assert diag.pre_pair_count == 322
+    assert diag.pre_pair_count == expected_pre_pairs
     assert diag.post_pair_count > 0
 
     solved_world = bridge._phase6_build_joint_world_geometry(
