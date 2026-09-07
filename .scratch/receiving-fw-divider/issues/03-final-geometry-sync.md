@@ -15,9 +15,9 @@
 
 **AI Library Writeback:** None — no new durable rule expected; this ticket implements existing canonical final-geometry invariants. 若施工發現新的跨層坑，轉交 T48-4 統一回寫。
 
-**Blocked by:** T48-2
+**Blocked by:** T48-2 — ACCEPTED run 34168152160
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 - [ ] 2D 使用 solver 後 Divider final material。
 - [ ] 3D 使用同一 final material + authoritative placement。
