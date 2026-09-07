@@ -93,12 +93,20 @@ def _material_core_from_formed(*, formed_core: float, thickness: float) -> float
     return material
 
 
-def _fold_profile(signed_chain: Sequence[float], material_lengths: Sequence[float]) -> tuple[FoldProfileSegment, ...]:
+def _fold_profile(
+    signed_chain: Sequence[float],
+    material_lengths: Sequence[float],
+    *,
+    core_segment_index: int,
+) -> tuple[FoldProfileSegment, ...]:
     rows = []
     signed_chain = tuple(float(v) for v in signed_chain)
     material_lengths = tuple(float(v) for v in material_lengths)
     if len(signed_chain) != len(material_lengths):
         raise ValueError("divider signed/material fold chains must have equal length")
+    core_segment_index = int(core_segment_index)
+    if core_segment_index < 0 or core_segment_index >= len(material_lengths):
+        raise ValueError("divider core segment index is outside the fold chain")
     for index, (signed, length) in enumerate(zip(signed_chain, material_lengths)):
         if length <= 0:
             raise ValueError("divider material length must be positive")
@@ -106,7 +114,7 @@ def _fold_profile(signed_chain: Sequence[float], material_lengths: Sequence[floa
         rows.append(FoldProfileSegment(
             length=length,
             angle=angle,
-            core=("D_DIVIDER" if index == 3 else None),
+            core=("D_DIVIDER" if index == core_segment_index else None),
             phase6_key=f"divider_fold_{index + 1}",
         ))
     return tuple(rows)
@@ -123,6 +131,7 @@ def _part(
     handle_side,
     adjacent_cells,
     model_name=None,
+    frame_width=None,
 ):
     t = float(thickness)
     d = float(depth)
@@ -137,11 +146,13 @@ def _part(
         depth=d,
         thickness=t,
         handle_side=bool(handle_side),
+        frame_width=(None if frame_width is None else float(frame_width)),
     )
     if family_contract is not None:
         material = tuple(float(v) for v in family_contract["material_lengths"])
         signed = tuple(float(v) for v in family_contract["signed_fold_chain"])
         formed_core = float(family_contract["formed_core_depth"])
+        core_segment_index = int(family_contract["core_segment_index"])
     else:
         formed_core = d - 2.0 * t
         if formed_core <= 0:
@@ -155,6 +166,7 @@ def _part(
             _material_core_from_formed(formed_core=formed_core, thickness=t),
             15.0,
         )
+        core_segment_index = 3
 
     return BoxBodyDividerPart(
         stable_id=divider_stable_id(layout_scope, axis, boundary_key),
@@ -167,7 +179,11 @@ def _part(
         handle_side=bool(handle_side),
         signed_fold_chain=signed,
         material_lengths=material,
-        fold_profile=_fold_profile(signed, material),
+        fold_profile=_fold_profile(
+            signed,
+            material,
+            core_segment_index=core_segment_index,
+        ),
         adjacent_cells=tuple(adjacent_cells),
         model_name=(str(model_name).strip() if model_name else None),
     )
@@ -180,6 +196,7 @@ def derive_box_body_dividers(
     layout_scope: object,
     handle_edges: Mapping[str, object] | None = None,
     model_name: str | None = None,
+    frame_width: float | None = None,
 ) -> tuple[BoxBodyDividerPart, ...]:
     """Derive one physical divider for each canonical internal Door boundary.
 
@@ -224,6 +241,7 @@ def derive_box_body_dividers(
             handle_side=handle_side,
             adjacent_cells=adjacent,
             model_name=model_name,
+            frame_width=frame_width,
         ))
 
     for cell in cells:
@@ -248,6 +266,7 @@ def derive_box_body_dividers(
             handle_side=handle_side,
             adjacent_cells=(upper_key, lower_key),
             model_name=model_name,
+            frame_width=frame_width,
         ))
     return tuple(result)
 
