@@ -1592,7 +1592,7 @@ UI location = 3D 輸入區
 field = FW
 ```
 
-不代表存在一個叫做「Receiving FW 輸入語意」的新 domain semantic。
+不代表存在一個叫做「把受電箱 3D FW 欄位誤當成另一套語意」的新 domain semantic。
 
 ## 24.2 FW 語意仍只有全域 Frame Width
 
@@ -1622,7 +1622,7 @@ UI 可以有：
 錯誤：
 
 ```text
-受電箱 FW 輸入語意 = 29 包外
+把「3D 輸入區的 FW=29」誤寫成另一套 FW 定義
 ```
 
 因為前者把 **UI location / value / dimension space** 分開，後者錯把 UI 入口當成 domain semantic。
