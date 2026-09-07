@@ -169,3 +169,29 @@ def test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true()
         f"left={left}, right={right}, divider={divider_planes}, relief={relief}"
     )
     assert relief.get("verified") is True
+
+
+
+def test_r3b_relief_refuses_verified_when_divider_fw_face_is_displaced():
+    from dataclasses import replace
+    import fold_designer_bridge as bridge
+
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    x, y, z = (float(v) for v in divider_part.offset)
+    displaced = replace(divider_part, offset=(x, y, z + 5.0))
+
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, displaced),
+        finished_dimensions=(snapshot["w"], snapshot["h"], snapshot["d"]),
+        sheet_thickness=snapshot["t"],
+    )
+    solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+    relief = dict(solved.render_data.metadata.get("divider_assembly_relief") or {})
+
+    assert relief.get("verified") is not True
+    assert diagnostics
+    assert diagnostics[0].candidate_status == "INVALID_DIVIDER_FW_PLACEMENT"
+    placement = dict(diagnostics[0].evidence.get("placement") or {})
+    assert placement.get("fw_face_flush") is False
