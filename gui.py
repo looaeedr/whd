@@ -6816,24 +6816,19 @@ class BoxCalculatorGUI:
     def update_calculations(self):
         try:
             val = self.get_float_values()
-            # 1. 箱身結果尺寸必須來自與 2D/3D 相同的 authoritative Fold Chain。
-            # 使用舊 calculate_z_length() 會在 3D 刪增折段後仍顯示固定 9 段寬度。
-            if self.workspace_controller.box_body_profile():
-                z_spec = self._box_body_part_spec(val)
-                z_render = self._authoritative_render_data(
-                    z_spec, self._manufacturing_context(draw_stock=False)
-                )
-                z_minx, z_miny, z_maxx, z_maxy = (float(v) for v in z_render.material.bounds)
-                z_len = z_maxx - z_minx
-                z_h = z_maxy - z_miny
-            else:
-                # Before Phase6 has ever committed a Fold Chain, retain the
-                # original main-GUI calculation path and its legacy corner state.
-                z_len = ae.calculate_z_length(
-                    val['zl1'], val['zl2'], val['zr1'], val['zr2'], val['z_comp'],
-                    val['w'], val['d'], val['t'], val['fw']
-                )
-                z_h = self._box_body_finished_height(val)
+            # 1. 箱身結果尺寸只量 authoritative canonical Z Fold Chain。
+            # Multi-piece render_data.material 是 exploded preview envelope；
+            # summary 必須改量同一 spec 的 canonical strip，不得退回固定段數公式。
+            z_spec = self._box_body_part_spec(val)
+            z_render = self._authoritative_render_data(
+                z_spec, self._manufacturing_context(draw_stock=False)
+            )
+            z_dimension_render = getattr(z_render, "canonical_strip_render_data", z_render)
+            z_minx, z_miny, z_maxx, z_maxy = (
+                float(v) for v in z_dimension_render.material.bounds
+            )
+            z_len = z_maxx - z_minx
+            z_h = z_maxy - z_miny
             
             # 2. 封頭／封尾結果尺寸。Phase6 一旦提交 linked Fold Profile，
             # 主 2D 必須直接量同一份 authoritative FinalScene；不得再回到
