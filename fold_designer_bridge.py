@@ -5865,6 +5865,7 @@ def _phase6_resolve_explicit_joint_reliefs(
         joint_relief_ownership, project_joint_interference_to_relief_owner,
     )
     from ae_engine.contracts import ResolvedJointDiagnostic
+    from ae_engine.manufacturing_api import apply_divider_endcap_shared_6p4_datum
 
     current = {str(part.part_key): part for part in tuple(parts or ())}
     diagnostics = []
@@ -6548,6 +6549,10 @@ def _phase6_resolve_family_divider_reliefs(
             continue
 
         solved = _phase6_apply_resolved_cut_to_part(divider, candidate.cut_polygon_2d)
+        solved = replace(
+            solved,
+            render_data=apply_divider_endcap_shared_6p4_datum(solved.render_data),
+        )
         solved_world = _phase6_build_joint_world_geometry(
             tuple(solved if key == divider_key else part for key, part in current.items()),
             finished_dimensions, sheet_thickness
