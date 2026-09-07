@@ -1164,9 +1164,13 @@ def _build_box_body_scene(*, w, h, d, t, fw, zl1, zl2, zr1, zr2, z_comp,
             scene.extend(resolved_features_to_primitives(get_box_body_baseline_unfolded_features(
                 model_name, result.width, result.height, zl1, zl2, zr1, zr2, z_comp, w, d, t, fw,
             )))
+    check_fold_values = None
+    if fold_profile:
+        check_fold_values = tuple(float(getattr(row, "length", 0.0)) for row in fold_profile)
     scene.extend(build_box_body_check(
         total_length=result.width, total_height=result.height, panel_width=w, panel_depth=d,
-        thickness=t, left_outer=zl1, left_inner=zl2, right_inner=zr2, right_outer=zr1,
+        thickness=t, fold_values=check_fold_values,
+        left_outer=zl1, left_inner=zl2, right_inner=zr2, right_outer=zr1,
         frame_width=fw,
     ))
     return scene
