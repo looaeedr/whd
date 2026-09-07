@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
+# RED: Fold Designer part_dimensions must consume cabinet-family Door FW semantics.
 import fold_designer_bridge as bridge
 
 
