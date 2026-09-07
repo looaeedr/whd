@@ -1,0 +1,49 @@
+name: Skill AI Library Traceability QA
+
+on:
+  push:
+    branches:
+      - fix/skill-ai-library-traceability-20260907
+    paths:
+      - ".agents/skills/engineering/拆解任務工單/SKILL.md"
+      - ".agents/skills/engineering/派工/SKILL.md"
+      - ".github/workflows/qa_skill_ai_library_traceability.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: WHD skill preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "補強拆解任務工單與派工 Skill：AI 庫引用、authority 衝突、writeback 成為硬欄位" \
+            --changed-file ".agents/skills/engineering/拆解任務工單/SKILL.md" \
+            --changed-file ".agents/skills/engineering/派工/SKILL.md"
+      - name: Static skill contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          tickets = Path(".agents/skills/engineering/拆解任務工單/SKILL.md").read_text(encoding="utf-8")
+          dispatch = Path(".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
+
+          assert "name: to-tickets" in tickets
+          assert "name: dispatching" in dispatch
+          assert len(tickets.splitlines()) < 500
+          assert len(dispatch.splitlines()) < 500
+
+          for text in (tickets, dispatch):
+              for token in ("Requirement Authority", "AI Library References", "AI Library Writeback"):
+                  assert token in text, token
+
+          assert "個人AI檔案庫/**" in tickets
+          assert "current explicit user-approved requirement overrides" in tickets
+          assert "最新使用者核准規格" in dispatch
+          assert "不得只口頭說" in dispatch
+          print("skill traceability contract: PASS")
+          PY
