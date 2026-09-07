@@ -1504,45 +1504,6 @@ def build_inner_door_frame_render_data(frame) -> PartRenderData:
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural))
 
-    baseline_model = cabinet_family_policy.baseline_feature_model_name(
-        getattr(divider, "model_name", None)
-    )
-    baseline_path = _baseline_path(baseline_model, "中隔.dxf", ctx)
-    baseline_hole_count = 0
-    if baseline_path is not None:
-        import ezdxf
-        from ezdxf import bbox as ezdxf_bbox
-
-        doc = ezdxf.readfile(baseline_path)
-        msp = doc.modelspace()
-        source_bounds = ezdxf_bbox.extents(msp)
-        if source_bounds.has_data:
-            source_min_x = float(source_bounds.extmin.x)
-            source_min_y = float(source_bounds.extmin.y)
-            source_w = float(source_bounds.extmax.x) - source_min_x
-            source_h = float(source_bounds.extmax.y) - source_min_y
-            # Baseline long X axis maps to Divider span Y; baseline short Y
-            # axis maps to the fold-chain X width.  Center the unscaled source
-            # envelope so every fixed hole remains datum-neutral.
-            offset_x = (float(chain.total_width) - source_h) / 2.0
-            offset_y = (float(chain.height) - source_w) / 2.0
-            for index, entity in enumerate(msp.query("CIRCLE")):
-                cx = float(entity.dxf.center.x)
-                cy = float(entity.dxf.center.y)
-                handle = str(getattr(entity.dxf, "handle", "") or "").strip().upper()
-                source_id = handle or f"XYR:{cx:.6f}:{cy:.6f}:{float(entity.dxf.radius):.6f}"
-                scene.add(CirclePrimitive(
-                    center=Vec2(
-                        offset_x + (cy - source_min_y),
-                        offset_y + (cx - source_min_x),
-                    ),
-                    radius=float(entity.dxf.radius),
-                    layer="CUTTING",
-                    source_type="baseline_divider_hole",
-                    source_id=f"divider:baseline_hole:{source_id}:{index}",
-                ))
-                baseline_hole_count += 1
-
     topology = UnfoldedBlankTopology(
         piece_id=str(frame.stable_id),
         x_segments=tuple(
@@ -1602,6 +1563,45 @@ def build_box_body_divider_render_data(
     )
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural))
+
+    baseline_model = cabinet_family_policy.baseline_feature_model_name(
+        getattr(divider, "model_name", None)
+    )
+    baseline_path = _baseline_path(baseline_model, "中隔.dxf", ctx)
+    baseline_hole_count = 0
+    if baseline_path is not None:
+        import ezdxf
+        from ezdxf import bbox as ezdxf_bbox
+
+        doc = ezdxf.readfile(baseline_path)
+        msp = doc.modelspace()
+        source_bounds = ezdxf_bbox.extents(msp)
+        if source_bounds.has_data:
+            source_min_x = float(source_bounds.extmin.x)
+            source_min_y = float(source_bounds.extmin.y)
+            source_w = float(source_bounds.extmax.x) - source_min_x
+            source_h = float(source_bounds.extmax.y) - source_min_y
+            # Baseline long X axis maps to Divider span Y; baseline short Y
+            # axis maps to the fold-chain X width. Center the unscaled source
+            # envelope so every fixed hole remains datum-neutral.
+            offset_x = (float(chain.total_width) - source_h) / 2.0
+            offset_y = (float(chain.height) - source_w) / 2.0
+            for index, entity in enumerate(msp.query("CIRCLE")):
+                cx = float(entity.dxf.center.x)
+                cy = float(entity.dxf.center.y)
+                handle = str(getattr(entity.dxf, "handle", "") or "").strip().upper()
+                source_id = handle or f"XYR:{cx:.6f}:{cy:.6f}:{float(entity.dxf.radius):.6f}"
+                scene.add(CirclePrimitive(
+                    center=Vec2(
+                        offset_x + (cy - source_min_y),
+                        offset_y + (cx - source_min_x),
+                    ),
+                    radius=float(entity.dxf.radius),
+                    layer="CUTTING",
+                    source_type="baseline_divider_hole",
+                    source_id=f"divider:baseline_hole:{source_id}:{index}",
+                ))
+                baseline_hole_count += 1
     topology = UnfoldedBlankTopology(
         piece_id=str(divider.stable_id),
         x_segments=tuple(
