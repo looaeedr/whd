@@ -1,0 +1,25 @@
+TASK: T1 #26 Box Body canonical profile lifecycle + Manufacturing fail-closed
+REPOSITORY: looaeedr/whd
+TARGET_BRANCH: cleanup/2d-3d-sync
+WORK_BRANCH: work/box-body-single-source-t1-20260907
+PARENT_HEAD: 704802dc6ca4892f9f40f654f94a20e8054cf494
+TARGET_BASELINE: ec03a170f67c4734b4682501cfdb5d2b0316d2fe
+CHANGED_FILE: gui.py
+CHANGED_FILE: ae_engine/manufacturing_api.py
+CHANGED_FILE: tests/test_box_body_single_source_t1.py
+
+READ_SKILL: dispatching
+READ_SKILL: implement
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: phase6-corner-3d-model-integrity
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.schema.json
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+
+APPROVED_RED: R2,R5
+OWNING_ISSUE: #26
