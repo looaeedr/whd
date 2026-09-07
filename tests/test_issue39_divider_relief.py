@@ -229,7 +229,7 @@ def test_t3_probe_side_skin_and_divider_mating_datums():
         print("datum_world", key, "x_bounds=", (min(xs), max(xs)))
 
         skins = world["mapped_skin_triangles_by_part"][key]
-        skin_pts = [record.world_triangle[i] for record in skins for i in range(3)]
+        skin_pts = [record.world[i] for record in skins for i in range(3)]
         skin_x = [float(p[0]) for p in skin_pts]
         print("datum_skin", key, "x_bounds=", (min(skin_x), max(skin_x)))
 
