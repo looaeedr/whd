@@ -545,6 +545,12 @@ def build_divider_front_fold_relief_candidate(
             f"Divider relief core_start must lie inside material bounds: {core_start} not in {(minx, maxx)}"
         )
 
+    # Boolean robustness margin only; this is not manufacturing clearance.
+    # The solver's triangulated skin/backprojection can land a few 1e-5 mm on
+    # either side of an exact Fold boundary, so keep the cut topologically
+    # stable without changing the collision-derived physical depth.
+    boolean_margin = max(1.0e-4, float(tolerance) * 100.0)
+
     cut_polygons = []
     cut_depths = []
     pair_count = 0
@@ -584,19 +590,19 @@ def build_divider_front_fold_relief_candidate(
             edge = "MIN_Y"
             depth = low_depth + float(clearance)
             cut = shapely_box(
-                minx - tolerance,
-                miny - tolerance,
-                core_start + tolerance,
-                min(maxy, miny + depth) + tolerance,
+                minx - boolean_margin,
+                miny - boolean_margin,
+                core_start + boolean_margin,
+                min(maxy, miny + depth) + boolean_margin,
             )
         else:
             edge = "MAX_Y"
             depth = high_depth + float(clearance)
             cut = shapely_box(
-                minx - tolerance,
-                max(miny, maxy - depth) - tolerance,
-                core_start + tolerance,
-                maxy + tolerance,
+                minx - boolean_margin,
+                max(miny, maxy - depth) - boolean_margin,
+                core_start + boolean_margin,
+                maxy + boolean_margin,
             )
         if depth > float(tolerance):
             cut_polygons.append(cut)
@@ -626,6 +632,7 @@ def build_divider_front_fold_relief_candidate(
                 "preserve_part": str(ownership.preserve_part),
                 "relief_part": relief_key,
             },
+            "boolean_margin": float(boolean_margin),
         },
     )
 
