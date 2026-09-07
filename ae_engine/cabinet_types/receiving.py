@@ -52,6 +52,36 @@ BASE_PLATE_DEFAULTS = {
 
 DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
+# Receiving Divider is a family-owned manufacturing contract.  Material
+# lengths stay fixed; outside dimensions are derived from the actual adjacent
+# bend count and current sheet thickness.
+DIVIDER_MATERIAL_FOLD = (16.0, 20.0, 25.0, 78.0, 15.0)
+
+
+def divider_fold_contract(*, depth: float, thickness: float, handle_side: bool) -> dict[str, object]:
+    """Return Receiving Divider material/outside folds without using cabinet D."""
+    del depth  # Receiving Divider depth is not the cabinet D-derived generic core.
+    t = float(thickness)
+    if t <= 0:
+        raise ValueError("Receiving Divider thickness must be > 0")
+    material = tuple(float(v) for v in DIVIDER_MATERIAL_FOLD)
+    outside = (
+        material[0] + t,
+        material[1] + 2.0 * t,
+        material[2] + 2.0 * t,
+        material[3] + 2.0 * t,
+        material[4] + t,
+    )
+    signed = tuple(
+        (-value if bool(handle_side) and index == 0 else value)
+        for index, value in enumerate(outside)
+    )
+    return {
+        "material_lengths": material,
+        "signed_fold_chain": signed,
+        "formed_core_depth": float(outside[3]),
+    }
+
 
 def door_material_frame_width(*, frame_width: float, thickness: float) -> float:
     """Convert Receiving Door FW from formed outside occupation to material FW.
