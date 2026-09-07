@@ -36,6 +36,11 @@ jobs:
           printf '{"pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' "$rc" "$before" "$after" > projection_state.json
           if [ "$before" != "$after" ]; then exit 97; fi
           exit "$rc"
+      - name: Run T25 Combined Acceptance Door dimension seam
+        shell: bash
+        run: |
+          xvfb-run -a python -m pytest -q tests/test_phase6_t25_combined_receiving_acceptance.py > t25.log 2>&1
+          cat t25.log
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,3 +49,4 @@ jobs:
           path: |
             projection.log
             projection_state.json
+            t25.log
