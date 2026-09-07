@@ -17,11 +17,11 @@
 
 **Blocked by:** T48-2 — ACCEPTED run 34168152160
 
-**Status:** ready-for-agent
+**Status:** ACCEPTED — run 34168398865, 19 passed / 0 failed
 
-- [ ] 2D 使用 solver 後 Divider final material。
-- [ ] 3D 使用同一 final material + authoritative placement。
-- [ ] DXF CUTTING 使用同一 final material，固定孔仍來自 baseline feature source。
-- [ ] Save/Reload 後 FW、Fold Profile、placement、relief metadata、final material 一致。
-- [ ] 三件式箱身 left/back/right physical IDs 不漂移。
-- [ ] 不建立第二套 Divider relief/state。
+- [x] 2D 使用 solver 後 Divider final material。
+- [x] 3D 使用同一 final material + authoritative placement。
+- [x] DXF CUTTING 使用同一 final material，固定孔仍來自 baseline feature source。
+- [x] Save/Reload 後 FW、Fold Profile、placement、relief metadata、final material 一致。
+- [x] 三件式箱身 left/back/right physical IDs 不漂移。
+- [x] 不建立第二套 Divider relief/state。
