@@ -19,11 +19,11 @@
 
 **Blocked by:** T48-1 — ACCEPTED run 34167721816
 
-**Status:** ready-for-agent
+**Status:** ACCEPTED — run 34168152160, 13 passed / 0 failed
 
-- [ ] relief resolver 在正確 Divider placement 後才執行 collision/backprojection。
-- [ ] `verified=True` 必須包含 placement/face relation 已成立的 evidence。
-- [ ] 使用 `box_body:left_side` / `box_body:right_side` 真實 physical pieces；不得用單一虛擬 aggregate 當 backprojection owner。
-- [ ] baseline `中隔.dxf` 仍只提供固定孔，不成為 relief contour oracle。
-- [ ] R3 由 RED 轉 GREEN。
-- [ ] 不使用 `1mm`、`47/26` 或任何單次 probe cut depth 當固定 oracle。
+- [x] relief resolver 在正確 Divider placement 後才執行 collision/backprojection。
+- [x] `verified=True` 必須包含 placement/face relation 已成立的 evidence。
+- [x] 使用 `box_body:left_side` / `box_body:right_side` 真實 physical pieces；不得用單一虛擬 aggregate 當 backprojection owner。
+- [x] baseline `中隔.dxf` 仍只提供固定孔，不成為 relief contour oracle。
+- [x] R3 由 RED 轉 GREEN。
+- [x] 不使用 `1mm`、`47/26` 或任何單次 probe cut depth 當固定 oracle。
