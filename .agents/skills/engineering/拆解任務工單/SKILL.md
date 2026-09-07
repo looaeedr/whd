@@ -20,7 +20,21 @@ The RED Gate is not a formality. RED evidence can reveal that several symptoms s
 
 ### 1. Gather context
 
-Read the current conversation, referenced spec/issue, relevant comments, project glossary, ADRs, and existing code paths. At this stage collect **Requirements only**. Do not assign T-numbers, ticket titles, blockers, or issue boundaries yet.
+Read the current conversation, referenced spec/issue, relevant comments, project glossary, ADRs, **relevant project AI Library / 個人AI檔案庫 entries**, and existing code paths. At this stage collect **Requirements only**. Do not assign T-numbers, ticket titles, blockers, or issue boundaries yet.
+
+### 1.1 AI Library traceability gate
+
+For WHD/project work, AI Library is a mandatory engineering evidence source, not optional background context.
+
+Before RED design:
+- Search/read the relevant entries under `個人AI檔案庫/**` and record the **exact file paths** used.
+- At minimum, include the project SOP/pitfall entries that materially constrain the task; do not merely say "AI 庫已讀".
+- Build a short **Requirement Authority** note distinguishing:
+  1. current user-approved requirement/spec;
+  2. code/test behavior;
+  3. AI Library historical guidance.
+- **Authority rule:** a current explicit user-approved requirement overrides stale/conflicting AI Library content. Never silently let old AI Library text overwrite the current requirement.
+- When a conflict, newly discovered pitfall, or durable invariant is found, mark **AI Library Writeback: REQUIRED** and name the target AI Library file(s) or the intended knowledge category.
 
 ### 2. Explore the codebase
 
@@ -74,6 +88,9 @@ Rules:
 - Each ticket fits a fresh context window and declares only genuine blockers.
 - Wide mechanical refactors may use expand–migrate–contract instead of forced vertical slicing.
 - **每張工單** must include `Approved RED IDs` and reference the **已核准的 RED** evidence that defines its acceptance boundary.
+- **每張工單** must include `Requirement Authority` and `AI Library References` with exact paths; `AI Library References` may not be omitted.
+- **每張工單** must include `AI Library Writeback`: either exact target file(s)/knowledge to update, or `None — no durable knowledge change` with a reason.
+- If current requirements supersede stale AI Library guidance, at least one closing/acceptance ticket must own the required writeback; the breakdown is incomplete without that ownership.
 
 ### 5. Quiz the user on the breakdown
 
@@ -81,6 +98,9 @@ Present the proposed breakdown as a numbered list showing:
 
 - Title
 - Approved RED IDs
+- Requirement Authority
+- AI Library References
+- AI Library Writeback
 - Blocked by
 - What it delivers
 
@@ -104,6 +124,12 @@ Do NOT close or modify a parent issue unless explicitly requested.
 
 **Approved RED IDs:** R1, R2
 
+**Requirement Authority:** current user-approved spec / issue / exact contract.
+
+**AI Library References:** exact `個人AI檔案庫/**` paths used.
+
+**AI Library Writeback:** exact target path(s) + intended update, or `None — no durable knowledge change`.
+
 **Blocked by:** None, or exact blocking tickets.
 
 **Status:** ready-for-agent
@@ -121,3 +147,5 @@ Do NOT close or modify a parent issue unless explicitly requested.
 | "The test errors, so that's a RED." | Harness/setup failure is not requirement evidence. |
 | "The test is already green, but we still need a bug ticket." | Re-check the seam; do not invent a repair ticket without a failing contract. |
 | "I'll create draft GitHub issues and revise them after approval." | Creating issues is already publishing. Fail closed until both approval gates pass. |
+| "I read the AI Library earlier, so I don't need to cite it in the tickets." | Reading is not traceability. Every ticket must carry exact AI Library references and explicit writeback ownership/None reason. |
+| "The AI Library says X, so it overrides the user's new confirmed spec." | Wrong authority order. Current explicit user-approved requirements win; record the conflict and require AI Library writeback. |
