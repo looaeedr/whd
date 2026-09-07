@@ -293,6 +293,11 @@ def shared_baseline_feature_model_name() -> str:
     return "金庫型"
 
 
+def divider_uses_endcap_6p4_shared_datum() -> bool:
+    """Receiving Divider A/B/C consumes the EndCap Ø6.4 mother datum one-way."""
+    return True
+
+
 def apply_family_defaults(snapshot):
     """套用受電箱 *fresh family* 預設；未列出的全域值保持原樣。
 
