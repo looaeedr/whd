@@ -453,6 +453,7 @@ def _phase6_sync_authoritative_derived_parts(self):
             layout_scope=str(snapshot.get("door_layout_scope") or "main").strip() or "main",
             handle_edges=dict(snapshot.get("door_handle_edges") or {}),
             model_name=str(snapshot.get("model") or "").strip() or None,
+            frame_width=float(snapshot.get("fw", 0.0)),
         )
         divider_profiles = divider_part_profiles(dividers)
     sync_derived_parts(
@@ -6465,9 +6466,11 @@ def _phase6_divider_relief_core_start(part):
 
     metadata = dict(getattr(getattr(part, "render_data", None), "metadata", {}) or {})
     lengths = tuple(float(v) for v in tuple(metadata.get("material_lengths", ()) or ()))
-    # Canonical Divider profile marks the fourth segment as D_DIVIDER.
-    if len(lengths) >= 4:
-        return float(sum(lengths[:3]))
+    core_segment_index = metadata.get("core_segment_index")
+    if core_segment_index is not None:
+        index = int(core_segment_index)
+        if 0 <= index < len(lengths):
+            return float(sum(lengths[:index]))
     raise ValueError(f"Divider D_DIVIDER Fold topology unavailable: {part.part_key}")
 
 
