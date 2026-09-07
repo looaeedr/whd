@@ -63,6 +63,7 @@ class BoxBodyDividerPart:
     adjacent_cells: tuple[str, ...]
     model_name: str | None = None
     core_segment_index: int = 3
+    frame_width_segment_index: int | None = None
 
     @property
     def blank_width(self) -> float:
@@ -154,6 +155,10 @@ def _part(
         signed = tuple(float(v) for v in family_contract["signed_fold_chain"])
         formed_core = float(family_contract["formed_core_depth"])
         core_segment_index = int(family_contract["core_segment_index"])
+        frame_width_segment_index = (
+            None if family_contract.get("frame_width_segment_index") is None
+            else int(family_contract["frame_width_segment_index"])
+        )
     else:
         formed_core = d - 2.0 * t
         if formed_core <= 0:
@@ -168,6 +173,7 @@ def _part(
             15.0,
         )
         core_segment_index = 3
+        frame_width_segment_index = None
 
     return BoxBodyDividerPart(
         stable_id=divider_stable_id(layout_scope, axis, boundary_key),
@@ -188,6 +194,7 @@ def _part(
         adjacent_cells=tuple(adjacent_cells),
         model_name=(str(model_name).strip() if model_name else None),
         core_segment_index=int(core_segment_index),
+        frame_width_segment_index=frame_width_segment_index,
     )
 
 def derive_box_body_dividers(
