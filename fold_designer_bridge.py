@@ -5409,7 +5409,11 @@ def _phase6_query_final_render_data(self):
         if str(raw.get("source") or "") == AssemblyJointSource.USER_ADDED.value
         for field in ("subject_part", "target_part")
     }
-    if key in {"box_body", "head", "tail"} or key in user_joint_parts:
+    if (
+        key in {"box_body", "head", "tail"}
+        or key.startswith("box_body:divider:")
+        or key in user_joint_parts
+    ):
         resolved = _phase6_resolve_manufacturing_geometry(self)
         return resolved.part(key).render_data
 
@@ -6451,6 +6455,163 @@ def _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_pa
     }
 
 
+def _phase6_divider_relief_core_start(part):
+    """Resolve the pre-core relief domain from authoritative Divider Fold topology."""
+    cursor = 0.0
+    for row in tuple(getattr(part, "x_profile", ()) or ()):
+        if str(dict(row).get("core") or "") == "D_DIVIDER":
+            return float(cursor)
+        cursor += abs(float(dict(row).get("len", 0.0) or 0.0))
+
+    metadata = dict(getattr(getattr(part, "render_data", None), "metadata", {}) or {})
+    lengths = tuple(float(v) for v in tuple(metadata.get("material_lengths", ()) or ()))
+    # Canonical Divider profile marks the fourth segment as D_DIVIDER.
+    if len(lengths) >= 4:
+        return float(sum(lengths[:3]))
+    raise ValueError(f"Divider D_DIVIDER Fold topology unavailable: {part.part_key}")
+
+
+def _phase6_resolve_family_divider_reliefs(
+    parts, *, finished_dimensions, sheet_thickness, clearance=0.0
+):
+    """Resolve Receiving Divider INSERT relief from true-thickness assembly collision."""
+    from dataclasses import replace
+    from ae_engine.assembly_joint import (
+        AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
+    )
+    from ae_engine.assembly_collision import (
+        build_divider_front_fold_relief_candidate,
+        verify_divider_front_fold_relief,
+    )
+    from ae_engine.contracts import ResolvedJointDiagnostic
+
+    current = {str(part.part_key): part for part in tuple(parts or ())}
+    divider_keys = sorted(key for key in current if key.startswith("box_body:divider:"))
+    if not divider_keys or "box_body" not in current:
+        return tuple(current.values()), (), ()
+
+    diagnostics = []
+    family_joints = []
+    for divider_key in divider_keys:
+        divider = current[divider_key]
+        joint = AssemblyJoint(
+            joint_id=f"{divider_key}:box_body:family-relief",
+            subject_part=divider_key,
+            target_part="box_body",
+            subject_region="front_fold_relief",
+            target_region="divider_mating_zone",
+            relation=AssemblyJointRelation.INSERT,
+            source=AssemblyJointSource.FAMILY_GEOMETRY,
+            solver_constraints={"relief_mode": "FRONT_FOLD_DOMAIN"},
+        )
+        family_joints.append(joint)
+        world = _phase6_build_joint_world_geometry(
+            tuple(current.values()), finished_dimensions, sheet_thickness
+        )
+        source_keys = tuple(
+            key for key in ("box_body:left_side", "box_body:right_side")
+            if key in world["world_triangles_by_part"]
+        )
+        if not source_keys:
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
+                relation=joint.relation.value, source=joint.source.value,
+                registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key,
+                candidate_status="MISSING_SIDE_PIECE_GEOMETRY",
+                illegal_penetration=True,
+                evidence={"reason": "Receiving Divider relief requires left/right physical Box Body pieces"},
+            ))
+            continue
+
+        core_start = _phase6_divider_relief_core_start(divider)
+        candidate = build_divider_front_fold_relief_candidate(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            core_start=core_start,
+            source_geometry_keys=source_keys,
+            clearance=float(clearance),
+        )
+        if candidate is None:
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
+                relation=joint.relation.value, source=joint.source.value,
+                registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key,
+                candidate_status="NO_FRONT_FOLD_PENETRATION",
+                legal_contact=True, illegal_penetration=False,
+                pre_pair_count=0, post_pair_count=0,
+                evidence={"core_start": core_start},
+            ))
+            continue
+
+        solved = _phase6_apply_resolved_cut_to_part(divider, candidate.cut_polygon_2d)
+        solved_world = _phase6_build_joint_world_geometry(
+            tuple(solved if key == divider_key else part for key, part in current.items()),
+            finished_dimensions, sheet_thickness
+        )
+        verification = verify_divider_front_fold_relief(
+            joint,
+            world_triangles_by_part=solved_world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=solved_world["flat_material_by_part"],
+            core_start=core_start,
+            source_geometry_keys=source_keys,
+        )
+        if not bool(verification["verified"]):
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
+                relation=joint.relation.value, source=joint.source.value,
+                registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key,
+                candidate_status="DIVIDER_RELIEF_REPLAY_FAILED",
+                legal_contact=False, illegal_penetration=True,
+                pre_pair_count=int(candidate.pre_pair_count),
+                post_pair_count=int(verification["pair_count"]),
+                evidence={
+                    **dict(candidate.evidence or {}),
+                    "post": dict(verification),
+                },
+            ))
+            continue
+
+        metadata = dict(getattr(solved.render_data, "metadata", {}) or {})
+        metadata["divider_assembly_relief"] = {
+            "trust_level": "PROVISIONAL_3D",
+            "verified": True,
+            "core_start": float(core_start),
+            "cut_depths": tuple(candidate.cut_depths),
+            "pre_pair_count": int(candidate.pre_pair_count),
+            "post_pair_count": int(verification["pair_count"]),
+            "retained_contact_segments": int(verification["retained_contact_segments"]),
+            "evidence": dict(candidate.evidence or {}),
+        }
+        solved = replace(
+            solved,
+            render_data=replace(solved.render_data, metadata=metadata),
+        )
+        current[divider_key] = solved
+        diagnostics.append(ResolvedJointDiagnostic(
+            joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
+            relation=joint.relation.value, source=joint.source.value,
+            registry_status="MISS", trust_level="PROVISIONAL_3D",
+            preserve_part="box_body", relief_part=divider_key,
+            candidate_status="PROVISIONAL_3D_VERIFIED",
+            legal_contact=bool(verification["retained_contact_segments"]),
+            illegal_penetration=False,
+            pre_pair_count=int(candidate.pre_pair_count),
+            post_pair_count=int(verification["pair_count"]),
+            evidence={
+                **dict(candidate.evidence or {}),
+                "post": dict(verification),
+            },
+        ))
+
+    return tuple(current.values()), tuple(diagnostics), tuple(family_joints)
+
+
 def _phase6_resolve_manufacturing_geometry(self):
     """Resolve one canonical manufacturing result consumed by every downstream view/export."""
     signature = _phase6_manufacturing_state_signature(self)
@@ -6617,6 +6778,22 @@ def _phase6_resolve_manufacturing_geometry(self):
         self._phase6_last_relief_solutions = {}
         self._phase6_last_relief_errors = {}
 
+    # Receiving Divider family geometry is assembly-dependent too. Resolve its
+    # true-thickness INSERT relief before USER_ADDED joints so 2D/3D/DXF all
+    # consume the same final material.
+    divider_joint_diagnostics = ()
+    family_divider_joints = ()
+    if any(str(part.part_key).startswith("box_body:divider:") for part in parts):
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        settings = dict(getattr(self, "_settings_values", {}) or {})
+        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        parts, divider_joint_diagnostics, family_divider_joints = _phase6_resolve_family_divider_reliefs(
+            tuple(parts),
+            finished_dimensions=_phase6_operator_finished_dimensions(self),
+            sheet_thickness=thickness,
+            clearance=_phase6_assembly_relief_clearance(self),
+        )
+
     # Resolve extra USER_ADDED joints (including WRAP) only after the high-level
     # EndCap intent has produced canonical parts.  This generalized path can
     # relief either endpoint according to Joint semantics and persists only
@@ -6717,10 +6894,11 @@ def _phase6_resolve_manufacturing_geometry(self):
             pre_pair_count=int(info["pre_pair_count"]), post_pair_count=int(info["post_pair_count"]),
             evidence=deepcopy(info["evidence"]),
         ))
+    diagnostics.extend(tuple(divider_joint_diagnostics or ()))
     diagnostics.extend(tuple(explicit_joint_diagnostics or ()))
     resolved = ResolvedManufacturingGeometry(
         parts=resolved_parts,
-        joints=joints,
+        joints=tuple(joints) + tuple(family_divider_joints or ()),
         relief_rules=tuple(traces),
         diagnostics=tuple(diagnostics),
     )
