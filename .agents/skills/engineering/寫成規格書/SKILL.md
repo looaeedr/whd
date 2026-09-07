@@ -22,6 +22,31 @@ At minimum, read and cross-check:
 
 For WHD geometry, CAD, 2D, 3D, DXF, Fold, assembly, placement, collision, relief, and dimensions, this gate is mandatory.
 
+## Cross-domain semantic scope gate
+
+Before defining any shared term or dimension (for example `FW`, `W/H/D`, `T`, CornerType, assembly intent, formed/material dimensions), determine its **scope** before writing the spec.
+
+Do not assume a term is Family-local because the current bug is in one Family.
+
+For every shared semantic term, search and cross-check the whole ownership chain:
+
+1. Global / shared definition and glossary.
+2. Family-specific adapters or conversions.
+3. Box Body usage.
+4. Door usage.
+5. Head / Tail / EndCap usage.
+6. Divider / child-part usage when present.
+7. Fold Profile / material conversion.
+8. 2D / 3D / DXF / FinalScene consumers.
+9. Save / Reload / project schema.
+10. Tests and fixtures from **more than one Family** when the term is shared.
+
+A Family-specific value or conversion is not the definition of the shared term.
+
+Example: seeing Receiving `FW=29` does not define FW globally. First establish the global `Frame Width` semantic, then document how Receiving, Vault, and other Families encode or convert it.
+
+If you have only read the current Family, you have **not completed the pre-spec gate** for a shared term.
+
 ## Evidence classification
 
 Classify every important fact before promoting it into the spec:
@@ -105,4 +130,7 @@ The spec-writing task is not complete if:
 - a passing test was treated as mechanical truth without checking its source;
 - a probe value was turned into a fixed product requirement;
 - a physical face/datum was inferred from Z=0, D/2, bbox center, or renderer origin;
-- an unresolved physical relationship was replaced with an invented datum.
+- an unresolved physical relationship was replaced with an invented datum;
+- a shared semantic term was defined after reading only the current Family;
+- a Family-specific representation/value was mistaken for the global definition;
+- no cross-Family evidence was checked for a term known or suspected to be shared.
