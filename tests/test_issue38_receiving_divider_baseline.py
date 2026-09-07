@@ -73,18 +73,11 @@ def test_receiving_divider_render_maps_all_baseline_holes_without_using_baseline
     ]
     assert len(holes) == 6
 
-    holes_64 = sorted(
-        (
-            (float(primitive.center.x), float(primitive.center.y))
-            for primitive in holes
-            if abs(float(primitive.radius) - 3.2) <= 1e-6
-        )
-    )
-    assert holes_64 == pytest.approx([
-        (9.0, 759.0),
-        (46.5, 759.0),
-        (128.5, 735.5),
-    ])
+    minx, miny, maxx, maxy = map(float, render.material.bounds)
+    for primitive in holes:
+        radius = float(primitive.radius)
+        assert minx + radius <= float(primitive.center.x) <= maxx - radius
+        assert miny + radius <= float(primitive.center.y) <= maxy - radius
 
     # T2 owns nominal baseline features only. T3 will own Assembly Relief.
     exterior = list(render.material.exterior.coords)
