@@ -2285,8 +2285,37 @@ class BoxCalculatorGUI:
         datum = snapshot.get("door_nameplate_center_datum_top")
         self.door_nameplate_center_datum_top = None if datum is None else float(datum)
         ws_source = dict(snapshot.get("workspace") or {})
+        profile_is_declared = (
+            "box_body_profile" in snapshot or "box_body_profile" in ws_source
+        )
+        box_profile = snapshot.get("box_body_profile", ws_source.get("box_body_profile"))
+        if box_profile is None and not profile_is_declared:
+            # Legacy projects predate the canonical Fold Profile. Migrate once
+            # from their saved operator/family values, then immediately enter
+            # the single-source workspace path.
+            migration_source = dict(settings)
+            for key in (
+                "model", "w", "h", "d", "t", "fw",
+                "zl1", "zl2", "zr1", "zr2", "z_comp",
+            ):
+                if key in snapshot:
+                    migration_source[key] = snapshot[key]
+            migration_source["model"] = str(
+                snapshot.get("model")
+                or BoxCalculatorGUI._current_cabinet_type_name(self)
+            ).strip()
+            box_profile = build_box_body_profile(migration_source)
+            if not box_profile:
+                raise ValueError("legacy Box Body Fold Profile migration failed")
+        elif box_profile is None:
+            # An explicitly declared null profile is corrupt canonical data, not
+            # a signal to revive the fixed-segment legacy geometry.
+            raise ValueError("canonical Box Body Fold Profile is missing")
+        elif not list(box_profile):
+            raise ValueError("canonical Box Body Fold Profile is empty")
+
         self._store_fold_designer_workspace({
-            "box_body_profile": snapshot.get("box_body_profile", ws_source.get("box_body_profile")),
+            "box_body_profile": box_profile,
             "existing_parts": list(snapshot.get("existing_parts") or ws_source.get("existing_parts") or ()),
             "active_part": snapshot.get("active_part") or ws_source.get("active_part"),
             "part_profiles": snapshot.get("part_profiles") or ws_source.get("part_profiles", {}),
@@ -6409,6 +6438,22 @@ class BoxCalculatorGUI:
                 self.manual_corner_pair_same[part_key]["bottom"] = True
 
     def _capture_cabinet_family_runtime(self):
+        # The family preset itself must carry a real canonical Box Body profile.
+        # Startup used to capture None here, which later restored a profile-less
+        # family and reopened the legacy fixed-segment manufacturing fallback.
+        box_profile = self.workspace_controller.box_body_profile()
+        if box_profile is None:
+            profile_source = {
+                key: var.get() for key, var in self._setting_var_map().items()
+            }
+            profile_source["model"] = BoxCalculatorGUI._current_cabinet_type_name(self)
+            box_profile = build_box_body_profile(profile_source)
+            if not box_profile:
+                raise ValueError("canonical Box Body Fold Profile materialization failed")
+            self.workspace_controller.set_box_body_profile(box_profile)
+        elif not box_profile:
+            raise ValueError("canonical Box Body Fold Profile is empty")
+
         layout = []
         if getattr(self, "door_layout_columns", None):
             try:
