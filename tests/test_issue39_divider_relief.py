@@ -243,3 +243,119 @@ def test_t3_probe_side_skin_and_divider_mating_datums():
     print("expected_side_midplanes=", (-399.0, 399.0))
     print("actual_side_world_extremes=", (min(left_x), max(right_x)))
     assert True
+
+
+
+def _projection_segments_in_front_relief_band(projection, *, core_start=61.0, tolerance=1e-6):
+    rows = []
+    for segment in tuple(projection.segments_2d or ()):
+        xs = [float(segment[0][0]), float(segment[1][0])]
+        if min(xs) < float(core_start) - float(tolerance):
+            rows.append(segment)
+    return tuple(rows)
+
+
+def _divider_collision_depth_for_edge(projection, material, *, edge):
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    points = [
+        (float(p[0]), float(p[1]))
+        for segment in _projection_segments_in_front_relief_band(projection)
+        for p in segment
+    ]
+    if not points:
+        return 0.0
+    if edge == "min":
+        return max(0.0, max(p[1] for p in points) - miny)
+    return max(0.0, maxy - min(p[1] for p in points))
+
+
+def _part_with_material(part, material):
+    from dataclasses import replace
+    from ae_engine.assembly_collision import _scene_with_replaced_primary_cutting
+
+    render = replace(
+        part.render_data,
+        material=material,
+        scene=_scene_with_replaced_primary_cutting(part.render_data.scene, material),
+    )
+    return replace(part, render_data=render)
+
+
+def test_t3_probe_front_fold_domain_cut_from_collision_clears_only_illegal_zone():
+    from shapely.geometry import box as shapely_box
+
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    dims = (snapshot["w"], snapshot["h"], snapshot["d"])
+    joint = _divider_insert_joint(divider.stable_id)
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snapshot["t"]
+    )
+    raw_material = divider_part.render_data.material
+    minx, miny, maxx, maxy = map(float, raw_material.bounds)
+
+    left_projection = project_joint_interference_to_relief_owner(
+        joint,
+        world_triangles_by_part=world["world_triangles_by_part"],
+        mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+        flat_material_by_part=world["flat_material_by_part"],
+        source_geometry_key="box_body:left_side",
+    ).projection
+    right_projection = project_joint_interference_to_relief_owner(
+        joint,
+        world_triangles_by_part=world["world_triangles_by_part"],
+        mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+        flat_material_by_part=world["flat_material_by_part"],
+        source_geometry_key="box_body:right_side",
+    ).projection
+
+    core_index = next(
+        i for i, row in enumerate(divider.fold_profile)
+        if str(getattr(row, "core", "") or "") == "D_DIVIDER"
+    )
+    core_start = sum(float(row.length) for row in divider.fold_profile[:core_index])
+    assert core_start == pytest.approx(61.0)
+
+    left_depth = _divider_collision_depth_for_edge(left_projection, raw_material, edge="min")
+    right_depth = _divider_collision_depth_for_edge(right_projection, raw_material, edge="max")
+    print("divider_front_relief_core_start=", core_start)
+    print("divider_collision_cut_depths=", (left_depth, right_depth))
+    assert left_depth > 0.0
+    assert right_depth > 0.0
+
+    eps = 1e-4
+    cuts = [
+        shapely_box(minx - eps, miny - eps, core_start + eps, miny + left_depth + eps),
+        shapely_box(minx - eps, maxy - right_depth - eps, core_start + eps, maxy + eps),
+    ]
+    solved_material = raw_material.difference(cuts[0].union(cuts[1]))
+    solved = _part_with_material(divider_part, solved_material)
+    solved_world = bridge._phase6_build_joint_world_geometry(
+        (body, solved), dims, snapshot["t"]
+    )
+
+    residual_front = 0
+    residual_contact = 0
+    for source_key in ("box_body:left_side", "box_body:right_side"):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=solved_world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=solved_world["flat_material_by_part"],
+            source_geometry_key=source_key,
+        )
+        front = _projection_segments_in_front_relief_band(
+            projected.projection, core_start=core_start
+        )
+        residual_front += len(front)
+        residual_contact += max(0, len(projected.projection.segments_2d) - len(front))
+        print(
+            "divider_residual", source_key,
+            "pairs=", projected.projection.pair_count,
+            "front_illegal_segments=", len(front),
+            "retained_contact_segments=", max(0, len(projected.projection.segments_2d)-len(front)),
+        )
+
+    assert residual_front == 0
+    assert residual_contact > 0
