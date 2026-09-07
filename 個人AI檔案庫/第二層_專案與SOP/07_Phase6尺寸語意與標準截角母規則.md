@@ -1626,3 +1626,70 @@ UI 可以有：
 ```
 
 因為前者把 **UI location / value / dimension space** 分開，後者錯把 UI 入口當成 domain semantic。
+
+
+---
+
+# 25. Receiving Divider FW 面齊的已驗證 placement 規則（2026-09-08）
+
+## 25.1 已證明的實體關係
+
+Receiving Divider 的四段成形尺寸仍是：
+
+```text
+18 / FW / 106 / 17
+```
+
+其中第二段是全系統同一個 `FW / Frame Width`。
+
+T48-1 不再以 `Z=0`、`D/2`、`106/2` 或 probe world coordinate 定位中隔，而是直接以**折後實體幾何**建立 placement：
+
+1. 從 Receiving Divider family Fold Contract 取得哪一段是 FW。
+2. 從實際 Divider Fold Profile 求 FW segment 與 core segment 的折後位置。
+3. 從 family Assembly Coordinate Contract 取得 Box Body 正面 physical skin 與 `inward_vector`。
+4. 由 Box Body 正面 skin + T 求其鈑金中面。
+5. 令 Divider 的 FW 鈑金中面與 Box Body FW 鈑金中面重合。
+6. 同時要求「從 Divider FW segment 走向 core segment」的世界方向必須與 family `inward_vector` 同向。
+
+因此 placement 同時包含：
+
+```text
+FACE FLUSH
++
+CORE POINTS INWARD
+```
+
+只做到其中一個都不算正確。
+
+## 25.2 為什麼不能只平移
+
+若只把兩個 FW 面移到同一平面、卻沒有檢查 core 的方向，中隔仍可能從正面 FW 面往箱外延伸。
+
+因此正式規則不是：
+
+```text
+找到一個 Z 讓 FW 數字看起來相同
+```
+
+而是：
+
+```text
+actual Divider FW folded face
+  mate to
+actual Box Body FW folded face
+AND
+Divider FW -> core direction == family inward_vector
+```
+
+## 25.3 驗收方式
+
+正式 acceptance 必須直接量實體 skin / plane：
+
+- Box Body 左右 FW physical skins 必須互相一致；
+- Divider FW physical skins 必須與上述 Box Body FW skins 共面；
+- 修改 D、FW、T 後重新推導，仍必須共面；
+- Divider core 必須留在箱體內側，而不是越過正面往外伸。
+
+任何當次 world coordinate（例如診斷輸出的 skin plane 數字或 placement offset）都只屬測試 evidence，**不得寫成產品固定值**。
+
+T48-1 remote acceptance：run `34167721816`，`18 passed / 0 failed`，且 `config.ini` SHA256 前後一致。
