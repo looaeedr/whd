@@ -1718,6 +1718,7 @@ class BoxCalculatorGUI:
                 thickness=float(data.get("t", ae.T)),
                 layout_scope=str(data.get("door_layout_scope") or "main").strip() or "main",
                 handle_edges=dict(data.get("door_handle_edges") or {}),
+                model_name=str(data.get("model") or "").strip() or None,
             )
             divider = next((item for item in dividers if item.stable_id == key), None)
             if divider is None:
