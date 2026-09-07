@@ -17,13 +17,25 @@
 
 **Blocked by:** T48-3 — ACCEPTED run 34168398865
 
-**Status:** ready-for-agent
+**Status:** ACCEPTED — final run 34168956854, 176 passed / 0 failed / 0 error
 
-- [ ] targeted: R2/R3 + Divider/FW/Receiving/multipart/collision/placement regression 全綠。
-- [ ] Combined Acceptance 全綠，完整 summary 有 0 FAIL / 0 ERROR。
-- [ ] `config.ini` before/after SHA256 = `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
-- [ ] remote QA 鎖定 run_id + head_sha 並監控到 terminal；不得停在 queued/in_progress。
-- [ ] one-shot workflow / RED probe / temporary artifacts cleanup。
-- [ ] execution-tree drift audit / checkpoint provenance 完成。
-- [ ] AI Library writeback 已反讀確認。
-- [ ] 僅在上述全部成立後整合 `cleanup/2d-3d-sync`。
+- [x] targeted: R2/R3 + Divider/FW/Receiving/multipart/collision/placement regression 全綠。
+- [x] Combined Acceptance 全綠，完整 summary 有 0 FAIL / 0 ERROR。
+- [x] `config.ini` before/after SHA256 = `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
+- [x] remote QA 鎖定 run_id + head_sha 並監控到 terminal；不得停在 queued/in_progress。
+- [x] one-shot workflow / RED probe / temporary artifacts cleanup。
+- [x] execution-tree drift audit / checkpoint provenance 完成。
+- [x] AI Library writeback 已反讀確認。
+- [x] 僅在上述全部成立後整合 `cleanup/2d-3d-sync`。
+
+
+## Final evidence
+
+- Final current-head Combined: run `34168956854`, tested head `82befd648e6bf6f80b7e0b1f5531f788b4618b73`
+- Result: **176 passed / 0 failed / 0 error**
+- First Combined stale-test classification: 167 passed / 10 failed
+- Failed-node regression after test/fixture correction: run `34168772770`, **10 passed / 0 failed**
+- `config.ini` SHA256 before/after final Combined:
+  `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`
+- AI Library writeback re-read: FW placement rule remains face-flush + core-inward; runtime/probe coordinates and cut depths remain non-normative.
+- T48 one-shot workflows cleaned before integration.
