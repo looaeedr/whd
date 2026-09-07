@@ -299,6 +299,23 @@ def test_t4_uses_no_third_common_dxf_and_records_semantic_datum():
     metadata = dict(render.metadata["divider_endcap_shared_6p4_datum"])
     assert metadata["datum_kind"] == "POST_RELIEF_CENTER_SPAN_CENTER"
     assert metadata["mother_source_file"] == "封頭尾.dxf"
-    assert tuple(metadata["rigid_delta"]) == pytest.approx((3.0, -50.4999999777035), abs=1e-6)
+
+    # The rigid translation is a result of the post-relief material + EndCap
+    # mother datum, not a product constant. Verify the geometric relationship
+    # instead of freezing one old probe value.
+    before = tuple(float(v) for v in metadata["anchor_before"])
+    after = tuple(float(v) for v in metadata["anchor_after"])
+    delta = tuple(float(v) for v in metadata["rigid_delta"])
+    assert delta == pytest.approx(
+        (after[0] - before[0], after[1] - before[1]), abs=1e-6
+    )
+    center, tangent, inward = _divider_post_relief_center_frame(render.material)
+    expected_after = (
+        center[0] + float(metadata["mother_axial_offset"]) * tangent[0]
+        + float(metadata["mother_inward_offset"]) * inward[0],
+        center[1] + float(metadata["mother_axial_offset"]) * tangent[1]
+        + float(metadata["mother_inward_offset"]) * inward[1],
+    )
+    assert after == pytest.approx(expected_after, abs=1e-6)
     assert not Path("基準檔/金庫型/共用孔位.dxf").exists()
     assert not Path("基準檔/金庫型/6.4共用孔位.dxf").exists()
