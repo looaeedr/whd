@@ -43,8 +43,7 @@ jobs:
       - name: Headless multipart guards
         run: |
           python -m pytest -q \
-            tests/test_phase6_receiving_multipart_integration.py \
-            tests/test_phase6_t14_box_body_child_sections.py
+            tests/test_box_body_single_source_t4.py::test_t4_receiving_canonical_profile_and_multipart_blanks_are_single_source
       - name: Xvfb R4
         run: xvfb-run -a python -m pytest -q tests/test_issue44_box_body_physical_piece_identity.py
       - name: Source scan
