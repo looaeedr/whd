@@ -34,7 +34,13 @@ def test_multi_piece_box_body_returns_one_blank_per_physical_sheet_not_preview_e
     )
     # Deliberately absurd preview envelope: this must never be reported as one blank.
     preview = _render(0, 0, 9999, 9999)
-    render = BoxBodyStructureRenderData("THREE_PIECE_SIDE_BACK_SPLIT", pieces, preview)
+    canonical = _render(0, 0, 800, 596)
+    render = BoxBodyStructureRenderData(
+        structure_type="THREE_PIECE_SIDE_BACK_SPLIT",
+        pieces=pieces,
+        preview_render_data=preview,
+        canonical_strip_render_data=canonical,
+    )
 
     blanks = measure_unfolded_blanks(render, part_key="box_body")
 
