@@ -373,6 +373,32 @@ def _profile_geometry(profile, *, enabled_folds=None):
     return tuple(cumulative), folded
 
 
+def folded_profile_segment_center_from_envelope(profile, segment_index: int) -> tuple[float, float]:
+    """Return one folded segment midpoint relative to the folded-profile envelope center.
+
+    Phase6 assembly placement recenters non-EndCap meshes from folded mesh
+    bounds before applying the semantic world offset. For a strip profile,
+    the longitudinal folded envelope is the endpoint envelope returned by
+    _profile_geometry. This exposes that same relative coordinate without
+    inventing a cabinet/world constant.
+    """
+    segs = list(profile or ())
+    index = int(segment_index)
+    if index < 0 or index >= len(segs):
+        raise ValueError("folded profile segment index is outside the fold chain")
+    _boundaries, folded = _profile_geometry(segs)
+    if len(folded) != len(segs) + 1:
+        raise ValueError("folded profile geometry is incomplete")
+    u0, z0 = folded[index]
+    u1, z1 = folded[index + 1]
+    min_u = min(float(point[0]) for point in folded)
+    max_u = max(float(point[0]) for point in folded)
+    envelope_mid_u = (min_u + max_u) / 2.0
+    return (
+        (float(u0) + float(u1)) / 2.0 - envelope_mid_u,
+        (float(z0) + float(z1)) / 2.0,
+    )
+
 def _profile_map(position, boundaries, folded):
     value = float(position)
     total = float(boundaries[-1])
