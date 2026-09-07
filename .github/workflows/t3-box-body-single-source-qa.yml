@@ -17,7 +17,7 @@ permissions:
 jobs:
   t3:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,12 +28,14 @@ jobs:
       - name: Knowledge preflight verification
         run: |
           python tools/phase6_skill_preflight.py             --task "T3 #28 fix regression with remote QA: Main 2D Box Body consumes one authoritative geometry build; remove draw_box_body duplicate structural build and derive CUTTING/BEND/dimensions/hit zones from the same manufacturing result"             --changed-file gui.py             --changed-file ae_engine/ae.py             --changed-file ae_engine/manufacturing_api.py             --changed-file tests/test_box_body_single_source_t3.py             --changed-file .github/workflows/t3-box-body-single-source-qa.yml             --evidence logs/box_body_single_source/T3.preflight.txt
-      - name: Focused T3 regression
+      - name: Static compile
+        run: python -m py_compile gui.py ae_engine/ae.py ae_engine/manufacturing_api.py
+      - name: Expanded T3 Box Body regression
         shell: bash
         run: |
           set +e
           before="$(sha256sum config.ini | awk '{print $1}')"
-          xvfb-run -a python -m pytest -q tests/test_box_body_single_source_t3.py > t3.log 2>&1
+          xvfb-run -a python -m pytest -q             tests/test_box_body_single_source_t1.py             tests/test_box_body_single_source_t2.py             tests/test_box_body_single_source_t3.py             tests/test_box_body_gui.py             tests/test_phase6_box_body_structure.py             tests/test_phase6_t03_piece_dimensions.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_t06_receiving_fresh_family.py             tests/test_gui_manufacturing_adapter.py             > t3.log 2>&1
           rc=$?
           after="$(sha256sum config.ini | awk '{print $1}')"
           cat t3.log
