@@ -7,6 +7,7 @@ on:
     paths:
       - "gui.py"
       - "ae_engine/manufacturing_api.py"
+      - "ae_engine/ae.py"
       - "tests/test_box_body_single_source_t2.py"
       - ".github/workflows/t2-box-body-single-source-qa.yml"
 
@@ -25,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install pytest matplotlib -r requirements.txt
       - name: Static compile
-        run: python -m py_compile gui.py ae_engine/manufacturing_api.py
+        run: python -m py_compile gui.py ae_engine/manufacturing_api.py ae_engine/ae.py
       - name: T2 expanded Box Body regression
         shell: bash
         run: |
