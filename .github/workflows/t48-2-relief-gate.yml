@@ -1,4 +1,4 @@
-name: T48-2 Divider Relief Gate RED v2
+name: T48-2 Divider Relief Gate RED v3
 
 on:
   push:
@@ -43,7 +43,9 @@ jobs:
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
           set +e
-          xvfb-run -a python -m pytest -q -s             tests/test_issue48_receiving_fw_flush_red.py::test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true             tests/test_issue39_divider_relief.py::test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact             > t48_2_probe.log 2>&1
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_issue48_receiving_fw_flush_red.py::test_r3b_relief_refuses_verified_when_divider_fw_face_is_displaced \
+            > t48_2_probe.log 2>&1
           rc=$?
           set -e
           after="$(sha256sum config.ini | awk '{print $1}')"
