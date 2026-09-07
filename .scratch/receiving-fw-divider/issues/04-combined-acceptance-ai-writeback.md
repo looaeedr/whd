@@ -15,9 +15,9 @@
 
 **AI Library Writeback:** REQUIRED — 反讀並收斂 T48-1/T48-2 的兩處 writeback；移除/修正任何仍把 probe world coordinate、固定 cut depth、或未證明 physical-face 名稱當產品 authority 的 stale 文字。
 
-**Blocked by:** T48-3
+**Blocked by:** T48-3 — ACCEPTED run 34168398865
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 - [ ] targeted: R2/R3 + Divider/FW/Receiving/multipart/collision/placement regression 全綠。
 - [ ] Combined Acceptance 全綠，完整 summary 有 0 FAIL / 0 ERROR。
