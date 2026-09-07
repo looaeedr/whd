@@ -156,3 +156,11 @@
 - 受電箱操作員/Family state 的 `FW` 是 FORMED_OCCUPATION；預設 `FW=29` 已包含 25 mm 材料折邊的兩側板厚補償。
 - Door 共用幾何仍只接受 MATERIAL FW，並在成品尺寸 resolver 內加 `2T` 一次。受電箱必須先由 Cabinet Family policy 做 `material_fw = formed_fw - 2T`，不得直接把 29 傳給共用 resolver 再變成 33。
 - 外門 2D / baseline stretch / DXF / 3D、內門板與內門框衍生、assembly placement 必須消費同一 family-aware Door FW resolver。
+
+
+## 2026-09-07 — Fold Designer Door dimension projection single-source follow-up
+
+- 受電箱 Door FW 修正後追查到兩個仍自行重算尺寸的 projection seam：`fold_designer_bridge._phase6_door_part_projections()` 與 `_phase6_recalculate_part_dimensions()`，以及主 GUI 建立 Fold Designer snapshot 的 `_make_original_fold_designer_snapshot()`。
+- 這些舊 seam 直接把 operator `FW=29` 套入 `FW+2T`，因此 Receiving 在 3D/Fold Designer part_dimensions 仍顯示 727×1060 / 727×427。
+- 現在三條 seam 全部先透過 Cabinet Family policy 取得 Door material FW，再呼叫共用 `calculate_door_finished_size()`；禁止 projection / snapshot 再自行手寫 Door 尺寸公式。
+- T25 Combined Acceptance 現在直接驗證 Receiving 上門 735×1064、下門 735×435，以及 main-GUI snapshot legacy Door template 735×1535。
