@@ -8,10 +8,12 @@ CHANGED_FILE: gui.py
 CHANGED_FILE: ae_engine/ae.py
 CHANGED_FILE: ae_engine/manufacturing_api.py
 CHANGED_FILE: tests/test_box_body_single_source_t3.py
+CHANGED_FILE: tests/test_box_body_gui.py
 CHANGED_FILE: .github/workflows/t3-box-body-single-source-qa.yml
 
-PREFLIGHT_COMMAND: python tools/phase6_skill_preflight.py --task "<T3 exact task + remote QA>" --changed-file gui.py --changed-file ae_engine/ae.py --changed-file ae_engine/manufacturing_api.py --changed-file tests/test_box_body_single_source_t3.py --changed-file .github/workflows/t3-box-body-single-source-qa.yml --evidence logs/box_body_single_source/T3.preflight.evidence.txt
+PREFLIGHT_COMMAND: python tools/phase6_skill_preflight.py --task "<T3 exact task + remote QA + revise stale legacy GUI oracle>" --changed-file gui.py --changed-file ae_engine/ae.py --changed-file ae_engine/manufacturing_api.py --changed-file tests/test_box_body_single_source_t3.py --changed-file .github/workflows/t3-box-body-single-source-qa.yml --evidence logs/box_body_single_source/T3.preflight.evidence.txt
 PREFLIGHT_RESULT: RC=0
+PREFLIGHT_RERUN_AFTER_LEGACY_TEST_SCOPE: RC=0
 
 READ_SKILL: diagnosing-bugs
 SKILL_SHA: 061c25a524acaa93d4534e9e08a793c0a5fe45fd
