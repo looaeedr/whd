@@ -1,0 +1,46 @@
+name: T4 Divider 6p4 Shared Datum QA
+
+on:
+  push:
+    branches:
+      - feat/40-divider-6p4-datum
+    paths:
+      - 'ae_engine/manufacturing_api.py'
+      - 'ae_engine/cabinet_types/policy.py'
+      - 'ae_engine/cabinet_types/receiving.py'
+      - 'fold_designer_bridge.py'
+      - 'tests/test_issue40_divider_6p4_shared_datum.py'
+      - '.scratch/issue40_preflight_evidence.txt'
+      - '.github/workflows/qa_issue40_divider_6p4.yml'
+
+jobs:
+  t4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib numpy
+      - name: Knowledge preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "bug fix collision 3D features: EndCap to Receiving Divider 6.4 shared post-relief center datum" \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file ae_engine/cabinet_types/policy.py \
+            --changed-file ae_engine/cabinet_types/receiving.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue40_divider_6p4_shared_datum.py \
+            --evidence .scratch/issue40_preflight_evidence.txt
+      - name: T4 targeted with config invariant
+        run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          pytest -q -vv -s tests/test_issue40_divider_6p4_shared_datum.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "config_before=$before"
+          echo "config_after=$after"
+          test "$before" = "$after"
