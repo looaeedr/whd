@@ -112,67 +112,69 @@ def test_t3_red_real_receiving_divider_has_pre_solve_illegal_penetration():
     assert projected.projection.pair_count > 0
 
 
-def test_t3_red_current_canonical_divider_has_no_post_collision_relief():
+def test_t3_nominal_divider_stays_pre_relief_rectangle():
+    """T2 owns nominal geometry; T3 relief is intentionally assembly-dependent."""
     snapshot = _snapshot()
     divider, divider_part = _divider_part(snapshot)
     exterior = list(divider_part.render_data.material.exterior.coords)
-    assert len(exterior) > 5, (
-        "current canonical Divider remains nominal rectangle; "
-        f"exterior={exterior}"
-    )
+    assert len(exterior) == 5
+    assert "divider_assembly_relief" not in divider_part.render_data.metadata
 
-
-
-def test_t3_probe_generic_corner_fitter_can_solve_divider_from_physical_projection():
-    from shapely.ops import unary_union
+def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact():
+    from ae_engine.assembly_collision import verify_divider_front_fold_relief
 
     snapshot = _snapshot()
     body = _body_part(snapshot)
     divider, divider_part = _divider_part(snapshot)
     dims = (snapshot["w"], snapshot["h"], snapshot["d"])
-    joint = _divider_insert_joint(divider.stable_id)
-    initial_parts = (body, divider_part)
-    world = bridge._phase6_build_joint_world_geometry(initial_parts, dims, snapshot["t"])
 
-    candidates = []
-    for corner_name in ("bottom_left", "bottom_right", "top_left", "top_right"):
-        candidate = discover_joint_relief_candidate(
-            joint,
-            world_triangles_by_part=world["world_triangles_by_part"],
-            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
-            flat_material_by_part=world["flat_material_by_part"],
-            topology_levels=None,
-            relief_component=divider_part.render_data.material,
-            clearance=0.0,
-            corner_name_override=corner_name,
-        )
-        measurement = getattr(getattr(candidate, "corner_relief", None), "measurement", None)
-        print(
-            "divider_candidate", corner_name,
-            "status=", candidate.status,
-            "measurement=", measurement,
-            "cut_bounds=", None if candidate.cut_polygon_2d is None else candidate.cut_polygon_2d.bounds,
-        )
-        if candidate.status == "CANDIDATE":
-            candidates.append(candidate)
-
-    assert len(candidates) == 4
-    cut = unary_union([candidate.cut_polygon_2d for candidate in candidates])
-    solved_divider = bridge._phase6_apply_resolved_cut_to_part(divider_part, cut)
-    solved_world = bridge._phase6_build_joint_world_geometry(
-        (body, solved_divider), dims, snapshot["t"]
+    solved_parts, diagnostics, family_joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=dims,
+        sheet_thickness=snapshot["t"],
+        clearance=0.0,
     )
-    residual = project_joint_interference_to_relief_owner(
-        joint,
+    by_key = {part.part_key: part for part in solved_parts}
+    solved = by_key[divider.stable_id]
+    exterior = list(solved.render_data.material.exterior.coords)
+
+    assert len(family_joints) == 1
+    assert family_joints[0].subject_part == divider.stable_id
+    assert family_joints[0].target_part == "box_body"
+    assert len(exterior) > 5
+
+    relief = dict(solved.render_data.metadata["divider_assembly_relief"])
+    assert relief["verified"] is True
+    assert relief["trust_level"] == "PROVISIONAL_3D"
+    assert relief["core_start"] == pytest.approx(61.0)
+    assert dict(relief["cut_depths"])["box_body:left_side"] == pytest.approx(1.0, abs=1e-5)
+    assert dict(relief["cut_depths"])["box_body:right_side"] == pytest.approx(1.0, abs=1e-5)
+    assert relief["pre_pair_count"] == 322
+    assert relief["retained_contact_segments"] > 0
+
+    assert len(diagnostics) == 1
+    diag = diagnostics[0]
+    assert diag.candidate_status == "PROVISIONAL_3D_VERIFIED"
+    assert diag.preserve_part == "box_body"
+    assert diag.relief_part == divider.stable_id
+    assert diag.illegal_penetration is False
+    assert diag.pre_pair_count == 322
+    assert diag.post_pair_count > 0
+
+    solved_world = bridge._phase6_build_joint_world_geometry(
+        tuple(solved_parts), dims, snapshot["t"]
+    )
+    verification = verify_divider_front_fold_relief(
+        family_joints[0],
         world_triangles_by_part=solved_world["world_triangles_by_part"],
         mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
         flat_material_by_part=solved_world["flat_material_by_part"],
+        core_start=61.0,
+        source_geometry_keys=("box_body:left_side", "box_body:right_side"),
     )
-    print("divider_post_pairs=", residual.projection.pair_count)
-    print("divider_post_illegal=", residual.illegal_penetration)
-    assert residual.illegal_penetration is False
-
-
+    assert verification["verified"] is True
+    assert verification["front_illegal_segments"] == 0
+    assert verification["retained_contact_segments"] > 0
 
 def test_t3_probe_collision_source_piece_bands():
     snapshot = _snapshot()
