@@ -309,8 +309,8 @@ def normalize_part_selection(part_keys, active_part=None):
     seen = set()
     parts = []
     for raw in part_keys or ():
-        key = str(raw)
-        if key in PART_LABELS and key not in seen:
+        key = str(raw or "").strip()
+        if key and key not in seen:
             parts.append(key); seen.add(key)
     if not parts:
         parts = ["box_body"]
