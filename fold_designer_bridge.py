@@ -5865,7 +5865,6 @@ def _phase6_resolve_explicit_joint_reliefs(
         joint_relief_ownership, project_joint_interference_to_relief_owner,
     )
     from ae_engine.contracts import ResolvedJointDiagnostic
-    from ae_engine.manufacturing_api import apply_divider_endcap_shared_6p4_datum
 
     current = {str(part.part_key): part for part in tuple(parts or ())}
     diagnostics = []
@@ -6485,6 +6484,7 @@ def _phase6_resolve_family_divider_reliefs(
         verify_divider_front_fold_relief,
     )
     from ae_engine.contracts import ResolvedJointDiagnostic
+    from ae_engine.manufacturing_api import apply_divider_endcap_shared_6p4_datum
 
     current = {str(part.part_key): part for part in tuple(parts or ())}
     divider_keys = sorted(key for key in current if key.startswith("box_body:divider:"))
