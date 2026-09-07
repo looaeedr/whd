@@ -1,7 +1,8 @@
 import tkinter as tk
 
+import pytest
+
 import gui
-from ae_engine.sheetmetal_features import box_body_face_contexts_from_strip
 
 
 def make_app():
