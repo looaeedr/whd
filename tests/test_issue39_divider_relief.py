@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import pytest
 
-from ae_engine.assembly_collision import project_joint_interference_to_relief_owner
+from ae_engine.assembly_collision import (
+    project_joint_interference_to_relief_owner,
+    discover_joint_relief_candidate,
+)
 from ae_engine import ae
 from ae_engine.assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
 from ae_engine.assembly_placement import resolve_divider_placement
@@ -117,3 +120,54 @@ def test_t3_red_current_canonical_divider_has_no_post_collision_relief():
         "current canonical Divider remains nominal rectangle; "
         f"exterior={exterior}"
     )
+
+
+
+def test_t3_probe_generic_corner_fitter_can_solve_divider_from_physical_projection():
+    from shapely.ops import unary_union
+
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    dims = (snapshot["w"], snapshot["h"], snapshot["d"])
+    joint = _divider_insert_joint(divider.stable_id)
+    initial_parts = (body, divider_part)
+    world = bridge._phase6_build_joint_world_geometry(initial_parts, dims, snapshot["t"])
+
+    candidates = []
+    for corner_name in ("bottom_left", "bottom_right", "top_left", "top_right"):
+        candidate = discover_joint_relief_candidate(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            topology_levels=None,
+            relief_component=divider_part.render_data.material,
+            clearance=0.0,
+            corner_name_override=corner_name,
+        )
+        measurement = getattr(getattr(candidate, "corner_relief", None), "measurement", None)
+        print(
+            "divider_candidate", corner_name,
+            "status=", candidate.status,
+            "measurement=", measurement,
+            "cut_bounds=", None if candidate.cut_polygon_2d is None else candidate.cut_polygon_2d.bounds,
+        )
+        if candidate.status == "CANDIDATE":
+            candidates.append(candidate)
+
+    assert len(candidates) == 4
+    cut = unary_union([candidate.cut_polygon_2d for candidate in candidates])
+    solved_divider = bridge._phase6_apply_resolved_cut_to_part(divider_part, cut)
+    solved_world = bridge._phase6_build_joint_world_geometry(
+        (body, solved_divider), dims, snapshot["t"]
+    )
+    residual = project_joint_interference_to_relief_owner(
+        joint,
+        world_triangles_by_part=solved_world["world_triangles_by_part"],
+        mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
+        flat_material_by_part=solved_world["flat_material_by_part"],
+    )
+    print("divider_post_pairs=", residual.projection.pair_count)
+    print("divider_post_illegal=", residual.illegal_penetration)
+    assert residual.illegal_penetration is False
