@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from ae_engine.assembly_collision import project_joint_interference_to_relief_owner
+from ae_engine import ae
 from ae_engine.assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
 from ae_engine.assembly_placement import resolve_divider_placement
 from ae_engine.cabinet_types import receiving
@@ -23,7 +24,6 @@ def _snapshot():
     data = receiving.apply_family_defaults({})
     data.update({
         "w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 29.0,
-        "z_comp": -10.0,
         "door_layout_scope": "receiving-main",
         "door_layout_columns": [[800.0, [1100.0, 500.0]]],
         "multi_door_enabled": True,
@@ -36,8 +36,8 @@ def _body_part(snapshot):
     render = build_box_body_structure_render_data(BoxBodyPartSpec(
         width=snapshot["w"], height=snapshot["h"], depth=snapshot["d"],
         thickness=snapshot["t"], frame_width=snapshot["fw"], model_name="受電箱",
-        zl1=snapshot["zl1"], zl2=snapshot["zl2"], zr1=snapshot.get("zr1", 0.0), zr2=snapshot["zr2"],
-        z_comp=snapshot["z_comp"],
+        zl1=snapshot["zl1"], zl2=snapshot["zl2"], zr1=ae.zr1_def, zr2=snapshot["zr2"],
+        z_comp=ae.z_comp_def,
         fold_profile=profile_to_fold_segments(build_box_body_profile(snapshot)),
         structure_state=state,
         head_ybottom1=snapshot["ybottom1"], tail_ybottom1=snapshot["ybottom1"],
