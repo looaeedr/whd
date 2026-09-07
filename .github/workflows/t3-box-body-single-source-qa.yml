@@ -9,6 +9,7 @@ on:
       - "ae_engine/ae.py"
       - "ae_engine/manufacturing_api.py"
       - "tests/test_box_body_single_source_t3.py"
+      - "tests/test_box_body_gui.py"
       - ".github/workflows/t3-box-body-single-source-qa.yml"
 
 permissions:
