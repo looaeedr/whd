@@ -170,12 +170,18 @@ def divider_fold_contract(
     core_segment_index = int(data.get("core_segment_index", len(material) - 2))
     if core_segment_index < 0 or core_segment_index >= len(material):
         raise ValueError("family Divider core_segment_index is outside the fold chain")
-    return {
+    result_out = {
         "material_lengths": material,
         "signed_fold_chain": signed,
         "formed_core_depth": float(data["formed_core_depth"]),
         "core_segment_index": core_segment_index,
     }
+    if data.get("frame_width_segment_index") is not None:
+        fw_index = int(data["frame_width_segment_index"])
+        if fw_index < 0 or fw_index >= len(material):
+            raise ValueError("family Divider frame_width_segment_index is outside the fold chain")
+        result_out["frame_width_segment_index"] = fw_index
+    return result_out
 
 
 def endcap_depth_comp_t(source) -> float:
