@@ -1,0 +1,44 @@
+name: T1 Vault Base Plate QA
+
+on:
+  push:
+    branches:
+      - fix/37-vault-baseplate-placement
+    paths:
+      - 'ae_engine/assembly_placement.py'
+      - 'ae_engine/assembly_geometry.py'
+      - 'fold_designer_bridge.py'
+      - 'phase6_designer_workspace.py'
+      - 'tests/test_issue37_vault_baseplate_placement.py'
+      - '.scratch/issue37_preflight_evidence.txt'
+      - '.github/workflows/qa_issue37_vault_baseplate.yml'
+
+jobs:
+  t1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+      - name: Knowledge preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "bug fix 3D placement: Vault Base Plate authoritative AssemblyPlacement single source" \
+            --changed-file ae_engine/assembly_placement.py \
+            --changed-file ae_engine/assembly_geometry.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue37_vault_baseplate_placement.py \
+            --evidence .scratch/issue37_preflight_evidence.txt
+      - name: T1 targeted
+        run: |
+          pytest -q -vv \
+            tests/test_issue37_vault_baseplate_placement.py \
+            tests/test_phase6_t20_receiving_baseplate_placement.py::test_receiving_per_door_base_plates_have_authoritative_distinct_placements \
+            tests/test_phase6_t20_receiving_baseplate_placement.py::test_receiving_base_plate_placement_keeps_vertical_plate_inside_owning_cell_height \
+            tests/test_assembly_placement_contract.py
