@@ -43,3 +43,43 @@ def test_r5_receiving_divider_fw_is_live_family_authority():
     )
     assert wider.material_lengths == pytest.approx((16.0, 27.0, 102.0, 15.0))
     assert sum(float(row.length) for row in wider.fold_profile[: wider.core_segment_index]) == pytest.approx(43.0)
+
+
+@pytest.mark.skipif(not __import__("os").environ.get("DISPLAY"), reason="requires Tk display")
+def test_r2_gui_final_divider_uses_four_segment_collision_relief():
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+
+    root = tk.Tk()
+    root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    designer = None
+    try:
+        app.baseline_var.set("受電箱")
+        app.on_baseline_changed()
+        root.update_idletasks()
+        root.update()
+
+        designer = app.open_original_fold_designer()
+        root.update_idletasks()
+        root.update()
+
+        divider_key = next(
+            key for key in designer.designer_workspace.available_parts
+            if str(key).startswith("box_body:divider:")
+        )
+        designer.activate_part(divider_key)
+        render = bridge._phase6_query_final_render_data(designer)
+
+        relief = dict(render.metadata.get("divider_assembly_relief") or {})
+        assert relief.get("verified") is True
+        assert float(relief["core_start"]) == pytest.approx(41.0)
+        assert len(list(render.material.exterior.coords)) > 5
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        root.destroy()
