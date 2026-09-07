@@ -6,6 +6,7 @@ on:
       - fix/receiving-door-dimension-projection-20260907
     paths:
       - "fold_designer_bridge.py"
+      - "gui.py"
       - "tests/test_receiving_door_dimension_projection_semantics.py"
       - "tests/test_phase6_t25_combined_receiving_acceptance.py"
       - ".github/workflows/receiving-door-dim-projection-qa.yml"

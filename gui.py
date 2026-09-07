@@ -1903,8 +1903,16 @@ class BoxCalculatorGUI:
         }
 
         w, h, d, t, fw = snapshot["w"], snapshot["h"], snapshot["d"], snapshot["t"], snapshot["fw"]
-        door_w = max(1.0, w - (fw + 2.0 * t) * 2.0 - snapshot["door_gap_w"] * 2.0)
-        door_h = max(1.0, h - (fw + 2.0 * t) * 2.0 - snapshot["door_gap_h"] * 2.0)
+        door_material_fw = self._door_material_frame_width(
+            fw, t, model_name=snapshot.get("model")
+        )
+        door_w, door_h = ae.calculate_door_finished_size(
+            w, h, door_material_fw,
+            snapshot["door_gap_w"], snapshot["door_gap_h"], t,
+            frame_edges=DoorFrameEdges(),
+        )
+        door_w = max(1.0, float(door_w))
+        door_h = max(1.0, float(door_h))
         base_w = max(1.0, w - snapshot["base_plate_shrink_left"] - snapshot["base_plate_shrink_right"])
         base_h = max(1.0, h - snapshot["base_plate_shrink_top"] - snapshot["base_plate_shrink_bottom"])
         try:

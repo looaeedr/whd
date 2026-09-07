@@ -60,6 +60,13 @@ def test_combined_receiving_operator_path_from_live_family_switch():
             (800.0, 1600.0, 350.0, 2.0, 29.0)
         )
 
+        # Main-GUI -> Fold Designer snapshot must use the same family-aware
+        # Door FW semantic; Receiving 29 is formed occupation, not material FW.
+        main_snapshot = app._make_original_fold_designer_snapshot()
+        assert main_snapshot["part_dimensions"]["door"] == pytest.approx(
+            {"width": 735.0, "height": 1535.0}
+        )
+
         # Receiving physical box-body sections.
         designer.activate_part("box_body")
         bridge._phase6_invalidate_settings_page(designer, "box_body")
