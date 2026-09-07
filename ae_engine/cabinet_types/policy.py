@@ -142,25 +142,39 @@ def door_material_frame_width(source, *, frame_width: float, thickness: float) -
     return material
 
 
-def divider_fold_contract(source, *, depth: float, thickness: float, handle_side: bool):
-    """Return an optional family-owned Divider fold contract."""
+def divider_fold_contract(
+    source,
+    *,
+    depth: float,
+    thickness: float,
+    handle_side: bool,
+    frame_width: float | None = None,
+):
+    """Return an optional family-owned Divider fold contract of arbitrary topology."""
     result = _call(
         source, "divider_fold_contract", None,
-        depth=float(depth), thickness=float(thickness), handle_side=bool(handle_side),
+        depth=float(depth),
+        thickness=float(thickness),
+        handle_side=bool(handle_side),
+        frame_width=(None if frame_width is None else float(frame_width)),
     )
     if result is None:
         return None
     data = dict(result)
     material = tuple(float(v) for v in tuple(data.get("material_lengths") or ()))
     signed = tuple(float(v) for v in tuple(data.get("signed_fold_chain") or ()))
-    if len(material) != 5 or len(signed) != 5:
-        raise ValueError("family Divider fold contract requires five material/outside segments")
+    if len(material) < 2 or len(material) != len(signed):
+        raise ValueError("family Divider material/outside chains must have equal segment counts")
     if any(value <= 0 for value in material) or any(abs(value) <= 0 for value in signed):
         raise ValueError("family Divider fold contract segments must be non-zero")
+    core_segment_index = int(data.get("core_segment_index", len(material) - 2))
+    if core_segment_index < 0 or core_segment_index >= len(material):
+        raise ValueError("family Divider core_segment_index is outside the fold chain")
     return {
         "material_lengths": material,
         "signed_fold_chain": signed,
         "formed_core_depth": float(data["formed_core_depth"]),
+        "core_segment_index": core_segment_index,
     }
 
 
