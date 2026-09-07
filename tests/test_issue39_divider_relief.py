@@ -171,3 +171,42 @@ def test_t3_probe_generic_corner_fitter_can_solve_divider_from_physical_projecti
     print("divider_post_pairs=", residual.projection.pair_count)
     print("divider_post_illegal=", residual.illegal_penetration)
     assert residual.illegal_penetration is False
+
+
+
+def test_t3_probe_collision_source_piece_bands():
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    dims = (snapshot["w"], snapshot["h"], snapshot["d"])
+    joint = _divider_insert_joint(divider.stable_id)
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snapshot["t"]
+    )
+
+    for source_key in ("box_body:left_side", "box_body:back", "box_body:right_side"):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            source_geometry_key=source_key,
+        )
+        mids = []
+        for a, b in projected.projection.segments_2d:
+            mids.append(((float(a[0])+float(b[0]))/2.0, (float(a[1])+float(b[1]))/2.0))
+        xs = [p[0] for p in mids]
+        ys = [p[1] for p in mids]
+        print(
+            "divider_piece_projection", source_key,
+            "pairs=", projected.projection.pair_count,
+            "illegal=", projected.illegal_penetration,
+            "x_range=", None if not xs else (min(xs), max(xs)),
+            "y_range=", None if not ys else (min(ys), max(ys)),
+        )
+        low = sorted({round(x, 3) for x, y in mids if y < 2.0})
+        high = sorted({round(x, 3) for x, y in mids if y > 794.0})
+        print("  low_end_x=", low[:40], "...", low[-20:] if low else [])
+        print("  high_end_x=", high[:40], "...", high[-20:] if high else [])
+
+    assert True
