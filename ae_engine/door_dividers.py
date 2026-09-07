@@ -61,6 +61,7 @@ class BoxBodyDividerPart:
     material_lengths: tuple[float, ...]
     fold_profile: tuple[FoldProfileSegment, ...]
     adjacent_cells: tuple[str, ...]
+    model_name: str | None = None
 
     @property
     def blank_width(self) -> float:
@@ -111,18 +112,50 @@ def _fold_profile(signed_chain: Sequence[float], material_lengths: Sequence[floa
     return tuple(rows)
 
 
-def _part(*, layout_scope, axis, boundary_key, span, depth, thickness, handle_side, adjacent_cells):
+def _part(
+    *,
+    layout_scope,
+    axis,
+    boundary_key,
+    span,
+    depth,
+    thickness,
+    handle_side,
+    adjacent_cells,
+    model_name=None,
+):
     t = float(thickness)
     d = float(depth)
     span = float(span)
     if t <= 0 or d <= 0 or span <= 0:
         raise ValueError("divider depth/thickness/span must be > 0")
-    formed_core = d - 2.0 * t
-    if formed_core <= 0:
-        raise ValueError("divider formed D-2T must be > 0")
-    first = -15.0 if handle_side else 18.0
-    signed = (first, 20.0, 25.0, formed_core, 15.0)
-    material = (abs(first), 20.0, 25.0, _material_core_from_formed(formed_core=formed_core, thickness=t), 15.0)
+
+    from .cabinet_types import policy as cabinet_family_policy
+
+    family_contract = cabinet_family_policy.divider_fold_contract(
+        model_name,
+        depth=d,
+        thickness=t,
+        handle_side=bool(handle_side),
+    )
+    if family_contract is not None:
+        material = tuple(float(v) for v in family_contract["material_lengths"])
+        signed = tuple(float(v) for v in family_contract["signed_fold_chain"])
+        formed_core = float(family_contract["formed_core_depth"])
+    else:
+        formed_core = d - 2.0 * t
+        if formed_core <= 0:
+            raise ValueError("divider formed D-2T must be > 0")
+        first = -15.0 if handle_side else 18.0
+        signed = (first, 20.0, 25.0, formed_core, 15.0)
+        material = (
+            abs(first),
+            20.0,
+            25.0,
+            _material_core_from_formed(formed_core=formed_core, thickness=t),
+            15.0,
+        )
+
     return BoxBodyDividerPart(
         stable_id=divider_stable_id(layout_scope, axis, boundary_key),
         owner="box_body",
@@ -136,8 +169,8 @@ def _part(*, layout_scope, axis, boundary_key, span, depth, thickness, handle_si
         material_lengths=material,
         fold_profile=_fold_profile(signed, material),
         adjacent_cells=tuple(adjacent_cells),
+        model_name=(str(model_name).strip() if model_name else None),
     )
-
 
 def derive_box_body_dividers(
     columns,
@@ -146,6 +179,7 @@ def derive_box_body_dividers(
     thickness: float,
     layout_scope: object,
     handle_edges: Mapping[str, object] | None = None,
+    model_name: str | None = None,
 ) -> tuple[BoxBodyDividerPart, ...]:
     """Derive one physical divider for each canonical internal Door boundary.
 
@@ -189,6 +223,7 @@ def derive_box_body_dividers(
             thickness=thickness,
             handle_side=handle_side,
             adjacent_cells=adjacent,
+            model_name=model_name,
         ))
 
     for cell in cells:
@@ -212,6 +247,7 @@ def derive_box_body_dividers(
             thickness=thickness,
             handle_side=handle_side,
             adjacent_cells=(upper_key, lower_key),
+            model_name=model_name,
         ))
     return tuple(result)
 
