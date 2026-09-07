@@ -114,3 +114,12 @@
 - **事故**：曾以 ZIP extract 跑 3D/Base Plate 修改與 test，再拿 ZIP 原版單測作 A/B，與真正 `cleanup/2d-3d-sync@cf217e3` 無法建立 commit provenance。
 - **防線**：3D/placement regression A/B 兩端都要是可定位 Git ref / commit / checkpoint fingerprint。ZIP 只有使用者明確指定為 baseline 才可成為端點。
 - **處理**：execution tree 錯時，所有幾何 PASS/FAIL、world bounds、checkpoint ZIP 都標 REVOKED，從最近可信 Git HEAD 重新 RED。
+
+## 2026-09-07 — Divider 截角不得從 DXF 外框偷答案
+
+- **CURRENT**：Receiving Divider 包外四段為 `18 / FW / 106 / 17`；`T=2, FW=29` 材料為 `16 / 25 / 102 / 15`。舊 Receiving 五段資料只保留歷史證據，不得作 runtime oracle。
+- `中隔.dxf` 的 CUTTING 外框不是現場截角 Source of Truth；正式 runtime 只消費固定孔/基準特徵。若拿 DXF 外框直接當 Final Material，會讓測試假綠，也無法應付 W/T/FW/箱身結構變動。
+- Divider relief 必須由真實 `box_body:left_side/right_side` 世界幾何碰撞求 candidate，再 backproject 回 pre-core relief domain 並 refold 驗證；沒有 side-piece geometry 就 fail closed。
+- `box_body` aggregate 與 physical pieces 不可混為一談。GUI/2D 若只看到 aggregate，會同時造成「多件式看起來只有一件」與 collision source 缺失等假象。
+- Dynamic physical IDs 不得被 legacy label whitelist 過濾；`PART_LABELS` 不是 topology/physical identity authority。
+
