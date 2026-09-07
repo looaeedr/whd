@@ -136,3 +136,15 @@
 - **重要**：T48-1 正確 placement 後，某一 fixture 的動態 collision output 約為左右 26 mm；這只是該 fixture 的 runtime evidence，**不是固定截角規格，也不得寫入 Registry 當 oracle**。
 - 舊測試若硬鎖 `1 mm`、`47/26` 或其他單次 probe 數值，應改成驗幾何 invariant：實際干涉存在、動態 cut > 0、對稱 fixture 結果符合對稱、post-solve illegal penetration 歸零、合法 mating contact 保留。
 - T48-2 remote acceptance：run `34168152160`，`13 passed / 0 failed`，`config.ini` SHA256 前後一致。
+
+
+## 2026-09-08 — Combined Acceptance 的舊 numeric oracle / stale fixture 不得反壓 production
+
+- **事件**：T48 第一輪 Combined 已有 167 PASS，但剩 10 FAIL。逐顆分類後，1 顆 Issue40 仍鎖舊 `rigid_delta` 數值、8 顆 collision fixture 沒帶 production 已要求的 canonical BoxBody Fold Profile、1 顆 multi-piece blank fixture 沒帶現行 `canonical_strip_render_data`。
+- **判定規則**：production 已有 fail-closed contract 時，舊 fixture 缺必要 authority 不是理由去放寬 production；probe-derived numeric delta 也不是產品 oracle。
+- **正確修法**：
+  1. semantic datum 測試驗證 `anchor_after - anchor_before == rigid_delta` 以及 post-relief center + mother datum 的幾何關係，不鎖某次 world/probe 數字；
+  2. collision fixture 必須供應 canonical BoxBody Fold Profile，不能靠缺省舊路徑；
+  3. multi-piece fixture 必須完整符合目前 render-data contract，不得用舊 constructor 形狀假裝 production regression。
+- **驗證證據**：只重跑第一輪 10 個失敗 node，run `34168772770` 得到 **10 PASS / 0 FAIL**，且 `config.ini` SHA256 前後一致。
+- **永久防線**：Combined failure 先分類 requirement regression / production regression / stale test oracle / stale fixture；只有前兩類才修改 production。不得為了讓歷史測試回綠而撤掉 canonical geometry 的 fail-closed 要求。
