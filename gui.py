@@ -1974,6 +1974,23 @@ class BoxCalculatorGUI:
             return str(int(nearest_int))
         return str(value)
 
+    @staticmethod
+    def _phase6_logical_part_present(existing_parts, logical_key):
+        """Project dynamic physical stable IDs into the legacy top-level UI groups.
+
+        The physical IDs remain authoritative; this helper only answers whether a
+        logical main-GUI group should be visible.
+        """
+        existing = set(str(key) for key in (existing_parts or ()))
+        key = str(logical_key or "")
+        if key == "door":
+            return "door" in existing or any(item.startswith("door_c") for item in existing)
+        if key == "base_plate":
+            return "base_plate" in existing or any(item.startswith("base_plate_c") for item in existing)
+        if key == "box_body":
+            return "box_body" in existing or any(item.startswith("box_body:") for item in existing)
+        return key in existing
+
     def _apply_existing_parts_from_fold_workspace(self, existing_parts):
         """Apply one exact physical-presence set across the whole main-GUI chain."""
         existing = set(str(key) for key in (existing_parts or ()))
@@ -1985,7 +2002,7 @@ class BoxCalculatorGUI:
             ("tail", self.export_tail_var), ("door", self.export_door_var),
             ("base_plate", self.export_base_plate_var),
         ):
-            var.set(key in existing)
+            var.set(self._phase6_logical_part_present(existing, key))
         self.is_indicator_box_var.set("indicator_box" in existing)
         # Small indicator door may exist independently of the box in project
         # state; the existing legacy toggle represents the standalone-door mode.
@@ -2010,7 +2027,7 @@ class BoxCalculatorGUI:
                     continue
                 tab_id = str(tab)
                 if tab_id not in managed_tabs:
-                    if key in existing:
+                    if self._phase6_logical_part_present(existing, key):
                         notebook.add(tab, text=text)
                         managed_tabs.add(tab_id)
                     continue
@@ -2018,7 +2035,7 @@ class BoxCalculatorGUI:
                     state = str(notebook.tab(tab, "state"))
                 except Exception:
                     state = "normal"
-                if key in existing:
+                if self._phase6_logical_part_present(existing, key):
                     if state == "hidden":
                         notebook.add(tab, text=text)
                 elif key != "box_body" and state != "hidden":
@@ -3935,10 +3952,10 @@ class BoxCalculatorGUI:
 
         result_groups = getattr(self, "_phase6_result_part_rows", {}) or {}
         visibility = {
-            "box_body": "box_body" in existing,
+            "box_body": self._phase6_logical_part_present(existing, "box_body"),
             "endcap": bool({"head", "tail"} & existing),
-            "door": "door" in existing,
-            "base_plate": "base_plate" in existing,
+            "door": self._phase6_logical_part_present(existing, "door"),
+            "base_plate": self._phase6_logical_part_present(existing, "base_plate"),
             "indicator_box": "indicator_box" in existing,
             "indicator_door": "indicator_door" in existing,
         }
