@@ -1,0 +1,159 @@
+name: T4 Box Body single-source Combined Acceptance
+
+on:
+  push:
+    branches:
+      - accept/box-body-single-source-t4-20260907
+    paths:
+      - "tests/test_box_body_single_source_t4.py"
+      - ".github/workflows/t4-box-body-single-source-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  combined:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Knowledge preflight verification
+        run: |
+          python tools/phase6_skill_preflight.py             --task "T4 #29 Combined Acceptance with 3D, Fold, assembly, DXF, save-reload, multi-piece guards and remote QA via GitHub Actions workflow run; acceptance only"             --changed-file tests/test_box_body_single_source_t4.py             --changed-file .github/workflows/t4-box-body-single-source-qa.yml             --evidence logs/box_body_single_source/T4.preflight.txt
+
+      - name: Static compile
+        run: |
+          python -m py_compile             gui.py             fold_designer_bridge.py             ae_engine/ae.py             ae_engine/manufacturing_api.py             phase6_final_scene_view.py
+
+      - name: Combined canonical and lifecycle matrix
+        shell: bash
+        run: |
+          set +e
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          git_status_before="$(git status --porcelain --untracked-files=no)"
+
+          python -m pytest -q             tests/test_box_body_single_source_t4.py             tests/test_phase6_linked_fold_chain_and_parts.py             tests/test_phase6_3d_single_source_renderer.py             tests/test_phase6_assembly_3d_view.py             tests/test_phase6_box_body_audit_contract.py             > t4_headless.log 2>&1
+          headless_rc=$?
+
+          xvfb-run -a python -m pytest -q             tests/test_box_body_single_source_t1.py             tests/test_box_body_single_source_t2.py             tests/test_box_body_single_source_t3.py             tests/test_box_body_single_source_t4.py             tests/test_phase6_t25_combined_receiving_acceptance.py             tests/test_phase6_2d_3d_round_trip.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_t14_box_body_child_sections.py             tests/test_phase6_box_body_structure.py             tests/test_phase6_workspace_projection.py             > t4_xvfb.log 2>&1
+          xvfb_rc=$?
+
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          git_status_after="$(git status --porcelain --untracked-files=no)"
+
+          cat t4_headless.log
+          cat t4_xvfb.log
+          python - <<PY > t4_state.json
+          import json
+          print(json.dumps({
+              "headless_rc": int("$headless_rc"),
+              "xvfb_rc": int("$xvfb_rc"),
+              "config_before": "$before",
+              "config_after": "$after",
+              "git_status_before": """$git_status_before""",
+              "git_status_after": """$git_status_after""",
+          }, ensure_ascii=False, indent=2))
+          PY
+          cat t4_state.json
+
+          if [ "$before" != "$after" ]; then
+            echo "config.ini mutated" >&2
+            exit 97
+          fi
+          if [ "$git_status_before" != "$git_status_after" ]; then
+            echo "tracked working tree drifted during acceptance" >&2
+            git diff -- .
+            exit 98
+          fi
+          if [ "$headless_rc" -ne 0 ]; then
+            exit "$headless_rc"
+          fi
+          exit "$xvfb_rc"
+
+      - name: Generate authoritative Receiving 3D visual artifact
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from types import SimpleNamespace
+
+          import matplotlib
+          matplotlib.use("Agg")
+          import matplotlib.pyplot as plt
+
+          from ae_engine.cabinet_types import receiving
+          from ae_engine.contracts import BoxBodyPartSpec
+          from ae_engine.manufacturing_api import build_box_body_structure_render_data
+          from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+          from phase6_final_scene_view import Phase6FinalSceneView, FinalSceneViewRequest
+
+          values = receiving.apply_family_defaults({"t": 2.0})
+          values["t"] = 2.0
+          profile = build_box_body_profile(values)
+          spec = BoxBodyPartSpec(
+              width=float(values["w"]),
+              height=float(values["h"]),
+              depth=float(values["d"]),
+              thickness=float(values["t"]),
+              frame_width=float(values["fw"]),
+              model_name="受電箱",
+              zl1=float(values["zl1"]),
+              zl2=float(values["zl2"]),
+              zr1=float(values.get("zr1", 15.0)),
+              zr2=float(values["zr2"]),
+              z_comp=float(values.get("z_comp", 2.0)),
+              fold_profile=profile_to_fold_segments(profile),
+              structure_state=receiving.resolve_box_body_structure_state(),
+              head_ybottom1=float(values.get("ybottom1", 15.0)),
+              tail_ybottom1=float(values.get("ybottom1", 15.0)),
+          )
+          data = build_box_body_structure_render_data(spec)
+
+          fig = plt.figure(figsize=(10, 7))
+          ax = fig.add_subplot(111, projection="3d")
+          view = Phase6FinalSceneView(SimpleNamespace(ax3d=ax))
+          request = FinalSceneViewRequest(
+              render_data=data,
+              x_profile=(),
+              y_profile=(),
+              part_key="box_body",
+              finished_dimensions=(float(values["w"]), float(values["h"]), float(values["d"])),
+              thickness=float(values["t"]),
+          )
+          triangles = view.render(request)
+          ax.view_init(elev=24, azim=-58)
+          ax.set_title("Receiving Box Body — authoritative 3-piece 3D")
+          fig.savefig("t4_receiving_box_body_3d.png", dpi=160, bbox_inches="tight")
+          plt.close(fig)
+
+          summary = {
+              "triangle_count": len(triangles),
+              "piece_roles": [piece.role for piece in data.pieces],
+              "piece_material_dimensions": [list(piece.material_dimensions) for piece in data.pieces],
+              "canonical_strip_bounds": list(map(float, data.canonical_strip_render_data.material.bounds)),
+          }
+          with open("t4_visual_state.json", "w", encoding="utf-8") as fh:
+              json.dump(summary, fh, ensure_ascii=False, indent=2)
+          print(json.dumps(summary, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload Combined Acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t4-box-body-single-source-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            t4_headless.log
+            t4_xvfb.log
+            t4_state.json
+            t4_receiving_box_body_3d.png
+            t4_visual_state.json
