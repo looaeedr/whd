@@ -17,9 +17,9 @@
 
 **AI Library Writeback:** REQUIRED — 更新 `個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md`：任何 3D relief `verified` 前必須先證明 authoritative placement / mating-face precondition；錯誤 placement 上的 collision result 不得升格。
 
-**Blocked by:** T48-1
+**Blocked by:** T48-1 — ACCEPTED run 34167721816
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 - [ ] relief resolver 在正確 Divider placement 後才執行 collision/backprojection。
 - [ ] `verified=True` 必須包含 placement/face relation 已成立的 evidence。
