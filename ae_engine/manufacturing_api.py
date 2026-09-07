@@ -867,6 +867,10 @@ def build_part_scene(
             )
 
         if isinstance(spec, BoxBodyPartSpec):
+            if not tuple(spec.fold_profile or ()):
+                raise ValueError(
+                    "canonical Box Body Fold Profile is required for manufacturing"
+                )
             return _call(
                 ae._build_box_body_scene,
                 w=spec.width, h=spec.height, d=spec.depth, t=spec.thickness,
