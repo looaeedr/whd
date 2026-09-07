@@ -7179,7 +7179,7 @@ class BoxCalculatorGUI:
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
         physical_piece_keys = tuple(
-            f"box_body:{str(piece.key)}"
+            f"box_body:{str(piece.role)}"
             for piece in tuple(getattr(render_data, "pieces", ()) or ())
         )
         self.last_box_body_face_overview = {
