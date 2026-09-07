@@ -316,22 +316,36 @@ def resolve_inner_door_frame_placement(
     )
 
 
-def _divider_fw_face_flush_depth_offset(snapshot: Mapping[str, object], stable_id: str) -> float:
-    """Resolve Divider depth from the shared FW formed-face relationship.
+def _divider_fw_face_flush_contract(
+    snapshot: Mapping[str, object], stable_id: str
+) -> tuple[float, float]:
+    """Return (world_depth_offset, local_axis_to_world_z_sign) for Divider FW mating.
 
-    The family owns the front physical skin. The Divider fold contract owns
-    which segment is FW. We derive the Divider FW mid-surface from its actual
-    Fold Profile and match that mid-surface to the Box Body front FW
-    mid-surface. No world Z constant is stored here.
+    Receiving's actual Divider Fold Profile decides where the FW band and core
+    lie.  The family inward vector decides which direction the core must extend
+    after the FW band is mated to the Box Body front FW face.  This derives both
+    translation and orientation from geometry instead of a world-Z constant.
+    Families without an explicit Divider FW segment contract keep the legacy
+    +local-axis placement with zero depth offset.
     """
     from .assembly_geometry import folded_profile_segment_center_from_envelope
     from .cabinet_types import policy as cabinet_family_policy
     from .door_dividers import derive_box_body_dividers
 
-    columns, _cells = _topology(snapshot)
     depth = float(snapshot.get("d", 0.0))
     thickness = float(snapshot.get("t", 0.0))
     frame_width = snapshot.get("fw")
+
+    # Probe family capability before deriving a physical Divider.  Generic
+    # snapshots intentionally omit D/T and must retain their historical path.
+    capability = cabinet_family_policy.divider_fold_contract(
+        snapshot, depth=depth, thickness=thickness, handle_side=False,
+        frame_width=(None if frame_width is None else float(frame_width)),
+    )
+    if capability is None or capability.get("frame_width_segment_index") is None:
+        return 0.0, 1.0
+
+    columns, _cells = _topology(snapshot)
     dividers = derive_box_body_dividers(
         columns,
         depth=depth,
@@ -346,19 +360,20 @@ def _divider_fw_face_flush_depth_offset(snapshot: Mapping[str, object], stable_i
         raise ValueError(f"divider stable id outside authoritative topology: {stable_id!r}")
 
     fold_contract = cabinet_family_policy.divider_fold_contract(
-        snapshot,
-        depth=depth,
-        thickness=thickness,
+        snapshot, depth=depth, thickness=thickness,
         handle_side=bool(divider.handle_side),
         frame_width=(None if frame_width is None else float(frame_width)),
     )
     if fold_contract is None or fold_contract.get("frame_width_segment_index") is None:
-        return 0.0
+        raise ValueError("Divider lost its family FW segment contract")
 
     fw_index = int(fold_contract["frame_width_segment_index"])
-    local_fw_axis, _local_cross = folded_profile_segment_center_from_envelope(
-        divider.fold_profile, fw_index
-    )
+    core_index = int(fold_contract["core_segment_index"])
+    fw_axis, _ = folded_profile_segment_center_from_envelope(divider.fold_profile, fw_index)
+    core_axis, _ = folded_profile_segment_center_from_envelope(divider.fold_profile, core_index)
+    local_core_delta = float(core_axis - fw_axis)
+    if abs(local_core_delta) <= 1e-9:
+        raise ValueError("Divider FW/core folded axes do not define an inward direction")
 
     coordinate = cabinet_family_policy.assembly_coordinate_contract(
         snapshot, depth=depth, thickness=thickness
@@ -367,14 +382,24 @@ def _divider_fw_face_flush_depth_offset(snapshot: Mapping[str, object], stable_i
         raise ValueError("Divider FW face-flush contract requires a family assembly coordinate contract")
     if str(coordinate.get("front_axis") or "").upper() != "Z":
         raise ValueError("Divider FW face-flush currently requires a Z front axis")
+    inward = tuple(float(v) for v in coordinate.get("inward_vector", (0.0, 0.0, 0.0)))
+    if len(inward) != 3 or abs(inward[2]) != 1.0:
+        raise ValueError("Divider FW face-flush requires a unit Z inward vector")
+
+    # Choose the local-axis mapping so moving from FW toward the core follows
+    # the family's physical inward direction.
+    local_delta_sign = 1.0 if local_core_delta > 0.0 else -1.0
+    axis_to_world_z_sign = float(inward[2] / local_delta_sign)
+
     outward_sign = float(coordinate.get("outward_sign", 0.0))
     if abs(outward_sign) != 1.0:
         raise ValueError("family outward_sign must be +1 or -1")
     body_front_skin = float(coordinate["body_front_skin"])
     body_fw_midplane = body_front_skin - outward_sign * thickness / 2.0
-    return float(body_fw_midplane - local_fw_axis)
+    world_fw_relative = axis_to_world_z_sign * float(fw_axis)
+    return float(body_fw_midplane - world_fw_relative), axis_to_world_z_sign
 
-def _divider_position(snapshot: Mapping[str, object], stable_id: str, axis: str, boundary: str):
+def _divider_position(snapshot: Mapping[str, object], stable_id: str, axis: str, boundary: str, depth_offset: float):
     columns, cells = _topology(snapshot)
     total_w, total_h = _dimensions(snapshot, columns)
 
@@ -393,7 +418,7 @@ def _divider_position(snapshot: Mapping[str, object], stable_id: str, axis: str,
         # placed every divider one whole column too far right and made the 3D
         # part appear to jump as the adjacent column widths changed.
         x = -total_w / 2.0 + sum(width for width, _ in columns[:left_col + 1])
-        z = _divider_fw_face_flush_depth_offset(snapshot, stable_id)
+        z = float(depth_offset)
         return (x, 0.0, z)
 
     match = re.fullmatch(r"C(\d+)[:_]R(\d+)\|R(\d+)", boundary)
@@ -412,7 +437,7 @@ def _divider_position(snapshot: Mapping[str, object], stable_id: str, axis: str,
     y = total_h / 2.0 - sum(columns[col][1][:upper_row + 1])
     col_left = -total_w / 2.0 + sum(width for width, _ in columns[:col])
     x = col_left + columns[col][0] / 2.0
-    z = _divider_fw_face_flush_depth_offset(snapshot, stable_id)
+    z = float(depth_offset)
     return (x, y, z)
 
 
@@ -424,7 +449,12 @@ def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) ->
         raise ValueError(f"not an authoritative Box Body divider stable id: {stable_id!r}")
     axis = match.group("axis")
     boundary = match.group("boundary")
-    position = _divider_position(snapshot, stable_id, axis, boundary)
+    depth_offset, depth_axis_sign = _divider_fw_face_flush_contract(snapshot, stable_id)
+    position = _divider_position(snapshot, stable_id, axis, boundary, depth_offset)
+    if axis == "VERTICAL":
+        placement_kind = "divider_vertical_inward" if depth_axis_sign < 0.0 else "divider_vertical"
+    else:
+        placement_kind = "divider_horizontal_inward" if depth_axis_sign < 0.0 else "divider_horizontal"
     return AssemblyPlacement(
         stable_id=stable_id,
         parent_assembly_node="box_body",
@@ -433,7 +463,7 @@ def resolve_divider_placement(snapshot: Mapping[str, object], stable_id: str) ->
         rotation=(0.0, 0.0, 0.0),
         mate_target="box_body:door_layout",
         relationship="SHARED_STRUCTURAL_DIVIDER",
-        placement_kind="divider_vertical" if axis == "VERTICAL" else "divider_horizontal",
+        placement_kind=placement_kind,
         semantic_position=position,
     )
 
