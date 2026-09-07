@@ -43,6 +43,8 @@ For every shared semantic term, search and cross-check the whole ownership chain
 
 A Family-specific value or conversion is not the definition of the shared term.
 
+A UI location is also **not** a semantic layer. If a value is edited in a "3D input area", "settings panel", "Fold editor", or other UI surface, describe that as the **input location / UI surface**, not as a new "input semantic". The semantic remains the shared domain meaning unless the project explicitly defines a different dimension space.
+
 Example: seeing Receiving `FW=29` does not define FW globally. First establish the global `Frame Width` semantic, then document how Receiving, Vault, and other Families encode or convert it.
 
 If you have only read the current Family, you have **not completed the pre-spec gate** for a shared term.
