@@ -10,8 +10,12 @@ import pytest
 from shapely.geometry import Polygon
 
 from ae_engine.contracts import ManufacturingContext
+from ae_engine.door_dividers import derive_box_body_dividers
+from ae_engine.manufacturing_api import build_box_body_divider_render_data
+from ae_engine.assembly_placement import resolve_divider_placement
 from ae_engine.sheetmetal_drawing import CirclePrimitive
-from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+from phase6_final_scene_view import AssemblyScenePart
+from tests.test_issue39_divider_relief import _snapshot, _body_part
 import fold_designer_bridge as bridge
 
 
@@ -128,10 +132,49 @@ def _endcap_mother_rule(path: Path):
     }
 
 
+def _divider_part_with_context(snapshot, context=None):
+    divider = derive_box_body_dividers(
+        tuple(
+            (float(w), tuple(float(h) for h in hs))
+            for w, hs in snapshot["door_layout_columns"]
+        ),
+        depth=snapshot["d"],
+        thickness=snapshot["t"],
+        layout_scope=snapshot["door_layout_scope"],
+        handle_edges={},
+        model_name="受電箱",
+    )[0]
+    render = build_box_body_divider_render_data(
+        divider,
+        context=context or ManufacturingContext(),
+    )
+    placement = resolve_divider_placement(snapshot, divider.stable_id)
+    profiles = {
+        "X": [
+            {
+                "len": float(row.length),
+                **({"angle": float(row.angle)} if row.angle is not None else {}),
+                **({"core": str(row.core)} if row.core else {}),
+                **({"phase6_key": str(row.phase6_key)} if row.phase6_key else {}),
+            }
+            for row in divider.fold_profile
+        ],
+        "Y": [{"len": float(divider.span)}],
+    }
+    return divider, AssemblyScenePart(
+        part_key=divider.stable_id,
+        render_data=render,
+        x_profile=tuple(profiles["X"]),
+        y_profile=tuple(profiles["Y"]),
+        placement=placement.placement_kind,
+        offset=placement.world_offset,
+    )
+
+
 def _solved(context=None):
     snap = _snapshot()
     body = _body_part(snap)
-    divider, divider_part = _divider_part(snap, context=context)
+    divider, divider_part = _divider_part_with_context(snap, context=context)
     solved_parts, diagnostics, joints = bridge._phase6_resolve_family_divider_reliefs(
         (body, divider_part),
         finished_dimensions=(snap["w"], snap["h"], snap["d"]),
