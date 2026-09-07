@@ -1,0 +1,22 @@
+TASK: T3 #28 Main 2D Box Body consumes one authoritative geometry build
+REPOSITORY: looaeedr/whd
+TARGET_BRANCH: cleanup/2d-3d-sync
+WORK_BRANCH: work/box-body-single-source-t3-20260907
+PARENT_HEAD: a3c738d7542335c230cd71c0b44e23060c5e4995
+CHANGED_FILE: gui.py
+CHANGED_FILE: tests/test_box_body_single_source_t3.py
+
+PREFLIGHT_COMMAND: python tools/phase6_skill_preflight.py --task "<T3 exact task>" --changed-file gui.py --changed-file tests/test_box_body_single_source_t3.py --evidence logs/box_body_single_source/T3.preflight.evidence.txt
+PREFLIGHT_RESULT: RC=0
+
+READ_SKILL: diagnosing-bugs
+SKILL_SHA: 061c25a524acaa93d4534e9e08a793c0a5fe45fd
+READ_SKILL: tdd
+SKILL_SHA: 8fc086710806190ee7c4baa32089cb877a75736a
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 3afa271fce7a4a2f2dc204c8b45a10b5fc2e4884
+READ_REFERENCE: CONTEXT.md
+
+APPROVED_RED: R4
+OWNING_ISSUE: #28
+TEST_SEAM: Main GUI draw_box_body() renders/hit-tests from one authoritative manufacturing result
