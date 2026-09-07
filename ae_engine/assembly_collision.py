@@ -491,6 +491,191 @@ backproject_world_interference_to_flat = backproject_world_interference_to_endca
 
 
 @dataclass(frozen=True)
+class DividerFrontFoldReliefCandidate:
+    """Collision-derived Divider relief constrained to the pre-core Fold domain."""
+
+    cut_polygon_2d: object
+    core_start: float
+    pre_pair_count: int
+    eligible_segment_count: int
+    cut_depths: tuple[tuple[str, float], ...]
+    evidence: object | None = None
+
+
+def _divider_front_fold_segments(projection, *, core_start: float, tolerance: float = 1e-6):
+    rows = []
+    for segment in tuple(getattr(projection, "segments_2d", ()) or ()):
+        xs = (float(segment[0][0]), float(segment[1][0]))
+        if min(xs) < float(core_start) - float(tolerance):
+            rows.append(segment)
+    return tuple(rows)
+
+
+def build_divider_front_fold_relief_candidate(
+    joint,
+    *,
+    world_triangles_by_part,
+    mapped_skin_triangles_by_part,
+    flat_material_by_part,
+    core_start: float,
+    source_geometry_keys,
+    clearance: float = 0.0,
+    tolerance: float = 1e-6,
+):
+    """Derive a Divider end relief from physical crossing depth only.
+
+    The Fold topology owns *where* relief is allowed: material before the
+    D_DIVIDER core.  The 3D crossing projection owns *how deep* each end must
+    be cut.  Remaining crossings in/after the core are legal mating contact and
+    are deliberately not converted into a larger cut.
+    """
+    from shapely.geometry import box as shapely_box
+    from shapely.ops import unary_union
+
+    ownership = joint_relief_ownership(joint)
+    relief_key = str(ownership.relief_part)
+    material = (flat_material_by_part or {}).get(relief_key)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError(f"Divider relief material unavailable: {relief_key}")
+
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    core_start = float(core_start)
+    if not (minx < core_start < maxx):
+        raise ValueError(
+            f"Divider relief core_start must lie inside material bounds: {core_start} not in {(minx, maxx)}"
+        )
+
+    cut_polygons = []
+    cut_depths = []
+    pair_count = 0
+    eligible_count = 0
+    projection_evidence = {}
+    for source_key in tuple(source_geometry_keys or ()):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world_triangles_by_part,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            flat_material_by_part=flat_material_by_part,
+            tolerance=float(tolerance),
+            source_geometry_key=str(source_key),
+        )
+        pair_count += int(projected.projection.pair_count)
+        segments = _divider_front_fold_segments(
+            projected.projection, core_start=core_start, tolerance=tolerance
+        )
+        eligible_count += len(segments)
+        points = [
+            (float(point[0]), float(point[1]))
+            for segment in segments
+            for point in segment
+        ]
+        if not points:
+            projection_evidence[str(source_key)] = {
+                "pair_count": int(projected.projection.pair_count),
+                "eligible_segments": 0,
+                "edge": None,
+                "depth": 0.0,
+            }
+            continue
+
+        low_depth = max(0.0, max(y for _x, y in points) - miny)
+        high_depth = max(0.0, maxy - min(y for _x, y in points))
+        if low_depth <= high_depth:
+            edge = "MIN_Y"
+            depth = low_depth + float(clearance)
+            cut = shapely_box(
+                minx - tolerance,
+                miny - tolerance,
+                core_start + tolerance,
+                min(maxy, miny + depth) + tolerance,
+            )
+        else:
+            edge = "MAX_Y"
+            depth = high_depth + float(clearance)
+            cut = shapely_box(
+                minx - tolerance,
+                max(miny, maxy - depth) - tolerance,
+                core_start + tolerance,
+                maxy + tolerance,
+            )
+        if depth > float(tolerance):
+            cut_polygons.append(cut)
+            cut_depths.append((str(source_key), float(depth)))
+        projection_evidence[str(source_key)] = {
+            "pair_count": int(projected.projection.pair_count),
+            "eligible_segments": len(segments),
+            "edge": edge,
+            "depth": float(depth),
+        }
+
+    if not cut_polygons:
+        return None
+    cut = unary_union(cut_polygons)
+    if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
+        return None
+    return DividerFrontFoldReliefCandidate(
+        cut_polygon_2d=cut,
+        core_start=core_start,
+        pre_pair_count=pair_count,
+        eligible_segment_count=eligible_count,
+        cut_depths=tuple(cut_depths),
+        evidence={
+            "core_start": core_start,
+            "projection_by_source": projection_evidence,
+            "ownership": {
+                "preserve_part": str(ownership.preserve_part),
+                "relief_part": relief_key,
+            },
+        },
+    )
+
+
+def verify_divider_front_fold_relief(
+    joint,
+    *,
+    world_triangles_by_part,
+    mapped_skin_triangles_by_part,
+    flat_material_by_part,
+    core_start: float,
+    source_geometry_keys,
+    tolerance: float = 1e-6,
+):
+    """Return post-cut illegal/front vs retained-contact crossing counts."""
+    front_segments = 0
+    contact_segments = 0
+    pair_count = 0
+    by_source = {}
+    for source_key in tuple(source_geometry_keys or ()):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world_triangles_by_part,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            flat_material_by_part=flat_material_by_part,
+            tolerance=float(tolerance),
+            source_geometry_key=str(source_key),
+        )
+        pair_count += int(projected.projection.pair_count)
+        front = _divider_front_fold_segments(
+            projected.projection, core_start=float(core_start), tolerance=tolerance
+        )
+        retained = max(0, len(tuple(projected.projection.segments_2d or ())) - len(front))
+        front_segments += len(front)
+        contact_segments += retained
+        by_source[str(source_key)] = {
+            "pair_count": int(projected.projection.pair_count),
+            "front_illegal_segments": len(front),
+            "retained_contact_segments": retained,
+        }
+    return {
+        "pair_count": pair_count,
+        "front_illegal_segments": front_segments,
+        "retained_contact_segments": contact_segments,
+        "verified": front_segments == 0,
+        "by_source": by_source,
+    }
+
+
+@dataclass(frozen=True)
 class JointReliefProjection:
     """Joint-local penetration projected onto the flat pattern of the relief owner.
 
