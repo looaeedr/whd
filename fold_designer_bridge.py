@@ -1106,6 +1106,22 @@ class Phase6BendingUI(original.BendingUI):
         self.render(); self.update_cb()
 
 
+def _phase6_snapshot_with_settings_fallback(snapshot: Mapping[str, object]) -> dict[str, object]:
+    """Materialize legacy nested global dimensions once at the snapshot ingress.
+
+    Explicit top-level W/H/D/T/FW are authoritative. Nested settings is only
+    a backward-compatible fallback when the corresponding top-level field is
+    absent, so this adaptation cannot create a competing live settings owner.
+    """
+    normalized = dict(snapshot or {})
+    settings = normalized.get("settings")
+    if isinstance(settings, Mapping):
+        for key in ("w", "h", "d", "t", "fw"):
+            if key not in normalized and key in settings:
+                normalized[key] = settings[key]
+    return normalized
+
+
 class Phase6FoldDesignerApp(original.MainApp):
     """Original MainApp loaded with Phase6 data; Renderer is untouched."""
 
@@ -1148,6 +1164,7 @@ class Phase6FoldDesignerApp(original.MainApp):
         self._phase6_cancel_owned_tk_jobs()
 
     def load_phase6_snapshot(self, snapshot: Mapping[str, object]):
+        snapshot = _phase6_snapshot_with_settings_fallback(snapshot)
         self._phase6_input_snapshot = dict(snapshot)
         stored = snapshot.get("box_body_profile")
         if stored:
@@ -7606,7 +7623,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # authoritative live-sync state. Publish is disabled until the final Phase6
     # workspace has ingested the current application snapshot and reached READY.
     self._phase6_initializing = True
-    snapshot = migrate_legacy_snapshot_joints(dict(snapshot or {}))
+    snapshot = _phase6_snapshot_with_settings_fallback(
+        migrate_legacy_snapshot_joints(dict(snapshot or {}))
+    )
     initial_parts, initial_active = normalize_part_selection(
         snapshot.get("existing_parts", ("box_body", "head", "tail")),
         snapshot.get("active_part"),
