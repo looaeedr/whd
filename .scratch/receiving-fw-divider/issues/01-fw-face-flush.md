@@ -17,10 +17,10 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** ACCEPTED — run 34167721816, 18 passed / 0 failed
 
-- [ ] 追出 BoxBody `fw_left/fw_right` 折後實體 skin/normal 與 Divider 第二段 FW skin/normal。
-- [ ] placement resolver 由實體 face-flush relation 推導 transform。
-- [ ] R2 由 RED 轉 GREEN；測試不得硬寫 `Z=121`、`174` 等 world coordinate。
-- [ ] 修改 D/FW/T 時重新推導 placement，面齊關係仍成立。
-- [ ] 舊 `Z=0` placement oracle 若與已確認機械關係衝突，修正測試，不弱化 production。
+- [x] 追出 BoxBody `fw_left/fw_right` 折後實體 skin/normal 與 Divider 第二段 FW skin/normal。
+- [x] placement resolver 由實體 face-flush relation 推導 transform。
+- [x] R2 由 RED 轉 GREEN；測試不得硬寫 `Z=121`、`174` 等 world coordinate。
+- [x] 修改 D/FW/T 時重新推導 placement，面齊關係仍成立。
+- [x] 舊 `Z=0` placement oracle 若與已確認機械關係衝突，修正測試，不弱化 production。
