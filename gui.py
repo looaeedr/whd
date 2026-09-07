@@ -7107,21 +7107,9 @@ class BoxCalculatorGUI:
             return
         self.draw_grid(canvas, cw, ch)
 
-        # Main page remains the authoritative StripFoldChain manufacturing view.
-        head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
+        # Main page consumes one Manufacturing-owned result.  It must not
+        # rebuild a parallel structural result just to recover face hit-zones.
         spec = self._box_body_part_spec(val)
-        if spec.fold_profile:
-            result = build_box_body_result_from_fold_profile(
-                spec.fold_profile, h=val['h'], t=val['t'],
-                head_corner_policy=head_policy, tail_corner_policy=tail_policy,
-            )
-        else:
-            result = build_box_body_result(
-                w=val['w'], h=val['h'], d=val['d'], t=val['t'], fw=val['fw'],
-                zl1=val['zl1'], zl2=val['zl2'], zr1=val['zr1'], zr2=val['zr2'],
-                z_comp=val['z_comp'],
-                head_corner_policy=head_policy, tail_corner_policy=tail_policy,
-            )
         render_data = self._authoritative_render_data(
             spec, self._manufacturing_context(draw_stock=False)
         )
@@ -7151,12 +7139,11 @@ class BoxCalculatorGUI:
 
         baseline = self._baseline_source_model()
 
-        # Face hit-zones still use structural topology only for editor navigation;
-        # they never redraw manufacturing geometry.
-        contexts = box_body_face_contexts_from_strip(
-            result.topology, w=val['w'], h=val['h'], d=val['d'], t=val['t'],
-            head_corner_policy=head_policy, tail_corner_policy=tail_policy,
-        )
+        # Face hit-zones are a projection of the exact topology that
+        # Manufacturing used for this render; GUI owns no Box Body topology.
+        contexts = getattr(render_data, "box_body_face_contexts", None)
+        if not contexts:
+            raise ValueError("authoritative Box Body face contexts unavailable")
         # Faces are only hit-zones projected onto the authoritative unfolded strip.
         # They do not replace, resize, or remove any manufacturing geometry/BEND line.
         selected = self.box_body_face_selected_var.get()
