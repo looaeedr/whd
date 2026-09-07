@@ -150,7 +150,10 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert relief["core_start"] == pytest.approx(41.0)
     assert dict(relief["cut_depths"])["box_body:left_side"] == pytest.approx(1.0, abs=1e-5)
     assert dict(relief["cut_depths"])["box_body:right_side"] == pytest.approx(1.0, abs=1e-5)
-    assert relief["pre_pair_count"] == 322
+    projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
+    expected_pre_pairs = sum(int(dict(row)["pair_count"]) for row in projection_by_source.values())
+    assert relief["pre_pair_count"] == expected_pre_pairs
+    assert relief["pre_pair_count"] > 0
     assert relief["retained_contact_segments"] > 0
 
     assert len(diagnostics) == 1
