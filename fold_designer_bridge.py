@@ -158,6 +158,9 @@ def _phase6_door_part_projections(snapshot: Mapping[str, object]) -> tuple[DoorP
     )
     t = _num(snapshot.get("t", 2.0), 2.0)
     fw = _num(snapshot.get("fw", 25.0), 25.0)
+    door_material_fw = cabinet_family_policy.door_material_frame_width(
+        snapshot, frame_width=fw, thickness=t,
+    )
     gap_w = _num(snapshot.get("door_gap_w", 3.5), 3.5)
     gap_h = _num(snapshot.get("door_gap_h", 3.5), 3.5)
     rows = []
@@ -166,7 +169,7 @@ def _phase6_door_part_projections(snapshot: Mapping[str, object]) -> tuple[DoorP
             w=cell.start_width,
             h=cell.start_height,
             t=t,
-            fw=fw,
+            fw=door_material_fw,
             gap_w=gap_w,
             gap_h=gap_h,
             frame_edges=cell.edges,
@@ -1442,6 +1445,9 @@ def _phase6_recalculate_part_dimensions(self):
     d = _num(values.get("d", snapshot.get("d", 200)), 200)
     t = _num(values.get("t", snapshot.get("t", 2)), 2)
     fw = _num(values.get("fw", snapshot.get("fw", 25)), 25)
+    door_material_fw = cabinet_family_policy.door_material_frame_width(
+        snapshot, frame_width=fw, thickness=t,
+    )
     dims = {key: dict(value) for key, value in (snapshot.get("part_dimensions") or {}).items()}
     dims["box_body"] = {"width": w, "height": h}
     dims["head"] = {"width": w, "height": d}
@@ -1455,9 +1461,19 @@ def _phase6_recalculate_part_dimensions(self):
         for row in door_rows:
             dims[row.part_key] = {"width": row.formed_width, "height": row.formed_height}
     else:
-        door_w = max(1.0, w - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_w", 3.5), 3.5))
-        door_h = max(1.0, h - (fw + 2.0 * t) * 2.0 - 2.0 * _num(values.get("door_gap_h", 3.5), 3.5))
-        dims["door"] = {"width": door_w, "height": door_h}
+        door_w, door_h = calculate_door_finished_size(
+            w=w,
+            h=h,
+            t=t,
+            fw=door_material_fw,
+            gap_w=_num(values.get("door_gap_w", 3.5), 3.5),
+            gap_h=_num(values.get("door_gap_h", 3.5), 3.5),
+            frame_edges=DoorFrameEdges(),
+        )
+        dims["door"] = {
+            "width": max(1.0, float(door_w)),
+            "height": max(1.0, float(door_h)),
+        }
     shrink_left = _num(values.get("base_plate_shrink_left", 55), 55)
     shrink_right = _num(values.get("base_plate_shrink_right", 55), 55)
     shrink_top = _num(values.get("base_plate_shrink_top", 55), 55)

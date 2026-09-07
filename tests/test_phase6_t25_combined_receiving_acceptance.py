@@ -90,6 +90,8 @@ def test_combined_receiving_operator_path_from_live_family_switch():
         assert all(stable_id in parts for stable_id in expected.values())
 
         dims = bridge._phase6_recalculate_part_dimensions(designer)
+        assert dims["door_c1_r1"] == pytest.approx({"width": 735.0, "height": 1064.0})
+        assert dims["door_c1_r2"] == pytest.approx({"width": 735.0, "height": 435.0})
         assert dims["base_plate_c1_r1"] == {"width": 690.0, "height": 990.0}
         assert dims["base_plate_c1_r2"] == {"width": 690.0, "height": 390.0}
 
