@@ -62,6 +62,7 @@ class BoxBodyDividerPart:
     fold_profile: tuple[FoldProfileSegment, ...]
     adjacent_cells: tuple[str, ...]
     model_name: str | None = None
+    core_segment_index: int = 3
 
     @property
     def blank_width(self) -> float:
@@ -186,6 +187,7 @@ def _part(
         ),
         adjacent_cells=tuple(adjacent_cells),
         model_name=(str(model_name).strip() if model_name else None),
+        core_segment_index=int(core_segment_index),
     )
 
 def derive_box_body_dividers(
