@@ -1,0 +1,110 @@
+name: T4 Issue46 Combined Acceptance
+
+on:
+  push:
+    branches:
+      - qa/46-combined-ai-writeback
+    paths:
+      - "ae_engine/**"
+      - "gui.py"
+      - "fold_designer_bridge.py"
+      - "tests/**"
+      - "個人AI檔案庫/**"
+      - ".github/workflows/qa_issue46_combined_acceptance.yml"
+
+jobs:
+  combined:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system deps
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+      - name: Install Python deps
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pytest matplotlib
+      - name: Skill preflight
+        run: |
+          cat >/tmp/preflight.md <<'EOF'
+          READ_SKILL: diagnosing-bugs
+          READ_SKILL: tdd
+          READ_SKILL: monitoring-remote-qa
+          READ_SKILL: phase6-corner-3d-model-integrity
+          READ_SKILL: phase6-release-packaging
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "T4 Combined Acceptance Receiving Divider FW collision multi-piece dynamic 2D 3D DXF save reload AI library production integration" \
+            --changed-file ae_engine/cabinet_types/policy.py \
+            --changed-file ae_engine/cabinet_types/receiving.py \
+            --changed-file ae_engine/door_dividers.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file gui.py \
+            --evidence /tmp/preflight.md
+      - name: Config invariant before
+        run: sha256sum config.ini | tee /tmp/config-before.sha
+      - name: Headless combined
+        run: |
+          python -m pytest -q \
+            tests/test_issue43_receiving_divider_t1.py \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_box_body_single_source_t4.py::test_t4_receiving_canonical_profile_and_multipart_blanks_are_single_source \
+            tests/test_box_body_single_source_t4.py::test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py::test_r3_normalize_part_selection_preserves_authoritative_dynamic_ids
+      - name: Xvfb combined
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue43_receiving_divider_t1.py \
+            tests/test_issue44_box_body_physical_piece_identity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_phase6_t21_live_switch_selector.py \
+            tests/test_phase6_t14_box_body_child_sections.py \
+            tests/test_phase6_receiving_multipart_integration.py
+      - name: Authority and AI Library scan
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          prod = "\n".join(
+              Path(p).read_text(encoding="utf-8")
+              for p in (
+                  "ae_engine/cabinet_types/receiving.py",
+                  "ae_engine/cabinet_types/policy.py",
+                  "ae_engine/door_dividers.py",
+                  "fold_designer_bridge.py",
+                  "gui.py",
+              )
+          )
+          # Old Receiving five-segment authority must be gone from production.
+          assert "(16.0, 20.0, 25.0, 78.0, 15.0)" not in prod
+          assert "family Divider fold contract requires five" not in prod
+          assert "key in PART_LABELS and key not in seen" not in prod
+
+          receiving = Path("ae_engine/cabinet_types/receiving.py").read_text(encoding="utf-8")
+          assert "18.0" in receiving and "106.0" in receiving
+          assert "frame_width" in receiving
+
+          pitfalls = Path("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md").read_text(encoding="utf-8")
+          relief = Path("個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md").read_text(encoding="utf-8")
+          for token in (
+              "18 / FW / 106 / 17",
+              "HISTORICAL/SUPERSEDED",
+              "box_body:left_side",
+              "PART_LABELS",
+          ):
+              assert token in pitfalls, token
+          assert "Divider 截角不得從 DXF 外框偷答案" in relief
+          print("authority + AI Library scan: PASS")
+          PY
+      - name: Config invariant after
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config-after.sha
+          diff -u /tmp/config-before.sha /tmp/config-after.sha
