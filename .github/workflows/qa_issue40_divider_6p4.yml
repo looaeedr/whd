@@ -39,7 +39,13 @@ jobs:
       - name: T4 targeted with config invariant
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
-          pytest -q -vv -s tests/test_issue40_divider_6p4_shared_datum.py
+          pytest -q -vv -s \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue37_vault_baseplate_placement.py \
+            tests/test_assembly_placement_divider.py \
+            tests/test_resolved_manufacturing_export.py
           after="$(sha256sum config.ini | awk '{print $1}')"
           echo "config_before=$before"
           echo "config_after=$after"
