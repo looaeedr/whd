@@ -52,26 +52,44 @@ BASE_PLATE_DEFAULTS = {
 
 DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
-# Receiving Divider is a family-owned manufacturing contract.  Material
-# lengths stay fixed; outside dimensions are derived from the actual adjacent
-# bend count and current sheet thickness.
-DIVIDER_MATERIAL_FOLD = (16.0, 20.0, 25.0, 78.0, 15.0)
+# Receiving Divider is a family-owned four-segment outside contract:
+# 18 / FW / 106 / 17.  FW is the live family frame-width Source of Truth.
+# The baseline Divider DXF owns fixed holes only; assembly relief remains
+# collision/backprojection owned.
+DIVIDER_OUTSIDE_FIRST = 18.0
+DIVIDER_FORMED_CORE = 106.0
+DIVIDER_OUTSIDE_LAST = 17.0
 
 
-def divider_fold_contract(*, depth: float, thickness: float, handle_side: bool) -> dict[str, object]:
-    """Return Receiving Divider material/outside folds without using cabinet D."""
-    del depth  # Receiving Divider depth is not the cabinet D-derived generic core.
+def divider_fold_contract(
+    *,
+    depth: float,
+    thickness: float,
+    handle_side: bool,
+    frame_width: float | None = None,
+) -> dict[str, object]:
+    """Return Receiving Divider 18/FW/106/17 outside folds and flat material."""
+    del depth  # Receiving Divider formed height is family-owned, not cabinet D-derived.
     t = float(thickness)
+    fw = float(BOX_BODY_DEFAULTS["fw"] if frame_width is None else frame_width)
     if t <= 0:
         raise ValueError("Receiving Divider thickness must be > 0")
-    material = tuple(float(v) for v in DIVIDER_MATERIAL_FOLD)
+    if fw <= 2.0 * t:
+        raise ValueError("Receiving Divider FW must exceed two bend compensations")
     outside = (
-        material[0] + t,
-        material[1] + 2.0 * t,
-        material[2] + 2.0 * t,
-        material[3] + 2.0 * t,
-        material[4] + t,
+        float(DIVIDER_OUTSIDE_FIRST),
+        fw,
+        float(DIVIDER_FORMED_CORE),
+        float(DIVIDER_OUTSIDE_LAST),
     )
+    material = (
+        outside[0] - t,
+        outside[1] - 2.0 * t,
+        outside[2] - 2.0 * t,
+        outside[3] - t,
+    )
+    if any(value <= 0 for value in material):
+        raise ValueError("Receiving Divider material fold must remain positive")
     signed = tuple(
         (-value if bool(handle_side) and index == 0 else value)
         for index, value in enumerate(outside)
@@ -79,7 +97,8 @@ def divider_fold_contract(*, depth: float, thickness: float, handle_side: bool) 
     return {
         "material_lengths": material,
         "signed_fold_chain": signed,
-        "formed_core_depth": float(outside[3]),
+        "formed_core_depth": float(DIVIDER_FORMED_CORE),
+        "core_segment_index": 2,
     }
 
 
@@ -154,7 +173,13 @@ def default_door_layout_columns() -> list[list[object]]:
     return [[float(width), [float(value) for value in heights]] for width, heights in DEFAULT_DOOR_LAYOUT_COLUMNS]
 
 
-def default_inner_doors(*, thickness: float, depth: float = BOX_BODY_DEFAULTS["d"], layout_scope: str = DEFAULT_DOOR_LAYOUT_SCOPE) -> list[dict[str, object]]:
+def default_inner_doors(
+    *,
+    thickness: float,
+    depth: float = BOX_BODY_DEFAULTS["d"],
+    frame_width: float = BOX_BODY_DEFAULTS["fw"],
+    layout_scope: str = DEFAULT_DOOR_LAYOUT_SCOPE,
+) -> list[dict[str, object]]:
     """Return fresh receiving inner-door authoritative topology/config.
 
     Frame spans are not duplicated here: ``derive_inner_door_frame_sets``
@@ -166,7 +191,9 @@ def default_inner_doors(*, thickness: float, depth: float = BOX_BODY_DEFAULTS["d
         DEFAULT_DOOR_LAYOUT_COLUMNS,
         depth=float(depth),
         thickness=float(thickness),
+        frame_width=float(frame_width),
         layout_scope=str(layout_scope),
+        model_name="受電箱",
     )
     role = resolve_inner_door_lower_frame_role(DEFAULT_INNER_DOOR_ID, dividers)
     if role is None:
@@ -322,7 +349,10 @@ def apply_family_defaults(snapshot):
     except (TypeError, ValueError):
         thickness = 2.0
     result["inner_doors"] = default_inner_doors(
-        thickness=thickness, depth=float(result["d"]), layout_scope=DEFAULT_DOOR_LAYOUT_SCOPE
+        thickness=thickness,
+        depth=float(result["d"]),
+        frame_width=float(result["fw"]),
+        layout_scope=DEFAULT_DOOR_LAYOUT_SCOPE,
     )
     return result
 
