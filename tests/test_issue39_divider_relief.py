@@ -210,3 +210,36 @@ def test_t3_probe_collision_source_piece_bands():
         print("  high_end_x=", high[:40], "...", high[-20:] if high else [])
 
     assert True
+
+
+
+def test_t3_probe_side_skin_and_divider_mating_datums():
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    dims = (snapshot["w"], snapshot["h"], snapshot["d"])
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snapshot["t"]
+    )
+
+    for key in ("box_body:left_side", "box_body:right_side", divider.stable_id):
+        tris = world["world_triangles_by_part"][key]
+        pts = [p for tri in tris for p in tri[:3]]
+        xs = [float(p[0]) for p in pts]
+        print("datum_world", key, "x_bounds=", (min(xs), max(xs)))
+
+        skins = world["mapped_skin_triangles_by_part"][key]
+        skin_pts = [record.world_triangle[i] for record in skins for i in range(3)]
+        skin_x = [float(p[0]) for p in skin_pts]
+        print("datum_skin", key, "x_bounds=", (min(skin_x), max(skin_x)))
+
+    # Product semantics: W=800 outside and T=2 means side-sheet midplanes at
+    # ±399; their inner skins are ±398. Divider span W-2T=796 terminates at
+    # ±398 and must mate, not penetrate, those inner skins.
+    left = world["world_triangles_by_part"]["box_body:left_side"]
+    right = world["world_triangles_by_part"]["box_body:right_side"]
+    left_x = [float(p[0]) for tri in left for p in tri[:3]]
+    right_x = [float(p[0]) for tri in right for p in tri[:3]]
+    print("expected_side_midplanes=", (-399.0, 399.0))
+    print("actual_side_world_extremes=", (min(left_x), max(right_x)))
+    assert True
