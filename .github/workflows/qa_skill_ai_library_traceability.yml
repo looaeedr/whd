@@ -20,10 +20,16 @@ jobs:
           python-version: "3.11"
       - name: WHD skill preflight
         run: |
+          cat > /tmp/skill-preflight-evidence.md <<'EOF'
+          READ_SKILL: phase6-release-packaging
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
           python tools/phase6_skill_preflight.py \
             --task "補強拆解任務工單與派工 Skill：AI 庫引用、authority 衝突、writeback 成為硬欄位" \
             --changed-file ".agents/skills/engineering/拆解任務工單/SKILL.md" \
-            --changed-file ".agents/skills/engineering/派工/SKILL.md"
+            --changed-file ".agents/skills/engineering/派工/SKILL.md" \
+            --evidence /tmp/skill-preflight-evidence.md
       - name: Static skill contract
         run: |
           python - <<'PY'
