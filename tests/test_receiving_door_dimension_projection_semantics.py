@@ -25,9 +25,10 @@ def _receiving_snapshot():
 
 def test_receiving_multi_door_dimension_projection_uses_formed_fw_29_without_adding_2t_again():
     rows = bridge._phase6_door_part_projections(_receiving_snapshot())
-    assert [(row.part_key, row.formed_width, row.formed_height) for row in rows] == pytest.approx([
-        ("door_c1_r1", 735.0, 1064.0),
-        ("door_c1_r2", 735.0, 435.0),
+    assert [row.part_key for row in rows] == ["door_c1_r1", "door_c1_r2"]
+    assert [(row.formed_width, row.formed_height) for row in rows] == pytest.approx([
+        (735.0, 1064.0),
+        (735.0, 435.0),
     ])
 
 
