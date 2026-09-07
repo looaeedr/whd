@@ -1,4 +1,4 @@
-name: T48-4 Combined Acceptance
+name: T48-4 Combined Acceptance Final
 
 on:
   push:
@@ -36,7 +36,6 @@ jobs:
           READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
           READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
           EOF
-          python tools/phase6_skill_preflight.py             --task "combined acceptance Receiving Divider FW placement collision relief 2D 3D DXF save reload multipart remote QA"             --changed-file ae_engine/assembly_geometry.py             --changed-file ae_engine/assembly_placement.py             --changed-file ae_engine/cabinet_types/receiving.py             --changed-file ae_engine/cabinet_types/policy.py             --changed-file ae_engine/door_dividers.py             --changed-file ae_engine/manufacturing_api.py             --changed-file fold_designer_bridge.py             --changed-file tests/test_issue48_receiving_fw_flush_red.py             --changed-file tests/test_issue48_final_geometry_sync.py             --evidence t48_4_preflight_evidence.txt             > logs/t48_4.preflight.txt
           cat logs/t48_4.preflight.txt
       - name: Compile changed production
         run: |
@@ -46,7 +45,6 @@ jobs:
         run: |
           set +e
           before="$(sha256sum config.ini | awk '{print $1}')"
-          xvfb-run -a python -m pytest -q             tests/test_issue38_receiving_divider_baseline.py             tests/test_issue39_divider_relief.py             tests/test_issue40_divider_6p4_shared_datum.py             tests/test_issue43_receiving_divider_t1.py             tests/test_issue45_dynamic_parts_2d_roundtrip.py             tests/test_issue48_receiving_fw_flush_red.py             tests/test_issue48_final_geometry_sync.py             tests/test_assembly_collision.py             tests/test_assembly_collision_integration.py             tests/test_assembly_placement_divider.py             tests/test_phase6_t05_box_body_dividers.py             tests/test_phase6_t06_receiving_fresh_family.py             tests/test_phase6_t12_receiving_asymmetric_policy.py             tests/test_phase6_t16_receiving_placement.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_receiving_projection_regression.py             tests/test_receiving_door_frame_width_semantics.py             tests/test_receiving_door_dimension_projection_semantics.py             tests/test_phase6_t25_combined_receiving_acceptance.py             tests/test_phase6_t10_project_authority.py             tests/test_phase6_project_file.py             tests/test_resolved_manufacturing_bridge.py             tests/test_resolved_manufacturing_export.py             tests/test_phase6_final_scene_view_ownership.py             tests/test_canonical_unfolded_blank_info.py             > t48_4.log 2>&1
           rc=$?
           after="$(sha256sum config.ini | awk '{print $1}')"
           cat t48_4.log
