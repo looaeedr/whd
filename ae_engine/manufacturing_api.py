@@ -35,11 +35,13 @@ from .contracts import (
     PartSpec,
 )
 from .sheetmetal_features import (
+    BoxBodyFaceContext,
     CircleFeature,
     DoorIndicatorContext,
     FeatureAnchor,
     ProfileFeature,
     RectFeature,
+    box_body_face_contexts_from_strip,
     feature_finished_point,
     feature_to_legacy_hole,
     legacy_hole_to_feature,
@@ -51,7 +53,12 @@ from .sheetmetal_geometry import (
     Vec2,
     resolve_endcap_policy_assembly_semantics,
 )
-from .sheetmetal_part_adapters import build_door_result, build_unknown_door_result, build_finished_reference_guide
+from .sheetmetal_part_adapters import (
+    build_box_body_result_from_fold_profile,
+    build_door_result,
+    build_unknown_door_result,
+    build_finished_reference_guide,
+)
 from .cabinet_types import policy as cabinet_family_policy
 
 _RESOURCE_LOCK = threading.RLock()
@@ -786,7 +793,8 @@ def _scene_with_authoritative_fold_profiles(scene, profile_x=(), profile_y=()):
 
 
 def build_part_scene(
-    spec: PartSpec, context: ManufacturingContext | None = None
+    spec: PartSpec, context: ManufacturingContext | None = None, *,
+    _box_body_structural_result=None,
 ):
     """Return the authoritative pre-serialization DrawingScene for one part.
 
@@ -882,6 +890,7 @@ def build_part_scene(
                 head_corner_policy=spec.head_corner_policy,
                 tail_corner_policy=spec.tail_corner_policy,
                 fold_profile=spec.fold_profile or None,
+                structural_result=_box_body_structural_result,
             )
 
         if isinstance(spec, EndCapPartSpec):
@@ -1091,6 +1100,7 @@ class PartRenderData:
     fold_guides: tuple[FoldGuide, ...] = ()
     metadata: Mapping[str, object] = field(default_factory=dict)
     unfolded_topology: UnfoldedBlankTopology | None = None
+    box_body_face_contexts: Mapping[str, BoxBodyFaceContext] | None = None
 
 
 def collision_part_from_render_data(
@@ -1232,6 +1242,10 @@ class BoxBodyStructureRenderData:
     @property
     def fold_guides(self):
         return self.preview_render_data.fold_guides
+
+    @property
+    def box_body_face_contexts(self):
+        return self.canonical_strip_render_data.box_body_face_contexts
 
 
 def material_polygon_from_final_scene(scene):
@@ -1822,7 +1836,31 @@ def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
     """Return final manufacturing material + scene for pure renderers."""
-    scene = build_part_scene(spec, context)
+    box_body_result = None
+    box_body_contexts = None
+    if isinstance(spec, BoxBodyPartSpec):
+        if not tuple(spec.fold_profile or ()):
+            raise ValueError("canonical Box Body Fold Profile is required for manufacturing")
+        box_body_result = build_box_body_result_from_fold_profile(
+            spec.fold_profile,
+            h=float(spec.height),
+            t=float(spec.thickness),
+            head_corner_policy=spec.head_corner_policy,
+            tail_corner_policy=spec.tail_corner_policy,
+        )
+        scene = build_part_scene(
+            spec, context, _box_body_structural_result=box_body_result
+        )
+        box_body_contexts = box_body_face_contexts_from_strip(
+            box_body_result.topology,
+            w=float(spec.width), h=float(spec.height),
+            d=float(spec.depth), t=float(spec.thickness),
+            head_corner_policy=spec.head_corner_policy,
+            tail_corner_policy=spec.tail_corner_policy,
+        )
+    else:
+        scene = build_part_scene(spec, context)
+
     metadata = {}
     if isinstance(spec, EndCapPartSpec):
         metadata = {
@@ -1835,6 +1873,7 @@ def build_part_render_data(
         fold_guides=fold_guides_from_final_scene(scene),
         metadata=metadata,
         unfolded_topology=_unfolded_topology_for_spec(spec),
+        box_body_face_contexts=box_body_contexts,
     )
     if isinstance(spec, EndCapPartSpec):
         render_data = _replace_receiving_bottom_relief_from_registry(render_data, spec)
