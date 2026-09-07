@@ -39,10 +39,11 @@ def _skin_planes_for_band(skins, start: float, end: float, *, tol: float = 1e-6)
     return tuple(unique)
 
 
-def _fw_plane_evidence():
+def _fw_plane_evidence(overrides=None):
     import fold_designer_bridge as bridge
 
     snapshot = _snapshot()
+    snapshot.update(dict(overrides or {}))
     body = _body_part(snapshot)
     divider, divider_part = _divider_part(snapshot)
     world = bridge._phase6_build_joint_world_geometry(
@@ -127,6 +128,20 @@ def test_r1_exact_3d_user_path_auto_builds_three_receiving_box_body_input_sectio
 
 def test_r2_divider_fw_physical_skins_are_flush_with_both_box_body_fw_skins():
     _snapshot_data, _body, _divider, _divider_part, left, right, divider = _fw_plane_evidence()
+    _assert_same_plane_set(left, right)
+    _assert_same_plane_set(divider, left)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    (
+        {"d": 400.0},
+        {"fw": 31.0},
+        {"t": 3.0, "fw": 31.0},
+    ),
+)
+def test_r2b_fw_face_flush_survives_dimension_changes(overrides):
+    _snapshot_data, _body, _divider, _divider_part, left, right, divider = _fw_plane_evidence(overrides)
     _assert_same_plane_set(left, right)
     _assert_same_plane_set(divider, left)
 
