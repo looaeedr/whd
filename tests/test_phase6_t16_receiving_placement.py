@@ -69,7 +69,7 @@ def test_r06_divider_guard_stays_authoritative_and_repeatable():
     second = resolve_assembly_placement(_snapshot(), stable_id)
     assert first == second
     assert first.relationship == "SHARED_STRUCTURAL_DIVIDER"
-    assert first.placement_kind == "divider_horizontal"
+    assert first.placement_kind == "divider_horizontal_inward"
     assert first.world_offset[:2] == pytest.approx((0.0, -300.0))
     # Depth is geometry-derived from the shared FW formed-face relation.
     # Do not lock a world-Z probe value here; Issue48 verifies the real skins.
