@@ -5,6 +5,7 @@ WORK_BRANCH: work/box-body-single-source-t2-20260907
 PARENT_HEAD: 18d5f684f2bca49c0b40c2206f8c43cd2c3de4fb
 TARGET_BASELINE: ec03a170f67c4734b4682501cfdb5d2b0316d2fe
 CHANGED_FILE: gui.py
+CHANGED_FILE: ae_engine/manufacturing_api.py
 CHANGED_FILE: tests/test_box_body_single_source_t2.py
 
 READ_SKILL: dispatching
