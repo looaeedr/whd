@@ -1086,11 +1086,20 @@ def build_part_scene(
                 raise ValueError(
                     "canonical Box Body Fold Profile is required for manufacturing"
                 )
+            # BoxBodyPartSpec keeps legacy strip scalars optional.  The canonical
+            # FinalScene path must normalize them exactly like the public DXF
+            # exporter; otherwise a valid fold_profile can still crash baseline
+            # feature mapping on float(None).
+            zl1 = spec.zl1 if spec.zl1 is not None else ae.zl1_def
+            zl2 = spec.zl2 if spec.zl2 is not None else ae.zl2_def
+            zr1 = spec.zr1 if spec.zr1 is not None else ae.zr1_def
+            zr2 = spec.zr2 if spec.zr2 is not None else ae.zr2_def
+            z_comp = spec.z_comp if spec.z_comp is not None else ae.z_comp_def
             return _call(
                 ae._build_box_body_scene,
                 w=spec.width, h=spec.height, d=spec.depth, t=spec.thickness,
-                fw=spec.frame_width, zl1=spec.zl1, zl2=spec.zl2,
-                zr1=spec.zr1, zr2=spec.zr2, z_comp=spec.z_comp,
+                fw=spec.frame_width, zl1=zl1, zl2=zl2,
+                zr1=zr1, zr2=zr2, z_comp=z_comp,
                 draw_stock=ctx.draw_stock, model_name=spec.model_name,
                 user_features=list(spec.features),
                 face_features={key: list(value) for key, value in spec.face_features.items()},
