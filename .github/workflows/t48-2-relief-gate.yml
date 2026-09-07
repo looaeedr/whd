@@ -1,0 +1,63 @@
+name: T48-2 Divider Relief Gate Probe
+
+on:
+  push:
+    branches:
+      - work/48-receiving-fw-divider-flush-relief-gate
+    paths:
+      - ".github/workflows/t48-2-relief-gate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib -r requirements.txt
+      - name: Knowledge preflight
+        shell: bash
+        run: |
+          mkdir -p logs
+          cat > t48_2_preflight_evidence.txt <<'EOF'
+          phase6-corner-3d-model-integrity
+          diagnosing-bugs
+          tdd
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          EOF
+          python tools/phase6_skill_preflight.py             --task "bug fix Receiving Divider relief verification collision backprojection correct placement remote QA"             --changed-file fold_designer_bridge.py             --changed-file tests/test_issue48_receiving_fw_flush_red.py             --changed-file tests/test_issue39_divider_relief.py             --evidence t48_2_preflight_evidence.txt             > logs/t48_2.preflight.txt
+          cat logs/t48_2.preflight.txt
+      - name: Exact T48-2 probe
+        shell: bash
+        run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          set +e
+          xvfb-run -a python -m pytest -q -s             tests/test_issue48_receiving_fw_flush_red.py::test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true             tests/test_issue39_divider_relief.py::test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact             > t48_2_probe.log 2>&1
+          rc=$?
+          set -e
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          cat t48_2_probe.log
+          printf '{"pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' "$rc" "$before" "$after" > t48_2_state.json
+          cat t48_2_state.json
+          test "$before" = "$after"
+          exit "$rc"
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t48-2-probe-${{ github.run_id }}
+          path: |
+            t48_2_probe.log
+            t48_2_state.json
+            logs/t48_2.preflight.txt
