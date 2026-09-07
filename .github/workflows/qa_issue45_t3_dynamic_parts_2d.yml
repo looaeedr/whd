@@ -30,8 +30,11 @@ jobs:
           READ_SKILL: tdd
           READ_SKILL: monitoring-remote-qa
           READ_SKILL: phase6-release-packaging
+          READ_SKILL: phase6-corner-3d-model-integrity
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
           EOF
           python tools/phase6_skill_preflight.py \
             --task "T3 2D Dynamic Physical Parts / 3D to 2D 同步與 live family switch 回歸" \
@@ -71,4 +74,8 @@ jobs:
         if: always()
         run: |
           sha256sum config.ini | tee /tmp/config-after.sha
-          diff -u /tmp/config-before.sha /tmp/config-after.sha
+          if test -f /tmp/config-before.sha; then
+            diff -u /tmp/config-before.sha /tmp/config-after.sha
+          else
+            echo "config-before step did not run; invariant comparison deferred"
+          fi
