@@ -45,10 +45,14 @@ def test_r06_panel_and_top_left_right_frames_share_outer_door_datum():
     assert panel.placement_kind == "inner_door_panel"
     assert panel.world_offset == pytest.approx((0.0, 225.0, 95.0))
 
+    # Receiving operator FW=29 is formed outside occupation; the Door engine
+    # consumes material FW=25 at T=2.  Therefore the upper outer-door finished
+    # face is 735 x 1064, the 50/50/50/0 inset inner panel is 635 x 1014,
+    # centered at (0,225,95), and these are its true frame-center datums.
     expected = {
-        "inner_door:upper:top_frame": ("inner_door_frame_top", (0.0, 730.0, 95.0)),
-        "inner_door:upper:left_frame": ("inner_door_frame_left", (-313.5, 225.0, 95.0)),
-        "inner_door:upper:right_frame": ("inner_door_frame_right", (313.5, 225.0, 95.0)),
+        "inner_door:upper:top_frame": ("inner_door_frame_top", (0.0, 732.0, 95.0)),
+        "inner_door:upper:left_frame": ("inner_door_frame_left", (-317.5, 225.0, 95.0)),
+        "inner_door:upper:right_frame": ("inner_door_frame_right", (317.5, 225.0, 95.0)),
     }
     for stable_id, (kind, offset) in expected.items():
         placement = resolve_assembly_placement(_snapshot(), stable_id)
