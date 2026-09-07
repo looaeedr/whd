@@ -1534,10 +1534,13 @@ Receiving FW 的正式定義 = ...
 
 ```text
 全系統 FW 正式定義
-→ Receiving FW 輸入 / 轉換規則
-→ Vault FW 輸入 / 轉換規則
+→ 受電箱 3D 輸入區的 FW 欄位
+→ 該欄位使用的 dimension representation / material 轉換
+→ Vault / 金庫型對應 FW 欄位與 representation
 → 各板件如何消費 FW
 ```
+
+注意：**「3D 輸入區」是 UI location，不是「FW 輸入語意」。**
 
 ## 23.3 Family value 不能反推 global definition
 
@@ -1572,3 +1575,54 @@ FW 就是 Receiving 的 29 mm 包外
 5. consumer chain 對照。
 
 少任一項，都只能標成「局部查讀」，不得宣稱「完整 Source of Truth 已確認」。
+
+
+---
+
+# 24. UI 輸入位置與尺寸語意必須分離（2026-09-08）
+
+## 24.1 受電箱 FW 是在 3D 輸入區操作
+
+受電箱的 FW 欄位位於**3D 輸入區**。
+
+這句話只描述：
+
+```text
+UI location = 3D 輸入區
+field = FW
+```
+
+不代表存在一個叫做「Receiving FW 輸入語意」的新 domain semantic。
+
+## 24.2 FW 語意仍只有全域 Frame Width
+
+```text
+semantic = FW / Frame Width / 框寬
+```
+
+UI 可以有：
+
+- 3D 輸入區；
+- 設定面板；
+- Fold Editor；
+- 其他操作入口。
+
+但 UI surface 不會因此建立新的 FW semantic。
+
+## 24.3 正確描述方式
+
+正確：
+
+```text
+受電箱 3D 輸入區的 FW 欄位目前輸入/顯示 29。
+該值在目前受電箱 dimension representation 中為包外值；
+後續再依實際 topology 轉成 material。
+```
+
+錯誤：
+
+```text
+受電箱 FW 輸入語意 = 29 包外
+```
+
+因為前者把 **UI location / value / dimension space** 分開，後者錯把 UI 入口當成 domain semantic。
