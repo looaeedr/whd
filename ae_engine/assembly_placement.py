@@ -148,16 +148,34 @@ def resolve_outer_door_placement(snapshot: Mapping[str, object], stable_id: str)
 
 
 def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str) -> AssemblyPlacement:
-    """Resolve one Base Plate to the center of its owning authoritative Door cell.
+    """Resolve one Base Plate from its authoritative owning datum.
 
-    Base Plate keeps the legacy vertical local orientation and Z plane.  Only the
-    erroneous whole-box -H/2 shift is replaced by the Door-cell X/Y datum.
+    A topology-derived Base Plate is centered on its owning Door cell. The
+    legacy single base_plate is the same contract with one whole-cabinet owning
+    cell, so its semantic center is the cabinet origin. Both keep the existing
+    vertical local orientation and Z plane; neither may reintroduce the
+    historical whole-box -H/2 renderer shift.
     """
+    stable_id = str(stable_id or "").strip()
+    if stable_id == "base_plate":
+        position = (0.0, 0.0, 0.0)
+        return AssemblyPlacement(
+            stable_id=stable_id,
+            parent_assembly_node="box_body",
+            anchor="box_body:center:base_plate",
+            world_offset=position,
+            rotation=(0.0, 0.0, 0.0),
+            mate_target="box_body:base_plate_plane",
+            relationship="BASE_PLATE",
+            placement_kind="base_plate",
+            semantic_position=position,
+        )
+
     columns, cell = _base_plate_cell_from_part_key(snapshot, stable_id)
     x, y = _door_cell_center(snapshot, cell, columns)
     position = (float(x), float(y), 0.0)
     return AssemblyPlacement(
-        stable_id=str(stable_id),
+        stable_id=stable_id,
         parent_assembly_node="box_body",
         anchor=f"door_layout_cell:{cell.column_index}:{cell.row_index}:base_plate",
         world_offset=position,
@@ -167,7 +185,6 @@ def resolve_base_plate_placement(snapshot: Mapping[str, object], stable_id: str)
         placement_kind="receiving_base_plate",
         semantic_position=position,
     )
-
 
 def _inner_door_item(snapshot: Mapping[str, object], inner_door_id: str) -> dict[str, object]:
     wanted = str(inner_door_id or "").strip()
@@ -401,7 +418,7 @@ def resolve_assembly_placement(snapshot: Mapping[str, object], stable_id: str) -
     key = str(stable_id or "").strip()
     if _DOOR_RE.fullmatch(key):
         return resolve_outer_door_placement(snapshot, key)
-    if _BASE_PLATE_RE.fullmatch(key):
+    if key == "base_plate" or _BASE_PLATE_RE.fullmatch(key):
         return resolve_base_plate_placement(snapshot, key)
     if _DIVIDER_RE.fullmatch(key):
         return resolve_divider_placement(snapshot, key)
