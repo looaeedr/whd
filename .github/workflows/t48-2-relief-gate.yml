@@ -1,4 +1,4 @@
-name: T48-2 Divider Relief Gate RED v3
+name: T48-2 Divider Relief Gate Acceptance
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  probe:
+  targeted:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -36,30 +36,26 @@ jobs:
           READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
           READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
           EOF
-          python tools/phase6_skill_preflight.py             --task "bug fix Receiving Divider relief verification collision backprojection correct placement remote QA"             --changed-file fold_designer_bridge.py             --changed-file tests/test_issue48_receiving_fw_flush_red.py             --changed-file tests/test_issue39_divider_relief.py             --evidence t48_2_preflight_evidence.txt             > logs/t48_2.preflight.txt
+          python tools/phase6_skill_preflight.py             --task "bug fix Receiving Divider relief placement certificate collision verification dynamic relief remote QA"             --changed-file ae_engine/door_dividers.py             --changed-file ae_engine/manufacturing_api.py             --changed-file fold_designer_bridge.py             --changed-file tests/test_issue48_receiving_fw_flush_red.py             --changed-file tests/test_issue39_divider_relief.py             --evidence t48_2_preflight_evidence.txt             > logs/t48_2.preflight.txt
           cat logs/t48_2.preflight.txt
-      - name: Exact T48-2 probe
+      - name: Compile
+        run: |
+          python -m py_compile             ae_engine/door_dividers.py             ae_engine/manufacturing_api.py             fold_designer_bridge.py             tests/test_issue48_receiving_fw_flush_red.py             tests/test_issue39_divider_relief.py
+      - name: Targeted acceptance
         shell: bash
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
-          set +e
-          xvfb-run -a python -m pytest -q -s \
-            tests/test_issue48_receiving_fw_flush_red.py::test_r3b_relief_refuses_verified_when_divider_fw_face_is_displaced \
-            > t48_2_probe.log 2>&1
-          rc=$?
-          set -e
+          xvfb-run -a python -m pytest -q             tests/test_issue48_receiving_fw_flush_red.py::test_r2_divider_fw_physical_skins_are_flush_with_both_box_body_fw_skins             tests/test_issue48_receiving_fw_flush_red.py::test_r2b_fw_face_flush_survives_dimension_changes             tests/test_issue48_receiving_fw_flush_red.py::test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true             tests/test_issue48_receiving_fw_flush_red.py::test_r3b_relief_refuses_verified_when_divider_fw_face_is_displaced             tests/test_issue39_divider_relief.py             | tee t48_2.log
           after="$(sha256sum config.ini | awk '{print $1}')"
-          cat t48_2_probe.log
-          printf '{"pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' "$rc" "$before" "$after" > t48_2_state.json
+          printf '{"config_before":"%s","config_after":"%s"}\n' "$before" "$after" > t48_2_state.json
           cat t48_2_state.json
           test "$before" = "$after"
-          exit "$rc"
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: t48-2-probe-${{ github.run_id }}
+          name: t48-2-relief-gate-${{ github.run_id }}
           path: |
-            t48_2_probe.log
+            t48_2.log
             t48_2_state.json
             logs/t48_2.preflight.txt
