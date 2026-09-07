@@ -1,0 +1,74 @@
+name: T3 Issue45 Dynamic Parts 2D Roundtrip QA
+
+on:
+  push:
+    branches:
+      - work/45-2d-dynamic-parts-roundtrip
+    paths:
+      - "gui.py"
+      - "fold_designer_bridge.py"
+      - "tests/test_issue45_dynamic_parts_2d_roundtrip.py"
+      - ".github/workflows/qa_issue45_t3_dynamic_parts_2d.yml"
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system deps
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
+      - name: Install Python deps
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt pytest matplotlib
+      - name: Skill preflight
+        run: |
+          cat >/tmp/preflight.md <<'EOF'
+          READ_SKILL: diagnosing-bugs
+          READ_SKILL: tdd
+          READ_SKILL: monitoring-remote-qa
+          READ_SKILL: phase6-release-packaging
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "T3 2D Dynamic Physical Parts / 3D to 2D 同步與 live family switch 回歸" \
+            --changed-file gui.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            --evidence /tmp/preflight.md
+      - name: Config invariant before
+        run: sha256sum config.ini | tee /tmp/config-before.sha
+      - name: Headless R3 selection
+        run: python -m pytest -q tests/test_issue45_dynamic_parts_2d_roundtrip.py::test_r3_normalize_part_selection_preserves_authoritative_dynamic_ids
+      - name: Xvfb R3 main 2D and live-switch
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py::test_r3_main_2d_keeps_dynamic_receiving_door_base_and_physical_ids_visible \
+            tests/test_phase6_t21_live_switch_selector.py
+      - name: Source scan
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          gui=Path("gui.py").read_text(encoding="utf-8")
+          bridge=Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          normalize=bridge[bridge.index("def normalize_part_selection"):bridge.index("def _designer_workspace")]
+          assert "key in PART_LABELS" not in normalize
+          assert "if key and key not in seen" in normalize
+          assert "_phase6_logical_part_present" in gui
+          for stale in (
+              'if "door" not in existing_parts:',
+              'if "base_plate" in existing_parts:',
+              'tab_widget == self.tab_door and "door" in existing',
+              'tab_widget == self.tab_base_plate and "base_plate" in existing',
+          ):
+              assert stale not in gui, stale
+          print("dynamic presence source scan: PASS")
+          PY
+      - name: Config invariant after
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config-after.sha
+          diff -u /tmp/config-before.sha /tmp/config-after.sha
