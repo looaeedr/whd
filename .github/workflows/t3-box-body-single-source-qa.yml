@@ -1,0 +1,54 @@
+name: T3 Box Body Main 2D single-build QA
+
+on:
+  push:
+    branches:
+      - work/box-body-single-source-t3-20260907
+    paths:
+      - "gui.py"
+      - "ae_engine/ae.py"
+      - "ae_engine/manufacturing_api.py"
+      - "tests/test_box_body_single_source_t3.py"
+      - ".github/workflows/t3-box-body-single-source-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  t3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib -r requirements.txt
+      - name: Knowledge preflight verification
+        run: |
+          python tools/phase6_skill_preflight.py             --task "T3 #28 fix regression with remote QA: Main 2D Box Body consumes one authoritative geometry build; remove draw_box_body duplicate structural build and derive CUTTING/BEND/dimensions/hit zones from the same manufacturing result"             --changed-file gui.py             --changed-file ae_engine/ae.py             --changed-file ae_engine/manufacturing_api.py             --changed-file tests/test_box_body_single_source_t3.py             --changed-file .github/workflows/t3-box-body-single-source-qa.yml             --evidence logs/box_body_single_source/T3.preflight.txt
+      - name: Focused T3 regression
+        shell: bash
+        run: |
+          set +e
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          xvfb-run -a python -m pytest -q tests/test_box_body_single_source_t3.py > t3.log 2>&1
+          rc=$?
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          cat t3.log
+          printf '{"pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' "$rc" "$before" "$after" > t3_state.json
+          cat t3_state.json
+          if [ "$before" != "$after" ]; then
+            echo "config.ini mutated" >&2
+            exit 97
+          fi
+          exit "$rc"
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t3-box-body-single-source-${{ github.run_id }}
+          path: |
+            t3.log
+            t3_state.json
