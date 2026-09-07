@@ -147,7 +147,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     assert relief["verified"] is True
     assert relief["trust_level"] == "PROVISIONAL_3D"
-    assert relief["core_start"] == pytest.approx(61.0)
+    assert relief["core_start"] == pytest.approx(41.0)
     assert dict(relief["cut_depths"])["box_body:left_side"] == pytest.approx(1.0, abs=1e-5)
     assert dict(relief["cut_depths"])["box_body:right_side"] == pytest.approx(1.0, abs=1e-5)
     assert relief["pre_pair_count"] == 322
@@ -170,7 +170,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
         world_triangles_by_part=solved_world["world_triangles_by_part"],
         mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
         flat_material_by_part=solved_world["flat_material_by_part"],
-        core_start=61.0,
+        core_start=41.0,
         source_geometry_keys=("box_body:left_side", "box_body:right_side"),
     )
     assert verification["verified"] is True
@@ -249,7 +249,7 @@ def test_t3_probe_side_skin_and_divider_mating_datums():
 
 
 
-def _projection_segments_in_front_relief_band(projection, *, core_start=61.0, tolerance=1e-6):
+def _projection_segments_in_front_relief_band(projection, *, core_start=41.0, tolerance=1e-6):
     rows = []
     for segment in tuple(projection.segments_2d or ()):
         xs = [float(segment[0][0]), float(segment[1][0])]
@@ -318,7 +318,7 @@ def test_t3_probe_front_fold_domain_cut_from_collision_clears_only_illegal_zone(
         if str(getattr(row, "core", "") or "") == "D_DIVIDER"
     )
     core_start = sum(float(row.length) for row in divider.fold_profile[:core_index])
-    assert core_start == pytest.approx(61.0)
+    assert core_start == pytest.approx(41.0)
 
     left_depth = _divider_collision_depth_for_edge(left_projection, raw_material, edge="min")
     right_depth = _divider_collision_depth_for_edge(right_projection, raw_material, edge="max")
