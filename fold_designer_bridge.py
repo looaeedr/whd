@@ -231,7 +231,6 @@ _PHASE6_ASSEMBLY_PLACEMENTS = {
     "head": "top",
     "tail": "bottom",
     "door": "front",
-    "base_plate": "base",
     "indicator_box": "front",
     "indicator_door": "front",
 }
@@ -262,6 +261,11 @@ def _phase6_door_part_assembly_placement(snapshot, part_key):
 def _phase6_assembly_placement_for_part(snapshot, part_key):
     key = str(part_key or "")
     family = cabinet_family_policy.canonical_family_name(snapshot)
+    if key == "base_plate":
+        from ae_engine.assembly_placement import resolve_assembly_placement
+        placement = resolve_assembly_placement(snapshot, key)
+        return placement.placement_kind, tuple(float(v) for v in placement.world_offset)
+
     receiving_derived = (
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
         or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
