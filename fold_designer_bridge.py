@@ -452,6 +452,7 @@ def _phase6_sync_authoritative_derived_parts(self):
             thickness=float(snapshot.get("t", 0.0)),
             layout_scope=str(snapshot.get("door_layout_scope") or "main").strip() or "main",
             handle_edges=dict(snapshot.get("door_handle_edges") or {}),
+            model_name=str(snapshot.get("model") or "").strip() or None,
         )
         divider_profiles = divider_part_profiles(dividers)
     sync_derived_parts(
