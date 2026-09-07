@@ -6474,6 +6474,116 @@ def _phase6_divider_relief_core_start(part):
     raise ValueError(f"Divider D_DIVIDER Fold topology unavailable: {part.part_key}")
 
 
+def _phase6_profile_flat_band(profile, *, segment_index=None, phase6_key=None):
+    """Return one authoritative flat X band from a Fold Profile."""
+    rows = tuple(profile or ())
+    cursor = 0.0
+    for index, row in enumerate(rows):
+        if isinstance(row, dict):
+            length = float(row.get("len", row.get("length", 0.0)) or 0.0)
+            key = str(row.get("phase6_key") or "")
+        else:
+            length = float(getattr(row, "length", 0.0) or 0.0)
+            key = str(getattr(row, "phase6_key", "") or "")
+        selected = (segment_index is not None and index == int(segment_index))
+        selected = selected or (phase6_key is not None and key == str(phase6_key))
+        if selected:
+            return float(cursor), float(cursor + length)
+        cursor += length
+    raise ValueError(
+        f"Fold Profile band not found: index={segment_index!r}, phase6_key={phase6_key!r}"
+    )
+
+
+def _phase6_planar_skin_z_planes(skins, band, *, tolerance=1e-5):
+    """Return unique physical Z skin planes whose flat centroid lies inside band."""
+    start, end = (float(v) for v in band)
+    tol = float(tolerance)
+    values = []
+    for skin in tuple(skins or ()):
+        flat = tuple(getattr(skin, "flat", ()) or ())
+        world = tuple(getattr(skin, "world", ()) or ())
+        if len(flat) != 3 or len(world) != 3:
+            continue
+        centroid_x = sum(float(point[0]) for point in flat) / 3.0
+        if not (start + tol < centroid_x < end - tol):
+            continue
+        zs = tuple(float(point[2]) for point in world)
+        if max(zs) - min(zs) > tol:
+            continue
+        values.append(sum(zs) / len(zs))
+    unique = []
+    for value in sorted(values):
+        if not unique or abs(value - unique[-1]) > tol:
+            unique.append(float(value))
+    return tuple(unique)
+
+
+def _phase6_divider_fw_placement_evidence(divider, body, world, *, tolerance=1e-5):
+    """Certify Receiving Divider FW face-flush before relief promotion.
+
+    This is a geometry precondition, not a numeric placement oracle. It reads
+    the actual left/right BoxBody FW folded skins and the Divider's semantic FW
+    segment from render metadata, then proves the physical skin planes coincide.
+    """
+    tol = float(tolerance)
+    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+    fw_index = metadata.get("frame_width_segment_index")
+    evidence = {
+        "contract": "DIVIDER_FW_FACE_FLUSH_V1",
+        "fw_face_flush": False,
+        "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),
+        "placement_kind": str(getattr(divider, "placement", "") or ""),
+        "tolerance": tol,
+    }
+    if fw_index is None:
+        evidence["reason"] = "Divider render metadata has no frame_width_segment_index"
+        return evidence
+
+    pieces = tuple(getattr(body.render_data, "pieces", ()) or ())
+    by_role = {str(getattr(piece, "role", "") or ""): piece for piece in pieces}
+    if "left_side" not in by_role or "right_side" not in by_role:
+        evidence["reason"] = "Receiving BoxBody lacks left/right physical side pieces"
+        return evidence
+
+    try:
+        left_band = _phase6_profile_flat_band(by_role["left_side"].fold_profile, phase6_key="fw_left")
+        right_band = _phase6_profile_flat_band(by_role["right_side"].fold_profile, phase6_key="fw_right")
+        divider_band = _phase6_profile_flat_band(
+            tuple(getattr(divider, "x_profile", ()) or ()), segment_index=int(fw_index)
+        )
+        mapped = dict(world.get("mapped_skin_triangles_by_part") or {})
+        left_planes = _phase6_planar_skin_z_planes(
+            mapped.get("box_body:left_side", ()), left_band, tolerance=tol
+        )
+        right_planes = _phase6_planar_skin_z_planes(
+            mapped.get("box_body:right_side", ()), right_band, tolerance=tol
+        )
+        divider_planes = _phase6_planar_skin_z_planes(
+            mapped.get(str(divider.part_key), ()), divider_band, tolerance=tol
+        )
+    except Exception as exc:
+        evidence["reason"] = f"FW placement evidence unavailable: {exc}"
+        return evidence
+
+    evidence.update({
+        "box_body_left_fw_planes": left_planes,
+        "box_body_right_fw_planes": right_planes,
+        "divider_fw_planes": divider_planes,
+    })
+    same_count = bool(left_planes) and len(left_planes) == len(right_planes) == len(divider_planes)
+    body_match = same_count and all(abs(a - b) <= tol for a, b in zip(left_planes, right_planes))
+    divider_match = same_count and all(abs(a - b) <= tol for a, b in zip(divider_planes, left_planes))
+    evidence["fw_face_flush"] = bool(body_match and divider_match)
+    evidence["valid"] = bool(evidence["fw_face_flush"] and evidence["core_inward"])
+    if not evidence["valid"]:
+        evidence["reason"] = (
+            "Divider FW physical skins are not flush with BoxBody FW skins"
+            if not evidence["fw_face_flush"]
+            else "Divider core orientation is not inward"
+        )
+    return evidence
+
 def _phase6_resolve_family_divider_reliefs(
     parts, *, finished_dimensions, sheet_thickness, clearance=0.0
 ):
@@ -6528,6 +6638,22 @@ def _phase6_resolve_family_divider_reliefs(
             ))
             continue
 
+        placement_evidence = _phase6_divider_fw_placement_evidence(
+            divider, current["box_body"], world
+        )
+        if not bool(placement_evidence.get("valid")):
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
+                relation=joint.relation.value, source=joint.source.value,
+                registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key,
+                candidate_status="INVALID_DIVIDER_FW_PLACEMENT",
+                legal_contact=False, illegal_penetration=True,
+                pre_pair_count=0, post_pair_count=0,
+                evidence={"placement": dict(placement_evidence)},
+            ))
+            continue
+
         core_start = _phase6_divider_relief_core_start(divider)
         candidate = build_divider_front_fold_relief_candidate(
             joint,
@@ -6547,7 +6673,7 @@ def _phase6_resolve_family_divider_reliefs(
                 candidate_status="NO_FRONT_FOLD_PENETRATION",
                 legal_contact=True, illegal_penetration=False,
                 pre_pair_count=0, post_pair_count=0,
-                evidence={"core_start": core_start},
+                evidence={"core_start": core_start, "placement": dict(placement_evidence)},
             ))
             continue
 
@@ -6580,6 +6706,7 @@ def _phase6_resolve_family_divider_reliefs(
                 post_pair_count=int(verification["pair_count"]),
                 evidence={
                     **dict(candidate.evidence or {}),
+                    "placement": dict(placement_evidence),
                     "post": dict(verification),
                 },
             ))
@@ -6594,7 +6721,10 @@ def _phase6_resolve_family_divider_reliefs(
             "pre_pair_count": int(candidate.pre_pair_count),
             "post_pair_count": int(verification["pair_count"]),
             "retained_contact_segments": int(verification["retained_contact_segments"]),
-            "evidence": dict(candidate.evidence or {}),
+            "evidence": {
+                **dict(candidate.evidence or {}),
+                "placement": dict(placement_evidence),
+            },
         }
         solved = replace(
             solved,
@@ -6613,6 +6743,7 @@ def _phase6_resolve_family_divider_reliefs(
             post_pair_count=int(verification["pair_count"]),
             evidence={
                 **dict(candidate.evidence or {}),
+                "placement": dict(placement_evidence),
                 "post": dict(verification),
             },
         ))
