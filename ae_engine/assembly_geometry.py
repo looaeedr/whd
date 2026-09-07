@@ -136,9 +136,9 @@ def place_assembly_points(points, reference_triangles, placement, dimensions, of
         cx, cy, cz = x - mids[0], y - mids[1], z - mids[2]
         if placement in {"box_body", "body", "cabinet"}:
             wx, wy, wz = cx, cy, cz
-        elif placement in {"receiving_outer_door", "receiving_base_plate", "inner_door_panel", "inner_door_frame_left", "inner_door_frame_right"}:
-            # T16 family-aware placements already carry their absolute world
-            # datum in offset. Do not add a second depth/2 or origin rule.
+        elif placement in {"receiving_outer_door", "base_plate", "receiving_base_plate", "inner_door_panel", "inner_door_frame_left", "inner_door_frame_right"}:
+            # Authoritative placements already carry their absolute world datum
+            # in offset. Do not add a second depth/2, -H/2, or origin rule.
             wx, wy, wz = cx, cy, cz
         elif placement == "inner_door_frame_top":
             # Frame blank longitudinal Y maps to cabinet X.
