@@ -3969,7 +3969,10 @@ class BoxCalculatorGUI:
         output_order = ("box_body", "head", "tail", "door", "base_plate", "indicator_box", "indicator_door")
         for widget in output_widgets.values():
             widget.pack_forget()
-        visible_keys = [key for key in output_order if key in existing and key in output_widgets]
+        visible_keys = [
+            key for key in output_order
+            if self._phase6_logical_part_present(existing, key) and key in output_widgets
+        ]
         for index, key in enumerate(visible_keys):
             pady = (6, 1) if index == 0 else ((1, 6) if index == len(visible_keys) - 1 else (1, 1))
             output_widgets[key].pack(anchor=tk.W, padx=10, pady=pady)
@@ -6886,7 +6889,7 @@ class BoxCalculatorGUI:
             
             # 3. 計算門 Door。不存在的板件不建立/計算預覽資料。
             door_material_fw = self._door_material_frame_width(val['fw'], val['t'])
-            if "door" not in existing_parts:
+            if not self._phase6_logical_part_present(existing_parts, "door"):
                 door_w = door_h = None
             elif self.multi_door_enabled_var.get():
                 cell = self.get_selected_door_layout_cell()
@@ -6921,7 +6924,7 @@ class BoxCalculatorGUI:
                 )
             
             # 3.5 計算底板
-            if "base_plate" in existing_parts:
+            if self._phase6_logical_part_present(existing_parts, "base_plate"):
                 base_plate_w = val['w'] - val['base_plate_shrink_left'] - val['base_plate_shrink_right'] + 2.0 * val['base_plate_bend']
                 base_plate_h = val['h'] - val['base_plate_shrink_top'] - val['base_plate_shrink_bottom'] + 2.0 * val['base_plate_bend']
             else:
@@ -6983,9 +6986,9 @@ class BoxCalculatorGUI:
             self.draw_end_cap(val, self.canvas_head, '封頭', is_tail=False)
         elif tab_widget == self.tab_tail and "tail" in existing:
             self.draw_end_cap(val, self.canvas_tail, '封尾', is_tail=True)
-        elif tab_widget == self.tab_door and "door" in existing:
+        elif tab_widget == self.tab_door and self._phase6_logical_part_present(existing, "door"):
             self.draw_door(val)
-        elif hasattr(self, 'tab_base_plate') and tab_widget == self.tab_base_plate and "base_plate" in existing:
+        elif hasattr(self, 'tab_base_plate') and tab_widget == self.tab_base_plate and self._phase6_logical_part_present(existing, "base_plate"):
             self.draw_base_plate(val)
         elif hasattr(self, 'tab_indicator_box') and tab_widget == self.tab_indicator_box and "indicator_box" in existing:
             self.draw_indicator_box(val)
@@ -7866,8 +7869,14 @@ class BoxCalculatorGUI:
         export_z = bool(self.export_z_var.get() and "box_body" in existing_parts)
         export_head = bool(self.export_head_var.get() and "head" in existing_parts)
         export_tail = bool(self.export_tail_var.get() and "tail" in existing_parts)
-        export_door = bool(self.export_door_var.get() and "door" in existing_parts)
-        export_base_plate = bool(self.export_base_plate_var.get() and "base_plate" in existing_parts)
+        export_door = bool(
+            self.export_door_var.get()
+            and self._phase6_logical_part_present(existing_parts, "door")
+        )
+        export_base_plate = bool(
+            self.export_base_plate_var.get()
+            and self._phase6_logical_part_present(existing_parts, "base_plate")
+        )
         export_ib = bool(self.export_ib_var.get() and "indicator_box" in existing_parts and has_indicator_box)
         export_ib_door = bool(self.export_ib_door_var.get() and "indicator_door" in existing_parts and has_indicator_box)
         if not any([export_z, export_head, export_tail, export_door, export_base_plate, export_ib, export_ib_door]):
