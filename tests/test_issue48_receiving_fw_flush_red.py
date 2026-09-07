@@ -169,6 +169,11 @@ def test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true()
         f"left={left}, right={right}, divider={divider_planes}, relief={relief}"
     )
     assert relief.get("verified") is True
+    placement = dict(dict(relief.get("evidence") or {}).get("placement") or {})
+    assert placement.get("contract") == "DIVIDER_FW_FACE_FLUSH_V1"
+    assert placement.get("fw_face_flush") is True
+    assert placement.get("core_inward") is True
+    assert placement.get("valid") is True
 
 
 
