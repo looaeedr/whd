@@ -12,7 +12,17 @@ from ae_engine.contracts import (
 from ae_engine.assembly_collision import detect_planar_collision
 
 
+def _box_body_fold_profile(snapshot):
+    from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+    return profile_to_fold_segments(build_box_body_profile(snapshot))
+
+
 def _box_body_spec():
+    snapshot = {
+        "w": 100.0, "h": 50.0, "d": 30.0, "t": 2.0, "fw": 5.0,
+        "zl1": 15.0, "zl2": 20.0, "zr1": 15.0, "zr2": 20.0,
+        "z_comp": 0.0,
+    }
     return BoxBodyPartSpec(
         width=100,
         height=50,
@@ -24,6 +34,7 @@ def _box_body_spec():
         zr1=15,
         zr2=20,
         z_comp=0,
+        fold_profile=_box_body_fold_profile(snapshot),
     )
 
 
@@ -101,6 +112,7 @@ def test_standard_vault_head_world_backprojection_replaces_fixed_relief_and_veri
     box_spec = BoxBodyPartSpec(
         width=500.0, height=600.0, depth=200.0, thickness=2.0,
         frame_width=24.0, zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=0.0,
+        fold_profile=_box_body_fold_profile(snapshot),
     )
     head_spec = EndCapPartSpec(
         width=500.0, depth=200.0, thickness=2.0, frame_width=24.0,
@@ -146,6 +158,7 @@ def _standard_vault_world_relief_solution(*, part_key: str, clearance: float = 0
     body = manufacturing_api.build_part_render_data(BoxBodyPartSpec(
         width=500.0, height=600.0, depth=200.0, thickness=2.0,
         frame_width=24.0, zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=0.0,
+        fold_profile=_box_body_fold_profile(snapshot),
     ))
     is_tail = part_key == "tail"
     endcap = manufacturing_api.build_part_render_data(EndCapPartSpec(
@@ -348,6 +361,7 @@ def test_world_backprojected_relief_restores_only_the_two_solved_mating_corners(
     body = manufacturing_api.build_part_render_data(BoxBodyPartSpec(
         width=400.0, height=600.0, depth=250.0, thickness=2.0,
         frame_width=25.0, zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=0.0,
+        fold_profile=_box_body_fold_profile(snapshot),
     ))
 
     for part_key, is_tail, placement in (("head", False, "top"), ("tail", True, "bottom")):
