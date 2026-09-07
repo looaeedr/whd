@@ -5,6 +5,8 @@ on:
     branches:
       - qa/42-combined-acceptance
     paths:
+      - 'ae_engine/manufacturing_api.py'
+      - 'tests/test_phase6_t16_receiving_placement.py'
       - '.scratch/issue42_preflight_evidence.txt'
       - '.github/workflows/qa_issue42_combined_acceptance.yml'
 
@@ -25,6 +27,8 @@ jobs:
         run: |
           python tools/phase6_skill_preflight.py \
             --task "combined acceptance regression QA collision 3D placement save reload DXF shared datum production integration" \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file tests/test_phase6_t16_receiving_placement.py \
             --changed-file tests/test_issue37_vault_baseplate_placement.py \
             --changed-file tests/test_issue38_receiving_divider_baseline.py \
             --changed-file tests/test_issue39_divider_relief.py \
