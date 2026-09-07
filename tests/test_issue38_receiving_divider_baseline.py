@@ -27,11 +27,12 @@ def _receiving_divider():
 def test_receiving_divider_uses_confirmed_material_and_outside_fold_contract():
     divider = _receiving_divider()
 
-    assert divider.material_lengths == pytest.approx((16.0, 20.0, 25.0, 78.0, 15.0))
+    assert divider.material_lengths == pytest.approx((16.0, 25.0, 102.0, 15.0))
     assert tuple(abs(value) for value in divider.signed_fold_chain) == pytest.approx(
-        (18.0, 24.0, 29.0, 82.0, 17.0)
+        (18.0, 29.0, 106.0, 17.0)
     )
-    assert divider.formed_core_depth == pytest.approx(82.0)
+    assert divider.formed_core_depth == pytest.approx(106.0)
+    assert divider.core_segment_index == 2
     assert divider.span == pytest.approx(796.0)
 
 
