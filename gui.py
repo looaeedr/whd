@@ -7178,12 +7178,17 @@ class BoxCalculatorGUI:
         _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
+        physical_piece_keys = tuple(
+            f"box_body:{str(piece.key)}"
+            for piece in tuple(getattr(render_data, "pieces", ()) or ())
+        )
         self.last_box_body_face_overview = {
             "mode": "unfolded_with_face_hit_zones",
             "dimensions": box_body_face_dimensions(w=val['w'], h=val['h'], d=val['d']),
             "unfolded_size": (z_len, z_height),
             "transform": transform,
             "contexts": contexts,
+            "piece_keys": physical_piece_keys,
             "baseline_status": baseline_status,
         }
 
