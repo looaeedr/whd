@@ -1210,12 +1210,15 @@ class BoxBodyPieceRenderData:
 class BoxBodyStructureRenderData:
     """Resolved multi-piece Box Body manufacturing data from one structure state.
 
-    ``preview_render_data`` is an exploded 2D scene only. 3D uses ``pieces``
-    and their own fold profiles to assemble the physical panels in world space.
+    ``preview_render_data`` is an exploded 2D layout only and must never be
+    mistaken for the canonical Z-strip span. ``canonical_strip_render_data``
+    is built from the same BoxBodyPartSpec/Fold Profile and owns whole-strip
+    dimensions used by summary/projection consumers.
     """
     structure_type: object
     pieces: tuple[BoxBodyPieceRenderData, ...]
     preview_render_data: PartRenderData
+    canonical_strip_render_data: PartRenderData
     warnings: tuple[object, ...] = ()
 
     @property
@@ -1628,6 +1631,7 @@ def build_box_body_structure_render_data(
     return BoxBodyStructureRenderData(
         structure_type=structure.structure_type, pieces=piece_tuple,
         preview_render_data=_exploded_box_body_preview(piece_tuple),
+        canonical_strip_render_data=build_part_render_data(spec, ctx),
         warnings=tuple(structure.warnings),
     )
 
