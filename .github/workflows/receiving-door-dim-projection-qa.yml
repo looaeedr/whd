@@ -1,0 +1,46 @@
+name: Receiving Door dimension projection QA
+
+on:
+  push:
+    branches:
+      - fix/receiving-door-dimension-projection-20260907
+    paths:
+      - "fold_designer_bridge.py"
+      - "tests/test_receiving_door_dimension_projection_semantics.py"
+      - "tests/test_phase6_t25_combined_receiving_acceptance.py"
+      - ".github/workflows/receiving-door-dim-projection-qa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: python -m pip install pytest -r requirements.txt
+      - name: Run focused regression
+        shell: bash
+        run: |
+          set +e
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          python -m pytest -q tests/test_receiving_door_dimension_projection_semantics.py > projection.log 2>&1
+          rc=$?
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          cat projection.log
+          printf '{"pytest_rc":%s,"config_before":"%s","config_after":"%s"}\n' "$rc" "$before" "$after" > projection_state.json
+          if [ "$before" != "$after" ]; then exit 97; fi
+          exit "$rc"
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: receiving-door-dim-projection-${{ github.run_id }}
+          path: |
+            projection.log
+            projection_state.json
