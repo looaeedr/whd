@@ -1408,3 +1408,60 @@ STANDARD 是死的母體。
 # 21. 一句話 Source of Truth
 
 > **先分清楚整體包外、板件成形包外與料尺寸；料尺寸只由實際 Fold Topology 轉換；STANDARD 永遠截到最內部折彎線且永不改；INSERT / OVERLAY / INSERT_OVERLAY / WRAP 全部只能在 STANDARD 的局部 band 上用「進內緣 / 面齊 / 留肉 / 多切」語意做 delta；展開尺寸與 BEND 線只讀同一份料尺寸鏈。**
+
+
+---
+
+# 22. 規格書中的數值證據邊界（2026-09-08）
+
+## 22.1 同數值不代表 3D 成形面已經對齊
+
+Receiving 已確認：
+
+- 操作員 `FW` 是正面框寬的成品包外尺寸；
+- 預設 `FW=29`；
+- 中隔操作員尺寸串 `18 / FW / 106 / 17` 的第二段使用同一 FW 尺寸語意。
+
+但「箱身 FW=29」與「中隔 FW=29」只證明**尺寸語意與數值來源相同**。
+
+若產品要求兩者面齊，assembly contract 還必須明確指出：
+
+1. 箱身 FW 的哪一個折後 physical face；
+2. 中隔 FW 的哪一個折後 physical face；
+3. 兩者的 flush / mating relation；
+4. 由這個 face relation 推導 world placement。
+
+禁止只靠 `Z=0`、`D/2`、bbox center、renderer origin 或「兩個數字一樣」宣告面齊。
+
+## 22.2 Probe 數值不得當 CUTTING / placement oracle
+
+任何由當次程式執行得到的：
+
+- world coordinate；
+- collision depth；
+- bbox；
+- penetration band；
+- solver offset；
+
+若沒有獨立的產品／機械 Source of Truth，只能列為 **RED / diagnostic evidence**。
+
+本次曾出現的 `174`、`121`、`47/26` 即屬此類；不得直接寫成中隔正式 placement 或截角規格。
+
+## 22.3 正確順序
+
+```text
+先確認 physical face relation
+-> 確認尺寸層級（包外 / 成形 / 料）
+-> 建立 assembly datum
+-> 推導 placement
+-> 再跑 collision / relief
+-> 最後把數值結果當驗證證據
+```
+
+不得反過來：
+
+```text
+先跑出一個數字
+-> 把數字寫進測試
+-> 再把測試當產品規格證據
+```
