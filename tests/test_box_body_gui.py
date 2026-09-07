@@ -221,17 +221,17 @@ def test_box_body_face_hit_zones_are_projected_onto_unfolded_strip_not_replacing
         val = app.get_float_values()
         app.draw_box_body(val)
 
-        result = gui.build_box_body_result(
-            w=val['w'], h=val['h'], d=val['d'], t=val['t'], fw=val['fw'],
-            zl1=val['zl1'], zl2=val['zl2'], zr1=val['zr1'], zr2=val['zr2'],
-            z_comp=val['z_comp'],
+        spec = app._box_body_part_spec(val)
+        render_data = app._authoritative_render_data(
+            spec, app._manufacturing_context(draw_stock=False)
         )
-        contexts = box_body_face_contexts_from_strip(
-            result.topology, w=val['w'], h=val['h'], d=val['d'], t=val['t']
-        )
+        contexts = render_data.box_body_face_contexts
+        assert contexts
+        minx, miny, maxx, maxy = map(float, render_data.material.bounds)
+
         meta = app.last_box_body_face_overview
         assert meta["mode"] == "unfolded_with_face_hit_zones"
-        assert meta["unfolded_size"] == (result.width, result.height)
+        assert meta["unfolded_size"] == pytest.approx((maxx - minx, maxy - miny))
         for face in ("left", "back", "right"):
             x1, y1, x2, y2 = app.box_body_face_bounds[face]
             p1 = meta["transform"].canvas_to_world(x1, y2)
@@ -242,7 +242,7 @@ def test_box_body_face_hit_zones_are_projected_onto_unfolded_strip_not_replacing
             assert abs(wx1 - ctx.unfolded_min_x) < 1e-5
             assert abs(wx2 - ctx.unfolded_max_x) < 1e-5
             assert abs(wy1 - 0.0) < 1e-5
-            assert abs(wy2 - result.height) < 1e-5
+            assert abs(wy2 - (maxy - miny)) < 1e-5
     finally:
         root.destroy()
 
