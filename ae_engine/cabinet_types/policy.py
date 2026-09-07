@@ -114,6 +114,11 @@ def baseline_feature_model_name(model_name: str | None) -> str | None:
     return str(_call(canonical, "shared_baseline_feature_model_name", canonical))
 
 
+def divider_uses_endcap_6p4_shared_datum(source) -> bool:
+    """Return whether Divider Ø6.4 consumes the EndCap mother datum."""
+    return bool(_call(source, "divider_uses_endcap_6p4_shared_datum", False))
+
+
 def door_nameplate_center_datum_top(model_name: str | None) -> float | None:
     module = _family_module(model_name)
     if module is None:
