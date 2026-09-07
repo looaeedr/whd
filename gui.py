@@ -2285,14 +2285,12 @@ class BoxCalculatorGUI:
         datum = snapshot.get("door_nameplate_center_datum_top")
         self.door_nameplate_center_datum_top = None if datum is None else float(datum)
         ws_source = dict(snapshot.get("workspace") or {})
-        profile_is_declared = (
-            "box_body_profile" in snapshot or "box_body_profile" in ws_source
-        )
         box_profile = snapshot.get("box_body_profile", ws_source.get("box_body_profile"))
-        if box_profile is None and not profile_is_declared:
-            # Legacy projects predate the canonical Fold Profile. Migrate once
-            # from their saved operator/family values, then immediately enter
-            # the single-source workspace path.
+        if box_profile is None:
+            # Legacy projects predate the canonical Fold Profile. Some migration
+            # adapters materialize the missing key as an explicit null, so null
+            # remains a migration signal. An explicit empty list is corrupt and
+            # is rejected below instead of reviving scalar geometry.
             migration_source = dict(settings)
             for key in (
                 "model", "w", "h", "d", "t", "fw",
@@ -2307,10 +2305,6 @@ class BoxCalculatorGUI:
             box_profile = build_box_body_profile(migration_source)
             if not box_profile:
                 raise ValueError("legacy Box Body Fold Profile migration failed")
-        elif box_profile is None:
-            # An explicitly declared null profile is corrupt canonical data, not
-            # a signal to revive the fixed-segment legacy geometry.
-            raise ValueError("canonical Box Body Fold Profile is missing")
         elif not list(box_profile):
             raise ValueError("canonical Box Body Fold Profile is empty")
 
