@@ -1,0 +1,18 @@
+TASK: Phase6 箱身單一來源／單一幾何算法規格
+REPOSITORY: looaeedr/whd
+TARGET_BRANCH: cleanup/2d-3d-sync
+PARENT_HEAD: ec03a170f67c4734b4682501cfdb5d2b0316d2fe
+MODE: SPEC_ONLY_NO_PRODUCTION_CHANGE
+
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: phase6-corner-3d-model-integrity
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.schema.json
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+
+SPEC_PATH: docs/superpowers/specs/2026-09-07-box-body-single-source-geometry-design.md
