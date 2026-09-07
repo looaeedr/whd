@@ -362,3 +362,41 @@ def test_t3_probe_front_fold_domain_cut_from_collision_clears_only_illegal_zone(
 
     assert residual_front == 0
     assert residual_contact > 0
+
+
+
+def test_t3_solved_divider_bends_and_scene_material_share_one_final_geometry():
+    from shapely.geometry import LineString
+    from ae_engine.manufacturing_api import material_polygon_from_final_scene
+    from ae_engine.sheetmetal_drawing import LinePrimitive
+
+    snapshot = _snapshot()
+    body = _body_part(snapshot)
+    divider, divider_part = _divider_part(snapshot)
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=(snapshot["w"], snapshot["h"], snapshot["d"]),
+        sheet_thickness=snapshot["t"],
+        clearance=0.0,
+    )
+    solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+    render = solved.render_data
+
+    rebuilt = material_polygon_from_final_scene(render.scene)
+    assert rebuilt.symmetric_difference(render.material).area == pytest.approx(0.0, abs=1e-8)
+
+    bend_lines = [
+        primitive for primitive in render.scene.primitives
+        if isinstance(primitive, LinePrimitive)
+        and str(primitive.layer).upper() == "BEND"
+    ]
+    assert bend_lines
+    covered = render.material.buffer(1e-7)
+    for bend in bend_lines:
+        line = LineString([
+            (float(bend.p1.x), float(bend.p1.y)),
+            (float(bend.p2.x), float(bend.p2.y)),
+        ])
+        assert line.difference(covered).length == pytest.approx(0.0, abs=1e-8)
+
+    assert diagnostics[0].illegal_penetration is False
