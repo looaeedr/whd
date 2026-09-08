@@ -18,6 +18,14 @@ def _engineering_module():
     return importlib.import_module("ae_engine.engineering_drawing")
 
 
+def _module_function_source(path: Path, function_name: str) -> str:
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function_name:
+            return ast.get_source_segment(source, node) or ""
+    raise AssertionError(f"function not found: {function_name}")
+
 def _class_method_source(path: Path, class_name: str, method_name: str) -> str:
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -100,11 +108,14 @@ def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
     assert callable(getattr(module, "resolve_operator_finished_dimensions", None))
     assert callable(getattr(module, "folded_outside_envelope", None))
 
-    import fold_designer_bridge as bridge
-    import phase6_final_scene_view as final_view
-
-    bridge_src = inspect.getsource(bridge._phase6_operator_finished_dimensions)
-    view_src = inspect.getsource(final_view.Phase6FinalSceneView._resolved_finished_dimensions)
+    bridge_src = _module_function_source(
+        ROOT / "fold_designer_bridge.py", "_phase6_operator_finished_dimensions"
+    )
+    view_src = _class_method_source(
+        ROOT / "phase6_final_scene_view.py",
+        "Phase6FinalSceneView",
+        "_resolved_finished_dimensions",
+    )
     assert "resolve_operator_finished_dimensions" in bridge_src
     assert "box_body_height_from_corner_policies" not in bridge_src
     assert "resolve_operator_finished_dimensions" in view_src
