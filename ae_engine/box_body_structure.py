@@ -402,7 +402,7 @@ def resolve_box_body_structure(
         piece_overrides = dict(cfg.get("piece_profiles") or {})
         left_rows = _merge_side_back_piece_override(
             left_rows, piece_overrides.get("left_side"),
-            shared_keys={"zl1", "zl2", "fw_left", "d_left", "side_rear_bend_left"},
+            shared_keys={"zl1", "zl2", "fw_left", "d_left"},
         )
         back_rows = _merge_side_back_piece_override(
             back_rows, piece_overrides.get("back"),
@@ -410,7 +410,7 @@ def resolve_box_body_structure(
         )
         right_rows = _merge_side_back_piece_override(
             right_rows, piece_overrides.get("right_side"),
-            shared_keys={"side_rear_bend_right", "d_right", "fw_right", "zr2"},
+            shared_keys={"d_right", "fw_right", "zr2"},
         )
 
         offset = (float(w) - back_width) / 2.0
