@@ -7,6 +7,7 @@ on:
     paths:
       - tests/test_engineering_drawing_integration.py
       - ae_engine/engineering_drawing.py
+      - ae_engine/display_dimensions.py
       - ae_engine/drawing_annotations.py
       - ae_engine/drawing_annotation_layout.py
       - gui.py
