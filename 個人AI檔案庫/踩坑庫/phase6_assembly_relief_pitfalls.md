@@ -148,3 +148,12 @@
   3. multi-piece fixture 必須完整符合目前 render-data contract，不得用舊 constructor 形狀假裝 production regression。
 - **驗證證據**：只重跑第一輪 10 個失敗 node，run `34168772770` 得到 **10 PASS / 0 FAIL**，且 `config.ini` SHA256 前後一致。
 - **永久防線**：Combined failure 先分類 requirement regression / production regression / stale test oracle / stale fixture；只有前兩類才修改 production。不得為了讓歷史測試回綠而撤掉 canonical geometry 的 fail-closed 要求。
+
+## 2026-09-08 — Divider Physical Geometry Contract：sink 不得重新解 Fold/FW/relief
+
+- **Divider Physical Geometry Contract** 收斂 family Fold Chain、core physical segment、FW physical face、placement datum、canonical relief 與 final material；下游只看 resolved result。
+- `frame_width_segment_index` 可作 Divider module 內的 implementation detail，但 2D / 3D / Assembly / DXF 不得把它當領域 oracle，也不得以 `FW=29`、固定 segment index、world Z、bbox center 或單次 probe 值猜物理關係。
+- FW 的正式 placement authority 是 physical face face-flush；relief promotion 必須先有合法 placement certificate，再做 collision/backprojection/refold verification。
+- `中隔.dxf` 只供固定孔／既有特徵；外框不是 final relief contour Source of Truth。
+- resolved geometry sinks 共用同一 final material。Renderer / exporter 若為了「畫對」而另算 CUTTING 或截角，就是第二 geometry path。
+- Save 只存 authoritative state；Reload 重新 canonical solve。derived `final_geometry`、probe geometry 或 render cache 不得持久化成第二份真值。
