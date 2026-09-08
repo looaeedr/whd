@@ -34,6 +34,18 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 6. **多片箱身**：每片實體有自己的 piece-level UV / world transform / owner；aggregate solid 只可做必要的總體碰撞，不得偽造跨片 UV。
 7. **WRAP**：WRAP 是 Joint relation；合法包覆 contact 保留，已認證 WRAP 公式 runtime 直接使用 registry，3D 作 discovery / shadow / regression，不得每次重新發明公式。
 
+
+## 驗證與 Production 計算來源邊界（硬規則）
+
+**驗證只能拿來判定 production 算得對不對，不能反過來成為 production 的計算來源。**
+
+- Validation / QA / regression 的角色只有「判定結果是否符合 requirement 與 authoritative geometry」。`pytest expected`、驗收量測值、fixture output、probe delta、PASS/FAIL log、截圖、差值、tolerance 都是**證據／oracle**，不是製造輸入。
+- Production 公式、offset、補償量、branch selection、placement、relief、hole transform 必須從獨立的 authoritative source 推導，例如：使用者／產品規格、canonical state、Cabinet Family/Topology、Resolved AssemblyJoint、Certified Registry、authoritative `T`、DXF 已授權 feature/datum、真實 physical geometry、collision/backprojection、canonical resolver。
+- 若 validation 顯示「實際值 A，期望值 B」，**禁止計算 `B-A` 後把差值塞回 production**；正確動作是追 Source of Truth → derivation → resolved geometry，找出哪個 authority/data-flow/公式錯誤。
+- Test tolerance 只存在 assertion 邊界。boolean fringe、floating-point epsilon、solver probe 誤差、近似量測差不得升格為 manufacturing compensation。
+- Production code 若 import/read tests、fixtures、expected constants，或出現與單次驗收差值相同的 magic number 來讓測試變綠，直接視為 **fail-closed 架構違規**。
+- 只有某數值另有**獨立 authoritative provenance**，並正式進入產品規格／registry／canonical state 後，production 才能使用；「測試剛好量到同一個數字」本身永遠不構成 authority。
+
 ## Registry 與新增語意
 
 - 回歸矩陣必須由共用 **registry** / semantics 自動枚舉，至少涵蓋 `INSERT / OVERLAY / INSERT_OVERLAY / WRAP`。
