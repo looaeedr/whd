@@ -19,6 +19,7 @@ jobs:
           python tools/phase6_skill_preflight.py \
             --task "驗證只能拿來判定對不對，不能反過來當 production 計算來源；加入技能和AI庫" \
             --changed-file ".agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md" \
+            --changed-file ".agents/skills/engineering/tdd/SKILL.md" \
             --changed-file "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md" \
             --changed-file "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md" \
             --evidence ".scratch/validation-authority-boundary/phase6_preflight_evidence.md"
