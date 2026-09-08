@@ -31,6 +31,20 @@ When the shape of that interface is itself in question (how deep the module is, 
 - **Tautological**: the assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so it passes by construction and can never disagree with the code. Expected values must come from an independent source of truth: a known-good literal, a worked example, the spec.
 - **Horizontal slicing**: writing all tests first, then all implementation. Bulk tests verify _imagined_ behavior: you test the _shape_ of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in **vertical slices** instead: one test → one implementation → repeat, each test a **tracer bullet** that responds to what the last cycle taught you.
 
+
+## Validation authority is one-way
+
+**Tests may judge production; production may never learn its calculation from the test.**
+
+Expected values, snapshots, fixture outputs, measured deltas, probe results, tolerances, epsilon values, and PASS/FAIL evidence are validation inputs only. They may answer **“is the result correct?”** but never **“how should production calculate it?”**
+
+- Production must derive behavior from an independent authoritative source: product/spec requirements, canonical state, domain policy/registry, real input data, or other approved Source of Truth.
+- If a test says actual `A` should be `B`, do not feed `B`, `B-A`, the assertion tolerance, or a copied expected literal into production. Trace the authority/derivation that made `A` wrong and fix that path.
+- Production code must not import/read `tests/**`, fixtures, assertion constants, golden outputs, or QA artifacts to choose formulas, offsets, compensation, or branches.
+- A number may enter production only when it has **independent authoritative provenance** and is formally represented in the appropriate spec/state/registry. A test observing the same number does not create that authority.
+
+This is the companion rule to “expected values come from an independent source of truth”: **the dependency is deliberately one-way.**
+
 ## Rules of the loop
 
 - **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
