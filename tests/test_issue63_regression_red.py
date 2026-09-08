@@ -39,42 +39,50 @@ def _issue63_divider_middle_segment(material):
     }
 
 
-def _issue63_endcap_mother_geometry(path):
-    doc = ezdxf.readfile(path)
-    msp = doc.modelspace()
-    outlines = list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
-    assert outlines
-    outer = max(
-        outlines,
-        key=lambda e: abs(
-            Polygon([(float(x), float(y)) for x, y, *_ in e.get_points()]).area
-        ),
-    )
-    pts = [(float(x), float(y)) for x, y, *_ in outer.get_points()]
-    if pts[0] != pts[-1]:
-        pts.append(pts[0])
-    poly = Polygon(pts)
-
+def _issue63_resolved_endcap_middle_rule(render):
     holes = [
-        e for e in msp.query("CIRCLE")
-        if abs(float(e.dxf.radius) - 3.2) <= 1e-6
+        p for p in render.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and abs(float(p.radius) - 3.2) <= 1e-6
     ]
-    assert len(holes) == 2
-    hc = [(float(e.dxf.center.x), float(e.dxf.center.y), e) for e in holes]
-    hv = (hc[1][0] - hc[0][0], hc[1][1] - hc[0][1])
-    hlen = (hv[0] ** 2 + hv[1] ** 2) ** 0.5
-    hu = (hv[0] / hlen, hv[1] / hlen)
+    assert len(holes) >= 2
 
+    # Use the actual resolved Ø6.4 pair to identify the hole-bearing middle edge.
+    pairs = []
+    for i, a in enumerate(holes):
+        for b in holes[i + 1:]:
+            dx = float(b.center.x) - float(a.center.x)
+            dy = float(b.center.y) - float(a.center.y)
+            length = (dx * dx + dy * dy) ** 0.5
+            if length > 1e-9:
+                pairs.append((length, a, b))
+    assert pairs
+    _pair_len, h0, h1 = max(pairs, key=lambda row: row[0])
+    hv = (
+        float(h1.center.x) - float(h0.center.x),
+        float(h1.center.y) - float(h0.center.y),
+    )
+    hlen = (hv[0] * hv[0] + hv[1] * hv[1]) ** 0.5
+    hu = (hv[0] / hlen, hv[1] / hlen)
+    hc = [
+        (float(h0.center.x), float(h0.center.y), h0),
+        (float(h1.center.x), float(h1.center.y), h1),
+    ]
+
+    pts = list(render.material.exterior.coords)
     candidates = []
     for a, b in zip(pts, pts[1:]):
-        vx, vy = b[0] - a[0], b[1] - a[1]
+        vx, vy = float(b[0]) - float(a[0]), float(b[1]) - float(a[1])
         length = (vx * vx + vy * vy) ** 0.5
         if length <= 1e-9:
             continue
         tu = (vx / length, vy / length)
         if abs(tu[0] * hu[0] + tu[1] * hu[1]) < 0.999:
             continue
-        center = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+        center = (
+            (float(a[0]) + float(b[0])) / 2.0,
+            (float(a[1]) + float(b[1])) / 2.0,
+        )
         projections = [
             (h[0] - center[0]) * tu[0] + (h[1] - center[1]) * tu[1]
             for h in hc
@@ -92,7 +100,7 @@ def _issue63_endcap_mother_geometry(path):
     if tu[0] < -1e-9 or (abs(tu[0]) <= 1e-9 and tu[1] < 0):
         tu = (-tu[0], -tu[1])
 
-    centroid = (float(poly.centroid.x), float(poly.centroid.y))
+    centroid = (float(render.material.centroid.x), float(render.material.centroid.y))
     n1 = (-tu[1], tu[0])
     if (centroid[0] - center[0]) * n1[0] + (centroid[1] - center[1]) * n1[1] < 0:
         inward = (-n1[0], -n1[1])
@@ -100,11 +108,11 @@ def _issue63_endcap_mother_geometry(path):
         inward = n1
 
     ranked = []
-    for x, y, entity in hc:
+    for x, y, primitive in hc:
         axial = (x - center[0]) * tu[0] + (y - center[1]) * tu[1]
         inward_offset = (x - center[0]) * inward[0] + (y - center[1]) * inward[1]
-        ranked.append((axial, inward_offset, entity))
-    axial, inward_offset, entity = max(ranked, key=lambda row: row[0])
+        ranked.append((axial, inward_offset, primitive))
+    axial, inward_offset, primitive = max(ranked, key=lambda row: row[0])
     return {
         "length": float(length),
         "center": center,
@@ -112,9 +120,8 @@ def _issue63_endcap_mother_geometry(path):
         "inward": inward,
         "anchor_axial": float(axial),
         "anchor_edge_distance": float(inward_offset),
-        "anchor_handle": str(entity.dxf.handle),
+        "anchor": (float(primitive.center.x), float(primitive.center.y)),
     }
-
 
 def _signed_area3(a, b, c):
     return (
@@ -298,51 +305,75 @@ def test_issue63_divider_baseline_holes_preserve_physical_edge_offsets_not_cente
 
 
 
-def test_issue63_divider_middle_segment_matches_endcap_mother_middle_segment():
-    _divider, render = _solved()
-    divider_middle = _issue63_divider_middle_segment(render.material)
-    endcap = _issue63_endcap_mother_geometry(Path("基準檔/金庫型/封頭尾.dxf"))
-    print("ISSUE63_MIDDLE_SEGMENT_PARITY=", {
-        "divider": divider_middle,
-        "endcap": endcap,
-    })
-    assert divider_middle["length"] == pytest.approx(endcap["length"], abs=1e-6), (
-        "中隔截角後中間直線段長度必須等同封頭/尾母規則的截角後中間直線段",
-        divider_middle,
-        endcap,
-    )
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
+def test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edge_parity():
+    import tkinter as tk
+    import gui
 
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        designer = app.open_original_fold_designer()
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks(); root.update()
 
-def test_issue63_divider_anchor_hole_to_relief_edge_distance_matches_endcap():
-    _divider, render = _solved()
-    divider_middle = _issue63_divider_middle_segment(render.material)
-    holes = [
-        p for p in render.scene.primitives
-        if isinstance(p, CirclePrimitive)
-        and abs(float(p.radius) - 3.2) <= 1e-6
-    ]
-    assert len(holes) == 3
-    anchor = min(holes, key=lambda item: float(item.center.x))
-    divider_distance = (
-        (float(anchor.center.x) - divider_middle["center"][0]) * divider_middle["inward"][0]
-        + (float(anchor.center.y) - divider_middle["center"][1]) * divider_middle["inward"][1]
-    )
+        resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
+        divider_parts = [
+            part for part in tuple(resolved.parts or ())
+            if str(part.part_key).startswith("box_body:divider:")
+        ]
+        assert len(divider_parts) == 1
+        divider_render = divider_parts[0].render_data
+        divider_middle = _issue63_divider_middle_segment(divider_render.material)
+        divider_holes = [
+            p for p in divider_render.scene.primitives
+            if isinstance(p, CirclePrimitive)
+            and abs(float(p.radius) - 3.2) <= 1e-6
+        ]
+        assert len(divider_holes) == 3
+        divider_anchor = min(divider_holes, key=lambda item: float(item.center.x))
+        divider_distance = (
+            (float(divider_anchor.center.x) - divider_middle["center"][0])
+            * divider_middle["inward"][0]
+            + (float(divider_anchor.center.y) - divider_middle["center"][1])
+            * divider_middle["inward"][1]
+        )
 
-    endcap = _issue63_endcap_mother_geometry(Path("基準檔/金庫型/封頭尾.dxf"))
-    print("ISSUE63_HOLE_EDGE_DISTANCE_PARITY=", {
-        "divider_anchor": (float(anchor.center.x), float(anchor.center.y)),
-        "divider_edge_distance": float(divider_distance),
-        "endcap_edge_distance": float(endcap["anchor_edge_distance"]),
-        "endcap_anchor_handle": endcap["anchor_handle"],
-    })
-    assert float(divider_distance) == pytest.approx(
-        float(endcap["anchor_edge_distance"]), abs=1e-6
-    ), (
-        "中隔 shared Ø6.4 anchor 到截角後中間邊的距離必須等同封頭/尾母孔到該邊距離",
-        divider_distance,
-        endcap,
-    )
-
+        evidence = {
+            "divider_middle_length": float(divider_middle["length"]),
+            "divider_anchor_edge_distance": float(divider_distance),
+            "endcaps": {},
+        }
+        for key in ("head", "tail"):
+            endcap_render = resolved.part(key).render_data
+            endcap = _issue63_resolved_endcap_middle_rule(endcap_render)
+            evidence["endcaps"][key] = endcap
+            assert float(divider_middle["length"]) == pytest.approx(
+                float(endcap["length"]), abs=1e-6
+            ), (
+                "同一組 W/D/T/FW 下，中隔截角後中間直線段必須等同 resolved 封頭/尾",
+                key,
+                divider_middle,
+                endcap,
+            )
+            assert float(divider_distance) == pytest.approx(
+                float(endcap["anchor_edge_distance"]), abs=1e-6
+            ), (
+                "同一組 W/D/T/FW 下，中隔 shared Ø6.4 到截角邊距離必須等同 resolved 封頭/尾",
+                key,
+                divider_distance,
+                endcap,
+            )
+        print("ISSUE63_RESOLVED_ENDCAP_PARITY=", evidence)
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        root.destroy()
 
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
     snap = _snapshot()
