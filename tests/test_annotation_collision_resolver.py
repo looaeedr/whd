@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+import importlib
+import importlib.util
+
+from ae_engine.drawing_annotations import AnnotationPlan, LinearDimensionAnnotation
+from ae_engine.sheetmetal_drawing import LinePrimitive, TextPrimitive
+from ae_engine.sheetmetal_geometry import Vec2
+
+
+def _resolver_module():
+    spec = importlib.util.find_spec("ae_engine.drawing_annotation_layout")
+    assert spec is not None, (
+        "R2: missing deterministic annotation collision resolver module"
+    )
+    return importlib.import_module("ae_engine.drawing_annotation_layout")
+
+
+def _horizontal_plan():
+    dimension = LinearDimensionAnnotation(
+        axis="x",
+        value=100.0,
+        start=Vec2(0.0, 0.0),
+        end=Vec2(100.0, 0.0),
+        label="100",
+    )
+    return AnnotationPlan(
+        overall_dimensions=(dimension,),
+        feature_callouts=(),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+        ),
+        diagnostics=(),
+    )
+
+
+def test_horizontal_dimension_text_moves_only_along_dimension_axis_and_is_deterministic():
+    layout = _resolver_module()
+    region = layout.AnnotationRegion(
+        min_x=44.0, min_y=-18.0, max_x=56.0, max_y=-12.0, kind="TITLE"
+    )
+    plan = _horizontal_plan()
+
+    first = layout.resolve_annotation_collisions(plan, reserved_regions=(region,))
+    second = layout.resolve_annotation_collisions(plan, reserved_regions=(region,))
+
+    assert first == second
+    moved = next(
+        p for p in first.primitives
+        if isinstance(p, TextPrimitive) and p.layer == "DIMENSION" and p.text == "100"
+    )
+    assert moved.insert.y == -15.0
+    assert moved.insert.x != 50.0
+    assert not region.contains_point(moved.insert)
+    assert first.unresolved_collisions == ()
