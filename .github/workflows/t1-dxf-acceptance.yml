@@ -33,4 +33,10 @@ jobs:
             --changed-file ae_engine/dxf_acceptance.py \
             --evidence .scratch/engineering-drawing-dxf-qa/T1.preflight.evidence.md
       - name: Targeted T1
-        run: pytest -q tests/test_dxf_acceptance.py
+        run: |
+          python -m py_compile ae_engine/dxf_acceptance.py ae_engine/manufacturing_api.py
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          pytest -q tests/test_dxf_acceptance.py tests/test_resolved_manufacturing_export.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          test "$before" = "$after"
+          git diff --exit-code -- config.ini
