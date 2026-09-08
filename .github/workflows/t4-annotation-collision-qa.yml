@@ -6,6 +6,7 @@ on:
       - feat/engineering-drawing-dxf-qa
     paths:
       - tests/test_annotation_collision_resolver.py
+      - tests/test_drawing_annotations.py
       - ae_engine/drawing_annotation_layout.py
       - ae_engine/drawing_annotations.py
       - ae_engine/sheetmetal_drawing.py
@@ -36,8 +37,8 @@ jobs:
       - name: Targeted T4
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
-          python -m py_compile ae_engine/drawing_annotations.py ae_engine/sheetmetal_drawing.py
-          pytest -q tests/test_annotation_collision_resolver.py
+          python -m py_compile ae_engine/drawing_annotations.py ae_engine/drawing_annotation_layout.py ae_engine/sheetmetal_drawing.py
+          pytest -q tests/test_drawing_annotations.py tests/test_annotation_collision_resolver.py
           after="$(sha256sum config.ini | awk '{print $1}')"
           test "$before" = "$after"
           git diff --exit-code -- config.ini
