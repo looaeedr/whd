@@ -75,3 +75,54 @@ def test_dm1_fw_face_is_semantic_and_tracks_live_fw_without_magic_29():
     assert float(custom_face["outside_dimension"]) == 37.0
     assert "segment_index" not in default_face
     assert "segment_index" not in custom_face
+
+
+def test_dm1_family_fold_topology_change_keeps_same_sink_contract(monkeypatch):
+    """Changing family fold topology must not change the sink-facing interface."""
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+
+    def variant_family_contract(
+        source,
+        *,
+        depth,
+        thickness,
+        handle_side,
+        frame_width=None,
+    ):
+        del source, depth, handle_side
+        t = float(thickness)
+        fw = float(29.0 if frame_width is None else frame_width)
+        # Deliberately change Receiving from 4 to 5 segments and move the FW
+        # implementation identity from index 1 to index 2.  A sink must not
+        # notice this topology/index change: it should consume the same semantic
+        # physical contract.
+        return {
+            "material_lengths": (
+                16.0,
+                5.0,
+                fw - 2.0 * t,
+                106.0 - 2.0 * t,
+                15.0,
+            ),
+            "signed_fold_chain": (18.0, 7.0, fw, 106.0, 17.0),
+            "formed_core_depth": 106.0,
+            "core_segment_index": 3,
+            "frame_width_segment_index": 2,
+        }
+
+    monkeypatch.setattr(
+        cabinet_family_policy,
+        "divider_fold_contract",
+        variant_family_contract,
+    )
+
+    contract = _physical_contract(_receiving_divider(frame_width=29.0))
+    assert {
+        "core_physical_segment",
+        "fw_physical_face",
+        "placement_datum",
+        "final_material",
+        "relief_evidence",
+    } <= set(contract)
+    assert float(contract["fw_physical_face"]["outside_dimension"]) == 29.0
+    assert "segment_index" not in contract["fw_physical_face"]
