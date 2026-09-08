@@ -16,6 +16,7 @@ from tkinter import filedialog
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
+from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     registered_cabinet_types,
@@ -2987,6 +2988,42 @@ class BoxCalculatorGUI:
             self._manual_corner_policy("tail", tail_fw),
         )
 
+    def _phase6_resolved_finished_dimensions(self, part_key):
+        """Consume the same finished-dimension provider used by Phase6 3D."""
+        key = str(part_key or "")
+        snapshot = self._make_original_fold_designer_snapshot()
+        settings = dict(snapshot.get("settings") or {})
+        head_policy = tail_policy = None
+        if key == "box_body":
+            head_policy, tail_policy = self._box_body_corner_policies(
+                float(snapshot.get("fw", ae.FW))
+            )
+        return resolve_operator_finished_dimensions(
+            key,
+            snapshot=snapshot,
+            settings=settings,
+            thickness=float(snapshot.get("t", ae.T)),
+            head_corner_policy=head_policy,
+            tail_corner_policy=tail_policy,
+        )
+
+    def _draw_phase6_finished_dimension_summary(self, canvas, *, part_key, y=132):
+        """Draw operator finished dimensions from the shared 2D/3D provider."""
+        dims = self._phase6_resolved_finished_dimensions(part_key)
+        if not dims:
+            return None
+        text_values = [self._fold_designer_number_text(value) for value in dims]
+        if str(part_key) == "box_body" and len(text_values) >= 3:
+            text = f"折後包外：W {text_values[0]} × H {text_values[1]} × D {text_values[2]} mm"
+        else:
+            text = "成形尺寸：" + " × ".join(text_values[:2]) + " mm"
+        canvas.create_text(
+            25, float(y), anchor=tk.NW, text=text, fill="#30d158",
+            font=('Microsoft JhengHei', 9, 'bold'),
+            tags=("phase6_finished_dimensions",),
+        )
+        return tuple(float(value) for value in dims)
+
     def _box_body_finished_height(self, val):
         """Return the single folded box-body outside height from shared assembly semantics."""
         h = float(val['h'])
@@ -5240,6 +5277,7 @@ class BoxCalculatorGUI:
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
         _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_box")
+        self._draw_phase6_finished_dimension_summary(canvas, part_key="indicator_box")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _normalize_door_indicator_state(self, state):
@@ -6021,6 +6059,7 @@ class BoxCalculatorGUI:
                 pass
 
         _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="door")
+        self._draw_phase6_finished_dimension_summary(canvas, part_key="door")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def draw_base_plate(self, val):
@@ -6106,6 +6145,7 @@ class BoxCalculatorGUI:
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
         _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="base_plate")
+        self._draw_phase6_finished_dimension_summary(canvas, part_key="base_plate")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _disable_all_door_indicators(self):
@@ -6443,6 +6483,7 @@ class BoxCalculatorGUI:
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
         _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_door")
+        self._draw_phase6_finished_dimension_summary(canvas, part_key="indicator_door")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _inherit_known_corner_state_into_custom(self):
@@ -7196,6 +7237,7 @@ class BoxCalculatorGUI:
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
         _draw_phase6_annotation_projection(canvas, render_data, transform, part_key="box_body")
+        self._draw_phase6_finished_dimension_summary(canvas, part_key="box_body")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
         physical_piece_keys = tuple(
@@ -7268,6 +7310,7 @@ class BoxCalculatorGUI:
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
         _draw_phase6_annotation_projection(canvas, render_data, transform, part_key=("tail" if is_tail else "head"))
+        self._draw_phase6_finished_dimension_summary(canvas, part_key=("tail" if is_tail else "head"))
         draw_hole_editor_hint(canvas, cw, endcap=True)
 
     def _manufacturing_context(self, *, draw_stock=False):
