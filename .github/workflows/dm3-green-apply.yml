@@ -1,0 +1,41 @@
+name: DM3 Apply Canonical Divider Solve
+on:
+  push:
+    branches: [work/dm3-divider-canonical-relief]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'ci(dm3): apply canonical divider solve refactor'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Move Divider solve behind manufacturing boundary
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          bridge = Path('fold_designer_bridge.py')
+          text = bridge.read_text(encoding='utf-8')
+          start = text.index('def _phase6_divider_relief_core_start(part):')
+          end = text.index('def _phase6_resolve_manufacturing_geometry(self):', start)
+          wrapper = '''def _phase6_resolve_family_divider_reliefs(\n    parts, *, finished_dimensions, sheet_thickness, clearance=0.0\n):\n    \"\"\"Resolve family Divider geometry through the manufacturing-domain contract.\"\"\"\n    from ae_engine.assembly_joint import (\n        AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,\n    )\n    from ae_engine.contracts import ResolvedJointDiagnostic\n    from ae_engine.divider_manufacturing import resolve_divider_final_geometry\n\n    current = {str(part.part_key): part for part in tuple(parts or ())}\n    divider_keys = sorted(key for key in current if key.startswith(\"box_body:divider:\"))\n    if not divider_keys or \"box_body\" not in current:\n        return tuple(current.values()), (), ()\n\n    diagnostics = []\n    family_joints = []\n    for divider_key in divider_keys:\n        divider = current[divider_key]\n        joint = AssemblyJoint(\n            joint_id=f\"{divider_key}:box_body:family-relief\",\n            subject_part=divider_key, target_part=\"box_body\",\n            subject_region=\"front_fold_relief\", target_region=\"divider_mating_zone\",\n            relation=AssemblyJointRelation.INSERT,\n            source=AssemblyJointSource.FAMILY_GEOMETRY,\n            solver_constraints={\"relief_mode\": \"FRONT_FOLD_DOMAIN\"},\n        )\n        family_joints.append(joint)\n        world = _phase6_build_joint_world_geometry(\n            tuple(current.values()), finished_dimensions, sheet_thickness\n        )\n        source_keys = tuple(\n            key for key in (\"box_body:left_side\", \"box_body:right_side\")\n            if key in world[\"world_triangles_by_part\"]\n        )\n        if not source_keys:\n            diagnostics.append(ResolvedJointDiagnostic(\n                joint_id=joint.joint_id, subject_part=divider_key, target_part=\"box_body\",\n                relation=joint.relation.value, source=joint.source.value,\n                registry_status=\"MISS\", trust_level=\"PROVISIONAL_3D\",\n                preserve_part=\"box_body\", relief_part=divider_key,\n                candidate_status=\"MISSING_SIDE_PIECE_GEOMETRY\",\n                legal_contact=False, illegal_penetration=True,\n                evidence={\"reason\": \"Receiving Divider relief requires left/right physical Box Body pieces\"},\n            ))\n            continue\n\n        def refold_world(solved_divider):\n            return _phase6_build_joint_world_geometry(\n                tuple(solved_divider if key == divider_key else part for key, part in current.items()),\n                finished_dimensions, sheet_thickness,\n            )\n\n        result = resolve_divider_final_geometry(\n            divider=divider, box_body=current[\"box_body\"], joint=joint, world=world,\n            source_geometry_keys=source_keys, refold_world=refold_world,\n            clearance=float(clearance),\n        )\n        placement = result.placement_evidence.as_dict()\n        relief = result.relief_evidence\n        evidence = {\n            **dict(relief.source_evidence or {}),\n            \"placement\": placement,\n            **({\"post\": dict(relief.post_evidence or {})} if relief.post_evidence is not None else {}),\n        }\n        status = str(relief.candidate_status)\n        if result.verified:\n            current[divider_key] = result.solved_part\n        diagnostics.append(ResolvedJointDiagnostic(\n            joint_id=joint.joint_id, subject_part=divider_key, target_part=\"box_body\",\n            relation=joint.relation.value, source=joint.source.value,\n            registry_status=\"MISS\", trust_level=\"PROVISIONAL_3D\",\n            preserve_part=\"box_body\", relief_part=divider_key,\n            candidate_status=status,\n            legal_contact=(\n                bool(relief.retained_contact_segments)\n                if status == \"PROVISIONAL_3D_VERIFIED\"\n                else status == \"NO_FRONT_FOLD_PENETRATION\"\n            ),\n            illegal_penetration=bool(result.illegal_penetration),\n            pre_pair_count=int(relief.pre_pair_count),\n            post_pair_count=int(relief.post_pair_count),\n            evidence=evidence,\n        ))\n\n    return tuple(current.values()), tuple(diagnostics), tuple(family_joints)\n\n\n'''
+          bridge.write_text(text[:start] + wrapper + text[end:], encoding='utf-8')
+
+          dividers = Path('ae_engine/door_dividers.py')
+          text = dividers.read_text(encoding='utf-8')
+          old = '''            "final_material": {\n                "authority": "CANONICAL_MANUFACTURING_RESOLVE",\n                "part_id": str(self.stable_id),\n            },\n            "relief_evidence": {\n                "authority": "ASSEMBLY_RELIEF_RESOLVE",\n                "part_id": str(self.stable_id),\n            },\n'''
+          new = '''            "manufacturing_resolver": "ae_engine.divider_manufacturing.resolve_divider_final_geometry",\n'''
+          if old not in text:
+              raise SystemExit('DM3 placeholder block not found')
+          dividers.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- fold_designer_bridge.py ae_engine/door_dividers.py
+          git config user.name "WHD QA Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add fold_designer_bridge.py ae_engine/door_dividers.py
+          git commit -m "refactor(dm3): canonicalize Divider relief solve"
+          git push origin HEAD:work/dm3-divider-canonical-relief
