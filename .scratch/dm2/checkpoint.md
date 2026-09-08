@@ -5,7 +5,7 @@
 - Branch: `work/dm2-divider-physical-contract`
 - Base: `154a4e5098b340dc80d73cae1f9d2aa895b9bdc1`
 - Current role: `[轉移至：總控審查]` / `[當前角色：總控審查]`
-- Status: final QA GREEN; cleanup and issue closure pending
+- Status: COMPLETE — final QA GREEN, temporary workflows removed, cleanup drift verified
 
 ## Completed
 
@@ -18,6 +18,12 @@
 - Raw-index leak scan PASS.
 - Drift audit PASS.
 - config.ini invariant PASS: `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
+- Temporary workflows removed:
+  - `.github/workflows/dm2-core-semantic-fix.yml`
+  - `.github/workflows/dm2-targeted.yml`
+  - `.github/workflows/dm2-preflight.yml`
+- Cleanup remote head readback: `28c86e305bbaab5bb3fe98866ab9b683415a9966` before this checkpoint-finalization commit.
+- Cleanup compare from final evidence `97c28ebb...` contained only 3 workflow deletions + `.scratch/dm2/journal.md` + `.scratch/dm2/checkpoint.md`; production code had zero post-QA drift.
 
 ## Failed / blocked history
 
@@ -42,12 +48,7 @@
 - `pytest -q tests/test_issue40_divider_6p4_shared_datum.py`
 - Receiving/Vault family guard matrix from DM2 Final QA.
 
-## Pending
+## Next owner
 
-- Delete temporary DM2 workflows.
-- Remote readback + cleanup-only drift verification.
-- Close #52 and unblock #53.
-
-## Resume action
-
-`cleanup temporary DM2 workflows -> compare 97c28ebb... to cleanup head -> close #52 -> start #53`
+- #53 DM3 — Divider canonical relief、final material 與 placement datum 單源化
+- Resume action: close #52 as completed, create/start #53 work branch from the final DM2 cleanup head, run Phase6 Knowledge Preflight before production changes.
