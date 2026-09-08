@@ -158,6 +158,15 @@
 - resolved geometry sinks 共用同一 final material。Renderer / exporter 若為了「畫對」而另算 CUTTING 或截角，就是第二 geometry path。
 - Save 只存 authoritative state；Reload 重新 canonical solve。derived `final_geometry`、probe geometry 或 render cache 不得持久化成第二份真值。
 
+
+## 2026-09-09 — Validation Authority Boundary：驗證不是製造計算來源
+
+- **全域硬規則**：驗證只回答「production 結果對不對」；不得回答「production 應該怎麼算」。任何 test expected、fixture output、probe/measurement delta、tolerance、PASS/FAIL evidence 都不得被 production 當成公式、offset、補償或 branch condition。
+- Divider / EndCap / BoxBody 類幾何 mismatch 必須回到 authoritative state、physical geometry、`T`、FW face、AssemblyJoint/Registry、collision/backprojection、canonical resolver 查根因；禁止用 `expected - actual` 反推切多少、移多少、補多少。
+- tolerance/epsilon/boolean fringe 只屬驗證判定邊界；若它出現在 manufacturing formula，視為 authority leakage。
+- 某數值只有在**另有獨立產品／機械 authority**並正式固化於 spec/registry/canonical state 時才能成為 production input；QA 恰好量到相同數字不構成 authority。
+- Review/source scan 發現 production 依賴 `tests/**`、fixture expected、單次 probe magic number，直接 fail closed，不得以「測試都過」接受。
+
 ## 2026-09-09 — Issue63：驗證結果不得反向成為 Divider production 幾何公式
 
 - **硬規則：驗證不是計算來源。** Receiving Divider 的 production relief / hole transform 只能由 authoritative state、真實 physical geometry、collision/backprojection、canonical resolve 與 authoritative `T` 推導；pytest expected、驗收量測值、單次 fixture output 都只能驗證結果，不得回灌製造計算。
