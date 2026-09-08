@@ -244,6 +244,7 @@ def resolve_divider_final_geometry(
         core_start=core_start,
         source_geometry_keys=tuple(source_geometry_keys),
         clearance=float(clearance),
+        sheet_thickness=float(getattr(divider, "thickness", 0.0)),
     )
     if candidate is None:
         return ResolvedDividerFinalGeometry(
