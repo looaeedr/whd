@@ -3,6 +3,10 @@ on:
   push:
     branches: [fix/receiving-multipart-divider-geometry]
     paths:
+      - fold_designer_bridge.py
+      - ae_engine/manufacturing_api.py
+      - ae_engine/assembly_collision.py
+      - ae_engine/divider_manufacturing.py
       - tests/test_issue63_regression_red.py
       - .github/workflows/issue63-red.yml
   workflow_dispatch:
