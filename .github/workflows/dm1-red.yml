@@ -1,0 +1,22 @@
+name: DM1 RED
+on:
+  push:
+    branches:
+      - work/dm1-divider-physical-contract
+    paths:
+      - tests/test_dm1_divider_physical_contract.py
+      - .github/workflows/dm1-red.yml
+  workflow_dispatch:
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused test dependencies
+        run: python -m pip install --disable-pip-version-check pytest shapely
+      - name: Run DM1 RED guards
+        run: pytest -q tests/test_dm1_divider_physical_contract.py
