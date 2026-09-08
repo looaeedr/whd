@@ -126,6 +126,16 @@ def _manufacturing_obstacle_regions(scene, *, clearance: float):
     return tuple(rows)
 
 
+def _annotation_text_regions(primitives, *, exclude_index: int):
+    rows = []
+    for index, primitive in enumerate(tuple(primitives)):
+        if index == int(exclude_index):
+            continue
+        if isinstance(primitive, TextPrimitive):
+            rows.append(_text_region(primitive))
+    return tuple(rows)
+
+
 def _candidate_offsets(step: float, max_steps: int):
     yield 0.0
     for index in range(1, int(max_steps) + 1):
@@ -184,7 +194,11 @@ def resolve_annotation_collisions(
             continue
         if str(primitive.layer).upper() != "DIMENSION":
             continue
-        if not _collides(primitive, regions):
+        active_regions = regions + _annotation_text_regions(
+            primitives,
+            exclude_index=index,
+        )
+        if not _collides(primitive, active_regions):
             continue
 
         axis = _dimension_axis_for_text(plan, primitive)
@@ -210,7 +224,11 @@ def resolve_annotation_collisions(
                     primitive,
                     insert=Vec2(float(primitive.insert.x), float(primitive.insert.y) + offset),
                 )
-            if not _collides(candidate, regions):
+            candidate_regions = regions + _annotation_text_regions(
+                primitives,
+                exclude_index=index,
+            )
+            if not _collides(candidate, candidate_regions):
                 moved = candidate
                 break
 
