@@ -157,3 +157,13 @@
 - `中隔.dxf` 只供固定孔／既有特徵；外框不是 final relief contour Source of Truth。
 - resolved geometry sinks 共用同一 final material。Renderer / exporter 若為了「畫對」而另算 CUTTING 或截角，就是第二 geometry path。
 - Save 只存 authoritative state；Reload 重新 canonical solve。derived `final_geometry`、probe geometry 或 render cache 不得持久化成第二份真值。
+
+## 2026-09-09 — Issue63：驗證結果不得反向成為 Divider production 幾何公式
+
+- **硬規則：驗證不是計算來源。** Receiving Divider 的 production relief / hole transform 只能由 authoritative state、真實 physical geometry、collision/backprojection、canonical resolve 與 authoritative `T` 推導；pytest expected、驗收量測值、單次 fixture output 都只能驗證結果，不得回灌製造計算。
+- 真板厚補償的 authority 是 `T` 本身。當 mid-surface / skin 幾何要轉成 physical solid 時，使用由 authoritative `T` 推得的 `T/2` skin→solid sweep；這是物理板厚模型，不是由封頭尾／中隔最後量到的中間段差值反推補償。
+- Issue63 的 `T=2.0 → solid_half_thickness=1.0` 是上述規則的直接結果。驗收中 resolved 封頭／尾中間段約 `742.0`、Divider 中間段約 `741.999` 的 `0.001` 差，只來自 solver/boolean fringe（`0.0005 × 2`）的數值容差；**只能作 test tolerance，不得成為 manufacturing compensation。**
+- 孔位 parity 量到的「Ø6.4 到截角邊 10.0 mm」與曾觀察到整組固定孔偏移約 `100 mm` 都是 validation evidence，不是公式。正式孔位修正必須由 `中隔.dxf` authoritative fixed-hole / physical-edge datum 與正式 rigid orientation transform 推導；禁止直接寫 `-100` 或任何由單次差值反推的 magic offset。
+- 同理，任何 `47/26`、`1 mm`、某次 middle-segment 長度、world bbox、renderer origin、probe delta 都不得作 runtime oracle。測試應鎖幾何 invariant：FW physical face-flush、pre-solve collision、backprojection ownership、post-refold illegal penetration=0、fixed-hole datum rigid parity、2D/3D/DXF resolved sink 同源。
+- **完成條件**：若為了讓 test GREEN 必須把 expected / tolerance / fixture delta 寫進 production，直接判定為架構違規；先修 authority/data-flow 或 stale oracle，不得用驗證資料餵製造公式。
+
