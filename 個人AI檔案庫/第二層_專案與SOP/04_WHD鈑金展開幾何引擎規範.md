@@ -619,21 +619,6 @@ EndCap / Tail = CUT
 - 若上方得到 `40/320`，代表 nominal 15 被錯加；若得到 `25/350`，代表漏看箱身 formed FW；若下方得到 `18/364`，則是下方 basis ownership 錯誤。
 - 2D、單板 3D、組合圖與 Save→Reload 必須共用同一 canonical material，並同時通過上方 `29/342`（單側 `29+371=W400`）與下方 `3/394` invariant。
 
-
-
-## 2026-09-08 Production DXF Output-Reopen Acceptance（強制）
-
-- `PartRenderData.material / fold_guides / scene` 仍是製造 Source of Truth；DXF verifier **不擁有** CUTTING、BEND、孔、Relief 或任何幾何公式。
-- Production DXF 重要 regression 不得只驗 exporter 前的 Python object。至少一層必須走：`canonical PartRenderData → 真正 save DXF → ezdxf.readfile() → 從實際圖元重建/正規化 → compare canonical`。
-- output-reopen verifier 必須與 serializer 解耦；actual side 禁止呼叫 `_save_scene_dxf()` 或共用 serializer 的 primitive→entity helper 來「自己驗自己」。
-- 最低比較項目：CUTTING material parity、BEND count/position/span、CUTTING hole count/center/radius、entity layer/type counts。missing 與 extra geometry 都算 FAIL。
-- layer 錯置需有獨立 `LAYER_MISMATCH` 類別；不能只靠總數差異掩蓋「幾何有寫但寫到錯 layer」。
-- canonical scene 完全相同的正常 round-trip 必須 PASS；任何真正寫出後被刪 BEND、改 CUTTING、刪孔、加額外加工圖元，reopen acceptance 必須 FAIL。
-- 此 verifier 是 **最後輸出品質閘門**，不是 geometry repair。驗到不一致時修 exporter/serializer 或上游資料鏈，禁止 verifier 靜默修圖。
-
-
----
-
 ## 2026-09-08 — Production DXF 成品反讀驗收
 
 ### 核心規則
@@ -662,6 +647,8 @@ PASS / FAIL
 - validator 必須讀取磁碟上的實際 DXF entity。
 - expected 來自 canonical PartRenderData / material / fold_guides / authoritative features。
 - actual 多件、少件、layer 錯誤、CUTTING 不閉合、BEND 遺失都必須 FAIL。
+- layer 錯置必須回報獨立 `LAYER_MISMATCH`；不能只以 entity count mismatch 代替。
+- missing / extra manufacturing geometry 都是 FAIL，validator 不得在 acceptance 階段自動修圖。
 - Python 中間物件測試 PASS 不能代替 production DXF reopen evidence。
 
 ### Ownership
