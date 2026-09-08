@@ -33,7 +33,8 @@ from phase6_box_body_structure import (
     activate_structure_with_defaults,
     set_structure_locked, set_two_piece_width, set_three_piece_width,
     reconcile_box_body_structure_for_total_w_change,
-    set_join_seam_bend, set_side_back_geometry, update_structure_config,
+    set_join_seam_bend, set_side_back_geometry, set_side_back_piece_profile,
+    update_structure_config,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
 
@@ -8326,6 +8327,85 @@ def _phase6_store_editor_values(self, values, *, notify=True):
         self._settings_change_callback(changed_settings)
 
 
+def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, notify=True):
+    """Commit one physical side/back Fold editor through canonical BoxBody state."""
+    role = str(part_key).split(":", 1)[-1]
+    if role not in {"left_side", "back", "right_side"}:
+        raise ValueError(f"unsupported BoxBody physical piece: {part_key}")
+
+    rows = clone_profile(tuple((profiles or {}).get("X", ()) or ()))
+    if not rows:
+        raise ValueError(f"{part_key} X Fold profile is empty")
+
+    structure = _phase6_box_structure_state(self)
+    cfg = structure["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    aggregate = clone_profile(self.state.profiles_vault.get("箱身", ()))
+    aggregate_by_key = {
+        str(row.get("phase6_key") or ""): row
+        for row in aggregate
+        if str(row.get("phase6_key") or "")
+    }
+    piece_by_key = {
+        str(row.get("phase6_key") or ""): row
+        for row in rows
+        if str(row.get("phase6_key") or "")
+    }
+
+    def copy_material_length(source_key, target_keys):
+        source = piece_by_key.get(source_key)
+        if source is None:
+            return
+        for target_key in tuple(target_keys):
+            target = aggregate_by_key.get(target_key)
+            if target is not None:
+                target["len"] = float(source.get("len", target.get("len", 0.0)))
+
+    if role == "left_side":
+        copy_material_length("zl1", ("zl1",))
+        copy_material_length("zl2", ("zl2",))
+        copy_material_length("fw_left", ("fw_left", "fw_right"))
+        copy_material_length("d_left", ("d_left", "d_right"))
+        rear = piece_by_key.get("side_rear_bend_left")
+        if rear is not None:
+            structure = set_side_back_geometry(
+                structure, side_rear_bend=float(rear.get("len", 0.0))
+            )
+    elif role == "right_side":
+        copy_material_length("d_right", ("d_left", "d_right"))
+        copy_material_length("fw_right", ("fw_left", "fw_right"))
+        copy_material_length("zr2", ("zr2",))
+        rear = piece_by_key.get("side_rear_bend_right")
+        if rear is not None:
+            structure = set_side_back_geometry(
+                structure, side_rear_bend=float(rear.get("len", 0.0))
+            )
+    else:
+        back = piece_by_key.get("back_panel")
+        if back is not None:
+            t = max(1.0e-9, float(self._phase6_input_snapshot.get("t", 0.0)))
+            total_w = float(self._phase6_box_structure_w(self))
+            comp_t = (total_w - float(back.get("len", 0.0))) / t
+            structure = set_side_back_geometry(
+                structure, back_width_comp_t=max(0.0, comp_t)
+            )
+
+    # Shared cabinet dimensions remain authoritative and are updated from the
+    # edited physical piece before its piece-local topology is persisted.
+    if aggregate:
+        apply_outside_dimension_compensation(
+            aggregate, float(self._phase6_input_snapshot.get("t", 0.0))
+        )
+        values = read_box_body_profile(aggregate, self._phase6_input_snapshot)
+        values["h"] = self._phase6_box_whd["h"]
+        self.state.profiles_vault["箱身"] = clone_profile(aggregate)
+        self._phase6_input_snapshot["box_body_profile"] = clone_profile(aggregate)
+        _phase6_store_editor_values(self, values, notify=notify)
+
+    structure = set_side_back_piece_profile(structure, role, rows)
+    _phase6_commit_box_structure_state(self, structure, rebuild=False)
+    _phase6_sync_authoritative_derived_parts(self)
+
+
 def _fix11_save_current_part(self, notify=True):
     if self.designer_workspace.switching:
         return
@@ -8342,6 +8422,15 @@ def _fix11_save_current_part(self, notify=True):
         "h": original.get_int(self.v_h.get()),
         "d": original.get_int(self.v_d.get()),
     }
+    if _phase6_is_box_body_physical_piece_key(key):
+        profiles = {
+            "X": clone_profile(self.state.profiles.get("X", [])),
+            "Y": clone_profile(self.state.profiles.get("Y", [])),
+        }
+        _phase6_commit_box_body_physical_piece_profile(
+            self, key, profiles, notify=notify
+        )
+        return
     if _phase6_is_derived_physical_part_key(key):
         _phase6_sync_authoritative_derived_parts(self)
         return
