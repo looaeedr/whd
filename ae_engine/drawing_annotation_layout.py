@@ -193,6 +193,68 @@ def _annotation_text_regions(primitives, *, exclude_index: int):
     return tuple(rows)
 
 
+def _callout_specs(plan):
+    rows = []
+    for item in tuple(getattr(plan, "feature_callouts", ()) or ()):
+        identifier = str(
+            getattr(item, "source_id", "")
+            or getattr(item, "source_type", "")
+            or getattr(item, "label", "")
+        )
+        rows.append(("FEATURE", identifier, getattr(item, "anchor"), str(getattr(item, "label", ""))))
+    for item in tuple(getattr(plan, "corner_callouts", ()) or ()):
+        rows.append(("CORNER", str(getattr(item, "corner", "") or getattr(item, "label", "")), getattr(item, "anchor"), str(getattr(item, "label", ""))))
+    for item in tuple(getattr(plan, "radius_callouts", ()) or ()):
+        rows.append(("RADIUS", str(getattr(item, "label", "")), getattr(item, "anchor"), str(getattr(item, "label", ""))))
+    return tuple(rows)
+
+
+def _callout_for_text(plan, primitive: TextPrimitive):
+    matches = [item for item in _callout_specs(plan) if item[3] == str(primitive.text)]
+    if not matches:
+        return None
+    matches.sort(key=lambda item: (
+        abs(float(primitive.insert.x) - float(item[2].x))
+        + abs(float(primitive.insert.y) - float(item[2].y)),
+        item[0],
+        item[1],
+    ))
+    return matches[0]
+
+
+def _callout_candidate_offsets(step: float, max_steps: int):
+    yield (0.0, 0.0)
+    for index in range(1, int(max_steps) + 1):
+        amount = float(step) * index
+        for dx, dy in (
+            (amount, 0.0), (-amount, 0.0),
+            (0.0, amount), (0.0, -amount),
+            (amount, amount), (amount, -amount),
+            (-amount, amount), (-amount, -amount),
+        ):
+            yield (dx, dy)
+
+
+def _candidate_callout_regions(primitives, *, exclude_index: int, reserved_and_manufacturing, clearance: float):
+    return (
+        tuple(reserved_and_manufacturing)
+        + _annotation_text_regions(primitives, exclude_index=exclude_index)
+        + _annotation_dimension_line_regions(
+            primitives, own_line_index=None, clearance=float(clearance)
+        )
+    )
+
+
+def _candidate_leader_is_clear(anchor: Vec2, target: Vec2, regions, *, clearance: float) -> bool:
+    leader = _line_region(anchor, target, max(float(clearance), 0.0), "LEADER")
+    for region in regions:
+        if region.contains_point(anchor):
+            continue
+        if leader.intersects(region):
+            return False
+    return True
+
+
 def _candidate_offsets(step: float, max_steps: int):
     yield 0.0
     for index in range(1, int(max_steps) + 1):
