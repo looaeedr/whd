@@ -21,6 +21,7 @@ import re
 from typing import Mapping, MutableMapping, Sequence
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
+from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
     calculate_door_finished_size,
@@ -7231,60 +7232,23 @@ def _phase6_prepare_text_scale_controller(root, value, *, controller=None):
 
 
 def _phase6_operator_finished_dimensions(self, part_key=None, *, triangles=None):
-    """Return folded finished outside dimensions for the active single part."""
+    """Compatibility adapter to the shared 2D/3D finished-dimension provider."""
     key = str(part_key or getattr(self, "active_part_key", "") or "")
     snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
     settings = getattr(self, "_settings_values", {}) or {}
-    if triangles:
-        envelope = _phase6_folded_outside_envelope(
-            triangles, _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-        )
-        if envelope is not None:
-            measured, _bounds = envelope
-            if key == "box_body":
-                return tuple(float(value) for value in measured)
-            # Other individual panels are operator-facing as their two primary
-            # finished axes; their folded flange depth stays visible in 3D but
-            # is not mislabeled as cabinet D/H.
-            return float(measured[0]), float(measured[1])
-    dims = dict((snapshot.get("part_dimensions") or {}).get(key, {}) or {})
+    head_policy = tail_policy = None
     if key == "box_body":
-        w = _num(settings.get("w", snapshot.get("w", 0.0)), 0.0)
-        h = _num(settings.get("h", snapshot.get("h", 0.0)), 0.0)
-        d = _num(settings.get("d", snapshot.get("d", 0.0)), 0.0)
-        t = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
         head_policy = _phase6_corner_policy_for(self, "head")
         tail_policy = _phase6_corner_policy_for(self, "tail")
-        if head_policy is not None and tail_policy is not None:
-            try:
-                h = box_body_height_from_corner_policies(
-                    h, t, head_corner_policy=head_policy, tail_corner_policy=tail_policy,
-                )
-            except Exception:
-                pass
-        return float(w), float(h), float(d)
-    if dims.get("width") and dims.get("height"):
-        return float(dims["width"]), float(dims["height"])
-    if key in {"head", "tail"}:
-        return float(snapshot.get("w", 0.0)), float(snapshot.get("d", 0.0))
-    return None
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return resolve_operator_finished_dimensions(
+        key,
+        snapshot=snapshot,
+        settings=settings,
+        triangles=triangles,
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        head_corner_policy=head_policy,
+        tail_corner_policy=tail_policy,
+    )
 
 def _phase6_on_assembly_diagnostic_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
