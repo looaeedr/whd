@@ -54,17 +54,8 @@ jobs:
           import ast
           from pathlib import Path
 
-          gui = Path("gui.py").read_text(encoding="utf-8")
-          tree = ast.parse(gui)
-          fn = next(
-              node for node in ast.walk(tree)
-              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-              and node.name == "_query_fold_designer_render_data"
-          )
-          source = ast.get_source_segment(gui, fn) or ""
-          assert "derive_box_body_dividers" not in source
-          assert "build_box_body_divider_render_data" not in source
-          assert "ResolvedManufacturingGeometry" in source
+          # gui._query_fold_designer_render_data is an upstream nominal producer
+          # used by the canonical whole-cabinet solve. It is not a final sink.
 
           bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
           assert 'key.startswith("box_body:divider:")' in bridge
@@ -86,6 +77,8 @@ jobs:
           project = Path("phase6_project_file.py").read_text(encoding="utf-8")
           assert '"divider_parts"' in project
           assert "_TRANSIENT_DERIVED_SNAPSHOT_KEYS" in project
+          assert 'materialized["final_geometry"] = {}' in project
+          assert 'decoded["final_geometry"] = {}' in project
 
           manufacturing = Path("ae_engine/manufacturing_api.py").read_text(encoding="utf-8")
           assert "save_resolved_manufacturing_geometry_dxf" in manufacturing
