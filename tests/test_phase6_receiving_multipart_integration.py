@@ -280,7 +280,30 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
         assert designer2.designer_workspace.features_for("door_c1_r2") == [lower]
         resolved = bridge._phase6_resolve_manufacturing_geometry(designer2)
         resolved_keys = tuple(part.part_key for part in resolved.parts)
-        assert resolved_keys == wanted
+        physical_piece_keys = (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        )
+        assert resolved_keys == tuple(
+            key for key in wanted if key not in physical_piece_keys
+        )
+
+        # Physical BoxBody pieces stay nested under the canonical aggregate
+        # while remaining independent operator Fold/render contexts.
+        aggregate = resolved.part("box_body").render_data
+        nested = {
+            f"box_body:{piece.role}": piece.render_data
+            for piece in tuple(aggregate.pieces or ())
+        }
+        assert tuple(nested) == physical_piece_keys
+        for key in physical_piece_keys:
+            designer2.activate_part(key)
+            root2.update_idletasks(); root2.update()
+            physical_render = bridge._phase6_query_final_render_data(designer2)
+            assert physical_render.material.equals(nested[key].material)
+            assert tuple(designer2.designer_workspace.profiles_for(key, {})["X"])
+
         assert resolved.part("door_c1_r1").offset != resolved.part("door_c1_r2").offset
     finally:
         try:

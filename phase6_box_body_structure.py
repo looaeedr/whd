@@ -54,6 +54,10 @@ def default_box_body_structure_state() -> dict:
             BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value: {
                 "side_rear_bend": 15.0,
                 "back_width_comp_t": 0.5,
+                # Physical-piece Fold editors persist here. The aggregate
+                # box_body Fold Chain remains the source for shared D/FW/W
+                # dimensions; piece profiles own piece-local topology/angles.
+                "piece_profiles": {},
                 # Receiving EndCap lower-face WRAP manufacturing defaults.
                 # Family adapters may override these per Head/Tail before building
                 # a PartSpec; keeping them here makes old/headless snapshots stable.
@@ -344,6 +348,34 @@ def set_three_piece_width(
     cfg.update({"left_w": left, "middle_w": middle, "right_w": right, "driver": driver})
     return result
 
+
+
+def set_side_back_piece_profile(
+    state: Mapping[str, object] | None,
+    role: str,
+    profile,
+) -> dict:
+    """Persist one side/back physical piece Fold profile in canonical structure state."""
+    role = str(role or "").strip()
+    if role not in {"left_side", "back", "right_side"}:
+        raise ValueError(f"unsupported side/back physical role: {role}")
+    rows = []
+    for raw in tuple(profile or ()):
+        row = deepcopy(dict(raw))
+        length = float(row.get("len", 0.0))
+        if length <= 0:
+            raise ValueError(f"{role} Fold segment length must be > 0")
+        row["len"] = length
+        rows.append(row)
+    if not rows:
+        raise ValueError(f"{role} Fold profile must not be empty")
+
+    result = normalize_box_body_structure_state(state)
+    cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    profiles = deepcopy(dict(cfg.get("piece_profiles") or {}))
+    profiles[role] = rows
+    cfg["piece_profiles"] = profiles
+    return result
 
 def set_side_back_geometry(
     state: Mapping[str, object] | None,

@@ -321,6 +321,32 @@ def _side_back_rows(profile, *, rear_bend):
     right.extend(deepcopy(rows[right_d:]))
     return left, right
 
+
+def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
+    """Keep piece-local topology while rebasing shared cabinet dimensions."""
+    if not override_rows:
+        return deepcopy(list(base_rows or ()))
+    base_by_key = {
+        str(row.get("phase6_key") or ""): row
+        for row in tuple(base_rows or ())
+        if str(row.get("phase6_key") or "")
+    }
+    result = []
+    for raw in tuple(override_rows or ()):
+        row = deepcopy(dict(raw))
+        key = str(row.get("phase6_key") or "")
+        base = base_by_key.get(key)
+        if key in set(shared_keys or ()) and base is not None:
+            # Length/core are shared physical dimensions. Angle/topology remain
+            # piece-local so the three Fold editors are genuinely independent.
+            row["len"] = float(base.get("len", row.get("len", 0.0)))
+            if base.get("core") is not None:
+                row["core"] = base.get("core")
+            else:
+                row.pop("core", None)
+        result.append(row)
+    return result
+
 def resolve_box_body_structure(
     profile,
     *,
@@ -371,8 +397,29 @@ def resolve_box_body_structure(
         back_width = float(w) - comp_t * float(t)
         if back_width <= 0:
             raise ValueError("側背分離後面板寬度計算後必須大於 0")
+        back_rows = [{"len": back_width, "core": "W_BACK", "phase6_key": "back_panel"}]
+
+        piece_overrides = dict(cfg.get("piece_profiles") or {})
+        left_rows = _merge_side_back_piece_override(
+            left_rows, piece_overrides.get("left_side"),
+            shared_keys={"zl1", "zl2", "fw_left", "d_left"},
+        )
+        back_rows = _merge_side_back_piece_override(
+            back_rows, piece_overrides.get("back"),
+            shared_keys={"back_panel"},
+        )
+        right_rows = _merge_side_back_piece_override(
+            right_rows, piece_overrides.get("right_side"),
+            shared_keys={"d_right", "fw_right", "zr2"},
+        )
+
         offset = (float(w) - back_width) / 2.0
         formed_depth = _formed_depth_from_profile(profile, thickness=float(t), explicit_depth=d)
+        back_result = (
+            _flat_panel_result(width=back_width, height=height)
+            if len(back_rows) == 1 and not back_rows[0].get("angle")
+            else _generic_strip_result(back_rows, height=height)
+        )
         pieces = (
             ResolvedBoxBodyPiece(
                 "box_body_left_side", "left_side", 0.0, 0.0,
@@ -381,8 +428,7 @@ def resolve_box_body_structure(
             ),
             ResolvedBoxBodyPiece(
                 "box_body_back", "back", offset, offset + back_width,
-                (FoldProfileSegment(back_width, None, "W_BACK", "back_panel"),),
-                _flat_panel_result(width=back_width, height=height),
+                _to_contract(back_rows), back_result,
                 formed_outer_width=back_width, formed_outer_height=height,
             ),
             ResolvedBoxBodyPiece(
