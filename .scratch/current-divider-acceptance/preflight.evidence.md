@@ -10,3 +10,6 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 NOTE: Validation values are evidence only and MUST NOT feed production geometry.
+
+phase6-release-packaging
+READ_REFERENCE: release_required_artifacts.json
