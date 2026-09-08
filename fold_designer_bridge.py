@@ -6592,7 +6592,8 @@ def _phase6_resolve_family_divider_reliefs(
             )
         result = resolve_divider_final_geometry(
             divider=divider, box_body=current["box_body"], joint=joint, world=world,
-            source_geometry_keys=source_keys, refold_world=refold_world, clearance=float(clearance),
+            source_geometry_keys=source_keys, refold_world=refold_world,
+            clearance=float(clearance), sheet_thickness=float(sheet_thickness),
         )
         placement = result.placement_evidence.as_dict()
         relief = result.relief_evidence
