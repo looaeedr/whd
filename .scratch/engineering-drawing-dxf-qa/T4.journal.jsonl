@@ -1,0 +1,1 @@
+{"task_id":"engineering-drawing-dxf-qa","ticket":"#60","status":"RED_SETUP","baseline_sha":"0b4adb92a5fc5fffa8600a0328c7e9255223f21f","blocker":"#58 CLOSED","requirement":"R2","pending":["horizontal_dimension_RED","vertical_dimension","obstacles","leader_diagnostics","strict_failure","GREEN","QA"]}
