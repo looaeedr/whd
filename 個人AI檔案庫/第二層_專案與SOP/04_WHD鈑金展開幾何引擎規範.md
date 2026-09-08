@@ -726,3 +726,21 @@ PASS / FAIL
 ### State refresh
 - Engineering projection 必須 stateless 地從「當前 render_data」重建；cabinet-family / baseline switch 後不得保留上一 family 的 feature/callout IDs。
 - family switch 後若 current FinalScene feature identity 改變，新的 AnnotationPlan 只能包含新的 authoritative IDs。
+
+
+---
+
+## 2026-09-09 — Combined Acceptance Branch Integration Gate
+
+### Same-tested-head requirement
+- Combined Acceptance 只能驗「同一個 tested head」。所有已接受 ticket / regression 的 production closing head 必須先成為該 tested head 的祖先；不能把不同 branch 上各自的 GREEN run 相加後宣告整體 GREEN。
+- 進 Combined 前必須逐一用 commit ancestry / compare 證明 blocker production heads 已包含在目前 branch。只要任一 accepted head 與 Combined branch 是 `diverged`，Combined 必須先停止。
+- Diverged branch 必須以正常 non-force merge / 明確三方 conflict resolution 合流；禁止 force-reset、整檔覆蓋或只 copy 測試結果。合流後必須重新跑跨票 Combined QA。
+- 若衝突檔同時承載不同 ticket 的 production contract，必須逐 hunk 合併並保留雙方 ownership；例如 manufacturing / Fold bridge 不得選一邊整檔蓋掉另一邊。
+- Final drift audit 必須從「實際 Combined tested head」追到 closing/cleanup head；若 production/test blob 有任何改變，原 Combined run 立即失效，必須重跑。
+
+### Validation is not a production calculation source
+- 驗證只能回答「production 結果是否符合 contract」，不得把驗證觀察值反向餵入 production geometry。
+- pytest expected、DXF reopen 實測值、collision probe、bbox、solver fringe、rendered dimension、fixture parity 數字都只能當 oracle / tolerance / evidence。
+- 任何 `0.001` boolean fringe、`10`、`100`、`47/26`、`1 mm`、middle-segment 長度等觀察值，除非另有 authoritative domain owner，否則不得成為 manufacturing magic constant。
+- 正式 relief / hole / placement / thickness 幾何仍只能從 canonical state、AssemblyJoint/Fold topology、physical collision/backprojection、authoritative `T` 與 certified semantics 推導。
