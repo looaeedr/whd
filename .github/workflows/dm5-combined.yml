@@ -6,6 +6,7 @@ on:
       - work/dm5-divider-deep-module-integration
     paths:
       - ".github/workflows/dm5-combined.yml"
+      - "tests/test_dm1_divider_physical_contract.py"
   workflow_dispatch:
 
 permissions:
