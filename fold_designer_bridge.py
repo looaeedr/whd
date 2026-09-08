@@ -8365,25 +8365,19 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
         copy_material_length("zl2", ("zl2",))
         copy_material_length("fw_left", ("fw_left", "fw_right"))
         copy_material_length("d_left", ("d_left", "d_right"))
-        rear = piece_by_key.get("side_rear_bend_left")
-        if rear is not None:
-            structure = set_side_back_geometry(
-                structure, side_rear_bend=float(rear.get("len", 0.0))
-            )
+        # Rear fold is piece-local. Persist it only in this physical piece's
+        # canonical profile; do not back-write the legacy shared default.
     elif role == "right_side":
         copy_material_length("d_right", ("d_left", "d_right"))
         copy_material_length("fw_right", ("fw_left", "fw_right"))
         copy_material_length("zr2", ("zr2",))
-        rear = piece_by_key.get("side_rear_bend_right")
-        if rear is not None:
-            structure = set_side_back_geometry(
-                structure, side_rear_bend=float(rear.get("len", 0.0))
-            )
+        # Rear fold is piece-local. Persist it only in this physical piece's
+        # canonical profile; do not back-write the legacy shared default.
     else:
         back = piece_by_key.get("back_panel")
         if back is not None:
             t = max(1.0e-9, float(self._phase6_input_snapshot.get("t", 0.0)))
-            total_w = float(self._phase6_box_structure_w(self))
+            total_w = float(_phase6_box_structure_w(self))
             comp_t = (total_w - float(back.get("len", 0.0))) / t
             structure = set_side_back_geometry(
                 structure, back_width_comp_t=max(0.0, comp_t)
