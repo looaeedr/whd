@@ -1,0 +1,1 @@
+{"task_id":"engineering-drawing-dxf-qa","ticket":"#58","status":"RED_SETUP","baseline_sha":"2dc2103eb872c377a3e28ea4ed57907d1e004382","requirement":"R1","pending":["RED","AnnotationPlan","overall_dimensions","feature_callouts","corner_callouts","GREEN","QA"]}
