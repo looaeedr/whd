@@ -686,7 +686,8 @@ def test_issue63_diagnose_divider_projection_hulls():
     assert all(item["hull_area"] > 0 for item in result.values())
 
 
-def test_issue63_divider_candidate_does_not_replace_uv_shape_with_depth_rectangle():
+def test_issue63_divider_candidate_preserves_uv_shape_and_sweeps_skin_to_solid_boundary():
+    from shapely.affinity import translate
     from shapely.geometry import MultiPoint
     from shapely.ops import unary_union
     from ae_engine.assembly_collision import (
@@ -716,11 +717,15 @@ def test_issue63_divider_candidate_does_not_replace_uv_shape_with_depth_rectangl
         core_start=core_start,
         source_geometry_keys=source_keys,
         clearance=0.0,
+        sheet_thickness=float(divider.thickness),
     )
     assert candidate is not None
     material = world["flat_material_by_part"][divider.stable_id]
 
     hulls = []
+    solid_hulls = []
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    half_t = float(divider.thickness) / 2.0
     for source_key in source_keys:
         projected = project_joint_interference_to_relief_owner(
             joint,
@@ -738,20 +743,39 @@ def test_issue63_divider_candidate_does_not_replace_uv_shape_with_depth_rectangl
         assert not hull.is_empty and float(hull.area) > 0.0
         hulls.append(hull)
 
+        points2 = [point for segment in front for point in segment]
+        low_depth = max(0.0, max(float(p[1]) for p in points2) - miny)
+        high_depth = max(0.0, maxy - min(float(p[1]) for p in points2))
+        yoff = half_t if low_depth <= high_depth else -half_t
+        # Independent physical-solid expectation: the collision hull is a skin
+        # intersection. Sweep that convex UV footprint by half the sheet
+        # thickness toward the material interior. No EndCap validation value is
+        # used here.
+        solid_hull = unary_union([
+            hull,
+            translate(hull, yoff=yoff),
+        ]).convex_hull.intersection(material)
+        solid_hulls.append(solid_hull)
+
     collision_shape = unary_union(hulls).intersection(material)
+    expected_solid_shape = unary_union(solid_hulls).intersection(material)
     actual_cut = candidate.cut_polygon_2d.intersection(material)
 
     # Boolean robustness may add a microscopic fringe, but the manufacturing
-    # cut must not throw away the UV topology and remove a full depth rectangle.
+    # cut must preserve the UV topology while converting skin crossings to the
+    # physical solid footprint. It must not reduce either source to a full
+    # scalar-depth rectangle.
     margin = max(
         1.0e-3,
         float(collision_shape.area) * 1.0e-4,
     )
-    overcut = float(actual_cut.difference(collision_shape.buffer(5.0e-4)).area)
-    undercut = float(collision_shape.difference(actual_cut.buffer(5.0e-4)).area)
+    overcut = float(actual_cut.difference(expected_solid_shape.buffer(5.0e-4)).area)
+    undercut = float(expected_solid_shape.difference(actual_cut.buffer(5.0e-4)).area)
     print("ISSUE63_RELIEF_SHAPE_DELTA=", {
-        "collision_area": float(collision_shape.area),
+        "skin_collision_area": float(collision_shape.area),
+        "expected_solid_area": float(expected_solid_shape.area),
         "actual_cut_area": float(actual_cut.area),
+        "half_thickness": half_t,
         "overcut_area": overcut,
         "undercut_area": undercut,
         "margin": margin,
@@ -762,6 +786,6 @@ def test_issue63_divider_candidate_does_not_replace_uv_shape_with_depth_rectangl
         overcut, margin,
     )
     assert undercut <= margin, (
-        "Divider relief failed to cover collision-derived flat-UV shape",
+        "Divider relief failed to cover the thickness-derived physical solid footprint",
         undercut, margin,
     )
