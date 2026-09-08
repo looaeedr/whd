@@ -11,6 +11,11 @@ Use /tdd where possible, at pre-agreed seams.
 ## Phase6 執行硬閘門
 若任務位於 Phase6 / CAD 專案，執行時必須同時遵守 `.agents/skills/engineering/派工/SKILL.md` 的 durable checkpoint、process-group、Xvfb ownership、timeout classification、journal/resume 與 checkpoint provenance 規則。不得從聊天文字或 mtime 重建進度。
 
+### Owning Issue execution gate
+若目前是 GitHub-backed project 且工作已被拆成核准工單，**在第一個 Production Code write 前**必須能指出並反讀該票的真實 GitHub owning Issue（`issue_number + URL`）。只有 `.scratch/**/issues/*.md`、聊天 T 編號、branch 或 checkpoint 時，執行 gate 不成立：回到 PM/dispatch 先建立 Issue，不得先寫 production 再補形式。
+
+若是在施工途中才發現漏建 Issue：先停止新增 production 變更 → 補建 GitHub Issue → 明標 Retroactive provenance → 寫入已發生 branch/commit/run → 反讀成功 → 再 resume。不得倒填 chronology。
+
 - 每張已驗收工單要有實體 checkpoint；長回歸前若已有未封裝修改，先封 checkpoint。
 - fresh extract、restore、工具回合重建或手動複製檔案後，先驗 execution-tree fingerprint；若與最近已驗收 checkpoint 不符，視為混合狀態，完整還原 checkpoint 後再續工。
 - GUI targeted gate 若 pytest 已有完整 PASS summary 但 Tk/Xvfb/interpreter 不退出，分類為 `complete_teardown_timeout`；只有點號或局部百分比則為 `incomplete_timeout`。timeout 本身不得直接判 production failure。
