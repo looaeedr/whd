@@ -281,3 +281,49 @@ def test_unresolved_callout_keeps_diagnostic_and_strict_mode_fails():
             max_steps=2,
             strict=True,
         )
+
+
+def test_callout_moves_to_legal_position_and_adds_leader():
+    layout = _resolver_module()
+    plan = AnnotationPlan(
+        overall_dimensions=(),
+        feature_callouts=(
+            FeatureCallout(
+                source_id="H1",
+                source_type="mounting_hole",
+                anchor=Vec2(0.0, 0.0),
+                label="⌀10",
+            ),
+        ),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1),
+        ),
+        diagnostics=(),
+    )
+    occupied = layout.AnnotationRegion(
+        min_x=5.0, min_y=5.0, max_x=15.0, max_y=15.0, kind="TECH"
+    )
+
+    result = layout.resolve_annotation_collisions(
+        plan,
+        reserved_regions=(occupied,),
+        step=5.0,
+        max_steps=6,
+    )
+
+    moved = next(
+        p for p in result.primitives
+        if isinstance(p, TextPrimitive) and p.text == "⌀10"
+    )
+    leaders = [
+        p for p in result.primitives
+        if isinstance(p, LinePrimitive) and p.layer == "TEXT"
+    ]
+    assert moved.insert != Vec2(10.0, 10.0)
+    assert not occupied.contains_point(moved.insert)
+    assert len(leaders) == 1
+    assert leaders[0].p1 == Vec2(0.0, 0.0)
+    assert leaders[0].p2 == moved.insert
+    assert result.unresolved_collisions == ()
