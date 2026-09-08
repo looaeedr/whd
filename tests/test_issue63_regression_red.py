@@ -88,7 +88,7 @@ def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors(
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
-def test_issue63_physical_piece_fold_edit_survives_authoritative_resync():
+def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
     import tkinter as tk
     import gui
 
@@ -101,29 +101,34 @@ def test_issue63_physical_piece_fold_edit_survives_authoritative_resync():
         designer.baseline_model_var.set("受電箱")
         root.update_idletasks(); root.update()
 
-        key = "box_body:left_side"
-        profiles = designer.designer_workspace.profiles_for(key, {}) or {}
-        edited = {
-            "X": [dict(row) for row in tuple(profiles.get("X") or ())],
-            "Y": [dict(row) for row in tuple(profiles.get("Y") or ())],
-        }
-        rear = next(row for row in edited["X"] if row.get("phase6_key") == "side_rear_bend_left")
-        assert float(rear["len"]) == pytest.approx(15.0)
-        rear["len"] = 16.0
+        left_key = "box_body:left_side"
+        right_key = "box_body:right_side"
+        designer.activate_part(left_key)
+        root.update_idletasks(); root.update()
 
-        designer.designer_workspace.stash_profiles(key, edited)
-        bridge._phase6_sync_authoritative_derived_parts(designer)
+        active = designer.state.profiles["X"]
+        left_rear = next(row for row in active if row.get("phase6_key") == "side_rear_bend_left")
+        assert float(left_rear["len"]) == pytest.approx(15.0)
+        left_rear["len"] = 16.0
 
-        after = designer.designer_workspace.profiles_for(key, {}) or {}
-        left_rear = next(row for row in after["X"] if row.get("phase6_key") == "side_rear_bend_left")
-        right = designer.designer_workspace.profiles_for("box_body:right_side", {}) or {}
+        designer._save_current_part()
+        root.update_idletasks(); root.update()
+        designer.activate_part(right_key)
+        root.update_idletasks(); root.update()
+        designer.activate_part(left_key)
+        root.update_idletasks(); root.update()
+
+        after = tuple(designer.state.profiles["X"] or ())
+        left_rear_after = next(row for row in after if row.get("phase6_key") == "side_rear_bend_left")
+        right = designer.designer_workspace.profiles_for(right_key, {}) or {}
         right_rear = next(row for row in right["X"] if row.get("phase6_key") == "side_rear_bend_right")
-        print("ISSUE63_PIECE_EDIT_RESYNC=", {
-            "left_rear": float(left_rear["len"]),
+        print("ISSUE63_PIECE_EDIT_ROUNDTRIP=", {
+            "left_rear": float(left_rear_after["len"]),
             "right_rear": float(right_rear["len"]),
+            "structure": designer.designer_workspace.box_body_structure_state(),
         })
-        assert float(left_rear["len"]) == pytest.approx(16.0), (
-            "left-side Fold edit was overwritten by aggregate BoxBody resync"
+        assert float(left_rear_after["len"]) == pytest.approx(16.0), (
+            "left-side Fold edit was lost after save/switch/resync"
         )
         assert float(right_rear["len"]) == pytest.approx(15.0), (
             "left-side physical Fold edit must not mutate right-side Fold chain"
@@ -135,7 +140,6 @@ def test_issue63_physical_piece_fold_edit_survives_authoritative_resync():
         except Exception:
             pass
         root.destroy()
-
 
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
     snap = _snapshot()
@@ -230,6 +234,16 @@ def test_issue63_divider_left_right_physical_sides_cut_opposite_span_ends():
         clearance=0.0,
     )
     solved = next(p for p in solved_parts if p.part_key == divider.stable_id)
+    print("ISSUE63_RELIEF_DIAGNOSTIC=", {
+        "status": diagnostics[0].candidate_status,
+        "illegal": diagnostics[0].illegal_penetration,
+        "pre": diagnostics[0].pre_pair_count,
+        "post": diagnostics[0].post_pair_count,
+        "evidence": diagnostics[0].evidence,
+        "metadata_keys": tuple(sorted(dict(solved.render_data.metadata or {}))),
+    })
+    assert diagnostics[0].illegal_penetration is False, diagnostics[0].evidence
+    assert "divider_assembly_relief" in solved.render_data.metadata
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     by_source = dict(dict(relief["evidence"])["projection_by_source"])
     left_edge = str(by_source["box_body:left_side"]["edge"])
