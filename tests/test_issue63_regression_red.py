@@ -151,3 +151,50 @@ def test_issue63_divider_left_right_physical_sides_cut_opposite_span_ends():
         "left/right physical BoxBody pieces must own opposite Divider span ends",
         by_source,
     )
+
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
+def test_issue63_receiving_box_body_physical_pieces_are_real_3d_input_contexts():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("金庫型")
+        root.update_idletasks(); root.update()
+
+        designer = app.open_original_fold_designer()
+        designer.root.deiconify()
+        designer.root.geometry("1120x720+0+0")
+        root.update_idletasks(); root.update()
+
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks(); root.update()
+
+        expected = (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+        )
+        available = tuple(designer.designer_workspace.available_parts)
+        print("ISSUE63_AVAILABLE_PARTS=", available)
+        for key in expected:
+            assert key in available, (
+                "multipart BoxBody physical piece is visible in manufacturing but "
+                "missing from the 3D workspace/operator selector",
+                key, available,
+            )
+            designer.activate_part(key)
+            root.update_idletasks(); root.update()
+            assert designer.designer_workspace.active_part == key
+            assert str(designer.part_var.get()) in {"左側板", "後面板", "右側板"}
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        root.destroy()
