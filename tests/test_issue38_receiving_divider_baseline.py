@@ -102,6 +102,24 @@ def test_receiving_divider_hole_group_preserves_source_relative_vectors():
             and abs(float(p.radius) - 3.2) <= 1e-6
         )
     )
-    a, b, c = centers
-    assert (b[0] - a[0], b[1] - a[1]) == pytest.approx((37.5, 0.0))
-    assert (c[0] - a[0], c[1] - a[1]) == pytest.approx((119.5, -23.5))
+
+    # Derive expected vectors from the authoritative baseline under the
+    # production clockwise rigid rotation: (dx,dy) -> (dy,-dx).
+    # Translation/edge anchoring cancels out of relative vectors.
+    doc = ezdxf.readfile(Path("基準檔") / "金庫型" / "中隔.dxf")
+    source = [
+        (float(e.dxf.center.x), float(e.dxf.center.y))
+        for e in doc.modelspace().query("CIRCLE")
+        if abs(float(e.dxf.radius) - 3.2) <= 1e-6
+    ]
+    rotated = sorted((y, -x) for x, y in source)
+
+    actual_a = centers[0]
+    expected_a = rotated[0]
+    actual_vectors = [
+        (x - actual_a[0], y - actual_a[1]) for x, y in centers[1:]
+    ]
+    expected_vectors = [
+        (x - expected_a[0], y - expected_a[1]) for x, y in rotated[1:]
+    ]
+    assert actual_vectors == pytest.approx(expected_vectors)
