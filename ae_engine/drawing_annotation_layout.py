@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from .sheetmetal_drawing import LinePrimitive, TextPrimitive
+from .sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive, TextPrimitive
 from .sheetmetal_geometry import Vec2
 
 
@@ -77,6 +77,55 @@ def _collides(text: TextPrimitive, regions: tuple[AnnotationRegion, ...]) -> boo
     return any(box.intersects(region) for region in regions)
 
 
+def _line_region(p1: Vec2, p2: Vec2, padding: float, kind: str) -> AnnotationRegion:
+    pad = max(float(padding), 0.0)
+    return AnnotationRegion(
+        min(float(p1.x), float(p2.x)) - pad,
+        min(float(p1.y), float(p2.y)) - pad,
+        max(float(p1.x), float(p2.x)) + pad,
+        max(float(p1.y), float(p2.y)) + pad,
+        kind,
+    )
+
+
+def _polyline_regions(primitive: PolylinePrimitive, padding: float):
+    points = tuple(primitive.points)
+    if len(points) < 2:
+        return ()
+    pairs = list(zip(points, points[1:]))
+    if bool(primitive.closed) and points[-1] != points[0]:
+        pairs.append((points[-1], points[0]))
+    return tuple(
+        _line_region(a, b, padding, str(primitive.layer).upper())
+        for a, b in pairs
+    )
+
+
+def _manufacturing_obstacle_regions(scene, *, clearance: float):
+    if scene is None:
+        return ()
+    rows = []
+    for primitive in tuple(getattr(scene, "primitives", ()) or ()):
+        layer = str(getattr(primitive, "layer", "") or "").upper()
+        if isinstance(primitive, LinePrimitive) and layer in {"CUTTING", "BEND"}:
+            rows.append(_line_region(
+                primitive.p1, primitive.p2, clearance, layer
+            ))
+        elif isinstance(primitive, PolylinePrimitive) and layer == "CUTTING":
+            rows.extend(_polyline_regions(primitive, clearance))
+        elif isinstance(primitive, CirclePrimitive) and layer == "CUTTING":
+            pad = max(float(clearance), 0.0)
+            r = float(primitive.radius) + pad
+            rows.append(AnnotationRegion(
+                float(primitive.center.x) - r,
+                float(primitive.center.y) - r,
+                float(primitive.center.x) + r,
+                float(primitive.center.y) + r,
+                "HOLE",
+            ))
+    return tuple(rows)
+
+
 def _candidate_offsets(step: float, max_steps: int):
     yield 0.0
     for index in range(1, int(max_steps) + 1):
@@ -113,12 +162,20 @@ def resolve_annotation_collisions(
     plan,
     *,
     reserved_regions=(),
+    manufacturing_scene=None,
+    clearance: float = 1.0,
     step: float = 5.0,
     max_steps: int = 40,
     strict: bool = False,
 ) -> AnnotationLayoutResult:
     """Resolve annotation collisions without moving manufacturing geometry."""
-    regions = tuple(reserved_regions or ())
+    regions = (
+        tuple(reserved_regions or ())
+        + _manufacturing_obstacle_regions(
+            manufacturing_scene,
+            clearance=float(clearance),
+        )
+    )
     primitives = list(tuple(getattr(plan, "primitives", ()) or ()))
     unresolved = []
 
