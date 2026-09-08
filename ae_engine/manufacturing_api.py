@@ -2493,11 +2493,16 @@ def generate_part(
 
 
 def _safe_dxf_part_stem(part_id: str) -> str:
-    """Map one stable physical part id to a Windows-safe DXF filename stem."""
+    """Map one stable physical part id to a Windows-safe DXF filename stem.
+
+    Domain ':' is encoded as '__' so physical IDs remain distinguishable from
+    IDs that already contain a literal underscore.
+    """
     value = str(part_id or "").strip()
     if not value:
         raise ValueError("physical part id is empty")
-    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
+    value = value.replace(":", "__")
+    return re.sub(r'[<>"/\\\\|?*]', "_", value)
 
 
 def _resolved_physical_render_parts(resolved_geometry):
