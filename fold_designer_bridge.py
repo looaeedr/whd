@@ -6456,298 +6456,63 @@ def _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_pa
     }
 
 
-def _phase6_divider_relief_core_start(part):
-    """Resolve the pre-core relief domain from authoritative Divider Fold topology."""
-    cursor = 0.0
-    for row in tuple(getattr(part, "x_profile", ()) or ()):
-        if str(dict(row).get("core") or "") == "D_DIVIDER":
-            return float(cursor)
-        cursor += abs(float(dict(row).get("len", 0.0) or 0.0))
-
-    metadata = dict(getattr(getattr(part, "render_data", None), "metadata", {}) or {})
-    physical_contract = dict(metadata.get("physical_geometry_contract") or {})
-    core_segment = dict(physical_contract.get("core_physical_segment") or {})
-    core_flat_band = tuple(core_segment.get("flat_band") or ())
-    if len(core_flat_band) == 2:
-        return float(core_flat_band[0])
-    raise ValueError(f"Divider core physical segment unavailable: {part.part_key}")
-
-
-def _phase6_profile_flat_band(profile, *, segment_index=None, phase6_key=None):
-    """Return one authoritative flat X band from a Fold Profile."""
-    rows = tuple(profile or ())
-    cursor = 0.0
-    for index, row in enumerate(rows):
-        if isinstance(row, dict):
-            length = float(row.get("len", row.get("length", 0.0)) or 0.0)
-            key = str(row.get("phase6_key") or "")
-        else:
-            length = float(getattr(row, "length", 0.0) or 0.0)
-            key = str(getattr(row, "phase6_key", "") or "")
-        selected = (segment_index is not None and index == int(segment_index))
-        selected = selected or (phase6_key is not None and key == str(phase6_key))
-        if selected:
-            return float(cursor), float(cursor + length)
-        cursor += length
-    raise ValueError(
-        f"Fold Profile band not found: index={segment_index!r}, phase6_key={phase6_key!r}"
-    )
-
-
-def _phase6_planar_skin_z_planes(skins, band, *, tolerance=1e-5):
-    """Return unique physical Z skin planes whose flat centroid lies inside band."""
-    start, end = (float(v) for v in band)
-    tol = float(tolerance)
-    values = []
-    for skin in tuple(skins or ()):
-        flat = tuple(getattr(skin, "flat", ()) or ())
-        world = tuple(getattr(skin, "world", ()) or ())
-        if len(flat) != 3 or len(world) != 3:
-            continue
-        centroid_x = sum(float(point[0]) for point in flat) / 3.0
-        if not (start + tol < centroid_x < end - tol):
-            continue
-        zs = tuple(float(point[2]) for point in world)
-        if max(zs) - min(zs) > tol:
-            continue
-        values.append(sum(zs) / len(zs))
-    unique = []
-    for value in sorted(values):
-        if not unique or abs(value - unique[-1]) > tol:
-            unique.append(float(value))
-    return tuple(unique)
-
-
-def _phase6_divider_fw_placement_evidence(divider, body, world, *, tolerance=1e-5):
-    """Certify Receiving Divider FW face-flush before relief promotion.
-
-    This is a geometry precondition, not a numeric placement oracle. It reads
-    the actual left/right BoxBody FW folded skins and the Divider's semantic FW
-    segment from render metadata, then proves the physical skin planes coincide.
-    """
-    tol = float(tolerance)
-    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
-    physical_contract = dict(metadata.get("physical_geometry_contract") or {})
-    fw_face = dict(physical_contract.get("fw_physical_face") or {})
-    divider_flat_band = tuple(fw_face.get("flat_band") or ())
-    evidence = {
-        "contract": "DIVIDER_FW_FACE_FLUSH_V1",
-        "fw_face_flush": False,
-        "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),
-        "placement_kind": str(getattr(divider, "placement", "") or ""),
-        "tolerance": tol,
-        "fw_physical_face": fw_face,
-    }
-    if len(divider_flat_band) != 2:
-        evidence["reason"] = "Divider physical contract has no FW physical flat band"
-        return evidence
-
-    pieces = tuple(getattr(body.render_data, "pieces", ()) or ())
-    by_role = {str(getattr(piece, "role", "") or ""): piece for piece in pieces}
-    if "left_side" not in by_role or "right_side" not in by_role:
-        evidence["reason"] = "Receiving BoxBody lacks left/right physical side pieces"
-        return evidence
-
-    try:
-        left_band = _phase6_profile_flat_band(by_role["left_side"].fold_profile, phase6_key="fw_left")
-        right_band = _phase6_profile_flat_band(by_role["right_side"].fold_profile, phase6_key="fw_right")
-        divider_band = tuple(float(value) for value in divider_flat_band)
-        mapped = dict(world.get("mapped_skin_triangles_by_part") or {})
-        left_planes = _phase6_planar_skin_z_planes(
-            mapped.get("box_body:left_side", ()), left_band, tolerance=tol
-        )
-        right_planes = _phase6_planar_skin_z_planes(
-            mapped.get("box_body:right_side", ()), right_band, tolerance=tol
-        )
-        divider_planes = _phase6_planar_skin_z_planes(
-            mapped.get(str(divider.part_key), ()), divider_band, tolerance=tol
-        )
-    except Exception as exc:
-        evidence["reason"] = f"FW placement evidence unavailable: {exc}"
-        return evidence
-
-    evidence.update({
-        "box_body_left_fw_planes": left_planes,
-        "box_body_right_fw_planes": right_planes,
-        "divider_fw_planes": divider_planes,
-    })
-    same_count = bool(left_planes) and len(left_planes) == len(right_planes) == len(divider_planes)
-    body_match = same_count and all(abs(a - b) <= tol for a, b in zip(left_planes, right_planes))
-    divider_match = same_count and all(abs(a - b) <= tol for a, b in zip(divider_planes, left_planes))
-    evidence["fw_face_flush"] = bool(body_match and divider_match)
-    evidence["valid"] = bool(evidence["fw_face_flush"] and evidence["core_inward"])
-    if not evidence["valid"]:
-        evidence["reason"] = (
-            "Divider FW physical skins are not flush with BoxBody FW skins"
-            if not evidence["fw_face_flush"]
-            else "Divider core orientation is not inward"
-        )
-    return evidence
-
 def _phase6_resolve_family_divider_reliefs(
     parts, *, finished_dimensions, sheet_thickness, clearance=0.0
 ):
-    """Resolve Receiving Divider INSERT relief from true-thickness assembly collision."""
-    from dataclasses import replace
-    from ae_engine.assembly_joint import (
-        AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
-    )
-    from ae_engine.assembly_collision import (
-        build_divider_front_fold_relief_candidate,
-        verify_divider_front_fold_relief,
-    )
+    """Delegate Divider physical solve to manufacturing domain."""
+    from ae_engine.assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
     from ae_engine.contracts import ResolvedJointDiagnostic
-    from ae_engine.manufacturing_api import apply_divider_endcap_shared_6p4_datum
-
+    from ae_engine.divider_manufacturing import resolve_divider_final_geometry
     current = {str(part.part_key): part for part in tuple(parts or ())}
     divider_keys = sorted(key for key in current if key.startswith("box_body:divider:"))
     if not divider_keys or "box_body" not in current:
         return tuple(current.values()), (), ()
-
-    diagnostics = []
-    family_joints = []
+    diagnostics, family_joints = [], []
     for divider_key in divider_keys:
         divider = current[divider_key]
         joint = AssemblyJoint(
-            joint_id=f"{divider_key}:box_body:family-relief",
-            subject_part=divider_key,
-            target_part="box_body",
-            subject_region="front_fold_relief",
-            target_region="divider_mating_zone",
-            relation=AssemblyJointRelation.INSERT,
-            source=AssemblyJointSource.FAMILY_GEOMETRY,
+            joint_id=f"{divider_key}:box_body:family-relief", subject_part=divider_key, target_part="box_body",
+            subject_region="front_fold_relief", target_region="divider_mating_zone",
+            relation=AssemblyJointRelation.INSERT, source=AssemblyJointSource.FAMILY_GEOMETRY,
             solver_constraints={"relief_mode": "FRONT_FOLD_DOMAIN"},
         )
         family_joints.append(joint)
-        world = _phase6_build_joint_world_geometry(
-            tuple(current.values()), finished_dimensions, sheet_thickness
-        )
-        source_keys = tuple(
-            key for key in ("box_body:left_side", "box_body:right_side")
-            if key in world["world_triangles_by_part"]
-        )
+        world = _phase6_build_joint_world_geometry(tuple(current.values()), finished_dimensions, sheet_thickness)
+        source_keys = tuple(key for key in ("box_body:left_side", "box_body:right_side") if key in world["world_triangles_by_part"])
         if not source_keys:
             diagnostics.append(ResolvedJointDiagnostic(
-                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
-                relation=joint.relation.value, source=joint.source.value,
-                registry_status="MISS", trust_level="PROVISIONAL_3D",
-                preserve_part="box_body", relief_part=divider_key,
-                candidate_status="MISSING_SIDE_PIECE_GEOMETRY",
-                illegal_penetration=True,
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+                source=joint.source.value, registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key, candidate_status="MISSING_SIDE_PIECE_GEOMETRY",
+                legal_contact=False, illegal_penetration=True,
                 evidence={"reason": "Receiving Divider relief requires left/right physical Box Body pieces"},
             ))
             continue
-
-        placement_evidence = _phase6_divider_fw_placement_evidence(
-            divider, current["box_body"], world
+        def refold_world(solved_divider):
+            return _phase6_build_joint_world_geometry(
+                tuple(solved_divider if key == divider_key else part for key, part in current.items()),
+                finished_dimensions, sheet_thickness,
+            )
+        result = resolve_divider_final_geometry(
+            divider=divider, box_body=current["box_body"], joint=joint, world=world,
+            source_geometry_keys=source_keys, refold_world=refold_world, clearance=float(clearance),
         )
-        if not bool(placement_evidence.get("valid")):
-            diagnostics.append(ResolvedJointDiagnostic(
-                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
-                relation=joint.relation.value, source=joint.source.value,
-                registry_status="MISS", trust_level="PROVISIONAL_3D",
-                preserve_part="box_body", relief_part=divider_key,
-                candidate_status="INVALID_DIVIDER_FW_PLACEMENT",
-                legal_contact=False, illegal_penetration=True,
-                pre_pair_count=0, post_pair_count=0,
-                evidence={"placement": dict(placement_evidence)},
-            ))
-            continue
-
-        core_start = _phase6_divider_relief_core_start(divider)
-        candidate = build_divider_front_fold_relief_candidate(
-            joint,
-            world_triangles_by_part=world["world_triangles_by_part"],
-            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
-            flat_material_by_part=world["flat_material_by_part"],
-            core_start=core_start,
-            source_geometry_keys=source_keys,
-            clearance=float(clearance),
-        )
-        if candidate is None:
-            diagnostics.append(ResolvedJointDiagnostic(
-                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
-                relation=joint.relation.value, source=joint.source.value,
-                registry_status="MISS", trust_level="PROVISIONAL_3D",
-                preserve_part="box_body", relief_part=divider_key,
-                candidate_status="NO_FRONT_FOLD_PENETRATION",
-                legal_contact=True, illegal_penetration=False,
-                pre_pair_count=0, post_pair_count=0,
-                evidence={"core_start": core_start, "placement": dict(placement_evidence)},
-            ))
-            continue
-
-        solved = _phase6_apply_resolved_cut_to_part(divider, candidate.cut_polygon_2d)
-        solved = replace(
-            solved,
-            render_data=apply_divider_endcap_shared_6p4_datum(solved.render_data),
-        )
-        solved_world = _phase6_build_joint_world_geometry(
-            tuple(solved if key == divider_key else part for key, part in current.items()),
-            finished_dimensions, sheet_thickness
-        )
-        verification = verify_divider_front_fold_relief(
-            joint,
-            world_triangles_by_part=solved_world["world_triangles_by_part"],
-            mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
-            flat_material_by_part=solved_world["flat_material_by_part"],
-            core_start=core_start,
-            source_geometry_keys=source_keys,
-        )
-        if not bool(verification["verified"]):
-            diagnostics.append(ResolvedJointDiagnostic(
-                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
-                relation=joint.relation.value, source=joint.source.value,
-                registry_status="MISS", trust_level="PROVISIONAL_3D",
-                preserve_part="box_body", relief_part=divider_key,
-                candidate_status="DIVIDER_RELIEF_REPLAY_FAILED",
-                legal_contact=False, illegal_penetration=True,
-                pre_pair_count=int(candidate.pre_pair_count),
-                post_pair_count=int(verification["pair_count"]),
-                evidence={
-                    **dict(candidate.evidence or {}),
-                    "placement": dict(placement_evidence),
-                    "post": dict(verification),
-                },
-            ))
-            continue
-
-        metadata = dict(getattr(solved.render_data, "metadata", {}) or {})
-        metadata["divider_assembly_relief"] = {
-            "trust_level": "PROVISIONAL_3D",
-            "verified": True,
-            "core_start": float(core_start),
-            "cut_depths": tuple(candidate.cut_depths),
-            "pre_pair_count": int(candidate.pre_pair_count),
-            "post_pair_count": int(verification["pair_count"]),
-            "retained_contact_segments": int(verification["retained_contact_segments"]),
-            "evidence": {
-                **dict(candidate.evidence or {}),
-                "placement": dict(placement_evidence),
-            },
-        }
-        solved = replace(
-            solved,
-            render_data=replace(solved.render_data, metadata=metadata),
-        )
-        current[divider_key] = solved
+        placement = result.placement_evidence.as_dict()
+        relief = result.relief_evidence
+        evidence = {**dict(relief.source_evidence or {}), "placement": placement}
+        if relief.post_evidence is not None:
+            evidence["post"] = dict(relief.post_evidence)
+        if result.verified:
+            current[divider_key] = result.solved_part
+        status = str(relief.candidate_status)
         diagnostics.append(ResolvedJointDiagnostic(
-            joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body",
-            relation=joint.relation.value, source=joint.source.value,
-            registry_status="MISS", trust_level="PROVISIONAL_3D",
-            preserve_part="box_body", relief_part=divider_key,
-            candidate_status="PROVISIONAL_3D_VERIFIED",
-            legal_contact=bool(verification["retained_contact_segments"]),
-            illegal_penetration=False,
-            pre_pair_count=int(candidate.pre_pair_count),
-            post_pair_count=int(verification["pair_count"]),
-            evidence={
-                **dict(candidate.evidence or {}),
-                "placement": dict(placement_evidence),
-                "post": dict(verification),
-            },
+            joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+            source=joint.source.value, registry_status="MISS", trust_level="PROVISIONAL_3D",
+            preserve_part="box_body", relief_part=divider_key, candidate_status=status,
+            legal_contact=(bool(relief.retained_contact_segments) if status == "PROVISIONAL_3D_VERIFIED" else status == "NO_FRONT_FOLD_PENETRATION"),
+            illegal_penetration=bool(result.illegal_penetration), pre_pair_count=int(relief.pre_pair_count),
+            post_pair_count=int(relief.post_pair_count), evidence=evidence,
         ))
-
     return tuple(current.values()), tuple(diagnostics), tuple(family_joints)
 
 

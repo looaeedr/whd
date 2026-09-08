@@ -118,14 +118,7 @@ class BoxBodyDividerPart:
                 "part_axis": str(self.axis),
                 "boundary_key": str(self.boundary_key),
             },
-            "final_material": {
-                "authority": "CANONICAL_MANUFACTURING_RESOLVE",
-                "part_id": str(self.stable_id),
-            },
-            "relief_evidence": {
-                "authority": "ASSEMBLY_RELIEF_RESOLVE",
-                "part_id": str(self.stable_id),
-            },
+            "manufacturing_resolver": "ae_engine.divider_manufacturing.resolve_divider_final_geometry",
         }
 
 @dataclass(frozen=True)
