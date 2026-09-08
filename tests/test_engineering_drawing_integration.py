@@ -89,3 +89,43 @@ def test_production_dxf_serializer_stays_on_original_manufacturing_scene():
     assert "build_engineering_drawing_projection" not in src
     assert "render_data.scene" in src
     assert "_save_scene_dxf" in src
+
+
+def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
+    spec = importlib.util.find_spec("ae_engine.display_dimensions")
+    assert spec is not None, (
+        "R2: missing shared finished-dimension provider for 2D/3D"
+    )
+    module = importlib.import_module("ae_engine.display_dimensions")
+    assert callable(getattr(module, "resolve_operator_finished_dimensions", None))
+    assert callable(getattr(module, "folded_outside_envelope", None))
+
+    import fold_designer_bridge as bridge
+    import phase6_final_scene_view as final_view
+
+    bridge_src = inspect.getsource(bridge._phase6_operator_finished_dimensions)
+    view_src = inspect.getsource(final_view.Phase6FinalSceneView._resolved_finished_dimensions)
+    assert "resolve_operator_finished_dimensions" in bridge_src
+    assert "box_body_height_from_corner_policies" not in bridge_src
+    assert "resolve_operator_finished_dimensions" in view_src
+
+
+def test_all_primary_2d_previews_consume_shared_finished_dimension_summary():
+    gui_path = ROOT / "gui.py"
+    methods = (
+        "draw_box_body",
+        "draw_end_cap",
+        "draw_door",
+        "draw_base_plate",
+        "draw_indicator_box",
+        "draw_indicator_door",
+    )
+    missing = []
+    for method in methods:
+        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+        if "_draw_phase6_finished_dimension_summary" not in src:
+            missing.append(method)
+    assert not missing, (
+        "R2: primary 2D previews still bypass shared finished-dimension provider: "
+        + ", ".join(missing)
+    )
