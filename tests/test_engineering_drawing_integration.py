@@ -2,6 +2,8 @@
 import ast
 import importlib
 import importlib.util
+import inspect
+from types import SimpleNamespace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,3 +56,36 @@ def test_all_primary_2d_previews_delegate_annotation_projection():
         "R1: primary 2D previews still bypass shared AnnotationPlan projection: "
         + ", ".join(missing)
     )
+
+
+def test_projection_is_annotation_only_and_manufacturing_scene_is_immutable():
+    from shapely.geometry import box
+    from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive, TextPrimitive
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    scene = DrawingScene()
+    scene.add(LinePrimitive(Vec2(0.0, 0.0), Vec2(100.0, 0.0), "CUTTING"))
+    render_data = SimpleNamespace(scene=scene, material=box(0.0, 0.0, 100.0, 60.0))
+    before = tuple(scene.primitives)
+
+    projection = _engineering_module().build_engineering_drawing_projection(
+        render_data, part_key="probe"
+    )
+
+    assert tuple(scene.primitives) == before
+    assert projection.annotation_plan is not None
+    assert projection.primitives
+    assert all(
+        isinstance(item, (LinePrimitive, TextPrimitive))
+        and item.layer in {"DIMENSION", "TEXT"}
+        for item in projection.primitives
+    )
+
+
+def test_production_dxf_serializer_stays_on_original_manufacturing_scene():
+    from ae_engine import manufacturing_api
+
+    src = inspect.getsource(manufacturing_api.save_part_render_data_dxf)
+    assert "build_engineering_drawing_projection" not in src
+    assert "render_data.scene" in src
+    assert "_save_scene_dxf" in src
