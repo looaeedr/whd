@@ -140,3 +140,64 @@ def test_all_primary_2d_previews_consume_shared_finished_dimension_summary():
         "R2: primary 2D previews still bypass shared finished-dimension provider: "
         + ", ".join(missing)
     )
+
+
+def test_family_switch_projection_does_not_keep_stale_feature_ids():
+    from shapely.geometry import box
+    from ae_engine.sheetmetal_drawing import CirclePrimitive, DrawingScene
+    from ae_engine.sheetmetal_geometry import Vec2
+
+    module = _engineering_module()
+
+    old_scene = DrawingScene()
+    old_scene.add(CirclePrimitive(
+        Vec2(20.0, 20.0), 5.0, "CUTTING",
+        source_type="baseline_hole", source_id="OLD:FAMILY:HOLE",
+    ))
+    new_scene = DrawingScene()
+    new_scene.add(CirclePrimitive(
+        Vec2(30.0, 30.0), 4.0, "CUTTING",
+        source_type="baseline_hole", source_id="NEW:FAMILY:HOLE",
+    ))
+
+    old_projection = module.build_engineering_drawing_projection(
+        SimpleNamespace(scene=old_scene, material=box(0.0, 0.0, 100.0, 60.0)),
+        part_key="door",
+    )
+    new_projection = module.build_engineering_drawing_projection(
+        SimpleNamespace(scene=new_scene, material=box(0.0, 0.0, 120.0, 70.0)),
+        part_key="door",
+    )
+
+    assert {item.source_id for item in old_projection.annotation_plan.feature_callouts} == {
+        "OLD:FAMILY:HOLE"
+    }
+    assert {item.source_id for item in new_projection.annotation_plan.feature_callouts} == {
+        "NEW:FAMILY:HOLE"
+    }
+    assert all(
+        item.source_id != "OLD:FAMILY:HOLE"
+        for item in new_projection.annotation_plan.feature_callouts
+    )
+
+
+def test_folded_mesh_dimensions_override_snapshot_fallback():
+    from ae_engine.display_dimensions import (
+        folded_outside_envelope,
+        resolve_operator_finished_dimensions,
+    )
+
+    triangles = (
+        ((0.0, 0.0, 0.0), (100.0, 0.0, 0.0), (100.0, 60.0, 0.0)),
+        ((0.0, 0.0, 0.0), (100.0, 60.0, 0.0), (0.0, 60.0, 0.0)),
+    )
+    expected, _bounds = folded_outside_envelope(triangles, 2.0)
+    resolved = resolve_operator_finished_dimensions(
+        "box_body",
+        snapshot={"w": 999.0, "h": 888.0, "d": 777.0, "t": 2.0},
+        triangles=triangles,
+        thickness=2.0,
+    )
+
+    assert resolved == expected
+    assert resolved != (999.0, 888.0, 777.0)
