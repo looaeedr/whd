@@ -216,7 +216,10 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
     for feature in features:
         if isinstance(feature, ResolvedCircle):
             color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(feature.layer, 3)
-            primitives.append(CirclePrimitive(feature.center, feature.radius, feature.layer, color))
+            primitives.append(CirclePrimitive(
+                feature.center, feature.radius, feature.layer, color,
+                source_type=feature.source_type,
+            ))
             if feature.add_centerline:
                 center_layer = "DATUM" if feature.layer == "BLIND_HOLE" else feature.layer
                 center_color = 6 if center_layer == "DATUM" else color
