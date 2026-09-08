@@ -2492,17 +2492,33 @@ def generate_part(
     )
 
 
-def _safe_dxf_part_stem(part_id: str) -> str:
-    """Map one stable physical part id to a Windows-safe DXF filename stem.
+_BOX_BODY_PHYSICAL_PIECE_ROLES = frozenset({
+    "left", "middle", "right",
+    "left_side", "back", "right_side",
+    "integral",
+})
 
-    Domain ':' is encoded as '__' so physical IDs remain distinguishable from
-    IDs that already contain a literal underscore.
-    """
+
+def _safe_dxf_part_stem(part_id: str) -> str:
+    """Map one stable part id to a Windows-safe default DXF filename stem."""
     value = str(part_id or "").strip()
     if not value:
         raise ValueError("physical part id is empty")
-    value = value.replace(":", "__")
-    return re.sub(r'[<>"/\\\\|?*]', "_", value)
+    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
+
+
+def _resolved_physical_dxf_stem(part_id: str) -> str:
+    """Keep Box Body physical-piece filenames distinct from dynamic part IDs."""
+    value = str(part_id or "").strip()
+    root, sep, role = value.partition(":")
+    if (
+        sep
+        and root == "box_body"
+        and ":" not in role
+        and role in _BOX_BODY_PHYSICAL_PIECE_ROLES
+    ):
+        return f"box_body__{_safe_dxf_part_stem(role)}"
+    return _safe_dxf_part_stem(value)
 
 
 def _resolved_physical_render_parts(resolved_geometry):
@@ -2533,7 +2549,7 @@ def _resolved_physical_render_parts(resolved_geometry):
 
 
 def _resolved_physical_dxf_filename(part_id: str) -> str:
-    return f"{_safe_dxf_part_stem(part_id)}.dxf"
+    return f"{_resolved_physical_dxf_stem(part_id)}.dxf"
 
 
 def save_resolved_manufacturing_geometry_dxf(
