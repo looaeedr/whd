@@ -333,6 +333,10 @@ def verify_saved_part_render_data_dxf(
         )
     msp = doc.modelspace()
 
+    issues.extend(_find_layer_mismatches(
+        render_data.scene, msp, float(coordinate_tolerance)
+    ))
+
     expected_counts = _scene_counts(render_data.scene)
     actual_counts = _dxf_counts(msp)
     if expected_counts != actual_counts:
