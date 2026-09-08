@@ -255,12 +255,17 @@ def _phase6_box_body_structure_render_data(self):
 
 
 def _phase6_box_body_piece_render_data(self, part_key):
-    """Select one physical child from the aggregate manufacturing result."""
+    """Select one physical child from the resolved aggregate manufacturing result."""
     key = str(part_key or "")
     if not _phase6_is_box_body_physical_piece_key(key):
         raise ValueError(f"not a BoxBody physical piece: {key}")
     role = key.split(":", 1)[1]
-    render_data = _phase6_box_body_structure_render_data(self)
+
+    # A physical-piece editor is a sink, not a second BoxBody solve. Read the
+    # same resolved aggregate consumed by assembly so single-part 2D/3D cannot
+    # drift from assembly relief/corner results.
+    resolved = _phase6_resolve_manufacturing_geometry(self)
+    render_data = resolved.part("box_body").render_data
     piece = next(
         (item for item in tuple(getattr(render_data, "pieces", ()) or ())
          if str(getattr(item, "role", "") or "") == role),
