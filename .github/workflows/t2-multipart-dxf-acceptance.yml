@@ -1,0 +1,44 @@
+name: T2 Multipart DXF Acceptance QA
+
+on:
+  push:
+    branches:
+      - feat/engineering-drawing-dxf-qa
+    paths:
+      - tests/test_multipart_dxf_acceptance.py
+      - tests/test_dxf_acceptance.py
+      - ae_engine/dxf_acceptance.py
+      - ae_engine/manufacturing_api.py
+      - .scratch/engineering-drawing-dxf-qa/T2.preflight.evidence.md
+      - .github/workflows/t2-multipart-dxf-acceptance.yml
+  workflow_dispatch:
+
+jobs:
+  t2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T2 Multipart Dynamic Parts DXF 驗收" \
+            --changed-file tests/test_multipart_dxf_acceptance.py \
+            --changed-file ae_engine/dxf_acceptance.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --evidence .scratch/engineering-drawing-dxf-qa/T2.preflight.evidence.md
+      - name: Targeted T2
+        run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          python -m py_compile ae_engine/dxf_acceptance.py ae_engine/manufacturing_api.py
+          pytest -q tests/test_dxf_acceptance.py tests/test_multipart_dxf_acceptance.py tests/test_resolved_manufacturing_export.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          test "$before" = "$after"
+          git diff --exit-code -- config.ini
