@@ -17,6 +17,8 @@ disable-model-invocation: true
 - **職責**：分析規格、建立需求驗收條件；若需要拆解工單（如 T1, T2...），必須先執行 `.agents/skills/engineering/拆解任務工單/SKILL.md` 的 **RED-first** gate。
 - **拆工單硬閘門**：先按 Requirement 寫並實跑 requirement-level RED，與使用者逐條論證；在 **使用者核准** RED 前，**不得拆解工單**、不得建立 tracker/local ticket，也**不得轉移至：實作者**。RED 核准後才可草擬工單；工單拆法本身仍需使用者第二次核准。
 - **AI 庫追溯硬閘門**：拆票前必須依 `.agents/skills/engineering/拆解任務工單/SKILL.md` 搜尋/讀取相關 `個人AI檔案庫/**`，並在每張票明列 `Requirement Authority`、`AI Library References`、`AI Library Writeback`。不得只口頭說「AI 庫已讀」。若 AI 庫與使用者本輪明確核准規格衝突，以**最新使用者核准規格**為 authority，並把 AI 庫修正列為 REQUIRED writeback。
+- **GitHub owning Issue 硬閘門**：若專案施工來源是 GitHub repository，且工作已拆成核准工單，**每張核准工單必須先建立真正的 GitHub owning Issue，並遠端反讀確認 `issue_number + canonical URL + title` 後，才准標記 `[轉移至：實作者]` 或修改 Production Code。** `.scratch/**/issues/*.md`、聊天中的 T 編號、checkpoint、branch 名稱都只能是 mirror/provenance，**不能替代 GitHub Issue**。Issue 至少要包含 baseline/target SHA、Approved RED IDs、Requirement Authority、AI Library References/Writeback、blocking dependency、acceptance criteria。任何 issue number/URL 為 undefined/null/空值時一律 fail closed。
+- **事後發現漏建 Issue**：立即停止新增 production 變更，先補建 owning Issue；Issue 必須明確標示 **Retroactive provenance / 施工後補建**，寫入實際施工 branch、已發生的 commit/run/evidence 與最終 target，不得假裝 Issue 在施工前就存在。補建並反讀成功後才可續工。
 - **自動轉移條件**：只有在「RED 已核准 + 工單 breakdown 已核准」後，才在同一次回覆中標記 `[轉移至：實作者]`，並自動進入階段 2。若任務本身不需要拆工單，則依該任務自己的設計/驗收核准 gate 決定是否轉移。
 
 ### 階段 2：實作者 (Implementer Mode)
@@ -30,6 +32,7 @@ disable-model-invocation: true
 - **輸出標示**：回覆開頭必須加上 `[當前角色：總控審查]`。
 - **職責**：以第三人稱視角做規格對照、邏輯檢查與回歸驗證。
 - **AI 庫 QA**：若任何工單標記 `AI Library Writeback: REQUIRED`，QA 不得在 writeback 尚未落盤、引用路徑未反讀確認、或 AI 庫仍保留會誤導後續施工的 stale authority 時 ACCEPT/關票。
+- **Owning Issue QA**：GitHub 專案的 ticketed work，QA 必須反讀 owning Issue，確認 Issue 內已有 terminal run/PASS-FAIL、final head/target SHA、依賴與 acceptance 結果；沒有 owning Issue 或只有 `.scratch` mirror 時不得宣告「工單已完成」。
 - **測試策略**：優先採**單一模組／小批次**執行；不得用「一次跑全套然後等超時」取代可恢復的小批 runner。若不合格則退回階段 2；合格才封存工單並推進下一項。
 
 ## 3. 測試 Runner / TIMEOUT 硬協定
@@ -155,5 +158,17 @@ Resume 時：
 - [ ] 明確要求同步遠端 QA 時啟動 `monitoring-remote-qa`，並追到 terminal state；不得停在 workflow trigger / in_progress。
 - [ ] 若 PM 要拆解工單，明確引用 `.agents/skills/engineering/拆解任務工單/SKILL.md`，要求 RED-first + 使用者核准，且核准前不得拆解工單、不得轉移至：實作者。
 - [ ] 拆票/派工明確要求每票 `Requirement Authority`、`AI Library References`、`AI Library Writeback`；使用者最新核准規格優先於 stale AI 庫，衝突必須回寫而不是靜默沿用。
+- [ ] GitHub 專案每張核准工單在進 Worker 前都有真正 GitHub owning Issue，且已反讀 issue_number + URL；`.scratch`/聊天 T 編號不得替代。
+- [ ] 漏建 Issue 的補救明確要求 Retroactive provenance，禁止假裝事後 Issue 原本就存在。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
 - [ ] remote QA 建立 run 時強制啟動 `monitoring-remote-qa`，持續監控到終態；成功後仍需 cleanup + durable state 才可 ACCEPT。
+
+## 6. 掃描深模組來源的派工檢查
+
+若目前工作由 `掃描深模組` 候選轉入實作，在任何 Implementer production write 前再確認：
+
+- 本施工票已有並反讀 **GitHub owning Issue**。
+- breakdown 已指定 **AI Library Writeback owner**。
+- breakdown 已指定 **Combined Acceptance owner**。
+- 若任一 ownership 缺失，退回 PM／拆票流程補齊，不得用 branch、checkpoint、HTML 報告或 `.scratch/**` 代替。
+- closing owner 進 QA 時，AI Library writeback、Combined terminal QA、workflow cleanup、drift audit 與 integration evidence 缺一不可 ACCEPT。

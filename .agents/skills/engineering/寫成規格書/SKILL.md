@@ -1,75 +1,138 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
+description: "Turn the current conversation into a spec only after grounding it in the current codebase, AI library, existing specs, and tests."
 disable-model-invocation: true
 ---
 
-This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
+This skill produces a specification from verified project evidence plus the current conversation.
 
-The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
+Do NOT write a WHD specification from conversation memory alone.
+
+## Mandatory pre-spec gate
+
+Before writing any product or engineering specification, inspect the affected domain in the current repository.
+
+At minimum, read and cross-check:
+
+1. Current production code that owns the behavior.
+2. Relevant AI library / SOP rules.
+3. Existing specs / design notes for the same semantic area.
+4. Existing tests that encode the behavior.
+5. Relevant fixture / baseline / certified data when one exists.
+
+For WHD geometry, CAD, 2D, 3D, DXF, Fold, assembly, placement, collision, relief, and dimensions, this gate is mandatory.
+
+## Cross-domain semantic scope gate
+
+Before defining any shared term or dimension (for example `FW`, `W/H/D`, `T`, CornerType, assembly intent, formed/material dimensions), determine its **scope** before writing the spec.
+
+Do not assume a term is Family-local because the current bug is in one Family.
+
+For every shared semantic term, search and cross-check the whole ownership chain:
+
+1. Global / shared definition and glossary.
+2. Family-specific adapters or conversions.
+3. Box Body usage.
+4. Door usage.
+5. Head / Tail / EndCap usage.
+6. Divider / child-part usage when present.
+7. Fold Profile / material conversion.
+8. 2D / 3D / DXF / FinalScene consumers.
+9. Save / Reload / project schema.
+10. Tests and fixtures from **more than one Family** when the term is shared.
+
+A Family-specific value or conversion is not the definition of the shared term.
+
+A UI location is also **not** a semantic layer. If a value is edited in a "3D input area", "settings panel", "Fold editor", or other UI surface, describe that as the **input location / UI surface**, not as a new "input semantic". The semantic remains the shared domain meaning unless the project explicitly defines a different dimension space.
+
+Example: seeing Receiving `FW=29` does not define FW globally. First establish the global `Frame Width` semantic, then document how Receiving, Vault, and other Families encode or convert it.
+
+If you have only read the current Family, you have **not completed the pre-spec gate** for a shared term.
+
+## Evidence classification
+
+Classify every important fact before promoting it into the spec:
+
+- **CONFIRMED PRODUCT RULE** — user-confirmed or authoritative project rule.
+- **CURRENT IMPLEMENTATION** — what code currently does; may be wrong.
+- **CURRENT TEST ORACLE** — what tests currently assert; may be wrong.
+- **PROBE / DIAGNOSTIC VALUE** — runtime result used for diagnosis only.
+- **HYPOTHESIS** — proposed explanation not yet proven.
+- **OPEN / UNRESOLVED** — not yet sufficiently defined.
+
+Only **CONFIRMED PRODUCT RULE** may be written directly as normative product behavior.
+
+Never promote CURRENT IMPLEMENTATION, CURRENT TEST ORACLE, PROBE values, or HYPOTHESES into a product requirement merely because they are reproducible or currently passing.
+
+## WHD mechanical rule
+
+Before defining placement, relief, or dimensions, identify the real physical relationship:
+
+- which formed faces mate / flush / enter / wrap,
+- which numbers are operator outside / formed / material dimensions,
+- which part owns the datum,
+- which code path currently approximates that relationship.
+
+Do not infer the product rule from variable names, origin coordinates, bbox values, renderer offsets, or existing placement constants.
+
+If the physical relationship is unresolved, mark it OPEN / UNRESOLVED and continue investigation. Do not invent a datum.
+
+## Source priority when evidence conflicts
+
+1. User-confirmed mechanical / product rule.
+2. Authoritative AI library / SOP / certified geometry source.
+3. Current production code.
+4. Current tests.
+5. Probe outputs / diagnostics.
+6. Historical notes / stale fixtures.
+
+Passing tests do not override a confirmed mechanical rule.
 
 ## Process
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the spec, and respect any ADRs in the area you're touching.
+1. Run the mandatory pre-spec gate.
+2. Internally map each rule/question to:
+   - authoritative source,
+   - current implementation,
+   - current test coverage,
+   - conflict or gap.
+3. Prefer the highest existing user-path / integration seam for validation.
+4. Write normative requirements only from confirmed product rules.
+5. Put current coordinates, collision values, probe outputs, and stale test expectations under **Current State / RED Evidence**.
+6. Every numeric normative requirement must state why the value is authoritative.
+7. Preserve AI-library traceability in the spec/work order/acceptance evidence.
+8. Re-check that no hypothesis or diagnostic result was accidentally written as a fixed oracle.
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+## Required spec structure
 
-Check with the user that these seams match their expectations.
+### Problem Statement
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+### Confirmed Product Rules
 
-<spec-template>
+### Current State / RED Evidence
 
-## Problem Statement
+### Solution
 
-The problem that the user is facing, from the user's perspective.
+### User Stories
 
-## Solution
+### Implementation Decisions
 
-The solution to the problem, from the user's perspective.
+### Testing Decisions
 
-## User Stories
+### Out of Scope / Open Items
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+### Evidence / Traceability
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+## Failure conditions
 
-<user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
-</user-story-example>
+The spec-writing task is not complete if:
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
-
-## Implementation Decisions
-
-A list of implementation decisions that were made. This can include:
-
-- The modules that will be built/modified
-- The interfaces of those modules that will be modified
-- Technical clarifications from the developer
-- Architectural decisions
-- Schema changes
-- API contracts
-- Specific interactions
-
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
-
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
-
-## Testing Decisions
-
-A list of testing decisions that were made. Include:
-
-- A description of what makes a good test (only test external behavior, not implementation details)
-- Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
-
-## Out of Scope
-
-A description of the things that are out of scope for this spec.
-
-## Further Notes
-
-Any further notes about the feature.
-
-</spec-template>
+- owning code was not read first;
+- relevant AI/SOP rules were not consulted;
+- a passing test was treated as mechanical truth without checking its source;
+- a probe value was turned into a fixed product requirement;
+- a physical face/datum was inferred from Z=0, D/2, bbox center, or renderer origin;
+- an unresolved physical relationship was replaced with an invented datum;
+- a shared semantic term was defined after reading only the current Family;
+- a Family-specific representation/value was mistaken for the global definition;
+- no cross-Family evidence was checked for a term known or suspected to be shared.

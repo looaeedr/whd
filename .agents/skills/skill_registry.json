@@ -3,6 +3,27 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
+      "id": "scan-deep-modules",
+      "keywords": [
+        "掃描深模組",
+        "深模組掃描",
+        "掃描模組",
+        "架構掃描",
+        "deep module scan",
+        "deep modules",
+        "codebase architecture scan"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/掃描深模組/**"
+      ],
+      "required_skills": [
+        "掃描深模組"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md"
+      ]
+    },
+    {
       "id": "phase6-corner-relief-3d",
       "keywords": [
         "corner",

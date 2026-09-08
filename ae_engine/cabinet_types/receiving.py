@@ -99,6 +99,7 @@ def divider_fold_contract(
         "signed_fold_chain": signed,
         "formed_core_depth": float(DIVIDER_FORMED_CORE),
         "core_segment_index": 2,
+        "frame_width_segment_index": 1,
     }
 
 

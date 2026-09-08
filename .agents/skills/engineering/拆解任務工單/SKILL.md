@@ -115,6 +115,31 @@ Publish only the approved breakdown.
 
 Do NOT close or modify a parent issue unless explicitly requested.
 
+### 6.1 GitHub owning Issue publication gate
+
+For a GitHub-backed project, an approved ticket is **not dispatched** until its real GitHub Issue exists and has been read back.
+
+Required sequence:
+
+1. Create one GitHub Issue per approved ticket, blockers first.
+2. Read the tool response using its actual schema; obtain the real `issue_number` and canonical URL.
+3. Read the created Issue back from GitHub and verify title/body/dependencies.
+4. Record the GitHub Issue number/URL in the dispatch state/journal.
+5. Only then may the dispatch skill transition to Implementer.
+
+`.scratch/<feature>/issues/*.md` is permitted as a local mirror, checkpoint, or durable planning artifact, but **it is never the owning tracker item when GitHub is the project tracker**.
+
+The following do **not** count as an owning Issue:
+
+- a T-number in chat;
+- a Markdown ticket file under `.scratch/**`;
+- a work branch;
+- a commit message;
+- a QA workflow;
+- a checkpoint ZIP.
+
+If work is discovered to have started without the owning Issue, create the Issue immediately with a visible **Retroactive provenance / created after work started** note. Include actual branch/commit/run evidence and do not backdate or imply the Issue existed before the work.
+
 ## Ticket Template
 
 ```markdown
@@ -149,3 +174,15 @@ Do NOT close or modify a parent issue unless explicitly requested.
 | "I'll create draft GitHub issues and revise them after approval." | Creating issues is already publishing. Fail closed until both approval gates pass. |
 | "I read the AI Library earlier, so I don't need to cite it in the tickets." | Reading is not traceability. Every ticket must carry exact AI Library references and explicit writeback ownership/None reason. |
 | "The AI Library says X, so it overrides the user's new confirmed spec." | Wrong authority order. Current explicit user-approved requirements win; record the conflict and require AI Library writeback. |
+| "A `.scratch` ticket exists, so GitHub publication can wait." | A local ticket file is only a mirror. In a GitHub-backed project, owning Issues must exist and be read back before dispatch/production work. |
+| "We can add the GitHub Issue after implementation and treat it as if it was always there." | No. If retroactive creation is unavoidable, label it explicitly as retroactive provenance with actual commits/runs; never falsify chronology. |
+
+## Deep-module 掃描來源的 closing ownership
+
+當需求來源是 `掃描深模組`／架構 deepening 候選時，除一般 ticket 欄位外，breakdown 還必須建立終局 ownership：
+
+- 每張施工票仍遵守 **GitHub owning Issue** publication gate。
+- 至少一張 closing/acceptance ticket 必須明列 **AI Library Writeback owner**，負責反讀並更新本次架構 contract、踩坑與 superseded guidance。
+- 至少一張 closing/acceptance ticket 必須明列 **Combined Acceptance owner**，負責跨票 regression、source ownership scan、config invariant、remote QA、cleanup、drift audit 與 integration evidence。
+- AI Library Writeback owner 與 Combined Acceptance owner 可以是同一張票；不可留成「所有票共同負責」或未指定 owner。
+- 掃描 HTML／聊天候選本身不是 tracker item；核准 breakdown 仍必須建立並反讀正式 GitHub Issues 才能派工。

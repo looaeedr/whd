@@ -63,6 +63,7 @@ class BoxBodyDividerPart:
     adjacent_cells: tuple[str, ...]
     model_name: str | None = None
     core_segment_index: int = 3
+    frame_width_segment_index: int | None = None
 
     @property
     def blank_width(self) -> float:
@@ -72,6 +73,53 @@ class BoxBodyDividerPart:
     def blank_height(self) -> float:
         return float(self.span)
 
+
+    @property
+    def physical_geometry_contract(self) -> Mapping[str, object]:
+        """Resolve family fold identity into stable physical semantics."""
+        lengths = tuple(float(value) for value in self.material_lengths)
+        signed = tuple(float(value) for value in self.signed_fold_chain)
+        if len(lengths) != len(signed):
+            raise ValueError("Divider physical contract requires aligned fold chains")
+
+        def segment_record(index, *, role, outside_dimension=None):
+            if index is None:
+                return {"role": role, "available": False}
+            index = int(index)
+            if index < 0 or index >= len(lengths):
+                raise ValueError(f"Divider {role} implementation segment is outside fold chain")
+            start = float(sum(lengths[:index]))
+            end = float(start + lengths[index])
+            return {
+                "role": role,
+                "available": True,
+                "flat_band": (start, end),
+                "material_dimension": float(lengths[index]),
+                "outside_dimension": float(
+                    abs(signed[index]) if outside_dimension is None else outside_dimension
+                ),
+            }
+
+        core = segment_record(
+            self.core_segment_index,
+            role="CORE_PHYSICAL_SEGMENT",
+            outside_dimension=float(self.formed_core_depth),
+        )
+        fw_face = segment_record(
+            self.frame_width_segment_index,
+            role="FW_PHYSICAL_FACE",
+        )
+        return {
+            "core_physical_segment": core,
+            "fw_physical_face": fw_face,
+            "placement_datum": {
+                "role": "FW_PHYSICAL_FACE",
+                "core_orientation": "INWARD",
+                "part_axis": str(self.axis),
+                "boundary_key": str(self.boundary_key),
+            },
+            "manufacturing_resolver": "ae_engine.divider_manufacturing.resolve_divider_final_geometry",
+        }
 
 @dataclass(frozen=True)
 class InnerDoorSharedFrameRole:
@@ -154,6 +202,10 @@ def _part(
         signed = tuple(float(v) for v in family_contract["signed_fold_chain"])
         formed_core = float(family_contract["formed_core_depth"])
         core_segment_index = int(family_contract["core_segment_index"])
+        frame_width_segment_index = (
+            None if family_contract.get("frame_width_segment_index") is None
+            else int(family_contract["frame_width_segment_index"])
+        )
     else:
         formed_core = d - 2.0 * t
         if formed_core <= 0:
@@ -168,6 +220,7 @@ def _part(
             15.0,
         )
         core_segment_index = 3
+        frame_width_segment_index = None
 
     return BoxBodyDividerPart(
         stable_id=divider_stable_id(layout_scope, axis, boundary_key),
@@ -188,6 +241,7 @@ def _part(
         adjacent_cells=tuple(adjacent_cells),
         model_name=(str(model_name).strip() if model_name else None),
         core_segment_index=int(core_segment_index),
+        frame_width_segment_index=frame_width_segment_index,
     )
 
 def derive_box_body_dividers(

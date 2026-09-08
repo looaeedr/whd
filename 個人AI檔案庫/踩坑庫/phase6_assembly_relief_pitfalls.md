@@ -123,3 +123,37 @@
 - `box_body` aggregate 與 physical pieces 不可混為一談。GUI/2D 若只看到 aggregate，會同時造成「多件式看起來只有一件」與 collision source 缺失等假象。
 - Dynamic physical IDs 不得被 legacy label whitelist 過濾；`PART_LABELS` 不是 topology/physical identity authority。
 
+
+
+## 2026-09-08 — Divider relief verified 前必須先有 FW placement certificate
+
+- **事件**：Receiving Divider 在舊 placement 下，即使 FW 成形面沒有與 BoxBody FW 成形面面齊，3D collision solver 仍可算出 cut polygon 並回傳 `verified=True`。這代表 collision replay 自洽不等於 assembly placement 正確。
+- **已驗證防線**：任何 Receiving Divider relief promotion 前，先建立 `DIVIDER_FW_FACE_FLUSH_V1` placement certificate：
+  1. BoxBody `left_side` / `right_side` 的實際 FW physical skins 必須互相一致；
+  2. Divider semantic FW segment 的實際 physical skins 必須與上述 BoxBody FW skins 共面；
+  3. Divider placement 必須保證 FW → core 的方向朝 family `inward_vector`。
+- 上述任一失敗時，solver 必須 fail closed，回 `INVALID_DIVIDER_FW_PLACEMENT`，不得建立 `divider_assembly_relief.verified=True`。
+- **重要**：T48-1 正確 placement 後，某一 fixture 的動態 collision output 約為左右 26 mm；這只是該 fixture 的 runtime evidence，**不是固定截角規格，也不得寫入 Registry 當 oracle**。
+- 舊測試若硬鎖 `1 mm`、`47/26` 或其他單次 probe 數值，應改成驗幾何 invariant：實際干涉存在、動態 cut > 0、對稱 fixture 結果符合對稱、post-solve illegal penetration 歸零、合法 mating contact 保留。
+- T48-2 remote acceptance：run `34168152160`，`13 passed / 0 failed`，`config.ini` SHA256 前後一致。
+
+
+## 2026-09-08 — Combined Acceptance 的舊 numeric oracle / stale fixture 不得反壓 production
+
+- **事件**：T48 第一輪 Combined 已有 167 PASS，但剩 10 FAIL。逐顆分類後，1 顆 Issue40 仍鎖舊 `rigid_delta` 數值、8 顆 collision fixture 沒帶 production 已要求的 canonical BoxBody Fold Profile、1 顆 multi-piece blank fixture 沒帶現行 `canonical_strip_render_data`。
+- **判定規則**：production 已有 fail-closed contract 時，舊 fixture 缺必要 authority 不是理由去放寬 production；probe-derived numeric delta 也不是產品 oracle。
+- **正確修法**：
+  1. semantic datum 測試驗證 `anchor_after - anchor_before == rigid_delta` 以及 post-relief center + mother datum 的幾何關係，不鎖某次 world/probe 數字；
+  2. collision fixture 必須供應 canonical BoxBody Fold Profile，不能靠缺省舊路徑；
+  3. multi-piece fixture 必須完整符合目前 render-data contract，不得用舊 constructor 形狀假裝 production regression。
+- **驗證證據**：只重跑第一輪 10 個失敗 node，run `34168772770` 得到 **10 PASS / 0 FAIL**，且 `config.ini` SHA256 前後一致。
+- **永久防線**：Combined failure 先分類 requirement regression / production regression / stale test oracle / stale fixture；只有前兩類才修改 production。不得為了讓歷史測試回綠而撤掉 canonical geometry 的 fail-closed 要求。
+
+## 2026-09-08 — Divider Physical Geometry Contract：sink 不得重新解 Fold/FW/relief
+
+- **Divider Physical Geometry Contract** 收斂 family Fold Chain、core physical segment、FW physical face、placement datum、canonical relief 與 final material；下游只看 resolved result。
+- `frame_width_segment_index` 可作 Divider module 內的 implementation detail，但 2D / 3D / Assembly / DXF 不得把它當領域 oracle，也不得以 `FW=29`、固定 segment index、world Z、bbox center 或單次 probe 值猜物理關係。
+- FW 的正式 placement authority 是 physical face face-flush；relief promotion 必須先有合法 placement certificate，再做 collision/backprojection/refold verification。
+- `中隔.dxf` 只供固定孔／既有特徵；外框不是 final relief contour Source of Truth。
+- resolved geometry sinks 共用同一 final material。Renderer / exporter 若為了「畫對」而另算 CUTTING 或截角，就是第二 geometry path。
+- Save 只存 authoritative state；Reload 重新 canonical solve。derived `final_geometry`、probe geometry 或 render cache 不得持久化成第二份真值。

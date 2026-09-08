@@ -1,0 +1,23 @@
+# DM1 #51 Checkpoint
+
+- task id: `DIVIDER-FW-DEEP-MODULE-V1`
+- 工單 id: `#51 / DM1`
+- 目前角色: `[總控審查：ACCEPT DM1 / #51]`
+- repository: `looaeedr/whd`
+- branch: `work/dm1-divider-physical-contract`
+- base: `cleanup/2d-3d-sync@11192e3ac47251e99fe1d2760031dada96fde227`
+- final RED code/test head: `4c234e4c726895efb488051f18628ceed77625ec`
+- final evidence journal commit: `766dcb5ffc8e7f493b42d64aa76d1601ed9ebe77`
+- 完整呼叫鏈: `receiving.py → policy.py → door_dividers.py → manufacturing_api.py → _phase6_resolve_manufacturing_geometry → canonical render_data → 2D / single 3D / assembly 3D / DXF / project snapshot → write_project → main-GUI reload → re-solve`。
+- 歷史真實 sink acceptance: `d2e7cb5a38c69e0b414d1e337f6d971c523555a8`；其 T48-3 測試曾逐段驗 2D、3D、assembly、DXF、save/reload。同 commit 到 final RED head 的 compare 顯示相關 production files 未變。
+- valid changed-file preflight: `34223017421 @ 3c9f04164c07259348766f0a39e377a846223490` → terminal SUCCESS。
+- final RED-head preflight: `34223445675 @ 4c234e4c726895efb488051f18628ceed77625ec`, job `102051763622` → terminal SUCCESS。
+- revoked harness: `34223151897 @ c62bd29daf97f7a3a91b6f912b13f16a35d909d0`, job `102050798345` → `INVALID_HARNESS / REVOKED`；缺 `ezdxf`，不得引用為 requirement RED。
+- final valid requirement RED: `34223445690 @ 4c234e4c726895efb488051f18628ceed77625ec`, job `102051763633` → pytest 正常執行，`4 failed in 1.18s`。
+- RED guards: semantic physical contract required fields；禁止 raw segment index / family name / magic FW；FW `29→37`；family topology `4 segments/index 1 → 5 segments/index 2` 仍要求同 sink interface。
+- production drift audit: `11192e3... → 4c234e4...` 只有 workflow / scratch evidence / DM1 tests；production files 0 差異。
+- #47–#50: 本工單未修改 production，未使其 acceptance evidence 失效。
+- AI Library / Skill: 正式回寫依 #51 scope 延後至 DM5。
+- DM1 QA: ACCEPT。
+- next legal phase: DM2 / GREEN implementation；DM1 不再改 production。
+- resume rule: 永久禁止引用 `34223151897`；final RED 只認 `34223445690 / 4c234e4... / job 102051763633`。

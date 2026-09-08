@@ -148,8 +148,19 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     assert relief["verified"] is True
     assert relief["trust_level"] == "PROVISIONAL_3D"
     assert relief["core_start"] == pytest.approx(41.0)
-    assert dict(relief["cut_depths"])["box_body:left_side"] == pytest.approx(1.0, abs=1e-5)
-    assert dict(relief["cut_depths"])["box_body:right_side"] == pytest.approx(1.0, abs=1e-5)
+    cut_depths = dict(relief["cut_depths"])
+    assert cut_depths["box_body:left_side"] > 0.0
+    assert cut_depths["box_body:right_side"] > 0.0
+    # This fixture is left/right symmetric, so the dynamic collision result
+    # must also be symmetric. Do not hard-code the case output in millimetres.
+    assert cut_depths["box_body:left_side"] == pytest.approx(
+        cut_depths["box_body:right_side"], abs=1e-4
+    )
+    placement = dict(dict(relief["evidence"]).get("placement") or {})
+    assert placement.get("contract") == "DIVIDER_FW_FACE_FLUSH_V1"
+    assert placement.get("fw_face_flush") is True
+    assert placement.get("core_inward") is True
+    assert placement.get("valid") is True
     projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
     expected_pre_pairs = sum(int(dict(row)["pair_count"]) for row in projection_by_source.values())
     assert relief["pre_pair_count"] == expected_pre_pairs

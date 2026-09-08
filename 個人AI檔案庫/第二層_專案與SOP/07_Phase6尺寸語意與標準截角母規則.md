@@ -1408,3 +1408,288 @@ STANDARD 是死的母體。
 # 21. 一句話 Source of Truth
 
 > **先分清楚整體包外、板件成形包外與料尺寸；料尺寸只由實際 Fold Topology 轉換；STANDARD 永遠截到最內部折彎線且永不改；INSERT / OVERLAY / INSERT_OVERLAY / WRAP 全部只能在 STANDARD 的局部 band 上用「進內緣 / 面齊 / 留肉 / 多切」語意做 delta；展開尺寸與 BEND 線只讀同一份料尺寸鏈。**
+
+
+---
+
+# 22. 規格書中的數值證據邊界（2026-09-08）
+
+## 22.1 同數值不代表 3D 成形面已經對齊
+
+Receiving 已確認：
+
+- 操作員 `FW` 是正面框寬的成品包外尺寸；
+- 預設 `FW=29`；
+- 中隔操作員尺寸串 `18 / FW / 106 / 17` 的第二段使用同一 FW 尺寸語意。
+
+但「箱身 FW=29」與「中隔 FW=29」只證明**尺寸語意與數值來源相同**。
+
+若產品要求兩者面齊，assembly contract 還必須明確指出：
+
+1. 箱身 FW 的哪一個折後 physical face；
+2. 中隔 FW 的哪一個折後 physical face；
+3. 兩者的 flush / mating relation；
+4. 由這個 face relation 推導 world placement。
+
+禁止只靠 `Z=0`、`D/2`、bbox center、renderer origin 或「兩個數字一樣」宣告面齊。
+
+## 22.2 Probe 數值不得當 CUTTING / placement oracle
+
+任何由當次程式執行得到的：
+
+- world coordinate；
+- collision depth；
+- bbox；
+- penetration band；
+- solver offset；
+
+若沒有獨立的產品／機械 Source of Truth，只能列為 **RED / diagnostic evidence**。
+
+本次曾出現的 `174`、`121`、`47/26` 即屬此類；不得直接寫成中隔正式 placement 或截角規格。
+
+## 22.3 正確順序
+
+```text
+先確認 physical face relation
+-> 確認尺寸層級（包外 / 成形 / 料）
+-> 建立 assembly datum
+-> 推導 placement
+-> 再跑 collision / relief
+-> 最後把數值結果當驗證證據
+```
+
+不得反過來：
+
+```text
+先跑出一個數字
+-> 把數字寫進測試
+-> 再把測試當產品規格證據
+```
+
+
+---
+
+# 23. 共用尺寸語意的 Scope Gate（2026-09-08）
+
+## 23.1 先判斷 Scope，再定義名詞
+
+任何尺寸／語意出現在單一 Family 的任務中，都不能因此直接視為 Family 專屬。
+
+對下列類型：
+
+- `FW`
+- `W/H/D`
+- `T`
+- CornerType / Assembly Intent
+- outside / formed / material dimension
+- Fold Profile semantic key
+
+必須先查：
+
+```text
+shared/global definition
+→ each Family adapter / representation
+→ each part consumer
+→ Fold/material conversion
+→ 2D/3D/DXF
+→ save/reload
+→ cross-Family tests/fixtures
+```
+
+再決定它是：
+
+- 全域共用語意；
+- Family-specific policy；
+- 單一板件局部語意。
+
+## 23.2 FW 的 scope 已確認不是 Receiving 專屬
+
+`FW` 的全域語意是：
+
+> **Frame Width / 邊框寬度／框寬，是箱體正面門框的成品幾何基準尺寸。**
+
+Receiving 與 Vault/金庫型都使用 FW。
+
+不同的是**dimension space / representation**，不是 FW 的物理語意本身：
+
+```text
+Receiving:
+  operator FW = 包外 29
+  T=2 時對應 material = 25
+
+Vault / 金庫型既有路徑:
+  stored / engine FW material = 25
+  T=2、兩側折彎時 formed occupation = 29
+```
+
+因此禁止寫：
+
+```text
+Receiving FW 的正式定義 = ...
+```
+
+來取代全域定義。
+
+正確文件結構應為：
+
+```text
+全系統 FW 正式定義
+→ 受電箱 3D 輸入區的 FW 欄位
+→ 該欄位使用的 dimension representation / material 轉換
+→ Vault / 金庫型對應 FW 欄位與 representation
+→ 各板件如何消費 FW
+```
+
+注意：**「3D 輸入區」是 UI location，不是「FW 輸入語意」。**
+
+## 23.3 Family value 不能反推 global definition
+
+即使目前某 Family 有：
+
+```text
+FW = 29
+```
+
+也只能先說：
+
+```text
+此 Family 此 dimension space 的 FW value = 29
+```
+
+不能直接推成：
+
+```text
+FW 就是 Receiving 的 29 mm 包外
+```
+
+同理，看到 Vault `FW=25` 也不能推成「FW 正式定義就是料 25」。
+
+## 23.4 規格前最低交叉驗證
+
+若名詞已知／疑似跨 Family，共用規格至少要有：
+
+1. shared/global source；
+2. 當前 Family；
+3. 另一個 Family 的實作或測試；
+4. dimension-space 對照；
+5. consumer chain 對照。
+
+少任一項，都只能標成「局部查讀」，不得宣稱「完整 Source of Truth 已確認」。
+
+
+---
+
+# 24. UI 輸入位置與尺寸語意必須分離（2026-09-08）
+
+## 24.1 受電箱 FW 是在 3D 輸入區操作
+
+受電箱的 FW 欄位位於**3D 輸入區**。
+
+這句話只描述：
+
+```text
+UI location = 3D 輸入區
+field = FW
+```
+
+不代表存在一個叫做「把受電箱 3D FW 欄位誤當成另一套語意」的新 domain semantic。
+
+## 24.2 FW 語意仍只有全域 Frame Width
+
+```text
+semantic = FW / Frame Width / 框寬
+```
+
+UI 可以有：
+
+- 3D 輸入區；
+- 設定面板；
+- Fold Editor；
+- 其他操作入口。
+
+但 UI surface 不會因此建立新的 FW semantic。
+
+## 24.3 正確描述方式
+
+正確：
+
+```text
+受電箱 3D 輸入區的 FW 欄位目前輸入/顯示 29。
+該值在目前受電箱 dimension representation 中為包外值；
+後續再依實際 topology 轉成 material。
+```
+
+錯誤：
+
+```text
+把「3D 輸入區的 FW=29」誤寫成另一套 FW 定義
+```
+
+因為前者把 **UI location / value / dimension space** 分開，後者錯把 UI 入口當成 domain semantic。
+
+
+---
+
+# 25. Receiving Divider FW 面齊的已驗證 placement 規則（2026-09-08）
+
+## 25.1 已證明的實體關係
+
+Receiving Divider 的四段成形尺寸仍是：
+
+```text
+18 / FW / 106 / 17
+```
+
+其中第二段是全系統同一個 `FW / Frame Width`。
+
+T48-1 不再以 `Z=0`、`D/2`、`106/2` 或 probe world coordinate 定位中隔，而是直接以**折後實體幾何**建立 placement：
+
+1. 從 Receiving Divider family Fold Contract 取得哪一段是 FW。
+2. 從實際 Divider Fold Profile 求 FW segment 與 core segment 的折後位置。
+3. 從 family Assembly Coordinate Contract 取得 Box Body 正面 physical skin 與 `inward_vector`。
+4. 由 Box Body 正面 skin + T 求其鈑金中面。
+5. 令 Divider 的 FW 鈑金中面與 Box Body FW 鈑金中面重合。
+6. 同時要求「從 Divider FW segment 走向 core segment」的世界方向必須與 family `inward_vector` 同向。
+
+因此 placement 同時包含：
+
+```text
+FACE FLUSH
++
+CORE POINTS INWARD
+```
+
+只做到其中一個都不算正確。
+
+## 25.2 為什麼不能只平移
+
+若只把兩個 FW 面移到同一平面、卻沒有檢查 core 的方向，中隔仍可能從正面 FW 面往箱外延伸。
+
+因此正式規則不是：
+
+```text
+找到一個 Z 讓 FW 數字看起來相同
+```
+
+而是：
+
+```text
+actual Divider FW folded face
+  mate to
+actual Box Body FW folded face
+AND
+Divider FW -> core direction == family inward_vector
+```
+
+## 25.3 驗收方式
+
+正式 acceptance 必須直接量實體 skin / plane：
+
+- Box Body 左右 FW physical skins 必須互相一致；
+- Divider FW physical skins 必須與上述 Box Body FW skins 共面；
+- 修改 D、FW、T 後重新推導，仍必須共面；
+- Divider core 必須留在箱體內側，而不是越過正面往外伸。
+
+任何當次 world coordinate（例如診斷輸出的 skin plane 數字或 placement offset）都只屬測試 evidence，**不得寫成產品固定值**。
+
+T48-1 remote acceptance：run `34167721816`，`18 passed / 0 failed`，且 `config.ini` SHA256 前後一致。

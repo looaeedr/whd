@@ -210,6 +210,9 @@ def write_project(path, payload):
     materialized["snapshot"] = _normalize_authoritative_door_state(
         migrate_legacy_snapshot_joints(dict(payload.get("snapshot") or {}))
     )
+    # Final geometry is a derived diagnostic/render cache, never project truth.
+    # Persist only authoritative state; Reload must deterministically re-solve it.
+    materialized["final_geometry"] = {}
     target = Path(path)
     if target.suffix.lower() != PROJECT_EXTENSION:
         target = target.with_suffix(PROJECT_EXTENSION)
@@ -230,6 +233,8 @@ def read_project(path):
     decoded["snapshot"] = _normalize_authoritative_door_state(
         migrate_legacy_snapshot_joints(decoded["snapshot"])
     )
+    # Ignore legacy files that persisted derived geometry/probe evidence.
+    decoded["final_geometry"] = {}
     return decoded
 
 

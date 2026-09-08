@@ -69,8 +69,11 @@ def test_r06_divider_guard_stays_authoritative_and_repeatable():
     second = resolve_assembly_placement(_snapshot(), stable_id)
     assert first == second
     assert first.relationship == "SHARED_STRUCTURAL_DIVIDER"
-    assert first.placement_kind == "divider_horizontal"
-    assert first.world_offset == pytest.approx((0.0, -300.0, 0.0))
+    assert first.placement_kind == "divider_horizontal_inward"
+    assert first.world_offset[:2] == pytest.approx((0.0, -300.0))
+    # Depth is geometry-derived from the shared FW formed-face relation.
+    # Do not lock a world-Z probe value here; Issue48 verifies the real skins.
+    assert first.world_offset[2] != pytest.approx(0.0)
 
 
 def test_unknown_receiving_derived_part_must_fail_closed_not_origin_fallback():
@@ -91,7 +94,7 @@ def test_workspace_stores_all_supported_receiving_placements():
     stored = ws.resolve_and_store_assembly_placements(_snapshot(), resolver=resolve_assembly_placement)
     for key in parts[1:]:
         assert key in stored
-        assert stored[key]["world_offset"] != [0.0, 0.0, 0.0] or key.startswith("box_body:divider:")
+        assert stored[key]["world_offset"] != [0.0, 0.0, 0.0]
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
