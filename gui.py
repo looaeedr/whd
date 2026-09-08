@@ -1703,27 +1703,10 @@ class BoxCalculatorGUI:
         """Return the same authoritative final geometry used by 2D consumers."""
         key = str(part_key or "")
         if key.startswith("box_body:divider:"):
-            from ae_engine.door_dividers import derive_box_body_dividers
-
-            data = dict(payload or {})
-            columns = tuple(
-                (float(row[0]), tuple(float(value) for value in row[1]))
-                for row in tuple(data.get("door_layout_columns") or ())
+            raise RuntimeError(
+                "Divider scene data must come from ResolvedManufacturingGeometry; "
+                "direct nominal Divider rebuild is forbidden"
             )
-            if not columns:
-                raise ValueError(f"中隔缺少 authoritative multi-door topology: {key}")
-            dividers = derive_box_body_dividers(
-                columns,
-                depth=float(data.get("d", ae.D)),
-                thickness=float(data.get("t", ae.T)),
-                layout_scope=str(data.get("door_layout_scope") or "main").strip() or "main",
-                handle_edges=dict(data.get("door_handle_edges") or {}),
-                model_name=str(data.get("model") or "").strip() or None,
-            )
-            divider = next((item for item in dividers if item.stable_id == key), None)
-            if divider is None:
-                raise ValueError(f"中隔 stable_id 不存在於 authoritative topology: {key}")
-            return manufacturing_api.build_box_body_divider_render_data(divider)
 
         if key.startswith("inner_door:") and key.endswith(":panel"):
             data = dict(payload or {})
