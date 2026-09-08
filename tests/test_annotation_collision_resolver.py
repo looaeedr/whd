@@ -186,3 +186,45 @@ def test_dimension_text_avoids_other_annotation_text():
     assert moved.insert.x != 50.0
     assert note.insert == Vec2(50.0, -15.0)
     assert result.unresolved_collisions == ()
+
+
+def test_dimension_text_avoids_other_dimension_line_but_not_its_own():
+    layout = _resolver_module()
+    plan = AnnotationPlan(
+        overall_dimensions=(
+            LinearDimensionAnnotation(
+                axis="x",
+                value=100.0,
+                start=Vec2(0.0, 0.0),
+                end=Vec2(100.0, 0.0),
+                label="100",
+            ),
+            LinearDimensionAnnotation(
+                axis="y",
+                value=60.0,
+                start=Vec2(0.0, 0.0),
+                end=Vec2(0.0, 60.0),
+                label="60",
+            ),
+        ),
+        feature_callouts=(),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+            LinePrimitive(Vec2(50.0, -20.0), Vec2(50.0, -10.0), "DIMENSION"),
+            TextPrimitive("60", Vec2(20.0, 30.0), "DIMENSION", 5.0, 5),
+        ),
+        diagnostics=(),
+    )
+
+    result = layout.resolve_annotation_collisions(plan, step=5.0)
+
+    moved = next(
+        p for p in result.primitives
+        if isinstance(p, TextPrimitive) and p.layer == "DIMENSION" and p.text == "100"
+    )
+    assert moved.insert.y == -15.0
+    assert moved.insert.x != 50.0
+    assert result.unresolved_collisions == ()
