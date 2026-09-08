@@ -1,0 +1,25 @@
+name: Issue63 Phase6 Changed-File Preflight
+on:
+  push:
+    branches: [fix/receiving-multipart-divider-geometry]
+    paths:
+      - ".github/workflows/issue63-preflight.yml"
+  workflow_dispatch:
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Phase6 knowledge preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "Issue63 Receiving multipart BoxBody 3D physical input contexts Divider relief backprojection topology fixed-hole baseline orientation regression" \
+            --changed-file fold_designer_bridge.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file ae_engine/assembly_collision.py \
+            --changed-file ae_engine/divider_manufacturing.py \
+            --evidence .scratch/issue63/phase6_preflight_evidence.md
