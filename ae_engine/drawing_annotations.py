@@ -21,6 +21,15 @@ def _fmt(value: float) -> str:
     return f"{value:.6f}".rstrip("0").rstrip(".")
 
 
+def _fmt_radius(value: float) -> str:
+    """Format a measured radius without exposing sub-micron fit noise."""
+    raw = float(value)
+    nearest = round(raw)
+    if abs(raw - nearest) <= max(1e-4, abs(raw) * 1e-6):
+        return str(int(nearest))
+    return _fmt(raw)
+
+
 @dataclass(frozen=True)
 class LinearDimensionAnnotation:
     axis: str
@@ -348,7 +357,7 @@ def _radius_callouts(material) -> tuple[RadiusCallout, ...]:
             radius=float(radius),
             center=center,
             anchor=Vec2(float(mid[0]), float(mid[1])),
-            label=f"R{_fmt(radius)}",
+            label=f"R{_fmt_radius(radius)}",
         ))
 
     return tuple(sorted(
