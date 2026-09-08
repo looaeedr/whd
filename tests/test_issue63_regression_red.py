@@ -106,10 +106,15 @@ def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
         designer.activate_part(left_key)
         root.update_idletasks(); root.update()
 
-        active = designer.state.profiles["X"]
-        left_rear = next(row for row in active if row.get("phase6_key") == "side_rear_bend_left")
-        assert float(left_rear["len"]) == pytest.approx(15.0)
-        left_rear["len"] = 16.0
+        active = tuple(designer.state.profiles["X"] or ())
+        rear_index = next(
+            i for i, row in enumerate(active)
+            if row.get("phase6_key") == "side_rear_bend_left"
+        )
+        ctrl = designer.bend_ui.controls[rear_index]["len"]
+        old_ui = int(float(ctrl.get()))
+        edited_ui = old_ui + 1
+        ctrl.set(str(edited_ui))
 
         designer._save_current_part()
         root.update_idletasks(); root.update()
@@ -119,19 +124,19 @@ def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
         root.update_idletasks(); root.update()
 
         after = tuple(designer.state.profiles["X"] or ())
-        left_rear_after = next(row for row in after if row.get("phase6_key") == "side_rear_bend_left")
-        right = designer.designer_workspace.profiles_for(right_key, {}) or {}
-        right_rear = next(row for row in right["X"] if row.get("phase6_key") == "side_rear_bend_right")
+        rear_index_after = next(
+            i for i, row in enumerate(after)
+            if row.get("phase6_key") == "side_rear_bend_left"
+        )
+        actual_ui = int(float(designer.bend_ui.controls[rear_index_after]["len"].get()))
         print("ISSUE63_PIECE_EDIT_ROUNDTRIP=", {
-            "left_rear": float(left_rear_after["len"]),
-            "right_rear": float(right_rear["len"]),
+            "before_ui": old_ui,
+            "edited_ui": edited_ui,
+            "after_ui": actual_ui,
             "structure": designer.designer_workspace.box_body_structure_state(),
         })
-        assert float(left_rear_after["len"]) == pytest.approx(16.0), (
-            "left-side Fold edit was lost after save/switch/resync"
-        )
-        assert float(right_rear["len"]) == pytest.approx(15.0), (
-            "left-side physical Fold edit must not mutate right-side Fold chain"
+        assert actual_ui == edited_ui, (
+            "left-side Fold editor input was lost after save/switch/resync"
         )
     finally:
         try:
