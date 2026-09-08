@@ -275,3 +275,46 @@ def test_issue63_diagnose_divider_relief_backprojection_shape():
     })
     assert evidence["box_body:left_side"]["eligible_count"] > 0
     assert evidence["box_body:right_side"]["eligible_count"] > 0
+
+
+def test_issue63_diagnose_divider_projection_hulls():
+    from shapely.geometry import MultiPoint
+    from ae_engine.assembly_collision import (
+        project_joint_interference_to_relief_owner,
+        _divider_front_fold_segments,
+    )
+    from tests.test_issue39_divider_relief import _divider_insert_joint
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), (snap["w"], snap["h"], snap["d"]), snap["t"]
+    )
+    joint = _divider_insert_joint(divider.stable_id)
+    core_start = float(
+        divider_part.render_data.metadata["physical_geometry_contract"]
+        ["core_physical_segment"]["flat_band"][0]
+    )
+    result = {}
+    for source_key in ("box_body:left_side", "box_body:right_side"):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            source_geometry_key=source_key,
+        )
+        front = _divider_front_fold_segments(projected.projection, core_start=core_start)
+        pts = [(float(v[0]), float(v[1])) for seg in front for v in seg]
+        hull = MultiPoint(pts).convex_hull
+        result[source_key] = {
+            "hull_area": float(hull.area),
+            "hull_coords": [
+                (round(float(x), 6), round(float(y), 6))
+                for x, y in getattr(hull, "exterior", hull).coords
+            ],
+            "point_count": len(pts),
+        }
+    print("ISSUE63_PROJECTION_HULLS=", result)
+    assert all(item["hull_area"] > 0 for item in result.values())
