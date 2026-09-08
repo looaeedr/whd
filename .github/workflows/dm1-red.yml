@@ -17,6 +17,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install focused test dependencies
-        run: python -m pip install --disable-pip-version-check pytest shapely
+        run: python -m pip install --disable-pip-version-check pytest shapely ezdxf
       - name: Run DM1 RED guards
         run: pytest -q tests/test_dm1_divider_physical_contract.py
