@@ -146,6 +146,57 @@ def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
             pass
         root.destroy()
 
+def test_issue63_divider_baseline_holes_preserve_physical_edge_offsets_not_centered_envelope():
+    from pathlib import Path
+    import ezdxf
+
+    snap = _snapshot()
+    divider = derive_box_body_dividers(
+        tuple((float(w), tuple(float(h) for h in hs)) for w, hs in snap["door_layout_columns"]),
+        depth=snap["d"], thickness=snap["t"],
+        layout_scope=snap["door_layout_scope"], handle_edges={},
+        model_name="受電箱", frame_width=snap["fw"],
+    )[0]
+    render = build_box_body_divider_render_data(
+        divider, context=ManufacturingContext(resource_root=Path.cwd())
+    )
+
+    doc = ezdxf.readfile(Path("基準檔") / "金庫型" / "中隔.dxf")
+    msp = doc.modelspace()
+    from ezdxf import bbox as ezdxf_bbox
+    ext = ezdxf_bbox.extents(msp)
+    source_min_y = float(ext.extmin.y)
+    source_max_x = float(ext.extmax.x)
+
+    source = list(msp.query("CIRCLE"))
+    mapped = [
+        p for p in render.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and str(getattr(p, "source_type", "")) == "baseline_divider_hole"
+    ]
+    assert len(mapped) == len(source) == 6
+
+    actual = []
+    expected = []
+    for entity, primitive in zip(source, mapped):
+        cx = float(entity.dxf.center.x)
+        cy = float(entity.dxf.center.y)
+        exp = (
+            cy - source_min_y,
+            source_max_x - cx,
+        )
+        got = (float(primitive.center.x), float(primitive.center.y))
+        expected.append(exp)
+        actual.append(got)
+        assert got == pytest.approx(exp), (
+            "baseline fixed holes must retain their physical edge offsets after "
+            "clockwise rotation; centering the old 596-mm envelope inside a wider "
+            "Divider span moves every fixed hole",
+            {"source": (cx, cy), "expected": exp, "actual": got},
+        )
+    print("ISSUE63_HOLE_EDGE_DATUM=", {"expected": expected, "actual": actual})
+
+
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
     snap = _snapshot()
     divider = derive_box_body_dividers(
