@@ -14,6 +14,7 @@ from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.manufacturing_api import build_box_body_divider_render_data
 from ae_engine.sheetmetal_drawing import CirclePrimitive
 from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+from tests.test_issue40_divider_6p4_shared_datum import _solved
 import fold_designer_bridge as bridge
 
 
