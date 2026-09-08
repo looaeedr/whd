@@ -6,6 +6,8 @@ on:
       - feat/engineering-drawing-dxf-qa
     paths:
       - tests/test_engineering_drawing_integration.py
+      - tests/test_annotation_collision_resolver.py
+      - tests/test_drawing_annotations.py
       - ae_engine/engineering_drawing.py
       - ae_engine/display_dimensions.py
       - ae_engine/drawing_annotations.py
@@ -42,7 +44,7 @@ jobs:
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
           python -m py_compile ae_engine/drawing_annotations.py ae_engine/drawing_annotation_layout.py ae_engine/engineering_drawing.py ae_engine/display_dimensions.py phase6_final_scene_view.py fold_designer_bridge.py gui.py
-          pytest -q tests/test_engineering_drawing_integration.py
+          pytest -q tests/test_drawing_annotations.py tests/test_annotation_collision_resolver.py tests/test_engineering_drawing_integration.py
           after="$(sha256sum config.ini | awk '{print $1}')"
           test "$before" = "$after"
           git diff --exit-code -- config.ini
