@@ -1,0 +1,96 @@
+name: DM4 Divider Resolved Sinks Acceptance
+on:
+  push:
+    branches: [work/dm4-divider-resolved-sinks]
+    paths:
+      - gui.py
+      - fold_designer_bridge.py
+      - phase6_final_scene_view.py
+      - phase6_project_file.py
+      - ae_engine/manufacturing_api.py
+      - ae_engine/divider_manufacturing.py
+      - tests/test_dm4_divider_resolved_sinks.py
+      - .github/workflows/dm4-acceptance.yml
+  workflow_dispatch:
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib -r requirements.txt
+      - name: Compile sink boundary
+        run: |
+          python -m py_compile \
+            gui.py \
+            fold_designer_bridge.py \
+            phase6_final_scene_view.py \
+            phase6_project_file.py \
+            ae_engine/manufacturing_api.py \
+            ae_engine/divider_manufacturing.py
+      - name: Divider sink behavior acceptance
+        run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue48_receiving_fw_flush_red.py \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_phase6_t10_project_authority.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_canonical_unfolded_blank_info.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CONFIG_BEFORE=$before"
+          echo "CONFIG_AFTER=$after"
+          test "$before" = "$after"
+      - name: Source ownership scan
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          gui = Path("gui.py").read_text(encoding="utf-8")
+          tree = ast.parse(gui)
+          fn = next(
+              node for node in ast.walk(tree)
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+              and node.name == "_query_fold_designer_render_data"
+          )
+          source = ast.get_source_segment(gui, fn) or ""
+          assert "derive_box_body_dividers" not in source
+          assert "build_box_body_divider_render_data" not in source
+          assert "ResolvedManufacturingGeometry" in source
+
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          assert 'key.startswith("box_body:divider:")' in bridge
+          assert "resolved.part(key).render_data" in bridge
+          assert "resolve_divider_final_geometry" in bridge
+          assert "build_divider_front_fold_relief_candidate(" not in bridge
+          assert "verify_divider_front_fold_relief(" not in bridge
+          assert "_phase6_divider_fw_placement_evidence(" not in bridge
+
+          view = Path("phase6_final_scene_view.py").read_text(encoding="utf-8")
+          for forbidden in (
+              "derive_box_body_dividers",
+              "frame_width_segment_index",
+              "build_divider_front_fold_relief_candidate",
+              "verify_divider_front_fold_relief",
+          ):
+              assert forbidden not in view, forbidden
+
+          project = Path("phase6_project_file.py").read_text(encoding="utf-8")
+          assert '"divider_parts"' in project
+          assert "_TRANSIENT_DERIVED_SNAPSHOT_KEYS" in project
+
+          manufacturing = Path("ae_engine/manufacturing_api.py").read_text(encoding="utf-8")
+          assert "save_resolved_manufacturing_geometry_dxf" in manufacturing
+          marker = manufacturing.index("def save_resolved_manufacturing_geometry_dxf(")
+          sink = manufacturing[marker:manufacturing.find("\ndef ", marker + 10)]
+          assert "build_box_body_divider_render_data" not in sink
+          assert "derive_box_body_dividers" not in sink
+          PY
