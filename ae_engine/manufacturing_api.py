@@ -1804,12 +1804,14 @@ def build_box_body_divider_render_data(
         source_bounds = ezdxf_bbox.extents(msp)
         if source_bounds.has_data:
             source_min_x = float(source_bounds.extmin.x)
+            source_max_x = float(source_bounds.extmax.x)
             source_min_y = float(source_bounds.extmin.y)
-            source_w = float(source_bounds.extmax.x) - source_min_x
+            source_w = source_max_x - source_min_x
             source_h = float(source_bounds.extmax.y) - source_min_y
             # Baseline long X axis maps to Divider span Y; baseline short Y
-            # axis maps to the fold-chain X width. Center the unscaled source
-            # envelope so every fixed hole remains datum-neutral.
+            # axis maps to fold-chain X.  This is a real clockwise 90-degree
+            # rigid rotation, not the old X/Y swap reflection.  Center only the
+            # translated unscaled source envelope; preserve hole handedness.
             offset_x = (float(chain.total_width) - source_h) / 2.0
             offset_y = (float(chain.height) - source_w) / 2.0
             for index, entity in enumerate(msp.query("CIRCLE")):
@@ -1820,7 +1822,7 @@ def build_box_body_divider_render_data(
                 scene.add(CirclePrimitive(
                     center=Vec2(
                         offset_x + (cy - source_min_y),
-                        offset_y + (cx - source_min_x),
+                        offset_y + (source_max_x - cx),
                     ),
                     radius=float(entity.dxf.radius),
                     layer="CUTTING",
