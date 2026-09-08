@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from math import copysign
 
+import ezdxf
 import pytest
+from shapely.geometry import Polygon
 
 from ae_engine.contracts import ManufacturingContext
 from ae_engine.door_dividers import derive_box_body_dividers
@@ -245,9 +248,6 @@ def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
         root.destroy()
 
 def test_issue63_divider_baseline_holes_preserve_physical_edge_offsets_not_centered_envelope():
-    from pathlib import Path
-    import ezdxf
-from shapely.geometry import Polygon
 
     snap = _snapshot()
     divider = derive_box_body_dividers(
