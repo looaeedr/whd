@@ -7,6 +7,7 @@
 
 READ_SKILL: phase6-release-packaging
 READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: tdd
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: release_required_artifacts.json
@@ -17,7 +18,11 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 - explicit ban on pytest expected/tolerance feeding production: false
 - explicit ban on validation measurement backfeed: false
 
+## Scope expansion
+- Added general TDD authority boundary after locating the project-wide tdd Skill.
+
 ## Intended files
+- .agents/skills/engineering/tdd/SKILL.md
 - .agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md
 - 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 - 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
