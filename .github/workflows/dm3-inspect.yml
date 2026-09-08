@@ -1,0 +1,23 @@
+name: DM3 Inspect Relief Seam
+on:
+  push:
+    branches: [work/dm3-divider-canonical-relief]
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print divider relief functions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('fold_designer_bridge.py')
+          s=p.read_text(encoding='utf-8').splitlines()
+          needles=['def _phase6_divider_fw_placement_evidence','def _phase6_divider_relief_core_start','build_divider_front_fold_relief_candidate(','verify_divider_front_fold_relief(']
+          hits=[]
+          for i,line in enumerate(s,1):
+              if any(n in line for n in needles): hits.append(i)
+          print('HITS',hits)
+          lo=max(1,min(hits)-20); hi=min(len(s),max(hits)+180)
+          for i in range(lo,hi+1): print(f'{i:05d}: {s[i-1]}')
+          PY
