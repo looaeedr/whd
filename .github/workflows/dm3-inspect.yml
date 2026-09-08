@@ -1,25 +1,52 @@
-name: DM3 Divider Relief Regression
+name: DM3 T48 Acceptance
 on:
   push:
     branches: [work/dm3-divider-canonical-relief]
 jobs:
-  regression:
+  t48:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install regression dependencies
-        run: python -m pip install -q pytest shapely numpy matplotlib ezdxf
-      - name: Discover authoritative Divider relief tests
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib -r requirements.txt
+      - name: Compile DM3 production
+        run: python -m py_compile ae_engine/divider_manufacturing.py ae_engine/door_dividers.py fold_designer_bridge.py
+      - name: Exact T48-2 acceptance
         run: |
-          echo '=== MATCHES ==='
-          grep -RniE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' || true
-          echo '=== FILES ==='
-          grep -RlE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' | sort -u || true
-      - name: Run discovered regression files
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue48_receiving_fw_flush_red.py::test_r2_divider_fw_physical_skins_are_flush_with_both_box_body_fw_skins \
+            tests/test_issue48_receiving_fw_flush_red.py::test_r2b_fw_face_flush_survives_dimension_changes \
+            tests/test_issue48_receiving_fw_flush_red.py::test_r3_relief_cannot_be_accepted_as_verified_before_fw_face_flush_is_true \
+            tests/test_issue48_receiving_fw_flush_red.py::test_r3b_relief_refuses_verified_when_divider_fw_face_is_displaced \
+            tests/test_issue39_divider_relief.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "T48_2_CONFIG_BEFORE=$before"
+          echo "T48_2_CONFIG_AFTER=$after"
+          test "$before" = "$after"
+      - name: Current durable final-material and reload guards
         run: |
-          files=$(grep -RlE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' | sort -u)
-          test -n "$files"
-          python -m pytest -q $files
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_phase6_t10_project_authority.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_canonical_unfolded_blank_info.py \
+            tests/test_dm3_divider_canonical_relief_contract.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CURRENT_CONFIG_BEFORE=$before"
+          echo "CURRENT_CONFIG_AFTER=$after"
+          test "$before" = "$after"
+      - name: Architecture ownership scan
+        run: |
+          grep -n "resolve_divider_final_geometry" fold_designer_bridge.py
+          ! grep -n "build_divider_front_fold_relief_candidate(" fold_designer_bridge.py
+          ! grep -n "verify_divider_front_fold_relief(" fold_designer_bridge.py
+          ! grep -n "_phase6_divider_fw_placement_evidence(" fold_designer_bridge.py
+          ! grep -n '"authority": "CANONICAL_MANUFACTURING_RESOLVE"' ae_engine/door_dividers.py
+          ! grep -n '"authority": "ASSEMBLY_RELIEF_RESOLVE"' ae_engine/door_dividers.py
