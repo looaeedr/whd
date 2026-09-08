@@ -67,8 +67,16 @@ Removed after final terminal GREEN:
 - .github/workflows/dm5-skill-selfcheck.yml
 - .github/workflows/dm5-writeback-red.yml
 
-## Final remaining actions
-- post-QA drift audit from tested SHA to cleaned branch head
-- non-force fast-forward cleanup/2d-3d-sync
-- production HEAD remote readback
-- #55 final evidence update / close
+## Post-QA drift audit
+- tested SHA: d7a2e1a0d6553dedf510a594ae015b1010b29c0d
+- cleaned execution head before final evidence docs: 6807c734c6037a4c86bbdd8bf460c9d28ee7d407
+- delta after tested SHA: only five one-shot workflow removals + DM5 journal/checkpoint updates.
+- post-QA production code delta: none.
+
+## Integration
+- target before integration: cleanup/2d-3d-sync@11192e3ac47251e99fe1d2760031dada96fde227
+- ancestry check: target was a pure ancestor of DM5 head; behind_by=0 from target perspective.
+- non-force update_ref(force=false): success.
+- first production remote readback: cleanup/2d-3d-sync@6807c734c6037a4c86bbdd8bf460c9d28ee7d407
+- execution branch remote readback: work/dm5-divider-deep-module-integration@6807c734c6037a4c86bbdd8bf460c9d28ee7d407
+- these final journal/checkpoint commits are documentation-only; target will be fast-forwarded once more to the final durable evidence head before #55 closes.
