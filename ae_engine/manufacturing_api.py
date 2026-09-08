@@ -2545,3 +2545,20 @@ def resolved_manufacturing_nc_capability() -> dict[str, object]:
         "reason": "production NC sink is not implemented at the ResolvedManufacturingGeometry boundary",
         "canonical_input": "ResolvedManufacturingGeometry",
     }
+
+
+def verify_saved_part_render_data_dxf(
+    render_data: PartRenderData,
+    output_path: str | os.PathLike[str],
+    *,
+    coordinate_tolerance: float = 1e-6,
+    area_tolerance: float = 1e-6,
+):
+    """Public manufacturing boundary for independent saved-DXF acceptance."""
+    from .dxf_acceptance import verify_saved_part_render_data_dxf as _verify
+    return _verify(
+        render_data,
+        output_path,
+        coordinate_tolerance=coordinate_tolerance,
+        area_tolerance=area_tolerance,
+    )
