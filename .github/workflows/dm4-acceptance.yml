@@ -36,6 +36,7 @@ jobs:
           before="$(sha256sum config.ini | awk '{print $1}')"
           xvfb-run -a python -m pytest -q \
             tests/test_issue48_receiving_fw_flush_red.py \
+            tests/test_issue48_final_geometry_sync.py \
             tests/test_issue38_receiving_divider_baseline.py \
             tests/test_issue39_divider_relief.py \
             tests/test_issue41_persistence_parity.py \
