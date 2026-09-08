@@ -86,6 +86,57 @@ def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors(
             pass
         root.destroy()
 
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
+def test_issue63_physical_piece_fold_edit_survives_authoritative_resync():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    root.withdraw()
+    designer = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        designer = app.open_original_fold_designer()
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks(); root.update()
+
+        key = "box_body:left_side"
+        profiles = designer.designer_workspace.profiles_for(key, {}) or {}
+        edited = {
+            "X": [dict(row) for row in tuple(profiles.get("X") or ())],
+            "Y": [dict(row) for row in tuple(profiles.get("Y") or ())],
+        }
+        rear = next(row for row in edited["X"] if row.get("phase6_key") == "side_rear_bend_left")
+        assert float(rear["len"]) == pytest.approx(15.0)
+        rear["len"] = 16.0
+
+        designer.designer_workspace.stash_profiles(key, edited)
+        bridge._phase6_sync_authoritative_derived_parts(designer)
+
+        after = designer.designer_workspace.profiles_for(key, {}) or {}
+        left_rear = next(row for row in after["X"] if row.get("phase6_key") == "side_rear_bend_left")
+        right = designer.designer_workspace.profiles_for("box_body:right_side", {}) or {}
+        right_rear = next(row for row in right["X"] if row.get("phase6_key") == "side_rear_bend_right")
+        print("ISSUE63_PIECE_EDIT_RESYNC=", {
+            "left_rear": float(left_rear["len"]),
+            "right_rear": float(right_rear["len"]),
+        })
+        assert float(left_rear["len"]) == pytest.approx(16.0), (
+            "left-side Fold edit was overwritten by aggregate BoxBody resync"
+        )
+        assert float(right_rear["len"]) == pytest.approx(15.0), (
+            "left-side physical Fold edit must not mutate right-side Fold chain"
+        )
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        root.destroy()
+
+
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
     snap = _snapshot()
     divider = derive_box_body_dividers(
