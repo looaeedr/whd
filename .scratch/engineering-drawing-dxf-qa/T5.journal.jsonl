@@ -6,3 +6,4 @@
 {"ticket":"#61","status":"R2_GREEN","run_id":34253442671,"head_sha":"fbe268c288a8c2e20365fd9070f209665bad4e2a","result":"6 passed / 0 failed"}
 {"ticket":"#61","status":"BEHAVIOR_GUARDS_GREEN","run_id":34253559918,"head_sha":"b19916804286d62fff8abda90bc6f31c1a347181","result":"8 passed / 0 failed","guards":["family switch stale IDs","folded mesh priority"]}
 {"ticket":"#61","status":"FINAL_GREEN","run_id":34253680763,"head_sha":"33462e78a282a3999f29abd1a3673a106a78f999","result":"22 passed / 0 failed / 4.63s","preflight":"PASS","py_compile":"PASS","config_ini_invariant":"PASS","ai_writeback":"DONE","pending":["workflow_cleanup","drift_audit","issue_close"]}
+{"ticket":"#61","status":"ACCEPTED","tested_head_sha":"33462e78a282a3999f29abd1a3673a106a78f999","cleanup_head_sha":"1cb592beed4b03031bbe4db08f01cada67d48111","run_id":34253680763,"result":"22 passed / 0 failed / 4.63s","workflow_cleanup":"PASS","drift_audit":"PASS","production_test_blobs_identical":true}
