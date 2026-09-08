@@ -201,3 +201,29 @@ def test_folded_mesh_dimensions_override_snapshot_fallback():
 
     assert resolved == expected
     assert resolved != (999.0, 888.0, 777.0)
+
+
+def test_shared_provider_preserves_box_body_corner_policy_fallback_dimensions():
+    from ae_engine.corner_type_ui import (
+        apply_box_assembly_type,
+        new_manual_corner_pair_same_state,
+        new_manual_corner_state,
+        policy_from_corner_state,
+    )
+    from ae_engine.display_dimensions import resolve_operator_finished_dimensions
+    from ae_engine.sheetmetal_geometry import CornerTypeId
+
+    state = new_manual_corner_state(["head", "tail"])
+    pairs = new_manual_corner_pair_same_state(["head", "tail"])
+    apply_box_assembly_type(state, pairs, CornerTypeId.INSERT_OVERLAY)
+
+    resolved = resolve_operator_finished_dimensions(
+        "box_body",
+        snapshot={"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0},
+        settings={"w": 400.0, "h": 600.0, "d": 250.0, "t": 2.0},
+        thickness=2.0,
+        head_corner_policy=policy_from_corner_state(state["head"], fw=25.0),
+        tail_corner_policy=policy_from_corner_state(state["tail"], fw=25.0),
+    )
+
+    assert resolved == (400.0, 596.0, 250.0)
