@@ -22,4 +22,6 @@ jobs:
             --changed-file ae_engine/manufacturing_api.py \
             --changed-file ae_engine/assembly_collision.py \
             --changed-file ae_engine/divider_manufacturing.py \
+            --changed-file phase6_box_body_structure.py \
+            --changed-file ae_engine/box_body_structure.py \
             --evidence .scratch/issue63/phase6_preflight_evidence.md
