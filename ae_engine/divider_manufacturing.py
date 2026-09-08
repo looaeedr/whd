@@ -209,6 +209,7 @@ def _apply_cut_to_part(part, cut_polygon):
 def resolve_divider_final_geometry(
     *, divider, box_body, joint, world, source_geometry_keys,
     refold_world: Callable[[object], Mapping[str, object]], clearance: float = 0.0,
+    sheet_thickness: float = 0.0,
 ) -> ResolvedDividerFinalGeometry:
     """Resolve one Divider's placement, collision relief and verified final material.
 
@@ -244,7 +245,7 @@ def resolve_divider_final_geometry(
         core_start=core_start,
         source_geometry_keys=tuple(source_geometry_keys),
         clearance=float(clearance),
-        sheet_thickness=float(getattr(divider, "thickness", 0.0)),
+        sheet_thickness=max(0.0, float(sheet_thickness)),
     )
     if candidate is None:
         return ResolvedDividerFinalGeometry(
