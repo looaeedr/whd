@@ -40,7 +40,7 @@ jobs:
       - name: Targeted T5
         run: |
           before="$(sha256sum config.ini | awk '{print $1}')"
-          python -m py_compile ae_engine/drawing_annotations.py ae_engine/drawing_annotation_layout.py gui.py
+          python -m py_compile ae_engine/drawing_annotations.py ae_engine/drawing_annotation_layout.py ae_engine/engineering_drawing.py gui.py
           pytest -q tests/test_engineering_drawing_integration.py
           after="$(sha256sum config.ini | awk '{print $1}')"
           test "$before" = "$after"
