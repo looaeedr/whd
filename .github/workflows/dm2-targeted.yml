@@ -5,6 +5,10 @@ on:
       - work/dm2-divider-physical-contract
     paths:
       - .github/workflows/dm2-targeted.yml
+      - ae_engine/door_dividers.py
+      - ae_engine/manufacturing_api.py
+      - fold_designer_bridge.py
+      - tests/test_dm1_divider_physical_contract.py
 
 permissions:
   contents: read
