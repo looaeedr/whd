@@ -655,3 +655,7 @@ PASS / FAIL
 - `ae_engine/ae.py` 仍是既有 DXF serialization owner。
 - `ae_engine/manufacturing_api.py` 只暴露 acceptance public seam，不重算製造幾何。
 - acceptance implementation 必須保持 exporter 與 validator 解耦。
+- multipart / dynamic export 必須展開成真正 manufacturable physical-part 集合後逐件驗收，不得只驗 logical `box_body` aggregate。
+- Box Body physical piece 的 stable domain ID 使用 `box_body:<piece-role>`；例如 `box_body:left_side / box_body:back / box_body:right_side`。dynamic part ID（如 `box_body:divider:0`）維持自己的 canonical ID。
+- DXF acceptance set 必須同時驗 expected file set 與 actual `.dxf` file set；缺檔回 `MISSING_PART`，stale/extra 檔回 `EXTRA_PART`。
+- 檔名只做 filesystem encoding，不得改 domain ID ownership：Box Body physical-piece 檔名用 `box_body__<role>.dxf` 與 dynamic IDs 區隔；一般 dynamic ID 仍依既有 safe stem 轉換。
