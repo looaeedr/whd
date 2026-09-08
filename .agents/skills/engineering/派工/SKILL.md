@@ -162,3 +162,13 @@ Resume 時：
 - [ ] 漏建 Issue 的補救明確要求 Retroactive provenance，禁止假裝事後 Issue 原本就存在。
 - [ ] 明確要求未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與阻塞狀態，且回報不得中斷執行。
 - [ ] remote QA 建立 run 時強制啟動 `monitoring-remote-qa`，持續監控到終態；成功後仍需 cleanup + durable state 才可 ACCEPT。
+
+## 6. 掃描深模組來源的派工檢查
+
+若目前工作由 `掃描深模組` 候選轉入實作，在任何 Implementer production write 前再確認：
+
+- 本施工票已有並反讀 **GitHub owning Issue**。
+- breakdown 已指定 **AI Library Writeback owner**。
+- breakdown 已指定 **Combined Acceptance owner**。
+- 若任一 ownership 缺失，退回 PM／拆票流程補齊，不得用 branch、checkpoint、HTML 報告或 `.scratch/**` 代替。
+- closing owner 進 QA 時，AI Library writeback、Combined terminal QA、workflow cleanup、drift audit 與 integration evidence 缺一不可 ACCEPT。
