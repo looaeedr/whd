@@ -344,12 +344,30 @@ def test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edg
         evidence = {
             "divider_middle_length": float(divider_middle["length"]),
             "divider_anchor_edge_distance": float(divider_distance),
+            "divider_bounds": tuple(map(float, divider_render.material.bounds)),
+            "divider_exterior": [
+                (float(x), float(y)) for x, y in divider_render.material.exterior.coords
+            ],
             "endcaps": {},
         }
         for key in ("head", "tail"):
-            endcap_render = resolved.part(key).render_data
+            resolved_part = resolved.part(key)
+            endcap_render = resolved_part.render_data
             endcap = _issue63_resolved_endcap_middle_rule(endcap_render)
-            evidence["endcaps"][key] = endcap
+            evidence["endcaps"][key] = {
+                **endcap,
+                "bounds": tuple(map(float, endcap_render.material.bounds)),
+                "x_profile": tuple(dict(row) for row in tuple(resolved_part.x_profile or ())),
+                "y_profile": tuple(dict(row) for row in tuple(resolved_part.y_profile or ())),
+                "exterior": [
+                    (float(x), float(y)) for x, y in endcap_render.material.exterior.coords
+                ],
+                "metadata_keys": tuple(sorted(dict(endcap_render.metadata or {}))),
+            }
+        print("ISSUE63_RESOLVED_ENDCAP_AUTHORITY=", evidence)
+
+        for key in ("head", "tail"):
+            endcap = evidence["endcaps"][key]
             assert float(divider_middle["length"]) == pytest.approx(
                 float(endcap["length"]), abs=1e-6
             ), (
@@ -366,7 +384,6 @@ def test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edg
                 divider_distance,
                 endcap,
             )
-        print("ISSUE63_RESOLVED_ENDCAP_PARITY=", evidence)
     finally:
         try:
             if designer is not None:
