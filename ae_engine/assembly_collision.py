@@ -522,14 +522,14 @@ def build_divider_front_fold_relief_candidate(
     clearance: float = 0.0,
     tolerance: float = 1e-6,
 ):
-    """Derive a Divider end relief from physical crossing depth only.
+    """Derive a Divider end relief from the physical flat-UV crossing shape.
 
     The Fold topology owns *where* relief is allowed: material before the
-    D_DIVIDER core.  The 3D crossing projection owns *how deep* each end must
-    be cut.  Remaining crossings in/after the core are legal mating contact and
-    are deliberately not converted into a larger cut.
+    D_DIVIDER core.  The 3D crossing projection owns the actual cut topology
+    and edge depth.  Remaining crossings in/after the core are legal mating
+    contact and are deliberately not converted into a larger cut.
     """
-    from shapely.geometry import box as shapely_box
+    from shapely.geometry import MultiPoint, box as shapely_box
     from shapely.ops import unary_union
 
     ownership = joint_relief_ownership(joint)
@@ -589,22 +589,38 @@ def build_divider_front_fold_relief_candidate(
         if low_depth <= high_depth:
             edge = "MIN_Y"
             depth = low_depth + float(clearance)
-            cut = shapely_box(
-                minx - boolean_margin,
-                miny - boolean_margin,
-                core_start + boolean_margin,
-                min(maxy, miny + depth) + boolean_margin,
-            )
         else:
             edge = "MAX_Y"
             depth = high_depth + float(clearance)
-            cut = shapely_box(
-                minx - boolean_margin,
-                max(miny, maxy - depth) - boolean_margin,
-                core_start + boolean_margin,
-                maxy + boolean_margin,
+
+        # Preserve the collision-derived flat-UV topology.  The previous
+        # implementation discarded all projected segment shape and replaced it
+        # with one max-depth rectangle spanning minx..core_start.  That could
+        # verify after refold while still removing real material that never
+        # intersected the mating physical piece.
+        collision_shape = MultiPoint(points).convex_hull
+        if (
+            getattr(collision_shape, "is_empty", True)
+            or float(getattr(collision_shape, "area", 0.0)) <= float(tolerance) ** 2
+        ):
+            raise ValueError(
+                f"Divider relief projection has no manufacturable UV area: {source_key}"
             )
-        if depth > float(tolerance):
+
+        # Clearance is an allowance around the physical projection, while the
+        # boolean margin only stabilizes polygon subtraction.  Neither may
+        # expand the cut past the pre-core Fold domain.
+        allowance = max(0.0, float(clearance)) + float(boolean_margin)
+        cut = collision_shape.buffer(allowance, join_style=2)
+        pre_core_domain = shapely_box(
+            minx - boolean_margin,
+            miny - boolean_margin,
+            core_start + boolean_margin,
+            maxy + boolean_margin,
+        )
+        cut = cut.intersection(pre_core_domain)
+
+        if depth > float(tolerance) and not getattr(cut, "is_empty", True):
             cut_polygons.append(cut)
             cut_depths.append((str(source_key), float(depth)))
         projection_evidence[str(source_key)] = {
@@ -612,6 +628,8 @@ def build_divider_front_fold_relief_candidate(
             "eligible_segments": len(segments),
             "edge": edge,
             "depth": float(depth),
+            "uv_shape_area": float(collision_shape.area),
+            "uv_shape_bounds": tuple(float(v) for v in collision_shape.bounds),
         }
 
     if not cut_polygons:
