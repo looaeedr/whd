@@ -251,6 +251,19 @@ def resolve_annotation_collisions(
             continue
         if str(primitive.layer).upper() != "DIMENSION":
             continue
+        axis = _dimension_axis_for_text(plan, primitive)
+        if axis not in {"x", "y"}:
+            if _collides(
+                primitive,
+                regions + _annotation_text_regions(primitives, exclude_index=index),
+            ):
+                unresolved.append(AnnotationCollision(
+                    index,
+                    "UNRESOLVED_DIMENSION_AXIS",
+                    f"cannot resolve dimension axis for text: {primitive.text}",
+                ))
+            continue
+
         own_line_index = _own_dimension_line_index(primitives, primitive, axis)
         annotation_line_regions = _annotation_dimension_line_regions(
             primitives,
@@ -263,15 +276,6 @@ def resolve_annotation_collisions(
             + annotation_line_regions
         )
         if not _collides(primitive, active_regions):
-            continue
-
-        axis = _dimension_axis_for_text(plan, primitive)
-        if axis not in {"x", "y"}:
-            unresolved.append(AnnotationCollision(
-                index,
-                "UNRESOLVED_DIMENSION_AXIS",
-                f"cannot resolve dimension axis for text: {primitive.text}",
-            ))
             continue
 
         moved = None
