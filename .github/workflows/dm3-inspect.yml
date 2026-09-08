@@ -1,14 +1,25 @@
-name: DM3 Inspect Relief Seam
+name: DM3 Divider Relief Regression
 on:
   push:
     branches: [work/dm3-divider-canonical-relief]
 jobs:
-  inspect:
+  regression:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify bridge delegates to manufacturing domain
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install regression dependencies
+        run: python -m pip install -q pytest shapely numpy matplotlib ezdxf
+      - name: Discover authoritative Divider relief tests
         run: |
-          grep -n "resolve_divider_final_geometry" fold_designer_bridge.py
-          if grep -n "build_divider_front_fold_relief_candidate(" fold_designer_bridge.py; then exit 1; fi
-          if grep -n "_phase6_divider_fw_placement_evidence(" fold_designer_bridge.py; then exit 1; fi
+          echo '=== MATCHES ==='
+          grep -RniE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' || true
+          echo '=== FILES ==='
+          grep -RlE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' | sort -u || true
+      - name: Run discovered regression files
+        run: |
+          files=$(grep -RlE 'T48-2|t48_2|divider_assembly_relief|placement_evidence|final_material_is_one_source|front_fold_relief' tests --include='test_*.py' | sort -u)
+          test -n "$files"
+          python -m pytest -q $files
