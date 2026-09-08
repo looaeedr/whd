@@ -58,3 +58,21 @@ def test_saved_dxf_acceptance_detects_removed_bend(tmp_path):
 
     assert result.ok is False
     assert any(issue.category == "BEND_MISMATCH" for issue in result.issues)
+
+
+def test_saved_dxf_acceptance_reports_layer_mismatch(tmp_path):
+    render = _render_data()
+    path = tmp_path / "part.dxf"
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    bends = list(msp.query('LINE[layer=="BEND"]'))
+    assert len(bends) == 1
+    bends[0].dxf.layer = "CUTTING"
+    doc.saveas(path)
+
+    result = _verifier()(render, path)
+
+    assert result.ok is False
+    assert any(issue.category == "LAYER_MISMATCH" for issue in result.issues)
