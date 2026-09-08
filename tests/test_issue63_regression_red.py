@@ -198,3 +198,80 @@ def test_issue63_receiving_box_body_physical_pieces_are_real_3d_input_contexts()
         except Exception:
             pass
         root.destroy()
+
+
+def test_issue63_diagnose_divider_relief_backprojection_shape():
+    from ae_engine.assembly_collision import (
+        project_joint_interference_to_relief_owner,
+        _divider_front_fold_segments,
+    )
+    from tests.test_issue39_divider_relief import _divider_insert_joint
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snap["t"]
+    )
+    joint = _divider_insert_joint(divider.stable_id)
+    core_start = float(
+        dict(divider_part.render_data.metadata["physical_geometry_contract"])
+        ["core_physical_segment"]["flat_band"][0]
+    )
+
+    piece_profiles = {}
+    for piece in tuple(body.render_data.pieces or ()):
+        piece_profiles[str(piece.role)] = [
+            {
+                "phase6_key": str(getattr(row, "phase6_key", "") or ""),
+                "length": float(getattr(row, "length", 0.0)),
+                "angle": getattr(row, "angle", None),
+            }
+            for row in tuple(piece.fold_profile or ())
+        ]
+
+    evidence = {}
+    for source_key in ("box_body:left_side", "box_body:right_side"):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            source_geometry_key=source_key,
+        )
+        front = _divider_front_fold_segments(
+            projected.projection, core_start=core_start
+        )
+        points = [
+            (float(p[0]), float(p[1]))
+            for seg in front
+            for p in seg
+        ]
+        evidence[source_key] = {
+            "pair_count": int(projected.projection.pair_count),
+            "eligible_count": len(front),
+            "x_range": (
+                min(x for x, _y in points),
+                max(x for x, _y in points),
+            ) if points else None,
+            "y_range": (
+                min(y for _x, y in points),
+                max(y for _x, y in points),
+            ) if points else None,
+            "sample_segments": [
+                (
+                    (round(float(a[0]), 6), round(float(a[1]), 6)),
+                    (round(float(b[0]), 6), round(float(b[1]), 6)),
+                )
+                for a, b in front[:30]
+            ],
+        }
+
+    print("ISSUE63_RELIEF_BACKPROJECTION=", {
+        "core_start": core_start,
+        "piece_profiles": piece_profiles,
+        "projection": evidence,
+    })
+    assert evidence["box_body:left_side"]["eligible_count"] > 0
+    assert evidence["box_body:right_side"]["eligible_count"] > 0
