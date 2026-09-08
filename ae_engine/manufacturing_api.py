@@ -2492,21 +2492,17 @@ def generate_part(
     )
 
 
-def save_resolved_manufacturing_geometry_dxf(
-    resolved_geometry,
-    output_dir: str | os.PathLike[str],
-    *,
-    overwrite: bool = False,
-) -> dict[str, str]:
-    """Export the exact canonical ResolvedManufacturingGeometry to per-part DXF.
+def _safe_dxf_part_stem(part_id: str) -> str:
+    """Map one stable physical part id to a Windows-safe DXF filename stem."""
+    value = str(part_id or "").strip()
+    if not value:
+        raise ValueError("physical part id is empty")
+    return re.sub(r'[<>:"/\\\\|?*]', "_", value)
 
-    This is intentionally a sink: it never reconstructs PartSpec or recomputes
-    Corner/Relief.  Every file is serialized from the same PartRenderData already
-    consumed by 2D/Single3D/Assembly3D.
-    """
-    root = Path(output_dir)
-    root.mkdir(parents=True, exist_ok=True)
-    outputs: dict[str, str] = {}
+
+def _resolved_physical_render_parts(resolved_geometry):
+    """Return ordered (stable_part_id, render_data) rows from canonical resolved state."""
+    rows = []
     for part in tuple(getattr(resolved_geometry, "parts", ()) or ()):
         key = str(getattr(part, "part_key", "") or "").strip()
         if not key:
@@ -2514,22 +2510,46 @@ def save_resolved_manufacturing_geometry_dxf(
         render_data = getattr(part, "render_data", None)
         if render_data is None:
             raise ValueError(f"resolved manufacturing part missing render_data: {key}")
-        # Piece-level canonical parts are not silently merged: each physical
-        # piece is exported from its own already-resolved render_data.
         pieces = tuple(getattr(render_data, "pieces", ()) or ())
         if pieces:
             for index, piece in enumerate(pieces, start=1):
                 piece_render = getattr(piece, "render_data", None)
                 if piece_render is None:
                     raise ValueError(f"resolved piece missing render_data: {key}#{index}")
-                piece_key = str(getattr(piece, "piece_key", "") or f"piece{index}")
-                path = root / f"{key}__{piece_key}.dxf"
-                outputs[f"{key}:{piece_key}"] = save_part_render_data_dxf(
-                    piece_render, path, overwrite=overwrite
-                )
+                piece_key = str(
+                    getattr(piece, "key", "")
+                    or getattr(piece, "piece_key", "")
+                    or f"piece{index}"
+                ).strip()
+                rows.append((f"{key}:{piece_key}", piece_render))
         else:
-            path = root / f"{key}.dxf"
-            outputs[key] = save_part_render_data_dxf(render_data, path, overwrite=overwrite)
+            rows.append((key, render_data))
+    return tuple(rows)
+
+
+def _resolved_physical_dxf_filename(part_id: str) -> str:
+    return f"{_safe_dxf_part_stem(part_id)}.dxf"
+
+
+def save_resolved_manufacturing_geometry_dxf(
+    resolved_geometry,
+    output_dir: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+) -> dict[str, str]:
+    """Export exact canonical physical parts to stable per-part DXF files.
+
+    Stable part IDs remain domain IDs (including ':' separators).  Only the
+    filesystem filename is sanitized for Windows compatibility.
+    """
+    root = Path(output_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    outputs: dict[str, str] = {}
+    for part_id, render_data in _resolved_physical_render_parts(resolved_geometry):
+        path = root / _resolved_physical_dxf_filename(part_id)
+        outputs[part_id] = save_part_render_data_dxf(
+            render_data, path, overwrite=overwrite
+        )
     return outputs
 
 
@@ -2561,4 +2581,74 @@ def verify_saved_part_render_data_dxf(
         output_path,
         coordinate_tolerance=coordinate_tolerance,
         area_tolerance=area_tolerance,
+    )
+
+
+def verify_saved_resolved_manufacturing_geometry_dxf(
+    resolved_geometry,
+    output_dir: str | os.PathLike[str],
+    *,
+    coordinate_tolerance: float = 1e-6,
+    area_tolerance: float = 1e-6,
+):
+    """Reopen and verify every canonical physical-part DXF as one acceptance set."""
+    from .dxf_acceptance import (
+        ResolvedDxfAcceptanceIssue,
+        ResolvedDxfAcceptanceResult,
+    )
+
+    root = Path(output_dir)
+    expected_rows = _resolved_physical_render_parts(resolved_geometry)
+    expected_files = {
+        _resolved_physical_dxf_filename(part_id): part_id
+        for part_id, _render_data in expected_rows
+    }
+    actual_files = {path.name for path in root.glob("*.dxf") if path.is_file()}
+    issues = []
+    part_results = {}
+
+    missing = sorted(set(expected_files) - actual_files)
+    extra = sorted(actual_files - set(expected_files))
+    for filename in missing:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            expected_files[filename],
+            "MISSING_PART",
+            f"expected physical-part DXF is missing: {filename}",
+            filename,
+            None,
+        ))
+    for filename in extra:
+        issues.append(ResolvedDxfAcceptanceIssue(
+            filename[:-4] if filename.lower().endswith(".dxf") else filename,
+            "EXTRA_PART",
+            f"stale/extra DXF not present in current resolved physical-part state: {filename}",
+            None,
+            filename,
+        ))
+
+    for part_id, render_data in expected_rows:
+        filename = _resolved_physical_dxf_filename(part_id)
+        path = root / filename
+        if not path.is_file():
+            continue
+        result = verify_saved_part_render_data_dxf(
+            render_data,
+            path,
+            coordinate_tolerance=coordinate_tolerance,
+            area_tolerance=area_tolerance,
+        )
+        part_results[part_id] = result
+        for issue in result.issues:
+            issues.append(ResolvedDxfAcceptanceIssue(
+                part_id,
+                issue.category,
+                issue.detail,
+                issue.expected,
+                issue.actual,
+            ))
+
+    return ResolvedDxfAcceptanceResult(
+        ok=not issues,
+        issues=tuple(issues),
+        part_results=part_results,
     )
