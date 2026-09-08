@@ -24,4 +24,7 @@ jobs:
           --changed-file "tests/test_dm1_divider_physical_contract.py"
           --changed-file "tests/test_issue40_divider_6p4_shared_datum.py"
           --changed-file "tests/test_assembly_collision_integration.py"
+          --changed-file ".github/workflows/dm2-targeted.yml"
+          --changed-file ".scratch/dm2/journal.md"
+          --changed-file ".scratch/dm2/checkpoint.md"
           --evidence .scratch/dm2/phase6_preflight_evidence.md
