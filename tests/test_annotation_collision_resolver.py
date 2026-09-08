@@ -55,3 +55,39 @@ def test_horizontal_dimension_text_moves_only_along_dimension_axis_and_is_determ
     assert moved.insert.x != 50.0
     assert not region.contains_point(moved.insert)
     assert first.unresolved_collisions == ()
+
+
+def test_vertical_dimension_text_moves_only_along_dimension_axis():
+    layout = _resolver_module()
+    dimension = LinearDimensionAnnotation(
+        axis="y",
+        value=60.0,
+        start=Vec2(0.0, 0.0),
+        end=Vec2(0.0, 60.0),
+        label="60",
+    )
+    plan = AnnotationPlan(
+        overall_dimensions=(dimension,),
+        feature_callouts=(),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            LinePrimitive(Vec2(-15.0, 0.0), Vec2(-15.0, 60.0), "DIMENSION"),
+            TextPrimitive("60", Vec2(-15.0, 30.0), "DIMENSION", 5.0, 5),
+        ),
+        diagnostics=(),
+    )
+    region = layout.AnnotationRegion(
+        min_x=-18.0, min_y=24.0, max_x=-12.0, max_y=36.0, kind="TECH"
+    )
+
+    result = layout.resolve_annotation_collisions(plan, reserved_regions=(region,))
+
+    moved = next(
+        p for p in result.primitives
+        if isinstance(p, TextPrimitive) and p.layer == "DIMENSION" and p.text == "60"
+    )
+    assert moved.insert.x == -15.0
+    assert moved.insert.y != 30.0
+    assert not region.contains_point(moved.insert)
+    assert result.unresolved_collisions == ()
