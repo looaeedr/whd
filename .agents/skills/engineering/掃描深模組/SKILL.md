@@ -124,3 +124,14 @@ python .agents/skills/engineering/掃描深模組/check_zh_tw_report.py <報告�
 - 對話中把模糊詞彙定義清楚：立即更新 `CONTEXT.md`。
 - 使用者因長期且具架構意義的理由否決候選：詢問是否記成 ADR，避免後續掃描重複提出。
 - 若要比較多種 interface 設計：重新載入 `codebase-design`，使用 design-it-twice 的比較方式。
+
+## 5. 掃描候選進入實作的交接硬閘門
+
+當使用者選定掃描候選並要求寫規格、拆工單、派工或直接實作時，**掃描報告不是工單**，也不是施工授權。若專案以 GitHub 為 tracker，必須先完成以下 ownership：
+
+- **GitHub owning Issue**：每張已核准施工工單都必須有正式 owning Issue，並遠端反讀 issue number、URL、title 後才准進實作者。
+- **AI Library Writeback owner**：breakdown 必須明確指定哪一張 closing/acceptance ticket 負責把本次 deep-module 的 durable contract、踩坑與 stale authority 修正寫回 AI Library；不得只寫「之後補」。
+- **Combined Acceptance owner**：breakdown 必須明確指定一張終局 ticket 擁有跨模組 Combined Acceptance、source scan、config invariant、workflow cleanup、drift audit 與整合證據。
+- 上述兩個 owner 可由同一張 closing ticket 承擔，但不得沒有 owner。
+- HTML 報告、聊天候選編號、branch、checkpoint 或 `.scratch/**` 都不能替代 owning Issue。
+- 實作交接時必須改用 `拆解任務工單`／`派工` 的 RED-first、AI Library、GitHub owning Issue 與 remote QA 規則；本 Skill 不得直接從候選跳進 production 修改。
