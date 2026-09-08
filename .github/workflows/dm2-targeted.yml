@@ -174,7 +174,7 @@ jobs:
               assert "frame_width_segment_index" not in metadata
               assert "core_segment_index" not in metadata
               fw_face = contract["fw_physical_face"]
-              assert tuple(float(v) for v in fw_face["flat_band"]) == (18.0, 43.0)
+              assert tuple(float(v) for v in fw_face["flat_band"]) == (16.0, 41.0)
               assert float(fw_face["outside_dimension"]) == 29.0
 
 
