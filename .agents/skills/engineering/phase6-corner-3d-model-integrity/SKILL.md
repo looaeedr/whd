@@ -69,3 +69,13 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - 任何從 EndCap profile / material core 反推全域 D 的 seam，都必須透過 Cabinet Family policy 取得 compensation，禁止 caller 硬寫 `2T` 或 `3T`。
 - 修改 Receiving EndCap / profile / part-switch 後，必跑「Head↔Tail 至少 10 次」穩定性回歸：全域 D、canonical final material 與展開料不得因單純切換而漂移。
 - Cabinet Family 切換必須同步 live globals、workspace profile 與 Family topology；Receiving merge 後不得殘留 Vault-only `zr1`。
+
+
+## Combined Acceptance 與驗證來源硬閘門
+
+1. **先合流再 Combined**：所有已接受 production/regression heads 必須是同一 Combined tested head 的 ancestors。不同 branch 各自 GREEN 不得相加當整體 GREEN；任何 `diverged` 都必須先 non-force merge / 明確三方解衝突，再重跑 Combined。
+2. **衝突不能整檔選邊**：若兩票同改 manufacturing / Fold / FinalScene owner，必須逐 hunk 保留雙方 contract，禁止 force-reset 或整檔覆蓋。
+3. **驗證不是計算來源**：pytest expected、reopen 實測、collision probe、bbox、solver fringe、rendered number 只能做 acceptance evidence，不得回灌 production geometry。
+4. **禁止 magic observation**：`0.001` fringe、`10/100`、`47/26`、`1 mm`、middle-segment 等若只是測試/量測觀察值，不得出現在正式 relief/hole/placement/thickness 推導。
+5. **正式來源不變**：production 仍只能讀 canonical state、Fold topology、AssemblyJoint、physical collision/backprojection、authoritative thickness `T`、certified registry/semantics。
+6. **cleanup drift gate**：Combined terminal GREEN 後若還有 docs/state/workflow cleanup，必須逐 production/test blob 比對 tested head；任何 production/test drift 都使該 GREEN 失效並要求重跑。
