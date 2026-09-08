@@ -630,3 +630,41 @@ EndCap / Tail = CUT
 - layer 錯置需有獨立 `LAYER_MISMATCH` 類別；不能只靠總數差異掩蓋「幾何有寫但寫到錯 layer」。
 - canonical scene 完全相同的正常 round-trip 必須 PASS；任何真正寫出後被刪 BEND、改 CUTTING、刪孔、加額外加工圖元，reopen acceptance 必須 FAIL。
 - 此 verifier 是 **最後輸出品質閘門**，不是 geometry repair。驗到不一致時修 exporter/serializer 或上游資料鏈，禁止 verifier 靜默修圖。
+
+
+---
+
+## 2026-09-08 — Production DXF 成品反讀驗收
+
+### 核心規則
+WHD 的 canonical manufacturing geometry 仍是唯一製造 Source of Truth；新增的 DXF acceptance **只負責驗證最後真正存出去的 DXF**，不得成為第二套 CUTTING / BEND / hole / relief 幾何來源。
+
+正式鏈：
+
+```text
+Resolved Manufacturing / PartRenderData
+        ↓
+現有唯一 DXF serializer
+        ↓
+真正寫入 .dxf
+        ↓
+ezdxf.readfile() 重新開檔
+        ↓
+獨立抽取 actual CUTTING / BEND / holes / layers
+        ↓
+與 canonical render data 比對
+        ↓
+PASS / FAIL
+```
+
+### Independence
+- validator 不得呼叫 exporter serializer 來重建 actual。
+- validator 必須讀取磁碟上的實際 DXF entity。
+- expected 來自 canonical PartRenderData / material / fold_guides / authoritative features。
+- actual 多件、少件、layer 錯誤、CUTTING 不閉合、BEND 遺失都必須 FAIL。
+- Python 中間物件測試 PASS 不能代替 production DXF reopen evidence。
+
+### Ownership
+- `ae_engine/ae.py` 仍是既有 DXF serialization owner。
+- `ae_engine/manufacturing_api.py` 只暴露 acceptance public seam，不重算製造幾何。
+- acceptance implementation 必須保持 exporter 與 validator 解耦。
