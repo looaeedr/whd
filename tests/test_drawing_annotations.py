@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from copy import deepcopy
+import importlib
+import importlib.util
 
 from shapely.geometry import Polygon
 
@@ -35,10 +36,15 @@ def _render_with_chamfer_and_hole():
 
 
 def _planner():
-    import ae_engine.drawing_annotations as annotations
+    spec = importlib.util.find_spec("ae_engine.drawing_annotations")
+    assert spec is not None, (
+        "R1: missing canonical Annotation Planner module; "
+        "2D/engineering annotations cannot currently be derived from PartRenderData"
+    )
+    annotations = importlib.import_module("ae_engine.drawing_annotations")
     planner = getattr(annotations, "plan_part_annotations", None)
     assert callable(planner), (
-        "R1: missing canonical Annotation Planner; "
+        "R1: missing plan_part_annotations public seam; "
         "2D/engineering annotations cannot currently be derived from PartRenderData"
     )
     return planner
