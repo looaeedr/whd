@@ -11,7 +11,9 @@ from ae_engine.sheetmetal_drawing import (
     DrawingScene,
     PolylinePrimitive,
     TextPrimitive,
+    resolved_features_to_primitives,
 )
+from ae_engine.sheetmetal_features import ResolvedCircle
 from ae_engine.sheetmetal_geometry import Vec2
 
 
@@ -125,3 +127,31 @@ def test_annotation_plan_measures_radius_from_final_material_arc():
     assert radius.label == "R10"
     assert radius.center.x == pytest.approx(90.0, abs=1e-4)
     assert radius.center.y == pytest.approx(50.0, abs=1e-4)
+
+
+def test_resolved_circle_source_metadata_reaches_annotation_planner():
+    scene = DrawingScene()
+    scene.add(PolylinePrimitive(
+        (Vec2(0, 0), Vec2(100, 0), Vec2(100, 60), Vec2(0, 60)),
+        "CUTTING",
+        closed=True,
+    ))
+    scene.extend(resolved_features_to_primitives((
+        ResolvedCircle(
+            center=Vec2(30, 20),
+            radius=4.0,
+            layer="CUTTING",
+            source_type="mounting_hole",
+        ),
+    )))
+    render = api.PartRenderData(
+        scene=scene,
+        material=api.material_polygon_from_final_scene(scene),
+        fold_guides=(),
+    )
+
+    plan = _planner()(render)
+
+    hole = next(item for item in plan.feature_callouts if item.source_type == "mounting_hole")
+    assert hole.anchor == Vec2(30.0, 20.0)
+    assert hole.label == "⌀8"
