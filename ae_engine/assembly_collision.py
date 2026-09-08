@@ -520,6 +520,7 @@ def build_divider_front_fold_relief_candidate(
     core_start: float,
     source_geometry_keys,
     clearance: float = 0.0,
+    sheet_thickness: float = 0.0,
     tolerance: float = 1e-6,
 ):
     """Derive a Divider end relief from the physical flat-UV crossing shape.
@@ -529,6 +530,7 @@ def build_divider_front_fold_relief_candidate(
     and edge depth.  Remaining crossings in/after the core are legal mating
     contact and are deliberately not converted into a larger cut.
     """
+    from shapely.affinity import translate
     from shapely.geometry import MultiPoint, box as shapely_box
     from shapely.ops import unary_union
 
@@ -590,12 +592,15 @@ def build_divider_front_fold_relief_candidate(
 
         low_depth = max(0.0, max(y for _x, y in points) - miny)
         high_depth = max(0.0, maxy - min(y for _x, y in points))
+        half_t = max(0.0, float(sheet_thickness)) / 2.0
         if low_depth <= high_depth:
             edge = "MIN_Y"
-            depth = low_depth + float(clearance)
+            solid_y_offset = half_t
+            depth = low_depth + half_t + float(clearance)
         else:
             edge = "MAX_Y"
-            depth = high_depth + float(clearance)
+            solid_y_offset = -half_t
+            depth = high_depth + half_t + float(clearance)
 
         # Preserve the collision-derived flat-UV topology.  The previous
         # implementation discarded all projected segment shape and replaced it
@@ -611,11 +616,23 @@ def build_divider_front_fold_relief_candidate(
                 f"Divider relief projection has no manufacturable UV area: {source_key}"
             )
 
-        # Clearance is an allowance around the physical projection, while the
-        # boolean margin only stabilizes polygon subtraction.  Neither may
+        # Backprojection records intersections on the +/-T/2 physical skin
+        # surfaces. Convert that skin footprint to the full solid-sheet relief
+        # boundary by sweeping the same collision-derived UV topology inward by
+        # half the authoritative sheet thickness. This is physical geometry,
+        # not an EndCap/test-derived correction.
+        solid_shape = collision_shape
+        if half_t > float(tolerance):
+            solid_shape = unary_union((
+                collision_shape,
+                translate(collision_shape, yoff=solid_y_offset),
+            )).convex_hull
+
+        # Clearance is an allowance around the physical solid projection, while
+        # the boolean margin only stabilizes polygon subtraction. Neither may
         # expand the cut past the pre-core Fold domain.
         allowance = max(0.0, float(clearance)) + float(boolean_margin)
-        cut = collision_shape.buffer(allowance, join_style=2)
+        cut = solid_shape.buffer(allowance, join_style=2)
         pre_core_domain = shapely_box(
             minx - boolean_margin,
             miny - boolean_margin,
@@ -634,6 +651,11 @@ def build_divider_front_fold_relief_candidate(
             "depth": float(depth),
             "uv_shape_area": float(collision_shape.area),
             "uv_shape_bounds": tuple(float(v) for v in collision_shape.bounds),
+            "skin_uv_shape_area": float(collision_shape.area),
+            "skin_uv_shape_bounds": tuple(float(v) for v in collision_shape.bounds),
+            "solid_half_thickness": float(half_t),
+            "solid_uv_shape_area": float(solid_shape.area),
+            "solid_uv_shape_bounds": tuple(float(v) for v in solid_shape.bounds),
         }
 
     if not cut_polygons:
@@ -655,6 +677,7 @@ def build_divider_front_fold_relief_candidate(
                 "relief_part": relief_key,
             },
             "boolean_margin": float(boolean_margin),
+            "sheet_thickness": max(0.0, float(sheet_thickness)),
         },
     )
 
