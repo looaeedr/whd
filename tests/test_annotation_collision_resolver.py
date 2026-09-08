@@ -148,3 +148,41 @@ def test_resolver_avoids_manufacturing_scene_without_mutating_it():
     assert moved.insert.x not in {50.0, 55.0, 60.0, 65.0}
     assert result.unresolved_collisions == ()
     assert tuple(scene.primitives) == before
+
+
+def test_dimension_text_avoids_other_annotation_text():
+    layout = _resolver_module()
+    dimension = LinearDimensionAnnotation(
+        axis="x",
+        value=100.0,
+        start=Vec2(0.0, 0.0),
+        end=Vec2(100.0, 0.0),
+        label="100",
+    )
+    plan = AnnotationPlan(
+        overall_dimensions=(dimension,),
+        feature_callouts=(),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("NOTE", Vec2(50.0, -15.0), "TEXT", 5.0, 5),
+        ),
+        diagnostics=(),
+    )
+
+    result = layout.resolve_annotation_collisions(plan, step=5.0)
+
+    moved = next(
+        p for p in result.primitives
+        if isinstance(p, TextPrimitive) and p.layer == "DIMENSION" and p.text == "100"
+    )
+    note = next(
+        p for p in result.primitives
+        if isinstance(p, TextPrimitive) and p.layer == "TEXT" and p.text == "NOTE"
+    )
+    assert moved.insert.y == -15.0
+    assert moved.insert.x != 50.0
+    assert note.insert == Vec2(50.0, -15.0)
+    assert result.unresolved_collisions == ()
