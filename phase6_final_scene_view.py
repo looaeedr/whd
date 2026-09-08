@@ -12,6 +12,7 @@ from __future__ import annotations
 import matplotlib.projections as _matplotlib_projections  # noqa: F401
 
 from phase6_fold_profiles import _num
+from ae_engine.display_dimensions import folded_outside_envelope, resolve_operator_finished_dimensions
 
 def _phase6_profile_base_index(profile):
     """Return the semantic finished-face/core segment used as the 3D base plane."""
@@ -314,38 +315,8 @@ def _default_number_text(value):
 
 
 def _phase6_folded_outside_envelope(triangles, thickness):
-    """Return compensated outside AABB for the already-folded FinalScene mesh."""
-    import math
-
-    tris = [tuple(tri) for tri in (triangles or ()) if len(tuple(tri)) >= 3]
-    points = [tuple(float(v) for v in point) for tri in tris for point in tri[:3]]
-    if not points:
-        return None
-    mins = [min(point[axis] for point in points) for axis in range(3)]
-    maxs = [max(point[axis] for point in points) for axis in range(3)]
-    normal_extent = [0.0, 0.0, 0.0]
-    for tri in tris:
-        a, b, c = (tuple(float(v) for v in point) for point in tri[:3])
-        u = tuple(b[i] - a[i] for i in range(3))
-        v = tuple(c[i] - a[i] for i in range(3))
-        n = (
-            u[1] * v[2] - u[2] * v[1],
-            u[2] * v[0] - u[0] * v[2],
-            u[0] * v[1] - u[1] * v[0],
-        )
-        mag = math.sqrt(sum(value * value for value in n))
-        if mag <= 1e-12:
-            continue
-        for axis in range(3):
-            normal_extent[axis] = max(normal_extent[axis], abs(n[axis] / mag))
-    t = max(0.0, float(_num(thickness, 0.0)))
-    bounds = tuple(
-        (mins[axis] - t * normal_extent[axis], maxs[axis] + t * normal_extent[axis])
-        for axis in range(3)
-    )
-    dims = tuple(hi - lo for lo, hi in bounds)
-    return dims, bounds
-
+    """Compatibility wrapper around the shared 2D/3D dimension provider."""
+    return folded_outside_envelope(triangles, thickness)
 
 def _phase6_profile_operator_fold_values(profile):
     out = []
@@ -766,13 +737,12 @@ class Phase6FinalSceneView:
                 )
 
     def _resolved_finished_dimensions(self, request, triangles):
-        envelope = _phase6_folded_outside_envelope(triangles, request.thickness)
-        if envelope is not None:
-            measured, _ = envelope
-            if request.part_key == "box_body":
-                return tuple(float(v) for v in measured)
-            return (float(measured[0]), float(measured[1]))
-        return request.finished_dimensions
+        return resolve_operator_finished_dimensions(
+            request.part_key,
+            triangles=triangles,
+            thickness=request.thickness,
+            fallback_dimensions=request.finished_dimensions,
+        )
 
     def _draw_operator_dimensions(self, request, triangles):
         ax = self.renderer.ax3d
