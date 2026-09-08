@@ -1,0 +1,52 @@
+name: DM5 Skill Writeback Selfcheck
+on:
+  push:
+    branches: [work/dm5-divider-deep-module-integration]
+    paths:
+      - .agents/skills/engineering/掃描深模組/SKILL.md
+      - .agents/skills/engineering/拆解任務工單/SKILL.md
+      - .agents/skills/engineering/派工/SKILL.md
+      - CONTEXT.md
+      - 個人AI檔案庫/**
+      - tests/test_dm5_deep_module_writeback_contract.py
+      - .github/workflows/dm5-skill-selfcheck.yml
+  workflow_dispatch:
+jobs:
+  selfcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Traditional Chinese skill source gate
+        run: python .agents/skills/engineering/掃描深模組/check_zh_tw_report.py --skill-sources
+      - name: Skill structural checks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          files = {
+              "scan": Path(".agents/skills/engineering/掃描深模組/SKILL.md"),
+              "tickets": Path(".agents/skills/engineering/拆解任務工單/SKILL.md"),
+              "dispatch": Path(".agents/skills/engineering/派工/SKILL.md"),
+          }
+          for name, path in files.items():
+              text = path.read_text(encoding="utf-8")
+              lines = text.splitlines()
+              print(f"{name}: {len(lines)} lines")
+              assert len(lines) < 500
+              assert text.startswith("---\n")
+              assert "GitHub owning Issue" in text
+              assert "AI Library Writeback owner" in text
+              assert "Combined Acceptance owner" in text
+
+          scan = files["scan"].read_text(encoding="utf-8")
+          dispatch = files["dispatch"].read_text(encoding="utf-8")
+          assert "name: improve-codebase-architecture" in scan
+          assert "name: dispatching" in dispatch
+          PY
+      - name: Writeback contract tests
+        run: |
+          python -m pip install pytest
+          python -m pytest -q tests/test_dm5_deep_module_writeback_contract.py
