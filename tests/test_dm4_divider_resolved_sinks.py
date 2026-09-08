@@ -32,3 +32,35 @@ def test_main_scene_callback_refuses_direct_divider_nominal_rebuild():
     app = object.__new__(gui.BoxCalculatorGUI)
     with pytest.raises(RuntimeError, match="ResolvedManufacturingGeometry"):
         app._query_fold_designer_render_data(divider.stable_id, payload)
+
+
+def test_main_scene_callback_source_has_no_divider_geometry_builder():
+    import inspect
+    import gui
+
+    source = inspect.getsource(gui.BoxCalculatorGUI._query_fold_designer_render_data)
+    assert "derive_box_body_dividers" not in source
+    assert "build_box_body_divider_render_data" not in source
+
+
+def test_active_divider_final_query_consumes_resolved_part(monkeypatch):
+    from types import SimpleNamespace
+    import fold_designer_bridge as bridge
+
+    divider_key = "box_body:divider:main:HORIZONTAL:C0_R0|R1"
+    canonical_render = object()
+
+    class Resolved:
+        def part(self, key):
+            assert key == divider_key
+            return SimpleNamespace(render_data=canonical_render)
+
+    designer = SimpleNamespace(
+        designer_workspace=SimpleNamespace(active_part=divider_key),
+        _phase6_input_snapshot={},
+    )
+    monkeypatch.setattr(
+        bridge, "_phase6_resolve_manufacturing_geometry", lambda _self: Resolved()
+    )
+
+    assert bridge._phase6_query_final_render_data(designer) is canonical_render
