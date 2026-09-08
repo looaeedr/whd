@@ -77,6 +77,20 @@ def test_dm1_fw_face_is_semantic_and_tracks_live_fw_without_magic_29():
     assert "segment_index" not in custom_face
 
 
+def test_dm2_render_metadata_publishes_semantics_without_raw_indexes():
+    from ae_engine.manufacturing_api import build_box_body_divider_render_data
+
+    render_data = build_box_body_divider_render_data(_receiving_divider())
+    metadata = dict(render_data.metadata or {})
+    contract = metadata.get("physical_geometry_contract")
+    assert isinstance(contract, Mapping)
+    assert "frame_width_segment_index" not in metadata
+    assert "core_segment_index" not in metadata
+    fw_face = contract["fw_physical_face"]
+    assert tuple(float(v) for v in fw_face["flat_band"]) == (16.0, 41.0)
+    assert float(fw_face["outside_dimension"]) == 29.0
+
+
 def test_dm1_family_fold_topology_change_keeps_same_sink_contract(monkeypatch):
     """Changing family fold topology must not change the sink-facing interface."""
     from ae_engine.cabinet_types import policy as cabinet_family_policy

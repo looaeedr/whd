@@ -74,6 +74,60 @@ class BoxBodyDividerPart:
         return float(self.span)
 
 
+    @property
+    def physical_geometry_contract(self) -> Mapping[str, object]:
+        """Resolve family fold identity into stable physical semantics."""
+        lengths = tuple(float(value) for value in self.material_lengths)
+        signed = tuple(float(value) for value in self.signed_fold_chain)
+        if len(lengths) != len(signed):
+            raise ValueError("Divider physical contract requires aligned fold chains")
+
+        def segment_record(index, *, role, outside_dimension=None):
+            if index is None:
+                return {"role": role, "available": False}
+            index = int(index)
+            if index < 0 or index >= len(lengths):
+                raise ValueError(f"Divider {role} implementation segment is outside fold chain")
+            start = float(sum(lengths[:index]))
+            end = float(start + lengths[index])
+            return {
+                "role": role,
+                "available": True,
+                "flat_band": (start, end),
+                "material_dimension": float(lengths[index]),
+                "outside_dimension": float(
+                    abs(signed[index]) if outside_dimension is None else outside_dimension
+                ),
+            }
+
+        core = segment_record(
+            self.core_segment_index,
+            role="CORE_PHYSICAL_SEGMENT",
+            outside_dimension=float(self.formed_core_depth),
+        )
+        fw_face = segment_record(
+            self.frame_width_segment_index,
+            role="FW_PHYSICAL_FACE",
+        )
+        return {
+            "core_physical_segment": core,
+            "fw_physical_face": fw_face,
+            "placement_datum": {
+                "role": "FW_PHYSICAL_FACE",
+                "core_orientation": "INWARD",
+                "part_axis": str(self.axis),
+                "boundary_key": str(self.boundary_key),
+            },
+            "final_material": {
+                "authority": "CANONICAL_MANUFACTURING_RESOLVE",
+                "part_id": str(self.stable_id),
+            },
+            "relief_evidence": {
+                "authority": "ASSEMBLY_RELIEF_RESOLVE",
+                "part_id": str(self.stable_id),
+            },
+        }
+
 @dataclass(frozen=True)
 class InnerDoorSharedFrameRole:
     inner_door_id: str

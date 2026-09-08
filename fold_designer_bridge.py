@@ -6528,16 +6528,19 @@ def _phase6_divider_fw_placement_evidence(divider, body, world, *, tolerance=1e-
     """
     tol = float(tolerance)
     metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
-    fw_index = metadata.get("frame_width_segment_index")
+    physical_contract = dict(metadata.get("physical_geometry_contract") or {})
+    fw_face = dict(physical_contract.get("fw_physical_face") or {})
+    divider_flat_band = tuple(fw_face.get("flat_band") or ())
     evidence = {
         "contract": "DIVIDER_FW_FACE_FLUSH_V1",
         "fw_face_flush": False,
         "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),
         "placement_kind": str(getattr(divider, "placement", "") or ""),
         "tolerance": tol,
+        "fw_physical_face": fw_face,
     }
-    if fw_index is None:
-        evidence["reason"] = "Divider render metadata has no frame_width_segment_index"
+    if len(divider_flat_band) != 2:
+        evidence["reason"] = "Divider physical contract has no FW physical flat band"
         return evidence
 
     pieces = tuple(getattr(body.render_data, "pieces", ()) or ())
@@ -6549,9 +6552,7 @@ def _phase6_divider_fw_placement_evidence(divider, body, world, *, tolerance=1e-
     try:
         left_band = _phase6_profile_flat_band(by_role["left_side"].fold_profile, phase6_key="fw_left")
         right_band = _phase6_profile_flat_band(by_role["right_side"].fold_profile, phase6_key="fw_right")
-        divider_band = _phase6_profile_flat_band(
-            tuple(getattr(divider, "x_profile", ()) or ()), segment_index=int(fw_index)
-        )
+        divider_band = tuple(float(value) for value in divider_flat_band)
         mapped = dict(world.get("mapped_skin_triangles_by_part") or {})
         left_planes = _phase6_planar_skin_z_planes(
             mapped.get("box_body:left_side", ()), left_band, tolerance=tol
