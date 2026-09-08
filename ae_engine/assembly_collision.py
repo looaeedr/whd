@@ -549,7 +549,11 @@ def build_divider_front_fold_relief_candidate(
     # The solver's triangulated skin/backprojection can land a few 1e-5 mm on
     # either side of an exact Fold boundary, so keep the cut topologically
     # stable without changing the collision-derived physical depth.
-    boolean_margin = max(1.0e-4, float(tolerance) * 100.0)
+    # Refolding the exact triangulated skins can leave sub-micron boundary
+    # crossings even when the collision UV hull itself is correct. Keep a
+    # tolerance-derived boolean fringe large enough for refold verification,
+    # while remaining far below any manufacturing dimension/clearance.
+    boolean_margin = max(5.0e-4, float(tolerance) * 500.0)
 
     cut_polygons = []
     cut_depths = []
