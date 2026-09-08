@@ -21,3 +21,11 @@
   - checkpoint package before QA/reviewer transfer.
 - failed/blocked: none
 - resume: inspect current branch consumer call chain, write first DM4 RED, run remote focused gate.
+
+## Focused RED/GREEN evidence
+- RED 34234635069: 1 failed, exact reason: direct Divider scene callback DID NOT RAISE; valid requirement RED.
+- GREEN 34234791683: direct bypass closed.
+- Guard expansion 34235011670: three resolved-sink guards terminal success.
+- Production delta: gui.py only; direct Divider scene callback now fail-closed.
+- Physical checkpoint: DM4_CHECKPOINT_5aa2e4ba.zip, SHA256 c92ea712a58cac4bfbda93c7af9e1bf39df7bd37f080fe4fde8838e94dde1a0a.
+- Next: broad regression + ownership scan.
