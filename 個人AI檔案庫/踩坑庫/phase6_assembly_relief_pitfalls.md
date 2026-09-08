@@ -164,7 +164,7 @@
 - **全域硬規則**：驗證只回答「production 結果對不對」；不得回答「production 應該怎麼算」。任何 test expected、fixture output、probe/measurement delta、tolerance、PASS/FAIL evidence 都不得被 production 當成公式、offset、補償或 branch condition。
 - Divider / EndCap / BoxBody 類幾何 mismatch 必須回到 authoritative state、physical geometry、`T`、FW face、AssemblyJoint/Registry、collision/backprojection、canonical resolver 查根因；禁止用 `expected - actual` 反推切多少、移多少、補多少。
 - tolerance/epsilon/boolean fringe 只屬驗證判定邊界；若它出現在 manufacturing formula，視為 authority leakage。
-- 某數值只有在**另有獨立產品／機械 authority**並正式固化於 spec/registry/canonical state 時才能成為 production input；QA 恰好量到相同數字不構成 authority。
+- 某數值只有在**另有獨立 authoritative provenance（產品／機械 authority）**並正式固化於 spec/registry/canonical state 時才能成為 production input；QA 恰好量到相同數字不構成 authority。
 - Review/source scan 發現 production 依賴 `tests/**`、fixture expected、單次 probe magic number，直接 fail closed，不得以「測試都過」接受。
 
 ## 2026-09-09 — Issue63：驗證結果不得反向成為 Divider production 幾何公式
