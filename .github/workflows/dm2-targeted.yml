@@ -1,0 +1,216 @@
+name: DM2 Targeted
+on:
+  push:
+    branches:
+      - work/dm2-divider-physical-contract
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-green:
+    if: github.event_name == 'push' && github.event.head_commit.message == 'ci(dm2): add targeted apply workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply exact DM2 semantic-contract patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one patch anchor, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'ae_engine/door_dividers.py',
+              '''    @property
+          def blank_height(self) -> float:
+              return float(self.span)
+
+
+          @dataclass(frozen=True)
+          class InnerDoorSharedFrameRole:''',
+              '''    @property
+          def blank_height(self) -> float:
+              return float(self.span)
+
+              @property
+              def physical_geometry_contract(self) -> Mapping[str, object]:
+                  """Resolve family-specific fold identity into stable physical semantics.
+
+                  Raw segment indexes remain an implementation detail of this module.  All
+                  downstream manufacturing/render sinks receive material-space bands and
+                  physical dimensions instead of learning cabinet-family fold topology.
+                  """
+                  lengths = tuple(float(value) for value in self.material_lengths)
+                  signed = tuple(float(value) for value in self.signed_fold_chain)
+                  if len(lengths) != len(signed):
+                      raise ValueError("Divider physical contract requires aligned fold chains")
+
+                  def segment_record(index, *, role, outside_dimension=None):
+                      if index is None:
+                          return {"role": role, "available": False}
+                      index = int(index)
+                      if index < 0 or index >= len(lengths):
+                          raise ValueError(f"Divider {role} implementation segment is outside fold chain")
+                      start = float(sum(lengths[:index]))
+                      end = float(start + lengths[index])
+                      return {
+                          "role": role,
+                          "available": True,
+                          "flat_band": (start, end),
+                          "material_dimension": float(lengths[index]),
+                          "outside_dimension": float(
+                              abs(signed[index]) if outside_dimension is None else outside_dimension
+                          ),
+                      }
+
+                  core = segment_record(
+                      self.core_segment_index,
+                      role="CORE_PHYSICAL_SEGMENT",
+                      outside_dimension=float(self.formed_core_depth),
+                  )
+                  fw_face = segment_record(
+                      self.frame_width_segment_index,
+                      role="FW_PHYSICAL_FACE",
+                  )
+                  return {
+                      "core_physical_segment": core,
+                      "fw_physical_face": fw_face,
+                      "placement_datum": {
+                          "role": "FW_PHYSICAL_FACE",
+                          "core_orientation": "INWARD",
+                          "part_axis": str(self.axis),
+                          "boundary_key": str(self.boundary_key),
+                      },
+                      "final_material": {
+                          "authority": "CANONICAL_MANUFACTURING_RESOLVE",
+                          "part_id": str(self.stable_id),
+                      },
+                      "relief_evidence": {
+                          "authority": "ASSEMBLY_RELIEF_RESOLVE",
+                          "part_id": str(self.stable_id),
+                      },
+                  }
+
+
+          @dataclass(frozen=True)
+          class InnerDoorSharedFrameRole:'''
+          )
+
+          replace_once(
+              'ae_engine/manufacturing_api.py',
+              '''            "formed_core_depth": float(divider.formed_core_depth),
+                      "core_segment_index": int(divider.core_segment_index),
+                      "frame_width_segment_index": (
+                          None if divider.frame_width_segment_index is None
+                          else int(divider.frame_width_segment_index)
+                      ),
+                      "signed_fold_chain": tuple(float(v) for v in divider.signed_fold_chain),''',
+              '''            "formed_core_depth": float(divider.formed_core_depth),
+                      "physical_geometry_contract": dict(divider.physical_geometry_contract),
+                      "signed_fold_chain": tuple(float(v) for v in divider.signed_fold_chain),'''
+          )
+
+          replace_once(
+              'fold_designer_bridge.py',
+              '''    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+              fw_index = metadata.get("frame_width_segment_index")
+              evidence = {
+                  "contract": "DIVIDER_FW_FACE_FLUSH_V1",
+                  "fw_face_flush": False,
+                  "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),
+                  "placement_kind": str(getattr(divider, "placement", "") or ""),
+                  "tolerance": tol,
+              }
+              if fw_index is None:
+                  evidence["reason"] = "Divider render metadata has no frame_width_segment_index"
+                  return evidence
+          ''',
+              '''    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+              physical_contract = dict(metadata.get("physical_geometry_contract") or {})
+              fw_face = dict(physical_contract.get("fw_physical_face") or {})
+              divider_flat_band = tuple(fw_face.get("flat_band") or ())
+              evidence = {
+                  "contract": "DIVIDER_FW_FACE_FLUSH_V1",
+                  "fw_face_flush": False,
+                  "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),
+                  "placement_kind": str(getattr(divider, "placement", "") or ""),
+                  "tolerance": tol,
+                  "fw_physical_face": fw_face,
+              }
+              if len(divider_flat_band) != 2:
+                  evidence["reason"] = "Divider physical contract has no FW physical flat band"
+                  return evidence
+          '''
+          )
+
+          replace_once(
+              'fold_designer_bridge.py',
+              '''        divider_band = _phase6_profile_flat_band(
+                      tuple(getattr(divider, "x_profile", ()) or ()), segment_index=int(fw_index)
+                  )
+          ''',
+              '''        divider_band = tuple(float(value) for value in divider_flat_band)
+          '''
+          )
+
+          test_path = Path('tests/test_dm1_divider_physical_contract.py')
+          test_text = test_path.read_text(encoding='utf-8')
+          anchor = '''def test_dm1_family_fold_topology_change_keeps_same_sink_contract(monkeypatch):\n'''
+          if test_text.count(anchor) != 1:
+              raise SystemExit('DM2 metadata test anchor not unique')
+          addition = '''def test_dm2_render_metadata_publishes_semantics_without_raw_indexes():
+              from ae_engine.manufacturing_api import build_box_body_divider_render_data
+
+              render_data = build_box_body_divider_render_data(_receiving_divider())
+              metadata = dict(render_data.metadata or {})
+              contract = metadata.get("physical_geometry_contract")
+              assert isinstance(contract, Mapping)
+              assert "frame_width_segment_index" not in metadata
+              assert "core_segment_index" not in metadata
+              fw_face = contract["fw_physical_face"]
+              assert tuple(float(v) for v in fw_face["flat_band"]) == (18.0, 43.0)
+              assert float(fw_face["outside_dimension"]) == 29.0
+
+
+          '''
+          test_path.write_text(test_text.replace(anchor, addition + anchor, 1), encoding='utf-8')
+          PY
+      - name: Install focused dependencies
+        run: python -m pip install --disable-pip-version-check pytest shapely ezdxf
+      - name: Run DM2 focused GREEN tests before commit
+        run: pytest -q tests/test_dm1_divider_physical_contract.py
+      - name: Commit verified DM2 production patch
+        shell: bash
+        run: |
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git add ae_engine/door_dividers.py ae_engine/manufacturing_api.py fold_designer_bridge.py tests/test_dm1_divider_physical_contract.py
+          git commit -m "refactor(dm2): resolve Divider physical semantics"
+          git push origin HEAD:work/dm2-divider-physical-contract
+
+  targeted-qa:
+    if: github.event_name == 'push' && github.event.head_commit.message != 'ci(dm2): add targeted apply workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependencies
+        run: python -m pip install --disable-pip-version-check pytest shapely ezdxf
+      - name: Run DM2 contract tests
+        run: pytest -q tests/test_dm1_divider_physical_contract.py
