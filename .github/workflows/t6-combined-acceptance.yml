@@ -1,0 +1,156 @@
+name: T6 Combined Acceptance
+
+on:
+  push:
+    branches:
+      - feat/engineering-drawing-dxf-qa
+    paths:
+      - .github/workflows/t6-combined-acceptance.yml
+      - .scratch/engineering-drawing-dxf-qa/T6.preflight.evidence.md
+      - ae_engine/**
+      - gui.py
+      - fold_designer_bridge.py
+      - phase6_final_scene_view.py
+      - phase6_box_body_structure.py
+      - tests/**
+  workflow_dispatch:
+
+jobs:
+  combined:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Combined knowledge preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T6 Combined Acceptance regression remote QA Receiving Divider relief collision OVERLAY flat-X DXF Vault Save-Reload annotation" \
+            --changed-file .github/workflows/t6-combined-acceptance.yml \
+            --changed-file fold_designer_bridge.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file ae_engine/assembly_collision.py \
+            --changed-file ae_engine/divider_manufacturing.py \
+            --changed-file ae_engine/engineering_drawing.py \
+            --changed-file ae_engine/dxf_acceptance.py \
+            --changed-file gui.py \
+            --evidence .scratch/engineering-drawing-dxf-qa/T6.preflight.evidence.md
+
+      - name: Compile combined production boundary
+        run: |
+          python -m py_compile \
+            ae_engine/dxf_acceptance.py \
+            ae_engine/drawing_annotations.py \
+            ae_engine/drawing_annotation_layout.py \
+            ae_engine/engineering_drawing.py \
+            ae_engine/display_dimensions.py \
+            ae_engine/manufacturing_api.py \
+            ae_engine/assembly_collision.py \
+            ae_engine/box_body_structure.py \
+            ae_engine/divider_manufacturing.py \
+            ae_engine/sheetmetal_drawing.py \
+            fold_designer_bridge.py \
+            phase6_final_scene_view.py \
+            phase6_box_body_structure.py \
+            gui.py
+
+      - name: Run T6 combined suites
+        shell: bash
+        run: |
+          set +e
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CONFIG_BEFORE=$before"
+
+          echo "=== CORE_DXF_ANNOTATION ==="
+          python -m pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_drawing_annotations.py \
+            tests/test_annotation_collision_resolver.py \
+            tests/test_engineering_drawing_integration.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py
+          core_status=$?
+
+          echo "=== RECEIVING_ISSUE63_91 ==="
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue63_regression_red.py \
+            tests/test_phase6_box_body_structure.py \
+            tests/test_phase6_t14_box_body_child_sections.py \
+            tests/test_issue44_box_body_physical_piece_identity.py \
+            tests/test_phase6_receiving_multipart_integration.py \
+            tests/test_phase6_t25_combined_receiving_acceptance.py \
+            tests/test_phase6_t16_receiving_placement.py \
+            tests/test_receiving_cabinet_type.py \
+            tests/test_issue48_receiving_fw_flush_red.py \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py
+          receiving_status=$?
+
+          echo "=== VAULT_SAVE_RELOAD ==="
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue37_vault_baseplate_placement.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py \
+            tests/test_phase6_tail_native_orientation_and_save.py \
+            tests/test_external_registry_runtime_reload.py
+          persistence_status=$?
+
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CONFIG_AFTER=$after"
+          config_status=0
+          test "$before" = "$after" || config_status=$?
+          git diff --exit-code -- config.ini || config_status=$?
+
+          echo "CORE_STATUS=$core_status"
+          echo "RECEIVING_STATUS=$receiving_status"
+          echo "PERSISTENCE_STATUS=$persistence_status"
+          echo "CONFIG_STATUS=$config_status"
+
+          if [ "$core_status" -ne 0 ] || [ "$receiving_status" -ne 0 ] || [ "$persistence_status" -ne 0 ] || [ "$config_status" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Combined source ownership guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          box = Path("ae_engine/box_body_structure.py").read_text(encoding="utf-8")
+          collision = Path("ae_engine/assembly_collision.py").read_text(encoding="utf-8")
+          manufacturing = Path("ae_engine/manufacturing_api.py").read_text(encoding="utf-8")
+          engineering = Path("ae_engine/engineering_drawing.py").read_text(encoding="utf-8")
+
+          # Issue63 physical ownership/source guards.
+          assert "self._phase6_box_structure_w(self)" not in bridge
+          assert "set_side_back_piece_profile" in bridge
+          assert 'shared_keys={"zl1", "zl2", "fw_left", "d_left"}' in box
+          assert 'shared_keys={"d_right", "fw_right", "zr2"}' in box
+          assert "MultiPoint(points).convex_hull" in collision
+          assert "uv_shape_area" in collision
+
+          # Engineering Drawing remains downstream/annotation-only.
+          assert "build_engineering_drawing_projection" not in manufacturing
+          assert "_save_scene_dxf" not in engineering
+          assert "resolve_annotation_collisions" in engineering
+
+          # Shared 2D/3D finished-dimension authority remains wired after merge.
+          assert "resolve_operator_finished_dimensions" in bridge
+          PY
