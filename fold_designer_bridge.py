@@ -6465,13 +6465,12 @@ def _phase6_divider_relief_core_start(part):
         cursor += abs(float(dict(row).get("len", 0.0) or 0.0))
 
     metadata = dict(getattr(getattr(part, "render_data", None), "metadata", {}) or {})
-    lengths = tuple(float(v) for v in tuple(metadata.get("material_lengths", ()) or ()))
-    core_segment_index = metadata.get("core_segment_index")
-    if core_segment_index is not None:
-        index = int(core_segment_index)
-        if 0 <= index < len(lengths):
-            return float(sum(lengths[:index]))
-    raise ValueError(f"Divider D_DIVIDER Fold topology unavailable: {part.part_key}")
+    physical_contract = dict(metadata.get("physical_geometry_contract") or {})
+    core_segment = dict(physical_contract.get("core_physical_segment") or {})
+    core_flat_band = tuple(core_segment.get("flat_band") or ())
+    if len(core_flat_band) == 2:
+        return float(core_flat_band[0])
+    raise ValueError(f"Divider core physical segment unavailable: {part.part_key}")
 
 
 def _phase6_profile_flat_band(profile, *, segment_index=None, phase6_key=None):
