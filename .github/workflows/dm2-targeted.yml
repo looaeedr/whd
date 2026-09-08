@@ -1,4 +1,4 @@
-name: DM2 Targeted Apply
+name: DM2 Final QA
 on:
   push:
     branches:
@@ -7,10 +7,10 @@ on:
       - .github/workflows/dm2-targeted.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-green:
+  final-qa:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,177 +19,95 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply exact DM2 semantic-contract patch
+      - name: Record locked evidence
+        shell: bash
+        run: |
+          echo "HEAD_SHA=$(git rev-parse HEAD)"
+          echo "BASE_SHA=154a4e5098b340dc80d73cae1f9d2aa895b9bdc1"
+          sha256sum config.ini | tee /tmp/config.before
+          git status --short
+      - name: Install focused dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest
+      - name: DM2 physical contract GREEN
+        run: pytest -q tests/test_dm1_divider_physical_contract.py
+      - name: Assembly collision regressions
+        run: pytest -q tests/test_assembly_collision.py tests/test_assembly_collision_integration.py
+      - name: Receiving Vault Divider family guards
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          import textwrap
-
-          def replace_once(path, old, new):
-              p = Path(path)
-              text = p.read_text(encoding="utf-8")
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{path}: expected one patch anchor, found {count}")
-              p.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-          door = Path("ae_engine/door_dividers.py")
-          text = door.read_text(encoding="utf-8")
-          anchor = "\n\n@dataclass(frozen=True)\nclass InnerDoorSharedFrameRole:"
-          if text.count(anchor) != 1:
-              raise SystemExit("door_dividers.py: semantic property anchor not unique")
-          property_code = textwrap.indent(textwrap.dedent("""
-          @property
-          def physical_geometry_contract(self) -> Mapping[str, object]:
-              \"\"\"Resolve family fold identity into stable physical semantics.\"\"\"
-              lengths = tuple(float(value) for value in self.material_lengths)
-              signed = tuple(float(value) for value in self.signed_fold_chain)
-              if len(lengths) != len(signed):
-                  raise ValueError("Divider physical contract requires aligned fold chains")
-
-              def segment_record(index, *, role, outside_dimension=None):
-                  if index is None:
-                      return {"role": role, "available": False}
-                  index = int(index)
-                  if index < 0 or index >= len(lengths):
-                      raise ValueError(f"Divider {role} implementation segment is outside fold chain")
-                  start = float(sum(lengths[:index]))
-                  end = float(start + lengths[index])
-                  return {
-                      "role": role,
-                      "available": True,
-                      "flat_band": (start, end),
-                      "material_dimension": float(lengths[index]),
-                      "outside_dimension": float(
-                          abs(signed[index]) if outside_dimension is None else outside_dimension
-                      ),
-                  }
-
-              core = segment_record(
-                  self.core_segment_index,
-                  role="CORE_PHYSICAL_SEGMENT",
-                  outside_dimension=float(self.formed_core_depth),
-              )
-              fw_face = segment_record(
-                  self.frame_width_segment_index,
-                  role="FW_PHYSICAL_FACE",
-              )
-              return {
-                  "core_physical_segment": core,
-                  "fw_physical_face": fw_face,
-                  "placement_datum": {
-                      "role": "FW_PHYSICAL_FACE",
-                      "core_orientation": "INWARD",
-                      "part_axis": str(self.axis),
-                      "boundary_key": str(self.boundary_key),
-                  },
-                  "final_material": {
-                      "authority": "CANONICAL_MANUFACTURING_RESOLVE",
-                      "part_id": str(self.stable_id),
-                  },
-                  "relief_evidence": {
-                      "authority": "ASSEMBLY_RELIEF_RESOLVE",
-                      "part_id": str(self.stable_id),
-                  },
-              }
-          """).strip("\n"), "    ")
-          door.write_text(text.replace(anchor, "\n\n" + property_code + anchor, 1), encoding="utf-8")
-
-          replace_once(
-              "ae_engine/manufacturing_api.py",
-              "\n".join([
-                  '            "formed_core_depth": float(divider.formed_core_depth),',
-                  '            "core_segment_index": int(divider.core_segment_index),',
-                  '            "frame_width_segment_index": (',
-                  '                None if divider.frame_width_segment_index is None',
-                  '                else int(divider.frame_width_segment_index)',
-                  '            ),',
-                  '            "signed_fold_chain": tuple(float(v) for v in divider.signed_fold_chain),',
-              ]),
-              "\n".join([
-                  '            "formed_core_depth": float(divider.formed_core_depth),',
-                  '            "physical_geometry_contract": dict(divider.physical_geometry_contract),',
-                  '            "signed_fold_chain": tuple(float(v) for v in divider.signed_fold_chain),',
-              ]),
-          )
-
-          replace_once(
-              "fold_designer_bridge.py",
-              "\n".join([
-                  '    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})',
-                  '    fw_index = metadata.get("frame_width_segment_index")',
-                  '    evidence = {',
-                  '        "contract": "DIVIDER_FW_FACE_FLUSH_V1",',
-                  '        "fw_face_flush": False,',
-                  '        "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),',
-                  '        "placement_kind": str(getattr(divider, "placement", "") or ""),',
-                  '        "tolerance": tol,',
-                  '    }',
-                  '    if fw_index is None:',
-                  '        evidence["reason"] = "Divider render metadata has no frame_width_segment_index"',
-                  '        return evidence',
-              ]),
-              "\n".join([
-                  '    metadata = dict(getattr(divider.render_data, "metadata", {}) or {})',
-                  '    physical_contract = dict(metadata.get("physical_geometry_contract") or {})',
-                  '    fw_face = dict(physical_contract.get("fw_physical_face") or {})',
-                  '    divider_flat_band = tuple(fw_face.get("flat_band") or ())',
-                  '    evidence = {',
-                  '        "contract": "DIVIDER_FW_FACE_FLUSH_V1",',
-                  '        "fw_face_flush": False,',
-                  '        "core_inward": str(getattr(divider, "placement", "") or "").endswith("_inward"),',
-                  '        "placement_kind": str(getattr(divider, "placement", "") or ""),',
-                  '        "tolerance": tol,',
-                  '        "fw_physical_face": fw_face,',
-                  '    }',
-                  '    if len(divider_flat_band) != 2:',
-                  '        evidence["reason"] = "Divider physical contract has no FW physical flat band"',
-                  '        return evidence',
-              ]),
-          )
-          replace_once(
-              "fold_designer_bridge.py",
-              "\n".join([
-                  '        divider_band = _phase6_profile_flat_band(',
-                  '            tuple(getattr(divider, "x_profile", ()) or ()), segment_index=int(fw_index)',
-                  '        )',
-              ]),
-              '        divider_band = tuple(float(value) for value in divider_flat_band)',
-          )
-
-          test_path = Path("tests/test_dm1_divider_physical_contract.py")
-          test_text = test_path.read_text(encoding="utf-8")
-          test_anchor = "def test_dm1_family_fold_topology_change_keeps_same_sink_contract(monkeypatch):\n"
-          if test_text.count(test_anchor) != 1:
-              raise SystemExit("DM2 metadata test anchor not unique")
-          metadata_test = textwrap.dedent("""
-          def test_dm2_render_metadata_publishes_semantics_without_raw_indexes():
-              from ae_engine.manufacturing_api import build_box_body_divider_render_data
-
-              render_data = build_box_body_divider_render_data(_receiving_divider())
-              metadata = dict(render_data.metadata or {})
-              contract = metadata.get("physical_geometry_contract")
-              assert isinstance(contract, Mapping)
-              assert "frame_width_segment_index" not in metadata
-              assert "core_segment_index" not in metadata
-              fw_face = contract["fw_physical_face"]
-              assert tuple(float(v) for v in fw_face["flat_band"]) == (16.0, 41.0)
-              assert float(fw_face["outside_dimension"]) == 29.0
-
-
-          """).lstrip()
-          test_path.write_text(test_text.replace(test_anchor, metadata_test + test_anchor, 1), encoding="utf-8")
+          import re, subprocess, sys
+          candidates = []
+          for p in Path('tests').glob('test_*.py'):
+              text = p.read_text(encoding='utf-8', errors='ignore')
+              if re.search(r'(?i)receiving|vault|divider', text):
+                  candidates.append(str(p))
+          # Exclude the already-run focused and very broad collision files.
+          candidates = [p for p in candidates if p not in {
+              'tests/test_dm1_divider_physical_contract.py',
+              'tests/test_assembly_collision.py',
+              'tests/test_assembly_collision_integration.py',
+          }]
+          print('FAMILY_GUARD_FILES', len(candidates))
+          print('\n'.join(candidates))
+          if not candidates:
+              raise SystemExit('no receiving/vault/divider family guard tests discovered')
+          cmd = [sys.executable, '-m', 'pytest', '-q', *candidates, '-k', 'receiving or vault or divider']
+          raise SystemExit(subprocess.call(cmd))
           PY
-      - name: Install focused dependencies
-        run: python -m pip install --disable-pip-version-check pytest shapely ezdxf
-      - name: Run DM2 focused GREEN tests before commit
-        run: pytest -q tests/test_dm1_divider_physical_contract.py
-      - name: Commit verified DM2 production patch
+      - name: Raw index leak scan
         shell: bash
         run: |
-          git config user.name "looaeedr"
-          git config user.email "76246585+looaeedr@users.noreply.github.com"
-          git add ae_engine/door_dividers.py ae_engine/manufacturing_api.py fold_designer_bridge.py tests/test_dm1_divider_physical_contract.py
-          git commit -m "refactor(dm2): resolve Divider physical semantics"
-          git push origin HEAD:work/dm2-divider-physical-contract
+          python - <<'PY'
+          from pathlib import Path
+          forbidden = ('frame_width_segment_index', 'core_segment_index')
+          sink_files = [
+              Path('ae_engine/manufacturing_api.py'),
+              Path('fold_designer_bridge.py'),
+          ]
+          bad = []
+          for p in sink_files:
+              text = p.read_text(encoding='utf-8')
+              for token in forbidden:
+                  if token in text:
+                      bad.append(f'{p}:{token}')
+          if bad:
+              raise SystemExit('raw index leak remains in sink: ' + ', '.join(bad))
+          print('RAW_INDEX_LEAK_SCAN=PASS')
+          PY
+      - name: Base to final drift audit
+        shell: bash
+        run: |
+          git diff --name-status 154a4e5098b340dc80d73cae1f9d2aa895b9bdc1...HEAD | tee /tmp/dm2-drift.txt
+          python - <<'PY'
+          from pathlib import Path
+          allowed_prefixes = (
+              'ae_engine/door_dividers.py',
+              'ae_engine/manufacturing_api.py',
+              'fold_designer_bridge.py',
+              'tests/test_dm1_divider_physical_contract.py',
+              '.github/workflows/dm2-',
+              'docs/plans/',
+              '.scratch/dm2/',
+          )
+          bad=[]
+          for line in Path('/tmp/dm2-drift.txt').read_text(encoding='utf-8').splitlines():
+              if not line.strip():
+                  continue
+              path=line.split('\t')[-1]
+              if not any(path == p or path.startswith(p) for p in allowed_prefixes):
+                  bad.append(line)
+          if bad:
+              raise SystemExit('unexpected DM2 drift:\n' + '\n'.join(bad))
+          print('DM2_DRIFT_AUDIT=PASS')
+          PY
+      - name: Config invariant and clean tree
+        shell: bash
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          test -z "$(git status --porcelain)"
+          echo "CONFIG_INVARIANT=PASS"
+          echo "CLEAN_TREE=PASS"
