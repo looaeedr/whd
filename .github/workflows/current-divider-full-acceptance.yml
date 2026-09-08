@@ -1,0 +1,90 @@
+name: Current Divider Full Acceptance
+
+on:
+  push:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - .github/workflows/current-divider-full-acceptance.yml
+      - .scratch/current-divider-acceptance/preflight.evidence.md
+  workflow_dispatch:
+
+jobs:
+  divider:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "Current Receiving Divider full acceptance relief collision DXF Save-Reload remote QA" \
+            --changed-file ae_engine/divider_manufacturing.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file ae_engine/assembly_collision.py \
+            --evidence .scratch/current-divider-acceptance/preflight.evidence.md
+
+      - name: Compile divider production path
+        run: |
+          python -m py_compile \
+            ae_engine/divider_manufacturing.py \
+            ae_engine/manufacturing_api.py \
+            ae_engine/assembly_collision.py \
+            ae_engine/box_body_structure.py \
+            fold_designer_bridge.py \
+            phase6_box_body_structure.py
+
+      - name: Run current divider full acceptance
+        shell: bash
+        run: |
+          set +e
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CONFIG_BEFORE=$before"
+
+          echo "=== DIVIDER_CANONICAL_BASELINE_RELIEF_PLACEMENT ==="
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_phase6_t16_receiving_placement.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py
+          geometry_status=$?
+
+          echo "=== DIVIDER_DXF_SAVE_RELOAD_PARITY ==="
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_dxf_acceptance.py
+          parity_status=$?
+
+          echo "=== DIVIDER_CURRENT_NUMERIC_DIAGNOSTICS ==="
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_issue63_regression_red.py::test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edge_parity \
+            tests/test_issue63_regression_red.py::test_issue63_divider_candidate_preserves_uv_shape_and_sweeps_skin_to_solid_boundary \
+            tests/test_issue39_divider_relief.py::test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact
+          diagnostic_status=$?
+
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "CONFIG_AFTER=$after"
+          config_status=0
+          test "$before" = "$after" || config_status=$?
+          git diff --exit-code -- config.ini || config_status=$?
+
+          echo "GEOMETRY_STATUS=$geometry_status"
+          echo "PARITY_STATUS=$parity_status"
+          echo "DIAGNOSTIC_STATUS=$diagnostic_status"
+          echo "CONFIG_STATUS=$config_status"
+
+          if [ "$geometry_status" -ne 0 ] || [ "$parity_status" -ne 0 ] || [ "$diagnostic_status" -ne 0 ] || [ "$config_status" -ne 0 ]; then
+            exit 1
+          fi
