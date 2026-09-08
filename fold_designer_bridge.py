@@ -204,6 +204,72 @@ def _phase6_box_body_piece_dimension_projections(render_data) -> tuple[Phase6Par
     return tuple(rows)
 
 
+def _phase6_is_box_body_physical_piece_key(value) -> bool:
+    """Return True only for manufacturing-owned BoxBody child-piece identities."""
+    key = str(value or "")
+    return key.startswith("box_body:") and not key.startswith("box_body:divider:")
+
+
+def _phase6_box_body_piece_part_profiles(render_data) -> dict[str, dict[str, list[dict[str, object]]]]:
+    """Project authoritative BoxBody physical pieces into read-only workspace profiles.
+
+    The manufacturing result owns the piece set and Fold Profiles.  This adapter
+    only exposes those already-resolved identities to the 3D operator workspace;
+    it never derives a parallel child-piece model.
+    """
+    result = {}
+    for piece in tuple(getattr(render_data, "pieces", ()) or ()):
+        role = str(getattr(piece, "role", "") or "").strip()
+        if not role:
+            continue
+        key = f"box_body:{role}"
+        result[key] = {
+            "X": [
+                {
+                    "len": float(row.length),
+                    **({"angle": float(row.angle)} if row.angle is not None else {}),
+                    **({"core": row.core} if getattr(row, "core", None) else {}),
+                    "phase6_key": str(getattr(row, "phase6_key", "") or ""),
+                }
+                for row in tuple(getattr(piece, "fold_profile", ()) or ())
+            ],
+            "Y": [{
+                "len": float(piece.material_dimensions[1]),
+                "phase6_key": "box_body_piece_height",
+            }],
+        }
+    return result
+
+
+def _phase6_box_body_structure_render_data(self):
+    """Read the one authoritative aggregate BoxBody manufacturing result."""
+    callback = getattr(self, "_scene_query_callback", None)
+    if callback is None:
+        raise RuntimeError("3D final-scene provider is not connected")
+    payload = _phase6_scene_query_payload_for_part(self, "box_body")
+    render_data = callback("box_body", payload)
+    if render_data is None:
+        raise ValueError("manufacturing BoxBody render data unavailable")
+    return render_data
+
+
+def _phase6_box_body_piece_render_data(self, part_key):
+    """Select one physical child from the aggregate manufacturing result."""
+    key = str(part_key or "")
+    if not _phase6_is_box_body_physical_piece_key(key):
+        raise ValueError(f"not a BoxBody physical piece: {key}")
+    role = key.split(":", 1)[1]
+    render_data = _phase6_box_body_structure_render_data(self)
+    piece = next(
+        (item for item in tuple(getattr(render_data, "pieces", ()) or ())
+         if str(getattr(item, "role", "") or "") == role),
+        None,
+    )
+    if piece is None:
+        raise ValueError(f"BoxBody physical piece is not present in current structure: {key}")
+    return piece.render_data
+
+
 PART_LABELS = {
     "box_body": "箱身",
     "head": "封頭",
@@ -436,6 +502,28 @@ def _phase6_sync_authoritative_derived_parts(self):
                 "base_plate",
                 default_profiles=build_standard_part_profiles(snapshot, "base_plate"),
             )
+
+    # Manufacturing-owned multipart BoxBody identities must be real 3D workspace
+    # contexts, not only nested labels inside the aggregate `box_body` page.
+    # Query the canonical aggregate result and project exactly its physical pieces.
+    try:
+        box_render_data = _phase6_box_body_structure_render_data(self)
+    except Exception:
+        box_render_data = None
+    if box_render_data is not None:
+        box_piece_profiles = _phase6_box_body_piece_part_profiles(box_render_data)
+        desired_piece_keys = set(box_piece_profiles)
+        current_piece_keys = {
+            key for key in workspace.available_parts
+            if _phase6_is_box_body_physical_piece_key(key)
+        }
+        for key in tuple(current_piece_keys - desired_piece_keys):
+            workspace.remove_part(key)
+        for key, profiles in box_piece_profiles.items():
+            if key in workspace.available_parts:
+                workspace.stash_profiles(key, profiles)
+            else:
+                workspace.add_part(key, default_profiles=profiles)
 
     divider_profiles = {}
     columns = list(snapshot.get("door_layout_columns") or ())
@@ -3067,8 +3155,13 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
     projections = ()
     if active is not BoxBodyStructureType.INTEGRAL:
         try:
-            render_data = _phase6_query_final_render_data(self)
+            render_data = _phase6_box_body_structure_render_data(self)
             projections = _phase6_box_body_piece_dimension_projections(render_data)
+            active_piece_key = str(getattr(self.designer_workspace, "active_part", "") or "")
+            if _phase6_is_box_body_physical_piece_key(active_piece_key):
+                projections = tuple(
+                    row for row in projections if row.part_key == active_piece_key
+                )
         except Exception as exc:
             original.ttk.Label(
                 self.box_body_piece_input_host,
@@ -4156,6 +4249,7 @@ def _phase6_is_derived_physical_part_key(value):
     return (
         re.fullmatch(r"door_c\d+_r\d+", key) is not None
         or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
+        or _phase6_is_box_body_physical_piece_key(key)
         or key.startswith("box_body:divider:")
         or (key.startswith("inner_door:") and key.endswith("_frame"))
         or (key.startswith("inner_door:") and key.endswith(":panel"))
@@ -5402,6 +5496,8 @@ def _phase6_query_final_render_data(self):
     key = str(self.designer_workspace.active_part or "")
     if not key:
         raise ValueError("no active part")
+    if _phase6_is_box_body_physical_piece_key(key):
+        return _phase6_box_body_piece_render_data(self, key)
 
     snapshot = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
     user_joint_parts = {
@@ -6528,7 +6624,13 @@ def _phase6_resolve_manufacturing_geometry(self):
 
     fallback_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
     fallback_enabled = bool(fallback_var.get()) if fallback_var is not None else False
-    available = set(self.designer_workspace.available_parts)
+    # Physical BoxBody child identities are operator/single-part contexts.  The
+    # assembly solve still owns one aggregate box_body whose render_data.pieces
+    # contain those children; adding them again here would duplicate geometry.
+    available = {
+        key for key in set(self.designer_workspace.available_parts)
+        if not _phase6_is_box_body_physical_piece_key(key)
+    }
     snapshot_for_joints = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
     joints = tuple(
         raw if isinstance(raw, AssemblyJoint) else AssemblyJoint.from_dict(raw)
@@ -8523,7 +8625,8 @@ def _fix11_activate_part(self, key, initial=False):
     # otherwise Tk/Matplotlib renders once at the tall pre-settings size and once
     # again after the settings panel changes the viewport height.
     if hasattr(self, "settings_center"):
-        _phase6_render_settings_context(self, key)
+        settings_context = "box_body" if _phase6_is_box_body_physical_piece_key(key) else key
+        _phase6_render_settings_context(self, settings_context)
         if bool(getattr(self, "_phase6_parameters_unlocked", False)):
             if not self.settings_center.winfo_manager():
                 _phase6_pack_right_panel_above_canvas(self, self.settings_center)
