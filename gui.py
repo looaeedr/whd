@@ -15,6 +15,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
+from ae_engine.engineering_drawing import build_engineering_drawing_projection
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     registered_cabinet_types,
@@ -239,6 +240,7 @@ from ae_engine.sheetmetal_drawing import (
     PolylinePrimitive,
     LinePrimitive,
     CirclePrimitive,
+    TextPrimitive,
     DrawingScene,
     resolved_features_to_primitives,
     mirror_point_y,
@@ -478,6 +480,36 @@ def feature_surface_from_drawing_scene(surface_id, scene):
     # manufacturing export accept the same closed-polyline / exploded-LINE data.
     return ae.feature_surface_from_drawing_scene(surface_id, scene)
 
+
+def _draw_phase6_annotation_projection(canvas, render_data, transform, *, part_key="", strict=False):
+    """Render the shared annotation-only Engineering Drawing projection in 2D."""
+    projection = build_engineering_drawing_projection(
+        render_data, part_key=str(part_key or ""), strict=bool(strict)
+    )
+    dimensions_by_label = {}
+    for item in tuple(getattr(projection.annotation_plan, "overall_dimensions", ()) or ()):
+        dimensions_by_label.setdefault(str(item.label), []).append(str(item.axis).lower())
+    for primitive in projection.primitives:
+        layer = str(getattr(primitive, "layer", "") or "").upper()
+        if isinstance(primitive, LinePrimitive):
+            p1 = transform.world_to_canvas(primitive.p1)
+            p2 = transform.world_to_canvas(primitive.p2)
+            canvas.create_line(
+                *p1, *p2, fill=("#30d158" if layer == "DIMENSION" else "#ffd60a"),
+                width=1.2, tags=("phase6_engineering_annotation", layer.lower()),
+            )
+        elif isinstance(primitive, TextPrimitive):
+            x, y = transform.world_to_canvas(primitive.insert)
+            axes = dimensions_by_label.get(str(primitive.text), ())
+            angle = 90 if layer == "DIMENSION" and axes == ["y"] else 0
+            anchor_name = tk.CENTER if int(getattr(primitive, "attachment_point", 1)) == 5 else tk.SW
+            canvas.create_text(
+                x, y, text=str(primitive.text),
+                fill=("#30d158" if layer == "DIMENSION" else "#ffd60a"),
+                font=('Consolas', 9, 'bold'), anchor=anchor_name, angle=angle,
+                tags=("phase6_engineering_annotation", layer.lower()),
+            )
+    return projection
 
 def _draw_phase6_corner_dimension_overlay(canvas, render_data, canvas_width):
     """Draw per-corner sizes measured from the same PartRenderData used by 3D."""
@@ -5195,15 +5227,6 @@ class BoxCalculatorGUI:
             skip_layers=("CHECK", "STOCK"),
         )
 
-        canvas.create_text(
-            cw / 2, bottom - blank_h * scale - 20,
-            text=f"W = {blank_w:.2f} mm", fill="#30d158", font=('Consolas', 10, 'bold')
-        )
-        canvas.create_text(
-            left + blank_w * scale + 45, bottom - (blank_h * scale) / 2,
-            text=f"H = {blank_h:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold'), angle=90
-        )
         stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
         canvas.create_text(
             25, 25, anchor=tk.NW,
@@ -5216,7 +5239,7 @@ class BoxCalculatorGUI:
             fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_box")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _normalize_door_indicator_state(self, state):
@@ -5908,16 +5931,6 @@ class BoxCalculatorGUI:
             skip_layers=("CHECK", "STOCK"),
         )
 
-        canvas.create_text(
-            cw / 2, bottom - blank_h * scale - 20,
-            text=f"W = {blank_w:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold')
-        )
-        canvas.create_text(
-            left + blank_w * scale + 45, bottom - (blank_h * scale) / 2,
-            text=f"H = {blank_h:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold'), angle=90
-        )
         stock_hint = "  STOCK: 青色虛線" if self.draw_stock_var.get() else ""
         baseline_hint = f" ({spec.model_name} 最終製造幾何)" if spec.model_name else " (自訂最終製造幾何)"
         canvas.create_text(
@@ -6007,7 +6020,7 @@ class BoxCalculatorGUI:
             except Exception:
                 pass
 
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="door")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def draw_base_plate(self, val):
@@ -6092,7 +6105,7 @@ class BoxCalculatorGUI:
             fill=self.COLOR_TEXT, font=('Microsoft JhengHei', 9, 'bold'), anchor=tk.NW,
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="base_plate")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _disable_all_door_indicators(self):
@@ -6418,15 +6431,6 @@ class BoxCalculatorGUI:
             skip_layers=("CHECK", "STOCK"),
         )
 
-        canvas.create_text(
-            cw / 2, bottom - blank_h * scale - 20,
-            text=f"W = {blank_w:.2f} mm", fill="#30d158", font=('Consolas', 10, 'bold')
-        )
-        canvas.create_text(
-            left + blank_w * scale + 45, bottom - (blank_h * scale) / 2,
-            text=f"H = {blank_h:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold'), angle=90
-        )
         stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
         canvas.create_text(
             25, 25, anchor=tk.NW,
@@ -6438,7 +6442,7 @@ class BoxCalculatorGUI:
             fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_door")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _inherit_known_corner_state_into_custom(self):
@@ -7184,10 +7188,6 @@ class BoxCalculatorGUI:
 
         baseline_status = ae.box_body_baseline_source_label(baseline)
         hint_text = "箱身展開預覽 (Z-Body)"
-        canvas.create_text(cw / 2, offset_y - z_height * scale - 20,
-                           text=f"W = {z_len:.2f} mm", fill="#30d158", font=('Consolas', 10, 'bold'))
-        canvas.create_text(offset_x + z_len * scale + 45, offset_y - (z_height * scale) / 2,
-                           text=f"H = {z_height:.2f} mm", fill="#30d158", font=('Consolas', 10, 'bold'), angle=90)
         stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
         canvas.create_text(
             25, 25, anchor=tk.NW,
@@ -7195,7 +7195,7 @@ class BoxCalculatorGUI:
             fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, transform, part_key="box_body")
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
         physical_piece_keys = tuple(
@@ -7258,16 +7258,6 @@ class BoxCalculatorGUI:
                 sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
             )
 
-        canvas.create_text(
-            cw / 2, offset_y - y_d * scale - 20,
-            text=f"W = {y_w:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold')
-        )
-        canvas.create_text(
-            offset_x + y_w * scale + 45, offset_y - (y_d * scale) / 2,
-            text=f"H = {y_d:.2f} mm", fill="#30d158",
-            font=('Consolas', 10, 'bold'), angle=90
-        )
         stock_hint = "  STOCK: 青色虛線" if self.draw_stock_var.get() else ""
 
         tail_hint = "  [封尾]" if is_tail else "  [封頭]"
@@ -7277,7 +7267,7 @@ class BoxCalculatorGUI:
             fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
             width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
         )
-        _draw_phase6_corner_dimension_overlay(canvas, render_data, cw)
+        _draw_phase6_annotation_projection(canvas, render_data, transform, part_key=("tail" if is_tail else "head"))
         draw_hole_editor_hint(canvas, cw, endcap=True)
 
     def _manufacturing_context(self, *, draw_stock=False):
