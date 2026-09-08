@@ -164,3 +164,13 @@
 - 這些舊 seam 直接把 operator `FW=29` 套入 `FW+2T`，因此 Receiving 在 3D/Fold Designer part_dimensions 仍顯示 727×1060 / 727×427。
 - 現在三條 seam 全部先透過 Cabinet Family policy 取得 Door material FW，再呼叫共用 `calculate_door_finished_size()`；禁止 projection / snapshot 再自行手寫 Door 尺寸公式。
 - T25 Combined Acceptance 現在直接驗證 Receiving 上門 735×1064、下門 735×435，以及 main-GUI snapshot legacy Door template 735×1535。
+
+## 2026-09-08 — Divider Physical Geometry Contract
+
+- **Divider Physical Geometry Contract** 是 Divider Fold/FW/core/placement/relief/final-material 的單一領域邊界；family-specific Fold Chain 差異必須收在此邊界內，不得洩漏到 2D / 3D / Assembly / DXF sink。
+- 受電箱 Divider 包外四段為 `18 / FW / 106 / 17`；Fresh Default `FW=29`。FW 是 **FW physical face**，不是靠固定 segment index 或 magic 29 才成立。
+- `frame_width_segment_index` 只可保留為 module implementation detail；sink 不得讀它來決定 FW、placement 或截角。
+- placement authority 是 Divider FW physical face 與 BoxBody FW physical face 的 face-flush 關係；任何 fixed world coordinate、renderer origin、bbox guess、`174`、`47/26`、1 mm probe 都只能是診斷 evidence，不能成為 runtime oracle。
+- `中隔.dxf` 只提供固定孔／既有基準特徵，不提供 final relief contour；正式截角由 canonical manufacturing solve 的 placement → collision/backprojection → refold verification 產生。
+- 2D / single 3D / Assembly / DXF 是 **resolved geometry sinks**：全部消費同一 resolved final material，不得自行重建 CUTTING、relief、placement 或 Fold/FW semantics。
+- Save 只保存 authoritative state；derived `final_geometry`、renderer cache、probe polygon、UI warning 不得成為第二份 project truth。Reload 必須重新 canonical solve，得到同一 stable identity、FW physical face、placement、relief evidence 與 final material。
