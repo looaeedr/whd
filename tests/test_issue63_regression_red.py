@@ -14,6 +14,104 @@ from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_pa
 import fold_designer_bridge as bridge
 
 
+
+def _issue63_divider_middle_segment(material):
+    minx, _miny, _maxx, _maxy = map(float, material.bounds)
+    coords = list(material.exterior.coords)
+    candidates = []
+    for a, b in zip(coords, coords[1:]):
+        if abs(float(a[0]) - minx) <= 1e-5 and abs(float(b[0]) - minx) <= 1e-5:
+            length = abs(float(b[1]) - float(a[1]))
+            if length > 1e-6:
+                candidates.append((length, a, b))
+    assert candidates
+    length, a, b = max(candidates, key=lambda row: row[0])
+    y0, y1 = sorted((float(a[1]), float(b[1])))
+    return {
+        "length": float(length),
+        "center": (minx, (y0 + y1) / 2.0),
+        "tangent": (0.0, 1.0),
+        "inward": (1.0, 0.0),
+    }
+
+
+def _issue63_endcap_mother_geometry(path):
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    outlines = list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
+    assert outlines
+    outer = max(
+        outlines,
+        key=lambda e: abs(
+            Polygon([(float(x), float(y)) for x, y, *_ in e.get_points()]).area
+        ),
+    )
+    pts = [(float(x), float(y)) for x, y, *_ in outer.get_points()]
+    if pts[0] != pts[-1]:
+        pts.append(pts[0])
+    poly = Polygon(pts)
+
+    holes = [
+        e for e in msp.query("CIRCLE")
+        if abs(float(e.dxf.radius) - 3.2) <= 1e-6
+    ]
+    assert len(holes) == 2
+    hc = [(float(e.dxf.center.x), float(e.dxf.center.y), e) for e in holes]
+    hv = (hc[1][0] - hc[0][0], hc[1][1] - hc[0][1])
+    hlen = (hv[0] ** 2 + hv[1] ** 2) ** 0.5
+    hu = (hv[0] / hlen, hv[1] / hlen)
+
+    candidates = []
+    for a, b in zip(pts, pts[1:]):
+        vx, vy = b[0] - a[0], b[1] - a[1]
+        length = (vx * vx + vy * vy) ** 0.5
+        if length <= 1e-9:
+            continue
+        tu = (vx / length, vy / length)
+        if abs(tu[0] * hu[0] + tu[1] * hu[1]) < 0.999:
+            continue
+        center = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+        projections = [
+            (h[0] - center[0]) * tu[0] + (h[1] - center[1]) * tu[1]
+            for h in hc
+        ]
+        if max(abs(v) for v in projections) > length / 2.0 + 1e-6:
+            continue
+        distances = [
+            abs((h[0] - center[0]) * (-tu[1]) + (h[1] - center[1]) * tu[0])
+            for h in hc
+        ]
+        candidates.append((sum(distances) / len(distances), center, tu, length))
+
+    assert candidates
+    _dist, center, tu, length = min(candidates, key=lambda row: row[0])
+    if tu[0] < -1e-9 or (abs(tu[0]) <= 1e-9 and tu[1] < 0):
+        tu = (-tu[0], -tu[1])
+
+    centroid = (float(poly.centroid.x), float(poly.centroid.y))
+    n1 = (-tu[1], tu[0])
+    if (centroid[0] - center[0]) * n1[0] + (centroid[1] - center[1]) * n1[1] < 0:
+        inward = (-n1[0], -n1[1])
+    else:
+        inward = n1
+
+    ranked = []
+    for x, y, entity in hc:
+        axial = (x - center[0]) * tu[0] + (y - center[1]) * tu[1]
+        inward_offset = (x - center[0]) * inward[0] + (y - center[1]) * inward[1]
+        ranked.append((axial, inward_offset, entity))
+    axial, inward_offset, entity = max(ranked, key=lambda row: row[0])
+    return {
+        "length": float(length),
+        "center": center,
+        "tangent": tu,
+        "inward": inward,
+        "anchor_axial": float(axial),
+        "anchor_edge_distance": float(inward_offset),
+        "anchor_handle": str(entity.dxf.handle),
+    }
+
+
 def _signed_area3(a, b, c):
     return (
         (float(b[0]) - float(a[0])) * (float(c[1]) - float(a[1]))
@@ -149,6 +247,7 @@ def test_issue63_physical_piece_fold_edit_survives_save_switch_and_resync():
 def test_issue63_divider_baseline_holes_preserve_physical_edge_offsets_not_centered_envelope():
     from pathlib import Path
     import ezdxf
+from shapely.geometry import Polygon
 
     snap = _snapshot()
     divider = derive_box_body_dividers(
@@ -195,6 +294,53 @@ def test_issue63_divider_baseline_holes_preserve_physical_edge_offsets_not_cente
             {"source": (cx, cy), "expected": exp, "actual": got},
         )
     print("ISSUE63_HOLE_EDGE_DATUM=", {"expected": expected, "actual": actual})
+
+
+
+def test_issue63_divider_middle_segment_matches_endcap_mother_middle_segment():
+    _divider, render = _solved()
+    divider_middle = _issue63_divider_middle_segment(render.material)
+    endcap = _issue63_endcap_mother_geometry(Path("基準檔/金庫型/封頭尾.dxf"))
+    print("ISSUE63_MIDDLE_SEGMENT_PARITY=", {
+        "divider": divider_middle,
+        "endcap": endcap,
+    })
+    assert divider_middle["length"] == pytest.approx(endcap["length"], abs=1e-6), (
+        "中隔截角後中間直線段長度必須等同封頭/尾母規則的截角後中間直線段",
+        divider_middle,
+        endcap,
+    )
+
+
+def test_issue63_divider_anchor_hole_to_relief_edge_distance_matches_endcap():
+    _divider, render = _solved()
+    divider_middle = _issue63_divider_middle_segment(render.material)
+    holes = [
+        p for p in render.scene.primitives
+        if isinstance(p, CirclePrimitive)
+        and abs(float(p.radius) - 3.2) <= 1e-6
+    ]
+    assert len(holes) == 3
+    anchor = min(holes, key=lambda item: float(item.center.x))
+    divider_distance = (
+        (float(anchor.center.x) - divider_middle["center"][0]) * divider_middle["inward"][0]
+        + (float(anchor.center.y) - divider_middle["center"][1]) * divider_middle["inward"][1]
+    )
+
+    endcap = _issue63_endcap_mother_geometry(Path("基準檔/金庫型/封頭尾.dxf"))
+    print("ISSUE63_HOLE_EDGE_DISTANCE_PARITY=", {
+        "divider_anchor": (float(anchor.center.x), float(anchor.center.y)),
+        "divider_edge_distance": float(divider_distance),
+        "endcap_edge_distance": float(endcap["anchor_edge_distance"]),
+        "endcap_anchor_handle": endcap["anchor_handle"],
+    })
+    assert float(divider_distance) == pytest.approx(
+        float(endcap["anchor_edge_distance"]), abs=1e-6
+    ), (
+        "中隔 shared Ø6.4 anchor 到截角後中間邊的距離必須等同封頭/尾母孔到該邊距離",
+        divider_distance,
+        endcap,
+    )
 
 
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
