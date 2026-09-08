@@ -39,12 +39,18 @@ def test_dm1_resolved_divider_contract_expresses_physical_geometry_boundary():
         "core_physical_segment",
         "fw_physical_face",
         "placement_datum",
-        "final_material",
-        "relief_evidence",
+        "manufacturing_resolver",
     }
     assert required <= set(contract), (
-        "DM1 RED: the resolved Divider contract must carry core segment, FW "
-        "physical face, placement datum, final material and relief evidence"
+        "DM1 guard: the base Divider physical contract must carry stable core/FW "
+        "physical semantics plus the canonical manufacturing resolver identity"
+    )
+
+    from ae_engine.divider_manufacturing import ResolvedDividerFinalGeometry
+    final_fields = set(getattr(ResolvedDividerFinalGeometry, "__dataclass_fields__", {}))
+    assert {"final_material", "relief_evidence", "placement_evidence", "verified"} <= final_fields, (
+        "DM1/DM3 guard: final material and relief evidence belong to the canonical "
+        "resolved manufacturing result, not placeholder fields on the base part"
     )
 
 
@@ -135,8 +141,7 @@ def test_dm1_family_fold_topology_change_keeps_same_sink_contract(monkeypatch):
         "core_physical_segment",
         "fw_physical_face",
         "placement_datum",
-        "final_material",
-        "relief_evidence",
+        "manufacturing_resolver",
     } <= set(contract)
     assert float(contract["fw_physical_face"]["outside_dimension"]) == 29.0
     assert "segment_index" not in contract["fw_physical_face"]
