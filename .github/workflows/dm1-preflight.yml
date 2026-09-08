@@ -17,3 +17,4 @@ jobs:
         run: >-
           python tools/phase6_skill_preflight.py
           --task "Issue #51 DM1 Divider Physical Geometry Contract 邊界與 RED 架構護欄；完整追 Cabinet Family → Fold Contract → Divider Part → Manufacturing Resolve → Assembly → 2D → 3D → DXF → Save/Reload，建立 RED 架構護欄，不先改 production"
+          --evidence .scratch/dm1/phase6_preflight_evidence.md
