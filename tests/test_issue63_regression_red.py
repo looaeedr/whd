@@ -22,7 +22,7 @@ def _signed_area3(a, b, c):
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
-def test_issue63_multipart_piece_entries_are_actually_visible_in_exact_3d_user_path():
+def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors():
     import tkinter as tk
     import gui
 
@@ -41,36 +41,43 @@ def test_issue63_multipart_piece_entries_are_actually_visible_in_exact_3d_user_p
 
         designer.baseline_model_var.set("受電箱")
         root.update_idletasks(); root.update()
-        designer.activate_part("box_body")
-        root.update_idletasks(); root.update()
 
-        expected = (
-            "box_body:left_side",
-            "box_body:back",
-            "box_body:right_side",
-        )
-        assert tuple(designer.box_body_piece_input_sections) == expected
-
-        top = int(designer.root.winfo_rooty())
-        bottom = top + int(designer.root.winfo_height())
-        evidence = {}
+        expected = {
+            "box_body:left_side": ("zl1", "zl2", "fw_left", "d_left", "side_rear_bend_left"),
+            "box_body:back": ("back_panel",),
+            "box_body:right_side": ("side_rear_bend_right", "d_right", "fw_right", "zr2"),
+        }
+        available = tuple(designer.designer_workspace.available_parts)
+        print("ISSUE63_AVAILABLE_PARTS=", available)
         for key in expected:
-            entries = dict(designer.box_body_piece_input_entries.get(key) or {})
-            assert entries, f"{key} has no editable input"
-            entry = next(iter(entries.values()))
-            y0 = int(entry.winfo_rooty())
-            y1 = y0 + int(entry.winfo_height())
-            evidence[key] = {
-                "root_top": top, "root_bottom": bottom,
-                "entry_top": y0, "entry_bottom": y1,
-                "mapped": bool(entry.winfo_ismapped()),
-            }
-            assert entry.winfo_ismapped(), (key, evidence[key])
-            assert top <= (y0 + y1) // 2 < bottom, (
-                f"{key} exists but its editable input is outside the visible 3D window",
-                evidence,
+            assert key in available, (
+                f"{key} has physical geometry but no independent Fold editor identity",
+                available,
             )
-        print("ISSUE63_UI_EVIDENCE=", evidence)
+
+        menu = designer.part_choice_menu
+        labels = tuple(
+            str(menu.entrycget(i, "label"))
+            for i in range(int(menu.index("end")) + 1)
+        )
+        print("ISSUE63_PART_MENU=", labels)
+        for label in ("左側板", "後面板", "右側板"):
+            assert label in labels
+
+        for key, expected_keys in expected.items():
+            profiles = designer.designer_workspace.profiles_for(key, {}) or {}
+            x = tuple(profiles.get("X") or ())
+            actual_keys = tuple(str(row.get("phase6_key") or "") for row in x)
+            print("ISSUE63_PIECE_PROFILE=", key, actual_keys, x)
+            assert actual_keys == expected_keys
+            designer.activate_part(key)
+            root.update_idletasks(); root.update()
+            assert designer.designer_workspace.active_part == key
+            active_keys = tuple(
+                str(row.get("phase6_key") or "")
+                for row in tuple(designer.state.profiles.get("X") or ())
+            )
+            assert active_keys == expected_keys
     finally:
         try:
             if designer is not None:
@@ -78,7 +85,6 @@ def test_issue63_multipart_piece_entries_are_actually_visible_in_exact_3d_user_p
         except Exception:
             pass
         root.destroy()
-
 
 def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
     snap = _snapshot()
@@ -117,6 +123,50 @@ def test_issue63_divider_baseline_fixed_holes_are_rotated_not_mirrored():
         "the adapter contract only permits rigid rotation/translation"
     )
 
+
+
+def test_issue63_divider_backprojection_keeps_fold_band_shape_evidence():
+    from ae_engine.assembly_collision import project_joint_interference_to_relief_owner
+    from tests.test_issue39_divider_relief import _divider_insert_joint
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+    world = bridge._phase6_build_joint_world_geometry((body, divider_part), dims, snap["t"])
+    joint = _divider_insert_joint(divider.stable_id)
+
+    core_start = float(
+        dict(divider.physical_geometry_contract)["core_physical_segment"]["flat_band"][0]
+    )
+    evidence = {}
+    for source_key in ("box_body:left_side", "box_body:right_side"):
+        projected = project_joint_interference_to_relief_owner(
+            joint,
+            world_triangles_by_part=world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=world["flat_material_by_part"],
+            source_geometry_key=source_key,
+        )
+        eligible = [
+            segment for segment in tuple(projected.projection.segments_2d or ())
+            if min(float(segment[0][0]), float(segment[1][0])) < core_start - 1e-6
+        ]
+        rows = []
+        for a, b in eligible:
+            rows.append((
+                round(min(float(a[0]), float(b[0])), 6),
+                round(max(float(a[0]), float(b[0])), 6),
+                round(min(float(a[1]), float(b[1])), 6),
+                round(max(float(a[1]), float(b[1])), 6),
+            ))
+        evidence[source_key] = rows
+    print("ISSUE63_RELIEF_BACKPROJECTION_SEGMENTS=", evidence)
+
+    # Keep this diagnostic red-capable: each physical source must contribute
+    # actual fold-band geometry, not just a scalar depth.
+    assert evidence["box_body:left_side"]
+    assert evidence["box_body:right_side"]
 
 def test_issue63_divider_left_right_physical_sides_cut_opposite_span_ends():
     snap = _snapshot()
