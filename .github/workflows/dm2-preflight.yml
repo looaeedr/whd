@@ -1,0 +1,27 @@
+name: DM2 Preflight
+on:
+  push:
+    branches:
+      - work/dm2-divider-physical-contract
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run Phase6 Knowledge Preflight
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "Issue #52 DM2 收斂 Divider Family/Fold/FW Physical Geometry Contract；保持受電箱 18/FW/106/17、T48-1 face-flush、Vault/non-Receiving 行為，不改產品尺寸孔位；讓 family fold topology 在 module 內解析成 semantic physical contract，sinks 不解 raw segment index"
+          --changed-file "docs/superpowers/plans/2026-09-08-divider-physical-contract.md"
+          --changed-file "ae_engine/door_dividers.py"
+          --changed-file "ae_engine/manufacturing_api.py"
+          --changed-file "fold_designer_bridge.py"
+          --changed-file "tests/test_dm1_divider_physical_contract.py"
+          --changed-file "tests/test_issue40_divider_6p4_shared_datum.py"
+          --changed-file "tests/test_assembly_collision_integration.py"
+          --evidence .scratch/dm2/phase6_preflight_evidence.md
