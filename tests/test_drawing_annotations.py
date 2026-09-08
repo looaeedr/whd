@@ -2,6 +2,7 @@
 import importlib
 import importlib.util
 
+import pytest
 from shapely.geometry import Polygon
 
 from ae_engine import manufacturing_api as api
@@ -93,3 +94,34 @@ def test_annotation_plan_is_deterministic_and_does_not_mutate_canonical_data():
     assert first == second
     assert tuple(render.scene.primitives) == before_primitives
     assert bytes(render.material.wkb) == before_wkb
+
+
+def _render_with_rounded_corner():
+    # 100 x 60 blank with a true sampled R10 top-right quarter arc.
+    outline = (
+        Vec2(0, 0), Vec2(100, 0), Vec2(100, 50),
+        Vec2(99.238795, 53.826834),
+        Vec2(97.071068, 57.071068),
+        Vec2(93.826834, 59.238795),
+        Vec2(90, 60), Vec2(0, 60),
+    )
+    scene = DrawingScene()
+    scene.add(PolylinePrimitive(outline, "CUTTING", closed=True))
+    return api.PartRenderData(
+        scene=scene,
+        material=api.material_polygon_from_final_scene(scene),
+        fold_guides=(),
+    )
+
+
+def test_annotation_plan_measures_radius_from_final_material_arc():
+    render = _render_with_rounded_corner()
+
+    plan = _planner()(render)
+
+    assert len(plan.radius_callouts) == 1
+    radius = plan.radius_callouts[0]
+    assert abs(radius.radius - 10.0) <= 1e-4
+    assert radius.label == "R10"
+    assert radius.center.x == pytest.approx(90.0, abs=1e-4)
+    assert radius.center.y == pytest.approx(50.0, abs=1e-4)
