@@ -11,7 +11,7 @@ from collections import Counter
 from dataclasses import dataclass
 from math import hypot
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import ezdxf
 from shapely.geometry import LineString, Point, Polygon
@@ -37,6 +37,22 @@ class DxfAcceptanceIssue:
 class DxfAcceptanceResult:
     ok: bool
     issues: tuple[DxfAcceptanceIssue, ...]
+
+
+@dataclass(frozen=True)
+class ResolvedDxfAcceptanceIssue:
+    part_id: str
+    category: str
+    detail: str
+    expected: Any = None
+    actual: Any = None
+
+
+@dataclass(frozen=True)
+class ResolvedDxfAcceptanceResult:
+    ok: bool
+    issues: tuple[ResolvedDxfAcceptanceIssue, ...]
+    part_results: Mapping[str, DxfAcceptanceResult]
 
 
 def _entity_kind(entity) -> str | None:
