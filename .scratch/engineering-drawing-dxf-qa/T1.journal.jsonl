@@ -1,0 +1,1 @@
+{"task_id":"engineering-drawing-dxf-qa","ticket":"#57","role":"T1 Implementer","status":"RED_SETUP","baseline_sha":"55541aaef49c3bb5649f52160a87a2834c1072a9","completed":["owning_issue","ai_refs","tdd_skill","monitoring_remote_qa_skill"],"pending":["preflight","R3_RED","implementation","GREEN","QA"],"resume_command":"pytest -q tests/test_dxf_acceptance.py"}
