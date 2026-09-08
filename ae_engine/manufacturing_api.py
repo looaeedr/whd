@@ -1809,11 +1809,14 @@ def build_box_body_divider_render_data(
             source_w = source_max_x - source_min_x
             source_h = float(source_bounds.extmax.y) - source_min_y
             # Baseline long X axis maps to Divider span Y; baseline short Y
-            # axis maps to fold-chain X.  This is a real clockwise 90-degree
-            # rigid rotation, not the old X/Y swap reflection.  Center only the
-            # translated unscaled source envelope; preserve hole handedness.
-            offset_x = (float(chain.total_width) - source_h) / 2.0
-            offset_y = (float(chain.height) - source_w) / 2.0
+            # axis maps to fold-chain X.  Preserve the physical source-edge
+            # datum under the clockwise 90-degree rigid rotation:
+            #   source min-Y -> Divider min-X
+            #   source max-X -> Divider min-Y
+            # The baseline file owns fixed-hole offsets from those edges; a
+            # larger Divider span must not re-center the old hole envelope.
+            offset_x = 0.0
+            offset_y = 0.0
             for index, entity in enumerate(msp.query("CIRCLE")):
                 cx = float(entity.dxf.center.x)
                 cy = float(entity.dxf.center.y)
