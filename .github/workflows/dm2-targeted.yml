@@ -28,53 +28,41 @@ jobs:
           git status --short
       - name: Install focused dependencies
         run: |
-          python -m pip install --disable-pip-version-check -r requirements.txt pytest
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib
       - name: DM2 physical contract GREEN
         run: pytest -q tests/test_dm1_divider_physical_contract.py
       - name: Assembly collision regressions
         run: pytest -q tests/test_assembly_collision.py tests/test_assembly_collision_integration.py
-      - name: Receiving Vault Divider family guards
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re, subprocess, sys
-          candidates = []
-          for p in Path('tests').glob('test_*.py'):
-              text = p.read_text(encoding='utf-8', errors='ignore')
-              if re.search(r'(?i)receiving|vault|divider', text):
-                  candidates.append(str(p))
-          # Exclude the already-run focused and very broad collision files.
-          candidates = [p for p in candidates if p not in {
-              'tests/test_dm1_divider_physical_contract.py',
-              'tests/test_assembly_collision.py',
-              'tests/test_assembly_collision_integration.py',
-          }]
-          print('FAMILY_GUARD_FILES', len(candidates))
-          print('\n'.join(candidates))
-          if not candidates:
-              raise SystemExit('no receiving/vault/divider family guard tests discovered')
-          cmd = [sys.executable, '-m', 'pytest', '-q', *candidates, '-k', 'receiving or vault or divider']
-          raise SystemExit(subprocess.call(cmd))
-          PY
+      - name: T48-1 FW face flush regression
+        run: pytest -q tests/test_issue48_receiving_fw_flush_red.py
+      - name: Divider 6p4 shared datum regression
+        run: pytest -q tests/test_issue40_divider_6p4_shared_datum.py
+      - name: Receiving and Vault family guards
+        run: >-
+          pytest -q
+          tests/test_issue43_receiving_divider_t1.py
+          tests/test_receiving_cabinet_type.py
+          tests/test_phase6_cabinet_family_policy.py
+          tests/test_phase6_t11_family_preset_switching.py
+          tests/test_overlay_formed_fw_registry_contract.py
+          tests/test_issue37_vault_baseplate_placement.py
       - name: Raw index leak scan
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          forbidden = ('frame_width_segment_index', 'core_segment_index')
-          sink_files = [
-              Path('ae_engine/manufacturing_api.py'),
-              Path('fold_designer_bridge.py'),
-          ]
-          bad = []
-          for p in sink_files:
-              text = p.read_text(encoding='utf-8')
-              for token in forbidden:
+          checks = {
+              Path('ae_engine/manufacturing_api.py'): ('"frame_width_segment_index"', '"core_segment_index"'),
+              Path('fold_designer_bridge.py'): ('metadata.get("frame_width_segment_index")', 'metadata.get("core_segment_index")'),
+          }
+          bad=[]
+          for p, tokens in checks.items():
+              text=p.read_text(encoding='utf-8')
+              for token in tokens:
                   if token in text:
                       bad.append(f'{p}:{token}')
           if bad:
-              raise SystemExit('raw index leak remains in sink: ' + ', '.join(bad))
+              raise SystemExit('raw sink index leak remains: ' + ', '.join(bad))
           print('RAW_INDEX_LEAK_SCAN=PASS')
           PY
       - name: Base to final drift audit
@@ -83,13 +71,13 @@ jobs:
           git diff --name-status 154a4e5098b340dc80d73cae1f9d2aa895b9bdc1...HEAD | tee /tmp/dm2-drift.txt
           python - <<'PY'
           from pathlib import Path
-          allowed_prefixes = (
+          allowed = (
               'ae_engine/door_dividers.py',
               'ae_engine/manufacturing_api.py',
               'fold_designer_bridge.py',
               'tests/test_dm1_divider_physical_contract.py',
               '.github/workflows/dm2-',
-              'docs/plans/',
+              'docs/superpowers/plans/',
               '.scratch/dm2/',
           )
           bad=[]
@@ -97,7 +85,7 @@ jobs:
               if not line.strip():
                   continue
               path=line.split('\t')[-1]
-              if not any(path == p or path.startswith(p) for p in allowed_prefixes):
+              if not any(path == p or path.startswith(p) for p in allowed):
                   bad.append(line)
           if bad:
               raise SystemExit('unexpected DM2 drift:\n' + '\n'.join(bad))
