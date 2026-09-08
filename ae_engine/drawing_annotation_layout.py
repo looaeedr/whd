@@ -311,7 +311,64 @@ def resolve_annotation_collisions(
     for index, primitive in enumerate(tuple(primitives)):
         if not isinstance(primitive, TextPrimitive):
             continue
-        if str(primitive.layer).upper() != "DIMENSION":
+
+        layer = str(primitive.layer).upper()
+        if layer == "TEXT":
+            callout = _callout_for_text(plan, primitive)
+            if callout is None:
+                continue
+            kind, identifier, anchor, _label = callout
+            callout_regions = _candidate_callout_regions(
+                primitives,
+                exclude_index=index,
+                reserved_and_manufacturing=regions,
+                clearance=float(clearance),
+            )
+            if not _collides(primitive, callout_regions):
+                continue
+
+            moved = None
+            for dx, dy in _callout_candidate_offsets(float(step), int(max_steps)):
+                if dx == 0.0 and dy == 0.0:
+                    continue
+                candidate = replace(
+                    primitive,
+                    insert=Vec2(
+                        float(primitive.insert.x) + dx,
+                        float(primitive.insert.y) + dy,
+                    ),
+                )
+                candidate_regions = _candidate_callout_regions(
+                    primitives,
+                    exclude_index=index,
+                    reserved_and_manufacturing=regions,
+                    clearance=float(clearance),
+                )
+                if _collides(candidate, candidate_regions):
+                    continue
+                if not _candidate_leader_is_clear(
+                    anchor, candidate.insert, candidate_regions, clearance=float(clearance)
+                ):
+                    continue
+                moved = candidate
+                break
+
+            if moved is None:
+                unresolved.append(AnnotationCollision(
+                    index,
+                    "UNRESOLVED_LEADER",
+                    f"no legal leader position for {kind.lower()} {identifier}: {primitive.text}",
+                ))
+            else:
+                primitives[index] = moved
+                primitives.append(LinePrimitive(
+                    Vec2(float(anchor.x), float(anchor.y)),
+                    moved.insert,
+                    "TEXT",
+                ))
+            continue
+
+        if layer != "DIMENSION":
             continue
         axis = _dimension_axis_for_text(plan, primitive)
         if axis not in {"x", "y"}:
