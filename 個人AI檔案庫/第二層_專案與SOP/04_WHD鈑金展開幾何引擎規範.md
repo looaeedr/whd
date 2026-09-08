@@ -679,3 +679,26 @@ PASS / FAIL
 ### 顯示與數值
 - 擬合／量測的原始幾何值保留真實精度；工程圖 label 可消除浮點擬合的次微米顯示噪音，例如實測 `10.000002` 可顯示 `R10`，但不得因此把 canonical geometry 改成 10。
 - Annotation collision / placement 是下一層責任；Planner 只提供語意 annotation 與初始位置，不得因避碰移動 manufacturing entities。
+
+
+---
+
+## 2026-09-08 — Deterministic Annotation Collision Layout
+
+### Ownership
+- `ae_engine/drawing_annotation_layout.py` 位於 `AnnotationPlan` 下游，只能調整工程標註的文字、尺寸文字與 leader；不得移動、修補、重建 `CUTTING / BEND / holes / material`。
+- layout 使用的文字 bbox、線段 padding、reserved rectangle 都只是 **annotation placement geometry**，不是製造幾何 Source of Truth。
+- `manufacturing_scene` 只讀：resolver 可把 CUTTING 邊、BEND、CUTTING circle/hole 轉成避讓障礙，但前後 `DrawingScene.primitives` 必須完全不變。
+
+### Deterministic movement
+- 同一 input、相同 obstacles、相同 step/max_steps 必須得到相同 layout。
+- 水平 dimension text 只能沿 X 移動，Y 保持不變。
+- 垂直 dimension text 只能沿 Y 移動，X 保持不變。
+- 每個 dimension text 必須排除自己的 dimension line，但避開其他 DIMENSION lines 與其他 annotation text。
+- TITLE / TECH 等非製造區域由 caller 以 reserved regions 傳入，和 CUTTING / BEND / holes 一起參與碰撞檢查。
+
+### Callout / strict acceptance
+- Feature / Corner / Radius callout 的 anchor 來自 AnnotationPlan authoritative metadata；只有 callout text / leader 可移動。
+- 找到合法位置時新增 annotation-only leader，不得把 leader 寫入 CUTTING/BEND。
+- 找不到合法位置時必須保留 `UNRESOLVED_LEADER` diagnostic，不可 silent overlap。
+- Engineering strict 模式下，只要 `unresolved_collisions > 0` 就必須 FAIL；不得以「大部分已排開」宣告工程圖合格。
