@@ -702,3 +702,27 @@ PASS / FAIL
 - 找到合法位置時新增 annotation-only leader，不得把 leader 寫入 CUTTING/BEND。
 - 找不到合法位置時必須保留 `UNRESOLVED_LEADER` diagnostic，不可 silent overlap。
 - Engineering strict 模式下，只要 `unresolved_collisions > 0` 就必須 FAIL；不得以「大部分已排開」宣告工程圖合格。
+
+
+---
+
+## 2026-09-09 — 2D / Engineering Drawing Shared Projection
+
+### Annotation ownership
+- `ae_engine.engineering_drawing.build_engineering_drawing_projection()` 是 2D GUI 與 Engineering Drawing 的共用 annotation projection seam；兩者都必須消費同一個 `AnnotationPlan`，不得各自重算 W/H、孔標、截角或 R。
+- 六個主 2D preview（箱身、封頭尾、門、底板、指示燈盒、指示燈小門）都必須委派 shared projection；overall 展開尺寸不得再由各頁直接 `canvas.create_text` 手寫。
+- Projection 只能產生 `DIMENSION / TEXT` annotation primitives；manufacturing `DrawingScene.primitives` 在 projection 前後必須完全不變。
+
+### Manufacturing DXF separation
+- Production manufacturing DXF 仍只序列化 canonical `render_data.scene`；不得把 Engineering Drawing 的尺寸、leader、文字、圖框或 reserved region 混進 CUTTING/BEND 製造輸出。
+- Engineering Drawing 是 opt-in 下游 projection，不得成為 manufacturing geometry owner，也不得用 annotation 修補缺失的製造幾何。
+
+### 2D / 3D finished-dimension authority
+- `ae_engine.display_dimensions.resolve_operator_finished_dimensions()` 是 2D/3D 共用的 operator finished-dimension provider。
+- 已有 folded FinalScene mesh 時，必須以 `folded_outside_envelope()` 的折後包外量測為優先，禁止 snapshot 名義尺寸覆蓋真實 folded envelope。
+- 尚無 folded mesh 時，才允許使用同一 provider 的 snapshot / Corner-policy fallback；fallback 公式不得再散落於 GUI 或 3D view。
+- 展開尺寸與折後包外是兩種不同資訊：AnnotationPlan overall dimensions 量 Final Material 展開料；finished-dimension provider 顯示折後包外，禁止互相冒充。
+
+### State refresh
+- Engineering projection 必須 stateless 地從「當前 render_data」重建；cabinet-family / baseline switch 後不得保留上一 family 的 feature/callout IDs。
+- family switch 後若 current FinalScene feature identity 改變，新的 AnnotationPlan 只能包含新的 authoritative IDs。
