@@ -3,7 +3,13 @@ import importlib
 import importlib.util
 import inspect
 
-from ae_engine.drawing_annotations import AnnotationPlan, LinearDimensionAnnotation
+import pytest
+
+from ae_engine.drawing_annotations import (
+    AnnotationPlan,
+    FeatureCallout,
+    LinearDimensionAnnotation,
+)
 from ae_engine.sheetmetal_drawing import (
     CirclePrimitive,
     DrawingScene,
@@ -228,3 +234,50 @@ def test_dimension_text_avoids_other_dimension_line_but_not_its_own():
     assert moved.insert.y == -15.0
     assert moved.insert.x != 50.0
     assert result.unresolved_collisions == ()
+
+
+def test_unresolved_callout_keeps_diagnostic_and_strict_mode_fails():
+    layout = _resolver_module()
+    plan = AnnotationPlan(
+        overall_dimensions=(),
+        feature_callouts=(
+            FeatureCallout(
+                source_id="H1",
+                source_type="mounting_hole",
+                anchor=Vec2(0.0, 0.0),
+                label="⌀10",
+            ),
+        ),
+        corner_callouts=(),
+        radius_callouts=(),
+        primitives=(
+            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1),
+        ),
+        diagnostics=(),
+    )
+    blocked = layout.AnnotationRegion(
+        min_x=-100.0, min_y=-100.0, max_x=100.0, max_y=100.0, kind="TITLE"
+    )
+
+    result = layout.resolve_annotation_collisions(
+        plan,
+        reserved_regions=(blocked,),
+        step=5.0,
+        max_steps=2,
+        strict=False,
+    )
+
+    assert len(result.unresolved_collisions) == 1
+    issue = result.unresolved_collisions[0]
+    assert issue.category == "UNRESOLVED_LEADER"
+    assert "H1" in issue.detail
+    assert result.diagnostics
+
+    with pytest.raises(ValueError, match="unresolved annotation collisions"):
+        layout.resolve_annotation_collisions(
+            plan,
+            reserved_regions=(blocked,),
+            step=5.0,
+            max_steps=2,
+            strict=True,
+        )
