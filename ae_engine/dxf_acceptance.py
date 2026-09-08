@@ -233,6 +233,81 @@ def _circle_rows_close(expected, actual, tolerance: float) -> bool:
     )
 
 
+
+
+def _same_line_geometry(a, b, tolerance: float) -> bool:
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
+    direct = (
+        abs(ax1 - bx1) <= tolerance and abs(ay1 - by1) <= tolerance
+        and abs(ax2 - bx2) <= tolerance and abs(ay2 - by2) <= tolerance
+    )
+    reverse = (
+        abs(ax1 - bx2) <= tolerance and abs(ay1 - by2) <= tolerance
+        and abs(ax2 - bx1) <= tolerance and abs(ay2 - by1) <= tolerance
+    )
+    return direct or reverse
+
+
+def _find_layer_mismatches(scene, msp, tolerance: float):
+    issues = []
+    actual_lines = []
+    actual_circles = []
+    for entity in msp:
+        layer = str(entity.dxf.layer).upper()
+        if entity.dxftype() == "LINE":
+            actual_lines.append((
+                layer,
+                (
+                    float(entity.dxf.start.x), float(entity.dxf.start.y),
+                    float(entity.dxf.end.x), float(entity.dxf.end.y),
+                ),
+            ))
+        elif entity.dxftype() == "CIRCLE":
+            actual_circles.append((
+                layer,
+                (
+                    float(entity.dxf.center.x), float(entity.dxf.center.y),
+                    float(entity.dxf.radius),
+                ),
+            ))
+
+    for primitive in getattr(scene, "primitives", ()):
+        expected_layer = str(getattr(primitive, "layer", "")).upper()
+        if isinstance(primitive, LinePrimitive):
+            geom = (
+                float(primitive.p1.x), float(primitive.p1.y),
+                float(primitive.p2.x), float(primitive.p2.y),
+            )
+            same = [
+                layer for layer, actual in actual_lines
+                if _same_line_geometry(geom, actual, tolerance)
+            ]
+            if same and expected_layer not in same:
+                issues.append(DxfAcceptanceIssue(
+                    "LAYER_MISMATCH",
+                    f"line expected on {expected_layer} was saved on {sorted(set(same))}",
+                    expected_layer,
+                    tuple(sorted(set(same))),
+                ))
+        elif isinstance(primitive, CirclePrimitive):
+            geom = (
+                float(primitive.center.x), float(primitive.center.y), float(primitive.radius)
+            )
+            same = [
+                layer for layer, actual in actual_circles
+                if all(abs(a - b) <= tolerance for a, b in zip(geom, actual))
+            ]
+            if same and expected_layer not in same:
+                issues.append(DxfAcceptanceIssue(
+                    "LAYER_MISMATCH",
+                    f"circle expected on {expected_layer} was saved on {sorted(set(same))}",
+                    expected_layer,
+                    tuple(sorted(set(same))),
+                ))
+    return tuple(issues)
+
+
 def verify_saved_part_render_data_dxf(
     render_data,
     output_path,
