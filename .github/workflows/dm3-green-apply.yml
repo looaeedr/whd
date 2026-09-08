@@ -1,3 +1,4 @@
+# DM3 one-shot refactor applicator; remove after acceptance.
 name: DM3 Apply Canonical Divider Solve
 on:
   push:
