@@ -341,9 +341,30 @@ def test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edg
             * divider_middle["inward"][1]
         )
 
+        relief_meta = dict(divider_render.metadata["divider_assembly_relief"])
+        relief_evidence = dict(relief_meta.get("evidence") or {})
+        boolean_margin = float(relief_evidence.get("boolean_margin", 0.0))
+        sheet_thickness = float(relief_evidence.get("sheet_thickness", 0.0))
+        expected_t = float(designer._phase6_input_snapshot["t"])
+        assert sheet_thickness == pytest.approx(expected_t, abs=1e-9)
+        for source in ("box_body:left_side", "box_body:right_side"):
+            source_evidence = dict(
+                dict(relief_evidence["projection_by_source"])[source]
+            )
+            assert float(source_evidence["solid_half_thickness"]) == pytest.approx(
+                expected_t / 2.0, abs=1e-9
+            )
+
+        # Test-only numerical tolerance: the production boolean fringe is
+        # intentionally recorded by the solver. It may shorten the measured
+        # retained line by one fringe at each end, but it is never fed back
+        # into production geometry.
+        parity_tolerance = max(1.0e-6, 2.0 * boolean_margin + 1.0e-6)
         evidence = {
             "divider_middle_length": float(divider_middle["length"]),
             "divider_anchor_edge_distance": float(divider_distance),
+            "boolean_margin": boolean_margin,
+            "parity_tolerance": parity_tolerance,
             "divider_bounds": tuple(map(float, divider_render.material.bounds)),
             "divider_exterior": [
                 (float(x), float(y)) for x, y in divider_render.material.exterior.coords
@@ -369,7 +390,7 @@ def test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edg
         for key in ("head", "tail"):
             endcap = evidence["endcaps"][key]
             assert float(divider_middle["length"]) == pytest.approx(
-                float(endcap["length"]), abs=1e-6
+                float(endcap["length"]), abs=parity_tolerance
             ), (
                 "同一組 W/D/T/FW 下，中隔截角後中間直線段必須等同 resolved 封頭/尾",
                 key,
