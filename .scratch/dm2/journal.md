@@ -5,6 +5,7 @@
 - Work branch: `work/dm2-divider-physical-contract`
 - Base: `154a4e5098b340dc80d73cae1f9d2aa895b9bdc1`
 - Current role: `[轉移至：總控審查]` / `[當前角色：總控審查]`
+- Status: COMPLETE
 
 ## Completed
 
@@ -65,15 +66,15 @@
 - Preflight run `34227116813` @ `97c28ebb40eb3af598c5d5c981eb778a3111e561`
 - Result: terminal SUCCESS
 
-## Pending before issue closure
+## Cleanup evidence
 
-- Remove temporary DM2 GitHub Actions workflows.
-- Remote branch readback after cleanup; verify production files are unchanged from final evidence head except workflow/durable-state cleanup.
-- Update and close #52.
-- Unblock #53.
+- Removed temporary workflows:
+  - `.github/workflows/dm2-core-semantic-fix.yml`
+  - `.github/workflows/dm2-targeted.yml`
+  - `.github/workflows/dm2-preflight.yml`
+- Remote cleanup head was `28c86e305bbaab5bb3fe98866ab9b683415a9966` before final journal/checkpoint updates.
+- Compare `97c28ebb... → 28c86e30...`: only the three workflow deletions plus `.scratch/dm2/journal.md` and `.scratch/dm2/checkpoint.md`; no production-code drift.
 
-## Resume action
+## Next owner
 
-1. Delete `.github/workflows/dm2-core-semantic-fix.yml`, `.github/workflows/dm2-targeted.yml`, `.github/workflows/dm2-preflight.yml`.
-2. Compare final cleanup head against `97c28ebb40eb3af598c5d5c981eb778a3111e561`; only `.scratch/dm2/*` and temporary workflow deletion may differ.
-3. Close #52 as completed and start #53.
+#53 DM3 — Divider canonical relief、final material 與 placement datum 單源化.
