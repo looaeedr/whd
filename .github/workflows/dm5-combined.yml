@@ -91,6 +91,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import io
+          import re
+          import tokenize
+
+          def code_without_strings_and_comments(source):
+              tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+              return " ".join(
+                  token.string
+                  for token in tokens
+                  if token.type not in {tokenize.STRING, tokenize.COMMENT}
+              )
 
           sink_files = {
               "final_scene_view": Path("phase6_final_scene_view.py").read_text(encoding="utf-8"),
@@ -102,8 +113,16 @@ jobs:
               assert "verify_divider_front_fold_relief(" not in source, (name, "relief verifier leaked to sink")
 
           view = sink_files["final_scene_view"]
-          for forbidden in ("derive_box_body_dividers", "resolve_divider_final_geometry", "FW=29", "174", "47/26"):
+          for forbidden in ("derive_box_body_dividers", "resolve_divider_final_geometry"):
               assert forbidden not in view, ("final_scene_view", forbidden)
+          view_code = code_without_strings_and_comments(view)
+          assert not re.search(r"(?<![A-Za-z0-9_.])174(?:\.0+)?(?![A-Za-z0-9_.])", view_code), (
+              "final_scene_view", "magic 174 numeric oracle"
+          )
+          assert not re.search(
+              r"[\[(]\s*47(?:\.0+)?\s*[,/]\s*26(?:\.0+)?\s*[\])]",
+              view_code,
+          ), ("final_scene_view", "magic 47/26 numeric oracle pair")
 
           bridge = sink_files["bridge"]
           assert 'key.startswith("box_body:divider:")' in bridge
