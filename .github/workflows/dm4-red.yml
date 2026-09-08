@@ -4,6 +4,7 @@ on:
     branches: [work/dm4-divider-resolved-sinks]
     paths:
       - gui.py
+      - phase6_project_file.py
       - tests/test_dm4_divider_resolved_sinks.py
       - .github/workflows/dm4-red.yml
   workflow_dispatch:
