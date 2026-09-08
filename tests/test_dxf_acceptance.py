@@ -76,3 +76,59 @@ def test_saved_dxf_acceptance_reports_layer_mismatch(tmp_path):
 
     assert result.ok is False
     assert any(issue.category == "LAYER_MISMATCH" for issue in result.issues)
+
+
+def test_saved_dxf_acceptance_detects_cutting_shape_change(tmp_path):
+    render = _render_data()
+    path = tmp_path / "part.dxf"
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    outlines = list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
+    assert len(outlines) == 1
+    pts = list(outlines[0].get_points())
+    pts[1] = (95.0, pts[1][1], *pts[1][2:])
+    outlines[0].set_points(pts)
+    doc.saveas(path)
+
+    result = _verifier()(render, path)
+
+    assert result.ok is False
+    assert any(issue.category == "CUTTING_MISMATCH" for issue in result.issues)
+
+
+def test_saved_dxf_acceptance_detects_removed_hole(tmp_path):
+    render = _render_data()
+    path = tmp_path / "part.dxf"
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    circles = list(msp.query('CIRCLE[layer=="CUTTING"]'))
+    assert len(circles) == 1
+    msp.delete_entity(circles[0])
+    doc.saveas(path)
+
+    result = _verifier()(render, path)
+
+    assert result.ok is False
+    assert any(issue.category == "HOLE_MISMATCH" for issue in result.issues)
+
+
+def test_saved_dxf_acceptance_detects_extra_bend(tmp_path):
+    render = _render_data()
+    path = tmp_path / "part.dxf"
+    api.save_part_render_data_dxf(render, path, overwrite=True)
+
+    doc = ezdxf.readfile(path)
+    msp = doc.modelspace()
+    msp.add_line((80, 0), (80, 60), dxfattribs={"layer": "BEND"})
+    doc.saveas(path)
+
+    result = _verifier()(render, path)
+
+    assert result.ok is False
+    cats = {issue.category for issue in result.issues}
+    assert "BEND_MISMATCH" in cats
+    assert "ENTITY_COUNT_MISMATCH" in cats
