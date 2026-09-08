@@ -126,6 +126,63 @@ def _manufacturing_obstacle_regions(scene, *, clearance: float):
     return tuple(rows)
 
 
+def _dimension_line_orientation(line: LinePrimitive, tolerance: float = 1e-9) -> str | None:
+    dx = abs(float(line.p2.x) - float(line.p1.x))
+    dy = abs(float(line.p2.y) - float(line.p1.y))
+    if dy <= tolerance and dx > tolerance:
+        return "x"
+    if dx <= tolerance and dy > tolerance:
+        return "y"
+    return None
+
+
+def _own_dimension_line_index(primitives, text: TextPrimitive, axis: str) -> int | None:
+    candidates = []
+    for index, primitive in enumerate(tuple(primitives)):
+        if not isinstance(primitive, LinePrimitive):
+            continue
+        if str(primitive.layer).upper() != "DIMENSION":
+            continue
+        if _dimension_line_orientation(primitive) != axis:
+            continue
+        mx = (float(primitive.p1.x) + float(primitive.p2.x)) / 2.0
+        my = (float(primitive.p1.y) + float(primitive.p2.y)) / 2.0
+        if axis == "x":
+            normal = abs(float(text.insert.y) - my)
+            along = abs(float(text.insert.x) - mx)
+        else:
+            normal = abs(float(text.insert.x) - mx)
+            along = abs(float(text.insert.y) - my)
+        candidates.append((normal, along, index))
+    if not candidates:
+        return None
+    candidates.sort()
+    return int(candidates[0][2])
+
+
+def _annotation_dimension_line_regions(
+    primitives,
+    *,
+    own_line_index: int | None,
+    clearance: float,
+):
+    rows = []
+    for index, primitive in enumerate(tuple(primitives)):
+        if index == own_line_index:
+            continue
+        if not isinstance(primitive, LinePrimitive):
+            continue
+        if str(primitive.layer).upper() != "DIMENSION":
+            continue
+        rows.append(_line_region(
+            primitive.p1,
+            primitive.p2,
+            max(float(clearance), 0.0),
+            "DIMENSION",
+        ))
+    return tuple(rows)
+
+
 def _annotation_text_regions(primitives, *, exclude_index: int):
     rows = []
     for index, primitive in enumerate(tuple(primitives)):
@@ -194,9 +251,16 @@ def resolve_annotation_collisions(
             continue
         if str(primitive.layer).upper() != "DIMENSION":
             continue
-        active_regions = regions + _annotation_text_regions(
+        own_line_index = _own_dimension_line_index(primitives, primitive, axis)
+        annotation_line_regions = _annotation_dimension_line_regions(
             primitives,
-            exclude_index=index,
+            own_line_index=own_line_index,
+            clearance=float(clearance),
+        )
+        active_regions = (
+            regions
+            + _annotation_text_regions(primitives, exclude_index=index)
+            + annotation_line_regions
         )
         if not _collides(primitive, active_regions):
             continue
@@ -224,9 +288,10 @@ def resolve_annotation_collisions(
                     primitive,
                     insert=Vec2(float(primitive.insert.x), float(primitive.insert.y) + offset),
                 )
-            candidate_regions = regions + _annotation_text_regions(
-                primitives,
-                exclude_index=index,
+            candidate_regions = (
+                regions
+                + _annotation_text_regions(primitives, exclude_index=index)
+                + annotation_line_regions
             )
             if not _collides(candidate, candidate_regions):
                 moved = candidate
