@@ -659,3 +659,23 @@ PASS / FAIL
 - Box Body physical piece 的 stable domain ID 使用 `box_body:<piece-role>`；例如 `box_body:left_side / box_body:back / box_body:right_side`。dynamic part ID（如 `box_body:divider:0`）維持自己的 canonical ID。
 - DXF acceptance set 必須同時驗 expected file set 與 actual `.dxf` file set；缺檔回 `MISSING_PART`，stale/extra 檔回 `EXTRA_PART`。
 - 檔名只做 filesystem encoding，不得改 domain ID ownership：Box Body physical-piece 檔名用 `box_body__<role>.dxf` 與 dynamic IDs 區隔；一般 dynamic ID 仍依既有 safe stem 轉換。
+
+
+---
+
+## 2026-09-08 — Engineering Annotation Overlay
+
+### Ownership
+- Annotation Planner 位於 canonical `PartRenderData` **下游**，只負責「量測與標示已解出的製造幾何」，不得擁有、修改或重建 `CUTTING / BEND / material / relief / hole`。
+- Manufacturing `DrawingScene` 與 `material` 在規劃前後必須保持不變；AnnotationPlan 為 immutable / deterministic 的衍生資料。
+- Annotation primitives 只能使用工程圖 annotation layers（目前 `DIMENSION / TEXT`）；不得以 annotation 補畫缺失的 manufacturing geometry。
+
+### 尺寸來源
+- 總寬／總高只能量 `PartRenderData.material.bounds`；`CHECK`、文字、圖框、annotation 等 drawing bbox 不得影響製造尺寸。
+- 孔標使用 authoritative resolved feature metadata。尤其 `ResolvedCircle.source_type` 在 `resolved_features_to_primitives()` 轉成 `CirclePrimitive` 時必須保留，禁止 DrawingScene 邊界丟失來源身份後再靠位置猜孔種。
+- 截角／relief callout 只量 Final Material 已存在的角落切除，不得用 callout 數值反向修改 relief。
+- WHD 目前沒有獨立 `ArcPrimitive` 製造真值；R callout 因此只能從 Final Material exterior 中**穩定且連續的圓弧取樣段**量測。三點必然可定圓，單一三點不得作為 R 的充分證據；至少需連續相容圓心/半徑擬合、殘差與非零 swept-angle gate。資料不足時不標 R，禁止猜值。
+
+### 顯示與數值
+- 擬合／量測的原始幾何值保留真實精度；工程圖 label 可消除浮點擬合的次微米顯示噪音，例如實測 `10.000002` 可顯示 `R10`，但不得因此把 canonical geometry 改成 10。
+- Annotation collision / placement 是下一層責任；Planner 只提供語意 annotation 與初始位置，不得因避碰移動 manufacturing entities。
