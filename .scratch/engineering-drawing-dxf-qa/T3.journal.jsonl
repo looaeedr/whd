@@ -1,1 +1,5 @@
 {"task_id":"engineering-drawing-dxf-qa","ticket":"#58","status":"RED_SETUP","baseline_sha":"2dc2103eb872c377a3e28ea4ed57907d1e004382","requirement":"R1","pending":["RED","AnnotationPlan","overall_dimensions","feature_callouts","corner_callouts","GREEN","QA"]}
+{"ticket":"#58","status":"VALID_REQUIREMENT_RED","run_id":34247464567,"head_sha":"98e03ac2e91c974057c1b39ac0559b7830334625","result":"4 failed","classification":"explicit R1 requirement assertions"}
+{"ticket":"#58","status":"RADIUS_RED","run_id":34247880052,"head_sha":"2cb4e58a72f4a3e4ac703ff1d9a69cd38db7b0fd","result":"1 failed / 4 passed"}
+{"ticket":"#58","status":"METADATA_RED","run_id":34248187080,"head_sha":"aa49bae8cbea51daa507f59a2aac737f6e83e33d","result":"1 failed / 5 passed","cause":"ResolvedCircle.source_type dropped before DrawingScene"}
+{"ticket":"#58","status":"FINAL_GREEN","run_id":34248282222,"head_sha":"b787f8ce18c895f643e5a339e7e7a9ddaff7f10e","result":"6 passed / 0 failed / 2.33s","preflight":"PASS","config_ini_invariant":"PASS","ai_writeback":"DONE","pending":["workflow_cleanup","drift_audit","issue_close"]}
