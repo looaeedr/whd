@@ -1,8 +1,0 @@
-Part acceptance hard-gate preflight evidence
-TASK: 固化 focused QA 不得取代成品板件驗收；將驗證板件與DXF加入 Skill、AI庫、AGENTS 與 machine-readable registry。
-SKILL: phase6-release-packaging
-SKILL: 驗證板件與DXF
-SKILL: monitoring-remote-qa
-READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
-READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
-READ_REFERENCE: release_required_artifacts.json
