@@ -550,6 +550,8 @@ def resolve_divider_final_geometry(
                 "corner_type": certified.rule.corner_type,
                 "registry_variables": dict(registry_variables),
                 "formula_values": formula_values,
+                "slot_end": str((certified.geometry_evidence or {}).get("slot_end") or ""),
+                "slot_end_selector": str((certified.geometry_evidence or {}).get("slot_end_selector") or ""),
                 "mating_fold_orientation": dict(mating_fold_orientation),
                 "collision_shadow": (
                     {} if candidate is None else dict(candidate.evidence or {})
