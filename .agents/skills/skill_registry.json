@@ -206,39 +206,52 @@
       "required_references": []
     },
     {
-      "id": "divider-dxf-acceptance",
+      "id": "part-dxf-acceptance",
       "keywords": [
+        "驗目前板件",
+        "驗板件",
+        "驗這個板件",
+        "驗全部板件",
+        "全部板件驗收",
+        "完整驗收全部板件",
+        "驗箱身",
         "驗中隔",
         "驗目前中隔",
-        "中隔驗收",
-        "中隔完整驗收",
-        "跑中隔完整驗收",
+        "驗封頭",
+        "驗封尾",
+        "驗門",
+        "驗底板",
+        "驗指示燈盒",
+        "驗指示燈小門",
+        "驗內門",
         "DXF反驗證",
         "DXF 反驗證",
         "驗輸出的DXF",
-        "驗目前中隔的DXF",
-        "Save→Reload 驗中隔",
-        "Save Reload 驗中隔",
+        "驗全部DXF",
+        "驗目前板件的DXF",
+        "Save→Reload 驗收",
+        "Save Reload 驗收",
         "存檔再讀回來驗"
       ],
       "file_globs": [
-        ".agents/skills/engineering/驗證中隔與DXF/**",
+        ".agents/skills/engineering/驗證板件與DXF/**",
+        "tests/test_dxf_acceptance.py",
+        "tests/test_multipart_dxf_acceptance.py",
+        "tests/test_resolved_manufacturing_export.py",
+        "tests/test_resolved_manufacturing_geometry.py",
+        "tests/test_issue41_persistence_parity.py",
+        "tests/test_issue45_dynamic_parts_2d_roundtrip.py",
         "tests/test_issue38_receiving_divider_baseline.py",
         "tests/test_issue39_divider_relief.py",
-        "tests/test_issue40_divider_6p4_shared_datum.py",
-        "tests/test_issue41_persistence_parity.py",
-        "tests/test_multipart_dxf_acceptance.py",
-        "tests/test_dxf_acceptance.py"
+        "tests/test_issue40_divider_6p4_shared_datum.py"
       ],
       "required_skills": [
-        "驗證中隔與DXF",
-        "phase6-corner-3d-model-integrity",
+        "驗證板件與DXF",
         "monitoring-remote-qa"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
-        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
-        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
       ]
     }
   ]
