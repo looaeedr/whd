@@ -221,3 +221,19 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   `user spoken material value（default） → canonical requirement/spec → 對應 production input 的正式轉換規則`
   ；若使用者明說「包外」，才走 outside→material 或 formed geometry 的既有轉換。
 - 這條規則優先於歷史猜測。任何舊記錄若把未標「包外」的口語尺寸解讀成 outside，視為解析錯誤，必須重新判讀。
+
+
+## 2026-09-09 — Issue74 FINAL CORRECTION — FW contact + collision backprojection（SUPERSEDES 48 / target-T/2 in-plane 段）
+
+- **輸入 authority**：使用者口語尺寸未明說「包外」時一律是料尺寸。UI/canonical state 若使用 outside semantics，必須走正式單向轉換；不得用 derived material Fold 或 collision 反推使用者語意。
+- **Receiving FW**：3D formed occupation 必須等於 canonical outside FW；目前 reference fixture 左右均為 `29`。FW physical skins 與 Divider FW skins 必須 face-flush。
+- **主截角 authority**：中隔 W 方向真正撞左右 BoxBody FW physical face。主截角深度直接來自 FW↔Divider 實際共面接觸範圍；橫向寬度來自相鄰 true-thickness source Fold collision。
+- **副階 authority**：額外 penetrating Fold band（例如左側 `zl1`）直接使用 source both-skin collision backprojection 的實體 footprint。禁止把 footprint 的絕對座標改成另一個 anchor，也禁止把 target `T/2` 當成 flat-UV in-plane 平移。
+- **撤銷 48**：舊 `47 + T/2 = 48` 是 coordinate-domain 錯誤。Divider 板厚方向是 sheet normal；不得把 target thickness 轉成中隔 W 向的 UV offset。任何舊段落把 `solid_depth=48` 當製造尺寸皆視為 SUPERSEDED。
+- **post-refold 判定**：both-skin crossing 若只落在 CUTTING boundary 是合法接觸。只有「CURRENT post-refold footprint 與 retained material 有 positive-area overlap」才算 illegal penetration；數值邊界 tolerance 只屬 verification。
+- **final CUTTING validation-only oracle（reference fixture）**：
+  - 左主：`61 × 27 mm`
+  - 左副：`2 × 22 mm`
+  - 右主：`57 × 27 mm`
+  這些 expected 只存在 QA/tests，不得被 production import/read/反推。
+- **GREEN 證據**：run `34364056682` → `7 PASS / 0 FAIL`；post-refold illegal penetration `0`、positive overlap `0.0`、final CUTTING extra area `0.0`。
