@@ -129,6 +129,29 @@ def _core_start(part) -> float:
     return float(band[0])
 
 
+def _source_fold_bands_by_geometry_key(box_body) -> dict[str, tuple[tuple[str, float, float], ...]]:
+    """Expose authoritative physical BoxBody Fold bands to Divider collision.
+
+    Stage identity comes from each real side piece's Fold profile.  The returned
+    cumulative UV bounds are geometry authority, not validation measurements.
+    """
+    result = {}
+    for piece in tuple(getattr(box_body.render_data, "pieces", ()) or ()):
+        role = str(getattr(piece, "role", "") or "").strip().lower()
+        if not role:
+            continue
+        cursor = 0.0
+        bands = []
+        for index, row in enumerate(tuple(getattr(piece, "fold_profile", ()) or ())):
+            end = cursor + float(getattr(row, "length", 0.0) or 0.0)
+            key = str(getattr(row, "phase6_key", "") or f"segment_{index}")
+            if end > cursor:
+                bands.append((key, float(cursor), float(end)))
+            cursor = end
+        result[f"box_body:{role}"] = tuple(bands)
+    return result
+
+
 def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e-5) -> DividerPlacementEvidence:
     tol = float(tolerance)
     contract = _physical_contract(divider)
@@ -237,6 +260,7 @@ def resolve_divider_final_geometry(
         )
 
     core_start = _core_start(divider)
+    source_fold_bands = _source_fold_bands_by_geometry_key(box_body)
     candidate = build_divider_front_fold_relief_candidate(
         joint,
         world_triangles_by_part=world["world_triangles_by_part"],
@@ -244,6 +268,7 @@ def resolve_divider_final_geometry(
         flat_material_by_part=world["flat_material_by_part"],
         core_start=core_start,
         source_geometry_keys=tuple(source_geometry_keys),
+        source_fold_bands_by_key=source_fold_bands,
         clearance=float(clearance),
         sheet_thickness=max(0.0, float(sheet_thickness)),
     )
@@ -268,6 +293,10 @@ def resolve_divider_final_geometry(
         flat_material_by_part=solved_world["flat_material_by_part"],
         core_start=core_start,
         source_geometry_keys=tuple(source_geometry_keys),
+        source_fold_bands_by_key=source_fold_bands,
+        physical_footprints_by_source=dict(
+            candidate.physical_footprints_by_source or {}
+        ),
     )
     verified = bool(verification["verified"])
     relief = DividerReliefEvidence(

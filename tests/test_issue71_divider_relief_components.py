@@ -14,6 +14,7 @@ from tests.test_issue39_divider_relief import (
     _divider_insert_joint,
     _divider_part,
     _snapshot,
+    _source_fold_bands,
 )
 
 
@@ -93,46 +94,40 @@ def test_issue71_divider_standard_relief_never_promotes_triangulation_diagonal_t
         flat_material_by_part=world["flat_material_by_part"],
         core_start=core_start,
         source_geometry_keys=(source_key,),
+        source_fold_bands_by_key=_source_fold_bands(body),
         clearance=0.0,
         sheet_thickness=float(divider.thickness),
     )
     assert candidate is not None
     physical_cut = candidate.cut_polygon_2d.intersection(material)
     evidence = dict(candidate.evidence or {})
-    margin = float(evidence.get("boolean_margin", 0.0))
-    half_t = float(divider.thickness) / 2.0
-
-    minx, miny, maxx, maxy = map(float, material.bounds)
-    cut_minx, cut_miny, cut_maxx, cut_maxy = map(float, physical_cut.bounds)
-    expected_solid_depth = skin_depth + half_t
-    actual_depth = (
-        cut_maxy - miny if edge == "MIN_Y"
-        else maxy - cut_miny
-    )
+    source_evidence = dict(dict(evidence.get("projection_by_source") or {}).get(source_key) or {})
 
     print("ISSUE71_STANDARD_TOPOLOGY_RED=", {
         "source": source_key,
-        "edge": edge,
-        "core_start": core_start,
-        "skin_depth": skin_depth,
-        "half_thickness": half_t,
-        "expected_solid_depth": expected_solid_depth,
-        "actual_depth": actual_depth,
+        "core_start_evidence_only": core_start,
+        "penetrating_bands": source_evidence.get("penetrating_bands"),
+        "retained_contact_bands": source_evidence.get("retained_contact_bands"),
         "cut_bounds": tuple(map(float, physical_cut.bounds)),
         "non_axis_edges": _non_axis_aligned_edges(physical_cut),
         "evidence": evidence,
     })
 
-    # The Fold contract is the STANDARD topology boundary.  Boolean tolerance may
-    # protrude microscopically but may not change the manufacturing level.
-    assert cut_minx == pytest.approx(minx, abs=margin + 1.0e-6)
-    assert cut_maxx == pytest.approx(core_start, abs=margin + 1.0e-6)
-    assert actual_depth == pytest.approx(
-        expected_solid_depth, abs=margin + 1.0e-5
+    # Issue74 refined the authority boundary: core_start is a Divider Fold datum,
+    # not the legality boundary for side-piece true-thickness penetration.
+    # Source Fold-band identity owns stage provenance; physical both-skin
+    # backprojection owns required extent. Validation never feeds measured
+    # fixture dimensions back into production.
+    assert evidence.get("classification") == "SOURCE_FOLD_BAND_TRUE_THICKNESS"
+    assert source_evidence.get("manufacturing_topology") == (
+        "STANDARD_PLUS_SOURCE_FOLD_BAND_ORTHOGONAL"
     )
+    assert tuple(source_evidence.get("penetrating_bands") or ())
+    assert tuple(source_evidence.get("retained_contact_bands") or ())
 
-    # This is the actual regression.  Current production leaks a convex-hull
-    # triangulation diagonal into CUTTING here.
+    # The original Issue71 regression remains guarded: triangulation vertices
+    # may not create diagonal manufacturing CUTTING edges, even when Issue74
+    # adds source-Fold-derived orthogonal stages beyond core_start.
     assert _non_axis_aligned_edges(physical_cut) == (), (
         "Divider STANDARD relief contains a triangulation-generated diagonal; "
         "physical backprojection may determine required side/depth but may not "

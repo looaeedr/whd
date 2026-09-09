@@ -120,3 +120,28 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   4. CUTTING 無 triangulation-generated non-axis edge；
   5. 2D/單板3D/Assembly/DXF 共用 canonical final material。
 - Issue #71 的第一輪「disconnected regions 被 hull bridge」假設已由 remote RED run `34345831526` 否證，屬 **REVOKED hypothesis**；不得寫入 production 或未來技能當既定根因。
+
+## Divider Issue74：source Fold 真板厚穿透與 nominal 截角尺寸（2026-09-09）
+
+> 本節 **SUPERSEDES** 上方 Issue71 中「所有 core_start 之後交線皆視為合法 contact」與「Receiving Divider 永遠 one-level pre-core relief」的過度簡化。Issue71 的「禁止 triangulation 斜邊」仍有效。
+
+- `core_start` 是 Divider Fold datum，不是 collision legality boundary。即使 Divider UV 已超過 `core_start`，只要 real `box_body:left_side/right_side` 的某個 semantic Fold band **跨過兩張 physical skins**，仍屬 true-thickness penetration，不能標成 retained contact。
+- 單側 skin intersection 只代表 contact witness；例如目前 Receiving 的 `fw_left/fw_right`、`d_left/d_right` 是單側接觸，不得因此擴大 CUTTING。
+- Production 的權責分工：
+  1. real source piece + semantic Fold band + both-skin crossing → 只決定「哪個 Fold band 真穿透」；
+  2. authoritative source Fold lengths + Divider Fold datum + authoritative `T` → **計算 nominal manufacturing dimensions**；
+  3. pre-solve physical footprint → 只做 coverage gate；算出的 nominal cut 蓋不住時 **fail closed**，禁止用 probe miss/delta 回補；
+  4. post-refold retained material 與 pre-solve true-solid footprint 的 **positive-area overlap 必須為 0**；邊界交線本身可為合法貼合。
+- 真板厚規則必須分情境：
+  - 若只有 mid-surface / single skin，要由 authoritative `T` 做正確 skin→solid 轉換；
+  - 若 source Fold band 的 **兩張 physical skins 已共同界定 true-solid footprint**，就已含 source 板厚，禁止再對同一 footprint 額外加一次 `T/2`，否則就是重複補償／多切。
+- Receiving 左右前口的 nominal topology 由 semantic keys 推導，不讀 probe bbox：
+  - 左 primary：`U = core_start + zl2_material`；`V = fw_left_material + T/2`；
+  - 左 secondary：中心 `U = core_start + zl2_material`，寬 `T`；V 從 `fw_left_material` 到 `fw_left_material + zl1_material`；
+  - 右 primary：`U = core_start + zr2_material`；`V = fw_right_material + T/2`。
+- 目前使用者 fixture（只作 evidence）為 `core_start=41, zl1=22, zl2=20, FW料=25, zr2=16, T=2`，因此 nominal 結果是：
+  - 左 primary **61×26**；
+  - 左 secondary **X=60..62、V=25..47**，相對 primary 再深入 **21**；
+  - 右 primary **57×26**。
+  上述 `61/26/60..62/47/57` 全部是本 fixture 由公式重算出的結果，**禁止硬編成 production 常數**。
+- `boolean_margin=0.0005` 類數值只屬 polygon boolean robustness，不是多切量、不是 clearance、不可顯示成製造尺寸。

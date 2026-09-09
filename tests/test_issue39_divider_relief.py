@@ -88,6 +88,24 @@ def _divider_insert_joint(stable_id):
     )
 
 
+def _source_fold_bands(body):
+    result = {}
+    for piece in tuple(body.render_data.pieces or ()):
+        key = f"box_body:{piece.role}"
+        cursor = 0.0
+        rows = []
+        for index, segment in enumerate(tuple(piece.fold_profile or ())):
+            end = cursor + float(segment.length)
+            rows.append((
+                str(segment.phase6_key or f"segment_{index}"),
+                float(cursor),
+                float(end),
+            ))
+            cursor = end
+        result[key] = tuple(rows)
+    return result
+
+
 def test_t3_red_real_receiving_divider_has_pre_solve_illegal_penetration():
     snapshot = _snapshot()
     body = _body_part(snapshot)
@@ -151,17 +169,17 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
     cut_depths = dict(relief["cut_depths"])
     assert cut_depths["box_body:left_side"] > 0.0
     assert cut_depths["box_body:right_side"] > 0.0
-    # This fixture is left/right symmetric, so the dynamic collision result
-    # must also be symmetric. Do not hard-code the case output in millimetres.
-    assert cut_depths["box_body:left_side"] == pytest.approx(
-        cut_depths["box_body:right_side"], abs=1e-4
-    )
+    # Receiving front Fold topology is intentionally asymmetric:
+    # left has penetrating zl1/zl2 bands while right has penetrating zr2.
+    # Do not force their physical relief depths to be numerically symmetric.
+    projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
+    assert tuple(projection_by_source["box_body:left_side"]["penetrating_bands"]) == ("zl1", "zl2")
+    assert tuple(projection_by_source["box_body:right_side"]["penetrating_bands"]) == ("zr2",)
     placement = dict(dict(relief["evidence"]).get("placement") or {})
     assert placement.get("contract") == "DIVIDER_FW_FACE_FLUSH_V1"
     assert placement.get("fw_face_flush") is True
     assert placement.get("core_inward") is True
     assert placement.get("valid") is True
-    projection_by_source = dict(dict(relief["evidence"])["projection_by_source"])
     expected_pre_pairs = sum(int(dict(row)["pair_count"]) for row in projection_by_source.values())
     assert relief["pre_pair_count"] == expected_pre_pairs
     assert relief["pre_pair_count"] > 0
@@ -186,6 +204,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
         flat_material_by_part=solved_world["flat_material_by_part"],
         core_start=41.0,
         source_geometry_keys=("box_body:left_side", "box_body:right_side"),
+        source_fold_bands_by_key=_source_fold_bands(body),
     )
     assert verification["verified"] is True
     assert verification["front_illegal_segments"] == 0
