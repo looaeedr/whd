@@ -443,7 +443,7 @@ def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_de
         float(roundtrip["zl2"]),
         float(roundtrip["fw"]),
         float(roundtrip["zr2"]),
-    ) == (24.0, 24.0, 29.0, 18.0)
+    ) == (-24.0, 24.0, 29.0, 18.0)
 
     print("RECEIVING_INPUT_AUTHORITY=", {
         "operator_outside": (-24.0, 24.0, 29.0, 18.0),
