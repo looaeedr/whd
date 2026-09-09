@@ -1,0 +1,198 @@
+name: Issue74 Residual Sliver Divider Validation
+on:
+  push:
+    branches: [fix/receiving-fw-formed-solid-authority]
+    paths:
+      - .github/workflows/issue74-residual-sliver-qa.yml
+
+jobs:
+  validate-divider:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+
+      - name: Capture config invariant
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path("config.ini")
+          h=hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else "MISSING"
+          print("DIVIDER_SKILL_CONFIG_BEFORE="+h)
+          Path("/tmp/divider_config_before").write_text(h,encoding="utf-8")
+          PY
+
+      - name: Divider canonical and specialist test matrix
+        run: |
+          pytest -q -s \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_phase6_t16_receiving_placement.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py \
+            tests/test_issue74_divider_side_front_penetration.py
+
+      - name: Divider DXF reopen and physical diagnostics
+        run: |
+          python - <<'PY'
+          import json, tempfile
+          from pathlib import Path
+          import ezdxf
+
+          import fold_designer_bridge as bridge
+          from ae_engine.manufacturing_api import (
+              save_part_render_data_dxf,
+              verify_saved_part_render_data_dxf,
+              material_polygon_from_final_scene,
+              fold_guides_from_final_scene,
+          )
+          from ae_engine.sheetmetal_drawing import CirclePrimitive, LinePrimitive
+          from ae_engine.divider_manufacturing import (
+              resolve_divider_placement_evidence,
+              _source_fold_bands_by_geometry_key,
+              _core_start,
+          )
+          from ae_engine.assembly_collision import verify_divider_front_fold_relief
+          from tests.test_issue39_divider_relief import (
+              _snapshot, _body_part, _divider_part, _divider_insert_joint,
+          )
+          from tests.test_issue63_regression_red import _issue63_divider_middle_segment
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          dims=(snap["w"],snap["h"],snap["d"])
+          solved_parts, diagnostics, joints=bridge._phase6_resolve_family_divider_reliefs(
+              (body,divider_part),
+              finished_dimensions=dims,
+              sheet_thickness=snap["t"],
+              clearance=0.0,
+          )
+          assert diagnostics and diagnostics[0].illegal_penetration is False
+          solved=next(p for p in solved_parts if p.part_key==divider.stable_id)
+          render=solved.render_data
+          scene_material=material_polygon_from_final_scene(render.scene)
+          assert scene_material.equals_exact(render.material,1e-6) or scene_material.symmetric_difference(render.material).area <= 1e-6
+          assert tuple(fold_guides_from_final_scene(render.scene)) == tuple(render.fold_guides)
+
+          minx,miny,maxx,maxy=map(float,render.material.bounds)
+          span=maxy-miny
+          assert abs(span-float(divider.span)) <= 1e-6
+
+          circles=[
+              p for p in render.scene.primitives
+              if isinstance(p,CirclePrimitive)
+          ]
+          six4=[p for p in circles if abs(float(p.radius)-3.2)<=1e-6]
+          five3=[p for p in circles if abs(float(p.radius)-2.65)<=1e-6]
+          assert len(six4)==3
+          bends=[
+              p for p in render.scene.primitives
+              if isinstance(p,LinePrimitive) and str(p.layer).upper()=="BEND"
+          ]
+          assert len(bends)==len(tuple(render.fold_guides))
+
+          world=bridge._phase6_build_joint_world_geometry(
+              (body,solved),dims,snap["t"]
+          )
+          placement=resolve_divider_placement_evidence(solved,body,world)
+          assert placement.valid and placement.fw_face_flush and placement.core_inward
+
+          post=verify_divider_front_fold_relief(
+              _divider_insert_joint(divider.stable_id),
+              world_triangles_by_part=world["world_triangles_by_part"],
+              mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+              flat_material_by_part=world["flat_material_by_part"],
+              core_start=_core_start(solved),
+              source_geometry_keys=("box_body:left_side","box_body:right_side"),
+              source_fold_bands_by_key=_source_fold_bands_by_geometry_key(body),
+              tolerance=1e-6,
+          )
+          print("DIVIDER_SKILL_POST_REFOLD="+json.dumps(post,ensure_ascii=False,default=str))
+          assert int(post.get("true_thickness_penetrating_band_count",0))==0
+          assert float(post.get("positive_overlap_area",0.0)) <= 1e-9
+          retained=int(post.get("retained_contact_segments",0))
+          assert retained > 0
+
+          middle=_issue63_divider_middle_segment(render.material)
+
+          with tempfile.TemporaryDirectory() as td:
+              path=Path(td)/"divider.dxf"
+              save_part_render_data_dxf(render,path,overwrite=True)
+              verify=verify_saved_part_render_data_dxf(render,path)
+              assert verify.ok is True, verify.issues
+              doc=ezdxf.readfile(path)
+              msp=doc.modelspace()
+              layers=sorted({str(e.dxf.layer).upper() for e in msp})
+              dxf_circles=list(msp.query('CIRCLE[layer=="CUTTING"]'))
+              dxf_bends=list(msp.query('LINE[layer=="BEND"]'))
+              dxf_outlines=list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
+              print("DIVIDER_SKILL_DXF_COUNTS="+json.dumps({
+                  "scene_circles":len(circles),
+                  "dxf_circles":len(dxf_circles),
+                  "scene_bends":len(bends),
+                  "dxf_bends":len(dxf_bends),
+                  "dxf_outlines":len(dxf_outlines),
+                  "layers":layers,
+                  "verify_ok":bool(verify.ok),
+                  "issues":[str(x) for x in verify.issues],
+              },ensure_ascii=False))
+              assert len(dxf_circles)==len(circles)
+              assert len(dxf_bends)==len(bends)
+              assert dxf_outlines
+
+              out={
+                "part_id":divider.stable_id,
+                "material_bounds":(minx,miny,maxx,maxy),
+                "material_span":span,
+                "expected_span":float(divider.span),
+                "middle_segment":middle,
+                "holes_total":len(circles),
+                "holes_6p4":len(six4),
+                "holes_5p3":len(five3),
+                "holes_6p4_centers":[(float(p.center.x),float(p.center.y)) for p in six4],
+                "bend_count":len(bends),
+                "dxf_reopen_ok":bool(verify.ok),
+                "dxf_layers":layers,
+                "dxf_circle_count":len(dxf_circles),
+                "dxf_bend_count":len(dxf_bends),
+                "dxf_outline_count":len(dxf_outlines),
+                "placement":placement.as_dict(),
+                "post_refold":{
+                    "penetrating_band_count":int(post.get("true_thickness_penetrating_band_count",0)),
+                    "positive_overlap_area":float(post.get("positive_overlap_area",0.0)),
+                    "retained_contact_segments":retained,
+                    "pair_count":int(post.get("pair_count",0)),
+                },
+                "final_scene_material_match":True,
+                "fold_guide_match":True,
+              }
+              print("DIVIDER_SKILL_DIAGNOSTIC="+json.dumps(out,ensure_ascii=False,default=str))
+          PY
+
+      - name: Head Tail middle and shared datum parity under Xvfb
+        run: |
+          xvfb-run -a pytest -q -s \
+            tests/test_issue63_regression_red.py::test_issue63_resolved_divider_matches_resolved_head_tail_middle_and_hole_edge_parity
+
+      - name: Verify config invariant
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          before=Path("/tmp/divider_config_before").read_text(encoding="utf-8").strip()
+          p=Path("config.ini")
+          after=hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else "MISSING"
+          print("DIVIDER_SKILL_CONFIG_AFTER="+after)
+          print("DIVIDER_SKILL_CONFIG_MATCH="+str(before==after))
+          assert before==after,(before,after)
+          PY
