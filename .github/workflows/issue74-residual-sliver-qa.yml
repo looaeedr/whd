@@ -1,4 +1,8 @@
 name: Issue74 Residual Sliver Divider Validation
+permissions:
+  contents: read
+  issues: write
+
 on:
   push:
     branches: [fix/receiving-fw-formed-solid-authority]
@@ -10,6 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Publish monitor lock
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment 74 --body "ISSUE74_RESIDUAL_QA_RUN_ID=${GITHUB_RUN_ID} HEAD_SHA=${GITHUB_SHA} WORKFLOW=issue74-residual-sliver-qa"
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - name: Install dependencies
