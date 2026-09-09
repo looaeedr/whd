@@ -258,3 +258,11 @@
 - **根因**：只有 cadence 規則，沒有排程互斥；remote run 非 terminal 時，其他工具工作仍能插隊。這不是 cadence 文案不足，而是缺少 execution lock。
 - **永久防線**：取得 `run_id + head_sha` 後進 `REMOTE_QA_ACTIVE_LOCK`。直到 terminal 前，只允許 poll run/jobs/steps、terminal failure log、30 秒回報。任何其他工具動作都屬流程違規。
 - **恢復規則**：Runtime 切斷不解除遠端任務；下一 Runtime 第一動作恢復同一 locked run。replacement run 建立後立即把 lock 移交到新 `run_id + head_sha`。
+
+
+## 2026-09-09 — 只鎖 collision metadata 仍會假綠：必須鎖 final CUTTING 輪廓
+
+- **漏掉的缺口**：前一版 QA 雖驗 FW=29、face-flush、collision metadata，卻沒有用獨立產品 oracle 直接驗最終中隔 CUTTING。結果 production 可吐出 `zl1 solid_depth=48`，舊測試仍自洽 GREEN。
+- **產品 oracle（validation-only）**：左主 `61×27`、左副階 `2×22`、右主 `57×27`。其中 `48` 不屬製造尺寸。
+- **永久防線**：測試從 nominal Divider blank 與 resolved final material 做 difference，直接比較最終移除輪廓；不得以 production metadata 當 expected。
+- **authority boundary**：上述 expected 只能在 test/QA 出現；production 若 import tests、讀 fixture expected 或複製 expected magic number 來求 relief，直接 fail closed。
