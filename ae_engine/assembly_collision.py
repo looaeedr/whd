@@ -719,6 +719,16 @@ def _divider_physical_target_solid_cut(
 
     minx, miny, maxx, maxy = map(float, material.bounds)
     half_t = max(0.0, float(sheet_thickness)) / 2.0
+    tol = float(tolerance)
+
+    def snap_u_to_material_edge(value):
+        value = float(value)
+        if abs(value - minx) <= tol:
+            return float(minx)
+        if abs(value - maxx) <= tol:
+            return float(maxx)
+        return value
+
     rows = dict(classified.get("bands") or {})
 
     # The physical FW mating band is the legal, single-skin contact whose
@@ -765,7 +775,15 @@ def _divider_physical_target_solid_cut(
         if getattr(physical, "is_empty", True) or float(physical.area) <= float(tolerance) ** 2:
             continue
 
-        x0, y0, x1, y1 = map(float, physical.bounds)
+        raw_x0, y0, raw_x1, y1 = map(float, physical.bounds)
+        # Backprojection may land a nominal exterior endpoint a few ulps inside
+        # Final Material.  If an endpoint is already within the solver geometry
+        # tolerance of the authoritative material U edge, canonicalize it to
+        # that edge so polygon boolean operations cannot retain a near-zero-width
+        # exterior sliver.  This is topology normalization, not clearance or a
+        # validation-derived manufacturing compensation.
+        x0 = snap_u_to_material_edge(raw_x0)
+        x1 = snap_u_to_material_edge(raw_x1)
         u_span = max(0.0, x1 - x0)
         v_span = max(0.0, y1 - y0)
         if u_span <= float(tolerance) or v_span <= float(tolerance):
