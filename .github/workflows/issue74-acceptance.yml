@@ -2,6 +2,8 @@ name: Issue74 Divider Side Front Acceptance
 on:
   push:
     branches: [fix/issue74-divider-side-front-penetration]
+  pull_request:
+    branches: [cleanup/2d-3d-sync]
     paths:
       - ae_engine/assembly_collision.py
       - ae_engine/divider_manufacturing.py
