@@ -936,3 +936,57 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
     assert calls, "pre-solve collision probe must reach the detector"
     assert round(120.0, 6) in folded_areas  # raw fixed-relief delta, not solved material
     assert scene_view.last_interference_diagnostic.has_interference is True
+
+
+def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
+    import ae_engine.assembly_geometry as assembly_geometry
+    import phase6_final_scene_view as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
+    head_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 40), fold_guides=())
+    tail_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 30), fold_guides=())
+    body_part = view.AssemblyScenePart("box_body", body_data, _flat_profile(100), _flat_profile(80), "box_body")
+    head_part = view.AssemblyScenePart("head", head_data, _flat_profile(100), _flat_profile(40), "top")
+    tail_part = view.AssemblyScenePart("tail", tail_data, _flat_profile(100), _flat_profile(30), "bottom")
+    render_data = view.AssemblySceneRenderData(
+        assembly_parts=(body_part, head_part, tail_part),
+        visible_part_keys=("head", "tail"),
+    )
+
+    local_mesh = (((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
+    body_world = (((-1.0, -40.0, 0.0), (1.0, -40.0, 0.0), (1.0, 40.0, 0.0)),)
+    head_world = (((10.0, 40.0, 1.0), (11.0, 40.0, 1.0), (10.0, 35.0, -1.0)),)
+    tail_world = (((20.0, -40.0, 1.0), (19.0, -40.0, 1.0), (20.0, -45.0, -1.0)),)
+    mating_calls = []
+
+    monkeypatch.setattr(view, "_phase6_folded_mesh_from_polygon", lambda *args, **kwargs: local_mesh)
+
+    def fake_regular_place(triangles, placement, dimensions, offset):
+        if placement == "box_body":
+            return body_world
+        return (((999.0, 999.0, 999.0),) * 3,)
+
+    monkeypatch.setattr(view, "_phase6_place_assembly_triangles", fake_regular_place)
+
+    def fake_mate(
+        triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0
+    ):
+        mating_calls.append((placement, body_triangles, offset, float(sheet_thickness)))
+        return head_world if placement == "top" else tail_world
+
+    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+
+    scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
+    triangles = scene_view.render(view.FinalSceneViewRequest(
+        render_data=render_data,
+        x_profile=(), y_profile=(), part_key="assembly",
+        alpha_bend=0.85, finished_dimensions=(100.0, 80.0, 40.0), thickness=2.0,
+    ))
+
+    assert [call[0] for call in mating_calls] == ["top", "bottom"]
+    assert all(call[1] == body_world for call in mating_calls)
+    assert head_world[0] in triangles
+    assert tail_world[0] in triangles
+    assert body_world[0] not in triangles, "hidden Box Body must remain a placement datum but not be rendered"
