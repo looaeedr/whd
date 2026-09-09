@@ -294,6 +294,9 @@ def resolve_divider_final_geometry(
         core_start=core_start,
         source_geometry_keys=tuple(source_geometry_keys),
         source_fold_bands_by_key=source_fold_bands,
+        physical_footprints_by_source=dict(
+            candidate.physical_footprints_by_source or {}
+        ),
     )
     verified = bool(verification["verified"])
     relief = DividerReliefEvidence(
