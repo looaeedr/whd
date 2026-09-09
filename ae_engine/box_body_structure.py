@@ -121,6 +121,12 @@ def _copy_profile_rows(profile):
         key = _value(row, "phase6_key")
         if key:
             copied["phase6_key"] = str(key)
+        ui_add = _value(row, "ui_len_add")
+        if ui_add is not None:
+            copied["ui_len_add"] = float(ui_add)
+        formed_length = _value(row, "formed_length")
+        if formed_length is not None:
+            copied["formed_length"] = float(formed_length)
         rows.append(copied)
     return rows
 
@@ -134,11 +140,21 @@ def _core_indexes(rows):
 
 
 def _to_contract(rows) -> tuple[FoldProfileSegment, ...]:
+    def formed_length(row):
+        explicit = row.get("formed_length")
+        if explicit is not None:
+            return float(explicit)
+        ui_add = row.get("ui_len_add")
+        if ui_add is None:
+            return None
+        return float(row.get("len", 0.0)) + abs(float(ui_add))
+
     return tuple(FoldProfileSegment(
         length=float(row.get("len", 0.0)),
         angle=(float(row["angle"]) if "angle" in row else None),
         core=(str(row["core"]) if row.get("core") else None),
         phase6_key=(str(row["phase6_key"]) if row.get("phase6_key") else None),
+        formed_length=formed_length(row),
     ) for row in rows)
 
 
@@ -340,6 +356,14 @@ def _merge_side_back_piece_override(base_rows, override_rows, *, shared_keys):
             # Length/core are shared physical dimensions. Angle/topology remain
             # piece-local so the three Fold editors are genuinely independent.
             row["len"] = float(base.get("len", row.get("len", 0.0)))
+            if base.get("ui_len_add") is not None:
+                row["ui_len_add"] = float(base["ui_len_add"])
+            else:
+                row.pop("ui_len_add", None)
+            if base.get("formed_length") is not None:
+                row["formed_length"] = float(base["formed_length"])
+            else:
+                row.pop("formed_length", None)
             if base.get("core") is not None:
                 row["core"] = base.get("core")
             else:
