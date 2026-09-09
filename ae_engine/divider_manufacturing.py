@@ -153,6 +153,72 @@ def _core_start(part) -> float:
     return float(band[0])
 
 
+def _formed_profile_length(profile, *, phase6_key: str) -> float:
+    for row in tuple(profile or ()):
+        key = (
+            str(row.get("phase6_key") or "")
+            if isinstance(row, dict)
+            else str(getattr(row, "phase6_key", "") or "")
+        )
+        if key != str(phase6_key):
+            continue
+        formed = (
+            row.get("formed_length")
+            if isinstance(row, dict)
+            else getattr(row, "formed_length", None)
+        )
+        if formed is None:
+            raise ValueError(
+                f"Fold Profile {phase6_key!r} has no formed/operator length authority"
+            )
+        value = abs(float(formed))
+        if value <= 0:
+            raise ValueError(f"Fold Profile {phase6_key!r} formed length must be > 0")
+        return value
+    raise ValueError(f"Fold Profile formed segment not found: phase6_key={phase6_key!r}")
+
+
+def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: float) -> dict[str, float]:
+    """Project canonical Divider/Fold inputs into the certified CROSS formula variables."""
+    t = float(sheet_thickness)
+    if t <= 0:
+        raise ValueError("Divider certified CROSS requires positive sheet thickness")
+    divider_t = float(getattr(divider, "thickness", t) or t)
+    if abs(divider_t - t) > 1e-9:
+        raise ValueError("Divider thickness disagrees with certified CROSS sheet thickness")
+
+    material = tuple(float(v) for v in tuple(getattr(divider, "material_lengths", ()) or ()))
+    signed = tuple(float(v) for v in tuple(getattr(divider, "signed_fold_chain", ()) or ()))
+    if len(material) != len(signed) or len(material) < 2:
+        raise ValueError("Divider certified CROSS requires aligned material/outside fold chains")
+
+    fw_index = getattr(divider, "frame_width_segment_index", None)
+    if fw_index is None:
+        raise ValueError("Divider certified CROSS requires a family-owned FW segment")
+    fw_index = int(fw_index)
+    if fw_index < 0 or fw_index >= len(material):
+        raise ValueError("Divider certified CROSS FW segment index is invalid")
+
+    pieces = tuple(getattr(box_body.render_data, "pieces", ()) or ())
+    left_side = next(
+        (piece for piece in pieces if str(getattr(piece, "role", "") or "") == "left_side"),
+        None,
+    )
+    if left_side is None:
+        raise ValueError("Divider certified CROSS requires the Receiving left-side Fold profile")
+    box_zl1_formed = _formed_profile_length(left_side.fold_profile, phase6_key="zl1")
+
+    return {
+        "T": t,
+        "core_start": float(_core_start(divider)),
+        "divider_first_outside": abs(float(signed[0])),
+        "divider_fw_outside": abs(float(signed[fw_index])),
+        "divider_fw_material": float(material[fw_index]),
+        "divider_last_outside": abs(float(signed[-1])),
+        "box_zl1_formed": float(box_zl1_formed),
+    }
+
+
 def _source_fold_bands_by_geometry_key(box_body) -> dict[str, tuple[tuple[str, float, float], ...]]:
     """Expose authoritative physical BoxBody Fold bands to Divider collision.
 
@@ -313,6 +379,30 @@ def resolve_divider_final_geometry(
 
     core_start = _core_start(divider)
     source_fold_bands = _source_fold_bands_by_geometry_key(box_body)
+
+    # Certified Divider geometry is CROSS + parameters.  Collision/backprojection
+    # remains a shadow/penetration witness and never overwrites a Registry HIT.
+    from .certified_relief_registry import lookup_certified_divider_cross_relief
+    from .sheetmetal_geometry import placed_corner_cut_polygons
+    from shapely.affinity import translate as _translate
+    from shapely.ops import unary_union as _unary_union
+
+    certified = None
+    try:
+        registry_variables = _divider_cross_registry_variables(
+            divider, box_body, sheet_thickness=float(sheet_thickness)
+        )
+        certified = lookup_certified_divider_cross_relief(
+            cabinet_family=str(getattr(divider, "model_name", "") or "ANY"),
+            variables=registry_variables,
+        )
+    except Exception:
+        # Non-certified families preserve the provisional discovery path.  A
+        # Receiving Divider with a malformed certified input must fail closed.
+        if str(getattr(divider, "model_name", "") or "").strip() == "受電箱":
+            raise
+        registry_variables = {}
+
     candidate = build_divider_front_fold_relief_candidate(
         joint,
         world_triangles_by_part=world["world_triangles_by_part"],
@@ -324,6 +414,107 @@ def resolve_divider_final_geometry(
         clearance=float(clearance),
         sheet_thickness=max(0.0, float(sheet_thickness)),
     )
+    if certified is not None:
+        minx, miny, maxx, maxy = map(float, original_material.bounds)
+        width = maxx - minx
+        height = maxy - miny
+        local_cuts = []
+        local_cuts.extend(placed_corner_cut_polygons(
+            corner_name="bottom_left",
+            relief=certified.min_y,
+            width=width,
+            height=height,
+        ))
+        local_cuts.extend(placed_corner_cut_polygons(
+            corner_name="top_left",
+            relief=certified.max_y,
+            width=width,
+            height=height,
+        ))
+        certified_cut = _unary_union(tuple(
+            _translate(poly, xoff=minx, yoff=miny) for poly in local_cuts
+        )).intersection(original_material)
+        solved = _apply_cut_to_part(divider, certified_cut)
+        solved = replace(
+            solved,
+            render_data=apply_divider_endcap_shared_6p4_datum(solved.render_data),
+        )
+        solved_world = refold_world(solved)
+        verification = verify_divider_front_fold_relief(
+            joint,
+            world_triangles_by_part=solved_world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=solved_world["flat_material_by_part"],
+            core_start=core_start,
+            source_geometry_keys=tuple(source_geometry_keys),
+            source_fold_bands_by_key=source_fold_bands,
+            physical_footprints_by_source=(
+                {} if candidate is None
+                else dict(candidate.physical_footprints_by_source or {})
+            ),
+        )
+        verified = bool(verification["verified"])
+        formula_values = dict((certified.geometry_evidence or {}).get("formula_values") or {})
+        relief = DividerReliefEvidence(
+            "CERTIFIED_REGISTRY_VERIFIED" if verified else "CERTIFIED_REGISTRY_SHADOW_FAILED",
+            core_start=core_start,
+            cut_depths=tuple(
+                (name, float(value)) for name, value in formula_values.items()
+            ),
+            pre_pair_count=(0 if candidate is None else int(candidate.pre_pair_count)),
+            post_pair_count=int(verification["pair_count"]),
+            retained_contact_segments=int(verification["retained_contact_segments"]),
+            source_evidence={
+                "rule_id": certified.rule.rule_id,
+                "rule_revision": int(certified.rule.revision),
+                "trust_level": certified.rule.status.value,
+                "corner_type": certified.rule.corner_type,
+                "registry_variables": dict(registry_variables),
+                "formula_values": formula_values,
+                "collision_shadow": (
+                    {} if candidate is None else dict(candidate.evidence or {})
+                ),
+            },
+            post_evidence=dict(verification),
+        )
+        if not verified:
+            return ResolvedDividerFinalGeometry(
+                part_id=str(divider.part_key), placement_datum=placement_datum,
+                placement_evidence=placement, relief_evidence=relief,
+                final_material=original_material, verified=False, solved_part=divider,
+                illegal_penetration=True,
+            )
+
+        metadata = dict(getattr(solved.render_data, "metadata", {}) or {})
+        metadata["divider_assembly_relief"] = {
+            "trust_level": certified.rule.status.value,
+            "verified": True,
+            "rule_id": certified.rule.rule_id,
+            "rule_revision": int(certified.rule.revision),
+            "corner_type": certified.rule.corner_type,
+            **relief.as_dict(),
+            "evidence": {
+                **dict(relief.source_evidence or {}),
+                "placement": placement.as_dict(),
+            },
+        }
+        metadata["resolved_divider_physical_geometry"] = {
+            "part_id": str(divider.part_key),
+            "placement_datum": placement_datum,
+            "placement_evidence": placement.as_dict(),
+            "relief_evidence": relief.as_dict(),
+            "verified": True,
+        }
+        solved = replace(
+            solved, render_data=replace(solved.render_data, metadata=metadata)
+        )
+        return ResolvedDividerFinalGeometry(
+            part_id=str(divider.part_key), placement_datum=placement_datum,
+            placement_evidence=placement, relief_evidence=relief,
+            final_material=solved.render_data.material, verified=True,
+            solved_part=solved, illegal_penetration=False,
+        )
+
     if candidate is None:
         return ResolvedDividerFinalGeometry(
             part_id=str(divider.part_key), placement_datum=placement_datum,
