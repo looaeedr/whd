@@ -160,3 +160,16 @@ python .agents/skills/engineering/掃描深模組/check_zh_tw_report.py <報告�
 - 上述兩個 owner 可由同一張 closing ticket 承擔，但不得沒有 owner。
 - HTML 報告、聊天候選編號、branch、checkpoint 或 `.scratch/**` 都不能替代 owning Issue。
 - 實作交接時必須改用 `拆解任務工單`／`派工` 的 RED-first、AI Library、GitHub owning Issue 與 remote QA 規則；本 Skill 不得直接從候選跳進 production 修改。
+
+## 6. 模組接縫語意權威防線（DM6 durable contract）
+
+深模組掃描若發現 upstream 已經知道工程語意（identity / kind / axis / source / anchor），必須把它視為跨 seam 的正式 contract，而不是只傳 presentation string 讓 downstream 再猜。
+
+**永久規則：已知 upstream semantic 不得在 module seam 上退化成 presentation string，再要求 downstream heuristic reconstruction。**
+
+- text / label / localization / formatting 只屬於 presentation，不得成為 identity、source、axis、anchor ownership 或 annotation kind 的 authority。
+- duplicate labels 必須合法；同值 X/Y dimension 也必須保留不同 semantic identity。
+- Planner／domain resolver 擁有 engineering semantic；Layout 只擁有 placement / collision / leader routing；Renderer / GUI / exporter 是 sink，不得重新建第二套 semantic resolver。
+- downstream 若需要語意，必須 consume stable semantic identity；禁止用 nearest-text、nearest-feature、primitive index、顯示字串或 collision 後位置重建 ownership。
+- Save/Reload 必須從 authoritative state 重新建立 semantic contract；derived layout / text position 不得提升為 persistence authority。
+- validation / expected / fixture / tolerance 只能判定 contract 是否正確，不能反向成為 production semantic 或 geometry 計算來源。
