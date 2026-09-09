@@ -32,7 +32,7 @@ jobs:
           world=bridge._phase6_build_joint_world_geometry(
               (body,part),(snap["w"],snap["h"],snap["d"]),snap["t"]
           )
-          evidence=resolve_divider_placement_evidence(divider,body,world)
+          evidence=resolve_divider_placement_evidence(part,body,world)
           out={"placement":part.placement,"offset":part.offset,"evidence":evidence.as_dict(),"pieces":{}}
           for piece in body.render_data.pieces:
               role=str(piece.role)
