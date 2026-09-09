@@ -426,37 +426,6 @@ def _profile_map(position, boundaries, folded):
     return (u0 + (u1 - u0) * ratio, z0 + (z1 - z0) * ratio)
 
 
-def _profile_map_with_formed_occupation(position, boundaries, folded, profile):
-    """Map material UV onto an optional centered formed/outside segment span.
-
-    Fold-chain boundaries remain material/bend authority. A segment with an
-    explicit `formed_length` expands or contracts about its own folded center,
-    so neighboring bend datums do not move. This models formed outside
-    occupation without rewriting the flat blank or globally stretching D/W.
-    """
-    mapped = _profile_map(position, boundaries, folded)
-    _value_clamped, index = _profile_segment_index(position, boundaries)
-    segs = list(profile or ())
-    if index < 0 or index >= len(segs):
-        return mapped
-    raw_formed = _segment_value(segs[index], "formed_length", None)
-    if raw_formed is None:
-        return mapped
-    material = float(boundaries[index + 1]) - float(boundaries[index])
-    formed = max(0.0, _as_float(raw_formed))
-    if material <= 1e-12 or formed <= 0.0:
-        return mapped
-    scale = formed / material
-    u0, z0 = folded[index]
-    u1, z1 = folded[index + 1]
-    cu = (float(u0) + float(u1)) / 2.0
-    cz = (float(z0) + float(z1)) / 2.0
-    return (
-        cu + (float(mapped[0]) - cu) * scale,
-        cz + (float(mapped[1]) - cz) * scale,
-    )
-
-
 def _profile_flat_map(position, boundaries, *, profile=None):
     seg_count = max(1, len(boundaries) - 1)
     base_idx = _profile_base_index(profile) if profile is not None else min(seg_count - 1, seg_count // 2)
@@ -490,7 +459,7 @@ def _fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides, 
 def _profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
     mask = _fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides)
     boundaries, folded = _profile_geometry(profile, enabled_folds=mask)
-    return _profile_map_with_formed_occupation(position, boundaries, folded, profile)
+    return _profile_map(position, boundaries, folded)
 
 
 def folded_mesh_from_polygon(
@@ -571,7 +540,7 @@ def folded_mesh_from_polygon(
                                 x, y, x_profile, axis="x", fold_guides=fold_guides
                             )
                         else:
-                            ux, zx = _profile_map_with_formed_occupation(x, xb, xf, x_profile)
+                            ux, zx = _profile_map(x, xb, xf)
 
                         if "y" in flags:
                             uy, zy = _profile_flat_map(y, yb, profile=y_profile)
@@ -580,7 +549,7 @@ def folded_mesh_from_polygon(
                                 y, x, y_profile, axis="y", fold_guides=fold_guides
                             )
                         else:
-                            uy, zy = _profile_map_with_formed_occupation(y, yb, yf, y_profile)
+                            uy, zy = _profile_map(y, yb, yf)
                         mapped.append((float(ux), float(uy), float(zx + zy)))
                     triangles3d.append(tuple(mapped))
     return tuple(triangles3d)
@@ -914,7 +883,7 @@ def folded_mesh_with_flat_uv_from_polygon(
                                 x, y, x_profile, axis="x", fold_guides=fold_guides
                             )
                         else:
-                            ux, zx = _profile_map_with_formed_occupation(x, xb, xf, x_profile)
+                            ux, zx = _profile_map(x, xb, xf)
 
                         if "y" in flags:
                             uy, zy = _profile_flat_map(y, yb, profile=y_profile)
@@ -923,7 +892,7 @@ def folded_mesh_with_flat_uv_from_polygon(
                                 y, x, y_profile, axis="y", fold_guides=fold_guides
                             )
                         else:
-                            uy, zy = _profile_map_with_formed_occupation(y, yb, yf, y_profile)
+                            uy, zy = _profile_map(y, yb, yf)
                         local.append((float(ux), float(uy), float(zx + zy)))
                     mapped_triangles.append(FoldedTriangleMap(flat=flat, local=tuple(local)))
     return tuple(mapped_triangles)

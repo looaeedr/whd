@@ -5806,6 +5806,65 @@ def _phase6_box_body_piece_solver_key(body_part, region, *, require_flat_uv):
     return "box_body"
 
 
+
+def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
+    """Expand BoxBody FW physical face about its material segment center.
+
+    Flat/material fold geometry and bend datums remain unchanged. A side-piece
+    FW segment may carry an authoritative \`formed_length\`; only its already
+    placed world mid-face triangles are expanded along cabinet W/X about the
+    original segment center before sheet-thickness skins are built.
+    """
+    role = str(getattr(piece, "role", "") or "").strip().lower()
+    fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
+    if fw_key is None:
+        return tuple(world_mid_piece or ())
+
+    cursor = 0.0
+    band = None
+    target = None
+    for row in tuple(getattr(piece, "fold_profile", ()) or ()):
+        length = float(getattr(row, "length", 0.0) or 0.0)
+        end = cursor + length
+        if str(getattr(row, "phase6_key", "") or "") == fw_key:
+            raw = getattr(row, "formed_length", None)
+            if raw is not None:
+                target = float(raw)
+                band = (float(cursor), float(end))
+            break
+        cursor = end
+    if band is None or target is None or target <= float(tolerance):
+        return tuple(world_mid_piece or ())
+
+    selected = []
+    for index, item in enumerate(tuple(mapped or ())):
+        flat = tuple(getattr(item, "flat", ()) or ())
+        if len(flat) != 3:
+            continue
+        centroid_u = sum(float(point[0]) for point in flat) / 3.0
+        if band[0] + float(tolerance) < centroid_u < band[1] - float(tolerance):
+            selected.append(index)
+    if not selected:
+        return tuple(world_mid_piece or ())
+
+    rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    xs = [float(point[0]) for index in selected for point in rows[index]]
+    if not xs:
+        return tuple(rows)
+    lo, hi = min(xs), max(xs)
+    span = float(hi - lo)
+    if span <= float(tolerance):
+        return tuple(rows)
+    center = (float(lo) + float(hi)) / 2.0
+    scale = float(target) / span
+    for index in selected:
+        rows[index] = tuple(
+            (center + (float(point[0]) - center) * scale, float(point[1]), float(point[2]))
+            for point in rows[index]
+        )
+    return tuple(rows)
+
+
 def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
     """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
 
@@ -5874,6 +5933,9 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
                 count = len(mapped)
                 world_mid_piece = body_world_mid[cursor:cursor + count]
                 cursor += count
+                world_mid_piece = _phase6_expand_box_body_fw_world_mid(
+                    piece, mapped, world_mid_piece
+                )
                 skins = []
                 for item, world_mid in zip(mapped, world_mid_piece):
                     normal = _triangle_unit_normal(world_mid)
