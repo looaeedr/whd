@@ -75,8 +75,8 @@ def test_cross_slot_geometry_matches_normalized_divider_dxf_local_shape():
 def test_receiving_divider_registry_formula_derives_dxf_values_from_parameters():
     record = {
         "formula": {
-            "min_y_fold_u": "core_start + divider_fw_material",
-            "max_y_fold_u": "core_start + divider_last_outside + T",
+            "min_y_fold_u": "core_start + divider_last_outside + T",
+            "max_y_fold_u": "core_start + divider_fw_material",
             "fold_v": "divider_fw_outside - T",
             "slot_width": "divider_fw_material - divider_first_outside",
             "slot_straight_depth": "box_zl1_formed",
@@ -85,8 +85,8 @@ def test_receiving_divider_registry_formula_derives_dxf_values_from_parameters()
     }
     values = evaluate_divider_cross_formula_record(record, _receiving_reference_variables())
     assert values == pytest.approx({
-        "min_y_fold_u": 66.0,
-        "max_y_fold_u": 60.0,
+        "min_y_fold_u": 60.0,
+        "max_y_fold_u": 66.0,
         "fold_v": 27.0,
         "slot_width": 7.0,
         "slot_straight_depth": 24.0,
@@ -102,14 +102,14 @@ def test_receiving_divider_registry_hit_is_cross_plus_parameters():
     assert result is not None
     assert result.rule.rule_id == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert result.rule.corner_type == "CROSS"
-    assert result.min_y.primary_u == pytest.approx(66.0)
+    assert result.min_y.primary_u == pytest.approx(60.0)
     assert result.min_y.primary_v == pytest.approx(27.0)
-    assert result.min_y.slot_width == pytest.approx(7.0)
-    assert result.min_y.slot_straight_depth == pytest.approx(24.0)
-    assert result.min_y.slot_radius == pytest.approx(3.5)
-    assert result.max_y.primary_u == pytest.approx(60.0)
+    assert result.min_y.slot_width is None
+    assert result.min_y.slot_straight_depth is None
+    assert result.min_y.slot_radius is None
+    assert result.max_y.primary_u == pytest.approx(66.0)
     assert result.max_y.primary_v == pytest.approx(27.0)
-    assert result.max_y.slot_width is None
+    assert result.max_y.slot_width == pytest.approx(7.0)\n    assert result.max_y.slot_straight_depth == pytest.approx(24.0)\n    assert result.max_y.slot_radius == pytest.approx(3.5)
 
 def _read_normalized_divider_dxf_relief():
     from pathlib import Path
@@ -137,11 +137,13 @@ def _read_normalized_divider_dxf_relief():
                 rows.append((min(float(a.y), float(b.y)), max(float(a.y), float(b.y))))
         return rows
 
-    min_edge = vertical_at(minx)
-    max_edge = vertical_at(maxx)
-    assert min_edge and max_edge
-    min_y_fold_u = min(row[0] for row in min_edge) - miny
-    max_y_fold_u = min(row[0] for row in max_edge) - miny
+    # Existing production rigid mapping is clockwise 90 degrees:
+    # source max-X -> Divider min-Y, source min-X -> Divider max-Y.
+    source_min_x_edge = vertical_at(minx)
+    source_max_x_edge = vertical_at(maxx)
+    assert source_min_x_edge and source_max_x_edge
+    min_y_fold_u = min(row[0] for row in source_max_x_edge) - miny
+    max_y_fold_u = min(row[0] for row in source_min_x_edge) - miny
 
     bottom_verticals = []
     for entity in lines:
@@ -214,8 +216,8 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert relief["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert relief["corner_type"] == "CROSS"
     assert evidence["manufacturing_dimensions_source"] == "CERTIFIED_REGISTRY_CROSS_PARAMETERS"
-    assert formula["min_y_fold_u"] == pytest.approx(66.0)
-    assert formula["max_y_fold_u"] == pytest.approx(60.0)
+    assert formula["min_y_fold_u"] == pytest.approx(60.0)
+    assert formula["max_y_fold_u"] == pytest.approx(66.0)
     assert formula["fold_v"] == pytest.approx(27.0)
     assert formula["slot_width"] == pytest.approx(7.0)
     assert formula["slot_straight_depth"] == pytest.approx(24.0)
