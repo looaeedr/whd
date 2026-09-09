@@ -106,9 +106,13 @@ def _poly_from_points(points):
 
 
 def _actual_material(msp):
-    closed = []
+    """Reconstruct saved CUTTING with the production-owned canonical policy."""
+    from .cutting_material import material_from_cutting_components
+
+    primary = None
+    secondary = []
     linework = []
-    circle_holes = []
+
     for entity in msp:
         if str(entity.dxf.layer).upper() != "CUTTING":
             continue
@@ -117,8 +121,12 @@ def _actual_material(msp):
             pts = [(float(p[0]), float(p[1])) for p in entity.get_points()]
             if bool(entity.closed) and len(pts) >= 3:
                 poly = _poly_from_points(pts)
-                if not poly.is_empty and float(poly.area) > 1e-9:
-                    closed.append(poly)
+                if poly.is_empty or float(poly.area) <= 1e-9:
+                    continue
+                if primary is None:
+                    primary = poly
+                else:
+                    secondary.append(poly)
             elif len(pts) >= 2:
                 linework.extend(
                     LineString((a, b)) for a, b in zip(pts, pts[1:]) if a != b
@@ -129,47 +137,17 @@ def _actual_material(msp):
             if a != b:
                 linework.append(LineString((a, b)))
         elif kind == "CIRCLE" and float(entity.dxf.radius) > 0:
-            circle_holes.append(
+            secondary.append(
                 Point(float(entity.dxf.center.x), float(entity.dxf.center.y)).buffer(
                     float(entity.dxf.radius), quad_segs=32
                 )
             )
 
-    line_polys = [
-        poly for poly in polygonize(unary_union(linework)) if float(poly.area) > 1e-9
-    ] if linework else []
-    candidates = closed + line_polys
-    if not candidates:
-        raise ValueError("DXF CUTTING has no closed material contour")
-    primary = max(candidates, key=lambda p: float(p.area))
-
-    minx, miny, maxx, maxy = map(float, primary.bounds)
-    sx, sy = max(1.0, maxx - minx), max(1.0, maxy - miny)
-    tolx, toly = max(1e-6, sx * 1e-4), max(1e-6, sy * 1e-4)
-
-    holes = list(circle_holes)
-    for candidate in candidates:
-        if candidate is primary or candidate.is_empty:
-            continue
-        cb = tuple(map(float, candidate.bounds))
-        same_sheet_bounds = (
-            abs(cb[0] - minx) <= tolx
-            and abs(cb[1] - miny) <= toly
-            and abs(cb[2] - maxx) <= tolx
-            and abs(cb[3] - maxy) <= toly
-        )
-        if same_sheet_bounds:
-            continue
-        if primary.buffer(1e-7).covers(candidate.representative_point()):
-            holes.append(candidate.intersection(primary))
-
-    material = primary if not holes else primary.difference(unary_union(holes))
-    if not material.is_valid:
-        material = material.buffer(0)
-    if material.is_empty:
-        raise ValueError("DXF CUTTING reconstructed empty material")
-    return material
-
+    return material_from_cutting_components(
+        primary=primary,
+        secondary=secondary,
+        linework=linework,
+    )
 
 def _expected_bends(render_data):
     rows = []
