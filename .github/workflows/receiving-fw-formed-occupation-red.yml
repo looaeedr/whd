@@ -1,4 +1,4 @@
-# retrigger post-refold boundary classification diagnostic
+# retrigger exact candidate replay diagnostic after latest production changes
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
