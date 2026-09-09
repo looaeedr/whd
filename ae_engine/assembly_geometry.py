@@ -353,7 +353,9 @@ def _profile_geometry(profile, *, enabled_folds=None):
     current_angle = 0.0
     cumulative = [0.0]
     for index, seg in enumerate(segs):
-        length = max(0.0, _as_float(_segment_value(seg, "len", 0.0)))
+        length = max(0.0, _as_float(
+            _segment_value(seg, "length", _segment_value(seg, "len", 0.0))
+        ))
         angles.append(current_angle)
         rad = math.radians(current_angle)
         raw_u.append(raw_u[-1] + length * math.cos(rad))
@@ -403,7 +405,7 @@ def folded_profile_segment_center_from_envelope(profile, segment_index: int) -> 
         (float(z0) + float(z1)) / 2.0,
     )
 
-def _profile_map(position, boundaries, folded):
+def _profile_segment_index(position, boundaries):
     value = float(position)
     total = float(boundaries[-1])
     value = min(max(value, 0.0), total)
@@ -412,6 +414,11 @@ def _profile_map(position, boundaries, folded):
         if value <= boundaries[i + 1] + 1e-9:
             index = i
             break
+    return value, index
+
+
+def _profile_map(position, boundaries, folded):
+    value, index = _profile_segment_index(position, boundaries)
     lo, hi = float(boundaries[index]), float(boundaries[index + 1])
     ratio = 0.0 if hi <= lo else (value - lo) / (hi - lo)
     u0, z0 = folded[index]

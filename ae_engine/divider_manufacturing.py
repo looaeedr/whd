@@ -23,6 +23,9 @@ class DividerPlacementEvidence:
     box_body_left_fw_planes: tuple[float, ...] = ()
     box_body_right_fw_planes: tuple[float, ...] = ()
     divider_fw_planes: tuple[float, ...] = ()
+    box_body_left_fw_formed_occupation: float | None = None
+    box_body_right_fw_formed_occupation: float | None = None
+    expected_fw_formed_occupation: float | None = None
     reason: str | None = None
 
     def as_dict(self) -> dict[str, object]:
@@ -37,6 +40,9 @@ class DividerPlacementEvidence:
             "box_body_left_fw_planes": self.box_body_left_fw_planes,
             "box_body_right_fw_planes": self.box_body_right_fw_planes,
             "divider_fw_planes": self.divider_fw_planes,
+            "box_body_left_fw_formed_occupation": self.box_body_left_fw_formed_occupation,
+            "box_body_right_fw_formed_occupation": self.box_body_right_fw_formed_occupation,
+            "expected_fw_formed_occupation": self.expected_fw_formed_occupation,
             **({"reason": self.reason} if self.reason else {}),
         }
 
@@ -115,6 +121,24 @@ def _planar_skin_z_planes(skins, band, *, tolerance=1e-5):
     return tuple(unique)
 
 
+def _planar_skin_axis_occupation(skins, band, *, axis=0, tolerance=1e-5):
+    start, end = (float(v) for v in band)
+    tol = float(tolerance)
+    values = []
+    for skin in tuple(skins or ()):
+        flat = tuple(getattr(skin, "flat", ()) or ())
+        world = tuple(getattr(skin, "world", ()) or ())
+        if len(flat) != 3 or len(world) != 3:
+            continue
+        centroid_x = sum(float(point[0]) for point in flat) / 3.0
+        if not (start + tol < centroid_x < end - tol):
+            continue
+        values.extend(float(point[int(axis)]) for point in world)
+    if not values:
+        raise ValueError("physical FW formed occupation unavailable")
+    return float(max(values) - min(values))
+
+
 def _physical_contract(part) -> dict[str, object]:
     metadata = dict(getattr(getattr(part, "render_data", None), "metadata", {}) or {})
     return dict(metadata.get("physical_geometry_contract") or {})
@@ -160,7 +184,10 @@ def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e
     placement_kind = str(getattr(divider, "placement", "") or "")
     core_inward = placement_kind.endswith("_inward")
 
-    def fail(reason: str, *, left=(), right=(), divider_planes=()):
+    def fail(
+        reason: str, *, left=(), right=(), divider_planes=(),
+        left_occupation=None, right_occupation=None, expected_occupation=None,
+    ):
         return DividerPlacementEvidence(
             contract="DIVIDER_FW_FACE_FLUSH_V1", valid=False,
             fw_face_flush=False, core_inward=core_inward,
@@ -168,7 +195,11 @@ def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e
             fw_physical_face=fw_face,
             box_body_left_fw_planes=tuple(left),
             box_body_right_fw_planes=tuple(right),
-            divider_fw_planes=tuple(divider_planes), reason=reason,
+            divider_fw_planes=tuple(divider_planes),
+            box_body_left_fw_formed_occupation=left_occupation,
+            box_body_right_fw_formed_occupation=right_occupation,
+            expected_fw_formed_occupation=expected_occupation,
+            reason=reason,
         )
 
     if len(divider_band) != 2:
@@ -181,11 +212,28 @@ def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e
         left_band = _profile_flat_band(by_role["left_side"].fold_profile, phase6_key="fw_left")
         right_band = _profile_flat_band(by_role["right_side"].fold_profile, phase6_key="fw_right")
         mapped = dict(world.get("mapped_skin_triangles_by_part") or {})
-        left = _planar_skin_z_planes(mapped.get("box_body:left_side", ()), left_band, tolerance=tol)
-        right = _planar_skin_z_planes(mapped.get("box_body:right_side", ()), right_band, tolerance=tol)
+        left_skins = mapped.get("box_body:left_side", ())
+        right_skins = mapped.get("box_body:right_side", ())
+        left = _planar_skin_z_planes(left_skins, left_band, tolerance=tol)
+        right = _planar_skin_z_planes(right_skins, right_band, tolerance=tol)
         divider_planes = _planar_skin_z_planes(mapped.get(str(divider.part_key), ()), divider_band, tolerance=tol)
+        expected_occupation = float(fw_face.get("outside_dimension"))
+        left_occupation = _planar_skin_axis_occupation(left_skins, left_band, axis=0, tolerance=tol)
+        right_occupation = _planar_skin_axis_occupation(right_skins, right_band, axis=0, tolerance=tol)
     except Exception as exc:
         return fail(f"FW placement evidence unavailable: {exc}")
+    formed_match = (
+        abs(left_occupation - expected_occupation) <= tol
+        and abs(right_occupation - expected_occupation) <= tol
+    )
+    if not formed_match:
+        return fail(
+            "Receiving BoxBody FW formed occupation does not match authoritative outside FW",
+            left=left, right=right, divider_planes=divider_planes,
+            left_occupation=left_occupation,
+            right_occupation=right_occupation,
+            expected_occupation=expected_occupation,
+        )
     same_count = bool(left) and len(left) == len(right) == len(divider_planes)
     body_match = same_count and all(abs(a - b) <= tol for a, b in zip(left, right))
     divider_match = same_count and all(abs(a - b) <= tol for a, b in zip(divider_planes, left))
@@ -202,7 +250,11 @@ def resolve_divider_placement_evidence(divider, box_body, world, *, tolerance=1e
         fw_physical_face=fw_face,
         box_body_left_fw_planes=left,
         box_body_right_fw_planes=right,
-        divider_fw_planes=divider_planes, reason=reason,
+        divider_fw_planes=divider_planes,
+        box_body_left_fw_formed_occupation=left_occupation,
+        box_body_right_fw_formed_occupation=right_occupation,
+        expected_fw_formed_occupation=expected_occupation,
+        reason=reason,
     )
 
 

@@ -699,15 +699,19 @@ def _divider_physical_target_solid_cut(
     sheet_thickness,
     tolerance=1e-6,
 ):
-    """Convert true source-solid crossings into target-solid Divider relief.
+    """Build Divider CUTTING from real FW contact + true-thickness source collision.
 
-    Source Fold bands have already been proven to cross both physical source
-    skins. Their UV footprint is therefore a source-solid collision footprint
-    sampled on the Divider skin. The Divider itself is also a sheet solid, so
-    sweep that target-skin footprint through exactly T/2 toward the material
-    interior, then connect it to the touched material edge with orthogonal
-    CUTTING. No EndCap dimension, FW formula, test value, or validation delta
-    participates in this calculation.
+    Coordinate domains are deliberately separated:
+
+    * legal FW face contact on the resolved Divider supplies the primary relief
+      depth in FINAL_CUTTING space;
+    * through-thickness source Fold footprints supply only their own physical
+      U span and stage length;
+    * a secondary stage attaches to the resolved primary CUTTING boundary.
+
+    Material-space FW coordinates and target-UV absolute endpoints are evidence
+    only.  They are never reused as final notch anchors.  Validation constants,
+    EndCap dimensions and expected values do not participate.
     """
     from shapely.affinity import translate
     from shapely.geometry import box as shapely_box
@@ -715,12 +719,55 @@ def _divider_physical_target_solid_cut(
 
     minx, miny, maxx, maxy = map(float, material.bounds)
     half_t = max(0.0, float(sheet_thickness)) / 2.0
-    cuts = []
+    tol = float(tolerance)
+
+    def snap_u_to_material_edge(value):
+        value = float(value)
+        if abs(value - minx) <= tol:
+            return float(minx)
+        if abs(value - maxx) <= tol:
+            return float(maxx)
+        return value
+
+    rows = dict(classified.get("bands") or {})
+
+    # The physical FW mating band is the legal, single-skin contact whose
+    # semantic identity comes from the authoritative source Fold profile.
+    fw_contacts = []
+    for band_name, raw in rows.items():
+        row = dict(raw or {})
+        if "fw" not in str(band_name).lower():
+            continue
+        if bool(row.get("through_thickness")):
+            continue
+        bounds = row.get("divider_uv_bounds")
+        if bounds is None:
+            continue
+        x0, x1, y0, y1 = map(float, bounds)
+        if x1 - x0 <= float(tolerance):
+            continue
+        low_depth = max(0.0, y1 - miny)
+        high_depth = max(0.0, maxy - y0)
+        edge = "MIN_Y" if low_depth <= high_depth else "MAX_Y"
+        depth = low_depth if edge == "MIN_Y" else high_depth
+        if depth > float(tolerance):
+            fw_contacts.append((str(band_name), edge, float(depth), (x0, y0, x1, y1)))
+
+    if len(fw_contacts) != 1:
+        return None, None, {
+            "_invalid": {
+                "reason": "Divider physical relief requires exactly one resolved FW contact",
+                "fw_contacts": tuple(fw_contacts),
+            }
+        }
+
+    fw_band_name, edge, primary_depth, fw_bounds = fw_contacts[0]
+
+    penetrating = []
     required_solid = []
     stages = {}
-
     for band_name in tuple(classified.get("penetrating_bands") or ()):
-        row = dict(classified["bands"][band_name])
+        row = dict(rows.get(band_name) or {})
         physical = row.get("physical_footprint_2d")
         if physical is None or getattr(physical, "is_empty", True):
             continue
@@ -728,58 +775,118 @@ def _divider_physical_target_solid_cut(
         if getattr(physical, "is_empty", True) or float(physical.area) <= float(tolerance) ** 2:
             continue
 
-        _x0, y0, _x1, y1 = map(float, physical.bounds)
-        low_depth = max(0.0, y1 - miny)
-        high_depth = max(0.0, maxy - y0)
-        if low_depth <= high_depth:
-            edge = "MIN_Y"
-            yoff = half_t
-        else:
-            edge = "MAX_Y"
-            yoff = -half_t
-
-        solid = physical
-        if half_t > float(tolerance):
-            solid = unary_union((physical, translate(physical, yoff=yoff)))
-        solid = solid.intersection(material)
-        if getattr(solid, "is_empty", True) or float(solid.area) <= float(tolerance) ** 2:
+        raw_x0, y0, raw_x1, y1 = map(float, physical.bounds)
+        # Backprojection may land a nominal exterior endpoint a few ulps inside
+        # Final Material.  If an endpoint is already within the solver geometry
+        # tolerance of the authoritative material U edge, canonicalize it to
+        # that edge so polygon boolean operations cannot retain a near-zero-width
+        # exterior sliver.  This is topology normalization, not clearance or a
+        # validation-derived manufacturing compensation.
+        x0 = snap_u_to_material_edge(raw_x0)
+        x1 = snap_u_to_material_edge(raw_x1)
+        u_span = max(0.0, x1 - x0)
+        v_span = max(0.0, y1 - y0)
+        if u_span <= float(tolerance) or v_span <= float(tolerance):
             continue
 
-        sx0, sy0, sx1, sy1 = map(float, solid.bounds)
-        if edge == "MIN_Y":
-            cut = shapely_box(sx0, miny, sx1, sy1)
-            skin_depth = low_depth
-            solid_depth = max(0.0, sy1 - miny)
-        else:
-            cut = shapely_box(sx0, sy0, sx1, maxy)
-            skin_depth = high_depth
-            solid_depth = max(0.0, maxy - sy0)
+        # Preserve the actual backprojected source-solid collision footprint as
+        # replay evidence. Target sheet thickness is normal to the Divider
+        # surface; it must not be converted into an in-plane UV translation.
+        required_solid.append(physical)
 
+        penetrating.append({
+            "band_name": str(band_name),
+            "x0": x0, "x1": x1,
+            "u_span": u_span,
+            "v_span": v_span,
+            "physical": physical,
+            "row": row,
+        })
+
+    if not penetrating:
+        return None, None, stages
+
+    # The primary collision is the penetrating stage with the greatest physical
+    # U occupation.  This is geometry-derived and naturally selects zl2/zr2 in
+    # the current Receiving fold chain without naming those fields here.
+    primary = max(
+        penetrating,
+        key=lambda item: (
+            float(item["u_span"]),
+            -abs(float(item["x0"]) - minx),
+        ),
+    )
+
+    if edge == "MIN_Y":
+        primary_cut = shapely_box(
+            float(primary["x0"]), miny,
+            float(primary["x1"]), miny + primary_depth,
+        )
+        primary_boundary = miny + primary_depth
+    else:
+        primary_cut = shapely_box(
+            float(primary["x0"]), maxy - primary_depth,
+            float(primary["x1"]), maxy,
+        )
+        primary_boundary = maxy - primary_depth
+
+    cuts = [primary_cut.intersection(material)]
+    stages[str(primary["band_name"])] = {
+        "role": "PHYSICAL_FW_CONTACT_PRIMARY_RELIEF",
+        "edge": edge,
+        "source_skin_sides": tuple(primary["row"].get("skin_sides") or ()),
+        "source_solid_footprint_bounds": tuple(map(float, primary["physical"].bounds)),
+        "fw_contact_band": fw_band_name,
+        "fw_contact_bounds": tuple(map(float, fw_bounds)),
+        "primary_cutting_depth": float(primary_depth),
+        "stage_u_span": float(primary["u_span"]),
+        "stage_v_span": float(primary["v_span"]),
+        "cut_bounds": tuple(map(float, cuts[-1].bounds)),
+        "dimension_source": "PHYSICAL_FW_CONTACT_PLUS_SOURCE_TRUE_THICKNESS",
+    }
+
+    # Secondary stages keep their own 3D-collision dimensions, but their
+    # material-coordinate anchor is the SAME resolved physical FW inside-face
+    # boundary as the primary stage. Using the raw independently-backprojected
+    # floating endpoint can leave a nanometre-scale gap between two cuts that are
+    # physically the same 27-mm datum; that turns the secondary notch into an
+    # artificial interior hole when the CUTTING exterior is rebuilt.
+    for item in penetrating:
+        if item is primary:
+            continue
+        if edge == "MIN_Y":
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary),
+                float(item["x1"]), float(primary_boundary) + float(item["v_span"]),
+            )
+        else:
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary) - float(item["v_span"]),
+                float(item["x1"]), float(primary_boundary),
+            )
         cut = cut.intersection(material)
         if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
             continue
         cuts.append(cut)
-        required_solid.append(solid)
-        stages[str(band_name)] = {
-            "role": "PHYSICAL_TARGET_SOLID_RELIEF",
+        stages[str(item["band_name"])] = {
+            "role": "PHYSICAL_SECONDARY_COLLISION_RELIEF",
             "edge": edge,
-            "source_skin_sides": tuple(row.get("skin_sides") or ()),
-            "source_solid_footprint_bounds": tuple(map(float, physical.bounds)),
-            "target_half_thickness": float(half_t),
-            "target_solid_footprint_bounds": tuple(map(float, solid.bounds)),
+            "source_skin_sides": tuple(item["row"].get("skin_sides") or ()),
+            "source_solid_footprint_bounds": tuple(map(float, item["physical"].bounds)),
+            "primary_inside_face_boundary": float(primary_boundary),
+            "stage_u_span": float(item["u_span"]),
+            "stage_v_span": float(item["v_span"]),
             "cut_bounds": tuple(map(float, cut.bounds)),
-            "skin_depth": float(skin_depth),
-            "solid_depth": float(solid_depth),
-            "dimension_source": "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+            "dimension_source": "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN",
         }
 
-    if not cuts:
-        return None, None, stages
-    return (
-        unary_union(cuts).intersection(material),
-        unary_union(required_solid).intersection(material),
-        stages,
+    cut = unary_union(tuple(cuts)).intersection(material)
+    required = (
+        None
+        if not required_solid
+        else unary_union(tuple(required_solid)).intersection(material)
     )
+    return cut, required, stages
 
 
 def build_divider_front_fold_relief_candidate(
@@ -797,10 +904,11 @@ def build_divider_front_fold_relief_candidate(
 ):
     """Derive Divider relief directly from physical source/target sheet collision.
 
-    Source both-skin crossings prove full-thickness source penetration. Their
-    backprojected Divider-skin footprints are swept through target T/2 to obtain
-    the Divider solid collision footprint. Manufacturing cut extents come from
-    this physical geometry; validation and EndCap dimensions remain read-only.
+    Source both-skin crossings prove full-thickness source penetration.
+    Manufacturing placement comes from physical FW contact plus the actual
+    source-solid collision backprojection on the Divider. Target thickness is
+    out-of-plane and is never converted into an in-plane UV offset. Validation
+    and EndCap dimensions remain read-only.
     """
     from shapely.ops import unary_union
 
@@ -890,7 +998,9 @@ def build_divider_front_fold_relief_candidate(
                 )
             physical_footprints_by_source[source_key] = required_target_solid
 
-            allowance = max(0.0, float(clearance)) + float(boolean_margin)
+            # Explicit clearance may alter manufacturing geometry. Numerical
+            # boolean margin may not.
+            allowance = max(0.0, float(clearance))
             cut = physical_cut
             if allowance > 0.0:
                 cut = cut.buffer(allowance, join_style=2)
@@ -898,10 +1008,16 @@ def build_divider_front_fold_relief_candidate(
             if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
                 raise ValueError(f"Divider physical collision cut is empty: {source_key}")
             cut_polygons.append(cut)
-            depths = [
-                float(row.get("solid_depth", 0.0))
-                for row in dict(stage_evidence or {}).values()
-            ]
+            depths = []
+            for row in dict(stage_evidence or {}).values():
+                bounds = row.get("cut_bounds")
+                if bounds is None:
+                    continue
+                _cx0, cy0, _cx1, cy1 = map(float, bounds)
+                if str(row.get("edge") or "") == "MAX_Y":
+                    depths.append(max(0.0, maxy - cy0))
+                else:
+                    depths.append(max(0.0, cy1 - miny))
             cut_depths.append((source_key, max(depths) if depths else 0.0))
 
         retained_names = tuple(
@@ -915,10 +1031,10 @@ def build_divider_front_fold_relief_candidate(
             "retained_contact_bands": retained_names,
             "solid_half_thickness": float(half_t),
             "manufacturing_topology": "STANDARD_PLUS_SOURCE_FOLD_BAND_ORTHOGONAL",
-            "manufacturing_dimensions_source": "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
             "physical_stages": dict(stage_evidence or {}),
             "physical_validation": band_validation_evidence,
-            "coverage_rule": "TARGET_SOLID_FOOTPRINT_IS_PHYSICAL_RELIEF_AUTHORITY",
+            "coverage_rule": "POST_REFOLD_WORLD_TRUE_THICKNESS_IS_ACCEPTANCE_AUTHORITY",
         }
 
     if not cut_polygons:
@@ -941,7 +1057,7 @@ def build_divider_front_fold_relief_candidate(
                 "relief_part": relief_key,
             },
             "classification": "SOURCE_FOLD_BAND_TRUE_THICKNESS",
-            "manufacturing_dimensions_source": "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
             "boolean_margin": float(boolean_margin),
             "sheet_thickness": max(0.0, float(sheet_thickness)),
         },
@@ -959,13 +1075,12 @@ def verify_divider_front_fold_relief(
     physical_footprints_by_source=None,
     tolerance: float = 1e-6,
 ):
-    """Verify zero positive-area overlap with pre-solve true-solid footprints.
+    """Verify solved Divider by post-refold positive-area true-thickness overlap.
 
-    Boundary crossing lines are legal after a precise cut.  Therefore refold
-    verification must not equate triangle/skin intersection lines with positive
-    material penetration.  The pre-solve physical footprints are derived from
-    real source Fold bands and both source skins; post-solve retained material
-    must have zero positive area inside those footprints.
+    Both source skins may still intersect the CUTTING boundary after a precise
+    relief. Boundary lines are legal. A band is illegal only when its CURRENT
+    post-refold both-skin footprint still overlaps retained Divider material with
+    positive area. Pre-solve UV footprints remain diagnostic-only evidence.
     """
     ownership = joint_relief_ownership(joint)
     relief_key = str(ownership.relief_part)
@@ -974,7 +1089,7 @@ def verify_divider_front_fold_relief(
         raise ValueError(f"Divider verification material unavailable: {relief_key}")
 
     bands_by_key = dict(source_fold_bands_by_key or {})
-    footprints = dict(physical_footprints_by_source or {})
+    pre_footprints = dict(physical_footprints_by_source or {})
     missing = [
         str(key) for key in tuple(source_geometry_keys or ())
         if not tuple(bands_by_key.get(str(key), ()) or ())
@@ -985,10 +1100,19 @@ def verify_divider_front_fold_relief(
             + ", ".join(missing)
         )
 
-    illegal_area = 0.0
-    contact_segments = 0
     pair_count = 0
+    contact_segments = 0
+    illegal_band_count = 0
+    illegal_segment_count = 0
+    illegal_area = 0.0
+    precut_validation_overlap = 0.0
     by_source = {}
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    verification_span = max(maxx - minx, maxy - miny, 1.0)
+    # Verification-only numerical area tolerance: one linear solver tolerance
+    # swept across the current material span. It never changes CUTTING geometry.
+    area_tol = max(float(tolerance) ** 2, float(tolerance) * verification_span)
+
     for source_key in tuple(source_geometry_keys or ()):
         source_key = str(source_key)
         projected = project_joint_interference_to_relief_owner(
@@ -1000,6 +1124,7 @@ def verify_divider_front_fold_relief(
             source_geometry_key=source_key,
         )
         pair_count += int(projected.projection.pair_count)
+
         classified = classify_source_fold_true_thickness_interference(
             source_geometry_key=source_key,
             relief_geometry_key=relief_key,
@@ -1008,33 +1133,68 @@ def verify_divider_front_fold_relief(
             tolerance=float(tolerance),
         )
 
-        physical = footprints.get(source_key)
-        overlap_area = 0.0
-        if physical is not None and not getattr(physical, "is_empty", True):
-            overlap = material.intersection(physical)
-            overlap_area = 0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
-        illegal_area += overlap_area
+        positive_bands = []
+        boundary_only_bands = []
+        source_illegal_area = 0.0
+        source_illegal_segments = 0
 
-        source_contact = int(classified["retained_contact_segment_count"])
+        for band_name in tuple(classified.get("penetrating_bands") or ()):
+            row = dict(classified["bands"][band_name])
+            footprint = row.get("physical_footprint_2d")
+            overlap_area = 0.0
+            if footprint is not None and not getattr(footprint, "is_empty", True):
+                overlap = material.intersection(footprint)
+                overlap_area = (
+                    0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+                )
+            if overlap_area > area_tol:
+                positive_bands.append(str(band_name))
+                source_illegal_area += overlap_area
+                source_illegal_segments += len(tuple(row.get("segments_2d") or ()))
+            else:
+                boundary_only_bands.append(str(band_name))
+
+        illegal_band_count += len(positive_bands)
+        illegal_segment_count += source_illegal_segments
+        illegal_area += source_illegal_area
+
+        source_contact = int(classified.get("retained_contact_segment_count") or 0)
+        source_contact += sum(
+            len(tuple(classified["bands"][name].get("segments_2d") or ()))
+            for name in boundary_only_bands
+        )
         contact_segments += source_contact
+
+        diagnostic_overlap = 0.0
+        old = pre_footprints.get(source_key)
+        if old is not None and not getattr(old, "is_empty", True):
+            overlap = material.intersection(old)
+            diagnostic_overlap = (
+                0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+            )
+        precut_validation_overlap += diagnostic_overlap
+
         by_source[source_key] = {
             "pair_count": int(projected.projection.pair_count),
-            "front_illegal_segments": 0 if overlap_area <= float(tolerance) ** 2 else 1,
-            "positive_overlap_area": float(overlap_area),
-            "boundary_crossing_bands": tuple(classified["penetrating_bands"]),
-            "retained_contact_segments": source_contact,
+            "front_illegal_segments": int(source_illegal_segments),
+            "true_thickness_penetrating_bands": tuple(positive_bands),
+            "boundary_only_bands": tuple(boundary_only_bands),
+            "positive_overlap_area": float(source_illegal_area),
+            "retained_contact_segments": int(source_contact),
+            "precut_uv_overlap_area_validation_only": float(diagnostic_overlap),
         }
 
-    area_tolerance = max(float(tolerance) ** 2, 1.0e-12)
-    verified = illegal_area <= area_tolerance
+    verified = illegal_area <= area_tol and illegal_band_count == 0
     return {
-        "pair_count": pair_count,
-        "front_illegal_segments": 0 if verified else 1,
-        "true_thickness_penetration_segments": 0 if verified else 1,
+        "pair_count": int(pair_count),
+        "front_illegal_segments": int(illegal_segment_count),
+        "true_thickness_penetration_segments": int(illegal_segment_count),
+        "true_thickness_penetrating_band_count": int(illegal_band_count),
         "positive_overlap_area": float(illegal_area),
-        "retained_contact_segments": contact_segments,
+        "precut_uv_overlap_area_validation_only": float(precut_validation_overlap),
+        "retained_contact_segments": int(contact_segments),
         "verified": bool(verified),
-        "classification": "POSITIVE_AREA_TRUE_SOLID_FOOTPRINT",
+        "classification": "POST_REFOLD_POSITIVE_AREA_TRUE_THICKNESS",
         "core_start_evidence_only": float(core_start),
         "by_source": by_source,
     }

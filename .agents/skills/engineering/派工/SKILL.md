@@ -172,3 +172,11 @@ Resume 時：
 - breakdown 已指定 **Combined Acceptance owner**。
 - 若任一 ownership 缺失，退回 PM／拆票流程補齊，不得用 branch、checkpoint、HTML 報告或 `.scratch/**` 代替。
 - closing owner 進 QA 時，AI Library writeback、Combined terminal QA、workflow cleanup、drift audit 與 integration evidence 缺一不可 ACCEPT。
+
+
+### 3.5.4 Remote QA Active Lock（不可被其他工作插隊）
+- `monitoring-remote-qa` 一旦鎖定 non-terminal `run_id + head_sha`，整個派工狀態機進入 `REMOTE_QA_ACTIVE_LOCK`。
+- Lock 期間不得返回 Implementer 做新修改、不得探索其他模組、不得啟動下一張票，也不得以「順便先查」為理由插入非 polling 工具工作。
+- 允許的動作只有 poll run/jobs/steps、terminal failure log classification、30 秒使用者進度回報。
+- terminal 後才解除 lock；若 replacement run 建立，立即重新上鎖。
+- QA Reviewer 在宣告任何 remote run 已啟動後，若後續下一個工具動作不是 polling／failed-log handling，視為流程違規，當次 QA evidence 不得 ACCEPT。

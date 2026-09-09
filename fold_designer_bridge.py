@@ -5806,6 +5806,185 @@ def _phase6_box_body_piece_solver_key(body_part, region, *, require_flat_uv):
     return "box_body"
 
 
+
+def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
+    """Expand BoxBody FW physical face about its material segment center.
+
+    Flat/material fold geometry and bend datums remain unchanged. A side-piece
+    FW segment may carry an authoritative \`formed_length\`; only its already
+    placed world mid-face triangles are expanded along cabinet W/X about the
+    original segment center before sheet-thickness skins are built.
+    """
+    role = str(getattr(piece, "role", "") or "").strip().lower()
+    fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
+    if fw_key is None:
+        return tuple(world_mid_piece or ())
+
+    cursor = 0.0
+    band = None
+    target = None
+    for row in tuple(getattr(piece, "fold_profile", ()) or ()):
+        length = float(getattr(row, "length", 0.0) or 0.0)
+        end = cursor + length
+        if str(getattr(row, "phase6_key", "") or "") == fw_key:
+            raw = getattr(row, "formed_length", None)
+            if raw is not None:
+                target = float(raw)
+                band = (float(cursor), float(end))
+            break
+        cursor = end
+    if band is None or target is None or target <= float(tolerance):
+        return tuple(world_mid_piece or ())
+
+    selected = []
+    for index, item in enumerate(tuple(mapped or ())):
+        flat = tuple(getattr(item, "flat", ()) or ())
+        if len(flat) != 3:
+            continue
+        centroid_u = sum(float(point[0]) for point in flat) / 3.0
+        if band[0] + float(tolerance) < centroid_u < band[1] - float(tolerance):
+            selected.append(index)
+    if not selected:
+        return tuple(world_mid_piece or ())
+
+    rows = [tuple(tuple(float(v) for v in point) for point in tri) for tri in tuple(world_mid_piece or ())]
+    xs = [float(point[0]) for index in selected for point in rows[index]]
+    if not xs:
+        return tuple(rows)
+    lo, hi = min(xs), max(xs)
+    span = float(hi - lo)
+    if span <= float(tolerance):
+        return tuple(rows)
+    center = (float(lo) + float(hi)) / 2.0
+    scale = float(target) / span
+    for index in selected:
+        rows[index] = tuple(
+            (center + (float(point[0]) - center) * scale, float(point[1]), float(point[2]))
+            for point in rows[index]
+        )
+    return tuple(rows)
+
+
+
+def _phase6_shift_multistage_terminal_fold_world_mid(piece, mapped, world_mid_piece, *, tolerance=1e-7):
+    """Resolve the straight-face tangent offset of an outer multi-stage fold.
+
+    Flat UV and the sharp-bend material midline remain material-space authority.
+    For a side piece where the FW face has two or more non-core folds outside it,
+    the outermost terminal straight leg is offset away from its adjacent bend by
+    its topology-derived outside/material delta.  This models the real straight
+    physical face used by collision without stretching the material segment.
+
+    A single terminal fold outside FW (Receiving right side) is intentionally
+    unchanged; its physical collision is already owned by the primary FW/edge
+    relationship.
+    """
+    import math
+
+    role = str(getattr(piece, "role", "") or "").strip().lower()
+    fw_key = {"left_side": "fw_left", "right_side": "fw_right"}.get(role)
+    if fw_key is None:
+        return tuple(world_mid_piece or ())
+
+    segs = list(tuple(getattr(piece, "fold_profile", ()) or ()))
+    if not segs:
+        return tuple(world_mid_piece or ())
+
+    fw_indices = [
+        i for i, row in enumerate(segs)
+        if str(getattr(row, "phase6_key", "") or "") == fw_key
+    ]
+    core_indices = [
+        i for i, row in enumerate(segs)
+        if bool(getattr(row, "core", None))
+    ]
+    if len(fw_indices) != 1 or not core_indices:
+        return tuple(world_mid_piece or ())
+    fw_index = fw_indices[0]
+    core_index = min(core_indices, key=lambda i: abs(i - fw_index))
+
+    if core_index > fw_index:
+        outward = list(range(0, fw_index))
+        terminal_index = 0
+        away_sign = -1.0
+    else:
+        outward = list(range(fw_index + 1, len(segs)))
+        terminal_index = len(segs) - 1
+        away_sign = 1.0
+
+    # One fold outside FW has no secondary-stage tangent correction. The
+    # correction is for the outer terminal leg of a multi-stage front fold.
+    if len(outward) < 2 or terminal_index not in outward:
+        return tuple(world_mid_piece or ())
+
+    terminal = segs[terminal_index]
+    material_len = float(getattr(terminal, "length", 0.0) or 0.0)
+    raw_formed = getattr(terminal, "formed_length", None)
+    if raw_formed is None:
+        return tuple(world_mid_piece or ())
+    tangent_offset = float(raw_formed) - material_len
+    if tangent_offset <= float(tolerance):
+        return tuple(world_mid_piece or ())
+
+    start = sum(float(getattr(row, "length", 0.0) or 0.0) for row in segs[:terminal_index])
+    end = start + material_len
+
+    selected = []
+    for index, item in enumerate(tuple(mapped or ())):
+        flat = tuple(getattr(item, "flat", ()) or ())
+        if len(flat) != 3:
+            continue
+        centroid_u = sum(float(point[0]) for point in flat) / 3.0
+        if start - float(tolerance) <= centroid_u <= end + float(tolerance):
+            selected.append(index)
+    if not selected:
+        return tuple(world_mid_piece or ())
+
+    rows = [
+        tuple(tuple(float(v) for v in point) for point in tri)
+        for tri in tuple(world_mid_piece or ())
+    ]
+    tangents = []
+    mapped_all = tuple(mapped or ())
+    for index in selected:
+        flat = tuple(getattr(mapped_all[index], "flat", ()) or ())
+        world = rows[index]
+        for i in range(3):
+            for j in range(i + 1, 3):
+                du = float(flat[j][0]) - float(flat[i][0])
+                dv = float(flat[j][1]) - float(flat[i][1])
+                if abs(du) <= float(tolerance) or abs(dv) > abs(du) * 1.0e-4:
+                    continue
+                vec = tuple((float(world[j][k]) - float(world[i][k])) / du for k in range(3))
+                mag = math.sqrt(sum(value * value for value in vec))
+                if mag > float(tolerance):
+                    tangents.append(tuple(value / mag for value in vec))
+    if not tangents:
+        return tuple(rows)
+
+    reference = tangents[0]
+    aligned = []
+    for tangent in tangents:
+        dot = sum(tangent[k] * reference[k] for k in range(3))
+        aligned.append(tangent if dot >= 0.0 else tuple(-value for value in tangent))
+    tangent = tuple(
+        sum(row[k] for row in aligned) / len(aligned)
+        for k in range(3)
+    )
+    mag = math.sqrt(sum(value * value for value in tangent))
+    if mag <= float(tolerance):
+        return tuple(rows)
+    tangent = tuple(value / mag for value in tangent)
+    delta = tuple(float(away_sign) * float(tangent_offset) * value for value in tangent)
+
+    for index in selected:
+        rows[index] = tuple(
+            tuple(float(point[k]) + delta[k] for k in range(3))
+            for point in rows[index]
+        )
+    return tuple(rows)
+
+
 def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
     """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
 
@@ -5874,6 +6053,12 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
                 count = len(mapped)
                 world_mid_piece = body_world_mid[cursor:cursor + count]
                 cursor += count
+                world_mid_piece = _phase6_expand_box_body_fw_world_mid(
+                    piece, mapped, world_mid_piece
+                )
+                world_mid_piece = _phase6_shift_multistage_terminal_fold_world_mid(
+                    piece, mapped, world_mid_piece
+                )
                 skins = []
                 for item, world_mid in zip(mapped, world_mid_piece):
                     normal = _triangle_unit_normal(world_mid)

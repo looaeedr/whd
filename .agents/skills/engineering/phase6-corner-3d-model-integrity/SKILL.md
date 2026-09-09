@@ -162,3 +162,102 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - Xvfb resolved Head/Tail parity **1 PASS**；
   - current fixture physical evidence：primary skin depth 約 26，target `T/2=1` 後 solid depth 約 27；left secondary skin depth約47→solid約48；Divider middle約741.999，Head/Tail 742.0；
   - `0.001` 只屬 boolean fringe / test tolerance。
+
+
+## Receiving FW formed-solid hard gate（2026-09-09）
+
+- 使用者／family 已確認：Receiving `FW` 輸入是**成形包外尺寸**；例如 `FW=29, T=2` 時 canonical material flange 為 `25`，但 3D formed physical occupation 必須仍為 `29`。
+- **FW 都是同一個實體面。** BoxBody left/right FW、Divider FW placement 與 assembly collision 必須使用同一 physical formed-face authority。
+- 禁止把 Fold Profile 的 material `len=25` 直接當成 3D formed FW occupation。若 3D world geometry 量到的 formed FW occupation 與 physical contract `outside_dimension` 不一致，必須 **fail closed before Divider collision**。
+- Divider relief 不得在錯誤 FW solid 上繼續求解；任何後續 `27`、middle parity、post-refold GREEN 都無效。
+- 永久回歸必須至少驗：`fw_left`、`fw_right` 的 3D world formed occupation == family physical contract outside FW，且左右同面。
+
+
+## 2026-09-09 — Receiving Divider final CUTTING oracle（獨立驗證）
+
+- 對已核准的 Receiving reference fixture，產品／製造驗收值固定為：
+  - 左主截角：`61 × 27 mm`
+  - 左副階：`2 × 22 mm`
+  - 右主截角：`57 × 27 mm`
+- `22` 是左副階段長；`48` **不是**核准的製造截角尺寸。
+- 這些值只屬 validation oracle；production collision/relief 不得 import/read `tests/**`、不得引用這些 expected 常數、不得由 expected-actual 差值反推補償。
+- 驗收必須直接量 `nominal blank - final material` 的最終 CUTTING 輪廓。只驗 metadata（例如 `solid_depth`、`verified=true`、collision evidence）不夠；metadata 與最終 CUTTING 不一致時以 final material 為 QA 判定表面。
+
+
+## 2026-09-09 — Issue74 COORDINATE-DOMAIN CORRECTION（SUPERSEDES 舊 25→47→48 段）
+
+- **撤銷舊 authority**：任何舊段落若寫出「secondary V = `fw_left .. fw_left+zl1`」、`25→47`、或「`47 + T/2 = 48` 為製造深度」，全部視為 **SUPERSEDED / INVALID**。
+- `FW material=25` 屬 **flat/material coordinate domain**；它可以描述展開材料段，但**不得**直接作為 resolved final CUTTING 的 secondary-stage 起點。
+- final CUTTING 的 stage placement 必須在 **final-manufacturing coordinate domain** 內解析。若 secondary stage 接續 primary relief，起點 authority 是已解析的 primary CUTTING boundary / physical adjacency，不是 flat FW material datum。
+- 禁止把 target-UV 的絕對座標（例如某 footprint 的 `y1=47`）命名成「depth=47」；絕對座標、區段長度、從材料外緣量的深度是三種不同量，任何跨域換算都必須有明確 geometric transform。
+- `T/2` 只能做真實 skin→solid 幾何轉換；不得對「絕對座標」直接做 `+T/2` 後宣告為製造截角尺寸。
+- QA 必須同時檢查：
+  1. material-space 與 final-CUTTING-space 變數／證據有明確 domain；
+  2. production 不得用 material FW 作 final notch anchor；
+  3. final CUTTING 直接量測通過獨立產品 oracle；
+  4. 舊 `25/47/48` evidence 不得再作 current authority。
+
+
+## 2026-09-09 — INPUT-AUTHORITY FIRST（Receiving 3D 輸入區優先）
+
+- 只要使用者已在 3D 輸入區提供尺寸，**第一 authority 就是 canonical input state**，不得從 Fold material、collision bbox、target UV、final CUTTING 或驗證結果反推輸入語意。
+- Receiving BoxBody operator inputs 至少包含 `zl1 / zl2 / fw / zr2`；它們先進 `_phase6_input_snapshot`，再由 family/topology 轉成 material Fold。
+- 目前 reference fixture 的 operator/outside state 為 `24 / 24 / 29 / 18`；T=2 後 material Fold 可成為 `22 / 20 / 25 / 16`。**後者是衍生材料尺寸，不得倒過來覆寫或解讀前者。**
+- 幾何工作開始前必須先列出：
+  1. operator input values；
+  2. canonical snapshot values；
+  3. derived material Fold values；
+  4. formed/world geometry values。
+  若這四層沒有分清楚，禁止進 collision/relief 推理。
+- final CUTTING 必須由「input state → canonical geometry → formed solid → collision」正向求解；禁止「collision/material → 猜 input」。
+
+
+## 2026-09-09 — 口語尺寸預設為料尺寸（使用者明確規則）
+
+- 使用者口語提供任何尺寸時，**若沒有明確說「包外」**，一律解析為 **料尺寸 / material dimension**。
+- 只有使用者明確說出「包外」時，該尺寸才可解析為 formed/outside dimension。
+- 禁止因為某個 UI 欄位、family contract 或既有 production state 使用 outside semantics，就擅自把使用者口語數字改判成包外。
+- 正確資料流是：
+  `user spoken material value（default） → canonical requirement/spec → 對應 production input 的正式轉換規則`
+  ；若使用者明說「包外」，才走 outside→material 或 formed geometry 的既有轉換。
+- 這條規則優先於歷史猜測。任何舊記錄若把未標「包外」的口語尺寸解讀成 outside，視為解析錯誤，必須重新判讀。
+
+
+## 2026-09-09 — Issue74 FINAL CORRECTION — FW contact + collision backprojection（SUPERSEDES 48 / target-T/2 in-plane 段）
+
+- **輸入 authority**：使用者口語尺寸未明說「包外」時一律是料尺寸。UI/canonical state 若使用 outside semantics，必須走正式單向轉換；不得用 derived material Fold 或 collision 反推使用者語意。
+- **Receiving FW**：3D formed occupation 必須等於 canonical outside FW；目前 reference fixture 左右均為 `29`。FW physical skins 與 Divider FW skins 必須 face-flush。
+- **主截角 authority**：中隔 W 方向真正撞左右 BoxBody FW physical face。主截角深度直接來自 FW↔Divider 實際共面接觸範圍；橫向寬度來自相鄰 true-thickness source Fold collision。
+- **副階 authority**：額外 penetrating Fold band（例如左側 `zl1`）直接使用 source both-skin collision backprojection 的實體 footprint。禁止把 footprint 的絕對座標改成另一個 anchor，也禁止把 target `T/2` 當成 flat-UV in-plane 平移。
+- **撤銷 48**：舊 `47 + T/2 = 48` 是 coordinate-domain 錯誤。Divider 板厚方向是 sheet normal；不得把 target thickness 轉成中隔 W 向的 UV offset。任何舊段落把 `solid_depth=48` 當製造尺寸皆視為 SUPERSEDED。
+- **post-refold 判定**：both-skin crossing 若只落在 CUTTING boundary 是合法接觸。只有「CURRENT post-refold footprint 與 retained material 有 positive-area overlap」才算 illegal penetration；數值邊界 tolerance 只屬 verification。
+- **final CUTTING validation-only oracle（reference fixture）**：
+  - 左主：`61 × 27 mm`
+  - 左副：`2 × 22 mm`
+  - 右主：`57 × 27 mm`
+  這些 expected 只存在 QA/tests，不得被 production import/read/反推。
+- **GREEN 證據**：run `34364056682` → `7 PASS / 0 FAIL`；post-refold illegal penetration `0`、positive overlap `0.0`、final CUTTING extra area `0.0`。
+
+
+## 2026-09-09 — Issue74 SECONDARY BAND FINAL CORRECTION（LATEST USER AUTHORITY）
+
+- 使用者最新明確確認：Receiving reference Divider 左副階的 **料座標 = 27→49**。
+- 左主截角：`61×27`；左副階：`2×22`，位於 `Y=27..49`；右主截角：`57×27`。
+- 先前「25→47 沒錯」的口頭判定已被使用者撤回；任何把 `25→47` 當 final manufacturing oracle 的規則／測試都視為 **SUPERSEDED**。
+- 依口語尺寸規則，這裡未說「包外」，因此 `27 / 49` 都是 **料尺寸座標**。
+- production 仍必須由 authoritative input / fold topology / physical collision 正向求解；不得 import/read `27/49` expected 來補 geometry。驗證只負責判斷 final CUTTING 是否符合。
+
+
+## 2026-09-09 — 2D CUTTING vs 3D FORMED COLLISION（Receiving Divider 核心）
+
+- **截角輸出是 2D 料面／DXF CUTTING；碰撞對象是 3D 成形後包外實體。** 兩個座標域不得直接等同。
+- 正確資料流：`2D material Fold → 3D formed physical solid → collision on physical inside/outside faces → back-project to 2D material CUTTING`。
+- Receiving reference：
+  - 左側料 Fold：`22 / 20 / 25 / ...`
+  - FW 料尺寸：`25`
+  - FW 3D 包外：`29`
+  - Divider 位於箱身**裡面**，不會撞 FW 最外包外面；實際碰撞基準是 FW 內側實體面：`29 - T(2) = 27`
+  - `zl1` 料長 = `22`
+  - 因此 secondary material CUTTING band：`27 → 27+22 = 49`
+- 這個 `+T` 是 **3D formed physical face → 2D material backprojection** 的折彎幾何結果，不是 test compensation、不是 expected-actual 差值、也不是 `T/2` skin 補償。
+- validation 的 `27/49` 只能判斷 production 是否撞對；production 必須從 authoritative T、Fold topology、formed FW physical face 與 collision/backprojection 自己導出。
