@@ -61,6 +61,38 @@ jobs:
                       [min(p[i] for p in pts),max(p[i] for p in pts)] for i in range(3)
                   ],
               }
+          # Stage-by-stage FW geometry evidence: flat UV -> folded local -> structure world.
+          from ae_engine.assembly_geometry import folded_mesh_with_flat_uv_from_polygon, place_box_body_structure_points
+          stage={}
+          total_w=max(float(getattr(p,"formed_w_end",0.0)) for p in body.render_data.pieces)
+          for piece in body.render_data.pieces:
+              role=str(piece.role)
+              if role not in {"left_side","right_side"}:
+                  continue
+              data=piece.render_data
+              _minx,miny,_maxx,maxy=map(float,data.material.bounds)
+              y_profile=({"len":maxy-miny,"core":True},)
+              mapped=folded_mesh_with_flat_uv_from_polygon(
+                  data.material,piece.fold_profile,y_profile,
+                  fold_guides=tuple(getattr(data,"fold_guides",()) or ())
+              )
+              fw_name="fw_left" if role=="left_side" else "fw_right"
+              band=_profile_flat_band(piece.fold_profile,phase6_key=fw_name)
+              rows=[]
+              for item in mapped:
+                  cu=sum(float(p[0]) for p in item.flat)/3.0
+                  if not (band[0]+1e-5 < cu < band[1]-1e-5):
+                      continue
+                  placed=place_box_body_structure_points(
+                      item.local,piece,total_w=total_w,thickness=snap["t"],x_profile=piece.fold_profile
+                  )
+                  rows.append({
+                      "flat":item.flat,
+                      "local":item.local,
+                      "structure":placed,
+                  })
+              stage[role]=rows
+          print("RECEIVING_FW_STAGE_GEOMETRY="+json.dumps(stage,ensure_ascii=False))
           print("RECEIVING_FW_PLACEMENT_DIAGNOSTIC="+json.dumps(out,ensure_ascii=False))
           PY
       - name: FW formed occupation + Issue74 targeted
