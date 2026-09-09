@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import pytest
 from shapely.affinity import translate
-from shapely.geometry import Polygon, box as shapely_box
+from shapely.geometry import Polygon, Point, box as shapely_box
 from shapely.ops import unary_union
 import fold_designer_bridge as bridge
 from ae_engine.assembly_collision import (
@@ -149,8 +149,8 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
     assert right["zr2"]["through"] is True
 
 
-def test_issue74_cutting_is_derived_from_fw_inside_face_and_source_collision_span():
-    """CURRENT: manufacturing dimensions come from FW contact + collision backprojection."""
+def test_issue74_collision_is_shadow_only_for_certified_divider_cross():
+    """Certified CROSS parameters own manufacturing; collision remains shadow evidence."""
     snap = _snapshot()
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
@@ -177,47 +177,46 @@ def test_issue74_cutting_is_derived_from_fw_inside_face_and_source_collision_spa
     solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     evidence = dict(relief["evidence"])
-    by_source = dict(evidence["projection_by_source"])
+    formula = dict(evidence["formula_values"])
 
-    assert evidence["manufacturing_dimensions_source"] == (
-        "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION"
-    )
+    assert relief["trust_level"] == "CERTIFIED"
+    assert relief["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
+    assert relief["corner_type"] == "CROSS"
+    assert evidence["manufacturing_dimensions_source"] == "CERTIFIED_REGISTRY_CROSS_PARAMETERS"
+    assert evidence["slot_end_selector"] == "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
+    assert evidence["slot_end"] == "MIN_Y"
+    assert formula == pytest.approx({
+        "slotted_fold_u": 66.0,
+        "plain_fold_u": 60.0,
+        "fold_v": 27.0,
+        "slot_width": 7.0,
+        "slot_straight_depth": 24.0,
+        "slot_radius": 3.5,
+    })
 
-    # Independent FW contact on the Divider supplies primary depth.
-    left_fw = pre["box_body:left_side"]["fw_left"]["divider_uv_bounds"]
-    right_fw = pre["box_body:right_side"]["fw_right"]["divider_uv_bounds"]
-    assert left_fw is not None and right_fw is not None
-    miny, maxy = map(float, divider_part.render_data.material.bounds[1::2])
-    left_contact_depth = float(left_fw[3]) - miny
-    right_contact_depth = maxy - float(right_fw[2])
+    orientation = dict(evidence["mating_fold_orientation"])
+    assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
+    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
+    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
 
+    # Collision remains available as validation evidence but is not the
+    # manufacturing dimension source.  The old backprojected widths differ
+    # from the certified 66/60 mm CROSS widths by design.
+    shadow = dict(evidence["collision_shadow"])
+    by_source = dict(shadow["projection_by_source"])
     left_stages = dict(by_source["box_body:left_side"]["physical_stages"])
     right_stages = dict(by_source["box_body:right_side"]["physical_stages"])
-    assert float(left_stages["zl2"]["primary_cutting_depth"]) == pytest.approx(
-        left_contact_depth, abs=1.0e-5
-    )
-    assert float(right_stages["zr2"]["primary_cutting_depth"]) == pytest.approx(
-        right_contact_depth, abs=1.0e-5
-    )
+    assert float(left_stages["zl2"]["stage_u_span"]) == pytest.approx(61.0, abs=1e-5)
+    assert float(right_stages["zr2"]["stage_u_span"]) == pytest.approx(57.0, abs=1e-5)
+    assert float(left_stages["zl2"]["stage_u_span"]) != pytest.approx(formula["slotted_fold_u"])
+    assert float(right_stages["zr2"]["stage_u_span"]) != pytest.approx(formula["plain_fold_u"])
 
-    # Secondary stage size comes from the source-solid collision span. Its 2D
-    # material anchor is the same physical FW inside-face boundary as the
-    # primary stage; no test value and no target-T/2 translation participates.
-    zl1 = pre["box_body:left_side"]["zl1"]["physical_footprint"]
-    assert zl1 is not None
-    x0, y0, x1, y1 = map(float, zl1.bounds)
-    stage = left_stages["zl1"]
-    assert float(stage["stage_u_span"]) == pytest.approx(x1 - x0, abs=1.0e-5)
-    assert float(stage["stage_v_span"]) == pytest.approx(y1 - y0, abs=1.0e-5)
-    assert tuple(map(float, stage["cut_bounds"])) == pytest.approx(
-        (x0, y0, x1, y1), abs=1.0e-5
-    )
-    assert float(stage["primary_inside_face_boundary"]) == pytest.approx(
-        left_contact_depth, abs=1.0e-5
-    )
-    assert stage["dimension_source"] == "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN"
-    assert "target_half_thickness" not in stage
-    assert "solid_depth" not in stage
+    # Independent pre-solve collision witness still proves the same physical
+    # source folds are the ones that would penetrate without the certified cut.
+    assert pre["box_body:left_side"]["zl1"]["through"] is True
+    assert pre["box_body:left_side"]["zl2"]["through"] is True
+    assert pre["box_body:right_side"]["zr2"]["through"] is True
+
 
 def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
     """Receiving 3D FW must occupy formed outside width, not raw material length."""
@@ -342,14 +341,14 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     )
 
 
-def test_receiving_reference_fixture_final_cutting_matches_independent_notch_oracle():
-    """Validation-only final OUTER CUTTING oracle for the approved fixture."""
-    LEFT_PRIMARY_W = 61.0
-    LEFT_PRIMARY_D = 27.0
-    LEFT_STEP_W = 2.0
-    LEFT_STEP_D = 22.0
-    RIGHT_PRIMARY_W = 57.0
-    RIGHT_PRIMARY_D = 27.0
+def test_receiving_reference_fixture_final_cutting_matches_certified_dxf_oracle():
+    """Validation-only OUTER CUTTING oracle for certified 中隔.dxf end shapes."""
+    SLOTTED_W = 66.0
+    PLAIN_W = 60.0
+    PRIMARY_D = 27.0
+    SLOT_W = 7.0
+    SLOT_STRAIGHT = 24.0
+    SLOT_R = 3.5
 
     snap = _snapshot()
     body = _body_part(snap)
@@ -364,52 +363,53 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
     )
     assert diagnostics and diagnostics[0].illegal_penetration is False
     solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+    relief = dict(solved.render_data.metadata["divider_assembly_relief"])
+    assert relief["evidence"]["slot_end"] == "MIN_Y"
 
-    # Compare only the structural outer CUTTING. Hole/datum changes are a
-    # separate feature oracle and must not pollute notch-area comparison.
+    # Independent validation geometry: the DXF certifies two end shapes.
+    # Runtime orientation is judged separately from the object Fold sign.
     nominal_shell = Polygon(divider_part.render_data.material.exterior)
     retained_shell = Polygon(solved.render_data.material.exterior)
     removed = nominal_shell.difference(retained_shell)
     minx, miny, maxx, maxy = map(float, nominal_shell.bounds)
 
-    left_primary = shapely_box(
+    slotted_primary = shapely_box(
         minx, miny,
-        minx + LEFT_PRIMARY_W, miny + LEFT_PRIMARY_D,
+        minx + SLOTTED_W, miny + PRIMARY_D,
     )
-    # Independent product topology, confirmed by the user: the secondary
-    # material notch is 2x22 at Y=27..49. These coordinates are validation-only
-    # and are never read by production.
-    LEFT_STEP_START = 27.0
-    left_secondary = shapely_box(
-        minx + LEFT_PRIMARY_W - 1.0,
-        miny + LEFT_STEP_START,
-        minx + LEFT_PRIMARY_W - 1.0 + LEFT_STEP_W,
-        miny + LEFT_STEP_START + LEFT_STEP_D,
+    slot_x0 = minx + SLOTTED_W - SLOT_W
+    slot_x1 = minx + SLOTTED_W
+    tangent_y = miny + PRIMARY_D + SLOT_STRAIGHT
+    slot_rect = shapely_box(
+        slot_x0, miny + PRIMARY_D,
+        slot_x1, tangent_y,
     )
-
-    right_primary = shapely_box(
-        minx, maxy - RIGHT_PRIMARY_D,
-        minx + RIGHT_PRIMARY_W, maxy,
+    slot_cap = Point(
+        (slot_x0 + slot_x1) / 2.0, tangent_y
+    ).buffer(SLOT_R).intersection(
+        shapely_box(slot_x0, tangent_y, slot_x1, tangent_y + SLOT_R + 1e-9)
     )
-    expected = unary_union((left_primary, left_secondary, right_primary))
+    plain_primary = shapely_box(
+        minx, maxy - PRIMARY_D,
+        minx + PLAIN_W, maxy,
+    )
+    expected = unary_union((slotted_primary, slot_rect, slot_cap, plain_primary))
 
     missing = expected.difference(removed)
     extra = removed.difference(expected)
-    print("RECEIVING_FINAL_CUTTING_ORACLE=", {
+    print("RECEIVING_CERTIFIED_DXF_CUTTING_ORACLE=", {
         "removed_area": float(removed.area),
         "expected_area": float(expected.area),
         "missing_area": float(missing.area),
         "extra_area": float(extra.area),
-        "approved": {
-            "left_primary": (LEFT_PRIMARY_W, LEFT_PRIMARY_D),
-            "left_step": (LEFT_STEP_W, LEFT_STEP_D),
-            "right_primary": (RIGHT_PRIMARY_W, RIGHT_PRIMARY_D),
-        },
-        "left_step_expected_bounds": tuple(map(float, left_secondary.bounds)),
+        "slotted_end": "MIN_Y",
+        "slotted": (SLOTTED_W, PRIMARY_D, SLOT_W, SLOT_STRAIGHT, SLOT_R),
+        "plain": (PLAIN_W, PRIMARY_D),
     })
 
     assert float(missing.area) <= 1.0e-4
     assert float(extra.area) <= 1.0e-4
+
 
 def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_derived():
     """Operator/outside inputs are authority; material Fold is one-way derived."""
