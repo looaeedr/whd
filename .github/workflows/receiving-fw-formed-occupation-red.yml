@@ -1,4 +1,4 @@
-# retrigger exact candidate replay diagnostic after latest production changes
+# retrigger material-midline full-solid collision diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -193,6 +193,116 @@ jobs:
               "solved_material_area":float(solved.render_data.material.area),
               "has_relief_metadata":"divider_assembly_relief" in dict(solved.render_data.metadata or {}),
           }, ensure_ascii=False, default=str))
+          PY
+      - name: Material-midline full-solid cross-section diagnostic
+        run: |
+          python - <<'PY'
+          import json, math
+          from dataclasses import replace
+          from shapely.geometry import LineString, Polygon
+          from shapely.ops import unary_union
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+
+          # Rebuild source BoxBody with MATERIAL midline only. The solid envelope
+          # comes from T/2 buffering; no formed_length stretches the midline.
+          material_pieces=[]
+          for piece in body.render_data.pieces:
+              profile=tuple(
+                  replace(row, formed_length=None)
+                  if hasattr(row, "formed_length") else row
+                  for row in piece.fold_profile
+              )
+              material_pieces.append(replace(piece, fold_profile=profile))
+          material_body=replace(
+              body,
+              render_data=replace(body.render_data, pieces=tuple(material_pieces)),
+          )
+          world=bridge._phase6_build_joint_world_geometry(
+              (material_body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+
+          def mids_from_skins(rows):
+              rows=list(rows)
+              mids=[]
+              for i in range(0,len(rows),2):
+                  if i+1>=len(rows): break
+                  a,b=rows[i],rows[i+1]
+                  if int(a.side)==int(b.side): continue
+                  mids.append(tuple(
+                      tuple((float(a.world[j][k])+float(b.world[j][k]))/2.0 for k in range(3))
+                      for j in range(3)
+                  ))
+              return mids
+
+          def solid_cross_section(source_key):
+              mids=mids_from_skins(world["mapped_skin_triangles_by_part"][source_key])
+              lines=[]
+              for tri in mids:
+                  xz=[(float(p[0]),float(p[2])) for p in tri]
+                  for i in range(3):
+                      a=xz[i]; b=xz[(i+1)%3]
+                      if math.hypot(a[0]-b[0],a[1]-b[1])>1e-8:
+                          lines.append(LineString((a,b)))
+              centerline=unary_union(lines)
+              return centerline.buffer(float(snap["t"])/2.0, cap_style=2, join_style=2)
+
+          def poly_parts(g):
+              if g.is_empty:return []
+              if g.geom_type=="Polygon":return [g]
+              return [x for x in getattr(g,"geoms",()) if x.geom_type=="Polygon" and x.area>1e-12]
+
+          def bary2(p,a,b,c):
+              x,y=p; x0,y0=a; x1,y1=b; x2,y2=c
+              den=(y1-y2)*(x0-x2)+(x2-x1)*(y0-y2)
+              if abs(den)<1e-12:return None
+              w0=((y1-y2)*(x-x2)+(x2-x1)*(y-y2))/den
+              w1=((y2-y0)*(x-x2)+(x0-x2)*(y-y2))/den
+              w2=1.0-w0-w1
+              return (w0,w1,w2)
+
+          target=[r for r in world["mapped_skin_triangles_by_part"][divider.stable_id] if int(r.side)==1]
+          out={}
+          for source_key in ("box_body:left_side","box_body:right_side"):
+              solid=solid_cross_section(source_key)
+              uv_polys=[]
+              for t in target:
+                  xz=[(float(p[0]),float(p[2])) for p in t.world]
+                  tri_poly=Polygon(xz)
+                  if tri_poly.is_empty or tri_poly.area<=1e-12: continue
+                  inter=tri_poly.intersection(solid)
+                  for part in poly_parts(inter):
+                      coords=list(part.exterior.coords)[:-1]
+                      uv=[]
+                      for q in coords:
+                          w=bary2(q,xz[0],xz[1],xz[2])
+                          if w is None: continue
+                          uv.append((
+                              sum(w[i]*float(t.flat[i][0]) for i in range(3)),
+                              sum(w[i]*float(t.flat[i][1]) for i in range(3)),
+                          ))
+                      if len(uv)>=3:
+                          p=Polygon(uv)
+                          if p.is_valid and p.area>1e-10:
+                              uv_polys.append(p)
+              merged=unary_union(uv_polys) if uv_polys else None
+              comps=[]
+              if merged is not None:
+                  for p in poly_parts(merged):
+                      b=tuple(map(float,p.bounds))
+                      if b[1] < 100.0 or b[3] > 696.0:
+                          comps.append({"bounds":b,"area":float(p.area)})
+              out[source_key]={
+                  "solid_xz_bounds":tuple(map(float,solid.bounds)),
+                  "uv_components":comps,
+              }
+          print("MATERIAL_MIDLINE_FULL_SOLID_UV="+json.dumps(out,ensure_ascii=False))
           PY
       - name: FW formed occupation + Issue74 targeted
         run: |
