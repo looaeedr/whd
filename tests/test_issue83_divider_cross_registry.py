@@ -180,6 +180,7 @@ def test_registry_parameters_match_actual_divider_dxf_after_existing_rigid_mappi
     result = lookup_certified_divider_cross_relief(
         cabinet_family="受電箱",
         variables=_receiving_reference_variables(),
+        mating_fold_sign_by_end={"MIN_Y": -1.0, "MAX_Y": 0.0},
     )
     assert result is not None
     values = dict(result.geometry_evidence["formula_values"])
@@ -248,6 +249,9 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
     assert evidence["slot_end"] == "MIN_Y"
     assert diagnostics and diagnostics[0].illegal_penetration is False
+    assert diagnostics[0].registry_status == "HIT"
+    assert diagnostics[0].trust_level == "CERTIFIED"
+    assert diagnostics[0].candidate_status == "CERTIFIED_REGISTRY_VERIFIED"
 
 
 
