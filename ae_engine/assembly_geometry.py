@@ -353,12 +353,22 @@ def _profile_geometry(profile, *, enabled_folds=None):
     current_angle = 0.0
     cumulative = [0.0]
     for index, seg in enumerate(segs):
-        length = max(0.0, _as_float(_segment_value(seg, "len", 0.0)))
+        material_length = max(0.0, _as_float(
+            _segment_value(seg, "length", _segment_value(seg, "len", 0.0))
+        ))
+        raw_formed_length = _segment_value(seg, "formed_length", None)
+        formed_length = (
+            material_length
+            if raw_formed_length is None
+            else max(0.0, _as_float(raw_formed_length))
+        )
         angles.append(current_angle)
         rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        cumulative.append(cumulative[-1] + length)
+        # Flat boundaries remain material-space authority. Folded endpoints use
+        # the independently carried formed/outside occupation when available.
+        raw_u.append(raw_u[-1] + formed_length * math.cos(rad))
+        raw_z.append(raw_z[-1] + formed_length * math.sin(rad))
+        cumulative.append(cumulative[-1] + material_length)
         angle = _segment_value(seg, "angle", None)
         if index < len(segs) - 1 and angle is not None:
             if index >= len(enabled_folds) or enabled_folds[index]:
