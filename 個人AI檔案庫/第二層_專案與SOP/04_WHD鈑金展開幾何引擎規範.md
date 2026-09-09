@@ -764,3 +764,12 @@ PASS / FAIL
 - 若無法從使用者確認、canonical input、Registry、基準 DXF 或正式規格判斷某參數的機械語意，必須先問使用者。
 - 禁止從現行程式、test expected、collision bbox、歷史 run、畫面或方便的 enum 猜產品規格。
 - 使用者已指定 CROSS 時，schema 不足只代表要確認並擴充 CROSS 參數能力，不代表可以另造 CornerType。
+### Receiving Divider CROSS 端向規則（Fold-sign authority）
+
+Receiving HORIZONTAL Divider 的截角端型分成「有槽 CROSS」與「plain CROSS」，**端型不得先綁 MIN/MAX**。Production 必須從對象 BoxBody 的 authoritative Fold Profile 判定：
+
+- object mating Fold sign < 0 → 有槽 CROSS；
+- 另一端 → plain CROSS；
+- selector 必須唯一，否則 fail closed。
+
+`中隔.dxf` 用來認證端型形狀與參數；其固定孔 rigid mapping 不擁有外框截角端向。Collision/backprojection 僅為 shadow verification，不可成為端向或尺寸來源。
