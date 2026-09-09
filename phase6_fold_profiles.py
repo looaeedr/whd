@@ -381,14 +381,27 @@ def clone_profile(profile: Sequence[Mapping[str, object]]) -> list[dict]:
 
 
 def profile_to_fold_segments(profile: Sequence[Mapping[str, object]]):
-    """Convert editor dictionaries into the GUI-independent manufacturing contract."""
+    """Convert editor dictionaries into the GUI-independent manufacturing contract.
+
+    ``length`` remains the flat/material span. When the editor profile carries
+    topology-derived outside-dimension compensation, preserve that semantic as an
+    independent ``formed_length`` instead of dropping it at the GUI→manufacturing
+    seam.
+    """
     rows = []
     for seg in profile or ():
+        material_length = float(seg.get("len", 0.0))
+        ui_add = seg.get("ui_len_add")
+        formed_length = (
+            None if ui_add is None
+            else material_length + abs(float(ui_add))
+        )
         rows.append(FoldProfileSegment(
-            length=float(seg.get("len", 0.0)),
+            length=material_length,
             angle=(float(seg["angle"]) if "angle" in seg else None),
             core=(str(seg.get("core")) if seg.get("core") else None),
             phase6_key=(str(seg.get("phase6_key")) if seg.get("phase6_key") else None),
+            formed_length=formed_length,
         ))
     return tuple(rows)
 
