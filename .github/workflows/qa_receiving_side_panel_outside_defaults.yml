@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt pytest
+        run: python -m pip install -r requirements.txt pytest matplotlib
       - name: Knowledge preflight
         run: |
           cat > /tmp/preflight-evidence.md <<'EOF'
