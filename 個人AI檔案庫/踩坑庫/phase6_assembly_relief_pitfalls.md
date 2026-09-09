@@ -326,3 +326,11 @@
 - Receiving reference：FW material=25、formed outside=29、T=2；Divider 在箱內所以 physical collision datum=29−2=27；zl1 material length=22；final 2D secondary band=27..49。
 - **禁止**：拿 test 的 27/49 回灌 production；禁止把 +T 說成 target T/2；禁止直接把 raw 25..47 UV endpoint 當 final manufacturing coordinate。
 - **數值 seam**：同一 physical 27 datum 若由兩條浮點路徑得到 26.999999997 與 26.999999999，必須共用同一 canonical physical-face boundary，否則 CUTTING union 會被誤拆成 exterior notch + interior hole。
+
+## 2026-09-09 — Divider 不得因 schema 不夠就另造截角類型
+
+- Receiving Divider 已由使用者確認使用 **CROSS／十字截角＋參數**。
+- 若現有 CROSS schema 暫時只能表達 STANDARD/RETAIN/EXTRA_CUT，不能因此自行判斷「Divider 要一個新 relief type」或偷換成 INSERT_OVERLAY。
+- 正確順序：先確認機械語意 → 保留 CROSS identity → 擴充必要參數 → Registry 參數化 → 用 `中隔.dxf` 反讀驗證 → true-thickness 3D shadow 驗證。
+- `中隔.dxf` 在此任務是截角認證基準；舊「只拿孔、不拿外框」指引對此截角 requirement 已 **SUPERSEDED**。
+- 對任何不確定的二級槽、R、方向、固定/變動來源，**先問使用者，禁止猜。**
