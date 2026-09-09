@@ -377,19 +377,67 @@ def set_side_back_piece_profile(
     cfg["piece_profiles"] = profiles
     return result
 
+def side_rear_bend_dimension_space(state: Mapping[str, object] | None) -> str:
+    """Return the stored side-rear-bend dimension space.
+
+    Legacy projects predate the marker and stored the material flange directly.
+    New family policies may explicitly own an operator OUTSIDE value.
+    """
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    space = str(cfg.get("side_rear_bend_dimension_space") or "MATERIAL").strip().upper()
+    if space not in {"MATERIAL", "OUTSIDE"}:
+        raise ValueError(f"unsupported side rear bend dimension space: {space}")
+    return space
+
+
+def side_rear_bend_material_length(
+    state: Mapping[str, object] | None, thickness: float
+) -> float:
+    """Resolve the physical/material rear flange exactly once."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    value = float(cfg.get("side_rear_bend", 15.0))
+    if side_rear_bend_dimension_space(normalized) == "OUTSIDE":
+        value -= float(thickness)
+    if value <= 0:
+        raise ValueError("側板後折換算後料尺寸必須大於 0")
+    return value
+
+
+def side_rear_bend_outside_length(
+    state: Mapping[str, object] | None, thickness: float
+) -> float:
+    """Resolve the operator-facing outside rear flange without changing geometry."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    value = float(cfg.get("side_rear_bend", 15.0))
+    if side_rear_bend_dimension_space(normalized) == "MATERIAL":
+        value += float(thickness)
+    if value <= 0:
+        raise ValueError("側板後折包外尺寸必須大於 0")
+    return value
+
+
 def set_side_back_geometry(
     state: Mapping[str, object] | None,
     *,
     side_rear_bend=None,
+    side_rear_bend_dimension_space=None,
     back_width_comp_t=None,
 ) -> dict:
-    """更新側背分離專屬參數。"""
+    """更新側背分離專屬參數；dimension space 必須顯式保存。"""
     values = {}
     if side_rear_bend is not None:
         bend = float(side_rear_bend)
         if bend <= 0:
             raise ValueError("側板後折必須大於 0")
         values["side_rear_bend"] = bend
+    if side_rear_bend_dimension_space is not None:
+        space = str(side_rear_bend_dimension_space).strip().upper()
+        if space not in {"MATERIAL", "OUTSIDE"}:
+            raise ValueError("側板後折 dimension space 只接受 MATERIAL / OUTSIDE")
+        values["side_rear_bend_dimension_space"] = space
     if back_width_comp_t is not None:
         comp = float(back_width_comp_t)
         if comp < 0:
