@@ -175,3 +175,37 @@ tests/test_dm4_divider_resolved_sinks.py
 ## UI 邊界
 
 本 Skill 是 AI / 工程 QA 入口，不代表 GUI 已新增「驗證板件」按鈕。若要 GUI 一鍵驗證，另開 UI 功能工單。
+
+
+## 自動交接硬閘門：Focused QA 不得取代成品板件驗收
+
+本 Skill 不只在使用者明確說「驗板件」時執行。只要本輪修改會影響下列任一條 production seam，**在合併／關單／release 前必須自動交接到本 Skill**：
+
+- physical-part identity / dynamic part / multipart topology；
+- 2D 預覽、3D FinalScene、2D↔3D navigation / sync；
+- manufacturing Final Material / holes / BEND / placement；
+- DXF export / physical-piece file set；
+- Save→Reload / project persistence；
+- GUI 或 Bridge 只是 View/adapter，但修改結果會改變操作員看到或選到的實體板件。
+
+### 不可替代規則
+
+- issue-specific / focused regression 只證明該 bug seam；**不能因為 focused QA GREEN 就宣告成品驗收完成**。
+- Headless/Tk/assembly/navigation contract GREEN 也不能自動替代 DXF reopen、physical-piece enumeration、Save→Reload 或 requested-part parity。
+- 若只改單一板件且影響範圍明確，至少跑「驗該板件」；若同時跨 2D/3D/DXF/persistence、dynamic IDs 或 multipart，必須升級為「完整板件驗收」。
+- 若 remote QA 已建立，仍遵守 monitoring-remote-qa：鎖定 run_id + head_sha 輪詢到 terminal，cleanup 後 drift audit 無 production/test drift 才能接受。
+- 驗收數字仍只作判定，不得回灌 production。
+
+### 合併前最小證據
+
+至少留下：
+
+1. focused/issue-specific QA 結果；
+2. 本 Skill 的 requested physical parts 與 resolved physical IDs；
+3. 2D/3D parity；
+4. DXF reopen（若該任務碰 physical geometry / export / multipart）；
+5. Save→Reload（若該任務碰 persistence / active physical child / dynamic topology）；
+6. config.ini before/after SHA；
+7. tested head → cleaned head drift audit。
+
+缺少本 Skill 的成品驗收證據時，狀態只能是 **focused GREEN / final acceptance pending**，不得標記 ACCEPTED。

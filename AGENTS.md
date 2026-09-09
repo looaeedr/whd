@@ -43,6 +43,35 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
 6. **同步遠端 QA 必須啟動 `monitoring-remote-qa`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
 
+### 0.0.3 成品板件驗收硬閘門：Focused GREEN 不能直接合併
+
+> 本節屬所有 AI / Agent 的第一閱讀規則。只要改動會影響實體板件使用路徑，issue-specific QA 通過後仍必須交接到 `驗證板件與DXF`。
+
+下列任一情況，正式合併／關單／release 前都必須執行：
+
+```text
+.agents/skills/engineering/驗證板件與DXF/SKILL.md
+```
+
+觸發範圍至少包含：
+
+- physical-part identity / dynamic part / multipart topology；
+- 2D / 3D 顯示、navigation、sync、FinalScene；
+- manufacturing Final Material / BEND / holes / placement；
+- DXF export / physical-piece file set；
+- Save→Reload / project persistence；
+- GUI / Bridge 修改雖屬 adapter，但會改變操作員看到、切換或回讀的實體板件。
+
+硬規則：
+
+1. **Focused / issue-specific regression GREEN 只代表該 seam GREEN，不等於 Final Acceptance。**
+2. 單一板件修改至少跑「驗該板件」；跨 2D/3D/DXF/persistence、multipart/dynamic IDs 時必須跑「完整板件驗收」。
+3. multipart 必須逐 physical piece 驗；不得只驗 aggregate logical `box_body`。
+4. DXF 相關必須 actual export → reopen → compare；Save/Reload 相關必須真的存檔再重建 canonical output。
+5. Remote QA 建立後必須依 `monitoring-remote-qa` 輪詢到 terminal；cleanup 後做 tested-head → cleaned-head drift audit。
+6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
+7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
+
 ### 0.1 知識載入優先級
 
 ```text

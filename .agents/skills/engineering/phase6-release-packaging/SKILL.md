@@ -106,6 +106,22 @@ python tools/phase6_release_test_runner.py --mode xvfb --journal logs/release_xv
 
 重複執行到 exit 0；若 exit 75，直接續跑同一命令；不得從頭重跑或靠對話文字記錄 completed index。
 
+
+## 成品驗收交接硬閘門：Issue QA 不是 Final Acceptance
+
+只要本輪修改會影響實體板件 identity/topology、2D/3D 顯示或同步、multipart/dynamic part、DXF、Final Material、placement 或 Save→Reload，正式合併／關單／release 前必須再執行 `.agents/skills/engineering/驗證板件與DXF/SKILL.md`。
+
+- focused / issue-specific regression 只能證明該工單 seam；即使全部 GREEN，也不能取代板件成品驗收。
+- 修改單一板件且邊界明確：至少跑「驗該板件」。
+- 修改跨 2D/3D/DXF/persistence、multipart/dynamic IDs：必須跑「完整板件驗收」。
+- multipart 必須逐 physical piece 驗，不得只驗 aggregate logical part。
+- DXF 相關必須 actual export → reopen → compare；不能只驗 exporter 前 Python object。
+- persistence / active child / dynamic topology 相關必須 Save→Reload parity。
+- 若未完成此交接，狀態只能寫 `focused GREEN / final acceptance pending`，不得 ACCEPT / merge / release。
+- remote QA 一律追到 terminal；cleanup 後 tested-head → cleaned-head 只允許臨時 evidence/workflow drift。
+
+這個硬閘門與「日常測試分級策略」不同：即使只是小修改，只要它改變了實體板件使用路徑，合併前仍不得用 focused QA 取代成品驗收。
+
 ## 出包流程
 1. 記錄目前 `config.ini` SHA256，與原始基準比對。
 2. 驗證 runtime 傳入的 baseline ZIP provenance、檔案存在性與 CRC；**不得用 manifest 檔名比對或自動搜尋歷史包**，再解壓到全新目錄。
