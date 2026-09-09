@@ -171,3 +171,14 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - 禁止把 Fold Profile 的 material `len=25` 直接當成 3D formed FW occupation。若 3D world geometry 量到的 formed FW occupation 與 physical contract `outside_dimension` 不一致，必須 **fail closed before Divider collision**。
 - Divider relief 不得在錯誤 FW solid 上繼續求解；任何後續 `27`、middle parity、post-refold GREEN 都無效。
 - 永久回歸必須至少驗：`fw_left`、`fw_right` 的 3D world formed occupation == family physical contract outside FW，且左右同面。
+
+
+## 2026-09-09 — Receiving Divider final CUTTING oracle（獨立驗證）
+
+- 對已核准的 Receiving reference fixture，產品／製造驗收值固定為：
+  - 左主截角：`61 × 27 mm`
+  - 左副階：`2 × 22 mm`
+  - 右主截角：`57 × 27 mm`
+- `22` 是左副階段長；`48` **不是**核准的製造截角尺寸。
+- 這些值只屬 validation oracle；production collision/relief 不得 import/read `tests/**`、不得引用這些 expected 常數、不得由 expected-actual 差值反推補償。
+- 驗收必須直接量 `nominal blank - final material` 的最終 CUTTING 輪廓。只驗 metadata（例如 `solid_depth`、`verified=true`、collision evidence）不夠；metadata 與最終 CUTTING 不一致時以 final material 為 QA 判定表面。
