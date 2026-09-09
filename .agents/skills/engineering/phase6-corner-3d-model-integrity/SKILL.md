@@ -182,3 +182,17 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - `22` 是左副階段長；`48` **不是**核准的製造截角尺寸。
 - 這些值只屬 validation oracle；production collision/relief 不得 import/read `tests/**`、不得引用這些 expected 常數、不得由 expected-actual 差值反推補償。
 - 驗收必須直接量 `nominal blank - final material` 的最終 CUTTING 輪廓。只驗 metadata（例如 `solid_depth`、`verified=true`、collision evidence）不夠；metadata 與最終 CUTTING 不一致時以 final material 為 QA 判定表面。
+
+
+## 2026-09-09 — Issue74 COORDINATE-DOMAIN CORRECTION（SUPERSEDES 舊 25→47→48 段）
+
+- **撤銷舊 authority**：任何舊段落若寫出「secondary V = `fw_left .. fw_left+zl1`」、`25→47`、或「`47 + T/2 = 48` 為製造深度」，全部視為 **SUPERSEDED / INVALID**。
+- `FW material=25` 屬 **flat/material coordinate domain**；它可以描述展開材料段，但**不得**直接作為 resolved final CUTTING 的 secondary-stage 起點。
+- final CUTTING 的 stage placement 必須在 **final-manufacturing coordinate domain** 內解析。若 secondary stage 接續 primary relief，起點 authority 是已解析的 primary CUTTING boundary / physical adjacency，不是 flat FW material datum。
+- 禁止把 target-UV 的絕對座標（例如某 footprint 的 `y1=47`）命名成「depth=47」；絕對座標、區段長度、從材料外緣量的深度是三種不同量，任何跨域換算都必須有明確 geometric transform。
+- `T/2` 只能做真實 skin→solid 幾何轉換；不得對「絕對座標」直接做 `+T/2` 後宣告為製造截角尺寸。
+- QA 必須同時檢查：
+  1. material-space 與 final-CUTTING-space 變數／證據有明確 domain；
+  2. production 不得用 material FW 作 final notch anchor；
+  3. final CUTTING 直接量測通過獨立產品 oracle；
+  4. 舊 `25/47/48` evidence 不得再作 current authority。
