@@ -1,0 +1,61 @@
+name: DM6 T1 GREEN Apply
+
+on:
+  push:
+    branches:
+      - work/dm6-t1-annotation-semantic-contract
+
+permissions:
+  contents: write
+
+jobs:
+  green-apply:
+    if: github.event.head_commit.message == 'ci(dm6): apply T1 semantic identity green'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: work/dm6-t1-annotation-semantic-contract
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install -r requirements.txt
+
+      - name: Apply minimal Planner semantic identity contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('ae_engine/drawing_annotations.py')
+          text = path.read_text(encoding='utf-8')
+
+          old = '''@dataclass(frozen=True)\nclass LinearDimensionAnnotation:\n    axis: str\n    value: float\n    start: Vec2\n    end: Vec2\n    label: str\n\n\n@dataclass(frozen=True)\nclass FeatureCallout:\n    source_id: str\n    source_type: str\n    anchor: Vec2\n    label: str\n\n\n@dataclass(frozen=True)\nclass CornerCallout:\n    corner: str\n    width: float\n    height: float\n    anchor: Vec2\n    label: str\n\n\n@dataclass(frozen=True)\nclass RadiusCallout:\n    radius: float\n    center: Vec2\n    anchor: Vec2\n    label: str\n'''
+
+          new = '''def _semantic_number(value: float) -> str:\n    return _fmt(float(value))\n\n\ndef _semantic_point(point: Vec2) -> str:\n    return f"{_semantic_number(point.x)},{_semantic_number(point.y)}"\n\n\n@dataclass(frozen=True)\nclass LinearDimensionAnnotation:\n    axis: str\n    value: float\n    start: Vec2\n    end: Vec2\n    label: str\n\n    @property\n    def semantic_id(self) -> str:\n        axis = str(self.axis).strip().lower()\n        return (\n            f"DIMENSION:{axis}:"\n            f"{_semantic_point(self.start)}:{_semantic_point(self.end)}:"\n            f"{_semantic_number(self.value)}"\n        )\n\n\n@dataclass(frozen=True)\nclass FeatureCallout:\n    source_id: str\n    source_type: str\n    anchor: Vec2\n    label: str\n\n    @property\n    def semantic_id(self) -> str:\n        return (\n            f"FEATURE:{self.source_type}:{self.source_id}:"\n            f"{_semantic_point(self.anchor)}"\n        )\n\n\n@dataclass(frozen=True)\nclass CornerCallout:\n    corner: str\n    width: float\n    height: float\n    anchor: Vec2\n    label: str\n\n    @property\n    def semantic_id(self) -> str:\n        return (\n            f"CORNER:{self.corner}:"\n            f"{_semantic_number(self.width)}x{_semantic_number(self.height)}:"\n            f"{_semantic_point(self.anchor)}"\n        )\n\n\n@dataclass(frozen=True)\nclass RadiusCallout:\n    radius: float\n    center: Vec2\n    anchor: Vec2\n    label: str\n\n    @property\n    def semantic_id(self) -> str:\n        return (\n            f"RADIUS:{_semantic_number(self.radius)}:"\n            f"{_semantic_point(self.center)}:{_semantic_point(self.anchor)}"\n        )\n'''
+
+          if old not in text:
+              raise SystemExit('expected annotation dataclass block not found; refusing broad rewrite')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Run approved REDs and focused regressions
+        run: |
+          python -m pytest -q tests/test_dm6_annotation_semantic_contract.py tests/test_drawing_annotations.py tests/test_annotation_collision_resolver.py
+
+      - name: Commit GREEN production change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ae_engine/drawing_annotations.py
+          git commit -m 'feat(dm6): add annotation semantic identity contract'
+          git push origin HEAD:work/dm6-t1-annotation-semantic-contract
