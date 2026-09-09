@@ -109,7 +109,9 @@ def test_receiving_divider_registry_hit_is_cross_plus_parameters():
     assert result.min_y.slot_radius is None
     assert result.max_y.primary_u == pytest.approx(66.0)
     assert result.max_y.primary_v == pytest.approx(27.0)
-    assert result.max_y.slot_width == pytest.approx(7.0)\n    assert result.max_y.slot_straight_depth == pytest.approx(24.0)\n    assert result.max_y.slot_radius == pytest.approx(3.5)
+    assert result.max_y.slot_width == pytest.approx(7.0)
+    assert result.max_y.slot_straight_depth == pytest.approx(24.0)
+    assert result.max_y.slot_radius == pytest.approx(3.5)
 
 def _read_normalized_divider_dxf_relief():
     from pathlib import Path
