@@ -1092,6 +1092,11 @@ def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_
         "_phase6_place_assembly_triangles",
         lambda triangles, placement, dimensions, offset: tuple(triangles),
     )
+    monkeypatch.setattr(
+        view.Phase6FinalSceneView,
+        "_draw_box_body_structure_bends",
+        lambda *args, **kwargs: None,
+    )
 
     def fake_mate(triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0, **kwargs):
         mate_calls.append(tuple(body_triangles))
