@@ -88,6 +88,24 @@ def _divider_insert_joint(stable_id):
     )
 
 
+def _source_fold_bands(body):
+    result = {}
+    for piece in tuple(body.render_data.pieces or ()):
+        key = f"box_body:{piece.role}"
+        cursor = 0.0
+        rows = []
+        for index, segment in enumerate(tuple(piece.fold_profile or ())):
+            end = cursor + float(segment.length)
+            rows.append((
+                str(segment.phase6_key or f"segment_{index}"),
+                float(cursor),
+                float(end),
+            ))
+            cursor = end
+        result[key] = tuple(rows)
+    return result
+
+
 def test_t3_red_real_receiving_divider_has_pre_solve_illegal_penetration():
     snapshot = _snapshot()
     body = _body_part(snapshot)
@@ -186,6 +204,7 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
         flat_material_by_part=solved_world["flat_material_by_part"],
         core_start=41.0,
         source_geometry_keys=("box_body:left_side", "box_body:right_side"),
+        source_fold_bands_by_key=_source_fold_bands(body),
     )
     assert verification["verified"] is True
     assert verification["front_illegal_segments"] == 0
