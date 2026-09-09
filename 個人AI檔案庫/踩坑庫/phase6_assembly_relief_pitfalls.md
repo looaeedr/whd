@@ -266,3 +266,15 @@
 - **產品 oracle（validation-only）**：左主 `61×27`、左副階 `2×22`、右主 `57×27`。其中 `48` 不屬製造尺寸。
 - **永久防線**：測試從 nominal Divider blank 與 resolved final material 做 difference，直接比較最終移除輪廓；不得以 production metadata 當 expected。
 - **authority boundary**：上述 expected 只能在 test/QA 出現；production 若 import tests、讀 fixture expected 或複製 expected magic number 來求 relief，直接 fail closed。
+
+
+## 2026-09-09 — 25→47→48 是 coordinate-domain leakage（撤銷舊 Issue74 authority）
+
+- **為什麼會一直重犯**：AI/Skill 歷史段落仍保存「secondary 從 material FW=25 起算」以及「footprint endpoint 47 + T/2 = 48」的舊說法。這會讓後續推理把 flat/material 座標誤升格成 final manufacturing CUTTING 座標。
+- **正式撤銷**：
+  - `V=fw_left..fw_left+zl1` 不再是 final CUTTING placement authority；
+  - `25→47` 只可能描述某 material/UV 座標區間，不代表 final notch stage；
+  - `47+T/2=48` 不得再當製造尺寸。
+- **永久 domain 規則**：每個幾何量必須標示 `MATERIAL_UV` / `WORLD_SOLID` / `FINAL_CUTTING`。沒有 domain 的「depth」「position」「offset」禁止進 production geometry。
+- secondary relief 若與 primary relief 相接，final stage 的 anchor 必須來自 physical adjacency / resolved primary CUTTING boundary；不得從 material FW 數值抄一個起點。
+- validation expected 只判 final CUTTING 對錯；不得把 expected 常數回灌 production。
