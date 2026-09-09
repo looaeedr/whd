@@ -250,3 +250,11 @@
 - **實際重犯原因**：文件與 UI/material conversion 都正確，但 3D folded geometry 仍直接以 material Fold span 建 FW physical face，沒有 hard gate 驗證 formed occupation。結果 full-solid diagnostic 量到 left/right FW world occupation 都只有 `25`。
 - **後果**：在錯的 FW solid 上做任何 Divider collision，都不可能得到可信截角；即使 validation/parity 變綠也只是建立在錯誤 physical model 上。
 - **永久防線**：Receiving Divider collision 前先驗 `fw_left/fw_right world formed occupation == physical_contract.fw_physical_face.outside_dimension`；不一致立即 fail closed。不得再以 material `len`、skin proxy 或 test expected 補差值。
+
+
+## 2026-09-09 — Remote QA 有 30 秒規則仍會漏輪詢：缺少 Active Lock
+
+- **症狀**：Skill 已明寫「約每 30 秒 active polling」，但 assistant 仍會在 run `in_progress` 時轉去讀 code、改檔或做別的診斷，導致使用者看起來像「又沒輪詢」。
+- **根因**：只有 cadence 規則，沒有排程互斥；remote run 非 terminal 時，其他工具工作仍能插隊。這不是 cadence 文案不足，而是缺少 execution lock。
+- **永久防線**：取得 `run_id + head_sha` 後進 `REMOTE_QA_ACTIVE_LOCK`。直到 terminal 前，只允許 poll run/jobs/steps、terminal failure log、30 秒回報。任何其他工具動作都屬流程違規。
+- **恢復規則**：Runtime 切斷不解除遠端任務；下一 Runtime 第一動作恢復同一 locked run。replacement run 建立後立即把 lock 移交到新 `run_id + head_sha`。
