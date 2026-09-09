@@ -1,4 +1,5 @@
 name: DM6 T2 Acceptance QA
+# rerun after fixture contract update
 
 on:
   push:
