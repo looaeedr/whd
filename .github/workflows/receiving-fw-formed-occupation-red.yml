@@ -1,4 +1,4 @@
-# retrigger corrected Divider AssemblyScene placement diagnostic
+# retrigger physical FW-contact Divider collision acceptance
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - ae_engine/box_body_structure.py
       - ae_engine/assembly_geometry.py
       - ae_engine/divider_manufacturing.py
+      - ae_engine/assembly_collision.py
       - phase6_fold_profiles.py
       - tests/test_issue74_divider_side_front_penetration.py
       - .github/workflows/receiving-fw-formed-occupation-red.yml
