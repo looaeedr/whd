@@ -149,7 +149,7 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
     assert right["zr2"]["through"] is True
 
 
-def test_issue74_cut_depth_is_derived_from_physical_collision_plus_target_half_thickness():
+def test_issue74_cutting_is_derived_from_fw_inside_face_and_source_collision_span():
     """CURRENT: manufacturing dimensions come from FW contact + collision backprojection."""
     snap = _snapshot()
     body = _body_part(snap)
@@ -200,8 +200,9 @@ def test_issue74_cut_depth_is_derived_from_physical_collision_plus_target_half_t
         right_contact_depth, abs=1.0e-5
     )
 
-    # Secondary stage dimensions/placement come directly from its independent
-    # source-solid collision footprint; no target-T/2 in-plane translation.
+    # Secondary stage size comes from the source-solid collision span. Its 2D
+    # material anchor is the same physical FW inside-face boundary as the
+    # primary stage; no test value and no target-T/2 translation participates.
     zl1 = pre["box_body:left_side"]["zl1"]["physical_footprint"]
     assert zl1 is not None
     x0, y0, x1, y1 = map(float, zl1.bounds)
@@ -211,7 +212,10 @@ def test_issue74_cut_depth_is_derived_from_physical_collision_plus_target_half_t
     assert tuple(map(float, stage["cut_bounds"])) == pytest.approx(
         (x0, y0, x1, y1), abs=1.0e-5
     )
-    assert stage["dimension_source"] == "SOURCE_TRUE_THICKNESS_COLLISION_BACKPROJECTION"
+    assert float(stage["primary_inside_face_boundary"]) == pytest.approx(
+        left_contact_depth, abs=1.0e-5
+    )
+    assert stage["dimension_source"] == "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN"
     assert "target_half_thickness" not in stage
     assert "solid_depth" not in stage
 
