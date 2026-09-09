@@ -25,3 +25,16 @@ def test_assembly_view_boundary_skill_captures_operator_vs_debug_contract():
 def test_assembly_view_boundary_skill_is_mandatory_in_update_policy():
     policy = json.loads((ROOT / "release_required_artifacts.json").read_text(encoding="utf-8"))
     assert ".agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md" in policy["mandatory_update_files"]
+
+
+def test_assembly_view_boundary_skill_captures_multipart_boxbody_layers():
+    text = SKILL.read_text(encoding="utf-8")
+    required = [
+        "stable physical IDs",
+        "頂層板件 selector",
+        "各自顯示／隱藏",
+        "world placement",
+        "identity / navigation / visibility",
+    ]
+    missing = [item for item in required if item not in text]
+    assert not missing, missing

@@ -212,6 +212,14 @@ def _phase6_is_box_body_physical_piece_key(value) -> bool:
     return key.startswith("box_body:") and not key.startswith("box_body:divider:")
 
 
+def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
+    """Collapse BoxBody physical children under the single operator-facing 箱身 entry."""
+    return tuple(
+        str(key) for key in tuple(values or ())
+        if not _phase6_is_box_body_physical_piece_key(key)
+    )
+
+
 def _phase6_box_body_piece_part_profiles(render_data) -> dict[str, dict[str, list[dict[str, object]]]]:
     """Project authoritative BoxBody physical pieces into read-only workspace profiles.
 
@@ -5577,6 +5585,7 @@ def _phase6_make_assembly_scene_render_data(
     *,
     assembly_parts,
     visible_part_keys=None,
+    visible_box_body_piece_keys=None,
     show_interference=False,
     ignore_fixed_corner_relief=False,
     interference_probe_parts=(),
@@ -5599,6 +5608,10 @@ def _phase6_make_assembly_scene_render_data(
         "visible_part_keys": (
             None if visible_part_keys is None
             else tuple(str(key) for key in visible_part_keys)
+        ),
+        "visible_box_body_piece_keys": (
+            None if visible_box_body_piece_keys is None
+            else tuple(str(key) for key in visible_box_body_piece_keys)
         ),
         "show_interference": bool(show_interference),
         "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
@@ -6936,39 +6949,65 @@ def _phase6_resolve_manufacturing_geometry(self):
 
 
 def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
-    """Render one sub-row per resolved physical Box Body piece."""
+    """Render resolved BoxBody children nested under the single logical 箱身 row."""
     host = getattr(self, "assembly_box_body_piece_host", None)
     if host is None:
         return
     projections = _phase6_box_body_piece_dimension_projections(render_data)
     wanted = tuple(row.part_key for row in projections)
     current = tuple(dict(getattr(self, "assembly_box_body_piece_formed_vars", {}) or {}))
+    previous_visible = {
+        key: bool(var.get())
+        for key, var in dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).items()
+    }
+    previous_visible = {
+        **dict(getattr(self, "_phase6_box_body_piece_visibility_stash", {}) or {}),
+        **previous_visible,
+    }
     if current != wanted:
         for child in host.winfo_children():
             child.destroy()
         self.assembly_box_body_piece_labels = {}
         self.assembly_box_body_piece_sections = {}
+        self.assembly_box_body_piece_visible_vars = {}
+        self.assembly_box_body_piece_checkbuttons = {}
         self.assembly_box_body_piece_formed_vars = {}
         self.assembly_box_body_piece_blank_vars = {}
         self.assembly_box_body_piece_corner_vars = {}
-        piece_by_role = {str(getattr(piece, "role", "")): piece for piece in tuple(getattr(render_data, "pieces", ()) or ())}
+        piece_by_role = {
+            str(getattr(piece, "role", "")): piece
+            for piece in tuple(getattr(render_data, "pieces", ()) or ())
+        }
         for projection in projections:
-            sub = original.ttk.LabelFrame(host, text=projection.label, padding=4)
+            sub = original.ttk.Frame(host, padding=4)
             sub._phase6_part_key = projection.part_key
             sub.pack(fill=original.tk.X, padx=(18, 0), pady=(2, 4))
             self.assembly_box_body_piece_labels[projection.part_key] = projection.label
             self.assembly_box_body_piece_sections[projection.part_key] = sub
+            visible = original.tk.BooleanVar(
+                master=sub, value=previous_visible.get(projection.part_key, True)
+            )
+            check = original.ttk.Checkbutton(
+                sub, text=projection.label, variable=visible,
+                command=lambda: _phase6_on_assembly_part_visibility_changed(self),
+            )
+            check.pack(anchor=original.tk.W)
             formed = original.tk.StringVar(master=sub)
             blank = original.tk.StringVar(master=sub)
             corner = original.tk.StringVar(master=sub)
-            original.ttk.Label(sub, textvariable=formed, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(12, 0))
-            original.ttk.Label(sub, textvariable=blank, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(12, 0))
-            original.ttk.Label(sub, textvariable=corner, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(12, 0))
+            original.ttk.Label(sub, textvariable=formed, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            original.ttk.Label(sub, textvariable=blank, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            original.ttk.Label(sub, textvariable=corner, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            self.assembly_box_body_piece_visible_vars[projection.part_key] = visible
+            self.assembly_box_body_piece_checkbuttons[projection.part_key] = check
             self.assembly_box_body_piece_formed_vars[projection.part_key] = formed
             self.assembly_box_body_piece_blank_vars[projection.part_key] = blank
             self.assembly_box_body_piece_corner_vars[projection.part_key] = corner
             _phase6_bind_assembly_scroll(sub, self)
-    piece_by_role = {str(getattr(piece, "role", "")): piece for piece in tuple(getattr(render_data, "pieces", ()) or ())}
+    piece_by_role = {
+        str(getattr(piece, "role", "")): piece
+        for piece in tuple(getattr(render_data, "pieces", ()) or ())
+    }
     for projection in projections:
         self.assembly_box_body_piece_formed_vars[projection.part_key].set(
             f"成形尺寸：{_setting_number_text(projection.formed_width)} × {_setting_number_text(projection.formed_height)} mm"
@@ -6980,6 +7019,10 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         piece = piece_by_role.get(role)
         corner_text = _phase6_render_data_corner_dimension_text(piece.render_data) if piece is not None else "截角尺寸：無"
         self.assembly_box_body_piece_corner_vars[projection.part_key].set(corner_text)
+    self._phase6_box_body_piece_visibility_stash = {
+        key: bool(var.get())
+        for key, var in dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).items()
+    }
     logical_formed = (getattr(self, "assembly_part_formed_vars", {}) or {}).get("box_body")
     logical_blank = (getattr(self, "assembly_part_blank_vars", {}) or {}).get("box_body")
     logical_corner = (getattr(self, "assembly_part_corner_vars", {}) or {}).get("box_body")
@@ -6987,7 +7030,6 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         if logical_formed is not None: logical_formed.set("成形尺寸：見下方各片")
         if logical_blank is not None: logical_blank.set("展開料：見下方各片")
         if logical_corner is not None: logical_corner.set("截角尺寸：見下方各片")
-
 
 def _phase6_query_assembly_render_data(self):
     """UI adapter: read the already-resolved canonical manufacturing geometry."""
@@ -7047,6 +7089,28 @@ def _phase6_query_assembly_render_data(self):
             var.set(True)
 
     visible_keys = {part.part_key for part in visible_parts}
+    box_part = next((part for part in parts if part.part_key == "box_body"), None)
+    box_piece_keys = tuple(
+        f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+        for piece in tuple(getattr(getattr(box_part, "render_data", None), "pieces", ()) or ())
+        if str(getattr(piece, "role", "") or "").strip()
+    )
+    visible_box_body_piece_keys = None
+    if box_piece_keys:
+        piece_vars = dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {})
+        if "box_body" not in visible_keys:
+            visible_box_body_piece_keys = ()
+        else:
+            visible_box_body_piece_keys = tuple(
+                key for key in box_piece_keys
+                if bool(getattr(piece_vars.get(key), "get", lambda: True)())
+            )
+            if not visible_box_body_piece_keys and visible_keys == {"box_body"}:
+                first = box_piece_keys[0]
+                var = piece_vars.get(first)
+                if var is not None and callable(getattr(var, "set", None)):
+                    var.set(True)
+                visible_box_body_piece_keys = (first,)
     visible_probe_parts = tuple(
         part for part in tuple(getattr(self, "_phase6_last_interference_probe_parts", ()) or ())
         if part.part_key in visible_keys
@@ -7054,6 +7118,7 @@ def _phase6_query_assembly_render_data(self):
     return _phase6_make_assembly_scene_render_data(
         assembly_parts=tuple(parts),
         visible_part_keys=tuple(part.part_key for part in visible_parts),
+        visible_box_body_piece_keys=visible_box_body_piece_keys,
         show_interference=bool(getattr(self, "assembly_show_interference_var", None).get())
             if getattr(self, "assembly_show_interference_var", None) is not None else True,
         ignore_fixed_corner_relief=False,
@@ -7709,7 +7774,9 @@ def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
     if getattr(self, "assembly_parts_panel", None) is None:
         return False
     current = _phase6_current_assembly_panel_part_keys(self)
-    wanted = tuple(getattr(_designer_workspace(self), "available_parts", ()) or ())
+    wanted = _phase6_operator_part_selector_keys(
+        getattr(_designer_workspace(self), "available_parts", ()) or ()
+    )
     if current == wanted:
         return False
     _phase6_refresh_assembly_parts_panel(self)
@@ -7732,6 +7799,15 @@ def _phase6_refresh_assembly_parts_panel(self):
     old_blank = {
         key: str(var.get()) for key, var in dict(getattr(self, "assembly_part_blank_vars", {}) or {}).items()
     }
+    old_piece_visible = {
+        key: bool(var.get())
+        for key, var in dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).items()
+    }
+    old_piece_visible = {
+        **dict(getattr(self, "_phase6_box_body_piece_visibility_stash", {}) or {}),
+        **old_piece_visible,
+    }
+    self._phase6_box_body_piece_visibility_stash = old_piece_visible
     for child in panel.winfo_children():
         child.destroy()
     self.assembly_part_visible_vars = {}
@@ -7742,10 +7818,12 @@ def _phase6_refresh_assembly_parts_panel(self):
     self.assembly_box_body_piece_host = None
     self.assembly_box_body_piece_labels = {}
     self.assembly_box_body_piece_sections = {}
+    self.assembly_box_body_piece_visible_vars = {}
+    self.assembly_box_body_piece_checkbuttons = {}
     self.assembly_box_body_piece_formed_vars = {}
     self.assembly_box_body_piece_blank_vars = {}
     self.assembly_box_body_piece_corner_vars = {}
-    for key in self.designer_workspace.available_parts:
+    for key in _phase6_operator_part_selector_keys(self.designer_workspace.available_parts):
         row = original.ttk.Frame(panel)
         row.pack(fill=original.tk.X, pady=(0, 4))
         visible = original.tk.BooleanVar(value=old_visible.get(key, True))
@@ -8010,6 +8088,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.assembly_part_formed_vars = {}
     self.assembly_part_blank_vars = {}
     self.assembly_part_checkbuttons = {}
+    self.assembly_box_body_piece_visible_vars = {}
+    self.assembly_box_body_piece_checkbuttons = {}
     _phase6_refresh_assembly_parts_panel(self)
 
     self._refresh_part_buttons()
@@ -8053,7 +8133,7 @@ def _fix11_refresh_part_buttons(self):
             value="組合體",
             command=lambda: _phase6_show_assembly(self),
         )
-        for key in self.available_parts:
+        for key in _phase6_operator_part_selector_keys(self.available_parts):
             label = _phase6_part_label(key, snapshot=snapshot)
             menu.add_radiobutton(
                 label=label,
@@ -8066,6 +8146,8 @@ def _fix11_refresh_part_buttons(self):
     if hasattr(self, "part_var"):
         if mode == "assembly":
             self.part_var.set("組合體")
+        elif _phase6_is_box_body_physical_piece_key(active):
+            self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
         elif active in self.available_parts:
             self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
     self._refresh_part_button_states()
@@ -8149,7 +8231,11 @@ def _fix11_select_part(self, key):
     if not self.designer_workspace.select_part(key):
         return False
     if hasattr(self, "part_var"):
-        self.part_var.set(_phase6_part_label(key))
+        self.part_var.set(
+                _phase6_part_label("box_body")
+                if _phase6_is_box_body_physical_piece_key(key)
+                else _phase6_part_label(key)
+            )
     self._refresh_part_button_states()
     return True
 
@@ -8605,7 +8691,11 @@ def _fix11_activate_part(self, key, initial=False):
     self.designer_workspace.begin_switch(key)
     try:
         if hasattr(self, "part_var"):
-            self.part_var.set(_phase6_part_label(key))
+            self.part_var.set(
+                _phase6_part_label("box_body")
+                if _phase6_is_box_body_physical_piece_key(key)
+                else _phase6_part_label(key)
+            )
         if hasattr(self, "part_buttons"):
             self._refresh_part_button_states()
         if hasattr(self, "remove_part_button"):
