@@ -6,9 +6,9 @@ on:
       - fix/multipart-boxbody-ui-boundaries
 
 jobs:
-  targeted:
+  acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,11 +20,25 @@ jobs:
           sudo apt-get install -y xvfb python3-tk
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib
-      - name: Run headless boundary regressions
+      - name: Run Issue 74 acceptance
         run: |
-          pytest -q tests/test_phase6_assembly_3d_view.py \
-            -k "operator_part_selector_collapses_box_body_physical_children or final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum"
-      - name: Run Tk receiving boundary regression
-        run: |
-          xvfb-run -a pytest -q tests/test_phase6_receiving_multipart_integration.py \
-            -k "receiving_box_body_children_are_nested_under_box_body_but_independently_hideable"
+          before="$(sha256sum config.ini | awk '{print $1}')"
+
+          python tools/phase6_skill_preflight.py \
+            --task "修正 3D 多件式箱身 assembly visibility bug" \
+            --changed-file fold_designer_bridge.py \
+            --changed-file phase6_final_scene_view.py \
+            --changed-file .agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md \
+            --evidence .scratch/issue74_preflight_evidence.txt
+
+          pytest -q \
+            tests/test_phase6_assembly_3d_view.py \
+            tests/test_phase6_final_scene_view_ownership.py \
+            tests/test_phase6_assembly_view_skill_contract.py
+
+          xvfb-run -a pytest -q tests/test_phase6_receiving_multipart_integration.py
+
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "config.ini before=$before"
+          echo "config.ini after=$after"
+          test "$before" = "$after"
