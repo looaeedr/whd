@@ -246,3 +246,18 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - 先前「25→47 沒錯」的口頭判定已被使用者撤回；任何把 `25→47` 當 final manufacturing oracle 的規則／測試都視為 **SUPERSEDED**。
 - 依口語尺寸規則，這裡未說「包外」，因此 `27 / 49` 都是 **料尺寸座標**。
 - production 仍必須由 authoritative input / fold topology / physical collision 正向求解；不得 import/read `27/49` expected 來補 geometry。驗證只負責判斷 final CUTTING 是否符合。
+
+
+## 2026-09-09 — 2D CUTTING vs 3D FORMED COLLISION（Receiving Divider 核心）
+
+- **截角輸出是 2D 料面／DXF CUTTING；碰撞對象是 3D 成形後包外實體。** 兩個座標域不得直接等同。
+- 正確資料流：`2D material Fold → 3D formed physical solid → collision on physical inside/outside faces → back-project to 2D material CUTTING`。
+- Receiving reference：
+  - 左側料 Fold：`22 / 20 / 25 / ...`
+  - FW 料尺寸：`25`
+  - FW 3D 包外：`29`
+  - Divider 位於箱身**裡面**，不會撞 FW 最外包外面；實際碰撞基準是 FW 內側實體面：`29 - T(2) = 27`
+  - `zl1` 料長 = `22`
+  - 因此 secondary material CUTTING band：`27 → 27+22 = 49`
+- 這個 `+T` 是 **3D formed physical face → 2D material backprojection** 的折彎幾何結果，不是 test compensation、不是 expected-actual 差值、也不是 `T/2` skin 補償。
+- validation 的 `27/49` 只能判斷 production 是否撞對；production 必須從 authoritative T、Fold topology、formed FW physical face 與 collision/backprojection 自己導出。
