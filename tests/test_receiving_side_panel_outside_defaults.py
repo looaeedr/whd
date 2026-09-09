@@ -75,7 +75,7 @@ def test_receiving_physical_child_editor_projection_is_outside_and_front_to_rear
     import fold_designer_bridge as bridge
 
     snap, _state, result = _fresh_receiving()
-    profiles = bridge._phase6_box_body_piece_part_profiles(result)
+    profiles = bridge._phase6_box_body_piece_part_profiles(result, snap)
 
     left = profiles["box_body:left_side"]["X"]
     right = profiles["box_body:right_side"]["X"]
@@ -129,3 +129,30 @@ def test_receiving_designer_controls_show_exact_outside_defaults_for_each_physic
             root.destroy()
         except tk.TclError:
             pass
+
+
+def test_receiving_legacy_unmarked_rear_bend_remains_material_for_reload_compatibility():
+    from phase6_box_body_structure import (
+        BoxBodyStructureType,
+        default_box_body_structure_state,
+        set_active_structure,
+    )
+
+    legacy = set_active_structure(
+        default_box_body_structure_state(),
+        BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT,
+    )
+    legacy["configs"]["three_piece_side_back_split"]["side_rear_bend"] = 15.0
+    resolved_state = receiving.resolve_box_body_structure_state(legacy)
+    cfg = resolved_state["configs"]["three_piece_side_back_split"]
+    assert cfg["side_rear_bend"] == pytest.approx(15.0)
+    assert cfg["side_rear_bend_dimension_space"] == "MATERIAL"
+
+    snap = receiving.apply_family_defaults({"t": 2.0})
+    result = resolve_box_body_structure(
+        build_box_body_profile(snap),
+        w=snap["w"], h=snap["h"], d=snap["d"], t=snap["t"],
+        structure_state=resolved_state,
+    )
+    left = _piece(result, "left_side")
+    assert left.fold_profile[-1].length == pytest.approx(15.0)
