@@ -38,6 +38,10 @@ jobs:
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_receiving_side_panel_outside_defaults.py \
             --evidence /tmp/preflight-evidence.md
+      - name: Requirement RED - headless
+        run: pytest -q tests/test_receiving_side_panel_outside_defaults.py -k "not designer_controls"
+      - name: Requirement RED - Tk
+        run: xvfb-run -a pytest -q tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
       - name: Baseline source contract
         run: |
           python - <<'PY'
