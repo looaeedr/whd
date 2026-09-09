@@ -176,3 +176,20 @@
 - 同理，任何 `47/26`、`1 mm`、某次 middle-segment 長度、world bbox、renderer origin、probe delta 都不得作 runtime oracle。測試應鎖幾何 invariant：FW physical face-flush、pre-solve collision、backprojection ownership、post-refold illegal penetration=0、fixed-hole datum rigid parity、2D/3D/DXF resolved sink 同源。
 - **完成條件**：若為了讓 test GREEN 必須把 expected / tolerance / fixture delta 寫進 production，直接判定為架構違規；先修 authority/data-flow 或 stale oracle，不得用驗證資料餵製造公式。
 
+
+
+## 2026-09-09 — Divider：3D triangulation 輪廓不得升格為 STANDARD CUTTING
+
+- **症狀**：Receiving Divider 已通過 FW face-flush、collision replay、`illegal penetration=0`，甚至中間有效直線段 parity 也可通過，但 final material 仍出現不屬於標準截角的斜邊。
+- **實際根因**：Divider 專用 relief solver 把 backprojection endpoints 直接做 `MultiPoint(...).convex_hull`，再把該 hull 當正式 CUTTING。三角網格交線的數值頂點因此被錯誤升格成製造 topology；#63 的舊 shape test 又用同一 convex-hull 假設建立 expected，形成 circular oracle。
+- **有效 RED**：run `34346306940`。左右兩端都在「存在 triangulation-generated non-axis CUTTING edge」精確紅燈；同一測試中的 core boundary、physical skin depth、`T/2` solid depth都由各自 authority 動態推導，不含 dead dimension。
+- **被撤銷假設**：第一輪猜測「disconnected collision components 被 global hull 橋接」；run `34345831526` 的 reproducer 找不到該 disconnected gap，所以該假設已撤銷。禁止日後把已撤銷假設當歷史事實。
+- **正確 authority 分工**：
+  - Fold/material contract → STANDARD manufacturing topology / pre-core boundary；
+  - real `left_side/right_side` collision/backprojection → touched span end + required physical skin depth；
+  - authoritative `T` → `T/2` skin→solid sweep；
+  - refold replay → 只判定剩餘非法穿透是否為 0；
+  - validation → 只判定以上結果對不對，不回灌 production。
+- **正確實作**：先將 physical crossing linework fit 回既有 stable orthogonal corner topology，再做 `T/2` inward sweep；union 必須保留 STANDARD topology，禁止再用 convex hull 重新產生斜邊／新 stage。
+- **防線**：只驗 `illegal penetration=0` 不夠。任何 collision-derived relief 必須另驗 manufacturing topology invariant；STANDARD one-level corner若出現非 X/Y 軸 CUTTING edge，直接 fail closed。
+- **GREEN 證據**：run `34346627948`：Issue71 exact seam **2 PASS**；Divider broader guards（#63/#39/DM3/DM4）**23 PASS / 0 FAIL**；`config.ini` SHA256 前後一致。
