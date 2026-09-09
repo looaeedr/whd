@@ -260,9 +260,8 @@ def effective_endcap_bottom_fw(source, state, *, thickness: float, default_fw: f
     if not callable(callback):
         return float(default_fw)
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import BoxBodyStructureType
-    cfg = structure["configs"].get(BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value, {})
-    rear = float(cfg.get("side_rear_bend", 15.0))
+    from phase6_box_body_structure import side_rear_bend_material_length
+    rear = side_rear_bend_material_length(structure, float(thickness))
     return float(callback(side_rear_bend=rear, thickness=float(thickness)))
 
 
@@ -280,10 +279,9 @@ def endcap_corner_policy(source, *, frame_width: float, thickness: float, state=
     if not callable(callback):
         return None
     structure = resolve_box_body_structure_state(source, state)
-    from phase6_box_body_structure import BoxBodyStructureType
-    cfg = structure["configs"].get(BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value, {})
+    from phase6_box_body_structure import side_rear_bend_material_length
     return callback(
         frame_width=float(frame_width),
         thickness=float(thickness),
-        side_rear_bend=float(cfg.get("side_rear_bend", 15.0)),
+        side_rear_bend=side_rear_bend_material_length(structure, float(thickness)),
     )
