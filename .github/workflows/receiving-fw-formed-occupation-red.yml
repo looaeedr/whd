@@ -1,4 +1,4 @@
-# retrigger targeted on restored material-midline baseline
+# retrigger zl1 per-skin collision diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -193,6 +193,76 @@ jobs:
               "solved_material_area":float(solved.render_data.material.area),
               "has_relief_metadata":"divider_assembly_relief" in dict(solved.render_data.metadata or {}),
           }, ensure_ascii=False, default=str))
+          PY
+      - name: ZL1 per-skin collision diagnostic
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from ae_engine.assembly_collision import (
+              _triangle_pair_crossing_segment,
+              _barycentric_world_to_flat,
+          )
+          from ae_engine.divider_manufacturing import _source_fold_bands_by_geometry_key
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          source_key="box_body:left_side"
+          bands=_source_fold_bands_by_geometry_key(body)[source_key]
+          u0,u1=next((a,b) for name,a,b in bands if name=="zl1")
+          source=tuple(world["mapped_skin_triangles_by_part"][source_key])
+          targets=tuple(world["mapped_skin_triangles_by_part"][divider.stable_id])
+
+          by_side={-1:[],1:[]}
+          pair_counts={-1:0,1:0}
+          for s in source:
+              side=int(getattr(s,"side",0) or 0)
+              if side not in (-1,1):
+                  continue
+              cu=sum(float(p[0]) for p in s.flat)/3.0
+              if not (u0-1e-6 <= cu <= u1+1e-6):
+                  continue
+              for t in targets:
+                  crossing=_triangle_pair_crossing_segment(
+                      tuple(tuple(map(float,p)) for p in t.world),
+                      tuple(tuple(map(float,p)) for p in s.world),
+                      tolerance=1e-6,
+                  )
+                  if crossing is None:
+                      continue
+                  try:
+                      tuv=tuple(
+                          _barycentric_world_to_flat(
+                              p,
+                              tuple(tuple(map(float,q)) for q in t.world),
+                              t.flat,
+                          )
+                          for p in crossing
+                      )
+                  except ValueError:
+                      continue
+                  pair_counts[side]+=1
+                  by_side[side].extend((float(p[0]),float(p[1])) for p in tuv)
+
+          out={}
+          for side,pts in by_side.items():
+              out[str(side)]={
+                  "pair_count":pair_counts[side],
+                  "uv_bounds":None if not pts else (
+                      min(p[0] for p in pts),
+                      max(p[0] for p in pts),
+                      min(p[1] for p in pts),
+                      max(p[1] for p in pts),
+                  ),
+              }
+          print("ZL1_PER_SKIN_COLLISION="+json.dumps(out,ensure_ascii=False))
           PY
       - name: Material-midline full-solid cross-section diagnostic
         run: |
