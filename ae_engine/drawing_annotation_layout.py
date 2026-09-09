@@ -196,30 +196,24 @@ def _annotation_text_regions(primitives, *, exclude_index: int):
 def _callout_specs(plan):
     rows = []
     for item in tuple(getattr(plan, "feature_callouts", ()) or ()):
-        identifier = str(
-            getattr(item, "source_id", "")
-            or getattr(item, "source_type", "")
-            or getattr(item, "label", "")
-        )
-        rows.append(("FEATURE", identifier, getattr(item, "anchor"), str(getattr(item, "label", ""))))
+        identifier = str(getattr(item, "source_id", "") or getattr(item, "source_type", ""))
+        rows.append((str(getattr(item, "semantic_id", "") or ""), "FEATURE", identifier, getattr(item, "anchor")))
     for item in tuple(getattr(plan, "corner_callouts", ()) or ()):
-        rows.append(("CORNER", str(getattr(item, "corner", "") or getattr(item, "label", "")), getattr(item, "anchor"), str(getattr(item, "label", ""))))
+        rows.append((str(getattr(item, "semantic_id", "") or ""), "CORNER", str(getattr(item, "corner", "")), getattr(item, "anchor")))
     for item in tuple(getattr(plan, "radius_callouts", ()) or ()):
-        rows.append(("RADIUS", str(getattr(item, "label", "")), getattr(item, "anchor"), str(getattr(item, "label", ""))))
+        rows.append((str(getattr(item, "semantic_id", "") or ""), "RADIUS", str(getattr(item, "semantic_id", "")), getattr(item, "anchor")))
     return tuple(rows)
 
 
 def _callout_for_text(plan, primitive: TextPrimitive):
-    matches = [item for item in _callout_specs(plan) if item[3] == str(primitive.text)]
-    if not matches:
+    semantic_id = str(getattr(primitive, "semantic_id", "") or "")
+    if not semantic_id:
         return None
-    matches.sort(key=lambda item: (
-        abs(float(primitive.insert.x) - float(item[2].x))
-        + abs(float(primitive.insert.y) - float(item[2].y)),
-        item[0],
-        item[1],
-    ))
-    return matches[0]
+    matches = [item for item in _callout_specs(plan) if item[0] == semantic_id]
+    if len(matches) != 1:
+        return None
+    _semantic_id, kind, identifier, anchor = matches[0]
+    return kind, identifier, anchor
 
 
 def _callout_candidate_offsets(step: float, max_steps: int):
@@ -264,27 +258,16 @@ def _candidate_offsets(step: float, max_steps: int):
 
 
 def _dimension_axis_for_text(plan, primitive: TextPrimitive) -> str | None:
+    semantic_id = str(getattr(primitive, "semantic_id", "") or "")
+    if not semantic_id:
+        return None
     matches = [
         dim for dim in getattr(plan, "overall_dimensions", ())
-        if str(getattr(dim, "label", "")) == str(primitive.text)
+        if str(getattr(dim, "semantic_id", "") or "") == semantic_id
     ]
-    if len(matches) == 1:
-        return str(matches[0].axis).lower()
-    if not matches:
+    if len(matches) != 1:
         return None
-
-    # Duplicate labels are resolved deterministically by distance to the
-    # dimension midpoint in the axis-normal direction.
-    scored = []
-    for dim in matches:
-        mx = (float(dim.start.x) + float(dim.end.x)) / 2.0
-        my = (float(dim.start.y) + float(dim.end.y)) / 2.0
-        scored.append((
-            abs(float(primitive.insert.x) - mx) + abs(float(primitive.insert.y) - my),
-            str(dim.axis).lower(),
-        ))
-    scored.sort()
-    return scored[0][1]
+    return str(matches[0].axis).lower()
 
 
 def resolve_annotation_collisions(
@@ -317,7 +300,7 @@ def resolve_annotation_collisions(
             callout = _callout_for_text(plan, primitive)
             if callout is None:
                 continue
-            kind, identifier, anchor, _label = callout
+            kind, identifier, anchor = callout
             callout_regions = _candidate_callout_regions(
                 primitives,
                 exclude_index=index,
