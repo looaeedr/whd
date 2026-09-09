@@ -112,9 +112,10 @@ def test_issue74_post_solve_has_zero_positive_area_in_source_solid_footprints():
     assert diagnostic.illegal_penetration is False
     assert post["verified"] is True
     assert int(post["true_thickness_penetrating_band_count"]) == 0
+    minx, miny, maxx, maxy = map(float, divider_part.render_data.material.bounds)
     assert float(post["positive_overlap_area"]) <= max(
         1.0e-12,
-        1.0e-6 * max(float(divider.span), float(divider.formed_depth), 1.0),
+        1.0e-6 * max(maxx - minx, maxy - miny, 1.0),
     )
     for row in dict(post["by_source"]).values():
         assert tuple(row["true_thickness_penetrating_bands"]) == ()
