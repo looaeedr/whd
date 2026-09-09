@@ -1,0 +1,116 @@
+name: Issue74 Clean Manufacturing Dimension Probe
+on:
+  push:
+    branches: [fix/issue74-divider-side-front-penetration]
+    paths: [.github/workflows/issue74-clean-dimension-probe.yml]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest matplotlib -r requirements.txt
+      - shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from dataclasses import replace
+          from shapely.geometry import box
+          from shapely.ops import unary_union
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot,_body_part,_divider_part
+          from ae_engine.assembly_collision import (
+              _triangle_pair_crossing_segment,_barycentric_world_to_flat,
+              _scene_with_replaced_primary_cutting,
+          )
+
+          snap=_snapshot(); body=_body_part(snap); divider,dp=_divider_part(snap)
+          pieces={p.role:p for p in body.render_data.pieces}
+          vals=lambda p:{str(r.phase6_key):float(r.length) for r in p.fold_profile}
+          left=vals(pieces["left_side"]); right=vals(pieces["right_side"])
+          contract=dict(dp.render_data.metadata["physical_geometry_contract"])
+          core_start=float(contract["core_physical_segment"]["flat_band"][0])
+          fw0,fw1=map(float,contract["fw_physical_face"]["flat_band"])
+          fw=fw1-fw0
+          t=float(snap["t"]); half=t/2.0
+          material=dp.render_data.material
+          minx,miny,maxx,maxy=map(float,material.bounds)
+
+          # Authority-derived manufacturing topology:
+          # primary is corner-connected to the physical outer skin boundary;
+          # the left secondary is the actual zl1 solid arm.
+          left_u=core_start+left["zl2"]
+          left_primary_v=fw+half
+          left_secondary_total_v=fw+left["zl1"]
+          left_primary=box(minx,miny,left_u,miny+left_primary_v)
+          left_secondary=box(left_u-half,miny+fw,left_u+half,miny+left_secondary_total_v)
+
+          right_u=core_start+right["zr2"]
+          right_primary_v=fw+half
+          right_primary=box(minx,maxy-right_primary_v,right_u,maxy)
+          clean=unary_union((left_primary,left_secondary,right_primary)).intersection(material)
+
+          # Independently reconstruct the physical both-skin footprint from the
+          # uncut world geometry. Validation only checks coverage; no observed
+          # UV number is fed into the formulas above.
+          raw=bridge._phase6_build_joint_world_geometry((body,dp),(snap["w"],snap["h"],snap["d"]),t)
+          targets=tuple(raw["mapped_skin_triangles_by_part"][divider.stable_id])
+          physical=[]
+          observed={}
+          for source_key,piece in (("box_body:left_side",pieces["left_side"]),("box_body:right_side",pieces["right_side"])):
+              srcs=tuple(raw["mapped_skin_triangles_by_part"][source_key])
+              cursor=0.0; bands=[]
+              for row in piece.fold_profile:
+                  end=cursor+float(row.length); bands.append((str(row.phase6_key),cursor,end)); cursor=end
+              observed[source_key]={}
+              for name,u0,u1 in bands:
+                  by_side={-1:[],1:[]}
+                  for src in srcs:
+                      us=[float(p[0]) for p in src.flat]
+                      if max(us)<u0-1e-7 or min(us)>u1+1e-7: continue
+                      for tar in targets:
+                          seg=_triangle_pair_crossing_segment(src.world,tar.world,tolerance=1e-7)
+                          if not seg: continue
+                          try:
+                              suv=[_barycentric_world_to_flat(p,src.world,src.flat) for p in seg]
+                              tuv=[_barycentric_world_to_flat(p,tar.world,tar.flat) for p in seg]
+                          except Exception: continue
+                          mu=sum(float(p[0]) for p in suv)/2.0
+                          if u0-1e-5<=mu<=u1+1e-5 and int(src.side) in (-1,1):
+                              by_side[int(src.side)].extend(tuv)
+                  pts=by_side[-1]+by_side[1]
+                  if by_side[-1] and by_side[1] and pts:
+                      x0=min(float(p[0]) for p in pts); x1=max(float(p[0]) for p in pts)
+                      y0=min(float(p[1]) for p in pts); y1=max(float(p[1]) for p in pts)
+                      fp=box(x0,y0,x1,y1)
+                      physical.append(fp)
+                      observed[source_key][name]=[x0,y0,x1,y1]
+          footprint=unary_union(physical).intersection(material)
+          missed=float(footprint.difference(clean.buffer(1e-9,join_style=2)).area)
+
+          retained=material.difference(clean)
+          positive_overlap=float(retained.intersection(footprint).area)
+          print("ISSUE74_CLEAN_VALUES="+json.dumps({
+            "authority":{
+              "core_start":core_start,"fw_material":fw,"T":t,"half_t":half,
+              "left_zl1":left["zl1"],"left_zl2":left["zl2"],"right_zr2":right["zr2"],
+            },
+            "manufacturing":{
+              "left_primary":{"u":left_u,"v":left_primary_v},
+              "left_secondary":{"center_u":left_u,"u0":left_u-half,"u1":left_u+half,
+                                "total_v":left_secondary_total_v,
+                                "extra_v":left_secondary_total_v-left_primary_v},
+              "right_primary":{"u":right_u,"v":right_primary_v},
+            },
+            "clean_coords":[[(float(x),float(y)) for x,y in g.exterior.coords]
+              for g in ([clean] if clean.geom_type=="Polygon" else clean.geoms)],
+            "observed_validation_only":observed,
+            "physical_footprint_area":float(footprint.area),
+            "clean_cut_area":float(clean.area),
+            "missed_physical_area":missed,
+            "post_positive_overlap":positive_overlap,
+          },ensure_ascii=False))
+          assert missed <= 1e-8, missed
+          assert positive_overlap <= 1e-8, positive_overlap
+          PY
