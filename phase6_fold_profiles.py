@@ -386,21 +386,25 @@ def profile_to_fold_segments(profile: Sequence[Mapping[str, object]]):
     ``length`` remains the flat/material span. When the editor profile carries
     topology-derived outside-dimension compensation, preserve that semantic as an
     independent ``formed_length`` instead of dropping it at the GUI→manufacturing
-    seam.
+    seam. BoxBody currently promotes only the explicitly family-owned
+    ``fw_left/fw_right`` formed occupation; D/W and outer relief legs retain
+    their established material-fold geometry and placement contracts.
     """
     rows = []
     for seg in profile or ():
         material_length = float(seg.get("len", 0.0))
         ui_add = seg.get("ui_len_add")
+        phase6_key = str(seg.get("phase6_key") or "")
         formed_length = (
-            None if ui_add is None
-            else material_length + abs(float(ui_add))
+            material_length + abs(float(ui_add))
+            if ui_add is not None and phase6_key in {"fw_left", "fw_right"}
+            else None
         )
         rows.append(FoldProfileSegment(
             length=material_length,
             angle=(float(seg["angle"]) if "angle" in seg else None),
             core=(str(seg.get("core")) if seg.get("core") else None),
-            phase6_key=(str(seg.get("phase6_key")) if seg.get("phase6_key") else None),
+            phase6_key=(phase6_key if phase6_key else None),
             formed_length=formed_length,
         ))
     return tuple(rows)
