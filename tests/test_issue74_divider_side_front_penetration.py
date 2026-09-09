@@ -431,9 +431,10 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
     removed = nominal.difference(retained)
     minx, miny, maxx, maxy = map(float, nominal.bounds)
 
-    # Product oracle is expressed directly in final-material coordinates.
-    # Left secondary step follows the approved 22-mm zl1 stage starting at the
-    # 25-mm material FW datum; it must end at 47, not at 48.
+    # Product oracle is expressed only in FINAL CUTTING coordinates.
+    # The secondary stage starts at the primary CUTTING depth, never at the
+    # flat/material FW datum. Material-space FW=25 is forbidden as a placement
+    # authority for this final notch.
     left_primary = shapely_box(
         minx, miny,
         minx + LEFT_PRIMARY_W,
@@ -441,9 +442,9 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
     )
     left_step = shapely_box(
         minx + LEFT_PRIMARY_W - 1.0,
-        miny + 25.0,
+        miny + LEFT_PRIMARY_D,
         minx + LEFT_PRIMARY_W - 1.0 + LEFT_STEP_W,
-        miny + 25.0 + LEFT_STEP_D,
+        miny + LEFT_PRIMARY_D + LEFT_STEP_D,
     )
     right_primary = shapely_box(
         minx,
