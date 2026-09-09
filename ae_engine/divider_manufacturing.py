@@ -187,17 +187,17 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
     if abs(divider_t - t) > 1e-9:
         raise ValueError("Divider thickness disagrees with certified CROSS sheet thickness")
 
-    material = tuple(float(v) for v in tuple(getattr(divider, "material_lengths", ()) or ()))
-    signed = tuple(float(v) for v in tuple(getattr(divider, "signed_fold_chain", ()) or ()))
+    metadata = dict(getattr(getattr(divider, "render_data", None), "metadata", {}) or {})
+    material = tuple(float(v) for v in tuple(metadata.get("material_lengths") or ()))
+    signed = tuple(float(v) for v in tuple(metadata.get("signed_fold_chain") or ()))
     if len(material) != len(signed) or len(material) < 2:
         raise ValueError("Divider certified CROSS requires aligned material/outside fold chains")
-
-    fw_index = getattr(divider, "frame_width_segment_index", None)
-    if fw_index is None:
-        raise ValueError("Divider certified CROSS requires a family-owned FW segment")
-    fw_index = int(fw_index)
-    if fw_index < 0 or fw_index >= len(material):
-        raise ValueError("Divider certified CROSS FW segment index is invalid")
+    contract = _physical_contract(divider)
+    fw_face = dict(contract.get("fw_physical_face") or {})
+    fw_material = fw_face.get("material_dimension")
+    fw_outside = fw_face.get("outside_dimension")
+    if fw_material is None or fw_outside is None:
+        raise ValueError("Divider certified CROSS requires authoritative FW material/outside dimensions")
 
     pieces = tuple(getattr(box_body.render_data, "pieces", ()) or ())
     left_side = next(
@@ -212,8 +212,8 @@ def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: flo
         "T": t,
         "core_start": float(_core_start(divider)),
         "divider_first_outside": abs(float(signed[0])),
-        "divider_fw_outside": abs(float(signed[fw_index])),
-        "divider_fw_material": float(material[fw_index]),
+        "divider_fw_outside": abs(float(fw_outside)),
+        "divider_fw_material": float(fw_material),
         "divider_last_outside": abs(float(signed[-1])),
         "box_zl1_formed": float(box_zl1_formed),
     }
@@ -393,14 +393,17 @@ def resolve_divider_final_geometry(
         registry_variables = _divider_cross_registry_variables(
             divider, box_body, sheet_thickness=float(sheet_thickness)
         )
+        divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+        family = str(divider_metadata.get("model_name") or "").strip() or "ANY"
         certified = lookup_certified_divider_cross_relief(
-            cabinet_family=str(getattr(divider, "model_name", "") or "ANY"),
+            cabinet_family=family,
             variables=registry_variables,
         )
     except Exception:
         # Non-certified families preserve the provisional discovery path.  A
         # Receiving Divider with a malformed certified input must fail closed.
-        if str(getattr(divider, "model_name", "") or "").strip() == "受電箱":
+        divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+        if str(divider_metadata.get("model_name") or "").strip() == "受電箱":
             raise
         registry_variables = {}
 
