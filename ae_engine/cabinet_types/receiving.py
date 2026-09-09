@@ -22,7 +22,7 @@ BOX_BODY_DEFAULTS = {
     "h": 1600.0,
     "d": 350.0,
     "fw": 29.0,
-    "zl1": 24.0,
+    "zl1": -24.0,
     "zl2": 24.0,
     "zr2": 18.0,
 }
@@ -368,7 +368,12 @@ def is_receiving_snapshot(snapshot) -> bool:
 
 
 def resolve_box_body_structure_state(state=None):
-    """受電箱固定使用既有側背分離結構，不建立第二套結構引擎。"""
+    """受電箱固定使用既有側背分離結構，不建立第二套結構引擎。
+
+    Fresh Receiving owns operator OUTSIDE rear-flange input.  Legacy saved
+    side/back states predate the dimension-space marker and remain MATERIAL so
+    loading an old project cannot silently move physical geometry.
+    """
     from phase6_box_body_structure import (
         BoxBodyStructureType,
         normalize_box_body_structure_state,
@@ -376,11 +381,21 @@ def resolve_box_body_structure_state(state=None):
         set_structure_locked,
     )
 
-    result = normalize_box_body_structure_state(state)
-    result = set_active_structure(result, BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT)
+    normalized = normalize_box_body_structure_state(state)
+    was_receiving_side_back = (
+        isinstance(state, dict)
+        and normalized.get("active_type") == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    )
+    result = set_active_structure(normalized, BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT)
     result = set_structure_locked(result, True)
     cfg = result["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    cfg.setdefault("side_rear_bend", 15.0)
+
+    if state is None or not was_receiving_side_back:
+        cfg["side_rear_bend"] = 18.0
+        cfg["side_rear_bend_dimension_space"] = "OUTSIDE"
+    elif not cfg.get("side_rear_bend_dimension_space"):
+        cfg["side_rear_bend_dimension_space"] = "MATERIAL"
+
     # 受電箱後面板是無折彎平板；已確認成形/下料寬 = W - 2.5T。
     cfg["back_width_comp_t"] = 2.5
     return result
