@@ -146,3 +146,13 @@ For WHD mechanical/manufacturing bugs, an unknown domain rule is **not** a hypot
 - When the user has already named an existing model (for example `CROSS / 十字截角`), test whether that model plus parameters can represent the requirement before proposing a new type.
 - Diagnosis may continue read-only while waiting for clarification, but production/Registry/AI-library writes must not encode the unresolved guess.
 
+## Durable correction propagation
+
+When the user corrects the diagnosis, clarifies a product rule, or identifies a repeatable failure mode, do not leave the correction only in chat.
+
+- Proactively update the directly relevant project Skill plus the global AI pitfall library.
+- Also update the relevant domain pitfall/spec/Registry guidance and owning Issue/PR when the correction changes future implementation decisions.
+- Search for conflicting durable guidance and mark it `SUPERSEDED / REVOKED`; do not leave contradictory authorities active.
+- Do not wait for the user to say "add this to the skill / AI library" again.
+- Keep transient run IDs, temporary measurements, and one-off progress out of durable knowledge unless they establish a reusable rule.
+- Re-read the remote file after writing so the update is proven durable.
