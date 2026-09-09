@@ -1,16 +1,23 @@
-name: Receiving FW Formed Occupation RED
+name: Receiving FW Formed Occupation Acceptance
 on:
   push:
     branches: [fix/receiving-fw-formed-solid-authority]
     paths:
+      - ae_engine/contracts.py
+      - ae_engine/box_body_structure.py
+      - ae_engine/assembly_geometry.py
+      - ae_engine/divider_manufacturing.py
       - tests/test_issue74_divider_side_front_penetration.py
       - .github/workflows/receiving-fw-formed-occupation-red.yml
 jobs:
-  red:
+  targeted:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
-      - run: pytest -q -s tests/test_issue74_divider_side_front_penetration.py::test_receiving_boxbody_fw_world_occupation_matches_formed_contract
+      - name: FW formed occupation + Issue74 targeted
+        run: |
+          pytest -q -s \
+            tests/test_issue74_divider_side_front_penetration.py
