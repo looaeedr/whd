@@ -145,8 +145,7 @@ def _to_contract(rows) -> tuple[FoldProfileSegment, ...]:
         if explicit is not None:
             return float(explicit)
         ui_add = row.get("ui_len_add")
-        key = str(row.get("phase6_key") or "")
-        if ui_add is None or key not in {"fw_left", "fw_right"}:
+        if ui_add is None:
             return None
         return float(row.get("len", 0.0)) + abs(float(ui_add))
 
