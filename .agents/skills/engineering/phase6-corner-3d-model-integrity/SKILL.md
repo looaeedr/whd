@@ -92,13 +92,15 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 6. **cleanup drift gate**：Combined terminal GREEN 後若還有 docs/state/workflow cleanup，必須逐 production/test blob 比對 tested head；任何 production/test drift 都使該 GREEN 失效並要求重跑。
 
 
-## 使用者要求「驗中隔」時
+## 使用者要求驗證板件 / DXF 時
 
-若使用者的目的是「檢查目前中隔是否正確」，而不是修改 relief/3D production，必須轉入：
+若使用者的目的是「檢查目前板件是否正確」，而不是修改 production，必須轉入：
 
-`[驗證中隔與DXF](../驗證中隔與DXF/SKILL.md)`
+`[驗證板件與DXF](../驗證板件與DXF/SKILL.md)`
 
-- 「驗目前中隔」：不要求先 Save/Reload，直接驗 current canonical / relief / placement。
-- 「驗目前中隔的 DXF」：實際 export DXF → reopen → compare canonical。
-- 「完整驗中隔」：再加 Save→Reload parity。
-- 不得只回目前數值或歷史 PASS；若使用者要求「跑一次」，必須真的建立/執行驗收並輪詢 remote run 到 terminal。
+- 「驗目前板件／驗箱身／驗封頭尾／驗門／驗底板」：直接驗 current canonical / features / BEND / 2D-3D owner。
+- 「驗中隔」：除通用驗證外，再跑 relief / placement / fixed-hole / FW flush / true-thickness diagnostics。
+- 「驗目前板件的 DXF／驗全部 DXF」：實際 export → reopen → compare canonical。
+- 「驗全部板件」：從 current workspace/resolved manufacturing output 列舉 physical parts，逐件驗，並核對 expected/actual DXF file count。
+- 「完整驗收」：再加 Save→Reload parity。
+- 使用者要求「跑一次」時必須真的執行驗收並輪詢 remote run 到 terminal，不得只回歷史 PASS 或目前數值。
