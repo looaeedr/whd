@@ -43,7 +43,7 @@ def _horizontal_plan():
         radius_callouts=(),
         primitives=(
             LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
-            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5, semantic_id=dimension.semantic_id),
         ),
         diagnostics=(),
     )
@@ -86,7 +86,7 @@ def test_vertical_dimension_text_moves_only_along_dimension_axis():
         radius_callouts=(),
         primitives=(
             LinePrimitive(Vec2(-15.0, 0.0), Vec2(-15.0, 60.0), "DIMENSION"),
-            TextPrimitive("60", Vec2(-15.0, 30.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("60", Vec2(-15.0, 30.0), "DIMENSION", 5.0, 5, semantic_id=dimension.semantic_id),
         ),
         diagnostics=(),
     )
@@ -122,7 +122,7 @@ def test_resolver_avoids_manufacturing_scene_without_mutating_it():
         radius_callouts=(),
         primitives=(
             LinePrimitive(Vec2(0.0, 20.0), Vec2(100.0, 20.0), "DIMENSION"),
-            TextPrimitive("100", Vec2(50.0, 20.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("100", Vec2(50.0, 20.0), "DIMENSION", 5.0, 5, semantic_id=dimension.semantic_id),
         ),
         diagnostics=(),
     )
@@ -172,7 +172,7 @@ def test_dimension_text_avoids_other_annotation_text():
         radius_callouts=(),
         primitives=(
             LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
-            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5, semantic_id=dimension.semantic_id),
             TextPrimitive("NOTE", Vec2(50.0, -15.0), "TEXT", 5.0, 5),
         ),
         diagnostics=(),
@@ -196,31 +196,30 @@ def test_dimension_text_avoids_other_annotation_text():
 
 def test_dimension_text_avoids_other_dimension_line_but_not_its_own():
     layout = _resolver_module()
+    x_dimension = LinearDimensionAnnotation(
+        axis="x",
+        value=100.0,
+        start=Vec2(0.0, 0.0),
+        end=Vec2(100.0, 0.0),
+        label="100",
+    )
+    y_dimension = LinearDimensionAnnotation(
+        axis="y",
+        value=60.0,
+        start=Vec2(0.0, 0.0),
+        end=Vec2(0.0, 60.0),
+        label="60",
+    )
     plan = AnnotationPlan(
-        overall_dimensions=(
-            LinearDimensionAnnotation(
-                axis="x",
-                value=100.0,
-                start=Vec2(0.0, 0.0),
-                end=Vec2(100.0, 0.0),
-                label="100",
-            ),
-            LinearDimensionAnnotation(
-                axis="y",
-                value=60.0,
-                start=Vec2(0.0, 0.0),
-                end=Vec2(0.0, 60.0),
-                label="60",
-            ),
-        ),
+        overall_dimensions=(x_dimension, y_dimension),
         feature_callouts=(),
         corner_callouts=(),
         radius_callouts=(),
         primitives=(
             LinePrimitive(Vec2(0.0, -15.0), Vec2(100.0, -15.0), "DIMENSION"),
-            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("100", Vec2(50.0, -15.0), "DIMENSION", 5.0, 5, semantic_id=x_dimension.semantic_id),
             LinePrimitive(Vec2(50.0, -20.0), Vec2(50.0, -10.0), "DIMENSION"),
-            TextPrimitive("60", Vec2(20.0, 30.0), "DIMENSION", 5.0, 5),
+            TextPrimitive("60", Vec2(20.0, 30.0), "DIMENSION", 5.0, 5, semantic_id=y_dimension.semantic_id),
         ),
         diagnostics=(),
     )
@@ -238,20 +237,19 @@ def test_dimension_text_avoids_other_dimension_line_but_not_its_own():
 
 def test_unresolved_callout_keeps_diagnostic_and_strict_mode_fails():
     layout = _resolver_module()
+    callout = FeatureCallout(
+        source_id="H1",
+        source_type="mounting_hole",
+        anchor=Vec2(0.0, 0.0),
+        label="⌀10",
+    )
     plan = AnnotationPlan(
         overall_dimensions=(),
-        feature_callouts=(
-            FeatureCallout(
-                source_id="H1",
-                source_type="mounting_hole",
-                anchor=Vec2(0.0, 0.0),
-                label="⌀10",
-            ),
-        ),
+        feature_callouts=(callout,),
         corner_callouts=(),
         radius_callouts=(),
         primitives=(
-            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1),
+            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1, semantic_id=callout.semantic_id),
         ),
         diagnostics=(),
     )
@@ -285,20 +283,19 @@ def test_unresolved_callout_keeps_diagnostic_and_strict_mode_fails():
 
 def test_callout_moves_to_legal_position_and_adds_leader():
     layout = _resolver_module()
+    callout = FeatureCallout(
+        source_id="H1",
+        source_type="mounting_hole",
+        anchor=Vec2(0.0, 0.0),
+        label="⌀10",
+    )
     plan = AnnotationPlan(
         overall_dimensions=(),
-        feature_callouts=(
-            FeatureCallout(
-                source_id="H1",
-                source_type="mounting_hole",
-                anchor=Vec2(0.0, 0.0),
-                label="⌀10",
-            ),
-        ),
+        feature_callouts=(callout,),
         corner_callouts=(),
         radius_callouts=(),
         primitives=(
-            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1),
+            TextPrimitive("⌀10", Vec2(10.0, 10.0), "TEXT", 5.0, 1, semantic_id=callout.semantic_id),
         ),
         diagnostics=(),
     )
