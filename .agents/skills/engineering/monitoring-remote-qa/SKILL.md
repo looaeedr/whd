@@ -73,3 +73,21 @@ Remote QA monitoring is **active polling**, not event notification.
 - 30 秒 cadence 只影響聊天中的觀測回報；**不得用聊天回報節奏驅動 remote runner**。遠端 durable checkpoint/resume 仍必須 controller-independent。
 - 若聊天 Runtime 被平台切斷，remote runner 照常繼續；下一 Runtime 先讀 durable `run_id/head_sha/state/artifact` 後恢復監控，不補發缺失的 30 秒訊息。
 
+
+
+## Remote QA Active Lock
+
+這是 active polling 的**不可跳過執行鎖**，不是提醒。
+
+- 一旦取得 `run_id + head_sha`，且該 run 仍為 `queued` / `in_progress`，立即進入 `REMOTE_QA_ACTIVE_LOCK`。
+- Lock 存在期間，下一個工具動作只能是：
+  1. poll 該 `run_id`；
+  2. poll 該 run 的 jobs/steps；
+  3. 若 terminal failure，讀 failed-job log；
+  4. 對使用者送出 30 秒進度觀測。
+- **禁止**在 non-terminal run 期間轉去讀無關 code、修改 production/test/skill、建立另一個 workflow/run、做 branch cleanup、開新診斷或處理別張票。這些動作一律等 terminal 後才可執行。
+- 只有兩種情況解除 lock：
+  - 該 locked run 到達 terminal；
+  - Runtime 被平台切斷。下次取得控制權時，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
+- terminal failure 後，先抓 log 並完成 failure classification；之後才可解除舊 run lock、進修正流程。修正若觸發 replacement run，立即對新 `run_id + head_sha` 建立新的 active lock。
+- 每次非 polling 工具呼叫前都必須自問：目前是否存在 non-terminal locked run？若是，該呼叫非法，先 poll。
