@@ -6826,11 +6826,18 @@ def _phase6_resolve_family_divider_reliefs(
         if result.verified:
             current[divider_key] = result.solved_part
         status = str(relief.candidate_status)
+        certified_hit = status.startswith("CERTIFIED_REGISTRY_")
         diagnostics.append(ResolvedJointDiagnostic(
             joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
-            source=joint.source.value, registry_status="MISS", trust_level="PROVISIONAL_3D",
+            source=joint.source.value,
+            registry_status=("HIT" if certified_hit else "MISS"),
+            trust_level=("CERTIFIED" if certified_hit else "PROVISIONAL_3D"),
             preserve_part="box_body", relief_part=divider_key, candidate_status=status,
-            legal_contact=(bool(relief.retained_contact_segments) if status == "PROVISIONAL_3D_VERIFIED" else status == "NO_FRONT_FOLD_PENETRATION"),
+            legal_contact=(
+                bool(relief.retained_contact_segments)
+                if status in {"PROVISIONAL_3D_VERIFIED", "CERTIFIED_REGISTRY_VERIFIED"}
+                else status == "NO_FRONT_FOLD_PENETRATION"
+            ),
             illegal_penetration=bool(result.illegal_penetration), pre_pair_count=int(relief.pre_pair_count),
             post_pair_count=int(relief.post_pair_count), evidence=evidence,
         ))
