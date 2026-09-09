@@ -287,3 +287,10 @@
 - **正確資料流**：`3D input → _phase6_input_snapshot → family/topology conversion → material Fold → formed solid → collision → final CUTTING`。
 - **禁止逆流**：material Fold、world bbox、collision evidence、test expected 都不得回推 operator input 語意。
 - **reference evidence**：operator/outside `24/24/29/18` 在 T=2 下可導出 material `22/20/25/16`；這是單向 derivation，不可反向使用。
+
+
+## 2026-09-09 — 口語沒說「包外」卻被當成 outside
+
+- **使用者明確規則**：口語尺寸若沒有說「包外」，就是料尺寸。
+- **錯誤模式**：看到 Receiving / FW / 3D input 既有 outside semantics，就把使用者口頭給的數字自動解讀成包外，造成後續 22/20/25、24/24/29 等尺寸域混亂。
+- **永久防線**：conversation/spec parser 先判語意；未出現「包外」→ `MATERIAL`，明確出現「包外」→ `OUTSIDE/FORMED`。UI/production 的 internal semantics 不得反過來改寫使用者原話。
