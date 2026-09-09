@@ -1,0 +1,25 @@
+name: Issue 74 Multipart BoxBody UI QA
+
+on:
+  push:
+    branches:
+      - fix/multipart-boxbody-ui-boundaries
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib
+      - name: Run multipart BoxBody boundary regressions
+        run: |
+          xvfb-run -a pytest -q             tests/test_phase6_assembly_3d_view.py -k "operator_part_selector_collapses_box_body_physical_children or final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum"             tests/test_phase6_receiving_multipart_integration.py -k "receiving_box_body_children_are_nested_under_box_body_but_independently_hideable"
