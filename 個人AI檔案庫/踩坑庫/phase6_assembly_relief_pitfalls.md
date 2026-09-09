@@ -326,3 +326,25 @@
 - Receiving reference：FW material=25、formed outside=29、T=2；Divider 在箱內所以 physical collision datum=29−2=27；zl1 material length=22；final 2D secondary band=27..49。
 - **禁止**：拿 test 的 27/49 回灌 production；禁止把 +T 說成 target T/2；禁止直接把 raw 25..47 UV endpoint 當 final manufacturing coordinate。
 - **數值 seam**：同一 physical 27 datum 若由兩條浮點路徑得到 26.999999997 與 26.999999999，必須共用同一 canonical physical-face boundary，否則 CUTTING union 會被誤拆成 exterior notch + interior hole。
+
+## 2026-09-09 — Divider 不得因 schema 不夠就另造截角類型
+
+- Receiving Divider 已由使用者確認使用 **CROSS／十字截角＋參數**。
+- 若現有 CROSS schema 暫時只能表達 STANDARD/RETAIN/EXTRA_CUT，不能因此自行判斷「Divider 要一個新 relief type」或偷換成 INSERT_OVERLAY。
+- 正確順序：先確認機械語意 → 保留 CROSS identity → 擴充必要參數 → Registry 參數化 → 用 `中隔.dxf` 反讀驗證 → true-thickness 3D shadow 驗證。
+- `中隔.dxf` 在此任務是截角認證基準；舊「只拿孔、不拿外框」指引對此截角 requirement 已 **SUPERSEDED**。
+- 對任何不確定的二級槽、R、方向、固定/變動來源，**先問使用者，禁止猜。**
+
+## 2026-09-09 — Divider DXF 座標方向不能直接當 final-CUTTING 深度
+
+- `基準檔/金庫型/中隔.dxf` 的 long-X / short-Y 會經既有 90° rigid mapping 進 Divider 座標；source 座標上的某段長度不能直接命名成 Divider final-CUTTING depth。
+- 本次錯誤例：source 幾何裡看到 `51`，一度被誤解成二級深度；實際 normalize 後它屬另一座標方向的定位，不能直接拿 `51` 當 production 參數。
+- 正確做法：先做完整 rigid normalization，再以 Divider local U/V 描述主截角、槽寬、直段、R；任何參數 ownership 若仍不明確就問使用者。
+- DXF 反讀是 certification/validation authority，不可把座標差值直接回灌 production。
+## 2026-09-10 — 把 DXF rigid mapping 誤當 Divider 外框端向 authority
+
+- **事故模式**：因 `中隔.dxf` 固定孔採既有 clockwise 90° rigid mapping，就把 DXF 有槽端直接綁成 production 的 `MIN_Y` 或 `MAX_Y`。
+- **為什麼錯**：固定孔 mapping 只決定 baseline hole datum；Divider 外框截角端向是裝配語意，應由**對象 mating Fold 的正負方向**決定。
+- **正確規則**：先把 DXF 認證成兩種端型「66×27 + U 槽」與「60×27 plain」，再由 object Fold sign 分配端向；對象是負折的那一端用有槽型。
+- **禁止**：用 collision/backprojection 找哪端要槽，再把結果寫回 Registry。3D 只能驗證「依 Fold sign 算出的 production」有沒有穿透。
+- 本次 Receiving HORIZONTAL 證據：`MIN_Y -> zl2=-90°`，有槽端落 MIN_Y 後 post-refold positive overlap = 0。

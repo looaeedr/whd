@@ -160,9 +160,26 @@
                 "BOX_SIDE_REAR_BEND",
                 "SHEET_THICKNESS",
                 "BOTTOM_RELIEF_RESERVE_U",
-                "BOTTOM_RELIEF_RESERVE_V"
+                "BOTTOM_RELIEF_RESERVE_V",
+                "DIVIDER_CORE_START",
+                "DIVIDER_FIRST_OUTSIDE",
+                "DIVIDER_FW_OUTSIDE",
+                "DIVIDER_FW_MATERIAL",
+                "DIVIDER_LAST_OUTSIDE",
+                "BOX_ZL1_FORMED"
               ]
             }
+          },
+          "corner_type": {
+            "enum": [
+              "CROSS",
+              "OVERLAY",
+              "INSERT",
+              "INSERT_OVERLAY"
+            ]
+          },
+          "cross_parameters": {
+            "type": "object"
           }
         }
       }

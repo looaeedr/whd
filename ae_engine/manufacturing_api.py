@@ -1750,10 +1750,10 @@ def build_box_body_divider_render_data(
 ) -> PartRenderData:
     """Build one canonical box-body divider from its resolved material chain.
 
-    Divider baseline DXF owns fixed holes only.  Its outer CUTTING contour is
-    intentionally not copied here: T3 Assembly Collision/Relief owns the final
-    assembly notch.  Baseline holes are rigidly rotated into the nominal strip
-    and centered without scaling, preserving the source A/B/C relative vectors.
+    Divider baseline DXF owns the certified fixed-hole and CROSS relief reference.
+    Runtime CUTTING is not copied as fixed vertices: the Certified Registry
+    parameterizes CROSS from canonical Fold/FW/T inputs, while 3D collision is
+    shadow verification only. Baseline holes keep the existing rigid mapping.
     """
     from .door_dividers import BoxBodyDividerPart
     from .sheetmetal_drawing import CirclePrimitive, DrawingScene, structural_result_to_primitives
@@ -1849,6 +1849,7 @@ def build_box_body_divider_render_data(
         metadata={
             "stable_id": str(divider.stable_id),
             "owner": "box_body",
+            "model_name": (str(divider.model_name).strip() if divider.model_name else ""),
             "axis": str(divider.axis),
             "boundary_key": str(divider.boundary_key),
             "handle_side": bool(divider.handle_side),

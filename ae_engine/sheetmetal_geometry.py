@@ -13,13 +13,14 @@ import math
 from typing import Iterable, Literal
 
 try:
-    from shapely.geometry import Polygon, box, LineString
+    from shapely.geometry import Polygon, box, LineString, Point
     from shapely.geometry.polygon import orient
     from shapely.ops import unary_union
 except Exception:  # pragma: no cover - exercised only on minimal deployments
     Polygon = None
     box = None
     LineString = None
+    Point = None
     orient = None
     unary_union = None
 
@@ -110,6 +111,9 @@ class CornerTypeResidual:
     primary: tuple[float, float]
     secondary_u: float | None = None
     secondary_depth: float | None = None
+    slot_width: float | None = None
+    slot_straight_depth: float | None = None
+    slot_radius: float | None = None
 
 
 class CornerTypeId(str, Enum):
@@ -175,6 +179,9 @@ class CornerTypeSelection:
     amount_t: float | None = None
     secondary_retain_t: float | None = None
     secondary_depth_t: float | None = None
+    slot_width: float | None = None
+    slot_straight_depth: float | None = None
+    slot_radius: float | None = None
 
     def __post_init__(self):
         type_id = CornerTypeId(self.type_id)
@@ -186,6 +193,9 @@ class CornerTypeSelection:
         amount = None if self.amount_t is None else float(self.amount_t)
         secondary_retain = None if self.secondary_retain_t is None else float(self.secondary_retain_t)
         secondary_depth = None if self.secondary_depth_t is None else float(self.secondary_depth_t)
+        slot_width = None if self.slot_width is None else float(self.slot_width)
+        slot_straight_depth = None if self.slot_straight_depth is None else float(self.slot_straight_depth)
+        slot_radius = None if self.slot_radius is None else float(self.slot_radius)
 
         if type_id is CornerTypeId.CROSS:
             mode = mode or CrossCornerMode.STANDARD
@@ -204,6 +214,14 @@ class CornerTypeSelection:
                 amount = 0.5 if amount is None else amount
                 if amount <= 0:
                     raise GeometryError("十字截角多切量必須大於 0")
+            slot_values = (slot_width, slot_straight_depth, slot_radius)
+            if any(value is not None for value in slot_values):
+                if not all(value is not None for value in slot_values):
+                    raise GeometryError("十字截角槽參數必須同時提供寬度、直段深度與R")
+                if slot_width <= 0 or slot_straight_depth <= 0 or slot_radius <= 0:
+                    raise GeometryError("十字截角槽參數必須大於 0")
+                if 2.0 * slot_radius > slot_width + DEFAULT_TOLERANCE:
+                    raise GeometryError("十字截角槽 R 不可大於槽寬的一半")
         elif type_id is CornerTypeId.OVERLAY:
             if direction not in (None, CornerDirection.HEIGHT):
                 raise GeometryError("貼外型留肉方向固定為高")
@@ -238,12 +256,19 @@ class CornerTypeSelection:
         if type_id is not CornerTypeId.INSERT_OVERLAY:
             secondary_retain = None
             secondary_depth = None
+        if type_id is not CornerTypeId.CROSS:
+            slot_width = None
+            slot_straight_depth = None
+            slot_radius = None
 
         object.__setattr__(self, "cross_mode", mode)
         object.__setattr__(self, "direction", direction)
         object.__setattr__(self, "amount_t", amount)
         object.__setattr__(self, "secondary_retain_t", secondary_retain)
         object.__setattr__(self, "secondary_depth_t", secondary_depth)
+        object.__setattr__(self, "slot_width", slot_width)
+        object.__setattr__(self, "slot_straight_depth", slot_straight_depth)
+        object.__setattr__(self, "slot_radius", slot_radius)
 
 
 @dataclass(frozen=True)
@@ -253,6 +278,9 @@ class ResolvedCornerRelief:
     primary_v: float
     secondary_u: float | None = None
     secondary_depth: float | None = None
+    slot_width: float | None = None
+    slot_straight_depth: float | None = None
+    slot_radius: float | None = None
 
 
 def normalize_corner_selection(selection: CornerTypeSelection) -> CornerTypeSelection:
@@ -316,12 +344,22 @@ def corner_selection_residual(
 
     if selection.type_id is CornerTypeId.CROSS:
         if selection.cross_mode is CrossCornerMode.STANDARD:
-            return CornerTypeResidual((0.0, 0.0))
+            return CornerTypeResidual(
+                (0.0, 0.0),
+                slot_width=selection.slot_width,
+                slot_straight_depth=selection.slot_straight_depth,
+                slot_radius=selection.slot_radius,
+            )
         amount = float(selection.amount_t) * t
         du, dv = _directional_delta(selection.direction, amount)
         if selection.cross_mode is CrossCornerMode.RETAIN:
             du, dv = -du, -dv
-        return CornerTypeResidual((du, dv))
+        return CornerTypeResidual(
+            (du, dv),
+            slot_width=selection.slot_width,
+            slot_straight_depth=selection.slot_straight_depth,
+            slot_radius=selection.slot_radius,
+        )
 
     if selection.type_id is CornerTypeId.OVERLAY:
         # 貼外：一級截角；高方向固定留肉 xT。
@@ -383,11 +421,19 @@ def compose_corner_residual(
         raise GeometryError("第二級截角尺寸不可為負值")
     if residual.secondary_depth is not None and residual.secondary_depth < 0:
         raise GeometryError("第二級截角深度不可為負值")
+    if residual.slot_width is not None:
+        if residual.slot_width > primary_u + DEFAULT_TOLERANCE:
+            raise GeometryError("十字截角槽寬不可超過主截角寬")
+        if residual.slot_straight_depth is None or residual.slot_radius is None:
+            raise GeometryError("十字截角槽參數不完整")
     return ResolvedCornerRelief(
         primary_u=primary_u,
         primary_v=primary_v,
         secondary_u=actual_secondary_u,
         secondary_depth=residual.secondary_depth,
+        slot_width=residual.slot_width,
+        slot_straight_depth=residual.slot_straight_depth,
+        slot_radius=residual.slot_radius,
     )
 
 
@@ -606,6 +652,49 @@ def _validate_four_side(g: FourSideFlangeGeometry, policy: RectCornerReliefPolic
         raise GeometryError("corner reliefs consume blank height")
 
 
+def _local_cross_slot_polygon(relief: ResolvedCornerRelief):
+    """Build an optional rounded-end slot in canonical +U/+V corner coordinates."""
+    if relief.slot_width is None:
+        return None
+    if relief.slot_straight_depth is None or relief.slot_radius is None:
+        raise GeometryError("十字截角槽參數不完整")
+    width = float(relief.slot_width)
+    straight = float(relief.slot_straight_depth)
+    radius = float(relief.slot_radius)
+    u0 = float(relief.primary_u) - width
+    u1 = float(relief.primary_u)
+    tangent_v = float(relief.primary_v) + straight
+    if u0 < -DEFAULT_TOLERANCE:
+        raise GeometryError("十字截角槽超出主截角U範圍")
+    rectangle = box(max(0.0, u0), float(relief.primary_v), u1, tangent_v)
+    axis_left = u0 + radius
+    axis_right = u1 - radius
+    if axis_right < axis_left - DEFAULT_TOLERANCE:
+        raise GeometryError("十字截角槽R與槽寬不相容")
+    if abs(axis_right - axis_left) <= DEFAULT_TOLERANCE:
+        cap = Point(((axis_left + axis_right) / 2.0, tangent_v)).buffer(radius)
+    else:
+        cap = LineString(((axis_left, tangent_v), (axis_right, tangent_v))).buffer(
+            radius, cap_style=1, join_style=1
+        )
+    cap = cap.intersection(box(u0, tangent_v, u1, tangent_v + radius + DEFAULT_TOLERANCE))
+    return unary_union((rectangle, cap))
+
+
+def _mirror_local_corner_polygon(poly, *, corner_name: str, width: float, height: float):
+    from shapely.affinity import scale, translate
+    if corner_name == "bottom_left":
+        return poly
+    if corner_name == "bottom_right":
+        return translate(scale(poly, xfact=-1.0, yfact=1.0, origin=(0.0, 0.0)), xoff=float(width))
+    if corner_name == "top_left":
+        return translate(scale(poly, xfact=1.0, yfact=-1.0, origin=(0.0, 0.0)), yoff=float(height))
+    if corner_name == "top_right":
+        mirrored = scale(poly, xfact=-1.0, yfact=-1.0, origin=(0.0, 0.0))
+        return translate(mirrored, xoff=float(width), yoff=float(height))
+    raise GeometryError(f"unknown physical corner: {corner_name}")
+
+
 def _placed_corner_cut_polygons(
     *,
     corner_name: str,
@@ -646,7 +735,30 @@ def _placed_corner_cut_polygons(
         )
     else:
         raise GeometryError(f"unknown physical corner: {corner_name}")
-    return [poly for poly in (primary, secondary) if poly is not None and not poly.is_empty]
+    slot_local = _local_cross_slot_polygon(relief)
+    slot = (
+        None if slot_local is None
+        else _mirror_local_corner_polygon(
+            slot_local, corner_name=corner_name, width=width, height=height
+        )
+    )
+    return [
+        poly for poly in (primary, secondary, slot)
+        if poly is not None and not poly.is_empty
+    ]
+
+
+def placed_corner_cut_polygons(
+    *,
+    corner_name: str,
+    relief: ResolvedCornerRelief,
+    width: float,
+    height: float,
+):
+    """Public geometry seam for placing one already-resolved CornerType cut."""
+    return _placed_corner_cut_polygons(
+        corner_name=corner_name, relief=relief, width=width, height=height
+    )
 
 
 def _four_side_type_cut_polygons(g: FourSideFlangeGeometry, policy: FourCornerTypePolicy):

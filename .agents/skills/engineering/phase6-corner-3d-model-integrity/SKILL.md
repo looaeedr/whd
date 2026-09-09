@@ -261,3 +261,40 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - 因此 secondary material CUTTING band：`27 → 27+22 = 49`
 - 這個 `+T` 是 **3D formed physical face → 2D material backprojection** 的折彎幾何結果，不是 test compensation、不是 expected-actual 差值、也不是 `T/2` skin 補償。
 - validation 的 `27/49` 只能判斷 production 是否撞對；production 必須從 authoritative T、Fold topology、formed FW physical face 與 collision/backprojection 自己導出。
+
+## 2026-09-09 — 機械語意不確定時必須先問（HARD GATE）
+
+- **不懂就問，禁止假會。** 只要對機械語意、CornerType 類型、參數歸屬、尺寸空間（料／包外／formed）、哪個面 mating、哪個值是固定規格或可變參數有任何不確定，必須先向使用者確認，再進規格、Registry 或 production 修改。
+- 禁止從「目前程式怎麼算」、「某次 collision/probe 結果」、「fixture expected」、「看起來像某種截角」自行補成產品規格。
+- 使用者已明確指定既有模型時，優先**沿用既有模型＋參數**；不得為了方便另造新 CornerType / 新幾何語意。只有使用者明確確認現有模型不足，才可提出新增模型。
+- 若使用者已提供輸入區／基準 DXF／正式規格，先把這些 authoritative inputs 列清楚；缺一個關鍵對應就問，不得靠猜補完。
+- 問題未釐清時可做只讀診斷，但不得把猜測寫入 production、Registry、Skill、AI Library 或驗收 oracle。
+
+## 2026-09-09 — Receiving Divider 截角模型更正：CROSS＋參數（SUPERSEDES 舊 collision-owner 敘述）
+
+- 使用者已明確確認：**中隔截角沿用既有 `CornerType=CROSS（十字截角）`，再由參數描述；不得新增「Divider 專用 CornerType」。**
+- 本節 **SUPERSEDES** 本 Skill 內任何把 Receiving Divider 最終截角類型／尺寸視為「由 collision/backprojection 自行發明」的舊敘述。3D collision/backprojection 對已認證中隔規則只可做 physical shadow / penetration verification，不可取代 CROSS＋參數的製造規則。
+- `基準檔/金庫型/中隔.dxf` 對中隔截角可作**認證／基準 authority**：用來確認 CROSS 參數及其拓撲；runtime production 應讀 Certified Registry / canonical parameter rule，不應每次直接複製 DXF 外框座標。
+- DXF 反讀或測試量測只可證明「Registry 參數化結果是否與基準一致」；不得使用 expected-actual 差值回補 production。
+- 若目前 CROSS schema 無法表達某個二級槽、R 或其他必要參數，先確認使用者要把它建模成 CROSS 的哪個參數，再擴充 CROSS 的參數能力；**禁止直接改用 INSERT_OVERLAY 或新增 CornerType 來繞過資料模型限制。**
+
+## 2026-09-09 — 使用者更正後自動同步 Durable Knowledge
+
+- 只要使用者更正截角／3D／Joint／Fold／尺寸語意，或本輪找到一個可重複踩坑，**AI 必須主動同步 Skill、全域 AI 踩坑庫、相關領域規範/Registry 說明與 owning Issue/PR**；不得等使用者再提醒「補技能、AI庫」。
+- 若更正會推翻舊 authority，必須搜尋舊內容並標 `SUPERSEDED / REVOKED`，避免下一個 Agent 同時讀到兩套互相衝突的規則。
+- 只有會影響未來決策的永久知識才固化；一次性 run id、臨時 probe 數值、進度回報不進 durable knowledge。
+- 寫完必須遠端反讀確認；未反讀只能算寫入嘗試，不算知識同步完成。
+## 2026-09-10 — Divider CROSS 端向由對象 Fold sign 決定
+
+- Receiving HORIZONTAL Divider 的正式截角仍是 `CornerType=CROSS + parameters`。
+- **有槽端／無槽端不得預先綁死 `MIN_Y/MAX_Y`，也不得從 `中隔.dxf` 固定孔的 90° rigid mapping 推導外框端向。**
+- 端向 authority 是**被中隔對到的物件 Fold Profile**：
+  - 對象 mating Fold sign < 0 → 套用「有槽端」；
+  - 其他端 → 套用「無槽端」。
+- 目前 Receiving HORIZONTAL topology：`MIN_Y -> left_side -> zl2 -> angle=-90°`，因此 `MIN_Y` 套有槽端；`MAX_Y -> right_side -> zr2 -> terminal/no bend`，套無槽端。
+- CROSS 母體：
+  - 有槽端 primary = `fold_u/fold_v` 解析出的 66×27；
+  - 無槽端 primary = 60×27；
+  - 槽參數 = width 7 / straight 24 / R3.5（皆由 Registry 公式算，不存成 runtime 補償常數）。
+- Collision/backprojection 只能做 post-refold shadow acceptance；不得用它決定 slot_end 或回灌 production 尺寸。
+- 若兩端都是負折、都不是負折、或 Fold sign 缺失造成 selector 無法唯一決定，**fail closed，不猜方向**。

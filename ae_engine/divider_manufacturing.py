@@ -51,7 +51,7 @@ class DividerPlacementEvidence:
 class DividerReliefEvidence:
     candidate_status: str
     core_start: float | None = None
-    cut_depths: tuple[float, ...] = ()
+    cut_depths: tuple[tuple[str, float], ...] = ()
     pre_pair_count: int = 0
     post_pair_count: int = 0
     retained_contact_segments: int = 0
@@ -151,6 +151,137 @@ def _core_start(part) -> float:
     if len(band) != 2:
         raise ValueError(f"Divider core physical segment unavailable: {part.part_key}")
     return float(band[0])
+
+
+def _formed_profile_length(profile, *, phase6_key: str) -> float:
+    for row in tuple(profile or ()):
+        key = (
+            str(row.get("phase6_key") or "")
+            if isinstance(row, dict)
+            else str(getattr(row, "phase6_key", "") or "")
+        )
+        if key != str(phase6_key):
+            continue
+        formed = (
+            row.get("formed_length")
+            if isinstance(row, dict)
+            else getattr(row, "formed_length", None)
+        )
+        if formed is None:
+            raise ValueError(
+                f"Fold Profile {phase6_key!r} has no formed/operator length authority"
+            )
+        value = abs(float(formed))
+        if value <= 0:
+            raise ValueError(f"Fold Profile {phase6_key!r} formed length must be > 0")
+        return value
+    raise ValueError(f"Fold Profile formed segment not found: phase6_key={phase6_key!r}")
+
+
+def _fold_sign(value) -> float:
+    if value is None:
+        return 0.0
+    number = float(value)
+    if number < -1e-9:
+        return -1.0
+    if number > 1e-9:
+        return 1.0
+    return 0.0
+
+
+def _divider_object_mating_fold_signs(divider, box_body):
+    """Resolve Divider end orientation from the object's authoritative Fold signs.
+
+    Receiving HORIZONTAL Divider contract:
+    - MIN_Y mates the left-side front chain: the segment immediately before FW.
+    - MAX_Y mates the right-side front chain: the segment immediately after FW.
+    The U-slot belongs to the end whose object mating Fold sign is negative.
+    Collision/backprojection is intentionally not consulted here.
+    """
+    metadata = dict(getattr(getattr(divider, "render_data", None), "metadata", {}) or {})
+    axis = str(metadata.get("axis") or "").strip().upper()
+    if axis != "HORIZONTAL":
+        raise ValueError("certified Receiving Divider CROSS sign rule applies to HORIZONTAL Divider only")
+
+    pieces = tuple(getattr(box_body.render_data, "pieces", ()) or ())
+    by_role = {str(getattr(piece, "role", "") or ""): piece for piece in pieces}
+    if "left_side" not in by_role or "right_side" not in by_role:
+        raise ValueError("Divider CROSS sign rule requires left/right BoxBody side pieces")
+
+    def adjacent(profile, fw_key, offset):
+        rows = tuple(profile or ())
+        index = next(
+            (i for i, row in enumerate(rows)
+             if str(getattr(row, "phase6_key", "") or "") == str(fw_key)),
+            None,
+        )
+        if index is None:
+            raise ValueError(f"Divider CROSS sign rule cannot find {fw_key}")
+        target = index + int(offset)
+        if target < 0 or target >= len(rows):
+            raise ValueError(f"Divider CROSS sign rule has no mating fold beside {fw_key}")
+        row = rows[target]
+        angle = getattr(row, "angle", None)
+        return {
+            "phase6_key": str(getattr(row, "phase6_key", "") or ""),
+            "angle": None if angle is None else float(angle),
+            "sign": _fold_sign(angle),
+        }
+
+    min_y = adjacent(by_role["left_side"].fold_profile, "fw_left", -1)
+    max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)
+    return {
+        "sign_by_end": {
+            "MIN_Y": float(min_y["sign"]),
+            "MAX_Y": float(max_y["sign"]),
+        },
+        "evidence": {
+            "MIN_Y": min_y,
+            "MAX_Y": max_y,
+            "source": "OBJECT_FOLD_PROFILE_ADJACENT_TO_FW",
+        },
+    }
+
+
+def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: float) -> dict[str, float]:
+    """Project canonical Divider/Fold inputs into the certified CROSS formula variables."""
+    t = float(sheet_thickness)
+    if t <= 0:
+        raise ValueError("Divider certified CROSS requires positive sheet thickness")
+    divider_t = float(getattr(divider, "thickness", t) or t)
+    if abs(divider_t - t) > 1e-9:
+        raise ValueError("Divider thickness disagrees with certified CROSS sheet thickness")
+
+    metadata = dict(getattr(getattr(divider, "render_data", None), "metadata", {}) or {})
+    material = tuple(float(v) for v in tuple(metadata.get("material_lengths") or ()))
+    signed = tuple(float(v) for v in tuple(metadata.get("signed_fold_chain") or ()))
+    if len(material) != len(signed) or len(material) < 2:
+        raise ValueError("Divider certified CROSS requires aligned material/outside fold chains")
+    contract = _physical_contract(divider)
+    fw_face = dict(contract.get("fw_physical_face") or {})
+    fw_material = fw_face.get("material_dimension")
+    fw_outside = fw_face.get("outside_dimension")
+    if fw_material is None or fw_outside is None:
+        raise ValueError("Divider certified CROSS requires authoritative FW material/outside dimensions")
+
+    pieces = tuple(getattr(box_body.render_data, "pieces", ()) or ())
+    left_side = next(
+        (piece for piece in pieces if str(getattr(piece, "role", "") or "") == "left_side"),
+        None,
+    )
+    if left_side is None:
+        raise ValueError("Divider certified CROSS requires the Receiving left-side Fold profile")
+    box_zl1_formed = _formed_profile_length(left_side.fold_profile, phase6_key="zl1")
+
+    return {
+        "T": t,
+        "core_start": float(_core_start(divider)),
+        "divider_first_outside": abs(float(signed[0])),
+        "divider_fw_outside": abs(float(fw_outside)),
+        "divider_fw_material": float(fw_material),
+        "divider_last_outside": abs(float(signed[-1])),
+        "box_zl1_formed": float(box_zl1_formed),
+    }
 
 
 def _source_fold_bands_by_geometry_key(box_body) -> dict[str, tuple[tuple[str, float, float], ...]]:
@@ -286,11 +417,12 @@ def resolve_divider_final_geometry(
     refold_world: Callable[[object], Mapping[str, object]], clearance: float = 0.0,
     sheet_thickness: float = 0.0,
 ) -> ResolvedDividerFinalGeometry:
-    """Resolve one Divider's placement, collision relief and verified final material.
+    """Resolve one Divider's certified CROSS relief and verified final material.
 
-    Placement is proved first from physical FW skins. Only a valid placement may
-    enter collision/backprojection. Any cut is then refolded and verified before
-    it can become canonical final material.
+    Placement is proved first from physical FW skins. A Certified Registry HIT
+    owns the CROSS fold_u/fold_v + slot parameters; collision/backprojection is
+    retained only as pre/post true-thickness shadow evidence. Registry MISS for
+    non-certified families may still use the provisional discovery path.
     """
     from .assembly_collision import (
         build_divider_front_fold_relief_candidate,
@@ -313,6 +445,41 @@ def resolve_divider_final_geometry(
 
     core_start = _core_start(divider)
     source_fold_bands = _source_fold_bands_by_geometry_key(box_body)
+
+    # Certified Divider geometry is CROSS + parameters.  Collision/backprojection
+    # remains a shadow/penetration witness and never overwrites a Registry HIT.
+    from .certified_relief_registry import lookup_certified_divider_cross_relief
+    from .sheetmetal_geometry import placed_corner_cut_polygons
+    from shapely.affinity import translate as _translate
+    from shapely.ops import unary_union as _unary_union
+
+    certified = None
+    registry_variables = {}
+    mating_fold_orientation = {}
+    divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+    family = str(divider_metadata.get("model_name") or "").strip() or "ANY"
+    divider_axis = str(divider_metadata.get("axis") or "").strip().upper()
+    try:
+        if family == "受電箱" and divider_axis == "HORIZONTAL":
+            registry_variables = _divider_cross_registry_variables(
+                divider, box_body, sheet_thickness=float(sheet_thickness)
+            )
+            mating_fold_orientation = _divider_object_mating_fold_signs(
+                divider, box_body
+            )
+            certified = lookup_certified_divider_cross_relief(
+                cabinet_family=family,
+                variables=registry_variables,
+                mating_fold_sign_by_end=mating_fold_orientation["sign_by_end"],
+            )
+    except Exception:
+        # A certified Receiving HORIZONTAL Divider must fail closed. Other
+        # families/axes retain the provisional discovery path.
+        if family == "受電箱" and divider_axis == "HORIZONTAL":
+            raise
+        registry_variables = {}
+        mating_fold_orientation = {}
+
     candidate = build_divider_front_fold_relief_candidate(
         joint,
         world_triangles_by_part=world["world_triangles_by_part"],
@@ -324,6 +491,112 @@ def resolve_divider_final_geometry(
         clearance=float(clearance),
         sheet_thickness=max(0.0, float(sheet_thickness)),
     )
+    if certified is not None:
+        minx, miny, maxx, maxy = map(float, original_material.bounds)
+        width = maxx - minx
+        height = maxy - miny
+        local_cuts = []
+        local_cuts.extend(placed_corner_cut_polygons(
+            corner_name="bottom_left",
+            relief=certified.min_y,
+            width=width,
+            height=height,
+        ))
+        local_cuts.extend(placed_corner_cut_polygons(
+            corner_name="top_left",
+            relief=certified.max_y,
+            width=width,
+            height=height,
+        ))
+        certified_cut = _unary_union(tuple(
+            _translate(poly, xoff=minx, yoff=miny) for poly in local_cuts
+        )).intersection(original_material)
+        solved = _apply_cut_to_part(divider, certified_cut)
+        solved = replace(
+            solved,
+            render_data=apply_divider_endcap_shared_6p4_datum(solved.render_data),
+        )
+        solved_world = refold_world(solved)
+        verification = verify_divider_front_fold_relief(
+            joint,
+            world_triangles_by_part=solved_world["world_triangles_by_part"],
+            mapped_skin_triangles_by_part=solved_world["mapped_skin_triangles_by_part"],
+            flat_material_by_part=solved_world["flat_material_by_part"],
+            core_start=core_start,
+            source_geometry_keys=tuple(source_geometry_keys),
+            source_fold_bands_by_key=source_fold_bands,
+            physical_footprints_by_source=(
+                {} if candidate is None
+                else dict(candidate.physical_footprints_by_source or {})
+            ),
+        )
+        verified = bool(verification["verified"])
+        formula_values = dict((certified.geometry_evidence or {}).get("formula_values") or {})
+        relief = DividerReliefEvidence(
+            "CERTIFIED_REGISTRY_VERIFIED" if verified else "CERTIFIED_REGISTRY_SHADOW_FAILED",
+            core_start=core_start,
+            cut_depths=tuple(
+                (name, float(value)) for name, value in formula_values.items()
+            ),
+            pre_pair_count=(0 if candidate is None else int(candidate.pre_pair_count)),
+            post_pair_count=int(verification["pair_count"]),
+            retained_contact_segments=int(verification["retained_contact_segments"]),
+            source_evidence={
+                **({} if candidate is None else dict(candidate.evidence or {})),
+                "manufacturing_dimensions_source": "CERTIFIED_REGISTRY_CROSS_PARAMETERS",
+                "rule_id": certified.rule.rule_id,
+                "rule_revision": int(certified.rule.revision),
+                "trust_level": certified.rule.status.value,
+                "corner_type": certified.rule.corner_type,
+                "registry_variables": dict(registry_variables),
+                "formula_values": formula_values,
+                "slot_end": str((certified.geometry_evidence or {}).get("slot_end") or ""),
+                "slot_end_selector": str((certified.geometry_evidence or {}).get("slot_end_selector") or ""),
+                "mating_fold_orientation": dict(mating_fold_orientation),
+                "collision_shadow": (
+                    {} if candidate is None else dict(candidate.evidence or {})
+                ),
+            },
+            post_evidence=dict(verification),
+        )
+        if not verified:
+            return ResolvedDividerFinalGeometry(
+                part_id=str(divider.part_key), placement_datum=placement_datum,
+                placement_evidence=placement, relief_evidence=relief,
+                final_material=original_material, verified=False, solved_part=divider,
+                illegal_penetration=True,
+            )
+
+        metadata = dict(getattr(solved.render_data, "metadata", {}) or {})
+        metadata["divider_assembly_relief"] = {
+            "trust_level": certified.rule.status.value,
+            "verified": True,
+            "rule_id": certified.rule.rule_id,
+            "rule_revision": int(certified.rule.revision),
+            "corner_type": certified.rule.corner_type,
+            **relief.as_dict(),
+            "evidence": {
+                **dict(relief.source_evidence or {}),
+                "placement": placement.as_dict(),
+            },
+        }
+        metadata["resolved_divider_physical_geometry"] = {
+            "part_id": str(divider.part_key),
+            "placement_datum": placement_datum,
+            "placement_evidence": placement.as_dict(),
+            "relief_evidence": relief.as_dict(),
+            "verified": True,
+        }
+        solved = replace(
+            solved, render_data=replace(solved.render_data, metadata=metadata)
+        )
+        return ResolvedDividerFinalGeometry(
+            part_id=str(divider.part_key), placement_datum=placement_datum,
+            placement_evidence=placement, relief_evidence=relief,
+            final_material=solved.render_data.material, verified=True,
+            solved_part=solved, illegal_penetration=False,
+        )
+
     if candidate is None:
         return ResolvedDividerFinalGeometry(
             part_id=str(divider.part_key), placement_datum=placement_datum,

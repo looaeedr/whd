@@ -800,3 +800,24 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 若出現 `Code Mode exceeded the maximum number of tool calls`，不得猜前半段是否已寫入；第一步固定反讀 branch/ref HEAD 與必要檔案，確認實際 side effects。
 - branch/ref 未前進時，任何未引用 blob 都不得當成已完成修改；重新從反讀到的 parent HEAD 開始。
 - 為了「原子」而把工具呼叫塞成超長腳本不是原子性；真正原子性由 tree/commit/ref 更新與 parent SHA gate 保證。
+
+### L. 機械語意不確定：不懂就問，禁止假會
+
+- WHD 涉及實體鈑金製造。對 CornerType、mating face、尺寸空間（料／包外／formed）、固定值／可變參數、參數 owner、DXF feature meaning 任一項不確定時，**先問使用者再寫規格或 production**。
+- 禁止用目前程式行為、測試 expected、collision/probe、bbox、畫面外觀或「看起來合理」補成產品真值。
+- 使用者已指定既有模型（例如 `CROSS / 十字截角`）時，優先保留該模型並以參數擴充；schema 不足不能成為另造 CornerType 的理由。
+- 不確定期間可以做只讀調查、列出已知/未知，但不得把假設寫入 Registry、production、Skill、AI Library 或驗收 oracle。
+- 使用者更正後，所有 durable knowledge 中衝突的舊說法必須標示 **SUPERSEDED / REVOKED**；不能只在聊天中更正。
+
+### M. 使用者更正／新規則的 Durable Knowledge 自動同步
+
+- **不得等使用者提醒「補技能／補 AI 庫」。** 只要使用者糾正了 AI、確認了新的產品語意、指出一個可重複踩坑，或本輪診斷得到會影響未來工作的永久規則，AI 必須在本輪主動判斷並同步 durable knowledge。
+- 最低同步面：
+  1. 直接相關的 `.agents/skills/**/SKILL.md`；
+  2. 全域 AI 踩坑庫 `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md`；
+  3. 命中領域的 AI/踩坑庫、canonical spec、Registry README / schema 說明；
+  4. 若已有 owning Issue / PR，補 durable correction/provenance。
+- 不必每次四處亂加：只寫**真正會讓下一個 AI/Agent 做出不同決策**的永久規則；純一次性進度、run id、臨時數值不進知識庫。
+- 使用者更正若與舊規則衝突，必須主動搜尋並標記舊內容 `SUPERSEDED / REVOKED`；禁止只新增新段落而讓兩套互相衝突的 authority 同時有效。
+- 完成後必須遠端反讀確認 marker/內容真的存在；不能只口頭宣稱「已補」。
+- 若不確定這次更正是否屬永久知識，**先問使用者是否要固化**；但對明確的產品規則、AI 行為規則、踩坑防線，不應再等使用者第二次提醒。

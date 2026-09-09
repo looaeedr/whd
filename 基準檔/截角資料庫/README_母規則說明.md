@@ -52,3 +52,35 @@
 - 下方 STANDARD 永遠是15×15。
 - WRAP 是獨立的下方局部面齊/包覆 Joint 語意，再從 STANDARD 衍生 L 型二級截角。
 - 不得把下方母體改名成 INSERT_OVERLAY。
+
+## Receiving Divider：CROSS＋參數
+
+- 使用者已確認：Receiving Divider 截角使用既有 **`CornerType=CROSS（十字截角）`＋參數**，不得新增 Divider 專用 CornerType。
+- `基準檔/金庫型/中隔.dxf` 可作此規則的**認證基準**；Registry 保存的是參數化 formula/topology/revision，不保存某張 fixture 的完整固定 vertex array。
+- Registry HIT 後 production 直接使用 Certified CROSS 參數規則產生 canonical cut；3D collision/backprojection 只做 shadow/penetration verification，不覆蓋 Certified answer。
+- 本節 **SUPERSEDES** 舊專案指引中「中隔 DXF 外框只供固定孔、不作中隔截角 authority」對目前 Receiving Divider 截角需求的適用性。
+- 若目前 CROSS 結構缺少二級槽、R 等必要欄位，先確認機械參數語意，再擴充 CROSS schema/runtime；**禁止偷換成 INSERT_OVERLAY，也禁止另造 CornerType。**
+- 對 direction、secondary stage、radius、dimension_space、固定值/可變值來源有任何不確定時，**先問使用者，禁止猜。**
+
+## 不懂就問（Registry hard gate）
+
+在 promotion/certification 前，若規則的機械語意沒有獨立 authority：
+1. 不准由 current code、pytest、probe/collision、bbox 或歷史 PASS 猜 formula；
+2. 不准因現有 schema 不方便而改變 CornerType identity；
+3. 必須先取得使用者／產品規格／canonical DXF feature 等 authority；
+4. 未確認前只可保留 candidate/diagnostic，不得進 Certified Registry。
+### Receiving Divider CROSS：端向 selector
+
+Receiving Divider 使用 **CROSS 母體 + 槽參數**，資料庫記錄「有槽端」與「無槽端」公式，不把它們固定命名成 MIN_Y / MAX_Y。
+
+- `slotted_fold_u = core_start + divider_fw_material`
+- `plain_fold_u = core_start + divider_last_outside + T`
+- `fold_v = divider_fw_outside - T`
+- `slot_width = divider_fw_material - divider_first_outside`
+- `slot_straight_depth = box_zl1_formed`
+- `slot_radius = slot_width / 2`
+
+端向 selector：`OBJECT_MATING_FOLD_SIGN_NEGATIVE`。
+
+也就是：**對象 mating Fold sign < 0 的那一端套有槽 CROSS；另一端套 plain CROSS。**  
+不得用 DXF 固定孔 rigid mapping、collision/backprojection、QA expected value 來決定端向。若無法從 authoritative Fold Profile 唯一判定一個負折端，Registry 必須 fail closed。
