@@ -323,7 +323,17 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
     if role in {"left_side", "right_side"}:
         base_index = _profile_base_index(x_profile)
         segs = list(x_profile or ())
-        base_len = _as_float(_segment_value(segs[base_index], "len", 0.0)) if segs else 0.0
+        if segs:
+            base_seg = segs[base_index]
+            material_base_len = _as_float(_segment_value(base_seg, "len", 0.0))
+            raw_formed_base_len = _segment_value(base_seg, "formed_length", None)
+            base_len = (
+                material_base_len
+                if raw_formed_base_len is None
+                else _as_float(raw_formed_base_len)
+            )
+        else:
+            base_len = 0.0
         d_half = base_len / 2.0
         if role == "left_side":
             return tuple((
@@ -353,14 +363,22 @@ def _profile_geometry(profile, *, enabled_folds=None):
     current_angle = 0.0
     cumulative = [0.0]
     for index, seg in enumerate(segs):
-        length = max(0.0, _as_float(
+        material_length = max(0.0, _as_float(
             _segment_value(seg, "length", _segment_value(seg, "len", 0.0))
         ))
+        raw_formed_length = _segment_value(seg, "formed_length", None)
+        formed_length = (
+            material_length
+            if raw_formed_length is None
+            else max(0.0, _as_float(raw_formed_length))
+        )
         angles.append(current_angle)
         rad = math.radians(current_angle)
-        raw_u.append(raw_u[-1] + length * math.cos(rad))
-        raw_z.append(raw_z[-1] + length * math.sin(rad))
-        cumulative.append(cumulative[-1] + length)
+        # Flat/material UV boundaries stay in material coordinates, while the
+        # folded endpoint chain follows authoritative formed/outside inputs.
+        raw_u.append(raw_u[-1] + formed_length * math.cos(rad))
+        raw_z.append(raw_z[-1] + formed_length * math.sin(rad))
+        cumulative.append(cumulative[-1] + material_length)
         angle = _segment_value(seg, "angle", None)
         if index < len(segs) - 1 and angle is not None:
             if index >= len(enabled_folds) or enabled_folds[index]:
