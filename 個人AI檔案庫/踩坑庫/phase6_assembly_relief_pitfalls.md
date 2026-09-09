@@ -334,3 +334,10 @@
 - 正確順序：先確認機械語意 → 保留 CROSS identity → 擴充必要參數 → Registry 參數化 → 用 `中隔.dxf` 反讀驗證 → true-thickness 3D shadow 驗證。
 - `中隔.dxf` 在此任務是截角認證基準；舊「只拿孔、不拿外框」指引對此截角 requirement 已 **SUPERSEDED**。
 - 對任何不確定的二級槽、R、方向、固定/變動來源，**先問使用者，禁止猜。**
+
+## 2026-09-09 — Divider DXF 座標方向不能直接當 final-CUTTING 深度
+
+- `基準檔/金庫型/中隔.dxf` 的 long-X / short-Y 會經既有 90° rigid mapping 進 Divider 座標；source 座標上的某段長度不能直接命名成 Divider final-CUTTING depth。
+- 本次錯誤例：source 幾何裡看到 `51`，一度被誤解成二級深度；實際 normalize 後它屬另一座標方向的定位，不能直接拿 `51` 當 production 參數。
+- 正確做法：先做完整 rigid normalization，再以 Divider local U/V 描述主截角、槽寬、直段、R；任何參數 ownership 若仍不明確就問使用者。
+- DXF 反讀是 certification/validation authority，不可把座標差值直接回灌 production。
