@@ -104,3 +104,19 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - 「驗全部板件」：從 current workspace/resolved manufacturing output 列舉 physical parts，逐件驗，並核對 expected/actual DXF file count。
 - 「完整驗收」：再加 Save→Reload parity。
 - 使用者要求「跑一次」時必須真的執行驗收並輪詢 remote run 到 terminal，不得只回歷史 PASS 或目前數值。
+
+
+## Divider STANDARD topology 與 3D backprojection 邊界（2026-09-09）
+
+- Receiving Divider 的 assembly relief 雖然必須由真實 `box_body:left_side/right_side` physical collision/backprojection 決定「哪一端需要切、實體干涉深度多少」，但 **raw triangle intersection / convex hull 絕不是製造 CUTTING topology authority**。
+- STANDARD 的製造拓撲仍由 Fold/material semantics 決定：從材料外緣到 relevant innermost Fold boundary；對目前 Receiving Divider 即由 semantic `core_physical_segment.flat_band` 決定 pre-core boundary。禁止把某次 `core_start=41` 當 magic number；必須每次由 Fold contract 推導。
+- Collision linework 必須先 fit 回穩定的 manufacturing topology；triangulation vertex 不得創造斜邊、新 stage 或鋸齒。若 STANDARD 是正交 one-level relief，最終 CUTTING 邊只能沿 Fold/material 軸。
+- 真板厚轉換仍由 authoritative `T` 推導 `T/2` skin→solid sweep；只沿實體 inward 方向擴成 solid footprint。禁止用 EndCap/Divider 驗收後量到的差值反補。
+- Refold/replay 的零非法穿透是 promotion gate，不是 topology oracle：一個帶錯誤斜邊的 convex hull 也可能 replay GREEN，因此必須同時驗「manufacturing topology 正確」與「post-refold illegal penetration=0」。
+- 回歸必須至少鎖：
+  1. Fold semantic pre-core boundary；
+  2. physical backprojection-derived skin depth；
+  3. `T/2` physical-solid conversion；
+  4. CUTTING 無 triangulation-generated non-axis edge；
+  5. 2D/單板3D/Assembly/DXF 共用 canonical final material。
+- Issue #71 的第一輪「disconnected regions 被 hull bridge」假設已由 remote RED run `34345831526` 否證，屬 **REVOKED hypothesis**；不得寫入 production 或未來技能當既定根因。
