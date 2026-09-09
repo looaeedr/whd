@@ -136,3 +136,13 @@ Required before declaring done:
 - [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns
+
+## Domain uncertainty: ask before inventing
+
+For WHD mechanical/manufacturing bugs, an unknown domain rule is **not** a hypothesis to silently promote into production.
+
+- If the correct CornerType, mating face, dimension space, fixed-vs-variable status, or parameter ownership is not explicitly supported by authoritative project data, **ask the user** before writing the spec or fix.
+- Do not infer product truth from current code behavior, a passing/failing test, a collision probe, a screenshot, or a convenient existing enum.
+- When the user has already named an existing model (for example `CROSS / 十字截角`), test whether that model plus parameters can represent the requirement before proposing a new type.
+- Diagnosis may continue read-only while waiting for clarification, but production/Registry/AI-library writes must not encode the unresolved guess.
+
