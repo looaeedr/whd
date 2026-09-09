@@ -237,3 +237,12 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - 右主：`57 × 27 mm`
   這些 expected 只存在 QA/tests，不得被 production import/read/反推。
 - **GREEN 證據**：run `34364056682` → `7 PASS / 0 FAIL`；post-refold illegal penetration `0`、positive overlap `0.0`、final CUTTING extra area `0.0`。
+
+
+## 2026-09-09 — Issue74 SECONDARY BAND CORRECTION（SUPERSEDES 27→49 猜測）
+
+- 使用者再次確認：Receiving reference Divider 左副階的 **material-coordinate band = 25→47**，這本身沒有錯。
+- 左主截角：`61×27`；左副階：`2×22`，位於 `Y=25..47`；右主截角：`57×27`。
+- 左主與左副階在 `Y=25..27` 有 **2 mm 重疊**；不得因為「看起來應該接續」就擅自把副階平移成 `27→49`。
+- **撤銷**任何「secondary 必須從 primary boundary 27 開始」的假規則。幾何 union 允許且需要 material-space overlap；拓撲連續不等於座標區間不得重疊。
+- `25→47` 的使用只屬 validation/product spec；production 仍由 physical collision/backprojection 正向求解，不得讀 test expected。
