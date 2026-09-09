@@ -209,3 +209,12 @@ tests/test_dm4_divider_resolved_sinks.py
 7. tested head → cleaned head drift audit。
 
 缺少本 Skill 的成品驗收證據時，狀態只能是 **focused GREEN / final acceptance pending**，不得標記 ACCEPTED。
+
+
+## DXF reopen 的獨立性邊界：獨立讀 bytes，不得另造幾何 policy（2026-09-10）
+
+- DXF acceptance 的「獨立」是指：必須真的保存 .dxf、再用 ezdxf.readfile() 從磁碟 bytes 重開；不得拿原本 scene/serializer 回傳值冒充 reopen。
+- 但 CUTTING 的語意重建（structural primary、segmented LINE/LWPOLYLINE endpoint snapping、polygonize、same-sheet duplicate、contained holes）屬 production-owned canonical geometry policy。Verifier 必須呼叫同一 production helper，禁止在驗證器內維護第二套 tolerance / polygonize 公式。
+- Validation 可以比較 canonical Final Material 與 reopen material；不能因為看到一次 symmetric_difference 面積，就把該面積、差值或測試 epsilon 寫回 production。
+- 若 scene→DXF 的 entity type/count/coordinates 逐一相同，但 material reopen 仍 mismatch，優先檢查「canonical reconstruction policy 是否在 verifier 漂移」，不要先改 exporter 或板件 production 幾何。
+- Negative guards 仍必須保留：實際移動 CUTTING 點、刪 hole、刪 BEND、改 layer 必須繼續被 acceptance 抓到，避免把 verifier 修成無條件放寬。
