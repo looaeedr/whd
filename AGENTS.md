@@ -821,3 +821,14 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 使用者更正若與舊規則衝突，必須主動搜尋並標記舊內容 `SUPERSEDED / REVOKED`；禁止只新增新段落而讓兩套互相衝突的 authority 同時有效。
 - 完成後必須遠端反讀確認 marker/內容真的存在；不能只口頭宣稱「已補」。
 - 若不確定這次更正是否屬永久知識，**先問使用者是否要固化**；但對明確的產品規則、AI 行為規則、踩坑防線，不應再等使用者第二次提醒。
+
+### N. 任何修改前先開新分支（BRANCH-FIRST HARD GATE）
+
+- **每一個新的修改任務，在第一個 repository write 發生前，必須先從最新 authoritative target HEAD 建立一支新的 work branch，並遠端反讀確認 branch parent SHA。**
+- 「修改」包含：production code、tests、DXF/fixture、workflow、docs/spec、Skill、AI Library、Registry、Issue-owned durable files；**docs-only / AI-only 也不能直接寫 target**。
+- 禁止直接修改 `cleanup/2d-3d-sync`、`main` 或其他 production target。target 只能接受完成驗收後的正常 non-force merge / PR。
+- 同一工作項目建立 branch 後，後續 RED/GREEN、修正、文件同步、QA cleanup 都留在該 branch；**不是每改一個檔就再開一支 branch**。新的獨立修改需求／工單才重新從當時最新 target 開新 branch。
+- 若施工期間 target 前進，先 compare ancestry。若 work branch behind/diverged，必須在 integration/work branch 解衝突並重新驗收；禁止為了省事直接 patch target。
+- 若發現已經直接寫到 target：立即停止後續寫入，反讀實際 side effects，建立新的修正／recovery branch，留下 provenance；不得假裝 branch-first 已遵守。
+- merge 前仍需遵守對應 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。branch existence **不能取代驗收**。
+- branch-first 是所有其他工程 Skill 的前置硬閘門；任何 Skill 若準備修改檔案，先驗 branch name + parent/base SHA。
