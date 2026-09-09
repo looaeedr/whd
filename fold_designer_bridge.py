@@ -220,6 +220,14 @@ def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
     )
 
 
+def _phase6_box_body_piece_keys(values) -> tuple[str, ...]:
+    """Return stable physical BoxBody children in authoritative workspace order."""
+    return tuple(
+        str(key) for key in tuple(values or ())
+        if _phase6_is_box_body_physical_piece_key(key)
+    )
+
+
 def _phase6_box_body_piece_part_profiles(render_data) -> dict[str, dict[str, list[dict[str, object]]]]:
     """Project authoritative BoxBody physical pieces into read-only workspace profiles.
 
@@ -7922,6 +7930,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._project_path_change_callback = on_project_path_change
     self._project_save_callback = on_project_save
     self._return_2d_callback = on_return_2d
+    self._phase6_box_body_active_piece_key = str(snapshot.get("box_body_active_piece") or "")
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
     self._baseline_models = list(snapshot.get("baseline_models") or ())
@@ -8046,6 +8055,16 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.part_choice_button.configure(menu=self.part_choice_menu)
     self.part_choice_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 4))
 
+    # Multipart BoxBody children are nested navigation tabs, never top-level parts.
+    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1)
+    self._phase6_box_body_piece_tab_keys = ()
+    self._phase6_box_body_piece_tab_map = {}
+    self._phase6_box_body_piece_tab_guard = False
+    self.box_body_piece_selector.bind(
+        "<<NotebookTabChanged>>",
+        lambda event: _phase6_on_box_body_piece_tab_changed(self, event),
+    )
+
     self.add_part_button = original.ttk.Menubutton(self.part_selector, text="新增 ▼")
     self.add_part_menu = original.tk.Menu(self.add_part_button, tearoff=False)
     self.add_part_button.configure(menu=self.add_part_menu)
@@ -8121,6 +8140,108 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_sync_ready = True
 
 
+def _phase6_refresh_box_body_piece_selector(self):
+    """Keep one logical 箱身 entry while exposing physical children as nested tabs."""
+    notebook = getattr(self, "box_body_piece_selector", None)
+    if notebook is None:
+        return ()
+
+    wanted = _phase6_box_body_piece_keys(
+        getattr(_designer_workspace(self), "available_parts", ()) or ()
+    )
+    current = tuple(getattr(self, "_phase6_box_body_piece_tab_keys", ()) or ())
+    if current != wanted:
+        self._phase6_box_body_piece_tab_guard = True
+        try:
+            for tab_id in tuple(notebook.tabs()):
+                try:
+                    widget = self.root.nametowidget(tab_id)
+                except Exception:
+                    widget = None
+                notebook.forget(tab_id)
+                if widget is not None:
+                    try:
+                        widget.destroy()
+                    except Exception:
+                        pass
+            tab_map = {}
+            for key in wanted:
+                frame = original.ttk.Frame(notebook)
+                notebook.add(frame, text=_phase6_part_label(key))
+                tab_map[str(frame)] = key
+            self._phase6_box_body_piece_tab_map = tab_map
+            self._phase6_box_body_piece_tab_keys = wanted
+        finally:
+            self._phase6_box_body_piece_tab_guard = False
+
+    active = str(getattr(_designer_workspace(self), "active_part", "") or "")
+    remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
+    desired = (
+        active if active in wanted
+        else remembered if remembered in wanted
+        else (wanted[0] if wanted else "")
+    )
+    if desired:
+        self._phase6_box_body_active_piece_key = desired
+        tab_map = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {})
+        target_tab = next(
+            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
+            None,
+        )
+        if target_tab is not None and str(notebook.select()) != str(target_tab):
+            self._phase6_box_body_piece_tab_guard = True
+            try:
+                notebook.select(target_tab)
+            finally:
+                self._phase6_box_body_piece_tab_guard = False
+
+    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
+    show = bool(wanted) and mode != "assembly" and (
+        active == "box_body" or _phase6_is_box_body_physical_piece_key(active)
+    )
+    if show:
+        if not notebook.winfo_manager():
+            anchor = getattr(self, "fold_editor_host", None)
+            if anchor is not None and anchor.winfo_manager():
+                notebook.pack(fill=original.tk.X, pady=(0, 4), before=anchor)
+            else:
+                notebook.pack(fill=original.tk.X, pady=(0, 4))
+    elif notebook.winfo_manager():
+        notebook.pack_forget()
+    return wanted
+
+
+def _phase6_on_box_body_piece_tab_changed(self, _event=None):
+    if bool(getattr(self, "_phase6_box_body_piece_tab_guard", False)):
+        return
+    notebook = getattr(self, "box_body_piece_selector", None)
+    if notebook is None:
+        return
+    key = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {}).get(
+        str(notebook.select())
+    )
+    if not key:
+        return
+    self._phase6_box_body_active_piece_key = key
+    if str(getattr(_designer_workspace(self), "active_part", "") or "") != key:
+        self.activate_part(key)
+
+
+def _phase6_activate_operator_part(self, key):
+    """Resolve logical operator navigation to a physical BoxBody child when multipart."""
+    key = str(key or "")
+    if key == "box_body":
+        children = _phase6_box_body_piece_keys(
+            getattr(_designer_workspace(self), "available_parts", ()) or ()
+        )
+        if children:
+            remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
+            target = remembered if remembered in children else children[0]
+            self._phase6_box_body_active_piece_key = target
+            return self.activate_part(target)
+    return self.activate_part(key)
+
+
 def _fix11_refresh_part_buttons(self):
     self.part_buttons = {}
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
@@ -8139,7 +8260,7 @@ def _fix11_refresh_part_buttons(self):
                 label=label,
                 variable=self.part_var,
                 value=label,
-                command=lambda k=key: self.activate_part(k),
+                command=lambda k=key: _phase6_activate_operator_part(self, k),
             )
     mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
     active = getattr(self, "active_part_key", None)
@@ -8151,6 +8272,7 @@ def _fix11_refresh_part_buttons(self):
         elif active in self.available_parts:
             self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
     self._refresh_part_button_states()
+    _phase6_refresh_box_body_piece_selector(self)
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
 
@@ -8183,6 +8305,9 @@ def _phase6_show_assembly(self, initial=False):
             pass
     self.designer_workspace.selected_part = None
     self._phase6_3d_display_mode = "assembly"
+    piece_selector = getattr(self, "box_body_piece_selector", None)
+    if piece_selector is not None and piece_selector.winfo_manager():
+        piece_selector.pack_forget()
     if hasattr(self, "part_var"):
         self.part_var.set("組合體")
     if getattr(self, "fold_editor_host", None) is not None and self.fold_editor_host.winfo_manager():
@@ -8230,6 +8355,8 @@ def _fix11_select_part(self, key):
     key = str(key or "")
     if not self.designer_workspace.select_part(key):
         return False
+    if _phase6_is_box_body_physical_piece_key(key):
+        self._phase6_box_body_active_piece_key = key
     if hasattr(self, "part_var"):
         self.part_var.set(
                 _phase6_part_label("box_body")
@@ -8237,6 +8364,7 @@ def _fix11_select_part(self, key):
                 else _phase6_part_label(key)
             )
     self._refresh_part_button_states()
+    _phase6_refresh_box_body_piece_selector(self)
     return True
 
 
@@ -8633,6 +8761,8 @@ def _phase6_show_home(self):
 def _fix11_activate_part(self, key, initial=False):
     if key not in self.designer_workspace.available_parts:
         return
+    if _phase6_is_box_body_physical_piece_key(key):
+        self._phase6_box_body_active_piece_key = str(key)
     before_signature = None
     if not initial:
         try:
@@ -8840,6 +8970,7 @@ def _fix11_activate_part(self, key, initial=False):
     else:
         self.do_update()
     _phase6_refresh_persistent_structure_controls(self)
+    _phase6_refresh_box_body_piece_selector(self)
 
 
 def _fix11_add_part(self, key):

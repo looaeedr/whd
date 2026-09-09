@@ -916,6 +916,12 @@ class BoxCalculatorGUI:
 
         # 箱身三面編輯：使用者座標直接使用 WHD，不暴露展開/板厚補償座標。
         self.box_body_face_selected_var = tk.StringVar(value="back")
+        # Multi-piece BoxBody stays one top-level 2D tab; this nested selection
+        # chooses the physical child whose authoritative unfold is displayed.
+        self.box_body_piece_2d_selected_var = tk.StringVar(value="")
+        self._box_body_piece_2d_tab_keys = ()
+        self._box_body_piece_2d_tab_map = {}
+        self._box_body_piece_2d_tab_guard = False
         self.box_body_face_features = {"left": [], "back": [], "right": []}
         self.box_body_face_bounds = {}
         self._box_body_face_last_click = None  # (face_key, event_time_ms)
@@ -1859,6 +1865,9 @@ class BoxCalculatorGUI:
             "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
             "inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
             "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
+            "box_body_active_piece": (
+                str(self.box_body_piece_2d_selected_var.get() or "").strip() or None
+            ),
         }
         if getattr(self, "door_layout_columns", None):
             snapshot["door_layout_columns"] = [
@@ -2120,6 +2129,9 @@ class BoxCalculatorGUI:
         # CornerType and fold profiles. Project-specific state below adds every
         # part's features and indicator workspace that the old snapshot omitted.
         self._apply_original_fold_designer_snapshot(snapshot)
+        active_box_piece = str(snapshot.get("box_body_active_piece") or "")
+        if active_box_piece.startswith("box_body:") and not active_box_piece.startswith("box_body:divider:"):
+            self.box_body_piece_2d_selected_var.set(active_box_piece)
 
         part_features = dict(snapshot.get("part_features") or {})
         for key in tuple(self.surface_features):
@@ -2553,6 +2565,14 @@ class BoxCalculatorGUI:
                     self.door_layout_handle_edges = deepcopy(dict(payload.get("door_handle_edges") or {}))
                 if "inner_doors" in payload:
                     self.receiving_inner_doors = deepcopy(list(payload.get("inner_doors") or ()))
+            workspace_active = str(
+                (dict(workspace or {}).get("active_part") if workspace else "")
+                or payload.get("box_body_active_piece")
+                or payload.get("active_part")
+                or ""
+            )
+            if workspace_active.startswith("box_body:") and not workspace_active.startswith("box_body:divider:"):
+                self.box_body_piece_2d_selected_var.set(workspace_active)
             self._sync_fold_designer_manual_corner_context(payload.get("active_part"))
             if baseline_changed:
                 self._reload_current_baseline_features()
@@ -2688,6 +2708,10 @@ class BoxCalculatorGUI:
         def return_to_2d_corner(part_key):
             self._flush_phase6_authoritative_state()
             key = str(part_key or "box_body")
+            logical_key = key
+            if key.startswith("box_body:") and not key.startswith("box_body:divider:"):
+                self.box_body_piece_2d_selected_var.set(key)
+                logical_key = "box_body"
             destroy_designer_window()
             tab_map = {
                 "box_body": getattr(self, "tab_z", None),
@@ -2699,7 +2723,7 @@ class BoxCalculatorGUI:
                 "indicator_box": getattr(self, "tab_door", None),
                 "indicator_door": getattr(self, "tab_door", None),
             }
-            target = tab_map.get(key) or getattr(self, "tab_z", None)
+            target = tab_map.get(logical_key) or getattr(self, "tab_z", None)
             try:
                 if target is not None:
                     self.notebook.select(target)
@@ -4276,9 +4300,16 @@ class BoxCalculatorGUI:
         
         info_lbl = tk.Label(top_ctrl, text="(與封頭尾連動)", bg=self.COLOR_BG, fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9))
         info_lbl.pack(side=tk.LEFT, padx=5)
+
+        # 多件式箱身只占一個頂層「箱身」，物理子板件用第二層標籤切換。
+        self.box_body_piece_tabs = ttk.Notebook(self.tab_z, height=1)
+        self.box_body_piece_tabs.bind(
+            "<<NotebookTabChanged>>", self._on_box_body_piece_2d_tab_changed
+        )
         
         # 畫布 Frame
         canvas_frame = tk.Frame(self.tab_z, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
+        self.box_body_canvas_frame = canvas_frame
         canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
         
         # 箱身畫布
@@ -4286,6 +4317,7 @@ class BoxCalculatorGUI:
         self.canvas_z.pack(fill=tk.BOTH, expand=True)
         self.canvas_z.bind("<Configure>", lambda e: self.draw_preview())
         self.canvas_z.bind("<Button-1>", self.on_box_body_canvas_press)
+        self.canvas_z.bind("<Double-Button-1>", self.on_box_body_piece_double_click)
 
     def _attach_part_hole_entrypoint(self, canvas, part_key, *, allow_double=True):
         """All supported panels use one memorable entry point: double-click opens holes."""
@@ -7080,6 +7112,12 @@ class BoxCalculatorGUI:
                 pass
 
     def on_box_body_canvas_press(self, event):
+        piece_var = getattr(self, "box_body_piece_2d_selected_var", None)
+        piece_key = str(piece_var.get() if piece_var is not None else "")
+        face_key = self._box_body_piece_face_key(piece_key)
+        if face_key is not None:
+            self.box_body_face_selected_var.set(face_key)
+            return "break"
         hit = self._box_body_face_at_canvas_point(event.x, event.y)
         if hit is None:
             self._box_body_face_last_click = None
@@ -7164,6 +7202,173 @@ class BoxCalculatorGUI:
             on_close=lambda: self.draw_box_body(self.get_float_values()),
         )
 
+    @staticmethod
+    def _box_body_piece_label(part_key):
+        return {
+            "box_body:left_side": "左側板",
+            "box_body:back": "後面板",
+            "box_body:right_side": "右側板",
+            "box_body:left": "左箱身",
+            "box_body:middle": "中箱身",
+            "box_body:right": "右箱身",
+        }.get(str(part_key or ""), str(part_key or ""))
+
+    @staticmethod
+    def _box_body_piece_face_key(part_key):
+        return {
+            "box_body:left_side": "left",
+            "box_body:back": "back",
+            "box_body:right_side": "right",
+        }.get(str(part_key or ""))
+
+    def _refresh_box_body_piece_tabs_2d(self, render_data):
+        pieces = tuple(getattr(render_data, "pieces", ()) or ())
+        keys = tuple(
+            f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+            for piece in pieces
+            if str(getattr(piece, "role", "") or "").strip()
+        )
+        notebook = getattr(self, "box_body_piece_tabs", None)
+        if notebook is None:
+            return ""
+        if len(keys) <= 1:
+            if notebook.winfo_manager():
+                notebook.pack_forget()
+            self._box_body_piece_2d_tab_keys = keys
+            return ""
+
+        current = tuple(getattr(self, "_box_body_piece_2d_tab_keys", ()) or ())
+        if current != keys:
+            self._box_body_piece_2d_tab_guard = True
+            try:
+                for tab_id in tuple(notebook.tabs()):
+                    try:
+                        widget = self.root.nametowidget(tab_id)
+                    except Exception:
+                        widget = None
+                    notebook.forget(tab_id)
+                    if widget is not None:
+                        try:
+                            widget.destroy()
+                        except Exception:
+                            pass
+                tab_map = {}
+                for key in keys:
+                    frame = ttk.Frame(notebook)
+                    notebook.add(frame, text=self._box_body_piece_label(key))
+                    tab_map[str(frame)] = key
+                self._box_body_piece_2d_tab_map = tab_map
+                self._box_body_piece_2d_tab_keys = keys
+            finally:
+                self._box_body_piece_2d_tab_guard = False
+
+        selected = str(self.box_body_piece_2d_selected_var.get() or "")
+        desired = selected if selected in keys else (
+            "box_body:back" if "box_body:back" in keys else keys[0]
+        )
+        if selected != desired:
+            self.box_body_piece_2d_selected_var.set(desired)
+        tab_map = dict(getattr(self, "_box_body_piece_2d_tab_map", {}) or {})
+        target = next(
+            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
+            None,
+        )
+        if target is not None and str(notebook.select()) != str(target):
+            self._box_body_piece_2d_tab_guard = True
+            try:
+                notebook.select(target)
+            finally:
+                self._box_body_piece_2d_tab_guard = False
+        if not notebook.winfo_manager():
+            notebook.pack(
+                fill=tk.X, padx=10, pady=(0, 2),
+                before=self.box_body_canvas_frame,
+            )
+        face_key = self._box_body_piece_face_key(desired)
+        if face_key is not None:
+            self.box_body_face_selected_var.set(face_key)
+        return desired
+
+    def _on_box_body_piece_2d_tab_changed(self, _event=None):
+        if bool(getattr(self, "_box_body_piece_2d_tab_guard", False)):
+            return
+        notebook = getattr(self, "box_body_piece_tabs", None)
+        if notebook is None:
+            return
+        key = dict(getattr(self, "_box_body_piece_2d_tab_map", {}) or {}).get(
+            str(notebook.select())
+        )
+        if not key:
+            return
+        self.box_body_piece_2d_selected_var.set(key)
+        face_key = self._box_body_piece_face_key(key)
+        if face_key is not None:
+            self.box_body_face_selected_var.set(face_key)
+        self.draw_preview()
+
+    def on_box_body_piece_double_click(self, _event=None):
+        piece_var = getattr(self, "box_body_piece_2d_selected_var", None)
+        key = str(piece_var.get() if piece_var is not None else "")
+        face_key = self._box_body_piece_face_key(key)
+        if face_key is None:
+            return None
+        self.open_box_body_face_editor(face_key)
+        return "break"
+
+    def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
+        """Draw one manufacturing-owned BoxBody physical child in the main 2D view."""
+        canvas = self.canvas_z
+        render_data = piece.render_data
+        minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
+        transform, _offset_x, _offset_y, _scale, _material_top = _phase6_2d_material_viewport(
+            (minx, miny, maxx, maxy), canvas.winfo_width(), canvas.winfo_height()
+        )
+        if self.draw_stock_var.get():
+            sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
+            sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
+            canvas.create_rectangle(
+                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
+            )
+        render_drawing_scene(
+            canvas, render_data.scene, transform, skip_layers=("CHECK", "STOCK")
+        )
+        label = self._box_body_piece_label(part_key)
+        formed = tuple(float(v) for v in getattr(piece, "formed_outer_dimensions", (0.0, 0.0)))
+        blank = tuple(float(v) for v in getattr(piece, "material_dimensions", (0.0, 0.0)))
+        dimension_text = ""
+        if len(formed) >= 2 and len(blank) >= 2:
+            dimension_text = (
+                f"\n成形：{formed[0]:g} × {formed[1]:g} mm"
+                f"  展開：{blank[0]:g} × {blank[1]:g} mm"
+            )
+        warnings = tuple(getattr(render_data, "warnings", ()) or ())
+        warning_text = (
+            "\n⚠ " + "；".join(str(getattr(item, "message", item)) for item in warnings)
+            if warnings else ""
+        )
+        canvas.create_text(
+            25, 25, anchor=tk.NW,
+            text=(
+                f"{label}展開預覽（箱身子板件）{dimension_text}"
+                f"\n外輪廓 (CUTTING): 綠色實線  折彎線 (BEND): 藍色虛線"
+                f"\n雙擊畫布編輯此片開孔{warning_text}"
+            ),
+            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
+            width=max(180, int(canvas.winfo_width() * 0.56)),
+            tags=("phase6_preview_hint",),
+        )
+        _draw_phase6_annotation_projection(
+            canvas, render_data, transform, part_key=part_key
+        )
+        role = str(getattr(piece, "role", "") or "")
+        self.last_box_body_face_overview = {
+            "mode": "physical_piece",
+            "piece_key": part_key,
+            "role": role,
+            "material_bounds": (minx, miny, maxx, maxy),
+            "aggregate_piece_count": len(tuple(getattr(aggregate_render_data, "pieces", ()) or ())),
+        }
+
     def draw_box_body(self, val):
         """Render the authoritative unfolded Box Body; face editing is only an overlay/hit-zone."""
         canvas = self.canvas_z
@@ -7182,6 +7387,21 @@ class BoxCalculatorGUI:
         render_data = self._authoritative_render_data(
             spec, self._manufacturing_context(draw_stock=False)
         )
+        selected_piece_key = self._refresh_box_body_piece_tabs_2d(render_data)
+        if selected_piece_key:
+            selected_role = selected_piece_key.split(":", 1)[1]
+            selected_piece = next(
+                (
+                    piece for piece in tuple(getattr(render_data, "pieces", ()) or ())
+                    if str(getattr(piece, "role", "") or "") == selected_role
+                ),
+                None,
+            )
+            if selected_piece is not None:
+                self._draw_box_body_piece_preview(
+                    render_data, selected_piece, selected_piece_key
+                )
+                return
         minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
         z_len = maxx - minx
         z_height = maxy - miny

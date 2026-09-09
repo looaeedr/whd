@@ -77,3 +77,12 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - child visibility 只能控制 renderer。隱藏 child 時，完整 physical geometry 仍保留作 Head/Tail mating、collision、relief、dimension 與 persistence authority；不得因此改變其他板件的 **world placement**。
 - `identity / navigation / visibility` 必須有三份清楚責任邊界：identity 可細到 physical piece；navigation 可聚合成一個 logical part；visibility 可再細分到 physical piece。
 - 回歸至少鎖：selector aggregation、箱身內 nested child controls、逐片 render mask，以及 hidden child 仍存在於 mating/collision datum。
+
+## 多件式箱身：頂層聚合不得吃掉 child navigation（2026-09-09）
+
+- **頂層聚合 ≠ 單一 editor**。多件式箱身在 operator 頂層仍只顯示一個「箱身」，但進入「箱身」後必須保留 physical child 的 **nested child tabs / 子標籤**，讓操作員可切換左側板／後面板／右側板等 stable physical IDs。
+- 子標籤切換的是同一個 physical child identity：3D 單板 Fold/FinalScene、2D 展開預覽、孔位／尺寸顯示與 Save→Reload active child 都必須使用同一 `box_body:<role>`；不得一邊切 child、另一邊仍顯示 aggregate。
+- **2D / 3D navigation parity 是硬規則**：2D 選哪片，進 3D 後「箱身」要進同一片；3D 切哪片後回 2D，2D 要自動選同一片。logical `box_body` 只負責頂層 grouping，不得覆蓋 physical active child。
+- 2D child preview 必須直接消費 manufacturing-owned `BoxBodyStructureRenderData.pieces[*].render_data`；不得由 aggregate bbox、face hit-zone 或驗證數值重建第二套 CUTTING/Fold geometry。
+- assembly visibility 與 child navigation 仍是不同責任：visibility 可逐片隱藏，但不得改 active child；navigation 可切 child，但不得移除完整 assembly datum/collision geometry。
+- Regression 至少要鎖：單一頂層「箱身」、nested child tabs、child 切換後 active physical ID、2D/3D 同片 round-trip、單片 render material 與 authoritative physical piece material 一致。

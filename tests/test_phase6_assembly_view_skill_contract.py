@@ -38,3 +38,17 @@ def test_assembly_view_boundary_skill_captures_multipart_boxbody_layers():
     ]
     missing = [item for item in required if item not in text]
     assert not missing, missing
+
+
+def test_assembly_view_boundary_skill_requires_nested_boxbody_navigation_and_2d_3d_parity():
+    text = SKILL.read_text(encoding="utf-8")
+    required = [
+        "頂層聚合 ≠ 單一 editor",
+        "nested child tabs",
+        "2D / 3D navigation parity",
+        "同一 `box_body:<role>`",
+        "BoxBodyStructureRenderData.pieces[*].render_data",
+        "2D/3D 同片 round-trip",
+    ]
+    missing = [item for item in required if item not in text]
+    assert not missing, missing
