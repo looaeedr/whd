@@ -231,7 +231,17 @@
         "驗目前板件的DXF",
         "Save→Reload 驗收",
         "Save Reload 驗收",
-        "存檔再讀回來驗"
+        "存檔再讀回來驗",
+        "2D/3D 同步",
+        "2D 3D 同步",
+        "multipart",
+        "多件式",
+        "physical part",
+        "dynamic part",
+        "Final Material",
+        "板件切換",
+        "板件顯示",
+        "完整板件驗收"
       ],
       "file_globs": [
         ".agents/skills/engineering/驗證板件與DXF/**",
@@ -243,7 +253,15 @@
         "tests/test_issue45_dynamic_parts_2d_roundtrip.py",
         "tests/test_issue38_receiving_divider_baseline.py",
         "tests/test_issue39_divider_relief.py",
-        "tests/test_issue40_divider_6p4_shared_datum.py"
+        "tests/test_issue40_divider_6p4_shared_datum.py",
+        "gui.py",
+        "fold_designer_bridge.py",
+        "phase6_final_scene_view.py",
+        "phase6_box_body_structure.py",
+        "ae_engine/manufacturing_api.py",
+        "ae_engine/*manufacturing*.py",
+        "ae_engine/*export*.py",
+        "phase6_project_*.py"
       ],
       "required_skills": [
         "驗證板件與DXF",
