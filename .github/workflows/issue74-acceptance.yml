@@ -1,0 +1,35 @@
+name: Issue74 Divider Side Front Acceptance
+on:
+  push:
+    branches: [fix/issue74-divider-side-front-penetration]
+  pull_request:
+    branches: [cleanup/2d-3d-sync]
+    paths:
+      - ae_engine/assembly_collision.py
+      - ae_engine/divider_manufacturing.py
+      - fold_designer_bridge.py
+      - tests/test_issue74_divider_side_front_penetration.py
+      - tests/test_issue63_regression_red.py
+      - tests/test_issue71_divider_relief_components.py
+      - .github/workflows/issue74-acceptance.yml
+  workflow_dispatch:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: config before
+        shell: bash
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Issue74 exact
+        run: pytest -q tests/test_issue74_divider_side_front_penetration.py
+      - name: Divider guards
+        run: pytest -q tests/test_issue71_divider_relief_components.py tests/test_issue39_divider_relief.py tests/test_dm3_divider_canonical_relief_contract.py tests/test_dm4_divider_resolved_sinks.py
+      - name: config after
+        shell: bash
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after

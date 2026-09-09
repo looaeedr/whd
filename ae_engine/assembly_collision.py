@@ -490,6 +490,185 @@ def backproject_world_interference_to_endcap_flat(
 backproject_world_interference_to_flat = backproject_world_interference_to_endcap_flat
 
 
+def classify_source_fold_true_thickness_interference(
+    *,
+    source_geometry_key,
+    relief_geometry_key,
+    mapped_skin_triangles_by_part,
+    source_fold_bands,
+    tolerance=1e-6,
+):
+    """Classify physical source Fold bands by full-thickness sheet penetration.
+
+    A mating face may intersect one physical skin and remain legal contact. A
+    source Fold band is promoted to relief only when both authoritative physical
+    skins of that band cross the retained relief-owner skins.
+    """
+    import numpy as np
+
+    source = tuple((mapped_skin_triangles_by_part or {}).get(str(source_geometry_key), ()) or ())
+    targets = tuple((mapped_skin_triangles_by_part or {}).get(str(relief_geometry_key), ()) or ())
+    bands = tuple(
+        (str(row[0]), float(row[1]), float(row[2]))
+        for row in tuple(source_fold_bands or ())
+        if len(tuple(row)) >= 3 and float(row[2]) - float(row[1]) > float(tolerance)
+    )
+    if not source or not targets or not bands:
+        return {
+            "source_geometry_key": str(source_geometry_key),
+            "bands": {},
+            "penetrating_bands": (),
+            "penetrating_segment_count": 0,
+            "retained_contact_segment_count": 0,
+            "pair_count": 0,
+        }
+
+    src_world = np.asarray([record.world for record in source], dtype=float)
+    src_min = src_world.min(axis=1)
+    src_max = src_world.max(axis=1)
+    rows = {
+        name: {
+            "source_flat_band": (u0, u1),
+            "segments_by_skin": {-1: [], 1: []},
+            "segment_keys_by_skin": {-1: set(), 1: set()},
+            "pair_count": 0,
+        }
+        for name, u0, u1 in bands
+    }
+    pair_count = 0
+
+    for target in targets:
+        target_tri = tuple(tuple(map(float, point)) for point in target.world)
+        arr = np.asarray(target_tri, dtype=float)
+        tmin = arr.min(axis=0) - float(tolerance)
+        tmax = arr.max(axis=0) + float(tolerance)
+        mask = (
+            np.all(src_max + float(tolerance) >= tmin, axis=1)
+            & np.all(src_min - float(tolerance) <= tmax, axis=1)
+        )
+        for index in np.nonzero(mask)[0]:
+            source_record = source[int(index)]
+            crossing = _triangle_pair_crossing_segment(
+                target_tri, source_record.world, tolerance=float(tolerance)
+            )
+            if crossing is None:
+                continue
+            try:
+                source_uv = tuple(
+                    _barycentric_world_to_flat(
+                        point, source_record.world, source_record.flat
+                    )
+                    for point in crossing
+                )
+                target_uv = tuple(
+                    _barycentric_world_to_flat(point, target_tri, target.flat)
+                    for point in crossing
+                )
+            except ValueError:
+                continue
+            if len(source_uv) != 2 or len(target_uv) != 2:
+                continue
+            midpoint_u = sum(float(point[0]) for point in source_uv) / 2.0
+            matching = [
+                (name, u0, u1)
+                for name, u0, u1 in bands
+                if u0 - float(tolerance) * 10.0
+                <= midpoint_u
+                <= u1 + float(tolerance) * 10.0
+            ]
+            if not matching:
+                continue
+            name, _u0, _u1 = min(
+                matching,
+                key=lambda row: abs(midpoint_u - (row[1] + row[2]) / 2.0),
+            )
+            side = int(getattr(source_record, "side", 0) or 0)
+            if side not in (-1, 1):
+                continue
+            key = tuple(sorted((
+                tuple(round(float(value), 6) for value in target_uv[0]),
+                tuple(round(float(value), 6) for value in target_uv[1]),
+            )))
+            row = rows[name]
+            row["pair_count"] += 1
+            pair_count += 1
+            if key not in row["segment_keys_by_skin"][side]:
+                row["segment_keys_by_skin"][side].add(key)
+                row["segments_by_skin"][side].append(target_uv)
+
+    public_rows = {}
+    penetrating_bands = []
+    penetrating_segment_count = 0
+    retained_contact_segment_count = 0
+    for name, u0, u1 in bands:
+        row = rows[name]
+        minus = tuple(row["segments_by_skin"][-1])
+        plus = tuple(row["segments_by_skin"][1])
+        through = bool(minus and plus)
+        all_segments = tuple((*minus, *plus))
+        if through:
+            penetrating_bands.append(name)
+            penetrating_segment_count += len(all_segments)
+        else:
+            retained_contact_segment_count += len(all_segments)
+        points = [
+            (float(point[0]), float(point[1]))
+            for segment in all_segments
+            for point in segment
+        ]
+        uv_bounds = (
+            None if not points else (
+                min(point[0] for point in points),
+                max(point[0] for point in points),
+                min(point[1] for point in points),
+                max(point[1] for point in points),
+            )
+        )
+        footprint = None
+        if through and uv_bounds is not None:
+            from shapely.geometry import box as shapely_box
+            x0, x1, y0, y1 = map(float, uv_bounds)
+            if x1 - x0 > float(tolerance) and y1 - y0 > float(tolerance):
+                footprint = shapely_box(x0, y0, x1, y1)
+        public_rows[name] = {
+            "source_flat_band": (float(u0), float(u1)),
+            "skin_sides": tuple(
+                side for side, segments in ((-1, minus), (1, plus)) if segments
+            ),
+            "through_thickness": bool(through and footprint is not None),
+            "segments_2d": all_segments,
+            "pair_count": int(row["pair_count"]),
+            "divider_uv_bounds": uv_bounds,
+            "physical_footprint_2d": footprint,
+            "physical_footprint_area": (
+                0.0 if footprint is None else float(footprint.area)
+            ),
+        }
+    penetrating_bands = tuple(
+        name for name, row in public_rows.items()
+        if bool(row.get("through_thickness"))
+        and row.get("physical_footprint_2d") is not None
+    )
+    penetrating_segment_count = sum(
+        len(tuple(public_rows[name].get("segments_2d") or ()))
+        for name in penetrating_bands
+    )
+    retained_contact_segment_count = sum(
+        len(tuple(row.get("segments_2d") or ()))
+        for name, row in public_rows.items()
+        if name not in set(penetrating_bands)
+    )
+    return {
+        "source_geometry_key": str(source_geometry_key),
+        "bands": public_rows,
+        "penetrating_bands": penetrating_bands,
+        "penetrating_segment_count": int(penetrating_segment_count),
+        "retained_contact_segment_count": int(retained_contact_segment_count),
+        "pair_count": int(pair_count),
+    }
+
+
+
 @dataclass(frozen=True)
 class DividerFrontFoldReliefCandidate:
     """Collision-derived Divider relief constrained to the pre-core Fold domain."""
@@ -499,6 +678,7 @@ class DividerFrontFoldReliefCandidate:
     pre_pair_count: int
     eligible_segment_count: int
     cut_depths: tuple[tuple[str, float], ...]
+    physical_footprints_by_source: object | None = None
     evidence: object | None = None
 
 
@@ -511,6 +691,143 @@ def _divider_front_fold_segments(projection, *, core_start: float, tolerance: fl
     return tuple(rows)
 
 
+def _divider_semantic_stage_cut(
+    *,
+    source_key,
+    classified,
+    source_fold_bands,
+    material,
+    core_start,
+    sheet_thickness,
+    tolerance=1e-6,
+):
+    """Derive nominal Receiving Divider CUTTING from authoritative Fold semantics.
+
+    Collision/backprojection decides *which* source Fold bands are truly
+    through-thickness interference.  It does not provide manufacturing
+    dimensions.  Once a semantic band is selected, nominal CUTTING is derived
+    only from the source Fold chain, Divider Fold datum and authoritative T.
+
+    This keeps validation/measurement outputs out of production formulas.
+    """
+    from shapely.geometry import box as shapely_box
+    from shapely.ops import unary_union
+
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    half_t = max(0.0, float(sheet_thickness)) / 2.0
+    lengths = {
+        str(name): max(0.0, float(end) - float(start))
+        for name, start, end in tuple(source_fold_bands or ())
+    }
+    penetrating = set(str(name) for name in tuple(classified.get("penetrating_bands") or ()))
+    cuts = []
+    stages = {}
+
+    def require(*names):
+        missing = [name for name in names if name not in lengths or lengths[name] <= float(tolerance)]
+        if missing:
+            raise ValueError(
+                f"Divider semantic relief missing authoritative Fold bands for {source_key}: "
+                + ", ".join(missing)
+            )
+
+    if str(source_key).endswith(":left_side"):
+        unexpected = penetrating.difference({"zl1", "zl2"})
+        if unexpected:
+            raise ValueError(
+                "Divider left-side through-thickness penetration reached unsupported Fold bands: "
+                + ", ".join(sorted(unexpected))
+            )
+        if "zl1" in penetrating and "zl2" not in penetrating:
+            raise ValueError(
+                "Divider left zl1 penetration is disconnected from zl2 primary relief; fail closed"
+            )
+        if "zl2" in penetrating:
+            require("zl2", "fw_left")
+            primary_u = float(core_start) + float(lengths["zl2"])
+            primary_v = float(lengths["fw_left"]) + half_t
+            primary = shapely_box(
+                minx,
+                miny,
+                min(maxx, primary_u),
+                min(maxy, miny + primary_v),
+            )
+            cuts.append(primary)
+            stages["zl2"] = {
+                "role": "PRIMARY_CORNER_CONNECTED",
+                "formula": "core_start + zl2; fw_left + T/2",
+                "fold_lengths": {
+                    "zl2": float(lengths["zl2"]),
+                    "fw_left": float(lengths["fw_left"]),
+                },
+                "nominal_bounds": tuple(map(float, primary.bounds)),
+                "depth_from_edge": float(primary_v),
+            }
+        if "zl1" in penetrating:
+            require("zl1", "zl2", "fw_left")
+            center_u = float(core_start) + float(lengths["zl2"])
+            x0 = center_u - half_t
+            x1 = center_u + half_t
+            y0 = miny + float(lengths["fw_left"])
+            y1 = y0 + float(lengths["zl1"])
+            secondary = shapely_box(
+                max(minx, x0),
+                max(miny, y0),
+                min(maxx, x1),
+                min(maxy, y1),
+            )
+            cuts.append(secondary)
+            stages["zl1"] = {
+                "role": "SECONDARY_PHYSICAL_ARM",
+                "formula": "center=core_start+zl2; width=T; V=fw_left..fw_left+zl1",
+                "fold_lengths": {
+                    "zl1": float(lengths["zl1"]),
+                    "zl2": float(lengths["zl2"]),
+                    "fw_left": float(lengths["fw_left"]),
+                },
+                "nominal_bounds": tuple(map(float, secondary.bounds)),
+                "depth_from_edge": float(y1 - miny),
+            }
+
+    elif str(source_key).endswith(":right_side"):
+        unexpected = penetrating.difference({"zr2"})
+        if unexpected:
+            raise ValueError(
+                "Divider right-side through-thickness penetration reached unsupported Fold bands: "
+                + ", ".join(sorted(unexpected))
+            )
+        if "zr2" in penetrating:
+            require("zr2", "fw_right")
+            primary_u = float(core_start) + float(lengths["zr2"])
+            primary_v = float(lengths["fw_right"]) + half_t
+            primary = shapely_box(
+                minx,
+                max(miny, maxy - primary_v),
+                min(maxx, primary_u),
+                maxy,
+            )
+            cuts.append(primary)
+            stages["zr2"] = {
+                "role": "PRIMARY_CORNER_CONNECTED",
+                "formula": "core_start + zr2; fw_right + T/2",
+                "fold_lengths": {
+                    "zr2": float(lengths["zr2"]),
+                    "fw_right": float(lengths["fw_right"]),
+                },
+                "nominal_bounds": tuple(map(float, primary.bounds)),
+                "depth_from_edge": float(primary_v),
+            }
+    else:
+        raise ValueError(f"Unsupported Divider physical source piece: {source_key}")
+
+    if not cuts:
+        return None, stages
+    nominal = unary_union(cuts).intersection(material)
+    if getattr(nominal, "is_empty", True) or float(nominal.area) <= float(tolerance) ** 2:
+        return None, stages
+    return nominal, stages
+
+
 def build_divider_front_fold_relief_candidate(
     joint,
     *,
@@ -519,19 +836,19 @@ def build_divider_front_fold_relief_candidate(
     flat_material_by_part,
     core_start: float,
     source_geometry_keys,
+    source_fold_bands_by_key,
     clearance: float = 0.0,
     sheet_thickness: float = 0.0,
     tolerance: float = 1e-6,
 ):
-    """Derive a Divider end relief from the physical flat-UV crossing shape.
+    """Derive Divider relief from Fold authority, gated by true-solid collision.
 
-    The Fold topology owns *where* relief is allowed: material before the
-    D_DIVIDER core.  The 3D crossing projection owns the actual cut topology
-    and edge depth.  Remaining crossings in/after the core are legal mating
-    contact and are deliberately not converted into a larger cut.
+    3D both-skin backprojection classifies which source Fold bands penetrate and
+    supplies physical footprints for coverage/replay verification only.
+    Manufacturing dimensions are calculated from source Fold segment lengths,
+    Divider core_start and authoritative T.  Validation/probe measurements never
+    feed the production cut formula.
     """
-    from shapely.affinity import translate
-    from shapely.geometry import box as shapely_box
     from shapely.ops import unary_union
 
     ownership = joint_relief_ownership(joint)
@@ -546,138 +863,131 @@ def build_divider_front_fold_relief_candidate(
         raise ValueError(
             f"Divider relief core_start must lie inside material bounds: {core_start} not in {(minx, maxx)}"
         )
+    bands_by_key = dict(source_fold_bands_by_key or {})
+    missing = [
+        str(key) for key in tuple(source_geometry_keys or ())
+        if not tuple(bands_by_key.get(str(key), ()) or ())
+    ]
+    if missing:
+        raise ValueError(
+            "Divider true-thickness classification requires authoritative source Fold bands: "
+            + ", ".join(missing)
+        )
 
-    # Boolean robustness margin only; this is not manufacturing clearance.
-    # The solver's triangulated skin/backprojection can land a few 1e-5 mm on
-    # either side of an exact Fold boundary, so keep the cut topologically
-    # stable without changing the collision-derived physical depth.
-    # Refolding the exact triangulated skins can leave sub-micron boundary
-    # crossings even when the collision UV hull itself is correct. Keep a
-    # tolerance-derived boolean fringe large enough for refold verification,
-    # while remaining far below any manufacturing dimension/clearance.
+    # Numerical boolean fringe only. It never changes nominal manufacturing
+    # dimensions and is never reported as a CUTTING formula input.
     boolean_margin = max(5.0e-4, float(tolerance) * 500.0)
-
+    half_t = max(0.0, float(sheet_thickness)) / 2.0
     cut_polygons = []
     cut_depths = []
     pair_count = 0
     eligible_count = 0
     projection_evidence = {}
+    physical_footprints_by_source = {}
+
     for source_key in tuple(source_geometry_keys or ()):
+        source_key = str(source_key)
         projected = project_joint_interference_to_relief_owner(
             joint,
             world_triangles_by_part=world_triangles_by_part,
             mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
             flat_material_by_part=flat_material_by_part,
             tolerance=float(tolerance),
-            source_geometry_key=str(source_key),
+            source_geometry_key=source_key,
         )
         pair_count += int(projected.projection.pair_count)
-        segments = _divider_front_fold_segments(
-            projected.projection, core_start=core_start, tolerance=tolerance
-        )
-        eligible_count += len(segments)
-        points = [
-            (float(point[0]), float(point[1]))
-            for segment in segments
-            for point in segment
-        ]
-        if not points:
-            projection_evidence[str(source_key)] = {
-                "pair_count": int(projected.projection.pair_count),
-                "eligible_segments": 0,
-                "edge": None,
-                "depth": 0.0,
-            }
-            continue
-
-        low_depth = max(0.0, max(y for _x, y in points) - miny)
-        high_depth = max(0.0, maxy - min(y for _x, y in points))
-        half_t = max(0.0, float(sheet_thickness)) / 2.0
-        if low_depth <= high_depth:
-            edge = "MIN_Y"
-            solid_y_offset = half_t
-            depth = low_depth + half_t + float(clearance)
-        else:
-            edge = "MAX_Y"
-            solid_y_offset = -half_t
-            depth = high_depth + half_t + float(clearance)
-
-        # STANDARD owns the manufacturing topology.  Physical collision may
-        # determine which span end is involved and how deep the relief must be,
-        # but triangulation/backprojection vertices may never become new
-        # manufacturing edges.  Fit the physical crossing linework into the
-        # Divider's one-level orthogonal pre-core Fold domain.  This is the same
-        # stable-topology boundary used by the generic corner solver.
-        topology_domain = shapely_box(minx, miny, core_start, maxy)
-        corner_name = "bottom_left" if edge == "MIN_Y" else "top_left"
-        fitted = derive_corner_relief_from_flat_interference(
-            relief_component=topology_domain,
-            segments_2d=segments,
-            blank_bounds=(minx, miny, maxx, maxy),
-            corner_name=corner_name,
-            clearance=0.0,
+        classified = classify_source_fold_true_thickness_interference(
+            source_geometry_key=source_key,
+            relief_geometry_key=relief_key,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            source_fold_bands=tuple(bands_by_key[source_key]),
             tolerance=float(tolerance),
         )
-        if fitted is None:
-            raise ValueError(
-                f"Divider relief projection has no manufacturable STANDARD topology: {source_key}"
-            )
-        collision_shape = fitted.cut_polygon_2d.intersection(material)
-        if (
-            getattr(collision_shape, "is_empty", True)
-            or float(getattr(collision_shape, "area", 0.0)) <= float(tolerance) ** 2
-        ):
-            raise ValueError(
-                f"Divider relief topology fit has no manufacturable UV area: {source_key}"
-            )
+        eligible_count += int(classified["penetrating_segment_count"])
 
-        # Backprojection records crossings on a physical sheet skin.  Convert
-        # that stable orthogonal skin footprint to the full solid-sheet relief
-        # by sweeping inward exactly T/2.  Union preserves the STANDARD topology;
-        # do not convex-hull the result, because that would re-introduce
-        # triangulation-derived diagonal CUTTING edges.
-        solid_shape = collision_shape
-        if half_t > float(tolerance):
-            solid_shape = unary_union((
-                collision_shape,
-                translate(collision_shape, yoff=solid_y_offset),
-            ))
+        source_physical_footprints = []
+        band_validation_evidence = {}
+        for band_name in tuple(classified["penetrating_bands"]):
+            row = dict(classified["bands"][band_name])
+            physical = row.get("physical_footprint_2d")
+            if physical is None or getattr(physical, "is_empty", True):
+                continue
+            physical = physical.intersection(material)
+            if getattr(physical, "is_empty", True) or float(physical.area) <= float(tolerance) ** 2:
+                continue
+            source_physical_footprints.append(physical)
+            band_validation_evidence[str(band_name)] = {
+                "physical_footprint_bounds_validation_only": tuple(map(float, physical.bounds)),
+                "physical_footprint_area_validation_only": float(physical.area),
+                "source_skin_sides": tuple(row.get("skin_sides") or ()),
+            }
 
-        # Clearance is an allowance around the physical solid projection, while
-        # the boolean margin only stabilizes polygon subtraction. Neither may
-        # expand the cut past the pre-core Fold domain.
-        allowance = max(0.0, float(clearance)) + float(boolean_margin)
-        cut = solid_shape.buffer(allowance, join_style=2)
-        pre_core_domain = shapely_box(
-            minx - boolean_margin,
-            miny - boolean_margin,
-            core_start + boolean_margin,
-            maxy + boolean_margin,
+        nominal, stage_evidence = _divider_semantic_stage_cut(
+            source_key=source_key,
+            classified=classified,
+            source_fold_bands=tuple(bands_by_key[source_key]),
+            material=material,
+            core_start=core_start,
+            sheet_thickness=float(sheet_thickness),
+            tolerance=float(tolerance),
         )
-        cut = cut.intersection(pre_core_domain)
 
-        if depth > float(tolerance) and not getattr(cut, "is_empty", True):
+        physical_union = None
+        if source_physical_footprints:
+            physical_union = unary_union(source_physical_footprints).intersection(material)
+            physical_footprints_by_source[source_key] = physical_union
+
+        if nominal is not None:
+            if physical_union is None or getattr(physical_union, "is_empty", True):
+                raise ValueError(
+                    f"Divider semantic cut selected without physical footprint: {source_key}"
+                )
+            # Coverage is a verification gate only. Never expand nominal geometry
+            # from the measured miss; fail closed if the authoritative formula
+            # cannot cover the physical source footprint.
+            coverage_probe = nominal.buffer(boolean_margin, join_style=2)
+            missed = physical_union.difference(coverage_probe)
+            missed_area = 0.0 if getattr(missed, "is_empty", True) else float(missed.area)
+            if missed_area > max(float(tolerance) ** 2, 1.0e-10):
+                raise ValueError(
+                    f"Divider authority-derived relief does not cover physical footprint: "
+                    f"{source_key}, missed_area={missed_area}"
+                )
+
+            allowance = max(0.0, float(clearance)) + float(boolean_margin)
+            cut = nominal
+            if allowance > 0.0:
+                cut = cut.buffer(allowance, join_style=2)
+            cut = cut.intersection(material)
+            if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
+                raise ValueError(f"Divider authority-derived cut is empty: {source_key}")
             cut_polygons.append(cut)
-            cut_depths.append((str(source_key), float(depth)))
-        projection_evidence[str(source_key)] = {
+            depths = [
+                float(row.get("depth_from_edge", 0.0))
+                for row in dict(stage_evidence or {}).values()
+            ]
+            cut_depths.append((source_key, max(depths) if depths else 0.0))
+
+        retained_names = tuple(
+            name for name, row in dict(classified["bands"]).items()
+            if tuple(row.get("segments_2d") or ()) and not bool(row.get("through_thickness"))
+        )
+        projection_evidence[source_key] = {
             "pair_count": int(projected.projection.pair_count),
-            "eligible_segments": len(segments),
-            "edge": edge,
-            "depth": float(depth),
-            "uv_shape_area": float(collision_shape.area),
-            "uv_shape_bounds": tuple(float(v) for v in collision_shape.bounds),
-            "skin_uv_shape_area": float(collision_shape.area),
-            "skin_uv_shape_bounds": tuple(float(v) for v in collision_shape.bounds),
+            "eligible_segments": int(classified["penetrating_segment_count"]),
+            "penetrating_bands": tuple(classified["penetrating_bands"]),
+            "retained_contact_bands": retained_names,
             "solid_half_thickness": float(half_t),
-            "solid_uv_shape_area": float(solid_shape.area),
-            "solid_uv_shape_bounds": tuple(float(v) for v in solid_shape.bounds),
-            "manufacturing_topology": "STANDARD_ONE_LEVEL_ORTHOGONAL",
-            "topology_corner": corner_name,
+            "manufacturing_topology": "STANDARD_PLUS_SOURCE_FOLD_BAND_ORTHOGONAL",
+            "manufacturing_dimensions_source": "AUTHORITATIVE_FOLD_PLUS_T",
+            "semantic_stages": dict(stage_evidence or {}),
+            "physical_validation": band_validation_evidence,
+            "coverage_rule": "PHYSICAL_FOOTPRINT_MUST_BE_SUBSET_OF_AUTHORITY_CUT",
         }
 
     if not cut_polygons:
         return None
-    cut = unary_union(cut_polygons)
+    cut = unary_union(cut_polygons).intersection(material)
     if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
         return None
     return DividerFrontFoldReliefCandidate(
@@ -686,6 +996,7 @@ def build_divider_front_fold_relief_candidate(
         pre_pair_count=pair_count,
         eligible_segment_count=eligible_count,
         cut_depths=tuple(cut_depths),
+        physical_footprints_by_source=dict(physical_footprints_by_source),
         evidence={
             "core_start": core_start,
             "projection_by_source": projection_evidence,
@@ -693,11 +1004,12 @@ def build_divider_front_fold_relief_candidate(
                 "preserve_part": str(ownership.preserve_part),
                 "relief_part": relief_key,
             },
+            "classification": "SOURCE_FOLD_BAND_TRUE_THICKNESS",
+            "manufacturing_dimensions_source": "AUTHORITATIVE_FOLD_PLUS_T",
             "boolean_margin": float(boolean_margin),
             "sheet_thickness": max(0.0, float(sheet_thickness)),
         },
     )
-
 
 def verify_divider_front_fold_relief(
     joint,
@@ -707,39 +1019,87 @@ def verify_divider_front_fold_relief(
     flat_material_by_part,
     core_start: float,
     source_geometry_keys,
+    source_fold_bands_by_key,
+    physical_footprints_by_source=None,
     tolerance: float = 1e-6,
 ):
-    """Return post-cut illegal/front vs retained-contact crossing counts."""
-    front_segments = 0
+    """Verify zero positive-area overlap with pre-solve true-solid footprints.
+
+    Boundary crossing lines are legal after a precise cut.  Therefore refold
+    verification must not equate triangle/skin intersection lines with positive
+    material penetration.  The pre-solve physical footprints are derived from
+    real source Fold bands and both source skins; post-solve retained material
+    must have zero positive area inside those footprints.
+    """
+    ownership = joint_relief_ownership(joint)
+    relief_key = str(ownership.relief_part)
+    material = (flat_material_by_part or {}).get(relief_key)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError(f"Divider verification material unavailable: {relief_key}")
+
+    bands_by_key = dict(source_fold_bands_by_key or {})
+    footprints = dict(physical_footprints_by_source or {})
+    missing = [
+        str(key) for key in tuple(source_geometry_keys or ())
+        if not tuple(bands_by_key.get(str(key), ()) or ())
+    ]
+    if missing:
+        raise ValueError(
+            "Divider verification requires authoritative source Fold bands: "
+            + ", ".join(missing)
+        )
+
+    illegal_area = 0.0
     contact_segments = 0
     pair_count = 0
     by_source = {}
     for source_key in tuple(source_geometry_keys or ()):
+        source_key = str(source_key)
         projected = project_joint_interference_to_relief_owner(
             joint,
             world_triangles_by_part=world_triangles_by_part,
             mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
             flat_material_by_part=flat_material_by_part,
             tolerance=float(tolerance),
-            source_geometry_key=str(source_key),
+            source_geometry_key=source_key,
         )
         pair_count += int(projected.projection.pair_count)
-        front = _divider_front_fold_segments(
-            projected.projection, core_start=float(core_start), tolerance=tolerance
+        classified = classify_source_fold_true_thickness_interference(
+            source_geometry_key=source_key,
+            relief_geometry_key=relief_key,
+            mapped_skin_triangles_by_part=mapped_skin_triangles_by_part,
+            source_fold_bands=tuple(bands_by_key[source_key]),
+            tolerance=float(tolerance),
         )
-        retained = max(0, len(tuple(projected.projection.segments_2d or ())) - len(front))
-        front_segments += len(front)
-        contact_segments += retained
-        by_source[str(source_key)] = {
+
+        physical = footprints.get(source_key)
+        overlap_area = 0.0
+        if physical is not None and not getattr(physical, "is_empty", True):
+            overlap = material.intersection(physical)
+            overlap_area = 0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+        illegal_area += overlap_area
+
+        source_contact = int(classified["retained_contact_segment_count"])
+        contact_segments += source_contact
+        by_source[source_key] = {
             "pair_count": int(projected.projection.pair_count),
-            "front_illegal_segments": len(front),
-            "retained_contact_segments": retained,
+            "front_illegal_segments": 0 if overlap_area <= float(tolerance) ** 2 else 1,
+            "positive_overlap_area": float(overlap_area),
+            "boundary_crossing_bands": tuple(classified["penetrating_bands"]),
+            "retained_contact_segments": source_contact,
         }
+
+    area_tolerance = max(float(tolerance) ** 2, 1.0e-12)
+    verified = illegal_area <= area_tolerance
     return {
         "pair_count": pair_count,
-        "front_illegal_segments": front_segments,
+        "front_illegal_segments": 0 if verified else 1,
+        "true_thickness_penetration_segments": 0 if verified else 1,
+        "positive_overlap_area": float(illegal_area),
         "retained_contact_segments": contact_segments,
-        "verified": front_segments == 0,
+        "verified": bool(verified),
+        "classification": "POSITIVE_AREA_TRUE_SOLID_FOOTPRINT",
+        "core_start_evidence_only": float(core_start),
         "by_source": by_source,
     }
 

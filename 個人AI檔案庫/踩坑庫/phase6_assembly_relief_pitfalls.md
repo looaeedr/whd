@@ -200,3 +200,22 @@
 - 頂層板件只保留 logical `box_body`；physical children 的操作資訊巢狀放在箱身內。
 - 每片 visibility 必須獨立，但 visibility mask 只作用於 drawing sink；完整 child meshes 仍留在 assembly datum / collision source。
 - 若取消顯示某 child 後 Head/Tail 位置、collision 或 relief 改變，表示 renderer visibility 又污染了 mechanical authority，直接判定回歸。
+
+## 2026-09-09 — Issue74：core_start 不是 Divider 穿透界線；兩張 source skin 不可再補 T/2
+
+- **症狀**：Divider verifier 曾回 `verified=true`，但 true-thickness world-space 檢查仍發現左側板 `zl1/zl2` 與右側板 `zr2` 穿過 Divider；相鄰 FW/D 只是一張 skin 接觸。
+- **根因 1 — legality boundary 錯置**：舊 solver 用 Divider `core_start` 當硬界線，把 `core_start` 後的交線全部當 retained contact。實際上 collision legality 必須看 source physical Fold band 是否跨過**兩張** skin，不能看 target UV 是否超過某條折線。
+- **根因 2 — 板厚重複補償**：第一輪 true-thickness 修正把 source 兩張 skins 已經界定好的 physical footprint 又加一次 `T/2`，造成多切。兩張 source skins 已包含 source 板厚，不可再做相同方向的 source skin→solid 補償。
+- **根因 3 — 只挖 footprint 會做成內部槽**：把碰撞 footprint 小矩形直接 difference 雖可讓 positive overlap 歸零，但不等於正確 corner relief。Manufacturing topology 必須由 Fold semantics 建出「外緣 primary + 必要 secondary arm」。
+- **正式 production authority**：
+  - source semantic Fold band + both-skin crossing：只判定 penetrating band；
+  - Fold material lengths + Divider `core_start` + authoritative `T`：算 nominal CUTTING；
+  - physical footprint：只做 coverage/replay validation；若 nominal 不覆蓋就 fail closed，禁止把 measured miss/delta 加回公式；
+  - post-solve：驗 retained material 與 pre-solve true-solid footprint 的 positive-area overlap=0，邊界 intersection line 不算正體積穿透。
+- **Receiving nominal 公式**：
+  - 左 primary：`U=core_start+zl2`，`V=fw_left+T/2`；
+  - 左 secondary：center U 同上、寬 `T`，V=`fw_left .. fw_left+zl1`；
+  - 右 primary：`U=core_start+zr2`，`V=fw_right+T/2`。
+- **目前 fixture evidence（非 runtime oracle）**：`core_start=41, zl1=22, zl2=20, FW料=25, zr2=16, T=2` → 左 primary `61×26`；左 secondary `X60..62, V25..47`（比 primary 再深 21）；右 primary `57×26`。這些數字只能用來驗當次輸出，production 必須每次從 Fold+T 重算。
+- **數值毛邊**：`0.0005` boolean fringe 只為浮點 polygon robustness；不得當 clearance / 多切量 / manufacturing compensation。
+- **驗收**：Issue74 exact + Divider guards 必須同時 GREEN，並保留 `config.ini` SHA invariant；舊「左右深度必須相同」與「只截到 core_start」測試 oracle 已廢止。
