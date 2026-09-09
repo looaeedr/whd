@@ -61,3 +61,14 @@ description: Use when Git remote synchronization is blocked by DNS, network, aut
 | 「Connector call 報錯，所以一定什麼都沒寫」 | 可能部分成功；先重讀遠端。 |
 | 「文字檔都上去了，所以 ZIP 應該也算上去了」 | 未遠端讀回或列檔驗證就不算。 |
 | 「remote 有內容就等於 local commits 都 push 了」 | 內容同步與 commit identity 是兩回事。 |
+
+## Branch-first before any remote write
+
+For WHD repository mutations, transport fallback never changes the branch policy:
+
+- A new modification task must first create a **new work branch from the latest authoritative target HEAD**.
+- Contents API / GitHub Connector writes must target that work branch, not `cleanup/2d-3d-sync` or `main`.
+- Record and re-read the new branch HEAD before the first content write.
+- Same-task follow-up commits stay on the same work branch; a separate modification task starts a new branch.
+- If a Connector limitation makes branch creation impossible, stop and report the blocker; do not substitute direct target writes.
+- Merge back only through a non-force integration path after acceptance.
