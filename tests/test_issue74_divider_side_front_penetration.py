@@ -473,3 +473,49 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
     # exact and is never fed back to production.
     assert float(missing.area) <= 1.0e-3
     assert float(extra.area) <= 1.0e-3
+
+
+def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_derived():
+    """Operator/outside inputs are authority; material Fold is one-way derived."""
+    from phase6_fold_profiles import build_box_body_profile, read_box_body_profile
+
+    snap = _snapshot()
+    assert (
+        float(snap["zl1"]),
+        float(snap["zl2"]),
+        float(snap["fw"]),
+        float(snap["zr2"]),
+    ) == (24.0, 24.0, 29.0, 18.0)
+
+    profile = build_box_body_profile(snap)
+    by_key = {
+        str(row.get("phase6_key") or ""): row
+        for row in profile
+        if str(row.get("phase6_key") or "")
+    }
+    material = (
+        float(by_key["zl1"]["len"]),
+        float(by_key["zl2"]["len"]),
+        float(by_key["fw_left"]["len"]),
+        float(by_key["zr2"]["len"]),
+    )
+    assert material == (22.0, 20.0, 25.0, 16.0)
+
+    roundtrip = read_box_body_profile(profile, snap)
+    assert (
+        float(roundtrip["zl1"]),
+        float(roundtrip["zl2"]),
+        float(roundtrip["fw"]),
+        float(roundtrip["zr2"]),
+    ) == (24.0, 24.0, 29.0, 18.0)
+
+    print("RECEIVING_INPUT_AUTHORITY=", {
+        "operator_outside": (24.0, 24.0, 29.0, 18.0),
+        "derived_material": material,
+        "roundtrip_operator": (
+            float(roundtrip["zl1"]),
+            float(roundtrip["zl2"]),
+            float(roundtrip["fw"]),
+            float(roundtrip["zr2"]),
+        ),
+    })
