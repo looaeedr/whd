@@ -7,6 +7,7 @@ on:
       - ae_engine/box_body_structure.py
       - ae_engine/assembly_geometry.py
       - ae_engine/divider_manufacturing.py
+      - phase6_fold_profiles.py
       - tests/test_issue74_divider_side_front_penetration.py
       - .github/workflows/receiving-fw-formed-occupation-red.yml
 jobs:
