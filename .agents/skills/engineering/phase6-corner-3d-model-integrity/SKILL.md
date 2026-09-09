@@ -90,3 +90,15 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 4. **禁止 magic observation**：`0.001` fringe、`10/100`、`47/26`、`1 mm`、middle-segment 等若只是測試/量測觀察值，不得出現在正式 relief/hole/placement/thickness 推導。
 5. **正式來源不變**：production 仍只能讀 canonical state、Fold topology、AssemblyJoint、physical collision/backprojection、authoritative thickness `T`、certified registry/semantics。
 6. **cleanup drift gate**：Combined terminal GREEN 後若還有 docs/state/workflow cleanup，必須逐 production/test blob 比對 tested head；任何 production/test drift 都使該 GREEN 失效並要求重跑。
+
+
+## 使用者要求「驗中隔」時
+
+若使用者的目的是「檢查目前中隔是否正確」，而不是修改 relief/3D production，必須轉入：
+
+`[驗證中隔與DXF](../驗證中隔與DXF/SKILL.md)`
+
+- 「驗目前中隔」：不要求先 Save/Reload，直接驗 current canonical / relief / placement。
+- 「驗目前中隔的 DXF」：實際 export DXF → reopen → compare canonical。
+- 「完整驗中隔」：再加 Save→Reload parity。
+- 不得只回目前數值或歷史 PASS；若使用者要求「跑一次」，必須真的建立/執行驗收並輪詢 remote run 到 terminal。
