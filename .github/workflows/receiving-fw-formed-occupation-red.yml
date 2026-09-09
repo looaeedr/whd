@@ -1,4 +1,4 @@
-# retrigger physical FW-contact Divider collision acceptance
+# retrigger exact Divider candidate replay diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
