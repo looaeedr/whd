@@ -1,0 +1,147 @@
+name: Door DXF Reopen Canonical Parity QA
+
+on:
+  push:
+    branches:
+      - fix/door-dxf-reopen-canonical-parity-latest
+    paths:
+      - .github/workflows/qa_door_dxf_reopen_canonical_parity.yml
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pytest matplotlib
+
+      - name: Capture config invariant
+        run: sha256sum config.ini | awk '{print $1}' > /tmp/config.before
+
+      - name: Knowledge preflight
+        run: |
+          cat > /tmp/preflight-evidence.md <<'EOF'
+          diagnosing-bugs
+          tdd
+          驗證板件與DXF
+          monitoring-remote-qa
+          phase6-release-packaging
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "追查並修正受電箱 Door DXF reopen CUTTING false mismatch，共用 production canonical material reconstruction" \
+            --changed-file ae_engine/cutting_material.py \
+            --changed-file ae_engine/manufacturing_api.py \
+            --changed-file ae_engine/dxf_acceptance.py \
+            --changed-file tests/test_receiving_door_dxf_roundtrip.py \
+            --changed-file tests/test_dxf_acceptance.py \
+            --changed-file .agents/skills/engineering/驗證板件與DXF/SKILL.md \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md \
+            --evidence /tmp/preflight-evidence.md
+
+      - name: Target baseline nameplate status
+        run: |
+          git fetch origin cleanup/2d-3d-sync
+          git worktree add --detach /tmp/target-baseline FETCH_HEAD
+          set +e
+          (cd /tmp/target-baseline && pytest -q tests/test_phase6_t07_door_nameplate_feature.py)
+          status=$?
+          set -e
+          echo "TARGET_NAMEPLATE_STATUS=$status"
+          if [ "$status" -eq 0 ]; then
+            echo "Target baseline unexpectedly passes nameplate guards"
+          fi
+
+      - name: Door DXF focused GREEN and negative guards
+        run: |
+          pytest -q \
+            tests/test_receiving_door_dxf_roundtrip.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_receiving_door_frame_width_semantics.py
+
+      - name: Broad manufacturing and DXF guards
+        run: |
+          pytest -q \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py
+
+      - name: Live fresh Receiving all physical DXF reopen
+        run: |
+          xvfb-run -a python - <<'PY'
+          import tempfile
+          from pathlib import Path
+          import tkinter as tk
+
+          import gui
+          import fold_designer_bridge as bridge
+          from ae_engine import manufacturing_api as api
+
+          root = tk.Tk()
+          root.geometry("1200x900")
+          app = gui.BoxCalculatorGUI(root)
+          app.baseline_var.set("受電箱")
+          root.update_idletasks(); root.update()
+          designer = app.open_original_fold_designer()
+          root.update_idletasks(); root.update()
+          try:
+              resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
+              physical = dict(api._resolved_physical_render_parts(resolved))
+              out = Path(tempfile.mkdtemp(prefix="door_dxf_acceptance_"))
+              outputs = api.save_resolved_manufacturing_geometry_dxf(
+                  resolved, out, overwrite=True
+              )
+              result = api.verify_saved_resolved_manufacturing_geometry_dxf(
+                  resolved, out
+              )
+
+              print("RESOLVED_PHYSICAL_IDS", tuple(physical))
+              print("DXF_EXPECTED_COUNT", len(physical))
+              print("DXF_ACTUAL_COUNT", len(outputs))
+              print("DXF_REOPEN_OK", result.ok)
+              print("DXF_ISSUES", [
+                  (issue.part_id, issue.category, issue.detail)
+                  for issue in result.issues
+              ])
+              for part_id in ("door_c1_r1", "door_c1_r2"):
+                  part = result.part_results[part_id]
+                  print("DOOR_REOPEN", part_id, {
+                      "ok": part.ok,
+                      "issues": [(issue.category, issue.detail) for issue in part.issues],
+                      "bounds": tuple(map(float, physical[part_id].material.bounds)),
+                      "area": float(physical[part_id].material.area),
+                      "bend_count": len(tuple(physical[part_id].fold_guides or ())),
+                  })
+
+              assert set(outputs) == set(physical)
+              assert result.ok is True
+              assert result.issues == ()
+              assert result.part_results["door_c1_r1"].ok is True
+              assert result.part_results["door_c1_r2"].ok is True
+          finally:
+              try:
+                  designer.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root.destroy()
+              except Exception:
+                  pass
+          PY
+
+      - name: Config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | awk '{print $1}' > /tmp/config.after
+          echo "before=$(cat /tmp/config.before)"
+          echo "after=$(cat /tmp/config.after)"
+          diff -u /tmp/config.before /tmp/config.after
