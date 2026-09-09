@@ -1,4 +1,4 @@
-# retrigger zl1 per-skin collision diagnostic
+# retrigger terminal-leg tangent-shift collision probe
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -263,6 +263,100 @@ jobs:
                   ),
               }
           print("ZL1_PER_SKIN_COLLISION="+json.dumps(out,ensure_ascii=False))
+          PY
+      - name: Terminal-leg tangent-shift collision probe
+        run: |
+          python - <<'PY'
+          import json, math
+          from dataclasses import replace
+          import fold_designer_bridge as bridge
+          from ae_engine.assembly_collision import classify_source_fold_true_thickness_interference
+          from ae_engine.divider_manufacturing import _source_fold_bands_by_geometry_key
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          mapped=dict(world["mapped_skin_triangles_by_part"])
+          bands=_source_fold_bands_by_geometry_key(body)
+
+          def tangent_from_rows(rows,u0,u1):
+              candidates=[]
+              for r in rows:
+                  flat=list(r.flat); pts=list(r.world)
+                  cu=sum(float(p[0]) for p in flat)/3.0
+                  if not (u0-1e-6 <= cu <= u1+1e-6):
+                      continue
+                  for i in range(3):
+                      for j in range(i+1,3):
+                          du=float(flat[j][0])-float(flat[i][0])
+                          dv=float(flat[j][1])-float(flat[i][1])
+                          if abs(du) <= 1e-8 or abs(dv) > abs(du)*1e-4:
+                              continue
+                          vec=tuple((float(pts[j][k])-float(pts[i][k]))/du for k in range(3))
+                          mag=math.sqrt(sum(v*v for v in vec))
+                          if mag>1e-9:
+                              candidates.append(tuple(v/mag for v in vec))
+              if not candidates:
+                  raise RuntimeError("no terminal-leg tangent")
+              ref=candidates[0]
+              aligned=[]
+              for v in candidates:
+                  dot=sum(v[k]*ref[k] for k in range(3))
+                  aligned.append(v if dot>=0 else tuple(-x for x in v))
+              avg=tuple(sum(v[k] for v in aligned)/len(aligned) for k in range(3))
+              mag=math.sqrt(sum(v*v for v in avg))
+              return tuple(v/mag for v in avg)
+
+          shifted=dict(mapped)
+          specs=(
+              ("box_body:left_side","zl1",-1.0),
+              ("box_body:right_side","zr2",+1.0),
+          )
+          for source_key,band_name,away_sign in specs:
+              u0,u1=next((a,b) for name,a,b in bands[source_key] if name==band_name)
+              rows=list(mapped[source_key])
+              tangent=tangent_from_rows(rows,u0,u1)
+              delta=tuple(away_sign*float(snap["t"])*v for v in tangent)
+              out=[]
+              for r in rows:
+                  cu=sum(float(p[0]) for p in r.flat)/3.0
+                  if u0-1e-6 <= cu <= u1+1e-6:
+                      world2=tuple(
+                          tuple(float(p[k])+delta[k] for k in range(3))
+                          for p in r.world
+                      )
+                      out.append(replace(r,world=world2))
+                  else:
+                      out.append(r)
+              shifted[source_key]=tuple(out)
+
+          result={}
+          for source_key in ("box_body:left_side","box_body:right_side"):
+              row=classify_source_fold_true_thickness_interference(
+                  source_geometry_key=source_key,
+                  relief_geometry_key=divider.stable_id,
+                  mapped_skin_triangles_by_part=shifted,
+                  source_fold_bands=bands[source_key],
+                  tolerance=1e-6,
+              )
+              result[source_key]={
+                  name:{
+                      "through":bool(info.get("through_thickness")),
+                      "bounds":info.get("divider_uv_bounds"),
+                      "footprint_bounds":(
+                          None if info.get("physical_footprint_2d") is None
+                          else tuple(map(float,info["physical_footprint_2d"].bounds))
+                      ),
+                  }
+                  for name,info in row["bands"].items()
+              }
+          print("TERMINAL_LEG_TANGENT_SHIFT_PROBE="+json.dumps(result,ensure_ascii=False))
           PY
       - name: Material-midline full-solid cross-section diagnostic
         run: |
