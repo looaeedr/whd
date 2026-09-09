@@ -18,6 +18,8 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: python -m pip install -r requirements.txt pytest matplotlib
+      - name: Capture config invariant
+        run: sha256sum config.ini | awk '{print $1}' > /tmp/config.before
       - name: Knowledge preflight
         run: |
           cat > /tmp/preflight-evidence.md <<'EOF'
@@ -40,12 +42,23 @@ jobs:
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_receiving_side_panel_outside_defaults.py \
             --evidence /tmp/preflight-evidence.md
-      - name: Requirement RED - headless
+      - name: Focused GREEN - headless
         run: pytest -q tests/test_receiving_side_panel_outside_defaults.py -k "not designer_controls"
-      - name: Requirement RED - Tk
+      - name: Focused GREEN - Tk
         if: always()
         run: xvfb-run -a pytest -q tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
-      - name: Baseline source contract
+      - name: Broader geometry and DXF guards
+        run: |
+          pytest -q \
+            tests/test_phase6_box_body_structure.py \
+            tests/test_issue74_divider_side_front_penetration.py \
+            tests/test_multipart_dxf_acceptance.py
+      - name: Broader 2D 3D child UI guards
+        run: |
+          xvfb-run -a pytest -q \
+            tests/test_phase6_t14_box_body_child_sections.py \
+            tests/test_issue76_box_body_subtabs_2d_3d.py
+      - name: Resolved source contract
         run: |
           python - <<'PY'
           from ae_engine.cabinet_types import receiving
@@ -73,3 +86,10 @@ jobs:
                       for row in piece.fold_profile
                   ])
           PY
+      - name: Config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | awk '{print $1}' > /tmp/config.after
+          echo "before=$(cat /tmp/config.before)"
+          echo "after=$(cat /tmp/config.after)"
+          diff -u /tmp/config.before /tmp/config.after
