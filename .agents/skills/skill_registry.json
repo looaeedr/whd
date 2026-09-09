@@ -204,6 +204,42 @@
         "monitoring-remote-qa"
       ],
       "required_references": []
+    },
+    {
+      "id": "divider-dxf-acceptance",
+      "keywords": [
+        "驗中隔",
+        "驗目前中隔",
+        "中隔驗收",
+        "中隔完整驗收",
+        "跑中隔完整驗收",
+        "DXF反驗證",
+        "DXF 反驗證",
+        "驗輸出的DXF",
+        "驗目前中隔的DXF",
+        "Save→Reload 驗中隔",
+        "Save Reload 驗中隔",
+        "存檔再讀回來驗"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/驗證中隔與DXF/**",
+        "tests/test_issue38_receiving_divider_baseline.py",
+        "tests/test_issue39_divider_relief.py",
+        "tests/test_issue40_divider_6p4_shared_datum.py",
+        "tests/test_issue41_persistence_parity.py",
+        "tests/test_multipart_dxf_acceptance.py",
+        "tests/test_dxf_acceptance.py"
+      ],
+      "required_skills": [
+        "驗證中隔與DXF",
+        "phase6-corner-3d-model-integrity",
+        "monitoring-remote-qa"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md"
+      ]
     }
   ]
 }
