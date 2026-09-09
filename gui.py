@@ -487,9 +487,11 @@ def _draw_phase6_annotation_projection(canvas, render_data, transform, *, part_k
     projection = build_engineering_drawing_projection(
         render_data, part_key=str(part_key or ""), strict=bool(strict)
     )
-    dimensions_by_label = {}
-    for item in tuple(getattr(projection.annotation_plan, "overall_dimensions", ()) or ()):
-        dimensions_by_label.setdefault(str(item.label), []).append(str(item.axis).lower())
+    dimensions_by_semantic_id = {
+        str(getattr(item, "semantic_id", "") or ""): str(item.axis).lower()
+        for item in tuple(getattr(projection.annotation_plan, "overall_dimensions", ()) or ())
+        if str(getattr(item, "semantic_id", "") or "")
+    }
     for primitive in projection.primitives:
         layer = str(getattr(primitive, "layer", "") or "").upper()
         if isinstance(primitive, LinePrimitive):
@@ -501,8 +503,9 @@ def _draw_phase6_annotation_projection(canvas, render_data, transform, *, part_k
             )
         elif isinstance(primitive, TextPrimitive):
             x, y = transform.world_to_canvas(primitive.insert)
-            axes = dimensions_by_label.get(str(primitive.text), ())
-            angle = 90 if layer == "DIMENSION" and axes == ["y"] else 0
+            semantic_id = str(getattr(primitive, "semantic_id", "") or "")
+            axis = dimensions_by_semantic_id.get(semantic_id)
+            angle = 90 if layer == "DIMENSION" and axis == "y" else 0
             anchor_name = tk.CENTER if int(getattr(primitive, "attachment_point", 1)) == 5 else tk.SW
             canvas.create_text(
                 x, y, text=str(primitive.text),
