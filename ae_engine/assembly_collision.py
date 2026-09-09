@@ -827,14 +827,24 @@ def _divider_physical_target_solid_cut(
         "dimension_source": "PHYSICAL_FW_CONTACT_PLUS_SOURCE_TRUE_THICKNESS",
     }
 
-    # Additional penetrating bands are already physical source-solid
-    # backprojections on the Divider. Their exact footprint is the relief
-    # authority. Do not translate it by target T/2 and do not re-anchor it to a
-    # guessed/derived coordinate.
+    # Additional penetrating bands provide their own physical U-span and stage
+    # length, but their absolute target-UV Y coordinate belongs to the collision
+    # projection domain. Final CUTTING placement is continuous with the resolved
+    # primary physical boundary.
     for item in penetrating:
         if item is primary:
             continue
-        cut = item["physical"].intersection(material)
+        if edge == "MIN_Y":
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary),
+                float(item["x1"]), float(primary_boundary) + float(item["v_span"]),
+            )
+        else:
+            cut = shapely_box(
+                float(item["x0"]), float(primary_boundary) - float(item["v_span"]),
+                float(item["x1"]), float(primary_boundary),
+            )
+        cut = cut.intersection(material)
         if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
             continue
         cuts.append(cut)
@@ -843,10 +853,11 @@ def _divider_physical_target_solid_cut(
             "edge": edge,
             "source_skin_sides": tuple(item["row"].get("skin_sides") or ()),
             "source_solid_footprint_bounds": tuple(map(float, item["physical"].bounds)),
+            "primary_boundary": float(primary_boundary),
             "stage_u_span": float(item["u_span"]),
             "stage_v_span": float(item["v_span"]),
             "cut_bounds": tuple(map(float, cut.bounds)),
-            "dimension_source": "SOURCE_TRUE_THICKNESS_COLLISION_BACKPROJECTION",
+            "dimension_source": "PHYSICAL_PRIMARY_BOUNDARY_PLUS_SOURCE_COLLISION_SPAN",
         }
 
     cut = unary_union(tuple(cuts)).intersection(material)
