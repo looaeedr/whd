@@ -372,14 +372,16 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
         minx, miny,
         minx + LEFT_PRIMARY_W, miny + LEFT_PRIMARY_D,
     )
-    # Independent product topology: the narrow secondary stage continues from
-    # the primary notch boundary. Its placement must not be copied from
-    # production collision metadata.
+    # Independent product topology: the secondary stage is a 2x22 material
+    # notch at the approved material-coordinate band 25..47. It intentionally
+    # overlaps the primary 0..27 notch by T=2 in the 25..27 zone.
+    # These coordinates are validation-only and are not read by production.
+    LEFT_STEP_START = 25.0
     left_secondary = shapely_box(
-        minx + LEFT_PRIMARY_W - LEFT_STEP_W / 2.0,
-        miny + LEFT_PRIMARY_D,
-        minx + LEFT_PRIMARY_W + LEFT_STEP_W / 2.0,
-        miny + LEFT_PRIMARY_D + LEFT_STEP_D,
+        minx + LEFT_PRIMARY_W - 1.0,
+        miny + LEFT_STEP_START,
+        minx + LEFT_PRIMARY_W - 1.0 + LEFT_STEP_W,
+        miny + LEFT_STEP_START + LEFT_STEP_D,
     )
 
     right_primary = shapely_box(
