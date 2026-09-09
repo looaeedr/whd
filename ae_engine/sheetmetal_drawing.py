@@ -54,6 +54,7 @@ class TextPrimitive:
     char_height: float
     attachment_point: int
     color: int | None = None
+    semantic_id: str | None = None
 
 
 DrawingPrimitive = PolylinePrimitive | LinePrimitive | CirclePrimitive | TextPrimitive
@@ -142,6 +143,7 @@ def mirror_drawing_scene_x(scene: DrawingScene, min_x: float, max_x: float) -> D
                 text=primitive.text, insert=mirror_point_x(primitive.insert, min_x, max_x),
                 layer=primitive.layer, char_height=primitive.char_height,
                 attachment_point=primitive.attachment_point, color=primitive.color,
+                semantic_id=primitive.semantic_id,
             ))
         else:
             raise TypeError(f"Unsupported drawing primitive: {type(primitive)!r}")
@@ -187,6 +189,7 @@ def mirror_drawing_scene_y(scene: DrawingScene, height: float) -> DrawingScene:
                 char_height=primitive.char_height,
                 attachment_point=primitive.attachment_point,
                 color=primitive.color,
+                semantic_id=primitive.semantic_id,
             ))
         else:
             raise TypeError(f"Unsupported drawing primitive: {type(primitive)!r}")
