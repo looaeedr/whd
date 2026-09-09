@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+import pytest
 from shapely.geometry import box as shapely_box
 import fold_designer_bridge as bridge
 from ae_engine.assembly_collision import (
