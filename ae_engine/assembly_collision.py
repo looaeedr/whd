@@ -531,7 +531,7 @@ def build_divider_front_fold_relief_candidate(
     contact and are deliberately not converted into a larger cut.
     """
     from shapely.affinity import translate
-    from shapely.geometry import MultiPoint, box as shapely_box
+    from shapely.geometry import box as shapely_box
     from shapely.ops import unary_union
 
     ownership = joint_relief_ownership(joint)
@@ -602,31 +602,46 @@ def build_divider_front_fold_relief_candidate(
             solid_y_offset = -half_t
             depth = high_depth + half_t + float(clearance)
 
-        # Preserve the collision-derived flat-UV topology.  The previous
-        # implementation discarded all projected segment shape and replaced it
-        # with one max-depth rectangle spanning minx..core_start.  That could
-        # verify after refold while still removing real material that never
-        # intersected the mating physical piece.
-        collision_shape = MultiPoint(points).convex_hull
+        # STANDARD owns the manufacturing topology.  Physical collision may
+        # determine which span end is involved and how deep the relief must be,
+        # but triangulation/backprojection vertices may never become new
+        # manufacturing edges.  Fit the physical crossing linework into the
+        # Divider's one-level orthogonal pre-core Fold domain.  This is the same
+        # stable-topology boundary used by the generic corner solver.
+        topology_domain = shapely_box(minx, miny, core_start, maxy)
+        corner_name = "bottom_left" if edge == "MIN_Y" else "top_left"
+        fitted = derive_corner_relief_from_flat_interference(
+            relief_component=topology_domain,
+            segments_2d=segments,
+            blank_bounds=(minx, miny, maxx, maxy),
+            corner_name=corner_name,
+            clearance=0.0,
+            tolerance=float(tolerance),
+        )
+        if fitted is None:
+            raise ValueError(
+                f"Divider relief projection has no manufacturable STANDARD topology: {source_key}"
+            )
+        collision_shape = fitted.cut_polygon_2d.intersection(material)
         if (
             getattr(collision_shape, "is_empty", True)
             or float(getattr(collision_shape, "area", 0.0)) <= float(tolerance) ** 2
         ):
             raise ValueError(
-                f"Divider relief projection has no manufacturable UV area: {source_key}"
+                f"Divider relief topology fit has no manufacturable UV area: {source_key}"
             )
 
-        # Backprojection records intersections on the +/-T/2 physical skin
-        # surfaces. Convert that skin footprint to the full solid-sheet relief
-        # boundary by sweeping the same collision-derived UV topology inward by
-        # half the authoritative sheet thickness. This is physical geometry,
-        # not an EndCap/test-derived correction.
+        # Backprojection records crossings on a physical sheet skin.  Convert
+        # that stable orthogonal skin footprint to the full solid-sheet relief
+        # by sweeping inward exactly T/2.  Union preserves the STANDARD topology;
+        # do not convex-hull the result, because that would re-introduce
+        # triangulation-derived diagonal CUTTING edges.
         solid_shape = collision_shape
         if half_t > float(tolerance):
             solid_shape = unary_union((
                 collision_shape,
                 translate(collision_shape, yoff=solid_y_offset),
-            )).convex_hull
+            ))
 
         # Clearance is an allowance around the physical solid projection, while
         # the boolean margin only stabilizes polygon subtraction. Neither may
@@ -656,6 +671,8 @@ def build_divider_front_fold_relief_candidate(
             "solid_half_thickness": float(half_t),
             "solid_uv_shape_area": float(solid_shape.area),
             "solid_uv_shape_bounds": tuple(float(v) for v in solid_shape.bounds),
+            "manufacturing_topology": "STANDARD_ONE_LEVEL_ORTHOGONAL",
+            "topology_corner": corner_name,
         }
 
     if not cut_polygons:
