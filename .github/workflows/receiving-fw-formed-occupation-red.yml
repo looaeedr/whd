@@ -1,4 +1,4 @@
-# retrigger candidate cut sink diagnostic
+# retrigger post-refold boundary classification diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -142,6 +142,36 @@ jobs:
           )
           solved=next(p for p in solved_parts if p.part_key==divider.stable_id)
           d=diagnostics[0]
+          from ae_engine.assembly_collision import classify_source_fold_true_thickness_interference
+          applied_world=bridge._phase6_build_joint_world_geometry(
+              (body, applied),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          post_class={}
+          bands=_source_fold_bands_by_geometry_key(body)
+          for source_key in source_keys:
+              row=classify_source_fold_true_thickness_interference(
+                  source_geometry_key=source_key,
+                  relief_geometry_key=divider.stable_id,
+                  mapped_skin_triangles_by_part=applied_world["mapped_skin_triangles_by_part"],
+                  source_fold_bands=bands[source_key],
+                  tolerance=1e-6,
+              )
+              post_class[source_key]={
+                  "penetrating_bands":row["penetrating_bands"],
+                  "penetrating_segment_count":row["penetrating_segment_count"],
+                  "bands":{
+                      name:{
+                          "skin_sides":list(info.get("skin_sides") or ()),
+                          "through_thickness":bool(info.get("through_thickness")),
+                          "divider_uv_bounds":info.get("divider_uv_bounds"),
+                          "physical_footprint_area":float(info.get("physical_footprint_area") or 0.0),
+                      }
+                      for name,info in dict(row["bands"]).items()
+                  },
+              }
+          print("DIVIDER_POST_REFOLD_CLASSIFICATION="+json.dumps(post_class,ensure_ascii=False,default=str))
           print("DIVIDER_CUT_SINK_DIAGNOSTIC="+json.dumps({
               "original_area":float(original.area),
               "candidate_area":float(candidate.cut_polygon_2d.area),
