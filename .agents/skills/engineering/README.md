@@ -11,6 +11,7 @@ Reachable only when you type them (Claude Code: `disable-model-invocation: true`
 - **[triage](./triage/SKILL.md)**: Move issues through a state machine of triage roles.
 - **[improve-codebase-architecture](./improve-codebase-architecture/SKILL.md)**: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
 - **[掃描深模組](./掃描深模組/SKILL.md)**: WHD 專案的深層架構掃描技能。使用者說「掃描深模組」時必須直接讀取並執行此 Skill；不得以 `setup-ts-deep-modules`、`improve-codebase-architecture` 或其他相似技能替代。若在 registry/README 查不到，仍必須掃描 `.agents/skills/**/SKILL.md` 後才能判定不存在。
+- **[驗證中隔與DXF](./驗證中隔與DXF/SKILL.md)**: 使用者說「驗中隔／驗目前中隔／DXF反驗證／完整驗中隔」時，直接跑 current canonical、relief/placement、DXF reopen、Save→Reload parity 與 remote QA，不要求先手動存專案。
 - **[setup-matt-pocock-skills](./setup-matt-pocock-skills/SKILL.md)**: Configure this repo for the engineering skills (issue tracker, triage labels, domain doc layout). Run once per repo.
 - **[to-spec](./to-spec/SKILL.md)**: Turn the current conversation into a spec and publish it to the issue tracker.
 - **[to-tickets](./to-tickets/SKILL.md)**: Break any plan, spec, or conversation into a set of tracer-bullet tickets, each declaring its blocking edges, whether as text in a local file or as native blocking links on a real tracker.
