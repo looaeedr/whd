@@ -352,6 +352,22 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
     divider, divider_part = _divider_part(snap)
     dims = (snap["w"], snap["h"], snap["d"])
 
+    # Product oracle fixes the stage dimensions; physical collision independently
+    # fixes where that secondary stage belongs on the final Divider.
+    raw_world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snap["t"]
+    )
+    bands = _piece_bands(body)
+    left_pre = _crossing_sides_by_source_band(
+        raw_world, divider.stable_id, "box_body:left_side",
+        bands["box_body:left_side"],
+    )
+    zl1 = left_pre["zl1"]["physical_footprint"]
+    assert zl1 is not None
+    zx0, zy0, zx1, zy1 = map(float, zl1.bounds)
+    assert zx1 - zx0 == pytest.approx(LEFT_STEP_W, abs=1.0e-5)
+    assert zy1 - zy0 == pytest.approx(LEFT_STEP_D, abs=1.0e-5)
+
     solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
         (body, divider_part),
         finished_dimensions=dims,
@@ -372,12 +388,8 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
         minx, miny,
         minx + LEFT_PRIMARY_W, miny + LEFT_PRIMARY_D,
     )
-    left_secondary = shapely_box(
-        minx + LEFT_PRIMARY_W - LEFT_STEP_W / 2.0,
-        miny + LEFT_PRIMARY_D,
-        minx + LEFT_PRIMARY_W + LEFT_STEP_W / 2.0,
-        miny + LEFT_PRIMARY_D + LEFT_STEP_D,
-    )
+    left_secondary = shapely_box(zx0, zy0, zx1, zy1)
+
     right_primary = shapely_box(
         minx, maxy - RIGHT_PRIMARY_D,
         minx + RIGHT_PRIMARY_W, maxy,
@@ -396,7 +408,7 @@ def test_receiving_reference_fixture_final_cutting_matches_independent_notch_ora
             "left_step": (LEFT_STEP_W, LEFT_STEP_D),
             "right_primary": (RIGHT_PRIMARY_W, RIGHT_PRIMARY_D),
         },
-        "left_step_expected_bounds": tuple(map(float, left_secondary.bounds)),
+        "left_step_collision_bounds": (zx0, zy0, zx1, zy1),
     })
 
     assert float(missing.area) <= 1.0e-4
