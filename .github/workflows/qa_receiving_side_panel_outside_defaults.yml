@@ -1,5 +1,4 @@
-name: Receiving Side Panel Outside Defaults QA
-# signed operator roundtrip oracle v3
+name: Receiving Side Panel Complete Acceptance
 
 on:
   push:
@@ -9,90 +8,224 @@ on:
       - .github/workflows/qa_receiving_side_panel_outside_defaults.yml
 
 jobs:
-  qa:
+  acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: python -m pip install -r requirements.txt pytest matplotlib
+
       - name: Capture config invariant
         run: sha256sum config.ini | awk '{print $1}' > /tmp/config.before
+
       - name: Knowledge preflight
         run: |
           cat > /tmp/preflight-evidence.md <<'EOF'
           phase6-corner-3d-model-integrity
+          phase6-assembly-view-boundaries
           diagnosing-bugs
           tdd
           驗證板件與DXF
           monitoring-remote-qa
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
-          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
-          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
-          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
           EOF
           python tools/phase6_skill_preflight.py \
-            --task "修正受電箱多件式左/右側板 Fold editor 包外預設與目前程式預設漂移" \
+            --task "受電箱左右側板包外預設完整板件驗收：2D/3D/DXF/Save→Reload/multipart" \
             --changed-file ae_engine/cabinet_types/receiving.py \
-            --changed-file phase6_fold_profiles.py \
             --changed-file ae_engine/box_body_structure.py \
+            --changed-file ae_engine/cabinet_types/policy.py \
+            --changed-file phase6_box_body_structure.py \
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_receiving_side_panel_outside_defaults.py \
             --changed-file tests/test_issue74_divider_side_front_penetration.py \
+            --changed-file .agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md \
             --evidence /tmp/preflight-evidence.md
-      - name: Focused GREEN - headless
-        run: pytest -q tests/test_receiving_side_panel_outside_defaults.py -k "not designer_controls"
-      - name: Focused GREEN - Tk
-        if: always()
-        run: xvfb-run -a pytest -q tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
-      - name: Broader geometry and DXF guards
+
+      - name: Focused outside-default contract
         run: |
           pytest -q \
-            tests/test_phase6_box_body_structure.py \
-            tests/test_issue74_divider_side_front_penetration.py \
-            tests/test_multipart_dxf_acceptance.py
-      - name: Broader 2D 3D child UI guards
+            tests/test_receiving_side_panel_outside_defaults.py \
+            tests/test_issue74_divider_side_front_penetration.py
+
+      - name: Manufacturing and DXF acceptance
+        run: |
+          pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_phase6_box_body_structure.py
+
+      - name: Divider side-collision guards
+        run: |
+          pytest -q \
+            tests/test_issue38_receiving_divider_baseline.py \
+            tests/test_issue39_divider_relief.py \
+            tests/test_issue40_divider_6p4_shared_datum.py \
+            tests/test_dm3_divider_canonical_relief_contract.py \
+            tests/test_dm4_divider_resolved_sinks.py
+
+      - name: Persistence and dynamic IDs
+        run: |
+          pytest -q \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py
+
+      - name: 2D 3D multipart UI parity
         run: |
           xvfb-run -a pytest -q \
+            tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side \
             tests/test_phase6_t14_box_body_child_sections.py \
             tests/test_issue76_box_body_subtabs_2d_3d.py
-      - name: Resolved source contract
-        run: |
-          python - <<'PY'
-          from ae_engine.cabinet_types import receiving
-          from phase6_fold_profiles import build_box_body_profile
-          from ae_engine.box_body_structure import resolve_box_body_structure
 
-          snap = receiving.apply_family_defaults({"t": 2.0})
-          state = receiving.resolve_box_body_structure_state(None)
-          profile = build_box_body_profile(snap)
-          result = resolve_box_body_structure(
-              profile,
-              w=snap["w"], h=snap["h"], d=snap["d"], t=snap["t"],
-              structure_state=state,
-          )
-          cfg = state["configs"]["three_piece_side_back_split"]
-          print("OPERATOR_DEFAULTS=", {k: snap[k] for k in ("zl1","zl2","fw","d","zr2")})
-          print("REAR_BEND_AUTHORITY=", {
-              "value": cfg["side_rear_bend"],
-              "dimension_space": cfg["side_rear_bend_dimension_space"],
-          })
-          for piece in result.pieces:
-              if piece.role in {"left_side","right_side"}:
-                  print(piece.role, [
-                      {
-                          "key": row.phase6_key,
-                          "material_len": row.length,
-                          "formed_len": row.formed_length,
-                          "angle": row.angle,
-                      }
-                      for row in piece.fold_profile
-                  ])
+      - name: Skill contract
+        run: pytest -q tests/test_phase6_assembly_view_skill_contract.py
+
+      - name: Live resolved physical parts DXF reopen and Save Reload parity
+        run: |
+          xvfb-run -a python - <<'PY'
+          from __future__ import annotations
+          import tempfile
+          from pathlib import Path
+          import tkinter as tk
+
+          import gui
+          import fold_designer_bridge as bridge
+          import phase6_project_file as project
+          from ae_engine import manufacturing_api as api
+          from ae_engine.sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive
+
+          def open_fresh_receiving():
+              root = tk.Tk()
+              root.geometry("1200x900")
+              app = gui.BoxCalculatorGUI(root)
+              app.baseline_var.set("受電箱")
+              root.update_idletasks(); root.update()
+              designer = app.open_original_fold_designer()
+              root.update_idletasks(); root.update()
+              return root, app, designer
+
+          def physical_map(resolved):
+              return dict(api._resolved_physical_render_parts(resolved))
+
+          def render_diag(part_id, render):
+              material = render.material
+              scene = render.scene
+              primitives = tuple(getattr(scene, "primitives", ()) or ())
+              holes = sum(isinstance(p, CirclePrimitive) for p in primitives)
+              bends = sum(
+                  str(getattr(p, "layer", "") or "").upper() == "BEND"
+                  and isinstance(p, (LinePrimitive, PolylinePrimitive))
+                  for p in primitives
+              )
+              cutting_closed = [
+                  bool(getattr(p, "closed", False))
+                  for p in primitives
+                  if str(getattr(p, "layer", "") or "").upper() == "CUTTING"
+                  and isinstance(p, PolylinePrimitive)
+              ]
+              print("PART_DIAG", {
+                  "part_id": part_id,
+                  "bounds": tuple(round(float(v), 6) for v in material.bounds),
+                  "area": round(float(material.area), 6),
+                  "holes": holes,
+                  "bend_primitives": bends,
+                  "cutting_polylines": len(cutting_closed),
+                  "cutting_all_closed": bool(cutting_closed) and all(cutting_closed),
+              })
+
+          work = Path(tempfile.mkdtemp(prefix="receiving_acceptance_"))
+          dxf_dir = work / "dxf"
+          project_path = work / "receiving_acceptance.p6fold"
+
+          root1, app1, designer1 = open_fresh_receiving()
+          try:
+              resolved1 = bridge._phase6_resolve_manufacturing_geometry(designer1)
+              physical1 = physical_map(resolved1)
+              print("RESOLVED_PHYSICAL_IDS", tuple(physical1))
+              for part_id, render in physical1.items():
+                  render_diag(part_id, render)
+
+              outputs = api.save_resolved_manufacturing_geometry_dxf(
+                  resolved1, dxf_dir, overwrite=True
+              )
+              reopened = api.verify_saved_resolved_manufacturing_geometry_dxf(
+                  resolved1, dxf_dir
+              )
+              print("DXF_EXPECTED_COUNT", len(physical1))
+              print("DXF_ACTUAL_COUNT", len(outputs))
+              print("DXF_REOPEN_OK", reopened.ok)
+              print("DXF_ISSUES", [
+                  (issue.part_id, issue.category, issue.detail)
+                  for issue in reopened.issues
+              ])
+              assert reopened.ok
+              assert set(outputs) == set(physical1)
+
+              snapshot = app1._compose_phase6_project_snapshot_from_main_gui()
+              project.write_project(project_path, {
+                  "schema": project.PROJECT_SCHEMA,
+                  "saved_at": "2026-09-10T00:00:00+08:00",
+                  "snapshot": snapshot,
+                  "final_geometry": {},
+              })
+          finally:
+              try:
+                  designer1.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root1.destroy()
+              except Exception:
+                  pass
+
+          root2 = tk.Tk()
+          root2.geometry("1200x900")
+          app2 = gui.BoxCalculatorGUI(root2)
+          designer2 = None
+          try:
+              designer2 = app2.load_phase6_project(project_path, open_designer=True)
+              root2.update_idletasks(); root2.update()
+              resolved2 = bridge._phase6_resolve_manufacturing_geometry(designer2)
+              physical2 = physical_map(resolved2)
+              print("RELOAD_PHYSICAL_IDS", tuple(physical2))
+              assert tuple(physical2) == tuple(physical1)
+
+              for part_id in physical1:
+                  before = physical1[part_id]
+                  after = physical2[part_id]
+                  delta = float(before.material.symmetric_difference(after.material).area)
+                  print("RELOAD_PARITY", {
+                      "part_id": part_id,
+                      "material_symdiff_area": round(delta, 12),
+                      "fold_guides_before": len(tuple(before.fold_guides or ())),
+                      "fold_guides_after": len(tuple(after.fold_guides or ())),
+                  })
+                  assert delta <= 1e-8
+                  assert len(tuple(before.fold_guides or ())) == len(tuple(after.fold_guides or ()))
+          finally:
+              try:
+                  if designer2 is not None:
+                      designer2.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root2.destroy()
+              except Exception:
+                  pass
           PY
+
       - name: Config invariant
         if: always()
         run: |
