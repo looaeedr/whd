@@ -28,12 +28,17 @@ jobs:
           cat > /tmp/preflight-evidence.md <<'EOF'
           phase6-corner-3d-model-integrity
           phase6-assembly-view-boundaries
+          phase6-release-packaging
           diagnosing-bugs
           tdd
           驗證板件與DXF
           monitoring-remote-qa
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: release_required_artifacts.json
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           EOF
           python tools/phase6_skill_preflight.py \
             --task "受電箱左右側板包外預設完整板件驗收：2D/3D/DXF/Save→Reload/multipart" \
