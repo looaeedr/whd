@@ -25,6 +25,19 @@
         "primary_v": "ybottom1",
         "meaning": "封頭尾下方母體：最內部折彎線"
       }
+    },
+    "DIVIDER_CROSS_STANDARD_V1": {
+      "revision": 1,
+      "dimension_semantics": [
+        "Receiving Divider 截角固定使用 CornerType=CROSS；主截角由 fold_u / fold_v 母體決定",
+        "U 槽只以 slot_width / slot_straight_depth / slot_radius 附加在 CROSS 主截角，不借用 INSERT_OVERLAY secondary 參數",
+        "中隔.dxf 是認證基準；reference span 596 只作驗證，不進 runtime 公式"
+      ],
+      "standard_geometry": {
+        "corner_type": "CROSS",
+        "primary": "fold_u × fold_v",
+        "slot": "optional rounded-end slot attached to primary_u inside edge"
+      }
     }
   },
   "rules": [
@@ -353,6 +366,72 @@
         "SHEET_THICKNESS",
         "BOTTOM_RELIEF_RESERVE_U",
         "BOTTOM_RELIEF_RESERVE_V"
+      ]
+    },
+    {
+      "rule_id": "RECEIVING_DIVIDER_CROSS_STANDARD_V1",
+      "revision": 1,
+      "trust_level": "CERTIFIED",
+      "active": true,
+      "cabinet_family": "受電箱",
+      "part_role": "DIVIDER",
+      "joint_face": "ENDS",
+      "assembly_intent": "ANY",
+      "corner_type": "CROSS",
+      "joint_signature": [
+        {
+          "relation": "CROSS",
+          "subject_role": "DIVIDER",
+          "target_role": "BOX_BODY",
+          "subject_region": "ENDS",
+          "target_region": "FRONT_FOLD_ZONE"
+        }
+      ],
+      "topology_levels": 1,
+      "preconditions": [
+        "receiving_divider_four_segment",
+        "cross_slot_min_y"
+      ],
+      "formula": {
+        "min_y_fold_u": "core_start + divider_fw_material",
+        "max_y_fold_u": "core_start + divider_last_outside + T",
+        "fold_v": "divider_fw_outside - T",
+        "slot_width": "divider_fw_material - divider_first_outside",
+        "slot_straight_depth": "box_zl1_formed",
+        "slot_radius": "(divider_fw_material - divider_first_outside) / 2"
+      },
+      "cross_parameters": {
+        "slot_end": "MIN_Y",
+        "slot_anchor": "PRIMARY_U_INNER_EDGE",
+        "slot_depth_semantics": "STRAIGHT_TO_RADIUS_TANGENCY"
+      },
+      "display_formula_x": "MIN_Y fold_u = core_start + Divider FW料；MAX_Y fold_u = core_start + Divider末段包外 + T",
+      "display_formula_y": "fold_v = Divider FW包外 - T",
+      "display_formula_secondary": "slot_width = Divider FW料 - Divider首段包外；straight_depth = BoxBody zl1成形；R = slot_width / 2",
+      "source": "基準檔/金庫型/中隔.dxf 正規化認證；CROSS 主體沿用 fold_u/fold_v，槽為附加參數",
+      "standard_ref": "DIVIDER_CROSS_STANDARD_V1",
+      "affected_zone": "Divider MIN_Y / MAX_Y end relief",
+      "dimension_space": "MATERIAL",
+      "target_semantics": "CROSS 主截角由折法參數解析；MIN_Y 端附加圓底 U 槽",
+      "adjustment_type": "STANDARD",
+      "adjustment_amount": {
+        "basis": "DIVIDER_CROSS_STANDARD_V1",
+        "primary": "fold_u/fold_v only",
+        "slot": "slot_width + slot_straight_depth + slot_radius"
+      },
+      "certification_evidence": {
+        "baseline": "基準檔/金庫型/中隔.dxf",
+        "normalized_reference": "MIN_Y 66×27 + U-slot width7 straight24 R3.5；MAX_Y 60×27",
+        "reference_blank": "158×596；596 只作 reference-span validation"
+      },
+      "geometry_inputs": [
+        "DIVIDER_CORE_START",
+        "DIVIDER_FIRST_OUTSIDE",
+        "DIVIDER_FW_OUTSIDE",
+        "DIVIDER_FW_MATERIAL",
+        "DIVIDER_LAST_OUTSIDE",
+        "BOX_ZL1_FORMED",
+        "SHEET_THICKNESS"
       ]
     }
   ]
