@@ -326,3 +326,49 @@ def test_git_remote_sync_fallback_skill_is_registry_routed_and_fail_closed(tmp_p
     out = capsys.readouterr().out
     assert code == 0
     assert "✓ git-remote-sync-fallback" in out
+
+
+def test_part_dxf_acceptance_auto_routes_part_impacting_changed_files():
+    from tools.phase6_skill_preflight import required_skills_for
+
+    for changed_file in (
+        "gui.py",
+        "fold_designer_bridge.py",
+        "phase6_final_scene_view.py",
+        "phase6_box_body_structure.py",
+        "ae_engine/manufacturing_api.py",
+        "ae_engine/divider_manufacturing.py",
+        "phase6_project_controller.py",
+    ):
+        required = set(required_skills_for(task="板件修正", changed_files=[changed_file]))
+        assert "驗證板件與DXF" in required, changed_file
+        assert "monitoring-remote-qa" in required, changed_file
+
+
+def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    acceptance = (
+        ROOT / ".agents" / "skills" / "engineering" / "驗證板件與DXF" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    release = (
+        ROOT / ".agents" / "skills" / "engineering" / "phase6-release-packaging" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    for required in (
+        "Focused GREEN 不能直接合併",
+        "focused GREEN / final acceptance pending",
+        "part-dxf-acceptance",
+    ):
+        assert required in agents
+    for required in (
+        "Focused QA 不得取代成品板件驗收",
+        "focused GREEN / final acceptance pending",
+        "完整板件驗收",
+    ):
+        assert required in acceptance
+    for required in (
+        "Issue QA 不是 Final Acceptance",
+        "驗證板件與DXF",
+        "focused GREEN / final acceptance pending",
+    ):
+        assert required in release
