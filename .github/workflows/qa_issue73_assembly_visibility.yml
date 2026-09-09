@@ -20,4 +20,9 @@ jobs:
           python -m pip install -r requirements.txt pytest matplotlib
       - name: Run Issue 73 regression
         run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
           pytest -q tests/test_phase6_assembly_3d_view.py tests/test_phase6_final_scene_view_ownership.py
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "config.ini before=$before"
+          echo "config.ini after=$after"
+          test "$before" = "$after"
