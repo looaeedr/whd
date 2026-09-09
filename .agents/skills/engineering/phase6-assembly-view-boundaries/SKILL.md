@@ -86,3 +86,12 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 - 2D child preview 必須直接消費 manufacturing-owned `BoxBodyStructureRenderData.pieces[*].render_data`；不得由 aggregate bbox、face hit-zone 或驗證數值重建第二套 CUTTING/Fold geometry。
 - assembly visibility 與 child navigation 仍是不同責任：visibility 可逐片隱藏，但不得改 active child；navigation 可切 child，但不得移除完整 assembly datum/collision geometry。
 - Regression 至少要鎖：單一頂層「箱身」、nested child tabs、child 切換後 active physical ID、2D/3D 同片 round-trip、單片 render material 與 authoritative physical piece material 一致。
+
+
+## 多件式箱身：child editor authority 不等於所有 physical child 都可用同一 commit（2026-09-10）
+
+- `box_body:<role>` 同為 physical child identity，但**不同結構型態的 child authority 不相同**。
+- Receiving 側背分離 `box_body:left_side / box_body:back / box_body:right_side` 可持有 piece-local Fold profile；只有這三種 role 可以走 side/back piece-profile commit。
+- W 二分／W 三分的 `box_body:left / box_body:middle / box_body:right` 是 aggregate BoxBody + width allocation 的 manufacturing projection。切換／Save 時不得誤送進 Receiving side/back commit，也不得把 projection 反寫成第二份 Fold Source of Truth。
+- W 分件 child editor 若僅作 resolved sink，Save 只可保留 workspace view；canonical 幾何仍由 aggregate `box_body` 與 `box_body_structure` 擁有。
+- Regression 必須包含：二件式／三件式 W 分件 Save→Reload、Receiving 側背分離 child edit/save、active child round-trip。任何 `unsupported BoxBody physical piece` 代表 routing boundary 又混在一起。

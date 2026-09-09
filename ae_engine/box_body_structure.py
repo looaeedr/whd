@@ -15,6 +15,7 @@ from phase6_box_body_structure import (
     normalize_box_body_structure_state,
     resolve_two_piece_widths,
     resolve_three_piece_widths,
+    side_rear_bend_material_length,
 )
 from .contracts import FoldProfileSegment
 from .sheetmetal_geometry import (
@@ -406,7 +407,7 @@ def resolve_box_body_structure(
 
     if type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
         cfg = state["configs"][type_id.value]
-        rear_bend = float(cfg.get("side_rear_bend", 15.0))
+        rear_bend = side_rear_bend_material_length(state, float(t))
         comp_t = float(cfg.get("back_width_comp_t", 0.5))
         if rear_bend <= 0:
             raise ValueError("側板後折必須大於 0")

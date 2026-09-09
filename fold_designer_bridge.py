@@ -35,6 +35,7 @@ from phase6_box_body_structure import (
     set_structure_locked, set_two_piece_width, set_three_piece_width,
     reconcile_box_body_structure_for_total_w_change,
     set_join_seam_bend, set_side_back_geometry, set_side_back_piece_profile,
+    side_rear_bend_outside_length,
     update_structure_config,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
@@ -212,6 +213,15 @@ def _phase6_is_box_body_physical_piece_key(value) -> bool:
     return key.startswith("box_body:") and not key.startswith("box_body:divider:")
 
 
+def _phase6_is_side_back_editable_piece_key(value) -> bool:
+    """Only side/back-split physical children own editable piece Fold profiles."""
+    return str(value or "") in {
+        "box_body:left_side",
+        "box_body:back",
+        "box_body:right_side",
+    }
+
+
 def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
     """Collapse BoxBody physical children under the single operator-facing 箱身 entry."""
     return tuple(
@@ -228,29 +238,57 @@ def _phase6_box_body_piece_keys(values) -> tuple[str, ...]:
     )
 
 
-def _phase6_box_body_piece_part_profiles(render_data) -> dict[str, dict[str, list[dict[str, object]]]]:
-    """Project authoritative BoxBody physical pieces into read-only workspace profiles.
+def _phase6_reverse_fold_traversal(rows):
+    """Reverse a fold chain while moving bend ownership to the same boundary."""
+    source = clone_profile(tuple(rows or ()))
+    result = []
+    total = len(source)
+    for index, source_row in enumerate(reversed(source)):
+        row = {k: v for k, v in source_row.items() if k != "angle"}
+        owner_index = total - 2 - index
+        if owner_index >= 0 and "angle" in source[owner_index]:
+            row["angle"] = float(source[owner_index]["angle"])
+        result.append(row)
+    if result:
+        result[-1].pop("angle", None)
+    return result
 
-    The manufacturing result owns the piece set and Fold Profiles.  This adapter
-    only exposes those already-resolved identities to the 3D operator workspace;
-    it never derives a parallel child-piece model.
+
+def _phase6_box_body_piece_part_profiles(
+    render_data, snapshot=None
+) -> dict[str, dict[str, list[dict[str, object]]]]:
+    """Project manufacturing pieces into operator-facing physical-child profiles.
+
+    Material lengths remain authoritative.  The adapter only changes traversal
+    and signed operator presentation: Receiving right-side editing is front→rear
+    while manufacturing keeps its local rear→front chain; Receiving zl1 may carry
+    a negative operator direction without ever making material length negative.
     """
+    source_snapshot = dict(snapshot or {})
     result = {}
     for piece in tuple(getattr(render_data, "pieces", ()) or ()):
         role = str(getattr(piece, "role", "") or "").strip()
         if not role:
             continue
         key = f"box_body:{role}"
+        rows = [
+            {
+                "len": float(row.length),
+                **({"angle": float(row.angle)} if row.angle is not None else {}),
+                **({"core": row.core} if getattr(row, "core", None) else {}),
+                "phase6_key": str(getattr(row, "phase6_key", "") or ""),
+            }
+            for row in tuple(getattr(piece, "fold_profile", ()) or ())
+        ]
+        if role == "right_side":
+            rows = _phase6_reverse_fold_traversal(rows)
+        if role == "left_side" and float(source_snapshot.get("zl1", 0.0) or 0.0) < 0.0:
+            for row in rows:
+                if str(row.get("phase6_key") or "") == "zl1":
+                    row["phase6_ui_sign"] = -1.0
+                    break
         result[key] = {
-            "X": [
-                {
-                    "len": float(row.length),
-                    **({"angle": float(row.angle)} if row.angle is not None else {}),
-                    **({"core": row.core} if getattr(row, "core", None) else {}),
-                    "phase6_key": str(getattr(row, "phase6_key", "") or ""),
-                }
-                for row in tuple(getattr(piece, "fold_profile", ()) or ())
-            ],
+            "X": rows,
             "Y": [{
                 "len": float(piece.material_dimensions[1]),
                 "phase6_key": "box_body_piece_height",
@@ -534,7 +572,7 @@ def _phase6_sync_authoritative_derived_parts(self):
     except Exception:
         box_render_data = None
     if box_render_data is not None:
-        box_piece_profiles = _phase6_box_body_piece_part_profiles(box_render_data)
+        box_piece_profiles = _phase6_box_body_piece_part_profiles(box_render_data, snapshot)
         desired_piece_keys = set(box_piece_profiles)
         current_piece_keys = {
             key for key in workspace.available_parts
@@ -1054,7 +1092,10 @@ class Phase6BendingUI(original.BendingUI):
                     text = str(original.get_int(engine_angle_to_ui(seg.get("angle", 0))))
                     if ctrl["angle"].get() != text:
                         ctrl["angle"].set(text)
-                length_text = str(original.get_int(engine_segment_length_to_ui(seg)))
+                operator_length = engine_segment_length_to_ui(seg)
+                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
+                    operator_length = -operator_length
+                length_text = str(original.get_int(operator_length))
                 if ctrl["len"].get() != length_text:
                     ctrl["len"].set(length_text)
                 labels = self.container.grid_slaves(row=index + 1, column=5)
@@ -1112,7 +1153,10 @@ class Phase6BendingUI(original.BendingUI):
                 seg["angle"] = engine_angle_to_ui(seg["angle"])
             if _num(seg.get("ui_len_add")):
                 original_values["len"] = seg["len"]
-                seg["len"] = engine_segment_length_to_ui(seg)
+                operator_length = engine_segment_length_to_ui(seg)
+                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
+                    operator_length = -operator_length
+                seg["len"] = operator_length
             if original_values:
                 saved.append((seg, original_values))
         try:
@@ -1162,8 +1206,10 @@ class Phase6BendingUI(original.BendingUI):
             ui_length = original.get_int(ctrl["len"].get())
             conversion = dict(old)
             conversion["ui_len_add"] = topology[index].get("ui_len_add", 0)
-            length = ui_segment_length_to_engine(conversion, ui_length)
+            length = ui_segment_length_to_engine(conversion, abs(ui_length))
             seg = {"len": length}
+            if "phase6_ui_sign" in old or ui_length < 0:
+                seg["phase6_ui_sign"] = -1.0 if ui_length < 0 else 1.0
             if "angle" in topology[index]:
                 seg["angle"] = topology[index]["angle"]
             for key in ("core", "phase6_key"):
@@ -3110,7 +3156,14 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
         elif field == "seam_bend":
             state = set_join_seam_bend(state, type_id, value)
         elif type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT and field == "side_rear_bend":
-            state = set_side_back_geometry(state, side_rear_bend=value)
+            outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+                getattr(self, "_phase6_input_snapshot", {}) or {}
+            )
+            state = set_side_back_geometry(
+                state,
+                side_rear_bend=value,
+                side_rear_bend_dimension_space=("OUTSIDE" if outside_family else None),
+            )
         elif type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT and field == "back_width_comp_t":
             state = set_side_back_geometry(state, back_width_comp_t=value)
         else:
@@ -3167,7 +3220,15 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
             "box_body:right": ("width", "W 包外", right, "mm", "right"),
         }
     elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        rear_bend = float(cfg.get("side_rear_bend", 15))
+        outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+            getattr(self, "_phase6_input_snapshot", {}) or {}
+        )
+        rear_bend = (
+            side_rear_bend_outside_length(
+                state, float((getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0))
+            )
+            if outside_family else float(cfg.get("side_rear_bend", 15))
+        )
         width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
         piece_values = {
             "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
@@ -8771,12 +8832,23 @@ def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, 
             aggregate, float(self._phase6_input_snapshot.get("t", 0.0))
         )
         values = read_box_body_profile(aggregate, self._phase6_input_snapshot)
+        if role == "left_side":
+            signed = piece_by_key.get("zl1")
+            if signed is not None and "phase6_ui_sign" in signed:
+                sign = -1.0 if float(signed.get("phase6_ui_sign", 1.0)) < 0.0 else 1.0
+                values["zl1"] = sign * abs(float(values["zl1"]))
         values["h"] = self._phase6_box_whd["h"]
         self.state.profiles_vault["箱身"] = clone_profile(aggregate)
         self._phase6_input_snapshot["box_body_profile"] = clone_profile(aggregate)
         _phase6_store_editor_values(self, values, notify=notify)
 
-    structure = set_side_back_piece_profile(structure, role, rows)
+    stored_rows = (
+        _phase6_reverse_fold_traversal(rows)
+        if role == "right_side" else clone_profile(rows)
+    )
+    for row in stored_rows:
+        row.pop("phase6_ui_sign", None)
+    structure = set_side_back_piece_profile(structure, role, stored_rows)
     _phase6_commit_box_structure_state(self, structure, rebuild=False)
     _phase6_sync_authoritative_derived_parts(self)
 
@@ -8802,9 +8874,16 @@ def _fix11_save_current_part(self, notify=True):
             "X": clone_profile(self.state.profiles.get("X", [])),
             "Y": clone_profile(self.state.profiles.get("Y", [])),
         }
-        _phase6_commit_box_body_physical_piece_profile(
-            self, key, profiles, notify=notify
-        )
+        if _phase6_is_side_back_editable_piece_key(key):
+            _phase6_commit_box_body_physical_piece_profile(
+                self, key, profiles, notify=notify
+            )
+        else:
+            # Two-/three-piece W-split children are manufacturing projections of
+            # the aggregate BoxBody + width allocation.  Their editor is a sink:
+            # preserve the current workspace view only; canonical dimensions stay
+            # owned by box_body_structure and the aggregate BoxBody profile.
+            self.designer_workspace.stash_profiles(key, profiles)
         return
     if _phase6_is_derived_physical_part_key(key):
         _phase6_sync_authoritative_derived_parts(self)
