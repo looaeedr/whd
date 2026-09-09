@@ -1,0 +1,31 @@
+{
+  "task_id": "DM6",
+  "work_order": "#67",
+  "role": "ACCEPTED",
+  "branch": "work/dm6-t3-sink-semantic-parity",
+  "dependency": "#66 ACCEPTED",
+  "red": {
+    "run_id": 34339776334,
+    "job_id": 102427576158,
+    "head_sha": "f53326c04061310d240bda21a2740961b73e1ea1",
+    "result": "1 failed in 3.37s",
+    "note": "first environment-error run 34339699078 excluded"
+  },
+  "production": {
+    "commit": "28160a6ed9686d0b13ad47bd8f10c2c655381086",
+    "change": "2D sink maps semantic_id -> dimension axis; display text no longer defines axis"
+  },
+  "acceptance": {
+    "run_id": 34339885788,
+    "job_id": 102427928547,
+    "head_sha": "148a2c70d3067addb7b52155fef6a2223ed12b1f",
+    "result": "20 passed in 3.75s",
+    "compile": "PASS",
+    "sink_authority_guard": "PASS"
+  },
+  "cleanup": {
+    "temporary_workflow_removed": true,
+    "commit": "00f81bbee1769c969b779e0325a7a4e7cf979105"
+  },
+  "blocked": []
+}
