@@ -427,6 +427,7 @@ class AssemblySceneRenderData:
 
     assembly_parts: tuple[AssemblyScenePart, ...]
     visible_part_keys: tuple[str, ...] | None = None
+    visible_box_body_piece_keys: tuple[str, ...] | None = None
     warnings: tuple[object, ...] = ()
     show_interference: bool = False
     ignore_fixed_corner_relief: bool = False
@@ -659,8 +660,9 @@ class Phase6FinalSceneView:
     def _draw_box_body_structure_bends(
         self, render_data, *, thickness, local_reference=None,
         placement="box_body", dimensions=None, offset=(0.0, 0.0, 0.0),
+        visible_piece_keys=None,
     ):
-        """Draw every authoritative piece BEND using the same transform as its mesh."""
+        """Draw BEND lines only for visible BoxBody pieces while retaining full geometry."""
         from ae_engine.sheetmetal_drawing import LinePrimitive
         from ae_engine.assembly_geometry import place_assembly_points
 
@@ -670,7 +672,11 @@ class Phase6FinalSceneView:
         if not pieces:
             return
         total_w = max(float(getattr(p, "formed_w_end", 0.0)) for p in pieces)
+        visible_set = None if visible_piece_keys is None else set(visible_piece_keys)
         for piece in pieces:
+            piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+            if visible_set is not None and piece_key not in visible_set:
+                continue
             data = piece.render_data
             x_profile = _phase6_contract_profile_rows(piece.fold_profile)
             minx, miny, maxx, maxy = map(float, data.material.bounds)
@@ -839,6 +845,11 @@ class Phase6FinalSceneView:
             None if visible_raw is None
             else frozenset(str(key) for key in tuple(visible_raw or ()))
         )
+        visible_piece_raw = getattr(render_data, "visible_box_body_piece_keys", None)
+        visible_box_body_piece_keys = (
+            None if visible_piece_raw is None
+            else frozenset(str(key) for key in tuple(visible_piece_raw or ()))
+        )
         if assembly_parts:
             self._remove_original_bend_surfaces()
             for line in list(getattr(self.renderer.ax3d, "lines", ())):
@@ -920,6 +931,15 @@ class Phase6FinalSceneView:
                     )
                 if not placed:
                     continue
+                placed_piece_meshes = ()
+                if getattr(part_data, "pieces", None):
+                    rows = []
+                    cursor = 0
+                    for piece, piece_tris in piece_meshes:
+                        count = len(piece_tris)
+                        rows.append((piece, tuple(placed[cursor:cursor + count])))
+                        cursor += count
+                    placed_piece_meshes = tuple(rows)
                 if part_key == "box_body":
                     box_body_world = tuple(placed)
                     if part_visible:
@@ -927,6 +947,7 @@ class Phase6FinalSceneView:
                             self._draw_box_body_structure_bends(
                                 part_data, thickness=request.thickness, local_reference=local,
                                 placement=placement, dimensions=request.finished_dimensions, offset=offset,
+                                visible_piece_keys=visible_box_body_piece_keys,
                             )
                         else:
                             self._draw_assembly_box_body_bends(
@@ -947,6 +968,30 @@ class Phase6FinalSceneView:
                             box_body_collision_mesh = thicken_triangle_surface(
                                 box_body_world, request.thickness
                             )
+                    if getattr(part_data, "pieces", None):
+                        if part_visible:
+                            face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
+                            visible_rows = []
+                            for piece, piece_placed in placed_piece_meshes:
+                                piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+                                if visible_box_body_piece_keys is not None and piece_key not in visible_box_body_piece_keys:
+                                    continue
+                                visible_rows.append(piece)
+                                if not piece_placed:
+                                    continue
+                                poly = Poly3DCollection(
+                                    piece_placed,
+                                    alpha=float(request.alpha_bend),
+                                    facecolor=face,
+                                    edgecolor="none",
+                                    linewidths=0.0,
+                                )
+                                ax.add_collection3d(poly)
+                                self._add_mesh_boundary_lines(piece_placed, edge)
+                                triangles.extend(piece_placed)
+                            if visible_rows:
+                                materials.append(tuple(piece.render_data.material for piece in visible_rows))
+                        continue
                     if not part_visible:
                         continue
                 elif not part_visible:

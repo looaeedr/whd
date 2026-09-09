@@ -20,6 +20,11 @@ jobs:
           sudo apt-get install -y xvfb python3-tk
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib
-      - name: Run multipart BoxBody boundary regressions
+      - name: Run headless boundary regressions
         run: |
-          xvfb-run -a pytest -q             tests/test_phase6_assembly_3d_view.py -k "operator_part_selector_collapses_box_body_physical_children or final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum"             tests/test_phase6_receiving_multipart_integration.py -k "receiving_box_body_children_are_nested_under_box_body_but_independently_hideable"
+          pytest -q tests/test_phase6_assembly_3d_view.py \
+            -k "operator_part_selector_collapses_box_body_physical_children or final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum"
+      - name: Run Tk receiving boundary regression
+        run: |
+          xvfb-run -a pytest -q tests/test_phase6_receiving_multipart_integration.py \
+            -k "receiving_box_body_children_are_nested_under_box_body_but_independently_hideable"
