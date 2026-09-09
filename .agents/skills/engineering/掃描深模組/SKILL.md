@@ -52,6 +52,31 @@ python .agents/skills/engineering/掃描深模組/check_zh_tw_report.py --skill-
 - 說明使用繁體中文，但需要精準對照時保留正式英文詞彙，例如「局部性（locality）」；不要自行換成會改變架構含義的近義詞。
 - `CONTEXT.md` 提供領域名稱；`docs/adr/` 內的 ADR 記錄既有架構決策，不應無故重新爭論。
 
+## 既有深掃描基線回讀硬閘門（強制）
+
+每次使用者要求「掃描深模組」時，**開始新的候選探索前必須先判定既有深掃描做到哪裡**，禁止只因本回合沒有先前聊天內容就從 DM1 重頭推論。
+
+至少回讀：
+
+1. 目前 target branch / HEAD 與近期 deep-module 相關 commits。
+2. 既有 `.scratch/dm*/checkpoint.md`、journal/state（若存在）。
+3. 已建立／已關閉的 deep-module owning Issues、Combined Acceptance、整合與 remote readback 證據。
+4. 已落盤的 `CONTEXT.md`、ADR、AI Library durable contract。
+
+依上述證據建立「最新已完成 DM baseline」。若 DM1…DMn 已正式 ACCEPTED／整合，下一輪預設從 **DM(n+1) 增量掃描**；除非使用者明確要求重掃，否則不得重跑已完成階段、不得把既有完成項再次當成新候選，也不得因看不到聊天記憶就假設沒有做過。
+
+### 輔助 Skill／能力缺失的阻塞判定
+
+`codebase-design`、`grilling`、`domain-modeling` 等輔助 Skill 若在目前執行環境無法直接載入，**不得看到名稱缺失就立即宣告整個「掃描深模組」BLOCKED**。
+
+必須先：
+
+- 查實體 `.agents/skills/**/SKILL.md`、project rules、AI Library、`CONTEXT.md`／ADR 與既有 deep-module evidence，確認是否已有等價的專案內權威資料可完成當前階段。
+- 將「目前執行環境缺少某輔助 Skill」記成 execution-environment difference，不得自動提升成產品／掃描阻塞。
+- 只有在該能力對當前步驟確實不可替代、所有安全 fallback 都已查驗失敗，而且繼續會違反一條可指出的專案 invariant 時，才可 BLOCK。
+
+若宣告 BLOCKED，回報必須同時列出：**缺少的精確能力、已嘗試的 fallback、無法繼續會違反的精確 invariant**。缺任一項，不得以「依賴不存在」作為停工理由。
+
 ## 流程
 
 ### 1. 探索
