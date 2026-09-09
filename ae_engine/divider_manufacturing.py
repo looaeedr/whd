@@ -51,7 +51,7 @@ class DividerPlacementEvidence:
 class DividerReliefEvidence:
     candidate_status: str
     core_start: float | None = None
-    cut_depths: tuple[float, ...] = ()
+    cut_depths: tuple[tuple[str, float], ...] = ()
     pre_pair_count: int = 0
     post_pair_count: int = 0
     retained_contact_segments: int = 0
@@ -352,11 +352,12 @@ def resolve_divider_final_geometry(
     refold_world: Callable[[object], Mapping[str, object]], clearance: float = 0.0,
     sheet_thickness: float = 0.0,
 ) -> ResolvedDividerFinalGeometry:
-    """Resolve one Divider's placement, collision relief and verified final material.
+    """Resolve one Divider's certified CROSS relief and verified final material.
 
-    Placement is proved first from physical FW skins. Only a valid placement may
-    enter collision/backprojection. Any cut is then refolded and verified before
-    it can become canonical final material.
+    Placement is proved first from physical FW skins. A Certified Registry HIT
+    owns the CROSS fold_u/fold_v + slot parameters; collision/backprojection is
+    retained only as pre/post true-thickness shadow evidence. Registry MISS for
+    non-certified families may still use the provisional discovery path.
     """
     from .assembly_collision import (
         build_divider_front_fold_relief_candidate,
@@ -465,6 +466,8 @@ def resolve_divider_final_geometry(
             post_pair_count=int(verification["pair_count"]),
             retained_contact_segments=int(verification["retained_contact_segments"]),
             source_evidence={
+                **({} if candidate is None else dict(candidate.evidence or {})),
+                "manufacturing_dimensions_source": "CERTIFIED_REGISTRY_CROSS_PARAMETERS",
                 "rule_id": certified.rule.rule_id,
                 "rule_revision": int(certified.rule.revision),
                 "trust_level": certified.rule.status.value,
