@@ -30,6 +30,14 @@ def _fmt_radius(value: float) -> str:
     return _fmt(raw)
 
 
+def _semantic_number(value: float) -> str:
+    return _fmt(float(value))
+
+
+def _semantic_point(point: Vec2) -> str:
+    return f"{_semantic_number(point.x)},{_semantic_number(point.y)}"
+
+
 @dataclass(frozen=True)
 class LinearDimensionAnnotation:
     axis: str
@@ -38,6 +46,15 @@ class LinearDimensionAnnotation:
     end: Vec2
     label: str
 
+    @property
+    def semantic_id(self) -> str:
+        axis = str(self.axis).strip().lower()
+        return (
+            f"DIMENSION:{axis}:"
+            f"{_semantic_point(self.start)}:{_semantic_point(self.end)}:"
+            f"{_semantic_number(self.value)}"
+        )
+
 
 @dataclass(frozen=True)
 class FeatureCallout:
@@ -45,6 +62,13 @@ class FeatureCallout:
     source_type: str
     anchor: Vec2
     label: str
+
+    @property
+    def semantic_id(self) -> str:
+        return (
+            f"FEATURE:{self.source_type}:{self.source_id}:"
+            f"{_semantic_point(self.anchor)}"
+        )
 
 
 @dataclass(frozen=True)
@@ -55,6 +79,14 @@ class CornerCallout:
     anchor: Vec2
     label: str
 
+    @property
+    def semantic_id(self) -> str:
+        return (
+            f"CORNER:{self.corner}:"
+            f"{_semantic_number(self.width)}x{_semantic_number(self.height)}:"
+            f"{_semantic_point(self.anchor)}"
+        )
+
 
 @dataclass(frozen=True)
 class RadiusCallout:
@@ -62,6 +94,13 @@ class RadiusCallout:
     center: Vec2
     anchor: Vec2
     label: str
+
+    @property
+    def semantic_id(self) -> str:
+        return (
+            f"RADIUS:{_semantic_number(self.radius)}:"
+            f"{_semantic_point(self.center)}:{_semantic_point(self.anchor)}"
+        )
 
 
 @dataclass(frozen=True)
