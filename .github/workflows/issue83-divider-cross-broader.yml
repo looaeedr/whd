@@ -40,12 +40,17 @@ jobs:
       - name: Authority scan
         run: |
           python - <<'PY'
+          import json
           from pathlib import Path
           prod = Path("ae_engine/divider_manufacturing.py").read_text(encoding="utf-8")
-          reg = Path("基準檔/截角資料庫/certified_relief_rules.json").read_text(encoding="utf-8")
-          assert "OBJECT_MATING_FOLD_SIGN_NEGATIVE" in reg
+          data = json.loads(Path("基準檔/截角資料庫/certified_relief_rules.json").read_text(encoding="utf-8"))
+          rule = next(r for r in data["rules"] if r["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1")
+          assert rule["corner_type"] == "CROSS"
+          assert rule["cross_parameters"]["slot_end_selector"] == "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
+          assert "slot_end" not in rule["cross_parameters"]
+          assert set(("slotted_fold_u", "plain_fold_u", "fold_v", "slot_width", "slot_straight_depth", "slot_radius")) <= set(rule["formula"])
+          assert "_divider_object_mating_fold_signs" in prod
           assert "CERTIFIED_REGISTRY_CROSS_PARAMETERS" in prod
-          assert "collision/backprojection is intentionally not consulted" in prod
           print("ISSUE83_BROADER_AUTHORITY_SCAN=PASS")
           PY
       - name: Verify config invariant
