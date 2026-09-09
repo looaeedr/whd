@@ -294,3 +294,17 @@
 - **使用者明確規則**：口語尺寸若沒有說「包外」，就是料尺寸。
 - **錯誤模式**：看到 Receiving / FW / 3D input 既有 outside semantics，就把使用者口頭給的數字自動解讀成包外，造成後續 22/20/25、24/24/29 等尺寸域混亂。
 - **永久防線**：conversation/spec parser 先判語意；未出現「包外」→ `MATERIAL`，明確出現「包外」→ `OUTSIDE/FORMED`。UI/production 的 internal semantics 不得反過來改寫使用者原話。
+
+
+## 2026-09-09 — 48 的真正根因：把 target sheet thickness 當 flat-UV in-plane offset
+
+- **錯誤鏈**：source both-skin collision backproject 到 Divider UV 後，舊 solver 把 Divider `T/2` 沿 W/UV 方向平移，於是某個 `zl1` endpoint 被錯誤升格成 `47 + 1 = 48`。
+- **為什麼錯**：target sheet thickness 是**板面法向**的物理厚度，不是中隔平面內的 W 向 offset。把 `T/2` 直接加到 flat-UV 座標是 coordinate-domain leakage。
+- **正確 collision authority**：
+  - primary depth：FW physical face ↔ Divider 的實際接觸；
+  - primary width：true-thickness source Fold collision；
+  - secondary stage：source both-skin collision backprojection 的實際 footprint；
+  - post-refold：CURRENT footprint 對 retained material 的 positive-area overlap。
+- **boundary trap**：精確切完後兩張 skin 仍可能沿 CUTTING 邊界相交；不能只因 both-skin segments 存在就判 penetration。area=0 為合法 boundary contact。
+- **sink 檢查**：raw material difference 與 `_apply_cut_to_part()` 面積必須一致，避免把 collision 問題誤診成 FinalScene sink 問題。此次證據兩者都切除 `3227.9999998638 mm²`。
+- **GREEN**：run `34364056682`，7 PASS；reference final outer CUTTING：左 `61×27` + 副階 `2×22` + 右 `57×27`；post positive overlap=0。
