@@ -771,17 +771,10 @@ def _divider_physical_target_solid_cut(
         if u_span <= float(tolerance) or v_span <= float(tolerance):
             continue
 
-        # Keep the historical target-solid footprint only as replay/coverage
-        # evidence.  It is NOT manufacturing dimension authority.
-        low_depth = max(0.0, y1 - miny)
-        high_depth = max(0.0, maxy - y0)
-        yoff = half_t if low_depth <= high_depth else -half_t
-        target_solid = physical
-        if half_t > float(tolerance):
-            target_solid = unary_union((physical, translate(physical, yoff=yoff)))
-        target_solid = target_solid.intersection(material)
-        if not getattr(target_solid, "is_empty", True):
-            required_solid.append(target_solid)
+        # Preserve the actual backprojected source-solid collision footprint as
+        # replay evidence. Target sheet thickness is normal to the Divider
+        # surface; it must not be converted into an in-plane UV translation.
+        required_solid.append(physical)
 
         penetrating.append({
             "band_name": str(band_name),
@@ -834,37 +827,26 @@ def _divider_physical_target_solid_cut(
         "dimension_source": "PHYSICAL_FW_CONTACT_PLUS_SOURCE_TRUE_THICKNESS",
     }
 
-    # Any additional penetrating band becomes a local secondary stage attached
-    # to the already-resolved primary boundary.  Its own physical collision
-    # span determines the extension length; its absolute target-UV Y position
-    # is never reused as a manufacturing coordinate.
+    # Additional penetrating bands are already physical source-solid
+    # backprojections on the Divider. Their exact footprint is the relief
+    # authority. Do not translate it by target T/2 and do not re-anchor it to a
+    # guessed/derived coordinate.
     for item in penetrating:
         if item is primary:
             continue
-        if edge == "MIN_Y":
-            cut = shapely_box(
-                float(item["x0"]), primary_boundary,
-                float(item["x1"]), primary_boundary + float(item["v_span"]),
-            )
-        else:
-            cut = shapely_box(
-                float(item["x0"]), primary_boundary - float(item["v_span"]),
-                float(item["x1"]), primary_boundary,
-            )
-        cut = cut.intersection(material)
+        cut = item["physical"].intersection(material)
         if getattr(cut, "is_empty", True) or float(cut.area) <= float(tolerance) ** 2:
             continue
         cuts.append(cut)
         stages[str(item["band_name"])] = {
-            "role": "PHYSICAL_SECONDARY_STAGE_RELIEF",
+            "role": "PHYSICAL_SECONDARY_COLLISION_RELIEF",
             "edge": edge,
             "source_skin_sides": tuple(item["row"].get("skin_sides") or ()),
             "source_solid_footprint_bounds": tuple(map(float, item["physical"].bounds)),
-            "primary_boundary": float(primary_boundary),
             "stage_u_span": float(item["u_span"]),
             "stage_v_span": float(item["v_span"]),
             "cut_bounds": tuple(map(float, cut.bounds)),
-            "dimension_source": "PHYSICAL_PRIMARY_BOUNDARY_PLUS_SOURCE_COLLISION_SPAN",
+            "dimension_source": "SOURCE_TRUE_THICKNESS_COLLISION_BACKPROJECTION",
         }
 
     cut = unary_union(tuple(cuts)).intersection(material)
@@ -891,10 +873,11 @@ def build_divider_front_fold_relief_candidate(
 ):
     """Derive Divider relief directly from physical source/target sheet collision.
 
-    Source both-skin crossings prove full-thickness source penetration. Their
-    backprojected Divider-skin footprints are swept through target T/2 to obtain
-    the Divider solid collision footprint. Manufacturing cut extents come from
-    this physical geometry; validation and EndCap dimensions remain read-only.
+    Source both-skin crossings prove full-thickness source penetration.
+    Manufacturing placement comes from physical FW contact plus the actual
+    source-solid collision backprojection on the Divider. Target thickness is
+    out-of-plane and is never converted into an in-plane UV offset. Validation
+    and EndCap dimensions remain read-only.
     """
     from shapely.ops import unary_union
 
@@ -1017,10 +1000,10 @@ def build_divider_front_fold_relief_candidate(
             "retained_contact_bands": retained_names,
             "solid_half_thickness": float(half_t),
             "manufacturing_topology": "STANDARD_PLUS_SOURCE_FOLD_BAND_ORTHOGONAL",
-            "manufacturing_dimensions_source": "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
             "physical_stages": dict(stage_evidence or {}),
             "physical_validation": band_validation_evidence,
-            "coverage_rule": "TARGET_SOLID_FOOTPRINT_IS_PHYSICAL_RELIEF_AUTHORITY",
+            "coverage_rule": "POST_REFOLD_WORLD_TRUE_THICKNESS_IS_ACCEPTANCE_AUTHORITY",
         }
 
     if not cut_polygons:
@@ -1043,7 +1026,7 @@ def build_divider_front_fold_relief_candidate(
                 "relief_part": relief_key,
             },
             "classification": "SOURCE_FOLD_BAND_TRUE_THICKNESS",
-            "manufacturing_dimensions_source": "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
+            "manufacturing_dimensions_source": "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION",
             "boolean_margin": float(boolean_margin),
             "sheet_thickness": max(0.0, float(sheet_thickness)),
         },
