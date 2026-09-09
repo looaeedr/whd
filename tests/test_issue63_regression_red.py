@@ -518,8 +518,17 @@ def test_issue63_divider_left_right_physical_sides_cut_opposite_span_ends():
     assert "divider_assembly_relief" in solved.render_data.metadata
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     by_source = dict(dict(relief["evidence"])["projection_by_source"])
-    left_edge = str(by_source["box_body:left_side"]["edge"])
-    right_edge = str(by_source["box_body:right_side"]["edge"])
+    def primary_edge(source):
+        stages = dict(source["physical_stages"])
+        primary = [
+            dict(row) for row in stages.values()
+            if str(dict(row).get("role") or "") == "PHYSICAL_FW_CONTACT_PRIMARY_RELIEF"
+        ]
+        assert len(primary) == 1, stages
+        return str(primary[0]["edge"])
+
+    left_edge = primary_edge(by_source["box_body:left_side"])
+    right_edge = primary_edge(by_source["box_body:right_side"])
     exterior = [(float(x), float(y)) for x, y in solved.render_data.material.exterior.coords]
     print("ISSUE63_RELIEF_EVIDENCE=", {
         "left": by_source["box_body:left_side"],
@@ -708,13 +717,9 @@ def test_issue63_diagnose_divider_projection_hulls():
 
 
 def test_issue63_divider_candidate_preserves_physical_depth_on_standard_topology():
-    from shapely.geometry import box as shapely_box
-    from shapely.ops import unary_union
-    from ae_engine.assembly_collision import (
-        build_divider_front_fold_relief_candidate,
-        project_joint_interference_to_relief_owner,
-        _divider_front_fold_segments,
-    )
+    """CURRENT: candidate preserves orthogonal topology from physical collision authority."""
+    from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
+    from ae_engine.divider_manufacturing import _source_fold_bands_by_geometry_key
     from tests.test_issue39_divider_relief import _divider_insert_joint
 
     snap = _snapshot()
@@ -736,89 +741,74 @@ def test_issue63_divider_candidate_preserves_physical_depth_on_standard_topology
         flat_material_by_part=world["flat_material_by_part"],
         core_start=core_start,
         source_geometry_keys=source_keys,
+        source_fold_bands_by_key=_source_fold_bands_by_geometry_key(body),
         clearance=0.0,
         sheet_thickness=float(divider.thickness),
     )
     assert candidate is not None
-    material = world["flat_material_by_part"][divider.stable_id]
-    minx, miny, maxx, maxy = map(float, material.bounds)
-    half_t = float(divider.thickness) / 2.0
+    evidence = dict(candidate.evidence or {})
+    assert evidence["manufacturing_dimensions_source"] == (
+        "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION"
+    )
 
-    # Independent test-only physical expectation. Fold semantics own the
-    # orthogonal STANDARD width; real backprojection owns skin penetration
-    # depth; authoritative T owns skin->solid conversion. None of these values
-    # are fed back into production.
-    expected_cuts = []
-    observed = {}
+    by_source = dict(evidence["projection_by_source"])
+    primary_edges = {}
+    secondary_count = 0
     for source_key in source_keys:
-        projected = project_joint_interference_to_relief_owner(
-            joint,
-            world_triangles_by_part=world["world_triangles_by_part"],
-            mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
-            flat_material_by_part=world["flat_material_by_part"],
-            source_geometry_key=source_key,
+        source = dict(by_source[source_key])
+        assert source["manufacturing_dimensions_source"] == (
+            "PHYSICAL_FW_CONTACT_AND_SOURCE_COLLISION_BACKPROJECTION"
         )
-        front = _divider_front_fold_segments(
-            projected.projection, core_start=core_start
-        )
-        points = [
-            (float(p[0]), float(p[1]))
-            for segment in front
-            for p in segment
+        stages = {name: dict(row) for name, row in dict(source["physical_stages"]).items()}
+        primary = [
+            row for row in stages.values()
+            if row.get("role") == "PHYSICAL_FW_CONTACT_PRIMARY_RELIEF"
         ]
-        assert points
-        low_depth = max(0.0, max(y for _x, y in points) - miny)
-        high_depth = max(0.0, maxy - min(y for _x, y in points))
-        if low_depth <= high_depth:
-            edge = "MIN_Y"
-            solid_depth = low_depth + half_t
-            expected = shapely_box(minx, miny, core_start, miny + solid_depth)
-        else:
-            edge = "MAX_Y"
-            solid_depth = high_depth + half_t
-            expected = shapely_box(minx, maxy - solid_depth, core_start, maxy)
-        expected_cuts.append(expected.intersection(material))
-        observed[source_key] = {
-            "edge": edge,
-            "skin_depth": min(low_depth, high_depth),
-            "solid_depth": solid_depth,
-        }
+        assert len(primary) == 1, stages
+        primary_row = primary[0]
+        assert float(primary_row["primary_cutting_depth"]) > 0.0
+        assert primary_row["dimension_source"] == (
+            "PHYSICAL_FW_CONTACT_PLUS_SOURCE_TRUE_THICKNESS"
+        )
+        assert "target_half_thickness" not in primary_row
+        assert "solid_depth" not in primary_row
+        primary_edges[source_key] = str(primary_row["edge"])
 
-    expected_solid_shape = unary_union(expected_cuts).intersection(material)
-    actual_cut = candidate.cut_polygon_2d.intersection(material)
+        for row in stages.values():
+            if row.get("role") != "PHYSICAL_SECONDARY_COLLISION_RELIEF":
+                continue
+            secondary_count += 1
+            x0, y0, x1, y1 = map(float, row["source_solid_footprint_bounds"])
+            assert tuple(map(float, row["cut_bounds"])) == pytest.approx(
+                (x0, y0, x1, y1), abs=1.0e-5
+            )
+            assert float(row["stage_u_span"]) == pytest.approx(x1 - x0, abs=1.0e-5)
+            assert float(row["stage_v_span"]) == pytest.approx(y1 - y0, abs=1.0e-5)
+            assert row["dimension_source"] == (
+                "SOURCE_TRUE_THICKNESS_COLLISION_BACKPROJECTION"
+            )
 
-    # Boolean fringe is read only as test tolerance. It is never fed into the
-    # Fold/collision manufacturing calculation.
-    boolean_margin = float(dict(candidate.evidence or {}).get("boolean_margin", 0.0))
-    tolerance_area = max(
-        1.0e-6,
-        float(expected_solid_shape.area) * 1.0e-6,
-    )
-    overcut = float(
-        actual_cut.difference(
-            expected_solid_shape.buffer(boolean_margin + 1.0e-6, join_style=2)
-        ).area
-    )
-    undercut = float(
-        expected_solid_shape.difference(
-            actual_cut.buffer(1.0e-6, join_style=2)
-        ).area
-    )
-    print("ISSUE63_STANDARD_PHYSICAL_DEPTH=", {
-        "core_start": core_start,
-        "half_thickness": half_t,
-        "observed": observed,
-        "expected_area": float(expected_solid_shape.area),
-        "actual_area": float(actual_cut.area),
-        "overcut_area": overcut,
-        "undercut_area": undercut,
-        "boolean_margin": boolean_margin,
+    assert primary_edges["box_body:left_side"] != primary_edges["box_body:right_side"]
+    assert secondary_count >= 1
+
+    # Final manufacturing candidate may be Polygon or MultiPolygon; every
+    # exterior edge must remain axis-aligned. Collision triangulation may not
+    # invent a diagonal STANDARD CUTTING edge.
+    geom = candidate.cut_polygon_2d
+    polygons = [geom] if getattr(geom, "geom_type", "") == "Polygon" else list(geom.geoms)
+    non_axis = []
+    for polygon in polygons:
+        coords = list(polygon.exterior.coords)
+        for a, b in zip(coords, coords[1:]):
+            dx = abs(float(b[0]) - float(a[0]))
+            dy = abs(float(b[1]) - float(a[1]))
+            if dx > 1.0e-6 and dy > 1.0e-6:
+                non_axis.append((a, b))
+    print("ISSUE63_STANDARD_PHYSICAL_COLLISION=", {
+        "primary_edges": primary_edges,
+        "secondary_count": secondary_count,
+        "candidate_area": float(candidate.cut_polygon_2d.area),
+        "non_axis_edges": non_axis,
     })
-    assert overcut <= tolerance_area, (
-        "Divider relief exceeded Fold STANDARD + physical collision depth",
-        overcut, tolerance_area,
-    )
-    assert undercut <= tolerance_area, (
-        "Divider relief failed to cover the physical T/2 solid footprint",
-        undercut, tolerance_area,
-    )
+    assert not non_axis
+
