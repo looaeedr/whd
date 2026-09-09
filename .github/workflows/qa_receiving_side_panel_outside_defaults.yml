@@ -1,5 +1,5 @@
 name: Receiving Side Panel Outside Defaults QA
-# signed operator roundtrip oracle v2
+# signed operator roundtrip oracle v3
 
 on:
   push:
