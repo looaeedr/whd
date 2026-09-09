@@ -242,3 +242,11 @@
 - 2D 與 3D 必須保存同一 active child；從任一側切片後往返另一側都要維持同一片。
 - child preview 必須直接讀 manufacturing physical piece `render_data`；不得由 aggregate 或 validation evidence 重建。
 - visibility、navigation、mechanical authority 三層不可互相污染：隱藏不改 placement/collision；切換不刪 geometry；頂層聚合不刪 child navigation。
+
+
+## 2026-09-09 — 重犯：Receiving material FW 25 被錯當 3D formed FW 25
+
+- **這不是新規則。** Receiving family 早已明定 operator `FW=29` 是 formed outside occupation；`T=2` 時 material flange 是 `25`。另外「FW 都是同一個面」也已是既定 assembly contract。
+- **實際重犯原因**：文件與 UI/material conversion 都正確，但 3D folded geometry 仍直接以 material Fold span 建 FW physical face，沒有 hard gate 驗證 formed occupation。結果 full-solid diagnostic 量到 left/right FW world occupation 都只有 `25`。
+- **後果**：在錯的 FW solid 上做任何 Divider collision，都不可能得到可信截角；即使 validation/parity 變綠也只是建立在錯誤 physical model 上。
+- **永久防線**：Receiving Divider collision 前先驗 `fw_left/fw_right world formed occupation == physical_contract.fw_physical_face.outside_dimension`；不一致立即 fail closed。不得再以 material `len`、skin proxy 或 test expected 補差值。
