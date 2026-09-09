@@ -1,4 +1,4 @@
-# retrigger actual Divider candidate replay diagnostic
+# retrigger candidate cut sink diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -106,6 +106,34 @@ jobs:
           snap=_snapshot()
           body=_body_part(snap)
           divider, divider_part=_divider_part(snap)
+          from ae_engine.assembly_collision import build_divider_front_fold_relief_candidate
+          from ae_engine.divider_manufacturing import (
+              _source_fold_bands_by_geometry_key, _core_start, _apply_cut_to_part
+          )
+          from tests.test_issue39_divider_relief import _divider_insert_joint
+
+          world=bridge._phase6_build_joint_world_geometry(
+              (body, divider_part),
+              (snap["w"], snap["h"], snap["d"]),
+              snap["t"],
+          )
+          joint=_divider_insert_joint(divider.stable_id)
+          source_keys=("box_body:left_side","box_body:right_side")
+          candidate=build_divider_front_fold_relief_candidate(
+              joint,
+              world_triangles_by_part=world["world_triangles_by_part"],
+              mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+              flat_material_by_part=world["flat_material_by_part"],
+              core_start=_core_start(divider_part),
+              source_geometry_keys=source_keys,
+              source_fold_bands_by_key=_source_fold_bands_by_geometry_key(body),
+              clearance=0.0,
+              sheet_thickness=snap["t"],
+          )
+          original=divider_part.render_data.material
+          raw_diff=original.difference(candidate.cut_polygon_2d)
+          applied=_apply_cut_to_part(divider_part,candidate.cut_polygon_2d)
+
           solved_parts, diagnostics, joints = bridge._phase6_resolve_family_divider_reliefs(
               (body, divider_part),
               finished_dimensions=(snap["w"], snap["h"], snap["d"]),
@@ -114,6 +142,17 @@ jobs:
           )
           solved=next(p for p in solved_parts if p.part_key==divider.stable_id)
           d=diagnostics[0]
+          print("DIVIDER_CUT_SINK_DIAGNOSTIC="+json.dumps({
+              "original_area":float(original.area),
+              "candidate_area":float(candidate.cut_polygon_2d.area),
+              "candidate_bounds":list(map(float,candidate.cut_polygon_2d.bounds)),
+              "raw_diff_area":float(raw_diff.area),
+              "raw_diff_bounds":list(map(float,raw_diff.bounds)),
+              "applied_area":float(applied.render_data.material.area),
+              "applied_bounds":list(map(float,applied.render_data.material.bounds)),
+              "area_loss_raw":float(original.area-raw_diff.area),
+              "area_loss_applied":float(original.area-applied.render_data.material.area),
+          },ensure_ascii=False,default=str))
           print("DIVIDER_REPLAY_DIAGNOSTIC="+json.dumps({
               "candidate_status":d.candidate_status,
               "illegal_penetration":d.illegal_penetration,
