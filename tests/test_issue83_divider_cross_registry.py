@@ -75,8 +75,8 @@ def test_cross_slot_geometry_matches_normalized_divider_dxf_local_shape():
 def test_receiving_divider_registry_formula_derives_dxf_values_from_parameters():
     record = {
         "formula": {
-            "min_y_fold_u": "core_start + divider_last_outside + T",
-            "max_y_fold_u": "core_start + divider_fw_material",
+            "slotted_fold_u": "core_start + divider_fw_material",
+            "plain_fold_u": "core_start + divider_last_outside + T",
             "fold_v": "divider_fw_outside - T",
             "slot_width": "divider_fw_material - divider_first_outside",
             "slot_straight_depth": "box_zl1_formed",
@@ -85,8 +85,8 @@ def test_receiving_divider_registry_formula_derives_dxf_values_from_parameters()
     }
     values = evaluate_divider_cross_formula_record(record, _receiving_reference_variables())
     assert values == pytest.approx({
-        "min_y_fold_u": 60.0,
-        "max_y_fold_u": 66.0,
+        "slotted_fold_u": 66.0,
+        "plain_fold_u": 60.0,
         "fold_v": 27.0,
         "slot_width": 7.0,
         "slot_straight_depth": 24.0,
@@ -98,20 +98,19 @@ def test_receiving_divider_registry_hit_is_cross_plus_parameters():
     result = lookup_certified_divider_cross_relief(
         cabinet_family="受電箱",
         variables=_receiving_reference_variables(),
+        mating_fold_sign_by_end={"MIN_Y": -1.0, "MAX_Y": 0.0},
     )
     assert result is not None
     assert result.rule.rule_id == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert result.rule.corner_type == "CROSS"
-    assert result.min_y.primary_u == pytest.approx(60.0)
+    assert result.min_y.primary_u == pytest.approx(66.0)
     assert result.min_y.primary_v == pytest.approx(27.0)
-    assert result.min_y.slot_width is None
-    assert result.min_y.slot_straight_depth is None
-    assert result.min_y.slot_radius is None
-    assert result.max_y.primary_u == pytest.approx(66.0)
+    assert result.min_y.slot_width == pytest.approx(7.0)
+    assert result.min_y.slot_straight_depth == pytest.approx(24.0)
+    assert result.min_y.slot_radius == pytest.approx(3.5)
+    assert result.max_y.primary_u == pytest.approx(60.0)
     assert result.max_y.primary_v == pytest.approx(27.0)
-    assert result.max_y.slot_width == pytest.approx(7.0)
-    assert result.max_y.slot_straight_depth == pytest.approx(24.0)
-    assert result.max_y.slot_radius == pytest.approx(3.5)
+    assert result.max_y.slot_width is None
 
 def _read_normalized_divider_dxf_relief():
     from pathlib import Path
@@ -187,8 +186,10 @@ def test_registry_parameters_match_actual_divider_dxf_after_existing_rigid_mappi
 
     assert dxf["blank_u"] == pytest.approx(158.0)
     assert dxf["reference_span"] == pytest.approx(596.0)
-    assert values["min_y_fold_u"] == pytest.approx(dxf["min_y_fold_u"])
-    assert values["max_y_fold_u"] == pytest.approx(dxf["max_y_fold_u"])
+    # DXF certifies two end shapes, not their runtime MIN/MAX orientation.
+    assert sorted((values["slotted_fold_u"], values["plain_fold_u"])) == pytest.approx(
+        sorted((dxf["min_y_fold_u"], dxf["max_y_fold_u"]))
+    )
     assert values["fold_v"] == pytest.approx(dxf["fold_v"])
     assert values["slot_width"] == pytest.approx(dxf["slot_width"])
     assert values["slot_straight_depth"] == pytest.approx(dxf["slot_straight_depth"])
@@ -235,11 +236,25 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
     assert relief["rule_id"] == "RECEIVING_DIVIDER_CROSS_STANDARD_V1"
     assert relief["corner_type"] == "CROSS"
     assert evidence["manufacturing_dimensions_source"] == "CERTIFIED_REGISTRY_CROSS_PARAMETERS"
-    assert formula["min_y_fold_u"] == pytest.approx(60.0)
-    assert formula["max_y_fold_u"] == pytest.approx(66.0)
+    assert formula["slotted_fold_u"] == pytest.approx(66.0)
+    assert formula["plain_fold_u"] == pytest.approx(60.0)
     assert formula["fold_v"] == pytest.approx(27.0)
     assert formula["slot_width"] == pytest.approx(7.0)
     assert formula["slot_straight_depth"] == pytest.approx(24.0)
     assert formula["slot_radius"] == pytest.approx(3.5)
+    orientation = dict(evidence["mating_fold_orientation"])
+    assert dict(orientation["sign_by_end"]) == {"MIN_Y": -1.0, "MAX_Y": 0.0}
+    assert orientation["evidence"]["MIN_Y"]["phase6_key"] == "zl2"
+    assert orientation["evidence"]["MIN_Y"]["angle"] == pytest.approx(-90.0)
+    assert evidence["slot_end"] == "MIN_Y"
     assert diagnostics and diagnostics[0].illegal_penetration is False
 
+
+
+def test_divider_cross_slot_end_requires_exactly_one_negative_object_fold():
+    with pytest.raises(Exception):
+        lookup_certified_divider_cross_relief(
+            cabinet_family="受電箱",
+            variables=_receiving_reference_variables(),
+            mating_fold_sign_by_end={"MIN_Y": -1.0, "MAX_Y": -1.0},
+        )
