@@ -54,8 +54,9 @@ DOOR_NAMEPLATE_CENTER_DATUM_TOP = 140.0
 
 # Receiving Divider is a family-owned four-segment outside contract:
 # 18 / FW / 106 / 17.  FW is the live family frame-width Source of Truth.
-# The baseline Divider DXF owns fixed holes only; assembly relief remains
-# collision/backprojection owned.
+# Divider corner identity is CROSS + certified parameters.  中隔.dxf is the
+# certification/reference baseline for that contour; collision/backprojection
+# is shadow/penetration evidence and must not overwrite a certified CROSS rule.
 DIVIDER_OUTSIDE_FIRST = 18.0
 DIVIDER_FORMED_CORE = 106.0
 DIVIDER_OUTSIDE_LAST = 17.0
