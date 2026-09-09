@@ -209,6 +209,23 @@ def test_receiving_production_resolver_uses_certified_cross_registry_not_collisi
         clearance=0.0,
     )
     solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+    print("ISSUE83_PRODUCTION_DIAGNOSTIC=", {
+        "diagnostics": [
+            {
+                "candidate_status": d.candidate_status,
+                "registry_status": d.registry_status,
+                "trust_level": d.trust_level,
+                "illegal_penetration": d.illegal_penetration,
+                "pre_pair_count": d.pre_pair_count,
+                "post_pair_count": d.post_pair_count,
+                "evidence": d.evidence,
+            }
+            for d in diagnostics
+        ],
+        "metadata_keys": tuple(sorted(dict(solved.render_data.metadata or {}))),
+        "material_bounds": tuple(map(float, solved.render_data.material.bounds)),
+        "material_area": float(solved.render_data.material.area),
+    })
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     evidence = dict(relief["evidence"])
     formula = dict(evidence["formula_values"])
