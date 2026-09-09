@@ -317,3 +317,12 @@
 - 因使用者沒有說「包外」，`27/49` 按既定口語規則皆為 **料座標**。
 - **踩坑**：不得把上一個對話回合的暫時確認永久化；使用者後續明確更正時，Skill、AI 庫、test oracle 必須同步 supersede。
 - production 不可把這些 expected 常數拿來計算，只能以物理幾何自行撞出相同結果。
+
+
+## 2026-09-09 — 截角是 2D，碰撞對象是 3D 包外實體
+
+- **錯誤模式**：把 3D collision 的 raw target-UV / material midline 座標直接當 2D CUTTING，或看到差 T 就認為是驗收補償。
+- **正確物理鏈**：2D 料 Fold → 3D 成形包外 solid → 箱內 Divider 撞 physical inside face → 折回 2D 料面。
+- Receiving reference：FW material=25、formed outside=29、T=2；Divider 在箱內所以 physical collision datum=29−2=27；zl1 material length=22；final 2D secondary band=27..49。
+- **禁止**：拿 test 的 27/49 回灌 production；禁止把 +T 說成 target T/2；禁止直接把 raw 25..47 UV endpoint 當 final manufacturing coordinate。
+- **數值 seam**：同一 physical 27 datum 若由兩條浮點路徑得到 26.999999997 與 26.999999999，必須共用同一 canonical physical-face boundary，否則 CUTTING union 會被誤拆成 exterior notch + interior hole。
