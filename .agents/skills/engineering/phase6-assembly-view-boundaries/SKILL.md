@@ -68,3 +68,12 @@ Joint Registry、collision solver、legacy migration、pre/post penetration 等�
 ## 3D 完整性聯動
 
 只要本次組合圖修改同時動到截角、Joint、碰撞、material、Fold/placement 或 3D 幾何，必須再套用 `.agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md`；operator/debug 分層通過不代表 3D 機械模型已通過。
+
+## 多件式箱身：identity / navigation / visibility 三層邊界（2026-09-09）
+
+- `box_body:left_side`、`box_body:back`、`box_body:right_side` 等 **stable physical IDs** 屬於 manufacturing / Fold / collision / persistence identity；存在 physical ID 不代表它要成為操作員的頂層板件。
+- 操作員的**頂層板件 selector** 對多件式箱身只顯示一個「箱身」。左側板／後面板／右側板的輸入、尺寸與狀態必須收到「箱身」context 裡，不得各自再多一個頂層板件。
+- 組合圖 visibility 是另一層：左側板／後面板／右側板必須在「箱身」區塊內**各自顯示／隱藏**；aggregate `box_body` 總開關不得取代 child visibility。
+- child visibility 只能控制 renderer。隱藏 child 時，完整 physical geometry 仍保留作 Head/Tail mating、collision、relief、dimension 與 persistence authority；不得因此改變其他板件的 **world placement**。
+- `identity / navigation / visibility` 必須有三份清楚責任邊界：identity 可細到 physical piece；navigation 可聚合成一個 logical part；visibility 可再細分到 physical piece。
+- 回歸至少鎖：selector aggregation、箱身內 nested child controls、逐片 render mask，以及 hidden child 仍存在於 mating/collision datum。
