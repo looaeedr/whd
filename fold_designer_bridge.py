@@ -5933,9 +5933,8 @@ def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickne
                 count = len(mapped)
                 world_mid_piece = body_world_mid[cursor:cursor + count]
                 cursor += count
-                world_mid_piece = _phase6_expand_box_body_fw_world_mid(
-                    piece, mapped, world_mid_piece
-                )
+                # Folded mapping already consumed the authoritative full formed
+                # BoxBody chain. Do not apply a second FW-only world expansion.
                 skins = []
                 for item, world_mid in zip(mapped, world_mid_piece):
                     normal = _triangle_unit_normal(world_mid)
