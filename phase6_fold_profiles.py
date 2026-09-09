@@ -397,7 +397,7 @@ def profile_to_fold_segments(profile: Sequence[Mapping[str, object]]):
         phase6_key = str(seg.get("phase6_key") or "")
         formed_length = (
             material_length + abs(float(ui_add))
-            if ui_add is not None
+            if ui_add is not None and not seg.get("core")
             else None
         )
         rows.append(FoldProfileSegment(
