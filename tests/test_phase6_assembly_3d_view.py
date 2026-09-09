@@ -1028,3 +1028,87 @@ def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch
 
     assert [part.part_key for part in bundle.assembly_parts] == ["box_body", "head", "tail"]
     assert bundle.visible_part_keys == ("head", "tail")
+
+
+def test_operator_part_selector_collapses_box_body_physical_children_under_box_body():
+    import fold_designer_bridge as bridge
+
+    keys = bridge._phase6_operator_part_selector_keys((
+        "box_body",
+        "box_body:left_side",
+        "box_body:back",
+        "box_body:right_side",
+        "head",
+        "tail",
+        "door_c1_r1",
+    ))
+
+    assert keys == ("box_body", "head", "tail", "door_c1_r1")
+
+
+def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum(monkeypatch):
+    import ae_engine.assembly_geometry as assembly_geometry
+    import phase6_final_scene_view as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    def part_data():
+        return SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 10, 10), fold_guides=())
+
+    pieces = (
+        SimpleNamespace(role="left_side", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+        SimpleNamespace(role="back", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+        SimpleNamespace(role="right_side", render_data=part_data(), material_dimensions=(10.0, 10.0), formed_outer_dimensions=(10.0, 10.0)),
+    )
+    body_data = SimpleNamespace(pieces=pieces)
+    head_data = part_data()
+    body_part = view.AssemblyScenePart("box_body", body_data, (), (), "box_body")
+    head_part = view.AssemblyScenePart("head", head_data, _flat_profile(10), _flat_profile(10), "top")
+    render_data = view.AssemblySceneRenderData(
+        assembly_parts=(body_part, head_part),
+        visible_part_keys=("box_body", "head"),
+        visible_box_body_piece_keys=("box_body:left_side", "box_body:right_side"),
+    )
+
+    left = (((1.0, 0.0, 0.0), (1.5, 0.0, 0.0), (1.0, 0.5, 0.0)),)
+    back = (((2.0, 0.0, 0.0), (2.5, 0.0, 0.0), (2.0, 0.5, 0.0)),)
+    right = (((3.0, 0.0, 0.0), (3.5, 0.0, 0.0), (3.0, 0.5, 0.0)),)
+    head_local = (((9.0, 0.0, 0.0), (9.5, 0.0, 0.0), (9.0, 0.5, 0.0)),)
+    expected_body_world = left + back + right
+    head_world = (((20.0, 0.0, 0.0), (20.5, 0.0, 0.0), (20.0, 0.5, 0.0)),)
+    mate_calls = []
+
+    monkeypatch.setattr(
+        view,
+        "_phase6_box_body_structure_meshes",
+        lambda *a, **k: [(pieces[0], left), (pieces[1], back), (pieces[2], right)],
+    )
+    monkeypatch.setattr(
+        view,
+        "_phase6_folded_mesh_from_polygon",
+        lambda *a, **k: head_local,
+    )
+    monkeypatch.setattr(
+        view,
+        "_phase6_place_assembly_triangles",
+        lambda triangles, placement, dimensions, offset: tuple(triangles),
+    )
+
+    def fake_mate(triangles, placement, body_triangles, offset=(0.0, 0.0, 0.0), sheet_thickness=0.0, **kwargs):
+        mate_calls.append(tuple(body_triangles))
+        return head_world
+
+    monkeypatch.setattr(assembly_geometry, "place_endcap_against_box_body", fake_mate)
+    monkeypatch.setattr(assembly_geometry, "thicken_triangle_surface", lambda triangles, thickness: tuple(triangles))
+
+    scene_view = view.Phase6FinalSceneView(SimpleNamespace(ax3d=Axis()))
+    triangles = scene_view.render(view.FinalSceneViewRequest(
+        render_data=render_data,
+        x_profile=(), y_profile=(), part_key="assembly",
+        alpha_bend=0.85, finished_dimensions=(100.0, 80.0, 40.0), thickness=2.0,
+    ))
+
+    assert mate_calls == [expected_body_world], "hidden physical pieces must remain in the mating datum"
+    assert left[0] in triangles
+    assert right[0] in triangles
+    assert back[0] not in triangles
+    assert head_world[0] in triangles

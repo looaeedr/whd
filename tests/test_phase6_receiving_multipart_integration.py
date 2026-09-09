@@ -325,3 +325,57 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
             root.destroy()
         except tk.TclError:
             pass
+
+
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
+def test_receiving_box_body_children_are_nested_under_box_body_but_independently_hideable():
+    import tkinter as tk
+    import gui
+    import fold_designer_bridge as bridge
+
+    root = tk.Tk(); root.withdraw()
+    app = gui.BoxCalculatorGUI(root)
+    designer = None
+    try:
+        app.baseline_var.set("受電箱")
+        root.update_idletasks(); root.update()
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+
+        labels = [
+            designer.part_choice_menu.entrycget(i, "label")
+            for i in range(designer.part_choice_menu.index("end") + 1)
+        ]
+        assert labels.count("箱身") == 1
+        assert "左側板" not in labels
+        assert "後面板" not in labels
+        assert "右側板" not in labels
+
+        bundle = bridge._phase6_query_assembly_render_data(designer)
+        root.update_idletasks(); root.update()
+
+        assert tuple(designer.assembly_box_body_piece_visible_vars) == (
+            "box_body:left_side", "box_body:back", "box_body:right_side",
+        )
+        assert all(
+            designer.assembly_box_body_piece_checkbuttons[key].winfo_parent()
+            == designer.assembly_box_body_piece_sections[key]._w
+            for key in designer.assembly_box_body_piece_visible_vars
+        )
+
+        designer.assembly_box_body_piece_visible_vars["box_body:back"].set(False)
+        bundle = bridge._phase6_query_assembly_render_data(designer)
+        assert bundle.visible_box_body_piece_keys == (
+            "box_body:left_side", "box_body:right_side",
+        )
+        assert "box_body" in bundle.visible_part_keys
+    finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
+        try:
+            root.destroy()
+        except tk.TclError:
+            pass
