@@ -389,3 +389,86 @@ def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
     assert observed_right_overlap == pytest.approx(
         REFERENCE_FW_OVERLAP, abs=1.0e-5
     )
+
+
+def test_receiving_reference_fixture_final_cutting_matches_independent_notch_oracle():
+    """Validation-only oracle for the approved Receiving Divider notch geometry.
+
+    The expected dimensions below are product/manufacturing acceptance values for
+    this reference fixture. Production must not import/read this test or use these
+    numbers to derive relief geometry.
+
+    Approved final CUTTING shape:
+      - left primary notch: 61 x 27 mm
+      - left secondary step: 2 x 22 mm
+      - right primary notch: 57 x 27 mm
+
+    In particular, 48 mm is NOT an approved manufacturing notch dimension.
+    """
+    LEFT_PRIMARY_W = 61.0
+    LEFT_PRIMARY_D = 27.0
+    LEFT_STEP_W = 2.0
+    LEFT_STEP_D = 22.0
+    RIGHT_PRIMARY_W = 57.0
+    RIGHT_PRIMARY_D = 27.0
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+
+    solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=dims,
+        sheet_thickness=snap["t"],
+        clearance=0.0,
+    )
+    assert diagnostics and diagnostics[0].illegal_penetration is False
+    solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+
+    nominal = divider_part.render_data.material
+    retained = solved.render_data.material
+    removed = nominal.difference(retained)
+    minx, miny, maxx, maxy = map(float, nominal.bounds)
+
+    # Product oracle is expressed directly in final-material coordinates.
+    # Left secondary step follows the approved 22-mm zl1 stage starting at the
+    # 25-mm material FW datum; it must end at 47, not at 48.
+    left_primary = shapely_box(
+        minx, miny,
+        minx + LEFT_PRIMARY_W,
+        miny + LEFT_PRIMARY_D,
+    )
+    left_step = shapely_box(
+        minx + LEFT_PRIMARY_W - 1.0,
+        miny + 25.0,
+        minx + LEFT_PRIMARY_W - 1.0 + LEFT_STEP_W,
+        miny + 25.0 + LEFT_STEP_D,
+    )
+    right_primary = shapely_box(
+        minx,
+        maxy - RIGHT_PRIMARY_D,
+        minx + RIGHT_PRIMARY_W,
+        maxy,
+    )
+    expected = unary_union((left_primary, left_step, right_primary))
+
+    missing = expected.difference(removed)
+    extra = removed.difference(expected)
+    print("RECEIVING_FINAL_CUTTING_ORACLE=", {
+        "nominal_bounds": tuple(map(float, nominal.bounds)),
+        "removed_bounds": tuple(map(float, removed.bounds)),
+        "expected_bounds": tuple(map(float, expected.bounds)),
+        "missing_area": float(missing.area),
+        "extra_area": float(extra.area),
+        "approved": {
+            "left_primary": (LEFT_PRIMARY_W, LEFT_PRIMARY_D),
+            "left_step": (LEFT_STEP_W, LEFT_STEP_D),
+            "right_primary": (RIGHT_PRIMARY_W, RIGHT_PRIMARY_D),
+        },
+    })
+
+    # Tiny polygon fringe is numerical evidence only; the dimensional oracle is
+    # exact and is never fed back to production.
+    assert float(missing.area) <= 1.0e-3
+    assert float(extra.area) <= 1.0e-3
