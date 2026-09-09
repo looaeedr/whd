@@ -1,4 +1,4 @@
-# retrigger material-midline full-solid collision diagnostic
+# retrigger targeted on restored material-midline baseline
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
