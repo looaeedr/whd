@@ -1,0 +1,27 @@
+name: DM6 T2 RED
+
+on:
+  push:
+    branches:
+      - work/dm6-t2-layout-semantic-identity
+    paths:
+      - .github/workflows/dm6-t2-red.yml
+
+jobs:
+  red-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install -r requirements.txt
+      - name: Run DM6 T2 requirement REDs
+        run: python -m pytest -q tests/test_dm6_layout_semantic_identity.py
