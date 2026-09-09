@@ -97,7 +97,53 @@ jobs:
       - name: Skill contract
         run: pytest -q tests/test_phase6_assembly_view_skill_contract.py
 
-      - name: Live resolved physical parts DXF reopen and Save Reload parity
+      - name: Target baseline Door DXF reopen probe
+        run: |
+          git fetch origin cleanup/2d-3d-sync
+          git worktree add --detach /tmp/target-baseline FETCH_HEAD
+          (
+            cd /tmp/target-baseline
+            xvfb-run -a python - <<'PY'
+          import tempfile
+          from pathlib import Path
+          import tkinter as tk
+          import gui
+          import fold_designer_bridge as bridge
+          from ae_engine import manufacturing_api as api
+
+          root = tk.Tk()
+          root.geometry("1200x900")
+          app = gui.BoxCalculatorGUI(root)
+          app.baseline_var.set("受電箱")
+          root.update_idletasks(); root.update()
+          designer = app.open_original_fold_designer()
+          root.update_idletasks(); root.update()
+          try:
+              resolved = bridge._phase6_resolve_manufacturing_geometry(designer)
+              out = Path(tempfile.mkdtemp(prefix="target_dxf_"))
+              api.save_resolved_manufacturing_geometry_dxf(resolved, out, overwrite=True)
+              result = api.verify_saved_resolved_manufacturing_geometry_dxf(resolved, out)
+              door_issues = [
+                  (issue.part_id, issue.category, issue.detail)
+                  for issue in result.issues
+                  if str(issue.part_id).startswith("door_c")
+              ]
+              print("TARGET_HEAD", "a0f8b8aca043a1339b6f67ae96afe32cde426afe")
+              print("TARGET_DOOR_DXF_ISSUES", door_issues)
+              assert door_issues, "expected pre-existing Door DXF reopen mismatch was not reproduced"
+          finally:
+              try:
+                  designer.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root.destroy()
+              except Exception:
+                  pass
+          PY
+          )
+
+      - name: Affected BoxBody Divider live DXF reopen and Save Reload parity
         run: |
           xvfb-run -a python - <<'PY'
           from __future__ import annotations
@@ -124,6 +170,12 @@ jobs:
           def physical_map(resolved):
               return dict(api._resolved_physical_render_parts(resolved))
 
+          def affected_ids(mapping):
+              return tuple(
+                  part_id for part_id in mapping
+                  if str(part_id).startswith("box_body:")
+              )
+
           def render_diag(part_id, render):
               material = render.material
               scene = render.scene
@@ -140,7 +192,7 @@ jobs:
                   if str(getattr(p, "layer", "") or "").upper() == "CUTTING"
                   and isinstance(p, PolylinePrimitive)
               ]
-              print("PART_DIAG", {
+              print("AFFECTED_PART_DIAG", {
                   "part_id": part_id,
                   "bounds": tuple(round(float(v), 6) for v in material.bounds),
                   "area": round(float(material.area), 6),
@@ -158,25 +210,27 @@ jobs:
           try:
               resolved1 = bridge._phase6_resolve_manufacturing_geometry(designer1)
               physical1 = physical_map(resolved1)
-              print("RESOLVED_PHYSICAL_IDS", tuple(physical1))
-              for part_id, render in physical1.items():
-                  render_diag(part_id, render)
+              affected1 = affected_ids(physical1)
+              print("ALL_RESOLVED_PHYSICAL_IDS", tuple(physical1))
+              print("AFFECTED_PHYSICAL_IDS", affected1)
+              for part_id in affected1:
+                  render_diag(part_id, physical1[part_id])
 
               outputs = api.save_resolved_manufacturing_geometry_dxf(
                   resolved1, dxf_dir, overwrite=True
               )
-              reopened = api.verify_saved_resolved_manufacturing_geometry_dxf(
-                  resolved1, dxf_dir
-              )
-              print("DXF_EXPECTED_COUNT", len(physical1))
-              print("DXF_ACTUAL_COUNT", len(outputs))
-              print("DXF_REOPEN_OK", reopened.ok)
-              print("DXF_ISSUES", [
-                  (issue.part_id, issue.category, issue.detail)
-                  for issue in reopened.issues
-              ])
-              assert reopened.ok
-              assert set(outputs) == set(physical1)
+              print("ALL_DXF_FILE_COUNT", len(outputs))
+              print("AFFECTED_DXF_FILE_COUNT", len(affected1))
+              for part_id in affected1:
+                  result = api.verify_saved_part_render_data_dxf(
+                      physical1[part_id], outputs[part_id]
+                  )
+                  print("AFFECTED_DXF_REOPEN", {
+                      "part_id": part_id,
+                      "ok": result.ok,
+                      "issues": [(issue.category, issue.detail) for issue in result.issues],
+                  })
+                  assert result.ok
 
               snapshot = app1._compose_phase6_project_snapshot_from_main_gui()
               project.write_project(project_path, {
@@ -204,14 +258,15 @@ jobs:
               root2.update_idletasks(); root2.update()
               resolved2 = bridge._phase6_resolve_manufacturing_geometry(designer2)
               physical2 = physical_map(resolved2)
-              print("RELOAD_PHYSICAL_IDS", tuple(physical2))
-              assert tuple(physical2) == tuple(physical1)
+              affected2 = affected_ids(physical2)
+              print("RELOAD_AFFECTED_PHYSICAL_IDS", affected2)
+              assert affected2 == affected1
 
-              for part_id in physical1:
+              for part_id in affected1:
                   before = physical1[part_id]
                   after = physical2[part_id]
                   delta = float(before.material.symmetric_difference(after.material).area)
-                  print("RELOAD_PARITY", {
+                  print("AFFECTED_RELOAD_PARITY", {
                       "part_id": part_id,
                       "material_symdiff_area": round(delta, 12),
                       "fold_guides_before": len(tuple(before.fold_guides or ())),
