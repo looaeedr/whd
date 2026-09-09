@@ -284,3 +284,17 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - 若更正會推翻舊 authority，必須搜尋舊內容並標 `SUPERSEDED / REVOKED`，避免下一個 Agent 同時讀到兩套互相衝突的規則。
 - 只有會影響未來決策的永久知識才固化；一次性 run id、臨時 probe 數值、進度回報不進 durable knowledge。
 - 寫完必須遠端反讀確認；未反讀只能算寫入嘗試，不算知識同步完成。
+## 2026-09-10 — Divider CROSS 端向由對象 Fold sign 決定
+
+- Receiving HORIZONTAL Divider 的正式截角仍是 `CornerType=CROSS + parameters`。
+- **有槽端／無槽端不得預先綁死 `MIN_Y/MAX_Y`，也不得從 `中隔.dxf` 固定孔的 90° rigid mapping 推導外框端向。**
+- 端向 authority 是**被中隔對到的物件 Fold Profile**：
+  - 對象 mating Fold sign < 0 → 套用「有槽端」；
+  - 其他端 → 套用「無槽端」。
+- 目前 Receiving HORIZONTAL topology：`MIN_Y -> left_side -> zl2 -> angle=-90°`，因此 `MIN_Y` 套有槽端；`MAX_Y -> right_side -> zr2 -> terminal/no bend`，套無槽端。
+- CROSS 母體：
+  - 有槽端 primary = `fold_u/fold_v` 解析出的 66×27；
+  - 無槽端 primary = 60×27；
+  - 槽參數 = width 7 / straight 24 / R3.5（皆由 Registry 公式算，不存成 runtime 補償常數）。
+- Collision/backprojection 只能做 post-refold shadow acceptance；不得用它決定 slot_end 或回灌 production 尺寸。
+- 若兩端都是負折、都不是負折、或 Fold sign 缺失造成 selector 無法唯一決定，**fail closed，不猜方向**。
