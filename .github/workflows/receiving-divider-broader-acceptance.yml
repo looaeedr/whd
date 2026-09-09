@@ -38,6 +38,7 @@ jobs:
               "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2",
               '"target_half_thickness"',
               '"solid_depth"',
+              "PHYSICAL_PRIMARY_BOUNDARY_PLUS_SOURCE_COLLISION_SPAN",
           ]
           found=[token for token in stale if token in text]
           assert not found, f"stale target-T/2 Divider authority remains: {found}"
