@@ -210,3 +210,14 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   4. formed/world geometry values。
   若這四層沒有分清楚，禁止進 collision/relief 推理。
 - final CUTTING 必須由「input state → canonical geometry → formed solid → collision」正向求解；禁止「collision/material → 猜 input」。
+
+
+## 2026-09-09 — 口語尺寸預設為料尺寸（使用者明確規則）
+
+- 使用者口語提供任何尺寸時，**若沒有明確說「包外」**，一律解析為 **料尺寸 / material dimension**。
+- 只有使用者明確說出「包外」時，該尺寸才可解析為 formed/outside dimension。
+- 禁止因為某個 UI 欄位、family contract 或既有 production state 使用 outside semantics，就擅自把使用者口語數字改判成包外。
+- 正確資料流是：
+  `user spoken material value（default） → canonical requirement/spec → 對應 production input 的正式轉換規則`
+  ；若使用者明說「包外」，才走 outside→material 或 formed geometry 的既有轉換。
+- 這條規則優先於歷史猜測。任何舊記錄若把未標「包外」的口語尺寸解讀成 outside，視為解析錯誤，必須重新判讀。
