@@ -1076,7 +1076,11 @@ def verify_divider_front_fold_relief(
     illegal_area = 0.0
     precut_validation_overlap = 0.0
     by_source = {}
-    area_tol = max(float(tolerance) ** 2, 1.0e-12)
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    verification_span = max(maxx - minx, maxy - miny, 1.0)
+    # Verification-only numerical area tolerance: one linear solver tolerance
+    # swept across the current material span. It never changes CUTTING geometry.
+    area_tol = max(float(tolerance) ** 2, float(tolerance) * verification_span)
 
     for source_key in tuple(source_geometry_keys or ()):
         source_key = str(source_key)
