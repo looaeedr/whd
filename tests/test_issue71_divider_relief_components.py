@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pytest
-from shapely.geometry import Point
 
 import fold_designer_bridge as bridge
 from ae_engine.assembly_collision import (
@@ -18,56 +17,50 @@ from tests.test_issue39_divider_relief import (
 )
 
 
-def _merge_intervals(intervals, *, tolerance=1.0e-6):
-    merged = []
-    for start, end in sorted((min(a, b), max(a, b)) for a, b in intervals):
-        if not merged or start > merged[-1][1] + tolerance:
-            merged.append([float(start), float(end)])
-        else:
-            merged[-1][1] = max(float(end), merged[-1][1])
-    return tuple((a, b) for a, b in merged)
-
-
-def _disconnected_gap_witness(segments, material, core_start, *, tolerance=1.0e-6):
-    """Derive a non-collision witness from the physical projected linework.
-
-    This test never supplies a manufacturing dimension to production.  It only
-    asks the backprojection itself whether one Y slice contains two disconnected
-    collision intervals and returns a point in the gap between them.
-    """
-    by_y = {}
-    for a, b in tuple(segments or ()):
-        ax, ay = float(a[0]), float(a[1])
-        bx, by = float(b[0]), float(b[1])
-        if abs(ay - by) > tolerance:
+def _non_axis_aligned_edges(geometry, *, tolerance=1.0e-5):
+    """Return manufacturing edges that are neither parallel to X nor Y."""
+    rows = []
+    geoms = [geometry] if getattr(geometry, "geom_type", "") == "Polygon" else list(
+        getattr(geometry, "geoms", ()) or ()
+    )
+    for geom in geoms:
+        if getattr(geom, "geom_type", "") != "Polygon":
             continue
-        if abs(ax - bx) <= tolerance:
-            continue
-        y = round((ay + by) / 2.0, 6)
-        by_y.setdefault(y, []).append((ax, bx))
+        rings = [geom.exterior, *tuple(geom.interiors)]
+        for ring in rings:
+            coords = list(ring.coords)
+            for a, b in zip(coords, coords[1:]):
+                dx = abs(float(b[0]) - float(a[0]))
+                dy = abs(float(b[1]) - float(a[1]))
+                if dx > tolerance and dy > tolerance:
+                    rows.append(((float(a[0]), float(a[1])), (float(b[0]), float(b[1]))))
+    return tuple(rows)
 
-    candidates = []
-    for y, intervals in by_y.items():
-        merged = _merge_intervals(intervals, tolerance=tolerance)
-        for left, right in zip(merged, merged[1:]):
-            gap = float(right[0]) - float(left[1])
-            if gap <= tolerance * 100.0:
-                continue
-            x = (float(left[1]) + float(right[0])) / 2.0
-            point = Point(x, float(y))
-            if x >= float(core_start) - tolerance:
-                continue
-            if not material.buffer(tolerance).covers(point):
-                continue
-            candidates.append((gap, point, merged))
 
-    assert candidates, "fixture must expose a disconnected physical backprojection gap"
-    _gap, point, merged = max(candidates, key=lambda row: row[0])
-    return point, merged
+def _physical_depth_from_projection(front_segments, material):
+    """Test-only observation of physical skin penetration at the touched span end."""
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    points = [
+        (float(point[0]), float(point[1]))
+        for segment in tuple(front_segments or ())
+        for point in segment
+    ]
+    assert points
+    low_depth = max(0.0, max(y for _x, y in points) - miny)
+    high_depth = max(0.0, maxy - min(y for _x, y in points))
+    if low_depth <= high_depth:
+        return "MIN_Y", low_depth
+    return "MAX_Y", high_depth
 
 
 @pytest.mark.parametrize("source_key", ("box_body:left_side", "box_body:right_side"))
-def test_issue71_divider_relief_does_not_bridge_disconnected_backprojection_regions(source_key):
+def test_issue71_divider_standard_relief_never_promotes_triangulation_diagonal_to_cutting(source_key):
+    """STANDARD topology comes from Fold semantics; collision supplies physical depth.
+
+    No measured fixture dimension is sent into production.  The RED only checks
+    that the resolved candidate obeys the project's manufacturing invariant:
+    triangulation vertices may not invent a diagonal STANDARD cutting edge.
+    """
     snap = _snapshot()
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
@@ -75,11 +68,11 @@ def test_issue71_divider_relief_does_not_bridge_disconnected_backprojection_regi
         (body, divider_part), (snap["w"], snap["h"], snap["d"]), snap["t"]
     )
     joint = _divider_insert_joint(divider.stable_id)
+    material = world["flat_material_by_part"][divider.stable_id]
     core_start = float(
         divider_part.render_data.metadata["physical_geometry_contract"]
         ["core_physical_segment"]["flat_band"][0]
     )
-    material = world["flat_material_by_part"][divider.stable_id]
 
     projected = project_joint_interference_to_relief_owner(
         joint,
@@ -91,9 +84,7 @@ def test_issue71_divider_relief_does_not_bridge_disconnected_backprojection_regi
     front = _divider_front_fold_segments(
         projected.projection, core_start=core_start
     )
-    witness, intervals = _disconnected_gap_witness(
-        front, material, core_start
-    )
+    edge, skin_depth = _physical_depth_from_projection(front, material)
 
     candidate = build_divider_front_fold_relief_candidate(
         joint,
@@ -106,20 +97,46 @@ def test_issue71_divider_relief_does_not_bridge_disconnected_backprojection_regi
         sheet_thickness=float(divider.thickness),
     )
     assert candidate is not None
+    physical_cut = candidate.cut_polygon_2d.intersection(material)
+    evidence = dict(candidate.evidence or {})
+    margin = float(evidence.get("boolean_margin", 0.0))
+    half_t = float(divider.thickness) / 2.0
 
-    print("ISSUE71_DISCONNECTED_RELIEF_GAP=", {
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    cut_minx, cut_miny, cut_maxx, cut_maxy = map(float, physical_cut.bounds)
+    expected_solid_depth = skin_depth + half_t
+    actual_depth = (
+        cut_maxy - miny if edge == "MIN_Y"
+        else maxy - cut_miny
+    )
+
+    print("ISSUE71_STANDARD_TOPOLOGY_RED=", {
         "source": source_key,
-        "witness": (float(witness.x), float(witness.y)),
-        "intervals": intervals,
-        "candidate_bounds": tuple(map(float, candidate.cut_polygon_2d.bounds)),
-        "evidence": candidate.evidence,
+        "edge": edge,
+        "core_start": core_start,
+        "skin_depth": skin_depth,
+        "half_thickness": half_t,
+        "expected_solid_depth": expected_solid_depth,
+        "actual_depth": actual_depth,
+        "cut_bounds": tuple(map(float, physical_cut.bounds)),
+        "non_axis_edges": _non_axis_aligned_edges(physical_cut),
+        "evidence": evidence,
     })
 
-    assert not candidate.cut_polygon_2d.covers(witness), (
-        "Divider relief bridged a gap that physical backprojection says is not "
-        "collision material; one global convex hull must not merge disconnected "
-        "collision regions",
+    # The Fold contract is the STANDARD topology boundary.  Boolean tolerance may
+    # protrude microscopically but may not change the manufacturing level.
+    assert cut_minx == pytest.approx(minx, abs=margin + 1.0e-6)
+    assert cut_maxx == pytest.approx(core_start, abs=margin + 1.0e-6)
+    assert actual_depth == pytest.approx(
+        expected_solid_depth, abs=margin + 1.0e-5
+    )
+
+    # This is the actual regression.  Current production leaks a convex-hull
+    # triangulation diagonal into CUTTING here.
+    assert _non_axis_aligned_edges(physical_cut) == (), (
+        "Divider STANDARD relief contains a triangulation-generated diagonal; "
+        "physical backprojection may determine required side/depth but may not "
+        "invent manufacturing CUTTING topology",
         source_key,
-        (float(witness.x), float(witness.y)),
-        intervals,
+        _non_axis_aligned_edges(physical_cut),
     )
