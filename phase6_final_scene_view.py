@@ -418,13 +418,15 @@ class AssemblyScenePart:
 class AssemblySceneRenderData:
     """UI-only bundle of already-built part render data for combined 3D display.
 
+    ``assembly_parts`` always retains the authoritative assembly geometry so
+    placement/mating references survive render-only visibility changes.
+    ``visible_part_keys`` controls only which already-placed parts are drawn.
     ``interference_probe_parts`` keeps the pre-solve EndCap geometry used only
-    for collision diagnostics.  The visible ``assembly_parts`` may already be
-    solved/canonical material; using those solved parts for diagnostics would
-    erase the evidence of the collision that caused the relief.
+    for collision diagnostics.
     """
 
     assembly_parts: tuple[AssemblyScenePart, ...]
+    visible_part_keys: tuple[str, ...] | None = None
     warnings: tuple[object, ...] = ()
     show_interference: bool = False
     ignore_fixed_corner_relief: bool = False
@@ -832,6 +834,11 @@ class Phase6FinalSceneView:
             return []
         render_data = request.render_data
         assembly_parts = tuple(getattr(render_data, "assembly_parts", ()) or ())
+        visible_raw = getattr(render_data, "visible_part_keys", None)
+        visible_part_keys = (
+            None if visible_raw is None
+            else frozenset(str(key) for key in tuple(visible_raw or ()))
+        )
         if assembly_parts:
             self._remove_original_bend_surfaces()
             for line in list(getattr(self.renderer.ax3d, "lines", ())):
@@ -856,13 +863,16 @@ class Phase6FinalSceneView:
                 for item in tuple(getattr(render_data, "interference_probe_parts", ()) or ())
             }
             for part in assembly_parts:
+                part_key = str(getattr(part, "part_key", ""))
+                part_visible = visible_part_keys is None or part_key in visible_part_keys
                 part_data = part.render_data
                 diagnostic_relief_delta = None
                 if getattr(part_data, "pieces", None):
                     piece_meshes = _phase6_box_body_structure_meshes(part_data, thickness=request.thickness)
                     local = [tri for _piece, piece_tris in piece_meshes for tri in piece_tris]
                     part_material = tuple(piece.render_data.material for piece in part_data.pieces)
-                    box_body_piece_dimension_lines.extend(_phase6_box_body_piece_dimension_lines(part_data))
+                    if part_visible:
+                        box_body_piece_dimension_lines.extend(_phase6_box_body_piece_dimension_lines(part_data))
                 else:
                     part_material = part_data.material
                     fold_material = part_material
@@ -910,22 +920,22 @@ class Phase6FinalSceneView:
                     )
                 if not placed:
                     continue
-                part_key = str(getattr(part, "part_key", ""))
                 if part_key == "box_body":
                     box_body_world = tuple(placed)
-                    if getattr(part_data, "pieces", None):
-                        self._draw_box_body_structure_bends(
-                            part_data, thickness=request.thickness, local_reference=local,
-                            placement=placement, dimensions=request.finished_dimensions, offset=offset,
-                        )
-                    else:
-                        self._draw_assembly_box_body_bends(
-                            part_data.scene,
-                            tuple(dict(seg) for seg in part.x_profile),
-                            tuple(dict(seg) for seg in part.y_profile),
-                            tuple(getattr(part_data, "fold_guides", ()) or ()),
-                            local, placement, request.finished_dimensions, offset,
-                        )
+                    if part_visible:
+                        if getattr(part_data, "pieces", None):
+                            self._draw_box_body_structure_bends(
+                                part_data, thickness=request.thickness, local_reference=local,
+                                placement=placement, dimensions=request.finished_dimensions, offset=offset,
+                            )
+                        else:
+                            self._draw_assembly_box_body_bends(
+                                part_data.scene,
+                                tuple(dict(seg) for seg in part.x_profile),
+                                tuple(dict(seg) for seg in part.y_profile),
+                                tuple(getattr(part_data, "fold_guides", ()) or ()),
+                                local, placement, request.finished_dimensions, offset,
+                            )
                     if bool(getattr(render_data, "show_interference", False)):
                         from ae_engine.assembly_geometry import thicken_triangle_surface
                         if getattr(part_data, "pieces", None):
@@ -937,6 +947,10 @@ class Phase6FinalSceneView:
                             box_body_collision_mesh = thicken_triangle_surface(
                                 box_body_world, request.thickness
                             )
+                    if not part_visible:
+                        continue
+                elif not part_visible:
+                    continue
                 elif (
                     bool(getattr(render_data, "show_interference", False))
                     and box_body_collision_mesh

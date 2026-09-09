@@ -5576,6 +5576,7 @@ def _phase6_assembly_relief_clearance(self):
 def _phase6_make_assembly_scene_render_data(
     *,
     assembly_parts,
+    visible_part_keys=None,
     show_interference=False,
     ignore_fixed_corner_relief=False,
     interference_probe_parts=(),
@@ -5595,6 +5596,10 @@ def _phase6_make_assembly_scene_render_data(
 
     values = {
         "assembly_parts": tuple(assembly_parts),
+        "visible_part_keys": (
+            None if visible_part_keys is None
+            else tuple(str(key) for key in visible_part_keys)
+        ),
         "show_interference": bool(show_interference),
         "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
         "interference_probe_parts": tuple(interference_probe_parts or ()),
@@ -5612,6 +5617,12 @@ def _phase6_make_assembly_scene_render_data(
     if accepts_kwargs:
         kwargs = values
     else:
+        if "visible_part_keys" not in params and values["visible_part_keys"] is not None:
+            visible = set(values["visible_part_keys"])
+            values["assembly_parts"] = tuple(
+                part for part in values["assembly_parts"]
+                if str(getattr(part, "part_key", "")) in visible
+            )
         kwargs = {key: value for key, value in values.items() if key in params}
         kwargs.setdefault("assembly_parts", values["assembly_parts"])
     return AssemblySceneRenderData(**kwargs)
@@ -7041,7 +7052,8 @@ def _phase6_query_assembly_render_data(self):
         if part.part_key in visible_keys
     )
     return _phase6_make_assembly_scene_render_data(
-        assembly_parts=tuple(visible_parts),
+        assembly_parts=tuple(parts),
+        visible_part_keys=tuple(part.part_key for part in visible_parts),
         show_interference=bool(getattr(self, "assembly_show_interference_var", None).get())
             if getattr(self, "assembly_show_interference_var", None) is not None else True,
         ignore_fixed_corner_relief=False,
