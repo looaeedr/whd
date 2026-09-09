@@ -1,4 +1,4 @@
-# retrigger exact Divider candidate replay diagnostic
+# retrigger actual Divider candidate replay diagnostic
 name: Receiving FW Formed Occupation Acceptance
 on:
   push:
@@ -95,6 +95,35 @@ jobs:
               stage[role]=rows
           print("RECEIVING_FW_STAGE_GEOMETRY="+json.dumps(stage,ensure_ascii=False))
           print("RECEIVING_FW_PLACEMENT_DIAGNOSTIC="+json.dumps(out,ensure_ascii=False))
+          PY
+      - name: Divider candidate replay diagnostic
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+
+          snap=_snapshot()
+          body=_body_part(snap)
+          divider, divider_part=_divider_part(snap)
+          solved_parts, diagnostics, joints = bridge._phase6_resolve_family_divider_reliefs(
+              (body, divider_part),
+              finished_dimensions=(snap["w"], snap["h"], snap["d"]),
+              sheet_thickness=snap["t"],
+              clearance=0.0,
+          )
+          solved=next(p for p in solved_parts if p.part_key==divider.stable_id)
+          d=diagnostics[0]
+          print("DIVIDER_REPLAY_DIAGNOSTIC="+json.dumps({
+              "candidate_status":d.candidate_status,
+              "illegal_penetration":d.illegal_penetration,
+              "pre_pair_count":d.pre_pair_count,
+              "post_pair_count":d.post_pair_count,
+              "evidence":d.evidence,
+              "solved_material_bounds":list(map(float,solved.render_data.material.bounds)),
+              "solved_material_area":float(solved.render_data.material.area),
+              "has_relief_metadata":"divider_assembly_relief" in dict(solved.render_data.metadata or {}),
+          }, ensure_ascii=False, default=str))
           PY
       - name: FW formed occupation + Issue74 targeted
         run: |
