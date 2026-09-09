@@ -27,3 +27,7 @@ Run typechecking regularly, single test files regularly, and the full test suite
 Once done, use /code-review to review the work.
 
 若目前來源不是 Git repository，Git/commit 步驟直接跳過，不得為了滿足形式硬造 repository；checkpoint + SHA/provenance 仍必須完成。若是 Git repository，才 commit 到目前工作分支。
+
+
+## Remote QA Active Lock
+只要本任務建立或依賴任何 non-terminal remote QA run，立即服從 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 的 `REMOTE_QA_ACTIVE_LOCK`。在該 run terminal 前，禁止繼續 code exploration、production/test/skill write、下一張工單或另一個診斷；只能 poll run/jobs/steps、處理 terminal failure log、做 30 秒進度回報。terminal 後才恢復一般實作流程。
