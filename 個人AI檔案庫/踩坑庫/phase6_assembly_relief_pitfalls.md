@@ -193,3 +193,10 @@
 - **正確實作**：先將 physical crossing linework fit 回既有 stable orthogonal corner topology，再做 `T/2` inward sweep；union 必須保留 STANDARD topology，禁止再用 convex hull 重新產生斜邊／新 stage。
 - **防線**：只驗 `illegal penetration=0` 不夠。任何 collision-derived relief 必須另驗 manufacturing topology invariant；STANDARD one-level corner若出現非 X/Y 軸 CUTTING edge，直接 fail closed。
 - **GREEN 證據**：run `34346627948`：Issue71 exact seam **2 PASS**；Divider broader guards（#63/#39/DM3/DM4）**23 PASS / 0 FAIL**；`config.ini` SHA256 前後一致。
+
+## 2026-09-09 — BoxBody child identity 不可直接升格成 operator part
+
+- `box_body:<role>` 是 physical geometry identity，不是 UI hierarchy 的 Source of Truth。
+- 頂層板件只保留 logical `box_body`；physical children 的操作資訊巢狀放在箱身內。
+- 每片 visibility 必須獨立，但 visibility mask 只作用於 drawing sink；完整 child meshes 仍留在 assembly datum / collision source。
+- 若取消顯示某 child 後 Head/Tail 位置、collision 或 relief 改變，表示 renderer visibility 又污染了 mechanical authority，直接判定回歸。
