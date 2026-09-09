@@ -164,11 +164,12 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
 
     relief = dict(solved.render_data.metadata["divider_assembly_relief"])
     assert relief["verified"] is True
-    assert relief["trust_level"] == "PROVISIONAL_3D"
+    assert relief["trust_level"] == "CERTIFIED"
     assert relief["core_start"] == pytest.approx(41.0)
-    cut_depths = dict(relief["cut_depths"])
-    assert cut_depths["box_body:left_side"] > 0.0
-    assert cut_depths["box_body:right_side"] > 0.0
+    formula_values = dict(relief["cut_depths"])
+    assert formula_values["slotted_fold_u"] == pytest.approx(66.0)
+    assert formula_values["plain_fold_u"] == pytest.approx(60.0)
+    assert formula_values["fold_v"] == pytest.approx(27.0)
     # Receiving front Fold topology is intentionally asymmetric:
     # left has penetrating zl1/zl2 bands while right has penetrating zr2.
     # Do not force their physical relief depths to be numerically symmetric.
@@ -187,7 +188,9 @@ def test_t3_family_solver_commits_verified_relief_and_preserves_mating_contact()
 
     assert len(diagnostics) == 1
     diag = diagnostics[0]
-    assert diag.candidate_status == "PROVISIONAL_3D_VERIFIED"
+    assert diag.candidate_status == "CERTIFIED_REGISTRY_VERIFIED"
+    assert diag.registry_status == "HIT"
+    assert diag.trust_level == "CERTIFIED"
     assert diag.preserve_part == "box_body"
     assert diag.relief_part == divider.stable_id
     assert diag.illegal_penetration is False
