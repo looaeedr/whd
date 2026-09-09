@@ -234,3 +234,11 @@
 - **禁止事項**：不得用 `W/FW` 閉合、Head/Tail 742、expected 27、probe miss/delta 反推 production。這些都只能驗證。
 - **final physical evidence**：run `34353654567` 自碰撞得到 left zl2 約26 skin +1 target half-thickness ≈27 solid、right zr2 約26+1≈27、left zl1 約47+1≈48；Xvfb 中隔 middle 約741.999 與 Head/Tail 742.0 parity PASS。數值只屬該 fixture evidence，不可硬編。
 - **永久防線**：任何「已經有兩張 skins」的說法都必須標明是 source 還是 target；只有 source/target 兩邊的 true-thickness 都被建模後，才可宣稱完整實體 collision。
+
+## 2026-09-09 — BoxBody top-level aggregation 不能刪掉 child editor navigation
+
+- `box_body:<role>` 不升格成頂層 operator part，只代表**階層收納**；不代表 child editor 可以消失。
+- logical `box_body` 下面必須有 nested child tabs，直接切換 stable physical ID。Receiving 三件式至少是 `left_side / back / right_side`。
+- 2D 與 3D 必須保存同一 active child；從任一側切片後往返另一側都要維持同一片。
+- child preview 必須直接讀 manufacturing physical piece `render_data`；不得由 aggregate 或 validation evidence 重建。
+- visibility、navigation、mechanical authority 三層不可互相污染：隱藏不改 placement/collision；切換不刪 geometry；頂層聚合不刪 child navigation。
