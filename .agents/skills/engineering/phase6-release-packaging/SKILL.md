@@ -147,3 +147,14 @@ Process cleanup 的完成條件是**整個 process group 消失**。送 TERM 後
 FULL 與 UPDATE overlay 的最終樹比較必須使用兩個 **pristine fresh extraction**：兩邊都未跑過 Python、pytest、compileall 或 GUI。禁止拿已產生 `__pycache__`、`.pytest_cache`、`.pyc` 的測試目錄與 pristine overlay 直接比檔案數，否則會製造假 missing/extra。
 
 正確順序：ZIP CRC/entry policy → pristine FULL extraction → pristine baseline + UPDATE overlay → cleanup policy → 逐檔 missing/extra/SHA256。測試 gate 另用其他 extraction 執行，不污染封包完整性比較目錄。
+
+## Branch-first modification gate
+
+All WHD changes must enter release/integration through a dedicated work branch.
+
+- Before the first write of a new modification task, create a fresh branch from the latest authoritative target HEAD and re-read its SHA.
+- No direct writes to `cleanup/2d-3d-sync` or `main`, including docs, tests, QA workflows, Skills, AI Library, Registry, or "tiny fixes".
+- Keep all task changes and temporary QA workflow cleanup on the same work branch.
+- If target moved while the branch was under test, integrate/reconcile on a branch, then run combined/final acceptance again.
+- Final target update must be a normal non-force PR/merge whose head SHA is locked to the accepted closing head.
+- A green work branch is not permission to bypass final acceptance or drift audit.
