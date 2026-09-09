@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - fix/receiving-side-panel-outside-defaults
+    paths:
+      - .github/workflows/qa_receiving_side_panel_outside_defaults.yml
 
 jobs:
   qa:
