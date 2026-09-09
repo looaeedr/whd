@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from shapely.geometry import box as shapely_box
 import fold_designer_bridge as bridge
 from ae_engine.assembly_collision import (
     _barycentric_world_to_flat,
@@ -64,23 +65,55 @@ def _crossing_sides_by_source_band(world, divider_key, source_key, bands, *, tol
                     continue
                 sides[int(source.side)] += 1
                 divider_points.extend(target_uv)
+        bounds = None if not divider_points else (
+            min(float(point[0]) for point in divider_points),
+            max(float(point[0]) for point in divider_points),
+            min(float(point[1]) for point in divider_points),
+            max(float(point[1]) for point in divider_points),
+        )
+        through = bool(sides.get(-1) and sides.get(1))
+        footprint = None
+        if through and bounds is not None:
+            x0, x1, y0, y1 = map(float, bounds)
+            if x1 > x0 and y1 > y0:
+                footprint = shapely_box(x0, y0, x1, y1)
         result[name] = {
             "sides": dict(sides),
-            "through": bool(sides.get(-1) and sides.get(1)),
-            "divider_uv_bounds": None if not divider_points else (
-                min(float(point[0]) for point in divider_points),
-                max(float(point[0]) for point in divider_points),
-                min(float(point[1]) for point in divider_points),
-                max(float(point[1]) for point in divider_points),
-            ),
+            "through": bool(through and footprint is not None),
+            "divider_uv_bounds": bounds,
+            "physical_footprint": footprint,
         }
     return result
 
 
-def test_issue74_post_solve_has_zero_true_thickness_side_front_penetration():
+def test_issue74_post_solve_has_zero_positive_area_in_source_solid_footprints():
     snap = _snapshot()
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
+
+    # Independent pre-solve physical evidence.  The test reconstructs source
+    # Fold-band footprints from real world skins; it does not call production's
+    # Divider classifier and does not hard-code any runtime cut dimension.
+    raw_world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), (snap["w"], snap["h"], snap["d"]), snap["t"]
+    )
+    bands = _piece_bands(body)
+    pre = {
+        source_key: _crossing_sides_by_source_band(
+            raw_world, divider.stable_id, source_key, bands[source_key]
+        )
+        for source_key in ("box_body:left_side", "box_body:right_side")
+    }
+    physical_footprints = {
+        source_key: tuple(
+            row["physical_footprint"]
+            for row in rows.values()
+            if row["physical_footprint"] is not None
+        )
+        for source_key, rows in pre.items()
+    }
+    assert physical_footprints["box_body:left_side"]
+    assert physical_footprints["box_body:right_side"]
 
     solved_parts, diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
         (body, divider_part),
@@ -89,38 +122,39 @@ def test_issue74_post_solve_has_zero_true_thickness_side_front_penetration():
         clearance=0.0,
     )
     solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
-    world = bridge._phase6_build_joint_world_geometry(
-        tuple(solved_parts), (snap["w"], snap["h"], snap["d"]), snap["t"]
-    )
-    bands = _piece_bands(body)
-    observed = {
-        source_key: _crossing_sides_by_source_band(
-            world, divider.stable_id, source_key, bands[source_key]
+    retained = solved.render_data.material
+
+    overlaps = {}
+    for source_key, footprints in physical_footprints.items():
+        overlaps[source_key] = tuple(
+            float(retained.intersection(footprint).area)
+            for footprint in footprints
         )
-        for source_key in ("box_body:left_side", "box_body:right_side")
-    }
-    penetrations = {
-        source_key: tuple(
-            name for name, item in rows.items() if bool(item["through"])
-        )
-        for source_key, rows in observed.items()
-    }
-    print("ISSUE74_POST_SOLVE_TRUE_THICKNESS=", {
+    print("ISSUE74_POST_SOLVE_POSITIVE_AREA=", {
         "diagnostic_status": diagnostics[0].candidate_status,
         "diagnostic_illegal": diagnostics[0].illegal_penetration,
-        "penetrations": penetrations,
-        "observed": observed,
-        "material_bounds": tuple(map(float, solved.render_data.material.bounds)),
+        "overlaps": overlaps,
+        "pre": {
+            key: {
+                name: {
+                    "through": row["through"],
+                    "bounds": row["divider_uv_bounds"],
+                }
+                for name, row in rows.items()
+            }
+            for key, rows in pre.items()
+        },
+        "material_bounds": tuple(map(float, retained.bounds)),
     })
 
-    assert penetrations == {
-        "box_body:left_side": (),
-        "box_body:right_side": (),
-    }, (
-        "Divider verifier accepted retained material while a BoxBody source Fold "
-        "band still crosses both physical skins; core_start is not a valid "
-        "true-thickness penetration boundary",
-        penetrations,
+    assert all(
+        area <= 1.0e-9
+        for rows in overlaps.values()
+        for area in rows
+    ), (
+        "retained Divider material still has positive area inside a true-solid "
+        "source Fold-band footprint",
+        overlaps,
     )
 
 
