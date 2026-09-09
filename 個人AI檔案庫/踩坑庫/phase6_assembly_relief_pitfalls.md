@@ -278,3 +278,12 @@
 - **永久 domain 規則**：每個幾何量必須標示 `MATERIAL_UV` / `WORLD_SOLID` / `FINAL_CUTTING`。沒有 domain 的「depth」「position」「offset」禁止進 production geometry。
 - secondary relief 若與 primary relief 相接，final stage 的 anchor 必須來自 physical adjacency / resolved primary CUTTING boundary；不得從 material FW 數值抄一個起點。
 - validation expected 只判 final CUTTING 對錯；不得把 expected 常數回灌 production。
+
+
+## 2026-09-09 — 輸入區都已給值還從材料 Fold 腦補
+
+- **症狀**：使用者已在 Receiving 3D 輸入區提供 `zl1/zl2/FW/zr2`，但分析仍拿 material Fold `22/20/25/16`、collision footprint 或 UV endpoint 去反推截角語意。
+- **根因**：把 canonical operator input 與 derived material profile 混成同一 authority。
+- **正確資料流**：`3D input → _phase6_input_snapshot → family/topology conversion → material Fold → formed solid → collision → final CUTTING`。
+- **禁止逆流**：material Fold、world bbox、collision evidence、test expected 都不得回推 operator input 語意。
+- **reference evidence**：operator/outside `24/24/29/18` 在 T=2 下可導出 material `22/20/25/16`；這是單向 derivation，不可反向使用。
