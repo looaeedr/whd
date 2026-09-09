@@ -185,3 +185,84 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
     assert left["zl1"]["through"] is True
     assert left["zl2"]["through"] is True
     assert right["zr2"]["through"] is True
+
+
+def test_issue74_nominal_cut_dimensions_are_recomputed_from_fold_authority():
+    """Manufacturing numbers come from Fold + T, never from observed probe bounds."""
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    dims = (snap["w"], snap["h"], snap["d"])
+
+    solved_parts, _diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
+        (body, divider_part),
+        finished_dimensions=dims,
+        sheet_thickness=snap["t"],
+        clearance=0.0,
+    )
+    solved = next(part for part in solved_parts if part.part_key == divider.stable_id)
+    relief = dict(solved.render_data.metadata["divider_assembly_relief"])
+    evidence = dict(relief["evidence"])
+    by_source = dict(evidence["projection_by_source"])
+
+    pieces = {f"box_body:{piece.role}": piece for piece in body.render_data.pieces}
+    lengths = {}
+    for source_key, piece in pieces.items():
+        lengths[source_key] = {
+            str(row.phase6_key): float(row.length)
+            for row in piece.fold_profile
+        }
+
+    contract = dict(divider_part.render_data.metadata["physical_geometry_contract"])
+    core_start = float(contract["core_physical_segment"]["flat_band"][0])
+    half_t = float(snap["t"]) / 2.0
+    minx, miny, maxx, maxy = map(float, divider_part.render_data.material.bounds)
+
+    left = lengths["box_body:left_side"]
+    right = lengths["box_body:right_side"]
+    left_stages = dict(by_source["box_body:left_side"]["semantic_stages"])
+    right_stages = dict(by_source["box_body:right_side"]["semantic_stages"])
+
+    expected_left_primary = (
+        minx,
+        miny,
+        core_start + left["zl2"],
+        miny + left["fw_left"] + half_t,
+    )
+    left_center = core_start + left["zl2"]
+    expected_left_secondary = (
+        left_center - half_t,
+        miny + left["fw_left"],
+        left_center + half_t,
+        miny + left["fw_left"] + left["zl1"],
+    )
+    expected_right_primary = (
+        minx,
+        maxy - (right["fw_right"] + half_t),
+        core_start + right["zr2"],
+        maxy,
+    )
+
+    assert evidence["manufacturing_dimensions_source"] == "AUTHORITATIVE_FOLD_PLUS_T"
+    assert tuple(left_stages["zl2"]["nominal_bounds"]) == pytest.approx(expected_left_primary)
+    assert tuple(left_stages["zl1"]["nominal_bounds"]) == pytest.approx(expected_left_secondary)
+    assert tuple(right_stages["zr2"]["nominal_bounds"]) == pytest.approx(expected_right_primary)
+
+    # Make the current fixture result visible as evidence only. These numbers are
+    # derived here from authority and are never imported by production.
+    print("ISSUE74_AUTHORITY_DERIVED_NOMINAL=", {
+        "left_primary": {
+            "u": expected_left_primary[2] - minx,
+            "v": expected_left_primary[3] - miny,
+        },
+        "left_secondary": {
+            "u0": expected_left_secondary[0],
+            "u1": expected_left_secondary[2],
+            "total_v": expected_left_secondary[3] - miny,
+            "extra_beyond_primary": expected_left_secondary[3] - expected_left_primary[3],
+        },
+        "right_primary": {
+            "u": expected_right_primary[2] - minx,
+            "v": maxy - expected_right_primary[1],
+        },
+    })
