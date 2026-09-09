@@ -266,3 +266,45 @@ def test_issue74_cut_depth_is_derived_from_physical_collision_plus_target_half_t
     )
     print("ISSUE74_PHYSICAL_SOLID_DEPTH=", observed)
 
+
+
+def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
+    """Receiving 3D FW must occupy formed outside width, not raw material length."""
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), (snap["w"], snap["h"], snap["d"]), snap["t"]
+    )
+    contract = dict(divider_part.render_data.metadata["physical_geometry_contract"])
+    expected_formed_fw = float(contract["fw_physical_face"]["outside_dimension"])
+    bands = _piece_bands(body)
+
+    observed = {}
+    for source_key, fw_name in (
+        ("box_body:left_side", "fw_left"),
+        ("box_body:right_side", "fw_right"),
+    ):
+        u0, u1 = next(
+            (u0, u1) for name, u0, u1 in bands[source_key] if name == fw_name
+        )
+        points = []
+        for tri in tuple(world["mapped_skin_triangles_by_part"][source_key]):
+            centroid_u = sum(float(point[0]) for point in tri.flat) / 3.0
+            if u0 - 1.0e-7 <= centroid_u <= u1 + 1.0e-7:
+                points.extend(tuple(map(float, point)) for point in tri.world)
+        assert points, f"no physical FW geometry for {source_key}"
+        x0 = min(point[0] for point in points)
+        x1 = max(point[0] for point in points)
+        occupation = x1 - x0
+        observed[source_key] = {
+            "world_x_bounds": (x0, x1),
+            "formed_occupation": occupation,
+            "expected_formed_fw": expected_formed_fw,
+        }
+        assert occupation == pytest.approx(expected_formed_fw, abs=1.0e-6), (
+            "Receiving 3D FW uses material length instead of formed outside occupation",
+            observed,
+        )
+
+    print("RECEIVING_FW_FORMED_OCCUPATION=", observed)
