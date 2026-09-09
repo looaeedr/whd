@@ -1,0 +1,52 @@
+name: Multipart BoxBody Subtabs 2D 3D QA
+
+on:
+  push:
+    branches:
+      - fix/multipart-boxbody-subtabs-2d-3d
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib
+      - name: Run Issue76 formal acceptance
+        run: |
+          before="$(sha256sum config.ini | awk '{print $1}')"
+
+          python tools/phase6_skill_preflight.py \
+            --task "多件式箱身在單一頂層箱身內提供 2D/3D 同源 physical child 子標籤與往返同步" \
+            --changed-file gui.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file .agents/skills/engineering/phase6-assembly-view-boundaries/SKILL.md \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md \
+            --changed-file 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md \
+            --changed-file tests/test_issue76_box_body_subtabs_2d_3d.py \
+            --changed-file tests/test_phase6_assembly_view_skill_contract.py \
+            --evidence .scratch/issue76_preflight_evidence.txt
+
+          pytest -q \
+            tests/test_phase6_assembly_3d_view.py \
+            tests/test_phase6_final_scene_view_ownership.py \
+            tests/test_phase6_assembly_view_skill_contract.py
+
+          xvfb-run -a pytest -q \
+            tests/test_issue76_box_body_subtabs_2d_3d.py \
+            tests/test_phase6_receiving_multipart_integration.py \
+            tests/test_phase6_return_2d_corner.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py
+
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          echo "config.ini before=$before"
+          echo "config.ini after=$after"
+          test "$before" = "$after"
