@@ -156,3 +156,19 @@ When the user corrects the diagnosis, clarifies a product rule, or identifies a 
 - Do not wait for the user to say "add this to the skill / AI library" again.
 - Keep transient run IDs, temporary measurements, and one-off progress out of durable knowledge unless they establish a reusable rule.
 - Re-read the remote file after writing so the update is proven durable.
+
+## Branch-first write gate
+
+Before the first write for any new bug-fix/modification task:
+
+1. Resolve the latest authoritative target branch and HEAD SHA.
+2. Create a **new work branch** from that exact target HEAD.
+3. Re-read the remote branch and record its parent/base SHA.
+4. Only then write production, tests, docs, workflows, Skills, AI Library, Registry, or fixtures.
+
+Hard rules:
+- Never patch `cleanup/2d-3d-sync` / `main` directly.
+- The same task stays on the same work branch through RED → GREEN → durable-knowledge sync → QA cleanup.
+- A new independent modification task gets a new branch.
+- If target advances/diverges, resolve it on a work/integration branch and re-run acceptance; do not repair by writing straight to target.
+- Branch-first is required even for "small" or docs-only corrections.
