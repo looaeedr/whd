@@ -1,0 +1,66 @@
+name: Receiving Side Panel Outside Defaults QA
+
+on:
+  push:
+    branches:
+      - fix/receiving-side-panel-outside-defaults
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Knowledge preflight
+        run: |
+          cat > /tmp/preflight-evidence.md <<'EOF'
+          phase6-corner-3d-model-integrity
+          diagnosing-bugs
+          tdd
+          驗證板件與DXF
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "修正受電箱多件式左/右側板 Fold editor 包外預設與目前程式預設漂移" \
+            --changed-file ae_engine/cabinet_types/receiving.py \
+            --changed-file phase6_fold_profiles.py \
+            --changed-file ae_engine/box_body_structure.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_receiving_side_panel_outside_defaults.py \
+            --evidence /tmp/preflight-evidence.md
+      - name: Baseline source contract
+        run: |
+          python - <<'PY'
+          from ae_engine.cabinet_types import receiving
+          from phase6_fold_profiles import build_box_body_profile
+          from ae_engine.box_body_structure import resolve_box_body_structure
+
+          snap = receiving.apply_family_defaults({"t": 2.0})
+          state = receiving.resolve_box_body_structure_state(None)
+          profile = build_box_body_profile(snap)
+          result = resolve_box_body_structure(
+              profile,
+              w=snap["w"], h=snap["h"], d=snap["d"], t=snap["t"],
+              structure_state=state,
+          )
+          print("OPERATOR_DEFAULTS=", {k: snap[k] for k in ("zl1","zl2","fw","d","zr2")})
+          for piece in result.pieces:
+              if piece.role in {"left_side","right_side"}:
+                  print(piece.role, [
+                      {
+                          "key": row.phase6_key,
+                          "material_len": row.length,
+                          "formed_len": row.formed_length,
+                          "angle": row.angle,
+                      }
+                      for row in piece.fold_profile
+                  ])
+          PY
