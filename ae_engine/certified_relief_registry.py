@@ -265,7 +265,7 @@ def evaluate_divider_cross_formula_record(
     """Evaluate the Divider CROSS A-model without replacing fold_u/fold_v ownership."""
     formula = dict(record.get("formula", {}) or {})
     required = (
-        "min_y_fold_u", "max_y_fold_u", "fold_v",
+        "slotted_fold_u", "plain_fold_u", "fold_v",
         "slot_width", "slot_straight_depth", "slot_radius",
     )
     missing = [name for name in required if name not in formula]
@@ -1076,6 +1076,7 @@ def lookup_certified_divider_cross_relief(
     *,
     cabinet_family: str,
     variables: Mapping[str, float],
+    mating_fold_sign_by_end: Mapping[str, float],
 ) -> CertifiedDividerCrossReliefResult | None:
     """Resolve a certified Divider CROSS rule from authoritative parameters only."""
     family = _family_key(cabinet_family)
@@ -1093,11 +1094,33 @@ def lookup_certified_divider_cross_relief(
         values = evaluate_divider_cross_formula_record(
             {"formula": dict(rule.formula_record or {})}, variables
         )
-        slot_end = str(dict(rule.cross_parameters or {}).get("slot_end", "MIN_Y")).upper()
-        if slot_end not in {"MIN_Y", "MAX_Y"}:
-            raise CertifiedReliefRegistryError(
-                f"Divider CROSS unsupported slot_end: {slot_end}"
+        selector = str(
+            dict(rule.cross_parameters or {}).get(
+                "slot_end_selector", "OBJECT_MATING_FOLD_SIGN_NEGATIVE"
             )
+        ).upper()
+        if selector != "OBJECT_MATING_FOLD_SIGN_NEGATIVE":
+            raise CertifiedReliefRegistryError(
+                f"Divider CROSS unsupported slot_end_selector: {selector}"
+            )
+        signs = {
+            str(key).upper(): float(value)
+            for key, value in dict(mating_fold_sign_by_end or {}).items()
+        }
+        if set(signs) != {"MIN_Y", "MAX_Y"}:
+            raise CertifiedReliefRegistryError(
+                "Divider CROSS requires MIN_Y/MAX_Y mating Fold signs"
+            )
+        negative_ends = [
+            end for end in ("MIN_Y", "MAX_Y")
+            if signs[end] < -1e-9
+        ]
+        if len(negative_ends) != 1:
+            raise CertifiedReliefRegistryError(
+                "Divider CROSS requires exactly one negative object mating Fold"
+            )
+        slot_end = negative_ends[0]
+
         slot_kwargs = {
             "slot_width": float(values["slot_width"]),
             "slot_straight_depth": float(values["slot_straight_depth"]),
@@ -1109,20 +1132,24 @@ def lookup_certified_divider_cross_relief(
         slotted = CornerTypeSelection(
             CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD, **slot_kwargs
         )
-        min_selection = slotted if slot_end == "MIN_Y" else plain
-        max_selection = slotted if slot_end == "MAX_Y" else plain
         t = float(variables["T"])
         fw = float(variables["divider_fw_material"])
         min_y = resolve_corner_relief(
-            min_selection,
-            fold_u=float(values["min_y_fold_u"]),
+            slotted if slot_end == "MIN_Y" else plain,
+            fold_u=float(
+                values["slotted_fold_u"] if slot_end == "MIN_Y"
+                else values["plain_fold_u"]
+            ),
             fold_v=float(values["fold_v"]),
             thickness=t,
             fw=fw,
         )
         max_y = resolve_corner_relief(
-            max_selection,
-            fold_u=float(values["max_y_fold_u"]),
+            slotted if slot_end == "MAX_Y" else plain,
+            fold_u=float(
+                values["slotted_fold_u"] if slot_end == "MAX_Y"
+                else values["plain_fold_u"]
+            ),
             fold_v=float(values["fold_v"]),
             thickness=t,
             fw=fw,
@@ -1135,6 +1162,8 @@ def lookup_certified_divider_cross_relief(
                 "corner_type": CornerTypeId.CROSS.value,
                 "formula_values": dict(values),
                 "slot_end": slot_end,
+                "mating_fold_sign_by_end": dict(signs),
+                "slot_end_selector": selector,
                 "authority": "CERTIFIED_REGISTRY_PARAMETERS",
             },
         ))
