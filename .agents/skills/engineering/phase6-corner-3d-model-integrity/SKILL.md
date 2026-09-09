@@ -162,3 +162,12 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - Xvfb resolved Head/Tail parity **1 PASS**；
   - current fixture physical evidence：primary skin depth 約 26，target `T/2=1` 後 solid depth 約 27；left secondary skin depth約47→solid約48；Divider middle約741.999，Head/Tail 742.0；
   - `0.001` 只屬 boolean fringe / test tolerance。
+
+
+## Receiving FW formed-solid hard gate（2026-09-09）
+
+- 使用者／family 已確認：Receiving `FW` 輸入是**成形包外尺寸**；例如 `FW=29, T=2` 時 canonical material flange 為 `25`，但 3D formed physical occupation 必須仍為 `29`。
+- **FW 都是同一個實體面。** BoxBody left/right FW、Divider FW placement 與 assembly collision 必須使用同一 physical formed-face authority。
+- 禁止把 Fold Profile 的 material `len=25` 直接當成 3D formed FW occupation。若 3D world geometry 量到的 formed FW occupation 與 physical contract `outside_dimension` 不一致，必須 **fail closed before Divider collision**。
+- Divider relief 不得在錯誤 FW solid 上繼續求解；任何後續 `27`、middle parity、post-refold GREEN 都無效。
+- 永久回歸必須至少驗：`fw_left`、`fw_right` 的 3D world formed occupation == family physical contract outside FW，且左右同面。
