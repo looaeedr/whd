@@ -26,13 +26,18 @@ class FoldProfileSegment:
 
     ``angle`` is the fold after this segment; the final segment therefore owns
     ``None``.  ``core`` / ``phase6_key`` are semantic anchors carried from the
-    editor and are intentionally independent of total segment count.
+    editor and are intentionally independent of total segment count.  When
+    ``formed_length`` is present it is the authoritative formed/outside
+    occupation of this segment; ``length`` remains the flat/material span.
     """
 
     length: float
     angle: float | None = None
     core: str | None = None
     phase6_key: str | None = None
+    # Optional formed/outside span for 3D folding. Flat material and DXF keep
+    # consuming `length`; only the folded geometry map may consume this field.
+    formed_length: float | None = None
 
 
 @dataclass(frozen=True)
