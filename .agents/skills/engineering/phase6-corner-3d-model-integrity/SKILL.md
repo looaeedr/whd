@@ -261,3 +261,20 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - 因此 secondary material CUTTING band：`27 → 27+22 = 49`
 - 這個 `+T` 是 **3D formed physical face → 2D material backprojection** 的折彎幾何結果，不是 test compensation、不是 expected-actual 差值、也不是 `T/2` skin 補償。
 - validation 的 `27/49` 只能判斷 production 是否撞對；production 必須從 authoritative T、Fold topology、formed FW physical face 與 collision/backprojection 自己導出。
+
+## 2026-09-09 — 機械語意不確定時必須先問（HARD GATE）
+
+- **不懂就問，禁止假會。** 只要對機械語意、CornerType 類型、參數歸屬、尺寸空間（料／包外／formed）、哪個面 mating、哪個值是固定規格或可變參數有任何不確定，必須先向使用者確認，再進規格、Registry 或 production 修改。
+- 禁止從「目前程式怎麼算」、「某次 collision/probe 結果」、「fixture expected」、「看起來像某種截角」自行補成產品規格。
+- 使用者已明確指定既有模型時，優先**沿用既有模型＋參數**；不得為了方便另造新 CornerType / 新幾何語意。只有使用者明確確認現有模型不足，才可提出新增模型。
+- 若使用者已提供輸入區／基準 DXF／正式規格，先把這些 authoritative inputs 列清楚；缺一個關鍵對應就問，不得靠猜補完。
+- 問題未釐清時可做只讀診斷，但不得把猜測寫入 production、Registry、Skill、AI Library 或驗收 oracle。
+
+## 2026-09-09 — Receiving Divider 截角模型更正：CROSS＋參數（SUPERSEDES 舊 collision-owner 敘述）
+
+- 使用者已明確確認：**中隔截角沿用既有 `CornerType=CROSS（十字截角）`，再由參數描述；不得新增「Divider 專用 CornerType」。**
+- 本節 **SUPERSEDES** 本 Skill 內任何把 Receiving Divider 最終截角類型／尺寸視為「由 collision/backprojection 自行發明」的舊敘述。3D collision/backprojection 對已認證中隔規則只可做 physical shadow / penetration verification，不可取代 CROSS＋參數的製造規則。
+- `基準檔/金庫型/中隔.dxf` 對中隔截角可作**認證／基準 authority**：用來確認 CROSS 參數及其拓撲；runtime production 應讀 Certified Registry / canonical parameter rule，不應每次直接複製 DXF 外框座標。
+- DXF 反讀或測試量測只可證明「Registry 參數化結果是否與基準一致」；不得使用 expected-actual 差值回補 production。
+- 若目前 CROSS schema 無法表達某個二級槽、R 或其他必要參數，先確認使用者要把它建模成 CROSS 的哪個參數，再擴充 CROSS 的參數能力；**禁止直接改用 INSERT_OVERLAY 或新增 CornerType 來繞過資料模型限制。**
+
