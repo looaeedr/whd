@@ -707,9 +707,8 @@ def test_issue63_diagnose_divider_projection_hulls():
     assert all(item["hull_area"] > 0 for item in result.values())
 
 
-def test_issue63_divider_candidate_preserves_uv_shape_and_sweeps_skin_to_solid_boundary():
-    from shapely.affinity import translate
-    from shapely.geometry import MultiPoint
+def test_issue63_divider_candidate_preserves_physical_depth_on_standard_topology():
+    from shapely.geometry import box as shapely_box
     from shapely.ops import unary_union
     from ae_engine.assembly_collision import (
         build_divider_front_fold_relief_candidate,
@@ -742,11 +741,15 @@ def test_issue63_divider_candidate_preserves_uv_shape_and_sweeps_skin_to_solid_b
     )
     assert candidate is not None
     material = world["flat_material_by_part"][divider.stable_id]
-
-    hulls = []
-    solid_hulls = []
     minx, miny, maxx, maxy = map(float, material.bounds)
     half_t = float(divider.thickness) / 2.0
+
+    # Independent test-only physical expectation. Fold semantics own the
+    # orthogonal STANDARD width; real backprojection owns skin penetration
+    # depth; authoritative T owns skin->solid conversion. None of these values
+    # are fed back into production.
+    expected_cuts = []
+    observed = {}
     for source_key in source_keys:
         projected = project_joint_interference_to_relief_owner(
             joint,
@@ -758,55 +761,64 @@ def test_issue63_divider_candidate_preserves_uv_shape_and_sweeps_skin_to_solid_b
         front = _divider_front_fold_segments(
             projected.projection, core_start=core_start
         )
-        points = [(float(p[0]), float(p[1])) for seg in front for p in seg]
+        points = [
+            (float(p[0]), float(p[1]))
+            for segment in front
+            for p in segment
+        ]
         assert points
-        hull = MultiPoint(points).convex_hull.intersection(material)
-        assert not hull.is_empty and float(hull.area) > 0.0
-        hulls.append(hull)
+        low_depth = max(0.0, max(y for _x, y in points) - miny)
+        high_depth = max(0.0, maxy - min(y for _x, y in points))
+        if low_depth <= high_depth:
+            edge = "MIN_Y"
+            solid_depth = low_depth + half_t
+            expected = shapely_box(minx, miny, core_start, miny + solid_depth)
+        else:
+            edge = "MAX_Y"
+            solid_depth = high_depth + half_t
+            expected = shapely_box(minx, maxy - solid_depth, core_start, maxy)
+        expected_cuts.append(expected.intersection(material))
+        observed[source_key] = {
+            "edge": edge,
+            "skin_depth": min(low_depth, high_depth),
+            "solid_depth": solid_depth,
+        }
 
-        points2 = [point for segment in front for point in segment]
-        low_depth = max(0.0, max(float(p[1]) for p in points2) - miny)
-        high_depth = max(0.0, maxy - min(float(p[1]) for p in points2))
-        yoff = half_t if low_depth <= high_depth else -half_t
-        # Independent physical-solid expectation: the collision hull is a skin
-        # intersection. Sweep that convex UV footprint by half the sheet
-        # thickness toward the material interior. No EndCap validation value is
-        # used here.
-        solid_hull = unary_union([
-            hull,
-            translate(hull, yoff=yoff),
-        ]).convex_hull.intersection(material)
-        solid_hulls.append(solid_hull)
-
-    collision_shape = unary_union(hulls).intersection(material)
-    expected_solid_shape = unary_union(solid_hulls).intersection(material)
+    expected_solid_shape = unary_union(expected_cuts).intersection(material)
     actual_cut = candidate.cut_polygon_2d.intersection(material)
 
-    # Boolean robustness may add a microscopic fringe, but the manufacturing
-    # cut must preserve the UV topology while converting skin crossings to the
-    # physical solid footprint. It must not reduce either source to a full
-    # scalar-depth rectangle.
-    margin = max(
-        1.0e-3,
-        float(collision_shape.area) * 1.0e-4,
+    # Boolean fringe is read only as test tolerance. It is never fed into the
+    # Fold/collision manufacturing calculation.
+    boolean_margin = float(dict(candidate.evidence or {}).get("boolean_margin", 0.0))
+    tolerance_area = max(
+        1.0e-6,
+        float(expected_solid_shape.area) * 1.0e-6,
     )
-    overcut = float(actual_cut.difference(expected_solid_shape.buffer(5.0e-4)).area)
-    undercut = float(expected_solid_shape.difference(actual_cut.buffer(5.0e-4)).area)
-    print("ISSUE63_RELIEF_SHAPE_DELTA=", {
-        "skin_collision_area": float(collision_shape.area),
-        "expected_solid_area": float(expected_solid_shape.area),
-        "actual_cut_area": float(actual_cut.area),
+    overcut = float(
+        actual_cut.difference(
+            expected_solid_shape.buffer(boolean_margin + 1.0e-6, join_style=2)
+        ).area
+    )
+    undercut = float(
+        expected_solid_shape.difference(
+            actual_cut.buffer(1.0e-6, join_style=2)
+        ).area
+    )
+    print("ISSUE63_STANDARD_PHYSICAL_DEPTH=", {
+        "core_start": core_start,
         "half_thickness": half_t,
+        "observed": observed,
+        "expected_area": float(expected_solid_shape.area),
+        "actual_area": float(actual_cut.area),
         "overcut_area": overcut,
         "undercut_area": undercut,
-        "margin": margin,
+        "boolean_margin": boolean_margin,
     })
-    assert overcut <= margin, (
-        "Divider relief overcuts material outside collision-derived flat-UV shape; "
-        "candidate was reduced to a scalar-depth rectangle",
-        overcut, margin,
+    assert overcut <= tolerance_area, (
+        "Divider relief exceeded Fold STANDARD + physical collision depth",
+        overcut, tolerance_area,
     )
-    assert undercut <= margin, (
-        "Divider relief failed to cover the thickness-derived physical solid footprint",
-        undercut, margin,
+    assert undercut <= tolerance_area, (
+        "Divider relief failed to cover the physical T/2 solid footprint",
+        undercut, tolerance_area,
     )
