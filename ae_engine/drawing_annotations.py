@@ -435,6 +435,7 @@ def _annotation_primitives(
             "DIMENSION",
             float(char_height),
             5,
+            semantic_id=xdim.semantic_id,
         ),
         LinePrimitive(Vec2(y_x, miny), Vec2(y_x, maxy), "DIMENSION"),
         TextPrimitive(
@@ -443,6 +444,7 @@ def _annotation_primitives(
             "DIMENSION",
             float(char_height),
             5,
+            semantic_id=ydim.semantic_id,
         ),
     ))
 
@@ -454,6 +456,7 @@ def _annotation_primitives(
             "TEXT",
             float(char_height),
             1,
+            semantic_id=item.semantic_id,
         ))
     for item in corners:
         primitives.append(TextPrimitive(
@@ -462,6 +465,7 @@ def _annotation_primitives(
             "TEXT",
             float(char_height),
             1,
+            semantic_id=item.semantic_id,
         ))
     for item in radii:
         primitives.append(TextPrimitive(
@@ -470,6 +474,7 @@ def _annotation_primitives(
             "TEXT",
             float(char_height),
             1,
+            semantic_id=item.semantic_id,
         ))
     return tuple(primitives)
 
