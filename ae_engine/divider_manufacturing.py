@@ -178,6 +178,71 @@ def _formed_profile_length(profile, *, phase6_key: str) -> float:
     raise ValueError(f"Fold Profile formed segment not found: phase6_key={phase6_key!r}")
 
 
+def _fold_sign(value) -> float:
+    if value is None:
+        return 0.0
+    number = float(value)
+    if number < -1e-9:
+        return -1.0
+    if number > 1e-9:
+        return 1.0
+    return 0.0
+
+
+def _divider_object_mating_fold_signs(divider, box_body):
+    """Resolve Divider end orientation from the object's authoritative Fold signs.
+
+    Receiving HORIZONTAL Divider contract:
+    - MIN_Y mates the left-side front chain: the segment immediately before FW.
+    - MAX_Y mates the right-side front chain: the segment immediately after FW.
+    The U-slot belongs to the end whose object mating Fold sign is negative.
+    Collision/backprojection is intentionally not consulted here.
+    """
+    metadata = dict(getattr(getattr(divider, "render_data", None), "metadata", {}) or {})
+    axis = str(metadata.get("axis") or "").strip().upper()
+    if axis != "HORIZONTAL":
+        raise ValueError("certified Receiving Divider CROSS sign rule applies to HORIZONTAL Divider only")
+
+    pieces = tuple(getattr(box_body.render_data, "pieces", ()) or ())
+    by_role = {str(getattr(piece, "role", "") or ""): piece for piece in pieces}
+    if "left_side" not in by_role or "right_side" not in by_role:
+        raise ValueError("Divider CROSS sign rule requires left/right BoxBody side pieces")
+
+    def adjacent(profile, fw_key, offset):
+        rows = tuple(profile or ())
+        index = next(
+            (i for i, row in enumerate(rows)
+             if str(getattr(row, "phase6_key", "") or "") == str(fw_key)),
+            None,
+        )
+        if index is None:
+            raise ValueError(f"Divider CROSS sign rule cannot find {fw_key}")
+        target = index + int(offset)
+        if target < 0 or target >= len(rows):
+            raise ValueError(f"Divider CROSS sign rule has no mating fold beside {fw_key}")
+        row = rows[target]
+        angle = getattr(row, "angle", None)
+        return {
+            "phase6_key": str(getattr(row, "phase6_key", "") or ""),
+            "angle": None if angle is None else float(angle),
+            "sign": _fold_sign(angle),
+        }
+
+    min_y = adjacent(by_role["left_side"].fold_profile, "fw_left", -1)
+    max_y = adjacent(by_role["right_side"].fold_profile, "fw_right", +1)
+    return {
+        "sign_by_end": {
+            "MIN_Y": float(min_y["sign"]),
+            "MAX_Y": float(max_y["sign"]),
+        },
+        "evidence": {
+            "MIN_Y": min_y,
+            "MAX_Y": max_y,
+            "source": "OBJECT_FOLD_PROFILE_ADJACENT_TO_FW",
+        },
+    }
+
+
 def _divider_cross_registry_variables(divider, box_body, *, sheet_thickness: float) -> dict[str, float]:
     """Project canonical Divider/Fold inputs into the certified CROSS formula variables."""
     t = float(sheet_thickness)
@@ -389,23 +454,31 @@ def resolve_divider_final_geometry(
     from shapely.ops import unary_union as _unary_union
 
     certified = None
+    registry_variables = {}
+    mating_fold_orientation = {}
+    divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
+    family = str(divider_metadata.get("model_name") or "").strip() or "ANY"
+    divider_axis = str(divider_metadata.get("axis") or "").strip().upper()
     try:
-        registry_variables = _divider_cross_registry_variables(
-            divider, box_body, sheet_thickness=float(sheet_thickness)
-        )
-        divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
-        family = str(divider_metadata.get("model_name") or "").strip() or "ANY"
-        certified = lookup_certified_divider_cross_relief(
-            cabinet_family=family,
-            variables=registry_variables,
-        )
+        if family == "受電箱" and divider_axis == "HORIZONTAL":
+            registry_variables = _divider_cross_registry_variables(
+                divider, box_body, sheet_thickness=float(sheet_thickness)
+            )
+            mating_fold_orientation = _divider_object_mating_fold_signs(
+                divider, box_body
+            )
+            certified = lookup_certified_divider_cross_relief(
+                cabinet_family=family,
+                variables=registry_variables,
+                mating_fold_sign_by_end=mating_fold_orientation["sign_by_end"],
+            )
     except Exception:
-        # Non-certified families preserve the provisional discovery path.  A
-        # Receiving Divider with a malformed certified input must fail closed.
-        divider_metadata = dict(getattr(divider.render_data, "metadata", {}) or {})
-        if str(divider_metadata.get("model_name") or "").strip() == "受電箱":
+        # A certified Receiving HORIZONTAL Divider must fail closed. Other
+        # families/axes retain the provisional discovery path.
+        if family == "受電箱" and divider_axis == "HORIZONTAL":
             raise
         registry_variables = {}
+        mating_fold_orientation = {}
 
     candidate = build_divider_front_fold_relief_candidate(
         joint,
@@ -477,6 +550,7 @@ def resolve_divider_final_geometry(
                 "corner_type": certified.rule.corner_type,
                 "registry_variables": dict(registry_variables),
                 "formula_values": formula_values,
+                "mating_fold_orientation": dict(mating_fold_orientation),
                 "collision_shadow": (
                     {} if candidate is None else dict(candidate.evidence or {})
                 ),
