@@ -219,3 +219,18 @@
 - **目前 fixture evidence（非 runtime oracle）**：`core_start=41, zl1=22, zl2=20, FW料=25, zr2=16, T=2` → 左 primary `61×26`；左 secondary `X60..62, V25..47`（比 primary 再深 21）；右 primary `57×26`。這些數字只能用來驗當次輸出，production 必須每次從 Fold+T 重算。
 - **數值毛邊**：`0.0005` boolean fringe 只為浮點 polygon robustness；不得當 clearance / 多切量 / manufacturing compensation。
 - **驗收**：Issue74 exact + Divider guards 必須同時 GREEN，並保留 `config.ini` SHA invariant；舊「左右深度必須相同」與「只截到 core_start」測試 oracle 已廢止。
+
+
+## 2026-09-09 — Issue74 CORRECTION：source both-skin != source+target 全實體
+
+- **撤銷錯誤結論**：先前「source Fold band 已跨兩張 skins，所以再加 T/2 一定是重複補償」只說對一半。兩張 source skins 的確已含 **source 板厚**，但 backprojection 仍落在 **Divider target skin**；target 中隔自己的板厚尚未成為 solid。
+- **真正根因**：Issue74 第一版 verifier 把 source-solid footprint 當成完整 source+target solid collision，漏做 target sheet 的 `T/2` inward sweep，因此 current fixture primary 只切到約26，造成 Divider middle 約744，與 resolved Head/Tail 742 parity FAIL（run `34352892221`）。
+- **正確 production chain**：
+  1. real left/right side Fold band crosses both source skins → source true-solid penetration；
+  2. crossing backproject 到 Divider target-skin UV；
+  3. authoritative Divider `T` → target `T/2` inward sweep，形成真正 source-solid × target-solid collision footprint；
+  4. 用 stable orthogonal manufacturing topology 從 touched material edge 連到該 physical solid footprint；
+  5. refold 後 positive-area illegal overlap=0 才可 promotion。
+- **禁止事項**：不得用 `W/FW` 閉合、Head/Tail 742、expected 27、probe miss/delta 反推 production。這些都只能驗證。
+- **final physical evidence**：run `34353654567` 自碰撞得到 left zl2 約26 skin +1 target half-thickness ≈27 solid、right zr2 約26+1≈27、left zl1 約47+1≈48；Xvfb 中隔 middle 約741.999 與 Head/Tail 742.0 parity PASS。數值只屬該 fixture evidence，不可硬編。
+- **永久防線**：任何「已經有兩張 skins」的說法都必須標明是 source 還是 target；只有 source/target 兩邊的 true-thickness 都被建模後，才可宣稱完整實體 collision。

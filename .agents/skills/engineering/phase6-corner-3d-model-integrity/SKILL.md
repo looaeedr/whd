@@ -145,3 +145,20 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   - 右 primary **57×26**。
   上述 `61/26/60..62/47/57` 全部是本 fixture 由公式重算出的結果，**禁止硬編成 production 常數**。
 - `boolean_margin=0.0005` 類數值只屬 polygon boolean robustness，不是多切量、不是 clearance、不可顯示成製造尺寸。
+
+
+## Divider Issue74 physical-solid correction（2026-09-09，SUPERSEDES 前一版 nominal 公式段）
+
+- **SUPERSEDES** 本 Skill 先前 Issue74 中「source 兩張 physical skins 已含板厚，因此不得再做 T/2」的過度簡化。正確分層是：
+  1. source 兩張 skins 只證明 **source sheet solid** 的真穿透 footprint；
+  2. 該 footprint 是 backproject 到 **Divider target skin** 的 UV；
+  3. Divider 本身仍是有厚度的 target sheet solid，因此必須再由 authoritative `T` 對 **target** 做一次 `T/2` inward skin→solid sweep。
+- 禁止把 source T 與 target T 混成同一次補償。source both-skin 已含 source thickness；target `T/2` sweep 是另一個實體，兩者不能互相抵銷。
+- Receiving Divider 的 manufacturing extent 必須直接由 physical collision/backprojection → target `T/2` solid sweep → external-edge-connected orthogonal CUTTING 推導；**不得用 `W/FW` 閉合式、EndCap 742、fixture expected 或 probe delta 當 production 尺寸來源**。
+- EndCap Head/Tail middle parity 只做 validation gate：可證明 collision-derived Divider 是否正確，但不得反向決定 cut depth。
+- 2026-09-09 final physical acceptance run `34353654567`：
+  - Issue74 physical exact **3 PASS**；
+  - Divider topology guards **9 PASS**；
+  - Xvfb resolved Head/Tail parity **1 PASS**；
+  - current fixture physical evidence：primary skin depth 約 26，target `T/2=1` 後 solid depth 約 27；left secondary skin depth約47→solid約48；Divider middle約741.999，Head/Tail 742.0；
+  - `0.001` 只屬 boolean fringe / test tolerance。

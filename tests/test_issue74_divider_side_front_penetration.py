@@ -4,7 +4,9 @@ from __future__ import annotations
 from collections import defaultdict
 
 import pytest
+from shapely.affinity import translate
 from shapely.geometry import box as shapely_box
+from shapely.ops import unary_union
 import fold_designer_bridge as bridge
 from ae_engine.assembly_collision import (
     _barycentric_world_to_flat,
@@ -105,14 +107,23 @@ def test_issue74_post_solve_has_zero_positive_area_in_source_solid_footprints():
         )
         for source_key in ("box_body:left_side", "box_body:right_side")
     }
-    physical_footprints = {
-        source_key: tuple(
-            row["physical_footprint"]
-            for row in rows.values()
-            if row["physical_footprint"] is not None
-        )
-        for source_key, rows in pre.items()
-    }
+    material = divider_part.render_data.material
+    minx, miny, maxx, maxy = map(float, material.bounds)
+    half_t = float(snap["t"]) / 2.0
+    physical_footprints = {}
+    for source_key, rows in pre.items():
+        required = []
+        for row in rows.values():
+            footprint = row["physical_footprint"]
+            if footprint is None:
+                continue
+            _x0, y0, _x1, y1 = map(float, footprint.bounds)
+            low_depth = max(0.0, y1 - miny)
+            high_depth = max(0.0, maxy - y0)
+            yoff = half_t if low_depth <= high_depth else -half_t
+            target_solid = unary_union((footprint, translate(footprint, yoff=yoff))).intersection(material)
+            required.append(target_solid)
+        physical_footprints[source_key] = tuple(required)
     assert physical_footprints["box_body:left_side"]
     assert physical_footprints["box_body:right_side"]
 
@@ -153,8 +164,8 @@ def test_issue74_post_solve_has_zero_positive_area_in_source_solid_footprints():
         for rows in overlaps.values()
         for area in rows
     ), (
-        "retained Divider material still has positive area inside a true-solid "
-        "source Fold-band footprint",
+        "retained Divider material still has positive area inside a physical "
+        "source-solid + target-T/2 collision footprint",
         overlaps,
     )
 
@@ -188,12 +199,23 @@ def test_issue74_presolve_mating_fw_and_d_are_single_skin_contacts():
     assert right["zr2"]["through"] is True
 
 
-def test_issue74_nominal_cut_dimensions_are_recomputed_from_fold_authority():
-    """Manufacturing numbers come from Fold + T, never from observed probe bounds."""
+def test_issue74_cut_depth_is_derived_from_physical_collision_plus_target_half_thickness():
+    """Cut depth comes from actual collision footprint + Divider T/2, not W/FW formulas."""
     snap = _snapshot()
     body = _body_part(snap)
     divider, divider_part = _divider_part(snap)
     dims = (snap["w"], snap["h"], snap["d"])
+
+    raw_world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), dims, snap["t"]
+    )
+    bands = _piece_bands(body)
+    pre = {
+        source_key: _crossing_sides_by_source_band(
+            raw_world, divider.stable_id, source_key, bands[source_key]
+        )
+        for source_key in ("box_body:left_side", "box_body:right_side")
+    }
 
     solved_parts, _diagnostics, _joints = bridge._phase6_resolve_family_divider_reliefs(
         (body, divider_part),
@@ -206,64 +228,41 @@ def test_issue74_nominal_cut_dimensions_are_recomputed_from_fold_authority():
     evidence = dict(relief["evidence"])
     by_source = dict(evidence["projection_by_source"])
 
-    pieces = {f"box_body:{piece.role}": piece for piece in body.render_data.pieces}
-    lengths = {}
-    for source_key, piece in pieces.items():
-        lengths[source_key] = {
-            str(row.phase6_key): float(row.length)
-            for row in piece.fold_profile
-        }
-
-    contract = dict(divider_part.render_data.metadata["physical_geometry_contract"])
-    core_start = float(contract["core_physical_segment"]["flat_band"][0])
-    half_t = float(snap["t"]) / 2.0
     minx, miny, maxx, maxy = map(float, divider_part.render_data.material.bounds)
+    half_t = float(snap["t"]) / 2.0
+    observed = {}
 
-    left = lengths["box_body:left_side"]
-    right = lengths["box_body:right_side"]
-    left_stages = dict(by_source["box_body:left_side"]["semantic_stages"])
-    right_stages = dict(by_source["box_body:right_side"]["semantic_stages"])
+    for source_key, rows in pre.items():
+        stages = dict(by_source[source_key]["physical_stages"])
+        observed[source_key] = {}
+        for band_name, row in rows.items():
+            footprint = row["physical_footprint"]
+            if footprint is None:
+                continue
+            assert band_name in stages
+            stage = dict(stages[band_name])
+            _x0, y0, _x1, y1 = map(float, footprint.bounds)
+            low_depth = max(0.0, y1 - miny)
+            high_depth = max(0.0, maxy - y0)
+            skin_depth = min(low_depth, high_depth)
+            expected_solid_depth = skin_depth + half_t
 
-    expected_left_primary = (
-        minx,
-        miny,
-        core_start + left["zl2"],
-        miny + left["fw_left"] + half_t,
+            assert float(stage["skin_depth"]) == pytest.approx(skin_depth, abs=1.0e-5)
+            assert float(stage["target_half_thickness"]) == pytest.approx(half_t, abs=1.0e-9)
+            assert float(stage["solid_depth"]) == pytest.approx(expected_solid_depth, abs=1.0e-5)
+            assert stage["dimension_source"] == "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2"
+
+            observed[source_key][band_name] = {
+                "skin_depth": skin_depth,
+                "target_half_thickness": half_t,
+                "solid_depth": float(stage["solid_depth"]),
+                "source_footprint": tuple(map(float, footprint.bounds)),
+                "target_solid_footprint": tuple(map(float, stage["target_solid_footprint_bounds"])),
+                "cut_bounds": tuple(map(float, stage["cut_bounds"])),
+            }
+
+    assert evidence["manufacturing_dimensions_source"] == (
+        "PHYSICAL_COLLISION_PLUS_TARGET_T_OVER_2"
     )
-    left_center = core_start + left["zl2"]
-    expected_left_secondary = (
-        left_center - half_t,
-        miny + left["fw_left"],
-        left_center + half_t,
-        miny + left["fw_left"] + left["zl1"],
-    )
-    expected_right_primary = (
-        minx,
-        maxy - (right["fw_right"] + half_t),
-        core_start + right["zr2"],
-        maxy,
-    )
+    print("ISSUE74_PHYSICAL_SOLID_DEPTH=", observed)
 
-    assert evidence["manufacturing_dimensions_source"] == "AUTHORITATIVE_FOLD_PLUS_T"
-    assert tuple(left_stages["zl2"]["nominal_bounds"]) == pytest.approx(expected_left_primary)
-    assert tuple(left_stages["zl1"]["nominal_bounds"]) == pytest.approx(expected_left_secondary)
-    assert tuple(right_stages["zr2"]["nominal_bounds"]) == pytest.approx(expected_right_primary)
-
-    # Make the current fixture result visible as evidence only. These numbers are
-    # derived here from authority and are never imported by production.
-    print("ISSUE74_AUTHORITY_DERIVED_NOMINAL=", {
-        "left_primary": {
-            "u": expected_left_primary[2] - minx,
-            "v": expected_left_primary[3] - miny,
-        },
-        "left_secondary": {
-            "u0": expected_left_secondary[0],
-            "u1": expected_left_secondary[2],
-            "total_v": expected_left_secondary[3] - miny,
-            "extra_beyond_primary": expected_left_secondary[3] - expected_left_primary[3],
-        },
-        "right_primary": {
-            "u": expected_right_primary[2] - minx,
-            "v": maxy - expected_right_primary[1],
-        },
-    })
