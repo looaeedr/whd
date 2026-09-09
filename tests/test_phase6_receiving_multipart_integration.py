@@ -22,6 +22,7 @@ def _feature(diameter: float, x: float):
 def test_opening_receiving_designer_preserves_formal_door_features_and_authoritative_rows():
     import tkinter as tk
     import gui
+    import fold_designer_bridge as bridge
 
     root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
     designer = None
@@ -37,6 +38,7 @@ def test_opening_receiving_designer_preserves_formal_door_features_and_authorita
         root.update_idletasks(); root.update()
 
         wanted = tuple(designer.designer_workspace.available_parts)
+        operator_wanted = bridge._phase6_operator_part_selector_keys(wanted)
         assert "door" not in wanted
         assert "door_c1_r1" in wanted and "door_c1_r2" in wanted
         assert any(key.startswith("box_body:divider:") for key in wanted)
@@ -45,9 +47,9 @@ def test_opening_receiving_designer_preserves_formal_door_features_and_authorita
             "inner_door:upper:left_frame",
             "inner_door:upper:right_frame",
         }.issubset(wanted)
-        assert tuple(designer.assembly_part_formed_vars) == wanted
-        assert tuple(designer.assembly_part_blank_vars) == wanted
-        assert tuple(designer.assembly_part_corner_vars) == wanted
+        assert tuple(designer.assembly_part_formed_vars) == operator_wanted
+        assert tuple(designer.assembly_part_blank_vars) == operator_wanted
+        assert tuple(designer.assembly_part_corner_vars) == operator_wanted
         assert designer.designer_workspace.features_for("door_c1_r1") == [upper]
         assert designer.designer_workspace.features_for("door_c1_r2") == [lower]
     finally:
@@ -267,9 +269,10 @@ def test_receiving_multipart_project_round_trip_preserves_joints_shrinks_feature
         root2.update_idletasks(); root2.update()
 
         wanted = tuple(designer2.designer_workspace.available_parts)
-        assert tuple(designer2.assembly_part_formed_vars) == wanted
-        assert tuple(designer2.assembly_part_blank_vars) == wanted
-        assert tuple(designer2.assembly_part_corner_vars) == wanted
+        operator_wanted = bridge._phase6_operator_part_selector_keys(wanted)
+        assert tuple(designer2.assembly_part_formed_vars) == operator_wanted
+        assert tuple(designer2.assembly_part_blank_vars) == operator_wanted
+        assert tuple(designer2.assembly_part_corner_vars) == operator_wanted
         assert tuple(designer2.assembly_box_body_piece_formed_vars) == (
             "box_body:left_side", "box_body:back", "box_body:right_side"
         )
