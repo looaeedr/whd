@@ -1,0 +1,47 @@
+name: Issue74 Authority Dimension Derivation
+on:
+  push:
+    branches: [fix/issue74-divider-side-front-penetration]
+    paths: [.github/workflows/issue74-authority-dims.yml]
+jobs:
+  derive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest matplotlib -r requirements.txt
+      - shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import fold_designer_bridge as bridge
+          from tests.test_issue39_divider_relief import _snapshot,_body_part,_divider_part
+          snap=_snapshot(); body=_body_part(snap); divider,dp=_divider_part(snap)
+          contract=dict(dp.render_data.metadata["physical_geometry_contract"])
+          core=tuple(map(float,contract["core_physical_segment"]["flat_band"]))
+          fw=tuple(map(float,contract["fw_physical_face"]["flat_band"]))
+          pieces={p.role:p for p in body.render_data.pieces}
+          def rows(piece):
+              return {str(r.phase6_key):float(r.length) for r in piece.fold_profile}
+          left=rows(pieces["left_side"]); right=rows(pieces["right_side"])
+          t=float(snap["t"])
+          derived={
+            "divider":{
+              "front_material":core[0],
+              "fw_band":fw,
+              "material_lengths":[float(r.length) for r in divider.fold_profile],
+              "half_t":t/2.0,
+            },
+            "left":{
+              "zl1":left["zl1"],"zl2":left["zl2"],"fw_left":left["fw_left"],
+              "front_inner_fold_u":core[0]+left["zl2"],
+              "turned_outer_reach_v":left["fw_left"]+left["zl1"],
+            },
+            "right":{
+              "zr2":right["zr2"],"fw_right":right["fw_right"],
+              "front_inner_fold_u":core[0]+right["zr2"],
+            },
+          }
+          print("ISSUE74_AUTHORITY_DIMS="+json.dumps(derived,ensure_ascii=False))
+          PY
