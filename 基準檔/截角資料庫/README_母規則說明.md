@@ -69,3 +69,18 @@
 2. 不准因現有 schema 不方便而改變 CornerType identity；
 3. 必須先取得使用者／產品規格／canonical DXF feature 等 authority；
 4. 未確認前只可保留 candidate/diagnostic，不得進 Certified Registry。
+### Receiving Divider CROSS：端向 selector
+
+Receiving Divider 使用 **CROSS 母體 + 槽參數**，資料庫記錄「有槽端」與「無槽端」公式，不把它們固定命名成 MIN_Y / MAX_Y。
+
+- `slotted_fold_u = core_start + divider_fw_material`
+- `plain_fold_u = core_start + divider_last_outside + T`
+- `fold_v = divider_fw_outside - T`
+- `slot_width = divider_fw_material - divider_first_outside`
+- `slot_straight_depth = box_zl1_formed`
+- `slot_radius = slot_width / 2`
+
+端向 selector：`OBJECT_MATING_FOLD_SIGN_NEGATIVE`。
+
+也就是：**對象 mating Fold sign < 0 的那一端套有槽 CROSS；另一端套 plain CROSS。**  
+不得用 DXF 固定孔 rigid mapping、collision/backprojection、QA expected value 來決定端向。若無法從 authoritative Fold Profile 唯一判定一個負折端，Registry 必須 fail closed。
