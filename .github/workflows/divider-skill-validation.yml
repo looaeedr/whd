@@ -55,8 +55,15 @@ jobs:
               fold_guides_from_final_scene,
           )
           from ae_engine.sheetmetal_drawing import CirclePrimitive, LinePrimitive
-          from ae_engine.divider_manufacturing import resolve_divider_placement_evidence
-          from tests.test_issue39_divider_relief import _snapshot, _body_part, _divider_part
+          from ae_engine.divider_manufacturing import (
+              resolve_divider_placement_evidence,
+              _source_fold_bands_by_geometry_key,
+              _core_start,
+          )
+          from ae_engine.assembly_collision import verify_divider_front_fold_relief
+          from tests.test_issue39_divider_relief import (
+              _snapshot, _body_part, _divider_part, _divider_insert_joint,
+          )
           from tests.test_issue63_regression_red import _issue63_divider_middle_segment
 
           snap=_snapshot()
@@ -99,10 +106,17 @@ jobs:
           placement=resolve_divider_placement_evidence(solved,body,world)
           assert placement.valid and placement.fw_face_flush and placement.core_inward
 
-          relief_meta=dict(render.metadata.get("divider_assembly_relief") or {})
-          post=dict(dict(relief_meta.get("post_evidence") or {}))
-          if not post:
-              post=dict(dict(relief_meta.get("evidence") or {}).get("post") or {})
+          post=verify_divider_front_fold_relief(
+              _divider_insert_joint(divider.stable_id),
+              world_triangles_by_part=world["world_triangles_by_part"],
+              mapped_skin_triangles_by_part=world["mapped_skin_triangles_by_part"],
+              flat_material_by_part=world["flat_material_by_part"],
+              core_start=_core_start(solved),
+              source_geometry_keys=("box_body:left_side","box_body:right_side"),
+              source_fold_bands_by_key=_source_fold_bands_by_geometry_key(body),
+              tolerance=1e-6,
+          )
+          print("DIVIDER_SKILL_POST_REFOLD="+json.dumps(post,ensure_ascii=False,default=str))
           assert int(post.get("true_thickness_penetrating_band_count",0))==0
           assert float(post.get("positive_overlap_area",0.0)) <= 1e-9
           retained=int(post.get("retained_contact_segments",0))
@@ -121,6 +135,16 @@ jobs:
               dxf_circles=list(msp.query('CIRCLE[layer=="CUTTING"]'))
               dxf_bends=list(msp.query('LINE[layer=="BEND"]'))
               dxf_outlines=list(msp.query('LWPOLYLINE[layer=="CUTTING"]'))
+              print("DIVIDER_SKILL_DXF_COUNTS="+json.dumps({
+                  "scene_circles":len(circles),
+                  "dxf_circles":len(dxf_circles),
+                  "scene_bends":len(bends),
+                  "dxf_bends":len(dxf_bends),
+                  "dxf_outlines":len(dxf_outlines),
+                  "layers":layers,
+                  "verify_ok":bool(verify.ok),
+                  "issues":[str(x) for x in verify.issues],
+              },ensure_ascii=False))
               assert len(dxf_circles)==len(circles)
               assert len(dxf_bends)==len(bends)
               assert dxf_outlines
