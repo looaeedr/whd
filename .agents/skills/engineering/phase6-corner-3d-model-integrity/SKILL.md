@@ -196,3 +196,17 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
   2. production 不得用 material FW 作 final notch anchor；
   3. final CUTTING 直接量測通過獨立產品 oracle；
   4. 舊 `25/47/48` evidence 不得再作 current authority。
+
+
+## 2026-09-09 — INPUT-AUTHORITY FIRST（Receiving 3D 輸入區優先）
+
+- 只要使用者已在 3D 輸入區提供尺寸，**第一 authority 就是 canonical input state**，不得從 Fold material、collision bbox、target UV、final CUTTING 或驗證結果反推輸入語意。
+- Receiving BoxBody operator inputs 至少包含 `zl1 / zl2 / fw / zr2`；它們先進 `_phase6_input_snapshot`，再由 family/topology 轉成 material Fold。
+- 目前 reference fixture 的 operator/outside state 為 `24 / 24 / 29 / 18`；T=2 後 material Fold 可成為 `22 / 20 / 25 / 16`。**後者是衍生材料尺寸，不得倒過來覆寫或解讀前者。**
+- 幾何工作開始前必須先列出：
+  1. operator input values；
+  2. canonical snapshot values；
+  3. derived material Fold values；
+  4. formed/world geometry values。
+  若這四層沒有分清楚，禁止進 collision/relief 推理。
+- final CUTTING 必須由「input state → canonical geometry → formed solid → collision」正向求解；禁止「collision/material → 猜 input」。
