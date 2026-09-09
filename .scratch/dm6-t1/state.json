@@ -1,40 +1,51 @@
 {
   "task_id": "DM6",
   "work_order": "#65",
-  "role": "PM_RED_REVIEW",
+  "role": "QA_REVIEW",
   "branch": "work/dm6-t1-annotation-semantic-contract",
   "dispatch_base": "f465dffabc7c381eef106d7d3dc24a22ba2c72c9",
-  "red_test_path": "tests/test_dm6_annotation_semantic_contract.py",
-  "red_command": "python -m pytest -q tests/test_dm6_annotation_semantic_contract.py",
-  "run_id": 34326045630,
-  "head_sha": "4b06a5cf624916c9326de9bd524893a88f5402be",
-  "status": "terminal_expected_red",
-  "remote_result": {
-    "workflow": "DM6 T1 RED",
-    "job_id": 102383435667,
-    "job": "red-contract",
-    "conclusion": "failure",
-    "pytest": "3 failed in 0.78s",
-    "classification": "expected requirement RED; environment/setup passed",
-    "failure_contract": "annotation objects do not carry a stable semantic identity independent from display label/text"
+  "approved_red": {
+    "run_id": 34326045630,
+    "head_sha": "4b06a5cf624916c9326de9bd524893a88f5402be",
+    "result": "3 failed in 0.78s",
+    "user_decision": "approved"
+  },
+  "production_commit": "7a1ec8e",
+  "production_change": "ae_engine/drawing_annotations.py: stable semantic_id properties derived from engineering semantic fields; display label excluded",
+  "green_apply": {
+    "run_id": 34338231310,
+    "job_id": 102422588765,
+    "head_sha": "60a3e222b8988b9d555c69f1d46dc68898e70114",
+    "result": "16 passed in 2.59s",
+    "production_push": "7a1ec8e"
+  },
+  "acceptance": {
+    "run_id": 34338386932,
+    "job_id": 102423080545,
+    "head_sha": "943dde648bc25409d8fecff5b860ee8a9a326b65",
+    "result": "16 passed in 0.72s",
+    "compile": "PASS"
+  },
+  "cleanup": {
+    "green_apply_workflow_removed": true,
+    "acceptance_workflow_removed": true,
+    "cleanup_head": "c60955765260638d9d36352b84a69b73319b0036"
   },
   "completed": [
-    "project rules read",
-    "preflight evidence recorded",
-    "requirement-level RED tests committed",
-    "checkpoint recorded",
-    "one-shot remote RED workflow executed",
-    "run/job/steps polled to terminal",
-    "failed job log inspected and classified"
+    "RED matrix approved by user",
+    "transitioned to T1 implementer",
+    "minimal Planner semantic identity GREEN implemented",
+    "approved REDs converted to GREEN",
+    "focused drawing/layout regressions passed",
+    "production module compile passed",
+    "temporary remote workflows removed"
   ],
   "pending": [
-    "user approval of RED matrix",
-    "after approval transition to T1 implementer",
-    "GREEN implementation",
-    "focused QA and source scan"
+    "controller code/spec review",
+    "Issue #65 acceptance/readback",
+    "PR review surface",
+    "if accepted close #65 and unblock #66"
   ],
-  "blocked": [
-    "production changes are gated on explicit user approval of the requirement RED matrix"
-  ],
-  "resume": "Read this state and Issue #65. Do not rerun RED 34326045630. Await/record user RED approval, then emit [轉移至：實作者] and [當前角色：T1 實作者] before production changes."
+  "blocked": [],
+  "resume": "Read this state and Issue #65; continue from [轉移至：總控審查] / [當前角色：總控審查]. Do not rerun accepted RED or GREEN unless code changes."
 }
