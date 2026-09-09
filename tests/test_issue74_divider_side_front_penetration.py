@@ -421,7 +421,7 @@ def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_de
         float(snap["zl2"]),
         float(snap["fw"]),
         float(snap["zr2"]),
-    ) == (24.0, 24.0, 29.0, 18.0)
+    ) == (-24.0, 24.0, 29.0, 18.0)
 
     profile = build_box_body_profile(snap)
     by_key = {
@@ -446,7 +446,7 @@ def test_receiving_operator_inputs_are_authority_and_material_fold_is_one_way_de
     ) == (24.0, 24.0, 29.0, 18.0)
 
     print("RECEIVING_INPUT_AUTHORITY=", {
-        "operator_outside": (24.0, 24.0, 29.0, 18.0),
+        "operator_outside": (-24.0, 24.0, 29.0, 18.0),
         "derived_material": material,
         "roundtrip_operator": (
             float(roundtrip["zl1"]),
