@@ -26,6 +26,8 @@ _ALLOWED_GEOMETRY_INPUTS = frozenset({
     "BOX_BODY_FORMED_FW", "ENDCAP_SIDE_FOLD", "ENDCAP_FW",
     "ENDCAP_YTOP1", "ENDCAP_YBOTTOM1", "BOX_SIDE_REAR_BEND", "SHEET_THICKNESS",
     "BOTTOM_RELIEF_RESERVE_U", "BOTTOM_RELIEF_RESERVE_V",
+    "DIVIDER_CORE_START", "DIVIDER_FIRST_OUTSIDE", "DIVIDER_FW_OUTSIDE",
+    "DIVIDER_FW_MATERIAL", "DIVIDER_LAST_OUTSIDE", "BOX_ZL1_FORMED",
 })
 
 from .sheetmetal_geometry import (
@@ -79,6 +81,8 @@ class CertifiedReliefRule:
     adjustment_type: str = ""
     adjustment_amount: object | None = None
     certification_evidence: object | None = None
+    corner_type: str = ""
+    cross_parameters: Mapping[str, object] | None = None
     solver_shadow_policy: str = "REQUIRED_NO_OVERRIDE"
     evaluator: Callable[..., "CertifiedReliefResult | None"] | None = None
 
@@ -104,6 +108,16 @@ class CertifiedReliefResult:
 
 
 @dataclass(frozen=True)
+class CertifiedDividerCrossReliefResult:
+    """Certified Divider CROSS result: primary stays fold_u/fold_v; slot is additive."""
+
+    rule: CertifiedReliefRule
+    min_y: object
+    max_y: object
+    geometry_evidence: Mapping[str, object] | None = None
+
+
+@dataclass(frozen=True)
 class CertifiedCornerPolicyRule:
     """固定板件 CornerType 資料庫項目。
 
@@ -124,6 +138,8 @@ _ALLOWED_FORMULA_NAMES = frozenset({
     "T", "FW", "side_fold", "ytop1", "ybottom1", "rear_bend",
     "mating_width", "effective_mating_width", "fold_u", "fold_v", "clearance",
     "reserve_u", "reserve_v",
+    "core_start", "divider_first_outside", "divider_fw_outside",
+    "divider_fw_material", "divider_last_outside", "box_zl1_formed",
 })
 _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 _ALLOWED_UNARYOPS = (ast.UAdd, ast.USub)
@@ -242,6 +258,37 @@ def evaluate_relief_formula_record(record: Mapping[str, object], variables: Mapp
     return result
 
 
+def evaluate_divider_cross_formula_record(
+    record: Mapping[str, object],
+    variables: Mapping[str, float],
+) -> dict[str, float]:
+    """Evaluate the Divider CROSS A-model without replacing fold_u/fold_v ownership."""
+    formula = dict(record.get("formula", {}) or {})
+    required = (
+        "min_y_fold_u", "max_y_fold_u", "fold_v",
+        "slot_width", "slot_straight_depth", "slot_radius",
+    )
+    missing = [name for name in required if name not in formula]
+    if missing:
+        raise CertifiedReliefRegistryError(
+            "Divider CROSS formula missing: " + ", ".join(missing)
+        )
+    result = {
+        name: evaluate_relief_formula_expression(str(formula[name]), variables)
+        for name in required
+    }
+    for key, value in result.items():
+        if value <= 0:
+            raise CertifiedReliefRegistryError(
+                f"Divider CROSS formula result must be > 0: {key}={value}"
+            )
+    if 2.0 * result["slot_radius"] > result["slot_width"] + 1e-9:
+        raise CertifiedReliefRegistryError(
+            "Divider CROSS slot_radius cannot exceed half slot_width"
+        )
+    return result
+
+
 def _external_record_map() -> dict[str, dict[str, object]]:
     records = [r for r in load_external_relief_rule_records() if bool(r.get("active", True))]
     return {str(r["rule_id"]): r for r in records}
@@ -279,6 +326,8 @@ def _rule_from_record(raw: Mapping[str, object], evaluator) -> CertifiedReliefRu
         adjustment_type=str(raw.get("adjustment_type", "") or ""),
         adjustment_amount=raw.get("adjustment_amount"),
         certification_evidence=raw.get("certification_evidence"),
+        corner_type=str(raw.get("corner_type", "") or ""),
+        cross_parameters=dict(raw.get("cross_parameters", {}) or {}),
         evaluator=evaluator,
     )
 
@@ -981,7 +1030,14 @@ def evaluate_editable_endcap_rule_record(
 
 def build_runtime_relief_rules_from_external(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
     rows = [row for row in load_external_relief_rule_records(path) if bool(row.get("active", True))]
-    return tuple(_rule_from_record(row, _data_formula_evaluator) for row in rows)
+    return tuple(
+        _rule_from_record(
+            row,
+            None if str(row.get("part_role", "")).strip().upper() == "DIVIDER"
+            else _data_formula_evaluator,
+        )
+        for row in rows
+    )
 
 
 def reload_runtime_relief_rules(path: str | Path | None = None) -> tuple[CertifiedReliefRule, ...]:
@@ -1004,12 +1060,99 @@ _SPECIAL_RULE_EVALUATORS = {
 def _build_initial_runtime_rules() -> tuple[CertifiedReliefRule, ...]:
     rows = [row for row in load_external_relief_rule_records() if bool(row.get("active", True))]
     return tuple(
-        _rule_from_record(row, _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator))
+        _rule_from_record(
+            row,
+            None if str(row.get("part_role", "")).strip().upper() == "DIVIDER"
+            else _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator),
+        )
         for row in rows
     )
 
 
 _RULES: tuple[CertifiedReliefRule, ...] = _build_initial_runtime_rules()
+
+
+def lookup_certified_divider_cross_relief(
+    *,
+    cabinet_family: str,
+    variables: Mapping[str, float],
+) -> CertifiedDividerCrossReliefResult | None:
+    """Resolve a certified Divider CROSS rule from authoritative parameters only."""
+    family = _family_key(cabinet_family)
+    matches = []
+    for rule in _RULES:
+        if str(rule.part_role or "").strip().upper() != "DIVIDER":
+            continue
+        if str(rule.corner_type or "").strip().upper() != CornerTypeId.CROSS.value:
+            continue
+        if not _active_status(rule.status):
+            continue
+        rule_family = _family_key(rule.cabinet_family)
+        if rule_family not in {"ANY", family}:
+            continue
+        values = evaluate_divider_cross_formula_record(
+            {"formula": dict(rule.formula_record or {})}, variables
+        )
+        slot_end = str(dict(rule.cross_parameters or {}).get("slot_end", "MIN_Y")).upper()
+        if slot_end not in {"MIN_Y", "MAX_Y"}:
+            raise CertifiedReliefRegistryError(
+                f"Divider CROSS unsupported slot_end: {slot_end}"
+            )
+        slot_kwargs = {
+            "slot_width": float(values["slot_width"]),
+            "slot_straight_depth": float(values["slot_straight_depth"]),
+            "slot_radius": float(values["slot_radius"]),
+        }
+        plain = CornerTypeSelection(
+            CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD
+        )
+        slotted = CornerTypeSelection(
+            CornerTypeId.CROSS, cross_mode=CrossCornerMode.STANDARD, **slot_kwargs
+        )
+        min_selection = slotted if slot_end == "MIN_Y" else plain
+        max_selection = slotted if slot_end == "MAX_Y" else plain
+        t = float(variables["T"])
+        fw = float(variables["divider_fw_material"])
+        min_y = resolve_corner_relief(
+            min_selection,
+            fold_u=float(values["min_y_fold_u"]),
+            fold_v=float(values["fold_v"]),
+            thickness=t,
+            fw=fw,
+        )
+        max_y = resolve_corner_relief(
+            max_selection,
+            fold_u=float(values["max_y_fold_u"]),
+            fold_v=float(values["fold_v"]),
+            thickness=t,
+            fw=fw,
+        )
+        matches.append(CertifiedDividerCrossReliefResult(
+            rule=rule,
+            min_y=min_y,
+            max_y=max_y,
+            geometry_evidence={
+                "corner_type": CornerTypeId.CROSS.value,
+                "formula_values": dict(values),
+                "slot_end": slot_end,
+                "authority": "CERTIFIED_REGISTRY_PARAMETERS",
+            },
+        ))
+    if not matches:
+        return None
+    specific = [
+        item for item in matches
+        if _family_key(item.rule.cabinet_family) == family and family != "ANY"
+    ]
+    candidates = specific or matches
+    if len(candidates) != 1:
+        ids = ", ".join(
+            f"{item.rule.rule_id}@{item.rule.revision}" for item in candidates
+        )
+        raise CertifiedReliefRegistryAmbiguityError(
+            f"REGISTRY_AMBIGUOUS: {family}/DIVIDER/CROSS: {ids}"
+        )
+    return candidates[0]
 
 
 def registered_certified_relief_rules() -> tuple[CertifiedReliefRule, ...]:
