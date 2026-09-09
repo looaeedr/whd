@@ -785,8 +785,9 @@ def test_issue63_divider_candidate_preserves_physical_depth_on_standard_topology
             assert float(row["stage_u_span"]) == pytest.approx(x1 - x0, abs=1.0e-5)
             assert float(row["stage_v_span"]) == pytest.approx(y1 - y0, abs=1.0e-5)
             assert row["dimension_source"] == (
-                "SOURCE_TRUE_THICKNESS_COLLISION_BACKPROJECTION"
+                "PHYSICAL_FW_INSIDE_FACE_PLUS_SOURCE_COLLISION_SPAN"
             )
+            assert "primary_inside_face_boundary" in row
 
     assert primary_edges["box_body:left_side"] != primary_edges["box_body:right_side"]
     assert secondary_count >= 1
