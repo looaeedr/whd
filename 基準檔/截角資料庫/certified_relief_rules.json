@@ -393,26 +393,26 @@
         "cross_slot_min_y"
       ],
       "formula": {
-        "min_y_fold_u": "core_start + divider_last_outside + T",
-        "max_y_fold_u": "core_start + divider_fw_material",
+        "slotted_fold_u": "core_start + divider_fw_material",
+        "plain_fold_u": "core_start + divider_last_outside + T",
         "fold_v": "divider_fw_outside - T",
         "slot_width": "divider_fw_material - divider_first_outside",
         "slot_straight_depth": "box_zl1_formed",
         "slot_radius": "(divider_fw_material - divider_first_outside) / 2"
       },
       "cross_parameters": {
-        "slot_end": "MAX_Y",
+        "slot_end_selector": "OBJECT_MATING_FOLD_SIGN_NEGATIVE",
         "slot_anchor": "PRIMARY_U_INNER_EDGE",
         "slot_depth_semantics": "STRAIGHT_TO_RADIUS_TANGENCY"
       },
-      "display_formula_x": "MIN_Y fold_u = core_start + Divider末段包外 + T；MAX_Y fold_u = core_start + Divider FW料",
+      "display_formula_x": "有槽端 fold_u = core_start + Divider FW料；無槽端 fold_u = core_start + Divider末段包外 + T",
       "display_formula_y": "fold_v = Divider FW包外 - T",
-      "display_formula_secondary": "slot_width = Divider FW料 - Divider首段包外；straight_depth = BoxBody zl1成形；R = slot_width / 2",
+      "display_formula_secondary": "對象 mating Fold 為負折時套用有槽端；slot_width = Divider FW料 - Divider首段包外；straight_depth = BoxBody zl1成形；R = slot_width / 2",
       "source": "基準檔/金庫型/中隔.dxf 正規化認證；CROSS 主體沿用 fold_u/fold_v，槽為附加參數",
       "standard_ref": "DIVIDER_CROSS_STANDARD_V1",
       "affected_zone": "Divider MIN_Y / MAX_Y end relief",
       "dimension_space": "MATERIAL",
-      "target_semantics": "CROSS 主截角由折法參數解析；MAX_Y 端附加圓底 U 槽",
+      "target_semantics": "CROSS 端型不綁 MIN/MAX；對象 mating Fold sign<0 的端套用 66×27 + 圓底U槽，另一端套用 60×27",
       "adjustment_type": "STANDARD",
       "adjustment_amount": {
         "basis": "DIVIDER_CROSS_STANDARD_V1",
@@ -421,7 +421,7 @@
       },
       "certification_evidence": {
         "baseline": "基準檔/金庫型/中隔.dxf",
-        "normalized_reference": "MIN_Y 60×27；MAX_Y 66×27 + U-slot width7 straight24 R3.5",
+        "normalized_reference": "有槽端 66×27 + U-slot width7 straight24 R3.5；無槽端 60×27；端向由對象 Fold sign 決定",
         "reference_blank": "158×596；596 只作 reference-span validation"
       },
       "geometry_inputs": [
