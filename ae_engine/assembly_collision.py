@@ -1044,13 +1044,12 @@ def verify_divider_front_fold_relief(
     physical_footprints_by_source=None,
     tolerance: float = 1e-6,
 ):
-    """Refold verification from current world-space true-thickness collision.
+    """Verify solved Divider by post-refold positive-area true-thickness overlap.
 
-    The solved Divider is refolded first. A source Fold band remains illegal only
-    if BOTH physical source skins still cross the current Divider physical skins.
-    Pre-solve target-UV footprints are retained as diagnostic evidence only; they
-    may not veto a physically clean refold because their absolute UV coordinates
-    belong to the old pre-cut domain.
+    Both source skins may still intersect the CUTTING boundary after a precise
+    relief. Boundary lines are legal. A band is illegal only when its CURRENT
+    post-refold both-skin footprint still overlaps retained Divider material with
+    positive area. Pre-solve UV footprints remain diagnostic-only evidence.
     """
     ownership = joint_relief_ownership(joint)
     relief_key = str(ownership.relief_part)
@@ -1070,12 +1069,14 @@ def verify_divider_front_fold_relief(
             + ", ".join(missing)
         )
 
-    contact_segments = 0
     pair_count = 0
+    contact_segments = 0
     illegal_band_count = 0
     illegal_segment_count = 0
-    validation_overlap_area = 0.0
+    illegal_area = 0.0
+    precut_validation_overlap = 0.0
     by_source = {}
+    area_tol = max(float(tolerance) ** 2, 1.0e-12)
 
     for source_key in tuple(source_geometry_keys or ()):
         source_key = str(source_key)
@@ -1088,6 +1089,7 @@ def verify_divider_front_fold_relief(
             source_geometry_key=source_key,
         )
         pair_count += int(projected.projection.pair_count)
+
         classified = classify_source_fold_true_thickness_interference(
             source_geometry_key=source_key,
             relief_geometry_key=relief_key,
@@ -1096,44 +1098,68 @@ def verify_divider_front_fold_relief(
             tolerance=float(tolerance),
         )
 
-        penetrating_bands = tuple(classified.get("penetrating_bands") or ())
-        source_illegal_segments = int(classified.get("penetrating_segment_count") or 0)
-        illegal_band_count += len(penetrating_bands)
+        positive_bands = []
+        boundary_only_bands = []
+        source_illegal_area = 0.0
+        source_illegal_segments = 0
+
+        for band_name in tuple(classified.get("penetrating_bands") or ()):
+            row = dict(classified["bands"][band_name])
+            footprint = row.get("physical_footprint_2d")
+            overlap_area = 0.0
+            if footprint is not None and not getattr(footprint, "is_empty", True):
+                overlap = material.intersection(footprint)
+                overlap_area = (
+                    0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
+                )
+            if overlap_area > area_tol:
+                positive_bands.append(str(band_name))
+                source_illegal_area += overlap_area
+                source_illegal_segments += len(tuple(row.get("segments_2d") or ()))
+            else:
+                boundary_only_bands.append(str(band_name))
+
+        illegal_band_count += len(positive_bands)
         illegal_segment_count += source_illegal_segments
+        illegal_area += source_illegal_area
 
         source_contact = int(classified.get("retained_contact_segment_count") or 0)
+        source_contact += sum(
+            len(tuple(classified["bands"][name].get("segments_2d") or ()))
+            for name in boundary_only_bands
+        )
         contact_segments += source_contact
 
-        # Historical pre-solve target-solid footprints are diagnostic only.
-        # Their absolute flat coordinates must not become post-solve authority.
         diagnostic_overlap = 0.0
-        physical = pre_footprints.get(source_key)
-        if physical is not None and not getattr(physical, "is_empty", True):
-            overlap = material.intersection(physical)
+        old = pre_footprints.get(source_key)
+        if old is not None and not getattr(old, "is_empty", True):
+            overlap = material.intersection(old)
             diagnostic_overlap = (
                 0.0 if getattr(overlap, "is_empty", True) else float(overlap.area)
             )
-        validation_overlap_area += diagnostic_overlap
+        precut_validation_overlap += diagnostic_overlap
 
         by_source[source_key] = {
             "pair_count": int(projected.projection.pair_count),
-            "front_illegal_segments": source_illegal_segments,
-            "true_thickness_penetrating_bands": penetrating_bands,
-            "retained_contact_segments": source_contact,
+            "front_illegal_segments": int(source_illegal_segments),
+            "true_thickness_penetrating_bands": tuple(positive_bands),
+            "boundary_only_bands": tuple(boundary_only_bands),
+            "positive_overlap_area": float(source_illegal_area),
+            "retained_contact_segments": int(source_contact),
             "precut_uv_overlap_area_validation_only": float(diagnostic_overlap),
         }
 
-    verified = illegal_band_count == 0 and illegal_segment_count == 0
+    verified = illegal_area <= area_tol and illegal_band_count == 0
     return {
-        "pair_count": pair_count,
+        "pair_count": int(pair_count),
         "front_illegal_segments": int(illegal_segment_count),
         "true_thickness_penetration_segments": int(illegal_segment_count),
         "true_thickness_penetrating_band_count": int(illegal_band_count),
-        "positive_overlap_area": 0.0 if verified else float(illegal_segment_count),
-        "precut_uv_overlap_area_validation_only": float(validation_overlap_area),
-        "retained_contact_segments": contact_segments,
+        "positive_overlap_area": float(illegal_area),
+        "precut_uv_overlap_area_validation_only": float(precut_validation_overlap),
+        "retained_contact_segments": int(contact_segments),
         "verified": bool(verified),
-        "classification": "POST_REFOLD_WORLD_TRUE_THICKNESS",
+        "classification": "POST_REFOLD_POSITIVE_AREA_TRUE_THICKNESS",
         "core_start_evidence_only": float(core_start),
         "by_source": by_source,
     }
