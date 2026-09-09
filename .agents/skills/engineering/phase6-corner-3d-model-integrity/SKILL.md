@@ -278,3 +278,9 @@ description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fol
 - DXF 反讀或測試量測只可證明「Registry 參數化結果是否與基準一致」；不得使用 expected-actual 差值回補 production。
 - 若目前 CROSS schema 無法表達某個二級槽、R 或其他必要參數，先確認使用者要把它建模成 CROSS 的哪個參數，再擴充 CROSS 的參數能力；**禁止直接改用 INSERT_OVERLAY 或新增 CornerType 來繞過資料模型限制。**
 
+## 2026-09-09 — 使用者更正後自動同步 Durable Knowledge
+
+- 只要使用者更正截角／3D／Joint／Fold／尺寸語意，或本輪找到一個可重複踩坑，**AI 必須主動同步 Skill、全域 AI 踩坑庫、相關領域規範/Registry 說明與 owning Issue/PR**；不得等使用者再提醒「補技能、AI庫」。
+- 若更正會推翻舊 authority，必須搜尋舊內容並標 `SUPERSEDED / REVOKED`，避免下一個 Agent 同時讀到兩套互相衝突的規則。
+- 只有會影響未來決策的永久知識才固化；一次性 run id、臨時 probe 數值、進度回報不進 durable knowledge。
+- 寫完必須遠端反讀確認；未反讀只能算寫入嘗試，不算知識同步完成。
