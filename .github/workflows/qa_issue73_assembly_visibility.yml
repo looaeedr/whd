@@ -20,4 +20,4 @@ jobs:
           python -m pip install -r requirements.txt pytest matplotlib
       - name: Run Issue 73 regression
         run: |
-          pytest -q tests/test_phase6_assembly_3d_view.py -k hidden_box_body_still_anchors_visible_head_tail_placement
+          pytest -q tests/test_phase6_assembly_3d_view.py tests/test_phase6_final_scene_view_ownership.py

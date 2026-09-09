@@ -990,3 +990,41 @@ def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     assert head_world[0] in triangles
     assert tail_world[0] in triangles
     assert body_world[0] not in triangles, "hidden Box Body must remain a placement datum but not be rendered"
+
+
+def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch):
+    import fold_designer_bridge as bridge
+    import phase6_final_scene_view as view
+    from ae_engine.sheetmetal_drawing import DrawingScene
+
+    body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
+    head_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 40), fold_guides=())
+    tail_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 30), fold_guides=())
+    resolved_parts = (
+        view.AssemblyScenePart("box_body", body_data, _flat_profile(100), _flat_profile(80), "box_body"),
+        view.AssemblyScenePart("head", head_data, _flat_profile(100), _flat_profile(40), "top"),
+        view.AssemblyScenePart("tail", tail_data, _flat_profile(100), _flat_profile(30), "bottom"),
+    )
+
+    monkeypatch.setattr(
+        bridge, "_phase6_resolve_manufacturing_geometry",
+        lambda self: SimpleNamespace(parts=resolved_parts),
+    )
+    monkeypatch.setattr(bridge, "_phase6_publish_live_state", lambda self, force=False: None)
+    monkeypatch.setattr(bridge, "_phase6_render_data_corner_dimension_text", lambda render_data: "")
+    monkeypatch.setattr(bridge, "_phase6_refresh_box_body_piece_info_rows", lambda self, render_data: None)
+
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "t": 2.0},
+        _settings_values={"t": 2.0},
+        assembly_part_visible_vars={
+            "box_body": SimpleNamespace(get=lambda: False),
+            "head": SimpleNamespace(get=lambda: True),
+            "tail": SimpleNamespace(get=lambda: True),
+        },
+    )
+
+    bundle = bridge._phase6_query_assembly_render_data(app)
+
+    assert [part.part_key for part in bundle.assembly_parts] == ["box_body", "head", "tail"]
+    assert bundle.visible_part_keys == ("head", "tail")
