@@ -744,3 +744,23 @@ PASS / FAIL
 - pytest expected、DXF reopen 實測值、collision probe、bbox、solver fringe、rendered dimension、fixture parity 數字都只能當 oracle / tolerance / evidence。
 - 任何 `0.001` boolean fringe、`10`、`100`、`47/26`、`1 mm`、middle-segment 長度等觀察值，除非另有 authoritative domain owner，否則不得成為 manufacturing magic constant。
 - 正式 relief / hole / placement / thickness 幾何仍只能從 canonical state、AssemblyJoint/Fold topology、physical collision/backprojection、authoritative `T` 與 certified semantics 推導。
+
+---
+
+## 2026-09-09 — Receiving Divider：CROSS＋參數的正式截角模型
+
+### 模型身份
+- Receiving Divider 的截角**不新增 CornerType**。
+- 正式模型固定沿用既有：`CornerTypeId.CROSS / 十字截角`。
+- 中隔的差異由 **CROSS 參數化規則**表達；若需要二級槽、R 或其他 topology parameter，應擴充 CROSS 的參數資料模型，而不是換成 INSERT_OVERLAY 或新增 Divider-specific type。
+
+### Authority
+- `基準檔/金庫型/中隔.dxf` 是目前中隔截角規則的認證／基準來源，可用來確定 CROSS 參數與 topology。
+- runtime production 由 Certified Relief Registry / canonical parameters 產生 Final Material；禁止每次直接複製 DXF vertex/line 座標。
+- 3D collision/backprojection 在 Certified Registry HIT 時只作 true-thickness shadow verification；不得重新決定已認證的截角模型或用 probe delta 修改參數。
+- 本節 **SUPERSEDES** 舊規範中「Divider DXF 外框只供診斷/不作截角 authority、截角一律由 collision/backprojection discovery 決定」的內容。
+
+### 不確定性硬閘門
+- 若無法從使用者確認、canonical input、Registry、基準 DXF 或正式規格判斷某參數的機械語意，必須先問使用者。
+- 禁止從現行程式、test expected、collision bbox、歷史 run、畫面或方便的 enum 猜產品規格。
+- 使用者已指定 CROSS 時，schema 不足只代表要確認並擴充 CROSS 參數能力，不代表可以另造 CornerType。
