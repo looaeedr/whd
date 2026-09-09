@@ -308,3 +308,11 @@
 - **boundary trap**：精確切完後兩張 skin 仍可能沿 CUTTING 邊界相交；不能只因 both-skin segments 存在就判 penetration。area=0 為合法 boundary contact。
 - **sink 檢查**：raw material difference 與 `_apply_cut_to_part()` 面積必須一致，避免把 collision 問題誤診成 FinalScene sink 問題。此次證據兩者都切除 `3227.9999998638 mm²`。
 - **GREEN**：run `34364056682`，7 PASS；reference final outer CUTTING：左 `61×27` + 副階 `2×22` + 右 `57×27`；post positive overlap=0。
+
+
+## 2026-09-09 — 把 25→47 強改成 27→49：錯把「連續」理解成「不得重疊」
+
+- **錯誤**：看到主截角深 27、副階長 22，就自行假設副階必須從 27 開始，推成 27→49。
+- **使用者確認的正確 material geometry**：左主 `61×27`；左副階 `2×22`，`Y=25..47`；因此與主截角在 `25..27` 有 2 mm 重疊。
+- **根因**：把幾何 union 的連續性誤解為區段只能首尾相接，忽略真實板厚／折角造成的重疊區。
+- **永久防線**：已知產品座標區間不得因「看起來應該」而平移。除非使用者／權威規格改值，`25→47` 不得被重寫為 `27→49`。
