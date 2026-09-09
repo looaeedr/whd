@@ -41,6 +41,7 @@ jobs:
             --changed-file ae_engine/box_body_structure.py \
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_receiving_side_panel_outside_defaults.py \
+            --changed-file tests/test_issue74_divider_side_front_penetration.py \
             --evidence /tmp/preflight-evidence.md
       - name: Focused GREEN - headless
         run: pytest -q tests/test_receiving_side_panel_outside_defaults.py -k "not designer_controls"
@@ -73,7 +74,12 @@ jobs:
               w=snap["w"], h=snap["h"], d=snap["d"], t=snap["t"],
               structure_state=state,
           )
+          cfg = state["configs"]["three_piece_side_back_split"]
           print("OPERATOR_DEFAULTS=", {k: snap[k] for k in ("zl1","zl2","fw","d","zr2")})
+          print("REAR_BEND_AUTHORITY=", {
+              "value": cfg["side_rear_bend"],
+              "dimension_space": cfg["side_rear_bend_dimension_space"],
+          })
           for piece in result.pieces:
               if piece.role in {"left_side","right_side"}:
                   print(piece.role, [
