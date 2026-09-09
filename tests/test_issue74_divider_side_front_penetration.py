@@ -308,3 +308,84 @@ def test_receiving_boxbody_fw_world_occupation_matches_formed_contract():
         )
 
     print("RECEIVING_FW_FORMED_OCCUPATION=", observed)
+
+
+def test_receiving_reference_fixture_independently_matches_22_27_step_oracle():
+    """Validation-only oracle for the approved Receiving reference fixture.
+
+    IMPORTANT: 22/27 are acceptance values only. Production geometry must never
+    import/read this test or derive collision dimensions from these constants.
+    The test measures independently reconstructed world/collision geometry and
+    only judges whether production inputs/placement produced the approved shape.
+    """
+    REFERENCE_ZL1_STEP_LENGTH = 22.0
+    REFERENCE_FW_OVERLAP = 27.0
+
+    snap = _snapshot()
+    body = _body_part(snap)
+    divider, divider_part = _divider_part(snap)
+    world = bridge._phase6_build_joint_world_geometry(
+        (body, divider_part), (snap["w"], snap["h"], snap["d"]), snap["t"]
+    )
+    bands = _piece_bands(body)
+
+    # Independent collision witness for the narrow left stage.
+    left = _crossing_sides_by_source_band(
+        world,
+        divider.stable_id,
+        "box_body:left_side",
+        bands["box_body:left_side"],
+    )
+    zl1 = left["zl1"]["physical_footprint"]
+    assert zl1 is not None
+    _x0, y0, _x1, y1 = map(float, zl1.bounds)
+    observed_zl1_step = y1 - y0
+
+    def band_world_x_bounds(source_key, band_name):
+        u0, u1 = next(
+            (u0, u1) for name, u0, u1 in bands[source_key] if name == band_name
+        )
+        xs = []
+        for skin in tuple(world["mapped_skin_triangles_by_part"][source_key]):
+            centroid_u = sum(float(point[0]) for point in skin.flat) / 3.0
+            if u0 + 1.0e-6 < centroid_u < u1 - 1.0e-6:
+                xs.extend(float(point[0]) for point in skin.world)
+        assert xs, f"no world FW geometry for {source_key}:{band_name}"
+        return min(xs), max(xs)
+
+    divider_x = [
+        float(point[0])
+        for skin in tuple(world["mapped_skin_triangles_by_part"][divider.stable_id])
+        for point in skin.world
+    ]
+    assert divider_x
+    divider_bounds = (min(divider_x), max(divider_x))
+
+    left_fw = band_world_x_bounds("box_body:left_side", "fw_left")
+    right_fw = band_world_x_bounds("box_body:right_side", "fw_right")
+
+    def overlap_1d(a, b):
+        return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+
+    observed_left_overlap = overlap_1d(left_fw, divider_bounds)
+    observed_right_overlap = overlap_1d(right_fw, divider_bounds)
+
+    observed = {
+        "zl1_step_length": observed_zl1_step,
+        "divider_x_bounds": divider_bounds,
+        "left_fw_x_bounds": left_fw,
+        "right_fw_x_bounds": right_fw,
+        "left_fw_divider_overlap": observed_left_overlap,
+        "right_fw_divider_overlap": observed_right_overlap,
+    }
+    print("RECEIVING_REFERENCE_22_27_ORACLE=", observed)
+
+    assert observed_zl1_step == pytest.approx(
+        REFERENCE_ZL1_STEP_LENGTH, abs=1.0e-5
+    )
+    assert observed_left_overlap == pytest.approx(
+        REFERENCE_FW_OVERLAP, abs=1.0e-5
+    )
+    assert observed_right_overlap == pytest.approx(
+        REFERENCE_FW_OVERLAP, abs=1.0e-5
+    )
