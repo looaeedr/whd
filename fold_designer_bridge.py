@@ -213,6 +213,15 @@ def _phase6_is_box_body_physical_piece_key(value) -> bool:
     return key.startswith("box_body:") and not key.startswith("box_body:divider:")
 
 
+def _phase6_is_side_back_editable_piece_key(value) -> bool:
+    """Only side/back-split physical children own editable piece Fold profiles."""
+    return str(value or "") in {
+        "box_body:left_side",
+        "box_body:back",
+        "box_body:right_side",
+    }
+
+
 def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
     """Collapse BoxBody physical children under the single operator-facing 箱身 entry."""
     return tuple(
@@ -8865,9 +8874,16 @@ def _fix11_save_current_part(self, notify=True):
             "X": clone_profile(self.state.profiles.get("X", [])),
             "Y": clone_profile(self.state.profiles.get("Y", [])),
         }
-        _phase6_commit_box_body_physical_piece_profile(
-            self, key, profiles, notify=notify
-        )
+        if _phase6_is_side_back_editable_piece_key(key):
+            _phase6_commit_box_body_physical_piece_profile(
+                self, key, profiles, notify=notify
+            )
+        else:
+            # Two-/three-piece W-split children are manufacturing projections of
+            # the aggregate BoxBody + width allocation.  Their editor is a sink:
+            # preserve the current workspace view only; canonical dimensions stay
+            # owned by box_body_structure and the aggregate BoxBody profile.
+            self.designer_workspace.stash_profiles(key, profiles)
         return
     if _phase6_is_derived_physical_part_key(key):
         _phase6_sync_authoritative_derived_parts(self)
