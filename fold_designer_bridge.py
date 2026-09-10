@@ -8480,19 +8480,24 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
         self.activate_part(key)
 
 
-def _phase6_activate_operator_part(self, key):
-    """Resolve logical operator navigation to a physical BoxBody child when multipart."""
+def _phase6_resolve_operator_part_key(self, key):
+    """Resolve operator identity to a current physical part without activating the workspace."""
     key = str(key or "")
-    if key == "box_body":
+    if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
         children = _phase6_box_body_piece_keys(
             getattr(_designer_workspace(self), "available_parts", ()) or ()
         )
         if children:
             remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-            target = remembered if remembered in children else children[0]
+            target = key if key in children else remembered if remembered in children else children[0]
             self._phase6_box_body_active_piece_key = target
-            return self.activate_part(target)
-    return self.activate_part(key)
+            return target
+    return key
+
+
+def _phase6_activate_operator_part(self, key):
+    """Activate the current physical target resolved from logical operator navigation."""
+    return self.activate_part(_phase6_resolve_operator_part_key(self, key))
 
 
 def _fix11_refresh_part_buttons(self):
@@ -8560,10 +8565,27 @@ def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
 
 
+def _phase6_select_corner_data_part(self, key):
+    """Store a current stable corner-data identity without mutating manufacturing state."""
+    keys = _phase6_corner_data_part_keys(self)
+    requested = str(key or "")
+    if requested == "box_body" or _phase6_is_box_body_physical_piece_key(requested):
+        resolved = _phase6_resolve_operator_part_key(self, requested)
+    else:
+        resolved = requested
+    if resolved not in keys:
+        resolved = None
+    self._phase6_corner_data_selected_part_key = resolved
+    return resolved
+
+
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     """Refresh the corner-data list as a pure View projection of workspace parts."""
     keys = _phase6_corner_data_part_keys(self)
     self.corner_data_part_keys = keys
+    selected = getattr(self, "_phase6_corner_data_selected_part_key", None)
+    if selected is not None:
+        _phase6_select_corner_data_part(self, selected)
     panel = getattr(self, "corner_data_panel", None)
     if panel is None or not hasattr(panel, "winfo_children"):
         return keys
@@ -8572,12 +8594,18 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
         child.destroy()
 
     self.corner_data_part_rows = {}
+    self.corner_data_part_buttons = {}
     for key in keys:
         row = original.ttk.Frame(panel)
         row.pack(fill=original.tk.X, pady=(0, 4))
-        label = original.ttk.Label(row, text=_phase6_part_label(key))
-        label.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
+        button = original.ttk.Button(
+            row,
+            text=_phase6_part_label(key),
+            command=lambda k=key: _phase6_select_corner_data_part(self, k),
+        )
+        button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
         self.corner_data_part_rows[key] = row
+        self.corner_data_part_buttons[key] = button
     return keys
 
 
