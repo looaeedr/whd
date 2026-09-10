@@ -1,0 +1,36 @@
+name: Issue98 T5 Preflight
+on:
+  push:
+    branches: [feat/issue98-existing-2d-capability-migration-20260910]
+    paths:
+      - .github/workflows/issue98-t5-preflight.yml
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build evidence
+        run: |
+          cat > /tmp/issue98_evidence.md <<'EOF'
+          phase6-corner-3d-model-integrity
+          驗證板件與DXF
+          monitoring-remote-qa
+          截角資料入口收斂
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          EOF
+      - name: T5 changed-file preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task '#92/#98 T5 Existing 2D Capability Migration：把舊 2D Notebook 正式能力接到 Fold Designer 截角資料圖區；展開外形、孔、BEND、截角、尺寸、標註、板件特有資訊、正式互動 callbacks；禁止 geometry bugfix、禁止第二套 manufacturing geometry；remote QA' \
+            --changed-file gui.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue98_existing_2d_capability_migration.py \
+            --evidence /tmp/issue98_evidence.md
