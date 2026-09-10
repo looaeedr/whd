@@ -47,9 +47,11 @@
 
 ## 派工技能特別注意
 
-`.agents/skills/engineering/派工/SKILL.md` 是流程型 Skill。修改時至少驗：
+`.agents/skills/engineering/派工/SKILL.md` 是流程型 Skill，**canonical frontmatter identity 固定為 `name: 派工`**；舊 `name: dispatching` 已 superseded，不得再恢復。
 
-- frontmatter identity 與使用者指定名稱；
+修改時至少驗：
+
+- frontmatter `name: 派工` 與目錄 `派工/` 一致；
 - PM → Implementer → QA 狀態機；
 - owning Issue / AI Library / checkpoint / journal；
 - process-group timeout 分類與 resume；
