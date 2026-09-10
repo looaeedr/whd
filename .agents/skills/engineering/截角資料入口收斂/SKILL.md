@@ -75,6 +75,15 @@ mode switch、selection callback、StringVar trace、View destroy/recreate 不�
 authoritative mutation -> invalidate -> legacy View refresh + new View refresh
 ```
 
+另外，**authoritative state 更新成功不等於 View 已同步**。任何 external sync / authoritative commit 完成後：
+
+- 若「截角資料」View 當下可見，必須在 apply/commit 完成後刷新一次；
+- hidden View 不主動刷新；
+- replayed / stale revision 不得重刷；
+- repeated authoritative revisions 必須一個 commit 對應一次 visible refresh；
+- 仍然禁止 widget-to-widget sync，refresh 只能重新讀 authoritative projection/render data；
+- View refresh / recreate 本身不得寫回 manufacturing state。
+
 ## 舊 2D 移除順序
 
 固定：**先接 -> 驗 parity -> 再刪**。
@@ -94,10 +103,12 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 4. Save->Reload parity。
 5. `驗證板件與DXF`：dynamic physical parts、DXF reopen、2D/3D canonical parity。
 6. `config.ini` SHA256 前後不變。
-7. 最終 Combined Acceptance 後才允許整合 production target。
+7. T6 必驗 visible external-sync refresh、hidden no-refresh、replayed revision no-op、repeated revisions 一次一刷，以及 View recreate 不改 state。
+8. 最終 Combined Acceptance 後才允許整合 production target。
 
 ## 永久防錯
 
 - `READ SKILL != EXECUTE SKILL`；沒有實際 preflight/evidence/角色轉移/checkpoint/QA，不得宣稱已派工或已完成。
 - Validation 只能判定對錯，不能成為 production 計算來源。
 - 新發現的規則/踩坑同步 Skill、AI knowledge/library、durable agent-readable docs；禁止只留在聊天。
+- authoritative state 與 View freshness 是兩個不同 invariant；驗資料同源時也要另外驗 visible View refresh。
