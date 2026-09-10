@@ -34,6 +34,14 @@
 
 此 invariant 是對「既有 Skill 預設保留名稱」的專案級特例：**中文資料夾已是使用者指定的 canonical identity 時，`name` 要跟資料夾走。**
 
+## 專案 Skill 邊界：修改DXF
+
+- 使用者已明確確認：**`修改DXF` 不是 WHD／本專案 Skill**。
+- 不得因工作內容、資料夾名稱或關鍵字含 `DXF`，就把外部／其他專案的 `修改DXF` 能力自動加入 `.agents/skills/skill_registry.json`、WHD README/router、Phase6 Preflight 或 release Skill 清單。
+- WHD 目前的 `.agents/skills/engineering/驗證板件與DXF/SKILL.md` 是**驗證／驗收 Skill**；它負責 canonical geometry、2D/3D parity、DXF export→reopen、multipart、Save→Reload 等 QA，**不等於也不取代 `修改DXF`**。
+- 若使用者另外點名 `修改DXF`，先定位其真正所屬專案／來源，再依那個來源的規則執行；不能用 WHD `驗證板件與DXF` 冒充。
+- machine guard：`tests/test_dxf_skill_scope_contract.py`。
+
 ## WHD 標準入口
 
 正式 Skill 撰寫/修改規則：
@@ -48,6 +56,10 @@
 
 `tests/test_chinese_skill_identity_contract.py`
 
+DXF Skill scope contract：
+
+`tests/test_dxf_skill_scope_contract.py`
+
 全域踩坑庫：
 
 `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md`
@@ -60,6 +72,7 @@
 - 為既有 Skill 隨意加 `v2`，造成舊引用與新 identity 分裂。
 - 中文資料夾叫 `寫成規格書`，frontmatter 卻仍叫 `to-spec`；資料夾與 `name` split identity。
 - README/router 還連 `./to-spec/`、`./grilling/` 之類不存在路徑，即使 SKILL.md 本身已改名仍造成 discovery 斷鏈。
+- 看到 `DXF` 就把其他專案的 `修改DXF` 當成 WHD Skill，或用 `驗證板件與DXF` 冒充 DXF 編輯能力。
 - 使用者明確要求改名，卻被「永遠保留原名」規則擋住。
 - 只改 Skill 文字，沒有 contract test / Registry / AI Library durable writeback。
 - 看到測試 expected value 就把差值回灌 production。
