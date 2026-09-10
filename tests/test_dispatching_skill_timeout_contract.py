@@ -6,6 +6,31 @@ def _skill_text() -> str:
     return path.read_text(encoding="utf-8")
 
 
+def test_dispatching_skill_identity_is_user_requested_chinese_name():
+    text = _skill_text()
+    assert "name: 派工" in text
+    assert "name: dispatching" not in text
+    assert "# 派工" in text
+
+
+def test_dispatching_skill_sections_follow_execution_order():
+    text = _skill_text()
+    ordered = (
+        "## 1. 啟動與能力邊界",
+        "## 2. 狀態機",
+        "## 3. PM：工單與 Authority Gate",
+        "## 4. Implementer：實作與 Checkpoint",
+        "## 5. QA：審查與完成條件",
+        "## 6. 測試 Runner / TIMEOUT 協定",
+        "## 7. Remote QA Active Lock",
+        "## 8. 30 秒進度回報",
+        "## 9. 掃描深模組來源檢查",
+        "## 10. Skill 自我檢查",
+    )
+    positions = [text.index(section) for section in ordered]
+    assert positions == sorted(positions)
+
+
 def test_dispatching_skill_requires_process_group_cleanup_and_timeout_classification():
     text = _skill_text()
     assert "process group" in text.lower()
@@ -84,3 +109,17 @@ def test_dispatching_skill_requires_30_second_progress_reporting_without_stoppin
         "不得中斷",
     ):
         assert required in implement_text
+
+
+def test_dispatching_skill_keeps_github_issue_ai_library_and_remote_qa_gates():
+    text = _skill_text()
+    for required in (
+        "GitHub owning Issue",
+        "Requirement Authority",
+        "AI Library References",
+        "AI Library Writeback",
+        "monitoring-remote-qa",
+        "run_id + head_sha",
+        "REMOTE_QA_ACTIVE_LOCK",
+    ):
+        assert required in text
