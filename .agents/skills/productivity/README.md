@@ -12,9 +12,10 @@ General workflow tools, not code-specific.
 
 ## Model- or user-reachable
 
+- **[找技能](./找技能/SKILL.md)**: 搜尋、驗證與比較外部 Agent Skill；只有使用者明確同意才安裝，找到外部 Skill 不代表自動納入 WHD。
 - **[深度質詢](./深度質詢/SKILL.md)**: 以 design tree/frontier 逐輪拷問 plan/decision/idea；facts 由執行者查、decisions 由使用者定案。
 - **[writing-for-agents](./writing-for-agents/SKILL.md)**: Writing documents for agents: skills, AGENTS.md/CLAUDE.md, and pointed-at docs.
 
 ## Canonical identity rule
 
-中文 Skill 資料夾的 frontmatter `name` 必須等於資料夾 basename；因此此處 canonical identity 是 `深度質詢`，不是舊英文 `grilling`。
+中文 Skill 資料夾的 frontmatter `name` 必須等於資料夾 basename；因此此處 canonical identity 是 `找技能`、`深度質詢`，不是英文 alias。
