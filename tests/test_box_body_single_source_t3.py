@@ -85,15 +85,22 @@ def test_receiving_corner_data_box_body_uses_same_authoritative_context_projecti
 
         designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
+        bundle = bridge._phase6_query_assembly_render_data(designer)
         bridge._phase6_show_corner_data(designer)
-        assert bridge._phase6_select_corner_data_part(designer, "box_body") == "box_body"
+        resolved = bridge._phase6_select_corner_data_part(designer, "box_body")
         projection = bridge._phase6_corner_data_unfold_projection(designer)
 
+        # Receiving keeps one top-level 箱身 selector, but its authoritative
+        # manufacturing identity is one of the three physical child plates.
+        assert resolved == "box_body:left_side"
         assert projection is not None
-        contexts = projection.render_data.box_body_face_contexts
-        assert set(contexts) == {"left", "back", "right"}
+        assert projection.part_key == resolved
+        aggregate = next(part for part in bundle.assembly_parts if part.part_key == "box_body").render_data
+        expected = next(piece.render_data for piece in aggregate.pieces if piece.role == "left_side")
+        assert projection.render_data.material.equals(expected.material)
         assert app.workspace_controller.box_body_profile()
         assert projection.render_data is bridge._phase6_corner_data_unfold_projection(designer).render_data
+        assert not hasattr(app, "notebook")
     finally:
         try:
             if designer is not None:
