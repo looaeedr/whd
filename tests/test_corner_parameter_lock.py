@@ -23,13 +23,7 @@ def _require_display():
         pytest.skip("需要 Tk 顯示環境")
 
 
-def _select_head(app, root):
-    app.notebook.select(app.tab_head)
-    app.refresh_corner_type_panel()
-    root.update_idletasks(); root.update()
-
-
-def test_main_gui_corner_parameters_default_locked_and_unlock_does_not_mutate_state():
+def test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state():
     _require_display()
     import tkinter as tk
 
@@ -37,25 +31,32 @@ def test_main_gui_corner_parameters_default_locked_and_unlock_does_not_mutate_st
     app = None
     try:
         app = gui.BoxCalculatorGUI(root)
-        _select_head(app, root)
-        before = deepcopy(app._serialize_manual_corner_state())
-
-        assert app._manual_corner_parameters_unlocked("head") is False
-        assert app.manual_corner_param_frame.winfo_manager() == ""
-        assert "🔒" in app.manual_corner_param_lock_button.cget("text")
-
-        app.toggle_manual_corner_parameter_lock()
+        app.baseline_var = DummyVar("金庫型")
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
         root.update_idletasks(); root.update()
-        assert app._manual_corner_parameters_unlocked("head") is True
-        assert app.manual_corner_param_frame.winfo_manager() == "pack"
-        assert "🔓" in app.manual_corner_param_lock_button.cget("text")
-        assert app._serialize_manual_corner_state() == before
+        before = deepcopy(designer._phase6_corner_state)
 
-        app.toggle_manual_corner_parameter_lock()
+        assert not hasattr(app, "notebook")
+        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert designer.corner_detail_frames == {}
+
+        designer.toggle_corner_parameter_lock()
         root.update_idletasks(); root.update()
-        assert app.manual_corner_param_frame.winfo_manager() == ""
-        assert app._serialize_manual_corner_state() == before
+        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
+        assert designer._phase6_corner_state == before
+
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert designer._phase6_corner_state == before
     finally:
+        try:
+            if app is not None and app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
@@ -64,22 +65,31 @@ def test_known_model_corner_type_stays_readonly_but_parameters_can_unlock():
     import tkinter as tk
 
     root = tk.Tk(); root.withdraw()
+    app = None
     try:
         app = gui.BoxCalculatorGUI(root)
-        # Simulate an already-known production model without triggering external baseline file I/O.
         app.baseline_var = DummyVar("金庫型")
         assert not gui.is_unknown_model(app.baseline_var.get())
-        _select_head(app, root)
-
-        assert app._corner_part_type_editable("head") is False
-        assert app._corner_part_parameters_unlockable("head") is True
-        assert app.manual_corner_param_frame.winfo_manager() == ""
-        app.toggle_manual_corner_parameter_lock()
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
         root.update_idletasks(); root.update()
-        assert app.manual_corner_param_frame.winfo_manager() == "pack"
-        # Known model keeps its CornerType default readonly while allowing fine-parameter edits.
-        assert all(str(rb.cget("state")) == "disabled" for rb in app.manual_corner_type_buttons.values())
+        before = deepcopy(designer._phase6_corner_state["head"])
+
+        assert bridge._phase6_corner_type_editable(designer, "head") is False
+        assert bridge._phase6_corner_parameters_unlockable(designer, "head") is True
+        assert designer._phase6_corner_parameters_unlocked("head") is False
+
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert bridge._phase6_corner_type_editable(designer, "head") is False
+        assert designer._phase6_corner_state["head"] == before
     finally:
+        try:
+            if app is not None and app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
@@ -135,57 +145,79 @@ def test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_
         root.destroy()
 
 
-def test_project_load_resets_transient_corner_parameter_locks(tmp_path):
+def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path):
     _require_display()
     import tkinter as tk
     import phase6_project_file as project
 
     root = tk.Tk(); root.withdraw()
+    app = None
     try:
         app = gui.BoxCalculatorGUI(root)
-        _select_head(app, root)
-        app.toggle_manual_corner_parameter_lock()
-        assert app._manual_corner_parameters_unlocked("head") is True
+        app.baseline_var = DummyVar("金庫型")
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
+        root.update_idletasks(); root.update()
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        assert designer._phase6_corner_parameters_unlocked("head") is True
 
         snapshot = app._make_original_fold_designer_snapshot()
         payload = {"schema": project.PROJECT_SCHEMA, "saved_at": "now", "snapshot": snapshot, "final_geometry": {}}
         path = project.write_project(tmp_path / "lock-reset.p6fold", payload)
 
-        app.load_phase6_project(path, open_designer=False)
+        if app.fold_designer_window is not None:
+            app.fold_designer_window.destroy()
+            app.fold_designer_window = None
+            app.fold_designer_app = None
+        loaded = app.load_phase6_project(path, open_designer=True)
         root.update_idletasks(); root.update()
-        _select_head(app, root)
-        assert app._manual_corner_parameters_unlocked("head") is False
-        assert app.manual_corner_param_frame.winfo_manager() == ""
+        loaded.activate_part("head")
+        root.update_idletasks(); root.update()
+
+        assert loaded._phase6_corner_parameters_unlocked("head") is False
+        assert loaded.corner_detail_frames == {}
     finally:
+        try:
+            if app is not None and app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
-def test_main_gui_locked_parameters_ignore_change_but_known_unlocked_can_adjust_amount():
+def test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount():
     _require_display()
     import tkinter as tk
 
     root = tk.Tk(); root.withdraw()
+    app = None
     try:
         app = gui.BoxCalculatorGUI(root)
         app.baseline_var = DummyVar("金庫型")
-        _select_head(app, root)
-        # Bottom CROSS extra-cut has a real amount field in the default state.
-        app.select_manual_corner("bottom")
+        designer = app.open_original_fold_designer()
+        designer.activate_part("head")
         root.update_idletasks(); root.update()
-        before = deepcopy(app.manual_corner_state["head"]["bottom_left"])
-        before_type = before.type_id
+        before = deepcopy(designer._phase6_corner_state["head"]["bottom_left"])
 
-        app.manual_corner_amount_var.set("9")
-        app.on_manual_corner_parameter_changed()
-        assert app.manual_corner_state["head"]["bottom_left"] == before
+        assert not hasattr(app, "notebook")
+        assert designer.corner_amount_vars == {}
+        assert designer._phase6_corner_state["head"]["bottom_left"] == before
 
-        app.toggle_manual_corner_parameter_lock()
-        app.manual_corner_amount_var.set("1.75")
-        app.on_manual_corner_parameter_changed()
-        after = app.manual_corner_state["head"]["bottom_left"]
-        assert after.type_id is before_type
-        assert after.amount_t == pytest.approx(1.75)
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        target = "bottom" if "bottom" in designer.corner_amount_vars else "bottom_left"
+        designer.corner_amount_vars[target].set("1.75")
+        bridge._phase6_corner_target_var_changed(designer, "head", target)
+        after = designer._phase6_corner_state["head"]["bottom_left"]
+        assert after["type_id"] == before["type_id"]
+        assert float(after["amount_t"]) == pytest.approx(1.75)
     finally:
+        try:
+            if app is not None and app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
