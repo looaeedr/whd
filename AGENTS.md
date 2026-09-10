@@ -832,3 +832,17 @@ Registry HIT 時，Certified JSON 的公式與 metadata 是 canonical 製造答�
 - 若發現已經直接寫到 target：立即停止後續寫入，反讀實際 side effects，建立新的修正／recovery branch，留下 provenance；不得假裝 branch-first 已遵守。
 - merge 前仍需遵守對應 final acceptance、config invariant、workflow cleanup、tested-head→closing-head drift audit。branch existence **不能取代驗收**。
 - branch-first 是所有其他工程 Skill 的前置硬閘門；任何 Skill 若準備修改檔案，先驗 branch name + parent/base SHA。
+
+### 0.0.4 Authoritative View freshness 硬閘門
+
+> **authoritative state 已更新，不代表操作員目前看到的 View 已刷新。兩者是不同 invariant。**
+
+凡 Main GUI / Fold Designer / 2D / 3D 共用 authoritative state 的同步或入口收斂任務，必須同時驗證資料同源與可見 View freshness：
+
+1. authoritative mutation / external sync 必須先完成 commit/apply/invalidate，再由 View 重新讀 authoritative projection / render data。
+2. 若 `corner_data` / 截角資料 View 當下可見，每個新的 authoritative revision 套用成功後**剛好刷新一次**。
+3. hidden View 不得 eager refresh；replayed / stale revision 必須 no-op，不得重刷。
+4. repeated authoritative revisions 必須維持「一個 commit 對應一次 visible refresh」，不得漏刷或雙刷。
+5. 禁止 widget-to-widget 抄值作同步；View refresh / destroy / recreate 不得寫回 manufacturing state、available parts、CornerType、Fold Profile、holes/features 或 persistence payload。
+6. 驗 dual-view parity 不得只比 Final Material / DXF / Save→Reload；還必須有 visible refresh、hidden no-refresh、replayed revision no-op、repeated revisions、View recreate zero-mutation 的證據。
+7. 發現「資料正確但畫面仍舊」時，先查 authoritative commit → invalidate/apply → visible View refresh orchestration，不得另建第二套 geometry/state 當 workaround。
