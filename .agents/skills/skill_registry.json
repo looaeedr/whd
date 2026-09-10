@@ -24,6 +24,26 @@
       ]
     },
     {
+      "id": "dispatching-workflow",
+      "keywords": [
+        "派工",
+        "dispatching",
+        "角色切換",
+        "轉移至：實作者",
+        "當前角色：總控審查",
+        "PM → Implementer → QA"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/派工/**"
+      ],
+      "required_skills": [
+        "派工"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "scan-deep-modules",
       "keywords": [
         "掃描深模組",
