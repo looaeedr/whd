@@ -151,7 +151,9 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
     import phase6_project_file as project
 
     root = tk.Tk(); root.withdraw()
+    loaded_root = None
     app = None
+    loaded_app = None
     try:
         app = gui.BoxCalculatorGUI(root)
         app.baseline_var = DummyVar("金庫型")
@@ -166,24 +168,31 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
         payload = {"schema": project.PROJECT_SCHEMA, "saved_at": "now", "snapshot": snapshot, "final_geometry": {}}
         path = project.write_project(tmp_path / "lock-reset.p6fold", payload)
 
-        if app.fold_designer_window is not None:
-            app.fold_designer_window.destroy()
-            app.fold_designer_window = None
-            app.fold_designer_app = None
-        loaded = app.load_phase6_project(path, open_designer=True)
-        root.update_idletasks(); root.update()
+        # Project lock state is transient UI state.  Load the saved project into a
+        # fresh Fold Designer session instead of manually tearing down a live Tk
+        # Toplevel while its queued after callbacks are still owned by Tcl.
+        loaded_root = tk.Tk(); loaded_root.withdraw()
+        loaded_app = gui.BoxCalculatorGUI(loaded_root)
+        loaded = loaded_app.load_phase6_project(path, open_designer=True)
+        loaded_root.update_idletasks(); loaded_root.update()
         loaded.activate_part("head")
-        root.update_idletasks(); root.update()
+        loaded_root.update_idletasks(); loaded_root.update()
 
         assert loaded._phase6_corner_parameters_unlocked("head") is False
         assert loaded.corner_detail_frames == {}
     finally:
-        try:
-            if app is not None and app.fold_designer_window is not None:
-                app.fold_designer_window.destroy()
-        except Exception:
-            pass
-        root.destroy()
+        for owner in (loaded_app, app):
+            try:
+                if owner is not None and owner.fold_designer_window is not None:
+                    owner.fold_designer_window.destroy()
+            except Exception:
+                pass
+        for target in (loaded_root, root):
+            try:
+                if target is not None:
+                    target.destroy()
+            except Exception:
+                pass
 
 
 def test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount():
