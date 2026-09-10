@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 找出架構摩擦並提出 **深化機會（deepening opportunities）**：把 shallow module 重構成 deep module，提高 testability、AI navigability 與修改 locality。
 
-## 語言規則（最高優先）
+## 語言規則（最高優先，強制）
 
 <LANGUAGE-GATE>
 **所有使用者可見內容一律繁體中文（zh-TW / zh-Hant-TW）。**
@@ -20,7 +20,7 @@ disable-model-invocation: true
 不得因舊 Skill、template 或歷史 HTML 使用英文，就把英文 UI 帶回最終輸出。
 </LANGUAGE-GATE>
 
-## 啟動前語言自檢
+## 啟動前語言自檢（強制）
 
 探索 code 前：
 
@@ -114,7 +114,7 @@ architecture-review-<timestamp>.html
 
 此階段不要先設計具體 interface；先讓使用者選 candidate。
 
-## 3. 輸出前語言 gate
+## 3. 輸出前語言閘門（強制）
 
 HTML 完成後，有 runtime 時執行：
 
