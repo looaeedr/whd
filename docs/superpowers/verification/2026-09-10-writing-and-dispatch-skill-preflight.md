@@ -47,3 +47,5 @@ Targeted contracts:
 - release packaging policy around mandatory Skill artifacts
 
 Remote QA, when started, must be monitored to terminal and cleaned before acceptance.
+
+QA trigger note: this commit exists only to trigger the already-registered one-shot branch workflow after its creation commit produced no run.
