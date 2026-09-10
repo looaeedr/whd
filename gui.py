@@ -1824,6 +1824,14 @@ class BoxCalculatorGUI:
             except (TypeError, ValueError, tk.TclError):
                 return float(fallback)
 
+        workspace_active = str(self.workspace_controller.active_part or "").strip()
+        box_body_active_piece = (
+            workspace_active
+            if workspace_active.startswith("box_body:")
+            and not workspace_active.startswith("box_body:divider:")
+            else None
+        )
+
         snapshot = {
             "model": self.baseline_var.get().strip(),
             "_runtime_project_path": self.project_controller.project_path,
@@ -1865,9 +1873,9 @@ class BoxCalculatorGUI:
             "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
             "inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
             "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
-            "box_body_active_piece": (
-                str(self.box_body_piece_2d_selected_var.get() or "").strip() or None
-            ),
+            # Compatibility projection only: the retired 2D widget is not an
+            # authority.  Seed Fold Designer child selection from workspace identity.
+            "box_body_active_piece": box_body_active_piece,
         }
         if getattr(self, "door_layout_columns", None):
             snapshot["door_layout_columns"] = [
@@ -2085,10 +2093,6 @@ class BoxCalculatorGUI:
         # CornerType and fold profiles. Project-specific state below adds every
         # part's features and indicator workspace that the old snapshot omitted.
         self._apply_original_fold_designer_snapshot(snapshot)
-        active_box_piece = str(snapshot.get("box_body_active_piece") or "")
-        if active_box_piece.startswith("box_body:") and not active_box_piece.startswith("box_body:divider:"):
-            self.box_body_piece_2d_selected_var.set(active_box_piece)
-
         part_features = dict(snapshot.get("part_features") or {})
         for key in tuple(self.surface_features):
             if str(key).startswith("door_c") and key not in part_features:
