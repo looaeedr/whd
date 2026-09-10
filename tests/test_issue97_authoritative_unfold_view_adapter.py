@@ -73,6 +73,26 @@ def test_multipart_physical_child_projection_reuses_resolved_aggregate_piece_sin
     assert calls == [("piece", app, "box_body:back")]
 
 
+def test_multipart_aggregate_parent_fails_closed_instead_of_faking_single_unfold(monkeypatch):
+    app = _app(
+        ("box_body", "box_body:left_side", "box_body:back", "box_body:right_side", "head"),
+        "box_body",
+    )
+
+    monkeypatch.setattr(
+        bridge,
+        "_phase6_render_data_for_blank",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("aggregate parent queried")),
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_phase6_box_body_piece_render_data",
+        lambda *_args: (_ for _ in ()).throw(AssertionError("unresolved parent queried")),
+    )
+
+    assert _projection(app) is None
+
+
 def test_stale_selected_identity_fails_closed_without_querying_render_data(monkeypatch):
     app = _app(("box_body", "head", "tail"), "door_c1_r2")
 
