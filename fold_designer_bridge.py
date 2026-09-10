@@ -137,6 +137,13 @@ class Phase6PartDimensionProjection:
 
 
 @dataclass(frozen=True)
+class Phase6CornerDataUnfoldProjection:
+    """Selected stable identity paired with already-authoritative unfold render data."""
+    part_key: str
+    render_data: object
+
+
+@dataclass(frozen=True)
 class DoorPartProjection:
     part_key: str
     column_index: int
@@ -8577,6 +8584,36 @@ def _phase6_select_corner_data_part(self, key):
         resolved = None
     self._phase6_corner_data_selected_part_key = resolved
     return resolved
+
+
+def _phase6_corner_data_unfold_projection(self):
+    """Return the selected authoritative render-data sink for the unfold View.
+
+    This adapter owns no manufacturing calculation.  It only validates the
+    stable corner-data identity and delegates to the existing canonical
+    render-data sinks already used by blank reporting / multipart children.
+    """
+    keys = _phase6_corner_data_part_keys(self)
+    selected = str(getattr(self, "_phase6_corner_data_selected_part_key", "") or "")
+    if not selected or selected not in keys:
+        return None
+
+    box_children = _phase6_box_body_piece_keys(keys)
+    if selected == "box_body" and box_children:
+        # Multipart BoxBody must resolve to one physical child before the
+        # unfold View can render; the aggregate parent is never a fake sheet.
+        return None
+
+    if _phase6_is_box_body_physical_piece_key(selected):
+        render_data = _phase6_box_body_piece_render_data(self, selected)
+    else:
+        render_data = _phase6_render_data_for_blank(self, selected)
+    if render_data is None:
+        return None
+    return Phase6CornerDataUnfoldProjection(
+        part_key=selected,
+        render_data=render_data,
+    )
 
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
