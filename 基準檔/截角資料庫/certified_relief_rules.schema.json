@@ -89,8 +89,7 @@
             ]
           },
           "joint_signature": {
-            "type": "array",
-            "minItems": 1
+            "type": "array"
           },
           "topology_levels": {
             "enum": [
@@ -180,8 +179,45 @@
           },
           "cross_parameters": {
             "type": "object"
+          },
+          "rule_domain": {
+            "enum": [
+              "ENDCAP_RELIEF",
+              "DIVIDER_CROSS"
+            ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "rule_domain"
+              ],
+              "properties": {
+                "rule_domain": {
+                  "const": "DIVIDER_CROSS"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "joint_signature": {
+                  "maxItems": 0
+                },
+                "corner_type": {
+                  "const": "CROSS"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "joint_signature": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
       }
     }
   }

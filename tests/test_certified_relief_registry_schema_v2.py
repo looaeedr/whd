@@ -27,7 +27,14 @@ def test_every_active_endcap_rule_has_v2_signature_formula_and_revision():
     for rule_id in runtime_ids:
         item = records[rule_id]
         assert item["revision"] >= 1
-        assert item["joint_signature"]
+        domain = str(item.get("rule_domain") or "ENDCAP_RELIEF").upper()
+        if domain == "DIVIDER_CROSS":
+            assert item["joint_signature"] == []
+            assert str(item.get("part_role") or "").upper() == "DIVIDER"
+            assert str(item.get("corner_type") or "").upper() == "CROSS"
+        else:
+            assert domain == "ENDCAP_RELIEF"
+            assert item["joint_signature"]
         assert item["topology_levels"] in (1, 2)
         assert isinstance(item["formula"], dict) and item["formula"]
         assert item["trust_level"] in {"CERTIFIED", "CERTIFIED_FROM_3D"}
