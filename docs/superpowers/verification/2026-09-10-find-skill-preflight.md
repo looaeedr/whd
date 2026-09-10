@@ -114,12 +114,14 @@ The first one-shot workflow initially triggered on every branch push, causing in
 - one-shot workflow: `.github/workflows/find-skill-contract-20260910.yml`
 - cleanup commit: `e1fd158e103c75ddb89f9e841f0b1fe28213eef1`
 - remote re-read after deletion: **404 Not Found**, expected.
-- No further remote QA run can be triggered by this evidence update because the workflow is no longer present.
+- Workflow run count remained 8 after cleanup/evidence update; no replacement run was created.
 
-## Drift audit basis
+## Drift audit result
 
-Compare tested head `18540328ad20e95c4fe07ff2df2bf3f91a5fb326` to final branch head. Accept only:
-1. deletion of the one-shot workflow;
-2. this verification evidence update.
+Compared tested head `18540328ad20e95c4fe07ff2df2bf3f91a5fb326` to post-cleanup head `4d3b8ecc12510807f37f29e7d1b9000e43ef952d`:
 
-Any Skill, test, Registry, AI Library, release-policy, production, or configuration drift after the tested head invalidates the GREEN evidence.
+- `.github/workflows/find-skill-contract-20260910.yml` — removed;
+- this verification evidence file — modified;
+- **no Skill, test, Registry, AI Library, release-policy, production, or configuration drift.**
+
+This final evidence-only commit does not alter the tested implementation. Acceptance remains anchored to run `34500275931` / tested head `18540328...`, with post-test drift limited to QA cleanup/evidence only.
