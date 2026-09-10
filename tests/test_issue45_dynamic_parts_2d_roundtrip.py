@@ -35,23 +35,42 @@ def test_r3_normalize_part_selection_preserves_authoritative_dynamic_ids():
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
-def test_r3_main_2d_keeps_dynamic_receiving_door_base_and_physical_ids_visible():
+def test_r3_corner_data_keeps_dynamic_receiving_door_base_and_physical_ids_visible():
     import tkinter as tk
     import gui
 
     root = tk.Tk()
     root.geometry("1200x900")
     app = gui.BoxCalculatorGUI(root)
+    designer = None
     try:
         existing = app._apply_existing_parts_from_fold_workspace(DYNAMIC_PARTS)
         root.update_idletasks(); root.update()
 
-        assert str(app.notebook.tab(app.tab_door, "state")) != "hidden"
-        assert str(app.notebook.tab(app.tab_base_plate, "state")) != "hidden"
-
         current = app._phase6_current_existing_parts()
         for key in DYNAMIC_PARTS:
             assert key in current, (key, sorted(current))
+
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        root.update_idletasks(); root.update()
+
+        corner_keys = tuple(bridge._phase6_corner_data_part_keys(designer))
+        for key in (
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+            "door_c1_r1",
+            "door_c1_r2",
+            "base_plate_c1_r1",
+            "base_plate_c1_r2",
+        ):
+            assert key in corner_keys, (key, corner_keys)
+            assert bridge._phase6_select_corner_data_part(designer, key) == key
+            projection = bridge._phase6_corner_data_unfold_projection(designer)
+            assert projection is not None
+            assert projection.part_key == key
 
         app.update_calculations()
         root.update_idletasks(); root.update()
@@ -61,5 +80,11 @@ def test_r3_main_2d_keeps_dynamic_receiving_door_base_and_physical_ids_visible()
         assert app.result_base_plate_h_var.get() != "-"
         assert bool(app.export_door_var.get()) is True
         assert bool(app.export_base_plate_var.get()) is True
+        assert not hasattr(app, "notebook")
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
