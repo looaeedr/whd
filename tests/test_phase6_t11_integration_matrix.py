@@ -65,7 +65,7 @@ def test_frame_and_divider_stable_parts_share_workspace_finalscene_and_dxf(tmp_p
     # the bottom physical frame is the shared box-body divider.
     receiving_snapshot = receiving.apply_family_defaults({"t": 2.0})
     frames = derive_all_inner_door_frames(receiving.derive_inner_door_frame_sets(receiving_snapshot))
-    assert next(frame.span for frame in frames if frame.side == "top") == pytest.approx(627.0)
+    assert next(frame.span for frame in frames if frame.side == "top") == pytest.approx(635.0)
     assert {frame.side for frame in frames} == {"top", "left", "right"}
     assert all(frame.side != "bottom" for frame in frames)
 

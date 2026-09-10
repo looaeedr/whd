@@ -8,10 +8,17 @@ import pytest
 def _vault_door_spec(*, model_name="金庫型", datum=None):
     from ae_engine.contracts import DoorPartSpec
     return DoorPartSpec(
-        width=800, height=1600, thickness=2, frame_width=29,
+        width=800, height=1600, thickness=2, frame_width=(29 if model_name == "受電箱" else 25),
         model_name=model_name, gap_w=3.5, gap_h=3.5,
         fold_left=19, fold_right=19, fold_top=19, fold_bottom=19,
         nameplate_center_datum_top=datum,
+    )
+
+
+def _door_material_fw(spec):
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    return cabinet_family_policy.door_material_frame_width(
+        spec.model_name, frame_width=spec.frame_width, thickness=spec.thickness,
     )
 
 
@@ -45,7 +52,7 @@ def test_receiving_reuses_vault_baseline_resolver_and_applies_top_datum_140():
 
     fw, fh = door_finished_face_size(spec, ManufacturingContext(resource_root=root))
     structural = build_door_result(
-        w=spec.width, h=spec.height, t=spec.thickness, fw=spec.frame_width,
+        w=spec.width, h=spec.height, t=spec.thickness, fw=_door_material_fw(spec),
         gap_w=spec.gap_w, gap_h=spec.gap_h,
         fold_left=spec.fold_left, fold_right=spec.fold_right,
         fold_top=spec.fold_top, fold_bottom=spec.fold_bottom,
@@ -69,7 +76,7 @@ def test_receiving_family_default_nameplate_datum_is_140():
     circles = _nameplate_circles(scene)
     fw, fh = door_finished_face_size(spec, ctx)
     structural = build_door_result(
-        w=spec.width, h=spec.height, t=spec.thickness, fw=spec.frame_width,
+        w=spec.width, h=spec.height, t=spec.thickness, fw=_door_material_fw(spec),
         gap_w=spec.gap_w, gap_h=spec.gap_h, fold_left=spec.fold_left, fold_right=spec.fold_right,
         fold_top=spec.fold_top, fold_bottom=spec.fold_bottom, frame_edges=spec.frame_edges,
     )
@@ -90,7 +97,7 @@ def test_same_datum_has_same_feature_local_coordinates_across_families():
         circles = _nameplate_circles(scene)
         fw, fh = door_finished_face_size(spec, ctx)
         structural = build_door_result(
-            w=spec.width, h=spec.height, t=spec.thickness, fw=spec.frame_width,
+            w=spec.width, h=spec.height, t=spec.thickness, fw=_door_material_fw(spec),
             gap_w=spec.gap_w, gap_h=spec.gap_h,
             fold_left=spec.fold_left, fold_right=spec.fold_right,
             fold_top=spec.fold_top, fold_bottom=spec.fold_bottom,
