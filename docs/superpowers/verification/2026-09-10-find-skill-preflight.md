@@ -63,7 +63,7 @@ READ_REFERENCE: release_required_artifacts.json
   - required Skills: `寫技能`, `phase6-release-packaging`
   - required references: global pitfall library, WHD skill-authoring rules, release manifest
 - contract: `tests/test_find_skill_contract.py`
-- result: **8 failed / 0 passed**
+- result: **8 failed / 0 passed / 0.19s**
 - failures were requirement failures: missing `找技能/SKILL.md`, missing `skill-discovery` Registry route, missing Productivity README entry, missing AI durable boundary, missing release artifacts. No setup/import failure.
 
 ## Implementation summary
@@ -88,18 +88,27 @@ READ_REFERENCE: release_required_artifacts.json
 
 ## Remote-run hygiene correction
 
-The first one-shot workflow initially triggered on every branch push, causing intermediate implementation commits to create extra runs. Those intermediate runs are not final evidence. After the targeted GREEN, the workflow trigger was narrowed to this evidence file only, so the final regression matrix is a single explicit QA trigger. Final acceptance must use the new final-matrix run, not the intermediate runs.
+The first one-shot workflow initially triggered on every branch push, causing intermediate implementation commits to create extra runs. Those intermediate runs are not final evidence. After the targeted GREEN, the workflow trigger was narrowed to this evidence file only, so the final regression matrix is a single explicit QA trigger. Final acceptance uses the final-matrix run below, not intermediate runs.
 
-## Final regression scope
+## Final GREEN evidence
 
-The final run must include:
-- `tests/test_find_skill_contract.py`
-- `tests/test_chinese_skill_identity_contract.py`
-- `tests/test_writing_skill_contract.py`
-- `tests/test_writing_skill_preflight_route.py`
-- `tests/test_dxf_skill_scope_contract.py`
-- `tests/test_phase6_skill_preflight_gate.py`
-- `tests/test_phase6_release_packaging_policy.py`
-- `tests/test_release_integrity_gate.py`
+- run: `34500050124`
+- tested head: `48a7da2f860aef6a083a93367d0dd54a058635fe`
+- terminal conclusion: **SUCCESS**
+- Knowledge Preflight: PASS
+  - required Skills: `寫技能`, `找技能`, `phase6-release-packaging`
+  - required references: global pitfall library, WHD skill-authoring rules, release manifest
+- final regression matrix: **61 passed / 0 failed / 0.60s**
+- matrix included:
+  - `tests/test_find_skill_contract.py`
+  - `tests/test_chinese_skill_identity_contract.py`
+  - `tests/test_writing_skill_contract.py`
+  - `tests/test_writing_skill_preflight_route.py`
+  - `tests/test_dxf_skill_scope_contract.py`
+  - `tests/test_phase6_skill_preflight_gate.py`
+  - `tests/test_phase6_release_packaging_policy.py`
+  - `tests/test_release_integrity_gate.py`
 
-After final GREEN: delete `.github/workflows/find-skill-contract-20260910.yml`, re-read 404, then compare tested head → cleaned head. Only workflow cleanup and this evidence file may drift after the tested head.
+## Cleanup / drift audit pending
+
+After this evidence commit, delete `.github/workflows/find-skill-contract-20260910.yml`, re-read the path and require 404, then compare tested head `48a7da2f...` to cleaned branch head. Only this verification evidence and one-shot workflow removal may differ after tested head; any Skill/test/Registry/AI/release-policy drift invalidates the GREEN evidence.
