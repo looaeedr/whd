@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from ae_engine.corner_type_ui import UNKNOWN_MODEL_NAME
@@ -49,74 +50,108 @@ def test_unknown_model_name_is_not_a_phase6_baseline_source():
     assert UNKNOWN_MODEL_NAME == '自訂'
 
 
-def test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking():
+def _open_fold_designer(model_name):
     import tkinter as tk
-    from gui import BoxCalculatorGUI
+    import gui
 
     root = tk.Tk()
     root.withdraw()
-    try:
-        app = BoxCalculatorGUI(root)
-        root.update_idletasks()
-        app.notebook.select(app.tab_door)
-        app.baseline_var.set('金庫型')
-        app.refresh_corner_type_panel()
-        root.update_idletasks()
-        assert app.corner_type_panel.winfo_ismapped()
-        assert app.manual_corner_title_label.cget("text") == "截角類型（基準預設）"
-        assert all(button.cget("state") == "disabled" for button in app.manual_corner_type_buttons.values())
+    app = gui.BoxCalculatorGUI(root)
+    app.baseline_var.set(model_name)
+    root.update_idletasks(); root.update()
+    designer = app.open_original_fold_designer()
+    designer.activate_part('door')
+    root.update_idletasks(); root.update()
+    return root, app, designer
 
-        app.baseline_var.set(UNKNOWN_MODEL_NAME)
-        app.refresh_corner_type_panel()
-        root.update_idletasks()
-        assert app.corner_type_panel.winfo_ismapped()
-        assert app.manual_corner_title_label.cget("text") == "截角類型"
-        assert all(button.cget("state") == "normal" for button in app.manual_corner_type_buttons.values())
-        assert len(app.corner_type_small_canvases) == 4
-        assert app.manual_corner_pair_same["door"] == {"top": True, "bottom": True}
-        assert app.manual_top_same_var.get() is True
-        assert app.manual_bottom_same_var.get() is True
-        assert not hasattr(app, "manual_corner_buttons") or not app.manual_corner_buttons
+
+def test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking():
+    import fold_designer_bridge as bridge
+
+    root, app, designer = _open_fold_designer('金庫型')
+    try:
+        assert not hasattr(app, 'notebook')
+        assert bridge._phase6_corner_type_editable(designer, 'door') is False
+        before = deepcopy(designer._phase6_corner_state['door'])
+
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        assert bridge._phase6_corner_parameters_unlocked(designer, 'door') is True
+        assert designer.corner_type_vars
+
+        # Known families expose fine parameters after unlock, but CornerType is
+        # owned by the family contract.  Even a programmatic selector change is ignored.
+        target = 'top' if 'top' in designer.corner_type_vars else next(iter(designer.corner_type_vars))
+        designer.corner_type_vars[target].set('C02')
+        bridge._phase6_corner_type_selected(designer, 'door', target)
+        assert designer._phase6_corner_state['door'] == before
     finally:
+        try:
+            designer.root.destroy()
+        except Exception:
+            pass
+        root.destroy()
+
+    root, app, designer = _open_fold_designer(UNKNOWN_MODEL_NAME)
+    try:
+        assert not hasattr(app, 'notebook')
+        assert bridge._phase6_corner_type_editable(designer, 'door') is True
+        assert designer._phase6_corner_pair_same['door'] == {'top': True, 'bottom': True}
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
+        assert designer.corner_pair_vars['top'].get() is True
+        assert designer.corner_pair_vars['bottom'].get() is True
+        assert designer.corner_type_vars
+    finally:
+        try:
+            designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
 def test_unknown_gui_defaults_to_top_bottom_pair_edit_and_splits_only_on_request():
-    import tkinter as tk
-    from gui import BoxCalculatorGUI
+    import fold_designer_bridge as bridge
 
-    root = tk.Tk()
-    root.withdraw()
+    root, app, designer = _open_fold_designer(UNKNOWN_MODEL_NAME)
     try:
-        app = BoxCalculatorGUI(root)
-        app.update_calculations = lambda: None
-        app.notebook.select(app.tab_door)
-        app.baseline_var.set(UNKNOWN_MODEL_NAME)
-        app.refresh_corner_type_panel()
+        assert not hasattr(app, 'notebook')
+        designer.toggle_corner_parameter_lock()
+        root.update_idletasks(); root.update()
 
-        app.select_manual_corner('top')
-        app.set_manual_corner_type(CornerTypeId.INSERT_OVERLAY)
-        state = app.manual_corner_state['door']
-        assert state['top_left'].type_id is CornerTypeId.INSERT_OVERLAY
-        assert state['top_right'].type_id is CornerTypeId.INSERT_OVERLAY
+        state = designer._phase6_corner_state['door']
+        assert designer._phase6_corner_pair_same['door'] == {'top': True, 'bottom': True}
 
-        app.select_manual_corner('bottom')
-        app.set_manual_corner_type(CornerTypeId.CROSS)
-        assert state['bottom_left'].type_id is CornerTypeId.CROSS
-        assert state['bottom_right'].type_id is CornerTypeId.CROSS
+        insert_overlay_label = bridge._CORNER_TYPE_LABEL_BY_ID[CornerTypeId.INSERT_OVERLAY.value]
+        cross_label = bridge._CORNER_TYPE_LABEL_BY_ID[CornerTypeId.CROSS.value]
+        overlay_label = bridge._CORNER_TYPE_LABEL_BY_ID[CornerTypeId.OVERLAY.value]
 
-        app.toggle_manual_corner_parameter_lock()
-        assert app._manual_corner_parameters_unlocked('door') is True
-        app.manual_top_same_var.set(False)
-        app.on_manual_corner_pair_same_changed('top')
-        app.select_manual_corner('top_right')
-        app.set_manual_corner_type(CornerTypeId.OVERLAY)
-        assert state['top_left'].type_id is CornerTypeId.INSERT_OVERLAY
-        assert state['top_right'].type_id is CornerTypeId.OVERLAY
+        designer.corner_type_vars['top'].set(insert_overlay_label)
+        bridge._phase6_corner_type_selected(designer, 'door', 'top')
+        assert state['top_left']['type_id'] == CornerTypeId.INSERT_OVERLAY.value
+        assert state['top_right']['type_id'] == CornerTypeId.INSERT_OVERLAY.value
 
-        app.manual_top_same_var.set(True)
-        app.on_manual_corner_pair_same_changed('top')
-        assert state['top_left'].type_id is CornerTypeId.INSERT_OVERLAY
-        assert state['top_right'].type_id is CornerTypeId.INSERT_OVERLAY
+        designer.corner_type_vars['bottom'].set(cross_label)
+        bridge._phase6_corner_type_selected(designer, 'door', 'bottom')
+        assert state['bottom_left']['type_id'] == CornerTypeId.CROSS.value
+        assert state['bottom_right']['type_id'] == CornerTypeId.CROSS.value
+
+        designer.corner_pair_vars['top'].set(False)
+        bridge._phase6_corner_pair_var_changed(designer, 'door', 'top', designer.corner_pair_vars['top'])
+        root.update_idletasks(); root.update()
+        assert designer._phase6_corner_pair_same['door']['top'] is False
+        designer.corner_type_vars['top_right'].set(overlay_label)
+        bridge._phase6_corner_type_selected(designer, 'door', 'top_right')
+        assert state['top_left']['type_id'] == CornerTypeId.INSERT_OVERLAY.value
+        assert state['top_right']['type_id'] == CornerTypeId.OVERLAY.value
+
+        designer.corner_pair_vars['top'].set(True)
+        bridge._phase6_corner_pair_var_changed(designer, 'door', 'top', designer.corner_pair_vars['top'])
+        assert state['top_left']['type_id'] == CornerTypeId.INSERT_OVERLAY.value
+        assert state['top_right']['type_id'] == CornerTypeId.INSERT_OVERLAY.value
     finally:
+        try:
+            designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
