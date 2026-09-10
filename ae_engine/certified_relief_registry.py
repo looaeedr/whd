@@ -67,6 +67,7 @@ class CertifiedReliefRule:
     topology_levels: int
     formula_x: str
     formula_y: str
+    rule_domain: str = "ENDCAP_RELIEF"
     formula_secondary: str | None = None
     joint_signature: tuple[Mapping[str, str], ...] = ()
     preconditions: tuple[str, ...] = ()
@@ -176,8 +177,22 @@ def load_external_relief_rule_records(path: str | Path | None = None) -> tuple[d
         topology = int(raw.get("topology_levels", 0) or 0)
         if topology not in (1, 2):
             raise CertifiedReliefRegistryError(f"invalid topology_levels: {rid}@{rev}")
-        if not isinstance(raw.get("joint_signature"), list) or not raw.get("joint_signature"):
-            raise CertifiedReliefRegistryError(f"missing joint_signature: {rid}@{rev}")
+        rule_domain = str(raw.get("rule_domain") or "ENDCAP_RELIEF").strip().upper()
+        if rule_domain not in {"ENDCAP_RELIEF", "DIVIDER_CROSS"}:
+            raise CertifiedReliefRegistryError(f"unsupported rule_domain: {rid}@{rev}: {rule_domain}")
+        joint_signature = raw.get("joint_signature")
+        if rule_domain == "ENDCAP_RELIEF":
+            if not isinstance(joint_signature, list) or not joint_signature:
+                raise CertifiedReliefRegistryError(f"missing joint_signature: {rid}@{rev}")
+        else:
+            if str(raw.get("part_role") or "").strip().upper() != "DIVIDER":
+                raise CertifiedReliefRegistryError(f"DIVIDER_CROSS requires part_role=DIVIDER: {rid}@{rev}")
+            if str(raw.get("corner_type") or "").strip().upper() != CornerTypeId.CROSS.value:
+                raise CertifiedReliefRegistryError(f"DIVIDER_CROSS requires corner_type=CROSS: {rid}@{rev}")
+            if joint_signature not in (None, []):
+                raise CertifiedReliefRegistryError(
+                    f"DIVIDER_CROSS must not declare AssemblyJoint relations: {rid}@{rev}"
+                )
         geometry_inputs = raw.get("geometry_inputs")
         if geometry_inputs is not None:
             if not isinstance(geometry_inputs, list) or not geometry_inputs:
@@ -313,6 +328,7 @@ def _rule_from_record(raw: Mapping[str, object], evaluator) -> CertifiedReliefRu
         topology_levels=int(raw["topology_levels"]),
         formula_x=str(raw.get("display_formula_x") or formula.get("primary_u") or ""),
         formula_y=str(raw.get("display_formula_y") or formula.get("primary_v") or ""),
+        rule_domain=str(raw.get("rule_domain") or "ENDCAP_RELIEF").strip().upper(),
         formula_secondary=(None if not raw.get("display_formula_secondary") else str(raw.get("display_formula_secondary"))),
         joint_signature=tuple(dict(v) for v in raw.get("joint_signature", ()) or ()),
         preconditions=tuple(str(v) for v in raw.get("preconditions", ()) or ()),
@@ -1033,7 +1049,7 @@ def build_runtime_relief_rules_from_external(path: str | Path | None = None) -> 
     return tuple(
         _rule_from_record(
             row,
-            None if str(row.get("part_role", "")).strip().upper() == "DIVIDER"
+            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
             else _data_formula_evaluator,
         )
         for row in rows
@@ -1062,7 +1078,7 @@ def _build_initial_runtime_rules() -> tuple[CertifiedReliefRule, ...]:
     return tuple(
         _rule_from_record(
             row,
-            None if str(row.get("part_role", "")).strip().upper() == "DIVIDER"
+            None if str(row.get("rule_domain") or "ENDCAP_RELIEF").strip().upper() == "DIVIDER_CROSS"
             else _SPECIAL_RULE_EVALUATORS.get(str(row.get("rule_id")), _data_formula_evaluator),
         )
         for row in rows
@@ -1082,6 +1098,8 @@ def lookup_certified_divider_cross_relief(
     family = _family_key(cabinet_family)
     matches = []
     for rule in _RULES:
+        if str(rule.rule_domain or "").strip().upper() != "DIVIDER_CROSS":
+            continue
         if str(rule.part_role or "").strip().upper() != "DIVIDER":
             continue
         if str(rule.corner_type or "").strip().upper() != CornerTypeId.CROSS.value:

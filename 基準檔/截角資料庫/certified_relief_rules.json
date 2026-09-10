@@ -378,15 +378,7 @@
       "joint_face": "ENDS",
       "assembly_intent": "ANY",
       "corner_type": "CROSS",
-      "joint_signature": [
-        {
-          "relation": "CROSS",
-          "subject_role": "DIVIDER",
-          "target_role": "BOX_BODY",
-          "subject_region": "ENDS",
-          "target_region": "FRONT_FOLD_ZONE"
-        }
-      ],
+      "joint_signature": [],
       "topology_levels": 1,
       "preconditions": [
         "receiving_divider_four_segment",
@@ -432,7 +424,8 @@
         "DIVIDER_LAST_OUTSIDE",
         "BOX_ZL1_FORMED",
         "SHEET_THICKNESS"
-      ]
+      ],
+      "rule_domain": "DIVIDER_CROSS"
     }
   ]
 }
