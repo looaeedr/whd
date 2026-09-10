@@ -51,8 +51,6 @@ def test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_
         assert labels.count("箱身") == 1
         assert "左側板" not in labels and "後面板" not in labels and "右側板" not in labels
 
-        # Enter one physical child: the logical top-level label remains 箱身,
-        # while the child selector exposes all manufacturing identities.
         designer.activate_part("box_body:back")
         root.update_idletasks(); root.update()
         assert designer.part_var.get() == "箱身"
@@ -80,72 +78,65 @@ def test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_
             pass
 
 
-def test_main_2d_box_body_has_matching_physical_subtabs_and_draws_only_selected_piece():
+def test_corner_data_box_body_lists_physical_children_and_draws_selected_piece():
+    import fold_designer_bridge as bridge
+
     tk, root, app = _open_receiving_app()
+    designer = None
     try:
-        app.notebook.select(app.tab_z)
-        app.draw_preview()
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
         root.update_idletasks(); root.update()
 
-        assert _tab_labels(app.box_body_piece_tabs) == ("左側板", "後面板", "右側板")
-        assert app.box_body_piece_tabs.winfo_manager() != ""
+        keys = tuple(bridge._phase6_corner_data_part_keys(designer))
+        for key in ("box_body:left_side", "box_body:back", "box_body:right_side"):
+            assert key in keys
 
-        _select_tab_by_label(app.box_body_piece_tabs, "右側板")
-        root.update_idletasks(); root.update()
-
-        assert app.box_body_piece_2d_selected_var.get() == "box_body:right_side"
-        assert app.last_box_body_face_overview["mode"] == "physical_piece"
-        assert app.last_box_body_face_overview["piece_key"] == "box_body:right_side"
-        assert app.last_box_body_face_overview["role"] == "right_side"
+        assert bridge._phase6_select_corner_data_part(designer, "box_body:right_side") == "box_body:right_side"
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
+        assert projection is not None
+        assert projection.part_key == "box_body:right_side"
+        assert projection.render_data is not None
+        assert designer._phase6_corner_data_selected_part_key == "box_body:right_side"
+        assert not hasattr(app, "notebook")
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         try:
             root.destroy()
         except tk.TclError:
             pass
 
 
-def test_box_body_physical_subtab_round_trips_between_3d_and_2d():
+def test_box_body_physical_child_has_same_authoritative_material_in_3d_and_corner_data_2d():
     import fold_designer_bridge as bridge
 
     tk, root, app = _open_receiving_app()
     designer = None
     try:
-        # 2D -> 3D: choose right side in 2D; opening Designer must remember it.
-        app.notebook.select(app.tab_z)
-        app.draw_preview()
-        root.update_idletasks(); root.update()
-        _select_tab_by_label(app.box_body_piece_tabs, "右側板")
-        root.update_idletasks(); root.update()
-
-        snapshot = app._make_original_fold_designer_snapshot()
-        assert snapshot["box_body_active_piece"] == "box_body:right_side"
-
         designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
-        assert designer._phase6_box_body_active_piece_key == "box_body:right_side"
 
-        # Invoke the single top-level 箱身 entry: it must enter the remembered child,
-        # not collapse back to the aggregate editor.
-        box_index = next(
-            i for i in range(designer.part_choice_menu.index("end") + 1)
-            if designer.part_choice_menu.entrycget(i, "label") == "箱身"
-        )
-        designer.part_choice_menu.invoke(box_index)
+        designer.activate_part("box_body:back")
         root.update_idletasks(); root.update()
-        assert designer.designer_workspace.active_part == "box_body:right_side"
+        active_before = designer.designer_workspace.active_part
+        expected = bridge._phase6_query_final_render_data(designer)
 
-        # 3D -> 2D: switch to back and return; main 2D must render back.
-        _select_tab_by_label(designer.box_body_piece_selector, "後面板")
+        bridge._phase6_show_corner_data(designer)
+        assert bridge._phase6_select_corner_data_part(designer, "box_body:back") == "box_body:back"
         root.update_idletasks(); root.update()
-        assert designer.designer_workspace.active_part == "box_body:back"
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        assert bridge._phase6_return_to_2d_corner(designer) is True
-        designer = None
-        root.update_idletasks(); root.update()
-        assert app.root.nametowidget(app.notebook.select()) == app.tab_z
-        assert app.box_body_piece_2d_selected_var.get() == "box_body:back"
-        assert app.last_box_body_face_overview["mode"] == "physical_piece"
-        assert app.last_box_body_face_overview["piece_key"] == "box_body:back"
+        assert active_before == "box_body:back"
+        assert designer.designer_workspace.active_part == active_before
+        assert projection is not None
+        assert projection.part_key == "box_body:back"
+        assert projection.render_data.material.equals(expected.material)
+        assert not hasattr(bridge, "_phase6_return_to_2d_corner")
     finally:
         try:
             if designer is not None:
