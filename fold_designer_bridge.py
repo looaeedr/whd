@@ -8665,6 +8665,59 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     return keys
 
 
+def _phase6_prepare_corner_data_canvas(self):
+    """Install the 2D canvas when a real renderer viewport exists; otherwise fail closed."""
+    renderer = getattr(self, "renderer", None)
+    mpl_canvas = getattr(renderer, "canvas", None)
+    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+    if not callable(get_widget):
+        return None
+    mpl_widget = get_widget()
+    canvas = getattr(self, "corner_data_canvas", None)
+    try:
+        alive = canvas is not None and bool(canvas.winfo_exists())
+    except Exception:
+        alive = canvas is not None
+    if not alive:
+        canvas = original.tk.Canvas(
+            mpl_widget.master, bg="#ffffff", highlightthickness=0
+        )
+        self.corner_data_canvas = canvas
+        canvas.bind(
+            "<Configure>",
+            lambda _event: (
+                _phase6_refresh_corner_data_unfold_view(self)
+                if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+                else None
+            ),
+        )
+    if mpl_widget.winfo_manager():
+        mpl_widget.pack_forget()
+    if not canvas.winfo_manager():
+        canvas.pack(fill=original.tk.BOTH, expand=True)
+    return canvas
+
+
+def _phase6_hide_corner_data_canvas(self):
+    """Restore Matplotlib when present; incomplete/view-only owners are a no-op."""
+    canvas = getattr(self, "corner_data_canvas", None)
+    if canvas is not None:
+        try:
+            if canvas.winfo_manager():
+                canvas.pack_forget()
+        except Exception:
+            pass
+    renderer = getattr(self, "renderer", None)
+    mpl_canvas = getattr(renderer, "canvas", None)
+    get_widget = getattr(mpl_canvas, "get_tk_widget", None)
+    if not callable(get_widget):
+        return None
+    mpl_widget = get_widget()
+    if not mpl_widget.winfo_manager():
+        mpl_widget.pack(fill=original.tk.BOTH, expand=True)
+    return mpl_widget
+
+
 def _phase6_show_corner_data(self):
     """Switch Fold Designer to the view-only corner-data navigation mode.
 
@@ -8698,7 +8751,10 @@ def _phase6_show_corner_data(self):
     if panel is not None and hasattr(panel, "pack"):
         panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
 
+    corner_canvas = _phase6_prepare_corner_data_canvas(self)
     _phase6_refresh_corner_data_parts_panel(self)
+    if corner_canvas is not None:
+        _phase6_refresh_corner_data_unfold_view(self)
 
     refresh = getattr(self, "_refresh_part_button_states", None)
     if callable(refresh):
@@ -8707,6 +8763,7 @@ def _phase6_show_corner_data(self):
 
 def _phase6_show_assembly(self, initial=False):
     """Show the structural cabinet assembly while retaining a real active part as geometry backing."""
+    _phase6_hide_corner_data_canvas(self)
     if not initial and getattr(self, "_phase6_pending_settings", None):
         self.flush_pending_settings()
     before_signature = None
@@ -9199,6 +9256,7 @@ def _phase6_show_home(self):
 def _fix11_activate_part(self, key, initial=False):
     if key not in self.designer_workspace.available_parts:
         return
+    _phase6_hide_corner_data_canvas(self)
     if _phase6_is_box_body_physical_piece_key(key):
         self._phase6_box_body_active_piece_key = str(key)
     before_signature = None

@@ -2752,6 +2752,7 @@ class BoxCalculatorGUI:
             on_project_save=save_project_from_designer,
             on_return_2d=return_to_2d_corner,
         )
+        designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
         self.fold_designer_window = window
         self.fold_designer_app = designer
         window.protocol("WM_DELETE_WINDOW", close_designer)
@@ -4318,6 +4319,61 @@ class BoxCalculatorGUI:
         self.canvas_z.bind("<Configure>", lambda e: self.draw_preview())
         self.canvas_z.bind("<Button-1>", self.on_box_body_canvas_press)
         self.canvas_z.bind("<Double-Button-1>", self.on_box_body_piece_double_click)
+
+    def _render_fold_designer_corner_data_view(self, canvas, part_key, render_data):
+        """Render supplied authoritative PartRenderData in Fold Designer 2D."""
+        key = str(part_key or "")
+        if canvas is None:
+            return None
+        canvas.delete("all")
+        material = getattr(render_data, "material", None) if render_data is not None else None
+        scene = getattr(render_data, "scene", None) if render_data is not None else None
+        if material is None or scene is None or bool(getattr(material, "is_empty", False)):
+            return None
+
+        cw = max(1, int(canvas.winfo_width()))
+        ch = max(1, int(canvas.winfo_height()))
+        self.draw_grid(canvas, cw, ch)
+        bounds = tuple(float(v) for v in material.bounds)
+        transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
+            bounds, cw, ch
+        )
+        render_drawing_scene(
+            canvas, scene, transform, skip_layers=("CHECK", "STOCK")
+        )
+        _draw_phase6_annotation_projection(
+            canvas, render_data, transform, part_key=key
+        )
+        self._draw_phase6_finished_dimension_summary(canvas, part_key=key)
+        draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}))
+
+        warning_rows = tuple(
+            str(v) for v in tuple(getattr(render_data, "warnings", ()) or ()) if str(v)
+        )
+        if warning_rows:
+            canvas.create_text(
+                12, 12, text="\n".join(warning_rows), anchor=tk.NW,
+                fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
+                width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
+            )
+
+        for sequence in (
+            "<Button-1>", "<B1-Motion>", "<ButtonRelease-1>",
+            "<Double-Button-1>", "<Button-3>",
+        ):
+            try:
+                canvas.unbind(sequence)
+            except Exception:
+                pass
+        canvas.bind(
+            "<Double-Button-1>",
+            lambda event, k=key: self.open_part_hole_editor(k),
+        )
+        if key == "door" or key.startswith("door_c"):
+            canvas.bind("<Button-1>", self.on_door_canvas_press)
+            canvas.bind("<B1-Motion>", self.on_door_canvas_drag)
+            canvas.bind("<ButtonRelease-1>", self.on_door_canvas_release)
+        return render_data
 
     def _attach_part_hole_entrypoint(self, canvas, part_key, *, allow_double=True):
         """All supported panels use one memorable entry point: double-click opens holes."""
