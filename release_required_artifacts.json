@@ -25,6 +25,7 @@
     ".agents/skills/engineering/寫技能/SKILL.md",
     "tests/test_writing_skill_contract.py",
     "tests/test_writing_skill_preflight_route.py",
+    "tests/test_chinese_skill_identity_contract.py",
     "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
     "tests/test_phase6_skill_preflight_gate.py",
     "tests/test_phase6_release_packaging_policy.py",
