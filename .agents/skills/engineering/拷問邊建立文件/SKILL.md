@@ -87,4 +87,4 @@ disable-model-invocation: true
 
 才算本輪完成。
 
-不要用 `Call the Skill tool twice` 之類特定 runtime 指令代替上述流程。
+不要用綁死特定 runtime 的「一次呼叫多個 Skill」捷徑代替上述流程。
