@@ -8549,6 +8549,38 @@ def _fix11_refresh_part_button_states(self):
         )
 
 
+def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
+    """Project current authoritative workspace part identities for corner data.
+
+    This deliberately reads ``designer_workspace.available_parts`` directly.
+    It does not consume the UI mirror, PART_LABELS, KNOWN_PARTS, or any fixed
+    2D/corner-data list, so dynamic physical identities stay authoritative.
+    """
+    workspace = _designer_workspace(self)
+    return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
+
+
+def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
+    """Refresh the corner-data list as a pure View projection of workspace parts."""
+    keys = _phase6_corner_data_part_keys(self)
+    self.corner_data_part_keys = keys
+    panel = getattr(self, "corner_data_panel", None)
+    if panel is None or not hasattr(panel, "winfo_children"):
+        return keys
+
+    for child in tuple(panel.winfo_children()):
+        child.destroy()
+
+    self.corner_data_part_rows = {}
+    for key in keys:
+        row = original.ttk.Frame(panel)
+        row.pack(fill=original.tk.X, pady=(0, 4))
+        label = original.ttk.Label(row, text=_phase6_part_label(key))
+        label.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
+        self.corner_data_part_rows[key] = row
+    return keys
+
+
 def _phase6_show_corner_data(self):
     """Switch Fold Designer to the view-only corner-data navigation mode.
 
@@ -8581,6 +8613,8 @@ def _phase6_show_corner_data(self):
         self.corner_data_panel = panel
     if panel is not None and hasattr(panel, "pack"):
         panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+
+    _phase6_refresh_corner_data_parts_panel(self)
 
     refresh = getattr(self, "_refresh_part_button_states", None)
     if callable(refresh):
