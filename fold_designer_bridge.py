@@ -8583,6 +8583,11 @@ def _phase6_select_corner_data_part(self, key):
     if resolved not in keys:
         resolved = None
     self._phase6_corner_data_selected_part_key = resolved
+    if (
+        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        and getattr(self, "corner_data_canvas", None) is not None
+    ):
+        _phase6_refresh_corner_data_unfold_view(self)
     return resolved
 
 
@@ -8614,6 +8619,20 @@ def _phase6_corner_data_unfold_projection(self):
         part_key=selected,
         render_data=render_data,
     )
+
+
+def _phase6_refresh_corner_data_unfold_view(self):
+    """Forward the current T4 authoritative projection into the installed 2D View."""
+    canvas = getattr(self, "corner_data_canvas", None)
+    projection = _phase6_corner_data_unfold_projection(self)
+    if projection is None:
+        if canvas is not None and hasattr(canvas, "delete"):
+            canvas.delete("all")
+        return None
+    callback = getattr(self, "_corner_data_view_render_callback", None)
+    if callback is not None and canvas is not None:
+        callback(canvas, projection.part_key, projection.render_data)
+    return projection
 
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
