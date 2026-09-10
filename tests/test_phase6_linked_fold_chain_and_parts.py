@@ -152,14 +152,15 @@ def test_confirm_existing_parts_updates_main_2d_export_presence_flags():
         def get(self): return self.value
 
     from phase6_workspace_controller import Phase6WorkspaceController
+    import gui
     dummy = SimpleNamespace(
         workspace_controller=Phase6WorkspaceController(),
         export_z_var=Var(True), export_head_var=Var(True), export_tail_var=Var(True),
         export_door_var=Var(True), export_base_plate_var=Var(True),
         is_indicator_box_var=Var(True), is_door_indicator_var=Var(False),
+        _phase6_logical_part_present=gui.BoxCalculatorGUI._phase6_logical_part_present,
     )
     # This helper is intentionally GUI-light so commit/project-load share it.
-    import gui
     gui.BoxCalculatorGUI._apply_existing_parts_from_fold_workspace(
         dummy, ['box_body', 'head', 'door']
     )

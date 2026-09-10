@@ -14,6 +14,7 @@ def test_unfolded_blank_operator_text_has_piece_sizes_without_area_or_raw_ids():
 
     left = PartRenderData(scene=object(), material=box(0, 0, 123, 456))
     right = PartRenderData(scene=object(), material=box(0, 0, 234, 456))
+    canonical = PartRenderData(scene=object(), material=box(0, 0, 357, 456))
     render = BoxBodyStructureRenderData(
         structure_type="two_piece_w_split",
         pieces=(
@@ -21,6 +22,7 @@ def test_unfolded_blank_operator_text_has_piece_sizes_without_area_or_raw_ids():
             BoxBodyPieceRenderData(key="right", role="right", formed_w_start=100, formed_w_end=200, fold_profile=(), render_data=right),
         ),
         preview_render_data=left,
+        canonical_strip_render_data=canonical,
     )
     text = bridge._phase6_format_unfolded_blank_text(render, part_key="box_body")
     assert "左箱身 123 × 456 mm" in text
