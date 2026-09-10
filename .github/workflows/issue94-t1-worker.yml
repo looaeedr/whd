@@ -24,6 +24,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
           p = Path('fold_designer_bridge.py')
           text = p.read_text(encoding='utf-8')
@@ -72,60 +73,46 @@ jobs:
           '''
           text = text.replace(marker, helper + marker, 1)
 
-          menu_old = '''        menu.add_radiobutton(
-              label="組合體",
-              variable=self.part_var,
-              value="組合體",
-              command=lambda: _phase6_show_assembly(self),
+          menu_pattern = re.compile(
+              r'(\s+menu\.add_radiobutton\(\n'
+              r'\s+label="組合體",\n'
+              r'\s+variable=self\.part_var,\n'
+              r'\s+value="組合體",\n'
+              r'\s+command=lambda: _phase6_show_assembly\(self\),\n'
+              r'\s+\)\n)(\s+for key in _phase6_operator_part_selector_keys\(self\.available_parts\):)'
           )
-          for key in _phase6_operator_part_selector_keys(self.available_parts):
-          '''
-          menu_new = '''        menu.add_radiobutton(
-              label="組合體",
-              variable=self.part_var,
-              value="組合體",
-              command=lambda: _phase6_show_assembly(self),
+          match = menu_pattern.search(text)
+          assert match, 'part menu block missing'
+          indent = re.match(r'\s*', match.group(2)).group(0)
+          corner_item = (
+              f'{indent}menu.add_radiobutton(\n'
+              f'{indent}    label="截角資料",\n'
+              f'{indent}    variable=self.part_var,\n'
+              f'{indent}    value="截角資料",\n'
+              f'{indent}    command=lambda: _phase6_show_corner_data(self),\n'
+              f'{indent})\n'
           )
-          menu.add_radiobutton(
-              label="截角資料",
-              variable=self.part_var,
-              value="截角資料",
-              command=lambda: _phase6_show_corner_data(self),
-          )
-          for key in _phase6_operator_part_selector_keys(self.available_parts):
-          '''
-          assert menu_old in text, 'part menu block missing'
-          text = text.replace(menu_old, menu_new, 1)
+          text = text[:match.start()] + match.group(1) + corner_item + match.group(2) + text[match.end():]
 
-          mode_old = '''        if mode == "assembly":
-              self.part_var.set("組合體")
-          elif _phase6_is_box_body_physical_piece_key(active):
-          '''
-          mode_new = '''        if mode == "assembly":
-              self.part_var.set("組合體")
-          elif mode == "corner_data":
-              self.part_var.set("截角資料")
-          elif _phase6_is_box_body_physical_piece_key(active):
-          '''
-          assert mode_old in text, 'mode label block missing'
-          text = text.replace(mode_old, mode_new, 1)
+          mode_pattern = re.compile(
+              r'(\s+if mode == "assembly":\n\s+self\.part_var\.set\("組合體"\)\n)'
+              r'(\s+elif _phase6_is_box_body_physical_piece_key\(active\):)'
+          )
+          match = mode_pattern.search(text)
+          assert match, 'mode label block missing'
+          indent = re.match(r'\s*', match.group(2)).group(0)
+          corner_mode = f'{indent}elif mode == "corner_data":\n{indent}    self.part_var.set("截角資料")\n'
+          text = text[:match.start()] + match.group(1) + corner_mode + match.group(2) + text[match.end():]
 
-          assembly_old = '''    assembly_panel = getattr(self, "assembly_parts_panel", None)
-              if assembly_panel is not None and not assembly_panel.winfo_manager():
-                  assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
-          '''
-          # Exact indentation varies only in source display; patch a shorter stable anchor.
-          anchor = '''    assembly_panel = getattr(self, "assembly_parts_panel", None)
-          if assembly_panel is not None and not assembly_panel.winfo_manager():
-          '''
-          if anchor in text:
-              replacement = '''    corner_data_panel = getattr(self, "corner_data_panel", None)
-          if corner_data_panel is not None and hasattr(corner_data_panel, "pack_forget"):
-              corner_data_panel.pack_forget()
-          assembly_panel = getattr(self, "assembly_parts_panel", None)
-          if assembly_panel is not None and not assembly_panel.winfo_manager():
-          '''
-              text = text.replace(anchor, replacement, 1)
+          assembly_anchor = '    assembly_panel = getattr(self, "assembly_parts_panel", None)\n'
+          assembly_pos = text.find(assembly_anchor, text.find(marker))
+          assert assembly_pos >= 0, 'assembly panel anchor missing in show_assembly'
+          hide_corner = (
+              '    corner_data_panel = getattr(self, "corner_data_panel", None)\n'
+              '    if corner_data_panel is not None and hasattr(corner_data_panel, "pack_forget"):\n'
+              '        corner_data_panel.pack_forget()\n'
+          )
+          text = text[:assembly_pos] + hide_corner + text[assembly_pos:]
 
           p.write_text(text, encoding='utf-8')
           PY
