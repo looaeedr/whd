@@ -59,7 +59,7 @@ def test_head_bend_lines_and_fixed_features_follow_same_vertical_mirror():
         assert math.isclose(hc.radius, tc.radius)
 
 
-def test_head_preview_uses_pre_normalized_scene_without_render_time_mirror(monkeypatch):
+def test_head_render_helper_uses_pre_normalized_scene_without_render_time_mirror(monkeypatch):
     import tkinter as tk
     import gui
 
@@ -69,17 +69,19 @@ def test_head_preview_uses_pre_normalized_scene_without_render_time_mirror(monke
         root.deiconify()
         root.geometry("1100x750")
         app.baseline_var.set("")
-        app.notebook.select(app.tab_head)
         root.update()
         val = app.get_float_values()
 
         def forbidden_preview_transform(*args, **kwargs):
-            raise AssertionError("head preview must not mirror at render time")
+            raise AssertionError("head render helper must not mirror at render time")
 
         rendered = []
         monkeypatch.setattr(gui, "_YMirroredPreviewTransform", forbidden_preview_transform)
         monkeypatch.setattr(gui, "render_drawing_scene", lambda canvas, scene, transform, **kwargs: rendered.append(scene))
 
+        # T7 retired the Notebook/standalone 2D entry.  This regression targets
+        # the scene-render helper itself, so it must not depend on selecting a retired tab.
+        assert not hasattr(app, "notebook")
         app.draw_end_cap(val, app.canvas_head, "封頭", is_tail=False)
         assert len(rendered) == 1
 
