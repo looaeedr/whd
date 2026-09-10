@@ -151,7 +151,7 @@ def test_receiving_bottom_registry_lookup_maps_semantic_bottom_to_physical_corne
     by_name = {item.corner_name: item.measurement for item in result.corner_reliefs}
     assert set(by_name) == expected_names
     for measurement in by_name.values():
-        assert measurement.primary_u == pytest.approx(28.0)
+        assert measurement.primary_u == pytest.approx(29.0)
         assert measurement.primary_v == pytest.approx(14.0)
         assert measurement.secondary_u == pytest.approx(15.0)
         assert measurement.secondary_depth == pytest.approx(1.0)
@@ -212,7 +212,7 @@ def test_receiving_manufacturing_uses_bottom_wrap_joint_for_registry_geometry(pa
                 break
     assert set(by_corner) == set(physical)
     for measurement in by_corner.values():
-        assert measurement.primary_u == pytest.approx(28.0)
+        assert measurement.primary_u == pytest.approx(29.0)
         assert measurement.primary_v == pytest.approx(14.0)
         assert measurement.secondary_u == pytest.approx(15.0)
         assert measurement.secondary_depth == pytest.approx(1.0)
@@ -267,7 +267,7 @@ def test_receiving_bottom_registry_carries_independent_3d_face_projection_eviden
     projected = evidence["projection_by_corner"]
     for corner in ("top_left", "top_right"):
         row = projected[corner]
-        assert row["illegal_overlap_u"] == pytest.approx(13.0)
+        assert row["illegal_overlap_u"] == pytest.approx(14.0)
         assert row["illegal_overlap_v"] == pytest.approx(14.0)
         assert row["wrap_contact_depth"] == pytest.approx(1.0)
 
@@ -403,7 +403,7 @@ def test_receiving_bottom_wrap_adjustable_reserve_does_not_require_recertifying_
     )
     assert result is not None
     for item in result.corner_reliefs:
-        assert item.measurement.primary_u == pytest.approx(26.5)
+        assert item.measurement.primary_u == pytest.approx(27.5)
         assert item.measurement.primary_v == pytest.approx(12.75)
         assert item.measurement.secondary_u == pytest.approx(15.0)
         assert item.measurement.secondary_depth == pytest.approx(2.25)

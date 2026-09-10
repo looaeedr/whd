@@ -603,15 +603,22 @@ def _assembly_joint_corner_names(endcap_y_profile, joint_face: str = "TOP"):
     return (("top_left", "top_right") if is_tail_native else ("bottom_left", "bottom_right"))
 
 
-def _side_rear_bend_from_structure_state(structure_state) -> float | None:
+def _side_rear_bend_from_structure_state(
+    structure_state, sheet_thickness: float
+) -> float | None:
+    """Resolve the side-rear flange in canonical MATERIAL space exactly once.
+
+    Fresh Receiving persists the operator value in OUTSIDE space while legacy
+    snapshots may persist MATERIAL directly.  Registry/3D projection must not
+    read the raw stored number; the shared structure helper owns that conversion.
+    """
     if not structure_state:
         return None
     try:
-        from phase6_box_body_structure import BoxBodyStructureType, normalize_box_body_structure_state
-        state = normalize_box_body_structure_state(structure_state)
-        cfg = state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-        value = cfg.get("side_rear_bend")
-        return None if value is None else abs(float(value))
+        from phase6_box_body_structure import side_rear_bend_material_length
+        return abs(float(side_rear_bend_material_length(
+            structure_state, float(sheet_thickness)
+        )))
     except Exception:
         return None
 
@@ -891,7 +898,7 @@ def _data_formula_evaluator(
         return None
     ytop = _profile_segment_length(endcap_y_profile, "ytop1", None)
     ybottom = _profile_segment_length(endcap_y_profile, "ybottom1", None)
-    rear_bend = _side_rear_bend_from_structure_state(box_body_structure_state)
+    rear_bend = _side_rear_bend_from_structure_state(box_body_structure_state, t)
     flat_x = _profile_has_key(endcap_x_profile, "endcap_w_flat")
     face = str(rule.joint_face or "TOP").upper()
     semantic_corners = _assembly_joint_corner_names(endcap_y_profile, face)

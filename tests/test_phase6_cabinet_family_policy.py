@@ -31,7 +31,7 @@ def test_policy_exposes_geometry_parameters_without_owning_registry_answers():
 
     receiving = {"model": "受電箱"}
     state = policy.resolve_box_body_structure_state(receiving, default_box_body_structure_state())
-    assert policy.effective_endcap_bottom_fw(receiving, state, thickness=2.0, default_fw=29.0) == 17.0
+    assert policy.effective_endcap_bottom_fw(receiving, state, thickness=2.0, default_fw=29.0) == 18.0
     changed = policy.set_bottom_relief_reserves(receiving, state, reserve_u=3.0, reserve_v=1.5)
     assert policy.bottom_relief_reserves(receiving, changed) == (3.0, 1.5)
     assert policy.bottom_relief_registry_applicable(receiving, changed) is True
