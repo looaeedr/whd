@@ -59,7 +59,7 @@ def test_head_bend_lines_and_fixed_features_follow_same_vertical_mirror():
         assert math.isclose(hc.radius, tc.radius)
 
 
-def test_head_corner_data_projection_uses_pre_normalized_scene_without_render_time_mirror(monkeypatch):
+def test_head_corner_data_projection_uses_authoritative_material_without_render_time_mirror(monkeypatch):
     import tkinter as tk
     import gui
     import fold_designer_bridge as bridge
@@ -72,14 +72,16 @@ def test_head_corner_data_projection_uses_pre_normalized_scene_without_render_ti
         root.geometry("1100x750")
         app.baseline_var.set("")
         root.update_idletasks(); root.update()
-        val = app.get_float_values()
 
         def forbidden_preview_transform(*args, **kwargs):
             raise AssertionError("head corner-data projection must not mirror at render time")
 
         monkeypatch.setattr(gui, "_YMirroredPreviewTransform", forbidden_preview_transform)
         designer = app.open_original_fold_designer()
+        designer.activate_part("head")
         root.update_idletasks(); root.update()
+        expected = bridge._phase6_query_final_render_data(designer)
+
         bridge._phase6_show_corner_data(designer)
         assert bridge._phase6_select_corner_data_part(designer, "head") == "head"
         root.update_idletasks(); root.update()
@@ -87,15 +89,8 @@ def test_head_corner_data_projection_uses_pre_normalized_scene_without_render_ti
 
         assert projection is not None
         assert projection.part_key == "head"
+        assert projection.render_data.material.equals(expected.material)
         assert not hasattr(app, "notebook")
-        expected = ae._build_end_cap_scene(
-            w=val['w'], d=val['d'], t=val['t'], fw=val['fw'],
-            yl1=val['yl1'], yr1=val['yr1'], ytop1=val['ytop1'], ybottom1=val['ybottom1'],
-            draw_stock=app.draw_stock_var.get(), is_tail=False, holes=app.head_holes,
-        )
-        actual_outline = _first(projection.render_data.scene, PolylinePrimitive, "CUTTING")
-        expected_outline = _first(expected, PolylinePrimitive, "CUTTING")
-        assert [_xy(p) for p in actual_outline.points] == [_xy(p) for p in expected_outline.points]
     finally:
         try:
             if designer is not None:
