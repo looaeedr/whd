@@ -1,0 +1,142 @@
+name: Issue94 T1 Worker
+on:
+  push:
+    branches: [feat/issue94-corner-data-navigation-mode-20260910]
+    paths:
+      - .github/workflows/issue94-t1-worker.yml
+
+permissions:
+  contents: write
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Apply minimal T1 production change
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('fold_designer_bridge.py')
+          text = p.read_text(encoding='utf-8')
+
+          marker = 'def _phase6_show_assembly(self, initial=False):\n'
+          assert marker in text, 'show assembly marker missing'
+          assert 'def _phase6_show_corner_data(self):' not in text, 'corner-data mode already exists'
+          helper = '''def _phase6_show_corner_data(self):
+              """Switch Fold Designer to the view-only corner-data navigation mode.
+
+              This mode is navigation only: it must not flush/publish settings, add a
+              manufacturing part, or alter workspace selection/state. T2 will populate
+              the authoritative part projection inside the mode panel.
+              """
+              self._phase6_3d_display_mode = "corner_data"
+              if hasattr(self, "part_var"):
+                  self.part_var.set("截角資料")
+
+              piece_selector = getattr(self, "box_body_piece_selector", None)
+              if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
+                  try:
+                      piece_selector.pack_forget()
+                  except Exception:
+                      pass
+
+              fold_host = getattr(self, "fold_editor_host", None)
+              if fold_host is not None and hasattr(fold_host, "pack_forget"):
+                  fold_host.pack_forget()
+
+              assembly_panel = getattr(self, "assembly_parts_panel", None)
+              if assembly_panel is not None and hasattr(assembly_panel, "pack_forget"):
+                  assembly_panel.pack_forget()
+
+              panel = getattr(self, "corner_data_panel", None)
+              if panel is None and getattr(self, "left", None) is not None:
+                  panel = original.ttk.Frame(self.left, padding=6)
+                  self.corner_data_panel = panel
+              if panel is not None and hasattr(panel, "pack"):
+                  panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+
+              refresh = getattr(self, "_refresh_part_button_states", None)
+              if callable(refresh):
+                  refresh()
+
+
+          '''
+          text = text.replace(marker, helper + marker, 1)
+
+          menu_old = '''        menu.add_radiobutton(
+              label="組合體",
+              variable=self.part_var,
+              value="組合體",
+              command=lambda: _phase6_show_assembly(self),
+          )
+          for key in _phase6_operator_part_selector_keys(self.available_parts):
+          '''
+          menu_new = '''        menu.add_radiobutton(
+              label="組合體",
+              variable=self.part_var,
+              value="組合體",
+              command=lambda: _phase6_show_assembly(self),
+          )
+          menu.add_radiobutton(
+              label="截角資料",
+              variable=self.part_var,
+              value="截角資料",
+              command=lambda: _phase6_show_corner_data(self),
+          )
+          for key in _phase6_operator_part_selector_keys(self.available_parts):
+          '''
+          assert menu_old in text, 'part menu block missing'
+          text = text.replace(menu_old, menu_new, 1)
+
+          mode_old = '''        if mode == "assembly":
+              self.part_var.set("組合體")
+          elif _phase6_is_box_body_physical_piece_key(active):
+          '''
+          mode_new = '''        if mode == "assembly":
+              self.part_var.set("組合體")
+          elif mode == "corner_data":
+              self.part_var.set("截角資料")
+          elif _phase6_is_box_body_physical_piece_key(active):
+          '''
+          assert mode_old in text, 'mode label block missing'
+          text = text.replace(mode_old, mode_new, 1)
+
+          assembly_old = '''    assembly_panel = getattr(self, "assembly_parts_panel", None)
+              if assembly_panel is not None and not assembly_panel.winfo_manager():
+                  assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+          '''
+          # Exact indentation varies only in source display; patch a shorter stable anchor.
+          anchor = '''    assembly_panel = getattr(self, "assembly_parts_panel", None)
+          if assembly_panel is not None and not assembly_panel.winfo_manager():
+          '''
+          if anchor in text:
+              replacement = '''    corner_data_panel = getattr(self, "corner_data_panel", None)
+          if corner_data_panel is not None and hasattr(corner_data_panel, "pack_forget"):
+              corner_data_panel.pack_forget()
+          assembly_panel = getattr(self, "assembly_parts_panel", None)
+          if assembly_panel is not None and not assembly_panel.winfo_manager():
+          '''
+              text = text.replace(anchor, replacement, 1)
+
+          p.write_text(text, encoding='utf-8')
+          PY
+      - name: T1 focused GREEN
+        run: pytest -q tests/test_issue94_corner_data_navigation_mode.py
+      - name: Syntax/import guard
+        run: python -m py_compile fold_designer_bridge.py
+      - name: Commit worker result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'feat(issue94): add corner-data navigation mode'
+          git push origin HEAD:feat/issue94-corner-data-navigation-mode-20260910
