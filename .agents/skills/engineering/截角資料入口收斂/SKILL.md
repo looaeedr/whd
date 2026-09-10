@@ -112,3 +112,12 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 - Validation 只能判定對錯，不能成為 production 計算來源。
 - 新發現的規則/踩坑同步 Skill、AI knowledge/library、durable agent-readable docs；禁止只留在聊天。
 - authoritative state 與 View freshness 是兩個不同 invariant；驗資料同源時也要另外驗 visible View refresh。
+
+
+### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
+
+- 「移除舊入口」與「刪除舊 helper/state」是兩件事。禁止依檔名、函式名、`tab_*` 名稱盲刪；必須先確認新「截角資料」View 是否仍共用 renderer、annotation、hole editor、Door interaction 或其他 callback state。
+- 過渡期可保留 compatibility-only Tk state，但必須同時滿足：使用者不可達、不可作 navigation authority、不可作 manufacturing/geometry authority、不得參與 active-part/presence identity 決策。
+- 正式 navigation/identity 只讀 authoritative workspace / stable physical part key；舊 Notebook selection 不得再回灌 active part。
+- `draw_preview()` 在舊入口退役後，只能刷新目前可見的 authoritative Fold Designer「截角資料」View，不得恢復 legacy tab dispatch。
+- Acceptance 必須至少包含：static dead-navigation scan、T5 capability preservation、Xvfb runtime navigation、config invariant。
