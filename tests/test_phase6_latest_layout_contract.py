@@ -61,13 +61,16 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
         # Top row: file -> 3D display -> fullscreen -> transaction buttons.
+        # T7 removed the dedicated return-to-2D button; 2D now lives under the
+        # Fold Designer's operator selector as the 截角資料 mode.
         assert app.project_toolbar.master is app.top_command_row
         assert app.visual_controls.master is app.top_command_row
         assert app.fullscreen_button.master is app.top_command_row
-        assert app.return_2d_button.master is app.top_command_row
         assert app.transaction_buttons.master is app.top_command_row
         assert app.fullscreen_button.cget("text") == "全螢幕"
-        assert app.return_2d_button.cget("text") == "回2D截角"
+        assert not hasattr(app, "return_2d_button")
+        assert app.part_choice_menu.entrycget(0, "label") == "組合體"
+        assert app.part_choice_menu.entrycget(1, "label") == "截角資料"
         assert app.ui_text_size_combo.master is app.visual_controls
 
         # Global row 1: baseline + lock + save defaults.
