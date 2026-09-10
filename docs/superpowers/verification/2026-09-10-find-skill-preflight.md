@@ -43,7 +43,7 @@ READ_REFERENCE: release_required_artifacts.json
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - `release_required_artifacts.json`
 - `tests/test_find_skill_contract.py`
-- temporary one-shot workflow used only for RED/GREEN verification
+- temporary one-shot workflow used only for RED/GREEN verification, removed after terminal GREEN
 
 ## Requirement contract
 
@@ -88,17 +88,17 @@ READ_REFERENCE: release_required_artifacts.json
 
 ## Remote-run hygiene correction
 
-The first one-shot workflow initially triggered on every branch push, causing intermediate implementation commits to create extra runs. Those intermediate runs are not final evidence. After the targeted GREEN, the workflow trigger was narrowed to this evidence file only, so the final regression matrix is a single explicit QA trigger. Final acceptance uses the final-matrix run below, not intermediate runs.
+The first one-shot workflow initially triggered on every branch push, causing intermediate implementation commits to create extra runs. Those intermediate runs are not final evidence. The trigger was narrowed to this evidence file only before the final matrix. The evidence update itself therefore produced one final equivalent verification run; that newest terminal run is the acceptance authority below.
 
 ## Final GREEN evidence
 
-- run: `34500050124`
-- tested head: `48a7da2f860aef6a083a93367d0dd54a058635fe`
+- final run: `34500275931`
+- tested head: `18540328ad20e95c4fe07ff2df2bf3f91a5fb326`
 - terminal conclusion: **SUCCESS**
 - Knowledge Preflight: PASS
   - required Skills: `寫技能`, `找技能`, `phase6-release-packaging`
   - required references: global pitfall library, WHD skill-authoring rules, release manifest
-- final regression matrix: **61 passed / 0 failed / 0.60s**
+- final regression matrix: **61 passed / 0 failed / 0.71s**
 - matrix included:
   - `tests/test_find_skill_contract.py`
   - `tests/test_chinese_skill_identity_contract.py`
@@ -109,6 +109,17 @@ The first one-shot workflow initially triggered on every branch push, causing in
   - `tests/test_phase6_release_packaging_policy.py`
   - `tests/test_release_integrity_gate.py`
 
-## Cleanup / drift audit pending
+## Cleanup
 
-After this evidence commit, delete `.github/workflows/find-skill-contract-20260910.yml`, re-read the path and require 404, then compare tested head `48a7da2f...` to cleaned branch head. Only this verification evidence and one-shot workflow removal may differ after tested head; any Skill/test/Registry/AI/release-policy drift invalidates the GREEN evidence.
+- one-shot workflow: `.github/workflows/find-skill-contract-20260910.yml`
+- cleanup commit: `e1fd158e103c75ddb89f9e841f0b1fe28213eef1`
+- remote re-read after deletion: **404 Not Found**, expected.
+- No further remote QA run can be triggered by this evidence update because the workflow is no longer present.
+
+## Drift audit basis
+
+Compare tested head `18540328ad20e95c4fe07ff2df2bf3f91a5fb326` to final branch head. Accept only:
+1. deletion of the one-shot workflow;
+2. this verification evidence update.
+
+Any Skill, test, Registry, AI Library, release-policy, production, or configuration drift after the tested head invalidates the GREEN evidence.
