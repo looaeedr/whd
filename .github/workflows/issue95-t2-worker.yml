@@ -1,0 +1,98 @@
+name: Issue95 T2 Worker
+on:
+  push:
+    branches: [feat/issue95-authoritative-parts-projection-20260910]
+    paths:
+      - .github/workflows/issue95-t2-worker.yml
+
+permissions:
+  contents: write
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Apply minimal T2 production change
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('fold_designer_bridge.py')
+          text = p.read_text(encoding='utf-8')
+          marker = 'def _phase6_show_corner_data(self):\n'
+          assert marker in text, 'corner-data T1 marker missing'
+          assert 'def _phase6_corner_data_part_keys(self):' not in text
+
+          helpers = '''def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
+              """Project current authoritative workspace part identities for corner data.
+
+              This deliberately reads ``designer_workspace.available_parts`` directly.
+              It does not consume the UI mirror, PART_LABELS, KNOWN_PARTS, or any fixed
+              2D/corner-data list, so dynamic physical identities stay authoritative.
+              """
+              workspace = _designer_workspace(self)
+              return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
+
+
+          def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
+              """Refresh the corner-data list as a pure View projection of workspace parts."""
+              keys = _phase6_corner_data_part_keys(self)
+              self.corner_data_part_keys = keys
+              panel = getattr(self, "corner_data_panel", None)
+              if panel is None or not hasattr(panel, "winfo_children"):
+                  return keys
+
+              for child in tuple(panel.winfo_children()):
+                  child.destroy()
+
+              self.corner_data_part_rows = {}
+              for key in keys:
+                  row = original.ttk.Frame(panel)
+                  row.pack(fill=original.tk.X, pady=(0, 4))
+                  label = original.ttk.Label(row, text=_phase6_part_label(key))
+                  label.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
+                  self.corner_data_part_rows[key] = row
+              return keys
+
+
+          '''
+          text = text.replace(marker, helpers + marker, 1)
+
+          anchor = '''    if panel is not None and hasattr(panel, "pack"):
+              panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+
+              refresh = getattr(self, "_refresh_part_button_states", None)
+          '''
+          if anchor not in text:
+              # Match source indentation exactly via shorter stable insertion point.
+              anchor2 = '        panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))\n\n    refresh = getattr(self, "_refresh_part_button_states", None)\n'
+              assert anchor2 in text, 'corner-data panel pack anchor missing'
+              replacement2 = '        panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))\n\n    _phase6_refresh_corner_data_parts_panel(self)\n\n    refresh = getattr(self, "_refresh_part_button_states", None)\n'
+              text = text.replace(anchor2, replacement2, 1)
+          else:
+              text = text.replace(anchor, anchor.replace('\n              refresh', '\n\n              _phase6_refresh_corner_data_parts_panel(self)\n\n              refresh'), 1)
+
+          p.write_text(text, encoding='utf-8')
+          PY
+      - name: T1 plus T2 focused GREEN
+        run: |
+          pytest -q \
+            tests/test_issue94_corner_data_navigation_mode.py \
+            tests/test_issue95_corner_data_authoritative_parts.py
+      - name: Syntax/import guard
+        run: python -m py_compile fold_designer_bridge.py
+      - name: Commit worker result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'feat(issue95): project authoritative corner-data parts'
+          git push origin HEAD:feat/issue95-authoritative-parts-projection-20260910
