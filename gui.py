@@ -1915,20 +1915,7 @@ class BoxCalculatorGUI:
         snapshot["assembly_joint_schema_version"] = joint_state["assembly_joint_schema_version"]
         snapshot["assembly_joints"] = deepcopy(joint_state["assembly_joints"])
 
-        current_tab_key = None
-        if hasattr(self, "notebook"):
-            try:
-                selected = self.root.nametowidget(self.notebook.select())
-                current_tab_key = {
-                    getattr(self, "tab_z", None): "box_body",
-                    getattr(self, "tab_head", None): "head",
-                    getattr(self, "tab_tail", None): "tail",
-                    getattr(self, "tab_door", None): "door",
-                    getattr(self, "tab_base_plate", None): "base_plate",
-                }.get(selected)
-            except Exception:
-                current_tab_key = None
-        active = self.workspace_controller.active_part or current_tab_key
+        active = self.workspace_controller.active_part
         snapshot["active_part"] = active if active in ordered else (ordered[0] if ordered else None)
 
         snapshot["part_features"] = {
@@ -2053,39 +2040,8 @@ class BoxCalculatorGUI:
         # state; the existing legacy toggle represents the standalone-door mode.
         self.is_door_indicator_var.set("indicator_door" in existing and "indicator_box" not in existing)
 
-        # Main 2D must reflect physical part presence, not only export checkboxes.
-        # Indicator box/small-door remain Door auxiliaries and never occupy top
-        # level notebook tabs; the four optional top-level parts are hidden and
-        # restored transactionally with existing_parts.
-        notebook = getattr(self, "notebook", None)
-        if notebook is not None:
-            tab_specs = (
-                ("box_body", getattr(self, "tab_z", None), "  箱身 (z)  "),
-                ("head", getattr(self, "tab_head", None), "  封頭 (y)  "),
-                ("tail", getattr(self, "tab_tail", None), "  封尾 (y)  "),
-                ("door", getattr(self, "tab_door", None), "  門 (Door)  "),
-                ("base_plate", getattr(self, "tab_base_plate", None), "  底板  "),
-            )
-            managed_tabs = set(notebook.tabs())
-            for key, tab, text in tab_specs:
-                if tab is None:
-                    continue
-                tab_id = str(tab)
-                if tab_id not in managed_tabs:
-                    if self._phase6_logical_part_present(existing, key):
-                        notebook.add(tab, text=text)
-                        managed_tabs.add(tab_id)
-                    continue
-                try:
-                    state = str(notebook.tab(tab, "state"))
-                except Exception:
-                    state = "normal"
-                if self._phase6_logical_part_present(existing, key):
-                    if state == "hidden":
-                        notebook.add(tab, text=text)
-                elif key != "box_body" and state != "hidden":
-                    notebook.hide(tab)
-
+        # Legacy 2D tabs are retired. Physical presence is projected by the
+        # authoritative workspace and Fold Designer views only.
         # Left result rows and output selectors must disappear completely for
         # absent parts; clearing a value while leaving an empty row still wastes
         # shop-floor screen space and invites stale export state.
@@ -2705,37 +2661,6 @@ class BoxCalculatorGUI:
             if path:
                 self.project_controller.set_project_path(path)
 
-        def return_to_2d_corner(part_key):
-            self._flush_phase6_authoritative_state()
-            key = str(part_key or "box_body")
-            logical_key = key
-            if key.startswith("box_body:") and not key.startswith("box_body:divider:"):
-                self.box_body_piece_2d_selected_var.set(key)
-                logical_key = "box_body"
-            destroy_designer_window()
-            tab_map = {
-                "box_body": getattr(self, "tab_z", None),
-                "head": getattr(self, "tab_head", None),
-                "tail": getattr(self, "tab_tail", None),
-                "door": getattr(self, "tab_door", None),
-                "base_plate": getattr(self, "tab_base_plate", None),
-                # Indicator sheets are edited from the Door workflow.
-                "indicator_box": getattr(self, "tab_door", None),
-                "indicator_door": getattr(self, "tab_door", None),
-            }
-            target = tab_map.get(logical_key) or getattr(self, "tab_z", None)
-            try:
-                if target is not None:
-                    self.notebook.select(target)
-                self.refresh_corner_type_panel()
-                self.draw_preview()
-                self.root.deiconify()
-                self.root.lift()
-                self.root.focus_force()
-            except tk.TclError:
-                pass
-            return True
-
         designer = Phase6FoldDesignerApp(
             window, designer_snapshot,
             on_settings_change=None,
@@ -2750,7 +2675,6 @@ class BoxCalculatorGUI:
             on_project_load=load_project_from_designer,
             on_project_path_change=project_path_changed,
             on_project_save=save_project_from_designer,
-            on_return_2d=return_to_2d_corner,
         )
         designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
         self.fold_designer_window = window
@@ -2963,23 +2887,18 @@ class BoxCalculatorGUI:
 
     def _current_manual_corner_part_key(self):
         override = getattr(self, '_manual_corner_part_override', None)
-        if override in getattr(self, 'manual_corner_state', {}):
+        state_map = getattr(self, 'manual_corner_state', {}) or {}
+        if override in state_map:
             return override
-        if not hasattr(self, 'notebook'):
-            return None
-        try:
-            selected = self.root.nametowidget(self.notebook.select())
-        except Exception:
-            return None
-        mapping = {
-            getattr(self, 'tab_head', None): 'head',
-            getattr(self, 'tab_tail', None): 'tail',
-            getattr(self, 'tab_door', None): 'door',
-            getattr(self, 'tab_base_plate', None): 'base_plate',
-            getattr(self, 'tab_indicator_box', None): 'indicator_box',
-            getattr(self, 'tab_indicator_door', None): 'indicator_door',
-        }
-        return mapping.get(selected)
+        controller = getattr(self, 'workspace_controller', None)
+        key = str(getattr(controller, 'active_part', '') or '')
+        if key.startswith('box_body:') and not key.startswith('box_body:divider:'):
+            key = 'box_body'
+        elif key.startswith('door_c'):
+            key = 'door'
+        elif key.startswith('base_plate_c'):
+            key = 'base_plate'
+        return key if key in state_map else None
 
     def _manual_corner_policy(self, part_key, fw):
         state_map = getattr(self, "manual_corner_state", None)
@@ -3695,13 +3614,6 @@ class BoxCalculatorGUI:
                 self.corner_type_preview_canvas, selection, large=True, flip_y=flip_y
             )
 
-    def on_preview_tab_changed(self, event=None):
-        # 真正切換主分頁後，由該板件接管目前截角編輯內容
-        # back from a hidden auxiliary part returned by the 3D designer.
-        self._manual_corner_part_override = None
-        self.refresh_corner_type_panel()
-        self.draw_preview()
-
     def create_widgets(self):
         # 全域專案列：和一般桌面軟體一樣固定在主視窗左上角，
         # 不屬於任何板件/2D/3D 頁面。
@@ -3936,52 +3848,54 @@ class BoxCalculatorGUI:
         self.btn_export.pack(fill=tk.X, pady=(8, 0))
         
         # ==========================================
-        # 右側：預覽與分頁面
+        # 右側：舊 2D 入口已收斂至 Fold Designer「截角資料」
         # ==========================================
         right_container = tk.Frame(main_paned, bg=self.COLOR_BG)
         main_paned.add(right_container, stretch="always")
-        
-        # 分頁面 (Notebook)
-        self.notebook = ttk.Notebook(right_container)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-        
-        # 箱身 (z) 分頁
-        self.tab_z = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.notebook.add(self.tab_z, text="  箱身 (z)  ")
-        self.setup_tab_z_ui()
-        
-        # 封頭 (y) 分頁
-        self.tab_head = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.notebook.add(self.tab_head, text="  封頭 (y)  ")
-        self.setup_tab_endcap_ui(self.tab_head, 'head')
-        
-        # 封尾 (y) 分頁
-        self.tab_tail = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.notebook.add(self.tab_tail, text="  封尾 (y)  ")
-        self.setup_tab_endcap_ui(self.tab_tail, 'tail')
-        
-        # 門 (Door) 分頁
-        self.tab_door = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.notebook.add(self.tab_door, text="  門 (Door)  ")
-        self.setup_tab_door_ui()
-        
-        # 底板分頁
-        self.tab_base_plate = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.notebook.add(self.tab_base_plate, text="  底板  ")
-        self.setup_tab_base_plate_ui()
-        
-        # 指示燈盒子 / 小門是 Door 的附屬零件，不佔主 Notebook 第一層。
-        # 保留內部 frame/UI 供既有共用邏輯使用；實際入口在 Door 開孔編輯器。
-        self.tab_indicator_box = tk.Frame(self.notebook, bg=self.COLOR_BG)
-        self.setup_tab_indicator_box_ui()
 
-        self.tab_indicator_door = tk.Frame(self.notebook, bg=self.COLOR_BG)
+        notice = tk.Frame(right_container, bg=self.COLOR_PANEL, bd=0)
+        notice.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        tk.Label(
+            notice,
+            text="展開圖已移至折彎 / 3D 設計的「截角資料」",
+            bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
+            font=('Microsoft JhengHei', 14, 'bold'),
+        ).pack(pady=(80, 12))
+        tk.Label(
+            notice,
+            text="板件、2D 展開與 3D 共用同一 authoritative workspace；請由截角資料選擇實際板件。",
+            bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
+            font=('Microsoft JhengHei', 10),
+        ).pack(pady=(0, 18))
+        tk.Button(
+            notice, text="開啟折彎 / 3D 設計",
+            command=self.open_original_fold_designer,
+            font=('Microsoft JhengHei', 10, 'bold'),
+            bg=self.COLOR_ACCENT, fg="#ffffff",
+            activebackground=self.COLOR_ACCENT,
+            activeforeground="#ffffff", bd=0, cursor="hand2",
+            padx=16, pady=8,
+        ).pack()
+
+        # Compatibility-only widget state for callbacks that have not yet
+        # been split from the legacy setup helpers. This host is never
+        # packed and is not a navigation surface or a 2D geometry owner.
+        self._legacy_2d_compat_host = tk.Frame(right_container, bg=self.COLOR_BG)
+        self.tab_z = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_z_ui()
+        self.tab_head = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_endcap_ui(self.tab_head, 'head')
+        self.tab_tail = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_endcap_ui(self.tab_tail, 'tail')
+        self.tab_door = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_door_ui()
+        self.tab_base_plate = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_base_plate_ui()
+        self.tab_indicator_box = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
+        self.setup_tab_indicator_box_ui()
+        self.tab_indicator_door = tk.Frame(self._legacy_2d_compat_host, bg=self.COLOR_BG)
         self.setup_tab_indicator_door_ui()
-        
-        # 當切換分頁時重新繪圖
-        self.notebook.bind("<<NotebookTabChanged>>", self.on_preview_tab_changed)
-        
-        # 初始化底板四面同綁定與 trace
+
         self.base_plate_shrink_same_var.trace_add("write", lambda *args: self.sync_base_plate_shrink())
         self.on_base_plate_same_toggle()
         self._phase6_refresh_presence_ui()
@@ -7105,31 +7019,16 @@ class BoxCalculatorGUI:
 
 
     def draw_preview(self):
-        selected_tab = self.notebook.select()
-        if not selected_tab:
-            return
-        tab_widget = self.root.nametowidget(selected_tab)
-        
-        try:
-            val = self.get_float_values()
-        except ValueError:
-            return  # 輸入有誤時不繪圖
-            
-        existing = self._phase6_current_existing_parts()
-        if tab_widget == self.tab_z and "box_body" in existing:
-            self.draw_box_body(val)
-        elif tab_widget == self.tab_head and "head" in existing:
-            self.draw_end_cap(val, self.canvas_head, '封頭', is_tail=False)
-        elif tab_widget == self.tab_tail and "tail" in existing:
-            self.draw_end_cap(val, self.canvas_tail, '封尾', is_tail=True)
-        elif tab_widget == self.tab_door and self._phase6_logical_part_present(existing, "door"):
-            self.draw_door(val)
-        elif hasattr(self, 'tab_base_plate') and tab_widget == self.tab_base_plate and self._phase6_logical_part_present(existing, "base_plate"):
-            self.draw_base_plate(val)
-        elif hasattr(self, 'tab_indicator_box') and tab_widget == self.tab_indicator_box and "indicator_box" in existing:
-            self.draw_indicator_box(val)
-        elif hasattr(self, 'tab_indicator_door') and tab_widget == self.tab_indicator_door and "indicator_door" in existing:
-            self.draw_indicator_door(val)
+        """Refresh only the visible authoritative Fold Designer corner-data View."""
+        designer = getattr(self, "fold_designer_app", None)
+        if designer is None:
+            return None
+        if str(getattr(designer, "_phase6_3d_display_mode", "") or "") != "corner_data":
+            return None
+        if getattr(designer, "corner_data_canvas", None) is None:
+            return None
+        refresh = getattr(designer, "_phase6_refresh_corner_data_unfold_view", None)
+        return refresh() if callable(refresh) else None
 
     def draw_grid(self, canvas, w, h, tags=None):
         """

@@ -5251,21 +5251,6 @@ def _phase6_build_global_persistent_controls(self):
     _phase6_refresh_persistent_structure_controls(self)
 
 
-def _phase6_return_to_2d_corner(self):
-    """Commit current live draft and hand control back to the main 2D corner view."""
-    callback = getattr(self, "_return_2d_callback", None)
-    if callback is None:
-        return False
-    if getattr(self, "_phase6_pending_settings", None):
-        self.flush_pending_settings()
-    if getattr(getattr(self, "designer_workspace", None), "active_part", None) is not None:
-        self._save_current_part()
-    _phase6_publish_live_state(self, force=True)
-    key = str(getattr(self.designer_workspace, "active_part", "") or "box_body")
-    callback(key)
-    return True
-
-
 def _phase6_build_persistent_top_area(self):
     """固定版面：最上列命令；其下兩行全域設定；左右工作區。"""
     try:
@@ -5301,12 +5286,6 @@ def _phase6_build_persistent_top_area(self):
         self.top_command_row, text="全螢幕", command=lambda: _phase6_toggle_fullscreen(self)
     )
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
-    self.return_2d_button = original.ttk.Button(
-        self.top_command_row, text="回2D截角", command=lambda: _phase6_return_to_2d_corner(self),
-    )
-    self.return_2d_button.pack(side=original.tk.LEFT, padx=(0, 8))
-    if getattr(self, "_return_2d_callback", None) is None:
-        self.return_2d_button.configure(state="disabled")
     _phase6_sync_settings_panel_compat(self)
 
     self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)
@@ -8141,7 +8120,7 @@ _FIX10_INIT = Phase6FoldDesignerApp.__init__
 _FIX10_EXPORT = Phase6FoldDesignerApp.export_phase6_snapshot
 
 
-def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, on_return_2d=None):
+def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None):
     # Atomic lifecycle: inherited Tk construction may invoke traced callbacks and
     # legacy do_update() methods, but none of those bootstrap intermediates are
     # authoritative live-sync state. Publish is disabled until the final Phase6
@@ -8195,7 +8174,6 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._project_load_callback = on_project_load
     self._project_path_change_callback = on_project_path_change
     self._project_save_callback = on_project_save
-    self._return_2d_callback = on_return_2d
     self._phase6_box_body_active_piece_key = str(snapshot.get("box_body_active_piece") or "")
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
@@ -9639,6 +9617,7 @@ Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
 Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
 Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
 Phase6FoldDesignerApp.apply_external_sync = _phase6_apply_external_sync
+Phase6FoldDesignerApp._phase6_refresh_corner_data_unfold_view = _phase6_refresh_corner_data_unfold_view
 Phase6FoldDesignerApp.on_ui_text_size_changed = _phase6_on_ui_text_size_changed
 Phase6FoldDesignerApp.apply_external_corner_state = _phase6_apply_external_corner_state
 Phase6FoldDesignerApp._phase6_corner_parameters_unlocked = _phase6_corner_parameters_unlocked
