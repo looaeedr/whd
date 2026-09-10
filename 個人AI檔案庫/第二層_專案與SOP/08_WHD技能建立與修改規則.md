@@ -94,3 +94,16 @@ DXF Skill scope contract：
 ## 2026-09-10 中文 Skill 全樹清理
 
 本次以 `.agents/skills/**/SKILL.md` 實體 tree 盤點到 11 個中文 Skill 資料夾；其中 8 個仍保留英文 frontmatter identity。永久修正不是「把那 8 個名字寫死」，而是把上述 basename invariant + 全樹 contract 納入專案，避免未來同類 drift 再發生。
+
+## 找技能：外部 Skill 發現與專案納入邊界
+
+WHD canonical discovery Skill：`.agents/skills/productivity/找技能/SKILL.md`。
+
+- `找技能` 的工作是理解需求、搜尋候選、做品質驗證、呈現候選，並在**使用者明確同意**後才使用實際可用安裝機制。
+- `skills.sh`、`npx skills`、web/catalog、安裝器都屬 capability：**有就用，沒有就退化**；不得假裝查過 leaderboard、跑過 CLI、看過 stars/install count 或完成安裝。
+- 外部 Skill 的 installs、GitHub stars、來源信譽等是推薦 evidence；來源檔的 1K+/100 installs/100 stars 為 heuristic，不是硬式安全閘門。取不到的資料標 unknown，不腦補。
+- **不得自動安裝**外部 Skill。使用者要先看到候選、來源與可驗證品質資訊，再明確選定。
+- **不得自動納入 WHD**。外部 Skill 被找到或已裝到個人環境，都不代表它是 `.agents/skills/**` 的 canonical project Skill。
+- 若使用者明確要求把外部 Skill 加進 WHD，必須轉 `寫技能`，重新走 `AGENTS.md` / Preflight / branch-first / 中文 identity / contract / Registry / AI Library / release durable writeback。
+- 這條邊界同時保護 `修改DXF`：即使 `找技能` 找到外部 DXF 編輯 Skill，也不得因此把它誤掛成 WHD Skill。
+- machine guard：`tests/test_find_skill_contract.py`。
