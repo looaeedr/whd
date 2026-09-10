@@ -1,74 +1,73 @@
 ---
-name: domain-modeling
-description: Build and sharpen a project's domain model. Use when discussing codebase terminology, writing or editing a CONTEXT.md, or recording or editing an ADR.
+name: 領域建模
+description: 建立並持續磨利專案 domain model。當需要定義/修正 codebase terminology、寫或更新 CONTEXT.md、釐清共享詞義，或記錄真正值得留下的 ADR 時使用；純讀 glossary 不等於啟動本 Skill。
 ---
 
-# Domain Modeling
+# 領域建模
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline: challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* `CONTEXT.md` for vocabulary is not this skill: that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+設計過程中主動建立並修正專案的 domain model：挑戰模糊詞、用 edge-case scenario 壓測定義，並在概念真正確認時立即落到 glossary / ADR。
+
+純粹為了使用既有詞彙而讀 `CONTEXT.md` 不算領域建模；只有正在**改變模型**時才啟動本 Skill。
 
 ## File structure
 
-Most repos have a single context:
+單一 context 常見結構：
 
-```
+```text
 /
 ├── CONTEXT.md
 ├── docs/
 │   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
 └── src/
 ```
 
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
+若 root 有 `CONTEXT-MAP.md`，代表 repository 有多個 contexts；依 map 找各 context 的 `CONTEXT.md` 與 context-specific ADR，system-wide decision 才放共用 `docs/adr/`。
 
-```
-/
-├── CONTEXT-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
-├── src/
-│   ├── ordering/
-│   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
-│   └── billing/
-│       ├── CONTEXT.md
-│       └── docs/adr/
-```
-
-Create files lazily: only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+檔案 lazy-create：沒有內容就不先建空檔。第一個 canonical term settle 時才建立 `CONTEXT.md`；第一個符合 ADR gate 的 decision 出現時才建立 `docs/adr/`。
 
 ## During the session
 
 ### Challenge against the glossary
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y. Which is it?"
+使用者的詞若與 existing `CONTEXT.md` 衝突，立即指出兩個定義，不可悄悄選一個。例如 glossary 的 cancellation 是 X，但本輪似乎用成 Y，就要把衝突交給使用者決定。
 
 ### Sharpen fuzzy language
 
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account': do you mean the Customer or the User? Those are different things."
+遇到 overloaded/fuzzy term，提出精確 canonical term，並說明不同概念為何不能共用同一名稱。
 
 ### Discuss concrete scenarios
 
-When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
+用具體 scenario 與 edge case 壓測 domain relationship，逼出 boundary/invariant。scenario 是用來驗定義，不是自行新增產品規則。
 
 ### Cross-reference with code
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible. Which is right?"
+使用者描述的 domain behavior 與 current code 衝突時，指出衝突並區分：
+
+- user-confirmed domain rule；
+- current implementation；
+- current test behavior。
+
+current code/test 不能因為存在就自動成為 domain authority。
 
 ### Update CONTEXT.md inline
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up: capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+term 一旦 settle，立即依 [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md) 更新 `CONTEXT.md`，不要等 session 結束後憑記憶 batch 補寫。
 
-`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
+`CONTEXT.md` 只放 domain glossary：不得塞 implementation detail、spec、temporary probe、run id、測試紀錄或工作清單。
 
 ### Offer ADRs sparingly
 
-Only offer to create an ADR when all three are true:
+只有以下三項都成立才建立/建議 ADR：
 
-1. **Hard to reverse**: the cost of changing your mind later is meaningful
-2. **Surprising without context**: a future reader will wonder "why did they do it this way?"
-3. **The result of a real trade-off**: there were genuine alternatives and you picked one for specific reasons
+1. **Hard to reverse**：日後改變的成本明顯。
+2. **Surprising without context**：未來讀者沒有背景會問「為什麼這樣做？」
+3. **Real trade-off**：確實有可行 alternatives，並因具體理由選了其中之一。
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+任一不成立就跳過。需要 ADR 時依 [ADR-FORMAT.md](./ADR-FORMAT.md)。
+
+## Authority / durable correction
+
+- 最新使用者已確認 domain definition 高於 stale glossary/ADR；若它推翻舊規則，舊內容要同步標 superseded/replaced，而不是留下兩套 current truth。
+- implementation detail 不得進 glossary；implementation decision 若真符合 ADR gate 才進 ADR。
+- unresolved term 保持 OPEN，不用暫時猜測填滿文件。
+- repository write 後 re-read，確認 durable doc 真的落盤。
