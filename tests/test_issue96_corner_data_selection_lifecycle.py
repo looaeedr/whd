@@ -6,6 +6,8 @@ import fold_designer_bridge as bridge
 class _Workspace:
     def __init__(self, available_parts):
         self.available_parts = tuple(available_parts)
+        self.active_part = "head"
+        self.selected_part = "head"
 
 
 def _app(parts, selected=None, remembered_box_child=None):
@@ -105,3 +107,34 @@ def test_adding_dynamic_part_does_not_offset_existing_selection():
     _refresh(app)
 
     assert app._phase6_corner_data_selected_part_key == "tail"
+
+
+def test_corner_data_selection_callback_resolves_identity_without_activating_workspace():
+    app = _app(
+        (
+            "box_body",
+            "box_body:left_side",
+            "box_body:back",
+            "head",
+        ),
+        remembered_box_child="box_body:back",
+    )
+    before = (
+        app.designer_workspace.active_part,
+        app.designer_workspace.selected_part,
+    )
+    activation_calls = []
+    app.activate_part = lambda key: activation_calls.append(key)
+
+    select = getattr(bridge, "_phase6_select_corner_data_part", None)
+    assert callable(select), "T3 requires a pure stable-identity corner-data selection callback"
+
+    resolved = select(app, "box_body")
+
+    assert resolved == "box_body:back"
+    assert app._phase6_corner_data_selected_part_key == "box_body:back"
+    assert activation_calls == []
+    assert (
+        app.designer_workspace.active_part,
+        app.designer_workspace.selected_part,
+    ) == before
