@@ -8,8 +8,9 @@ def _skill_text() -> str:
 
 def test_dispatching_skill_identity_is_user_requested_chinese_name():
     text = _skill_text()
-    assert "name: 派工" in text
-    assert "name: dispatching" not in text
+    frontmatter = text.split("---", 2)[1]
+    assert "name: 派工" in frontmatter
+    assert "name: dispatching" not in frontmatter
     assert "# 派工" in text
 
 
