@@ -35,7 +35,7 @@ def test_r3_normalize_part_selection_preserves_authoritative_dynamic_ids():
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
-def test_r3_corner_data_keeps_dynamic_receiving_door_base_and_physical_ids_visible():
+def test_r3_corner_data_keeps_authoritative_receiving_dynamic_parts_visible():
     import tkinter as tk
     import gui
 
@@ -44,12 +44,9 @@ def test_r3_corner_data_keeps_dynamic_receiving_door_base_and_physical_ids_visib
     app = gui.BoxCalculatorGUI(root)
     designer = None
     try:
-        existing = app._apply_existing_parts_from_fold_workspace(DYNAMIC_PARTS)
+        app.baseline_var.set("受電箱")
+        app.on_baseline_changed()
         root.update_idletasks(); root.update()
-
-        current = app._phase6_current_existing_parts()
-        for key in DYNAMIC_PARTS:
-            assert key in current, (key, sorted(current))
 
         designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
@@ -57,7 +54,7 @@ def test_r3_corner_data_keeps_dynamic_receiving_door_base_and_physical_ids_visib
         root.update_idletasks(); root.update()
 
         corner_keys = tuple(bridge._phase6_corner_data_part_keys(designer))
-        for key in (
+        expected_dynamic = (
             "box_body:left_side",
             "box_body:back",
             "box_body:right_side",
@@ -65,12 +62,14 @@ def test_r3_corner_data_keeps_dynamic_receiving_door_base_and_physical_ids_visib
             "door_c1_r2",
             "base_plate_c1_r1",
             "base_plate_c1_r2",
-        ):
+        )
+        for key in expected_dynamic:
             assert key in corner_keys, (key, corner_keys)
             assert bridge._phase6_select_corner_data_part(designer, key) == key
             projection = bridge._phase6_corner_data_unfold_projection(designer)
             assert projection is not None
             assert projection.part_key == key
+            assert projection.render_data is not None
 
         app.update_calculations()
         root.update_idletasks(); root.update()
