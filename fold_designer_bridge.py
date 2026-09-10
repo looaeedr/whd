@@ -4255,7 +4255,13 @@ def _phase6_apply_external_sync(self, envelope):
     settings = dict(delta.get("settings") or {})
     if not settings:
         return {}
-    return _phase6_apply_external_settings(self, settings)
+    result = _phase6_apply_external_settings(self, settings)
+    if (
+        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        and getattr(self, "corner_data_canvas", None) is not None
+    ):
+        _phase6_refresh_corner_data_unfold_view(self)
+    return result
 
 
 
