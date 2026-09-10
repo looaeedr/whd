@@ -20,10 +20,11 @@ def test_writing_skill_is_capability_adaptive_not_claude_locked():
     for required in (
         "能力偵測",
         "可用工具",
-        "不存在的背景",
+        "背景 runtime",
         "不得假裝",
     ):
         assert required in text
+    assert "不得宣稱「已在背景跑」" in text
     assert "claude-with-access-to-the-skill" not in text
     assert "run_loop.py" not in text
 
