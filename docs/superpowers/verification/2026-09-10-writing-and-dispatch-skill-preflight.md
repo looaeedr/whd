@@ -46,6 +46,17 @@ Targeted contracts:
 - `tests/test_phase6_skill_preflight_gate.py`
 - release packaging policy around mandatory Skill artifacts
 
-Remote QA, when started, must be monitored to terminal and cleaned before acceptance.
+## Remote QA history
 
-QA trigger note: this commit exists only to trigger the already-registered one-shot branch workflow after its creation commit produced no run.
+- Run `34493460914` at `e426f64dd29fe2d44dcb5f2d010f4b10baa4a626`: Preflight PASS; targeted contracts 34 PASS / 1 FAIL. Failure was a contract false negative: exact substring `不存在的背景` was required even though the Skill already enforced no fake background runtime. Production/Skill behavior was not relaxed; the contract was corrected to assert the behavior instead of one exact phrase.
+- Final tested run `34493539025` at `c37c8e6609db882d718b383103833651e36dd754`: `completed + success`.
+- Final Preflight on that run: `寫技能`, `派工`, `phase6-release-packaging`, `diagnosing-bugs`, `tdd` all PASS; global AI pitfall, WHD skill-authoring AI rule and `release_required_artifacts.json` references all PASS.
+- Final targeted contracts: **35 passed / 0 failed / 0.34s**.
+
+## Cleanup / drift audit basis
+
+- One-shot QA workflow `.github/workflows/skill-contract-check-20260910.yml` was deleted after terminal GREEN in cleanup commit `32d1058b5069636deca60b2f5224890e9c3755aa`.
+- Re-read after deletion returned 404/Not Found as expected.
+- Push-run count remained 3 after cleanup; no replacement non-terminal run was created.
+- Tested head for behavior: `c37c8e6609db882d718b383103833651e36dd754`.
+- Final branch drift must be limited to QA workflow deletion plus this durable verification evidence update; any Skill/test/Registry/AI-policy drift after tested head is not acceptable.
