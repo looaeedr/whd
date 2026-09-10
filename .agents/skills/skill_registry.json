@@ -3,6 +3,27 @@
   "description": "Machine-readable Skill Preflight registry. Skill 決定 AI 怎麼改；截角資料庫決定程式算什麼。",
   "routes": [
     {
+      "id": "skill-authoring",
+      "keywords": [
+        "寫技能",
+        "修改技能",
+        "修技能",
+        "SKILL.md",
+        "skill authoring",
+        "skill creator",
+        "skill update"
+      ],
+      "file_globs": [
+        ".agents/skills/**"
+      ],
+      "required_skills": [
+        "寫技能"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "scan-deep-modules",
       "keywords": [
         "掃描深模組",
