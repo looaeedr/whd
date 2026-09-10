@@ -5,6 +5,13 @@ description: 使用者要求驗目前板件、指定板件、全部板件、DXF�
 
 # 驗證板件與DXF
 
+## 專案技能邊界
+
+- `修改DXF` **不是本專案 Skill**，不得因名稱含 DXF 就把外部／其他專案的 DXF 修改能力加入 WHD Registry、README、Preflight 或 router。
+- 本 Skill **只負責驗證／驗收** current WHD manufacturing output：canonical geometry、2D/3D parity、DXF export→reopen、multipart 與 Save→Reload。
+- 本 Skill **不得取代** `修改DXF`，也不得把「驗證輸出 DXF」擴張成「任意修改 DXF 檔案」的編輯能力。
+- 若使用者另行點名外部 `修改DXF` Skill，必須回到該 Skill 所屬專案／來源判定其規則，不得自動掛入 WHD 技能樹。
+
 ## 何時使用
 
 使用者要求下列任一工作時直接執行，不要只解釋：
