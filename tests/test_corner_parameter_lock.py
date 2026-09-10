@@ -168,9 +168,12 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
         payload = {"schema": project.PROJECT_SCHEMA, "saved_at": "now", "snapshot": snapshot, "final_geometry": {}}
         path = project.write_project(tmp_path / "lock-reset.p6fold", payload)
 
-        # Project lock state is transient UI state.  Load the saved project into a
-        # fresh Fold Designer session instead of manually tearing down a live Tk
-        # Toplevel while its queued after callbacks are still owned by Tcl.
+        # Keep the source window alive so its queued Tcl callbacks keep their
+        # owners, but release its modal grab before opening a fresh app in this
+        # same test process.  Parameter-lock state is transient UI state and
+        # must not come back from the saved project.
+        if app.fold_designer_window is not None:
+            app.fold_designer_window.grab_release()
         loaded_root = tk.Tk(); loaded_root.withdraw()
         loaded_app = gui.BoxCalculatorGUI(loaded_root)
         loaded = loaded_app.load_phase6_project(path, open_designer=True)
@@ -184,6 +187,7 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
         for owner in (loaded_app, app):
             try:
                 if owner is not None and owner.fold_designer_window is not None:
+                    owner.fold_designer_window.grab_release()
                     owner.fold_designer_window.destroy()
             except Exception:
                 pass
@@ -423,6 +427,7 @@ def test_receiving_bottom_wrap_controls_live_only_in_unlocked_3d_parameters_and_
     try:
         app = gui.BoxCalculatorGUI(root)
         app.baseline_var.set("受電箱")
+        app.on_baseline_changed()
         joint_state = dict(app.assembly_joint_state or {})
         joint_state["model"] = "受電箱"
         joint_state["existing_parts"] = ["box_body", "head", "tail"]
@@ -431,8 +436,13 @@ def test_receiving_bottom_wrap_controls_live_only_in_unlocked_3d_parameters_and_
         app.assembly_joint_state = joint_state
         root.update_idletasks(); root.update()
         designer = app.open_original_fold_designer()
+        # Current Fold Designer owns queued initialization callbacks.  Let them
+        # settle before a programmatic part switch so a stale initial selection
+        # cannot overwrite the explicit Head selection in this UI test.
+        root.update_idletasks(); root.update()
         designer.activate_part("head")
         root.update_idletasks(); root.update()
+        assert designer.designer_workspace.active_part == "head"
 
         # Entire settings center is hidden while the global parameter lock is closed.
         assert designer._phase6_parameters_unlocked is False
@@ -440,6 +450,7 @@ def test_receiving_bottom_wrap_controls_live_only_in_unlocked_3d_parameters_and_
 
         bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
+        assert designer.designer_workspace.active_part == "head"
         assert designer.settings_center.winfo_manager() == "pack"
         assert designer.bottom_wrap_widget is not None
         assert designer.bottom_wrap_widget.winfo_manager() == "grid"
