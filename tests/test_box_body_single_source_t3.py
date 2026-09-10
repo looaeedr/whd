@@ -14,19 +14,20 @@ def _make_app():
     app = gui.BoxCalculatorGUI(root)
     root.deiconify()
     root.geometry("1200x800")
-    app.notebook.select(app.tab_z)
     root.update_idletasks(); root.update()
     return root, app, gui
 
 
-def test_draw_box_body_consumes_authoritative_render_without_caller_structural_rebuild(monkeypatch):
+def test_corner_data_box_body_consumes_authoritative_render_without_caller_structural_rebuild(monkeypatch):
+    import fold_designer_bridge as bridge
+
     root, app, gui = _make_app()
+    designer = None
     try:
         app.w_var.set("500")
         app.h_var.set("600")
         app.d_var.set("200")
         root.update_idletasks(); root.update()
-        val = app.get_float_values()
 
         calls = {"authoritative": 0}
         real_authoritative = app._authoritative_render_data
@@ -36,49 +37,67 @@ def test_draw_box_body_consumes_authoritative_render_without_caller_structural_r
             return real_authoritative(spec, context)
 
         def forbidden(*_args, **_kwargs):
-            raise AssertionError("draw_box_body must not rebuild Box Body structural geometry")
+            raise AssertionError("corner-data 2D must not rebuild Box Body structural geometry")
 
         monkeypatch.setattr(app, "_authoritative_render_data", capture_authoritative)
         monkeypatch.setattr(gui, "build_box_body_result_from_fold_profile", forbidden)
         monkeypatch.setattr(gui, "build_box_body_result", forbidden)
 
-        app.draw_box_body(val)
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        assert bridge._phase6_select_corner_data_part(designer, "box_body") == "box_body"
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        assert calls["authoritative"] == 1
-        assert set(app.box_body_face_bounds) == {"left", "back", "right"}
-        overview = app.last_box_body_face_overview
-        assert overview["mode"] == "unfolded_with_face_hit_zones"
-        assert set(overview["contexts"]) == {"left", "back", "right"}
-        assert overview["unfolded_size"][0] > val["w"] + 2.0 * val["d"]
-
-        bend_items = [
-            item for item in app.canvas_z.find_all()
-            if app.canvas_z.type(item) == "line"
-            and app.canvas_z.itemcget(item, "fill") == "#0a84ff"
-        ]
-        assert bend_items
+        assert projection is not None
+        assert projection.part_key == "box_body"
+        assert projection.render_data is not None
+        assert calls["authoritative"] >= 1
+        contexts = projection.render_data.box_body_face_contexts
+        assert set(contexts) == {"left", "back", "right"}
+        minx, _miny, maxx, _maxy = map(float, projection.render_data.material.bounds)
+        assert (maxx - minx) > 500.0 + 2.0 * 200.0
+        assert not hasattr(app, "notebook")
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
 
 
-def test_receiving_draw_box_body_uses_same_authoritative_context_projection(monkeypatch):
+def test_receiving_corner_data_box_body_uses_same_authoritative_context_projection(monkeypatch):
+    import fold_designer_bridge as bridge
+
     root, app, gui = _make_app()
+    designer = None
     try:
         app.baseline_var.set("受電箱")
+        app.on_baseline_changed()
         root.update_idletasks(); root.update()
-        val = app.get_float_values()
 
         def forbidden(*_args, **_kwargs):
-            raise AssertionError("Receiving Main 2D must not call GUI structural builders")
+            raise AssertionError("Receiving corner-data 2D must not call GUI structural builders")
 
         monkeypatch.setattr(gui, "build_box_body_result_from_fold_profile", forbidden)
         monkeypatch.setattr(gui, "build_box_body_result", forbidden)
 
-        app.draw_box_body(val)
+        designer = app.open_original_fold_designer()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        assert bridge._phase6_select_corner_data_part(designer, "box_body") == "box_body"
+        projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        assert set(app.box_body_face_bounds) == {"left", "back", "right"}
-        contexts = app.last_box_body_face_overview["contexts"]
+        assert projection is not None
+        contexts = projection.render_data.box_body_face_contexts
         assert set(contexts) == {"left", "back", "right"}
         assert app.workspace_controller.box_body_profile()
+        assert projection.render_data is bridge._phase6_corner_data_unfold_projection(designer).render_data
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
