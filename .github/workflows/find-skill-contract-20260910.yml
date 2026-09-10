@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - feat/add-find-skill-20260910
+    paths:
+      - docs/superpowers/verification/2026-09-10-find-skill-preflight.md
 
 permissions:
   contents: read
@@ -30,5 +32,14 @@ jobs:
             --changed-file "release_required_artifacts.json" \
             --changed-file "tests/test_find_skill_contract.py" \
             --evidence "docs/superpowers/verification/2026-09-10-find-skill-preflight.md"
-      - name: Find skill contract
-        run: python -m pytest -q tests/test_find_skill_contract.py
+      - name: Final skill regression matrix
+        run: |
+          python -m pytest -q \
+            tests/test_find_skill_contract.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_dxf_skill_scope_contract.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_phase6_release_packaging_policy.py \
+            tests/test_release_integrity_gate.py
