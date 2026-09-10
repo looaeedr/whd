@@ -27,6 +27,7 @@ Source quality heuristics retained as heuristics rather than universal hard gate
 
 - 寫技能
 - phase6-release-packaging
+- monitoring-remote-qa
 
 ## Required references read
 
@@ -34,7 +35,7 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防�
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
 
-## Planned changed files
+## Changed files
 
 - `.agents/skills/productivity/找技能/SKILL.md`
 - `.agents/skills/productivity/README.md`
@@ -48,8 +49,57 @@ READ_REFERENCE: release_required_artifacts.json
 
 1. Folder basename and frontmatter identity are both `找技能`.
 2. Preserve the uploaded source's discovery/quality/recommend/install flow.
-3. `npx skills`, `skills.sh`, web/CLI/plugin search and installation are capability-gated: use when actually available, otherwise report the gap and use available search/discovery paths.
+3. `npx skills`, `skills.sh`, web/CLI/catalog search and installation are capability-gated: use when actually available, otherwise report the gap and use available discovery paths.
 4. Never claim a search/install occurred unless a real tool/command result exists.
 5. Never auto-install or auto-admit an external Skill into WHD. User approval is required for installation; WHD project admission additionally requires project Skill governance.
 6. Register `找技能` in Productivity README and machine-readable Registry.
 7. Add durable AI guidance and release artifact protection.
+
+## RED evidence
+
+- run: `34499415197`
+- head: `cd7897ab33a4a4b7c516d9d6cea2be9d7f14bfcd`
+- Knowledge Preflight: PASS
+  - required Skills: `寫技能`, `phase6-release-packaging`
+  - required references: global pitfall library, WHD skill-authoring rules, release manifest
+- contract: `tests/test_find_skill_contract.py`
+- result: **8 failed / 0 passed**
+- failures were requirement failures: missing `找技能/SKILL.md`, missing `skill-discovery` Registry route, missing Productivity README entry, missing AI durable boundary, missing release artifacts. No setup/import failure.
+
+## Implementation summary
+
+- Added `.agents/skills/productivity/找技能/SKILL.md` with canonical `name: 找技能`.
+- Preserved source six-step discovery flow and source quality heuristics.
+- Added capability detection: no fake `skills.sh`, `npx skills`, installs/stars/search/install results.
+- Added explicit user-approval gate before installation.
+- Added WHD admission boundary: external Skill discovery/install does not auto-create a WHD project Skill; project admission routes through `寫技能` + Preflight + branch-first + contracts/Registry/AI/release writeback.
+- Added Productivity README entry and `skill-discovery` machine-readable Registry route.
+- Added AI Library durable rules and release manifest protection.
+
+## Targeted GREEN evidence
+
+- run: `34499852951`
+- head: `ce325d077532a19a330ae2d562dfe7cc0a11c81c`
+- terminal conclusion: SUCCESS
+- Knowledge Preflight: PASS
+  - required Skills: `寫技能`, `找技能`, `phase6-release-packaging`
+  - required references: global pitfall library, WHD skill-authoring rules, release manifest
+- `tests/test_find_skill_contract.py`: **8 passed / 0 failed / 0.09s**
+
+## Remote-run hygiene correction
+
+The first one-shot workflow initially triggered on every branch push, causing intermediate implementation commits to create extra runs. Those intermediate runs are not final evidence. After the targeted GREEN, the workflow trigger was narrowed to this evidence file only, so the final regression matrix is a single explicit QA trigger. Final acceptance must use the new final-matrix run, not the intermediate runs.
+
+## Final regression scope
+
+The final run must include:
+- `tests/test_find_skill_contract.py`
+- `tests/test_chinese_skill_identity_contract.py`
+- `tests/test_writing_skill_contract.py`
+- `tests/test_writing_skill_preflight_route.py`
+- `tests/test_dxf_skill_scope_contract.py`
+- `tests/test_phase6_skill_preflight_gate.py`
+- `tests/test_phase6_release_packaging_policy.py`
+- `tests/test_release_integrity_gate.py`
+
+After final GREEN: delete `.github/workflows/find-skill-contract-20260910.yml`, re-read 404, then compare tested head → cleaned head. Only workflow cleanup and this evidence file may drift after the tested head.
