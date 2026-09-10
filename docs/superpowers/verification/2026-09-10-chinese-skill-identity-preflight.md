@@ -107,4 +107,12 @@ Total: **11 Chinese Skill folders; 8 identity mismatches corrected; 3 already ma
 
 ## Cleanup / drift audit
 
-One-shot workflow cleanup is required after this GREEN. Final acceptance is only valid after `.github/workflows/chinese-skill-identity-check-20260910.yml` is deleted and tested-head → cleaned-head compare confirms no Skill/test/Registry/release-policy drift; only this evidence update and workflow cleanup are allowed after the tested head.
+- one-shot workflow `.github/workflows/chinese-skill-identity-check-20260910.yml` deleted after final GREEN.
+- remote re-read of the workflow path returned `404 Not Found`, confirming cleanup.
+- cleanup commit: `072ca251123a091b3b0083be1ee36a1c9d7b0c89`.
+- tested-head `469387d9aa2479df6201902d099f9175aa8466cc` → cleanup head `072ca251123a091b3b0083be1ee36a1c9d7b0c89` compare contained only:
+  1. this verification evidence file update;
+  2. one-shot workflow removal.
+- No Skill, test, Registry, release-policy, production, or configuration drift occurred after the tested head.
+
+Final branch head is the follow-up evidence-only commit after `072ca251...`; acceptance remains tied to tested head `469387d9...` because every post-test change is documentation/workflow cleanup only and is covered by the final drift audit.
