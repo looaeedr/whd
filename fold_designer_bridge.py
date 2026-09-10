@@ -8507,6 +8507,12 @@ def _fix11_refresh_part_buttons(self):
             value="組合體",
             command=lambda: _phase6_show_assembly(self),
         )
+        menu.add_radiobutton(
+            label="截角資料",
+            variable=self.part_var,
+            value="截角資料",
+            command=lambda: _phase6_show_corner_data(self),
+        )
         for key in _phase6_operator_part_selector_keys(self.available_parts):
             label = _phase6_part_label(key, snapshot=snapshot)
             menu.add_radiobutton(
@@ -8520,6 +8526,8 @@ def _fix11_refresh_part_buttons(self):
     if hasattr(self, "part_var"):
         if mode == "assembly":
             self.part_var.set("組合體")
+        elif mode == "corner_data":
+            self.part_var.set("截角資料")
         elif _phase6_is_box_body_physical_piece_key(active):
             self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
         elif active in self.available_parts:
@@ -8539,6 +8547,44 @@ def _fix11_refresh_part_button_states(self):
         delete.configure(
             state=("normal" if selected in self.available_parts and selected != "box_body" and not _phase6_is_derived_physical_part_key(selected) else "disabled")
         )
+
+
+def _phase6_show_corner_data(self):
+    """Switch Fold Designer to the view-only corner-data navigation mode.
+
+    This mode is navigation only: it must not flush/publish settings, add a
+    manufacturing part, or alter workspace selection/state. T2 will populate
+    the authoritative part projection inside the mode panel.
+    """
+    self._phase6_3d_display_mode = "corner_data"
+    if hasattr(self, "part_var"):
+        self.part_var.set("截角資料")
+
+    piece_selector = getattr(self, "box_body_piece_selector", None)
+    if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
+        try:
+            piece_selector.pack_forget()
+        except Exception:
+            pass
+
+    fold_host = getattr(self, "fold_editor_host", None)
+    if fold_host is not None and hasattr(fold_host, "pack_forget"):
+        fold_host.pack_forget()
+
+    assembly_panel = getattr(self, "assembly_parts_panel", None)
+    if assembly_panel is not None and hasattr(assembly_panel, "pack_forget"):
+        assembly_panel.pack_forget()
+
+    panel = getattr(self, "corner_data_panel", None)
+    if panel is None and getattr(self, "left", None) is not None:
+        panel = original.ttk.Frame(self.left, padding=6)
+        self.corner_data_panel = panel
+    if panel is not None and hasattr(panel, "pack"):
+        panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+
+    refresh = getattr(self, "_refresh_part_button_states", None)
+    if callable(refresh):
+        refresh()
 
 
 def _phase6_show_assembly(self, initial=False):
@@ -8565,6 +8611,9 @@ def _phase6_show_assembly(self, initial=False):
         self.part_var.set("組合體")
     if getattr(self, "fold_editor_host", None) is not None and self.fold_editor_host.winfo_manager():
         self.fold_editor_host.pack_forget()
+    corner_data_panel = getattr(self, "corner_data_panel", None)
+    if corner_data_panel is not None and hasattr(corner_data_panel, "pack_forget"):
+        corner_data_panel.pack_forget()
     assembly_panel = getattr(self, "assembly_parts_panel", None)
     if assembly_panel is not None and not assembly_panel.winfo_manager():
         assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
