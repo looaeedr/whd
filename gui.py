@@ -160,6 +160,24 @@ def _corner_preview_flip_y_for_target(target_key):
     return str(target_key or "").strip() not in {"bottom", "bottom_left", "bottom_right"}
 
 
+def _project_toolbar_presentation():
+    """Pure presentation contract for the compact engineering workbench header."""
+    return {
+        "actions": (
+            ("open", "開啟專案", "secondary"),
+            ("save", "儲存專案", "primary"),
+            ("save_as", "另存新檔", "secondary"),
+        ),
+        "primary_action": "save",
+        "toolbar_padx": 10,
+        "toolbar_pady": 4,
+        "button_padx": 8,
+        "button_pady": 2,
+        "title": "WHD｜箱體板金工程工作台",
+        "subtitle": "專案・板件・圖面・製造輸出",
+    }
+
+
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
     """Return render profiles consistent with the current box assembly type.
 
@@ -3619,44 +3637,70 @@ class BoxCalculatorGUI:
             )
 
     def create_widgets(self):
-        # 全域專案列：和一般桌面軟體一樣固定在主視窗左上角，
-        # 不屬於任何板件/2D/3D 頁面。
-        self.project_toolbar = tk.Frame(self.root, bg=self.COLOR_BG)
-        self.project_toolbar.pack(fill=tk.X, padx=20, pady=(8, 0))
-        project_button_opts = dict(
-            font=('Microsoft JhengHei', 9), bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
-            activebackground=self.COLOR_ACCENT, activeforeground="#ffffff",
-            bd=0, cursor="hand2", padx=10, pady=4,
+        # Compact CAD-style workbench header. Project callbacks and text-scale
+        # authority stay unchanged; only presentation hierarchy/density changes.
+        toolbar_spec = _project_toolbar_presentation()
+        self.project_toolbar_shell = tk.Frame(
+            self.root, bg=self.COLOR_PANEL, bd=1, relief=tk.SOLID
         )
+        self.project_toolbar_shell.pack(
+            fill=tk.X,
+            padx=toolbar_spec["toolbar_padx"],
+            pady=(toolbar_spec["toolbar_pady"], 2),
+        )
+
+        self.project_toolbar = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
+        self.project_toolbar.pack(side=tk.LEFT, padx=(6, 10), pady=3)
+
+        secondary_button_opts = dict(
+            font=('Microsoft JhengHei', 9),
+            bg=self.COLOR_INPUT_BG, fg=self.COLOR_TEXT,
+            activebackground=self.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
+            bd=1, relief=tk.SOLID, cursor="hand2",
+            padx=toolbar_spec["button_padx"], pady=toolbar_spec["button_pady"],
+        )
+        primary_button_opts = dict(
+            font=('Microsoft JhengHei', 9, 'bold'),
+            bg=self.COLOR_ACCENT, fg="#ffffff",
+            activebackground=self.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
+            bd=1, relief=tk.SOLID, cursor="hand2",
+            padx=toolbar_spec["button_padx"], pady=toolbar_spec["button_pady"],
+        )
+
         self.project_open_button = tk.Button(
-            self.project_toolbar, text="開啟專案", command=self.open_phase6_project, **project_button_opts
+            self.project_toolbar, text="開啟專案", command=self.open_phase6_project,
+            **secondary_button_opts
         )
         self.project_open_button.pack(side=tk.LEFT, padx=(0, 4))
         self.project_save_button = tk.Button(
-            self.project_toolbar, text="儲存專案", command=self.save_phase6_project, **project_button_opts
+            self.project_toolbar, text="儲存專案", command=self.save_phase6_project,
+            **primary_button_opts
         )
         self.project_save_button.pack(side=tk.LEFT, padx=(0, 4))
         self.project_save_as_button = tk.Button(
-            self.project_toolbar, text="另存新檔", command=self.save_phase6_project_as, **project_button_opts
+            self.project_toolbar, text="另存新檔", command=self.save_phase6_project_as,
+            **secondary_button_opts
         )
         self.project_save_as_button.pack(side=tk.LEFT)
 
-        # 頂部標題列
-        title_frame = tk.Frame(self.root, bg=self.COLOR_BG, height=60)
-        title_frame.pack(fill=tk.X, padx=20, pady=10)
-        
-        title_lbl = ttk.Label(title_frame, text="箱體板金展開計算與預覽工具", style='Header.TLabel')
-        title_lbl.pack(side=tk.LEFT, pady=5)
-        
-        subtitle_lbl = tk.Label(title_frame, text="支援實時預覽、參數連動與 DXF 加工層輸出", 
-                                bg=self.COLOR_BG, fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9))
-        subtitle_lbl.pack(side=tk.LEFT, padx=15, pady=10)
-
-        text_size_frame = tk.Frame(title_frame, bg=self.COLOR_BG)
-        text_size_frame.pack(side=tk.RIGHT, pady=5)
+        identity_frame = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
+        identity_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 8), pady=3)
         tk.Label(
-            text_size_frame, text="文字大小：", bg=self.COLOR_BG, fg=self.COLOR_TEXT_MUTED,
-            font=('Microsoft JhengHei', 9)
+            identity_frame, text=toolbar_spec["title"],
+            bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
+            font=('Microsoft JhengHei', 10, 'bold'), anchor=tk.W,
+        ).pack(anchor=tk.W)
+        tk.Label(
+            identity_frame, text=toolbar_spec["subtitle"],
+            bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
+            font=('Microsoft JhengHei', 8), anchor=tk.W,
+        ).pack(anchor=tk.W)
+
+        text_size_frame = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
+        text_size_frame.pack(side=tk.RIGHT, padx=(8, 8), pady=3)
+        tk.Label(
+            text_size_frame, text="文字大小", bg=self.COLOR_PANEL,
+            fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9)
         ).pack(side=tk.LEFT, padx=(0, 4))
         self.ui_text_size_combo = ttk.Combobox(
             text_size_frame, textvariable=self.ui_text_size_var,
@@ -3664,7 +3708,7 @@ class BoxCalculatorGUI:
         )
         self.ui_text_size_combo.pack(side=tk.LEFT)
         self.ui_text_size_combo.bind("<<ComboboxSelected>>", self.on_ui_text_size_changed)
-        
+
         # 主內容區域 (左右分欄)
         main_paned = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, bg=self.COLOR_BG, bd=0, sashwidth=4)
         main_paned.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
