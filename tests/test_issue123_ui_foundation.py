@@ -1,11 +1,32 @@
 # -*- coding: utf-8 -*-
 """Issue #123 — engineering-workbench shell/toolbar presentation contract."""
 
-from gui import _project_toolbar_presentation
+import ast
+from pathlib import Path
+
+
+GUI_PATH = Path(__file__).resolve().parents[1] / "gui.py"
+
+
+def _project_toolbar_spec_from_source():
+    tree = ast.parse(GUI_PATH.read_text(encoding="utf-8"))
+    func = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_project_toolbar_presentation"
+        ),
+        None,
+    )
+    assert func is not None, "_project_toolbar_presentation must exist"
+    returns = [node for node in ast.walk(func) if isinstance(node, ast.Return)]
+    assert len(returns) == 1
+    return ast.literal_eval(returns[0].value)
 
 
 def test_project_toolbar_uses_engineering_action_hierarchy():
-    spec = _project_toolbar_presentation()
+    spec = _project_toolbar_spec_from_source()
 
     assert spec["actions"] == (
         ("open", "開啟專案", "secondary"),
@@ -16,7 +37,7 @@ def test_project_toolbar_uses_engineering_action_hierarchy():
 
 
 def test_project_toolbar_is_compact_and_not_marketing_copy():
-    spec = _project_toolbar_presentation()
+    spec = _project_toolbar_spec_from_source()
 
     assert spec["toolbar_padx"] <= 12
     assert spec["toolbar_pady"] <= 6
