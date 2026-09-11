@@ -8575,22 +8575,15 @@ def _phase6_select_corner_data_part(self, key):
     return resolved
 
 
-def _phase6_corner_data_unfold_projection(self):
-    """Return the selected authoritative render-data sink for the unfold View.
-
-    This adapter owns no manufacturing calculation.  It only validates the
-    stable corner-data identity and delegates to the existing canonical
-    render-data sinks already used by blank reporting / multipart children.
-    """
+def _phase6_corner_data_unfold_projection_for_key(self, part_key):
+    """Pair one real stable identity with its existing authoritative render-data sink."""
     keys = _phase6_corner_data_part_keys(self)
-    selected = str(getattr(self, "_phase6_corner_data_selected_part_key", "") or "")
+    selected = str(part_key or "")
     if not selected or selected not in keys:
         return None
 
     box_children = _phase6_box_body_piece_keys(keys)
     if selected == "box_body" and box_children:
-        # Multipart BoxBody must resolve to one physical child before the
-        # unfold View can render; the aggregate parent is never a fake sheet.
         return None
 
     if _phase6_is_box_body_physical_piece_key(selected):
@@ -8603,6 +8596,22 @@ def _phase6_corner_data_unfold_projection(self):
         part_key=selected,
         render_data=render_data,
     )
+
+
+def _phase6_corner_data_unfold_projections(self, part_keys):
+    """View-only batch adapter over the same T4 per-part authoritative sink."""
+    projections = []
+    for part_key in tuple(part_keys or ()):
+        projection = _phase6_corner_data_unfold_projection_for_key(self, part_key)
+        if projection is not None:
+            projections.append(projection)
+    return tuple(projections)
+
+
+def _phase6_corner_data_unfold_projection(self):
+    """Return the selected authoritative render-data sink for the unfold View."""
+    selected = str(getattr(self, "_phase6_corner_data_selected_part_key", "") or "")
+    return _phase6_corner_data_unfold_projection_for_key(self, selected)
 
 
 def _phase6_refresh_corner_data_unfold_view(self):

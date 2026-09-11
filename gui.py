@@ -4243,6 +4243,28 @@ class BoxCalculatorGUI:
         key = str(part_key or "")
         if canvas is None:
             return None
+
+        if key.startswith("door_c") and self.multi_door_enabled_var.get():
+            designer = getattr(self, "fold_designer_app", None)
+            if designer is not None:
+                import fold_designer_bridge as phase6_bridge
+                door_keys = tuple(
+                    candidate
+                    for candidate in phase6_bridge._phase6_corner_data_part_keys(designer)
+                    if str(candidate).startswith("door_c")
+                )
+                projections = phase6_bridge._phase6_corner_data_unfold_projections(
+                    designer, door_keys
+                )
+                render_data_by_part_key = {
+                    projection.part_key: projection.render_data
+                    for projection in projections
+                }
+                if key in render_data_by_part_key and len(render_data_by_part_key) == len(door_keys):
+                    return self.draw_door_layout_overview(
+                        canvas=canvas,
+                        render_data_by_part_key=render_data_by_part_key,
+                    )
         canvas.delete("all")
         material = getattr(render_data, "material", None) if render_data is not None else None
         scene = getattr(render_data, "scene", None) if render_data is not None else None
@@ -4544,6 +4566,17 @@ class BoxCalculatorGUI:
         self.door_layout_selected_var.set(selected_key)
 
         canvas = getattr(self, "canvas_door", None)
+        designer = getattr(self, "fold_designer_app", None)
+        if (
+            designer is not None
+            and str(getattr(designer, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        ):
+            corner_canvas = getattr(designer, "corner_data_canvas", None)
+            if corner_canvas is not None:
+                canvas = corner_canvas
+            import fold_designer_bridge as phase6_bridge
+            stable_key = f"door_c{int(column_index) + 1}_r{int(row_index) + 1}"
+            phase6_bridge._phase6_select_corner_data_part(designer, stable_key)
         if canvas is not None:
             for key, item_id in getattr(self, "door_layout_cell_items", {}).items():
                 try:
@@ -5656,10 +5689,11 @@ class BoxCalculatorGUI:
             ),
         )
 
-    def draw_door_layout_overview(self):
+    def draw_door_layout_overview(self, *, canvas=None, render_data_by_part_key=None):
         """Draw the whole Door partition; dimensions are editable around the cells, cells only show holes."""
-        self._sync_door_canvas_double_click_binding()
-        canvas = self.canvas_door
+        if canvas is None:
+            self._sync_door_canvas_double_click_binding()
+            canvas = self.canvas_door
         self._destroy_door_layout_entry_widgets()
         canvas.delete("all")
         self.door_layout_cell_items = {}
@@ -5750,17 +5784,35 @@ class BoxCalculatorGUI:
                 self.door_layout_entry_windows.append(hwin)
 
                 cell = cell_map[(column_index, row_index)]
-                result = self._door_layout_cell_result(cell, val)
-                baseline_scene, _baseline_status = self._door_layout_baseline_scene(cell, val)
-                self._draw_layout_baseline_secondary(
-                    canvas, baseline_scene, result.width, result.height, (x1, y1, x2, y2),
-                    f"door_layout_baseline_{column_index}_{row_index}",
-                )
-                resolved = self._door_layout_cell_resolved_features(cell, result, key)
-                self._draw_layout_resolved_features(
-                    canvas, resolved, result.width, result.height, (x1, y1, x2, y2),
-                    f"door_layout_feature_{column_index}_{row_index}",
-                )
+                if render_data_by_part_key is None:
+                    result = self._door_layout_cell_result(cell, val)
+                    baseline_scene, _baseline_status = self._door_layout_baseline_scene(cell, val)
+                    self._draw_layout_baseline_secondary(
+                        canvas, baseline_scene, result.width, result.height, (x1, y1, x2, y2),
+                        f"door_layout_baseline_{column_index}_{row_index}",
+                    )
+                    resolved = self._door_layout_cell_resolved_features(cell, result, key)
+                    self._draw_layout_resolved_features(
+                        canvas, resolved, result.width, result.height, (x1, y1, x2, y2),
+                        f"door_layout_feature_{column_index}_{row_index}",
+                    )
+                else:
+                    stable_key = f"door_c{column_index + 1}_r{row_index + 1}"
+                    peer_render_data = render_data_by_part_key.get(stable_key)
+                    material = getattr(peer_render_data, "material", None)
+                    scene = getattr(peer_render_data, "scene", None)
+                    if (
+                        material is not None
+                        and scene is not None
+                        and not bool(getattr(material, "is_empty", False))
+                    ):
+                        minx, miny, maxx, maxy = (float(v) for v in material.bounds)
+                        blank_w = max(maxx - minx, 1e-9)
+                        blank_h = max(maxy - miny, 1e-9)
+                        self._draw_layout_baseline_secondary(
+                            canvas, scene, blank_w, blank_h, (x1, y1, x2, y2),
+                            f"corner_data_door_{column_index}_{row_index}",
+                        )
 
                 # Mouse interaction is handled by canvas-level coordinate hit-testing so the
                 # whole cell interior is clickable even though the rectangle has no fill.
