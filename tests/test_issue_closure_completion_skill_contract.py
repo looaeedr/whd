@@ -5,6 +5,7 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 CLOSURE = ROOT / ".agents" / "skills" / "engineering" / "issue-closure-gate" / "SKILL.md"
 REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
+RELEASE_POLICY = ROOT / "release_required_artifacts.json"
 PITFALL = "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md"
 
 
@@ -68,3 +69,10 @@ def test_registry_routes_dispatch_and_completion_to_issue_closure_gate_without_o
     assert PITFALL in closure_route["required_references"]
     keywords = set(closure_route["keywords"])
     assert {"關單", "關議題", "Master issue", "Final Combined", "production integration"} <= keywords
+
+
+def test_release_policy_always_carries_issue_closure_skill_and_machine_guard():
+    policy = json.loads(RELEASE_POLICY.read_text(encoding="utf-8"))
+    required = set(policy["mandatory_update_files"])
+    assert ".agents/skills/engineering/issue-closure-gate/SKILL.md" in required
+    assert "tests/test_issue_closure_completion_skill_contract.py" in required
