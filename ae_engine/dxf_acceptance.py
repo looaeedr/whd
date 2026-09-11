@@ -105,8 +105,76 @@ def _poly_from_points(points):
     return poly
 
 
-def _actual_material(msp):
-    """Reconstruct saved CUTTING with the production-owned canonical policy."""
+def _polygonize_linework_with_tolerance(linework, tolerance: float):
+    """Reconnect DXF CUTTING endpoints only inside verifier tolerance."""
+    coords_by_line = []
+    endpoints = []
+    for line in tuple(linework or ()):
+        coords = list(line.coords)
+        if len(coords) < 2:
+            continue
+        coords_by_line.append(coords)
+        endpoints.extend((
+            tuple(map(float, coords[0])),
+            tuple(map(float, coords[-1])),
+        ))
+    if not coords_by_line:
+        return ()
+
+    tolerance = max(0.0, float(tolerance))
+    parent = list(range(len(endpoints)))
+
+    def find(index):
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(left, right):
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parent[right_root] = left_root
+
+    for i, (x1, y1) in enumerate(endpoints):
+        for j in range(i):
+            x2, y2 = endpoints[j]
+            if hypot(x1 - x2, y1 - y2) <= tolerance:
+                union(i, j)
+
+    groups = {}
+    for index, point in enumerate(endpoints):
+        groups.setdefault(find(index), []).append(point)
+
+    snapped = {}
+    for root, points in groups.items():
+        snapped[root] = (
+            sum(point[0] for point in points) / len(points),
+            sum(point[1] for point in points) / len(points),
+        )
+
+    snapped_lines = []
+    for line_index, coords in enumerate(coords_by_line):
+        first = snapped[find(line_index * 2)]
+        last = snapped[find(line_index * 2 + 1)]
+        if first == last:
+            continue
+        mapped = [first]
+        mapped.extend(tuple(map(float, point)) for point in coords[1:-1])
+        mapped.append(last)
+        snapped_lines.append(LineString(mapped))
+
+    if not snapped_lines:
+        return ()
+    return tuple(
+        poly
+        for poly in polygonize(unary_union(snapped_lines))
+        if float(poly.area) > 1e-9
+    )
+
+
+def _actual_material(msp, coordinate_tolerance: float):
+    """Reconstruct saved CUTTING under the verifier's tolerance contract."""
     from .cutting_material import material_from_cutting_components
 
     primary = None
@@ -143,11 +211,20 @@ def _actual_material(msp):
                 )
             )
 
+    linework_polygons = list(
+        _polygonize_linework_with_tolerance(linework, coordinate_tolerance)
+    )
+    if primary is None and linework_polygons:
+        primary = max(linework_polygons, key=lambda poly: float(poly.area))
+        linework_polygons.remove(primary)
+    secondary.extend(linework_polygons)
+
     return material_from_cutting_components(
         primary=primary,
         secondary=secondary,
-        linework=linework,
+        linework=(),
     )
+
 
 def _expected_bends(render_data):
     rows = []
@@ -225,8 +302,6 @@ def _circle_rows_close(expected, actual, tolerance: float) -> bool:
         and abs(er - ar) <= tolerance
         for (ex, ey, er), (ax, ay, ar) in zip(expected, actual)
     )
-
-
 
 
 def _same_line_geometry(a, b, tolerance: float) -> bool:
@@ -342,7 +417,7 @@ def verify_saved_part_render_data_dxf(
         ))
 
     try:
-        actual_material = _actual_material(msp)
+        actual_material = _actual_material(msp, float(coordinate_tolerance))
         expected_material = render_data.material
         diff_area = float(expected_material.symmetric_difference(actual_material).area)
         if diff_area > float(area_tolerance):
