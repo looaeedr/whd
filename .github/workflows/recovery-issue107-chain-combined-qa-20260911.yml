@@ -13,7 +13,7 @@ permissions:
 env:
   RECOVERY_BRANCH: recovery/issue107-chain-plus-second-batch-20260911
   PREFLIGHT_GREEN_BASE: 53f6dfe660708a420ccab4eb7e8310d54f557f93
-  PREVIOUS_CONTROLLER: 69f2b9899ddbcec86093d0f22497d89431fc3919
+  PREVIOUS_CONTROLLER: 2ec2f6ab3b57779f3a5e3c0a73789c02b58e57d1
 
 jobs:
   guarded-repair:
@@ -32,7 +32,7 @@ jobs:
           git fetch origin "$RECOVERY_BRANCH"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
           test "$(git rev-parse HEAD^)" = "$PREVIOUS_CONTROLLER"
-          git diff --name-only "$PREFLIGHT_GREEN_BASE" HEAD | sort -u > /tmp/controller.changed
+          git -c core.quotePath=false diff --name-only "$PREFLIGHT_GREEN_BASE" HEAD | sort -u > /tmp/controller.changed
           printf '%s\n' '.github/workflows/recovery-issue107-chain-combined-qa-20260911.yml' > /tmp/controller.expected
           diff -u /tmp/controller.expected /tmp/controller.changed
           echo "CONTROLLER_HEAD=$(git rev-parse HEAD)"
@@ -146,7 +146,7 @@ jobs:
           diff -u /tmp/config.before /tmp/config.after
           find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
           diff -u /tmp/baseline.before /tmp/baseline.after
-          git diff --name-only | sort > /tmp/actual.changed
+          git -c core.quotePath=false diff --name-only | sort > /tmp/actual.changed
           printf '%s\n' '.agents/skills/engineering/拆解任務工單/SKILL.md' '.agents/skills/engineering/派工/SKILL.md' 'fold_designer_bridge.py' | sort > /tmp/expected.changed
           diff -u /tmp/expected.changed /tmp/actual.changed
       - name: Commit and push verified recovery repair
