@@ -4244,7 +4244,13 @@ class BoxCalculatorGUI:
         if canvas is None:
             return None
 
-        if key.startswith("door_c") and self.multi_door_enabled_var.get():
+        multi_door_var = getattr(self, "multi_door_enabled_var", None)
+        multi_door_enabled = bool(
+            multi_door_var is not None
+            and callable(getattr(multi_door_var, "get", None))
+            and multi_door_var.get()
+        )
+        if key.startswith("door_c") and multi_door_enabled:
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None:
                 import fold_designer_bridge as phase6_bridge
