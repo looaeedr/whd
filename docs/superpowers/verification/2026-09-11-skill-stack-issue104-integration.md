@@ -12,7 +12,7 @@ Task: 將已驗收的中文 Skill identity／寫技能／派工／找技能 stac
 - integration branch: `integration/skill-stack-onto-issue104-20260911`
 
 Parents of the merge commit:
-1. `424bbc166ea8ff472c044410a78b2449d877c71e` — latest production target snapshot at integration construction time
+1. `424bbc166ea8ff472c044410a78b2449d877c71e` — production target snapshot used as first parent
 2. `16f5e9cd123de0b1841617e2f0b70eef4ecec1fe` — accepted Skill stack with explicit verifier reconciliation
 
 ## Required source evidence read
@@ -70,13 +70,7 @@ Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` was
 - terminal: **FAILURE**
 - classification: **Preflight evidence incomplete; not a product/contract failure**.
 - setup/dependencies/config snapshot succeeded; `config.ini` before SHA was `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
-- missing evidence reported by Preflight:
-  - Skill `phase6-corner-3d-model-integrity`
-  - `基準檔/截角資料庫/README_母規則說明.md`
-  - `基準檔/截角資料庫/certified_relief_rules.json`
-  - `個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md`
-  - `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`
-- all missing authorities were then read and recorded; no production/Skill/test logic was changed for this failure.
+- all missing authorities reported by Preflight were subsequently read and recorded; no production/Skill/test logic was changed for this failure.
 
 ### Run 2 — Final integration acceptance
 
@@ -92,13 +86,28 @@ Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` was
 - `config.ini` after:  `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`
 - tracked working tree invariant: `git diff --exit-code` **PASS**
 
-## QA cleanup
+## QA cleanup and drift
 
 - one-shot workflow: `.github/workflows/skill-stack-issue104-integration-20260911.yml`
 - cleanup commit: `48c5bb31c367ac302202dab80d3c5ad4d126c569`
 - remote re-read after deletion: **404 Not Found** as required.
-- this evidence update occurs after workflow deletion and therefore does not create another QA run.
+- tested head `08030bcd...` → cleaned/evidence head `b5c3a93d...`: exactly two file-level changes only:
+  1. one-shot QA workflow removed;
+  2. this verification evidence updated.
+- **no Skill, test, Registry, AI Library, release-policy, production, baseline or configuration drift after the tested head.**
 
-## Acceptance state
+## Fresh production-target merge-readiness audit
 
-Integration implementation is accepted at tested head `08030bcd...`, subject only to the final tested-head → cleaned-head drift audit and a fresh re-read of the production target immediately before declaring merge-ready. Production target has not been moved by this integration task.
+Immediately before declaring merge-ready, `cleanup/2d-3d-sync` was re-read and remained:
+
+`424bbc166ea8ff472c044410a78b2449d877c71e`
+
+Fresh compare target `424bbc166...` → integration head `b5c3a93d...`:
+
+- status: `ahead`
+- ahead_by: `71`
+- behind_by: `0`
+- merge base: exactly `424bbc166...`
+- delta remains Skill/router/evidence/contract/AI/release-policy only; no old production Python/GUI/Bridge/DXF geometry is introduced.
+
+Therefore the integration line is **merge-ready by non-force fast-forward** as long as the target is re-read once more immediately before the actual ref update and still equals `424bbc166...` (or remains an ancestor with no new overlap). No production merge has been performed by this integration task.
