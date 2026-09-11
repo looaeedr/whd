@@ -117,7 +117,7 @@ jobs:
           root.mainloop()
           PY
           xvfb-run -a -s "-screen 0 1600x1000x24" bash -c '
-            python /tmp/issue123_runtime.py &
+            PYTHONPATH="$PWD" python /tmp/issue123_runtime.py &
             pid=$!
             sleep 1.5
             scrot /tmp/issue123-toolbar.png
