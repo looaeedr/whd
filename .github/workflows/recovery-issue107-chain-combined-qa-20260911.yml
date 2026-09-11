@@ -8,15 +8,16 @@ on:
       - '.github/workflows/recovery-issue107-chain-combined-qa-20260911.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   RECOVERY_BRANCH: recovery/issue107-chain-plus-second-batch-20260911
+  PREFLIGHT_GREEN_PARENT: 53f6dfe660708a420ccab4eb7e8310d54f557f93
 
 jobs:
-  preflight:
+  guarded-repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,12 +26,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Lock exact branch head
+      - name: Prove exact green parent and workflow-only controller commit
         run: |
           git fetch origin "$RECOVERY_BRANCH"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          echo "TESTED_HEAD=$(git rev-parse HEAD)"
-      - name: Issue112 changed-file Knowledge Preflight hard gate
+          test "$(git rev-parse HEAD^)" = "$PREFLIGHT_GREEN_PARENT"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/recovery-issue107-chain-combined-qa-20260911.yml"
+          echo "CONTROLLER_HEAD=$(git rev-parse HEAD)"
+      - name: Install focused-test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libxkbcommon-x11-0
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Re-run changed-file preflight before write
         run: |
           cat > /tmp/issue112-preflight-evidence.txt <<'EOF'
           phase6-corner-3d-model-integrity
@@ -48,8 +57,6 @@ jobs:
             --task '#112 recovery: restore Corner Data physical-child authority after history integration' \
             --changed-file 'fold_designer_bridge.py' \
             --evidence /tmp/issue112-preflight-evidence.txt
-      - name: Skill repair changed-file Preflight hard gate
-        run: |
           cat > /tmp/skill-repair-preflight-evidence.txt <<'EOF'
           寫技能
           派工
@@ -64,5 +71,144 @@ jobs:
             --changed-file '.agents/skills/engineering/派工/SKILL.md' \
             --changed-file '.agents/skills/engineering/拆解任務工單/SKILL.md' \
             --evidence /tmp/skill-repair-preflight-evidence.txt
-      - name: Preflight terminal marker
-        run: echo 'RECOVERY_CHANGED_FILE_PREFLIGHT=PASS'
+      - name: Snapshot invariants
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Apply three authority-backed minimal repairs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected exactly 1 match, got {count}")
+              return text.replace(old, new, 1)
+
+          bridge_path = Path('fold_designer_bridge.py')
+          bridge = bridge_path.read_text(encoding='utf-8')
+          resolver_pattern = re.compile(
+              r'^def _phase6_resolve_operator_part_key\(self, key\):\n.*?(?=^def |\Z)',
+              re.MULTILINE | re.DOTALL,
+          )
+          matches = list(resolver_pattern.finditer(bridge))
+          if len(matches) != 1:
+              raise SystemExit(f"resolver: expected exactly 1 function, got {len(matches)}")
+          resolver = '''def _phase6_resolve_operator_part_key(self, key):
+              """Resolve operator identity to a current physical part without activating the workspace."""
+              key = str(key or "")
+              if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
+                  children = _phase6_box_body_piece_keys(
+                      getattr(_designer_workspace(self), "available_parts", ()) or ()
+                  )
+                  if children:
+                      remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
+                      target = key if key in children else remembered if remembered in children else children[0]
+                      self._phase6_box_body_active_piece_key = target
+                      return target
+              return key
+
+
+          '''
+          bridge = resolver_pattern.sub(resolver, bridge, count=1)
+          bridge_path.write_text(bridge, encoding='utf-8')
+
+          dispatch_path = Path('.agents/skills/engineering/派工/SKILL.md')
+          dispatch = dispatch_path.read_text(encoding='utf-8')
+          if '**REQUIRED SUB-SKILL:** monitoring-remote-qa' in dispatch:
+              raise SystemExit('dispatch: required sub-skill marker unexpectedly already present')
+          anchor = ('這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。\n')
+          dispatch = replace_once(
+              dispatch,
+              anchor,
+              anchor + '\n**REQUIRED SUB-SKILL:** monitoring-remote-qa\n\n同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。\n',
+              'dispatch remote-QA marker',
+          )
+          dispatch = replace_once(
+              dispatch,
+              '3. 在使用者核准 RED 前，不得拆票、不得建立 tracker/local ticket、不得進 Implementer。',
+              '3. 在使用者核准 RED 前，**不得拆解工單**、不得建立 tracker/local ticket、**不得轉移至：實作者**。',
+              'dispatch RED fail-closed wording',
+          )
+          dispatch_path.write_text(dispatch, encoding='utf-8')
+
+          tickets_path = Path('.agents/skills/engineering/拆解任務工單/SKILL.md')
+          tickets = tickets_path.read_text(encoding='utf-8')
+          tickets = replace_once(
+              tickets,
+              '3. 確認 failure 真的到 intended behavior seam。',
+              '3. 確認是**正確失敗**：failure 真的到 intended behavior seam。',
+              'tickets correct-failure wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '下列不能算 requirement RED：environment/DISPLAY/Xvfb/network/tooling failure、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。',
+              '下列不能算 requirement RED：**環境錯誤**（environment/DISPLAY/Xvfb/network/tooling failure）、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。',
+              'tickets environment-error wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '若 supposed RED 已 GREEN，不得硬建修復票；先重新確認 seam/current implementation/症狀是否屬另一條 path。',
+              '若 supposed **RED 已是 GREEN**，**不得建立修復工單**；先**重新確認測試 seam** / current implementation / 症狀是否屬另一條 path。',
+              'tickets already-green wording',
+          )
+          tickets = replace_once(
+              tickets,
+              'RED 未核准時：',
+              'RED 未核准時，**Draft vertical slices** 與 **Publish the tickets**（包含 **GitHub** 與 **Local files**）都禁止：',
+              'tickets publish fail-closed wording',
+          )
+          tickets = replace_once(
+              tickets,
+              'RED 全部核准後，才按 evidence 切票：',
+              'RED 全部核准後，**才可開始草擬工單**，並按 evidence 切票：',
+              'tickets drafting gate wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '- 每票列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria；',
+              '- **每張工單**都要列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria，並引用**已核准的 RED** evidence；',
+              'tickets approved-RED ownership wording',
+          )
+          tickets_path.write_text(tickets, encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- fold_designer_bridge.py '.agents/skills/engineering/派工/SKILL.md' '.agents/skills/engineering/拆解任務工單/SKILL.md'
+      - name: Focused Skill contract GREEN
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: |
+          pytest -q \
+            tests/test_remote_qa_monitoring_skill_contract.py \
+            tests/test_to_tickets_red_first_contract.py \
+            | tee /tmp/skill-focused.log
+      - name: Focused Corner Data physical-child and inherited-contract GREEN
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: |
+          xvfb-run -a pytest -q \
+            tests/test_box_body_single_source_t3.py \
+            tests/test_issue109_corner_data_boxbody_tree.py \
+            tests/test_issue110_shared_info_projection.py \
+            tests/test_issue111_corner_data_grid_isolation.py \
+            | tee /tmp/corner-focused.log
+      - name: Verify invariants and planned diff only
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          git diff --name-only | sort > /tmp/actual.changed
+          printf '%s\n' \
+            '.agents/skills/engineering/拆解任務工單/SKILL.md' \
+            '.agents/skills/engineering/派工/SKILL.md' \
+            'fold_designer_bridge.py' | sort > /tmp/expected.changed
+          diff -u /tmp/expected.changed /tmp/actual.changed
+      - name: Commit and push verified recovery repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'fold_designer_bridge.py' '.agents/skills/engineering/派工/SKILL.md' '.agents/skills/engineering/拆解任務工單/SKILL.md'
+          git commit -m 'fix(recovery): restore integrated durable contracts'
+          git push origin "HEAD:$RECOVERY_BRANCH"
+          echo "REPAIR_HEAD=$(git rev-parse HEAD)"
