@@ -53,9 +53,33 @@ READ_REFERENCE: release_required_artifacts.json
 - `docs/superpowers/verification/2026-09-11-fourth-batch-skills.md`
 - `.github/workflows/fourth-batch-skills-qa-20260911.yml` (temporary QA only)
 
-## Bootstrap attempt 1
+## Bootstrap attempt 1 — evidence gate correctly failed
 
 - run `34601201626 @ fc6111a6890d4b4a694c84e2ef12cfe6286d4cd4` → FAILURE at Knowledge Preflight.
 - setup/dependency/config snapshot all completed before the gate.
 - failure showed required Skills/references as `✗` because this evidence file did not yet exist with read markers.
 - classification: **Preflight evidence gate failure; not requirement RED and not product/test failure.**
+
+## Bootstrap attempt 2 — construction gate GREEN
+
+- evidence-marker commit: `0780cf64462a5c41eb155a1bc8184a0c9f3014fd`.
+- retrigger commit: `145a7b442aef6224f9ca048bae591ed4fbf8ccb6`.
+- run `34601318084 @ 145a7b442aef6224f9ca048bae591ed4fbf8ccb6` → **SUCCESS**.
+- Knowledge Preflight：`寫技能`、`phase6-release-packaging`、`monitoring-remote-qa` 全 ✓；AI06、AI08、release manifest 全 ✓。
+- contract 尚未建立，因此這輪只證明施工資格，不算第四批功能 GREEN。
+- `config.ini` before/after SHA256 均為 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`，clean tree PASS。
+
+## RED evidence
+
+- RED contract commit: `c5f9ac9f8e0a9d1167072af0e0452df84a5c2076`。
+- RED run: `34601420357 @ c5f9ac9f8e0a9d1167072af0e0452df84a5c2076` → FAILURE at `Fourth batch contracts and project guards`。
+- setup、dependency install、config snapshot、Knowledge Preflight 全部先 PASS。
+- exact summary：**11 failed / 59 passed / 1.20s**。
+- 11 failures 對應已核准缺口：兩顆中文 canonical Skill 尚不存在、兩條 Registry route 尚不存在、README / AI08 / release policy 尚未 durable 納入。
+- classification：**有效 requirement RED**；不是 setup/import/Preflight harness failure。
+
+## GREEN implementation in progress
+
+- QA workflow 已改成 one-shot sentinel trigger，避免每個正式檔案各自製造 Actions run。
+- implementation 必須同步：兩顆 Skill、Engineering README、Registry、AI08、release manifest；final QA 再由 `docs/superpowers/verification/.fourth-batch-qa-trigger` 單次觸發。
+- GREEN run terminal 前不宣告完成；GREEN 後刪除 workflow + sentinel、反讀 404，並做 tested-head → cleaned-head drift audit。
