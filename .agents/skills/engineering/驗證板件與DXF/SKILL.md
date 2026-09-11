@@ -127,6 +127,7 @@ DXF / multipart / production export：
 
 ```text
 tests/test_dxf_acceptance.py
+tests/test_receiving_door_dxf_roundtrip.py
 tests/test_multipart_dxf_acceptance.py
 tests/test_resolved_manufacturing_export.py
 tests/test_resolved_manufacturing_geometry.py
@@ -195,10 +196,15 @@ issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、phys
 
 缺少本 Skill 成品驗收 evidence 時，狀態只能是 **focused GREEN / final acceptance pending**，不得標 ACCEPTED。
 
-## DXF reopen 的獨立性邊界
+## DXF reopen 的獨立性與容差 authority（2026-09-11，supersedes 2026-09-10 舊規則）
 
-- 獨立 = 真的保存 `.dxf` 再 `ezdxf.readfile()` 從磁碟 bytes 重開；不能拿 serializer/scene memory 冒充 reopen。
-- CUTTING 的 semantic reconstruction（structural primary、segmented LINE/LWPOLYLINE endpoint snapping、polygonize、same-sheet duplicate、contained holes）屬 production-owned canonical geometry policy。Verifier 呼叫同一 production helper，不在 verifier 維護第二套 tolerance/polygonize 公式。
-- Validation 比 canonical Final Material 與 reopen material；不能把 symmetric_difference 面積/差值/test epsilon 寫回 production。
-- 若 scene→DXF entity type/count/coordinates 一致但 material reopen mismatch，優先查 verifier 的 canonical reconstruction policy 是否漂移，不先改 exporter/production geometry。
-- Negative guards 保留：移動 CUTTING、刪 hole、刪 BEND、改 layer 必須仍被 acceptance 抓到。
+> 本節明確取代舊版「verifier 必須直接呼叫 production helper，且不得維護 verifier tolerance」的規則。Issue #104 已證明該規則會讓 production 製造容差誤入 validation，進而把真實 DXF gap 治癒掉。
+
+- DXF acceptance 的「獨立」是指：必須真的保存 `.dxf`、再用 `ezdxf.readfile()` 從磁碟 bytes 重開；不得拿原本 scene/serializer 回傳值冒充 reopen。
+- Production canonical Final Material 仍由 production-owned geometry policy 決定；validation 不得把 reopen 量測值、symmetric-difference 面積、probe 數字或測試 epsilon 回灌 production。
+- **Production 製造 snap 與 verifier 數值等價 tolerance 是不同 authority。** Verifier 不得直接套 production 0.05–0.25 mm broad snap 去重建 DXF，否則會把超過驗證容差的真 gap 誤判為合法。
+- Verifier 只可在它自己的 `coordinate_tolerance` 內，對 reopen 的 CUTTING LINE/LWPOLYLINE endpoints 做 numerical-equivalence reconnection，再 polygonize/compare canonical material。
+- 微小 floating-point gap（例如遠小於 `1e-6`）可以在 verifier tolerance 內視為 serialization-equivalent；**任何 gap 大於 `coordinate_tolerance` 必須保持可被 `CUTTING_MISMATCH` 抓到**，即使 production helper 會因製造容差而接起來。
+- Scene→DXF entity type/count/coordinates 完全一致但 material reopen mismatch 時，優先檢查 verifier reconstruction/tolerance boundary，不要先改 exporter 或板件 production 幾何。
+- Negative guards 必須同時保留：移動 CUTTING 點、刪 hole、刪 BEND、改 layer、以及 gap > verifier tolerance 都必須 FAIL。
+- Door 類修正除了 synthetic micro-gap 正/反例外，還要保留真實 Receiving 上門/下門 `tests/test_receiving_door_dxf_roundtrip.py`，證明 real baseline LINE+ARC/CUTTING 組合在 save→reopen 後仍等價。
