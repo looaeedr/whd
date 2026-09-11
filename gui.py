@@ -4292,7 +4292,6 @@ class BoxCalculatorGUI:
 
         cw = max(1, int(canvas.winfo_width()))
         ch = max(1, int(canvas.winfo_height()))
-        self.draw_grid(canvas, cw, ch)
         bounds = tuple(float(v) for v in material.bounds)
         transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
             bounds, cw, ch

@@ -112,7 +112,7 @@ from phase6_final_scene_view import (
     _phase6_remove_original_bend_surfaces, _phase6_add_mesh_boundary_lines,
     _phase6_draw_scene_bends, _phase6_draw_scene_markings,
     _phase6_configure_3d_only_figure, _phase6_scale_current_3d_limits,
-    _phase6_adjust_zoom_scale,
+    _phase6_adjust_zoom_scale, format_operator_info_text,
 )
 
 
@@ -8486,9 +8486,11 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
 
 
 def _phase6_resolve_operator_part_key(self, key):
-    """Resolve operator identity to a current physical part without activating the workspace."""
+    """Resolve operator identity without letting child-memory replace the aggregate parent."""
     key = str(key or "")
-    if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
+    if key == "box_body":
+        return key
+    if _phase6_is_box_body_physical_piece_key(key):
         children = _phase6_box_body_piece_keys(
             getattr(_designer_workspace(self), "available_parts", ()) or ()
         )
@@ -8570,6 +8572,22 @@ def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
 
 
+def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
+    """Group current BoxBody physical pieces under the real aggregate parent for this View only."""
+    keys = _phase6_corner_data_part_keys(self)
+    children = _phase6_box_body_piece_keys(keys)
+    child_keys = set(children)
+    parent_present = "box_body" in keys
+    rows = []
+    for key in keys:
+        if parent_present and key in child_keys:
+            continue
+        rows.append((key, 0))
+        if parent_present and key == "box_body":
+            rows.extend((child, 1) for child in children)
+    return tuple(rows)
+
+
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     """Store a current stable corner-data identity without mutating manufacturing state."""
     keys = _phase6_corner_data_part_keys(self)
@@ -8590,6 +8608,36 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     return resolved
 
 
+def _phase6_corner_data_info_request_for_key(self, part_key, render_data):
+    """Build a display-only info request for one selected stable identity."""
+    key = str(part_key or "")
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(self, "_settings_values", {}) or {}
+    if getattr(render_data, "pieces", None):
+        x_profile, y_profile = (), ()
+    else:
+        material = getattr(render_data, "material", None)
+        x_profile, y_profile = ((), ()) if material is None else _phase6_mesh_profiles_for_part(self, key, material)
+    return FinalSceneViewRequest(
+        render_data=render_data,
+        x_profile=tuple(dict(seg) for seg in (x_profile or ())),
+        y_profile=tuple(dict(seg) for seg in (y_profile or ())),
+        part_key=key,
+        alpha_bend=float(getattr(getattr(self, "state", None), "alpha_bend", 0.85)),
+        finished_dimensions=_phase6_operator_finished_dimensions(self, key),
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        corner_dimension_text=_phase6_render_data_corner_dimension_text(render_data),
+        unfolded_blank_text=_phase6_format_unfolded_blank_text(render_data, part_key=key),
+    )
+
+
+def _phase6_corner_data_info_text_for_key(self, part_key, render_data):
+    request = _phase6_corner_data_info_request_for_key(self, part_key, render_data)
+    return format_operator_info_text(
+        request, dimensions=request.finished_dimensions, number_text=_setting_number_text
+    )
+
+
 def _phase6_corner_data_unfold_projection_for_key(self, part_key):
     """Pair one real stable identity with its existing authoritative render-data sink."""
     keys = _phase6_corner_data_part_keys(self)
@@ -8597,9 +8645,6 @@ def _phase6_corner_data_unfold_projection_for_key(self, part_key):
     if not selected or selected not in keys:
         return None
 
-    box_children = _phase6_box_body_piece_keys(keys)
-    if selected == "box_body" and box_children:
-        return None
 
     if _phase6_is_box_body_physical_piece_key(selected):
         render_data = _phase6_box_body_piece_render_data(self, selected)
@@ -8637,6 +8682,13 @@ def _phase6_refresh_corner_data_unfold_view(self):
         if canvas is not None and hasattr(canvas, "delete"):
             canvas.delete("all")
         return None
+    info_text = _phase6_corner_data_info_text_for_key(
+        self, projection.part_key, projection.render_data
+    )
+    info_var = getattr(self, "corner_data_info_var", None)
+    if info_var is not None and hasattr(info_var, "set"):
+        info_var.set(info_text)
+    self.corner_data_info_text = info_text
     callback = getattr(self, "_corner_data_view_render_callback", None)
     if callback is not None and canvas is not None:
         callback(canvas, projection.part_key, projection.render_data)
@@ -8659,9 +8711,11 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
 
     self.corner_data_part_rows = {}
     self.corner_data_part_buttons = {}
-    for key in keys:
+    self.corner_data_part_depths = {}
+    navigation_rows = _phase6_corner_data_navigation_rows(self)
+    for key, depth in navigation_rows:
         row = original.ttk.Frame(panel)
-        row.pack(fill=original.tk.X, pady=(0, 4))
+        row.pack(fill=original.tk.X, pady=(0, 4), padx=(18, 0) if depth else 0)
         button = original.ttk.Button(
             row,
             text=_phase6_part_label(key),
@@ -8670,6 +8724,7 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
         button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
         self.corner_data_part_rows[key] = row
         self.corner_data_part_buttons[key] = button
+        self.corner_data_part_depths[key] = depth
     return keys
 
 
@@ -8686,6 +8741,21 @@ def _phase6_prepare_corner_data_canvas(self):
         alive = canvas is not None and bool(canvas.winfo_exists())
     except Exception:
         alive = canvas is not None
+    info_var = getattr(self, "corner_data_info_var", None)
+    if info_var is None:
+        info_var = original.tk.StringVar(value="")
+        self.corner_data_info_var = info_var
+    info_label = getattr(self, "corner_data_info_label", None)
+    try:
+        info_alive = info_label is not None and bool(info_label.winfo_exists())
+    except Exception:
+        info_alive = info_label is not None
+    if not info_alive:
+        info_label = original.ttk.Label(
+            mpl_widget.master, textvariable=self.corner_data_info_var,
+            justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,
+        )
+        self.corner_data_info_label = info_label
     if not alive:
         canvas = original.tk.Canvas(
             mpl_widget.master, bg="#ffffff", highlightthickness=0
@@ -8701,6 +8771,8 @@ def _phase6_prepare_corner_data_canvas(self):
         )
     if mpl_widget.winfo_manager():
         mpl_widget.pack_forget()
+    if not info_label.winfo_manager():
+        info_label.pack(fill=original.tk.X, padx=8, pady=(6, 2))
     if not canvas.winfo_manager():
         canvas.pack(fill=original.tk.BOTH, expand=True)
     return canvas
@@ -8708,6 +8780,13 @@ def _phase6_prepare_corner_data_canvas(self):
 
 def _phase6_hide_corner_data_canvas(self):
     """Restore Matplotlib when present; incomplete/view-only owners are a no-op."""
+    info_label = getattr(self, "corner_data_info_label", None)
+    if info_label is not None:
+        try:
+            if info_label.winfo_manager():
+                info_label.pack_forget()
+        except Exception:
+            pass
     canvas = getattr(self, "corner_data_canvas", None)
     if canvas is not None:
         try:

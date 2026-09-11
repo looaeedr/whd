@@ -73,24 +73,33 @@ def test_multipart_physical_child_projection_reuses_resolved_aggregate_piece_sin
     assert calls == [("piece", app, "box_body:back")]
 
 
-def test_multipart_aggregate_parent_fails_closed_instead_of_faking_single_unfold(monkeypatch):
+def test_multipart_aggregate_parent_reuses_authoritative_aggregate_render_data_sink(monkeypatch):
     app = _app(
         ("box_body", "box_body:left_side", "box_body:back", "box_body:right_side", "head"),
         "box_body",
     )
+    sentinel = object()
+    calls = []
+    before = (app.designer_workspace.active_part, app.designer_workspace.selected_part)
 
     monkeypatch.setattr(
         bridge,
         "_phase6_render_data_for_blank",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("aggregate parent queried")),
+        lambda owner, key: calls.append(("blank", owner, key)) or sentinel,
     )
     monkeypatch.setattr(
         bridge,
         "_phase6_box_body_piece_render_data",
-        lambda *_args: (_ for _ in ()).throw(AssertionError("unresolved parent queried")),
+        lambda *_args: (_ for _ in ()).throw(AssertionError("aggregate parent used child sink")),
     )
 
-    assert _projection(app) is None
+    result = _projection(app)
+
+    assert result is not None
+    assert result.part_key == "box_body"
+    assert result.render_data is sentinel
+    assert calls == [("blank", app, "box_body")]
+    assert (app.designer_workspace.active_part, app.designer_workspace.selected_part) == before
 
 
 def test_stale_selected_identity_fails_closed_without_querying_render_data(monkeypatch):
