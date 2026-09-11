@@ -22,12 +22,19 @@ Parents of the merge commit:
 - `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`
 - `.agents/skills/engineering/驗證板件與DXF/SKILL.md`
 - `.agents/skills/engineering/寫技能/SKILL.md`
+- `.agents/skills/engineering/派工/SKILL.md`
+- `.agents/skills/engineering/掃描深模組/SKILL.md`
+- `.agents/skills/productivity/找技能/SKILL.md`
 - `.agents/skills/engineering/phase6-release-packaging/SKILL.md`
-- `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
+- `.agents/skills/engineering/phase6-corner-3d-model-integrity/SKILL.md`
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
 READ_REFERENCE: release_required_artifacts.json
 
 ## Conflict resolution authority
@@ -54,6 +61,23 @@ Target `424bbc166...` → integration merge `574c4c4f...` is `ahead`, `behind_by
 
 Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` is also `ahead`, `behind_by=0`; the integration contains the newer target's Issue 94–104 production/test work, including `ae_engine/dxf_acceptance.py`, `gui.py`, `fold_designer_bridge.py`, `tests/test_receiving_door_dxf_roundtrip.py`, current AI DXF tolerance boundary, and `截角資料入口收斂`.
 
+## Remote QA history
+
+### Run 1 — Preflight evidence gate
+
+- run: `34586357202`
+- head: `ba227c82dc0e4af01d0c9098296430bd6f24099c`
+- terminal: **FAILURE**
+- classification: **Preflight evidence incomplete; not a product/contract failure**.
+- setup/dependencies/config snapshot succeeded; `config.ini` before SHA was `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
+- missing evidence reported by Preflight:
+  - Skill `phase6-corner-3d-model-integrity`
+  - `基準檔/截角資料庫/README_母規則說明.md`
+  - `基準檔/截角資料庫/certified_relief_rules.json`
+  - `個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md`
+  - `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`
+- all missing authorities were then read and are explicitly recorded above; no production/Skill/test logic was changed for this failure.
+
 ## Remote QA scope
 
 One-shot workflow: `.github/workflows/skill-stack-issue104-integration-20260911.yml`
@@ -75,4 +99,4 @@ Required matrix:
 
 ## Acceptance state
 
-Remote QA pending. Do not merge into `cleanup/2d-3d-sync` until the locked integration run is terminal GREEN, the one-shot workflow is removed and re-read as 404, and tested-head → cleaned-head drift is limited to QA cleanup/evidence only.
+Replacement QA triggered by this evidence update. Do not merge into `cleanup/2d-3d-sync` until the locked replacement run is terminal GREEN, the one-shot workflow is removed and re-read as 404, and tested-head → cleaned-head drift is limited to QA cleanup/evidence only.
