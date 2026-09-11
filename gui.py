@@ -4267,6 +4267,19 @@ class BoxCalculatorGUI:
                     for projection in projections
                 }
                 if key in render_data_by_part_key and len(render_data_by_part_key) == len(door_keys):
+                    # The composite view returns before the ordinary single-part binding block.
+                    # Bind only the established manual-click lifecycle on the visible canvas.
+                    for sequence in (
+                        "<Button-1>", "<B1-Motion>", "<ButtonRelease-1>",
+                        "<Double-Button-1>", "<Button-3>",
+                    ):
+                        try:
+                            canvas.unbind(sequence)
+                        except Exception:
+                            pass
+                    canvas.bind("<Button-1>", self.on_door_canvas_press)
+                    canvas.bind("<B1-Motion>", self.on_door_canvas_drag)
+                    canvas.bind("<ButtonRelease-1>", self.on_door_canvas_release)
                     return self.draw_door_layout_overview(
                         canvas=canvas,
                         render_data_by_part_key=render_data_by_part_key,
@@ -4582,7 +4595,9 @@ class BoxCalculatorGUI:
                 canvas = corner_canvas
             import fold_designer_bridge as phase6_bridge
             stable_key = f"door_c{int(column_index) + 1}_r{int(row_index) + 1}"
-            phase6_bridge._phase6_select_corner_data_part(designer, stable_key)
+            phase6_bridge._phase6_select_corner_data_part(
+                designer, stable_key, refresh_view=False
+            )
         if canvas is not None:
             for key, item_id in getattr(self, "door_layout_cell_items", {}).items():
                 try:

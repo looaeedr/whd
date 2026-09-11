@@ -8556,7 +8556,7 @@ def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
 
 
-def _phase6_select_corner_data_part(self, key):
+def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     """Store a current stable corner-data identity without mutating manufacturing state."""
     keys = _phase6_corner_data_part_keys(self)
     requested = str(key or "")
@@ -8568,7 +8568,8 @@ def _phase6_select_corner_data_part(self, key):
         resolved = None
     self._phase6_corner_data_selected_part_key = resolved
     if (
-        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        refresh_view
+        and str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
         and getattr(self, "corner_data_canvas", None) is not None
     ):
         _phase6_refresh_corner_data_unfold_view(self)
