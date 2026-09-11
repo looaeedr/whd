@@ -3,6 +3,7 @@ on:
   push:
     branches: [fix/issue108-boxbody-parent-aggregate-20260911]
     paths:
+      - .github/workflows/issue108-boxbody-parent-aggregate-qa.yml
       - fold_designer_bridge.py
       - tests/test_issue96_corner_data_selection_lifecycle.py
       - tests/test_issue97_authoritative_unfold_view_adapter.py
