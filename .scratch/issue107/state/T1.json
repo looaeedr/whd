@@ -1,0 +1,19 @@
+{
+  "task_id": 107,
+  "work_order": 108,
+  "role": "T1 Implementer",
+  "branch": "fix/issue108-boxbody-parent-aggregate-20260911",
+  "baseline": "a37de3ad697ef225b711f6ea0eee86bf2b7712d4",
+  "red": {
+    "expected_failures": 3,
+    "status": "confirmed"
+  },
+  "focused_green": {
+    "status": "confirmed"
+  },
+  "pending": [
+    "exact-head remote QA",
+    "QA review"
+  ],
+  "next": "#109 after #108 acceptance"
+}

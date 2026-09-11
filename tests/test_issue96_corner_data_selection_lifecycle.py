@@ -57,7 +57,7 @@ def test_refresh_clears_stale_dynamic_selection_instead_of_using_row_index():
     assert app._phase6_corner_data_selected_part_key is None
 
 
-def test_multipart_box_body_uses_valid_remembered_physical_child_not_parent():
+def test_multipart_box_body_parent_identity_is_not_hijacked_by_remembered_child():
     app = _app(
         (
             "box_body",
@@ -72,8 +72,8 @@ def test_multipart_box_body_uses_valid_remembered_physical_child_not_parent():
 
     _refresh(app)
 
-    assert app._phase6_corner_data_selected_part_key == "box_body:back"
-    assert app._phase6_corner_data_selected_part_key != "box_body"
+    assert app._phase6_corner_data_selected_part_key == "box_body"
+    assert app._phase6_box_body_active_piece_key == "box_body:back"
 
 
 def test_multipart_stale_child_resolves_to_first_authoritative_physical_child():
@@ -131,8 +131,8 @@ def test_corner_data_selection_callback_resolves_identity_without_activating_wor
 
     resolved = select(app, "box_body")
 
-    assert resolved == "box_body:back"
-    assert app._phase6_corner_data_selected_part_key == "box_body:back"
+    assert resolved == "box_body"
+    assert app._phase6_corner_data_selected_part_key == "box_body"
     assert activation_calls == []
     assert (
         app.designer_workspace.active_part,
