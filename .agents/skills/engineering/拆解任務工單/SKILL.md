@@ -46,33 +46,33 @@ RED 核准前允許的變更只有 requirement RED test/probe 與 evidence；不
 
 1. 寫或找到 executable RED。
 2. **實際執行** exact command/nodeid。
-3. 確認 failure 真的到 intended behavior seam。
+3. 確認是**正確失敗**：failure 真的到 intended behavior seam。
 4. 記錄 expected/observed failure，足以區分 requirement violation 與 harness noise。
 5. 與使用者逐條論證 RED 是否真的代表需求、是否共享 root contract、是否測錯 seam。
 6. 每個 relevant RED 都要有使用者核准。
 
-下列不能算 requirement RED：environment/DISPLAY/Xvfb/network/tooling failure、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。
+下列不能算 RED（requirement RED）：**環境錯誤**（environment/DISPLAY/Xvfb/network/tooling failure）、**語法錯誤**（syntax/import/collection error）、broken fixture/mock、只有 timeout、missing test path。
 
-若 supposed RED 已 GREEN，不得硬建修復票；先重新確認 seam/current implementation/症狀是否屬另一條 path。
+若 supposed **RED 已是 GREEN**，**不得建立修復工單**；先**重新確認測試 seam** / current implementation / 症狀是否屬另一條 path。
 
 ### Fail closed before RED approval
 
-RED 未核准時：
+RED 未核准時，**Draft vertical slices** 與 **Publish the tickets**（包含 **GitHub** 與 **Local files**）都禁止：
 
-- 不得拆票或 assign T-numbers/titles/blockers；
-- 不得建立 GitHub/Linear issue；
-- 不得寫 `.scratch/**` local ticket；
+- **不得開始拆工單**或 assign T-numbers/titles/blockers；
+- **不得建立 issue**（GitHub/Linear）；
+- **不得寫入 local ticket**（含 `.scratch/**`）；
 - 不得讓 `派工` 轉移至實作者。
 
 ## 4. Draft vertical slices
 
-RED 全部核准後，才按 evidence 切票：
+RED 全部核准後，**才可開始草擬工單**，並按 evidence 切票：
 
 - same root contract + inseparable implementation/verification 通常同票；
 - independent contract + separate GREEN condition 分票；
 - 每票能在 fresh context 完成；
 - wide mechanical refactor 可用 expand–migrate–contract；
-- 每票列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria；
+- **每張工單**都要列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria，並引用**已核准的 RED** evidence；
 - stale AI Library 被 current requirement 推翻時，至少一張 closing/acceptance ticket 必須擁有 REQUIRED writeback。
 
 ## 5. 使用者第二次核准

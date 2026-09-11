@@ -8,6 +8,10 @@ disable-model-invocation: true
 
 這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
+**REQUIRED SUB-SKILL:** monitoring-remote-qa
+
+同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。
+
 ## 1. 啟動與能力邊界
 
 ### 1.1 先遵守專案啟動鏈
@@ -54,7 +58,7 @@ PM 必須：
 
 1. 依 Requirement 建立 requirement-level RED，且實跑到能證明目前狀態不符合使用者需求。
 2. 與使用者逐條確認 RED 是否代表真正需求。
-3. 在使用者核准 RED 前，不得拆票、不得建立 tracker/local ticket、不得進 Implementer。
+3. 在使用者核准 RED 前，**不得拆解工單**、不得建立 tracker/local ticket、**不得轉移至：實作者**。
 4. RED 核准後才草擬 T1/T2… breakdown；breakdown 本身仍需使用者第二次核准。
 
 ### 3.2 每張票的 Authority

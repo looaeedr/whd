@@ -8486,11 +8486,9 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
 
 
 def _phase6_resolve_operator_part_key(self, key):
-    """Resolve operator identity without letting child-memory replace the aggregate parent."""
+    """Resolve operator identity to a current physical part without activating the workspace."""
     key = str(key or "")
-    if key == "box_body":
-        return key
-    if _phase6_is_box_body_physical_piece_key(key):
+    if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
         children = _phase6_box_body_piece_keys(
             getattr(_designer_workspace(self), "available_parts", ()) or ()
         )
