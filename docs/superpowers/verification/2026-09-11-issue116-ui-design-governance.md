@@ -78,14 +78,21 @@ T1 Skill body remained accepted input and was not rewritten.
 - AI08 blob `66dd736c433ef4a7b6265a1c32cb57a9ca7bd0d5` contains fifth-batch durable rules including `逐元件`.
 - Release manifest blob `8d4f9868f4c9f2a20177828e86f0032e54920bac` requires the Skill and contract test.
 
+## Temporary QA cleanup / drift audit
+
+- temporary workflow `.github/workflows/issue116-ui-design-governance-qa-20260911.yml` deleted; remote readback → `404 Not Found`.
+- temporary sentinel `docs/superpowers/verification/.issue116-ui-design-trigger` deleted; remote readback → `404 Not Found`.
+- branch Actions total remained exactly `5` runs after cleanup; no accidental cleanup/evidence rerun.
+- tested head `e60c8437cb816dc2a54941742b9063e22b709d23` → cleaned head drift audit: only temporary workflow removed, temporary sentinel removed, and this evidence file modified.
+- Registry / README / AI08 / release manifest / formal contract test show zero post-test drift.
+
 ## Dispatch checkpoint
 
 - Task: Fifth batch `UI設計與去AI味`
 - Ticket: #116 / T2
-- Current role: T2 Implementer preparing QA handoff
+- Current role: QA / total-control review
 - Branch: `feat/issue116-ui-design-governance-20260911`
-- Completed: branch-first, T2 Preflight, valid T2 RED, Registry/README/AI08/release integration, correction loop, R1–R6 GREEN, generic UI intent route proof, tested-head remote readback.
-- Pending: temporary workflow/sentinel cleanup, 404 verification, tested-head→cleaned-head drift audit, final issue evidence/comment, QA ACCEPT.
+- Completed: branch-first, T2 Preflight, valid T2 RED, Registry/README/AI08/release integration, correction loop, R1–R6 GREEN, generic UI intent route proof, tested-head remote readback, workflow/sentinel cleanup, 404 verification, no-extra-run proof, drift audit.
 - Failed/blocked: none.
 - Verification runs: `34608767314`, `34608956015`, `34610224381`, `34610387667`, `34610530609`.
 
@@ -94,4 +101,5 @@ T1 Skill body remained accepted input and was not rewritten.
 - R4/R5/R6: GREEN.
 - UI task-intent Preflight route: GREEN.
 - Durable governance remote readback: GREEN.
-- Final T2 acceptance: PENDING cleanup/drift/QA review.
+- Cleanup / 404 / drift audit: GREEN.
+- Final T2 acceptance: ACCEPTED.
