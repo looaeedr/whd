@@ -12,7 +12,8 @@ permissions:
 
 env:
   RECOVERY_BRANCH: recovery/issue107-chain-plus-second-batch-20260911
-  PREFLIGHT_GREEN_PARENT: 53f6dfe660708a420ccab4eb7e8310d54f557f93
+  PREFLIGHT_GREEN_BASE: 53f6dfe660708a420ccab4eb7e8310d54f557f93
+  PREVIOUS_CONTROLLER: 7998967bb4c6780eb394c2443702ec2a63fdbd13
 
 jobs:
   guarded-repair:
@@ -26,12 +27,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Prove exact green parent and workflow-only controller commit
+      - name: Prove green-base lineage and workflow-only controller chain
         run: |
           git fetch origin "$RECOVERY_BRANCH"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          test "$(git rev-parse HEAD^)" = "$PREFLIGHT_GREEN_PARENT"
-          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/recovery-issue107-chain-combined-qa-20260911.yml"
+          test "$(git rev-parse HEAD^)" = "$PREVIOUS_CONTROLLER"
+          git diff --name-only "$PREFLIGHT_GREEN_BASE" HEAD | sort -u > /tmp/controller.changed
+          printf '%s\n' '.github/workflows/recovery-issue107-chain-combined-qa-20260911.yml' > /tmp/controller.expected
+          diff -u /tmp/controller.expected /tmp/controller.changed
           echo "CONTROLLER_HEAD=$(git rev-parse HEAD)"
       - name: Install focused-test dependencies
         run: |
@@ -119,10 +122,9 @@ jobs:
           dispatch = dispatch_path.read_text(encoding='utf-8')
           if '**REQUIRED SUB-SKILL:** monitoring-remote-qa' in dispatch:
               raise SystemExit('dispatch: required sub-skill marker unexpectedly already present')
-          anchor = ('這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。\n')
+          anchor = '這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。\n'
           dispatch = replace_once(
-              dispatch,
-              anchor,
+              dispatch, anchor,
               anchor + '\n**REQUIRED SUB-SKILL:** monitoring-remote-qa\n\n同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。\n',
               'dispatch remote-QA marker',
           )
@@ -145,8 +147,8 @@ jobs:
           tickets = replace_once(
               tickets,
               '下列不能算 requirement RED：environment/DISPLAY/Xvfb/network/tooling failure、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。',
-              '下列不能算 requirement RED：**環境錯誤**（environment/DISPLAY/Xvfb/network/tooling failure）、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。',
-              'tickets environment-error wording',
+              '下列不能算 RED（requirement RED）：**環境錯誤**（environment/DISPLAY/Xvfb/network/tooling failure）、**語法錯誤**（syntax/import/collection error）、broken fixture/mock、只有 timeout、missing test path。',
+              'tickets invalid-RED wording',
           )
           tickets = replace_once(
               tickets,
@@ -159,6 +161,24 @@ jobs:
               'RED 未核准時：',
               'RED 未核准時，**Draft vertical slices** 與 **Publish the tickets**（包含 **GitHub** 與 **Local files**）都禁止：',
               'tickets publish fail-closed wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '- 不得拆票或 assign T-numbers/titles/blockers；',
+              '- **不得開始拆工單**或 assign T-numbers/titles/blockers；',
+              'tickets no-draft wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '- 不得建立 GitHub/Linear issue；',
+              '- **不得建立 issue**（GitHub/Linear）；',
+              'tickets no-issue wording',
+          )
+          tickets = replace_once(
+              tickets,
+              '- 不得寫 `.scratch` local ticket；',
+              '- **不得寫入 local ticket**（含 `.scratch`）；',
+              'tickets no-local-ticket wording',
           )
           tickets = replace_once(
               tickets,
@@ -175,7 +195,6 @@ jobs:
           tickets_path.write_text(tickets, encoding='utf-8')
           PY
           git diff --check
-          git diff -- fold_designer_bridge.py '.agents/skills/engineering/派工/SKILL.md' '.agents/skills/engineering/拆解任務工單/SKILL.md'
       - name: Focused Skill contract GREEN
         shell: bash --noprofile --norc -e -o pipefail {0}
         run: |
