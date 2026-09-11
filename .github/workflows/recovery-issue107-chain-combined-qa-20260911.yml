@@ -8,17 +8,16 @@ on:
       - '.github/workflows/recovery-issue107-chain-combined-qa-20260911.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   RECOVERY_BRANCH: recovery/issue107-chain-plus-second-batch-20260911
-  PREFLIGHT_GREEN_BASE: 53f6dfe660708a420ccab4eb7e8310d54f557f93
-  PREVIOUS_CONTROLLER: 2ec2f6ab3b57779f3a5e3c0a73789c02b58e57d1
+  VERIFIED_REPAIR_PARENT: cdf35bd32d402716dd933555ccf09dbf88d701a8
 
 jobs:
-  guarded-repair:
+  headless:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,22 +26,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Prove green-base lineage and workflow-only controller chain
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Lock exact branch head and verified repair parent
         run: |
           git fetch origin "$RECOVERY_BRANCH"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          test "$(git rev-parse HEAD^)" = "$PREVIOUS_CONTROLLER"
-          git -c core.quotePath=false diff --name-only "$PREFLIGHT_GREEN_BASE" HEAD | sort -u > /tmp/controller.changed
-          printf '%s\n' '.github/workflows/recovery-issue107-chain-combined-qa-20260911.yml' > /tmp/controller.expected
-          diff -u /tmp/controller.expected /tmp/controller.changed
-          echo "CONTROLLER_HEAD=$(git rev-parse HEAD)"
-      - name: Install focused-test dependencies
+          test "$(git rev-parse HEAD^)" = "$VERIFIED_REPAIR_PARENT"
+          test "$(git -c core.quotePath=false diff --name-only HEAD^ HEAD)" = ".github/workflows/recovery-issue107-chain-combined-qa-20260911.yml"
+          echo "TESTED_HEAD=$(git rev-parse HEAD)"
+      - name: Snapshot invariants
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libxkbcommon-x11-0
-          python -m pip install --upgrade pip
-          python -m pip install pytest matplotlib ezdxf -r requirements.txt
-      - name: Re-run changed-file preflight before write
+          sha256sum config.ini | tee /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Issue112 Knowledge Preflight hard gate
         run: |
           cat > /tmp/issue112-preflight-evidence.txt <<'EOF'
           phase6-corner-3d-model-integrity
@@ -56,104 +55,96 @@ jobs:
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           EOF
-          python tools/phase6_skill_preflight.py --task '#112 recovery: restore Corner Data physical-child authority after history integration' --changed-file 'fold_designer_bridge.py' --evidence /tmp/issue112-preflight-evidence.txt
-          cat > /tmp/skill-repair-preflight-evidence.txt <<'EOF'
-          寫技能
-          派工
-          phase6-release-packaging
-          monitoring-remote-qa
-          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
-          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
-          READ_REFERENCE: release_required_artifacts.json
-          EOF
-          python tools/phase6_skill_preflight.py --task '修復既有 durable contract：派工 remote QA required sub-skill 與拆解任務工單 RED-first wording' --changed-file '.agents/skills/engineering/派工/SKILL.md' --changed-file '.agents/skills/engineering/拆解任務工單/SKILL.md' --evidence /tmp/skill-repair-preflight-evidence.txt
-      - name: Snapshot invariants
+          python tools/phase6_skill_preflight.py \
+            --task '#112 Corner Data regression：2D/3D 同步、Save→Reload、multipart physical part' \
+            --evidence /tmp/issue112-preflight-evidence.txt \
+            | tee /tmp/issue112-preflight.log
+      - name: Second-batch Skill Preflight
         run: |
-          sha256sum config.ini > /tmp/config.before
-          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
-      - name: Apply three authority-backed minimal repairs
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          def replace_once(text, old, new, label):
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{label}: expected exactly 1 match, got {count}")
-              return text.replace(old, new, 1)
-
-          bridge_path = Path('fold_designer_bridge.py')
-          bridge = bridge_path.read_text(encoding='utf-8')
-          resolver_pattern = re.compile(r'^def _phase6_resolve_operator_part_key\(self, key\):\n.*?(?=^def |\Z)', re.MULTILINE | re.DOTALL)
-          matches = list(resolver_pattern.finditer(bridge))
-          if len(matches) != 1:
-              raise SystemExit(f"resolver: expected exactly 1 function, got {len(matches)}")
-          resolver = '''def _phase6_resolve_operator_part_key(self, key):
-              """Resolve operator identity to a current physical part without activating the workspace."""
-              key = str(key or "")
-              if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
-                  children = _phase6_box_body_piece_keys(
-                      getattr(_designer_workspace(self), "available_parts", ()) or ()
-                  )
-                  if children:
-                      remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-                      target = key if key in children else remembered if remembered in children else children[0]
-                      self._phase6_box_body_active_piece_key = target
-                      return target
-              return key
-
-
-          '''
-          bridge_path.write_text(resolver_pattern.sub(resolver, bridge, count=1), encoding='utf-8')
-
-          dispatch_path = Path('.agents/skills/engineering/派工/SKILL.md')
-          dispatch = dispatch_path.read_text(encoding='utf-8')
-          if '**REQUIRED SUB-SKILL:** monitoring-remote-qa' in dispatch:
-              raise SystemExit('dispatch: required sub-skill marker unexpectedly already present')
-          anchor = '這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。\n'
-          dispatch = replace_once(dispatch, anchor, anchor + '\n**REQUIRED SUB-SKILL:** monitoring-remote-qa\n\n同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。\n', 'dispatch remote-QA marker')
-          dispatch = replace_once(dispatch, '3. 在使用者核准 RED 前，不得拆票、不得建立 tracker/local ticket、不得進 Implementer。', '3. 在使用者核准 RED 前，**不得拆解工單**、不得建立 tracker/local ticket、**不得轉移至：實作者**。', 'dispatch RED fail-closed wording')
-          dispatch_path.write_text(dispatch, encoding='utf-8')
-
-          tickets_path = Path('.agents/skills/engineering/拆解任務工單/SKILL.md')
-          tickets = tickets_path.read_text(encoding='utf-8')
-          replacements = (
-              ('3. 確認 failure 真的到 intended behavior seam。', '3. 確認是**正確失敗**：failure 真的到 intended behavior seam。', 'tickets correct-failure wording'),
-              ('下列不能算 requirement RED：environment/DISPLAY/Xvfb/network/tooling failure、syntax/import/collection error、broken fixture/mock、只有 timeout、missing test path。', '下列不能算 RED（requirement RED）：**環境錯誤**（environment/DISPLAY/Xvfb/network/tooling failure）、**語法錯誤**（syntax/import/collection error）、broken fixture/mock、只有 timeout、missing test path。', 'tickets invalid-RED wording'),
-              ('若 supposed RED 已 GREEN，不得硬建修復票；先重新確認 seam/current implementation/症狀是否屬另一條 path。', '若 supposed **RED 已是 GREEN**，**不得建立修復工單**；先**重新確認測試 seam** / current implementation / 症狀是否屬另一條 path。', 'tickets already-green wording'),
-              ('RED 未核准時：', 'RED 未核准時，**Draft vertical slices** 與 **Publish the tickets**（包含 **GitHub** 與 **Local files**）都禁止：', 'tickets publish fail-closed wording'),
-              ('- 不得拆票或 assign T-numbers/titles/blockers；', '- **不得開始拆工單**或 assign T-numbers/titles/blockers；', 'tickets no-draft wording'),
-              ('- 不得建立 GitHub/Linear issue；', '- **不得建立 issue**（GitHub/Linear）；', 'tickets no-issue wording'),
-              ('- 不得寫 `.scratch/**` local ticket；', '- **不得寫入 local ticket**（含 `.scratch/**`）；', 'tickets no-local-ticket wording'),
-              ('RED 全部核准後，才按 evidence 切票：', 'RED 全部核准後，**才可開始草擬工單**，並按 evidence 切票：', 'tickets drafting gate wording'),
-              ('- 每票列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria；', '- **每張工單**都要列 `Approved RED IDs`、`Requirement Authority`、`AI Library References`、`AI Library Writeback`、`Blocked by`、deliverable、acceptance criteria，並引用**已核准的 RED** evidence；', 'tickets approved-RED ownership wording'),
-          )
-          for old, new, label in replacements:
-              tickets = replace_once(tickets, old, new, label)
-          tickets_path.write_text(tickets, encoding='utf-8')
-          PY
-          git diff --check
-      - name: Focused Skill contract GREEN
+          python tools/phase6_skill_preflight.py \
+            --task "第二批 Skill：補強寫技能並新增中文 MCP工具操作；remote QA 驗證" \
+            --changed-file '.agents/skills/engineering/寫技能/SKILL.md' \
+            --changed-file '.agents/skills/productivity/MCP工具操作/SKILL.md' \
+            --changed-file '.agents/skills/productivity/README.md' \
+            --changed-file '.agents/skills/skill_registry.json' \
+            --changed-file 'tests/test_second_batch_skills_contract.py' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
+            --changed-file 'release_required_artifacts.json' \
+            --changed-file 'docs/superpowers/verification/2026-09-11-second-batch-skills.md' \
+            --evidence 'docs/superpowers/verification/2026-09-11-second-batch-skills.md'
+      - name: Focused inherited and repaired contracts
         shell: bash --noprofile --norc -e -o pipefail {0}
-        run: pytest -q tests/test_remote_qa_monitoring_skill_contract.py tests/test_to_tickets_red_first_contract.py | tee /tmp/skill-focused.log
-      - name: Focused Corner Data physical-child and inherited-contract GREEN
-        shell: bash --noprofile --norc -e -o pipefail {0}
-        run: xvfb-run -a pytest -q tests/test_box_body_single_source_t3.py tests/test_issue109_corner_data_boxbody_tree.py tests/test_issue110_shared_info_projection.py tests/test_issue111_corner_data_grid_isolation.py | tee /tmp/corner-focused.log
-      - name: Verify invariants and planned diff only
         run: |
-          sha256sum config.ini > /tmp/config.after
+          pytest -q \
+            tests/test_box_body_single_source_t3.py \
+            tests/test_issue111_corner_data_grid_isolation.py \
+            tests/test_issue110_shared_info_projection.py \
+            tests/test_issue109_corner_data_boxbody_tree.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_second_batch_skills_contract.py \
+            tests/test_remote_qa_monitoring_skill_contract.py \
+            tests/test_to_tickets_red_first_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_find_skill_contract.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_phase6_release_packaging_policy.py \
+            tests/test_release_integrity_gate.py \
+            | tee /tmp/focused.log
+      - name: Full headless suite
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: pytest -q | tee /tmp/full-headless.log
+      - name: Verify invariants clean tree and exact head
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
           diff -u /tmp/config.before /tmp/config.after
           find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
           diff -u /tmp/baseline.before /tmp/baseline.after
-          git -c core.quotePath=false diff --name-only | sort > /tmp/actual.changed
-          printf '%s\n' '.agents/skills/engineering/拆解任務工單/SKILL.md' '.agents/skills/engineering/派工/SKILL.md' 'fold_designer_bridge.py' | sort > /tmp/expected.changed
-          diff -u /tmp/expected.changed /tmp/actual.changed
-      - name: Commit and push verified recovery repair
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git fetch origin "$RECOVERY_BRANCH"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
+          echo 'HEADLESS_RECOVERY_ACCEPTANCE=PASS'
+
+  xvfb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: recovery/issue107-chain-plus-second-batch-20260911
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install system and Python dependencies
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'fold_designer_bridge.py' '.agents/skills/engineering/派工/SKILL.md' '.agents/skills/engineering/拆解任務工單/SKILL.md'
-          git commit -m 'fix(recovery): restore integrated durable contracts'
-          git push origin "HEAD:$RECOVERY_BRANCH"
-          echo "REPAIR_HEAD=$(git rev-parse HEAD)"
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libxkbcommon-x11-0
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Lock exact branch head verified repair parent and snapshot invariants
+        run: |
+          git fetch origin "$RECOVERY_BRANCH"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
+          test "$(git rev-parse HEAD^)" = "$VERIFIED_REPAIR_PARENT"
+          test "$(git -c core.quotePath=false diff --name-only HEAD^ HEAD)" = ".github/workflows/recovery-issue107-chain-combined-qa-20260911.yml"
+          echo "TESTED_HEAD=$(git rev-parse HEAD)"
+          sha256sum config.ini | tee /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Full Xvfb suite
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: xvfb-run -a pytest -q | tee /tmp/full-xvfb.log
+      - name: Verify invariants clean tree and exact head
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git fetch origin "$RECOVERY_BRANCH"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
+          echo 'XVFB_RECOVERY_ACCEPTANCE=PASS'
