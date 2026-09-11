@@ -59,3 +59,4 @@ jobs:
         run: |
           sha256sum config.ini | tee /tmp/config.after
           diff -u /tmp/config.before /tmp/config.after
+      # exact-head trigger: production/test blobs unchanged
