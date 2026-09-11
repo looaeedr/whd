@@ -37,7 +37,7 @@ Supplementary relevant project Skill read:
 
 READ_SKILL: 找技能
 
-> `MCP工具操作` 是本工單新建 Skill；candidate 內容由上述 pinned upstream 與已核准 WHD adaptation contract 寫成，並在進 final acceptance 前以 remote re-read 驗證。此 marker 用來讓新增 route 後的 candidate Preflight 能以同一 commit 驗證新 canonical Skill。
+> `MCP工具操作` 是本工單新建 Skill；candidate 內容由上述 pinned upstream 與已核准 WHD adaptation contract 寫成，並在 final acceptance 前完成 remote re-read。此 marker 讓新增 route 後的 candidate Preflight 可在同一 commit 驗證新 canonical Skill。
 
 ## Required References read
 
@@ -45,7 +45,7 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防�
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
 
-## Planned changed files
+## Changed files
 
 - `.agents/skills/engineering/寫技能/SKILL.md`
 - `.agents/skills/productivity/MCP工具操作/SKILL.md`
@@ -55,7 +55,7 @@ READ_REFERENCE: release_required_artifacts.json
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - `release_required_artifacts.json`
 - `docs/superpowers/verification/2026-09-11-second-batch-skills.md`
-- `.github/workflows/second-batch-skills-qa-20260911.yml` (temporary QA only; must be deleted after terminal GREEN)
+- `.github/workflows/second-batch-skills-qa-20260911.yml`（temporary QA only；final cleanup 已刪除）
 
 ## Authority / adaptation decisions
 
@@ -75,11 +75,25 @@ READ_REFERENCE: release_required_artifacts.json
 - RED summary: **7 failed / 59 passed**。7 個 failure 都對應已核准缺口：`MCP工具操作` 不存在、Registry route 缺失、`寫技能` 尚未吸收 metadata/templates contract、README/AI/release 尚未 durable 納入。這是 requirement RED，不是 import/setup/harness failure。
 - RED workflow 同 commit 已移除 evidence-only path trigger；後續只更新 verification evidence 不再重跑 QA，避免 durable evidence commit 造成 accidental rerun。
 
-## RED → GREEN plan
+## GREEN / final acceptance evidence
 
-1. 先加入 `tests/test_second_batch_skills_contract.py`，鎖住 `MCP工具操作` 中文 identity、capability detection、schema-before-execute、no-fake-tool、failure semantics、Registry route、release inclusion，以及 `寫技能` 對 compatibility / metadata / allowed-tools / templates 的吸收規則。
-2. 在新 Skill / authoring 補強尚未存在時執行 RED，確認 failure 原因是缺少第二批 contract，而不是 harness/import 問題。
-3. 最小實作到 targeted GREEN。
-4. 跑中文 identity、writing skill、find skill、Preflight、release policy / integrity guards。
-5. `config.ini` 前後 SHA 必須相同，`git diff --exit-code` 必須乾淨。
-6. Remote QA 依 `monitoring-remote-qa` 鎖定 `run_id + head_sha` 追到 terminal；GREEN 後刪除 temporary workflow、遠端反讀 404，再做 tested-head → cleaned-head drift audit。
+- implementation commit / tested head: `616f92f6d8f8b64c41ce3719fe74850b51a202c2`。
+- final acceptance run: `34597299001` → **SUCCESS**。
+- Knowledge Preflight：`寫技能`、`MCP工具操作`、`phase6-release-packaging`、`monitoring-remote-qa` 全部 PASS；required references 全部 PASS。
+- focused + project guards：**66 passed / 0 failed / 0.48s**。
+- `config.ini` before / after SHA256 均為 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
+- `git diff --exit-code` PASS。
+- remote re-read 已確認 `.agents/skills/productivity/MCP工具操作/SKILL.md` 的 canonical `name: MCP工具操作`、capability-adaptive contract、schema-before-execute、exit-code semantics 與 WHD authority boundary；`寫技能` 也已反讀確認吸收 frontmatter/templates 邊界；Registry route 已反讀確認 `mcp-tool-operation → MCP工具操作`。
+
+## Temporary QA cleanup
+
+- temporary workflow cleanup commit: `18b1d103da14b3607f2e39495b72485ec85a1a4f`。
+- cleanup 後 Actions branch listing 仍只有原本 3 次 run；沒有因 cleanup 產生第 4 次 accidental rerun。
+- `.github/workflows/second-batch-skills-qa-20260911.yml` 在 cleanup HEAD 遠端 re-read → **404 Not Found**。
+- final evidence update 位於 workflow cleanup 之後，因此 evidence-only update 不會觸發 QA。
+
+## Final drift policy
+
+- tested head：`616f92f6d8f8b64c41ce3719fe74850b51a202c2`。
+- cleaned head 應只比 tested head 多：temporary workflow removal + 本 evidence 的 terminal/cleanup 記錄。
+- 不允許 Skill / Registry / tests / AI Library / release policy 在 GREEN 後再發生未驗證 drift。
