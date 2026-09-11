@@ -8,6 +8,8 @@ on:
       - 'tests/test_issue_closure_completion_skill_contract.py'
       - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
       - '.agents/skills/skill_registry.json'
+      - '個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md'
+      - '.scratch/issue-closure-gate/preflight.md'
       - '.github/workflows/qa-skill-issue-closure-contract-20260911.yml'
 
 permissions:
@@ -23,5 +25,25 @@ jobs:
           python-version: '3.11'
       - name: Install pytest
         run: python -m pip install pytest
-      - name: Run issue-closure Skill contract
-        run: pytest -q tests/test_issue_closure_completion_skill_contract.py
+      - name: Changed-file Knowledge Preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task '修改技能：新增關單 issue closure gate，production integration 後仍要逐票關單' \
+            --changed-file '.agents/skills/engineering/issue-closure-gate/SKILL.md' \
+            --changed-file '.agents/skills/skill_registry.json' \
+            --changed-file 'tests/test_issue_closure_completion_skill_contract.py' \
+            --changed-file '個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md' \
+            --changed-file '.scratch/issue-closure-gate/preflight.md' \
+            --changed-file '.github/workflows/qa-skill-issue-closure-contract-20260911.yml' \
+            --evidence '.scratch/issue-closure-gate/preflight.md'
+      - name: Run focused and related Skill contracts
+        run: |
+          pytest -q \
+            tests/test_issue_closure_completion_skill_contract.py \
+            tests/test_remote_qa_monitoring_skill_contract.py \
+            tests/test_to_tickets_red_first_contract.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_second_batch_skills_contract.py
