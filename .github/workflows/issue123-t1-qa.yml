@@ -1,154 +1,49 @@
-name: issue123-t1-qa
+name: issue123-t1-closing-full-suite
 
 on:
   push:
     branches:
       - work/issue-123-ui-foundation
+    paths:
+      - .github/workflows/issue123-t1-qa.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  t1-final-qa:
-    runs-on: ubuntu-latest
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
           ref: work/issue-123-ui-foundation
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install runtime and QA dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb scrot tk
-          python -m pip install pytest pillow matplotlib -r requirements.txt
-
-      - name: Final changed-file preflight
+      - name: Closure preflight and target drift gate
         shell: bash
         run: |
-          cat > /tmp/issue123-evidence.txt <<'EOF'
+          cat > /tmp/issue123-closing-evidence.txt <<'EOF'
           UI設計與去AI味
           Python測試實務
           驗證板件與DXF
           monitoring-remote-qa
+          issue-closure-gate
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
           EOF
           python tools/phase6_skill_preflight.py \
-            --task "Issue #123 T1 UI foundation final QA and visual acceptance" \
+            --task "Issue #123 T1 UI foundation production integration close issue final acceptance" \
             --changed-file gui.py \
             --changed-file tests/test_issue123_ui_foundation.py \
             --changed-file .github/workflows/issue123-t1-qa.yml \
-            --evidence /tmp/issue123-evidence.txt
-
-      - name: Focused contract and syntax regression
-        run: |
-          python -m py_compile gui.py
-          python -m pytest -q tests/test_issue123_ui_foundation.py
-
-      - name: Xvfb launch and toolbar runtime acceptance
-        shell: bash
-        run: |
-          rm -f /tmp/issue123-runtime-ok.txt /tmp/issue123-toolbar.png
-          cat > /tmp/issue123_runtime.py <<'PY'
-          import tkinter as tk
-          from pathlib import Path
-          import gui
-
-          root = tk.Tk()
-          root.geometry("1440x900+0+0")
-          app = gui.BoxCalculatorGUI(root)
-          root.update_idletasks()
-          root.update()
-
-          required = (
-              "project_toolbar_shell",
-              "project_toolbar",
-              "project_open_button",
-              "project_save_button",
-              "project_save_as_button",
-              "ui_text_size_combo",
-          )
-          for name in required:
-              widget = getattr(app, name, None)
-              assert widget is not None, name
-              assert widget.winfo_exists(), name
-              assert widget.winfo_viewable(), name
-
-          assert app.project_open_button.cget("text") == "開啟專案"
-          assert app.project_save_button.cget("text") == "儲存專案"
-          assert app.project_save_as_button.cget("text") == "另存新檔"
-          assert app.project_save_button.cget("background") == app.COLOR_ACCENT
-          assert app.project_open_button.cget("background") != app.COLOR_ACCENT
-          assert app.project_save_as_button.cget("background") != app.COLOR_ACCENT
-
-          shell_h = app.project_toolbar_shell.winfo_height()
-          assert 1 < shell_h < 90, shell_h
-          assert app.project_toolbar_shell.winfo_width() > 600
-
-          for label in ("小", "中", "大"):
-              app.ui_text_size_var.set(label)
-              app.on_ui_text_size_changed()
-              root.update_idletasks()
-              root.update()
-              assert app.project_open_button.winfo_viewable()
-              assert app.project_save_button.winfo_viewable()
-              assert app.project_save_as_button.winfo_viewable()
-              assert app.ui_text_size_combo.winfo_viewable()
-              assert app.project_toolbar_shell.winfo_height() < 110
-
-          root.geometry("1024x720+0+0")
-          root.update_idletasks()
-          root.update()
-          assert app.project_toolbar_shell.winfo_width() > 700
-          assert app.project_save_button.winfo_viewable()
-          assert app.ui_text_size_combo.winfo_viewable()
-
-          Path("/tmp/issue123-runtime-ok.txt").write_text(
-              f"toolbar={app.project_toolbar_shell.winfo_width()}x{app.project_toolbar_shell.winfo_height()}\n",
-              encoding="utf-8",
-          )
-          root.after(5000, root.destroy)
-          root.mainloop()
-          PY
-          xvfb-run -a -s "-screen 0 1600x1000x24" bash -c '
-            PYTHONPATH="$PWD" python /tmp/issue123_runtime.py &
-            pid=$!
-            for _ in $(seq 1 80); do
-              if [ -s /tmp/issue123-runtime-ok.txt ]; then
-                break
-              fi
-              if ! kill -0 "$pid" 2>/dev/null; then
-                wait "$pid"
-                exit $?
-              fi
-              sleep 0.25
-            done
-            test -s /tmp/issue123-runtime-ok.txt
-            scrot /tmp/issue123-toolbar.png
-            wait "$pid"
-          '
-          test -s /tmp/issue123-toolbar.png
-          python - <<'PY'
-          from PIL import Image
-          image = Image.open('/tmp/issue123-toolbar.png').convert('RGB')
-          pixels = list(image.getdata())
-          non_black = sum(1 for pixel in pixels if pixel != (0, 0, 0))
-          assert non_black > 5000, f'visual evidence is effectively black: {non_black} non-black pixels'
-          print(f'VISUAL_NONBLACK_PIXELS={non_black}')
-          PY
-          cat /tmp/issue123-runtime-ok.txt
-
-      - name: Scope and invariant guard
-        shell: bash
-        run: |
-          git fetch origin cleanup/2d-3d-sync
+            --evidence /tmp/issue123-closing-evidence.txt
+          target="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
+          echo ISSUE123_TARGET_HEAD="$target"
+          test "$target" = "319dff24165a6bd1390afc4d3411850853f3982a"
           git diff --name-only origin/cleanup/2d-3d-sync...HEAD | sort > /tmp/changed.txt
           cat /tmp/changed.txt
           cat > /tmp/allowed.txt <<'EOF'
@@ -158,12 +53,90 @@ jobs:
           EOF
           diff -u /tmp/allowed.txt /tmp/changed.txt
           ! grep -Eq '^(config\.ini|基準檔/)' /tmp/changed.txt
+          echo ISSUE123_CLOSING_PREFLIGHT=PASS
+          echo ISSUE123_TARGET_DRIFT=PASS
+          echo ISSUE123_SCOPE_GUARD=PASS
 
-      - name: Upload visual evidence
-        uses: actions/upload-artifact@v4
+  headless:
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
         with:
-          name: issue123-t1-visual-evidence
-          path: |
-            /tmp/issue123-toolbar.png
-            /tmp/issue123-runtime-ok.txt
-          if-no-files-found: error
+          ref: work/issue-123-ui-foundation
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture invariants
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Run full repository headless suite
+        run: |
+          set +e
+          env -u DISPLAY python -m pytest -q --tb=short 2>&1 | tee /tmp/headless.log
+          code=${PIPESTATUS[0]}
+          echo "$code" > /tmp/headless.exit
+          grep -E '^FAILED |^[0-9]+ failed|^[0-9]+ passed|failed,|passed,' /tmp/headless.log | tail -120 > /tmp/headless.summary || true
+          cat /tmp/headless.summary || true
+          exit 0
+      - name: Verify headless invariants and result
+        if: always()
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          code="$(cat /tmp/headless.exit)"
+          echo ISSUE123_HEADLESS_CONFIG_INVARIANT=PASS
+          echo ISSUE123_HEADLESS_BASELINE_INVARIANT=PASS
+          echo ISSUE123_HEADLESS_PYTEST_EXIT="$code"
+          cat /tmp/headless.summary || true
+          test "$code" = "0"
+
+  xvfb:
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/issue-123-ui-foundation
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb xauth
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture invariants
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Run full repository Xvfb suite
+        run: |
+          set +e
+          xvfb-run -a python -m pytest -q --tb=short 2>&1 | tee /tmp/xvfb.log
+          code=${PIPESTATUS[0]}
+          echo "$code" > /tmp/xvfb.exit
+          grep -E '^FAILED |^[0-9]+ failed|^[0-9]+ passed|failed,|passed,' /tmp/xvfb.log | tail -120 > /tmp/xvfb.summary || true
+          cat /tmp/xvfb.summary || true
+          exit 0
+      - name: Verify Xvfb invariants and result
+        if: always()
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          code="$(cat /tmp/xvfb.exit)"
+          echo ISSUE123_XVFB_CONFIG_INVARIANT=PASS
+          echo ISSUE123_XVFB_BASELINE_INVARIANT=PASS
+          echo ISSUE123_XVFB_PYTEST_EXIT="$code"
+          cat /tmp/xvfb.summary || true
+          test "$code" = "0"
