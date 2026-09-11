@@ -14,6 +14,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
       - name: Install dependencies
         run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
       - name: Capture config invariant
@@ -22,6 +26,8 @@ jobs:
         run: pytest -q tests/test_dxf_acceptance.py
       - name: Run full headless regression
         run: pytest -q
+      - name: Run full Xvfb regression
+        run: xvfb-run -a pytest -q
       - name: Assert config invariant
         if: always()
         run: |
