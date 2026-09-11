@@ -438,8 +438,14 @@ def test_multi_door_overview_draws_only_each_cells_own_holes():
         root.update()
         root.update_idletasks()
 
-        assert canvas.find_withtag("door_layout_feature_0_0")
-        assert not canvas.find_withtag("door_layout_feature_1_0")
+        assert [
+            item for item in canvas.find_withtag("corner_data_door_0_0")
+            if canvas.type(item) == "oval"
+        ]
+        assert not [
+            item for item in canvas.find_withtag("corner_data_door_1_0")
+            if canvas.type(item) == "oval"
+        ]
     finally:
         root.destroy()
 
