@@ -23,6 +23,8 @@ READ_SKILL: 寫技能
 READ_SKILL: Python測試實務
 READ_SKILL: phase6-release-packaging
 READ_SKILL: monitoring-remote-qa
+READ_SKILL: 性質導向測試
+READ_SKILL: 尺寸語意分析
 
 ## Required References read
 
@@ -41,7 +43,7 @@ READ_REFERENCE: release_required_artifacts.json
 - `dimensional-analysis/references/common-dimensions.md`
 - `dimensional-analysis/references/bug-patterns.md`
 
-## Planned changed files
+## Changed files
 
 - `.agents/skills/engineering/性質導向測試/SKILL.md`
 - `.agents/skills/engineering/尺寸語意分析/SKILL.md`
@@ -51,7 +53,8 @@ READ_REFERENCE: release_required_artifacts.json
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - `release_required_artifacts.json`
 - `docs/superpowers/verification/2026-09-11-fourth-batch-skills.md`
-- `.github/workflows/fourth-batch-skills-qa-20260911.yml` (temporary QA only)
+- `.github/workflows/fourth-batch-skills-qa-20260911.yml`（temporary QA only；已清除）
+- `docs/superpowers/verification/.fourth-batch-qa-trigger`（temporary sentinel only；已清除）
 
 ## Bootstrap attempt 1 — evidence gate correctly failed
 
@@ -78,8 +81,27 @@ READ_REFERENCE: release_required_artifacts.json
 - 11 failures 對應已核准缺口：兩顆中文 canonical Skill 尚不存在、兩條 Registry route 尚不存在、README / AI08 / release policy 尚未 durable 納入。
 - classification：**有效 requirement RED**；不是 setup/import/Preflight harness failure。
 
-## GREEN implementation in progress
+## GREEN / final acceptance
 
-- QA workflow 已改成 one-shot sentinel trigger，避免每個正式檔案各自製造 Actions run。
-- implementation 必須同步：兩顆 Skill、Engineering README、Registry、AI08、release manifest；final QA 再由 `docs/superpowers/verification/.fourth-batch-qa-trigger` 單次觸發。
-- GREEN run terminal 前不宣告完成；GREEN 後刪除 workflow + sentinel、反讀 404，並做 tested-head → cleaned-head drift audit。
+- one-shot sentinel tested head: `77d25118e6162726b76993a14a86108a89917d9b`。
+- final acceptance run: `34602141552` → **SUCCESS**。
+- Knowledge Preflight required Skills：`寫技能`、`性質導向測試`、`尺寸語意分析`、`phase6-release-packaging`、`monitoring-remote-qa` 全 ✓。
+- required references：AI06、AI08、release manifest 全 ✓。
+- focused + project guards：**70 passed / 0 failed / 0.63s**。
+- `config.ini` before / after SHA256 均為 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
+- `git diff --exit-code` PASS。
+- remote re-read confirmed `性質導向測試` Chinese identity/property boundary and `尺寸語意分析` semantic vocabulary/validation-only authority boundary at tested head。
+
+## Temporary QA cleanup
+
+- temporary workflow removal commit: `8d4eb8688f42b5ec468aa46eaefdffdf0f37975a`。
+- sentinel removal commit: `8065c0538c082b84640d1311cc5d7285edcc239f`。
+- `.github/workflows/fourth-batch-skills-qa-20260911.yml` at cleanup head → **404 Not Found**。
+- `docs/superpowers/verification/.fourth-batch-qa-trigger` at cleanup head → **404 Not Found**。
+- branch Actions listing remains exactly **4 runs**; cleanup did not accidentally create run 5。
+
+## Final drift policy
+
+- tested head: `77d25118e6162726b76993a14a86108a89917d9b`。
+- cleaned/final head may differ from tested head only by removing the temporary workflow/sentinel and updating this evidence record。
+- no post-GREEN drift is allowed in either Skill、Registry、contract tests、AI08 or release policy。
