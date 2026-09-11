@@ -1,13 +1,20 @@
 ---
 name: 驗證板件與DXF
-description: 使用者要求驗目前板件、指定板件、全部板件、DXF反驗證或 Save→Reload 驗收時，對 current production state 執行 canonical geometry、2D/3D、DXF reopen、multipart physical-part 與 persistence parity；中隔另加 relief/placement/fixed-hole diagnostics。
+description: 使用者要求驗目前板件、指定板件、全部板件、DXF反驗證或 Save→Reload 驗收時，對 current production state 執行 canonical geometry、2D/3D、DXF reopen、multipart physical-part 與 persistence parity；中隔另加 certified CROSS 參數、placement 與 shadow collision diagnostics。
 ---
 
-# 驗證板件與 DXF
+# 驗證板件與DXF
+
+## 專案技能邊界
+
+- `修改DXF` **不是本專案 Skill**，不得因名稱含 DXF 就把外部／其他專案的 DXF 修改能力加入 WHD Registry、README、Preflight 或 router。
+- 本 Skill **只負責驗證／驗收** current WHD manufacturing output：canonical geometry、2D/3D parity、DXF export→reopen、multipart 與 Save→Reload。
+- 本 Skill **不得取代** `修改DXF`，也不得把「驗證輸出 DXF」擴張成「任意修改 DXF 檔案」的編輯能力。
+- 若使用者另行點名外部 `修改DXF` Skill，必須回到該 Skill 所屬專案／來源判定其規則，不得自動掛入 WHD 技能樹。
 
 ## 何時使用
 
-使用者要求下列任一工作時，直接執行本 Skill，不要只解釋：
+使用者要求下列任一工作時直接執行，不要只解釋：
 
 - `驗目前板件` / `驗這個板件` / `查目前板件對不對`
 - `驗箱身` / `驗中隔` / `驗封頭` / `驗封尾` / `驗門` / `驗底板`
@@ -15,23 +22,21 @@ description: 使用者要求驗目前板件、指定板件、全部板件、DXF�
 - `DXF反驗證` / `驗輸出的DXF` / `驗全部DXF`
 - `Save→Reload 驗收` / `存檔再讀回來驗`
 
-## 支援板件
+## 支援板件與 identity authority
 
-至少涵蓋目前 canonical manufacturing part identities：
+至少涵蓋 current canonical manufacturing physical identities：
 
 - `box_body`
-- multipart physical pieces，例如 `box_body:left_side / box_body:back / box_body:right_side`
-- `box_body:divider:*` / Receiving divider
-- `head`
-- `tail`
-- `door` 與 dynamic `door_c*_r*`
-- `base_plate` 與 dynamic `base_plate_c*_r*`
-- `indicator_box`
-- `indicator_door`
+- multipart `box_body:left_side / box_body:back / box_body:right_side`
+- `box_body:divider:*` / Receiving Divider
+- `head`, `tail`
+- `door` / dynamic `door_c*_r*`
+- `base_plate` / dynamic `base_plate_c*_r*`
+- `indicator_box`, `indicator_door`
 - `inner_door:*`
-- 其他由 workspace/manufacturing resolver 實際產生的 dynamic physical-part IDs
+- 其他由 current workspace/manufacturing resolver 實際產生的 dynamic IDs
 
-禁止用 `PART_LABELS` 或 GUI 固定白名單冒充 physical-part authority；expected parts 必須從 current workspace / resolved manufacturing output 取得。
+禁止用 GUI 固定白名單或 `PART_LABELS` 冒充 physical-part authority；expected parts 從 current workspace / resolved manufacturing output 取得。
 
 ## 驗證模式
 
@@ -44,19 +49,19 @@ description: 使用者要求驗目前板件、指定板件、全部板件、DXF�
 3. authoritative holes/features；
 4. fold guides / BEND；
 5. 2D / 3D / DXF 是否使用同一 resolved geometry；
-6. 該板件若有 placement / assembly contract，再驗 world placement / contact / illegal penetration。
+6. 有 assembly contract 時，再驗 world placement / mating contact / illegal penetration。
 
 ### B. DXF 反驗證
 
-不需要先存專案，但必須真的輸出 DXF：
+不必先存專案，但必須真的輸出 DXF：
 
 1. canonical manufacturing geometry → 實際 `.dxf`；
-2. `ezdxf.readfile()` 重開輸出的檔案；
-3. 重新抽 `CUTTING / BEND / holes / layers`；
+2. `ezdxf.readfile()` 從磁碟 bytes 重開；
+3. 抽 `CUTTING / BEND / holes / layers`；
 4. normalize 後 compare canonical；
-5. 多件式/動態板件同時驗 `expected physical parts == actual exported DXF files`。
+5. multipart/dynamic 同時驗 `expected physical parts == exported DXF files`。
 
-錯誤至少包括：
+錯誤至少分類：
 
 `MISSING_PART / EXTRA_PART / CUTTING_MISMATCH / BEND_MISMATCH / HOLE_MISMATCH / LAYER_MISMATCH / UNCLOSED_CONTOUR / SERIALIZATION_ERROR`。
 
@@ -69,47 +74,56 @@ A + B + Save→Reload parity：
 3. `.p6fold` Save → Reload；
 4. Reload 後重建 canonical manufacturing output；
 5. 比 Final Material、holes/features、BEND、placement、dynamic IDs、physical-part count；
-6. `config.ini` SHA256 前後一致。
+6. `config.ini` SHA256 before/after 一致。
 
 ### D. 驗全部板件
 
-從 current workspace 列舉所有 existing physical parts，逐件跑 A/B；再跑 C 的 project parity。任何一件少檔、多檔、stale dynamic ID、geometry mismatch 都使整體 FAIL。
+從 current workspace 列舉所有 existing physical parts，逐件跑 A/B，再跑 C 的 project parity。任一少檔、多檔、stale dynamic ID、geometry mismatch 都使整體 FAIL。
 
 ## 板件專用加強驗證
 
 ### Receiving Divider / 中隔
 
-除通用驗證外，必須再驗：
+#### 製造 authority（不可被驗證反向覆寫）
+
+Receiving Divider 現行正式製造模型是：**`CornerType=CROSS（十字截角）＋參數`**。
+
+- certified `CROSS` rule / canonical parameters 與已核准 reference DXF 是 manufacturing authority；runtime 應由 Certified Registry / canonical parameters 解析。
+- reference `基準檔/金庫型/中隔.dxf` 在其 certified scope 內可作 baseline/authority；不得因舊筆記說「DXF 不是 authority」就整體排除。
+- 3D collision/backprojection、penetration probe、bbox/contact measurement 只屬 **shadow verification / diagnostic evidence**：用來判斷既有 CROSS＋參數折後是否干涉，不是最終截角公式來源。
+- **Registry HIT 不得覆蓋**：validation/collision 不得以量到的差值、boolean fringe、bbox gap 或 probe 結果改寫已命中的 certified rule/參數。
+- 若 shadow verification FAIL，回到使用者規格、Certified Registry、canonical parameters、reference DXF scope 查 root cause；不可把測試量測直接塞回 production。
+
+除通用驗證外，再驗：
 
 - `W - 2T` / Final Material span；
 - fixed-hole authoritative DXF feature datum；
 - Ø6.4 hole count/diameter/physical-edge offset；
-- collision/backprojection relief；
+- certified CROSS relief geometry；
 - true-thickness skin→solid sweep；
 - FW face flush / core inward / authoritative placement；
-- pre/post collision、illegal penetration=0、retained mating contact；
+- pre/post collision shadow diagnostics；
+- `illegal penetration = 0`、retained mating contact；
 - head/tail shared datum parity。
 
 ### Multipart BoxBody
 
-- 每個 physical piece 都有 stable identity / own geometry / own DXF；
-- Receiving 三件式至少能辨識 `left_side / back / right_side`；
+- 每個 physical piece 有 stable identity / own geometry / own DXF；
+- Receiving 三件式至少辨識 `left_side / back / right_side`；
 - aggregate `box_body` 不得取代逐片 manufacturing acceptance；
-- exported DXF count 必須等於 resolved physical-piece count。
+- exported DXF count = resolved physical-piece count。
 
 ### Head / Tail
 
-- Head/Tail 分開驗，不得用一端 PASS 推定另一端；
-- mirror/native orientation、FW / Corner policy、BEND 與 holes 均以各自 resolved output 驗證。
+Head/Tail 分開驗；不得用一端 PASS 推另一端。mirror/native orientation、FW/Corner policy、BEND、holes 以各自 resolved output 驗證。
 
 ### Door / Base Plate / Indicator / Inner Door
 
-- 依 current resolved part identity 驗 Final Material、holes/features、BEND、DXF reopen；
-- dynamic rows/columns 必須使用 stable IDs，family/project reload 後不得殘留 stale IDs。
+依 current resolved identity 驗 Final Material、holes/features、BEND、DXF reopen；dynamic rows/columns 使用 stable IDs，family/project reload 後不得殘留 stale IDs。
 
 ## 通用正式測試族
 
-DXF / multipart / production export 基礎：
+DXF / multipart / production export：
 
 ```text
 tests/test_dxf_acceptance.py
@@ -142,73 +156,45 @@ tests/test_dm3_divider_canonical_relief_contract.py
 tests/test_dm4_divider_resolved_sinks.py
 ```
 
-實際任務仍需依 requested part 與 current source seam 擴充 targeted tests；禁止因這份清單沒有列到就跳過該板件真正 owner。
+實際任務仍依 requested part 與 current source seam 擴充 targeted tests；清單沒列到不代表可跳過真正 owner。
 
 ## 必須回報
 
-不要只回 PASS。至少回：
+至少回：branch / tested head / run_id / terminal status、requested/resolved physical IDs、每件 PASS/FAIL、Final Material bounds/span、hole/feature count/datum、BEND parity、DXF reopen、multipart expected/actual file count、placement/collision shadow evidence（適用時）、Save→Reload parity（需要時）、`config.ini` before/after SHA。
 
-- branch / tested head / run_id / terminal status；
-- requested part IDs / resolved physical part IDs；
-- 每個板件的 PASS/FAIL；
-- Final Material bounds/span；
-- hole/feature count、尺寸、datum；
-- BEND count/endpoint parity；
-- DXF reopen 結果；
-- multipart expected/actual file count；
-- placement/collision（若適用）；
-- Save→Reload parity（若要求完整驗收）；
-- `config.ini` before/after SHA。
-
-中隔再追加 middle segment、FW planes、illegal penetration、retained contact、skin→solid areas 等 diagnostics。
+中隔再加 certified CROSS rule/parameters、middle segment、FW planes、illegal penetration、retained contact、skin→solid areas 與 shadow collision diagnostics。
 
 ## Remote QA 硬規則
 
-- 建立 remote run 後鎖同一 `run_id + head_sha` 輪詢到 `completed`；`queued/in_progress` 不得停。
-- Install/Preflight/import/dependency failure 不能冒充產品 FAIL。
-- 一次性 workflow/evidence 用完刪除並遠端反讀確認不存在。
-- 驗收後 production/test blob 有 drift，原 GREEN 失效並重跑。
+- 建立 remote run 後讀 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`，鎖同一 `run_id + head_sha` 輪詢到 `completed`；`queued/in_progress` 不得停。
+- install/preflight/import/dependency failure 不能冒充產品 FAIL。
+- one-shot workflow/evidence 用完刪除並遠端反讀確認不存在。
+- tested head 之後 production/test blob drift，原 GREEN 失效並重跑。
 
 ## Validation / Production 邊界
 
-驗證只判對錯，不能反向成為 production 計算來源。pytest expected、DXF reopen 量測值、boolean fringe、collision probe、bbox、單次差值皆不是 manufacturing authority。
+驗證只判對錯，不能反向成為 production 計算來源。pytest expected、DXF reopen measurement、boolean fringe、collision probe、bbox、單次差值都不是 manufacturing authority。
 
 ## UI 邊界
 
-本 Skill 是 AI / 工程 QA 入口，不代表 GUI 已新增「驗證板件」按鈕。若要 GUI 一鍵驗證，另開 UI 功能工單。
+本 Skill 是 AI/工程 QA 入口，不代表 GUI 已新增「驗證板件」按鈕；要 GUI 一鍵驗證需另開 UI feature。
 
-## 自動交接硬閘門：Focused QA 不得取代成品板件驗收
+## 自動交接：Focused QA 不得取代成品板件驗收
 
-本 Skill 不只在使用者明確說「驗板件」時執行。只要本輪修改會影響下列任一條 production seam，**在合併／關單／release 前必須自動交接到本 Skill**：
+只要修改會影響下列 production seam，在 merge/close/release 前自動交接本 Skill：
 
 - physical-part identity / dynamic part / multipart topology；
-- 2D 預覽、3D FinalScene、2D↔3D navigation / sync；
+- 2D preview、3D FinalScene、2D↔3D navigation/sync；
 - manufacturing Final Material / holes / BEND / placement；
 - DXF export / physical-piece file set；
-- Save→Reload / project persistence；
-- GUI 或 Bridge 只是 View/adapter，但修改結果會改變操作員看到或選到的實體板件。
+- Save→Reload / persistence；
+- GUI/Bridge adapter 會改變操作員看到或選到的 physical part。
 
-### 不可替代規則
+issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、physical enumeration、Save→Reload 或 requested-part parity。
 
-- issue-specific / focused regression 只證明該 bug seam；**不能因為 focused QA GREEN 就宣告成品驗收完成**。
-- Headless/Tk/assembly/navigation contract GREEN 也不能自動替代 DXF reopen、physical-piece enumeration、Save→Reload 或 requested-part parity。
-- 若只改單一板件且影響範圍明確，至少跑「驗該板件」；若同時跨 2D/3D/DXF/persistence、dynamic IDs 或 multipart，必須升級為「完整板件驗收」。
-- 若 remote QA 已建立，仍遵守 monitoring-remote-qa：鎖定 run_id + head_sha 輪詢到 terminal，cleanup 後 drift audit 無 production/test drift 才能接受。
-- 驗收數字仍只作判定，不得回灌 production。
+只改單一板件且 scope 明確，至少跑「驗該板件」；跨 2D/3D/DXF/persistence/dynamic IDs/multipart 則升級「完整板件驗收」。
 
-### 合併前最小證據
-
-至少留下：
-
-1. focused/issue-specific QA 結果；
-2. 本 Skill 的 requested physical parts 與 resolved physical IDs；
-3. 2D/3D parity；
-4. DXF reopen（若該任務碰 physical geometry / export / multipart）；
-5. Save→Reload（若該任務碰 persistence / active physical child / dynamic topology）；
-6. config.ini before/after SHA；
-7. tested head → cleaned head drift audit。
-
-缺少本 Skill 的成品驗收證據時，狀態只能是 **focused GREEN / final acceptance pending**，不得標記 ACCEPTED。
+缺少本 Skill 成品驗收 evidence 時，狀態只能是 **focused GREEN / final acceptance pending**，不得標 ACCEPTED。
 
 ## DXF reopen 的獨立性與容差 authority（2026-09-11，supersedes 2026-09-10 舊規則）
 

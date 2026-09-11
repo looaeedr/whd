@@ -1,35 +1,37 @@
 # Engineering
 
-Skills I use daily for code work.
+Engineering skills used for code, design, QA, specs and delivery.
 
 ## User-invoked
 
-Reachable only when you type them (Claude Code: `disable-model-invocation: true`; Codex: `policy.allow_implicit_invocation: false` in `agents/openai.yaml`).
+Reachable when explicitly selected/invoked. Runtime-specific invocation controls may differ; the filesystem `SKILL.md` tree is the existence authority.
 
-- **[ask-matt](./ask-matt/SKILL.md)**: Ask which skill or flow fits your situation. A router over the user-invoked skills in this repo.
-- **[grill-with-docs](./grill-with-docs/SKILL.md)**: Grilling session that also builds your project's domain model, sharpening terminology and updating `CONTEXT.md` and ADRs inline.
-- **[triage](./triage/SKILL.md)**: Move issues through a state machine of triage roles.
-- **[improve-codebase-architecture](./improve-codebase-architecture/SKILL.md)**: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
-- **[掃描深模組](./掃描深模組/SKILL.md)**: WHD 專案的深層架構掃描技能。使用者說「掃描深模組」時必須直接讀取並執行此 Skill；不得以 `setup-ts-deep-modules`、`improve-codebase-architecture` 或其他相似技能替代。若在 registry/README 查不到，仍必須掃描 `.agents/skills/**/SKILL.md` 後才能判定不存在。
-- **[驗證板件與DXF](./驗證板件與DXF/SKILL.md)**: 使用者說「驗目前板件／驗箱身／驗中隔／驗封頭尾／驗門／驗底板／驗全部板件／DXF反驗證」時，對 current resolved physical parts 跑 canonical、DXF reopen、multipart、Save→Reload 與 remote QA；中隔另加 relief/placement/fixed-hole diagnostics。
-- **[setup-matt-pocock-skills](./setup-matt-pocock-skills/SKILL.md)**: Configure this repo for the engineering skills (issue tracker, triage labels, domain doc layout). Run once per repo.
-- **[to-spec](./to-spec/SKILL.md)**: Turn the current conversation into a spec and publish it to the issue tracker.
-- **[to-tickets](./to-tickets/SKILL.md)**: Break any plan, spec, or conversation into a set of tracer-bullet tickets, each declaring its blocking edges, whether as text in a local file or as native blocking links on a real tracker.
-- **[implement](./implement/SKILL.md)**: Build the work described by a spec or set of tickets, driving `/tdd` at pre-agreed seams and closing out with `/code-review` before committing.
-- **[wayfinder](./wayfinder/SKILL.md)**: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on the issue tracker, resolved one at a time until the way to the destination is clear.
+- **[ask-matt](./ask-matt/SKILL.md)**: Router over the engineering/productivity flows.
+- **[拷問邊建立文件](./拷問邊建立文件/SKILL.md)**: 深度質詢並同步維護 `CONTEXT.md` / ADR。
+- **[triage](./triage/SKILL.md)**: Move issues through triage roles.
+- **[掃描深模組](./掃描深模組/SKILL.md)**: WHD 深層架構掃描；使用者點名時必須讀此 Skill，不用相似英文 Skill 取代。
+- **[驗證板件與DXF](./驗證板件與DXF/SKILL.md)**: 驗 current/resolved physical parts、DXF reopen、multipart、Save→Reload 與 remote QA。
+- **[setup-matt-pocock-skills](./setup-matt-pocock-skills/SKILL.md)**: Configure tracker/labels/domain-doc layout when applicable.
+- **[寫成規格書](./寫成規格書/SKILL.md)**: 從 grounded conversation/code/AI Library 產生工程規格。
+- **[拆解任務工單](./拆解任務工單/SKILL.md)**: Requirement RED-first，經使用者核准後拆 tracer-bullet tickets。
+- **[執行開發任務](./執行開發任務/SKILL.md)**: 依核准 spec/ticket 實作，遵守 TDD、checkpoint、派工與 QA gate。
+- **[寫技能](./寫技能/SKILL.md)**: 建立、修改、驗證與改善 Skill。
+- **[派工](./派工/SKILL.md)**: WHD PM → Implementer → QA、owning Issue、journal/checkpoint、remote QA 狀態機。
+- **[wayfinder](./wayfinder/SKILL.md)**: Plan very large multi-session work as decision tickets.
 
-## Model-invoked
+## Model- or user-reachable
 
-Model- or user-reachable (rich trigger phrasing so the model can reach for them).
+- **[prototype](./prototype/SKILL.md)**: Build a throwaway prototype to answer a design question.
+- **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**: 監控 GitHub Actions/remote QA 到 terminal，處理 cleanup/drift audit。
+- **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**: Build a tight RED loop, minimise, hypothesise, instrument, fix and regress.
+- **[research](./research/SKILL.md)**: Research against high-trust sources when its runtime requirements are available.
+- **[tdd](./tdd/SKILL.md)**: RED → GREEN development at agreed seams.
+- **[領域建模](./領域建模/SKILL.md)**: 定義/修正 domain terminology，維護 `CONTEXT.md` / ADR。
+- **[程式碼庫設計](./程式碼庫設計/SKILL.md)**: Deep-module vocabulary：module/interface/depth/seam/adapter/leverage/locality。
+- **[code-review](./code-review/SKILL.md)**: Review diff against standards and originating spec.
+- **[resolving-merge-conflicts](./resolving-merge-conflicts/SKILL.md)**: Resolve merge/rebase conflicts by intent.
+- **[wizard](./wizard/SKILL.md)**: Generate guided human-only operational steps when appropriate.
 
-- **[prototype](./prototype/SKILL.md)**: Build a throwaway prototype to answer a design question: a single shareable HTML file for state/logic, or several toggleable UI variations.
+## Canonical identity rule
 
-- **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**: Use when synchronized remote work starts or depends on GitHub Actions / remote CI QA and the workflow run has not yet reached a verified terminal state.\n- **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**: Disciplined diagnosis loop for hard bugs and performance regressions: build a feedback loop that goes red on this bug → minimise → hypothesise → instrument → fix → regression-test.
-- **[research](./research/SKILL.md)**: Investigate a question against high-trust primary sources and capture the findings as a cited Markdown file in the repo, run as a background agent.
-- **[tdd](./tdd/SKILL.md)**: Test-driven development with a red-green-refactor loop. Builds features or fixes bugs one vertical slice at a time.
-- **[domain-modeling](./domain-modeling/SKILL.md)**: Actively build and sharpen a project's domain model by challenging terms, stress-testing with scenarios, and updating `CONTEXT.md` and ADRs inline.
-- **[codebase-design](./codebase-design/SKILL.md)**: Shared discipline and vocabulary for designing deep modules: small interfaces, clean seams, testable through the interface.
-- **[code-review](./code-review/SKILL.md)**: Two-axis review of the diff since a fixed point: **Standards** (does it follow the repo's coding standards, plus a Fowler smell baseline?) and **Spec** (does it faithfully implement the originating issue/spec?), run as parallel sub-agents.
-- **[resolving-merge-conflicts](./resolving-merge-conflicts/SKILL.md)**: Work through an in-progress git merge or rebase conflict hunk by hunk, resolving by intent traced to each side's primary source, then finish the operation, never `--abort`.
-- **[wizard](./wizard/SKILL.md)**: Generate an interactive bash wizard that walks a human through steps only they can perform: provisioning infrastructure, setting up credentials or CI secrets, walking an unfamiliar third-party dashboard, or running a one-off migration or cutover.
-
+對任何**中文命名的 Skill 資料夾**，frontmatter `name` 必須與該資料夾 basename 完全相同。README 連結也必須指向實際中文路徑；舊英文 identity 只能做 legacy/history 說明，不能當 canonical routing target。
