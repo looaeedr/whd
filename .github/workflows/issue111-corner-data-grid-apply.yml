@@ -1,0 +1,168 @@
+name: Issue111 Corner Data Grid Isolation Apply
+on:
+  push:
+    branches: [fix/issue111-corner-data-grid-isolation-20260911]
+    paths:
+      - .github/workflows/issue111-corner-data-grid-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  red-green-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue111-corner-data-grid-isolation-20260911
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Phase6 changed-file preflight
+        run: |
+          cat > /tmp/issue111-preflight-evidence.txt <<'EOF'
+          派工
+          phase6-corner-3d-model-integrity
+          diagnosing-bugs
+          tdd
+          monitoring-remote-qa
+          驗證板件與DXF
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task '#111 TDD view-only bugfix：Corner Data grid isolation；preserve other grid callers；remote QA' \
+            --changed-file gui.py \
+            --changed-file tests/test_issue111_corner_data_grid_isolation.py \
+            --evidence /tmp/issue111-preflight-evidence.txt
+      - name: Write approved RED tests with pre-change invariants
+        run: |
+          python - <<'PY'
+          import ast, hashlib
+          from pathlib import Path
+
+          source = Path('gui.py').read_text(encoding='utf-8')
+          tree = ast.parse(source)
+          funcs = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+
+          def fn(name):
+              matches = [n for n in funcs if n.name == name]
+              if len(matches) != 1:
+                  raise SystemExit(f'expected one {name}, got {len(matches)}')
+              return matches[0]
+
+          def calls_grid(node):
+              for n in ast.walk(node):
+                  if not isinstance(n, ast.Call):
+                      continue
+                  f = n.func
+                  if isinstance(f, ast.Attribute) and f.attr == 'draw_grid' and isinstance(f.value, ast.Name) and f.value.id == 'self':
+                      return True
+              return False
+
+          draw_grid = fn('draw_grid')
+          draw_hash = hashlib.sha256(ast.dump(draw_grid, include_attributes=False).encode()).hexdigest()
+          target = '_render_fold_designer_corner_data_view'
+          other_callers = tuple(sorted(n.name for n in funcs if n.name != target and calls_grid(n)))
+          if not other_callers:
+              raise SystemExit('no unrelated grid callers found; isolation oracle invalid')
+
+          test = f'''import ast\nimport hashlib\nfrom pathlib import Path\n\nEXPECTED_DRAW_GRID_AST_SHA256 = {draw_hash!r}\nEXPECTED_OTHER_GRID_CALLERS = {other_callers!r}\nTARGET = "_render_fold_designer_corner_data_view"\n\ndef _tree():\n    return ast.parse(Path("gui.py").read_text(encoding="utf-8"))\n\ndef _functions():\n    return [n for n in ast.walk(_tree()) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]\n\ndef _function(name):\n    matches = [n for n in _functions() if n.name == name]\n    assert len(matches) == 1, (name, len(matches))\n    return matches[0]\n\ndef _calls_self_method(node, method):\n    for n in ast.walk(node):\n        if not isinstance(n, ast.Call):\n            continue\n        f = n.func\n        if isinstance(f, ast.Attribute) and f.attr == method and isinstance(f.value, ast.Name) and f.value.id == "self":\n            return True\n    return False\n\ndef test_corner_data_renderer_does_not_draw_background_grid():\n    assert not _calls_self_method(_function(TARGET), "draw_grid")\n\ndef test_shared_draw_grid_implementation_ast_is_unchanged():\n    node = _function("draw_grid")\n    digest = hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest()\n    assert digest == EXPECTED_DRAW_GRID_AST_SHA256\n\ndef test_all_unrelated_prechange_grid_callers_are_preserved():\n    current = tuple(sorted(n.name for n in _functions() if n.name != TARGET and _calls_self_method(n, "draw_grid")))\n    assert current == EXPECTED_OTHER_GRID_CALLERS\n\ndef test_corner_data_renderer_still_consumes_authoritative_drawing_scene():\n    node = _function(TARGET)\n    names = {{n.func.id for n in ast.walk(node) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}}\n    assert "render_drawing_scene" in names\n'''
+          Path('tests/test_issue111_corner_data_grid_isolation.py').write_text(test, encoding='utf-8')
+          print('DRAW_GRID_AST_SHA256=' + draw_hash)
+          print('OTHER_GRID_CALLERS=' + ','.join(other_callers))
+          PY
+      - name: RED — prove Corner Data still calls grid
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: |
+          set +e
+          pytest -q tests/test_issue111_corner_data_grid_isolation.py > /tmp/issue111-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue111-red.log
+          if [ "$rc" -eq 0 ]; then
+            echo 'RED gate failed: grid-isolation tests unexpectedly passed before production change'
+            exit 1
+          fi
+          grep -q 'test_corner_data_renderer_does_not_draw_background_grid' /tmp/issue111-red.log
+          grep -q '1 failed, 3 passed' /tmp/issue111-red.log
+          echo 'RED_111=PASS_EXPECTED_FAILURE'
+      - name: GREEN — remove only Corner Data grid caller
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          p = Path('gui.py')
+          source = p.read_text(encoding='utf-8')
+          lines = source.splitlines(keepends=True)
+          tree = ast.parse(source)
+          matches = [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == '_render_fold_designer_corner_data_view']
+          if len(matches) != 1:
+              raise SystemExit(f'expected one Corner Data renderer, got {len(matches)}')
+          node = matches[0]
+          candidates = []
+          for i in range(node.lineno - 1, node.end_lineno):
+              if lines[i].strip() == 'self.draw_grid(canvas, cw, ch)':
+                  candidates.append(i)
+          if len(candidates) != 1:
+              raise SystemExit(f'expected exactly one local grid call, got {len(candidates)}')
+          del lines[candidates[0]]
+          p.write_text(''.join(lines), encoding='utf-8')
+          PY
+      - name: GREEN — focused grid isolation plus inherited Corner Data contracts
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: |
+          pytest -q \
+            tests/test_issue111_corner_data_grid_isolation.py \
+            tests/test_issue110_shared_info_projection.py \
+            tests/test_issue109_corner_data_boxbody_tree.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            | tee /tmp/issue111-green.log
+      - name: Verify exact production diff is one local grid-call deletion
+        run: |
+          git diff -- gui.py | tee /tmp/issue111-gui.diff
+          test "$(git diff --numstat -- gui.py | awk '{print $1}')" = "0"
+          test "$(git diff --numstat -- gui.py | awk '{print $2}')" = "1"
+          grep -q -- '-        self.draw_grid(canvas, cw, ch)' /tmp/issue111-gui.diff
+          test "$(grep -c '^[-+]        self.draw_grid(canvas, cw, ch)' /tmp/issue111-gui.diff)" = "1"
+      - name: Create durable T4 checkpoint
+        run: |
+          mkdir -p .scratch/issue107/checkpoints .scratch/issue107/state
+          cat > .scratch/issue107/checkpoints/T4.md <<'EOF'
+          # #107 / #111 T4 checkpoint
+          - role: T4 Implementer
+          - owning issue: #111
+          - accepted base: 163dd5d6a9416887fb65b75d329ce56d62793236
+          - branch: fix/issue111-corner-data-grid-isolation-20260911
+          - authority: current gui.py renderer ownership + approved Grid Contract
+          - production scope: remove one local Corner Data draw_grid call only
+          - draw_grid implementation and unrelated callers guarded by AST invariants
+          - manufacturing geometry / DXF / info projection unchanged
+          - pending: exact-head QA; cleanup; drift audit; then #112
+          EOF
+      - name: Verify config invariant
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+      - name: Commit tested T4 source and checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gui.py tests/test_issue111_corner_data_grid_isolation.py
+          git add -f .scratch/issue107/checkpoints/T4.md
+          git commit -m 'fix(#111): isolate Corner Data from background grid'
+          git push origin HEAD:fix/issue111-corner-data-grid-isolation-20260911
+          echo "T4_COMMIT=$(git rev-parse HEAD)"
