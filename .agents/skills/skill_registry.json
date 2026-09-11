@@ -67,6 +67,116 @@
       ]
     },
     {
+      "id": "python-testing-practices",
+      "keywords": [
+        "Python 測試",
+        "pytest",
+        "fixture",
+        "parameterization",
+        "parametrize",
+        "mock",
+        "monkeypatch",
+        "async test",
+        "property-based",
+        "Hypothesis",
+        "tmp_path",
+        "xfail",
+        "coverage"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/Python測試實務/**",
+        "tests/**/*.py",
+        "conftest.py"
+      ],
+      "required_skills": [
+        "Python測試實務"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "property-invariant-testing",
+      "keywords": [
+        "性質導向測試",
+        "property-based testing",
+        "property testing",
+        "property test",
+        "invariant testing",
+        "roundtrip property",
+        "idempotence property",
+        "shrinking",
+        "shrunk counterexample",
+        "counterexample classification",
+        "Hypothesis property"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/性質導向測試/**",
+        "tests/test_*property*.py",
+        "tests/test_*invariant*.py"
+      ],
+      "required_skills": [
+        "性質導向測試"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "dimension-semantics-analysis",
+      "keywords": [
+        "尺寸語意分析",
+        "尺寸語意",
+        "尺寸混用",
+        "dimensional analysis",
+        "dimension semantics",
+        "semantic dimension",
+        "包外 vs 料尺寸",
+        "料尺寸 vs 包外",
+        "flat vs formed",
+        "unit mismatch",
+        "FW 包外",
+        "T/2T"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/尺寸語意分析/**"
+      ],
+      "required_skills": [
+        "尺寸語意分析"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
+      "id": "ui-design-de-ai",
+      "keywords": [
+        "UI設計",
+        "UI",
+        "UX",
+        "去AI味",
+        "AI味",
+        "AI slop",
+        "不像AI",
+        "介面設計",
+        "介面重整",
+        "視覺層級",
+        "layout",
+        "typography",
+        "UI audit",
+        "frontend design"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/UI設計與去AI味/**"
+      ],
+      "required_skills": [
+        "UI設計與去AI味"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "dispatching-workflow",
       "keywords": [
         "派工",
