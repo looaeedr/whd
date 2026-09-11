@@ -1,19 +1,11 @@
 name: fourth-batch-skills-qa-20260911
 
-# Preflight evidence markers are recorded in docs/superpowers/verification/2026-09-11-fourth-batch-skills.md
 on:
   push:
     branches:
       - feat/add-property-dimension-skills-zh-20260911
     paths:
-      - '.agents/skills/engineering/性質導向測試/**'
-      - '.agents/skills/engineering/尺寸語意分析/**'
-      - '.agents/skills/engineering/README.md'
-      - '.agents/skills/skill_registry.json'
-      - 'tests/test_fourth_batch_skills_contract.py'
-      - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
-      - 'release_required_artifacts.json'
-      - '.github/workflows/fourth-batch-skills-qa-20260911.yml'
+      - 'docs/superpowers/verification/.fourth-batch-qa-trigger'
 
 permissions:
   contents: read
@@ -49,19 +41,15 @@ jobs:
             --evidence 'docs/superpowers/verification/2026-09-11-fourth-batch-skills.md'
       - name: Fourth batch contracts and project guards
         run: |
-          if [ -f tests/test_fourth_batch_skills_contract.py ]; then
-            pytest -q \
-              tests/test_fourth_batch_skills_contract.py \
-              tests/test_python_testing_practices_skill_contract.py \
-              tests/test_chinese_skill_identity_contract.py \
-              tests/test_writing_skill_contract.py \
-              tests/test_writing_skill_preflight_route.py \
-              tests/test_phase6_skill_preflight_gate.py \
-              tests/test_phase6_release_packaging_policy.py \
-              tests/test_release_integrity_gate.py
-          else
-            echo 'bootstrap: contract not created yet'
-          fi
+          pytest -q \
+            tests/test_fourth_batch_skills_contract.py \
+            tests/test_python_testing_practices_skill_contract.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_phase6_release_packaging_policy.py \
+            tests/test_release_integrity_gate.py
       - name: Verify config invariant and clean tree
         run: |
           sha256sum config.ini | tee /tmp/config.after
