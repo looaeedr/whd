@@ -1,0 +1,53 @@
+name: ui-skill-stack-refresh-merge-20260911
+
+on:
+  push:
+    branches:
+      - integration/ui-design-skill-stack-refresh-20260911
+    paths:
+      - 'docs/superpowers/verification/.ui-skill-stack-refresh-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Snapshot config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Refresh integration Knowledge Preflight
+        run: |
+          python3 tools/phase6_skill_preflight.py \
+            --task "Fresh production advanced after a Combined-GREEN Skill-stack integration; merge that tested integration payload into the current cleanup/2d-3d-sync production line, preserve the new production AI06 knowledge, rerun Combined Acceptance, then non-force fast-forward production under explicit user 合 authorization" \
+            --changed-file '.agents/skills/engineering/README.md' \
+            --changed-file '.agents/skills/skill_registry.json' \
+            --changed-file 'release_required_artifacts.json' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
+            --changed-file 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-refresh.md' \
+            --changed-file '.github/workflows/ui-skill-stack-refresh-merge-20260911.yml' \
+            --evidence 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-refresh.md'
+      - name: Merge exact previously tested cleaned integration
+        run: |
+          set -euo pipefail
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git fetch origin integration/ui-design-skill-stack-20260911
+          fetched="$(git rev-parse FETCH_HEAD)"
+          expected="ca2a6d3cacf568abca66819102f87f59be7cd156"
+          test "$fetched" = "$expected" || { echo "UNEXPECTED_PREVIOUS_INTEGRATION_HEAD=$fetched"; exit 1; }
+          git merge --no-commit --no-ff FETCH_HEAD
+          unresolved="$(git diff --name-only --diff-filter=U)"
+          test -z "$unresolved" || { echo "UNRESOLVED_CONFLICTS=$unresolved"; exit 1; }
+          git commit -m "merge: refresh accepted skill stack onto latest production"
+          git push origin HEAD:integration/ui-design-skill-stack-refresh-20260911
+      - name: Verify config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
