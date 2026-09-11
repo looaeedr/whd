@@ -3,10 +3,10 @@
 ## Authority
 
 - User explicitly authorized integration with `合`.
-- Fresh production base: `cleanup/2d-3d-sync @ b100babcd87ac3e3dda1c091f8ae9d19a9bd9288`.
+- Fresh production base at integration start: `cleanup/2d-3d-sync @ b100babcd87ac3e3dda1c091f8ae9d19a9bd9288`.
 - Accepted payload: `qa/issue117-ui-design-combined-acceptance-20260911 @ cd0e6bef5d05eabfb39c6add07257bcaf6745e6d`.
 - Integration branch: `integration/ui-design-skill-stack-20260911` from exact fresh production base.
-- Production must only move by non-force fast-forward after integrated-head Combined Acceptance is GREEN.
+- Production must only move by non-force fast-forward after integrated-head Combined Acceptance is GREEN and production is fresh-read again.
 
 ## Fresh reads
 
@@ -16,6 +16,10 @@ READ_SKILL: resolving-merge-conflicts
 READ_SKILL: phase6-release-packaging
 READ_SKILL: monitoring-remote-qa
 READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: Python測試實務
+READ_SKILL: 性質導向測試
+READ_SKILL: 尺寸語意分析
+READ_SKILL: UI設計與去AI味
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
@@ -28,11 +32,12 @@ READ_EVIDENCE: docs/superpowers/verification/2026-09-11-issue117-ui-design-combi
 
 - First integration Preflight run `34613142498 @ dd6b76ae31de8b84f2b0e1c56072f8df0f258866` fail-closed before merge.
 - Missing evidence was exactly `phase6-corner-3d-model-integrity` plus `README_母規則說明.md`, `certified_relief_rules.json`, and `phase6_assembly_relief_pitfalls.md`.
-- Those current-production sources were read and are now recorded above; no accepted payload merge occurred before this correction.
+- Those current-production sources were read before any accepted payload merge.
+- Retry run `34613302370 @ 7f161315b0f518b1a6e689368f51cf84be4ae25b` → SUCCESS; required Skills/references and config/clean-tree gate PASS.
 
-## Planned accepted payload
+## Accepted payload and true merge
 
-Integrate the already-accepted testing/property/dimensional/UI Skill stack without modifying production geometry/UI source behavior:
+Accepted stack scope:
 
 - `.agents/skills/engineering/Python測試實務/SKILL.md`
 - `.agents/skills/engineering/性質導向測試/SKILL.md`
@@ -47,11 +52,22 @@ Integrate the already-accepted testing/property/dimensional/UI Skill stack witho
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - accepted verification evidence files.
 
-Existing production-only governance/source changes must be preserved; conflicts are resolved by intent, never by replacing current production wholesale.
+Existing production-only governance/source changes are preserved; accepted governance additions are merged by intent rather than replacing current production wholesale.
+
+- Audited merge run `34613694203 @ 32386537a0bc332dbdd5667ab4ac22f1efe6051e` → SUCCESS.
+- Git performed the merge cleanly (`Automatic merge went well; stopped before committing as requested`); no unresolved/manual conflict remained.
+- True merge commit: `ced6961a3e81edf90df0d41328a2ce21b8e1fcc3`.
+- Parent 1: integration pre-merge head `32386537a0bc332dbdd5667ab4ac22f1efe6051e` (descendant of production base).
+- Parent 2: accepted final `cd0e6bef5d05eabfb39c6add07257bcaf6745e6d`.
+- `b100babcd87ac3e3dda1c091f8ae9d19a9bd9288 -> ced6961a...`: ahead-only, behind 0, merge-base exactly `b100...`.
+- `cd0e6bef5d05eabfb39c6add07257bcaf6745e6d -> ced6961a...`: ahead-only, behind 0, merge-base exactly accepted final.
+- Merge-run `config.ini` before/after remained canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
 
 ## State
 
-- Integration Preflight: RETRY PENDING after evidence completion.
-- Accepted payload merge: NOT STARTED.
+- Integration Preflight: GREEN.
+- Accepted payload true merge: COMPLETE at `ced6961a3e81edf90df0d41328a2ce21b8e1fcc3`.
+- Merged-head four new Skills: remote re-read COMPLETE.
 - Integrated Combined Acceptance: PENDING.
-- Production update: NOT STARTED.
+- Temporary workflow/sentinel cleanup: PENDING terminal Combined.
+- Production update: NOT STARTED after merge; requires fresh production read immediately before non-force update.
