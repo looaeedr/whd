@@ -19,7 +19,6 @@ on:
       - 'tests/test_release_integrity_gate.py'
       - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
       - 'release_required_artifacts.json'
-      - 'docs/superpowers/verification/2026-09-11-second-batch-skills.md'
       - '.github/workflows/second-batch-skills-qa-20260911.yml'
 
 permissions:
@@ -61,19 +60,15 @@ jobs:
 
       - name: Second batch contracts and project guards
         run: |
-          if [ -f tests/test_second_batch_skills_contract.py ]; then
-            pytest -q \
-              tests/test_second_batch_skills_contract.py \
-              tests/test_writing_skill_contract.py \
-              tests/test_writing_skill_preflight_route.py \
-              tests/test_chinese_skill_identity_contract.py \
-              tests/test_find_skill_contract.py \
-              tests/test_phase6_skill_preflight_gate.py \
-              tests/test_phase6_release_packaging_policy.py \
-              tests/test_release_integrity_gate.py
-          else
-            echo 'Contract test not added yet; bootstrap Preflight only.'
-          fi
+          pytest -q \
+            tests/test_second_batch_skills_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_find_skill_contract.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_phase6_release_packaging_policy.py \
+            tests/test_release_integrity_gate.py
 
       - name: Verify config invariant and clean tree
         run: |
