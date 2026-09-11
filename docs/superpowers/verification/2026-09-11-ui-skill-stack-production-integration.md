@@ -73,11 +73,27 @@ Existing production-only governance/source changes are preserved; accepted gover
 - Those current-production authorities were then read and recorded above. The route/task was not weakened to evade the gate.
 - `config.ini` and clean-tree invariant stayed PASS on the fail-closed run.
 
+## Integrated Combined Acceptance GREEN
+
+- Tested head: `de24a0f264adf9d1b233613aef0b4abbea6a81ec`.
+- Terminal run: `34614239714 @ de24a0f264adf9d1b233613aef0b4abbea6a81ec` → SUCCESS.
+- Merged-head Preflight: PASS. Required Skills included `寫技能`, `Python測試實務`, `性質導向測試`, `尺寸語意分析`, `UI設計與去AI味`, `issue-closure-gate`, `phase6-release-packaging`; required AI06/AI08/closure-pitfall/release references all PASS.
+- Fifth-batch exact R1–R6 contract: `11 passed / 0 failed`.
+- Integrated Skill + current-production governance guards: `92 passed / 0 failed / 0.54s`.
+- Registry and release manifest JSON parse: PASS.
+- `config.ini` before/after remained canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`; `git diff --exit-code` PASS.
+
+## Tested-head remote readback
+
+- Registry blob `dae1a23e7fb78d91115256ff6f6a9f470881ef12` contains accepted `python-testing-practices`, `property-invariant-testing`, `dimension-semantics-analysis`, `ui-design-de-ai` and current-production `issue-closure-gate` together.
+- Engineering README blob `f13da21b61510c865917b9a29df5eb04b5812700` contains the four accepted canonical Skill entries.
+- AI08 blob `66dd736c433ef4a7b6265a1c32cb57a9ca7bd0d5` contains accepted third/fourth/fifth-batch durable rules.
+- Release manifest blob `29968e4b3f4255ebbd547e13a308ad47f127ed83` contains both current-production issue-closure artifacts and accepted four Skills / three contract tests.
+
 ## State
 
-- Integration Preflight: GREEN before merge.
-- Accepted payload true merge: COMPLETE at `ced6961a3e81edf90df0d41328a2ce21b8e1fcc3`.
-- Merged-head new Skills + current production closure gate: remote re-read COMPLETE.
-- Integrated Combined Acceptance: RETRY PENDING after complete evidence.
-- Temporary workflow/sentinel cleanup: PENDING terminal Combined.
-- Production update: NOT STARTED after merge; requires fresh production read immediately before non-force update.
+- Integration Preflight: GREEN.
+- Accepted payload true merge: COMPLETE; accepted final is a real parent/ancestor.
+- Integrated Combined Acceptance: GREEN at tested head `de24a0f264adf9d1b233613aef0b4abbea6a81ec`.
+- Temporary workflow/sentinel cleanup: NEXT.
+- Production update: NOT STARTED after Combined; requires cleanup/drift and fresh production read immediately before non-force update.
