@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 
 import gui
+import fold_designer_bridge as bridge
 
 
 def make_app():
@@ -9,6 +10,27 @@ def make_app():
     root.withdraw()
     app = gui.BoxCalculatorGUI(root)
     return root, app
+
+
+def _open_current_multi_door_corner_data(root, app, part_key="door_c1_r1"):
+    """Open the operator-reachable #92/#98 multi-door 2D surface."""
+    app.toggle_multi_door_layout()
+    app.update_calculations()
+    root.update_idletasks()
+    root.update()
+    designer = app.open_original_fold_designer()
+    root.update_idletasks()
+    root.update()
+    bridge._phase6_show_corner_data(designer)
+    root.update_idletasks()
+    root.update()
+    assert bridge._phase6_select_corner_data_part(designer, part_key) == part_key
+    root.update_idletasks()
+    root.update()
+    canvas = designer.corner_data_canvas
+    assert canvas is not None and canvas.winfo_ismapped()
+    assert canvas is not app.canvas_door
+    return designer, canvas
 
 
 def test_multi_door_gui_model_accepts_columns_and_derives_selected_cell():
@@ -68,10 +90,9 @@ def test_selected_multi_door_cell_keeps_whole_layout_visible_and_door_keeps_four
             (500, [800, 1000]),
         ])
         app.door_layout_selected_var.set("0:0")
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
 
-        app.draw_door(app.get_float_values())
         assert len(app.door_layout_cell_items) == 5
         selected = app.get_selected_door_layout_cell()
         result = build_door_result(
@@ -232,9 +253,8 @@ def test_multi_door_canvas_shows_all_cells_without_preview_radiobuttons():
             (500, [800, 1000]),
         ])
         app.toggle_multi_door_layout()
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update_idletasks()
 
         assert len(app.door_layout_cell_items) == 5
@@ -250,10 +270,10 @@ def test_multi_door_canvas_shows_all_cells_without_preview_radiobuttons():
         assert not [w for w in descendants(app.door_layout_body)
                     if isinstance(w, tk.Radiobutton) and w.cget("text") == "預覽"]
 
-        before = tuple(app.canvas_door.find_withtag("door_layout_cell"))
+        before = tuple(canvas.find_withtag("door_layout_cell"))
         app.select_door_layout_cell(0, 1)
         root.update_idletasks()
-        after = tuple(app.canvas_door.find_withtag("door_layout_cell"))
+        after = tuple(canvas.find_withtag("door_layout_cell"))
         assert len(before) == len(after) == 5
         assert app.door_layout_selected_var.get() == "0:1"
     finally:
@@ -298,9 +318,8 @@ def test_multi_door_first_page_uses_canvas_entries_instead_of_layout_body():
             (500, [800, 1000]),
         ])
         app.toggle_multi_door_layout()
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update_idletasks()
 
         # The old stacked editor panel must no longer consume vertical space.
@@ -325,9 +344,8 @@ def test_multi_door_cells_only_allow_authoritative_derived_part_text_and_double_
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update_idletasks()
 
         # T16 intentionally projects authoritative divider/frame placement
@@ -337,16 +355,16 @@ def test_multi_door_cells_only_allow_authoritative_derived_part_text_and_double_
         derived_text_items = []
         for key, bounds in app.door_layout_cell_bounds.items():
             x1, y1, x2, y2 = bounds
-            for item in app.canvas_door.find_all():
-                if app.canvas_door.type(item) != "text":
+            for item in canvas.find_all():
+                if canvas.type(item) != "text":
                     continue
-                coords = app.canvas_door.coords(item)
+                coords = canvas.coords(item)
                 if len(coords) < 2:
                     continue
                 x, y = coords[:2]
                 if not (x1 < x < x2 and y1 < y < y2):
                     continue
-                tags = set(app.canvas_door.gettags(item))
+                tags = set(canvas.gettags(item))
                 assert tags & allowed_derived_tags, (
                     f"unowned metadata text leaked into cell {key}: tags={sorted(tags)}"
                 )
@@ -416,13 +434,12 @@ def test_multi_door_overview_draws_only_each_cells_own_holes():
         app.door_layout_features["0:0"] = [
             CircleFeature(30.0, FeatureAnchor.PANEL_CENTER, Vec2(0.0, 0.0))
         ]
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update_idletasks()
 
-        assert app.canvas_door.find_withtag("door_layout_feature_0_0")
-        assert not app.canvas_door.find_withtag("door_layout_feature_1_0")
+        assert canvas.find_withtag("door_layout_feature_0_0")
+        assert not canvas.find_withtag("door_layout_feature_1_0")
     finally:
         root.destroy()
 
@@ -525,20 +542,29 @@ def test_door_indicator_controls_are_inside_unified_hole_editor():
 
 
 def test_door_page_top_only_shows_enable_multi_door_control():
+    # Historical test name retained so the residual matrix proves migration instead of deletion.
     root, app = make_app()
     try:
         root.deiconify()
-        app.notebook.select(app.tab_door)
-        root.update()
+        root.geometry("1200x900")
+        app.w_var.set("1100")
+        app.h_var.set("1800")
+        app.multi_door_enabled_var.set(True)
+        app.set_door_layout_columns([
+            (600, [600, 500, 700]),
+            (500, [800, 1000]),
+        ])
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
 
-        visible_checks = []
-        def walk(widget):
-            for child in widget.winfo_children():
-                if isinstance(child, tk.Checkbutton) and child.winfo_ismapped():
-                    visible_checks.append(child.cget("text"))
-                walk(child)
-        walk(app.tab_door)
-        assert visible_checks == ["啟用多門配置"]
+        assert not hasattr(app, "notebook")
+        assert not app._legacy_2d_compat_host.winfo_ismapped()
+        assert not app.tab_door.winfo_ismapped()
+        assert canvas.winfo_ismapped()
+        keys = tuple(bridge._phase6_corner_data_part_keys(designer))
+        assert tuple(key for key in keys if str(key).startswith("door_c")) == (
+            "door_c1_r1", "door_c1_r2", "door_c1_r3", "door_c2_r1", "door_c2_r2",
+        )
+        assert "door" not in keys
     finally:
         root.destroy()
 
@@ -599,9 +625,8 @@ def test_real_double_click_in_cell_center_opens_editor_once(monkeypatch):
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update()
 
         calls = []
@@ -611,8 +636,8 @@ def test_real_double_click_in_cell_center_opens_editor_once(monkeypatch):
         y = int((y1 + y2) / 2)
 
         for _ in range(2):
-            app.canvas_door.event_generate("<ButtonPress-1>", x=x, y=y)
-            app.canvas_door.event_generate("<ButtonRelease-1>", x=x, y=y)
+            canvas.event_generate("<ButtonPress-1>", x=x, y=y)
+            canvas.event_generate("<ButtonRelease-1>", x=x, y=y)
             root.update()
 
         assert calls == [(0, 0)]
@@ -632,9 +657,8 @@ def test_layout_dimension_entries_match_editor_sized_inputs():
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.notebook.select(app.tab_door)
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update()
 
         entries = list(app.door_layout_width_entries.values()) + list(app.door_layout_height_entries.values())
@@ -662,14 +686,12 @@ def test_multi_door_uses_manual_double_click_detection_not_tk_double_binding(mon
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.notebook.select(app.tab_door)
-        app.toggle_multi_door_layout()
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update()
 
         # Multi-door must not depend on Tk's OS-specific Double event.
-        assert app.canvas_door.bind("<Double-Button-1>") == ""
+        assert canvas.bind("<Double-Button-1>") == ""
 
         calls = []
         monkeypatch.setattr(app, "open_door_layout_cell_editor", lambda c, r: calls.append((c, r)))
@@ -698,10 +720,8 @@ def test_multi_door_single_click_selection_does_not_recalculate_or_redraw(monkey
             (600, [600, 500, 700]),
             (500, [800, 1000]),
         ])
-        app.notebook.select(app.tab_door)
-        app.toggle_multi_door_layout()
+        designer, canvas = _open_current_multi_door_corner_data(root, app)
         root.update()
-        app.draw_door(app.get_float_values())
         root.update()
 
         # Selection alone must never trigger full calculations or rebuild the Canvas/Entry widgets.
@@ -713,8 +733,8 @@ def test_multi_door_single_click_selection_does_not_recalculate_or_redraw(monkey
         assert app.door_layout_selected_var.get() == "1:0"
         selected_rect = app.door_layout_cell_items["1:0"]
         unselected_rect = app.door_layout_cell_items["0:0"]
-        assert int(float(app.canvas_door.itemcget(selected_rect, "width"))) == 3
-        assert int(float(app.canvas_door.itemcget(unselected_rect, "width"))) == 2
+        assert int(float(canvas.itemcget(selected_rect, "width"))) == 3
+        assert int(float(canvas.itemcget(unselected_rect, "width"))) == 2
     finally:
         root.destroy()
 
@@ -757,8 +777,8 @@ def test_indicator_box_and_small_door_are_same_level_workspace_parts():
         app.on_indicator_box_toggle()
         existing = app._phase6_current_existing_parts()
         assert {"indicator_box", "indicator_door"} <= existing
-        assert str(app.tab_indicator_box) not in app.notebook.tabs()
-        assert str(app.tab_indicator_door) not in app.notebook.tabs()
+        assert not hasattr(app, "notebook")
+        assert not app._legacy_2d_compat_host.winfo_ismapped()
     finally:
         root.destroy()
 
@@ -781,8 +801,8 @@ def test_single_door_indicator_box_toggle_does_not_change_multi_door_cell_modes(
         assert app.is_door_indicator_var.get() is False
         assert app.door_layout_indicator_states[(0, 0)]["mode"] == "indicator"
         assert {"indicator_box", "indicator_door"} <= app._phase6_current_existing_parts()
-        assert str(app.tab_indicator_box) not in app.notebook.tabs()
-        assert str(app.tab_indicator_door) not in app.notebook.tabs()
+        assert not hasattr(app, "notebook")
+        assert not app._legacy_2d_compat_host.winfo_ismapped()
     finally:
         root.destroy()
 
@@ -853,7 +873,8 @@ def test_multi_door_editor_indicator_commit_does_not_toggle_single_door_global_m
         assert app.is_indicator_box_var.get() is True
         assert app._door_layout_indicator_state_for_key("0:0")["mode"] == "indicator"
         assert {"indicator_box", "indicator_door"} <= app._phase6_current_existing_parts()
-        assert str(app.tab_indicator_box) not in app.notebook.tabs()
+        assert not hasattr(app, "notebook")
+        assert not app._legacy_2d_compat_host.winfo_ismapped()
     finally:
         root.destroy()
 
