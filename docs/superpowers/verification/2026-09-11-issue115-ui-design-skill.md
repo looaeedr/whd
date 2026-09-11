@@ -60,20 +60,31 @@ Registry / README / AI08 / release manifest are T2 (#116), not T1 implementation
 - Remote readback Skill blob: `a378e2825df065bd53fb70101d1fb9b5454d717a`.
 - Remote readback contract-test blob: `ba7837be47bd1acd0f6fbd9b6eb23e49d59bf035`.
 
+## Temporary QA cleanup / drift audit
+
+- workflow removal commit: `4dd1e8f42d3a1e848df5e6a4c43bf63437587ba9`.
+- sentinel removal / cleanup head: `14f648cdf3bee2becd0b49a3a89669a4d83063e2`.
+- `.github/workflows/issue115-ui-design-skill-qa-20260911.yml` → remote 404.
+- `docs/superpowers/verification/.issue115-ui-design-trigger` → remote 404.
+- Branch Actions total remains exactly `3`; cleanup created no new run.
+- Tested head `cd66afa3...` → cleanup head comparison: ahead 3 / behind 0; exact changed files are only temporary workflow removed, sentinel removed, and this evidence file modified.
+- No Skill/test drift: final remote reread still reports Skill blob `a378e2825df065bd53fb70101d1fb9b5454d717a` and contract-test blob `ba7837be47bd1acd0f6fbd9b6eb23e49d59bf035`.
+
 ## Dispatch checkpoint
 
 - Task: Fifth batch `UI設計與去AI味`
 - Ticket: #115 / T1
-- Current role: T1 Implementer, preparing QA handoff
+- Current role: QA handoff complete
 - Branch: `feat/issue115-ui-design-de-ai-skill-20260911`
-- Completed: branch-first, authority read, external provenance pin, Preflight GREEN, formal RED, minimal Skill implementation, focused GREEN, tested-head remote readback.
-- Pending: temporary workflow/sentinel cleanup, 404 verification, tested-head→cleaned-head drift audit, final remote readback, Issue #115 terminal evidence, QA ACCEPT.
+- Completed: branch-first, authority read, pinned external provenance, Preflight GREEN, formal RED, minimal Skill implementation, focused GREEN, tested-head remote readback, one-shot cleanup, 404, drift audit, final Skill/test remote readback.
+- Pending: owning Issue #115 terminal comment/close, then start #116 on a new branch.
 - Failed/blocked: none.
 - Relevant files: `.agents/skills/engineering/UI設計與去AI味/SKILL.md`, `tests/test_ui_design_de_ai_skill_contract.py`, this evidence file.
-- Verification run IDs: `34607445439`, `34607648037`, `34607852950`.
-- Resume command/operation: re-read temp workflow/sentinel on this branch → delete workflow then sentinel → verify 404 → compare `cd66afa3...` to cleaned head → QA review.
+- Verification runs: `34607445439`, `34607648037`, `34607852950`.
+- Resume operation: close #115 with this evidence, then create #116 branch from final #115 head and run a fresh T2 Preflight.
 
 ## Acceptance state
 
-- Focused T1 contract: GREEN.
-- T1 final acceptance: PENDING cleanup/drift/QA review.
+- T1 focused contract: GREEN.
+- T1 cleanup/drift/readback: PASS.
+- T1 QA: ACCEPTED, pending owning Issue terminal writeback only.
