@@ -26,6 +26,7 @@ Reachable when explicitly selected/invoked. Runtime-specific invocation controls
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**: Build a tight RED loop, minimise, hypothesise, instrument, fix and regress.
 - **[research](./research/SKILL.md)**: Research against high-trust sources when its runtime requirements are available.
 - **[tdd](./tdd/SKILL.md)**: RED → GREEN development at agreed seams.
+- **[Python測試實務](./Python測試實務/SKILL.md)**: pytest fixture、isolation、parameterization、mock/monkeypatch、async、property-based、markers 與 CI 測試工程實務；不取代 tdd/diagnosing-bugs。
 - **[領域建模](./領域建模/SKILL.md)**: 定義/修正 domain terminology，維護 `CONTEXT.md` / ADR。
 - **[程式碼庫設計](./程式碼庫設計/SKILL.md)**: Deep-module vocabulary：module/interface/depth/seam/adapter/leverage/locality。
 - **[code-review](./code-review/SKILL.md)**: Review diff against standards and originating spec.

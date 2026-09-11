@@ -67,6 +67,35 @@
       ]
     },
     {
+      "id": "python-testing-practices",
+      "keywords": [
+        "Python 測試",
+        "pytest",
+        "fixture",
+        "parameterization",
+        "parametrize",
+        "mock",
+        "monkeypatch",
+        "async test",
+        "property-based",
+        "Hypothesis",
+        "tmp_path",
+        "xfail",
+        "coverage"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/Python測試實務/**",
+        "tests/**/*.py",
+        "conftest.py"
+      ],
+      "required_skills": [
+        "Python測試實務"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "dispatching-workflow",
       "keywords": [
         "派工",

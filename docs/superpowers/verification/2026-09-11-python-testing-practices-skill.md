@@ -36,11 +36,14 @@ WHD adaptation 必須固定：
 READ_SKILL: 寫技能
 READ_SKILL: phase6-release-packaging
 READ_SKILL: monitoring-remote-qa
+READ_SKILL: Python測試實務
 
 Supplementary boundary skills read:
 
 READ_SKILL: tdd
 READ_SKILL: diagnosing-bugs
+
+> `Python測試實務` 是本工單新建 Skill；candidate 由 pinned upstream 與已核准 WHD adaptation contract 寫成。本 marker 記錄在 final acceptance 前已讀 candidate；GREEN 後仍需 remote re-read 驗證實際 branch 內容。
 
 ## Required References read
 
@@ -48,7 +51,7 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防�
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
 
-## Planned changed files
+## Changed files
 
 - `.agents/skills/engineering/Python測試實務/SKILL.md`
 - `.agents/skills/engineering/README.md`
@@ -59,11 +62,22 @@ READ_REFERENCE: release_required_artifacts.json
 - `docs/superpowers/verification/2026-09-11-python-testing-practices-skill.md`
 - `.github/workflows/python-testing-practices-skill-qa-20260911.yml` (temporary QA only; delete after terminal GREEN)
 
-## RED → GREEN plan
+## Bootstrap Preflight evidence
 
-1. Bootstrap Preflight must pass before contract/Skill implementation.
-2. Add contract first and prove requirement RED while existing project guards remain green.
-3. Implement minimal `Python測試實務` + README/Registry/AI08/release durable writeback.
-4. Run targeted contract plus Chinese identity, writing-skill, Preflight, release/integrity guards.
-5. Require `config.ini` before/after SHA equality and `git diff --exit-code`.
-6. Lock remote QA by `run_id + head_sha` until terminal; then delete temporary workflow, remote-read 404, and drift-audit tested head → cleaned head.
+- bootstrap head: `97251f33d52c8fad655068730ae5a31d03c8ebe1`
+- run `34599014288` → **SUCCESS**。
+- Knowledge Preflight：`寫技能`、`phase6-release-packaging`、`monitoring-remote-qa` 全部 PASS；required references 全部 PASS。
+- `config.ini` before / after SHA256：`980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
+- bootstrap 階段尚未建立 contract，只驗施工環境與知識閘門，不算功能 GREEN。
+
+## RED evidence
+
+- RED commit: `d7caec32701c242231a9aaad05ed17e310104bc9`。
+- RED run: `34599128016` → FAILURE at `Third batch contracts and project guards`；setup、dependency install、config snapshot、Knowledge Preflight 都先 PASS。
+- summary：**8 failed / 51 passed / 0.71s**。
+- 8 個 failure 對應已核准缺口：`Python測試實務` 尚不存在、Registry route 缺失、README/AI08/release 尚未納入，以及 isolation/validation-authority/mock/skip contract 尚未有 Skill 實體承接。
+- 這是 requirement RED，不是 setup/import/harness failure。
+
+## GREEN / final acceptance pending
+
+Implementation candidate 必須在單一 commit 同步 Skill、README、Registry、AI08、release manifest 與本 evidence；remote QA 鎖定該 `head_sha + run_id` 到 terminal。GREEN 後才可刪除 one-shot workflow、反讀 404、做 tested-head → cleaned-head drift audit。

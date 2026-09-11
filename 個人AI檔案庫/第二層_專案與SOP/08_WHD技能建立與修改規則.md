@@ -131,3 +131,19 @@ WHD canonical path：`.agents/skills/productivity/MCP工具操作/SKILL.md`。
 - CLI route 保留 `mcp-cli` 的 exit-code contract；原生 connector 則保留自己的 structured error，不硬套 CLI code。
 - MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 branch-first、Preflight、remote QA 或其他專案 gate。
 - machine guard：`tests/test_second_batch_skills_contract.py`。
+
+## 2026-09-11 第三批：Python 測試實務
+
+WHD canonical path：`.agents/skills/engineering/Python測試實務/SKILL.md`。
+
+- identity 固定為中文 `Python測試實務`；folder / frontmatter / H1 / README / Registry 必須一致。
+- 此 Skill 是 **pytest 工程實務層**，負責 fixture、`tmp_path` isolation、parameterization、mock/monkeypatch、async、property-based、markers、coverage/CI mechanics；**不取代** `tdd` 的 seam / RED→GREEN authority，也不取代 `diagnosing-bugs` 的 repro / root-cause 流程。
+- 測試不得污染 `config.ini`、`基準檔/**` 或其他 tracked source；優先在 `tmp_path` / temporary workspace 操作。需要碰真實 tracked 檔時，必須有 teardown，並以測試前後 hash/SHA 或 `git diff` 證明還原。
+- `fixture`、expected value、snapshot、counterexample、tolerance、probe result 都只屬 validation input；它們**不能回灌 production**，也不會因為放進 `conftest.py` 或參數表就升格成 Source of Truth。
+- `mock` / `monkeypatch` 只隔離真正外部邊界；不得 mock 掉本輪必須驗的 geometry、DXF export→reopen、Save→Reload、multipart/physical-part、2D/3D parity 等真實 seam。
+- parameterization 用來擴大同一 invariant 的 coverage；不得把大量 current output hard-code 成產品規格。
+- property-based / fuzz 找到的 counterexample 只能證明 invariant 被破壞，不能直接回灌 production offset / formula。
+- `skip` / `xfail` 必須有具體理由；**SKIP 不等於 PASS**。Headless/GUI/Xvfb 結果要分開解讀。
+- **focused GREEN 不等於 final acceptance**；專案若另要求 `驗證板件與DXF`、release gate 或其他 final acceptance，仍必須完成。
+- coverage 只表示 code path 被執行；不得把外部範例的任意門檻（例如 80%）直接變成 WHD 硬規則。
+- machine guard：`tests/test_python_testing_practices_skill_contract.py`。
