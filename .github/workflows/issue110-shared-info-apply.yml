@@ -1,0 +1,266 @@
+name: Issue110 Shared Info Projection Apply
+on:
+  push:
+    branches: [fix/issue110-shared-info-projection-20260911]
+    paths:
+      - .github/workflows/issue110-shared-info-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  red-green-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue110-shared-info-projection-20260911
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Phase6 changed-file preflight
+        run: |
+          cat > /tmp/issue110-preflight-evidence.txt <<'EOF'
+          派工
+          phase6-corner-3d-model-integrity
+          diagnosing-bugs
+          tdd
+          monitoring-remote-qa
+          驗證板件與DXF
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task '#110 TDD bugfix：shared 3D/Corner-Data operator info projection；stable parent/child scope；remote QA' \
+            --changed-file phase6_final_scene_view.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue110_shared_info_projection.py \
+            --evidence /tmp/issue110-preflight-evidence.txt
+      - name: Write approved RED tests only
+        run: |
+          cat > tests/test_issue110_shared_info_projection.py <<'PY'
+          import inspect
+          from types import SimpleNamespace
+
+          import fold_designer_bridge as bridge
+          import phase6_final_scene_view as view
+
+
+          def _formatter():
+              fn = getattr(view, 'format_operator_info_text', None)
+              assert callable(fn), 'T3 requires shared operator-info formatter'
+              return fn
+
+
+          def _request(key, dims, *, pieces=(), x_profile=(), y_profile=()):
+              return view.FinalSceneViewRequest(
+                  render_data=SimpleNamespace(pieces=tuple(pieces)),
+                  x_profile=tuple(x_profile),
+                  y_profile=tuple(y_profile),
+                  part_key=key,
+                  finished_dimensions=tuple(dims),
+                  thickness=2.0,
+                  corner_dimension_text='截角尺寸：CROSS',
+                  unfolded_blank_text='展開料：100 × 200 mm',
+              )
+
+
+          def test_parent_shared_text_contains_complete_boxbody_and_current_piece_summaries_only():
+              pieces = (
+                  SimpleNamespace(role='left_side', formed_outer_dimensions=(120, 700), material_dimensions=(140, 720)),
+                  SimpleNamespace(role='back', formed_outer_dimensions=(760, 700), material_dimensions=(780, 720)),
+                  SimpleNamespace(role='right_side', formed_outer_dimensions=(120, 700), material_dimensions=(140, 720)),
+              )
+              text = _formatter()(_request('box_body', (800, 1600, 600), pieces=pieces))
+              assert '折後包外：W 800 × H 1600 × D 600 mm' in text
+              assert '左側板：成形 120 × 700 mm；展開 140 × 720 mm' in text
+              assert '後面板：成形 760 × 700 mm；展開 780 × 720 mm' in text
+              assert '右側板：成形 120 × 700 mm；展開 140 × 720 mm' in text
+              contracted = _formatter()(_request('box_body', (800, 1600, 600), pieces=pieces[:1]))
+              assert '左側板：' in contracted
+              assert '後面板：' not in contracted
+              assert '右側板：' not in contracted
+
+
+          def test_child_shared_text_is_exact_scope_and_never_leaks_parent_depth_or_piece_summary():
+              text = _formatter()(_request(
+                  'box_body:back', (760, 700),
+                  x_profile=({'len': 20.0, 'angle': 90.0}, {'len': 760.0}),
+                  y_profile=({'len': 700.0},),
+              ))
+              assert '折後包外：W 760 × H 700 mm' in text
+              assert ' × D ' not in text
+              assert '左側板：' not in text and '後面板：' not in text and '右側板：' not in text
+
+
+          def test_3d_draw_operator_dimensions_consumes_shared_formatter():
+              src = inspect.getsource(view.Phase6FinalSceneView._draw_operator_dimensions)
+              assert 'format_operator_info_text(' in src
+              assert 'info = f"{finished}' not in src
+
+
+          def test_corner_data_request_uses_selected_stable_key_without_mutating_manufacturing_selection(monkeypatch):
+              builder = getattr(bridge, '_phase6_corner_data_info_request_for_key', None)
+              assert callable(builder), 'T3 requires selected-key Corner Data info request builder'
+              workspace = SimpleNamespace(active_part='door_c1_r1', selected_part='door_c1_r1')
+              app = SimpleNamespace(
+                  designer_workspace=workspace,
+                  _phase6_input_snapshot={'t': 2.0},
+                  _settings_values={'t': 2.0},
+                  state=SimpleNamespace(alpha_bend=0.85),
+              )
+              render_data = SimpleNamespace(material=SimpleNamespace(bounds=(0.0, 0.0, 760.0, 700.0)), pieces=())
+              calls = []
+              monkeypatch.setattr(bridge, '_phase6_mesh_profiles_for_part', lambda _owner, key, _mat: (calls.append(('profiles', key)) or ([{'len': 760.0}], [{'len': 700.0}])))
+              monkeypatch.setattr(bridge, '_phase6_operator_finished_dimensions', lambda _owner, key: calls.append(('dims', key)) or (760.0, 700.0))
+              monkeypatch.setattr(bridge, '_phase6_render_data_corner_dimension_text', lambda _data: '截角尺寸：CROSS')
+              monkeypatch.setattr(bridge, '_phase6_format_unfolded_blank_text', lambda _data, *, part_key='': f'展開料：{part_key}')
+              before = (workspace.active_part, workspace.selected_part)
+              request = builder(app, 'box_body:back', render_data)
+              assert request.part_key == 'box_body:back'
+              assert request.finished_dimensions == (760.0, 700.0)
+              assert ('profiles', 'box_body:back') in calls and ('dims', 'box_body:back') in calls
+              assert (workspace.active_part, workspace.selected_part) == before
+
+
+          def test_corner_data_refresh_publishes_shared_info_text_above_canvas():
+              src = inspect.getsource(bridge._phase6_refresh_corner_data_unfold_view)
+              assert '_phase6_corner_data_info_text_for_key' in src
+              assert 'corner_data_info_var' in src
+              prep = inspect.getsource(bridge._phase6_prepare_corner_data_canvas)
+              assert 'corner_data_info_label' in prep
+              assert 'textvariable=self.corner_data_info_var' in prep
+          PY
+      - name: RED — prove shared projection is missing
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        run: |
+          set +e
+          pytest -q tests/test_issue110_shared_info_projection.py > /tmp/issue110-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue110-red.log
+          if [ "$rc" -eq 0 ]; then
+            echo 'RED gate failed: T3 tests unexpectedly passed before production change'
+            exit 1
+          fi
+          grep -q 'T3 requires shared operator-info formatter' /tmp/issue110-red.log
+          echo 'RED_110=PASS_EXPECTED_FAILURES'
+      - name: GREEN — minimal shared display projection implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('phase6_final_scene_view.py')
+          s = p.read_text(encoding='utf-8')
+          anchor = '''@dataclass(frozen=True)\nclass AssemblyScenePart:\n'''
+          helper = '''def format_operator_info_text(request, *, dimensions=None, number_text=None):\n    """Format already-resolved operator display information for every View sink."""\n    number_text = number_text or _default_number_text\n    dims = tuple(dimensions or getattr(request, "finished_dimensions", ()) or ())\n    if len(dims) < 2:\n        return ""\n    width, height = dims[:2]\n    depth = dims[2] if len(dims) > 2 else None\n    xfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"\n    yfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"\n    finished = (\n        f"折後包外：W {number_text(width)} × H {number_text(height)} × D {number_text(depth)} mm"\n        if depth is not None else\n        f"折後包外：W {number_text(width)} × H {number_text(height)} mm"\n    )\n    lines = [finished, f"X折：{xfold}   Y折：{yfold}"]\n    if request.corner_dimension_text:\n        lines.append(request.corner_dimension_text)\n    if request.unfolded_blank_text:\n        lines.append(request.unfolded_blank_text)\n    if str(getattr(request, "part_key", "") or "") == "box_body":\n        lines.extend(_phase6_box_body_piece_dimension_lines(getattr(request, "render_data", None)))\n    return "\\n".join(lines)\n\n\n'''
+          if anchor not in s:
+              raise SystemExit('AssemblyScenePart anchor not found')
+          s = s.replace(anchor, helper + anchor, 1)
+          old = '''        xfold = " / ".join(self._number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"\n        yfold = " / ".join(self._number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"\n        finished = (\n            f"折後包外：W {self._number_text(width)} × H {self._number_text(height)} × D {self._number_text(depth)} mm"\n            if depth is not None else\n            f"折後包外：W {self._number_text(width)} × H {self._number_text(height)} mm"\n        )\n        info = f"{finished}\\nX折：{xfold}   Y折：{yfold}"\n        if request.corner_dimension_text:\n            info += f"\\n{request.corner_dimension_text}"\n        if request.unfolded_blank_text:\n            info += f"\\n{request.unfolded_blank_text}"\n        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top")\n'''
+          new = '''        info = format_operator_info_text(\n            request, dimensions=dims, number_text=self._number_text\n        )\n        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top")\n'''
+          if old not in s:
+              raise SystemExit('3D operator info block not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+
+          p = Path('fold_designer_bridge.py')
+          s = p.read_text(encoding='utf-8')
+          old_import = '''    _phase6_adjust_zoom_scale,\n)\n'''
+          new_import = '''    _phase6_adjust_zoom_scale, format_operator_info_text,\n)\n'''
+          if old_import not in s:
+              raise SystemExit('final-scene import anchor not found')
+          s = s.replace(old_import, new_import, 1)
+
+          anchor = '''def _phase6_corner_data_unfold_projection_for_key(self, part_key):\n'''
+          helper = '''def _phase6_corner_data_info_request_for_key(self, part_key, render_data):\n    """Build a display-only info request for one selected stable identity."""\n    key = str(part_key or "")\n    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}\n    settings = getattr(self, "_settings_values", {}) or {}\n    if getattr(render_data, "pieces", None):\n        x_profile, y_profile = (), ()\n    else:\n        material = getattr(render_data, "material", None)\n        x_profile, y_profile = ((), ()) if material is None else _phase6_mesh_profiles_for_part(self, key, material)\n    return FinalSceneViewRequest(\n        render_data=render_data,\n        x_profile=tuple(dict(seg) for seg in (x_profile or ())),\n        y_profile=tuple(dict(seg) for seg in (y_profile or ())),\n        part_key=key,\n        alpha_bend=float(getattr(getattr(self, "state", None), "alpha_bend", 0.85)),\n        finished_dimensions=_phase6_operator_finished_dimensions(self, key),\n        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),\n        corner_dimension_text=_phase6_render_data_corner_dimension_text(render_data),\n        unfolded_blank_text=_phase6_format_unfolded_blank_text(render_data, part_key=key),\n    )\n\n\ndef _phase6_corner_data_info_text_for_key(self, part_key, render_data):\n    request = _phase6_corner_data_info_request_for_key(self, part_key, render_data)\n    return format_operator_info_text(\n        request, dimensions=request.finished_dimensions, number_text=_setting_number_text\n    )\n\n\n'''
+          if anchor not in s:
+              raise SystemExit('corner-data projection anchor not found')
+          s = s.replace(anchor, helper + anchor, 1)
+
+          old_refresh = '''    callback = getattr(self, "_corner_data_view_render_callback", None)\n    if callback is not None and canvas is not None:\n        callback(canvas, projection.part_key, projection.render_data)\n    return projection\n'''
+          new_refresh = '''    info_text = _phase6_corner_data_info_text_for_key(\n        self, projection.part_key, projection.render_data\n    )\n    info_var = getattr(self, "corner_data_info_var", None)\n    if info_var is not None and hasattr(info_var, "set"):\n        info_var.set(info_text)\n    self.corner_data_info_text = info_text\n    callback = getattr(self, "_corner_data_view_render_callback", None)\n    if callback is not None and canvas is not None:\n        callback(canvas, projection.part_key, projection.render_data)\n    return projection\n'''
+          if old_refresh not in s:
+              raise SystemExit('corner-data refresh block not found')
+          s = s.replace(old_refresh, new_refresh, 1)
+
+          old_canvas = '''    if not alive:\n        canvas = original.tk.Canvas(\n            mpl_widget.master, bg="#ffffff", highlightthickness=0\n        )\n        self.corner_data_canvas = canvas\n'''
+          new_canvas = '''    info_var = getattr(self, "corner_data_info_var", None)\n    if info_var is None:\n        info_var = original.tk.StringVar(value="")\n        self.corner_data_info_var = info_var\n    info_label = getattr(self, "corner_data_info_label", None)\n    try:\n        info_alive = info_label is not None and bool(info_label.winfo_exists())\n    except Exception:\n        info_alive = info_label is not None\n    if not info_alive:\n        info_label = original.ttk.Label(\n            mpl_widget.master, textvariable=self.corner_data_info_var,\n            justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,\n        )\n        self.corner_data_info_label = info_label\n    if not alive:\n        canvas = original.tk.Canvas(\n            mpl_widget.master, bg="#ffffff", highlightthickness=0\n        )\n        self.corner_data_canvas = canvas\n'''
+          if old_canvas not in s:
+              raise SystemExit('corner-data canvas creation block not found')
+          s = s.replace(old_canvas, new_canvas, 1)
+
+          old_pack = '''    if mpl_widget.winfo_manager():\n        mpl_widget.pack_forget()\n    if not canvas.winfo_manager():\n        canvas.pack(fill=original.tk.BOTH, expand=True)\n    return canvas\n'''
+          new_pack = '''    if mpl_widget.winfo_manager():\n        mpl_widget.pack_forget()\n    if not info_label.winfo_manager():\n        info_label.pack(fill=original.tk.X, padx=8, pady=(6, 2))\n    if not canvas.winfo_manager():\n        canvas.pack(fill=original.tk.BOTH, expand=True)\n    return canvas\n'''
+          if old_pack not in s:
+              raise SystemExit('corner-data canvas pack block not found')
+          s = s.replace(old_pack, new_pack, 1)
+
+          old_hide = '''    canvas = getattr(self, "corner_data_canvas", None)\n    if canvas is not None:\n        try:\n            if canvas.winfo_manager():\n                canvas.pack_forget()\n        except Exception:\n            pass\n'''
+          new_hide = '''    info_label = getattr(self, "corner_data_info_label", None)\n    if info_label is not None:\n        try:\n            if info_label.winfo_manager():\n                info_label.pack_forget()\n        except Exception:\n            pass\n    canvas = getattr(self, "corner_data_canvas", None)\n    if canvas is not None:\n        try:\n            if canvas.winfo_manager():\n                canvas.pack_forget()\n        except Exception:\n            pass\n'''
+          if old_hide not in s:
+              raise SystemExit('corner-data hide block not found')
+          p.write_text(s.replace(old_hide, new_hide, 1), encoding='utf-8')
+          PY
+      - name: GREEN — focused shared-info and inherited identity tests
+        run: |
+          pytest -q \
+            tests/test_issue110_shared_info_projection.py \
+            tests/test_issue108_boxbody_parent_aggregate.py \
+            tests/test_issue109_corner_data_boxbody_tree.py \
+            tests/test_issue95_corner_data_authoritative_parts.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            | tee /tmp/issue110-green.log
+      - name: Create durable T3 checkpoint and journal
+        run: |
+          mkdir -p .scratch/issue107/checkpoints .scratch/issue107/state
+          cat > .scratch/issue107/checkpoints/T3.md <<'EOF'
+          # #107 / #110 T3 checkpoint
+          - role: T3 Implementer
+          - owning issue: #110
+          - accepted base: 01fe5c39ff32c7513e6e464f29f94423b46c4fe7
+          - branch: fix/issue110-shared-info-projection-20260911
+          - authority: existing resolve_operator_finished_dimensions + per-key profiles + render-data corner/unfold text
+          - production scope: shared display formatter + Corner Data info request/label only
+          - manufacturing geometry authority unchanged
+          - pending: exact-head QA; QA review; then #111
+          EOF
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          state = {
+              'task_id': 107,
+              'work_order': 110,
+              'role': 'T3 Implementer',
+              'branch': 'fix/issue110-shared-info-projection-20260911',
+              'accepted_base': '01fe5c39ff32c7513e6e464f29f94423b46c4fe7',
+              'pending': ['exact-head remote QA', 'QA review'],
+              'next': '#111 after #110 acceptance',
+          }
+          Path('.scratch/issue107/state/T3.json').write_text(json.dumps(state, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          PY
+      - name: Verify config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+      - name: Commit tested T3 source and checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add phase6_final_scene_view.py fold_designer_bridge.py tests/test_issue110_shared_info_projection.py
+          git add -f .scratch/issue107/checkpoints/T3.md .scratch/issue107/state/T3.json
+          git commit -m 'feat(#110): share operator info across 3D and Corner Data'
+          git push origin HEAD:fix/issue110-shared-info-projection-20260911
+          echo "T3_COMMIT=$(git rev-parse HEAD)"
