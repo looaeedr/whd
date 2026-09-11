@@ -44,6 +44,7 @@ jobs:
           fi
           printf '%s' "$WRITEBACK_B64" | base64 -d >> "$file"
           git diff --check
+          git config core.quotePath false
           changed="$(git diff --name-only)"
           test "$changed" = "$file"
           git diff --exit-code -- config.ini
