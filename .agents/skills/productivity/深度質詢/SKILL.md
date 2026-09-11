@@ -7,6 +7,34 @@ description: 對 plan、decision 或 idea 做高強度逐輪質詢，建立 desi
 
 持續訪談直到雙方對問題形成共享理解。把整個問題建成 **design tree**：每個 decision 向下連到依賴它的後續 decisions。
 
+## 0. Source-first 硬閘門：先讀程式，再問人
+
+**任何拷問、需求澄清、規格訪談開始前，先反讀可取得的現況證據。** 不得先憑印象設計問題，再把本來可由程式回答的事實丟回使用者。
+
+至少依任務範圍先查：
+
+- current code / routing / UI behavior；
+- tests / regression contracts；
+- 現有 specs / ADR / CONTEXT / AI Library；
+- 必要時 Git history，確認「原本就有的功能」是否仍存在、只是 routing 被改掉；
+- 使用者本輪與既有已確認規則。
+
+### 禁止事項
+
+- **程式已有答案時，禁止再問使用者「A 還是 B」。** 直接回報查到的既有行為與真正待決策點。
+- 禁止把「我還沒讀程式」包裝成需求澄清。
+- 禁止要求使用者重新回答 current code、現有設定、既有流程、已在本輪/歷史對話確認過的事實。
+- 禁止因為某功能目前畫面上看不到，就假設功能不存在；先查 current code / Git history / tests。
+- 禁止在沒有 source evidence 前自行發明選項，讓使用者替執行者做 fact-finding。
+
+### 只有這些情況才可以問
+
+1. 現有 code/docs/tests **沒有答案**；或
+2. 不同 authority 互相衝突，需要使用者指定哪個產品決策為準；或
+3. 問題本質是新的 product/design preference，而不是 implementation fact。
+
+如果使用者指出「程式看清楚再來問」「不要假會」「這本來程式就有」，立即停止後續質詢，先完成 source readback，再重新計算 frontier。
+
 ## 1. Frontier 規則
 
 以 rounds 推進。**frontier** 是目前 prerequisites 已全部 settle、因此可以現在就問的所有 decisions。
@@ -27,6 +55,8 @@ description: 對 plan、decision 或 idea 做高強度逐輪質詢，建立 desi
 
 優先使用目前實際存在的能力：repository/files、search、tests、logs、connected tools 等。
 
+**Source-first Gate 優先於提問速度。** 就算使用者說「拷問我」，也不代表可以跳過程式反讀；「拷問」只針對真正未決策的 design/product frontier，不包含可自行查證的 implementation fact。
+
 ### Subagent 能力邊界
 
 - 若目前環境有**真正、可觀測、可回收結果的 Subagent Runtime**，可以把純 fact-finding 委派出去；該 exploration 只會阻塞依賴它的 branch，不影響其他已 ready frontier questions。
@@ -44,6 +74,8 @@ description: 對 plan、decision 或 idea 做高強度逐輪質詢，建立 desi
 - 你的 recommendation；
 - 使用者最後 decision。
 
+若 current code 已明確實作某行為，而使用者只是要求「找回來／保持原本」，該行為優先視為 **implementation fact to recover/reuse**，不是重新拿來問使用者一次。
+
 ## 4. 每輪格式
 
 ```text
@@ -59,6 +91,8 @@ description: 對 plan、decision 或 idea 做高強度逐輪質詢，建立 desi
 ```
 
 不要為了格式而拆成一堆無關小題；frontier 的每題應代表真正需要決策的節點。
+
+如果 Source-first 查完後 frontier 為空，就不要硬湊問題；直接整理已查證事實與可執行規格。
 
 ## 5. 結束條件
 
