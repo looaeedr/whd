@@ -154,7 +154,7 @@ def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors(
         expected = {
             "box_body:left_side": ("zl1", "zl2", "fw_left", "d_left", "side_rear_bend_left"),
             "box_body:back": ("back_panel",),
-            "box_body:right_side": ("side_rear_bend_right", "d_right", "fw_right", "zr2"),
+            "box_body:right_side": ("zr2", "fw_right", "d_right", "side_rear_bend_right"),
         }
         available = tuple(designer.designer_workspace.available_parts)
         print("ISSUE63_AVAILABLE_PARTS=", available)
@@ -170,8 +170,18 @@ def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors(
             for i in range(int(menu.index("end")) + 1)
         )
         print("ISSUE63_PART_MENU=", labels)
-        for label in ("左側板", "後面板", "右側板"):
-            assert label in labels
+        assert labels.count("箱身") == 1
+        assert "左側板" not in labels and "後面板" not in labels and "右側板" not in labels
+        piece_labels = {
+            "box_body:left_side": "左側板",
+            "box_body:back": "後面板",
+            "box_body:right_side": "右側板",
+        }
+        piece_tabs = tuple(
+            designer.box_body_piece_selector.tab(tab_id, "text").strip()
+            for tab_id in designer.box_body_piece_selector.tabs()
+        )
+        assert piece_tabs == ("左側板", "後面板", "右側板")
 
         for key, expected_keys in expected.items():
             profiles = designer.designer_workspace.profiles_for(key, {}) or {}
@@ -182,6 +192,9 @@ def test_issue63_receiving_has_three_independent_physical_box_body_fold_editors(
             designer.activate_part(key)
             root.update_idletasks(); root.update()
             assert designer.designer_workspace.active_part == key
+            assert str(designer.part_var.get()) == "箱身"
+            selected_tab = designer.box_body_piece_selector.select()
+            assert designer.box_body_piece_selector.tab(selected_tab, "text").strip() == piece_labels[key]
             active_keys = tuple(
                 str(row.get("phase6_key") or "")
                 for row in tuple(designer.state.profiles.get("X") or ())
@@ -575,8 +588,20 @@ def test_issue63_receiving_box_body_physical_pieces_are_real_3d_input_contexts()
             "box_body:back",
             "box_body:right_side",
         )
+        piece_labels = {
+            "box_body:left_side": "左側板",
+            "box_body:back": "後面板",
+            "box_body:right_side": "右側板",
+        }
         available = tuple(designer.designer_workspace.available_parts)
         print("ISSUE63_AVAILABLE_PARTS=", available)
+        menu = designer.part_choice_menu
+        labels = tuple(
+            str(menu.entrycget(i, "label"))
+            for i in range(int(menu.index("end")) + 1)
+        )
+        assert labels.count("箱身") == 1
+        assert "左側板" not in labels and "後面板" not in labels and "右側板" not in labels
         for key in expected:
             assert key in available, (
                 "multipart BoxBody physical piece is visible in manufacturing but "
@@ -586,7 +611,9 @@ def test_issue63_receiving_box_body_physical_pieces_are_real_3d_input_contexts()
             designer.activate_part(key)
             root.update_idletasks(); root.update()
             assert designer.designer_workspace.active_part == key
-            assert str(designer.part_var.get()) in {"左側板", "後面板", "右側板"}
+            assert str(designer.part_var.get()) == "箱身"
+            selected_tab = designer.box_body_piece_selector.select()
+            assert designer.box_body_piece_selector.tab(selected_tab, "text").strip() == piece_labels[key]
     finally:
         try:
             if designer is not None:
