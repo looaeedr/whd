@@ -1,0 +1,30 @@
+name: qa-issue113-durable-writeback-preflight-20260911
+
+on:
+  push:
+    branches:
+      - docs/issue113-parent-identity-writeback-20260911
+    paths:
+      - '.github/workflows/qa-issue113-durable-writeback-preflight-20260911.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Issue113 durable writeback preflight
+        run: |
+          cat > /tmp/evidence.md <<'EOF'
+          issue-closure-gate
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task 'Final Combined durable AI Library writeback for #108 aggregate parent identity' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' \
+            --evidence /tmp/evidence.md
