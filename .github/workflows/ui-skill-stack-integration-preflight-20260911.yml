@@ -8,16 +8,17 @@ on:
       - 'docs/superpowers/verification/.ui-skill-stack-integration-trigger'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  preflight:
+  integrate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          fetch-depth: 0
+          persist-credentials: true
       - name: Snapshot config invariant
         run: sha256sum config.ini | tee /tmp/config.before
       - name: Integration Knowledge Preflight
@@ -35,9 +36,111 @@ jobs:
             --changed-file 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-integration.md' \
             --changed-file '.github/workflows/ui-skill-stack-integration-preflight-20260911.yml' \
             --evidence 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-integration.md'
-      - name: Verify config and clean tree
+      - name: Merge accepted stack with semantic conflict resolution
+        run: |
+          set -euo pipefail
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git fetch origin qa/issue117-ui-design-combined-acceptance-20260911
+          set +e
+          git merge --no-commit --no-ff origin/qa/issue117-ui-design-combined-acceptance-20260911
+          merge_rc=$?
+          set -e
+          if [ "$merge_rc" -ne 0 ]; then
+            python3 - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          allowed = {
+              '.agents/skills/engineering/README.md',
+              '.agents/skills/skill_registry.json',
+              'release_required_artifacts.json',
+              '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md',
+          }
+          conflicts = set(subprocess.check_output(
+              ['git', 'diff', '--name-only', '--diff-filter=U'], text=True
+          ).splitlines())
+          unexpected = conflicts - allowed
+          if unexpected:
+              raise SystemExit(f'UNEXPECTED_CONFLICTS={sorted(unexpected)}')
+
+          def stage_text(stage: int, path: str) -> str:
+              return subprocess.check_output(['git', 'show', f':{stage}:{path}'], text=True)
+
+          readme = '.agents/skills/engineering/README.md'
+          if readme in conflicts:
+              ours = stage_text(2, readme)
+              theirs = stage_text(3, readme)
+              wanted = [
+                  line for line in theirs.splitlines()
+                  if any(name in line for name in ('Python測試實務', '性質導向測試', '尺寸語意分析', 'UI設計與去AI味'))
+                  and line.startswith('- **[')
+              ]
+              lines = ours.splitlines()
+              insert_at = next(i + 1 for i, line in enumerate(lines) if '[tdd]' in line)
+              for line in wanted:
+                  if line not in lines:
+                      lines.insert(insert_at, line)
+                      insert_at += 1
+              Path(readme).write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          registry = '.agents/skills/skill_registry.json'
+          if registry in conflicts:
+              ours = json.loads(stage_text(2, registry))
+              theirs = json.loads(stage_text(3, registry))
+              wanted_ids = [
+                  'python-testing-practices',
+                  'property-invariant-testing',
+                  'dimension-semantics-analysis',
+                  'ui-design-de-ai',
+              ]
+              theirs_by_id = {r.get('id'): r for r in theirs['routes']}
+              routes = [r for r in ours['routes'] if r.get('id') not in wanted_ids]
+              insert_at = next((i for i, r in enumerate(routes) if r.get('id') == 'dispatching-workflow'), len(routes))
+              for rid in wanted_ids:
+                  if rid not in theirs_by_id:
+                      raise SystemExit(f'MISSING_ACCEPTED_ROUTE={rid}')
+                  routes.insert(insert_at, theirs_by_id[rid])
+                  insert_at += 1
+              ours['routes'] = routes
+              Path(registry).write_text(json.dumps(ours, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          release = 'release_required_artifacts.json'
+          if release in conflicts:
+              ours = json.loads(stage_text(2, release))
+              theirs = json.loads(stage_text(3, release))
+              merged = list(ours['mandatory_update_files'])
+              for item in theirs['mandatory_update_files']:
+                  if item not in merged:
+                      merged.append(item)
+              ours['mandatory_update_files'] = merged
+              Path(release).write_text(json.dumps(ours, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          ai08 = '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+          if ai08 in conflicts:
+              ours = stage_text(2, ai08).rstrip()
+              theirs = stage_text(3, ai08)
+              marker = '## 2026-09-11 第三批：Python 測試實務'
+              if marker not in theirs:
+                  raise SystemExit('MISSING_ACCEPTED_AI08_THIRD_BATCH')
+              tail = theirs[theirs.index(marker):].strip()
+              if marker not in ours:
+                  ours = ours + '\n\n' + tail
+              Path(ai08).write_text(ours.rstrip() + '\n', encoding='utf-8')
+          PY
+            git add .agents/skills/engineering/README.md \
+                    .agents/skills/skill_registry.json \
+                    release_required_artifacts.json \
+                    '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+          fi
+          unresolved="$(git diff --name-only --diff-filter=U)"
+          test -z "$unresolved" || { echo "UNRESOLVED_CONFLICTS=$unresolved"; exit 1; }
+          git add -A
+          git commit -m "merge: integrate accepted testing/property/dimensional/UI skill stack"
+          git push origin HEAD:integration/ui-design-skill-stack-20260911
+      - name: Verify config invariant
         if: always()
         run: |
           sha256sum config.ini | tee /tmp/config.after
           diff -u /tmp/config.before /tmp/config.after
-          git diff --exit-code
