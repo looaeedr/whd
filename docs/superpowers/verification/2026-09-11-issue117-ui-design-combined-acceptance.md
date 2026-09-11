@@ -27,18 +27,7 @@ READ_PROJECT_RULES: AGENTS.md
 
 1. Evidence-backed Phase6 Knowledge Preflight for UI redesign + release + remote QA acceptance.
 2. `python tests/test_ui_design_de_ai_skill_contract.py` for exact R1–R6 result.
-3. Project Skill/governance guards:
-   - `tests/test_chinese_skill_identity_contract.py`
-   - `tests/test_writing_skill_contract.py`
-   - `tests/test_writing_skill_preflight_route.py`
-   - `tests/test_find_skill_contract.py`
-   - `tests/test_second_batch_skills_contract.py`
-   - `tests/test_python_testing_practices_skill_contract.py`
-   - `tests/test_fourth_batch_skills_contract.py`
-   - `tests/test_dxf_skill_scope_contract.py`
-   - `tests/test_phase6_skill_preflight_gate.py`
-   - `tests/test_phase6_release_packaging_policy.py`
-   - `tests/test_release_integrity_gate.py`
+3. Project Skill/governance guards: Chinese identity, authoring/discovery, prior Skill batches, DXF scope, Preflight gate, release packaging, release integrity.
 4. JSON parse guards for Registry + release manifest.
 5. `config.ini` before/after SHA256 invariant and `git diff --exit-code` clean-tree guard.
 6. On terminal GREEN: remote readback, one-shot workflow/sentinel cleanup, 404 proof, tested-head→cleaned-head drift audit.
@@ -52,12 +41,35 @@ READ_PROJECT_RULES: AGENTS.md
 - Project-guard step did not collect tests because runner returned `/usr/bin/python3: No module named pytest`.
 - `config.ini` before/after remained canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`; clean-tree guard PASS.
 - Failure classification: QA harness/runtime provisioning failure. No project guard reported a test failure.
-- Same-repo working workflow `.github/workflows/receiving-divider-broader-acceptance.yml` provisions Python then installs pytest before pytest guards. Replacement run changes only the temporary QA harness to provision `pytest`; formal test scope is unchanged.
+- Same-repo working workflow `.github/workflows/receiving-divider-broader-acceptance.yml` provisions Python then installs pytest before pytest guards. Replacement run changed only the temporary QA harness to provision pytest; formal test scope stayed unchanged.
+
+## Replacement Combined GREEN / tested head
+
+- tested head: `c0d0d1f5654101619f8afc94cdea37cdc2120342`.
+- locked replacement run: `34611703340 @ c0d0d1f5654101619f8afc94cdea37cdc2120342` → terminal `SUCCESS`.
+- `actions/setup-python@v5` resolved to SHA `a26af69be951a213d495a4c3e4e4022e16d87065`; CPython `3.11.16`; pytest provisioned successfully.
+- Knowledge Preflight: PASS with required Skills `UI設計與去AI味`, `phase6-release-packaging`, `monitoring-remote-qa`; required references AI06, AI08, release manifest PASS.
+- Fifth-batch R1–R6 formal contract: `11 passed / 0 failed`.
+- Project Skill / governance / release guards: `87 passed / 0 failed / 0.53s`.
+- Registry JSON parse: PASS.
+- Release manifest JSON parse: PASS.
+- `config.ini` before/after SHA256 = canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
+- `git diff --exit-code`: PASS.
+
+## Remote readback at tested head
+
+- Final Skill blob: `a378e2825df065bd53fb70101d1fb9b5454d717a`.
+- Final Registry blob: `56acab1ce5c3aee9694daf5b5cbdc38aeb17028f`; route is intent-scoped and has no broad `gui.py` glob.
+- Final AI08 blob: `66dd736c433ef4a7b6265a1c32cb57a9ca7bd0d5`; fifth-batch section is consistent with final Skill authority boundaries and safeguards.
+- Final release manifest blob: `8d4f9868f4c9f2a20177828e86f0032e54920bac`; requires the canonical Skill and contract test.
+- Final formal contract blob: `3d5bfd32e254b99124fc0193868446ed3afd34b9`.
 
 ## Current state
 
-- T3 Preflight: GREEN on first run.
-- Fifth-batch formal contract: GREEN on first run.
-- Project guards: PENDING replacement run because first runner lacked pytest runtime.
-- Temporary QA cleanup: PENDING terminal replacement run.
-- Integration readiness: PENDING final scope/topology audit.
+- T3 Preflight: GREEN.
+- Fifth-batch formal contract: GREEN `11/0`.
+- Project guards: GREEN `87/0`.
+- Machine-readable governance parse: GREEN.
+- Config / clean-tree invariant: GREEN.
+- Temporary QA cleanup: PENDING.
+- Integration readiness: PENDING final cleanup/scope/topology audit.
