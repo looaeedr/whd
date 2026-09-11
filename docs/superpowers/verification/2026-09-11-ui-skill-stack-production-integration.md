@@ -20,12 +20,14 @@ READ_SKILL: Python測試實務
 READ_SKILL: 性質導向測試
 READ_SKILL: 尺寸語意分析
 READ_SKILL: UI設計與去AI味
+READ_SKILL: issue-closure-gate
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
 READ_EVIDENCE: docs/superpowers/verification/2026-09-11-issue117-ui-design-combined-acceptance.md
 
 ## Preflight correction loop
@@ -63,11 +65,19 @@ Existing production-only governance/source changes are preserved; accepted gover
 - `cd0e6bef5d05eabfb39c6add07257bcaf6745e6d -> ced6961a...`: ahead-only, behind 0, merge-base exactly accepted final.
 - Merge-run `config.ini` before/after remained canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
 
+## Merged-head Combined correction loop
+
+- First merged-head Combined run `34614073793 @ 5e5ec4620bc1a35ee35c061744be2dd2b850e06f` reached terminal FAILURE at Preflight only; no formal tests ran.
+- Newly merged routes correctly required `Python測試實務`, `性質導向測試`, `尺寸語意分析`, and `UI設計與去AI味`; all four were already read and GREEN in evidence.
+- Current production also required `issue-closure-gate` plus `個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md` because this task performs production integration/completion.
+- Those current-production authorities were then read and recorded above. The route/task was not weakened to evade the gate.
+- `config.ini` and clean-tree invariant stayed PASS on the fail-closed run.
+
 ## State
 
-- Integration Preflight: GREEN.
+- Integration Preflight: GREEN before merge.
 - Accepted payload true merge: COMPLETE at `ced6961a3e81edf90df0d41328a2ce21b8e1fcc3`.
-- Merged-head four new Skills: remote re-read COMPLETE.
-- Integrated Combined Acceptance: PENDING.
+- Merged-head new Skills + current production closure gate: remote re-read COMPLETE.
+- Integrated Combined Acceptance: RETRY PENDING after complete evidence.
 - Temporary workflow/sentinel cleanup: PENDING terminal Combined.
 - Production update: NOT STARTED after merge; requires fresh production read immediately before non-force update.
