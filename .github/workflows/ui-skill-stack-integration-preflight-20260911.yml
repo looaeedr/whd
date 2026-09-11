@@ -1,0 +1,43 @@
+name: ui-skill-stack-integration-preflight-20260911
+
+on:
+  push:
+    branches:
+      - integration/ui-design-skill-stack-20260911
+    paths:
+      - 'docs/superpowers/verification/.ui-skill-stack-integration-trigger'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Snapshot config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Integration Knowledge Preflight
+        run: |
+          python3 tools/phase6_skill_preflight.py \
+            --task "Integrate the already-accepted Python testing, property-based testing, dimensional semantics, and UI design Skill stack into the current cleanup/2d-3d-sync production line; preserve current production source behavior, reconcile governance by intent, run Combined Acceptance, then non-force fast-forward production after explicit user 合" \
+            --changed-file '.agents/skills/engineering/Python測試實務/SKILL.md' \
+            --changed-file '.agents/skills/engineering/性質導向測試/SKILL.md' \
+            --changed-file '.agents/skills/engineering/尺寸語意分析/SKILL.md' \
+            --changed-file '.agents/skills/engineering/UI設計與去AI味/SKILL.md' \
+            --changed-file '.agents/skills/engineering/README.md' \
+            --changed-file '.agents/skills/skill_registry.json' \
+            --changed-file 'release_required_artifacts.json' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
+            --changed-file 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-integration.md' \
+            --changed-file '.github/workflows/ui-skill-stack-integration-preflight-20260911.yml' \
+            --evidence 'docs/superpowers/verification/2026-09-11-ui-skill-stack-production-integration.md'
+      - name: Verify config and clean tree
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          git diff --exit-code
