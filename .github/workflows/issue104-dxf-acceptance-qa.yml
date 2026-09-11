@@ -21,3 +21,8 @@ jobs:
           pip install pytest
       - name: Run issue 104 focused tests
         run: pytest -q tests/test_dxf_acceptance.py
+      - name: Run full headless regression
+        run: pytest -q
+      - name: Assert tracked-file invariants
+        if: always()
+        run: git diff --exit-code
