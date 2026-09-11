@@ -89,7 +89,10 @@ def test_corner_data_renderer_uses_compact_viewport_reserved_space():
     assert float(keywords["top_gutter"].value) <= 72.0
 
 
-def test_corner_data_renderer_keeps_authoritative_scene_path():
+def test_corner_data_renderer_keeps_authoritative_scene_path_without_duplicate_summary():
     node = _function(GUI, "_render_fold_designer_corner_data_view")
-    assert "render_drawing_scene" in _named_calls(node)
-    assert "_draw_phase6_finished_dimension_summary" in _self_calls(node)
+    named = _named_calls(node)
+    methods = _self_calls(node)
+    assert "render_drawing_scene" in named
+    assert "_draw_phase6_annotation_projection" in named
+    assert "_draw_phase6_finished_dimension_summary" not in methods
