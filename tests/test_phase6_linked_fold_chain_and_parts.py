@@ -376,7 +376,7 @@ def test_known_box_baseline_face_features_survive_authoritative_custom_fold_chai
     assert baseline_circles[0].radius == pytest.approx(4.0)
 
 
-def test_real_main_2d_tabs_follow_existing_parts_delete_and_add_back():
+def test_real_main_corner_data_follows_existing_parts_delete_and_add_back():
     import os
     if not os.environ.get('DISPLAY'):
         pytest.skip('需要 Tk 顯示環境')
@@ -384,22 +384,60 @@ def test_real_main_2d_tabs_follow_existing_parts_delete_and_add_back():
     import gui
 
     root = tk.Tk(); root.withdraw()
+    designer = None
     try:
         app = gui.BoxCalculatorGUI(root)
-        app._apply_existing_parts_from_fold_workspace(['box_body', 'head', 'door'])
-        assert app.notebook.tab(app.tab_z, 'state') != 'hidden'
-        assert app.notebook.tab(app.tab_head, 'state') != 'hidden'
-        assert app.notebook.tab(app.tab_door, 'state') != 'hidden'
-        assert app.notebook.tab(app.tab_tail, 'state') == 'hidden'
-        assert app.notebook.tab(app.tab_base_plate, 'state') == 'hidden'
 
-        app._apply_existing_parts_from_fold_workspace([
-            'box_body', 'head', 'tail', 'door', 'base_plate', 'indicator_box', 'indicator_door'
+        removed = app._apply_existing_parts_from_fold_workspace([
+            'box_body', 'head', 'door'
         ])
-        assert app.notebook.tab(app.tab_tail, 'state') != 'hidden'
-        assert app.notebook.tab(app.tab_base_plate, 'state') != 'hidden'
+        assert removed == {'box_body', 'head', 'door'}
+        assert app.workspace_controller.current_existing_parts() == removed
+        assert not hasattr(app, 'notebook')
+
+        designer = app.open_original_fold_designer()
+        designer.root.deiconify()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        root.update_idletasks(); root.update()
+        removed_keys = set(bridge._phase6_corner_data_part_keys(designer))
+        assert {'box_body', 'head'} <= removed_keys
+        assert 'tail' not in removed_keys
+        assert not any(key == 'base_plate' or key.startswith('base_plate_c') for key in removed_keys)
+        assert any(key == 'door' or key.startswith('door_c') for key in removed_keys)
+
+        designer.root.destroy()
+        designer = None
+        root.update_idletasks(); root.update()
+
+        restored = app._apply_existing_parts_from_fold_workspace([
+            'box_body', 'head', 'tail', 'door', 'base_plate',
+            'indicator_box', 'indicator_door'
+        ])
+        assert restored == {
+            'box_body', 'head', 'tail', 'door', 'base_plate',
+            'indicator_box', 'indicator_door'
+        }
+        assert app.workspace_controller.current_existing_parts() == restored
+
+        designer = app.open_original_fold_designer()
+        designer.root.deiconify()
+        root.update_idletasks(); root.update()
+        bridge._phase6_show_corner_data(designer)
+        root.update_idletasks(); root.update()
+        restored_keys = set(bridge._phase6_corner_data_part_keys(designer))
+        assert {'box_body', 'head', 'tail'} <= restored_keys
+        assert any(key == 'door' or key.startswith('door_c') for key in restored_keys)
+        assert any(key == 'base_plate' or key.startswith('base_plate_c') for key in restored_keys)
+        assert not hasattr(app, 'notebook')
     finally:
+        try:
+            if designer is not None:
+                designer.root.destroy()
+        except Exception:
+            pass
         root.destroy()
+
 
 @pytest.mark.parametrize('count', [3, 5, 9, 12, 20])
 def test_linked_endcap_topology_is_count_agnostic_through_practical_twenty_segments(count):
