@@ -181,16 +181,9 @@ def test_saved_dxf_acceptance_uses_verifier_tolerance_for_segmented_cutout(tmp_p
 
 
 def test_saved_dxf_acceptance_does_not_heal_gap_above_verifier_tolerance(tmp_path):
-    render = _segmented_cutout_render(2e-12)
+    render = _segmented_cutout_render(1e-4)
     path = tmp_path / "segmented-door-like-cutout-real-gap.dxf"
     api.save_part_render_data_dxf(render, path, overwrite=True)
-
-    doc = ezdxf.readfile(path)
-    msp = doc.modelspace()
-    cutting_lines = list(msp.query('LINE[layer=="CUTTING"]'))
-    assert cutting_lines
-    cutting_lines[0].dxf.start = (8.0, 110.0 + 1e-4, 0.0)
-    doc.saveas(path)
 
     result = _verifier()(render, path, coordinate_tolerance=1e-6)
 
