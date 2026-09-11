@@ -8,10 +8,10 @@ on:
       - '.github/workflows/qa-issue113-durable-writeback-preflight-20260911.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  preflight:
+  preflight-and-writeback:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +20,7 @@ jobs:
           python-version: '3.11'
       - name: Issue113 durable writeback preflight
         run: |
+          set -euo pipefail
           cat > /tmp/evidence.md <<'EOF'
           issue-closure-gate
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
@@ -29,3 +30,39 @@ jobs:
             --task 'Final Combined durable AI Library writeback for #108 aggregate parent identity' \
             --changed-file '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' \
             --evidence /tmp/evidence.md
+      - name: Append durable parent identity rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          marker='### 119. 2026-09-11 — `box_body` aggregate parent identity 不得被 remembered child 劫持'
+          if grep -Fq "$marker" "$file"; then
+            echo 'marker already exists; refusing duplicate writeback'
+            exit 1
+          fi
+          cat >> "$file" <<'EOF'
+
+### 119. 2026-09-11 — `box_body` aggregate parent identity 不得被 remembered child 劫持
+- **事故模式**：multipart BoxBody 已有 `box_body:left_side / box_body:back / box_body:right_side` 等 physical child，UI 又記住 last/remembered child；再次選 aggregate parent `box_body` 時，如果 resolver 偷把 parent request 改寫成 remembered/first child，就會污染 parent projection、info scope、navigation identity，甚至把 View convenience 誤升格成 manufacturing authority。
+- **永久規則**：
+  1. `box_body` 是 aggregate logical/assembly parent；parent request 與 parent identity 必須保持 exact `box_body`。
+  2. `remembered child` 只屬 **View/navigation convenience**，不是 manufacturing identity authority；不得回寫 aggregate parent key、workspace active/selected manufacturing state、physical presence 或 canonical topology。
+  3. parent projection 必須直接消費 authoritative aggregate `box_body` render data；不能因 children 存在就把 parent projection 變成 `None`，也不能由 UI 把 child geometry union／重算成第二套 aggregate。
+  4. child view／editor 才使用 exact physical stable IDs，例如 `box_body:left_side`、`box_body:back`、`box_body:right_side`；不得用 list index、display label 或 remembered value 代替 identity。
+  5. Receiving-specific operator adapter 若某個明確 seam 需要解析「目前 physical child」，必須把 **requested aggregate parent identity** 與 **resolved operator child** 分成不同概念；resolved child 只服務該 physical-child seam，禁止反向成為 aggregate parent 或 manufacturing Source of Truth。
+  6. Save→Reload 或 dynamic topology contraction 後，remembered child 必須重新對 current authoritative physical IDs 驗證；stale child 直接失效，但 aggregate `box_body` parent 仍保持合法。
+- **防錯驗證**：至少覆蓋 `parent → left → back → right → parent`、single-piece parent-only、exact child projection、selection 不 mutate manufacturing workspace、Save→Reload、dynamic contraction stale-child removal；focused View GREEN 仍不得取代完整板件／DXF final acceptance。
+EOF
+          git diff --check
+          changed="$(git diff --name-only)"
+          test "$changed" = "$file"
+          git diff --exit-code -- config.ini
+          git diff --exit-code -- '基準檔'
+          grep -Fq 'remembered child` 只屬 **View/navigation convenience**' "$file"
+          grep -Fq 'requested aggregate parent identity' "$file"
+          echo "AI_LIBRARY_LINES=$(wc -l < "$file")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$file"
+          git commit -m 'docs(ai): preserve box-body aggregate parent identity'
+          git push origin HEAD:docs/issue113-parent-identity-writeback-20260911
