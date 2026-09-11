@@ -9,7 +9,7 @@
 - T2 / #116 evidence: `docs/superpowers/verification/2026-09-11-issue116-ui-design-governance.md` → ACCEPTED.
 - T3 branch: `qa/issue117-ui-design-combined-acceptance-20260911` from exact T2 final `baaf966f35a76c7a0773dc43a8f231fb232fa368`.
 - Fourth-batch accepted comparison base: `1f3fa065ace5893a6c327ce780efc980767da5a1`.
-- Production target `cleanup/2d-3d-sync` must not be updated without explicit user `合`.
+- Production target must not be updated without explicit user `合`.
 
 ## T3 fresh read evidence
 
@@ -64,12 +64,47 @@ READ_PROJECT_RULES: AGENTS.md
 - Final release manifest blob: `8d4f9868f4c9f2a20177828e86f0032e54920bac`; requires the canonical Skill and contract test.
 - Final formal contract blob: `3d5bfd32e254b99124fc0193868446ed3afd34b9`.
 
-## Current state
+## Temporary QA cleanup / drift audit
 
-- T3 Preflight: GREEN.
-- Fifth-batch formal contract: GREEN `11/0`.
-- Project guards: GREEN `87/0`.
-- Machine-readable governance parse: GREEN.
-- Config / clean-tree invariant: GREEN.
-- Temporary QA cleanup: PENDING.
-- Integration readiness: PENDING final cleanup/scope/topology audit.
+- `.github/workflows/issue117-ui-design-combined-qa-20260911.yml` deleted; remote readback → `404 Not Found`.
+- `docs/superpowers/verification/.issue117-ui-design-trigger` deleted; remote readback → `404 Not Found`.
+- Branch Actions total remained exactly `2` runs after cleanup; no cleanup/evidence rerun.
+- Tested head `c0d0d1f5654101619f8afc94cdea37cdc2120342` → cleanup head `a94fdb2f25aa66d84e0ff523d796b57b308fd443`: ahead 3 / behind 0; exact drift was temporary workflow removed, temporary sentinel removed, and this evidence modified.
+- Skill / Registry / formal test / AI08 / release manifest had zero post-test drift.
+
+## Fifth-batch scope audit
+
+Fourth-batch accepted base `1f3fa065ace5893a6c327ce780efc980767da5a1` → cleaned fifth-batch head `a94fdb2f25aa66d84e0ff523d796b57b308fd443`:
+
+- status `ahead`, ahead 40 / behind 0; merge-base exactly the fourth-batch base.
+- Exact changed-file set is limited to nine fifth-batch artifacts:
+  1. `.agents/skills/engineering/UI設計與去AI味/SKILL.md`
+  2. `.agents/skills/engineering/README.md`
+  3. `.agents/skills/skill_registry.json`
+  4. `tests/test_ui_design_de_ai_skill_contract.py`
+  5. `release_required_artifacts.json`
+  6. `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
+  7. T1 evidence
+  8. T2 evidence
+  9. T3 evidence
+- No temporary workflow/sentinel and no production geometry/UI implementation file is part of the fifth-batch delta.
+
+## Production topology / integration readiness
+
+- Fresh production `cleanup/2d-3d-sync` read at audit time: `1d78f418abbe9a7e3b60b90e7bfdb4cc520b5ac2`.
+- Production vs fifth-batch cleaned head is `diverged`: fifth-batch side ahead 62 / behind 35, merge-base `31bbd876c248f16790654339ecc51aec9a17c2ca`.
+- Production vs fourth-batch accepted base is also `diverged`: production side ahead 35 / behind 22, same merge-base `31bbd876c248f16790654339ecc51aec9a17c2ca`.
+- The production-only side contains later project work including #107/#109–#111 related GUI/corner-data changes (`fold_designer_bridge.py`, `gui.py`, `phase6_final_scene_view.py`, tests, dispatch/ticket Skill changes and scratch checkpoints). Therefore direct fast-forward of this stacked fifth-batch branch into production is **not valid**.
+- Integration readiness result: **ACCEPTED PAYLOAD, RECONCILIATION REQUIRED BEFORE PRODUCTION UPDATE**. If the user later explicitly says `合`, first fresh-read production again, create a new integration branch from that exact production head, reconcile/replay the accepted Skill stack without dropping production-only work, run Combined Acceptance on the integrated head, then perform only a non-force production update if the integrated result is GREEN.
+- No production ref was changed by #117.
+
+## Acceptance state
+
+- R1–R6 formal contract: GREEN `11/0`.
+- Project Skill/release guards: GREEN `87/0`.
+- Preflight / JSON / config / clean tree: GREEN.
+- Final durable surfaces remote-read consistent: GREEN.
+- Temporary cleanup / 404 / no-extra-run / drift audit: GREEN.
+- Fifth-batch scope audit: GREEN.
+- Integration readiness: GREEN with mandatory fresh-production reconciliation; direct fast-forward is explicitly disallowed by current topology.
+- T3 / #117 final acceptance: ACCEPTED.
