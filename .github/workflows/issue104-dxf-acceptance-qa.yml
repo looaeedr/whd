@@ -15,14 +15,18 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
       - name: Run issue 104 focused tests
         run: pytest -q tests/test_dxf_acceptance.py
       - name: Run full headless regression
         run: pytest -q
+      - name: Assert config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
       - name: Assert tracked-file invariants
         if: always()
         run: git diff --exit-code
