@@ -6,9 +6,8 @@ on:
       - docs/skill-issue-closure-gate-20260911
     paths:
       - 'tests/test_issue_closure_completion_skill_contract.py'
-      - '.agents/skills/engineering/派工/SKILL.md'
-      - '.agents/skills/engineering/拆解任務工單/SKILL.md'
-      - '.agents/skills/engineering/phase6-release-packaging/SKILL.md'
+      - '.agents/skills/engineering/issue-closure-gate/SKILL.md'
+      - '.agents/skills/skill_registry.json'
       - '.github/workflows/qa-skill-issue-closure-contract-20260911.yml'
 
 permissions:
