@@ -107,3 +107,27 @@ WHD canonical discovery Skill：`.agents/skills/productivity/找技能/SKILL.md`
 - 若使用者明確要求把外部 Skill 加進 WHD，必須轉 `寫技能`，重新走 `AGENTS.md` / Preflight / branch-first / 中文 identity / contract / Registry / AI Library / release durable writeback。
 - 這條邊界同時保護 `修改DXF`：即使 `找技能` 找到外部 DXF 編輯 Skill，也不得因此把它誤掛成 WHD Skill。
 - machine guard：`tests/test_find_skill_contract.py`。
+
+## 2026-09-11 第二批：Skill 模板吸收與 MCP 工具操作
+
+使用者核准第二批後，WHD 採以下永久邊界：
+
+### `make-skill-template` 不建立第二套 authoring authority
+
+- 外部 `make-skill-template` 和既有 `寫技能` 高度重疊，因此**不建立** `.agents/skills/**/make-skill-template` 或另一顆「技能模板」Skill。
+- 有價值的通用內容直接吸收到 `寫技能`：`compatibility`、`metadata`、`allowed-tools` 等選用 frontmatter 的使用邊界，以及 `templates/` 為可編輯 scaffold、`assets/` 為 as-is 資產的分工。
+- 外部模板的 lowercase-hyphen naming 規則不得覆蓋 WHD 中文 canonical identity。
+- `allowed-tools` 只能描述 host/spec 真支援的 tool surface，不能把「列在 frontmatter」誤當成已取得權限或已安裝工具。
+
+### `MCP工具操作` 是 canonical MCP Skill
+
+WHD canonical path：`.agents/skills/productivity/MCP工具操作/SKILL.md`。
+
+- identity 固定為中文 `MCP工具操作`，frontmatter / folder / H1 / Registry / README 必須一致。
+- 上游輸入來源是 `github/awesome-copilot` 的 `mcp-cli` Skill，但 WHD **不把 mcp-cli 當硬相依**。
+- 每次先能力偵測：有 runtime 原生 connector / typed tool 就優先使用；只有真的有 `mcp-cli` 時才走 CLI；兩者都沒有就 fail closed。
+- 流程固定為 Discover → Explore → Inspect schema → Execute。不得猜 server、tool、schema 或參數。
+- 「已發現／已呼叫／已成功／已寫入」必須有本回合實際 tool result 支撐。
+- CLI route 保留 `mcp-cli` 的 exit-code contract；原生 connector 則保留自己的 structured error，不硬套 CLI code。
+- MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 branch-first、Preflight、remote QA 或其他專案 gate。
+- machine guard：`tests/test_second_batch_skills_contract.py`。

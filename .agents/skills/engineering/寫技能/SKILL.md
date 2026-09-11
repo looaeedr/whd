@@ -20,6 +20,8 @@ description: 建立、修改、驗證與改善 Agent Skill。當使用者要求�
 
 若專案規定修改前必須執行 Preflight，先執行；若已知 changed files，再依專案規則帶 changed files 重跑。不能先改完再補做資格檢查。
 
+外部 Skill、模板或規格（例如 `make-skill-template`）只能作為**輸入參考**。若它的命名、frontmatter、工具或目錄慣例和目前專案衝突，仍以上述 authority 為準；不得為了照抄外部模板破壞 WHD 中文 canonical identity 或專案治理。
+
 ## 2. 能力偵測：先看環境能做什麼
 
 在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具：
@@ -70,6 +72,15 @@ description: <它做什麼 + 何時應觸發>
 
 `description` 是觸發邊界，不要塞完整 workflow。把真正的步驟放 body。
 
+若目前 Skill spec / runtime / 專案真的支援且有需要，可再加入選用欄位：
+
+- `license`：只有授權資訊已知且需要隨 Skill 表達時才寫，不自行猜 license。
+- `compatibility`：宣告**真正的硬環境需求**，例如只能在特定 runtime / executable / OS 下工作。若有合理 fallback，優先把 fallback 寫進 workflow，不要把可選工具偽裝成硬相依。
+- `metadata`：放 machine-readable 補充資料；它不是 domain authority，也不能用來藏第二套產品規則。
+- `allowed-tools`：只有 host/spec 真支援，而且確實需要預先限制 tool surface 時才用；**不得**因欄位存在就假裝目前 agent 已取得權限、已安裝工具或已能呼叫那些 tools。
+
+外部 Skill/template 的 frontmatter 欄位與限制只作參考。像 `make-skill-template` 的 lowercase-hyphen naming convention 不能覆蓋 WHD 已核准的中文 Skill identity。
+
 ### 3.3 結構
 
 推薦結構：
@@ -78,10 +89,13 @@ description: <它做什麼 + 何時應觸發>
 skill-name/
 ├── SKILL.md
 ├── scripts/       # 重複且可程式化的工作
-├── references/    # 大型規格或說明
-├── assets/        # 固定輸出資產
+├── references/    # 大型規格、schema 或說明
+├── assets/        # 固定輸出資產，通常原樣使用
+├── templates/     # Agent 會複製後再修改的可編輯 scaffold / starter code
 └── agents/        # 只有真的支援/需要獨立角色時才放
 ```
+
+`assets/` 與 `templates/` 不要混為一談：asset 是 as-is 資產；template 是**可編輯**起點，使用者或 Agent 預期會在副本上改內容。
 
 `SKILL.md` 盡量少於 500 行。超過時把大型 reference、schema、範例或 runner 拆出去，並在主 Skill 清楚說何時讀。
 
@@ -203,6 +217,8 @@ skill-name/
 - [ ] `name` 與使用者要求一致；既有 Skill 未被無故改名。
 - [ ] description 清楚描述 trigger boundary。
 - [ ] `SKILL.md` < 500 行，或已做 progressive disclosure。
+- [ ] 選用 frontmatter 欄位（`compatibility` / `metadata` / `allowed-tools` 等）只在 spec/runtime 真支援時使用，沒有虛構權限。
+- [ ] `assets/` 與 `templates/` 的 as-is / editable scaffold 責任沒有混線。
 - [ ] 沒有硬依賴本環境不存在的工具。
 - [ ] 沒有假裝背景 subagent / viewer / package / CI 已存在。
 - [ ] 沒有要求等待不存在的第三方工作。

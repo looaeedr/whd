@@ -31,10 +31,13 @@
 READ_SKILL: 寫技能
 READ_SKILL: phase6-release-packaging
 READ_SKILL: monitoring-remote-qa
+READ_SKILL: MCP工具操作
 
 Supplementary relevant project Skill read:
 
 READ_SKILL: 找技能
+
+> `MCP工具操作` 是本工單新建 Skill；candidate 內容由上述 pinned upstream 與已核准 WHD adaptation contract 寫成，並在進 final acceptance 前以 remote re-read 驗證。此 marker 用來讓新增 route 後的 candidate Preflight 能以同一 commit 驗證新 canonical Skill。
 
 ## Required References read
 
@@ -63,6 +66,14 @@ READ_REFERENCE: release_required_artifacts.json
 - Connector / native tool 已存在時，不應為了照範例強迫繞去 CLI；CLI 存在時才可使用 CLI 命令。
 - 所有 tool/server/schema/result 的「已發現／已呼叫／已成功」敘述必須有實際 tool result；unknown 保持 unknown。
 - 外部 tool result 只提供外部資料/動作結果，不自動升格成 WHD domain / manufacturing Source of Truth。
+
+## RED evidence
+
+- bootstrap run: `34596573648 @ 4d3b1b1d2d64615ba47c5ba26c8733248fa681de` → SUCCESS；Knowledge Preflight、config invariant、clean tree 都 PASS。這輪只驗施工環境，不算功能 GREEN。
+- RED commit: `aa178e9c804dd58ec856de2adf0b1f7beefac135`。
+- RED run: `34596846034` → FAILURE at `Second batch contracts and project guards`；setup/dependencies、config snapshot、Knowledge Preflight 全部先 PASS。
+- RED summary: **7 failed / 59 passed**。7 個 failure 都對應已核准缺口：`MCP工具操作` 不存在、Registry route 缺失、`寫技能` 尚未吸收 metadata/templates contract、README/AI/release 尚未 durable 納入。這是 requirement RED，不是 import/setup/harness failure。
+- RED workflow 同 commit 已移除 evidence-only path trigger；後續只更新 verification evidence 不再重跑 QA，避免 durable evidence commit 造成 accidental rerun。
 
 ## RED → GREEN plan
 

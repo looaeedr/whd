@@ -46,6 +46,27 @@
       ]
     },
     {
+      "id": "mcp-tool-operation",
+      "keywords": [
+        "MCP",
+        "Model Context Protocol",
+        "MCP server",
+        "MCP tool",
+        "mcp-cli",
+        "MCP工具",
+        "連接 MCP"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/MCP工具操作/**"
+      ],
+      "required_skills": [
+        "MCP工具操作"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "dispatching-workflow",
       "keywords": [
         "派工",
