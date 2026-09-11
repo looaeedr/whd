@@ -26,8 +26,8 @@ jobs:
         run: pytest -q tests/test_dxf_acceptance.py
       - name: Run full headless regression
         run: pytest -q
-      - name: Run full Xvfb regression
-        run: xvfb-run -a pytest -q
+      - name: Run issue 104 Xvfb acceptance
+        run: xvfb-run -a pytest -q tests/test_dxf_acceptance.py tests/test_receiving_door_dxf_roundtrip.py
       - name: Assert config invariant
         if: always()
         run: |
