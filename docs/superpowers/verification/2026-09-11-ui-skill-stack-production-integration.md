@@ -90,10 +90,18 @@ Existing production-only governance/source changes are preserved; accepted gover
 - AI08 blob `66dd736c433ef4a7b6265a1c32cb57a9ca7bd0d5` contains accepted third/fourth/fifth-batch durable rules.
 - Release manifest blob `29968e4b3f4255ebbd547e13a308ad47f127ed83` contains both current-production issue-closure artifacts and accepted four Skills / three contract tests.
 
+## Temporary QA cleanup / drift audit
+
+- `.github/workflows/ui-skill-stack-integration-preflight-20260911.yml` deleted and remote-read as `404 Not Found`.
+- `docs/superpowers/verification/.ui-skill-stack-integration-trigger` deleted and remote-read as `404 Not Found`.
+- Integration branch Actions total remained exactly `5`; cleanup/evidence commits created no extra workflow run.
+- Tested head `de24a0f264adf9d1b233613aef0b4abbea6a81ec` → cleaned integration head before this final evidence update: ahead 3 / behind 0; exact drift is only temporary workflow removed, sentinel removed, and this integration evidence modified.
+- No Skill/Registry/test/AI/release post-test drift.
+
 ## State
 
 - Integration Preflight: GREEN.
 - Accepted payload true merge: COMPLETE; accepted final is a real parent/ancestor.
-- Integrated Combined Acceptance: GREEN at tested head `de24a0f264adf9d1b233613aef0b4abbea6a81ec`.
-- Temporary workflow/sentinel cleanup: NEXT.
-- Production update: NOT STARTED after Combined; requires cleanup/drift and fresh production read immediately before non-force update.
+- Integrated Combined Acceptance: GREEN.
+- Temporary QA cleanup / 404 / no-extra-run / tested→cleaned drift: GREEN.
+- Production update: READY FOR fresh production re-read and non-force fast-forward under the user’s explicit `合` authorization.
