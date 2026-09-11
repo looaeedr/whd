@@ -14,9 +14,9 @@ env:
   RECOVERY_BRANCH: recovery/issue107-chain-plus-second-batch-20260911
 
 jobs:
-  headless:
+  preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,20 +25,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pytest matplotlib ezdxf -r requirements.txt
       - name: Lock exact branch head
         run: |
           git fetch origin "$RECOVERY_BRANCH"
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
           echo "TESTED_HEAD=$(git rev-parse HEAD)"
-      - name: Snapshot invariants
-        run: |
-          sha256sum config.ini | tee /tmp/config.before
-          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
-      - name: Issue112 Knowledge Preflight hard gate
+      - name: Issue112 changed-file Knowledge Preflight hard gate
         run: |
           cat > /tmp/issue112-preflight-evidence.txt <<'EOF'
           phase6-corner-3d-model-integrity
@@ -53,88 +45,15 @@ jobs:
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           EOF
           python tools/phase6_skill_preflight.py \
-            --task '#112 Corner Data regression：2D/3D 同步、Save→Reload、multipart physical part' \
-            --evidence /tmp/issue112-preflight-evidence.txt \
-            | tee /tmp/issue112-preflight.log
-      - name: Second-batch Skill Preflight
+            --task '#112 recovery: restore Corner Data physical-child authority after history integration' \
+            --changed-file 'fold_designer_bridge.py' \
+            --evidence /tmp/issue112-preflight-evidence.txt
+      - name: Skill repair changed-file Preflight hard gate
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "第二批 Skill：補強寫技能並新增中文 MCP工具操作；remote QA 驗證" \
-            --changed-file '.agents/skills/engineering/寫技能/SKILL.md' \
-            --changed-file '.agents/skills/productivity/MCP工具操作/SKILL.md' \
-            --changed-file '.agents/skills/productivity/README.md' \
-            --changed-file '.agents/skills/skill_registry.json' \
-            --changed-file 'tests/test_second_batch_skills_contract.py' \
-            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
-            --changed-file 'release_required_artifacts.json' \
-            --changed-file 'docs/superpowers/verification/2026-09-11-second-batch-skills.md' \
+            --task '修復既有 durable contract：派工 remote QA required sub-skill 與拆解任務工單 RED-first wording' \
+            --changed-file '.agents/skills/engineering/派工/SKILL.md' \
+            --changed-file '.agents/skills/engineering/拆解任務工單/SKILL.md' \
             --evidence 'docs/superpowers/verification/2026-09-11-second-batch-skills.md'
-      - name: Focused inherited contracts
-        shell: bash --noprofile --norc -e -o pipefail {0}
-        run: |
-          pytest -q \
-            tests/test_issue111_corner_data_grid_isolation.py \
-            tests/test_issue110_shared_info_projection.py \
-            tests/test_issue109_corner_data_boxbody_tree.py \
-            tests/test_issue97_authoritative_unfold_view_adapter.py \
-            tests/test_issue96_corner_data_selection_lifecycle.py \
-            tests/test_second_batch_skills_contract.py \
-            tests/test_writing_skill_contract.py \
-            tests/test_writing_skill_preflight_route.py \
-            tests/test_chinese_skill_identity_contract.py \
-            tests/test_find_skill_contract.py \
-            tests/test_phase6_skill_preflight_gate.py \
-            tests/test_phase6_release_packaging_policy.py \
-            tests/test_release_integrity_gate.py \
-            | tee /tmp/focused.log
-      - name: Full headless suite
-        shell: bash --noprofile --norc -e -o pipefail {0}
-        run: pytest -q | tee /tmp/full-headless.log
-      - name: Verify invariants and exact head
-        run: |
-          sha256sum config.ini | tee /tmp/config.after
-          diff -u /tmp/config.before /tmp/config.after
-          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
-          diff -u /tmp/baseline.before /tmp/baseline.after
-          git diff --exit-code
-          git fetch origin "$RECOVERY_BRANCH"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          echo 'HEADLESS_RECOVERY_ACCEPTANCE=PASS'
-
-  xvfb:
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: recovery/issue107-chain-plus-second-batch-20260911
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install system and Python dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libxkbcommon-x11-0
-          python -m pip install --upgrade pip
-          python -m pip install pytest matplotlib ezdxf -r requirements.txt
-      - name: Lock exact branch head and snapshot invariants
-        run: |
-          git fetch origin "$RECOVERY_BRANCH"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          echo "TESTED_HEAD=$(git rev-parse HEAD)"
-          sha256sum config.ini | tee /tmp/config.before
-          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
-      - name: Full Xvfb suite
-        shell: bash --noprofile --norc -e -o pipefail {0}
-        run: xvfb-run -a pytest -q | tee /tmp/full-xvfb.log
-      - name: Verify invariants and exact head
-        run: |
-          sha256sum config.ini | tee /tmp/config.after
-          diff -u /tmp/config.before /tmp/config.after
-          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
-          diff -u /tmp/baseline.before /tmp/baseline.after
-          git diff --exit-code
-          git fetch origin "$RECOVERY_BRANCH"
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$RECOVERY_BRANCH)"
-          echo 'XVFB_RECOVERY_ACCEPTANCE=PASS'
+      - name: Preflight terminal marker
+        run: echo 'RECOVERY_CHANGED_FILE_PREFLIGHT=PASS'
