@@ -1,0 +1,20 @@
+name: Issue119 Corner Data Focused
+on:
+  push:
+    branches: [fix/issue119-corner-data-lifecycle-readability]
+    paths:
+      - fold_designer_bridge.py
+      - gui.py
+      - tests/test_issue119_corner_data_transition_ui.py
+      - .github/workflows/issue119-corner-data-focused.yml
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest
+      - name: Issue119 focused regression
+        run: pytest -q tests/test_issue119_corner_data_transition_ui.py
