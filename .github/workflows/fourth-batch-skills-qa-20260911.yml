@@ -1,5 +1,6 @@
 name: fourth-batch-skills-qa-20260911
 
+# Preflight evidence markers are recorded in docs/superpowers/verification/2026-09-11-fourth-batch-skills.md
 on:
   push:
     branches:
