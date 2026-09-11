@@ -29,6 +29,7 @@ Reachable when explicitly selected/invoked. Runtime-specific invocation controls
 - **[Python測試實務](./Python測試實務/SKILL.md)**: pytest fixture、isolation、parameterization、mock/monkeypatch、async、property-based、markers 與 CI 測試工程實務；不取代 tdd/diagnosing-bugs。
 - **[性質導向測試](./性質導向測試/SKILL.md)**: 設計 property/invariant、generator strategy、shrinking/counterexample 分類；不取代 Python測試實務、tdd 或 debugging authority。
 - **[尺寸語意分析](./尺寸語意分析/SKILL.md)**: 追蹤 WHD 料尺寸、包外、flat/formed、FW、T、datum 與 collision-envelope 的 semantic dimensions；只做分析/驗證，不建立 production 公式。
+- **[UI設計與去AI味](./UI設計與去AI味/SKILL.md)**: UI visual design、資訊層級、existing-UI 去 AI 味 audit 與安全 rewrite；保留功能與 engineering semantics，不取代 domain/product authority。
 - **[領域建模](./領域建模/SKILL.md)**: 定義/修正 domain terminology，維護 `CONTEXT.md` / ADR。
 - **[程式碼庫設計](./程式碼庫設計/SKILL.md)**: Deep-module vocabulary：module/interface/depth/seam/adapter/leverage/locality。
 - **[code-review](./code-review/SKILL.md)**: Review diff against standards and originating spec.
