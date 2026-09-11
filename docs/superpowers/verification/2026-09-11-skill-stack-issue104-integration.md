@@ -12,7 +12,7 @@ Task: 將已驗收的中文 Skill identity／寫技能／派工／找技能 stac
 - integration branch: `integration/skill-stack-onto-issue104-20260911`
 
 Parents of the merge commit:
-1. `424bbc166ea8ff472c044410a78b2449d877c71e` — latest production target snapshot
+1. `424bbc166ea8ff472c044410a78b2449d877c71e` — latest production target snapshot at integration construction time
 2. `16f5e9cd123de0b1841617e2f0b70eef4ecec1fe` — accepted Skill stack with explicit verifier reconciliation
 
 ## Required source evidence read
@@ -57,9 +57,9 @@ The integration result intentionally keeps both valid rule sets:
 
 ## Deterministic tree audit
 
-Target `424bbc166...` → integration merge `574c4c4f...` is `ahead`, `behind_by=0`. The file-level delta is limited to the intended Skill stack: 30 Skill/router/evidence/contract/AI/release-policy paths; no production Python, GUI, Bridge, DXF registry, baseline geometry or config file is replaced by the old Skill branch.
+Target `424bbc166...` → integration merge `574c4c4f...` was `ahead`, `behind_by=0`. The file-level delta was limited to the intended Skill stack: 30 Skill/router/evidence/contract/AI/release-policy paths; no production Python, GUI, Bridge, DXF registry, baseline geometry or config file was replaced by the old Skill branch.
 
-Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` is also `ahead`, `behind_by=0`; the integration contains the newer target's Issue 94–104 production/test work, including `ae_engine/dxf_acceptance.py`, `gui.py`, `fold_designer_bridge.py`, `tests/test_receiving_door_dxf_roundtrip.py`, current AI DXF tolerance boundary, and `截角資料入口收斂`.
+Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` was also `ahead`, `behind_by=0`; the integration contains the newer target's Issue 94–104 production/test work, including `ae_engine/dxf_acceptance.py`, `gui.py`, `fold_designer_bridge.py`, `tests/test_receiving_door_dxf_roundtrip.py`, current AI DXF tolerance boundary, and `截角資料入口收斂`.
 
 ## Remote QA history
 
@@ -76,27 +76,29 @@ Skill-side reconciled head `16f5e9cd...` → integration merge `574c4c4f...` is 
   - `基準檔/截角資料庫/certified_relief_rules.json`
   - `個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md`
   - `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`
-- all missing authorities were then read and are explicitly recorded above; no production/Skill/test logic was changed for this failure.
+- all missing authorities were then read and recorded; no production/Skill/test logic was changed for this failure.
 
-## Remote QA scope
+### Run 2 — Final integration acceptance
 
-One-shot workflow: `.github/workflows/skill-stack-issue104-integration-20260911.yml`
+- run: `34586470808`
+- tested head: `08030bcd0cc617d8d65b961756bdaa9bf5779fd6`
+- terminal conclusion: **SUCCESS**
+- Knowledge Preflight: **PASS**
+  - required Skills all ✓: `寫技能`, `找技能`, `派工`, `掃描深模組`, `phase6-corner-3d-model-integrity`, `phase6-release-packaging`, `驗證板件與DXF`, `monitoring-remote-qa`
+  - required references all ✓: AI06, AI08, AI07, relief mother rules, certified relief registry, assembly-relief pitfalls, release manifest, AI04 geometry spec
+- authority reconciliation guards: **PASS**
+- Skill + Issue #104 regression matrix: **87 passed / 0 failed / 3.10s**
+- `config.ini` before: `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`
+- `config.ini` after:  `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`
+- tracked working tree invariant: `git diff --exit-code` **PASS**
 
-Required matrix:
-- Chinese Skill identity/content contract
-- `修改DXF` project-scope contract
-- `找技能` contract
-- `寫技能` contract + Preflight route
-- `派工` timeout / 30-second / remote-QA contract
-- `掃描深模組` language/source contracts
-- Phase6 Skill Preflight gate
-- release packaging + integrity gates
-- current `tests/test_dxf_acceptance.py`
-- current `tests/test_receiving_door_dxf_roundtrip.py`
-- explicit reconciliation marker guard
-- `config.ini` before/after SHA invariant
-- `git diff --exit-code` after tests
+## QA cleanup
+
+- one-shot workflow: `.github/workflows/skill-stack-issue104-integration-20260911.yml`
+- cleanup commit: `48c5bb31c367ac302202dab80d3c5ad4d126c569`
+- remote re-read after deletion: **404 Not Found** as required.
+- this evidence update occurs after workflow deletion and therefore does not create another QA run.
 
 ## Acceptance state
 
-Replacement QA triggered by this evidence update. Do not merge into `cleanup/2d-3d-sync` until the locked replacement run is terminal GREEN, the one-shot workflow is removed and re-read as 404, and tested-head → cleaned-head drift is limited to QA cleanup/evidence only.
+Integration implementation is accepted at tested head `08030bcd...`, subject only to the final tested-head → cleaned-head drift audit and a fresh re-read of the production target immediately before declaring merge-ready. Production target has not been moved by this integration task.
