@@ -5,6 +5,14 @@ description: Use when GitHub ticketed work reaches QA acceptance, branch/PR merg
 
 # GitHub Issue Closure Gate
 
+## 必讀 Authority
+
+執行本 Skill 時，同步讀取：
+
+`個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md`
+
+該檔記錄「code-state 與 process-state 不可混為一談」的事故模式與永久防錯規則。本 Skill 是執行契約，AI Library 是歷史踩坑與判斷背景；兩者不得只靠聊天記憶取代。
+
 ## 核心原則
 
 **合併不等於關單。** `integration != completion`。
@@ -103,6 +111,7 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 
 ## 快速檢查
 
+- [ ] 已讀 `個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md`。
 - [ ] 已辨識 active issue chain。
 - [ ] 已指定 `Issue Closure owner`。
 - [ ] leaf/current ticket evidence 已回寫並 CLOSED/completed。
