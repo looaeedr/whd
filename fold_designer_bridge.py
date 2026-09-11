@@ -8590,7 +8590,13 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     """Store a current stable corner-data identity without mutating manufacturing state."""
     keys = _phase6_corner_data_part_keys(self)
     requested = str(key or "")
-    if requested == "box_body" or _phase6_is_box_body_physical_piece_key(requested):
+    if requested == "box_body":
+        resolved = (
+            _phase6_resolve_operator_part_key(self, requested)
+            if _phase6_current_cabinet_family(self) == "受電箱"
+            else requested
+        )
+    elif _phase6_is_box_body_physical_piece_key(requested):
         resolved = _phase6_resolve_operator_part_key(self, requested)
     else:
         resolved = requested
