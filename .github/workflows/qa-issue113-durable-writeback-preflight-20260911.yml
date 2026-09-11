@@ -23,6 +23,7 @@ jobs:
           cat > /tmp/evidence.md <<'EOF'
           issue-closure-gate
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
           EOF
           python tools/phase6_skill_preflight.py \
             --task 'Final Combined durable AI Library writeback for #108 aggregate parent identity' \
