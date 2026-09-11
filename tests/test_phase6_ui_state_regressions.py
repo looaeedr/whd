@@ -262,7 +262,7 @@ def test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row():
         assert selector.cget('text') == '組合體'
         selector_menu = root.nametowidget(selector.cget('menu'))
         labels = [selector_menu.entrycget(i, 'label') for i in range(selector_menu.index('end') + 1)]
-        assert labels[:6] == ['組合體', '箱身', '封頭', '封尾', '門', '底板']
+        assert labels[:7] == ['組合體', '截角資料', '箱身', '封頭', '封尾', '門', '底板']
         assert add_button.cget('text') == '新增 ▼'
 
         # Selecting a part is a single menu action; no second click or separate
