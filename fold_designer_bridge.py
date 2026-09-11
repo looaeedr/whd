@@ -1685,14 +1685,25 @@ def _phase6_recalculate_part_dimensions(self):
     return dims
 
 
-def _phase6_refresh_profiles_from_settings(self):
-    """Push settings-center values into the existing fold profiles losslessly."""
+def _phase6_refresh_profiles_from_settings(self, *, reset_box_profile=False):
+    """Push settings values into Fold profiles using the correct authority boundary.
+
+    Ordinary edits preserve operator-owned Fold topology through
+    ``merge_box_body_profile``.  A switch to another known cabinet family is a
+    preset transaction instead: the target family's canonical BoxBody profile
+    replaces the outgoing family's topology/outer-fold dimensions.  Only the
+    caller that owns that explicit family switch may request the reset.
+    """
     snapshot = self._phase6_input_snapshot
     snapshot.update(self._settings_values)
     _phase6_recalculate_part_dimensions(self)
 
     current_box = self.state.profiles_vault.get("箱身", [])
-    self.state.profiles_vault["箱身"] = merge_box_body_profile(current_box, snapshot)
+    self.state.profiles_vault["箱身"] = (
+        build_box_body_profile(snapshot)
+        if reset_box_profile
+        else merge_box_body_profile(current_box, snapshot)
+    )
 
     _phase6_sync_authoritative_derived_parts(self)
     _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
@@ -2245,7 +2256,7 @@ def _phase6_on_baseline_model_changed(self, *_args):
             self.v_d.set(str(self.state.d))
             self._phase6_last_w = self.state.w
             self._phase6_last_d = self.state.d
-            _phase6_refresh_profiles_from_settings(self)
+            _phase6_refresh_profiles_from_settings(self, reset_box_profile=True)
 
             fresh_intent = cabinet_family_policy.fresh_assembly_intent(new_model)
             self._phase6_assembly_type = fresh_intent
@@ -8465,6 +8476,9 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
         str(notebook.select())
     )
     if not key:
+        return
+    remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
+    if key == remembered:
         return
     self._phase6_box_body_active_piece_key = key
     if str(getattr(_designer_workspace(self), "active_part", "") or "") != key:
