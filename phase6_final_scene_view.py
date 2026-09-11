@@ -402,6 +402,31 @@ def _phase6_box_body_structure_meshes(render_data, *, thickness):
     return out
 
 
+def format_operator_info_text(request, *, dimensions=None, number_text=None):
+    """Format already-resolved operator display information for every View sink."""
+    number_text = number_text or _default_number_text
+    dims = tuple(dimensions or getattr(request, "finished_dimensions", ()) or ())
+    if len(dims) < 2:
+        return ""
+    width, height = dims[:2]
+    depth = dims[2] if len(dims) > 2 else None
+    xfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"
+    yfold = " / ".join(number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"
+    finished = (
+        f"折後包外：W {number_text(width)} × H {number_text(height)} × D {number_text(depth)} mm"
+        if depth is not None else
+        f"折後包外：W {number_text(width)} × H {number_text(height)} mm"
+    )
+    lines = [finished, f"X折：{xfold}   Y折：{yfold}"]
+    if request.corner_dimension_text:
+        lines.append(request.corner_dimension_text)
+    if request.unfolded_blank_text:
+        lines.append(request.unfolded_blank_text)
+    if str(getattr(request, "part_key", "") or "") == "box_body":
+        lines.extend(_phase6_box_body_piece_dimension_lines(getattr(request, "render_data", None)))
+    return "\n".join(lines)
+
+
 @dataclass(frozen=True)
 class AssemblyScenePart:
     """One authoritative part scene placed into the UI-only assembly view."""
@@ -783,18 +808,9 @@ class Phase6FinalSceneView:
         ax.plot([hx - tick, hx + tick], [y0, y0], [0.0, 0.0], linewidth=1.0)
         ax.plot([hx - tick, hx + tick], [y1, y1], [0.0, 0.0], linewidth=1.0)
         ax.text(hx, (y0 + y1) / 2.0, 0.0, f"H {self._number_text(height)} mm", ha="right", va="center")
-        xfold = " / ".join(self._number_text(v) for v in _phase6_profile_operator_fold_values(request.x_profile)) or "-"
-        yfold = " / ".join(self._number_text(v) for v in _phase6_profile_operator_fold_values(request.y_profile)) or "-"
-        finished = (
-            f"折後包外：W {self._number_text(width)} × H {self._number_text(height)} × D {self._number_text(depth)} mm"
-            if depth is not None else
-            f"折後包外：W {self._number_text(width)} × H {self._number_text(height)} mm"
+        info = format_operator_info_text(
+            request, dimensions=dims, number_text=self._number_text
         )
-        info = f"{finished}\nX折：{xfold}   Y折：{yfold}"
-        if request.corner_dimension_text:
-            info += f"\n{request.corner_dimension_text}"
-        if request.unfolded_blank_text:
-            info += f"\n{request.unfolded_blank_text}"
         ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top")
 
     def _draw_joint_diagnostic_overlays(self, render_data):
