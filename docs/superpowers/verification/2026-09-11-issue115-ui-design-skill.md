@@ -35,8 +35,45 @@ T1 owns only R1–R3:
 
 Registry / README / AI08 / release manifest are T2 (#116), not T1 implementation scope.
 
-## Bootstrap status
+## Preflight
 
-- Preflight: PENDING
-- Formal T1 contract RED: PENDING until Preflight GREEN
-- Skill implementation: NOT STARTED
+- run `34607445439 @ c2da43a1b77f1050d92d61f064e4365d26cc0eaa` → SUCCESS.
+- Required Skills: `寫技能`, `phase6-release-packaging`, `monitoring-remote-qa` → all PASS.
+- Required references: AI06, AI08, `release_required_artifacts.json` → all PASS.
+- `config.ini` before/after SHA256 = `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
+
+## Formal T1 RED
+
+- run `34607648037 @ bb57470203aca1e62e042c15e65feb3a3d898480` → terminal FAILURE at T1 contract after Preflight PASS.
+- Result: `0 passed / 8 failed`.
+- Failure cause: canonical `.agents/skills/engineering/UI設計與去AI味/SKILL.md` did not yet exist; no setup/import/collection noise.
+- `config.ini` invariant PASS; `git diff --exit-code` PASS.
+
+## T1 GREEN tested head
+
+- tested head: `cd66afa3e53a22e3f3a61663b6e8f30b28bdd367`.
+- run `34607852950 @ cd66afa3e53a22e3f3a61663b6e8f30b28bdd367` → SUCCESS.
+- Formal contract: `8 passed / 0 failed`.
+- Preflight PASS before contract.
+- `config.ini` before/after = canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`.
+- `git diff --exit-code` PASS.
+- Remote readback Skill blob: `a378e2825df065bd53fb70101d1fb9b5454d717a`.
+- Remote readback contract-test blob: `ba7837be47bd1acd0f6fbd9b6eb23e49d59bf035`.
+
+## Dispatch checkpoint
+
+- Task: Fifth batch `UI設計與去AI味`
+- Ticket: #115 / T1
+- Current role: T1 Implementer, preparing QA handoff
+- Branch: `feat/issue115-ui-design-de-ai-skill-20260911`
+- Completed: branch-first, authority read, external provenance pin, Preflight GREEN, formal RED, minimal Skill implementation, focused GREEN, tested-head remote readback.
+- Pending: temporary workflow/sentinel cleanup, 404 verification, tested-head→cleaned-head drift audit, final remote readback, Issue #115 terminal evidence, QA ACCEPT.
+- Failed/blocked: none.
+- Relevant files: `.agents/skills/engineering/UI設計與去AI味/SKILL.md`, `tests/test_ui_design_de_ai_skill_contract.py`, this evidence file.
+- Verification run IDs: `34607445439`, `34607648037`, `34607852950`.
+- Resume command/operation: re-read temp workflow/sentinel on this branch → delete workflow then sentinel → verify 404 → compare `cd66afa3...` to cleaned head → QA review.
+
+## Acceptance state
+
+- Focused T1 contract: GREEN.
+- T1 final acceptance: PENDING cleanup/drift/QA review.
