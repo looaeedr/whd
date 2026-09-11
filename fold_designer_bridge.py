@@ -8572,6 +8572,22 @@ def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
     return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
 
 
+def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
+    """Group current BoxBody physical pieces under the real aggregate parent for this View only."""
+    keys = _phase6_corner_data_part_keys(self)
+    children = _phase6_box_body_piece_keys(keys)
+    child_keys = set(children)
+    parent_present = "box_body" in keys
+    rows = []
+    for key in keys:
+        if parent_present and key in child_keys:
+            continue
+        rows.append((key, 0))
+        if parent_present and key == "box_body":
+            rows.extend((child, 1) for child in children)
+    return tuple(rows)
+
+
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     """Store a current stable corner-data identity without mutating manufacturing state."""
     keys = _phase6_corner_data_part_keys(self)
@@ -8658,9 +8674,11 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
 
     self.corner_data_part_rows = {}
     self.corner_data_part_buttons = {}
-    for key in keys:
+    self.corner_data_part_depths = {}
+    navigation_rows = _phase6_corner_data_navigation_rows(self)
+    for key, depth in navigation_rows:
         row = original.ttk.Frame(panel)
-        row.pack(fill=original.tk.X, pady=(0, 4))
+        row.pack(fill=original.tk.X, pady=(0, 4), padx=(18, 0) if depth else 0)
         button = original.ttk.Button(
             row,
             text=_phase6_part_label(key),
@@ -8669,6 +8687,7 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
         button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True)
         self.corner_data_part_rows[key] = row
         self.corner_data_part_buttons[key] = button
+        self.corner_data_part_depths[key] = depth
     return keys
 
 
