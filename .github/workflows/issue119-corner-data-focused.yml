@@ -6,7 +6,11 @@ on:
       - fold_designer_bridge.py
       - gui.py
       - tests/test_issue119_corner_data_transition_ui.py
+      - tools/issue119_apply_fix.py
       - .github/workflows/issue119-corner-data-focused.yml
+
+permissions:
+  contents: write
 
 jobs:
   focused:
@@ -16,5 +20,15 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: python -m pip install pytest
+      - name: Apply issue119 fix
+        run: python tools/issue119_apply_fix.py
       - name: Issue119 focused regression
         run: pytest -q tests/test_issue119_corner_data_transition_ui.py
+      - name: Commit verified production fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fold_designer_bridge.py gui.py
+          git diff --cached --quiet && { echo "No production diff to commit"; exit 1; }
+          git commit -m "fix: repair Corner Data transition lifecycle and readability"
+          git push origin HEAD:fix/issue119-corner-data-lifecycle-readability
