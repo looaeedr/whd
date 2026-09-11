@@ -131,3 +131,59 @@ WHD canonical path：`.agents/skills/productivity/MCP工具操作/SKILL.md`。
 - CLI route 保留 `mcp-cli` 的 exit-code contract；原生 connector 則保留自己的 structured error，不硬套 CLI code。
 - MCP 是 transport / external capability，不是 domain authority。任何外部 tool result **不自動升格**為 WHD mechanical/manufacturing Source of Truth，也不能繞過 branch-first、Preflight、remote QA 或其他專案 gate。
 - machine guard：`tests/test_second_batch_skills_contract.py`。
+
+## 2026-09-11 第三批：Python 測試實務
+
+WHD canonical path：`.agents/skills/engineering/Python測試實務/SKILL.md`。
+
+- identity 固定為中文 `Python測試實務`；folder / frontmatter / H1 / README / Registry 必須一致。
+- 此 Skill 是 **pytest 工程實務層**，負責 fixture、`tmp_path` isolation、parameterization、mock/monkeypatch、async、property-based、markers、coverage/CI mechanics；**不取代** `tdd` 的 seam / RED→GREEN authority，也不取代 `diagnosing-bugs` 的 repro / root-cause 流程。
+- 測試不得污染 `config.ini`、`基準檔/**` 或其他 tracked source；優先在 `tmp_path` / temporary workspace 操作。需要碰真實 tracked 檔時，必須有 teardown，並以測試前後 hash/SHA 或 `git diff` 證明還原。
+- `fixture`、expected value、snapshot、counterexample、tolerance、probe result 都只屬 validation input；它們**不能回灌 production**，也不會因為放進 `conftest.py` 或參數表就升格成 Source of Truth。
+- `mock` / `monkeypatch` 只隔離真正外部邊界；不得 mock 掉本輪必須驗的 geometry、DXF export→reopen、Save→Reload、multipart/physical-part、2D/3D parity 等真實 seam。
+- parameterization 用來擴大同一 invariant 的 coverage；不得把大量 current output hard-code 成產品規格。
+- property-based / fuzz 找到的 counterexample 只能證明 invariant 被破壞，不能直接回灌 production offset / formula。
+- `skip` / `xfail` 必須有具體理由；**SKIP 不等於 PASS**。Headless/GUI/Xvfb 結果要分開解讀。
+- **focused GREEN 不等於 final acceptance**；專案若另要求 `驗證板件與DXF`、release gate 或其他 final acceptance，仍必須完成。
+- coverage 只表示 code path 被執行；不得把外部範例的任意門檻（例如 80%）直接變成 WHD 硬規則。
+- machine guard：`tests/test_python_testing_practices_skill_contract.py`。
+
+## 2026-09-11 第四批：性質導向測試與尺寸語意分析
+
+### `性質導向測試`
+
+WHD canonical path：`.agents/skills/engineering/性質導向測試/SKILL.md`。
+
+- 責任是 property / invariant 設計、generator strategy、shrinking 與 counterexample classification；不取代 `Python測試實務` 的 pytest mechanics，也不取代 `tdd` / `diagnosing-bugs`。
+- 優先使用有獨立 authority 的 roundtrip、inverse、oracle、idempotence、invariant 等 property，並選擇能真正排除錯誤的最強 property。
+- 禁止 tautology 與 vacuity：不要用同一 production formula 重算 expected，也不要靠大量 `assume()` 把有效輸入全部濾掉；constraints 優先編碼進 generator strategy。
+- Hypothesis / PBT library 是 capability/dependency；專案未安裝時不得假裝存在，新增 dependency 必須經專案／使用者決策。
+- shrunk counterexample 必須先分類成 property 錯、spec ambiguous、strategy 過寬或真 code bug；在 authority 未釐清前不能把 counterexample 寫成 canonical expected。
+- property、counterexample、fixture、seed 與 probe 都屬 validation evidence，**不能回灌 production**，也不能建立新的 Source of Truth。
+
+### `尺寸語意分析`
+
+WHD canonical path：`.agents/skills/engineering/尺寸語意分析/SKILL.md`。
+
+- WHD 尺寸除了物理 unit（常見為 mm）還要追 semantic dimension；同為 `29 mm`，`{FW_formed}`、`{material_length}`、`{formed_outside_length}` 仍可能完全不相容。
+- canonical vocabulary 至少區分 `{material_length}`、`{formed_outside_length}`、`{FW_formed}`、`{sheet_thickness}`、`{flat_relief_length}`、`{collision_envelope}`、`{datum_offset}`。
+- 料尺寸、包外、flat、formed、FW、T/2T、datum offset 與 collision envelope 不可因數字相近就互換；跨語意轉換必須有獨立 conversion authority。
+- 此 Skill **只能分析與驗證**。Finding 可以指出 mismatch 或缺少 conversion，但**不能回灌 production**、不能從差值發明 offset / formula、不能把 collision/test result 升格成 Source of Truth。
+- upstream `dimensional-analysis` 的固定 `full-auto` / Task-subagent pipeline 不適合作為 WHD 硬依賴。每輪先偵測 capability：有真 subagent/parallel runtime 才可分工；沒有就由**同一執行者**逐階段完成，**不得假裝**派工或等待不存在的 agent。
+- machine guard：`tests/test_fourth_batch_skills_contract.py`。
+
+## 2026-09-11 第五批：UI設計與去AI味
+
+WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`。
+
+- `UI設計與去AI味` 是 WHD 的 UI visual design / information hierarchy / existing-UI de-AI audit 與安全 rewrite authority；它**不取代** product、geometry、manufacturing、Save→Reload、2D/3D、DXF 或 domain semantics authority。
+- WHD 是 **Python Tkinter / ttk engineering desktop app**。外部 `frontend-design` 與 `avoid-ai-design` **只作 input / 輸入參考**，不得把 React / Tailwind / shadcn、Web hero 或 mobile-first 假設變成 WHD hard dependency，也不建立第二套 canonical UI Skill。
+- 核心順序是 **functionality > aesthetics**。`visual simplification` 不得變成 `semantic simplification`；callback、selection/project state、editable/readonly、Save→Reload、2D/3D、manufacturing、geometry authority、keyboard/accessibility/scroll 都必須保留。
+- 正式 Rewrite 禁止暴力**全域** style / presentation Search/Replace；採**逐元件**施工，最小施工單位是可獨立驗證的 widget / panel / dialog / toolbar / sidebar / workspace region，固定走「讀元件 → 功能 contract → 修改單一區域 → render/inspect（若有）→ functional check → layout regression → 才進下一區域」。
+- 去 AI 味不是灰階化。既有有語意的 Brand / **Action Color**、selection、active、warning、error、success、focus 必須保留其角色，不能因 anti-AI cleanup 全部拔色。
+- `monospace` 只用在有理由的尺寸、座標、數值表格、ID 等資料區；每次都檢查 `width`、clipping、換行、DPI、dialog/table/control layout，避免工程感字型把畫面撐破。
+- `shadow` / border / gradient / round corner / **elevation** 本身不是 AI 味；Modal / Dropdown / Toast 等 foreground surface 必須保留足夠深度。若移除 gradient/glow/blur/heavy shadow，必須用 restrained border / 1px divider / surface tone / spacing / alignment 等補回 hierarchy。
+- 現行 text scale 是小 `1.0`、中 `1.2`、大 `1.4`；三種都必須維持 required controls 可見或可 scroll 到，不能只在小字正常。
+- 有真 GUI / screenshot / Xvfb 才能宣告 visual acceptance；沒有 visual runtime 時只能標 `inferred` / `visual acceptance pending`，**不得假裝**看過畫面或已完成視覺驗收。
+- Audit mode 是 read-only；already-good UI 可以 `keep / 不修改`。成功不是改得多，而是只修改有產品、層級或操作理由的地方。
+- machine guard：`tests/test_ui_design_de_ai_skill_contract.py`。
