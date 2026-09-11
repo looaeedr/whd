@@ -80,11 +80,33 @@
         ".agents/skills/engineering/派工/**"
       ],
       "required_skills": [
-        "派工"
+        "派工",
+        "issue-closure-gate"
       ],
       "required_references": [
         "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
       ]
+    },
+    {
+      "id": "issue-closure-gate",
+      "keywords": [
+        "關單",
+        "關議題",
+        "Issue closure",
+        "close issue",
+        "Master issue",
+        "Final Combined",
+        "production integration",
+        "合併完成",
+        "正式完成"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/issue-closure-gate/**"
+      ],
+      "required_skills": [
+        "issue-closure-gate"
+      ],
+      "required_references": []
     },
     {
       "id": "scan-deep-modules",
@@ -220,7 +242,8 @@
         "AGENTS.md"
       ],
       "required_skills": [
-        "phase6-release-packaging"
+        "phase6-release-packaging",
+        "issue-closure-gate"
       ],
       "required_references": [
         "release_required_artifacts.json"
