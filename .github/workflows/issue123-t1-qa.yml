@@ -55,6 +55,7 @@ jobs:
       - name: Xvfb launch and toolbar runtime acceptance
         shell: bash
         run: |
+          rm -f /tmp/issue123-runtime-ok.txt /tmp/issue123-toolbar.png
           cat > /tmp/issue123_runtime.py <<'PY'
           import tkinter as tk
           from pathlib import Path
@@ -113,17 +114,35 @@ jobs:
               f"toolbar={app.project_toolbar_shell.winfo_width()}x{app.project_toolbar_shell.winfo_height()}\n",
               encoding="utf-8",
           )
-          root.after(2500, root.destroy)
+          root.after(5000, root.destroy)
           root.mainloop()
           PY
           xvfb-run -a -s "-screen 0 1600x1000x24" bash -c '
             PYTHONPATH="$PWD" python /tmp/issue123_runtime.py &
             pid=$!
-            sleep 1.5
+            for _ in $(seq 1 80); do
+              if [ -s /tmp/issue123-runtime-ok.txt ]; then
+                break
+              fi
+              if ! kill -0 "$pid" 2>/dev/null; then
+                wait "$pid"
+                exit $?
+              fi
+              sleep 0.25
+            done
+            test -s /tmp/issue123-runtime-ok.txt
             scrot /tmp/issue123-toolbar.png
-            wait $pid
+            wait "$pid"
           '
           test -s /tmp/issue123-toolbar.png
+          python - <<'PY'
+          from PIL import Image
+          image = Image.open('/tmp/issue123-toolbar.png').convert('RGB')
+          pixels = list(image.getdata())
+          non_black = sum(1 for pixel in pixels if pixel != (0, 0, 0))
+          assert non_black > 5000, f'visual evidence is effectively black: {non_black} non-black pixels'
+          print(f'VISUAL_NONBLACK_PIXELS={non_black}')
+          PY
           cat /tmp/issue123-runtime-ok.txt
 
       - name: Scope and invariant guard
