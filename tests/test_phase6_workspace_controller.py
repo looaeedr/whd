@@ -195,9 +195,19 @@ def test_loading_project_without_box_profile_clears_previous_workspace_fold_chai
 
         app.load_phase6_project(path, open_designer=False)
 
-        assert app.workspace_controller.box_body_profile() is None
+        # Explicit null is the one-shot legacy migration signal. It must clear
+        # the outgoing stale profile, then materialize the canonical current
+        # BoxBody fold chain rather than reopening the pre-profile fallback.
+        migrated = app.workspace_controller.box_body_profile()
+        assert migrated
+        assert all(row.get("phase6_key") != "stale" for row in migrated)
+        assert all(float(row.get("len", 0.0)) != 999.0 for row in migrated)
+
         committed = app._compose_phase6_project_snapshot_from_main_gui()
-        assert committed["workspace"]["box_body_profile"] == []
+        from phase6_fold_profiles import build_box_body_profile
+        expected = build_box_body_profile(committed)
+        assert migrated == expected
+        assert committed["workspace"]["box_body_profile"] == expected
     finally:
         root.destroy()
 

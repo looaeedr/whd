@@ -260,34 +260,55 @@ def test_registry_operator_form_hides_stable_english_rule_ids():
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="需要 Tk 顯示環境")
 def test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material():
+    """Current corner-data View keeps operator HUD outside manufacturing material.
+
+    #92 removed the standalone main-GUI 2D entry. The authoritative 2D sink is
+    now Fold Designer -> 截角資料; engineering-drawing dimensions may live around
+    the material, while operator HUD rows stay in the reserved top gutter.
+    """
     import tkinter as tk
     import gui
 
     root = tk.Tk(); root.geometry("1400x900")
     app = gui.BoxCalculatorGUI(root)
     try:
+        designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
-        app.update_calculations(); root.update_idletasks(); root.update()
-        canvas = app.canvas_z
-        overview = app.last_box_body_face_overview
-        transform = overview["transform"]
-        _zw, zh = overview["unfolded_size"]
-        material_top = min(
-            transform.world_to_canvas(gui.Vec2(0, 0))[1],
-            transform.world_to_canvas(gui.Vec2(0, zh))[1],
+        bridge._phase6_show_corner_data(designer)
+        bridge._phase6_select_corner_data_part(designer, "box_body")
+        root.update_idletasks(); root.update()
+        projection = bridge._phase6_refresh_corner_data_unfold_view(designer)
+        assert projection is not None
+
+        canvas = designer.corner_data_canvas
+        bounds = tuple(float(value) for value in projection.render_data.material.bounds)
+        _transform, _left, _bottom, _scale, material_top = gui._phase6_2d_material_viewport(
+            bounds, canvas.winfo_width(), canvas.winfo_height()
         )
+
         boxes = []
-        for tag in ("phase6_preview_hint", "phase6_corner_dimensions", "phase6_hole_hint"):
+        for tag in ("phase6_finished_dimensions", "phase6_hole_hint"):
             ids = canvas.find_withtag(tag)
             assert ids, tag
-            bbox = canvas.bbox(ids[0])
+            bbox = canvas.bbox(tag)
             assert bbox is not None
             assert bbox[3] <= material_top
             boxes.append(bbox)
+
+        engineering = set(canvas.find_withtag("phase6_engineering_annotation"))
+        dimensions = set(canvas.find_withtag("dimension"))
+        assert engineering
+        assert engineering & dimensions
+
         def overlaps(a, b):
             return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
         for i, a in enumerate(boxes):
             for b in boxes[i + 1:]:
                 assert not overlaps(a, b), (a, b)
     finally:
+        try:
+            if app.fold_designer_window is not None:
+                app.fold_designer_window.destroy()
+        except Exception:
+            pass
         root.destroy()
