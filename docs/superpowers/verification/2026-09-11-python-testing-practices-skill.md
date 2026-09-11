@@ -43,7 +43,7 @@ Supplementary boundary skills read:
 READ_SKILL: tdd
 READ_SKILL: diagnosing-bugs
 
-> `Python測試實務` 是本工單新建 Skill；candidate 由 pinned upstream 與已核准 WHD adaptation contract 寫成。本 marker 記錄在 final acceptance 前已讀 candidate；GREEN 後仍需 remote re-read 驗證實際 branch 內容。
+> `Python測試實務` 是本工單新建 Skill；candidate 由 pinned upstream 與已核准 WHD adaptation contract 寫成。final acceptance 前後已以 remote re-read 確認實際 branch 內容。
 
 ## Required References read
 
@@ -60,7 +60,7 @@ READ_REFERENCE: release_required_artifacts.json
 - `個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
 - `release_required_artifacts.json`
 - `docs/superpowers/verification/2026-09-11-python-testing-practices-skill.md`
-- `.github/workflows/python-testing-practices-skill-qa-20260911.yml` (temporary QA only; delete after terminal GREEN)
+- `.github/workflows/python-testing-practices-skill-qa-20260911.yml`（temporary QA only；final cleanup 已刪除）
 
 ## Bootstrap Preflight evidence
 
@@ -78,6 +78,26 @@ READ_REFERENCE: release_required_artifacts.json
 - 8 個 failure 對應已核准缺口：`Python測試實務` 尚不存在、Registry route 缺失、README/AI08/release 尚未納入，以及 isolation/validation-authority/mock/skip contract 尚未有 Skill 實體承接。
 - 這是 requirement RED，不是 setup/import/harness failure。
 
-## GREEN / final acceptance pending
+## GREEN / final acceptance evidence
 
-Implementation candidate 必須在單一 commit 同步 Skill、README、Registry、AI08、release manifest 與本 evidence；remote QA 鎖定該 `head_sha + run_id` 到 terminal。GREEN 後才可刪除 one-shot workflow、反讀 404、做 tested-head → cleaned-head drift audit。
+- implementation commit / tested head: `69a14cec7b3ffa566c861346a9f4cbca925261f7`。
+- final acceptance run: `34599710352` → **SUCCESS**。
+- Knowledge Preflight：`寫技能`、`Python測試實務`、`phase6-release-packaging`、`monitoring-remote-qa` 全部 PASS；required references 全部 PASS。
+- focused + project guards：**59 passed / 0 failed / 0.51s**。
+- `config.ini` before / after SHA256 均為 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`。
+- `git diff --exit-code` PASS。
+- remote re-read 已確認 `.agents/skills/engineering/Python測試實務/SKILL.md` 的中文 identity、pytest mechanics responsibility、isolation、one-way validation authority、real-seam mocking boundary、SKIP/PASS 與 focused/final acceptance 邊界。
+- Registry 已反讀確認 `python-testing-practices → Python測試實務`；AI08 與 release manifest 亦已反讀確認 durable 納入。
+
+## Temporary QA cleanup
+
+- temporary workflow cleanup commit: `54d1d36974e0960912f2a9f2c84340ebdba6f177`。
+- cleanup 後 branch Actions listing 仍為原本 **3 runs**；沒有 cleanup accidental rerun。
+- `.github/workflows/python-testing-practices-skill-qa-20260911.yml` 在 cleanup commit 遠端 re-read → **404 Not Found**。
+- evidence 不在 workflow path trigger，因此本 final evidence update 不會產生額外 QA run。
+
+## Final drift policy
+
+- tested head：`69a14cec7b3ffa566c861346a9f4cbca925261f7`。
+- cleaned head 只可比 tested head 多：temporary workflow removal + 本 evidence terminal/cleanup 記錄。
+- 不允許 Skill / Registry / tests / AI Library / release policy 在 GREEN 後發生未驗證 drift。
