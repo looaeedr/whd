@@ -26,7 +26,7 @@ READ_PROJECT_RULES: AGENTS.md
 ## Combined Acceptance matrix
 
 1. Evidence-backed Phase6 Knowledge Preflight for UI redesign + release + remote QA acceptance.
-2. `python3 tests/test_ui_design_de_ai_skill_contract.py` for exact R1–R6 result.
+2. `python tests/test_ui_design_de_ai_skill_contract.py` for exact R1–R6 result.
 3. Project Skill/governance guards:
    - `tests/test_chinese_skill_identity_contract.py`
    - `tests/test_writing_skill_contract.py`
@@ -44,9 +44,20 @@ READ_PROJECT_RULES: AGENTS.md
 6. On terminal GREEN: remote readback, one-shot workflow/sentinel cleanup, 404 proof, tested-head→cleaned-head drift audit.
 7. Fourth-batch accepted base→fifth-batch final scope audit and production/final topology audit.
 
-## Bootstrap state
+## First Combined run — harness failure, not product failure
 
-- T3 Preflight: PENDING remote run.
-- Combined Acceptance: PENDING remote run.
-- Temporary QA cleanup: PENDING.
+- locked run: `34611424136 @ 3195a0f76d74f2069c14b14449e0c6757460b425`.
+- Phase6 Knowledge Preflight: PASS; required Skills `UI設計與去AI味`, `phase6-release-packaging`, `monitoring-remote-qa`; required references AI06, AI08, release manifest all PASS.
+- Fifth-batch R1–R6 contract: `11 passed / 0 failed`.
+- Project-guard step did not collect tests because runner returned `/usr/bin/python3: No module named pytest`.
+- `config.ini` before/after remained canonical `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`; clean-tree guard PASS.
+- Failure classification: QA harness/runtime provisioning failure. No project guard reported a test failure.
+- Same-repo working workflow `.github/workflows/receiving-divider-broader-acceptance.yml` provisions Python then installs pytest before pytest guards. Replacement run changes only the temporary QA harness to provision `pytest`; formal test scope is unchanged.
+
+## Current state
+
+- T3 Preflight: GREEN on first run.
+- Fifth-batch formal contract: GREEN on first run.
+- Project guards: PENDING replacement run because first runner lacked pytest runtime.
+- Temporary QA cleanup: PENDING terminal replacement run.
 - Integration readiness: PENDING final scope/topology audit.
