@@ -1,0 +1,26 @@
+name: qa-skill-issue-closure-contract-20260911
+
+on:
+  push:
+    branches:
+      - docs/skill-issue-closure-gate-20260911
+    paths:
+      - 'tests/test_issue_closure_completion_skill_contract.py'
+      - '.agents/skills/engineering/派工/SKILL.md'
+      - '.agents/skills/engineering/拆解任務工單/SKILL.md'
+      - '.agents/skills/engineering/phase6-release-packaging/SKILL.md'
+      - '.github/workflows/qa-skill-issue-closure-contract-20260911.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run issue-closure Skill contract
+        run: pytest -q tests/test_issue_closure_completion_skill_contract.py
