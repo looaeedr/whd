@@ -15,10 +15,20 @@ READ_SKILL: 寫技能
 READ_SKILL: resolving-merge-conflicts
 READ_SKILL: phase6-release-packaging
 READ_SKILL: monitoring-remote-qa
+READ_SKILL: phase6-corner-3d-model-integrity
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 READ_EVIDENCE: docs/superpowers/verification/2026-09-11-issue117-ui-design-combined-acceptance.md
+
+## Preflight correction loop
+
+- First integration Preflight run `34613142498 @ dd6b76ae31de8b84f2b0e1c56072f8df0f258866` fail-closed before merge.
+- Missing evidence was exactly `phase6-corner-3d-model-integrity` plus `README_母規則說明.md`, `certified_relief_rules.json`, and `phase6_assembly_relief_pitfalls.md`.
+- Those current-production sources were read and are now recorded above; no accepted payload merge occurred before this correction.
 
 ## Planned accepted payload
 
@@ -41,7 +51,7 @@ Existing production-only governance/source changes must be preserved; conflicts 
 
 ## State
 
-- Integration Preflight: PENDING.
+- Integration Preflight: RETRY PENDING after evidence completion.
 - Accepted payload merge: NOT STARTED.
 - Integrated Combined Acceptance: PENDING.
 - Production update: NOT STARTED.
