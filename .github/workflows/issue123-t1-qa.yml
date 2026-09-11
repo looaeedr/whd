@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  t1:
+  t1-final-qa:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,159 +22,129 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install focused test dependency
-        run: python -m pip install pytest
+      - name: Install runtime and QA dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb scrot tk
+          python -m pip install pytest pillow -r requirements.txt
 
-      - name: Prove intended RED before production patch
+      - name: Final changed-file preflight
         shell: bash
         run: |
-          set +e
-          python -m pytest -q tests/test_issue123_ui_foundation.py 2>&1 | tee /tmp/issue123-red.log
-          rc=${PIPESTATUS[0]}
-          set -e
-          if [ "$rc" -ne 1 ]; then
-            echo "Expected assertion RED (rc=1), got rc=$rc"
-            exit 1
-          fi
-          grep -F "_project_toolbar_presentation must exist" /tmp/issue123-red.log
-          echo "RED_CONFIRMED expected_missing_toolbar_contract"
+          cat > /tmp/issue123-evidence.txt <<'EOF'
+          UI設計與去AI味
+          Python測試實務
+          驗證板件與DXF
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #123 T1 UI foundation final QA and visual acceptance" \
+            --changed-file gui.py \
+            --changed-file tests/test_issue123_ui_foundation.py \
+            --changed-file .github/workflows/issue123-t1-qa.yml \
+            --evidence /tmp/issue123-evidence.txt
 
-      - name: Apply minimal T1 engineering-toolbar patch
-        shell: python
-        run: |
-          from pathlib import Path
-          import textwrap
-
-          path = Path('gui.py')
-          text = path.read_text(encoding='utf-8')
-
-          helper_anchor = 'def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):\n'
-          helper = textwrap.dedent('''\
-          def _project_toolbar_presentation():
-              """Pure presentation contract for the compact engineering workbench header."""
-              return {
-                  "actions": (
-                      ("open", "開啟專案", "secondary"),
-                      ("save", "儲存專案", "primary"),
-                      ("save_as", "另存新檔", "secondary"),
-                  ),
-                  "primary_action": "save",
-                  "toolbar_padx": 10,
-                  "toolbar_pady": 4,
-                  "button_padx": 8,
-                  "button_pady": 2,
-                  "title": "WHD｜箱體板金工程工作台",
-                  "subtitle": "專案・板件・圖面・製造輸出",
-              }
-
-
-          ''')
-          if 'def _project_toolbar_presentation():' not in text:
-              if helper_anchor not in text:
-                  raise SystemExit('helper anchor not found')
-              text = text.replace(helper_anchor, helper + helper_anchor, 1)
-
-          start_marker = '    def create_widgets(self):\n'
-          end_marker = '        # 主內容區域 (左右分欄)\n'
-          start = text.find(start_marker)
-          if start < 0:
-              raise SystemExit('create_widgets start marker not found')
-          end = text.find(end_marker, start)
-          if end < 0:
-              raise SystemExit('create_widgets main-content marker not found')
-
-          body = textwrap.dedent('''\
-          # Compact CAD-style workbench header. Project callbacks and text-scale
-          # authority stay unchanged; only presentation hierarchy/density changes.
-          toolbar_spec = _project_toolbar_presentation()
-          self.project_toolbar_shell = tk.Frame(
-              self.root, bg=self.COLOR_PANEL, bd=1, relief=tk.SOLID
-          )
-          self.project_toolbar_shell.pack(
-              fill=tk.X,
-              padx=toolbar_spec["toolbar_padx"],
-              pady=(toolbar_spec["toolbar_pady"], 2),
-          )
-
-          self.project_toolbar = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
-          self.project_toolbar.pack(side=tk.LEFT, padx=(6, 10), pady=3)
-
-          secondary_button_opts = dict(
-              font=('Microsoft JhengHei', 9),
-              bg=self.COLOR_INPUT_BG, fg=self.COLOR_TEXT,
-              activebackground=self.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
-              bd=1, relief=tk.SOLID, cursor="hand2",
-              padx=toolbar_spec["button_padx"], pady=toolbar_spec["button_pady"],
-          )
-          primary_button_opts = dict(
-              font=('Microsoft JhengHei', 9, 'bold'),
-              bg=self.COLOR_ACCENT, fg="#ffffff",
-              activebackground=self.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
-              bd=1, relief=tk.SOLID, cursor="hand2",
-              padx=toolbar_spec["button_padx"], pady=toolbar_spec["button_pady"],
-          )
-
-          self.project_open_button = tk.Button(
-              self.project_toolbar, text="開啟專案", command=self.open_phase6_project,
-              **secondary_button_opts
-          )
-          self.project_open_button.pack(side=tk.LEFT, padx=(0, 4))
-          self.project_save_button = tk.Button(
-              self.project_toolbar, text="儲存專案", command=self.save_phase6_project,
-              **primary_button_opts
-          )
-          self.project_save_button.pack(side=tk.LEFT, padx=(0, 4))
-          self.project_save_as_button = tk.Button(
-              self.project_toolbar, text="另存新檔", command=self.save_phase6_project_as,
-              **secondary_button_opts
-          )
-          self.project_save_as_button.pack(side=tk.LEFT)
-
-          identity_frame = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
-          identity_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 8), pady=3)
-          tk.Label(
-              identity_frame, text=toolbar_spec["title"],
-              bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
-              font=('Microsoft JhengHei', 10, 'bold'), anchor=tk.W,
-          ).pack(anchor=tk.W)
-          tk.Label(
-              identity_frame, text=toolbar_spec["subtitle"],
-              bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
-              font=('Microsoft JhengHei', 8), anchor=tk.W,
-          ).pack(anchor=tk.W)
-
-          text_size_frame = tk.Frame(self.project_toolbar_shell, bg=self.COLOR_PANEL)
-          text_size_frame.pack(side=tk.RIGHT, padx=(8, 8), pady=3)
-          tk.Label(
-              text_size_frame, text="文字大小", bg=self.COLOR_PANEL,
-              fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9)
-          ).pack(side=tk.LEFT, padx=(0, 4))
-          self.ui_text_size_combo = ttk.Combobox(
-              text_size_frame, textvariable=self.ui_text_size_var,
-              values=tuple(UI_TEXT_SIZE_LABELS.values()), state="readonly", width=4,
-          )
-          self.ui_text_size_combo.pack(side=tk.LEFT)
-          self.ui_text_size_combo.bind("<<ComboboxSelected>>", self.on_ui_text_size_changed)
-
-          ''')
-          replacement = '    def create_widgets(self):\n' + textwrap.indent(body, '        ')
-          text = text[:start] + replacement + text[end:]
-          path.write_text(text, encoding='utf-8')
-
-      - name: GREEN focused regression
+      - name: Focused contract and syntax regression
         run: |
           python -m py_compile gui.py
           python -m pytest -q tests/test_issue123_ui_foundation.py
 
-      - name: Commit production patch to issue branch
+      - name: Xvfb launch and toolbar runtime acceptance
         shell: bash
         run: |
-          if git diff --quiet -- gui.py; then
-            echo "No gui.py diff to commit"
-            exit 1
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add gui.py
-          git commit -m "fix: compact issue 123 engineering project toolbar"
-          git push origin HEAD:work/issue-123-ui-foundation
+          cat > /tmp/issue123_runtime.py <<'PY'
+          import tkinter as tk
+          from pathlib import Path
+          import gui
+
+          root = tk.Tk()
+          root.geometry("1440x900+0+0")
+          app = gui.BoxCalculatorGUI(root)
+          root.update_idletasks()
+          root.update()
+
+          required = (
+              "project_toolbar_shell",
+              "project_toolbar",
+              "project_open_button",
+              "project_save_button",
+              "project_save_as_button",
+              "ui_text_size_combo",
+          )
+          for name in required:
+              widget = getattr(app, name, None)
+              assert widget is not None, name
+              assert widget.winfo_exists(), name
+              assert widget.winfo_viewable(), name
+
+          assert app.project_open_button.cget("text") == "開啟專案"
+          assert app.project_save_button.cget("text") == "儲存專案"
+          assert app.project_save_as_button.cget("text") == "另存新檔"
+          assert app.project_save_button.cget("background") == app.COLOR_ACCENT
+          assert app.project_open_button.cget("background") != app.COLOR_ACCENT
+          assert app.project_save_as_button.cget("background") != app.COLOR_ACCENT
+
+          shell_h = app.project_toolbar_shell.winfo_height()
+          assert 1 < shell_h < 90, shell_h
+          assert app.project_toolbar_shell.winfo_width() > 600
+
+          for label in ("小", "中", "大"):
+              app.ui_text_size_var.set(label)
+              app.on_ui_text_size_changed()
+              root.update_idletasks()
+              root.update()
+              assert app.project_open_button.winfo_viewable()
+              assert app.project_save_button.winfo_viewable()
+              assert app.project_save_as_button.winfo_viewable()
+              assert app.ui_text_size_combo.winfo_viewable()
+              assert app.project_toolbar_shell.winfo_height() < 110
+
+          root.geometry("1024x720+0+0")
+          root.update_idletasks()
+          root.update()
+          assert app.project_toolbar_shell.winfo_width() > 700
+          assert app.project_save_button.winfo_viewable()
+          assert app.ui_text_size_combo.winfo_viewable()
+
+          Path("/tmp/issue123-runtime-ok.txt").write_text(
+              f"toolbar={app.project_toolbar_shell.winfo_width()}x{app.project_toolbar_shell.winfo_height()}\n",
+              encoding="utf-8",
+          )
+          root.after(2500, root.destroy)
+          root.mainloop()
+          PY
+          xvfb-run -a -s "-screen 0 1600x1000x24" bash -c '
+            python /tmp/issue123_runtime.py &
+            pid=$!
+            sleep 1.5
+            scrot /tmp/issue123-toolbar.png
+            wait $pid
+          '
+          test -s /tmp/issue123-toolbar.png
+          cat /tmp/issue123-runtime-ok.txt
+
+      - name: Scope and invariant guard
+        shell: bash
+        run: |
+          git fetch origin cleanup/2d-3d-sync
+          git diff --name-only origin/cleanup/2d-3d-sync...HEAD | sort > /tmp/changed.txt
+          cat /tmp/changed.txt
+          cat > /tmp/allowed.txt <<'EOF'
+          .github/workflows/issue123-t1-qa.yml
+          gui.py
+          tests/test_issue123_ui_foundation.py
+          EOF
+          diff -u /tmp/allowed.txt /tmp/changed.txt
+          ! grep -Eq '^(config\.ini|基準檔/)' /tmp/changed.txt
+
+      - name: Upload visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue123-t1-visual-evidence
+          path: |
+            /tmp/issue123-toolbar.png
+            /tmp/issue123-runtime-ok.txt
+          if-no-files-found: error
