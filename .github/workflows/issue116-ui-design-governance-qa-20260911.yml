@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  preflight:
+  contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -32,6 +32,8 @@ jobs:
             --changed-file 'docs/superpowers/verification/2026-09-11-issue116-ui-design-governance.md' \
             --changed-file '.github/workflows/issue116-ui-design-governance-qa-20260911.yml' \
             --evidence 'docs/superpowers/verification/2026-09-11-issue116-ui-design-governance.md'
+      - name: T1 + T2 contract R1-R6
+        run: python3 tests/test_ui_design_de_ai_skill_contract.py
       - name: Verify config invariant
         if: always()
         run: |
