@@ -171,3 +171,19 @@ WHD canonical path：`.agents/skills/engineering/尺寸語意分析/SKILL.md`。
 - 此 Skill **只能分析與驗證**。Finding 可以指出 mismatch 或缺少 conversion，但**不能回灌 production**、不能從差值發明 offset / formula、不能把 collision/test result 升格成 Source of Truth。
 - upstream `dimensional-analysis` 的固定 `full-auto` / Task-subagent pipeline 不適合作為 WHD 硬依賴。每輪先偵測 capability：有真 subagent/parallel runtime 才可分工；沒有就由**同一執行者**逐階段完成，**不得假裝**派工或等待不存在的 agent。
 - machine guard：`tests/test_fourth_batch_skills_contract.py`。
+
+## 2026-09-11 第五批：UI設計與去AI味
+
+WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`。
+
+- `UI設計與去AI味` 是 WHD 的 UI visual design / information hierarchy / existing-UI de-AI audit 與安全 rewrite authority；它**不取代** product、geometry、manufacturing、Save→Reload、2D/3D、DXF 或 domain semantics authority。
+- WHD 是 **Python Tkinter / ttk engineering desktop app**。外部 `frontend-design` 與 `avoid-ai-design` **只作 input / 輸入參考**，不得把 React / Tailwind / shadcn、Web hero 或 mobile-first 假設變成 WHD hard dependency，也不建立第二套 canonical UI Skill。
+- 核心順序是 **functionality > aesthetics**。`visual simplification` 不得變成 `semantic simplification`；callback、selection/project state、editable/readonly、Save→Reload、2D/3D、manufacturing、geometry authority、keyboard/accessibility/scroll 都必須保留。
+- 正式 Rewrite 禁止暴力**全域** style / presentation Search/Replace；最小施工單位是可獨立驗證的 widget / panel / dialog / toolbar / sidebar / workspace region，固定走「讀元件 → 功能 contract → 修改單一區域 → render/inspect（若有）→ functional check → layout regression → 才進下一區域」。
+- 去 AI 味不是灰階化。既有有語意的 Brand / **Action Color**、selection、active、warning、error、success、focus 必須保留其角色，不能因 anti-AI cleanup 全部拔色。
+- `monospace` 只用在有理由的尺寸、座標、數值表格、ID 等資料區；每次都檢查 `width`、clipping、換行、DPI、dialog/table/control layout，避免工程感字型把畫面撐破。
+- `shadow` / border / gradient / round corner / **elevation** 本身不是 AI 味；Modal / Dropdown / Toast 等 foreground surface 必須保留足夠深度。若移除 gradient/glow/blur/heavy shadow，必須用 restrained border / 1px divider / surface tone / spacing / alignment 等補回 hierarchy。
+- 現行 text scale 是小 `1.0`、中 `1.2`、大 `1.4`；三種都必須維持 required controls 可見或可 scroll 到，不能只在小字正常。
+- 有真 GUI / screenshot / Xvfb 才能宣告 visual acceptance；沒有 visual runtime 時只能標 `inferred` / `visual acceptance pending`，**不得假裝**看過畫面或已完成視覺驗收。
+- Audit mode 是 read-only；already-good UI 可以 `keep / 不修改`。成功不是改得多，而是只修改有產品、層級或操作理由的地方。
+- machine guard：`tests/test_ui_design_de_ai_skill_contract.py`。
