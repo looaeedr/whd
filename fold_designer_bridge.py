@@ -2298,6 +2298,10 @@ def _phase6_on_baseline_model_changed(self, *_args):
     if hasattr(self, "bend_ui"):
         self.bend_ui._phase6_refresh_symmetry_bar()
     _phase6_sync_authoritative_derived_parts(self)
+    # A live Cabinet Family switch can change the authoritative physical-part
+    # topology while Corner Data is already open. Refresh that navigation in
+    # the same transaction so Receiving multipart children appear immediately.
+    _phase6_refresh_corner_data_parts_panel(self)
     refresh_parts = getattr(self, "_refresh_part_buttons", None)
     if callable(refresh_parts) and getattr(self, "part_choice_menu", None) is not None:
         refresh_parts()
@@ -8758,6 +8762,7 @@ def _phase6_prepare_corner_data_canvas(self):
         info_label = original.ttk.Label(
             mpl_widget.master, textvariable=self.corner_data_info_var,
             justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,
+            font=("Microsoft JhengHei", 11, "bold"),
         )
         self.corner_data_info_label = info_label
     if not alive:
@@ -9348,6 +9353,13 @@ def _fix11_activate_part(self, key, initial=False):
     if key not in self.designer_workspace.available_parts:
         return
     _phase6_hide_corner_data_canvas(self)
+    corner_data_panel = getattr(self, "corner_data_panel", None)
+    if corner_data_panel is not None:
+        try:
+            if corner_data_panel.winfo_manager():
+                corner_data_panel.pack_forget()
+        except Exception:
+            pass
     if _phase6_is_box_body_physical_piece_key(key):
         self._phase6_box_body_active_piece_key = str(key)
     before_signature = None

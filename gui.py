@@ -4293,8 +4293,12 @@ class BoxCalculatorGUI:
         cw = max(1, int(canvas.winfo_width()))
         ch = max(1, int(canvas.winfo_height()))
         bounds = tuple(float(v) for v in material.bounds)
+        # Corner Data already owns a readable operator-info row above this
+        # canvas, so it does not need the large generic 2D annotation band.
+        # Keep side/bottom dimension channels unchanged; only reclaim vertical
+        # preview space for the authoritative unfolded material.
         transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
-            bounds, cw, ch
+            bounds, cw, ch, top_gutter=64.0
         )
         render_drawing_scene(
             canvas, scene, transform, skip_layers=("CHECK", "STOCK")
@@ -4302,7 +4306,8 @@ class BoxCalculatorGUI:
         _draw_phase6_annotation_projection(
             canvas, render_data, transform, part_key=key
         )
-        self._draw_phase6_finished_dimension_summary(canvas, part_key=key)
+        # Finished dimensions are already present in the Corner Data info row;
+        # drawing them again inside the canvas wastes the vertical viewport.
         draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}))
 
         warning_rows = tuple(
