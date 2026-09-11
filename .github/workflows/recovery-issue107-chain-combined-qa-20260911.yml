@@ -50,10 +50,19 @@ jobs:
             --evidence /tmp/issue112-preflight-evidence.txt
       - name: Skill repair changed-file Preflight hard gate
         run: |
+          cat > /tmp/skill-repair-preflight-evidence.txt <<'EOF'
+          寫技能
+          派工
+          phase6-release-packaging
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
           python tools/phase6_skill_preflight.py \
             --task '修復既有 durable contract：派工 remote QA required sub-skill 與拆解任務工單 RED-first wording' \
             --changed-file '.agents/skills/engineering/派工/SKILL.md' \
             --changed-file '.agents/skills/engineering/拆解任務工單/SKILL.md' \
-            --evidence 'docs/superpowers/verification/2026-09-11-second-batch-skills.md'
+            --evidence /tmp/skill-repair-preflight-evidence.txt
       - name: Preflight terminal marker
         run: echo 'RECOVERY_CHANGED_FILE_PREFLIGHT=PASS'
