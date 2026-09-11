@@ -149,6 +149,34 @@
       ]
     },
     {
+      "id": "ui-design-de-ai",
+      "keywords": [
+        "UI設計",
+        "UI",
+        "UX",
+        "去AI味",
+        "AI味",
+        "AI slop",
+        "不像AI",
+        "介面設計",
+        "介面重整",
+        "視覺層級",
+        "layout",
+        "typography",
+        "UI audit",
+        "frontend design"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/UI設計與去AI味/**"
+      ],
+      "required_skills": [
+        "UI設計與去AI味"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+      ]
+    },
+    {
       "id": "dispatching-workflow",
       "keywords": [
         "派工",
