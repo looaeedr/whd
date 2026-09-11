@@ -106,7 +106,9 @@
       "required_skills": [
         "issue-closure-gate"
       ],
-      "required_references": []
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md"
+      ]
     },
     {
       "id": "scan-deep-modules",
@@ -242,8 +244,7 @@
         "AGENTS.md"
       ],
       "required_skills": [
-        "phase6-release-packaging",
-        "issue-closure-gate"
+        "phase6-release-packaging"
       ],
       "required_references": [
         "release_required_artifacts.json"

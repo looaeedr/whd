@@ -5,6 +5,7 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 CLOSURE = ROOT / ".agents" / "skills" / "engineering" / "issue-closure-gate" / "SKILL.md"
 REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
+PITFALL = "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md"
 
 
 def _text(path: Path) -> str:
@@ -22,6 +23,7 @@ def test_issue_closure_skill_separates_code_integration_from_process_completion(
         "state_reason=completed",
         "code integrated, process incomplete",
         "不得回報正式完成",
+        PITFALL,
     ):
         assert required in text
 
@@ -53,15 +55,16 @@ def test_issue_closure_skill_requires_explicit_closure_ownership():
         assert required in text
 
 
-def test_registry_routes_dispatch_release_and_closure_to_issue_closure_gate():
+def test_registry_routes_dispatch_and_completion_to_issue_closure_gate_without_overrouting_plain_release():
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
     routes = {item["id"]: item for item in registry["routes"]}
 
     assert "issue-closure-gate" in routes
     assert "issue-closure-gate" in routes["dispatching-workflow"]["required_skills"]
-    assert "issue-closure-gate" in routes["phase6-release-packaging"]["required_skills"]
+    assert "issue-closure-gate" not in routes["phase6-release-packaging"]["required_skills"]
 
     closure_route = routes["issue-closure-gate"]
     assert "issue-closure-gate" in closure_route["required_skills"]
+    assert PITFALL in closure_route["required_references"]
     keywords = set(closure_route["keywords"])
     assert {"關單", "關議題", "Master issue", "Final Combined", "production integration"} <= keywords
