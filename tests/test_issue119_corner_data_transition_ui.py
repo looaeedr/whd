@@ -51,6 +51,28 @@ def test_live_family_switch_refreshes_corner_data_navigation_in_same_transaction
     assert "_phase6_refresh_corner_data_parts_panel" in _named_calls(node)
 
 
+def test_corner_data_info_label_has_readable_base_font():
+    node = _function(BRIDGE, "_phase6_prepare_corner_data_canvas")
+    label_calls = [
+        call
+        for call in ast.walk(node)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Attribute)
+        and isinstance(call.func.value, ast.Attribute)
+        and isinstance(call.func.value.value, ast.Name)
+        and call.func.value.value.id == "original"
+        and call.func.value.attr == "ttk"
+        and call.func.attr == "Label"
+    ]
+    assert label_calls
+    fonts = [kw.value for call in label_calls for kw in call.keywords if kw.arg == "font"]
+    assert fonts, "Corner Data info label needs an explicit readable base font"
+    font = fonts[0]
+    assert isinstance(font, (ast.Tuple, ast.List)) and len(font.elts) >= 2
+    assert isinstance(font.elts[1], ast.Constant)
+    assert float(font.elts[1].value) >= 11.0
+
+
 def test_corner_data_renderer_uses_compact_viewport_reserved_space():
     node = _function(GUI, "_render_fold_designer_corner_data_view")
     viewport_calls = [
