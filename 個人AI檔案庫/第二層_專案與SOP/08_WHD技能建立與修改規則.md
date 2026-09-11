@@ -147,3 +147,27 @@ WHD canonical path：`.agents/skills/engineering/Python測試實務/SKILL.md`。
 - **focused GREEN 不等於 final acceptance**；專案若另要求 `驗證板件與DXF`、release gate 或其他 final acceptance，仍必須完成。
 - coverage 只表示 code path 被執行；不得把外部範例的任意門檻（例如 80%）直接變成 WHD 硬規則。
 - machine guard：`tests/test_python_testing_practices_skill_contract.py`。
+
+## 2026-09-11 第四批：性質導向測試與尺寸語意分析
+
+### `性質導向測試`
+
+WHD canonical path：`.agents/skills/engineering/性質導向測試/SKILL.md`。
+
+- 責任是 property / invariant 設計、generator strategy、shrinking 與 counterexample classification；不取代 `Python測試實務` 的 pytest mechanics，也不取代 `tdd` / `diagnosing-bugs`。
+- 優先使用有獨立 authority 的 roundtrip、inverse、oracle、idempotence、invariant 等 property，並選擇能真正排除錯誤的最強 property。
+- 禁止 tautology 與 vacuity：不要用同一 production formula 重算 expected，也不要靠大量 `assume()` 把有效輸入全部濾掉；constraints 優先編碼進 generator strategy。
+- Hypothesis / PBT library 是 capability/dependency；專案未安裝時不得假裝存在，新增 dependency 必須經專案／使用者決策。
+- shrunk counterexample 必須先分類成 property 錯、spec ambiguous、strategy 過寬或真 code bug；在 authority 未釐清前不能把 counterexample 寫成 canonical expected。
+- property、counterexample、fixture、seed 與 probe 都屬 validation evidence，**不能回灌 production**，也不能建立新的 Source of Truth。
+
+### `尺寸語意分析`
+
+WHD canonical path：`.agents/skills/engineering/尺寸語意分析/SKILL.md`。
+
+- WHD 尺寸除了物理 unit（常見為 mm）還要追 semantic dimension；同為 `29 mm`，`{FW_formed}`、`{material_length}`、`{formed_outside_length}` 仍可能完全不相容。
+- canonical vocabulary 至少區分 `{material_length}`、`{formed_outside_length}`、`{FW_formed}`、`{sheet_thickness}`、`{flat_relief_length}`、`{collision_envelope}`、`{datum_offset}`。
+- 料尺寸、包外、flat、formed、FW、T/2T、datum offset 與 collision envelope 不可因數字相近就互換；跨語意轉換必須有獨立 conversion authority。
+- 此 Skill **只能分析與驗證**。Finding 可以指出 mismatch 或缺少 conversion，但**不能回灌 production**、不能從差值發明 offset / formula、不能把 collision/test result 升格成 Source of Truth。
+- upstream `dimensional-analysis` 的固定 `full-auto` / Task-subagent pipeline 不適合作為 WHD 硬依賴。每輪先偵測 capability：有真 subagent/parallel runtime 才可分工；沒有就由**同一執行者**逐階段完成，**不得假裝**派工或等待不存在的 agent。
+- machine guard：`tests/test_fourth_batch_skills_contract.py`。
