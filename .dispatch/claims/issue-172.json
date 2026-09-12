@@ -6,8 +6,8 @@
   "owner": "chatgpt-gpt-5.6-sol",
   "generation": 1,
   "claimed_at": "2026-09-12T18:58:48Z",
-  "last_update": "2026-09-12T18:58:48Z",
-  "phase": "INTEGRATION_PREP",
+  "last_update": "2026-09-12T18:59:30Z",
+  "phase": "PREFLIGHT",
   "branch": "integrate/issue172-claim-progress-20260913",
   "base_sha": "73963150dbf121fc50010e4285d6c1679b496e28",
   "head_sha": "73963150dbf121fc50010e4285d6c1679b496e28",
@@ -16,7 +16,7 @@
     "head_sha": null,
     "status": "none"
   },
-  "next_action": "Port the accepted #172 Skill, permanent contract, AI Library, and pitfall durable diff onto the fresh integration branch.",
+  "next_action": "Run changed-file Knowledge Preflight on the fresh integration branch before porting the accepted #172 durable diff.",
   "blocker": null,
   "checkpoint": "issue172 work branch closing head 553c432e187396c940a164989fcd8d4b38a3b9a9"
 }
