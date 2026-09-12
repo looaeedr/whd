@@ -1,0 +1,88 @@
+name: Issue 127 R2 Implement GREEN
+on:
+  push:
+    branches: [work/issue-127-ui-surfaces-scale-scroll-20260912-r2]
+    paths:
+      - .github/workflows/issue127-r2-implement.yml
+permissions:
+  contents: write
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock latest production and untouched owners
+        shell: bash
+        run: |
+          git fetch origin cleanup/2d-3d-sync
+          BASE=17741535032ed2158e524425af1ffacb89698c7b
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+          git diff --quiet "$BASE" -- phase6_settings_panel.py fold_designer_bridge.py
+      - name: Snapshot protected invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.before
+      - name: Apply deterministic presentation patch
+        run: python tools/issue127_r2_apply_patch.py
+      - name: Compile touched files
+        run: python -m py_compile phase6_settings_panel.py fold_designer_bridge.py tests/test_issue127_surfaces_scale_scroll.py
+      - name: Build preflight evidence
+        run: |
+          cat > /tmp/evidence.md <<'EOF'
+          UI設計與去AI味
+          執行開發任務
+          phase6-gui-performance-integrity
+          phase6-corner-3d-model-integrity
+          Python測試實務
+          性質導向測試
+          diagnosing-bugs
+          tdd
+          驗證板件與DXF
+          monitoring-remote-qa
+          派工
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          EOF
+      - name: Phase6 changed-file preflight GREEN
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "#127 R2 GREEN：Dropdown/Floating/Status/Scroll presentation-only；Status 只讀 authoritative cabinet/part/view；文字倍率固定 1.0/1.2/1.4；不新增 domain state/cache，不改 geometry/projection/manufacturing/DXF/config/baseline" \
+            --changed-file phase6_settings_panel.py \
+            --changed-file fold_designer_bridge.py \
+            --evidence /tmp/evidence.md
+      - name: Install GUI runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Focused GREEN
+        shell: bash
+        run: |
+          xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue127_surfaces_scale_scroll.py 2>&1 | tee /tmp/green.log
+          grep -E '6 passed' /tmp/green.log
+      - name: Protected invariant postcheck
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          git diff --check
+      - name: Commit production only after GREEN
+        shell: bash
+        run: |
+          git config user.name 'WHD QA Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add phase6_settings_panel.py fold_designer_bridge.py
+          git commit -m 'feat(#127): refine UI foreground status and scroll reachability'
+          git push origin HEAD:work/issue-127-ui-surfaces-scale-scroll-20260912-r2
