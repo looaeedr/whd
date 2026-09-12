@@ -1,15 +1,12 @@
-name: Issue 150 User-visible CHECKPOINT Gate
+name: Issue 150 User-visible CHECKPOINT Gate GREEN
 on:
   push:
     branches: [fix/issue150-user-visible-checkpoint-gate-20260912]
-    paths:
-      - .github/workflows/issue150-checkpoint-gate.yml
-      - tests/process/test_checkpoint_resume_contract.py
-      - .agents/skills/engineering/執行開發任務/SKILL.md
+    paths: [.github/workflows/issue150-checkpoint-gate.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  contract:
+  green:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -42,19 +39,59 @@ jobs:
             --changed-file tests/process/test_checkpoint_resume_contract.py \
             --changed-file .github/workflows/issue150-checkpoint-gate.yml \
             --evidence /tmp/evidence.md
-      - name: Install test runtime
-        run: python -m pip install -q pytest
-      - name: RED must be exact user-visible checkpoint failure
+      - name: Exact production base
         shell: bash
         run: |
-          set +e
-          python -m pytest -q tests/process/test_checkpoint_resume_contract.py > /tmp/red.log 2>&1
-          rc=$?
-          set -e
-          cat /tmp/red.log
-          test "$rc" -ne 0
-          grep -F 'test_checkpoint_must_be_user_visible_with_fixed_heading' /tmp/red.log
-          grep -F 'USER_VISIBLE_CHECKPOINT_GATE' /tmp/red.log
-          grep -F 'test_visible_checkpoint_refreshes_at_major_execution_transitions' /tmp/red.log
-          grep -F 'test_visible_checkpoint_never_replaces_progress_or_continuous_execution' /tmp/red.log
-          echo 'ISSUE150_RED=PROVEN'
+          git fetch origin cleanup/2d-3d-sync
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "407595d62c6586c2ab11a117db8b85193294bbd3"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "407595d62c6586c2ab11a117db8b85193294bbd3"
+      - name: Install test runtime
+        run: python -m pip install -q pytest
+      - name: Apply minimal user-visible checkpoint gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.agents/skills/engineering/執行開發任務/SKILL.md')
+          s = p.read_text(encoding='utf-8')
+          if 'USER_VISIBLE_CHECKPOINT_GATE' in s:
+              raise SystemExit('visible checkpoint gate already exists unexpectedly')
+          anchor = '\n## 4. 測試 timeout\n'
+          section = r'''
+#### USER_VISIBLE_CHECKPOINT_GATE
+
+Durable checkpoint 不只要存在於內部／repo 狀態；在需要跨 runtime 恢復或長流程重要轉折時，也必須讓使用者看得到。
+
+- system hard-cut 前的最後一個 user-visible update 必須使用固定標題 `CHECKPOINT`，不得只留一般 progress update 或只在內部保存。
+- CHECKPOINT 至少顯示：`issue / task`、`role`、`branch + HEAD`、`production target`、`remote QA lock`、`completed / pending / failed / blocked`、`validation / invariant`、`temporary workflows / branches`、`next exact action`。
+- 長流程遇到重要 execution state transition 時刷新可見 checkpoint，至少包含 `RUNNING ↔ WAITING_REMOTE ↔ RECOVERING`、`branch / HEAD / production target` identity 改變、`remote QA lock acquired / terminal`、`accepted slice / major checkpoint`。不需要把每個 30 秒 observation 都升格成 checkpoint。
+- progress update 不得冒充 checkpoint；一般進度回報仍依 cadence 執行，但不能因此取代 durable/user-visible checkpoint。
+- 可見 checkpoint 不能成為正常停工點；`non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action`。只有 genuine BLOCKED、evidence-backed COMPLETE 或實際 system hard-cut 才能離開正常執行鏈。
+
+'''
+          if s.count(anchor) != 1:
+              raise SystemExit(f'checkpoint insertion anchor count={s.count(anchor)}')
+          p.write_text(s.replace(anchor, '\n' + section + '## 4. 測試 timeout\n', 1), encoding='utf-8')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = ".agents/skills/engineering/執行開發任務/SKILL.md"
+      - name: Contract GREEN
+        shell: bash
+        run: |
+          python -m pytest -q \
+            tests/process/test_checkpoint_resume_contract.py \
+            tests/process/test_continuous_execution_durable_contract.py \
+            tests/process/test_continuous_execution_state_contract.py \
+            tests/process/test_fail_recovery_contract.py \
+            tests/process/test_monitoring_remote_qa_turn_boundary_contract.py \
+            tests/process/test_no_fake_completion_contract.py \
+            tests/process/test_remote_qa_state_bridge_contract.py
+      - name: Commit Skill only after GREEN
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .agents/skills/engineering/執行開發任務/SKILL.md
+          test "$(git diff --cached --name-only)" = ".agents/skills/engineering/執行開發任務/SKILL.md"
+          git commit -m 'fix: make durable checkpoints user-visible'
+          git push origin HEAD:fix/issue150-user-visible-checkpoint-gate-20260912
