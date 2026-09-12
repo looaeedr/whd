@@ -17,6 +17,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: docs/issue172-multi-ai-claim-progress-20260913
+      - name: Fast-forward to latest branch tip
+        shell: bash
+        run: |
+          git pull --ff-only origin docs/issue172-multi-ai-claim-progress-20260913
       - name: Append durable rules once
         shell: bash
         run: |
@@ -88,8 +93,9 @@ jobs:
           git add -- '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
           if git diff --cached --quiet; then
             echo 'No writeback change needed.'
-          else
-            git diff --cached --check
-            git commit -m 'docs: record multi-ai claim progress contract'
-            git push origin HEAD:docs/issue172-multi-ai-claim-progress-20260913
+            exit 0
           fi
+          git diff --cached --check
+          git commit -m 'docs: record multi-ai claim progress contract'
+          git pull --rebase origin docs/issue172-multi-ai-claim-progress-20260913
+          git push origin HEAD:docs/issue172-multi-ai-claim-progress-20260913
