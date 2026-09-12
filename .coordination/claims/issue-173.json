@@ -5,10 +5,12 @@
   "work_branch": "docs/knowledge-authority-t1-20260913",
   "claimed_at": "2026-09-13T03:11:38+08:00",
   "base_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
-  "head_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-13T03:11:38+08:00",
+  "head_sha": "835a7188da072dcb5afa82699e58f0dbe27c15f9",
+  "phase": "RED",
+  "last_update": "2026-09-13T03:25:24+08:00",
   "remote_qa": null,
-  "next_action": "Run Knowledge Preflight and T1 RED for canonical authority uniqueness",
-  "blocker": null
+  "next_action": "Add permanent authority contract test and execute focused RED against current documentation state",
+  "blocker": null,
+  "checkpoint": ".scratch/knowledge-authority-t1/T1.state.md",
+  "journal": ".scratch/knowledge-authority-t1/T1.journal.jsonl"
 }
