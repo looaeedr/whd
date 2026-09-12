@@ -29,7 +29,21 @@ jobs:
       - name: Inspector focused Xvfb
         run: timeout 300s xvfb-run -a -s '-screen 0 1600x1000x24' python -m pytest -q tests/test_issue125_inspector_property_panel.py
       - name: UI persistence and authority regression
-        run: python -m pytest -q tests/test_settings_center.py tests/test_phase6_settings_panel.py tests/test_save_reload.py tests/test_dxf_export.py
+        run: |
+          timeout 600s xvfb-run -a -s '-screen 0 1600x1000x24' python -m pytest -q \
+            tests/test_phase6_settings_center.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_settings_center_gui_contract.py \
+            tests/test_phase6_settings_panel_ownership.py \
+            tests/test_phase6_settings_service.py \
+            tests/test_phase6_t08_ui_text_and_edge_selectors.py \
+            tests/test_phase6_t22_settings_vertical_scroll.py \
+            tests/test_phase6_project_file.py \
+            tests/test_dm6_save_reload_semantic_determinism.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_manufacturing_api.py \
+            tests/test_gui_manufacturing_adapter.py \
+            tests/test_resolved_manufacturing_bridge.py
       - name: Invariants
         run: |
           sha256sum config.ini > /tmp/config.after
