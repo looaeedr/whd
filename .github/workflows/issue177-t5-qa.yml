@@ -67,6 +67,10 @@ jobs:
             --evidence /tmp/issue177-evidence.txt
       - name: Run T5 classification contract
         run: python -m pytest -q tests/knowledge/test_skill_catalog_classification_contract.py
+      - name: Run machine Skill catalog scan
+        run: python tools/skill_catalog.py > /tmp/skill-catalog.json
+      - name: Run existing Skill identity and Preflight regressions
+        run: python -m pytest -q tests/test_chinese_skill_identity_contract.py tests/test_phase6_skill_preflight_gate.py
       - name: Verify protected invariants
         if: always()
         shell: bash
