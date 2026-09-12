@@ -1,0 +1,61 @@
+name: Issue 128 R2 Preflight
+
+on:
+  push:
+    branches:
+      - work/issue-128-combined-ui-acceptance-20260912-r2
+    paths:
+      - .github/workflows/issue128-r2-preflight.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          BASE=711194caac8e8f94d464f8abc4d82316f87edc93
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+      - name: Build evidence manifest
+        shell: bash
+        run: |
+          cat > /tmp/evidence.md <<'EOF'
+          UI設計與去AI味
+          執行開發任務
+          Python測試實務
+          性質導向測試
+          tdd
+          diagnosing-bugs
+          寫技能
+          phase6-release-packaging
+          驗證板件與DXF
+          monitoring-remote-qa
+          派工
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
+      - name: Phase6 planned changed-file preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "#128 Combined UI Acceptance + durable writeback；不新增 production 功能；#119 僅讀 terminal evidence；驗收 UI chain / parity / visual runtime / invariants；durable writeback 僅針對 invariant-manifest harness pitfall" \
+            --changed-file .agents/skills/engineering/UI設計與去AI味/SKILL.md \
+            --changed-file tests/process/test_issue128_invariant_manifest_contract.py \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md \
+            --evidence /tmp/evidence.md
