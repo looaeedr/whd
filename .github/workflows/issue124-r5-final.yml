@@ -1,0 +1,174 @@
+name: Issue 124 R5 Final Acceptance
+on:
+  push:
+    branches: [work/issue-124-replay-latest-20260912-r5]
+    paths: [.github/workflows/issue124-r5-final.yml]
+permissions:
+  contents: read
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Lock exact production target and intended diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          TARGET=d493b2e0d7404233b6ed2c681caf7d28c73b30f6
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$TARGET"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$TARGET"
+          git -c core.quotePath=false diff --name-only "$TARGET"...HEAD | sort > /tmp/changed.txt
+          cat /tmp/changed.txt
+          python - <<'PY'
+          from pathlib import Path
+          allowed = {
+              '.agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md',
+              '.github/workflows/issue124-r5-red.yml',
+              '.github/workflows/issue124-r5-replay.yml',
+              '.github/workflows/issue124-r5-final.yml',
+              '.phase6_issue124_r5_replay_evidence.txt',
+              'docs/superpowers/verification/2026-09-12-issue124-r5-state.md',
+              'fold_designer_bridge.py',
+              'gui.py',
+              'tests/test_issue124_structure_tree.py',
+              '個人AI檔案庫/踩坑庫/issue124_external_text_scale_echo_pitfall.md',
+          }
+          changed = {x.strip() for x in Path('/tmp/changed.txt').read_text(encoding='utf-8').splitlines() if x.strip()}
+          unexpected = sorted(changed - allowed)
+          missing = sorted({
+              'fold_designer_bridge.py','gui.py','tests/test_issue124_structure_tree.py',
+              '.agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md',
+              '個人AI檔案庫/踩坑庫/issue124_external_text_scale_echo_pitfall.md',
+              'docs/superpowers/verification/2026-09-12-issue124-r5-state.md',
+          } - changed)
+          if unexpected:
+              raise SystemExit('UNEXPECTED_DRIFT:\n' + '\n'.join(unexpected))
+          if missing:
+              raise SystemExit('MISSING_DURABLE_CHANGE:\n' + '\n'.join(missing))
+          print('R5_DIFF_GATE=GREEN')
+          PY
+          git diff --check "$TARGET"...HEAD
+      - name: Recheck Phase6 changed-file preflight on actual replay branch
+        shell: bash
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "#124 R5 latest-target Structure Tree replay; projection-only hierarchy/selection/visibility; preserve physical-part authority; no geometry/manufacturing/DXF authority changes"
+          --changed-file "fold_designer_bridge.py"
+          --changed-file "gui.py"
+          --changed-file "tests/test_issue124_structure_tree.py"
+          --changed-file ".agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md"
+          --changed-file "個人AI檔案庫/踩坑庫/issue124_external_text_scale_echo_pitfall.md"
+          --changed-file "docs/superpowers/verification/2026-09-12-issue124-r5-state.md"
+          --evidence ".phase6_issue124_r5_replay_evidence.txt"
+      - name: Install runtime
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb scrot fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Snapshot config and baseline invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+          echo "CONFIG_BEFORE=$(cut -d' ' -f1 /tmp/config.before)"
+          echo "BASELINE_FILE_COUNT=$(wc -l < /tmp/baselines.before)"
+      - name: Compile touched Python
+        run: python -m py_compile gui.py fold_designer_bridge.py tests/test_issue124_structure_tree.py
+      - name: Headless Structure Tree contract
+        shell: bash
+        run: timeout 240s python -m pytest -q tests/test_issue124_structure_tree.py
+      - name: Finished-part DXF manufacturing persistence
+        shell: bash
+        run: |
+          timeout 900s python -m pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_receiving_door_dxf_roundtrip.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_issue99_dual_view_parity_persistence.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py
+      - name: Xvfb Structure Tree contract
+        shell: bash
+        run: timeout 420s xvfb-run -a -s '-screen 0 1600x1000x24' python -m pytest -q tests/test_issue124_structure_tree.py
+      - name: Capture and assert actual Structure Tree visuals
+        shell: bash
+        run: |
+          mkdir -p /tmp/issue124-visual
+          timeout 180s xvfb-run -a -s '-screen 0 1600x1000x24' python - <<'PY'
+          import subprocess
+          import tkinter as tk
+          from pathlib import Path
+          from PIL import Image
+          import gui
+
+          out = Path('/tmp/issue124-visual')
+          root = tk.Tk(); root.geometry('1280x900+0+0')
+          app = gui.BoxCalculatorGUI(root)
+          app.baseline_var.set('受電箱')
+          def pump(n=4):
+              for _ in range(n):
+                  root.update_idletasks(); root.update()
+          pump()
+          designer = app.open_original_fold_designer()
+          designer.root.geometry('1200x850+0+0'); pump(5)
+          tree = designer.structure_tree
+          expected = ('part:box_body:left_side','part:box_body:back','part:box_body:right_side')
+          assert tuple(tree.get_children('part:box_body')) == expected
+          tree.selection_set('part:box_body:back'); tree.focus('part:box_body:back')
+          tree.event_generate('<<TreeviewSelect>>'); pump(4)
+          assert designer.designer_workspace.active_part == 'box_body:back'
+          print('RESOLVED_PHYSICAL_IDS=', tuple(designer.designer_workspace.available_parts), flush=True)
+          print('BOX_BODY_TREE_CHILDREN=', tuple(tree.get_children('part:box_body')), flush=True)
+          print('ACTIVE_PHYSICAL_ID=', designer.designer_workspace.active_part, flush=True)
+          def capture(name, geometry):
+              designer.root.geometry(geometry); designer.root.lift(); designer.root.focus_force(); pump(5)
+              screen_path = out / f'.screen-{name}'
+              path = out / name
+              x, y = max(0, designer.root.winfo_rootx()), max(0, designer.root.winfo_rooty())
+              w, h = designer.root.winfo_width(), designer.root.winfo_height()
+              subprocess.run(['scrot', str(screen_path)], check=True)
+              screen = Image.open(screen_path).convert('RGB')
+              img = screen.crop((x, y, min(screen.width, x+w), min(screen.height, y+h)))
+              img.save(path); screen_path.unlink(missing_ok=True)
+              nonblack = sum(1 for p in img.getdata() if max(p) > 12)
+              total = img.width * img.height
+              print(f'VISUAL {name}: size={img.width}x{img.height} nonblack={nonblack}/{total}', flush=True)
+              assert img.width >= 700 and img.height >= 380
+              assert nonblack > total * 0.20
+              assert tree.winfo_ismapped() and tree.bbox('part:box_body:back')
+          capture('issue124-r5-structure-tree-1200x850.png', '1200x850+0+0')
+          app._apply_ui_text_size_preference('large', persist=False, notify_designer=True); pump(3)
+          capture('issue124-r5-structure-tree-760x420-large.png', '760x420+0+0')
+          designer.root.destroy(); root.destroy()
+          PY
+      - name: Assert config and all baseline invariants after
+        if: always()
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
+          echo "CONFIG_AFTER=$(cut -d' ' -f1 /tmp/config.after)"
+          echo 'INVARIANTS=PASS'
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue124-r5-final-visual-evidence
+          path: /tmp/issue124-visual/*.png
+          if-no-files-found: error
+          retention-days: 7
