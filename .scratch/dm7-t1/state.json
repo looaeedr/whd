@@ -1,22 +1,44 @@
 {
   "task_id": "#167",
   "parent_issue": "#166",
-  "role": "T1 實作者",
+  "role": "T1 實作者 -> 總控審查待交接",
   "branch": "test/dm7-t1-navigation-red-guards-20260913",
   "baseline_target": "e85b10b3bf7957e626abb7c1e1e1f909b1f0ee62",
-  "candidate_head_before_checkpoint": "9a1dd3e616277e2dd645d5a3f1d00078858d6d8f",
+  "tested_head": "2ed2bb2b2f932f07c8596458ef825362016f879b",
+  "workflow_cleanup_commit": "9501ba97535b27e4dd3097c1ba5b77bfb2e91e3f",
+  "remote_run_id": 34708622285,
+  "remote_job_id": 103593164619,
   "owning_issue": "https://github.com/looaeedr/whd/issues/167",
+  "status": "VALID_REQUIREMENT_RED",
+  "pytest": {
+    "passed": 11,
+    "failed": 3,
+    "warnings": 1,
+    "elapsed_seconds": 1.42,
+    "failed_nodeids": [
+      "tests/test_dm7_part_navigation.py::test_dm7_stale_explicit_child_fails_closed_instead_of_using_valid_remembered_sibling",
+      "tests/test_dm7_part_navigation.py::test_dm7_stale_remembered_child_is_cleared_instead_of_falling_to_first_child",
+      "tests/test_issue96_corner_data_selection_lifecycle.py::test_multipart_stale_child_fails_closed_and_clears_stale_memory"
+    ]
+  },
+  "invariants": {
+    "scope_guard": "PASS",
+    "config_sha_before_after": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67",
+    "protected_baseline_manifest": "PASS"
+  },
   "completed": [
     "knowledge preflight green",
     "fresh branch from latest target",
     "implementation plan written",
     "seven navigation RED contracts added",
-    "legacy stale-child fallback oracle superseded"
+    "legacy stale-child fallback oracle superseded",
+    "focused remote requirement RED terminal",
+    "one-shot workflow cleanup"
   ],
   "pending": [
-    "focused remote RED run",
-    "terminal log classification",
-    "QA review and issue evidence"
+    "independent QA diff review",
+    "tested-head to closing-head drift audit",
+    "issue terminal evidence and closure"
   ],
   "failed": [],
   "blocked": [],
@@ -28,5 +50,5 @@
     ".scratch/dm7-t1/state.json"
   ],
   "production_files_changed": [],
-  "resume_command": "run focused remote pytest for tests/test_dm7_part_navigation.py tests/test_issue96_corner_data_selection_lifecycle.py and monitor same run_id+head_sha to terminal"
+  "resume_command": "QA compare baseline target to branch head; verify only tests/docs/.scratch remain, no workflow and no production drift; write Issue #167 terminal RED evidence"
 }
