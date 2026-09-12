@@ -27,8 +27,8 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意�
 - `標準基準檔格式.md`
 - `.github/workflows/issue173-t1-authority-qa.yml` (one-shot QA only; remove before closure)
 - `.scratch/knowledge-authority-t1/preflight-evidence.md` (execution evidence only; exclude from production durable integration)
-- `.scratch/knowledge-authority-t1/state.md` (execution checkpoint only; exclude from production durable integration)
-- `.scratch/knowledge-authority-t1/journal.md` (execution journal only; exclude from production durable integration)
+- `.scratch/knowledge-authority-t1/T1.state.md` (execution checkpoint only; exclude from production durable integration)
+- `.scratch/knowledge-authority-t1/T1.journal.jsonl` (execution journal only; exclude from production durable integration)
 
 ## Preflight history
 
