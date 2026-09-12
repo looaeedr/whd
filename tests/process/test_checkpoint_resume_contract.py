@@ -2,10 +2,27 @@ from pathlib import Path
 
 
 EXECUTION_SKILL = Path(".agents/skills/engineering/執行開發任務/SKILL.md")
+DISPATCH_SKILL = Path(".agents/skills/engineering/派工/SKILL.md")
+REMOTE_QA_SKILL = Path(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+ISSUE_CLOSURE_SKILL = Path(".agents/skills/engineering/issue-closure-gate/SKILL.md")
 
 
 def _text() -> str:
     return EXECUTION_SKILL.read_text(encoding="utf-8")
+
+
+def _assert_user_visible_checkpoint_bridge(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    for marker in (
+        "USER_VISIBLE_CHECKPOINT_GATE_BRIDGE",
+        "`執行開發任務`",
+        "`USER_VISIBLE_CHECKPOINT_GATE`",
+        "唯一 canonical authority",
+        "不得建立第二套 CHECKPOINT authority",
+        "progress update 不得取代可見 CHECKPOINT",
+        "non-terminal CHECKPOINT 不是停工點",
+    ):
+        assert marker in text, f"{path} missing checkpoint bridge marker: {marker}"
 
 
 def test_checkpoint_contract_lists_all_required_fields():
@@ -95,3 +112,15 @@ def test_visible_checkpoint_never_replaces_progress_or_continuous_execution():
     assert "progress update 不得冒充 checkpoint" in text
     assert "可見 checkpoint 不能成為正常停工點" in text
     assert "non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action" in text
+
+
+def test_dispatch_skill_bridges_to_canonical_user_visible_checkpoint_gate():
+    _assert_user_visible_checkpoint_bridge(DISPATCH_SKILL)
+
+
+def test_remote_qa_skill_bridges_to_canonical_user_visible_checkpoint_gate():
+    _assert_user_visible_checkpoint_bridge(REMOTE_QA_SKILL)
+
+
+def test_issue_closure_skill_bridges_to_canonical_user_visible_checkpoint_gate():
+    _assert_user_visible_checkpoint_bridge(ISSUE_CLOSURE_SKILL)

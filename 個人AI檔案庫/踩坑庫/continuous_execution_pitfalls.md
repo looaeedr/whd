@@ -23,7 +23,9 @@ WHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部�
 - durable checkpoint 與 user-visible CHECKPOINT 是同一狀態的兩個責任層；只做內部 durable state 不算完成 checkpoint 呈現責任。
 - system hard-cut 前與重要 execution state transition 必須刷新固定標題 `CHECKPOINT`；一般 progress update 不得冒充或取代它。
 - 可見 CHECKPOINT 仍是 non-terminal observation / recovery surface；只要 next action 可自主執行，就必須在顯示 CHECKPOINT 後繼續，不得把 CHECKPOINT 變成停工點。
-- machine guard 由 `.agents/skills/engineering/執行開發任務/SKILL.md` 的 `USER_VISIBLE_CHECKPOINT_GATE` 與 `tests/process/test_checkpoint_resume_contract.py` 共同鎖定。
+- `.agents/skills/engineering/執行開發任務/SKILL.md` 的 `USER_VISIBLE_CHECKPOINT_GATE` 是唯一 canonical CHECKPOINT 呈現 authority；不得在其他 Skill 建第二套欄位、refresh 或 execution state machine。
+- 所有可獨立進入長流程的入口目前至少包含 `.agents/skills/engineering/派工/SKILL.md`、`.agents/skills/engineering/monitoring-remote-qa/SKILL.md`、`.agents/skills/engineering/issue-closure-gate/SKILL.md`，都必須以 `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE` 強制 bridge 回 canonical gate；入口 Skill 的 progress/polling/closure domain responsibility 不取代 CHECKPOINT 呈現責任。
+- machine guard 由 canonical `USER_VISIBLE_CHECKPOINT_GATE`、三個入口的 `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE` 與 `tests/process/test_checkpoint_resume_contract.py` 共同鎖定。
 
 ## Remote QA 邊界
 
@@ -31,6 +33,9 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 
 ## 對應 Machine Guard
 
-- `.agents/skills/engineering/執行開發任務/SKILL.md` → `NONTERMINAL_NEXT_ACTION_GATE`
-- `.agents/skills/engineering/派工/SKILL.md` → PM → Implementer 同工作流程轉移規則
+- `.agents/skills/engineering/執行開發任務/SKILL.md` → `NONTERMINAL_NEXT_ACTION_GATE` + canonical `USER_VISIBLE_CHECKPOINT_GATE`
+- `.agents/skills/engineering/派工/SKILL.md` → PM → Implementer 同工作流程轉移規則 + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
+- `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` → `REMOTE_QA_ACTIVE_LOCK` + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
+- `.agents/skills/engineering/issue-closure-gate/SKILL.md` → closure gate + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
+- `tests/process/test_checkpoint_resume_contract.py`
 - `tests/process/test_continuous_execution_durable_contract.py`
