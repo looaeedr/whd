@@ -2,11 +2,14 @@ name: Issue 150 User-visible CHECKPOINT Gate
 on:
   push:
     branches: [fix/issue150-user-visible-checkpoint-gate-20260912]
-    paths: [.github/workflows/issue150-checkpoint-gate.yml]
+    paths:
+      - .github/workflows/issue150-checkpoint-gate.yml
+      - tests/process/test_checkpoint_resume_contract.py
+      - .agents/skills/engineering/執行開發任務/SKILL.md
 permissions:
   contents: read
 jobs:
-  preflight-red:
+  contract:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -39,20 +42,17 @@ jobs:
             --changed-file tests/process/test_checkpoint_resume_contract.py \
             --changed-file .github/workflows/issue150-checkpoint-gate.yml \
             --evidence /tmp/evidence.md
-      - name: Prove current baseline lacks visible checkpoint contract
+      - name: RED must be exact user-visible checkpoint failure
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          text = Path('.agents/skills/engineering/執行開發任務/SKILL.md').read_text(encoding='utf-8')
-          required = (
-              'USER_VISIBLE_CHECKPOINT_GATE',
-              '固定標題 `CHECKPOINT`',
-              'progress update 不得冒充 checkpoint',
-              '可見 checkpoint 不能成為正常停工點',
-          )
-          missing = [marker for marker in required if marker not in text]
-          print('MISSING=', missing)
-          if not missing:
-              raise SystemExit('baseline unexpectedly already satisfies #150')
-          PY
+          set +e
+          python -m pytest -q tests/process/test_checkpoint_resume_contract.py > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          test "$rc" -ne 0
+          grep -F 'test_checkpoint_must_be_user_visible_with_fixed_heading' /tmp/red.log
+          grep -F 'USER_VISIBLE_CHECKPOINT_GATE' /tmp/red.log
+          grep -F 'test_visible_checkpoint_refreshes_at_major_execution_transitions' /tmp/red.log
+          grep -F 'test_visible_checkpoint_never_replaces_progress_or_continuous_execution' /tmp/red.log
+          echo 'ISSUE150_RED=PROVEN'
