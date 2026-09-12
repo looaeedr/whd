@@ -30,27 +30,15 @@ jobs:
 
           path = Path('fold_designer_bridge.py')
           text = path.read_text(encoding='utf-8')
-          old = '''def _phase6_resolve_operator_part_key(self, key):
-              """Resolve operator identity to a current physical part without activating the workspace."""
-              key = str(key or "")
-              if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
-                  children = _phase6_box_body_piece_keys(
-                      getattr(_designer_workspace(self), "available_parts", ()) or ()
-                  )
-          '''.replace('          ', '')
-          new = '''def _phase6_resolve_operator_part_key(self, key):
-              """Resolve operator identity without letting child-memory replace the aggregate parent."""
-              key = str(key or "")
-              if key == "box_body":
-                  return key
-              if _phase6_is_box_body_physical_piece_key(key):
-                  children = _phase6_box_body_piece_keys(
-                      getattr(_designer_workspace(self), "available_parts", ()) or ()
-                  )
-          '''.replace('          ', '')
-          count = text.count(old)
-          assert count == 1, f'expected exactly one legacy resolver block, found {count}'
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          old_doc = '    """Resolve operator identity to a current physical part without activating the workspace."""'
+          new_doc = '    """Resolve operator identity without letting child-memory replace the aggregate parent."""'
+          old_if = '    if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):'
+          new_if = '    if key == "box_body":\n        return key\n    if _phase6_is_box_body_physical_piece_key(key):'
+          assert text.count(old_doc) == 1, f'legacy resolver doc count={text.count(old_doc)}'
+          assert text.count(old_if) == 1, f'legacy resolver condition count={text.count(old_if)}'
+          text = text.replace(old_doc, new_doc, 1)
+          text = text.replace(old_if, new_if, 1)
+          path.write_text(text, encoding='utf-8')
           PY
       - name: Focused GREEN
         run: |
