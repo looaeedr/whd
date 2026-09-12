@@ -134,11 +134,13 @@ def build_choice_menubutton(
     在焦點切換時把其他 readonly Combobox 的文字畫成空白。每一次選單操作都
     直接走 command；數值 Source of Truth 仍是呼叫端傳入的 Tk variable。
     """
-    kwargs = {"textvariable": variable, "state": state}
+    kwargs = {"textvariable": variable, "state": state, "takefocus": True}
     if width is not None:
         kwargs["width"] = width
     button = ttk.Menubutton(parent, **kwargs)
-    menu = tk.Menu(button, tearoff=False)
+    menu = tk.Menu(
+        button, tearoff=False, relief=tk.RAISED, borderwidth=1, activeborderwidth=1
+    )
     for value in tuple(values or ()):
         menu.add_radiobutton(
             label=str(value),
@@ -148,6 +150,8 @@ def build_choice_menubutton(
         )
     button.configure(menu=menu)
     button._phase6_menu = menu
+    button._phase6_foreground_role = "dropdown"
+    menu._phase6_foreground_role = "floating_menu"
     return button
 
 
@@ -352,11 +356,36 @@ class Phase6SettingsPanel:
             pass
         return "break"
 
+    def _scroll_settings_keyboard(self, event):
+        """Keyboard reachability for the existing settings scroll owner."""
+        canvas = self.settings_scroll_canvas
+        if canvas is None:
+            return "break"
+        key = str(getattr(event, "keysym", "") or "")
+        try:
+            if key == "Home":
+                canvas.yview_moveto(0.0)
+            elif key == "End":
+                canvas.yview_moveto(1.0)
+            elif key in {"Prior", "Page_Up"}:
+                canvas.yview_scroll(-1, "pages")
+            elif key in {"Next", "Page_Down"}:
+                canvas.yview_scroll(1, "pages")
+            else:
+                return None
+        except tk.TclError:
+            pass
+        return "break"
+
     def _bind_settings_scroll_tree(self, widget):
         try:
             widget.bind("<MouseWheel>", self._scroll_settings_fields, add="+")
             widget.bind("<Button-4>", self._scroll_settings_fields, add="+")
             widget.bind("<Button-5>", self._scroll_settings_fields, add="+")
+            widget.bind("<Home>", self._scroll_settings_keyboard, add="+")
+            widget.bind("<End>", self._scroll_settings_keyboard, add="+")
+            widget.bind("<Prior>", self._scroll_settings_keyboard, add="+")
+            widget.bind("<Next>", self._scroll_settings_keyboard, add="+")
         except tk.TclError:
             pass
         for child in tuple(widget.winfo_children()):
