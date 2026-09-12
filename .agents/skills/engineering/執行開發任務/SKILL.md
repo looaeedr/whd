@@ -146,6 +146,12 @@ Validation / fixture / expected / probe 只能判定 implementation 是否符合
 
 未完成只能標示 `IN PROGRESS` 或 `BLOCKED`；若不是符合 `BLOCKED_ALLOWED_REASONS` 的 genuine blocker，就維持 IN PROGRESS 並執行 next action。禁止用「`稍後繼續`」或「`下一續跑點`」**不得作為正常結束語義**；真正 system hard-cut 必須走 `CHECKPOINT_RESUME_CONTRACT`。
 
+#### RESUME_POINT_FINAL_ESCAPE_GUARD
+
+`下一續跑點是` / `下一續跑點就是這裡` 只能出現在 genuine BLOCKED 或 system hard-cut checkpoint；它們不是一般進度回報的合法終止語義。
+
+只要目前仍是 `RUNNING`、`WAITING_REMOTE` 或 `RECOVERING`，且存在可自主執行的 next action，**不得因為已留下 resume point / checkpoint 就結束正常回合**；回報後必須在**同一回合繼續執行該 next action**。checkpoint 只有在 `CHECKPOINT_RESUME_CONTRACT` 的真 hard-cut 情境才是跨回合恢復工具，不能被拿來替代持續執行。
+
 #### PROGRESS_UPDATE_STATE_PRESERVATION
 
 `progress update 只能觀測狀態`，**不得改變 execution state**。回報前是 `RUNNING`、`WAITING_REMOTE` 或 `RECOVERING`，回報後仍保持同一語意 state 與同一合法 next action；`回報後若仍有合法 next action，必須繼續執行`。

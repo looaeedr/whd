@@ -43,6 +43,15 @@ def test_incomplete_work_uses_only_in_progress_or_blocked():
     assert "不得作為正常結束語義" in text
 
 
+def test_resume_point_wording_cannot_end_a_nonterminal_turn():
+    text = _text()
+    assert "RESUME_POINT_FINAL_ESCAPE_GUARD" in text
+    assert "`下一續跑點是` / `下一續跑點就是這裡`" in text
+    assert "只能出現在 genuine BLOCKED 或 system hard-cut checkpoint" in text
+    assert "不得因為已留下 resume point / checkpoint 就結束正常回合" in text
+    assert "同一回合繼續執行該 next action" in text
+
+
 def test_only_genuine_blocked_or_complete_can_terminate_normally():
     text = _text()
     assert "NORMAL_TERMINATION_GATE" in text
