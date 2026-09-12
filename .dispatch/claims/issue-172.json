@@ -4,19 +4,19 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/172",
   "status": "active",
   "owner": "chatgpt-gpt-5.6-sol",
-  "generation": 1,
+  "generation": 2,
   "claimed_at": "2026-09-12T18:58:48Z",
-  "last_update": "2026-09-12T18:59:30Z",
-  "phase": "PREFLIGHT",
-  "branch": "integrate/issue172-claim-progress-20260913",
+  "last_update": "2026-09-12T19:01:00Z",
+  "phase": "INTEGRATION_READY",
+  "branch": "integrate/issue172-multi-ai-claim-progress-20260913",
   "base_sha": "73963150dbf121fc50010e4285d6c1679b496e28",
-  "head_sha": "73963150dbf121fc50010e4285d6c1679b496e28",
+  "head_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
   "remote_qa": {
-    "run_id": null,
-    "head_sha": null,
-    "status": "none"
+    "run_id": 34712821207,
+    "head_sha": "670ed698212d4bac2755f39760774e299e52a60b",
+    "status": "success"
   },
-  "next_action": "Run changed-file Knowledge Preflight on the fresh integration branch before porting the accepted #172 durable diff.",
+  "next_action": "Re-read production target, verify target has not advanced, then non-force fast-forward cleanup/2d-3d-sync to the accepted integration closing head.",
   "blocker": null,
-  "checkpoint": "issue172 work branch closing head 553c432e187396c940a164989fcd8d4b38a3b9a9"
+  "checkpoint": "Adopted a pre-existing integration branch discovered after claim creation; no parallel durable file writes were made on integrate/issue172-claim-progress-20260913. Tested-head to closing-head drift is only deletion of issue172-post-integration-qa.yml."
 }
