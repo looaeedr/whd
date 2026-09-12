@@ -1,4 +1,4 @@
-# GREEN trigger: durable implementation 0d6a29f1a8ff9787850c0f9df412dd464c761f7e
+# CLOSING trigger: broaden governance regression after focused GREEN
 name: Issue180 T7 Current-History Authority QA
 
 on:
@@ -68,8 +68,10 @@ jobs:
             --changed-file 'tests/knowledge/test_current_history_authority_contract.py' \
             --changed-file '.github/workflows/issue180-t7-qa.yml' \
             --evidence /tmp/issue180-evidence.txt
-      - name: Run T7 authority contract
+      - name: Run T7 focused authority contract
         run: python -m pytest -q tests/knowledge/test_current_history_authority_contract.py
+      - name: Run closing knowledge and process governance regressions
+        run: python -m pytest -q tests/knowledge tests/process
       - name: Verify protected invariants
         if: always()
         shell: bash
