@@ -1,1 +1,0 @@
-{"ts":"2026-09-13T04:24:52+08:00","phase":"RED","head":"a2ffb7d84954258396855452864bca780f26c2be","event":"preflight_green","run_id":34716946851,"result":"SUCCESS","invariants":"config.ini + 基準檔/** PASS","next":"add permanent RED contract test"}
