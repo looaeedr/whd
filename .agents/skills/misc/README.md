@@ -1,8 +1,18 @@
 # Misc
 
-Tools I keep around but rarely use, not promoted in the plugin.
+Tool-specific or rarely used helpers.
 
-- **[git-guardrails-claude-code](./git-guardrails-claude-code/SKILL.md)**: Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, etc.) before they execute.
-- **[migrate-to-shoehorn](./migrate-to-shoehorn/SKILL.md)**: Migrate test files from `as` type assertions to @total-typescript/shoehorn.
-- **[scaffold-exercises](./scaffold-exercises/SKILL.md)**: Create exercise directory structures with sections, problems, solutions, and explainers.
-- **[setup-pre-commit](./setup-pre-commit/SKILL.md)**: Set up Husky pre-commit hooks with lint-staged, Prettier, type checking, and tests.
+> Navigation only. `.agents/skills/skill_catalog.json` owns classification. `misc/**` defaults to `tool-specific`; an explicit higher-priority catalog rule is required to promote a WHD canonical exception.
+
+## tool-specific navigation
+
+- **[git-guardrails-claude-code](./git-guardrails-claude-code/SKILL.md)**: Claude Code-specific git hooks; not WHD canonical governance.
+- **[migrate-to-shoehorn](./migrate-to-shoehorn/SKILL.md)**: TypeScript migration helper.
+- **[scaffold-exercises](./scaffold-exercises/SKILL.md)**: Exercise scaffolding helper.
+- **[setup-pre-commit](./setup-pre-commit/SKILL.md)**: JS/Husky pre-commit setup helper.
+
+## WHD canonical override
+
+- **[git-remote-sync-fallback](./git-remote-sync-fallback/SKILL.md)**: WHD project-local remote sync fallback；catalog 明確 override 為 `canonical`。
+
+檔案存在不代表 active canonical；以 catalog classification 為準。
