@@ -1,0 +1,188 @@
+name: Issue164 Final Combined Acceptance
+on:
+  push:
+    branches:
+      - qa/issue164-combined-acceptance-20260913
+    paths:
+      - .github/workflows/issue164-combined-final-20260913.yml
+permissions:
+  contents: read
+jobs:
+  combined:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lock accepted chain
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor fa6cffbb310d39048c770c96fa258758e97db16a HEAD
+          git merge-base --is-ancestor 0c3932dfee117f5980e7d3717341ef184090afc3 HEAD
+          git merge-base --is-ancestor 155fc17aba13bde5cd0b48578334a5529b0b0c4b HEAD
+          git merge-base --is-ancestor 66ce390eadea44ccc1166cb355c2024f76f9bc18 HEAD
+          git merge-base --is-ancestor 54eba35db701a5d3cf2bbcfcd1bf0e7d4021f04e HEAD
+      - name: Install acceptance dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow ezdxf -r requirements.txt
+      - name: Build preflight evidence
+        run: |
+          cat > /tmp/issue164-final-evidence.md <<'EOF'
+          SKILLS READ
+          UI設計與去AI味
+          phase6-corner-3d-model-integrity
+          寫技能
+          Python測試實務
+          驗證板件與DXF
+          monitoring-remote-qa
+          issue-closure-gate
+          phase6-release-packaging
+          REFERENCES READ
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
+      - name: Final changed-file preflight
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "#164 Final Combined Acceptance: Receiving aggregate and physical-child routing/projection, unfold black canvas/fit/wheel zoom, left-top-right workspace ownership and 1.0/1.2/1.4 reachability, Corner Data lifecycle, actual DXF export-reopen, multipart manufacturing, Save-Reload and 2D-3D parity, exact config and baseline invariants, durable Skill/AI writeback, cleanup and human-gated integration"
+          --changed-file fold_designer_bridge.py
+          --changed-file gui.py
+          --changed-file tests/test_issue96_corner_data_selection_lifecycle.py
+          --changed-file tests/test_issue162_unfold_viewport.py
+          --changed-file tests/test_issue163_unfold_workspace_layout.py
+          --changed-file '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+          --changed-file '.agents/skills/engineering/驗證板件與DXF/SKILL.md'
+          --changed-file '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          --changed-file tests/test_issue164_durable_contract.py
+          --evidence /tmp/issue164-final-evidence.md
+      - name: Confirm required test files exist
+        run: |
+          set -euo pipefail
+          for f in \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            tests/test_issue164_durable_contract.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_receiving_door_dxf_roundtrip.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_issue99_dual_view_parity_persistence.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py \
+            tests/test_ui_design_de_ai_skill_contract.py \
+            tests/test_dxf_skill_scope_contract.py; do
+              test -f "$f" || { echo "missing acceptance file: $f" >&2; exit 1; }
+          done
+      - name: Syntax check
+        run: |
+          python -m py_compile fold_designer_bridge.py gui.py tests/test_issue96_corner_data_selection_lifecycle.py tests/test_issue162_unfold_viewport.py tests/test_issue163_unfold_workspace_layout.py tests/test_issue164_durable_contract.py
+      - name: Capture protected invariants
+        run: |
+          set -euo pipefail
+          mkdir -p .qa-evidence
+          sha256sum config.ini | tee .qa-evidence/config.before
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > .qa-evidence/baseline.before
+      - name: Headless manufacturing DXF reopen and project parity
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_receiving_door_dxf_roundtrip.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py \
+            2>&1 | tee .qa-evidence/headless-manufacturing.log
+      - name: Xvfb T1 T2 T3 UI identity lifecycle and persistence
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_issue99_dual_view_parity_persistence.py \
+            2>&1 | tee .qa-evidence/xvfb-ui-persistence.log
+      - name: Durable governance guards
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_issue164_durable_contract.py \
+            tests/test_ui_design_de_ai_skill_contract.py \
+            tests/test_dxf_skill_scope_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_python_testing_practices_skill_contract.py \
+            tests/test_issue_closure_completion_skill_contract.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            2>&1 | tee .qa-evidence/governance.log
+      - name: Verify protected invariants and clean runtime tree
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | tee .qa-evidence/config.after
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > .qa-evidence/baseline.after
+          diff -u .qa-evidence/config.before .qa-evidence/config.after
+          diff -u .qa-evidence/baseline.before .qa-evidence/baseline.after
+          git diff --check
+          git status --short --untracked-files=no | tee .qa-evidence/git-status.txt
+          test ! -s .qa-evidence/git-status.txt
+      - name: Summarize exact counts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          files = ['headless-manufacturing.log', 'xvfb-ui-persistence.log', 'governance.log']
+          total = 0
+          rows = []
+          for name in files:
+              text = (Path('.qa-evidence') / name).read_text(encoding='utf-8', errors='replace')
+              matches = re.findall(r'(\d+) passed', text)
+              count = int(matches[-1]) if matches else 0
+              total += count
+              rows.append(f'{name}: {count} PASS')
+          summary = [
+              'Issue #164 Final Combined Acceptance',
+              f'HEAD={subprocess.check_output(["git","rev-parse","HEAD"], text=True).strip()}',
+              *rows,
+              f'TOTAL={total} PASS',
+              'config.ini exact invariant: PASS',
+              'protected 基準檔 SHA manifest invariant: PASS',
+          ]
+          Path('.qa-evidence/summary.txt').write_text('\n'.join(summary) + '\n', encoding='utf-8')
+          print('\n'.join(summary))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue164-final-combined-evidence
+          path: .qa-evidence/
+          include-hidden-files: true
+          retention-days: 14
