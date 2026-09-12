@@ -1,0 +1,93 @@
+name: Issue 125 R2 Inspector Implementation
+on:
+  push:
+    branches: [work/issue-125-inspector-property-panel-20260912-r2]
+    paths: [.github/workflows/issue125-r2-implement.yml]
+permissions:
+  contents: write
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Recheck exact target and Phase6 gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          TARGET=ed632917fa90bcb381dc2a7d30d9102bef936182
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$TARGET"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$TARGET"
+          python tools/phase6_skill_preflight.py \
+            --task "#125 Inspector/Property Panel engineering layout; preserve editable callbacks, FW/W/H/D/T semantics, persistence, geometry and DXF authority" \
+            --changed-file "phase6_settings_panel.py" \
+            --changed-file "fold_designer_bridge.py" \
+            --changed-file "tests/test_issue125_inspector_property_panel.py" \
+            --evidence ".phase6_issue125_r2_replay_evidence.txt"
+      - name: Apply minimal Inspector presentation refactor
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, got {count}')
+              return text.replace(old, new, 1)
+
+          path = Path('phase6_settings_panel.py')
+          text = path.read_text(encoding='utf-8')
+
+          anchor = '\ndef baseline_row_text(row) -> str:\n'
+          helper = '''\ndef inspector_setting_groups(\n    specs: Sequence[SettingSpec] | Iterable[SettingSpec],\n) -> tuple[tuple[str, tuple[SettingSpec, ...]], ...]:\n    """Project existing SettingSpec groups in first-seen engineering order."""\n    grouped: dict[str, list[SettingSpec]] = {}\n    order: list[str] = []\n    for spec in tuple(specs):\n        name = str(spec.group or "一般")\n        if name not in grouped:\n            grouped[name] = []\n            order.append(name)\n        grouped[name].append(spec)\n    return tuple((name, tuple(grouped[name])) for name in order)\n\n\ndef baseline_row_text(row) -> str:\n'''
+          text = replace_once(text, anchor, helper, 'inspector_setting_groups insertion')
+
+          old_global = '''        for col, (label, key) in enumerate(labels):\n            cell = ttk.Frame(self.left_global_controls)\n            self.left_global_cells[key] = cell\n            cell.grid(row=1, column=col, sticky="ew", padx=2, pady=2)\n            ttk.Label(cell, text=label).pack(anchor=tk.W)\n            entry = ttk.Entry(cell, textvariable=self.left_global_vars[key], width=6, justify=tk.CENTER)\n            entry.pack(fill=tk.X)\n            entry.bind("<Return>", lambda _e: self._flush_settings())\n            entry.bind("<FocusOut>", lambda _e: self._flush_settings())\n            self.left_global_vars[key].trace_add(\n                "write", lambda *_a, k=key, v=self.left_global_vars[key]: self._on_left_numeric_changed(k, v)\n            )\n            self.left_global_controls.columnconfigure(col, weight=1)\n'''
+          new_global = '''        for col, (label, key) in enumerate(labels):\n            cell = ttk.Frame(self.left_global_controls)\n            self.left_global_cells[key] = cell\n            cell.grid(row=1, column=col, sticky="ew", padx=2, pady=2)\n            cell.columnconfigure(1, weight=1)\n            ttk.Label(cell, text=label).grid(row=0, column=0, sticky="w", padx=(0, 4))\n            entry = ttk.Entry(cell, textvariable=self.left_global_vars[key], width=6, justify=tk.CENTER)\n            entry.grid(row=0, column=1, sticky="ew")\n            ttk.Label(cell, text="mm").grid(row=0, column=2, sticky="w", padx=(4, 0))\n            entry.bind("<Return>", lambda _e: self._flush_settings())\n            entry.bind("<FocusOut>", lambda _e: self._flush_settings())\n            self.left_global_vars[key].trace_add(\n                "write", lambda *_a, k=key, v=self.left_global_vars[key]: self._on_left_numeric_changed(k, v)\n            )\n            self.left_global_controls.columnconfigure(col, weight=1)\n'''
+          text = replace_once(text, old_global, new_global, 'global W/H/D/T engineering cells')
+
+          method_anchor = '    def _on_setting_var_changed(self, key: str, var, spec: SettingSpec):\n'
+          method = '''    def _add_inspector_property_row(self, parent, spec: SettingSpec, row: int):\n        """Build one aligned label/value/unit row without changing edit ownership."""\n        row_frame = ttk.Frame(parent)\n        row_frame.grid(row=row, column=0, sticky="ew", padx=2, pady=1)\n        row_frame.columnconfigure(1, weight=1)\n        ttk.Label(row_frame, text=spec.label, anchor="w", width=16).grid(\n            row=0, column=0, sticky="w", padx=(0, 8)\n        )\n        value = self._values_snapshot().get(spec.key, spec.default)\n        if spec.kind == "bool":\n            var = tk.BooleanVar(master=row_frame, value=bool(value))\n            widget = ttk.Checkbutton(row_frame, text="啟用", variable=var)\n            unit_text = ""\n        elif spec.kind == "choice" and spec.key == "ui_text_size":\n            var = tk.StringVar(master=row_frame, value=ui_text_size_label(value))\n            widget = build_choice_menubutton(\n                row_frame,\n                variable=var,\n                values=tuple(UI_TEXT_SIZE_LABELS.values()),\n                command=lambda k=spec.key, v=var, sp=spec: self._on_setting_var_changed(k, v, sp),\n                width=6,\n            )\n            unit_text = ""\n        else:\n            var = tk.StringVar(master=row_frame, value=setting_number_text(value))\n            widget = ttk.Entry(row_frame, textvariable=var, width=9, justify=tk.CENTER)\n            widget.bind("<Return>", lambda _e: self._flush_settings())\n            widget.bind("<FocusOut>", lambda _e: self._flush_settings())\n            unit_text = "mm"\n        widget.grid(row=0, column=1, sticky="ew")\n        ttk.Label(row_frame, text=unit_text, width=4, anchor="w").grid(\n            row=0, column=2, sticky="w", padx=(6, 0)\n        )\n        self.setting_vars[spec.key] = var\n        if not (spec.kind == "choice" and spec.key == "ui_text_size"):\n            var.trace_add(\n                "write",\n                lambda *_args, k=spec.key, v=var, sp=spec: self._on_setting_var_changed(k, v, sp),\n            )\n        return row_frame\n\n''' + method_anchor
+          text = replace_once(text, method_anchor, method, 'property row builder insertion')
+
+          old_page = '''            for index, spec in enumerate(groups.normal):\n                self._add_setting_widget(page_frame, spec, index // 5, index % 5)\n            for col in range(5):\n                page_frame.columnconfigure(col, weight=1)\n            next_row = (len(groups.normal) + 4) // 5\n'''
+          new_page = '''            normal_groups = inspector_setting_groups(groups.normal)\n            next_row = 0\n            for group_name, group_specs in normal_groups:\n                section = ttk.Frame(page_frame)\n                section.grid(\n                    row=next_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(4, 2)\n                )\n                section.columnconfigure(0, weight=1)\n                ttk.Label(\n                    section, text=group_name, font=("Microsoft JhengHei", 9, "bold")\n                ).grid(row=0, column=0, sticky="w")\n                ttk.Separator(section, orient=tk.HORIZONTAL).grid(\n                    row=1, column=0, sticky="ew", pady=(2, 3)\n                )\n                body = ttk.Frame(section)\n                body.grid(row=2, column=0, sticky="ew")\n                body.columnconfigure(0, weight=1)\n                for index, spec in enumerate(group_specs):\n                    self._add_inspector_property_row(body, spec, index)\n                next_row += 1\n            for col in range(5):\n                page_frame.columnconfigure(col, weight=1)\n'''
+          text = replace_once(text, old_page, new_page, 'normal settings inspector projection')
+          path.write_text(text, encoding='utf-8')
+
+          bridge = Path('fold_designer_bridge.py')
+          btext = bridge.read_text(encoding='utf-8')
+          old_fw = '''    box = original.ttk.LabelFrame(parent, text="邊框寬度 FW", padding=4)\n    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))\n    follow_var = original.tk.BooleanVar(value=follow)\n'''
+          new_fw = '''    box = original.ttk.Frame(parent, padding=4)\n    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))\n    original.ttk.Label(\n        box, text="邊框寬度 FW", font=("Microsoft JhengHei", 9, "bold")\n    ).pack(anchor=original.tk.W)\n    original.ttk.Separator(box, orient=original.tk.HORIZONTAL).pack(\n        fill=original.tk.X, pady=(2, 4)\n    )\n    follow_var = original.tk.BooleanVar(value=follow)\n'''
+          btext = replace_once(btext, old_fw, new_fw, 'EndCap FW plain inspector section')
+          bridge.write_text(btext, encoding='utf-8')
+          PY
+          git diff --check
+          git -c core.quotePath=false diff -- phase6_settings_panel.py fold_designer_bridge.py
+      - name: Install focused GUI runtime
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Compile touched Python
+        run: python -m py_compile phase6_settings_panel.py fold_designer_bridge.py tests/test_issue125_inspector_property_panel.py
+      - name: Focused GREEN contract
+        shell: bash
+        run: timeout 300s xvfb-run -a -s '-screen 0 1600x1000x24' python -m pytest -q tests/test_issue125_inspector_property_panel.py
+      - name: Commit minimal production change
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add phase6_settings_panel.py fold_designer_bridge.py
+          git commit -m 'feat(#125): engineer Inspector property layout'
+          git push origin HEAD:work/issue-125-inspector-property-panel-20260912-r2

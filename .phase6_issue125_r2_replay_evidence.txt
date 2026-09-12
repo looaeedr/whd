@@ -1,0 +1,22 @@
+ISSUE: #125
+TASK: Inspector / Property Panel 工程化
+PRODUCTION_TARGET: cleanup/2d-3d-sync
+BASELINE: ed632917fa90bcb381dc2a7d30d9102bef936182
+BRANCH: work/issue-125-inspector-property-panel-20260912-r2
+PREFLIGHT_RUN: 34679912112 SUCCESS
+RED_RUN: 34679988129 genuine RED; 4 failed / 2 passed; config and baseline invariants unchanged
+
+READ_SKILL: 性質導向測試
+READ_SKILL: UI設計與去AI味
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+RED_ROOT_CAUSE: latest production lacks inspector_setting_groups and aligned property-row builder; global W/H/D/T cells remain label+entry cards without explicit unit column; EndCap FW extension remains LabelFrame card. Scroll and editable-state contracts already pass.
+DESIGN: minimal presentation-only refactor in phase6_settings_panel.py and fold_designer_bridge.py. Preserve SettingSpec authority, Tk variable bindings, callbacks, editability, FW ownership/control semantics, W/H/D/T values, Save→Reload schema, physical-part identity, geometry/manufacturing/DXF authority and config/baseline invariants. Do not alter formulas or derive domain values from tests.

@@ -75,6 +75,21 @@ def partition_setting_specs(
     )
 
 
+def inspector_setting_groups(
+    specs: Sequence[SettingSpec] | Iterable[SettingSpec],
+) -> tuple[tuple[str, tuple[SettingSpec, ...]], ...]:
+    """Project existing SettingSpec groups in first-seen engineering order."""
+    grouped: dict[str, list[SettingSpec]] = {}
+    order: list[str] = []
+    for spec in tuple(specs):
+        name = str(spec.group or "一般")
+        if name not in grouped:
+            grouped[name] = []
+            order.append(name)
+        grouped[name].append(spec)
+    return tuple((name, tuple(grouped[name])) for name in order)
+
+
 def baseline_row_text(row) -> str:
     kind = str(row.get("kind") or "特徵")
     layer = str(row.get("layer") or "")
@@ -237,9 +252,11 @@ class Phase6SettingsPanel:
             cell = ttk.Frame(self.left_global_controls)
             self.left_global_cells[key] = cell
             cell.grid(row=1, column=col, sticky="ew", padx=2, pady=2)
-            ttk.Label(cell, text=label).pack(anchor=tk.W)
+            cell.columnconfigure(1, weight=1)
+            ttk.Label(cell, text=label).grid(row=0, column=0, sticky="w", padx=(0, 4))
             entry = ttk.Entry(cell, textvariable=self.left_global_vars[key], width=6, justify=tk.CENTER)
-            entry.pack(fill=tk.X)
+            entry.grid(row=0, column=1, sticky="ew")
+            ttk.Label(cell, text="mm").grid(row=0, column=2, sticky="w", padx=(4, 0))
             entry.bind("<Return>", lambda _e: self._flush_settings())
             entry.bind("<FocusOut>", lambda _e: self._flush_settings())
             self.left_global_vars[key].trace_add(
@@ -436,6 +453,47 @@ class Phase6SettingsPanel:
             var.trace_add("write", lambda *_args, k=spec.key, v=var, sp=spec: self._on_setting_var_changed(k, v, sp))
         return cell
 
+    def _add_inspector_property_row(self, parent, spec: SettingSpec, row: int):
+        """Build one aligned label/value/unit row without changing edit ownership."""
+        row_frame = ttk.Frame(parent)
+        row_frame.grid(row=row, column=0, sticky="ew", padx=2, pady=1)
+        row_frame.columnconfigure(1, weight=1)
+        ttk.Label(row_frame, text=spec.label, anchor="w", width=16).grid(
+            row=0, column=0, sticky="w", padx=(0, 8)
+        )
+        value = self._values_snapshot().get(spec.key, spec.default)
+        if spec.kind == "bool":
+            var = tk.BooleanVar(master=row_frame, value=bool(value))
+            widget = ttk.Checkbutton(row_frame, text="啟用", variable=var)
+            unit_text = ""
+        elif spec.kind == "choice" and spec.key == "ui_text_size":
+            var = tk.StringVar(master=row_frame, value=ui_text_size_label(value))
+            widget = build_choice_menubutton(
+                row_frame,
+                variable=var,
+                values=tuple(UI_TEXT_SIZE_LABELS.values()),
+                command=lambda k=spec.key, v=var, sp=spec: self._on_setting_var_changed(k, v, sp),
+                width=6,
+            )
+            unit_text = ""
+        else:
+            var = tk.StringVar(master=row_frame, value=setting_number_text(value))
+            widget = ttk.Entry(row_frame, textvariable=var, width=9, justify=tk.CENTER)
+            widget.bind("<Return>", lambda _e: self._flush_settings())
+            widget.bind("<FocusOut>", lambda _e: self._flush_settings())
+            unit_text = "mm"
+        widget.grid(row=0, column=1, sticky="ew")
+        ttk.Label(row_frame, text=unit_text, width=4, anchor="w").grid(
+            row=0, column=2, sticky="w", padx=(6, 0)
+        )
+        self.setting_vars[spec.key] = var
+        if not (spec.kind == "choice" and spec.key == "ui_text_size"):
+            var.trace_add(
+                "write",
+                lambda *_args, k=spec.key, v=var, sp=spec: self._on_setting_var_changed(k, v, sp),
+            )
+        return row_frame
+
     def _on_setting_var_changed(self, key: str, var, spec: SettingSpec):
         if self._guard or self._rendering:
             return
@@ -463,11 +521,28 @@ class Phase6SettingsPanel:
                 self._specs_provider(context),
                 hidden_keys=self._hidden_keys_by_context.get(context, frozenset()),
             )
-            for index, spec in enumerate(groups.normal):
-                self._add_setting_widget(page_frame, spec, index // 5, index % 5)
+            normal_groups = inspector_setting_groups(groups.normal)
+            next_row = 0
+            for group_name, group_specs in normal_groups:
+                section = ttk.Frame(page_frame)
+                section.grid(
+                    row=next_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(4, 2)
+                )
+                section.columnconfigure(0, weight=1)
+                ttk.Label(
+                    section, text=group_name, font=("Microsoft JhengHei", 9, "bold")
+                ).grid(row=0, column=0, sticky="w")
+                ttk.Separator(section, orient=tk.HORIZONTAL).grid(
+                    row=1, column=0, sticky="ew", pady=(2, 3)
+                )
+                body = ttk.Frame(section)
+                body.grid(row=2, column=0, sticky="ew")
+                body.columnconfigure(0, weight=1)
+                for index, spec in enumerate(group_specs):
+                    self._add_inspector_property_row(body, spec, index)
+                next_row += 1
             for col in range(5):
                 page_frame.columnconfigure(col, weight=1)
-            next_row = (len(groups.normal) + 4) // 5
             extension_state = None
             if self._render_context_extensions is not None:
                 result = self._render_context_extensions(page_frame, context, next_row)
