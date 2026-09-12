@@ -58,7 +58,6 @@ jobs:
           set -euo pipefail
           sha256sum config.ini > /tmp/config.before
           find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline-files.before
-          sha256sum /tmp/baseline-files.before > /tmp/baseline.before
 
       - name: Install GUI runtime and test dependencies
         shell: bash
@@ -160,10 +159,8 @@ jobs:
           set -euo pipefail
           sha256sum config.ini > /tmp/config.after
           find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline-files.after
-          sha256sum /tmp/baseline-files.after > /tmp/baseline.after
           diff -u /tmp/config.before /tmp/config.after
           diff -u /tmp/baseline-files.before /tmp/baseline-files.after
-          diff -u /tmp/baseline.before /tmp/baseline.after
           git diff --check
           git status --short --untracked-files=no
 
@@ -174,4 +171,5 @@ jobs:
           name: issue127-r2-final-evidence
           path: .qa-evidence/
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 14
