@@ -21,6 +21,16 @@ disable-model-invocation: true
 - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
 - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
 
+### NON_TERMINAL_CONTINUE
+
+只要本票仍有任何 required step 處於 pending，例如 Requirement/RED、production/test/Skill 修改、GREEN 驗證、remote QA、workflow cleanup、tested-head → closing-head drift audit、AI Library writeback、owning Issue terminal evidence/closure，該狀態只能標示為「進行中／pending」，**但 pending 本身不是停工點，也不是結束回合的理由**。
+
+- progress update、CHECKPOINT、「尚未完成」、「因此不宣稱完成」都只是 observation，不能當作 `return` condition。
+- 除非使用者明確中止、遇到不可繞過且需要外部輸入的 capability/blocker，或安全／專案硬閘門明確要求停止，否則必須在同一次可用工作流程中立即執行下一個可執行 action。
+- 若遇 blocker，必須先把能完成的非阻塞 prerequisite/evidence 做完，再精確記錄 blocker；不得以籠統「pending」提前結束。
+- 「不假報完成」與「持續施工」是兩個獨立義務：前者禁止假綠，後者禁止非終態自行停工。
+- 任何 user-visible progress/checkpoint 後，只要沒有合法 stop condition，就必須接續下一個 tool/action；不得輸出狀態後直接結束回合。
+
 ## 1. 啟動與能力邊界
 
 ### 1.1 先遵守專案啟動鏈
@@ -349,5 +359,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] remote QA 建立 run 即啟動 `monitoring-remote-qa`，鎖 `run_id + head_sha` 到 terminal。
 - [ ] `REMOTE_QA_ACTIVE_LOCK` 期間沒有其他工作插隊。
 - [ ] success 後仍做 cleanup + durable state + drift audit 才 ACCEPT。
+- [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可做狀態觀測；沒有合法 stop condition 時必須立即執行下一個可執行 action，不得直接結束回合。
+- [ ] 「不假報完成」與「未完成持續施工」兩項義務皆有明文，前者不得被用作停工理由。
 - [ ] 未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與 blocker，且不得中斷執行。
 - [ ] 未宣稱不存在的背景工程師、subagent 或 scheduler 正在替你工作。
