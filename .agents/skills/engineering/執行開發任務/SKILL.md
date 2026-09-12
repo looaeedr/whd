@@ -34,6 +34,35 @@ fresh extract、restore、工具回合重建或手動複製後，先驗 executio
 
 checkpoint/state 至少記錄 branch+HEAD、已完成/pending/failed、修改檔、最後驗證結果、owning Issue、下一步 resume 指令。
 
+### CHECKPOINT_RESUME_CONTRACT
+
+遇到平台／工具的 system hard-cut 時，`system hard-cut → checkpoint`；checkpoint 不是 COMPLETE evidence，**不得把系統硬切寫成 COMPLETE**。checkpoint 最低欄位必須完整包含：
+
+- `issue / task id`
+- `current role`
+- `branch`
+- `HEAD SHA`
+- `production target`
+- `latest commit`
+- `remote QA run_id / head_sha / status`
+- `completed / pending / failed / blocked`
+- `dirty files`
+- `validation commands / results`
+- `config / baseline invariant status`
+- `temporary workflows / branches`
+- `next exact action / resume command`
+
+#### RESUME_DRIFT_GATE
+
+下一回合或 runtime 重建後先讀 checkpoint 並驗證 repo / branch / run drift：
+
+- `無 drift → resume next exact action`，不得要求使用者重新交代，也不得從頭重查整條工作鏈。
+- `有 drift → 只重驗受 drift 影響部分`，先界定受影響 authority / diff / run，再更新 checkpoint；**不得整條工作鏈無條件重跑**。
+
+#### CHECKPOINT_IDENTITY_LOCK
+
+resume 前必須確認 checkpoint 的 `branch + HEAD SHA` 與目前 execution tree 一致；若 checkpoint 記有 remote QA，還必須確認 `run_id + head_sha` identity。任何不一致都先分類 `drift / stale checkpoint`，不得直接沿舊結果宣告 PASS、BLOCKED 或 COMPLETE。
+
 ## 4. 測試 timeout
 
 - GUI targeted gate 若 pytest 已有完整 PASS summary 但 Tk/Xvfb/interpreter 不退出，分類為 `complete_teardown_timeout`。
