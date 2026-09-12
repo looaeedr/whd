@@ -11,15 +11,18 @@
     "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "56a21b287076d2e9132b279f8223fa3ce1f87942",
-  "phase": "RED",
-  "last_update": "2026-09-13T07:42:00+08:00",
+  "head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-13T07:46:00+08:00",
   "remote_qa": {
-    "preflight_run_id": 34726056898,
-    "preflight_head_sha": "56a21b287076d2e9132b279f8223fa3ce1f87942",
-    "preflight_result": "SUCCESS; required Skills 派工 + issue-closure-gate and references global06 + AI08 GREEN; config.ini + 基準檔/** invariants PASS"
+    "preflight_run_id": 34726205499,
+    "preflight_head_sha": "62ab432ed29c7727564b8d25b5bea4fffd9c4e39",
+    "preflight_result": "SUCCESS; full changed-file scope including remote QA GREEN; protected invariants PASS",
+    "red_run_id": 34726226149,
+    "red_head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
+    "red_result": "7 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN"
   },
-  "next_action": "Run changed-file Preflight for the fixed T7 doc/test scope, then create and execute the permanent current-vs-historical authority contract RED.",
+  "next_action": "Apply T7 role markers, current-authority pointers, in-place supersession markers, and authority-map rows while preserving historical evidence; then rerun exact QA to GREEN.",
   "blocker": null,
   "checkpoint": ".scratch/issue180-t7/T7.state.md",
   "journal": ".scratch/issue180-t7/T7.journal.jsonl"
