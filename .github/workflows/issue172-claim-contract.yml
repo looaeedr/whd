@@ -1,0 +1,26 @@
+name: Issue 172 Multi-AI Claim Contract
+
+on:
+  push:
+    branches:
+      - docs/issue172-multi-ai-claim-progress-20260913
+    paths:
+      - '.github/workflows/issue172-claim-contract.yml'
+      - 'tests/test_dispatching_skill_timeout_contract.py'
+      - '.agents/skills/engineering/派工/SKILL.md'
+      - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Run dispatching skill contract
+        run: python -m pytest -q tests/test_dispatching_skill_timeout_contract.py
