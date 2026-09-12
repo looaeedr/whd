@@ -2,25 +2,49 @@
   "task_id": "#168",
   "parent_issue": "#166",
   "dependency": "#167",
-  "role": "T2 實作者",
+  "role": "T2 實作者 -> 總控審查",
   "branch": "feat/dm7-t2-navigation-core-20260913",
   "branch_base": "4b236826a8629b2ae0088f71cea7b9e3d3f98659",
   "production_target": "e85b10b3bf7957e626abb7c1e1e1f909b1f0ee62",
+  "production_adapter_commit": "be295038c4291e4c20b81efbb3ee95e9a8f03bb6",
+  "tested_head": "e017cd4db05dfe5807c6d6f3963f429c5d3818c2",
+  "patch_run_id": 34709054849,
+  "patch_job_id": 103594331621,
+  "acceptance_run_id": 34709093958,
+  "acceptance_job_id": 103594435063,
   "owning_issue": "https://github.com/looaeedr/whd/issues/168",
   "preflight": "GREEN_AFTER_FAIL_CLOSED_READBACK",
+  "status": "FOCUSED_GREEN_QA_PENDING_FINAL_DRIFT",
+  "pytest": {
+    "passed": 20,
+    "failed": 0,
+    "elapsed_seconds": 1.35
+  },
+  "invariants": {
+    "compile": "PASS",
+    "navigation_source_ownership": "PASS",
+    "config_sha_before_after": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67",
+    "protected_baseline_manifest": "PASS"
+  },
   "completed": [
     "dependency #167 accepted",
     "fresh branch from T1 cleaned head",
     "T2 knowledge preflight green",
-    "source-first resolver and selector fallback located"
+    "source-first resolver and selector fallback located",
+    "pure navigation core implemented",
+    "bridge converted to thin navigation adapters",
+    "focused remote acceptance green",
+    "temporary patch workflow removed",
+    "temporary acceptance workflow removed"
   ],
   "pending": [
-    "implement pure navigation core",
-    "thin bridge adapters",
-    "remote GREEN",
-    "source scan and invariants",
-    "QA review"
+    "independent final diff review",
+    "tested-head to closing-head drift audit",
+    "issue terminal evidence and closure"
   ],
-  "production_files_changed": [],
-  "resume_command": "implement phase6_part_navigation.py and bridge thin adapters; run inherited T1 RED contracts to GREEN"
+  "production_files_changed": [
+    "phase6_part_navigation.py",
+    "fold_designer_bridge.py"
+  ],
+  "resume_command": "QA compare T1 cleaned base and tested head to final closing head; confirm no post-test production/test drift; write #168 terminal evidence"
 }
