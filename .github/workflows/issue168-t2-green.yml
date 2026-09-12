@@ -1,0 +1,77 @@
+name: Issue168 DM7 T2 Focused Acceptance
+on:
+  push:
+    branches:
+      - feat/dm7-t2-navigation-core-20260913
+    paths:
+      - phase6_part_navigation.py
+      - fold_designer_bridge.py
+      - tests/test_dm7_part_navigation.py
+      - tests/test_issue96_corner_data_selection_lifecycle.py
+      - tests/test_issue97_authoritative_unfold_view_adapter.py
+
+permissions:
+  contents: read
+
+jobs:
+  focused-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture invariants
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Compile navigation seam
+        run: python -m py_compile phase6_part_navigation.py fold_designer_bridge.py
+      - name: Navigation source ownership scan
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          text = Path('fold_designer_bridge.py').read_text(encoding='utf-8')
+          core = Path('phase6_part_navigation.py').read_text(encoding='utf-8')
+
+          assert 'from phase6_part_navigation import (' in text
+          assert '_dm7_resolve_navigation' in text
+          assert '_dm7_project_hierarchy' in text
+
+          def body(name, next_name):
+              start = text.index(f'def {name}')
+              end = text.index(f'def {next_name}', start)
+              return text[start:end]
+
+          resolver = body('_phase6_resolve_operator_part_key', '_phase6_activate_operator_part')
+          selector = body('_phase6_refresh_box_body_piece_selector', '_phase6_on_box_body_piece_tab_changed')
+          hierarchy = body('_phase6_structure_tree_rows', '_phase6_reverse_fold_traversal')
+          corner_rows = body('_phase6_corner_data_navigation_rows', '_phase6_select_corner_data_part')
+
+          assert 'children[0]' not in resolver
+          assert 'remembered if remembered in children' not in resolver
+          assert 'wanted[0]' not in selector
+          assert '_dm7_resolve_navigation' in resolver
+          assert '_dm7_project_hierarchy' in hierarchy
+          assert '_dm7_project_hierarchy' in corner_rows
+          assert 'display label' not in core.lower()
+          print('NAVIGATION_SOURCE_OWNERSHIP=PASS')
+          PY
+      - name: Run DM7 T2 focused tests
+        run: |
+          pytest -q -s \
+            tests/test_dm7_part_navigation.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py
+      - name: Verify invariants
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
