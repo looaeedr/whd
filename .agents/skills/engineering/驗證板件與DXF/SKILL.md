@@ -208,3 +208,12 @@ issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、phys
 - Scene→DXF entity type/count/coordinates 完全一致但 material reopen mismatch 時，優先檢查 verifier reconstruction/tolerance boundary，不要先改 exporter 或板件 production 幾何。
 - Negative guards 必須同時保留：移動 CUTTING 點、刪 hole、刪 BEND、改 layer、以及 gap > verifier tolerance 都必須 FAIL。
 - Door 類修正除了 synthetic micro-gap 正/反例外，還要保留真實 Receiving 上門/下門 `tests/test_receiving_door_dxf_roundtrip.py`，證明 real baseline LINE+ARC/CUTTING 組合在 save→reopen 後仍等價。
+
+
+## Receiving aggregate selection identity（2026-09-13）
+
+<!-- ISSUE164_RECEIVING_AGGREGATE_SELECTION_IDENTITY -->
+- 對多片受電箱，明確選擇 `box_body` 表示 logical / assembly aggregate；resolver 必須保持 `box_body`，任何 remembered child 都不得把這個 explicit parent selection 劫持成 `box_body:<role>`。
+- 明確選擇 `box_body:<role>` 時則必須維持該 stable physical-part identity；parent 與 child 是兩種不同且都合法的操作意圖。
+- remembered child 只能在操作語意本來就是「恢復先前 child context」時使用，不得覆蓋本次明確 parent intent。
+- Combined Acceptance 同時驗 aggregate `box_body` 與至少一個 physical child 的 routing/projection；DXF / manufacturing acceptance 仍必須列舉並逐件驗全部 resolved physical pieces，aggregate 不得冒充逐片加工驗收。

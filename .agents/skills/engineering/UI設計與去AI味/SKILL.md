@@ -305,3 +305,17 @@ Rewrite 後重新檢查：
 ### INVARIANT_MANIFEST_CANONICAL_PATH_HASH
 
 做 UI / visual acceptance 的 `config.ini`、`基準檔` 或其他 protected invariant 比對時，manifest 必須使用穩定的 **canonical path + SHA256**，或直接 diff canonical manifest 內容。禁止把 `sha256sum snapshot.before` 與 `sha256sum snapshot.after` 的 raw output 直接互比，因為 `sha256sum` output 會包含 transient snapshot 檔名；即使內容完全一致，也可能只因 `.before` / `.after` 名稱不同而假紅。若必須再雜湊 manifest，只比較 normalized hash value，不比較含 transient filename 的整行。QA harness false failure 必須先分類，不得冒充 production regression。
+
+
+## #160/#163 展開工作區 ownership 與 viewport 邊界（2026-09-13）
+
+<!-- ISSUE164_UNFOLD_WORKSPACE_OWNERSHIP -->
+- 展開工作區上方只保留 `檔案` 與 `截角資料庫`。
+- 左側整欄只負責板件選擇與目前板件輸入；整欄使用單一垂直 scroll owner。內容超高時必須可捲動，並在文字倍率 `1.0 / 1.2 / 1.4` 都能到達最底控制。
+- 其他全域設定、3D 顯示、還原／transaction、全螢幕等控制放到右側控制區；搬移 widget 不得改 callback、state owner、Save→Reload、physical-part identity 或 manufacturing authority。
+- Corner Data 進出 lifecycle 必須對稱；family / part switch 只有在 topology/state commit 完成後才 refresh，不得因 layout redraw 建立第二套狀態。
+
+<!-- ISSUE164_VIEWPORT_PRESENTATION_ONLY -->
+- 展開 canvas 的黑底、initial fit 與 `zoom / fit / pan` 全屬 presentation。
+- 顯示 transform 只能讀 authoritative `PartRenderData` 與目前 physical part/material；不得修改 `PartRenderData`、`part_key`、`material WKB`、Save→Reload payload 或 DXF。
+- fit ratio、像素 bbox、截圖與 viewport 量測只可作 validation evidence；不得回灌 manufacturing geometry。
