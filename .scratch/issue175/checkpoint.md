@@ -1,0 +1,30 @@
+# Issue #175 / T2 checkpoint
+
+- task_id: T2
+- issue: #175 — 收斂 Corner Data / DM7 Navigation 規則
+- current_role: T2 實作者
+- target: cleanup/2d-3d-sync
+- base_sha: 6a26e7be05a8098c8b9b2bff6f0fd675d3491e45
+- work_branch: chore/issue175-dm7-navigation-authority-20260913
+- claim: coord/issue-175-claim
+- phase: RED
+- completed:
+  - authority / DM7 pitfall / affected Skill / AI08 reread
+  - production phase6_part_navigation.py verified already conforms to DM7 contract
+  - permanent regression added
+  - local mirrored RED: 2 failed, both durable-guidance authority assertions
+- pending:
+  - minimal Skill + AI08 correction
+  - focused GREEN
+  - remote QA (connector currently exposes monitoring/re-run but no workflow dispatch; new workflow did not auto-run)
+  - temp workflow/checkpoint cleanup + tested→cleaned drift audit
+  - QA review + issue closure readback
+- failed_or_blocked:
+  - remote QA trigger capability: no run_id generated yet
+- changed_files:
+  - tests/test_issue175_dm7_navigation_authority_contract.py
+  - .agents/skills/engineering/截角資料入口收斂/SKILL.md (pending)
+  - 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md (pending)
+- validation:
+  - pytest -q tests/test_issue175_dm7_navigation_authority_contract.py (mirrored RED: 2 failed)
+- resume_command: reread this checkpoint, then apply minimal DM7 durable-guidance correction and rerun focused contract
