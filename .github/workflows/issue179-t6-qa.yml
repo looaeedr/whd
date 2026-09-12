@@ -1,4 +1,4 @@
-# GREEN trigger: implementation 994072ea1b368c39f91d0b7fb9c49baa68ad5841
+# CLOSING trigger: broaden T6 governance regressions
 name: Issue179 T6 Active Skill Runtime QA
 
 on:
@@ -68,6 +68,13 @@ jobs:
             --evidence /tmp/issue179-evidence.txt
       - name: Run T6 runtime contract
         run: python -m pytest -q tests/knowledge/test_active_skill_runtime_contract.py
+      - name: Run Skill catalog scanner and classification regression
+        shell: bash
+        run: |
+          python tools/skill_catalog.py > /tmp/skill-catalog.json
+          python -m pytest -q tests/knowledge/test_skill_catalog_classification_contract.py
+      - name: Run identity and existing Preflight regressions
+        run: python -m pytest -q tests/test_chinese_skill_identity_contract.py tests/test_phase6_skill_preflight_gate.py
       - name: Verify protected invariants
         if: always()
         shell: bash
