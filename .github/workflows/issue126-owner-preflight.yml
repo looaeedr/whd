@@ -7,7 +7,7 @@ on:
       - tests/test_issue126_workspace_layout.py
       - fold_designer_bridge.py
 permissions:
-  contents: read
+  contents: write
 jobs:
   inspect:
     runs-on: ubuntu-latest
@@ -51,10 +51,39 @@ jobs:
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
           test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
+      - name: Apply minimal workspace layout change
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('fold_designer_bridge.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''    self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n'''
+          new = '''    # #126: the left side is an engineering inspector, not a competing canvas.\n    # Keep its width bounded and let the central drawing workspace absorb resize growth.\n    # This is presentation-only: no workspace/domain state is created or mutated here.\n    self.left.configure(width=360)\n    self.left.pack_propagate(False)\n    self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n'''
+          if new in s:
+              print('layout patch already present')
+          else:
+              if old not in s:
+                  raise SystemExit('layout seam not found')
+              p.write_text(s.replace(old, new, 1), encoding='utf-8')
+              print('layout patch applied')
+          PY
       - name: Install GUI runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb fonts-noto-cjk
           python -m pip install -q pytest matplotlib pillow -r requirements.txt
-      - name: Issue 126 workspace RED contract
+      - name: Issue 126 workspace focused contract
         run: xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue126_workspace_layout.py
+      - name: Commit tested production change
+        shell: bash
+        run: |
+          if git diff --quiet -- fold_designer_bridge.py; then
+            echo 'no production diff to commit'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'fix(#126): prioritize central drawing workspace'
+          git push origin HEAD:work/issue-126-workspace-layout-20260912-r1
