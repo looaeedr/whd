@@ -1,0 +1,71 @@
+name: Apply Receiving BoxBody parent restore
+
+on:
+  push:
+    branches:
+      - fix/receiving-boxbody-unfold-restore-20260912
+    paths:
+      - .github/workflows/apply-receiving-boxbody-parent-restore-20260912.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/receiving-boxbody-unfold-restore-20260912
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Restore accepted #108 parent identity contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('fold_designer_bridge.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''def _phase6_resolve_operator_part_key(self, key):
+              """Resolve operator identity to a current physical part without activating the workspace."""
+              key = str(key or "")
+              if key == "box_body" or _phase6_is_box_body_physical_piece_key(key):
+                  children = _phase6_box_body_piece_keys(
+                      getattr(_designer_workspace(self), "available_parts", ()) or ()
+                  )
+          '''.replace('          ', '')
+          new = '''def _phase6_resolve_operator_part_key(self, key):
+              """Resolve operator identity without letting child-memory replace the aggregate parent."""
+              key = str(key or "")
+              if key == "box_body":
+                  return key
+              if _phase6_is_box_body_physical_piece_key(key):
+                  children = _phase6_box_body_piece_keys(
+                      getattr(_designer_workspace(self), "available_parts", ()) or ()
+                  )
+          '''.replace('          ', '')
+          count = text.count(old)
+          assert count == 1, f'expected exactly one legacy resolver block, found {count}'
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Focused GREEN
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          pytest -q -s \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+      - name: Commit minimal production restore
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git diff --cached --check
+          git commit -m 'fix: restore receiving boxbody aggregate parent identity'
+          git push origin HEAD:fix/receiving-boxbody-unfold-restore-20260912
