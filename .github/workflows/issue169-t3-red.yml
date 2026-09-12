@@ -17,6 +17,6 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install test dependencies
-        run: python -m pip install --disable-pip-version-check pytest -r requirements.txt
+        run: python -m pip install --disable-pip-version-check pytest matplotlib -r requirements.txt
       - name: Run T3 caller contracts
         run: python -m pytest -q tests/test_dm7_navigation_callers.py
