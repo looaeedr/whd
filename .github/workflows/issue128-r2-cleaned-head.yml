@@ -25,7 +25,7 @@ jobs:
           BASE=711194caac8e8f94d464f8abc4d82316f87edc93
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
           test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
-          git diff --name-only "$BASE"...HEAD | sort > /tmp/changed.txt
+          git -c core.quotePath=false diff --name-only "$BASE"...HEAD | sort > /tmp/changed.txt
           cat > /tmp/expected.txt <<'EOF'
           .agents/skills/engineering/UI設計與去AI味/SKILL.md
           .github/workflows/issue128-r2-cleaned-head.yml
@@ -35,7 +35,7 @@ jobs:
           EOF
           sort -o /tmp/expected.txt /tmp/expected.txt
           diff -u /tmp/expected.txt /tmp/changed.txt
-          test -z "$(git diff --name-only "$BASE"...HEAD -- config.ini 基準檔 phase6_settings_panel.py fold_designer_bridge.py phase6_settings_center.py gui.py)"
+          test -z "$(git -c core.quotePath=false diff --name-only "$BASE"...HEAD -- config.ini 基準檔 phase6_settings_panel.py fold_designer_bridge.py phase6_settings_center.py gui.py)"
       - name: Provision process-test runtime
         shell: bash
         run: |
