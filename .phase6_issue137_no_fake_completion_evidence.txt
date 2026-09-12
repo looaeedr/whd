@@ -1,0 +1,20 @@
+ISSUE: #137
+TASK: 禁止假完成 + Progress Update 非停止點
+BASELINE: 58e04f1bd9a62945ec7cd8401759e8e1d7841c7b
+BRANCH: work/issue-137-no-fake-completion
+
+READ_ISSUE: #137
+READ_SKILL: 執行開發任務
+READ_SKILL: 派工
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: tdd
+READ_SKILL: 寫技能
+READ_SKILL: Python測試實務
+READ_SKILL: phase6-release-packaging
+READ_SKILL: issue-closure-gate
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+
+DESIGN: Extend the existing NONTERMINAL_NEXT_ACTION_GATE and execution state model. Add one machine contract covering forbidden fake-completion events, progress-update state preservation, and legal termination only for genuine BLOCKED/COMPLETE. Do not create a second runtime state store.
