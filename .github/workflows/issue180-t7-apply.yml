@@ -1,0 +1,48 @@
+name: Issue180 T7 Apply Current-History Cleanup
+
+on:
+  push:
+    branches:
+      - docs/issue180-t7-current-history-cleanup-20260913
+    paths:
+      - '.github/workflows/issue180-t7-apply.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply fail-closed current/history cleanup
+        run: python .scratch/issue180-t7/apply_history_cleanup.py
+      - name: Verify only intended durable docs changed
+        shell: bash
+        run: |
+          git status --short
+          changed="$(git diff --name-only)"
+          test -n "$changed"
+          unexpected="$(printf '%s\n' "$changed" | grep -Ev '^(README\.md|AI_HANDOFF\.md|AGENTS\.md|handoff/00_AI_HANDOFF_README\.md|handoff/01_ARCHITECTURE\.md|handoff/05_NEXT_STEPS\.md|目前主要任務\.md|docs/superpowers/CURRENT_API_INVENTORY_20260818\.md|docs/superpowers/README\.md|個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則\.md|個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫\.md|個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map\.md)$' || true)"
+          test -z "$unexpected"
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'looaeedr'
+          git config user.email '76246585+looaeedr@users.noreply.github.com'
+          git add -- \
+            README.md AI_HANDOFF.md AGENTS.md \
+            handoff/00_AI_HANDOFF_README.md handoff/01_ARCHITECTURE.md handoff/05_NEXT_STEPS.md \
+            '目前主要任務.md' \
+            docs/superpowers/CURRENT_API_INVENTORY_20260818.md docs/superpowers/README.md \
+            '個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則.md' \
+            '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' \
+            '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+          git commit -m 'docs: classify current and historical authority surfaces'
+          git push origin HEAD:docs/issue180-t7-current-history-cleanup-20260913
