@@ -22,11 +22,11 @@ jobs:
           --evidence ".phase6_issue133_execution_state_evidence.txt"
       - name: Install test dependency
         run: python -m pip install pytest
-      - name: Run #133 contract when present
-        shell: bash
-        run: |
-          if [ -f tests/process/test_continuous_execution_state_contract.py ]; then
-            python -m pytest tests/process/test_continuous_execution_state_contract.py -q
-          else
-            echo "contract not yet created; preflight-only pass"
-          fi
+      - name: Run execution governance regression
+        run: >-
+          python -m pytest -q
+          tests/process/test_continuous_execution_state_contract.py
+          tests/process/test_continuous_execution_durable_contract.py
+          tests/process/test_monitoring_remote_qa_turn_boundary_contract.py
+          tests/test_dispatching_skill_timeout_contract.py
+          tests/test_issue_closure_completion_skill_contract.py
