@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # 派工
 
-這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、可恢復 checkpoint/journal、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
+這個 Skill 是 WHD 的施工狀態機。它的目標不是模擬「把工作丟給另一個人」，而是確保每張已核准工單都有可追溯 authority、真正的 owning Issue、唯一施工 ownership、可恢復 checkpoint/journal、可被其他 AI 看見的進度、可判讀的 QA 證據，以及明確的 PM → Implementer → QA 轉移。
 
 **REQUIRED SUB-SKILL:** monitoring-remote-qa
 
@@ -20,6 +20,16 @@ disable-model-invocation: true
 - progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
 - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
 - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
+
+### NON_TERMINAL_CONTINUE
+
+只要本票仍有任何 required step 處於 pending，例如 Requirement/RED、production/test/Skill 修改、GREEN 驗證、remote QA、workflow cleanup、tested-head → closing-head drift audit、AI Library writeback、owning Issue terminal evidence/closure，該狀態只能標示為「進行中／pending」，**但 pending 本身不是停工點，也不是結束回合的理由**。
+
+- progress update、CHECKPOINT、「尚未完成」、「因此不宣稱完成」都只是 observation，不能當作 `return` condition。
+- 除非使用者明確中止、遇到不可繞過且需要外部輸入的 capability/blocker，或安全／專案硬閘門明確要求停止，否則必須在同一次可用工作流程中立即執行下一個可執行 action。
+- 若遇 blocker，必須先把能完成的非阻塞 prerequisite/evidence 做完，再精確記錄 blocker；不得以籠統「pending」提前結束。
+- 「不假報完成」與「持續施工」是兩個獨立義務：前者禁止假綠，後者禁止非終態自行停工。
+- 任何 user-visible progress/checkpoint 後，只要沒有合法 stop condition，就必須接續下一個 tool/action；不得輸出狀態後直接結束回合。
 
 ## 1. 啟動與能力邊界
 
@@ -103,9 +113,54 @@ PM 必須：
 
 若事後才發現漏建 Issue：立即停止新增 production 變更，補建 Issue，並明確標示 **Retroactive provenance / 施工後補建**；寫入實際施工 branch、已發生 commit/run/evidence 與 target。不得假裝事後 Issue 原本就存在。
 
-### 3.4 PM → Implementer
+### 3.4 NO_WORK_WITHOUT_CLAIM / 唯一 execution claim
 
-只有 requirement RED 已核准、breakdown 已核准、owning Issue 已建立且反讀成功、必要 AI Library authority 已讀完，才輸出：
+GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Worker 共同使用同一 tracker 時，**一張 GitHub owning Issue 同時間只能有一個 execution claim owner**。
+
+1. `production/test/Skill/AI Library 第一筆 write 前`，Worker 必須先成功取得該 owning Issue 的 execution claim。
+2. claim authority 必須位於所有 Worker 都讀寫同一份的 **shared coordination namespace/ref**，並使用 **atomic** / mutually-exclusive create-or-compare-and-swap primitive。所有 Worker 必須先讀同一 authority，再嘗試 claim。
+3. 每個 implementation branch 各自建立 `.lock` 的 **branch-local lock** 不能作為互斥 authority；兩個 AI 可在不同 branch 同時成功建立同名檔，這不具全域排他性。
+4. `Issue comment / label`、聊天宣告、checkpoint 文字、branch 名稱可作 human-readable mirror，但**不是 execution claim authority**，除非底層操作本身具備已證明的 atomic ownership contract。
+5. claim 最低 ownership 欄位：owning Issue number/URL、worker identity、work branch、`claimed_at`、base SHA、目前 HEAD（若已存在）。
+6. **claim 失敗**、shared authority 已顯示其他 owner、或 atomic compare-and-swap 衝突時，必須 fail closed：**禁止施工該 Issue**、禁止另開平行實作來繞過 claim。若 dispatch pool 尚有可執行的未認領工單，依 `NON_TERMINAL_CONTINUE` 立即轉往下一張，而不是停在「已被鎖定」。
+7. 若目前環境沒有任何可提供 shared + atomic ownership 的能力，必須把它記成 capability blocker；不得把 branch-local 檔案或 comment 假裝成安全鎖。
+
+### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
+
+execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
+
+- `phase/state`：例如 CLAIMED / RED / IMPLEMENTING / GREEN / REMOTE_QA / CLEANUP / DRIFT_AUDIT / CLOSING；
+- `last_update`；
+- work `branch`；
+- current `HEAD`；
+- `remote QA run/status`（有 remote QA 時同時保存 `run_id + head_sha`）；
+- `next_action`；
+- `blocker`（沒有則明確為 none/null）；
+- checkpoint/journal pointer（長任務適用）。
+
+進度不是只在最後補寫。claim acquired、Requirement/contract **RED**、第一筆/重要 production write、focused/full **GREEN**、remote QA queued/in_progress/terminal、workflow **cleanup**、tested-head → closing-head **drift audit**、AI Library writeback、Issue closing/release 等重大 transition 都要更新 `CLAIM_PROGRESS_STATE`。若 store 支援 revision/ETag/SHA，progress update 也使用 optimistic concurrency / compare-and-swap，避免另一個 Worker 的較舊狀態覆蓋新狀態。
+
+列出目前未完成工單時，固定分成：
+
+- `我持有`：顯示 Issue、phase/state、last_update、branch/HEAD、QA 狀態、next_action、blocker；
+- `其他 AI 已鎖定`：顯示同樣進度，但不得進場施工；
+- `尚未認領`：可由下一個 Worker 嘗試 atomic claim。
+
+### 3.6 STALE_CLAIM_RECOVERY / stale owner 接管
+
+「很久沒更新」不等於可以偷鎖。stale claim recovery 必須先查 owning branch、目前 HEAD、checkpoint/journal、`last_update`、remote QA run/status、Issue 最新活動與既有 owner 是否仍有 non-terminal work。
+
+- **不得直接搶鎖**、覆蓋 owner 或刪除 claim。
+- 必須使用明確的 recovery / compare-and-swap 路徑，只能在「讀到的舊 revision/owner 仍然沒變」時原子轉移 ownership。
+- takeover 要留下 `recovery evidence`：原 owner、舊 revision/last_update、檢查過的 branch/QA/checkpoint、判定理由、新 owner、接管時間與 resume point。
+- 若 remote QA 還在 non-terminal，先遵守 `REMOTE_QA_ACTIVE_LOCK`；不得為了接管再 trigger 一套重覆 QA。
+- 無法證明 claim stale 或無法安全 compare-and-swap 時，保持 blocked，不得並行施工同一票。
+
+只有 owning **Issue terminal** evidence、必要 workflow cleanup、durable state/writeback、tested-head → closing-head drift audit 都完成後，才可 `release claim`。單純 code GREEN、commit 完成或 remote QA success 都不足以釋放 ownership。
+
+### 3.7 PM → Implementer
+
+只有 requirement RED 已核准、breakdown 已核准、owning Issue 已建立且反讀成功、必要 AI Library authority 已讀完，且該 Worker 已成功取得唯一 execution claim，才輸出：
 
 `[轉移至：實作者]`
 
@@ -177,6 +232,8 @@ QA 以獨立 reviewer 視角對照 Requirement Authority、actual diff、tests�
 
 GitHub ticketed work 必須反讀 owning Issue，確認 terminal run / PASS-FAIL、final head / target SHA、dependency、acceptance 結果已回寫。沒有 owning Issue 或只有 `.scratch` mirror，不得宣告工單完成。
 
+若使用 execution claim，QA 同時確認 claim owner 與實際施工 branch 一致，`CLAIM_PROGRESS_STATE` 已更新到目前終態，且 claim 尚未在 cleanup / drift audit / Issue terminal evidence 完成前被提早釋放。
+
 ### 5.4 QA 完成條件
 
 若本票進入測試回歸，只有同時滿足下列條件才可 ACCEPT：
@@ -189,7 +246,8 @@ GitHub ticketed work 必須反讀 owning Issue，確認 terminal run / PASS-FAIL
 - 已通過區段沒有因 timeout 被無意義重跑；
 - REQUIRED AI Library Writeback 已落盤並反讀；
 - owning Issue terminal evidence 完整；
-- 若啟動 remote QA，已完成第 7 節 lock 到 terminal、cleanup 與 drift audit。
+- 若啟動 remote QA，已完成第 7 節 lock 到 terminal、cleanup 與 drift audit；
+- execution claim 的 terminal progress 已寫回，Issue terminal + cleanup + drift audit 後才 release claim。
 
 ## 6. 測試 Runner / TIMEOUT 協定
 
@@ -320,6 +378,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 若工作由 `掃描深模組` 候選轉入實作，任何 Implementer production write 前再確認：
 
 - owning Issue 已建立並反讀；
+- 唯一 execution claim 已取得；
 - breakdown 已指定 AI Library Writeback owner；
 - breakdown 已指定 Combined Acceptance owner；
 - 任一 ownership 缺失就退回 PM 補齊；branch、checkpoint、HTML 報告、`.scratch/**` 都不能代替；
@@ -333,10 +392,18 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] description 只描述觸發邊界與核心責任，不塞完整 workflow。
 - [ ] Skill 少於 500 行。
 - [ ] `AGENTS.md` / Preflight / branch-first 明確且不被派工繞過。
+- [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可當 observation；沒有合法 stop condition 時立即執行下一個可執行 action。
+- [ ] 「不假報完成」與「持續施工」兩個義務都存在，前者不能被拿來當停工理由。
 - [ ] PM → Implementer → QA 角色標記完整。
 - [ ] Requirement RED-first + 使用者核准 + breakdown 第二次核准完整。
 - [ ] 每票都有 `Requirement Authority`、`AI Library References`、`AI Library Writeback`。
 - [ ] GitHub 專案每票在 Worker 前都有真正 GitHub owning Issue 並反讀 number + URL + title。
+- [ ] `NO_WORK_WITHOUT_CLAIM`：一票同時只有一個 execution claim owner；第一筆施工 write 前必須 atomic claim shared coordination authority。
+- [ ] branch-local lock / Issue comment / label 沒有被誤當全域互斥 authority；claim 失敗時 fail closed 並轉下一張可執行未認領票。
+- [ ] `CLAIM_PROGRESS_STATE` 同步 phase/state、last_update、branch/HEAD、remote QA、next_action、blocker，重大 transition 即時更新。
+- [ ] 未完成工單可分成 `我持有` / `其他 AI 已鎖定` / `尚未認領`，且 claimed ticket 可看見進度與下一步。
+- [ ] `STALE_CLAIM_RECOVERY` 不直接搶鎖；先查 branch/QA/checkpoint/last_update，再用 compare-and-swap + recovery evidence 接管。
+- [ ] Issue terminal + cleanup + drift audit 前不提早 release claim。
 - [ ] 漏建 Issue 用 Retroactive provenance，不能偽造時序。
 - [ ] checkpoint / journal 能讓下一回合不靠聊天記憶續工。
 - [ ] checkpoint provenance + execution tree fingerprint 阻止混合狀態續工。
