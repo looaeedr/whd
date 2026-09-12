@@ -29,8 +29,10 @@
 - Forbidden scope in T2: #163 layout relocation; manufacturing geometry changes; zoom/fit feeding production geometry
 - Preflight run `34697127276 @ 7867c3290c275c7d09d2e289f2385740b4703b72`: fail-closed because no evidence was supplied.
 - Preflight run `34697266885 @ 76e6c0a1eed78b03d8ae12daa87dc59614f988a7`: task gate GREEN; changed-file gate correctly required two additional Skills plus WHD geometry spec.
-- Pending: rerun task + changed-file preflight with complete evidence; then establish T2 RED, implement minimal presentation change, run remote QA/invariants, QA review.
-- Resume command: `python tools/phase6_skill_preflight.py --task "#162 unfold viewport presentation: black canvas, larger initial fit, mouse-wheel zoom; presentation only, no manufacturing geometry feedback" --changed-file gui.py --changed-file tests/test_issue162_unfold_viewport.py --evidence docs/superpowers/verification/2026-09-12-issue160-dispatch-issue162-preflight.md`
+- Preflight run `34697337431 @ cd90e2f173ae15dd7b648200766f4352931d2cf9`: GREEN for the initial `gui.py` estimate.
+- Source ownership correction after GREEN: `gui.py::draw_preview()` only delegates Corner Data rendering. The actual Corner Data unfold viewport lifecycle/adapter is owned by `fold_designer_bridge.py`. Therefore the earlier `gui.py` changed-file GREEN is not being reused as authorization for bridge edits; a new changed-file preflight is required against the actual owner before RED or production changes.
+- Pending: rerun changed-file preflight for `fold_designer_bridge.py` + `tests/test_issue162_unfold_viewport.py`; then establish T2 RED, implement minimal presentation change, run remote QA/invariants, QA review.
+- Resume command: `python tools/phase6_skill_preflight.py --task "#162 unfold viewport presentation: black canvas, larger initial fit, mouse-wheel zoom; presentation only, no manufacturing geometry feedback" --changed-file fold_designer_bridge.py --changed-file tests/test_issue162_unfold_viewport.py --evidence docs/superpowers/verification/2026-09-12-issue160-dispatch-issue162-preflight.md`
 
 ## Read Skills
 
@@ -52,5 +54,5 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾�
 2. Receiving aggregate `box_body` remains the logical/assembly owner; manufacturable children remain stable `box_body:<role>` identities. T2 must not reintroduce a selector/resolver fork.
 3. Validation values, screenshots, fit ratios, or zoom factors are acceptance evidence only; none may become production manufacturing inputs.
 4. `config.ini` and protected baselines must remain unchanged unless explicitly required by the user; #162 does not require such changes.
-5. Because `gui.py` changes can affect what physical part the operator sees, focused viewport GREEN is not Final Acceptance by itself. Before #162 ACCEPT, run the applicable physical-part/DXF acceptance chain and keep aggregate/child identities separate.
+5. Because the actual bridge/view adapter can affect what physical part the operator sees, focused viewport GREEN is not Final Acceptance by itself. Before #162 ACCEPT, run the applicable physical-part/DXF acceptance chain and keep aggregate/child identities separate.
 6. Remote QA must lock a single `run_id + head_sha` and be actively polled to terminal; setup/evidence/harness failures are classified separately from product failures.
