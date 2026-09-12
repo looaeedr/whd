@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Ask Matt
 
-這是 repo Skill router。**實體 `.agents/skills/**/SKILL.md` 是存在性 authority**；README/Registry 只是導覽與 Preflight route，不得因它們漏列就判定 Skill 不存在。
+這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是 Preflight route；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。
 
 ## Main flow：idea → ship
 

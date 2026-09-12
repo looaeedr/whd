@@ -5,6 +5,10 @@ description: Diagnosis loop for hard bugs and performance regressions. Use when 
 
 # Diagnosing Bugs
 
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
+
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
@@ -32,7 +36,7 @@ Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give
 7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
 8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate "boot at state X, check, repeat" so you can `git bisect run` it.
 9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
-10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.
+10. **HITL guided loop.** Last resort. If a human must click, generate a self-contained numbered checklist or temporary script that captures the exact signal needed; do not depend on a repository template that may not exist. Captured redacted output feeds back into the loop.
 
 Build the right feedback loop, and the bug is 90% fixed.
 
@@ -61,7 +65,7 @@ Phase 1 is done when the loop is **tight** and **red-capable**: you can name **o
 - [ ] **Red-capable**: it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring"; it must be able to _catch this specific bug_.
 - [ ] **Deterministic**: same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
 - [ ] **Fast**: seconds, not minutes.
-- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+- [ ] **Runnable in the available environment**: unattended when possible; if a human is unavoidable, use the self-contained HITL guide described above and keep the pass/fail signal explicit.
 
 If you catch yourself reading code to build a theory before this command exists, **stop: jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
 

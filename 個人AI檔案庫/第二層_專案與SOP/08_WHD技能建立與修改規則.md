@@ -243,3 +243,14 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 - manufacturing / DXF acceptance route 必須載入 current `04_WHD鈑金展開幾何引擎規範.md`。
 - 缺少 domain authority evidence 時 Preflight 必須 fail closed；不能因 `08_WHD技能建立與修改規則.md` 或全域 06 已讀就 false GREEN。
 - 每個 domain route 都要有 regression，至少證明「缺 domain evidence → RED；補齊 → GREEN」，並保留既有 domain reference 不被後續 Registry 編輯移除。
+
+
+## Active Skill runtime capability contract
+
+- Active WHD Skill 由 `.agents/skills/skill_catalog.json` classification 決定；filesystem 只證明 inventory，只有 `canonical` 預設可作 current active routing owner。
+- Active Skill 在要求 background agent、subagent、browser、CLI、MCP、專用 Skill loader 或其他 runtime 能力前必須先 capability-check；能力不存在時使用 safe **inline fallback**，不得假裝已委派或已執行。
+- Active Skill 引用任何 project-local **supporting file**、template、tracker doc 或 script 前必須確認它真的存在；不存在時移除硬依賴、改成 self-contained 流程，或明確 fail closed。
+- Skill-to-Skill routing 必須使用 current **canonical identity**；retired/legacy identity 只能存在於 history/migration，不得作 active invocation target。
+- `reference`、`upstream-beta`、`tool-specific`、`retired` 可在明確情境讀取，但不得和 canonical owner 競爭 routing。
+- Runtime repair 不得為了讓測試通過而把不存在能力包裝成假工具；驗證只判定契約，不能反過來創造 capability。
+- Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
