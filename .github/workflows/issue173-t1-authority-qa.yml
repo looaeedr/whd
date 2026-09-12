@@ -10,6 +10,7 @@ on:
       - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
       - '07_Phase6尺寸語意與標準截角母規則.md'
       - '標準基準檔格式.md'
+      - '.scratch/knowledge-authority-t1/**'
       - '.github/workflows/issue173-t1-authority-qa.yml'
   workflow_dispatch:
 
@@ -24,6 +25,21 @@ jobs:
           python-version: '3.12'
       - name: Install focused test dependency
         run: python -m pip install pytest
+      - name: Run final changed-file Knowledge Preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task 'canonical authority map dual-current mirror documentation governance' \
+            --changed-file 'tests/knowledge/test_knowledge_authority_contract.py' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
+            --changed-file '07_Phase6尺寸語意與標準截角母規則.md' \
+            --changed-file '標準基準檔格式.md' \
+            --changed-file '.github/workflows/issue173-t1-authority-qa.yml' \
+            --changed-file '.scratch/knowledge-authority-t1/preflight-evidence.md' \
+            --changed-file '.scratch/knowledge-authority-t1/state.md' \
+            --changed-file '.scratch/knowledge-authority-t1/journal.md' \
+            --evidence '.scratch/knowledge-authority-t1/preflight-evidence.md'
       - name: Record protected invariants before
         shell: bash
         run: |
