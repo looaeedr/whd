@@ -13,6 +13,15 @@ description: Use when GitHub ticketed work reaches QA acceptance, branch/PR merg
 
 該檔記錄「code-state 與 process-state 不可混為一談」的事故模式與永久防錯規則。本 Skill 是執行契約，AI Library 是歷史踩坑與判斷背景；兩者不得只靠聊天記憶取代。
 
+### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
+
+本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
+
+- 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
+- progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
+- non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
+- 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
+
 ## 核心原則
 
 **合併不等於關單。** `integration != completion`。
