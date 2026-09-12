@@ -5,11 +5,17 @@
   "work_branch": "docs/knowledge-authority-t1-20260913",
   "claimed_at": "2026-09-13T03:11:38+08:00",
   "base_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
-  "head_sha": "835a7188da072dcb5afa82699e58f0dbe27c15f9",
-  "phase": "RED",
-  "last_update": "2026-09-13T03:25:24+08:00",
-  "remote_qa": null,
-  "next_action": "Add permanent authority contract test and execute focused RED against current documentation state",
+  "head_sha": "180ccbdcb664fef08d734e2b404f18ba1953f7ff",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-13T03:27:38+08:00",
+  "remote_qa": {
+    "run_id": 34714185500,
+    "head_sha": "4a0e78a4b0b8870bf063b3889908d23be5e21491",
+    "status": "completed/failure",
+    "classification": "INTENDED_REQUIREMENT_RED",
+    "result": "4 failed in 0.11s; protected invariants step success"
+  },
+  "next_action": "Implement minimal authority map, pointer-only mirrors, and 08 authority-role policy, then rerun focused QA",
   "blocker": null,
   "checkpoint": ".scratch/knowledge-authority-t1/T1.state.md",
   "journal": ".scratch/knowledge-authority-t1/T1.journal.jsonl"
