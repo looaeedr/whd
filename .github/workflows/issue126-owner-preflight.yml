@@ -48,38 +48,6 @@ jobs:
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
           test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
-      - name: Install GUI runtime
+      - name: Locate layout construction
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq xvfb fonts-noto-cjk
-          python -m pip install -q pytest matplotlib pillow -r requirements.txt
-      - name: Runtime workspace owner map
-        run: |
-          xvfb-run -a -s '-screen 0 1800x1100x24' python - <<'PY'
-          import tkinter as tk
-          import gui
-          root=tk.Tk(); root.geometry('1500x900+0+0'); root.update()
-          app=gui.BoxCalculatorGUI(root)
-          d=app.open_original_fold_designer(); root.update_idletasks(); root.update()
-          print('DESIGNER_CLASS', type(d).__name__)
-          print('WORKSPACE_CONTROLLER_ID', id(getattr(d,'workspace_controller',None)))
-          for name,value in sorted(vars(d).items()):
-              if hasattr(value,'winfo_class'):
-                  low=name.lower()
-                  if any(k in low for k in ('frame','panel','canvas','view','workspace','tree','setting','left','right','center','main','drawing','figure','toolbar')):
-                      try:
-                          print('ATTR',name,value.winfo_class(),value.winfo_manager(),value.winfo_width(),value.winfo_height(),str(value))
-                      except Exception as e: print('ATTRERR',name,type(e).__name__)
-          print('TOP_CHILDREN')
-          def walk(w,depth=0):
-              if depth>3: return
-              for c in w.winfo_children():
-                  try:
-                      print('NODE',depth,c.winfo_class(),c.winfo_manager(),c.winfo_width(),c.winfo_height(),str(c))
-                  except Exception: pass
-                  walk(c,depth+1)
-          walk(d.root if hasattr(d,'root') else root)
-          try: d.root.destroy()
-          except Exception: pass
-          root.destroy()
-          PY
+          grep -n -C 12 -E 'self\.left[[:space:]]*=|self\.right[[:space:]]*=|left\.pack|right\.pack|workspace_controller[[:space:]]*=' fold_designer_bridge.py | head -n 220
