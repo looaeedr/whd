@@ -2,6 +2,8 @@ name: Issue 153 CHECKPOINT Entry Bridges
 on:
   push:
     branches: [fix/issue153-checkpoint-entry-bridges-r2-20260912]
+    paths:
+      - .github/workflows/issue153-checkpoint-entry-bridges.yml
 permissions:
   contents: write
 jobs:
@@ -48,17 +50,18 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import subprocess
 
           section = '''### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
 
-本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
+          本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
 
-- 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
-- progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
-- non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
-- 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
+          - 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
+          - progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
+          - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
+          - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
 
-'''
+          '''
           targets = {
               Path('.agents/skills/engineering/派工/SKILL.md'): '## 1. 啟動與能力邊界\n',
               Path('.agents/skills/engineering/monitoring-remote-qa/SKILL.md'): '## Active polling is mandatory\n',
@@ -71,13 +74,19 @@ jobs:
               if text.count(anchor) != 1:
                   raise SystemExit(f'anchor count {text.count(anchor)} for {path}')
               path.write_text(text.replace(anchor, section + anchor, 1), encoding='utf-8')
+
+          subprocess.run(['git', 'diff', '--check'], check=True)
+          changed = subprocess.check_output(
+              ['git', '-c', 'core.quotepath=false', 'diff', '--name-only'], text=True
+          ).splitlines()
+          expected = [
+              '.agents/skills/engineering/issue-closure-gate/SKILL.md',
+              '.agents/skills/engineering/monitoring-remote-qa/SKILL.md',
+              '.agents/skills/engineering/派工/SKILL.md',
+          ]
+          assert changed == expected, (changed, expected)
+          print('GREEN_WORKTREE=' + '|'.join(changed))
           PY
-          git diff --check
-          changed="$(git -c core.quotepath=false diff --name-only)"
-          printf '%s\n' "$changed"
-          test "$changed" = ".agents/skills/engineering/issue-closure-gate/SKILL.md
-          .agents/skills/engineering/monitoring-remote-qa/SKILL.md
-          .agents/skills/engineering/派工/SKILL.md"
       - name: Install pytest
         run: python -m pip install -q pytest
       - name: GREEN checkpoint bridge contract
@@ -90,9 +99,17 @@ jobs:
           git add .agents/skills/engineering/派工/SKILL.md \
                   .agents/skills/engineering/monitoring-remote-qa/SKILL.md \
                   .agents/skills/engineering/issue-closure-gate/SKILL.md
-          staged="$(git -c core.quotepath=false diff --cached --name-only)"
-          test "$staged" = ".agents/skills/engineering/issue-closure-gate/SKILL.md
-          .agents/skills/engineering/monitoring-remote-qa/SKILL.md
-          .agents/skills/engineering/派工/SKILL.md"
+          python - <<'PY'
+          import subprocess
+          staged = subprocess.check_output(
+              ['git', '-c', 'core.quotepath=false', 'diff', '--cached', '--name-only'], text=True
+          ).splitlines()
+          expected = [
+              '.agents/skills/engineering/issue-closure-gate/SKILL.md',
+              '.agents/skills/engineering/monitoring-remote-qa/SKILL.md',
+              '.agents/skills/engineering/派工/SKILL.md',
+          ]
+          assert staged == expected, (staged, expected)
+          PY
           git commit -m 'docs: bridge long-flow entry skills to visible checkpoint gate'
           git push origin HEAD:fix/issue153-checkpoint-entry-bridges-r2-20260912
