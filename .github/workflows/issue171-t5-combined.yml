@@ -71,7 +71,8 @@ jobs:
       - name: Source ownership and forbidden fallback scan
         shell: python
         run: |
-          import inspect
+          import inspect, os, sys
+          sys.path.insert(0, os.getcwd())
           import phase6_part_navigation as nav
           import fold_designer_bridge as bridge
           n=inspect.getsource(nav)
