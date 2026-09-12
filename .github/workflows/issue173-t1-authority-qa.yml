@@ -1,0 +1,64 @@
+name: Issue173 T1 Authority QA
+
+on:
+  push:
+    branches:
+      - docs/knowledge-authority-t1-20260913
+    paths:
+      - 'tests/knowledge/test_knowledge_authority_contract.py'
+      - 'tests/test_phase6_skill_preflight_gate.py'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+      - '07_Phase6尺寸語意與標準截角母規則.md'
+      - '標準基準檔格式.md'
+      - '.github/workflows/issue173-t1-authority-qa.yml'
+  workflow_dispatch:
+
+jobs:
+  authority-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Record protected invariants before
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
+      - name: Run final changed-file Knowledge Preflight
+        shell: bash
+        run: |
+          cat > /tmp/issue173-evidence.txt <<'EOF'
+          Python測試實務
+          monitoring-remote-qa
+          尺寸語意分析
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task 'canonical authority map dual-current mirror documentation governance broader regression tests' \
+            --changed-file 'tests/knowledge/test_knowledge_authority_contract.py' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' \
+            --changed-file '07_Phase6尺寸語意與標準截角母規則.md' \
+            --changed-file '標準基準檔格式.md' \
+            --changed-file '.github/workflows/issue173-t1-authority-qa.yml' \
+            --evidence /tmp/issue173-evidence.txt
+      - name: Run T1 authority contract
+        run: python -m pytest -q tests/knowledge/test_knowledge_authority_contract.py
+      - name: Run existing Phase6 Preflight regression
+        run: python -m pytest -q tests/test_phase6_skill_preflight_gate.py
+      - name: Verify protected invariants
+        if: always()
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baseline.before /tmp/baseline.after

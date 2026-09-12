@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
@@ -30,6 +31,20 @@ def _force_utf8_stdio() -> None:
 
 def _norm(value: str | Path) -> str:
     return Path(value).as_posix().lstrip("./")
+
+
+def _keyword_matches_task(keyword: str, task_text: str) -> bool:
+    keyword_text = keyword.lower()
+    is_short_ascii_acronym = (
+        len(keyword) <= 3
+        and keyword.isascii()
+        and keyword.isalnum()
+        and any(char.isupper() or char.isdigit() for char in keyword)
+    )
+    if is_short_ascii_acronym:
+        pattern = rf"(?<![A-Za-z0-9_]){re.escape(keyword_text)}(?![A-Za-z0-9_])"
+        return re.search(pattern, task_text) is not None
+    return keyword_text in task_text
 
 
 def load_skill_registry(path: Path = REGISTRY) -> Mapping[str, object]:
@@ -58,7 +73,7 @@ def required_skills_for(
             raise ValueError("skill_registry route must be an object")
         keywords = tuple(str(item) for item in route.get("keywords", ()) or ())
         globs = tuple(_norm(str(item)) for item in route.get("file_globs", ()) or ())
-        matched_keyword = any(keyword.lower() in task_text for keyword in keywords)
+        matched_keyword = any(_keyword_matches_task(keyword, task_text) for keyword in keywords)
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue
@@ -85,7 +100,7 @@ def required_references_for(
             raise ValueError("skill_registry route must be an object")
         keywords = tuple(str(item) for item in route.get("keywords", ()) or ())
         globs = tuple(_norm(str(item)) for item in route.get("file_globs", ()) or ())
-        matched_keyword = any(keyword.lower() in task_text for keyword in keywords)
+        matched_keyword = any(_keyword_matches_task(keyword, task_text) for keyword in keywords)
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue
