@@ -142,3 +142,62 @@ def test_dispatching_skill_requires_non_terminal_continue_instead_of_returning_o
     assert "使用者明確中止" in text
     assert "不可繞過" in text
     assert "硬閘門" in text
+
+
+def test_dispatching_skill_requires_one_atomic_execution_claim_per_owning_issue():
+    text = _skill_text()
+    for required in (
+        "NO_WORK_WITHOUT_CLAIM",
+        "一張 GitHub owning Issue 同時間只能有一個 execution claim owner",
+        "shared coordination namespace/ref",
+        "atomic",
+        "branch-local lock",
+        "不能作為互斥 authority",
+        "production/test/Skill/AI Library 第一筆 write 前",
+        "claim 失敗",
+        "禁止施工該 Issue",
+    ):
+        assert required in text
+
+    assert "Issue comment / label" in text
+    assert "不是 execution claim authority" in text
+
+
+def test_dispatching_skill_claim_keeps_durable_progress_visible_to_other_ai_workers():
+    text = _skill_text()
+    for required in (
+        "CLAIM_PROGRESS_STATE",
+        "phase/state",
+        "last_update",
+        "branch",
+        "HEAD",
+        "remote QA run/status",
+        "next_action",
+        "blocker",
+        "RED",
+        "GREEN",
+        "cleanup",
+        "drift audit",
+    ):
+        assert required in text
+
+    for bucket in ("我持有", "其他 AI 已鎖定", "尚未認領"):
+        assert bucket in text
+
+
+def test_dispatching_skill_stale_claim_recovery_is_audited_not_silent_steal():
+    text = _skill_text()
+    for required in (
+        "STALE_CLAIM_RECOVERY",
+        "不得直接搶鎖",
+        "owning branch",
+        "checkpoint/journal",
+        "last_update",
+        "remote QA",
+        "compare-and-swap",
+        "recovery evidence",
+    ):
+        assert required in text
+
+    assert "Issue terminal" in text
+    assert "release claim" in text
