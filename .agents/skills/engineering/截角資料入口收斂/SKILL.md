@@ -121,3 +121,12 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 - 正式 navigation/identity 只讀 authoritative workspace / stable physical part key；舊 Notebook selection 不得再回灌 active part。
 - `draw_preview()` 在舊入口退役後，只能刷新目前可見的 authoritative Fold Designer「截角資料」View，不得恢復 legacy tab dispatch。
 - Acceptance 必須至少包含：static dead-navigation scan、T5 capability preservation、Xvfb runtime navigation、config invariant。
+
+
+## Issue119 Corner Data lifecycle / readability（2026-09-12）
+- Corner Data 必須有**對稱 enter/exit lifecycle**：切到正式板件時，canvas/info 與左側 panel 都必須離開 layout，不能只藏右側 canvas。
+- family/topology transaction 必須先完成 authoritative commit，再從 **post-commit available_parts** 刷新 visible projection；隱藏的 Corner Data 不做多餘 refresh。
+- 同一 transaction 必須維持**一次且唯一的 refresh owner**，避免重複 redraw/selection side effect。
+- Corner Data 使用自己的 **dedicated viewport**；不得沿用一般 2D 的大 annotation gutter 把圖縮小。
+- operator-info 已承載正式尺寸文字，Corner Data canvas **不得重複 finished-dimension summary**。
+- 上述皆為 View lifecycle/projection/layout contract；不得建立第二套 manufacturing geometry、DXF authority 或 physical-part identity。

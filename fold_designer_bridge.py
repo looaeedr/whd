@@ -2322,6 +2322,16 @@ def _phase6_on_baseline_model_changed(self, *_args):
     else:
         _phase6_publish_live_state(self, force=True)
 
+    corner_data_panel = getattr(self, "corner_data_panel", None)
+    if (
+        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        and corner_data_panel is not None
+        and corner_data_panel.winfo_manager()
+    ):
+        _phase6_refresh_corner_data_parts_panel(self)
+        if getattr(self, "corner_data_canvas", None) is not None:
+            _phase6_refresh_corner_data_unfold_view(self)
+
 
 def _phase6_collect_workspace_state(self):
     active = self.designer_workspace.active_part
@@ -8758,6 +8768,7 @@ def _phase6_prepare_corner_data_canvas(self):
         info_label = original.ttk.Label(
             mpl_widget.master, textvariable=self.corner_data_info_var,
             justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,
+            font=("Microsoft JhengHei", 11, "bold"),
         )
         self.corner_data_info_label = info_label
     if not alive:
@@ -9348,6 +9359,9 @@ def _fix11_activate_part(self, key, initial=False):
     if key not in self.designer_workspace.available_parts:
         return
     _phase6_hide_corner_data_canvas(self)
+    corner_data_panel = getattr(self, "corner_data_panel", None)
+    if corner_data_panel is not None and corner_data_panel.winfo_manager():
+        corner_data_panel.pack_forget()
     if _phase6_is_box_body_physical_piece_key(key):
         self._phase6_box_body_active_piece_key = str(key)
     before_signature = None
