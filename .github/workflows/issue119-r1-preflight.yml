@@ -24,7 +24,7 @@ jobs:
       - name: Lock baseline
         shell: bash
         run: |
-          test "$(git rev-parse HEAD^)" = "eede532b9fe61052cf4411ecf5063e0374165fe8"
+          test "$(git rev-parse HEAD~2)" = "eede532b9fe61052cf4411ecf5063e0374165fe8"
           echo "BASE=eede532b9fe61052cf4411ecf5063e0374165fe8"
       - name: Build evidence manifest
         shell: bash
@@ -46,6 +46,7 @@ jobs:
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
           READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: release_required_artifacts.json
           EOF
       - name: Fail-closed changed-file preflight
         shell: bash
@@ -64,4 +65,4 @@ jobs:
       - name: Prove production/test untouched
         shell: bash
         run: |
-          git diff --exit-code HEAD^ -- fold_designer_bridge.py gui.py tests .agents/skills/engineering/截角資料入口收斂/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          git diff --exit-code eede532b9fe61052cf4411ecf5063e0374165fe8..HEAD -- fold_designer_bridge.py gui.py tests .agents/skills/engineering/截角資料入口收斂/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
