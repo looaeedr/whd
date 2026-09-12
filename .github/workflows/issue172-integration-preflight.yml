@@ -1,0 +1,40 @@
+name: Issue 172 Integration Preflight
+
+on:
+  push:
+    branches:
+      - integrate/issue172-claim-progress-20260913
+    paths:
+      - '.github/workflows/issue172-integration-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run changed-file knowledge preflight
+        run: |
+          cat > /tmp/issue172-evidence.txt <<'EOF'
+          READ_SKILL: 寫技能
+          READ_SKILL: 派工
+          READ_SKILL: issue-closure-gate
+          READ_SKILL: phase6-release-packaging
+          READ_SKILL: diagnosing-bugs
+          READ_SKILL: tdd
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "整合 #172：把已驗收的派工多 AI 唯一 execution claim、工單進度共享、stale claim recovery 永久 contract 與 AI Library/踩坑庫 durable writeback 移植到最新 cleanup/2d-3d-sync；不修改 manufacturing geometry / DXF authority。" \
+            --changed-file ".agents/skills/engineering/派工/SKILL.md" \
+            --changed-file "tests/test_dispatching_skill_timeout_contract.py" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md" \
+            --evidence /tmp/issue172-evidence.txt
