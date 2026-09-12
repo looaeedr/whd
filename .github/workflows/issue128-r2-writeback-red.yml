@@ -25,11 +25,17 @@ jobs:
           BASE=711194caac8e8f94d464f8abc4d82316f87edc93
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
           test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+      - name: Provision test runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install -q pytest
       - name: Prove durable rule is genuinely RED before writeback
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install -q pytest
           set +e
           pytest -q tests/process/test_issue128_invariant_manifest_contract.py > /tmp/red.log 2>&1
           rc=$?
