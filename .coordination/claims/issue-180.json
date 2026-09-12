@@ -11,9 +11,9 @@
     "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
-  "phase": "QA_REVIEW",
-  "last_update": "2026-09-13T07:52:42+08:00",
+  "head_sha": "22f4b9b0181687a7dd76bb6904e295556005b857",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-13T07:54:20+08:00",
   "remote_qa": {
     "preflight_run_id": 34726205499,
     "preflight_head_sha": "62ab432ed29c7727564b8d25b5bea4fffd9c4e39",
@@ -26,9 +26,12 @@
     "apply_result": "SUCCESS; exact 12-file durable-doc allowlist; committed implementation 0d6a29f1a8ff9787850c0f9df412dd464c761f7e",
     "focused_green_run_id": 34726537402,
     "focused_green_head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
-    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL / 0.06s; Preflight and protected invariants PASS"
+    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL / 0.06s; Preflight and protected invariants PASS",
+    "closing_qa_run_id": 34726602829,
+    "closing_qa_head_sha": "22f4b9b0181687a7dd76bb6904e295556005b857",
+    "closing_qa_result": "SUCCESS; T7 focused 8 PASS; tests/knowledge + tests/process 75 PASS / 0 FAIL / 0.33s; Preflight and protected invariants PASS"
   },
-  "next_action": "Run closing governance regressions across tests/knowledge and tests/process; then cleanup one-shot workflow/scratch artifacts and perform drift audits.",
+  "next_action": "Delete one-shot workflows and scratch artifacts, then run tested-head to closing-head and production to closing-head drift audits before integration.",
   "blocker": null,
   "checkpoint": ".scratch/issue180-t7/T7.state.md",
   "journal": ".scratch/issue180-t7/T7.journal.jsonl"
