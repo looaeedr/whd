@@ -1,0 +1,152 @@
+from pathlib import Path
+
+
+def replace_exact(path: str, old: str, new: str) -> None:
+    p = Path(path)
+    text = p.read_text(encoding="utf-8")
+    if old not in text:
+        raise SystemExit(f"expected text missing in {path}: {old[:120]!r}")
+    p.write_text(text.replace(old, new), encoding="utf-8")
+
+
+def insert_after(path: str, anchor: str, addition: str) -> None:
+    p = Path(path)
+    text = p.read_text(encoding="utf-8")
+    if addition.strip() in text:
+        return
+    if anchor not in text:
+        raise SystemExit(f"anchor missing in {path}: {anchor!r}")
+    p.write_text(text.replace(anchor, anchor + addition, 1), encoding="utf-8")
+
+
+Path(".agents/skills/engineering/research/SKILL.md").write_text('''---
+name: research
+description: Investigate a question against high-trust primary sources and capture cited findings. Use current-session tools by default; delegate only when the runtime actually provides a suitable background/subagent capability.
+---
+
+# Research
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+Research must work in the runtime that actually exists. If a real background/subagent capability is available and useful, it may be used as an optimization; it is never required. Without it, the same executor performs the research **inline fallback** in the current session.
+
+1. Investigate the question against primary/high-trust sources: official docs, source code, specs, first-party APIs, project authority files, or other sources that own the claim.
+2. Follow each material claim back to its source; do not promote a secondary summary over the owning authority.
+3. Capture findings in the artifact/location the current task actually requires. If the repo has a durable research-note convention, use it; otherwise keep the result in the current response unless a file is explicitly useful or requested.
+4. Cite or link the evidence using the capabilities of the current runtime. Never claim a source, background worker, or command was used unless it actually was.
+5. For WHD project work, project canonical authority and AI Library rules outrank generic external guidance.
+''', encoding="utf-8")
+
+code = ".agents/skills/engineering/code-review/SKILL.md"
+replace_exact(code, "Runs both reviews in parallel sub-agents and reports them side by side.", "Runs both review axes separately and reports them side by side; parallel reviewers are optional only when the runtime actually supports them.")
+replace_exact(code, "Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.\n\nThe issue tracker should have been provided to you. If `docs/agents/issue-tracker.md` is missing, tell the user to run `/setup-matt-pocock-skills`.", """The two axes stay logically separate so one cannot mask the other. They may run in parallel only when the runtime exposes a real parallel/subagent capability; otherwise the same executor runs them sequentially inline and preserves separate notes.
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the issue/spec sources actually available in this repo/session: owning GitHub Issue/PR, user-provided spec path, project docs, commit messages, or connected tracker tools. There is no required tracker supporting file. If no separate reviewer runtime exists, perform both axes as an **inline fallback** and report them separately.""")
+replace_exact(code, "1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), fetched via the workflow in `docs/agents/issue-tracker.md`.", "1. Issue references in commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), fetched through the tracker/GitHub capability actually available in the current runtime.")
+replace_exact(code, "### 4. Spawn both sub-agents in parallel", "### 4. Run both review axes")
+replace_exact(code, "**Standards sub-agent prompt** should include:", "**Standards review brief** should include:")
+replace_exact(code, "**Spec sub-agent prompt** should include:", "**Spec review brief** should include:")
+replace_exact(code, "If the spec is missing, skip the Spec sub-agent and note this in the final report.", "If the spec is missing, skip the Spec axis and note this in the final report.")
+replace_exact(code, "the sub-agent has no other access to it", "the review context must not assume unstated access")
+
+way = ".agents/skills/engineering/wayfinder/SKILL.md"
+replace_exact(way, "**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`. Consult the tracker doc's \"Wayfinding operations\" section for how _this_ repo expresses them. If no tracker has been provided, default to the local-markdown tracker.", "**Where the map, child tickets, blocking, and frontier queries live is tracker-specific.** Use the tracker capability actually available for the project (for WHD, owning GitHub Issues/connector when available). If no shared tracker capability exists, use a project-local Markdown/checkpoint map rather than invoking a second governance system.")
+insert_after(way, "## Plan, don't do\n", """
+## RUNTIME_CAPABILITY_FALLBACK
+
+Parallel/background agents are optional optimizations, not requirements. When unavailable, the same executor works the map as an **inline fallback**, one decision at a time, while keeping issue/checkpoint state durable. Canonical supporting identities are `深度質詢`, `領域建模`, `research`, and `prototype`; retired English aliases are never current invocation targets.
+""")
+replace_exact(way, "- **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases to surface a fact a decision waits on. Resolved by a subagent that calls the Skill tool with \"research\". Use when knowledge outside the current working directory is required.", "- **Research** (AFK): Read documentation, APIs, or local knowledge to surface a fact. Use canonical `research`; delegate only if a real subagent capability exists, otherwise research inline.")
+replace_exact(way, "- **Grilling** (HITL): Conversation. The default case. Always call the Skill tool twice, for \"grilling\" and \"domain-modeling\".", "- **Deep interview** (HITL): Conversation. Use canonical `深度質詢`; when decisions settle domain terminology, also use canonical `領域建模`.")
+replace_exact(way, "1. **Name the destination.** Call the Skill tool twice, for \"grilling\" and \"domain-modeling\", to pin down what this map is finding its way to: the spec, decision, or change.", "1. **Name the destination.** Use canonical `深度質詢` and, when domain terminology is being settled, `領域建模`, to pin down the spec, decision, or change this map is finding its way to.")
+replace_exact(way, "5. **Fire the research subagents.** For each `research` ticket you just created, spin up a subagent that calls the Skill tool with \"research\" to resolve it in parallel, capturing its findings on a throwaway `research/<name>` branch with a context pointer from the ticket.", "5. **Resolve ready research tickets.** If real parallel/subagent capability exists, independent `research` tickets may be delegated; otherwise resolve them inline. Keep findings linked from the ticket/checkpoint rather than relying on hidden worker context.")
+replace_exact(way, "3. Resolve it. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for \"grilling\" and \"domain-modeling\".", "3. Resolve it. **Zoom as needed**: fetch related ticket detail on demand and use the canonical Skills named by `## Notes`. For interview/domain work, use `深度質詢` and `領域建模`; if a dedicated loader is unavailable, follow the canonical Skills inline.")
+
+tri = ".agents/skills/engineering/triage/SKILL.md"
+insert_after(tri, "# Triage\n", """
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the issue/PR tracker and runtime capabilities that actually exist. Parallel/subagent execution is optional; without it, the same executor performs verification, research, `深度質詢`, and `領域建模` as an **inline fallback**. Do not require an external setup Skill or retired English identity just to triage WHD work.
+""")
+replace_exact(tri, "These are canonical role names. The actual label strings used in the issue tracker may differ. The mapping should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.", "These are canonical role names. Actual tracker labels may differ; discover the mapping from the tracker/project configuration that is really available. If no mapping exists, report that gap and use explicit state names rather than invoking a separate setup/governance system.")
+replace_exact(tri, "4. **Grill (if needed).** If the request needs fleshing out, call the Skill tool twice, for \"grilling\" and \"domain-modeling\", and grill it into shape a round of questions at a time, sharpening domain terms and updating `CONTEXT.md`/ADRs inline as decisions land.", "4. **Deep interview (if needed).** Use canonical `深度質詢` to flesh out the request a round at a time; when domain terms settle, use canonical `領域建模` and update `CONTEXT.md`/ADRs when their gates are met. If no separate Skill loader exists, follow the canonical Skills inline.")
+
+Path(".agents/skills/engineering/wizard/SKILL.md").write_text('''---
+name: wizard
+description: Generate a guided human-run procedure or script for steps only a human can perform. Use for credentials, dashboards, manual migrations or cutovers; do not invoke for steps the agent can safely perform itself.
+---
+
+# Wizard
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+This Skill is self-contained. It does not require a bundled template. If bash/script tooling is available, author a small procedure-specific script inline; otherwise produce an executable human checklist. The **inline fallback** must preserve confirmation gates, secret redaction, idempotence where possible, and explicit irreversible-action warnings.
+
+## Process
+
+1. **Scope the procedure.** Read the repo/config first. List only steps the human truly must perform and every value produced. Never ask the human to do something the current runtime can already do safely.
+2. **Map each stage.** Give concrete URLs/commands/fields only when verified from current docs or UI evidence. Do not invent third-party dashboard steps.
+3. **Author the guide.** When a script helps, build it directly with ordinary shell primitives: numbered stages, hidden secret input, explicit confirmations, idempotent file updates, and clear output destinations. Do not depend on a missing repository template or helper library.
+4. **Protect secrets.** Never echo credentials into chat/logs. Prefer environment variables or the platform's native secret store when available.
+5. **Verify.** Run syntax/static checks only if those tools and a script actually exist. Otherwise statically trace every stage. Do not run human-only steps end-to-end on the user's behalf.
+6. **Hand off.** Tell the human exactly how to execute the guide. Keep it ephemeral unless the user wants a repeatable repo artifact.
+
+If a required external capability is unavailable and cannot be replaced safely, state the precise gap instead of fabricating a command or UI path.
+''', encoding="utf-8")
+
+tdd = ".agents/skills/engineering/tdd/SKILL.md"
+replace_exact(tdd, "When the shape of that interface is itself in question (how deep the module is, where the seam belongs, what the interface should expose), call the Skill tool with \"codebase-design\" for the vocabulary. It is the shared source of the module, interface, depth, seam, adapter, leverage and locality terms, and it is a reference to consult, not a session to run.", "When the interface shape is itself in question, consult canonical `程式碼庫設計` at `.agents/skills/engineering/程式碼庫設計/SKILL.md` for module/interface/depth/seam/adapter/leverage/locality vocabulary. If a dedicated loader is unavailable, read/apply that canonical source inline; do not invoke a retired English identity.")
+
+diag = ".agents/skills/engineering/diagnosing-bugs/SKILL.md"
+insert_after(diag, "# Diagnosing Bugs\n", """
+## RUNTIME_CAPABILITY_FALLBACK
+
+Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
+""")
+replace_exact(diag, "10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.", "10. **HITL guided loop.** Last resort. If a human must click, generate a self-contained numbered checklist or temporary script that captures the exact signal needed; do not depend on a repository template that may not exist. Captured redacted output feeds back into the loop.")
+replace_exact(diag, "- [ ] **Agent-runnable**: you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.", "- [ ] **Runnable in the available environment**: unattended when possible; if a human is unavoidable, use the self-contained HITL guide described above and keep the pass/fail signal explicit.")
+
+Path(".agents/skills/productivity/handoff/SKILL.md").write_text('''---
+name: handoff
+description: Compact current work into a durable handoff so another session or agent can continue without relying on hidden conversation state.
+argument-hint: "What will the next session be used for?"
+disable-model-invocation: true
+---
+
+# Handoff
+
+## RUNTIME_CAPABILITY_FALLBACK
+
+Prefer durable project state that the next executor can actually read: owning Issue/PR, checkpoint/journal, spec, ADR, commit/branch, and repo-local handoff when the project requires one. An OS temporary directory is only an optional ephemeral **inline fallback**, not a hard requirement.
+
+Write a concise handoff that summarizes only context not already captured elsewhere. Reference existing artifacts by path/URL instead of duplicating specs, plans, ADRs, issues, commits or diffs.
+
+Include a `Suggested Skills` section only when useful. Name each Skill by its **canonical identity** and path/classification where known; do not instruct the next agent to use a generic product-specific loader. The next runtime decides how to load or apply it. For WHD, active status comes from `.agents/skills/skill_catalog.json` and only `canonical` is active by default.
+
+If the runtime provides native compaction/handoff support, it may be used. Otherwise the same executor writes the handoff inline. Never claim a fresh/background agent was started unless the runtime actually started one.
+
+Redact secrets, credentials, account identifiers, and unnecessary personal information. If the user supplied a next-session focus, make that the resume target and include the exact next safe action, blockers, branch/HEAD and active remote QA lock when relevant.
+''', encoding="utf-8")
+
+ask = ".agents/skills/engineering/ask-matt/SKILL.md"
+replace_exact(ask, "這是 repo Skill router。**實體 `.agents/skills/**/SKILL.md` 是存在性 authority**；README/Registry 只是導覽與 Preflight route，不得因它們漏列就判定 Skill 不存在。", "這是 repo Skill router。Filesystem `.agents/skills/**/SKILL.md` 只提供 **inventory evidence**；`.agents/skills/skill_catalog.json` 是 active **classification** authority，只有 `canonical` 預設是 WHD active Skill。README 只是導覽，Registry 是 Preflight route；`reference/upstream-beta/tool-specific/retired` 不得因檔案存在就自動成為 current routing owner。")
+
+policy = Path("個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md")
+text = policy.read_text(encoding="utf-8")
+heading = "## Active Skill runtime capability contract"
+if heading not in text:
+    text += '''
+
+## Active Skill runtime capability contract
+
+- Active WHD Skill 由 `.agents/skills/skill_catalog.json` classification 決定；filesystem 只證明 inventory，只有 `canonical` 預設可作 current active routing owner。
+- Active Skill 在要求 background agent、subagent、browser、CLI、MCP、專用 Skill loader 或其他 runtime 能力前必須先 capability-check；能力不存在時使用 safe **inline fallback**，不得假裝已委派或已執行。
+- Active Skill 引用任何 project-local **supporting file**、template、tracker doc 或 script 前必須確認它真的存在；不存在時移除硬依賴、改成 self-contained 流程，或明確 fail closed。
+- Skill-to-Skill routing 必須使用 current **canonical identity**；retired/legacy identity 只能存在於 history/migration，不得作 active invocation target。
+- `reference`、`upstream-beta`、`tool-specific`、`retired` 可在明確情境讀取，但不得和 canonical owner 競爭 routing。
+- Runtime repair 不得為了讓測試通過而把不存在能力包裝成假工具；驗證只判定契約，不能反過來創造 capability。
+- Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
+'''
+    policy.write_text(text, encoding="utf-8")
