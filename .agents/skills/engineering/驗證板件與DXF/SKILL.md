@@ -209,7 +209,6 @@ issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、phys
 - Negative guards 必須同時保留：移動 CUTTING 點、刪 hole、刪 BEND、改 layer、以及 gap > verifier tolerance 都必須 FAIL。
 - Door 類修正除了 synthetic micro-gap 正/反例外，還要保留真實 Receiving 上門/下門 `tests/test_receiving_door_dxf_roundtrip.py`，證明 real baseline LINE+ARC/CUTTING 組合在 save→reopen 後仍等價。
 
-
 ## Receiving aggregate selection identity（2026-09-13）
 
 <!-- ISSUE164_RECEIVING_AGGREGATE_SELECTION_IDENTITY -->
@@ -217,3 +216,30 @@ issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、phys
 - 明確選擇 `box_body:<role>` 時則必須維持該 stable physical-part identity；parent 與 child 是兩種不同且都合法的操作意圖。
 - remembered child 只能在操作語意本來就是「恢復先前 child context」時使用，不得覆蓋本次明確 parent intent。
 - Combined Acceptance 同時驗 aggregate `box_body` 與至少一個 physical child 的 routing/projection；DXF / manufacturing acceptance 仍必須列舉並逐件驗全部 resolved physical pieces，aggregate 不得冒充逐片加工驗收。
+
+## DM7 operator navigation / topology contraction（2026-09-13）
+
+<!-- DM7_OPERATOR_NAVIGATION_VALIDATION_CONTRACT -->
+
+以下四種責任不得混成同一份 state：
+
+1. **manufacturing physical identity / topology**：由 current workspace / resolved manufacturing output 擁有；
+2. **operator explicit identity**：操作員本次明確要求的 stable ID；
+3. **navigation memory**：只用於明確的 child-context restore；
+4. **UI hierarchy projection**：Menu / Structure Tree / Corner Data 對 authoritative IDs 的 view-only 投影。
+
+驗收硬規則：
+
+- explicit `box_body` 必須 exact 保持 aggregate parent；remembered child 不得覆蓋。
+- explicit 現存 `box_body:<role>` 必須 exact 保持 physical child。
+- stale explicit child 必須 fail closed；**不得 fallback 到 remembered sibling、nearest sibling 或 `children[0]`**。
+- stale remembered child 在 `RESTORE_CHILD_CONTEXT` 時清除；不得猜下一片。
+- parent 不在 authoritative parts 時，hierarchy 不得自創 aggregate parent；parent 存在時 children 增刪也不得改寫 explicit parent identity。
+- family / structure topology 先 commit/sync authoritative physical IDs，再 refresh/project visible navigation。
+- Corner Data selection 是 view-only，不能 mutate manufacturing workspace。
+- Save→Reload 保存 authoritative project/workspace state；navigation memory、label、tree/tab index、UI hierarchy 不得升格 persistence truth。Reload 後由 authoritative `available_parts` 重新 projection。
+- Menu / Structure Tree / Corner Data / child editor 必須共用同一 stable identity / hierarchy owner；source scan 要拒絕 caller-local duplicate resolver。
+
+完整驗收至少覆蓋：`parent → child → parent`、`child A → child B`、stale explicit child、stale remembered child、topology contraction、missing aggregate parent、first family/structure switch、Save→Reload、2D/3D identity parity、Corner Data purity，以及 label/index independence。
+
+Validation 只能判斷上述 contract 是否符合；測試 expected、fixture、UI order、目前 observed child 都不得反向成為 production topology/identity authority。
