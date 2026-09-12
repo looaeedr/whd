@@ -102,6 +102,8 @@ jobs:
           print('BEFORE\n'+before+'AFTER\n'+after)
           assert before == after
           subprocess.run(['git','diff','--exit-code','--','config.ini','基準檔'],check=True)
-          tracked=subprocess.check_output(['git','ls-files','.scratch'],text=True).strip()
-          assert tracked == '', tracked
+          added=subprocess.check_output(['git','diff','--diff-filter=A','--name-only','origin/cleanup/2d-3d-sync...HEAD','--','.scratch'],text=True).strip()
+          assert added == '', added
+          assert not Path('.scratch/dm7-t1').exists()
+          assert not Path('.scratch/dm7-t2').exists()
           print('DM7_FINAL_INVARIANTS=PASS')
