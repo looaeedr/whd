@@ -7,6 +7,7 @@
 - role: `QA`
 - role_transfer: `[轉移至：QA]`
 - accepted_tested_head: `de31d6709c3bab748b3cc3111b0c57bef1a671b1`
+- qa_status: `GREEN / integration-ready`
 - integration: `PENDING HUMAN GATE; do not merge without explicit 合`
 
 ## Preflight / recovery
@@ -68,7 +69,7 @@ Results:
 
 Tk callback and missing-CJK-glyph warnings were observed, but the acceptance suites had zero failures.
 
-## Temporary workflow cleanup
+## Temporary workflow cleanup / drift
 
 After terminal GREEN, all four replay-only workflows were removed from the work branch:
 
@@ -77,12 +78,19 @@ After terminal GREEN, all four replay-only workflows were removed from the work 
 - `.github/workflows/issue119-r1-apply.yml`
 - `.github/workflows/issue119-r1-final.yml`
 
-Cleanup commits are QA-only. Final drift audit must prove tested-head → cleaned-head has zero production/test drift beyond this state document and workflow cleanup.
+Tested-head → post-cleanup compare contained only replay workflow removals plus this durable state document; **production/test drift = 0**. The final workflow was created and deleted after the tested head, so it cancels from the net compare.
 
-## Remaining gate
+## Durable remote reread
 
-1. remote reread durable Skill / AI markers;
-2. tested-head → cleaned-head production/test drift audit;
-3. reread current `cleanup/2d-3d-sync` and verify target ancestry/drift;
-4. post terminal evidence back to #119;
-5. production integration remains human-owned and must not occur without explicit `合`.
+Remote branch reread confirmed the Issue119 markers are present in:
+
+- `.agents/skills/engineering/截角資料入口收斂/SKILL.md`: symmetric enter/exit lifecycle, post-commit `available_parts`, one refresh owner, dedicated viewport, no duplicate finished-dimension summary.
+- `個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md`: stuck managed panel, post-commit visible projection, one refresh owner, and the 175px generic annotation-gutter pitfall.
+
+## Target ancestry / integration gate
+
+The production target was reread after cleanup and remained exactly `eede532b9fe61052cf4411ecf5063e0374165fe8`.
+
+Current target → cleaned Issue119 branch is **ahead only, behind 0**, with merge base exactly `eede532b...`. Net files are limited to the Issue119 Skill/AI writeback, state document, `fold_designer_bridge.py`, `gui.py`, and the two Issue119 regression files; no temporary QA workflow remains.
+
+#119 is therefore **integration-ready**, but production integration remains human-owned and must not occur without explicit `合`.
