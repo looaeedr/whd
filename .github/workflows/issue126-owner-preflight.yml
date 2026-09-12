@@ -2,7 +2,10 @@ name: Issue 126 Workspace Owner Preflight
 on:
   push:
     branches: [work/issue-126-workspace-layout-20260912-r1]
-    paths: [.github/workflows/issue126-owner-preflight.yml]
+    paths:
+      - .github/workflows/issue126-owner-preflight.yml
+      - tests/test_issue126_workspace_layout.py
+      - fold_designer_bridge.py
 permissions:
   contents: read
 jobs:
@@ -48,6 +51,10 @@ jobs:
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
           test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
-      - name: Locate layout construction
+      - name: Install GUI runtime
         run: |
-          grep -n -C 12 -E 'self\.left[[:space:]]*=|self\.right[[:space:]]*=|left\.pack|right\.pack|workspace_controller[[:space:]]*=' fold_designer_bridge.py | head -n 220
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Issue 126 workspace RED contract
+        run: xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue126_workspace_layout.py
