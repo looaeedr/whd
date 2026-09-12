@@ -1,0 +1,59 @@
+name: Issue 172 Post-Integration QA
+
+on:
+  push:
+    branches:
+      - integrate/issue172-multi-ai-claim-progress-20260913
+    paths:
+      - '.github/workflows/issue172-post-integration-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Changed-file knowledge preflight
+        run: |
+          cat > /tmp/issue172-evidence.txt <<'EOF'
+          READ_SKILL: 寫技能
+          READ_SKILL: 派工
+          READ_SKILL: issue-closure-gate
+          READ_SKILL: phase6-release-packaging
+          READ_SKILL: diagnosing-bugs
+          READ_SKILL: tdd
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: release_required_artifacts.json
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "寫技能：修改派工 Skill，加入多 AI owning Issue 唯一 claim 鎖、claim 失敗禁止重覆施工、工單進度可見性與 stale claim recovery；建立永久 contract test並回寫AI Library與踩坑庫。" \
+            --changed-file ".agents/skills/engineering/派工/SKILL.md" \
+            --changed-file "tests/test_dispatching_skill_timeout_contract.py" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md" \
+            --evidence /tmp/issue172-evidence.txt
+      - name: Permanent contract
+        run: python -m pytest -q tests/test_dispatching_skill_timeout_contract.py
+      - name: Scope and durable source checks
+        run: |
+          test "$(git diff --name-only 73963150dbf121fc50010e4285d6c1679b496e28..c08d40cd2e6138fc00f00bde8c73445726811e1d | wc -l)" -eq 4
+          grep -F 'NON_TERMINAL_CONTINUE' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'NO_WORK_WITHOUT_CLAIM' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'CLAIM_PROGRESS_STATE' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'STALE_CLAIM_RECOVERY' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F '我持有' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F '其他 AI 已鎖定' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F '尚未認領' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'ISSUE172_MULTI_AI_CLAIM_PROGRESS' '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+          grep -F 'ISSUE172_PITFALL_MULTI_AI_CLAIM' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          git diff --check 73963150dbf121fc50010e4285d6c1679b496e28..c08d40cd2e6138fc00f00bde8c73445726811e1d
