@@ -210,3 +210,26 @@ claim 同時是跨 AI durable progress state，至少保存 `phase/state`、`las
 claim 久未更新不能直接搶。接管前先核對 owning branch、HEAD、checkpoint/journal、`last_update`、remote QA、Issue 最新活動；只在舊 revision/owner 仍未改變時以 compare-and-swap 原子轉移，並留下 recovery evidence。無法證明 stale 或無安全 CAS 時保持 blocked。
 
 只有 Issue terminal evidence、必要 workflow cleanup、durable writeback、tested-head→closing-head drift audit 都完成後才能 release claim。
+
+## 2026-09-13 — Canonical Authority Roles / Mirror Contract
+
+<!-- ISSUE173_CANONICAL_AUTHORITY_ROLE_CONTRACT -->
+
+WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一個 domain contract，就必須先分類成下列角色；完整 mapping 由 `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` 擁有：
+
+- `CURRENT`：該 contract 唯一可作現行 Source of Truth 的 owner。
+- `REFERENCE`：背景／方法／evidence；可輔助，但不得覆蓋 CURRENT。
+- `MIRROR`：只作入口相容或導覽；必須標記 `POINTER_ONLY`，內容只能指回 canonical owner，不能複製完整 current prose 後自行演化。
+- `HISTORICAL`：日期化／已被取代的 evidence；不得參與 current routing，也不得繼續使用「CURRENT／最高優先級／下一個主要任務」等現行語氣。
+
+### 單一 CURRENT 硬規則
+
+- **同一 contract 只能有一個 `CURRENT` owner。** 兩份文件即使內容暫時相同，只要都自稱 current/最高優先級，就屬 authority conflict。
+- 搬移或升格 canonical owner 時，舊 owner 必須在**同一變更**降級為 `REFERENCE`、`MIRROR` 或 `HISTORICAL`；禁止先留下雙 CURRENT 再靠閱讀順序猜哪份新。
+- 保留舊路徑時優先採 `MIRROR + POINTER_ONLY`。Mirror 不得以全文 copy 維持相容；全文 copy 會形成可漂移的第二 SSOT。
+- 發現 exact duplicate 但檔名／語意角色不同時，先決定真正 owner；非 owner 要刪除、改 pointer 或明確 historical，不能讓 duplicate SHA 掩蓋 identity 衝突。
+- 新規則推翻舊規則時，舊規則在原位置標 `SUPERSEDED / REVOKED / HISTORICAL`，不得只在另一份文件後面補一段新說法。
+
+### 永久驗證
+
+`tests/knowledge/test_knowledge_authority_contract.py` 是 T1 起始的 machine guard；它只判定 authority contract 是否符合，不成為任何製造／幾何／產品規則的 Source of Truth。
