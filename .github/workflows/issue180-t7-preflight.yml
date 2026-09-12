@@ -55,6 +55,7 @@ jobs:
             --changed-file '.github/workflows/issue180-t7-apply.yml' \
             --changed-file '.scratch/issue180-t7/apply_history_cleanup.py' \
             --changed-file '.scratch/issue180-t7/T7.state.md' \
+            --changed-file '.scratch/issue180-t7/T7.journal.jsonl' \
             --evidence /tmp/issue180-evidence.txt
       - name: Verify protected invariants
         if: always()
