@@ -1,4 +1,4 @@
-name: Issue 170 T4 Guard Baseline
+name: Issue 170 T4 Closure Acceptance
 
 on:
   push:
@@ -9,22 +9,94 @@ permissions:
   contents: read
 
 jobs:
-  t4-guards:
+  t4-closure:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Provision test runtime
-        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
-      - name: Run T4 permanent guards and related regressions
+      - name: Provision acceptance runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture protected invariants
+        shell: python
+        run: |
+          import hashlib
+          from pathlib import Path
+
+          def file_sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          def tree_sha(root):
+              root = Path(root)
+              h = hashlib.sha256()
+              for path in sorted(p for p in root.rglob('*') if p.is_file()):
+                  rel = path.relative_to(root).as_posix().encode('utf-8')
+                  data = path.read_bytes()
+                  h.update(len(rel).to_bytes(4, 'big')); h.update(rel)
+                  h.update(len(data).to_bytes(8, 'big')); h.update(data)
+              return h.hexdigest()
+
+          text = f"config.ini {file_sha('config.ini')}\n基準檔 {tree_sha('基準檔')}\n"
+          Path('/tmp/issue170-invariants.before').write_text(text, encoding='utf-8')
+          print(text)
+      - name: Headless DM7 topology source persistence and manufacturing acceptance
         run: >-
           python -m pytest -q
           tests/test_dm7_topology_persistence_guards.py
           tests/test_dm7_navigation_source_guards.py
           tests/test_dm7_part_navigation.py
           tests/test_dm7_navigation_callers.py
+          tests/test_issue164_durable_contract.py
+          tests/test_dxf_acceptance.py
+          tests/test_receiving_door_dxf_roundtrip.py
+          tests/test_multipart_dxf_acceptance.py
+          tests/test_resolved_manufacturing_export.py
+          tests/test_resolved_manufacturing_geometry.py
+          tests/test_manufacturing_api_finished_face_contract.py
           tests/test_issue41_persistence_parity.py
           tests/test_issue45_dynamic_parts_2d_roundtrip.py
+          tests/test_phase6_project_controller.py
+          tests/test_phase6_project_file.py
+          tests/test_phase6_project_ownership.py
+          tests/test_phase6_project_session.py
+      - name: Xvfb historical navigation regressions
+        run: >-
+          xvfb-run -a python -m pytest -q
+          tests/test_issue119_corner_data_transition_ui.py
+          tests/test_issue96_corner_data_selection_lifecycle.py
+          tests/test_issue97_authoritative_unfold_view_adapter.py
+          tests/test_issue163_unfold_workspace_layout.py
+      - name: Verify protected invariants
+        if: always()
+        shell: python
+        run: |
+          import hashlib
+          import subprocess
+          from pathlib import Path
+
+          def file_sha(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          def tree_sha(root):
+              root = Path(root)
+              h = hashlib.sha256()
+              for path in sorted(p for p in root.rglob('*') if p.is_file()):
+                  rel = path.relative_to(root).as_posix().encode('utf-8')
+                  data = path.read_bytes()
+                  h.update(len(rel).to_bytes(4, 'big')); h.update(rel)
+                  h.update(len(data).to_bytes(8, 'big')); h.update(data)
+              return h.hexdigest()
+
+          before = Path('/tmp/issue170-invariants.before').read_text(encoding='utf-8')
+          after = f"config.ini {file_sha('config.ini')}\n基準檔 {tree_sha('基準檔')}\n"
+          print('BEFORE:\n' + before)
+          print('AFTER:\n' + after)
+          if before != after:
+              raise SystemExit('protected invariant drift')
+          subprocess.run(['git', 'diff', '--exit-code', '--', 'config.ini', '基準檔'], check=True)
+          print('PROTECTED_INVARIANTS=PASS')
