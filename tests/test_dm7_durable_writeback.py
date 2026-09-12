@@ -35,6 +35,6 @@ def test_dm7_ai_pitfall_keeps_fail_closed_and_projection_rules():
         "Hierarchy 只是 projection",
         "不得為了 UI 好看自行創造 parent",
         "navigation memory、UI hierarchy、display labels 不升格 persistence truth",
-        "validation",
+        "Validation boundary",
     ):
         assert marker in text
