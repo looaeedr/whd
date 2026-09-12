@@ -1,0 +1,111 @@
+name: Issue162 final acceptance
+on:
+  push:
+    branches:
+      - fix/issue162-unfold-viewport-20260912
+    paths:
+      - .github/workflows/issue162-final-acceptance-20260912.yml
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install acceptance dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Final skill preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "#162 final acceptance: unfold black canvas, larger fit, mouse-wheel zoom; presentation only; verify Receiving aggregate/child lifecycle and no geometry feedback" \
+            --changed-file fold_designer_bridge.py \
+            --changed-file gui.py \
+            --changed-file tests/test_issue162_unfold_viewport.py \
+            --evidence docs/superpowers/verification/2026-09-12-issue160-dispatch-issue162-preflight.md
+      - name: Syntax check
+        run: python -m py_compile fold_designer_bridge.py gui.py tests/test_issue162_unfold_viewport.py
+      - name: Verify committed protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=0c3932dfee117f5980e7d3717341ef184090afc3
+          changed_protected="$(git diff --name-only "$BASE" HEAD -- config.ini '*.dxf' '*.DXF')"
+          if [ -n "$changed_protected" ]; then
+            echo "Protected config/DXF drift detected:"
+            echo "$changed_protected"
+            exit 1
+          fi
+          printf 'protected_commit_diff=clean\n' | tee /tmp/protected-summary.txt
+      - name: Capture runtime invariants
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+          git status --short -- '*.dxf' '*.DXF' > /tmp/dxf.before
+      - name: Final focused acceptance
+        run: >-
+          xvfb-run -a pytest -q
+          --junitxml=/tmp/issue162-junit.xml
+          tests/test_issue162_unfold_viewport.py
+          tests/test_issue119_corner_data_transition_ui.py
+          tests/test_issue96_corner_data_selection_lifecycle.py
+          tests/test_issue97_authoritative_unfold_view_adapter.py
+      - name: Verify runtime invariants
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          git status --short -- '*.dxf' '*.DXF' > /tmp/dxf.after
+          diff -u /tmp/dxf.before /tmp/dxf.after
+          git diff --exit-code -- config.ini '*.dxf' '*.DXF'
+      - name: Build acceptance summary
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          out = []
+          junit = Path('/tmp/issue162-junit.xml')
+          if junit.exists():
+              root = ET.parse(junit).getroot()
+              suites = [root] if root.tag == 'testsuite' else list(root.findall('testsuite'))
+              totals = {k: sum(int(s.attrib.get(k, '0')) for s in suites) for k in ('tests','failures','errors','skipped')}
+              passed = totals['tests'] - totals['failures'] - totals['errors'] - totals['skipped']
+              out.append(f"tests={totals['tests']}")
+              out.append(f"passed={passed}")
+              out.append(f"failures={totals['failures']}")
+              out.append(f"errors={totals['errors']}")
+              out.append(f"skipped={totals['skipped']}")
+          else:
+              out.append('junit=missing')
+          for label, path in (
+              ('config_before','/tmp/config.before'),
+              ('config_after','/tmp/config.after'),
+              ('protected','/tmp/protected-summary.txt'),
+          ):
+              p = Path(path)
+              if p.exists():
+                  out.append(f"{label}={p.read_text(encoding='utf-8').strip()}")
+          Path('/tmp/qa-summary.txt').write_text('\n'.join(out) + '\n', encoding='utf-8')
+          print('\n'.join(out))
+          PY
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue162-final-acceptance-evidence
+          path: |
+            /tmp/qa-summary.txt
+            /tmp/issue162-junit.xml
+            /tmp/config.before
+            /tmp/config.after
+            /tmp/protected-summary.txt
