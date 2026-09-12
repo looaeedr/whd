@@ -50,25 +50,16 @@ jobs:
       - name: Apply minimal user-visible checkpoint gate
         shell: bash
         run: |
+          export CHECKPOINT_SECTION_B64='IyMjIyBVU0VSX1ZJU0lCTEVfQ0hFQ0tQT0lOVF9HQVRFCgpEdXJhYmxlIGNoZWNrcG9pbnQg5LiN5Y+q6KaB5a2Y5Zyo5pa85YWn6YOo77yPcmVwbyDni4DmhYvvvJvlnKjpnIDopoHot6ggcnVudGltZSDmgaLlvqnmiJbplbfmtYHnqIvph43opoHovYnmipjmmYLvvIzkuZ/lv4XpoIjorpPkvb/nlKjogIXnnIvlvpfliLDjgIIKCi0gc3lzdGVtIGhhcmQtY3V0IOWJjeeahOacgOW+jOS4gOWAiyB1c2VyLXZpc2libGUgdXBkYXRlIOW/hemgiOS9v+eUqOWbuuWumuaomemhjCBgQ0hFQ0tQT0lOVGDvvIzkuI3lvpflj6rnlZnkuIDoiKwgcHJvZ3Jlc3MgdXBkYXRlIOaIluWPquWcqOWFp+mDqOS/neWtmOOAggotIENIRUNLUE9JTlQg6Iez5bCR6aGv56S677yaYGlzc3VlIC8gdGFza2DjgIFgcm9sZWDjgIFgYnJhbmNoICsgSEVBRGDjgIFgcHJvZHVjdGlvbiB0YXJnZXRg44CBYHJlbW90ZSBRQSBsb2NrYOOAgWBjb21wbGV0ZWQgLyBwZW5kaW5nIC8gZmFpbGVkIC8gYmxvY2tlZGDjgIFgdmFsaWRhdGlvbiAvIGludmFyaWFudGDjgIFgdGVtcG9yYXJ5IHdvcmtmbG93cyAvIGJyYW5jaGVzYOOAgWBuZXh0IGV4YWN0IGFjdGlvbmDjgIIKLSDplbfmtYHnqIvpgYfliLDph43opoEgZXhlY3V0aW9uIHN0YXRlIHRyYW5zaXRpb24g5pmC5Yi35paw5Y+v6KaLIGNoZWNrcG9pbnTvvIzoh7PlsJHljIXlkKsgYFJVTk5JTkcg4oaUIFdBSVRJTkdfUkVNT1RFIOKGlCBSRUNPVkVSSU5HYOOAgWBicmFuY2ggLyBIRUFEIC8gcHJvZHVjdGlvbiB0YXJnZXRgIGlkZW50aXR5IOaUueiuiuOAgWByZW1vdGUgUUEgbG9jayBhY3F1aXJlZCAvIHRlcm1pbmFsYOOAgWBhY2NlcHRlZCBzbGljZSAvIG1ham9yIGNoZWNrcG9pbnRg44CC5LiN6ZyA6KaB5oqK5q+P5YCLIDMwIOenkiBvYnNlcnZhdGlvbiDpg73ljYfmoLzmiJAgY2hlY2twb2ludOOAggotIHByb2dyZXNzIHVwZGF0ZSDkuI3lvpflhpLlhYUgY2hlY2twb2ludO+8m+S4gOiIrOmAsuW6puWbnuWgseS7jeS+nSBjYWRlbmNlIOWft+ihjO+8jOS9huS4jeiDveWboOatpOWPluS7oyBkdXJhYmxlL3VzZXItdmlzaWJsZSBjaGVja3BvaW5044CCCi0g5Y+v6KaLIGNoZWNrcG9pbnQg5LiN6IO95oiQ54K65q2j5bi45YGc5bel6bue77ybYG5vbi10ZXJtaW5hbCBzdGF0ZSDpoa/npLogQ0hFQ0tQT0lOVCDlvozku43lv4XpoIjnubznuowgbmV4dCBhY3Rpb25g44CC5Y+q5pyJIGdlbnVpbmUgQkxPQ0tFROOAgWV2aWRlbmNlLWJhY2tlZCBDT01QTEVURSDmiJblr6bpmpsgc3lzdGVtIGhhcmQtY3V0IOaJjeiDvemboumWi+ato+W4uOWft+ihjOmPiOOAggoK'
           python - <<'PY'
+          import base64, os
           from pathlib import Path
           p = Path('.agents/skills/engineering/執行開發任務/SKILL.md')
           s = p.read_text(encoding='utf-8')
           if 'USER_VISIBLE_CHECKPOINT_GATE' in s:
               raise SystemExit('visible checkpoint gate already exists unexpectedly')
           anchor = '\n## 4. 測試 timeout\n'
-          section = r'''
-#### USER_VISIBLE_CHECKPOINT_GATE
-
-Durable checkpoint 不只要存在於內部／repo 狀態；在需要跨 runtime 恢復或長流程重要轉折時，也必須讓使用者看得到。
-
-- system hard-cut 前的最後一個 user-visible update 必須使用固定標題 `CHECKPOINT`，不得只留一般 progress update 或只在內部保存。
-- CHECKPOINT 至少顯示：`issue / task`、`role`、`branch + HEAD`、`production target`、`remote QA lock`、`completed / pending / failed / blocked`、`validation / invariant`、`temporary workflows / branches`、`next exact action`。
-- 長流程遇到重要 execution state transition 時刷新可見 checkpoint，至少包含 `RUNNING ↔ WAITING_REMOTE ↔ RECOVERING`、`branch / HEAD / production target` identity 改變、`remote QA lock acquired / terminal`、`accepted slice / major checkpoint`。不需要把每個 30 秒 observation 都升格成 checkpoint。
-- progress update 不得冒充 checkpoint；一般進度回報仍依 cadence 執行，但不能因此取代 durable/user-visible checkpoint。
-- 可見 checkpoint 不能成為正常停工點；`non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action`。只有 genuine BLOCKED、evidence-backed COMPLETE 或實際 system hard-cut 才能離開正常執行鏈。
-
-'''
+          section = base64.b64decode(os.environ['CHECKPOINT_SECTION_B64']).decode('utf-8')
           if s.count(anchor) != 1:
               raise SystemExit(f'checkpoint insertion anchor count={s.count(anchor)}')
           p.write_text(s.replace(anchor, '\n' + section + '## 4. 測試 timeout\n', 1), encoding='utf-8')
