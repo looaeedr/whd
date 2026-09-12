@@ -4338,8 +4338,25 @@ class BoxCalculatorGUI:
         ch = max(1, int(canvas.winfo_height()))
         bounds = tuple(float(v) for v in material.bounds)
         transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
-            bounds, cw, ch, top_gutter=64.0
+            bounds, cw, ch,
+            top_gutter=24.0, right_gutter=24.0,
+            bottom_gutter=24.0, left_gutter=24.0,
         )
+        try:
+            zoom = float(getattr(canvas, "_phase6_unfold_zoom", 1.0) or 1.0)
+        except Exception:
+            zoom = 1.0
+        zoom = max(0.50, min(3.00, zoom))
+        if abs(zoom - 1.0) > 1e-12:
+            minx, miny, maxx, maxy = bounds
+            world_center = Vec2((minx + maxx) / 2.0, (miny + maxy) / 2.0)
+            center_x, center_y = transform.world_to_canvas(world_center)
+            scaled = transform.scale * zoom
+            transform = CanvasTransform(
+                scale=scaled,
+                origin_x=center_x - world_center.x * scaled,
+                origin_y=center_y + world_center.y * scaled,
+            )
         render_drawing_scene(
             canvas, scene, transform, skip_layers=("CHECK", "STOCK")
         )

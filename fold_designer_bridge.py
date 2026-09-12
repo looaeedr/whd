@@ -8865,6 +8865,7 @@ def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     """Store a current stable corner-data identity without mutating manufacturing state."""
     keys = _phase6_corner_data_part_keys(self)
+    previous = getattr(self, "_phase6_corner_data_selected_part_key", None)
     requested = str(key or "")
     if requested == "box_body":
         resolved = (
@@ -8879,6 +8880,13 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     if resolved not in keys:
         resolved = None
     self._phase6_corner_data_selected_part_key = resolved
+    if previous != resolved:
+        canvas = getattr(self, "corner_data_canvas", None)
+        if canvas is not None:
+            try:
+                canvas._phase6_unfold_zoom = 1.0
+            except Exception:
+                pass
     if (
         refresh_view
         and str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
@@ -9009,6 +9017,34 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     return keys
 
 
+def _phase6_on_corner_data_mousewheel(self, event):
+    """Adjust only the Corner Data viewport scale; manufacturing geometry stays untouched."""
+    canvas = getattr(self, "corner_data_canvas", None)
+    if canvas is None:
+        return None
+    def _event_int(value):
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+    delta = _event_int(getattr(event, "delta", 0))
+    button = _event_int(getattr(event, "num", 0))
+    direction = 1 if (delta > 0 or button == 4) else -1 if (delta < 0 or button == 5) else 0
+    if direction == 0:
+        return None
+    try:
+        current = float(getattr(canvas, "_phase6_unfold_zoom", 1.0) or 1.0)
+    except Exception:
+        current = 1.0
+    step = 1.12
+    updated = current * step if direction > 0 else current / step
+    updated = max(0.50, min(3.00, updated))
+    canvas._phase6_unfold_zoom = updated
+    if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data":
+        _phase6_refresh_corner_data_unfold_view(self)
+    return "break"
+
+
 def _phase6_prepare_corner_data_canvas(self):
     """Install the 2D canvas when a real renderer viewport exists; otherwise fail closed."""
     renderer = getattr(self, "renderer", None)
@@ -9040,9 +9076,10 @@ def _phase6_prepare_corner_data_canvas(self):
         self.corner_data_info_label = info_label
     if not alive:
         canvas = original.tk.Canvas(
-            mpl_widget.master, bg="#ffffff", highlightthickness=0
+            mpl_widget.master, bg="#000000", highlightthickness=0
         )
         self.corner_data_canvas = canvas
+        canvas._phase6_unfold_zoom = 1.0
         canvas.bind(
             "<Configure>",
             lambda _event: (
@@ -9051,6 +9088,9 @@ def _phase6_prepare_corner_data_canvas(self):
                 else None
             ),
         )
+        canvas.bind("<MouseWheel>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
+        canvas.bind("<Button-4>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
+        canvas.bind("<Button-5>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
     if mpl_widget.winfo_manager():
         mpl_widget.pack_forget()
     if not info_label.winfo_manager():
