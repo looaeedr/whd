@@ -19,7 +19,6 @@ jobs:
         run: >-
           python tools/phase6_skill_preflight.py
           --task "#163 structural UI relayout: left pane only part selector and active inputs with vertical scroll reachability at text scales 1.0/1.2/1.4; top only File and Corner Data; move other controls right; preserve #119/#127 lifecycle and stable physical-part identity; no manufacturing geometry rewrite"
-          --changed-file gui.py
           --changed-file fold_designer_bridge.py
           --changed-file tests/test_issue163_unfold_workspace_layout.py
           --evidence docs/superpowers/verification/2026-09-12-issue163-preflight.md
