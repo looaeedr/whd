@@ -51,6 +51,43 @@ run terminal 前禁止繼續 code exploration、production/test/Skill write、�
 
 任務尚未完成時，每 30 秒至少回報一次目前工單、正在做的事項、最新測試/進度數字與 blocker；回報不得中斷正常執行。
 
+### EXECUTION_STATE_MACHINE
+
+這是 WHD 長流程的**語意狀態模型**，不是第二套 runtime database、task store 或 journal。真實 branch / HEAD / run_id / checkpoint 仍寫回既有 Git / GitHub / durable checkpoint authority；本節只定義目前工作鏈允許如何被描述與推進。
+
+- `RUNNING`：已有可自主執行的本地／GitHub next action，必須繼續執行。
+- `WAITING_REMOTE`：已有 non-terminal remote run；polling 細節、run lock 與 cadence 唯一服從 `monitoring-remote-qa`。
+- `RECOVERING`：已有失敗 evidence 且可自行診斷／修復；必須沿 evidence → root cause → fix → validation → retry 前進。
+- `BLOCKED`：只有符合 `BLOCKED_ALLOWED_REASONS` 才成立；不是一般 FAIL、等待或「下一步很明確」的同義詞。
+- `COMPLETE`：只有符合 `COMPLETE_REQUIRES_ACCEPTANCE_EVIDENCE` 才成立。
+
+固定 next-action contract：
+
+- `RUNNING → execute_next_action`
+- `WAITING_REMOTE → poll_locked_run`
+- `RECOVERING → evidence_root_cause_fix_retry`
+- `BLOCKED → wait_for_missing_authority`
+- `COMPLETE → no_next_action`
+
+任何 `RUNNING`、`WAITING_REMOTE`、`RECOVERING` 都是 non-terminal；**non-terminal state 不得輸出 final** 或把既有工作鏈交回使用者當 scheduler。
+
+#### BLOCKED_ALLOWED_REASONS
+
+`BLOCKED` 僅允許以下原因：
+
+1. 必須由使用者做**產品語意決策**，既有 requirement / code / Skill / AI 庫 / tests / history 無 authority 可決定。
+2. 缺少**必要權限**，且 Agent 無法自行取得。
+3. 缺少**不可推導資料**，且所有既有 authority 都無法回答。
+4. 平台或工具造成**系統硬性中止**；此時要先留下 durable checkpoint，不能把它寫成 COMPLETE。
+
+**可恢復 FAIL 不得進 BLOCKED**；preflight/test/QA/invariant 若有 evidence 可繼續診斷，必須轉 `RECOVERING` 或回 `RUNNING`。
+
+#### COMPLETE_REQUIRES_ACCEPTANCE_EVIDENCE
+
+`COMPLETE` 至少要有目前工單要求的 fresh acceptance evidence，並完成 applicable remote QA、invariant、drift、cleanup、issue-state gate。缺其中任何必要 gate 就維持 non-terminal。
+
+下列事件全部只是中間 evidence：`branch created`、`commit created`、`push complete`、`run_id acquired`、`queued`、`in_progress`、`focused PASS`、`partial acceptance PASS`。**以上事件不得 transition 到 COMPLETE**。
+
 ### NONTERMINAL_NEXT_ACTION_GATE
 
 在輸出任何 `final`、把控制權交回使用者，或把目前工單描述成可自然停止前，先判定目前 execution state：
