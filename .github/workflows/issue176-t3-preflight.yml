@@ -28,12 +28,14 @@ jobs:
           cat > /tmp/issue176-evidence.txt <<'EOF'
           Python測試實務
           phase6-corner-3d-model-integrity
+          phase6-release-packaging
           monitoring-remote-qa
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
           READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
           READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: release_required_artifacts.json
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md
           EOF
