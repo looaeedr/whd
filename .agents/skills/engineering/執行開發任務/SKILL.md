@@ -96,6 +96,21 @@ run terminal 前禁止繼續 code exploration、production/test/Skill write、�
 
 下列事件全部只是中間 evidence：`branch created`、`commit created`、`push complete`、`run_id acquired`、`queued`、`in_progress`、`focused PASS`、`partial acceptance PASS`。**以上事件不得 transition 到 COMPLETE**。
 
+### FAIL_RECOVERY_CONTRACT
+
+任何可自行取得 evidence 並處理的 FAIL 都先進 `RECOVERING`，不得把 failure report 當成停工點：
+
+- `preflight RED → RECOVERING(required_evidence)`：fail-closed 只禁止越過受保護階段；繼續補齊 `required evidence / reference`，完成遠端反讀後 `rerun preflight`，GREEN 才回 `RUNNING`。
+- `test FAIL → RECOVERING`：依 `assertion / log → root cause → minimal fix → focused validation → retry` 執行；禁止「`FAIL 一出現就回報使用者並停止`」。
+- `remote QA FAIL → RECOVERING`：讀 `job / step / log`，分類 `production / test / environment / contract`；可修復就做最小修正並觸發 `replacement run`，立即重新進 `WAITING_REMOTE` 監控到 terminal。
+- `invariant FAIL → RECOVERING`：**不得宣告功能 PASS**；定位污染來源，**恢復 canonical state**，重新驗證 invariant 後才可前進。
+
+只有 `BLOCKED_ALLOWED_REASONS` 中的產品語意決策、必要權限、不可推導資料或實際系統硬中止才可離開 recovery；**可恢復 FAIL 不得進 BLOCKED**。
+
+#### VALIDATION_IS_JUDGE_ONLY
+
+Validation / fixture / expected / probe 只能判定 implementation 是否符合 authority，**不得反推 production 幾何 / 製造計算來源**，也**不得放寬 authoritative acceptance contract**來讓測試通過。若 production 與 validation 衝突，先找 requirement/code/data authority 與 root cause；不能把測試期望值回灌成 production source-of-truth。
+
 ### NONTERMINAL_NEXT_ACTION_GATE
 
 在輸出任何 `final`、把控制權交回使用者，或把目前工單描述成可自然停止前，先判定目前 execution state：
