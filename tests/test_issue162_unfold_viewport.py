@@ -61,6 +61,25 @@ def _green_geometry_bbox(canvas):
     )
 
 
+def _largest_green_outline_bbox(canvas):
+    """Return the largest single CUTTING outline, excluding dimension overlays."""
+    boxes = []
+    for item in canvas.find_all():
+        try:
+            outline = str(canvas.itemcget(item, "outline") or "").lower()
+        except tk.TclError:
+            continue
+        if outline != "#30d158":
+            continue
+        box = canvas.bbox(item)
+        if box is None:
+            continue
+        area = max(0, box[2] - box[0]) * max(0, box[3] - box[1])
+        boxes.append((area, box))
+    assert boxes, "authoritative CUTTING material outline must be visible"
+    return max(boxes, key=lambda row: row[0])[1]
+
+
 def _bbox_size(box):
     return max(0, box[2] - box[0]), max(0, box[3] - box[1])
 
@@ -93,18 +112,18 @@ def test_red_162_initial_fit_is_materially_larger_than_previous_corner_data_fit(
         world_h = max(1e-9, maxy - miny)
         cw = max(1, int(canvas.winfo_width()))
         ch = max(1, int(canvas.winfo_height()))
-        left, top, right, bottom = _green_geometry_bbox(canvas)
+        left, top, right, bottom = _largest_green_outline_bbox(canvas)
         rendered_w, rendered_h = _bbox_size((left, top, right, bottom))
         rendered_scale = min(rendered_w / world_w, rendered_h / world_h)
 
-        # This is the exact pre-#162 Corner Data fit envelope. The new view must
-        # be visibly larger while still being a presentation-only full-sheet fit.
+        # Exact current/pre-#162 Corner Data fit envelope. #162 must make the
+        # actual material outline visibly larger, not merely enlarge annotations.
         legacy_scale = min(
             max(1.0, float(cw) - 48.0 - 82.0) / world_w,
             max(1.0, float(ch) - 64.0 - 48.0) / world_h,
         )
         assert rendered_scale >= legacy_scale * 1.04, (
-            f"initial unfold fit did not grow enough: rendered={rendered_scale:.4f}, "
+            f"initial unfold material did not grow enough: rendered={rendered_scale:.4f}, "
             f"legacy={legacy_scale:.4f}"
         )
         assert left >= 0 and top >= 0 and right <= cw and bottom <= ch
