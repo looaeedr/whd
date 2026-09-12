@@ -1,0 +1,68 @@
+name: Issue 128 R2 Durable Writeback GREEN
+
+on:
+  push:
+    branches:
+      - work/issue-128-combined-ui-acceptance-20260912-r2
+    paths:
+      - .github/workflows/issue128-r2-writeback-green.yml
+
+permissions:
+  contents: write
+
+jobs:
+  green:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: work/issue-128-combined-ui-acceptance-20260912-r2
+      - name: Lock production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          BASE=711194caac8e8f94d464f8abc4d82316f87edc93
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+      - name: Append minimal durable rule to Skill and AI library
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          marker = "INVARIANT_MANIFEST_CANONICAL_PATH_HASH"
+          writes = {
+              Path(".agents/skills/engineering/UI設計與去AI味/SKILL.md"): f'''\n\n## Acceptance invariant manifest 防假紅\n\n### {marker}\n\n做 UI / visual acceptance 的 `config.ini`、`基準檔` 或其他 protected invariant 比對時，manifest 必須使用穩定的 **canonical path + SHA256**，或直接 diff canonical manifest 內容。禁止把 `sha256sum snapshot.before` 與 `sha256sum snapshot.after` 的 raw output 直接互比，因為 `sha256sum` output 會包含 transient snapshot 檔名；即使內容完全一致，也可能只因 `.before` / `.after` 名稱不同而假紅。若必須再雜湊 manifest，只比較 normalized hash value，不比較含 transient filename 的整行。QA harness false failure 必須先分類，不得冒充 production regression。\n''',
+              Path("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"): f'''\n\n### {marker} — invariant manifest 不得把 snapshot 檔名當內容差異\n- **踩坑情境**：先產生相同內容的 baseline manifest，再分別執行 `sha256sum snapshot.before` / `sha256sum snapshot.after`，最後直接 diff raw output；因 `sha256sum` 會把 transient snapshot 檔名寫進輸出，內容相同仍可能假紅。\n- **正確做法**：protected invariant 以穩定 **canonical path + SHA256** rows 建 manifest 並直接比較；若需再雜湊 manifest，只比較 normalized hash value。`snapshot.before` / `snapshot.after` 只可作暫存載體，不得成為 invariant identity。\n- **判定邊界**：先排除 QA harness 自身錯誤，再判 production regression；validation 只負責判定，不得反過來成為 production 幾何／製造 authority。\n''',
+          }
+          for path, section in writes.items():
+              text = path.read_text(encoding="utf-8")
+              if marker not in text:
+                  path.write_text(text.rstrip() + section + "\n", encoding="utf-8")
+          PY
+      - name: Provision test runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install -q pytest
+      - name: Durable writeback GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/process/test_issue128_invariant_manifest_contract.py
+          git diff --check
+          test "$(git diff --name-only | sort | paste -sd ',' -)" = ".agents/skills/engineering/UI設計與去AI味/SKILL.md,個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+      - name: Commit verified durable writeback
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name looaeedr
+          git config user.email 76246585+looaeedr@users.noreply.github.com
+          git add -- .agents/skills/engineering/UI設計與去AI味/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          git commit -m 'docs(#128): prevent invariant manifest filename false reds'
+          git push origin HEAD:work/issue-128-combined-ui-acceptance-20260912-r2
