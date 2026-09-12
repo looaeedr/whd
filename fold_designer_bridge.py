@@ -3069,8 +3069,14 @@ def _phase6_build_endcap_fw_settings(self, parent, part_key, start_row):
     follow = bool(state.get("follow_box", True))
     effective = resolve_endcap_fw(snapshot, part_key, state=self._phase6_endcap_fw_state)
 
-    box = original.ttk.LabelFrame(parent, text="邊框寬度 FW", padding=4)
+    box = original.ttk.Frame(parent, padding=4)
     box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
+    original.ttk.Label(
+        box, text="邊框寬度 FW", font=("Microsoft JhengHei", 9, "bold")
+    ).pack(anchor=original.tk.W)
+    original.ttk.Separator(box, orient=original.tk.HORIZONTAL).pack(
+        fill=original.tk.X, pady=(2, 4)
+    )
     follow_var = original.tk.BooleanVar(value=follow)
     value_var = original.tk.StringVar(value=_setting_number_text(effective))
     check = original.ttk.Checkbutton(box, text="跟隨箱身 FW", variable=follow_var)
