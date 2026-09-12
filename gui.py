@@ -6799,6 +6799,12 @@ class BoxCalculatorGUI:
             cb_assembly.configure(state=("readonly" if is_unknown_model(val) else "disabled"))
         self._baseline_last_value = str(val or "").strip()
         self.refresh_corner_type_panel()
+        designer = getattr(self, "fold_designer_app", None)
+        if designer is not None and hasattr(designer, "apply_external_model"):
+            try:
+                designer.apply_external_model(val)
+            except tk.TclError:
+                pass
         if getattr(self, "_fold_designer_baseline_commit_guard", False):
             # 3D 確定 only changes the baseline/corner transaction. Do not let
             # the legacy baseline handler overwrite already-edited fold values.

@@ -245,6 +245,27 @@ def _phase6_box_body_piece_keys(values) -> tuple[str, ...]:
     )
 
 
+
+def _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:
+    """Project authoritative physical identities into one operator hierarchy.
+
+    This is a View adapter only: it never invents parts or owns topology.
+    Multipart BoxBody children nest below the real aggregate parent only when
+    that parent is present in the current authoritative workspace.
+    """
+    keys = tuple(str(key) for key in tuple(values or ()))
+    children = _phase6_box_body_piece_keys(keys)
+    child_keys = set(children)
+    parent_present = "box_body" in keys
+    rows = []
+    for key in keys:
+        if parent_present and key in child_keys:
+            continue
+        rows.append((key, None))
+        if parent_present and key == "box_body":
+            rows.extend((child, "box_body") for child in children)
+    return tuple(rows)
+
 def _phase6_reverse_fold_traversal(rows):
     """Reverse a fold chain while moving bend ownership to the same boundary."""
     source = clone_profile(tuple(rows or ()))
@@ -4248,6 +4269,32 @@ def _phase6_apply_external_settings(self, updates):
         self._phase6_external_apply_guard = False
 
 
+def _phase6_apply_external_model(self, model):
+    """Apply Main-GUI family selection through the existing Designer authority."""
+    new_model = str(model or "").strip()
+    if not new_model:
+        return False
+    current_model = str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip()
+    if current_model == new_model:
+        return False
+
+    self._phase6_external_apply_guard = True
+    try:
+        model_var = getattr(self, "baseline_model_var", None)
+        if model_var is None:
+            return False
+        if str(model_var.get() or "").strip() != new_model:
+            model_var.set(new_model)
+        # Some UI bindings invoke the handler from the selector event rather
+        # than the StringVar write.  Call the existing authority only when the
+        # snapshot has not already reconciled itself.
+        if str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() != new_model:
+            _phase6_on_baseline_model_changed(self)
+    finally:
+        self._phase6_external_apply_guard = False
+    return str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() == new_model
+
+
 def _phase6_apply_external_sync(self, envelope):
     """Ingest one Main-GUI revision without echoing it back to the host."""
     envelope = dict(envelope or {})
@@ -4288,7 +4335,7 @@ def _phase6_apply_ui_text_size(self, key):
     self._ui_text_controller.apply(key)
     self.state.ui_text_scale = self._ui_text_controller.factor
     callback = getattr(self, "_ui_text_size_change_callback", None)
-    if callback is not None:
+    if callback is not None and not getattr(self, "_phase6_external_apply_guard", False):
         callback(key)
     try:
         self.bend_ui.render()
@@ -8305,12 +8352,43 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
     self.part_var = original.tk.StringVar(master=self.part_selector, value="組合體")
     self.part_buttons = {}
+    # Legacy menu remains as a compatibility object for old callbacks/tests, but
+    # #124 removes it as an operator-facing navigation surface.
     self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var)
     self.part_choice_menu = original.tk.Menu(self.part_choice_button, tearoff=False)
     self.part_choice_button.configure(menu=self.part_choice_menu)
-    self.part_choice_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 4))
 
-    # Multipart BoxBody children are nested navigation tabs, never top-level parts.
+    # One CAD-style Structure Tree is now the visible part/mode navigator. Its
+    # rows are rebuilt from designer_workspace.available_parts and own no state.
+    self.structure_tree_host = original.ttk.Frame(self.left)
+    self.structure_tree_host.pack(fill=original.tk.X, pady=(0, 6))
+    self.structure_tree = original.ttk.Treeview(
+        self.structure_tree_host, columns=("visibility",),
+        show="tree headings", selectmode="browse", height=9,
+    )
+    self.structure_tree.heading("#0", text="板件 / 功能", anchor=original.tk.W)
+    self.structure_tree.heading("visibility", text="狀態", anchor=original.tk.CENTER)
+    self.structure_tree.column("#0", width=190, minwidth=120, stretch=True)
+    self.structure_tree.column(
+        "visibility", width=58, minwidth=52, stretch=False, anchor=original.tk.CENTER
+    )
+    self.structure_tree_scrollbar = original.ttk.Scrollbar(
+        self.structure_tree_host, orient=original.tk.VERTICAL, command=self.structure_tree.yview
+    )
+    self.structure_tree.configure(yscrollcommand=self.structure_tree_scrollbar.set)
+    self.structure_tree_scrollbar.pack(side=original.tk.RIGHT, fill=original.tk.Y)
+    self.structure_tree.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
+    self.structure_tree.tag_configure("hidden", foreground="#777777")
+    self._phase6_structure_tree_guard = False
+    self.structure_tree.bind(
+        "<<TreeviewSelect>>", lambda event: _phase6_on_structure_tree_select(self, event)
+    )
+    self.structure_tree.bind(
+        "<Button-1>", lambda event: _phase6_on_structure_tree_click(self, event), add="+"
+    )
+
+    # Legacy multipart tabs remain internal compatibility state only; the
+    # Structure Tree is the single visible child-navigation surface.
     self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1)
     self._phase6_box_body_piece_tab_keys = ()
     self._phase6_box_body_piece_tab_map = {}
@@ -8395,6 +8473,114 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_sync_ready = True
 
 
+
+def _phase6_structure_tree_visibility_var(self, key):
+    """Return the existing assembly view-state owner for one physical identity."""
+    key = str(key or "")
+    if _phase6_is_box_body_physical_piece_key(key):
+        return dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).get(key)
+    return dict(getattr(self, "assembly_part_visible_vars", {}) or {}).get(key)
+
+
+def _phase6_refresh_structure_tree(self):
+    """Rebuild the CAD navigation projection from current authoritative identities."""
+    tree = getattr(self, "structure_tree", None)
+    if tree is None:
+        return ()
+    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
+        return ()
+
+    self._phase6_structure_tree_guard = True
+    try:
+        roots = tuple(tree.get_children(""))
+        if roots:
+            tree.delete(*roots)
+        tree.insert("", "end", iid="mode:assembly", text="組合體", values=("",), open=True)
+        tree.insert("", "end", iid="mode:corner_data", text="截角資料", values=("",), open=True)
+        workspace = _designer_workspace(self)
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        rows = _phase6_structure_tree_rows(getattr(workspace, "available_parts", ()) or ())
+        for key, parent_key in rows:
+            iid = f"part:{key}"
+            parent_iid = f"part:{parent_key}" if parent_key else ""
+            visible_var = _phase6_structure_tree_visibility_var(self, key)
+            visible = True if visible_var is None else bool(visible_var.get())
+            tree.insert(
+                parent_iid, "end", iid=iid,
+                text=_phase6_part_label(key, snapshot=snapshot),
+                values=("顯示" if visible else "隱藏",),
+                tags=(() if visible else ("hidden",)),
+                open=(key == "box_body"),
+            )
+        mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
+        active = str(getattr(workspace, "active_part", "") or "")
+        selected_iid = (
+            "mode:assembly" if mode == "assembly"
+            else "mode:corner_data" if mode == "corner_data"
+            else f"part:{active}" if active else ""
+        )
+        if selected_iid and tree.exists(selected_iid):
+            tree.selection_set(selected_iid)
+            tree.focus(selected_iid)
+            tree.see(selected_iid)
+        return rows
+    finally:
+        # ttk.Treeview.selection_set() posts <<TreeviewSelect>> asynchronously.
+        # Keep the guard alive through the queued event; dropping it here
+        # creates select -> refresh -> selection_set -> select recursion.
+        try:
+            tree.after_idle(
+                lambda: setattr(self, "_phase6_structure_tree_guard", False)
+            )
+        except Exception:
+            self._phase6_structure_tree_guard = False
+
+
+def _phase6_on_structure_tree_select(self, _event=None):
+    if bool(getattr(self, "_phase6_structure_tree_guard", False)):
+        return
+    tree = getattr(self, "structure_tree", None)
+    if tree is None:
+        return
+    selected = tuple(tree.selection())
+    if not selected:
+        return
+    iid = str(selected[0])
+    if iid == "mode:assembly":
+        _phase6_show_assembly(self)
+    elif iid == "mode:corner_data":
+        _phase6_show_corner_data(self)
+    elif iid.startswith("part:"):
+        _phase6_activate_operator_part(self, iid[5:])
+    _phase6_refresh_structure_tree(self)
+
+
+def _phase6_set_structure_tree_visibility(self, key, visible):
+    """Delegate hide/show to the existing drawing-sink visibility state only."""
+    key = str(key or "")
+    visible_var = _phase6_structure_tree_visibility_var(self, key)
+    if visible_var is None:
+        return False
+    visible_var.set(bool(visible))
+    _phase6_on_assembly_part_visibility_changed(self)
+    _phase6_refresh_structure_tree(self)
+    return True
+
+
+def _phase6_on_structure_tree_click(self, event):
+    tree = getattr(self, "structure_tree", None)
+    if tree is None or tree.identify_column(event.x) != "#1":
+        return None
+    iid = str(tree.identify_row(event.y) or "")
+    if not iid.startswith("part:"):
+        return "break"
+    key = iid[5:]
+    visible_var = _phase6_structure_tree_visibility_var(self, key)
+    if visible_var is None:
+        return "break"
+    _phase6_set_structure_tree_visibility(self, key, not bool(visible_var.get()))
+    return "break"
+
 def _phase6_refresh_box_body_piece_selector(self):
     """Keep one logical 箱身 entry while exposing physical children as nested tabs."""
     notebook = getattr(self, "box_body_piece_selector", None)
@@ -8450,18 +8636,9 @@ def _phase6_refresh_box_body_piece_selector(self):
             finally:
                 self._phase6_box_body_piece_tab_guard = False
 
-    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    show = bool(wanted) and mode != "assembly" and (
-        active == "box_body" or _phase6_is_box_body_physical_piece_key(active)
-    )
-    if show:
-        if not notebook.winfo_manager():
-            anchor = getattr(self, "fold_editor_host", None)
-            if anchor is not None and anchor.winfo_manager():
-                notebook.pack(fill=original.tk.X, pady=(0, 4), before=anchor)
-            else:
-                notebook.pack(fill=original.tk.X, pady=(0, 4))
-    elif notebook.winfo_manager():
+    # #124: tabs are retained only as compatibility state. Never expose a
+    # second visible child navigator beside the Structure Tree.
+    if notebook.winfo_manager():
         notebook.pack_forget()
     return wanted
 
@@ -8546,6 +8723,7 @@ def _fix11_refresh_part_buttons(self):
     _phase6_refresh_box_body_piece_selector(self)
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
+    _phase6_refresh_structure_tree(self)
 
 
 def _fix11_refresh_part_button_states(self):
@@ -9723,6 +9901,7 @@ Phase6FoldDesignerApp.flush_pending_settings = _phase6_flush_pending_settings
 Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
 Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
 Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
+Phase6FoldDesignerApp.apply_external_model = _phase6_apply_external_model
 Phase6FoldDesignerApp.apply_external_sync = _phase6_apply_external_sync
 Phase6FoldDesignerApp._phase6_refresh_corner_data_unfold_view = _phase6_refresh_corner_data_unfold_view
 Phase6FoldDesignerApp.on_ui_text_size_changed = _phase6_on_ui_text_size_changed

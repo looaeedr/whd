@@ -27,6 +27,8 @@ GUI 效能修正不能靠「少算、延遲不更新、降低幾何精度」製�
 - Main GUI → 3D 的等價 state 禁止再原封不動 publish 回 Main GUI。
 - 3D 真正由使用者修改才建立新 revision 並 publish。
 - 批次套 settings 必須使用 `set_var_if_changed` 或等價 canonical compare；值相同不得再 `var.set()` 觸發 Tk trace。
+- **Issue124 external text-scale anti-echo**：host → Designer 的 external batch apply 若已進入 `_phase6_external_apply_guard`，所有 child trace 的 echo callback（包含 UI text scale）都必須在 callback boundary 被抑制；**runtime sync 仍必須完成**，只禁止 callback echo 回 host persistence。
+- `persist=False` 的正式契約是：child window 可以即時套用新 runtime 狀態，但 persisted config 必須 **byte-for-byte 不變**。不得用「停掉 trace／不更新 runtime」來假裝不持久化。
 
 ## 3D Atomic Initialization
 
