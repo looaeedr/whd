@@ -5,7 +5,7 @@ on:
 permissions:
   contents: write
 jobs:
-  preflight:
+  red:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,14 +32,11 @@ jobs:
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
           READ_REFERENCE: release_required_artifacts.json
           EOF
-      - name: Exact production base
+      - name: Exact production base and changed-file preflight
         shell: bash
         run: |
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "d05a94ae86777eda64ee81304c5b152ad34fa549"
-      - name: Changed-file preflight
-        shell: bash
-        run: |
           python tools/phase6_skill_preflight.py \
             --task "#153：讓 派工、monitoring-remote-qa、issue-closure-gate 強制 bridge 到 執行開發任務 的唯一 USER_VISIBLE_CHECKPOINT_GATE；新增 RED-capable process contract 與 durable pitfall writeback；不建立第二套 checkpoint authority" \
             --changed-file .agents/skills/engineering/派工/SKILL.md \
@@ -49,3 +46,20 @@ jobs:
             --changed-file 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md \
             --changed-file .github/workflows/issue153-checkpoint-entry-bridges.yml \
             --evidence /tmp/evidence.md
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Prove three entry bridges are RED before Skill edits
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q \
+            tests/process/test_checkpoint_resume_contract.py::test_dispatch_skill_bridges_to_canonical_user_visible_checkpoint_gate \
+            tests/process/test_checkpoint_resume_contract.py::test_remote_qa_skill_bridges_to_canonical_user_visible_checkpoint_gate \
+            tests/process/test_checkpoint_resume_contract.py::test_issue_closure_skill_bridges_to_canonical_user_visible_checkpoint_gate \
+            2>&1 | tee /tmp/red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -eq 1
+          grep -F '3 failed' /tmp/red.log
+          grep -F 'missing checkpoint bridge marker: USER_VISIBLE_CHECKPOINT_GATE_BRIDGE' /tmp/red.log
+          echo 'ISSUE153_RED=PROVEN'
