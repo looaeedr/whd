@@ -4968,6 +4968,60 @@ def _phase6_joint_form_delete(self):
         return False
 
 
+def _phase6_configure_floating_surface(window, owner, *, modal=False):
+    """Apply the shared foreground/focus contract without owning domain state."""
+    try:
+        window.transient(owner)
+    except Exception:
+        pass
+    try:
+        window.configure(takefocus=True)
+    except Exception:
+        pass
+    window._phase6_foreground_role = "floating_surface"
+    try:
+        window.bind("<Escape>", lambda _event: window.destroy(), add="+")
+        window.lift()
+        window.after_idle(window.focus_set)
+    except Exception:
+        pass
+    if modal:
+        try:
+            window.grab_set()
+        except Exception:
+            pass
+    return window
+
+
+def _phase6_status_projection(self):
+    """Project existing cabinet/part/view owners into one low-noise status line."""
+    family = _phase6_current_cabinet_family(self) or "-"
+    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
+    if mode == "assembly":
+        part_text = "-"
+        view_text = "組合體"
+    elif mode == "corner_data":
+        part_key = (
+            getattr(self, "_phase6_corner_data_selected_part_key", None)
+            or getattr(self, "active_part_key", None)
+        )
+        part_text = _phase6_part_label(part_key) if part_key else "-"
+        view_text = "截角資料"
+    else:
+        part_key = getattr(self, "active_part_key", None)
+        part_text = _phase6_part_label(part_key) if part_key else "-"
+        view_text = "單件 3D"
+    return f"箱型：{family}  ｜  板件：{part_text}  ｜  視圖：{view_text}"
+
+
+def _phase6_refresh_status_bar(self):
+    """Refresh the projection sink only; never write selection/domain state."""
+    text = _phase6_status_projection(self)
+    var = getattr(self, "status_projection_var", None)
+    if var is not None and hasattr(var, "set"):
+        var.set(text)
+    return text
+
 def _phase6_open_relief_registry_form(self):
     existing = getattr(self, "relief_registry_window", None)
     try:
@@ -4978,6 +5032,7 @@ def _phase6_open_relief_registry_form(self):
     win = original.tk.Toplevel(self.root)
     win.title("PHASE6 截角資料庫 / 組合接合")
     win.geometry("1120x720")
+    _phase6_configure_floating_surface(win, self.root, modal=False)
     self.relief_registry_window = win
     notebook = original.ttk.Notebook(win)
     notebook.pack(fill=original.tk.BOTH, expand=True, padx=8, pady=8)
@@ -5317,6 +5372,25 @@ def _phase6_build_global_persistent_controls(self):
 
 def _phase6_build_persistent_top_area(self):
     """固定版面：最上列命令；其下兩行全域設定；左右工作區。"""
+    previous_status = getattr(self, "status_bar", None)
+    if previous_status is not None:
+        try:
+            previous_status.destroy()
+        except Exception:
+            pass
+    self.status_bar = original.ttk.Frame(self.root, padding=(8, 2))
+    original.ttk.Separator(
+        self.status_bar, orient=original.tk.HORIZONTAL
+    ).pack(fill=original.tk.X, pady=(0, 2))
+    self.status_projection_var = original.tk.StringVar(
+        master=self.status_bar, value=_phase6_status_projection(self)
+    )
+    self.status_projection_label = original.ttk.Label(
+        self.status_bar, textvariable=self.status_projection_var, anchor=original.tk.W
+    )
+    self.status_projection_label.pack(fill=original.tk.X)
+    self.status_bar.pack(side=original.tk.BOTTOM, fill=original.tk.X)
+
     try:
         self.left.pack_forget()
         self.right.pack_forget()
@@ -8735,6 +8809,7 @@ def _fix11_refresh_part_buttons(self):
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
     _phase6_refresh_structure_tree(self)
+    _phase6_refresh_status_bar(self)
 
 
 def _fix11_refresh_part_button_states(self):
@@ -8798,6 +8873,7 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
         and getattr(self, "corner_data_canvas", None) is not None
     ):
         _phase6_refresh_corner_data_unfold_view(self)
+    _phase6_refresh_status_bar(self)
     return resolved
 
 
