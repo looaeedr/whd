@@ -76,7 +76,7 @@ def test_multipart_box_body_parent_identity_is_not_hijacked_by_remembered_child(
     assert app._phase6_box_body_active_piece_key == "box_body:back"
 
 
-def test_multipart_stale_child_resolves_to_first_authoritative_physical_child():
+def test_multipart_stale_child_fails_closed_and_clears_stale_memory():
     app = _app(
         (
             "box_body",
@@ -90,8 +90,8 @@ def test_multipart_stale_child_resolves_to_first_authoritative_physical_child():
 
     _refresh(app)
 
-    assert app._phase6_corner_data_selected_part_key == "box_body:right_side"
-    assert app._phase6_box_body_active_piece_key == "box_body:right_side"
+    assert app._phase6_corner_data_selected_part_key is None
+    assert app._phase6_box_body_active_piece_key is None
 
 
 def test_adding_dynamic_part_does_not_offset_existing_selection():
