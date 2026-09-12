@@ -1,0 +1,190 @@
+name: Issue162 apply viewport presentation fix
+on:
+  push:
+    branches:
+      - fix/issue162-unfold-viewport-20260912
+    paths:
+      - .github/workflows/issue162-apply-20260912.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply exact production patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          bridge = Path('fold_designer_bridge.py')
+          text = bridge.read_text(encoding='utf-8')
+
+          old = '''def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
+              """Store a current stable corner-data identity without mutating manufacturing state."""
+              keys = _phase6_corner_data_part_keys(self)
+              requested = str(key or "")
+          '''
+          new = '''def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
+              """Store a current stable corner-data identity without mutating manufacturing state."""
+              keys = _phase6_corner_data_part_keys(self)
+              previous = getattr(self, "_phase6_corner_data_selected_part_key", None)
+              requested = str(key or "")
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'select header match count={text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          old = '''    self._phase6_corner_data_selected_part_key = resolved
+              if (
+                  refresh_view
+          '''
+          new = '''    self._phase6_corner_data_selected_part_key = resolved
+              if previous != resolved:
+                  canvas = getattr(self, "corner_data_canvas", None)
+                  if canvas is not None:
+                      try:
+                          canvas._phase6_unfold_zoom = 1.0
+                      except Exception:
+                          pass
+              if (
+                  refresh_view
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'select assignment match count={text.count(old)}')
+          text = text.replace(old, new, 1)
+
+          marker = '''def _phase6_prepare_corner_data_canvas(self):
+              """Install the 2D canvas when a real renderer viewport exists; otherwise fail closed."""
+          '''
+          handler = '''def _phase6_on_corner_data_mousewheel(self, event):
+              """Adjust only the Corner Data viewport scale; manufacturing geometry stays untouched."""
+              canvas = getattr(self, "corner_data_canvas", None)
+              if canvas is None:
+                  return None
+              delta = int(getattr(event, "delta", 0) or 0)
+              button = int(getattr(event, "num", 0) or 0)
+              direction = 1 if (delta > 0 or button == 4) else -1 if (delta < 0 or button == 5) else 0
+              if direction == 0:
+                  return None
+              try:
+                  current = float(getattr(canvas, "_phase6_unfold_zoom", 1.0) or 1.0)
+              except Exception:
+                  current = 1.0
+              step = 1.12
+              updated = current * step if direction > 0 else current / step
+              updated = max(0.50, min(3.00, updated))
+              canvas._phase6_unfold_zoom = updated
+              if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data":
+                  _phase6_refresh_corner_data_unfold_view(self)
+              return "break"
+
+
+          def _phase6_prepare_corner_data_canvas(self):
+              """Install the 2D canvas when a real renderer viewport exists; otherwise fail closed."""
+          '''
+          if text.count(marker) != 1:
+              raise SystemExit(f'prepare marker match count={text.count(marker)}')
+          text = text.replace(marker, handler, 1)
+
+          old = '''        canvas = original.tk.Canvas(
+                      mpl_widget.master, bg="#ffffff", highlightthickness=0
+                  )
+                  self.corner_data_canvas = canvas
+                  canvas.bind(
+                      "<Configure>",
+                      lambda _event: (
+                          _phase6_refresh_corner_data_unfold_view(self)
+                          if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+                          else None
+                      ),
+                  )
+          '''
+          new = '''        canvas = original.tk.Canvas(
+                      mpl_widget.master, bg="#000000", highlightthickness=0
+                  )
+                  self.corner_data_canvas = canvas
+                  canvas._phase6_unfold_zoom = 1.0
+                  canvas.bind(
+                      "<Configure>",
+                      lambda _event: (
+                          _phase6_refresh_corner_data_unfold_view(self)
+                          if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+                          else None
+                      ),
+                  )
+                  canvas.bind("<MouseWheel>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
+                  canvas.bind("<Button-4>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
+                  canvas.bind("<Button-5>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'canvas block match count={text.count(old)}')
+          text = text.replace(old, new, 1)
+          bridge.write_text(text, encoding='utf-8')
+
+          gui = Path('gui.py')
+          text = gui.read_text(encoding='utf-8')
+          old = '''        transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
+                      bounds, cw, ch, top_gutter=64.0
+                  )
+                  render_drawing_scene(
+          '''
+          new = '''        transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(
+                      bounds, cw, ch,
+                      top_gutter=24.0, right_gutter=24.0,
+                      bottom_gutter=24.0, left_gutter=24.0,
+                  )
+                  try:
+                      zoom = float(getattr(canvas, "_phase6_unfold_zoom", 1.0) or 1.0)
+                  except Exception:
+                      zoom = 1.0
+                  zoom = max(0.50, min(3.00, zoom))
+                  if abs(zoom - 1.0) > 1e-12:
+                      minx, miny, maxx, maxy = bounds
+                      world_center = Vec2((minx + maxx) / 2.0, (miny + maxy) / 2.0)
+                      center_x, center_y = transform.world_to_canvas(world_center)
+                      scaled = transform.scale * zoom
+                      transform = CanvasTransform(
+                          scale=scaled,
+                          origin_x=center_x - world_center.x * scaled,
+                          origin_y=center_y + world_center.y * scaled,
+                      )
+                  render_drawing_scene(
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'render viewport match count={text.count(old)}')
+          text = text.replace(old, new, 1)
+          gui.write_text(text, encoding='utf-8')
+          PY
+      - name: Syntax check
+        run: python -m py_compile fold_designer_bridge.py gui.py tests/test_issue162_unfold_viewport.py
+      - name: Install focused test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Focused GREEN before commit
+        run: >-
+          xvfb-run -a pytest -q -s
+          tests/test_issue162_unfold_viewport.py
+          tests/test_issue119_corner_data_transition_ui.py
+          tests/test_issue96_corner_data_selection_lifecycle.py
+          tests/test_issue97_authoritative_unfold_view_adapter.py
+      - name: Verify config invariant
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+      - name: Commit and push implementation
+        run: |
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git add fold_designer_bridge.py gui.py
+          git commit -m "fix: add corner-data viewport zoom presentation"
+          git push origin HEAD:fix/issue162-unfold-viewport-20260912
