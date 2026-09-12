@@ -50,7 +50,8 @@ block = '''
 '''
 text = p.read_text(encoding='utf-8')
 if marker not in text:
-    p.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+    text = text.rstrip() + block
+p.write_text(text.rstrip() + '\n', encoding='utf-8')
 PY
 
 git add -- "$AI_FILE"
@@ -160,7 +161,7 @@ text = p.read_text(encoding='utf-8')
 marker = '## Latest-production integration replay (40620c51)'
 if marker not in text:
     text = text.rstrip() + f'''\n\n{marker}\n\n- Human `合` gate: RELEASED by user on 2026-09-12.\n- Fresh integration base: `40620c516ad099911ebd22c928237f81641759f2`.\n- Old accepted replay head: `7f894432ed7b4b4cdcd2160031c2f47e712cf436`.\n- Fresh integration branch: `fix/issue119-integration-latest-20260912-r2`.\n- Integration validation run: `{os.environ.get("GITHUB_RUN_ID", "unknown")}`.\n- Git auto-merged `fold_designer_bridge.py` and `gui.py`; the only merge conflict was append-vs-append in the AI pitfall library and was resolved by preserving both the #128 invariant-manifest rule and #119 Corner Data lifecycle/readability rule.\n- Original #119 final DXF/manufacturing/persistence and Xvfb matrices were rerun on the latest production baseline.\n- Current #123–#127 UI workstation regressions plus #128 durable invariant guard were rerun on the merged working tree.\n- `config.ini` and all protected files under `基準檔` remained byte/hash identical.\n- Validation remained judge-only; no geometry/manufacturing/DXF authority was derived from acceptance results.\n'''
-    p.write_text(text + '\n', encoding='utf-8')
+p.write_text(text.rstrip() + '\n', encoding='utf-8')
 PY
 
 git add "$STATE_FILE"
