@@ -1,4 +1,4 @@
-name: Issue 150 User-visible CHECKPOINT Gate GREEN
+name: Issue 150 CHECKPOINT Durable Writeback
 on:
   push:
     branches: [fix/issue150-user-visible-checkpoint-gate-20260912]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 jobs:
-  green:
+  writeback:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -14,7 +14,7 @@ jobs:
         with: {fetch-depth: 0}
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
-      - name: Evidence and preflight
+      - name: Evidence and changed-file preflight
         shell: bash
         run: |
           cat > /tmp/evidence.md <<'EOF'
@@ -34,41 +34,40 @@ jobs:
           READ_REFERENCE: release_required_artifacts.json
           EOF
           python tools/phase6_skill_preflight.py \
-            --task "#150 修正 user-visible CHECKPOINT 漏洞：durable checkpoint 仍由既有 authority 管理，但 system hard-cut 與長流程重要 state transition 必須以固定 CHECKPOINT 區塊讓使用者看得到；progress update 不得冒充 checkpoint；non-terminal checkpoint 不得成為停工點" \
-            --changed-file .agents/skills/engineering/執行開發任務/SKILL.md \
-            --changed-file tests/process/test_checkpoint_resume_contract.py \
+            --task "#150 durable writeback：記錄 durable checkpoint 若未強制 user-visible 仍會造成長流程使用者看不到 CHECKPOINT 的事故；固定 CHECKPOINT 可見層不可被 progress update 取代，且 non-terminal checkpoint 不是停工點" \
+            --changed-file 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md \
             --changed-file .github/workflows/issue150-checkpoint-gate.yml \
             --evidence /tmp/evidence.md
-      - name: Exact production base
+      - name: Exact branch and production authority
         shell: bash
         run: |
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "407595d62c6586c2ab11a117db8b85193294bbd3"
-          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "407595d62c6586c2ab11a117db8b85193294bbd3"
+          git merge-base --is-ancestor 86874c3 HEAD
+          grep -F 'USER_VISIBLE_CHECKPOINT_GATE' .agents/skills/engineering/執行開發任務/SKILL.md
       - name: Install test runtime
         run: python -m pip install -q pytest
-      - name: Apply minimal user-visible checkpoint gate
+      - name: Apply pitfall writeback only
         shell: bash
         run: |
-          export CHECKPOINT_SECTION_B64='IyMjIyBVU0VSX1ZJU0lCTEVfQ0hFQ0tQT0lOVF9HQVRFCgpEdXJhYmxlIGNoZWNrcG9pbnQg5LiN5Y+q6KaB5a2Y5Zyo5pa85YWn6YOo77yPcmVwbyDni4DmhYvvvJvlnKjpnIDopoHot6ggcnVudGltZSDmgaLlvqnmiJbplbfmtYHnqIvph43opoHovYnmipjmmYLvvIzkuZ/lv4XpoIjorpPkvb/nlKjogIXnnIvlvpfliLDjgIIKCi0gc3lzdGVtIGhhcmQtY3V0IOWJjeeahOacgOW+jOS4gOWAiyB1c2VyLXZpc2libGUgdXBkYXRlIOW/hemgiOS9v+eUqOWbuuWumuaomemhjCBgQ0hFQ0tQT0lOVGDvvIzkuI3lvpflj6rnlZnkuIDoiKwgcHJvZ3Jlc3MgdXBkYXRlIOaIluWPquWcqOWFp+mDqOS/neWtmOOAggotIENIRUNLUE9JTlQg6Iez5bCR6aGv56S677yaYGlzc3VlIC8gdGFza2DjgIFgcm9sZWDjgIFgYnJhbmNoICsgSEVBRGDjgIFgcHJvZHVjdGlvbiB0YXJnZXRg44CBYHJlbW90ZSBRQSBsb2NrYOOAgWBjb21wbGV0ZWQgLyBwZW5kaW5nIC8gZmFpbGVkIC8gYmxvY2tlZGDjgIFgdmFsaWRhdGlvbiAvIGludmFyaWFudGDjgIFgdGVtcG9yYXJ5IHdvcmtmbG93cyAvIGJyYW5jaGVzYOOAgWBuZXh0IGV4YWN0IGFjdGlvbmDjgIIKLSDplbfmtYHnqIvpgYfliLDph43opoEgZXhlY3V0aW9uIHN0YXRlIHRyYW5zaXRpb24g5pmC5Yi35paw5Y+v6KaLIGNoZWNrcG9pbnTvvIzoh7PlsJHljIXlkKsgYFJVTk5JTkcg4oaUIFdBSVRJTkdfUkVNT1RFIOKGlCBSRUNPVkVSSU5HYOOAgWBicmFuY2ggLyBIRUFEIC8gcHJvZHVjdGlvbiB0YXJnZXRgIGlkZW50aXR5IOaUueiuiuOAgWByZW1vdGUgUUEgbG9jayBhY3F1aXJlZCAvIHRlcm1pbmFsYOOAgWBhY2NlcHRlZCBzbGljZSAvIG1ham9yIGNoZWNrcG9pbnRg44CC5LiN6ZyA6KaB5oqK5q+P5YCLIDMwIOenkiBvYnNlcnZhdGlvbiDpg73ljYfmoLzmiJAgY2hlY2twb2ludOOAggotIHByb2dyZXNzIHVwZGF0ZSDkuI3lvpflhpLlhYUgY2hlY2twb2ludO+8m+S4gOiIrOmAsuW6puWbnuWgseS7jeS+nSBjYWRlbmNlIOWft+ihjO+8jOS9huS4jeiDveWboOatpOWPluS7oyBkdXJhYmxlL3VzZXItdmlzaWJsZSBjaGVja3BvaW5044CCCi0g5Y+v6KaLIGNoZWNrcG9pbnQg5LiN6IO95oiQ54K65q2j5bi45YGc5bel6bue77ybYG5vbi10ZXJtaW5hbCBzdGF0ZSDpoa/npLogQ0hFQ0tQT0lOVCDlvozku43lv4XpoIjnubznuowgbmV4dCBhY3Rpb25g44CC5Y+q5pyJIGdlbnVpbmUgQkxPQ0tFROOAgWV2aWRlbmNlLWJhY2tlZCBDT01QTEVURSDmiJblr6bpmpsgc3lzdGVtIGhhcmQtY3V0IOaJjeiDvemboumWi+ato+W4uOWft+ihjOmPiOOAggoK'
           python - <<'PY'
-          import base64, os
           from pathlib import Path
-          p = Path('.agents/skills/engineering/執行開發任務/SKILL.md')
+          p = Path('個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md')
           s = p.read_text(encoding='utf-8')
-          anchor = '\n## 4. 測試 timeout\n'
-          if 'USER_VISIBLE_CHECKPOINT_GATE' in s:
-              raise SystemExit('visible checkpoint gate already exists unexpectedly')
+          marker = '## CHECKPOINT 可見層事故'
+          if marker in s:
+              raise SystemExit('checkpoint visibility pitfall already exists unexpectedly')
+          anchor = '\n## Remote QA 邊界\n'
+          section = '''\n## CHECKPOINT 可見層事故\n\nWHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部流程責任、沒有 user-visible gate；結果長流程中的一般進度回報逐漸取代 CHECKPOINT，使用者長時間看不到可恢復狀態。這不是「checkpoint 不需要了」，而是可見層漏規則。\n\n永久規則：\n\n- durable checkpoint 與 user-visible CHECKPOINT 是同一狀態的兩個責任層；只做內部 durable state 不算完成 checkpoint 呈現責任。\n- system hard-cut 前與重要 execution state transition 必須刷新固定標題 `CHECKPOINT`；一般 progress update 不得冒充或取代它。\n- 可見 CHECKPOINT 仍是 non-terminal observation / recovery surface；只要 next action 可自主執行，就必須在顯示 CHECKPOINT 後繼續，不得把 CHECKPOINT 變成停工點。\n- machine guard 由 `.agents/skills/engineering/執行開發任務/SKILL.md` 的 `USER_VISIBLE_CHECKPOINT_GATE` 與 `tests/process/test_checkpoint_resume_contract.py` 共同鎖定。\n'''
           if s.count(anchor) != 1:
-              raise SystemExit(f'checkpoint insertion anchor count={s.count(anchor)}')
-          section = base64.b64decode(os.environ['CHECKPOINT_SECTION_B64']).decode('utf-8')
-          p.write_text(s.replace(anchor, '\n' + section + '## 4. 測試 timeout\n', 1), encoding='utf-8')
+              raise SystemExit(f'pitfall insertion anchor count={s.count(anchor)}')
+          p.write_text(s.replace(anchor, section + anchor, 1), encoding='utf-8')
           PY
           git diff --check
           changed="$(git -c core.quotepath=false diff --name-only)"
-          printf 'WORKTREE_FILES=%s\n' "$changed"
-          test "$changed" = ".agents/skills/engineering/執行開發任務/SKILL.md"
-      - name: Contract GREEN
+          printf 'WRITEBACK_WORKTREE=%s\n' "$changed"
+          test "$changed" = "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md"
+      - name: Process regression
         shell: bash
         run: |
           python -m pytest -q \
@@ -79,13 +78,13 @@ jobs:
             tests/process/test_monitoring_remote_qa_turn_boundary_contract.py \
             tests/process/test_no_fake_completion_contract.py \
             tests/process/test_remote_qa_state_bridge_contract.py
-      - name: Commit Skill only after GREEN
+      - name: Commit pitfall only after GREEN
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .agents/skills/engineering/執行開發任務/SKILL.md
+          git add 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
           staged="$(git -c core.quotepath=false diff --cached --name-only)"
-          test "$staged" = ".agents/skills/engineering/執行開發任務/SKILL.md"
-          git commit -m 'fix: make durable checkpoints user-visible'
+          test "$staged" = "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md"
+          git commit -m 'docs: record user-visible checkpoint pitfall'
           git push origin HEAD:fix/issue150-user-visible-checkpoint-gate-20260912
