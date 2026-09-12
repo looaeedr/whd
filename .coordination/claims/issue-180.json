@@ -11,11 +11,15 @@
     "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "phase": "PREFLIGHT",
-  "last_update": "2026-09-13T07:35:00+08:00",
-  "remote_qa": null,
-  "next_action": "Run T7 Knowledge Preflight, establish requirement-level RED for current-vs-historical sediment, then implement only approved T7 authority/history cleanup.",
+  "head_sha": "56a21b287076d2e9132b279f8223fa3ce1f87942",
+  "phase": "RED",
+  "last_update": "2026-09-13T07:42:00+08:00",
+  "remote_qa": {
+    "preflight_run_id": 34726056898,
+    "preflight_head_sha": "56a21b287076d2e9132b279f8223fa3ce1f87942",
+    "preflight_result": "SUCCESS; required Skills 派工 + issue-closure-gate and references global06 + AI08 GREEN; config.ini + 基準檔/** invariants PASS"
+  },
+  "next_action": "Run changed-file Preflight for the fixed T7 doc/test scope, then create and execute the permanent current-vs-historical authority contract RED.",
   "blocker": null,
   "checkpoint": ".scratch/issue180-t7/T7.state.md",
   "journal": ".scratch/issue180-t7/T7.journal.jsonl"
