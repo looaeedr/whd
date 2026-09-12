@@ -21,23 +21,25 @@ jobs:
         shell: bash
         run: |
           set -u
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
           git fetch origin fix/issue119-replay-latest-20260912-r1 cleanup/2d-3d-sync
           echo "HEAD=$(git rev-parse HEAD)"
           echo "PROD=$(git rev-parse origin/cleanup/2d-3d-sync)"
-          test "$(git rev-parse HEAD^)" = "40620c516ad099911ebd22c928237f81641759f2" || true
           set +e
           git merge --no-commit --no-ff origin/fix/issue119-replay-latest-20260912-r1
           rc=$?
           set -e
           echo "merge_rc=$rc"
           echo '=== unresolved ==='
-          git diff --name-only --diff-filter=U || true
+          git -c core.quotePath=false diff --name-only --diff-filter=U || true
           echo '=== status ==='
-          git status --short
+          git -c core.quotePath=false status --short
           echo '=== conflict markers ==='
-          for f in $(git diff --name-only --diff-filter=U); do
+          while IFS= read -r f; do
+            test -n "$f" || continue
             echo "--- $f ---"
             grep -n -C 12 -E '^(<<<<<<<|=======|>>>>>>>)' "$f" || true
-          done
+          done < <(git -c core.quotePath=false diff --name-only --diff-filter=U)
           git merge --abort || true
           exit 0
