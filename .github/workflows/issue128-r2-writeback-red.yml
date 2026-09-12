@@ -1,0 +1,39 @@
+name: Issue 128 R2 Durable Writeback RED
+
+on:
+  push:
+    branches:
+      - work/issue-128-combined-ui-acceptance-20260912-r2
+    paths:
+      - .github/workflows/issue128-r2-writeback-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          BASE=711194caac8e8f94d464f8abc4d82316f87edc93
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+      - name: Prove durable rule is genuinely RED before writeback
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          set +e
+          pytest -q tests/process/test_issue128_invariant_manifest_contract.py > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          test "$rc" -eq 1
+          grep -q 'INVARIANT_MANIFEST_CANONICAL_PATH_HASH missing' /tmp/red.log
