@@ -1,0 +1,14 @@
+{
+  "issue": 174,
+  "issue_url": "https://github.com/looaeedr/whd/issues/174",
+  "worker": "ChatGPT GPT-5.6 Sol",
+  "work_branch": "chore/t1-canonical-authority-map-20260913",
+  "claim_branch": "coord/issue-174-claim",
+  "claimed_at": "2026-09-13T03:13:47+08:00",
+  "base_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
+  "head_sha": "6a26e7be05a8098c8b9b2bff6f0fd675d3491e45",
+  "phase": "CLAIMED",
+  "remote_qa": null,
+  "next_action": "Run Phase6 Knowledge Preflight and read required Skills/references for T1.",
+  "blocker": null
+}
