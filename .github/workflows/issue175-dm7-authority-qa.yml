@@ -38,6 +38,7 @@ jobs:
           Python測試實務
           phase6-release-packaging
           monitoring-remote-qa
+          UI設計與去AI味
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
@@ -47,7 +48,7 @@ jobs:
           READ_REFERENCE: release_required_artifacts.json
           EOF
           python tools/phase6_skill_preflight.py \
-            --task '派工執行 T2 #175：修正截角資料 Corner Data / DM7 navigation durable guidance，更新 Skill 與 AI Library，新增 regression，remote QA 驗證' \
+            --task '派工執行 T2 #175：修正截角資料 Corner Data / DM7 navigation durable 規則，更新 Skill 與 AI Library，新增 regression，remote QA 驗證' \
             --changed-file 'tests/test_issue175_dm7_navigation_authority_contract.py' \
             --changed-file '.agents/skills/engineering/截角資料入口收斂/SKILL.md' \
             --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md' \
