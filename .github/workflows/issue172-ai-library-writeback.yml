@@ -1,0 +1,87 @@
+name: Issue 172 AI Library Writeback
+
+on:
+  push:
+    branches:
+      - docs/issue172-multi-ai-claim-progress-20260913
+    paths:
+      - '.github/workflows/issue172-ai-library-writeback.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  writeback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Append durable rules once
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          entries = {
+              Path('個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'): r'''
+
+## 2026-09-13 — 多 AI 派工：一票一個 execution claim owner + 進度共享
+
+<!-- ISSUE172_MULTI_AI_CLAIM_PROGRESS -->
+
+當兩個以上 AI / Worker 共用同一 GitHub tracker 時，`GitHub owning Issue` 只證明「這張票存在」，**不等於已分配唯一施工權**。正式施工前必須另有 execution claim coordination。
+
+- **NO WORK WITHOUT CLAIM**：一張 GitHub owning Issue 同時間只能有一個 execution claim owner。任何 `production / test / Skill / AI Library` 第一筆 write 前，Worker 必須先成功取得 claim。
+- **互斥 authority 必須 shared + atomic**：claim 必須位於所有 Worker 共用的 coordination namespace/ref，並以 atomic create、compare-and-swap 或等價互斥 primitive 取得。不同 implementation branch 各自建立同名 `.lock` 屬 **branch-local lock**，不能阻止兩個 Worker 同時成功，因此不得當全域 claim authority。
+- **Comment / label 只作 mirror**：GitHub Issue comment、label、聊天宣告、branch 名稱、checkpoint 可供人閱讀，但除非底層操作本身具備已證明的 atomic ownership contract，否則不得當 execution claim authority。
+- **claim fail closed**：若 shared authority 已有其他 owner、CAS 衝突或環境沒有 shared+atomic claim 能力，禁止施工該 Issue，也不得另開平行 branch 繞過。若還有其他未認領且可執行工單，依 `NON_TERMINAL_CONTINUE` 立即轉往下一張；「被別人鎖住」不是整個派工流程的停止理由。
+
+### CLAIM_PROGRESS_STATE
+
+claim 必須同時是其他 AI 可讀的 durable progress state，而不是只有 owner 名稱。至少保存：`phase/state`、`last_update`、work `branch`、current `HEAD`、`remote QA run/status`（有 run 時含 `run_id + head_sha`）、`next_action`、`blocker`，長任務再附 checkpoint/journal pointer。
+
+進度在 claim acquired、RED、重要 production write、GREEN、remote QA queued/in_progress/terminal、workflow cleanup、tested-head→closing-head drift audit、AI Library writeback、Issue closing/release 等重大 transition 即時更新。支援 revision/ETag/SHA 時，progress update 同樣用 optimistic concurrency / compare-and-swap，避免舊 Worker 覆蓋新狀態。
+
+列未完成工單固定分三類：`我持有`、`其他 AI 已鎖定`、`尚未認領`；前兩類都要顯示 phase、最後更新、branch/HEAD、QA、next_action、blocker，讓下一個 AI 不用猜施工進度。
+
+### STALE_CLAIM_RECOVERY
+
+claim 久未更新不能直接搶。接管前先核對 owning branch、HEAD、checkpoint/journal、`last_update`、remote QA、Issue 最新活動；只在舊 revision/owner 仍未改變時以 compare-and-swap 原子轉移，並留下 recovery evidence（舊 owner/revision、檢查證據、判定理由、新 owner、接管時間、resume point）。無法證明 stale 或無安全 CAS 時保持 blocked，不得並行施工。
+
+只有 Issue terminal evidence、必要 workflow cleanup、durable writeback、tested-head→closing-head drift audit 都完成後才能 release claim；單純 commit、GREEN 或 remote QA success 都不足以釋放 ownership。
+''',
+              Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'): r'''
+
+### 2026-09-13 — branch-local AI lock 不能阻止多 AI 重覆施工；claim 還必須帶工單進度
+
+<!-- ISSUE172_PITFALL_MULTI_AI_CLAIM -->
+
+- **錯誤模式**：兩個 AI 同時看到同一張 OPEN Issue，各自在自己的 implementation branch 建立 `.ai-locks/issue-N.lock`，兩邊都成功，結果仍重覆施工；或只寫 `AI:claimed` comment/label，另一個 Worker 在讀寫競態中仍同時進場。另有一種半套狀態是雖知道誰 claim，卻看不到已跑到 RED / GREEN / QA / cleanup 哪一步，接手者只能靠聊天猜進度。
+- **根因**：把 branch-local 檔案或 human-readable marker 誤當跨 Worker 的 atomic mutual exclusion；又把 ownership 與 progress 拆成兩份非 durable 狀態。
+- **永久防線**：一張 GitHub owning Issue 同時間只准一個 execution claim owner；第一筆 production/test/Skill/AI Library write 前，所有 Worker 必須對同一 shared coordination namespace/ref 做 atomic create / compare-and-swap。branch-local lock、Issue comment、label、聊天文字只能當 mirror，不能當互斥 authority。
+- **進度契約**：同一 claim state 同步 `phase/state`、`last_update`、branch、HEAD、remote QA run/status、`next_action`、`blocker`；重大 transition 立即更新。列未完成工單分 `我持有 / 其他 AI 已鎖定 / 尚未認領`，claimed 工單必須顯示目前進度與下一步。
+- **stale recovery**：禁止直接搶鎖。先反讀 owning branch/HEAD、checkpoint/journal、last_update、remote QA、Issue 活動，再以 CAS 接管並寫 recovery evidence。不能證明 stale 就 fail closed。
+- **釋放條件**：Issue terminal + workflow cleanup + durable state/writeback + tested-head→closing-head drift audit 完成才 release claim。票被別人持有時禁止重覆施工該票，但若有其他未認領可執行票，依 `NON_TERMINAL_CONTINUE` 繼續派工，不得用「鎖住了」當整體停工理由。
+''',
+          }
+
+          for path, block in entries.items():
+              text = path.read_text(encoding='utf-8')
+              marker = 'ISSUE172_MULTI_AI_CLAIM_PROGRESS' if path.name.startswith('08_') else 'ISSUE172_PITFALL_MULTI_AI_CLAIM'
+              if marker not in text:
+                  path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+          PY
+      - name: Commit durable writeback
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          if git diff --cached --quiet; then
+            echo 'No writeback change needed.'
+          else
+            git commit -m 'docs: record multi-ai claim progress contract'
+            git push origin HEAD:docs/issue172-multi-ai-claim-progress-20260913
+          fi
