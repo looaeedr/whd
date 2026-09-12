@@ -1,0 +1,78 @@
+name: Issue119 R1 Final Acceptance
+
+on:
+  push:
+    branches:
+      - fix/issue119-replay-latest-20260912-r1
+    paths:
+      - .github/workflows/issue119-r1-final.yml
+
+permissions:
+  contents: read
+
+jobs:
+  final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: de31d6709c3bab748b3cc3111b0c57bef1a671b1
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lock exact tested head and baseline
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "de31d6709c3bab748b3cc3111b0c57bef1a671b1"
+          git merge-base --is-ancestor eede532b9fe61052cf4411ecf5063e0374165fe8 HEAD
+          echo "TESTED_HEAD=$(git rev-parse HEAD)"
+          echo "BASE=eede532b9fe61052cf4411ecf5063e0374165fe8"
+      - name: Install runtime
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install -q -r requirements.txt pytest matplotlib
+      - name: Capture invariants before
+        shell: bash
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+          git status --porcelain
+          git diff --exit-code
+      - name: Durable knowledge contract
+        run: python -m pytest -q tests/test_issue119_corner_data_knowledge_contract.py
+      - name: Headless part DXF persistence acceptance
+        shell: bash
+        run: |
+          python -m pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_receiving_door_dxf_roundtrip.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_resolved_manufacturing_geometry.py \
+            tests/test_manufacturing_api_finished_face_contract.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py \
+            tests/test_phase6_project_controller.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_ownership.py \
+            tests/test_phase6_project_session.py
+      - name: Xvfb Corner Data Receiving acceptance
+        shell: bash
+        run: |
+          timeout 600s xvfb-run -a python -m pytest -q -s \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue94_corner_data_navigation_mode.py \
+            tests/test_receiving_cabinet_type.py
+      - name: Final invariant and clean-tree gate
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "de31d6709c3bab748b3cc3111b0c57bef1a671b1"
+          sha256sum config.ini | tee /tmp/config.after
+          cmp /tmp/config.before /tmp/config.after
+          git diff --exit-code -- config.ini 基準檔
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          echo "ISSUE119_FINAL_ACCEPTANCE_GREEN tested_head=$(git rev-parse HEAD)"
