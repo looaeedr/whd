@@ -22,7 +22,7 @@ jobs:
         run: |
           sha256sum config.ini > /tmp/config.before
           find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baseline.before
-      - name: Run T7 full changed-file Knowledge Preflight
+      - name: Run T7 implementation-scope Knowledge Preflight
         shell: bash
         run: |
           cat > /tmp/issue180-evidence.txt <<'EOF'
@@ -52,6 +52,9 @@ jobs:
             --changed-file 'tests/knowledge/test_current_history_authority_contract.py' \
             --changed-file '.github/workflows/issue180-t7-preflight.yml' \
             --changed-file '.github/workflows/issue180-t7-qa.yml' \
+            --changed-file '.github/workflows/issue180-t7-apply.yml' \
+            --changed-file '.scratch/issue180-t7/apply_history_cleanup.py' \
+            --changed-file '.scratch/issue180-t7/T7.state.md' \
             --evidence /tmp/issue180-evidence.txt
       - name: Verify protected invariants
         if: always()
