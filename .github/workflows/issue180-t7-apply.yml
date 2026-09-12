@@ -26,8 +26,8 @@ jobs:
       - name: Verify only intended durable docs changed
         shell: bash
         run: |
-          git status --short
-          changed="$(git diff --name-only)"
+          git -c core.quotePath=false status --short
+          changed="$(git -c core.quotePath=false diff --name-only)"
           test -n "$changed"
           unexpected="$(printf '%s\n' "$changed" | grep -Ev '^(README\.md|AI_HANDOFF\.md|AGENTS\.md|handoff/00_AI_HANDOFF_README\.md|handoff/01_ARCHITECTURE\.md|handoff/05_NEXT_STEPS\.md|目前主要任務\.md|docs/superpowers/CURRENT_API_INVENTORY_20260818\.md|docs/superpowers/README\.md|個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則\.md|個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫\.md|個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map\.md)$' || true)"
           test -z "$unexpected"
