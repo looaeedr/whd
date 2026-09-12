@@ -187,3 +187,26 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 - 有真 GUI / screenshot / Xvfb 才能宣告 visual acceptance；沒有 visual runtime 時只能標 `inferred` / `visual acceptance pending`，**不得假裝**看過畫面或已完成視覺驗收。
 - Audit mode 是 read-only；already-good UI 可以 `keep / 不修改`。成功不是改得多，而是只修改有產品、層級或操作理由的地方。
 - machine guard：`tests/test_ui_design_de_ai_skill_contract.py`。
+
+## 2026-09-13 — 多 AI 派工：一票一個 execution claim owner + 進度共享
+
+<!-- ISSUE172_MULTI_AI_CLAIM_PROGRESS -->
+
+當兩個以上 AI / Worker 共用同一 GitHub tracker 時，`GitHub owning Issue` 只證明「這張票存在」，不等於已分配唯一施工權。正式施工前必須另有 execution claim coordination。
+
+- **NO WORK WITHOUT CLAIM**：一張 GitHub owning Issue 同時間只能有一個 execution claim owner。任何 `production / test / Skill / AI Library` 第一筆 write 前，Worker 必須先成功取得 claim。
+- **互斥 authority 必須 shared + atomic**：claim 必須位於所有 Worker 共用的 coordination namespace/ref，並以 atomic create、compare-and-swap 或等價互斥 primitive 取得。不同 implementation branch 各自建立同名 lock 屬 branch-local lock，不能作為全域 claim authority。
+- **Comment / label 只作 mirror**：Issue comment、label、聊天宣告、branch 名稱、checkpoint 可供人閱讀，但不是 execution claim authority。
+- **claim fail closed**：shared authority 已有其他 owner、CAS 衝突或環境沒有 shared+atomic claim 能力時，禁止施工該 Issue；若另有未認領工單則依 `NON_TERMINAL_CONTINUE` 繼續下一張。
+
+### CLAIM_PROGRESS_STATE
+
+claim 同時是跨 AI durable progress state，至少保存 `phase/state`、`last_update`、work `branch`、current `HEAD`、`remote QA run/status`、`next_action`、`blocker` 與必要 checkpoint/journal pointer。RED、重要 write、GREEN、remote QA、cleanup、drift audit、AI Library writeback、Issue closing/release 等重大 transition 都要即時更新。
+
+列未完成工單固定分成 `我持有`、`其他 AI 已鎖定`、`尚未認領`；前兩類必須顯示 phase、最後更新、branch/HEAD、QA、next_action、blocker，不能只列 owner。
+
+### STALE_CLAIM_RECOVERY
+
+claim 久未更新不能直接搶。接管前先核對 owning branch、HEAD、checkpoint/journal、`last_update`、remote QA、Issue 最新活動；只在舊 revision/owner 仍未改變時以 compare-and-swap 原子轉移，並留下 recovery evidence。無法證明 stale 或無安全 CAS 時保持 blocked。
+
+只有 Issue terminal evidence、必要 workflow cleanup、durable writeback、tested-head→closing-head drift audit 都完成後才能 release claim。
