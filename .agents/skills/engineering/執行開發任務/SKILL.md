@@ -140,6 +140,20 @@ run terminal 前禁止繼續 code exploration、production/test/Skill write、�
 
 Validation / fixture / expected / probe 只能判定 implementation 是否符合 authority，**不得反推 production 幾何 / 製造計算來源**，也**不得放寬 authoritative acceptance contract**來讓測試通過。若 production 與 validation 衝突，先找 requirement/code/data authority 與 root cause；不能把測試期望值回灌成 production source-of-truth。
 
+### NO_FAKE_COMPLETION_CONTRACT
+
+下列狀態全部都是 non-terminal evidence，不得被包裝成完成或自然停工點：`branch created`、`code modified`、`commit created`、`push complete`、`remote QA started`、`run_id acquired`、`queued / in_progress`、`partial tests PASS`、`focused tests PASS but final acceptance pending`、`Combined PASS but invariant / drift / cleanup pending`、`明確知道 next action`。
+
+未完成只能標示 `IN PROGRESS` 或 `BLOCKED`；若不是符合 `BLOCKED_ALLOWED_REASONS` 的 genuine blocker，就維持 IN PROGRESS 並執行 next action。禁止用「`稍後繼續`」或「`下一續跑點`」**不得作為正常結束語義**；真正 system hard-cut 必須走 `CHECKPOINT_RESUME_CONTRACT`。
+
+#### PROGRESS_UPDATE_STATE_PRESERVATION
+
+`progress update 只能觀測狀態`，**不得改變 execution state**。回報前是 `RUNNING`、`WAITING_REMOTE` 或 `RECOVERING`，回報後仍保持同一語意 state 與同一合法 next action；`回報後若仍有合法 next action，必須繼續執行`。
+
+#### NORMAL_TERMINATION_GATE
+
+正常終止只允許兩種：`genuine BLOCKED` 或 `evidence-backed COMPLETE`。`non-terminal state 不能產生 COMPLETE / final response`。若遇到 `system hard-cut`，只能留下 durable checkpoint 並依 `CHECKPOINT_RESUME_CONTRACT` 續跑，不能冒充正常終止。
+
 ### NONTERMINAL_NEXT_ACTION_GATE
 
 在輸出任何 `final`、把控制權交回使用者，或把目前工單描述成可自然停止前，先判定目前 execution state：
