@@ -138,3 +138,37 @@ def test_corner_data_selection_callback_resolves_identity_without_activating_wor
         app.designer_workspace.active_part,
         app.designer_workspace.selected_part,
     ) == before
+
+
+def test_receiving_multipart_box_body_parent_selection_stays_aggregate(monkeypatch):
+    app = _app(
+        (
+            "box_body",
+            "box_body:left_side",
+            "box_body:back",
+            "box_body:right_side",
+            "head",
+        ),
+        remembered_box_child="box_body:back",
+    )
+    before = (
+        app.designer_workspace.active_part,
+        app.designer_workspace.selected_part,
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_phase6_current_cabinet_family",
+        lambda _owner: "受電箱",
+    )
+
+    resolved = bridge._phase6_select_corner_data_part(
+        app, "box_body", refresh_view=False
+    )
+
+    assert resolved == "box_body"
+    assert app._phase6_corner_data_selected_part_key == "box_body"
+    assert app._phase6_box_body_active_piece_key == "box_body:back"
+    assert (
+        app.designer_workspace.active_part,
+        app.designer_workspace.selected_part,
+    ) == before
