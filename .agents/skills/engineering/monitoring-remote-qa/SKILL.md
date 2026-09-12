@@ -38,7 +38,7 @@ Remote QA monitoring is **active polling**, not event notification.
 ## Quick reference
 | State | Action |
 |---|---|
-| queued / in_progress | poll run → jobs → steps; continue |
+| queued / in_progress | poll run → jobs → steps → progress observation if due → **immediately poll the same locked run again**; never final and never wait for the user to say continue |
 | failed | fetch failed-job log → diagnose → fix/rerun affected scope → monitor again |
 | success | capture counts/invariants → cleanup temp files → durable state → accept |
 | cancelled / timed_out | inspect logs/state; classify and rerun only unresolved scope |
@@ -49,7 +49,8 @@ Remote QA monitoring is **active polling**, not event notification.
 - Treating GitHub/event notifications as the monitor instead of proactively polling the locked run.
 - Polling only the run status and never checking which job/step failed.
 - Closing the ticket before temporary workflow cleanup and durable state are verified remotely.
-
+- Sending a 30-second progress update and then ending the assistant turn while the same locked run is still non-terminal.
+- Waiting for the user to type `繼續`, `輪`, `continue`, or `poll` before resuming a remote-QA loop.
 
 ## Runtime-cut resilience
 
@@ -73,7 +74,35 @@ Remote QA monitoring is **active polling**, not event notification.
 - 30 秒 cadence 只影響聊天中的觀測回報；**不得用聊天回報節奏驅動 remote runner**。遠端 durable checkpoint/resume 仍必須 controller-independent。
 - 若聊天 Runtime 被平台切斷，remote runner 照常繼續；下一 Runtime 先讀 durable `run_id/head_sha/state/artifact` 後恢復監控，不補發缺失的 30 秒訊息。
 
+## Progress updates are not turn boundaries
 
+**進度回報不是 assistant turn / response 的結束點。** 30 秒回報只是同一個 active polling loop 裡的 observation。
+
+- 若 locked run 仍是 `queued` / `in_progress`，而 polling tools 與目前 Runtime 仍可用，送出 commentary 進度回報後，**下一個動作必須是同一個 locked `run_id + head_sha` 的 poll**。
+- 不得因「我已經回報過 30 秒狀態」就結束 assistant turn；回報本身不解除 `REMOTE_QA_ACTIVE_LOCK`。
+- **不得要求或依賴使用者輸入「繼續」「輪」「continue」「poll」**才恢復監控。**使用者不是 remote-QA scheduler**；scheduler/controller 責任在目前持有 lock 的 assistant/runtime。
+- 「狀態沒有變化」只代表下一輪仍然 poll 同一 run，不是把控制權交回使用者的理由。
+- run 疑似 hang/stale 時仍保持 lock。若專案 timeout policy 與目前工具明確提供合法 cancel/timeout 能力，才可依該 policy terminalize；若沒有，就繼續 poll 到 terminal 或實際 Runtime/tool interruption，不能用「卡太久」作為 status-only final 的理由。
+- 使用者若明確改變／取消目前目標，可依最新指示重新判斷；除此之外，non-terminal monitoring loop 不得由使用者訊息驅動。
+
+## Final-response gate
+
+在送出任何 `final` 前，先執行這個 turn-completion gate：
+
+1. 檢查目前是否存在 `REMOTE_QA_ACTIVE_LOCK`。
+2. 若存在，而且 locked run 仍是 **non-terminal**，且 polling tools/runtime 仍可用：**final 禁止**；下一個動作必須回到同一 `run_id + head_sha` 的 poll。
+3. commentary 形式的 30 秒進度觀測不滿足 final gate，也不算本回合完成。
+4. 只有 locked run 已 terminal、使用者明確改變／取消當前目標，或實際 Runtime/tool interruption，才允許離開 non-terminal polling loop。
+
+### Rationalization guard
+
+| 想法 | 正確判定 |
+|---|---|
+| 「先回報一下，等使用者再說繼續」 | 錯。回報後立即 poll 同一 locked run。 |
+| 「沒有狀態變化，可以先停」 | 錯。無變化就是下一輪仍 poll。 |
+| 「我已經回報 30 秒，所以這回合完成」 | 錯。cadence 是 observation，不是 turn boundary。 |
+| 「卡住太久，只能把控制權交回使用者」 | 錯。保持 lock；只有合法 terminalization 或真正 Runtime interruption 才能中斷。 |
+| 「使用者可以打『輪』再叫我查」 | 錯。使用者不是 scheduler，不能靠下一則訊息驅動監控。 |
 
 ## Remote QA Active Lock
 
@@ -84,10 +113,12 @@ Remote QA monitoring is **active polling**, not event notification.
   1. poll 該 `run_id`；
   2. poll 該 run 的 jobs/steps；
   3. 若 terminal failure，讀 failed-job log；
-  4. 對使用者送出 30 秒進度觀測。
+  4. 對使用者送出 30 秒進度觀測；**若觀測後 run 仍 non-terminal，必須立即回到第 1/2 項繼續 poll，不能結束 assistant turn**。
 - **禁止**在 non-terminal run 期間轉去讀無關 code、修改 production/test/skill、建立另一個 workflow/run、做 branch cleanup、開新診斷或處理別張票。這些動作一律等 terminal 後才可執行。
-- 只有兩種情況解除 lock：
+- **禁止**把下一次使用者訊息當成 scheduler：不得以「等你說繼續／輪」取代 assistant 自己的 active polling。
+- 只有三種情況可中斷目前 polling loop：
   - 該 locked run 到達 terminal；
-  - Runtime 被平台切斷。下次取得控制權時，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
+  - 使用者明確改變／取消目前目標；
+  - Runtime/tooling 被平台實際切斷。下次取得控制權時，若目標未改，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
 - terminal failure 後，先抓 log 並完成 failure classification；之後才可解除舊 run lock、進修正流程。修正若觸發 replacement run，立即對新 `run_id + head_sha` 建立新的 active lock。
-- 每次非 polling 工具呼叫前都必須自問：目前是否存在 non-terminal locked run？若是，該呼叫非法，先 poll。
+- 每次非 polling 工具呼叫與每次送出 `final` 前都必須自問：目前是否存在 non-terminal locked run？若是且 Runtime/tools 仍可用，該動作非法，先 poll。
