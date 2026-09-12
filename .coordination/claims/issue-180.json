@@ -11,28 +11,25 @@
     "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "22f4b9b0181687a7dd76bb6904e295556005b857",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-13T07:54:20+08:00",
+  "head_sha": "e9792c18d1323805615bf34156f362224c77c2e3",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-13T07:55:00+08:00",
   "remote_qa": {
-    "preflight_run_id": 34726205499,
-    "preflight_head_sha": "62ab432ed29c7727564b8d25b5bea4fffd9c4e39",
-    "preflight_result": "SUCCESS; full changed-file scope including remote QA GREEN; protected invariants PASS",
     "red_run_id": 34726226149,
     "red_head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
     "red_result": "7 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN",
-    "apply_run_id": 34726494429,
-    "apply_head_sha": "d43e323f009e02a08439b5b3fcce91ab34ff3a5a",
-    "apply_result": "SUCCESS; exact 12-file durable-doc allowlist; committed implementation 0d6a29f1a8ff9787850c0f9df412dd464c761f7e",
     "focused_green_run_id": 34726537402,
     "focused_green_head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
-    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL / 0.06s; Preflight and protected invariants PASS",
+    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL; Preflight and protected invariants PASS",
     "closing_qa_run_id": 34726602829,
     "closing_qa_head_sha": "22f4b9b0181687a7dd76bb6904e295556005b857",
-    "closing_qa_result": "SUCCESS; T7 focused 8 PASS; tests/knowledge + tests/process 75 PASS / 0 FAIL / 0.33s; Preflight and protected invariants PASS"
+    "closing_qa_result": "SUCCESS; T7 focused 8 PASS; tests/knowledge + tests/process 75 PASS / 0 FAIL; Preflight and protected invariants PASS"
   },
-  "next_action": "Delete one-shot workflows and scratch artifacts, then run tested-head to closing-head and production to closing-head drift audits before integration.",
-  "blocker": null,
-  "checkpoint": ".scratch/issue180-t7/T7.state.md",
-  "journal": ".scratch/issue180-t7/T7.journal.jsonl"
+  "cleanup": "PASS; removed 3 one-shot workflows + migration script + checkpoint + journal",
+  "drift_audit": {
+    "tested_to_closing": "PASS; 22f4b9b0... -> e9792c18... only six temporary artifact removals",
+    "production_to_closing": "PASS; 476d64fd... -> e9792c18... exactly 13 durable paths: 12 authority/history docs + permanent test; no production code/config/baseline changes"
+  },
+  "next_action": "Non-force fast-forward cleanup/2d-3d-sync to closing head, reread production durable evidence, post terminal evidence, close #180, release claim, then start #181 T8.",
+  "blocker": null
 }
