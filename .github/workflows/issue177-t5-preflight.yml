@@ -40,11 +40,13 @@ jobs:
           python tools/phase6_skill_preflight.py \
             --task 'T5 WHD Skill catalog classification and 掃描深模組 governance; retired legacy aliases; remote QA' \
             --changed-file '.agents/skills/skill_catalog.json' \
+            --changed-file 'tools/skill_catalog.py' \
             --changed-file 'tests/knowledge/test_skill_catalog_classification_contract.py' \
             --changed-file '個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md' \
             --changed-file '.agents/skills/engineering/README.md' \
             --changed-file '.agents/skills/productivity/README.md' \
             --changed-file '.agents/skills/misc/README.md' \
+            --changed-file '.agents/skills/in-progress/README.md' \
             --changed-file '.agents/skills/deprecated/README.md' \
             --changed-file '.agents/skills/productivity/grill-me/SKILL.md' \
             --changed-file '.github/workflows/issue177-t5-qa.yml' \
