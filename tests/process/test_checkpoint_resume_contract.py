@@ -59,3 +59,39 @@ def test_recoverable_fail_is_not_a_hard_blocker():
     assert "產品語意決策" in text
     assert "必要權限" in text
     assert "不可推導資料" in text
+
+
+def test_checkpoint_must_be_user_visible_with_fixed_heading():
+    text = _text()
+    assert "USER_VISIBLE_CHECKPOINT_GATE" in text
+    assert "固定標題 `CHECKPOINT`" in text
+    assert "system hard-cut 前的最後一個 user-visible update" in text
+    assert "CHECKPOINT 至少顯示" in text
+    for marker in (
+        "issue / task",
+        "role",
+        "branch + HEAD",
+        "production target",
+        "remote QA lock",
+        "completed / pending / failed / blocked",
+        "validation / invariant",
+        "temporary workflows / branches",
+        "next exact action",
+    ):
+        assert marker in text
+
+
+def test_visible_checkpoint_refreshes_at_major_execution_transitions():
+    text = _text()
+    assert "重要 execution state transition" in text
+    assert "RUNNING ↔ WAITING_REMOTE ↔ RECOVERING" in text
+    assert "branch / HEAD / production target" in text
+    assert "remote QA lock acquired / terminal" in text
+    assert "accepted slice / major checkpoint" in text
+
+
+def test_visible_checkpoint_never_replaces_progress_or_continuous_execution():
+    text = _text()
+    assert "progress update 不得冒充 checkpoint" in text
+    assert "可見 checkpoint 不能成為正常停工點" in text
+    assert "non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action" in text
