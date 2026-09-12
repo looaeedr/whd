@@ -2,7 +2,7 @@
   "task_id": "#168",
   "parent_issue": "#166",
   "dependency": "#167",
-  "role": "T2 實作者 -> 總控審查",
+  "role": "總控審查",
   "branch": "feat/dm7-t2-navigation-core-20260913",
   "branch_base": "4b236826a8629b2ae0088f71cea7b9e3d3f98659",
   "production_target": "e85b10b3bf7957e626abb7c1e1e1f909b1f0ee62",
@@ -14,7 +14,7 @@
   "acceptance_job_id": 103594435063,
   "owning_issue": "https://github.com/looaeedr/whd/issues/168",
   "preflight": "GREEN_AFTER_FAIL_CLOSED_READBACK",
-  "status": "FOCUSED_GREEN_QA_PENDING_FINAL_DRIFT",
+  "status": "ACCEPTED",
   "pytest": {
     "passed": 20,
     "failed": 0,
@@ -24,7 +24,9 @@
     "compile": "PASS",
     "navigation_source_ownership": "PASS",
     "config_sha_before_after": "980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67",
-    "protected_baseline_manifest": "PASS"
+    "protected_baseline_manifest": "PASS",
+    "temporary_workflows_removed": true,
+    "post_test_production_test_drift": "NONE"
   },
   "completed": [
     "dependency #167 accepted",
@@ -35,16 +37,14 @@
     "bridge converted to thin navigation adapters",
     "focused remote acceptance green",
     "temporary patch workflow removed",
-    "temporary acceptance workflow removed"
-  ],
-  "pending": [
+    "temporary acceptance workflow removed",
     "independent final diff review",
-    "tested-head to closing-head drift audit",
-    "issue terminal evidence and closure"
+    "tested-head to closing-head drift audit"
   ],
+  "pending": [],
   "production_files_changed": [
     "phase6_part_navigation.py",
     "fold_designer_bridge.py"
   ],
-  "resume_command": "QA compare T1 cleaned base and tested head to final closing head; confirm no post-test production/test drift; write #168 terminal evidence"
+  "resume_command": "Start #169 T3 from this accepted cleaned head on a new branch"
 }
