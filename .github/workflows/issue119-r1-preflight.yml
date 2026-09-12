@@ -1,0 +1,67 @@
+name: Issue119 R1 Latest Target Preflight
+
+on:
+  push:
+    branches:
+      - fix/issue119-replay-latest-20260912-r1
+    paths:
+      - .github/workflows/issue119-r1-preflight.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lock baseline
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD^)" = "eede532b9fe61052cf4411ecf5063e0374165fe8"
+          echo "BASE=eede532b9fe61052cf4411ecf5063e0374165fe8"
+      - name: Build evidence manifest
+        shell: bash
+        run: |
+          cat > /tmp/evidence.md <<'EOF'
+          執行開發任務
+          寫技能
+          截角資料入口收斂
+          phase6-corner-3d-model-integrity
+          phase6-release-packaging
+          diagnosing-bugs
+          tdd
+          驗證板件與DXF
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          EOF
+      - name: Fail-closed changed-file preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "重播 #119 Corner Data Receiving switch lifecycle/readability 到最新 cleanup/2d-3d-sync；先 RED 再 GREEN，只修 view lifecycle/post-commit visible refresh/dedicated viewport/readability，不改 manufacturing geometry、DXF authority 或 physical-part identity" \
+            --changed-file fold_designer_bridge.py \
+            --changed-file gui.py \
+            --changed-file tests/test_issue119_corner_data_transition_ui.py \
+            --changed-file tests/test_issue119_corner_data_knowledge_contract.py \
+            --changed-file .agents/skills/engineering/截角資料入口收斂/SKILL.md \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md \
+            --changed-file docs/superpowers/verification/2026-09-12-issue119-replay-state.md \
+            --changed-file .github/workflows/issue119-r1-preflight.yml \
+            --evidence /tmp/evidence.md
+      - name: Prove production/test untouched
+        shell: bash
+        run: |
+          git diff --exit-code HEAD^ -- fold_designer_bridge.py gui.py tests .agents/skills/engineering/截角資料入口收斂/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
