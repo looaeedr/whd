@@ -1,4 +1,4 @@
-name: Issue 126 Workspace Owner Preflight
+name: Issue 126 Workspace Final Acceptance
 on:
   push:
     branches: [work/issue-126-workspace-layout-20260912-r1]
@@ -7,11 +7,11 @@ on:
       - tests/test_issue126_workspace_layout.py
       - fold_designer_bridge.py
 permissions:
-  contents: write
+  contents: read
 jobs:
-  inspect:
+  acceptance:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
@@ -41,49 +41,72 @@ jobs:
       - name: Phase6 changed-file preflight
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "#126 只重整 Fold Designer 2D/3D/截角中央 workspace 的 presentation layout/resize priority/minimum sidebar width/chrome；不得新增 authoritative state/cache，不得在 resize/redraw 修改 geometry/domain，不改 projection/unfold/placement/manufacturing/DXF authority；須保留 view switch/selection/visibility/zoom/fit 與小中大文字尺度" \
+            --task "#126 committed-head final acceptance：Fold Designer 2D/3D/截角中央 workspace presentation layout/resize priority/sidebar bound；不得新增 authoritative state/cache，不得在 resize/redraw 修改 geometry/domain，不改 projection/unfold/placement/manufacturing/DXF authority；保留 view switch/selection/visibility/zoom/fit 與小中大文字尺度" \
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_issue126_workspace_layout.py \
             --changed-file .github/workflows/issue126-owner-preflight.yml \
             --evidence /tmp/evidence.md
-      - name: Lock production ancestry
-        run: |
-          git fetch origin cleanup/2d-3d-sync
-          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
-          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "f85e0ba0047bcf3d9d447ecf7d365484267c29d0"
-      - name: Apply minimal workspace layout change
+      - name: Lock production ancestry and allowed drift
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('fold_designer_bridge.py')
-          s = p.read_text(encoding='utf-8')
-          old = '''    self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n'''
-          new = '''    # #126: the left side is an engineering inspector, not a competing canvas.\n    # Keep its width bounded and let the central drawing workspace absorb resize growth.\n    # This is presentation-only: no workspace/domain state is created or mutated here.\n    self.left.configure(width=360)\n    self.left.pack_propagate(False)\n    self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n'''
-          if new in s:
-              print('layout patch already present')
-          else:
-              if old not in s:
-                  raise SystemExit('layout seam not found')
-              p.write_text(s.replace(old, new, 1), encoding='utf-8')
-              print('layout patch applied')
-          PY
+          git fetch origin cleanup/2d-3d-sync
+          BASE=f85e0ba0047bcf3d9d447ecf7d365484267c29d0
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+          git diff --name-only "$BASE"...HEAD | sort > /tmp/changed.txt
+          cat /tmp/changed.txt
+          cat > /tmp/allowed.txt <<'EOF'
+          .github/workflows/issue126-owner-preflight.yml
+          fold_designer_bridge.py
+          tests/test_issue126_workspace_layout.py
+          EOF
+          sort -o /tmp/allowed.txt /tmp/allowed.txt
+          diff -u /tmp/allowed.txt /tmp/changed.txt
+          ! grep -E '(^ae_engine/|^基準檔/|\.dxf$|(^|/)config\.ini$)' /tmp/changed.txt
+          git diff --check "$BASE"...HEAD
+      - name: Snapshot protected invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.before
       - name: Install GUI runtime
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb fonts-noto-cjk
           python -m pip install -q pytest matplotlib pillow -r requirements.txt
-      - name: Issue 126 workspace focused contract
-        run: xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue126_workspace_layout.py
-      - name: Commit tested production change
+      - name: Discover existing UI/view regressions
         shell: bash
         run: |
-          if git diff --quiet -- fold_designer_bridge.py; then
-            echo 'no production diff to commit'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add fold_designer_bridge.py
-          git commit -m 'fix(#126): prioritize central drawing workspace'
-          git push origin HEAD:work/issue-126-workspace-layout-20260912-r1
+          python - <<'PY'
+          from pathlib import Path
+          patterns = ('issue124','issue125','text_scale','text size','zoom','fit','visibility','view_switch','view switch','selection','final_scene')
+          selected=[]
+          for p in sorted(Path('tests').glob('test_*.py')):
+              text=(p.name+'\n'+p.read_text(encoding='utf-8',errors='ignore')).lower()
+              if any(k in text for k in patterns):
+                  selected.append(str(p))
+          # Keep the regression wave bounded but require meaningful existing coverage.
+          priority=[p for p in selected if 'issue124' in p or 'issue125' in p]
+          rest=[p for p in selected if p not in priority]
+          chosen=(priority+rest)[:24]
+          print('\n'.join(chosen))
+          if len(chosen) < 4:
+              raise SystemExit(f'insufficient existing UI/view regression coverage: {len(chosen)}')
+          Path('/tmp/regressions.txt').write_text('\n'.join(chosen)+'\n', encoding='utf-8')
+          PY
+      - name: Focused workspace contract
+        run: xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue126_workspace_layout.py
+      - name: Existing UI view regression wave
+        shell: bash
+        run: |
+          mapfile -t tests < /tmp/regressions.txt
+          xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q "${tests[@]}"
+      - name: Protected invariant postcheck
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          git status --short
+          test -z "$(git status --porcelain)"
