@@ -45,17 +45,33 @@ Project / Workspace authoritative state
 - 點板件後，同一 Fold Designer 圖區切到該板件既有展開圖，不跳回舊主視窗 Notebook、不另開新 2D window。
 - 「功能不變，只改入口」：原本展開圖的材料外框、截角、孔、BEND、尺寸、標註、互動都保留。
 
+## DM7 canonical navigation authority
+
+Canonical durable contract 固定指向：
+
+`個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md`
+
+本 Skill 只消費該 contract，不建立第二套 resolver authority。固定規則：
+
+- `explicit parent`：明確選 `box_body` 就保持 aggregate parent `box_body`，remembered child 不得劫持。
+- 明確選現存 physical child 時保持 exact stable identity。
+- `stale explicit` physical child 必須 `fail closed`：resolved selection 為 `None` / `STALE_PHYSICAL_CHILD`，不得自動換 remembered sibling、nearest sibling 或 first child。
+- remembered child 只允許在 intent 明確為 `RESTORE_CHILD_CONTEXT` 時使用；remembered child 已 stale 就清除 memory，不猜下一片。
+- Menu / Structure Tree / Corner Data 必須共用 authoritative hierarchy projection；display label / widget index 不得升格 identity authority。
+
 ## Stable identity / stale selection
 
 - stable authoritative part key 是唯一 identity。
-- refresh 時若 selected key 仍存在則保留。
-- key 已從 authoritative parts 消失時，立即丟棄 stale selection 並從 current parts 重新 resolve；不得保留 ghost UI state。
+- refresh 時若 selected key 仍存在則保留 exact key。
+- 若明確 requested physical-child key 已從 authoritative parts 消失，該 explicit request 立即 fail closed；不得用 refresh 當理由猜另一個 child。
+- topology contraction 後 stale remembered child 必須清除；只有 caller 明確要求 `RESTORE_CHILD_CONTEXT` 才能讀取仍合法的 remembered child。
+- navigation projection / selection lifecycle 只改 View context，不得 mutate manufacturing workspace。
 
 ## Multipart BoxBody
 
-- operator 頂層可保持單一「箱身」。
-- physical children 各自保留 stable identity。
-- 進入箱身展圖時：優先沿用 `_phase6_box_body_active_piece_key` 且它仍存在；否則取 `_phase6_box_body_piece_keys(available_parts)` 的第一個 child。
+- operator 頂層可保持單一「箱身」aggregate parent，且 explicit parent selection 必須仍是 `box_body`。
+- physical children 各自保留 stable identity；明確 child selection 保持 exact child。
+- child context restore 必須使用明確 `RESTORE_CHILD_CONTEXT` intent；沒有合法 remembered child 就回 `None`，不得 fallback 到 first child。
 - physical-child editor 只能是同一 resolved aggregate manufacturing result 的 sink；禁止 second BoxBody solve。
 
 ## View-only hard gate
@@ -98,7 +114,7 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 ## 測試要求
 
 1. Controller / Adapter contract：authoritative keys、selection lifecycle、multipart、existing render-data sink。
-2. Tk headless interaction：mode/part 切換、dynamic add-remove、stale-selection recovery。
+2. Tk headless interaction：mode/part 切換、dynamic add-remove、stale-selection fail-closed / explicit restore behavior。
 3. 小型 Xvfb smoke：真實 Fold Designer widget wiring。
 4. Save->Reload parity。
 5. `驗證板件與DXF`：dynamic physical parts、DXF reopen、2D/3D canonical parity。
@@ -112,6 +128,7 @@ T7 前不得提前移除 legacy 入口。最終 dead-code gate：
 - Validation 只能判定對錯，不能成為 production 計算來源。
 - 新發現的規則/踩坑同步 Skill、AI knowledge/library、durable agent-readable docs；禁止只留在聊天。
 - authoritative state 與 View freshness 是兩個不同 invariant；驗資料同源時也要另外驗 visible View refresh。
+- DM7 navigation memory 是 View convenience；不得用 remembered/first-child fallback 覆寫 explicit stable identity。
 
 
 ### ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE
