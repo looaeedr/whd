@@ -23,5 +23,6 @@ jobs:
           python tools/phase6_skill_preflight.py
           --task "#162 unfold viewport presentation: black canvas, larger initial fit, mouse-wheel zoom; presentation only, no manufacturing geometry feedback"
           --changed-file fold_designer_bridge.py
+          --changed-file gui.py
           --changed-file tests/test_issue162_unfold_viewport.py
           --evidence docs/superpowers/verification/2026-09-12-issue160-dispatch-issue162-preflight.md
