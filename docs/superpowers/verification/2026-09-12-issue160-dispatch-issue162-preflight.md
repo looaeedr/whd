@@ -27,13 +27,16 @@
 - Branch base: `0c3932dfee117f5980e7d3717341ef184090afc3`
 - Current scope: unfold viewport presentation only — black background, larger initial fit/readability, mouse-wheel zoom
 - Forbidden scope in T2: #163 layout relocation; manufacturing geometry changes; zoom/fit feeding production geometry
-- Preflight run `34697127276 @ 7867c3290c275c7d09d2e289f2385740b4703b72` failed closed because evidence was not yet supplied; this is a process/evidence failure, not a product failure.
-- Pending: rerun task + changed-file preflight with this evidence; then establish T2 RED, implement minimal presentation change, run remote QA/invariants, QA review.
+- Preflight run `34697127276 @ 7867c3290c275c7d09d2e289f2385740b4703b72`: fail-closed because no evidence was supplied.
+- Preflight run `34697266885 @ 76e6c0a1eed78b03d8ae12daa87dc59614f988a7`: task gate GREEN; changed-file gate correctly required two additional Skills plus WHD geometry spec.
+- Pending: rerun task + changed-file preflight with complete evidence; then establish T2 RED, implement minimal presentation change, run remote QA/invariants, QA review.
 - Resume command: `python tools/phase6_skill_preflight.py --task "#162 unfold viewport presentation: black canvas, larger initial fit, mouse-wheel zoom; presentation only, no manufacturing geometry feedback" --changed-file gui.py --changed-file tests/test_issue162_unfold_viewport.py --evidence docs/superpowers/verification/2026-09-12-issue160-dispatch-issue162-preflight.md`
 
 ## Read Skills
 
 - phase6-corner-3d-model-integrity
+- 驗證板件與DXF
+- monitoring-remote-qa
 
 ## Read References
 
@@ -41,6 +44,7 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防�
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
 
 ## Authority conclusions for #162
 
@@ -48,3 +52,5 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 2. Receiving aggregate `box_body` remains the logical/assembly owner; manufacturable children remain stable `box_body:<role>` identities. T2 must not reintroduce a selector/resolver fork.
 3. Validation values, screenshots, fit ratios, or zoom factors are acceptance evidence only; none may become production manufacturing inputs.
 4. `config.ini` and protected baselines must remain unchanged unless explicitly required by the user; #162 does not require such changes.
+5. Because `gui.py` changes can affect what physical part the operator sees, focused viewport GREEN is not Final Acceptance by itself. Before #162 ACCEPT, run the applicable physical-part/DXF acceptance chain and keep aggregate/child identities separate.
+6. Remote QA must lock a single `run_id + head_sha` and be actively polled to terminal; setup/evidence/harness failures are classified separately from product failures.
