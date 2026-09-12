@@ -42,6 +42,8 @@ jobs:
             --changed-file tests/process/test_checkpoint_resume_contract.py \
             --changed-file .github/workflows/issue150-checkpoint-gate.yml \
             --evidence /tmp/evidence.md
+      - name: Install test runtime
+        run: python -m pip install -q pytest
       - name: RED must be exact user-visible checkpoint failure
         shell: bash
         run: |
