@@ -47,6 +47,14 @@ checkpoint/state 至少記錄 branch+HEAD、已完成/pending/failed、修改檔
 
 run terminal 前禁止繼續 code exploration、production/test/Skill write、下一張工單或另一個診斷；只能 poll run/jobs/steps、處理 terminal failure log、做 30 秒進度回報。terminal 後才恢復一般實作流程。
 
+### REMOTE_QA_STATE_BRIDGE
+
+這個 bridge 只把 remote-QA 狀態映射回本 Skill 的語意 execution state；**polling mechanics remain owned by `monitoring-remote-qa`**，不得在此建立第二套 polling authority。
+
+- `queued / in_progress → WAITING_REMOTE`：保持 **same `run_id + head_sha`** lock，沿既有 `WAITING_REMOTE → poll_locked_run` 繼續主動輪詢；30 秒 cadence 只是 observation。
+- `terminal success → RUNNING(next_acceptance_action)`：解除該 terminal run 的 active lock，接著執行 result extraction、invariant、cleanup、下一個 acceptance gate；**success 不是自動 COMPLETE**。
+- `terminal failure → RECOVERING`：先讀 `failed-job log` 並分類 production / test / harness / environment failure，再沿 evidence → root cause → minimal fix → validation → retry；**不得停在 FAIL 回報**。
+
 ## 6. 進度與完成
 
 任務尚未完成時，每 30 秒至少回報一次目前工單、正在做的事項、最新測試/進度數字與 blocker；回報不得中斷正常執行。
