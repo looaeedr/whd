@@ -8,15 +8,17 @@
 
 ## Required Skills read
 
-- `Python測試實務` — read in full before T1 test work.
-- `monitoring-remote-qa` — read in full before creating the one-shot remote QA workflow.
+- `Python測試實務` — read in full before T1 contract-test work.
+- `monitoring-remote-qa` — read in full before creating and monitoring the one-shot remote QA workflow.
+- `尺寸語意分析` — reread in full because T1 changes the compatibility entry for the Phase6 dimension-semantics authority; this Skill remains validation-only and does not create manufacturing formulas.
 
 ## Required References read
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md
 
-## Planned changed files used for changed-file Preflight
+## Actual changed-file set for final work-branch Preflight
 
 - `tests/knowledge/test_knowledge_authority_contract.py`
 - `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`
@@ -24,8 +26,11 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與�
 - `07_Phase6尺寸語意與標準截角母規則.md`
 - `標準基準檔格式.md`
 - `.github/workflows/issue173-t1-authority-qa.yml` (one-shot QA only; remove before closure)
+- `.scratch/knowledge-authority-t1/preflight-evidence.md` (execution evidence only; exclude from production durable integration)
+- `.scratch/knowledge-authority-t1/state.md` (execution checkpoint only; exclude from production durable integration)
+- `.scratch/knowledge-authority-t1/journal.md` (execution journal only; exclude from production durable integration)
 
-## Executed changed-file Preflight
+## Preflight history
 
 Initial contract-test scope:
 
@@ -42,6 +47,6 @@ Expanded remote-QA scope:
 - REQUIRED REFERENCES: `08_WHD技能建立與修改規則.md` ✓
 - exit code: `0` (GREEN)
 
-Execution note: the exact baseline preflight script (`e9dad181...`) was executed against the exact matched route projections from baseline registry blob `dae1a23e...`; the selected task/changed files match `python-testing-practices` and `remote-qa-monitoring` and no other registry route.
+Final closing gate is executed by `.github/workflows/issue173-t1-authority-qa.yml` against the actual changed-file set above. The canonical AI-library dimension spec was also reread explicitly so the MIRROR conversion cannot silently redefine its engineering content.
 
-No manufacturing geometry, DXF baseline, `config.ini`, or `基準檔/**` file is in T1 scope.
+No manufacturing geometry, DXF baseline, `config.ini`, or `基準檔/**` file is in T1 durable scope.
