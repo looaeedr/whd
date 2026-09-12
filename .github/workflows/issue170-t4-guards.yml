@@ -1,0 +1,30 @@
+name: Issue 170 T4 Guard Baseline
+
+on:
+  push:
+    branches:
+      - test/dm7-t4-topology-persistence-guards-20260913
+
+permissions:
+  contents: read
+
+jobs:
+  t4-guards:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Provision test runtime
+        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
+      - name: Run T4 permanent guards and related regressions
+        run: >-
+          python -m pytest -q
+          tests/test_dm7_topology_persistence_guards.py
+          tests/test_dm7_navigation_source_guards.py
+          tests/test_dm7_part_navigation.py
+          tests/test_dm7_navigation_callers.py
+          tests/test_issue41_persistence_parity.py
+          tests/test_issue45_dynamic_parts_2d_roundtrip.py
