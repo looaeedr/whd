@@ -5381,7 +5381,7 @@ def _phase6_build_global_persistent_controls(self):
 
 
 def _phase6_build_persistent_top_area(self):
-    """固定版面：最上列命令；其下兩行全域設定；左右工作區。"""
+    """Operator layout: top commands, scrollable left inputs, right controls/canvas."""
     previous_status = getattr(self, "status_bar", None)
     if previous_status is not None:
         try:
@@ -5407,42 +5407,83 @@ def _phase6_build_persistent_top_area(self):
     except Exception:
         pass
 
+    # The top command surface is intentionally tiny: project File + Corner Data only.
     self.top_persistent_bar = original.ttk.Frame(self.root, padding=(10, 8, 10, 4))
     self.top_persistent_bar.pack(side=original.tk.TOP, fill=original.tk.X)
-
     self.top_command_row = original.ttk.Frame(self.top_persistent_bar)
     self.top_command_row.pack(fill=original.tk.X)
     _phase6_build_project_toolbar(self, self.top_command_row)
-    _phase6_build_transaction_buttons(self, self.top_command_row)
 
-    self.top_settings_row = original.ttk.Frame(self.top_persistent_bar)
-    self.top_settings_row.pack(fill=original.tk.X, pady=(5, 0))
-    self.top_global_host = original.ttk.Frame(self.top_settings_row)
-    self.top_global_host.pack(fill=original.tk.X, expand=True)
+    # All former top settings/actions live with the drawing workspace on the right.
+    self.right_controls_host = original.ttk.Frame(self.right, padding=(8, 6, 8, 4))
+    self.right_global_host = original.ttk.Frame(self.right_controls_host)
+    self.right_global_host.pack(fill=original.tk.X)
     panel = _phase6_ensure_settings_panel(self)
     panel.build_left_global_controls(
-        self.top_global_host,
+        self.right_global_host,
         baseline_models=tuple(self._baseline_models),
         initial_model=self._phase6_baseline_initial_model,
     )
     _phase6_sync_settings_panel_compat(self)
     _phase6_build_global_persistent_controls(self)
-
-    # 第一列固定順序：檔案 → 3D 顯示 → 全螢幕；交易按鈕固定最右。
-    _phase6_build_visual_controls(self, self.top_command_row)
-    self.fullscreen_button = original.ttk.Button(
-        self.top_command_row, text="全螢幕", command=lambda: _phase6_toggle_fullscreen(self)
-    )
-    self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
     _phase6_sync_settings_panel_compat(self)
 
-    # #126: the left side is an engineering inspector, not a competing canvas.
-    # Keep its width bounded and let the central drawing workspace absorb resize growth.
-    # This is presentation-only: no workspace/domain state is created or mutated here.
-    self.left.configure(width=360)
-    self.left.pack_propagate(False)
-    self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)
+    # Build display controls only after the shared settings panel has created
+    # ui_text_size_var; this preserves the existing ownership/lifecycle.
+    self.right_controls_primary = original.ttk.Frame(self.right_controls_host)
+    self.right_controls_primary.pack(fill=original.tk.X, pady=(5, 0))
+    _phase6_build_transaction_buttons(self, self.right_controls_primary)
+    _phase6_build_visual_controls(self, self.right_controls_primary)
+    self.fullscreen_button = original.ttk.Button(
+        self.right_controls_primary,
+        text="全螢幕",
+        command=lambda: _phase6_toggle_fullscreen(self),
+    )
+    self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
+    _phase6_pack_right_panel_above_canvas(self, self.right_controls_host)
+
+    # The complete existing left workspace is one scroll owner. It keeps the same
+    # selector/editor/state callbacks; this canvas changes presentation only.
+    self.left_scroll_canvas = original.tk.Canvas(
+        self.root, width=338, highlightthickness=0, borderwidth=0
+    )
+    self.left_scrollbar = original.ttk.Scrollbar(
+        self.root,
+        orient=original.tk.VERTICAL,
+        command=self.left_scroll_canvas.yview,
+    )
+    self.left_scroll_canvas.configure(yscrollcommand=self.left_scrollbar.set)
+    try:
+        self.left.pack_propagate(True)
+    except Exception:
+        pass
+    self.left_scroll_window = self.left_scroll_canvas.create_window(
+        (0, 0), window=self.left, anchor="nw"
+    )
+
+    def _sync_left_scrollregion(_event=None):
+        try:
+            bbox = self.left_scroll_canvas.bbox("all")
+            if bbox is not None:
+                self.left_scroll_canvas.configure(scrollregion=bbox)
+        except Exception:
+            pass
+
+    def _size_left_window(event):
+        try:
+            self.left_scroll_canvas.itemconfigure(
+                self.left_scroll_window, width=max(1, int(event.width))
+            )
+        except Exception:
+            pass
+        _sync_left_scrollregion()
+
+    self.left.bind("<Configure>", _sync_left_scrollregion, add="+")
+    self.left_scroll_canvas.bind("<Configure>", _size_left_window, add="+")
+    self.left_scroll_canvas.pack(side=original.tk.LEFT, fill=original.tk.Y)
+    self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)
     self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)
+    _sync_left_scrollregion()
 
 
 def _phase6_reset_initial_values(self):
