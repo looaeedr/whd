@@ -17,10 +17,9 @@ jobs:
         run: >-
           python tools/phase6_skill_preflight.py
           --task "#132 修改技能 durable execution 派工 regression 修正 remote QA"
-          --changed-file ".agents/skills/engineering/派工/SKILL.md"
           --changed-file ".agents/skills/engineering/執行開發任務/SKILL.md"
           --changed-file "tests/process/test_continuous_execution_durable_contract.py"
-          --changed-file "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+          --changed-file "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md"
           --evidence ".phase6_issue132_continuous_execution_evidence.txt"
       - name: Install test dependency
         run: python -m pip install pytest
