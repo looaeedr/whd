@@ -5,17 +5,18 @@
   "work_branch": "governance/issue177-skill-catalog-20260913",
   "claimed_at": "2026-09-13T06:10:36+08:00",
   "base_sha": "06a1c8a2fa0d4116f1723de1cc28d52b6e5fc616",
-  "head_sha": "b073f8b0f45ecdf6e3318b519e5c0cd799517d60",
-  "phase": "RED",
-  "last_update": "2026-09-13T06:15:10+08:00",
+  "head_sha": "a22b0016ffcaf22643524c96c81408f5a9d88285",
+  "phase": "GREEN_IMPLEMENTATION",
+  "last_update": "2026-09-13T07:10:22+08:00",
   "remote_qa": {
-    "run_id": 34722207009,
-    "head_sha": "b073f8b0f45ecdf6e3318b519e5c0cd799517d60",
-    "status": "completed/success",
-    "classification": "KNOWLEDGE_PREFLIGHT",
-    "result": "final changed-file Preflight GREEN; config.ini and 基準檔/** invariants PASS"
+    "preflight_run_id": 34722207009,
+    "preflight_head_sha": "b073f8b0f45ecdf6e3318b519e5c0cd799517d60",
+    "preflight_result": "SUCCESS; config.ini and 基準檔/** invariants PASS",
+    "red_run_id": 34724700027,
+    "red_head_sha": "a22b0016ffcaf22643524c96c81408f5a9d88285",
+    "red_result": "7 FAIL / 0 PASS; requirement-level RED; Preflight and protected invariants GREEN"
   },
-  "next_action": "Add permanent RED skill-catalog classification contract and run it against unchanged catalog/docs",
+  "next_action": "Implement machine-readable classification catalog + scanner, align AI07/READMEs, retire grill-me, then rerun same QA to GREEN",
   "blocker": null,
   "checkpoint": ".scratch/issue177-t5/T5.state.md",
   "journal": ".scratch/issue177-t5/T5.journal.jsonl"
