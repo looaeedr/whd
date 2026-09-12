@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import tkinter as tk
 
 import pytest
@@ -10,6 +11,17 @@ from phase6_settings_center import UI_TEXT_SIZE_LABELS
 pytestmark = pytest.mark.skipif(
     not os.environ.get("DISPLAY"), reason="#163 layout contracts require real Tk/Xvfb"
 )
+
+
+@pytest.fixture(autouse=True)
+def _restore_config_ini_after_ui_contract():
+    """UI scale callbacks may persist preferences; regression tests must not leak them."""
+    config_path = Path(__file__).resolve().parents[1] / "config.ini"
+    original = config_path.read_bytes()
+    try:
+        yield
+    finally:
+        config_path.write_bytes(original)
 
 
 def _open_designer():
