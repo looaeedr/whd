@@ -299,3 +299,9 @@ Rewrite 後重新檢查：
 - Modal / Dropdown / Toast 被 flatten 到和背景難以區分；
 - 把品牌或 Action Color 無理由拔掉；
 - monospace 導致 width / clipping / 換行問題仍未處理。
+
+## Acceptance invariant manifest 防假紅
+
+### INVARIANT_MANIFEST_CANONICAL_PATH_HASH
+
+做 UI / visual acceptance 的 `config.ini`、`基準檔` 或其他 protected invariant 比對時，manifest 必須使用穩定的 **canonical path + SHA256**，或直接 diff canonical manifest 內容。禁止把 `sha256sum snapshot.before` 與 `sha256sum snapshot.after` 的 raw output 直接互比，因為 `sha256sum` output 會包含 transient snapshot 檔名；即使內容完全一致，也可能只因 `.before` / `.after` 名稱不同而假紅。若必須再雜湊 manifest，只比較 normalized hash value，不比較含 transient filename 的整行。QA harness false failure 必須先分類，不得冒充 production regression。
