@@ -9,6 +9,8 @@ on:
       - .agents/skills/engineering/截角資料入口收斂/SKILL.md
       - 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
       - .github/workflows/issue175-dm7-authority-qa.yml
+  pull_request:
+    branches: [cleanup/2d-3d-sync]
 
 jobs:
   authority:
