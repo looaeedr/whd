@@ -2,6 +2,30 @@
 
 <!-- WHD_AUTHORITY_MAP_V1 -->
 
+## T7 Current / History entrypoint roles
+
+<!-- WHD_AUTHORITY_ROW contract=agent-startup-process role=CURRENT path=AGENTS.md -->
+contract=agent-startup-process role=CURRENT path=AGENTS.md
+
+<!-- WHD_AUTHORITY_ROW contract=repo-overview role=REFERENCE path=README.md -->
+contract=repo-overview role=REFERENCE path=README.md
+
+<!-- WHD_AUTHORITY_ROW contract=handoff-ledger role=REFERENCE path=AI_HANDOFF.md -->
+contract=handoff-ledger role=REFERENCE path=AI_HANDOFF.md
+
+<!-- WHD_AUTHORITY_ROW contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md -->
+contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+<!-- WHD_AUTHORITY_ROW contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md -->
+contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md
+
+<!-- WHD_AUTHORITY_ROW contract=api-inventory role=HISTORICAL path=docs/superpowers/CURRENT_API_INVENTORY_20260818.md -->
+contract=api-inventory role=HISTORICAL path=docs/superpowers/CURRENT_API_INVENTORY_20260818.md
+
+<!-- WHD_AUTHORITY_ROW contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
+contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+
+
 本文件只負責回答「同一個工程 contract 現在到底由哪一份文件擁有」。它不複製各 domain 的完整規格，也不取代 domain canonical 文件本身。
 
 ## Authority roles

@@ -1,3 +1,7 @@
+<!-- WHD_DOC_ROLE role=REFERENCE contract=superpowers-history-index -->
+> **[REFERENCE / HISTORY INDEX]** 本目錄 README 索引 dated Superpowers/spec/verification evidence，不是 current manufacturing 或 project roadmap authority。
+> Current authority：`個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`；製造架構/API：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`。
+
 # Superpowers 接手說明 — 2026-08-21 截角類型／裝配語意
 
 任何接手這次修改的代理或開發者，請依序閱讀：

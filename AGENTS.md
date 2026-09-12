@@ -1,3 +1,10 @@
+<!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->
+> **[CURRENT — PROCESS ONLY]** `AGENTS.md` 擁有 Agent 啟動、Knowledge Preflight、派工與驗收流程入口；不擁有製造公式或 ae_engine 架構真值。
+> Current authority pointers：
+- `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
+- `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
+- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
+
 # WHD 板金展開自動化系統
 
 ## AI 開發交接總覽
@@ -116,6 +123,9 @@ production code
 > 若需要了解完整架構、金庫型製造規則、零件拓撲對照、開發規範或後續計畫，請再閱讀 `handoff/` 目錄內的細節文件。
 
 ---
+
+<!-- WHD_SECTION_ROLE role=HISTORICAL contract=legacy-v5-architecture-roadmap -->
+> **[HISTORICAL/SUPERSEDED]** 第 1～10 節是 V5 / Layer A-B-C / GUI Preview 時代的架構與 roadmap snapshot，只保留 provenance，不參與 current routing。現行製造架構請讀 Canonical Authority Map 指向的 ae_engine 規範。
 
 # 1. 專案核心精神
 
@@ -648,6 +658,9 @@ handoff/05_NEXT_STEPS.md
 > **Geometry 是共用的，Factory Rule 是可配置的，Part Name 不是幾何規則；GUI 與 DXF 最終必須共用同一份 Geometry Result。**
 
 ---
+
+<!-- WHD_SECTION_ROLE role=CURRENT contract=agent-startup-process RESUME -->
+> **[CURRENT PROCESS RESUMES]** 以下 Skill Preflight / Registry / remote QA / execution governance 仍屬 current process contract；上方 HISTORICAL 標記不延伸到此處。
 
 # 11. Skill Preflight 強制啟動鏈
 

@@ -1,6 +1,13 @@
+<!-- WHD_DOC_ROLE role=REFERENCE contract=handoff-ledger -->
+> **[REFERENCE / HANDOFF LEDGER]** 本檔保留歷史接手紀錄與 migration evidence，不是 current domain SSOT，也不是新的第一入口。
+> Current authority pointers：
+- `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
+- `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
+- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
+
 # WHD 板金展開自動化系統 — AI 接手總覽
 
-## [CURRENT] 2026-09-02 Runtime semantic guard
+## [HISTORICAL/SUPERSEDED] 2026-09-02 Runtime semantic guard
 
 - `OVERLAY = 貼外`。
 - `包覆貼外 = 高階 preset`；`WRAP = 下方局部包覆 Joint`；**包覆貼外 ≠ OVERLAY ≠ WRAP**。
@@ -25,7 +32,7 @@
 
 目前基準：**V5 / 金庫型第一套 Factory Policy**。
 
-本文件是下一個 AI 的第一入口。需要細節時再讀 `handoff/`。
+[HISTORICAL] 本文件曾是下一個 AI 的第一入口；current first entry 已改為 `AGENTS.md`，domain authority 依 Canonical Authority Map 導航。
 
 ## 核心資料流
 

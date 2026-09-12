@@ -1,3 +1,10 @@
+<!-- WHD_DOC_ROLE role=REFERENCE contract=repo-overview -->
+> **[REFERENCE]** 本 README 只提供專案概覽；其中既有架構描述保留作歷史背景，不擁有 current manufacturing contract。
+> Current authority pointers：
+- `個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md` — contract/role ownership map。
+- `個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md` — 現行 `ae_engine` 製造架構、公開 API 與 Certified Registry boundary。
+- `AGENTS.md` — Agent 啟動、Preflight、派工與驗收流程入口。
+
 # WHD 板金展開自動化系統 (Sheet-Metal Unfolding Geometry Engine)
 
 WHD 鈑金展開自動化系統是一套專為鈑金箱體加工設計的 2D 自動展開與 DXF 生成引擎。本系統已全面揚棄傳統「硬編碼頂點陣列 (Hardcoded Vertex Arrays)」與「單一零件獨立座標演算法」的舊式做法，採用現代幾何拓撲 (Topology) 與布林運算 (Shapely Polygon Boolean) 的核心架構。

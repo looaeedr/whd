@@ -1,3 +1,7 @@
+<!-- WHD_DOC_ROLE role=HISTORICAL contract=architecture-snapshot -->
+> **[architecture snapshot]** 此檔保留當時 evidence / roadmap / API 盤點；**不參與 current routing**，不得以檔名中的 `CURRENT`、`目前`、`Next Steps` 或舊架構語氣覆蓋現行 authority。
+> Current authority：`個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`；製造架構/API：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`。
+
 # 01 — Architecture
 
 ## 單一真相來源
