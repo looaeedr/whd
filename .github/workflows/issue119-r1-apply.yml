@@ -1,0 +1,116 @@
+name: Issue119 R1 Apply Latest Target
+
+on:
+  push:
+    branches:
+      - fix/issue119-replay-latest-20260912-r1
+    paths:
+      - .github/workflows/issue119-r1-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lock replay ancestry
+        shell: bash
+        run: |
+          git merge-base --is-ancestor eede532b9fe61052cf4411ecf5063e0374165fe8 HEAD
+          test "$(git diff --name-only eede532b9fe61052cf4411ecf5063e0374165fe8..HEAD -- fold_designer_bridge.py gui.py .agents/skills/engineering/截角資料入口收斂/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md | wc -l)" -eq 0
+      - name: Apply minimal production and durable knowledge patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          bridge = Path('fold_designer_bridge.py')
+          text = bridge.read_text(encoding='utf-8')
+
+          old = '''    _phase6_hide_corner_data_canvas(self)\n    if _phase6_is_box_body_physical_piece_key(key):\n'''
+          new = '''    _phase6_hide_corner_data_canvas(self)\n    corner_data_panel = getattr(self, "corner_data_panel", None)\n    if corner_data_panel is not None and corner_data_panel.winfo_manager():\n        corner_data_panel.pack_forget()\n    if _phase6_is_box_body_physical_piece_key(key):\n'''
+          assert text.count(old) == 1, 'activate_part lifecycle seam drifted'
+          text = text.replace(old, new, 1)
+
+          old = '''    submit = getattr(self, "submit_update_intent", None)\n    if callable(submit):\n        submit("baseline", commit=True)\n    else:\n        _phase6_publish_live_state(self, force=True)\n\n\ndef _phase6_collect_workspace_state(self):\n'''
+          new = '''    submit = getattr(self, "submit_update_intent", None)\n    if callable(submit):\n        submit("baseline", commit=True)\n    else:\n        _phase6_publish_live_state(self, force=True)\n\n    corner_data_panel = getattr(self, "corner_data_panel", None)\n    if (\n        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"\n        and corner_data_panel is not None\n        and corner_data_panel.winfo_manager()\n    ):\n        _phase6_refresh_corner_data_parts_panel(self)\n        if getattr(self, "corner_data_canvas", None) is not None:\n            _phase6_refresh_corner_data_unfold_view(self)\n\n\ndef _phase6_collect_workspace_state(self):\n'''
+          assert text.count(old) == 1, 'baseline post-commit seam drifted'
+          text = text.replace(old, new, 1)
+
+          old = '''        info_label = original.ttk.Label(\n            mpl_widget.master, textvariable=self.corner_data_info_var,\n            justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,\n        )\n'''
+          new = '''        info_label = original.ttk.Label(\n            mpl_widget.master, textvariable=self.corner_data_info_var,\n            justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,\n            font=("Microsoft JhengHei", 11, "bold"),\n        )\n'''
+          assert text.count(old) == 1, 'Corner Data info label seam drifted'
+          text = text.replace(old, new, 1)
+          bridge.write_text(text, encoding='utf-8')
+
+          gui = Path('gui.py')
+          text = gui.read_text(encoding='utf-8')
+          start = text.index('    def _render_fold_designer_corner_data_view(')
+          end = text.index('\n    def ', start + 10)
+          block = text[start:end]
+          vp_old = '''        transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(\n            bounds, cw, ch\n        )\n'''
+          vp_new = '''        transform, _ox, _oy, _scale, _material_top = _phase6_2d_material_viewport(\n            bounds, cw, ch, top_gutter=64.0\n        )\n'''
+          assert block.count(vp_old) == 1, 'Corner Data viewport seam drifted'
+          block = block.replace(vp_old, vp_new, 1)
+          duplicate = '        self._draw_phase6_finished_dimension_summary(canvas, part_key=key)\n'
+          assert block.count(duplicate) == 1, 'Corner Data duplicate summary seam drifted'
+          block = block.replace(duplicate, '', 1)
+          text = text[:start] + block + text[end:]
+          gui.write_text(text, encoding='utf-8')
+
+          skill = Path('.agents/skills/engineering/截角資料入口收斂/SKILL.md')
+          s = skill.read_text(encoding='utf-8')
+          marker = '## Issue119 Corner Data lifecycle / readability（2026-09-12）'
+          if marker not in s:
+              s += '''\n\n## Issue119 Corner Data lifecycle / readability（2026-09-12）\n- Corner Data 必須有**對稱 enter/exit lifecycle**：切到正式板件時，canvas/info 與左側 panel 都必須離開 layout，不能只藏右側 canvas。\n- family/topology transaction 必須先完成 authoritative commit，再從 **post-commit available_parts** 刷新 visible projection；隱藏的 Corner Data 不做多餘 refresh。\n- 同一 transaction 必須維持**一次且唯一的 refresh owner**，避免重複 redraw/selection side effect。\n- Corner Data 使用自己的 **dedicated viewport**；不得沿用一般 2D 的大 annotation gutter 把圖縮小。\n- operator-info 已承載正式尺寸文字，Corner Data canvas **不得重複 finished-dimension summary**。\n- 上述皆為 View lifecycle/projection/layout contract；不得建立第二套 manufacturing geometry、DXF authority 或 physical-part identity。\n'''
+          skill.write_text(s, encoding='utf-8')
+
+          pitfalls = Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md')
+          p = pitfalls.read_text(encoding='utf-8')
+          marker = '## 2026-09-12 — Issue119 Corner Data lifecycle/readability'
+          if marker not in p:
+              p += '''\n\n## 2026-09-12 — Issue119 Corner Data lifecycle/readability\n- 症狀「切板件後截角資料收不回去」的典型根因是：**只藏右側 canvas、左側 panel 仍 managed**；enter/exit 必須對稱處理完整 widget lifecycle。\n- family 切換時不要在 topology 尚未 commit 前刷新 UI；必須等 **authoritative topology commit 完成後才刷新 visible projection**，再讀 post-commit `available_parts`。\n- **同一 transaction 只能有一次 refresh owner**；重播 patch 時要用 contract test 防止 duplicate refresh block。\n- Corner Data 不可沿用一般 2D 的 **175px generic annotation gutter**；它有獨立 operator-info row，應用 dedicated compact viewport。\n- 以上只修 View/readability；validation 只判對錯，不得把量測值或 fit ratio 回灌 manufacturing geometry。\n'''
+          pitfalls.write_text(p, encoding='utf-8')
+          PY
+      - name: Assert exact scope before GREEN
+        shell: bash
+        run: |
+          git -c core.quotepath=false diff --name-only | tee /tmp/changed
+          python - <<'PY'
+          from pathlib import Path
+          got = set(Path('/tmp/changed').read_text(encoding='utf-8').splitlines())
+          expected = {
+              'fold_designer_bridge.py',
+              'gui.py',
+              '.agents/skills/engineering/截角資料入口收斂/SKILL.md',
+              '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md',
+          }
+          assert got == expected, (got, expected)
+          PY
+      - name: Install focused test runtime
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install -q pytest ezdxf shapely matplotlib
+      - name: Focused GREEN
+        shell: bash
+        run: |
+          python -m pytest -q tests/test_issue119_corner_data_knowledge_contract.py
+          timeout 240s xvfb-run -a python -m pytest -q tests/test_issue119_corner_data_transition_ui.py -s
+      - name: Commit and push accepted replay patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fold_designer_bridge.py gui.py tests/test_issue119_corner_data_transition_ui.py tests/test_issue119_corner_data_knowledge_contract.py .agents/skills/engineering/截角資料入口收斂/SKILL.md 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          git commit -m "fix: replay Issue119 Corner Data lifecycle on latest target"
+          git push origin HEAD:fix/issue119-replay-latest-20260912-r1
