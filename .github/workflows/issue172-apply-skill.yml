@@ -1,0 +1,147 @@
+name: Issue 172 Apply Claim Skill Rules
+
+on:
+  push:
+    branches:
+      - docs/issue172-multi-ai-claim-progress-20260913
+    paths:
+      - '.github/workflows/issue172-apply-skill.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply minimal Skill and AI Library update
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          skill_path = Path('.agents/skills/engineering/派工/SKILL.md')
+          text = skill_path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              'description: 人工指定「派工」時使用：執行 WHD 的 PM → Implementer → QA 角色切換、GitHub owning Issue、checkpoint/journal、30 秒進度回報與 remote QA 監控協定。',
+              'description: 人工指定「派工」時使用：執行 WHD 的 PM → Implementer → QA 角色切換、GitHub owning Issue、execution claim、checkpoint/journal、工單進度共享、30 秒進度回報與 remote QA 監控協定。',
+              1,
+          )
+
+          bridge = '- 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。\n\n'
+          assert text.count(bridge) == 1
+          non_terminal = '''### NON_TERMINAL_CONTINUE
+
+只要本票仍有任何 required step 處於 pending，例如 Requirement/RED、production/test/Skill 修改、GREEN 驗證、remote QA、workflow cleanup、tested-head → closing-head drift audit、AI Library writeback、owning Issue terminal evidence/closure，該狀態只能標示為「進行中／pending」，**但 pending 本身不是停工點，也不是結束回合的理由**。
+
+- progress update、CHECKPOINT、「尚未完成」、「因此不宣稱完成」都只是 observation，不能當作 `return` condition。
+- 除非使用者明確中止、遇到不可繞過且需要外部輸入的 capability/blocker，或安全／專案硬閘門明確要求停止，否則必須在同一次可用工作流程中立即執行下一個可執行 action。
+- 若遇 blocker，必須先把能完成的非阻塞 prerequisite/evidence 做完，再精確記錄 blocker；不得以籠統「pending」提前結束。
+- 「不假報完成」與「持續施工」是兩個獨立義務：前者禁止假綠，後者禁止非終態自行停工。
+- 任何 user-visible progress/checkpoint 後，只要沒有合法 stop condition，就必須接續下一個 tool/action；不得輸出狀態後直接結束回合。
+
+'''
+          if '### NON_TERMINAL_CONTINUE' not in text:
+              text = text.replace(bridge, bridge + non_terminal, 1)
+
+          old_pm = '### 3.4 PM → Implementer\n\n只有 requirement RED 已核准、breakdown 已核准、owning Issue 已建立且反讀成功、必要 AI Library authority 已讀完，才輸出：'
+          assert text.count(old_pm) == 1
+          claim_section = '''### 3.4 NO_WORK_WITHOUT_CLAIM
+
+對 GitHub ticketed work，**一張 GitHub owning Issue 同時間只能有一個 execution claim owner**。claim authority 必須位於所有 Worker 都讀寫同一份的 **shared coordination namespace/ref**，不得放在各自 work branch；任何 branch-local lock、聊天記憶、`.scratch`、checkpoint、Issue comment / label 都**不能作為互斥 authority**。Issue comment / label 可以呈現資訊，但**不是 execution claim authority**。
+
+建議 canonical layout 為共享 coordination ref 上每票一份 durable state，例如 `.dispatch/claims/issue-<number>.json`。具體 transport 可依本回合能力使用 GitHub Contents/Git Data 或等價具條件寫入能力的介面，但必須保留下列 **atomic / compare-and-swap** 語意：
+
+1. Worker 在 **production/test/Skill/AI Library 第一筆 write 前**先反讀 owning Issue、共享 coordination ref 與該 issue claim state。
+2. claim 不存在／已正式 released 時，以 create-if-absent 或 compare-and-swap 寫入；**只有遠端 atomic write 成功的 Worker 才取得 ownership**。
+3. 409/422/SHA mismatch/compare-and-swap conflict、或反讀發現其他 Worker 已持有 active claim，都算 **claim 失敗**；立即 fail closed，**禁止施工該 Issue**，不得先寫再補 claim。
+4. claim 成功後立刻遠端反讀 owner + generation/version + branch/base/head；讀不到或內容不一致視為未取得 claim。
+5. 同一 Worker resume 也必須重新反讀 claim；不能因聊天記得「這張是我的」就跳過 shared state。
+
+#### CLAIM_PROGRESS_STATE
+
+execution claim 同時是跨 AI 的工單進度索引。active state 至少維護：
+
+- issue number / worker identity / claim generation / claimed-at；
+- `phase/state` 與 `last_update`；
+- `branch`、base SHA、目前 `HEAD`；
+- `remote QA run/status`（沒有 run 時明確為 none）；
+- `next_action`；
+- `blocker`（無 blocker 時明確為 none）；
+- checkpoint/journal 或 terminal evidence 的 durable reference（若已有）。
+
+重要 state transition 必須當下更新，不准最後一次補寫：至少包含 Requirement/RED、production/test/Skill write、GREEN、remote QA queued/in_progress/terminal、cleanup、drift audit、Issue closure。每次更新都使用目前 claim blob/version 做 compare-and-swap；若衝突先反讀，不能覆蓋別的 Worker 新進度。
+
+列出未完成工單時，先讀 open owning Issues + shared claim state，固定分成 **「我持有」／「其他 AI 已鎖定」／「尚未認領」**。對「我持有」與「其他 AI 已鎖定」必須同時顯示 phase/state、last_update、branch + HEAD、remote QA run/status、next_action、blocker；不能只列 owner 名稱。疑似 stale 但尚未完成 recovery 的 claim 仍屬「其他 AI 已鎖定」，不得先當成「尚未認領」。
+
+#### STALE_CLAIM_RECOVERY
+
+時間久沒有更新只代表「疑似 stale」，**不得直接搶鎖**。接管前至少核對 owning branch/HEAD 最新活動、checkpoint/journal、`last_update`、remote QA 是否仍 queued/in_progress、owning Issue state，以及原 owner 最後可觀測活動。
+
+- 若仍有 active remote QA、branch 明顯持續前進、或 evidence 無法證明 owner 已停止，維持原 claim，fail closed。
+- 若可證明需要 recovery，先把上述判讀寫成 durable `recovery evidence`，再對**同一份 shared claim state**做 compare-and-swap，遞增 generation/version 並記錄 previous owner / recovered-at / reason。
+- recovery compare-and-swap 失敗代表同時已有別人更新；立即反讀，不得重試成 blind steal。
+- Issue terminal 且本票 cleanup / drift audit / terminal evidence 完成後才 `release claim`；release 也用 compare-and-swap，留下 released-at / final HEAD / terminal evidence。不要用刪檔抹掉 audit trail。
+
+### 3.5 PM → Implementer
+
+只有 requirement RED 已核准、breakdown 已核准、owning Issue 已建立且反讀成功、必要 AI Library authority 已讀完，且本 Worker 已依 `NO_WORK_WITHOUT_CLAIM` 成功取得並反讀 execution claim，才輸出：'''
+          text = text.replace(old_pm, claim_section, 1)
+
+          selfcheck_anchor = '- [ ] success 後仍做 cleanup + durable state + drift audit 才 ACCEPT。\n'
+          assert text.count(selfcheck_anchor) == 1
+          selfcheck = '''- [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可做狀態觀測；沒有合法 stop condition 時必須立即執行下一個可執行 action，不得直接結束回合。
+- [ ] 「不假報完成」與「未完成持續施工」兩項義務皆有明文，前者不得被用作停工理由。
+- [ ] `NO_WORK_WITHOUT_CLAIM`：production/test/Skill/AI Library 第一筆 write 前已成功取得 shared atomic claim；branch-local lock / comment / label 不算 authority。
+- [ ] `CLAIM_PROGRESS_STATE`：重要階段即時更新 phase/state、last_update、branch + HEAD、remote QA、next_action、blocker，列工單時能分「我持有／其他 AI 已鎖定／尚未認領」。
+- [ ] `STALE_CLAIM_RECOVERY`：疑似 stale 不直接搶鎖；核對 branch/checkpoint/remote QA/last_update，留下 recovery evidence，再以 compare-and-swap 接管。
+'''
+          if '`NO_WORK_WITHOUT_CLAIM`' not in text.split('## 10. Skill 自我檢查', 1)[1]:
+              text = text.replace(selfcheck_anchor, selfcheck_anchor + selfcheck, 1)
+
+          skill_path.write_text(text, encoding='utf-8')
+
+          ai_path = Path('個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md')
+          ai = ai_path.read_text(encoding='utf-8')
+          anchor = '## 2026-09-10 中文 Skill 全樹清理\n'
+          assert ai.count(anchor) == 1
+          durable = '''### 多 AI 派工：唯一 claim + 工單進度共享（2026-09-13）
+
+`派工` 的 GitHub ticketed work 新增永久協調邊界：
+
+- 一張 owning Issue 同時間只能有一個 execution claim owner；claim 必須存在所有 AI 共用的 shared coordination namespace/ref，不能用各自 branch、聊天記憶、`.scratch`、Issue comment/label 冒充互斥鎖。
+- production/test/Skill/AI Library 第一筆 write 前必須以遠端 atomic create / compare-and-swap 成功取得 claim 並反讀；claim 失敗就禁止施工該 Issue，轉往其他未認領工單。
+- claim state 同時維護跨 AI 可見進度：phase/state、last_update、branch + HEAD、remote QA run/status、next_action、blocker；RED、write、GREEN、remote QA、cleanup、drift audit、close 都要即時更新。
+- 列未完成工單固定分成「我持有／其他 AI 已鎖定／尚未認領」，已持有票必須顯示進度與下一步，不只顯示 owner。
+- 疑似 stale 不得只看時間直接搶鎖；先核對 owning branch、checkpoint/journal、last_update、remote QA、Issue state 與最後活動，留下 recovery evidence，再以 compare-and-swap 接管。
+- Issue terminal 且 cleanup / drift audit / terminal evidence 完成後才 release claim；release 保留 final HEAD / released-at / evidence，不用刪除 audit trail。
+- pending / CHECKPOINT /「尚未完成」只是狀態，不是停工理由；沒有合法 stop condition 時要繼續下一個可執行 action。
+
+Machine guard：`tests/test_dispatching_skill_timeout_contract.py`。
+
+'''
+          if '### 多 AI 派工：唯一 claim + 工單進度共享（2026-09-13）' not in ai:
+              ai = ai.replace(anchor, durable + anchor, 1)
+          ai_path.write_text(ai, encoding='utf-8')
+          PY
+      - name: Verify markers before commit
+        run: |
+          grep -F 'NO_WORK_WITHOUT_CLAIM' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'CLAIM_PROGRESS_STATE' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'STALE_CLAIM_RECOVERY' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F 'NON_TERMINAL_CONTINUE' '.agents/skills/engineering/派工/SKILL.md'
+          grep -F '多 AI 派工：唯一 claim + 工單進度共享' '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+      - name: Commit and push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '.agents/skills/engineering/派工/SKILL.md' '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+          git diff --cached --check
+          git commit -m 'docs: add atomic issue claim and shared progress contract'
+          git push origin HEAD:docs/issue172-multi-ai-claim-progress-20260913
