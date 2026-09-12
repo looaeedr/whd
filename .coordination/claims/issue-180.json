@@ -11,18 +11,24 @@
     "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-13T07:46:00+08:00",
+  "head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
+  "phase": "QA_REVIEW",
+  "last_update": "2026-09-13T07:52:42+08:00",
   "remote_qa": {
     "preflight_run_id": 34726205499,
     "preflight_head_sha": "62ab432ed29c7727564b8d25b5bea4fffd9c4e39",
     "preflight_result": "SUCCESS; full changed-file scope including remote QA GREEN; protected invariants PASS",
     "red_run_id": 34726226149,
     "red_head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
-    "red_result": "7 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN"
+    "red_result": "7 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN",
+    "apply_run_id": 34726494429,
+    "apply_head_sha": "d43e323f009e02a08439b5b3fcce91ab34ff3a5a",
+    "apply_result": "SUCCESS; exact 12-file durable-doc allowlist; committed implementation 0d6a29f1a8ff9787850c0f9df412dd464c761f7e",
+    "focused_green_run_id": 34726537402,
+    "focused_green_head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
+    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL / 0.06s; Preflight and protected invariants PASS"
   },
-  "next_action": "Apply T7 role markers, current-authority pointers, in-place supersession markers, and authority-map rows while preserving historical evidence; then rerun exact QA to GREEN.",
+  "next_action": "Run closing governance regressions across tests/knowledge and tests/process; then cleanup one-shot workflow/scratch artifacts and perform drift audits.",
   "blocker": null,
   "checkpoint": ".scratch/issue180-t7/T7.state.md",
   "journal": ".scratch/issue180-t7/T7.journal.jsonl"
