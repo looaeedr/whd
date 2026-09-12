@@ -56,7 +56,18 @@ jobs:
           set -euo pipefail
           pytest -q tests/process/test_issue128_invariant_manifest_contract.py
           git diff --check
-          test "$(git diff --name-only | sort | paste -sd ',' -)" = ".agents/skills/engineering/UI設計與去AI味/SKILL.md,個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
+          python - <<'PY'
+          import subprocess
+          expected = {
+              ".agents/skills/engineering/UI設計與去AI味/SKILL.md",
+              "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+          }
+          actual = set(subprocess.check_output(
+              ["git", "-c", "core.quotePath=false", "diff", "--name-only"],
+              text=True,
+          ).splitlines())
+          assert actual == expected, (actual, expected)
+          PY
       - name: Commit verified durable writeback
         shell: bash
         run: |
