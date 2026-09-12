@@ -3,7 +3,8 @@
 - Task: #168 — Resolver / memory deep module
 - Parent: #166
 - Dependency: #167 CLOSED/completed
-- Role: T2 實作者 → 總控審查
+- Role: 總控審查
+- Status: **ACCEPTED**
 - Branch: `feat/dm7-t2-navigation-core-20260913`
 - Branch base / accepted predecessor: `4b236826a8629b2ae0088f71cea7b9e3d3f98659`
 - Production target remains: `cleanup/2d-3d-sync@e85b10b3bf7957e626abb7c1e1e1f909b1f0ee62`
@@ -40,14 +41,15 @@ Run `34709093958 @ e017cd4db05dfe5807c6d6f3963f429c5d3818c2`:
 - `config.ini` before/after exact SHA: `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67`
 - protected `基準檔/**` manifest before/after: exact PASS
 
-The tested head differs from production adapter commit only by the temporary acceptance workflow used to trigger remote QA.
-
-## Cleanup
+## QA / cleanup
 
 - one-shot patch workflow removed at `6c1698b0cbb5c3b0dbea8b24aba84bd1fd51c273`
 - one-shot acceptance workflow removed at `ee9b9626fbce076ae6d709eed1a4c654e304a565`
-- final QA must verify tested-head → closing-head contains only workflow cleanup + `.scratch` evidence and no production/test drift.
+- both workflow paths remote reread as 404
+- T1-clean base → T2 review: only `phase6_part_navigation.py`, concentrated bridge navigation diff, and T2 evidence remain
+- tested-head → reviewed closing state: workflow removals + `.scratch` evidence only; no production/test drift
+- code review: no Critical or Important findings
 
 ## T2 stop boundary
 
-Do not perform T3 caller migration beyond these adapter seams in #168. T3 owns the wider Menu / Structure Tree / Corner Data caller migration and GUI/Xvfb acceptance.
+T2 is accepted. Do not perform T3 caller migration in this ticket. T3 owns the wider Menu / Structure Tree / Corner Data caller migration and GUI/Xvfb acceptance.
