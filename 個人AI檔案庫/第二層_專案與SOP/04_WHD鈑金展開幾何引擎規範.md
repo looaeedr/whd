@@ -1,10 +1,10 @@
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-<!-- WHD_AUTHORITY_ROLE: CURRENT -->
-
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。
 
 ## [CURRENT] ae_engine Manufacturing / Certified Registry Contract
+
+<!-- WHD_AUTHORITY_ROLE: CURRENT -->
 
 ### 1. Current scope 與 Source of Truth 邊界
 
