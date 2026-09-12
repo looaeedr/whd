@@ -1,0 +1,63 @@
+name: Issue163 apply structural layout v3
+on:
+  push:
+    branches:
+      - fix/issue163-unfold-workspace-layout-20260912
+    paths:
+      - .github/workflows/issue163-apply-v3-20260912.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reuse exact vetted v2 production patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/issue163-apply-v2-20260912.yml').read_text(encoding='utf-8')
+          start = "      - name: Apply exact structural layout patch\n        run: |\n"
+          end = "\n      - name: Syntax check"
+          body = source.split(start, 1)[1].split(end, 1)[0]
+          lines = []
+          for line in body.splitlines():
+              lines.append(line[10:] if line.startswith('          ') else line)
+          Path('/tmp/issue163_apply.sh').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          bash /tmp/issue163_apply.sh
+      - name: Syntax check
+        run: python -m py_compile fold_designer_bridge.py tests/test_issue163_unfold_workspace_layout.py
+      - name: Install focused test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Focused GREEN before commit
+        run: >-
+          xvfb-run -a pytest -q -s
+          tests/test_issue163_unfold_workspace_layout.py
+          tests/test_issue162_unfold_viewport.py
+          tests/test_issue119_corner_data_transition_ui.py
+          tests/test_issue96_corner_data_selection_lifecycle.py
+          tests/test_issue97_authoritative_unfold_view_adapter.py
+      - name: Verify config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+      - name: Commit and push implementation
+        if: success()
+        run: |
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git add fold_designer_bridge.py
+          git commit -m "feat: relayout unfold workspace controls"
+          git push origin HEAD:fix/issue163-unfold-workspace-layout-20260912
