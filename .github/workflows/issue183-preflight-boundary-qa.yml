@@ -35,7 +35,7 @@ jobs:
             --task '修正 Phase6 Preflight keyword matcher short acronym token boundary regression，更新寫技能 durable guidance，remote QA 驗證' \
             --changed-file tools/phase6_skill_preflight.py \
             --changed-file tests/test_issue183_preflight_keyword_boundaries.py \
-            --changed-file .agents/skills/engineering/寫技能/SKILL.md \
+            --changed-file .agents/skills/engineering/寫技能/references/preflight-keyword-boundary.md \
             --changed-file 個人AI檔案庫/踩坑庫/preflight_keyword_boundary_pitfall.md \
             --changed-file .github/workflows/issue183-preflight-boundary-qa.yml \
             --evidence /tmp/issue183-evidence.txt
