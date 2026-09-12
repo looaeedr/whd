@@ -4,6 +4,7 @@ on:
     branches:
       - feat/dm7-t2-navigation-core-20260913
     paths:
+      - .github/workflows/issue168-t2-green.yml
       - phase6_part_navigation.py
       - fold_designer_bridge.py
       - tests/test_dm7_part_navigation.py
