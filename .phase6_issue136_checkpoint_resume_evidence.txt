@@ -1,0 +1,21 @@
+ISSUE: #136
+TASK: Hard Blocker + Checkpoint / Resume
+BASELINE: eede532b9fe61052cf4411ecf5063e0374165fe8
+BRANCH: work/issue-136-checkpoint-resume
+
+READ_ISSUE: #136
+READ_SKILL: 執行開發任務
+READ_SKILL: 派工
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 寫技能
+READ_SKILL: Python測試實務
+READ_SKILL: phase6-release-packaging
+READ_SKILL: issue-closure-gate
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+
+DESIGN: Extend the existing durable checkpoint section in 執行開發任務. Define CHECKPOINT_RESUME_CONTRACT with the exact required fields from #136, drift-aware resume behavior, branch/HEAD/run-lock consistency, and explicit rule that checkpoint is not COMPLETE evidence. Do not create a second checkpoint store.
