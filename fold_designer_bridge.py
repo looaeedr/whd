@@ -8783,12 +8783,13 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
     )
     if not key:
         return
-    remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-    if key == remembered:
+    workspace = _designer_workspace(self)
+    if str(getattr(workspace, "active_part", "") or "") == key:
+        # Keep ephemeral navigation memory synchronized without re-activating an
+        # already-active manufacturing part.  Resolution remains the authority.
+        _phase6_resolve_operator_part_key(self, key)
         return
-    self._phase6_box_body_active_piece_key = key
-    if str(getattr(_designer_workspace(self), "active_part", "") or "") != key:
-        self.activate_part(key)
+    _phase6_activate_operator_part(self, key)
 
 
 def _phase6_resolve_operator_part_key(self, key):
@@ -8891,16 +8892,10 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
     keys = _phase6_corner_data_part_keys(self)
     previous = getattr(self, "_phase6_corner_data_selected_part_key", None)
     requested = str(key or "")
-    if requested == "box_body":
-        resolved = (
-            _phase6_resolve_operator_part_key(self, requested)
-            if _phase6_current_cabinet_family(self) == "受電箱"
-            else requested
-        )
-    elif _phase6_is_box_body_physical_piece_key(requested):
-        resolved = _phase6_resolve_operator_part_key(self, requested)
-    else:
-        resolved = requested
+    # All stable identities use the same pure navigation projection.
+    # Corner Data remains view-only because resolution does not activate the
+    # manufacturing workspace.
+    resolved = _phase6_resolve_operator_part_key(self, requested)
     if resolved not in keys:
         resolved = None
     self._phase6_corner_data_selected_part_key = resolved
@@ -9282,7 +9277,7 @@ def _fix11_activate_selected_part(self):
     key = getattr(self, "selected_part_key", None)
     if key not in self.available_parts:
         return False
-    self.activate_part(key)
+    _phase6_activate_operator_part(self, key)
     return True
 
 
