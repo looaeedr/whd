@@ -5,9 +5,9 @@ on:
     paths:
       - .github/workflows/issue153-checkpoint-entry-bridges.yml
 permissions:
-  contents: write
+  contents: read
 jobs:
-  green:
+  final-process-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -15,101 +15,35 @@ jobs:
         with: {fetch-depth: 0}
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
-      - name: Build evidence and preflight
+      - name: Exact production target and durable markers
         shell: bash
         run: |
-          cat > /tmp/evidence.md <<'EOF'
-          寫技能
-          執行開發任務
-          派工
-          monitoring-remote-qa
-          issue-closure-gate
-          Python測試實務
-          diagnosing-bugs
-          tdd
-          phase6-release-packaging
-          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
-          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
-          READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
-          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
-          READ_REFERENCE: release_required_artifacts.json
-          EOF
           git fetch origin cleanup/2d-3d-sync
           test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "d05a94ae86777eda64ee81304c5b152ad34fa549"
-          python tools/phase6_skill_preflight.py \
-            --task "#153：讓 派工、monitoring-remote-qa、issue-closure-gate 強制 bridge 到 執行開發任務 的唯一 USER_VISIBLE_CHECKPOINT_GATE；新增 RED-capable process contract 與 durable pitfall writeback；不建立第二套 checkpoint authority" \
-            --changed-file .agents/skills/engineering/派工/SKILL.md \
-            --changed-file .agents/skills/engineering/monitoring-remote-qa/SKILL.md \
-            --changed-file .agents/skills/engineering/issue-closure-gate/SKILL.md \
-            --changed-file tests/process/test_checkpoint_resume_contract.py \
-            --changed-file 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md \
-            --changed-file .github/workflows/issue153-checkpoint-entry-bridges.yml \
-            --evidence /tmp/evidence.md
-      - name: Apply minimal canonical checkpoint bridges
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import subprocess
-
-          section = '''### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
-
-          本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
-
-          - 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
-          - progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
-          - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
-          - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
-
-          '''
-          targets = {
-              Path('.agents/skills/engineering/派工/SKILL.md'): '## 1. 啟動與能力邊界\n',
-              Path('.agents/skills/engineering/monitoring-remote-qa/SKILL.md'): '## Active polling is mandatory\n',
-              Path('.agents/skills/engineering/issue-closure-gate/SKILL.md'): '## 核心原則\n',
-          }
-          for path, anchor in targets.items():
-              text = path.read_text(encoding='utf-8')
-              if 'USER_VISIBLE_CHECKPOINT_GATE_BRIDGE' in text:
-                  raise SystemExit(f'bridge already exists: {path}')
-              if text.count(anchor) != 1:
-                  raise SystemExit(f'anchor count {text.count(anchor)} for {path}')
-              path.write_text(text.replace(anchor, section + anchor, 1), encoding='utf-8')
-
-          subprocess.run(['git', 'diff', '--check'], check=True)
-          changed = subprocess.check_output(
-              ['git', '-c', 'core.quotepath=false', 'diff', '--name-only'], text=True
-          ).splitlines()
-          expected = [
-              '.agents/skills/engineering/issue-closure-gate/SKILL.md',
-              '.agents/skills/engineering/monitoring-remote-qa/SKILL.md',
-              '.agents/skills/engineering/派工/SKILL.md',
-          ]
-          assert changed == expected, (changed, expected)
-          print('GREEN_WORKTREE=' + '|'.join(changed))
-          PY
+          for f in \
+            .agents/skills/engineering/派工/SKILL.md \
+            .agents/skills/engineering/monitoring-remote-qa/SKILL.md \
+            .agents/skills/engineering/issue-closure-gate/SKILL.md; do
+            grep -F 'USER_VISIBLE_CHECKPOINT_GATE_BRIDGE' "$f"
+            grep -F '唯一 canonical authority' "$f"
+            grep -F '不得建立第二套 CHECKPOINT authority' "$f"
+          done
+          grep -F '所有可獨立進入長流程的入口目前至少包含' 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
       - name: Install pytest
         run: python -m pip install -q pytest
-      - name: GREEN checkpoint bridge contract
-        run: python -m pytest -q tests/process/test_checkpoint_resume_contract.py
-      - name: Commit only the three Skill bridges after GREEN
+      - name: Final process regression
+        run: |
+          python -m pytest -q \
+            tests/process/test_checkpoint_resume_contract.py \
+            tests/process/test_continuous_execution_durable_contract.py \
+            tests/process/test_continuous_execution_state_contract.py \
+            tests/process/test_fail_recovery_contract.py \
+            tests/process/test_monitoring_remote_qa_turn_boundary_contract.py \
+            tests/process/test_no_fake_completion_contract.py \
+            tests/process/test_remote_qa_state_bridge_contract.py \
+            tests/test_chinese_skill_identity_contract.py
+      - name: Diff hygiene
         shell: bash
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .agents/skills/engineering/派工/SKILL.md \
-                  .agents/skills/engineering/monitoring-remote-qa/SKILL.md \
-                  .agents/skills/engineering/issue-closure-gate/SKILL.md
-          python - <<'PY'
-          import subprocess
-          staged = subprocess.check_output(
-              ['git', '-c', 'core.quotepath=false', 'diff', '--cached', '--name-only'], text=True
-          ).splitlines()
-          expected = [
-              '.agents/skills/engineering/issue-closure-gate/SKILL.md',
-              '.agents/skills/engineering/monitoring-remote-qa/SKILL.md',
-              '.agents/skills/engineering/派工/SKILL.md',
-          ]
-          assert staged == expected, (staged, expected)
-          PY
-          git commit -m 'docs: bridge long-flow entry skills to visible checkpoint gate'
-          git push origin HEAD:fix/issue153-checkpoint-entry-bridges-r2-20260912
+          git diff --check d05a94ae86777eda64ee81304c5b152ad34fa549...HEAD
+          git -c core.quotepath=false diff --name-only d05a94ae86777eda64ee81304c5b152ad34fa549...HEAD
