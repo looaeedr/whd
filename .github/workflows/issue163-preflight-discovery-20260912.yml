@@ -1,0 +1,36 @@
+name: Issue163 preflight discovery
+on:
+  push:
+    branches:
+      - fix/issue163-unfold-workspace-layout-20260912
+    paths:
+      - .github/workflows/issue163-preflight-discovery-20260912.yml
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Discover required skills and references
+        shell: bash
+        run: |
+          set +e
+          python tools/phase6_skill_preflight.py \
+            --task "#163 structural UI relayout: left pane only part selector and active inputs with vertical scroll reachability at text scales 1.0/1.2/1.4; top only File and Corner Data; move other controls right; preserve #119/#127 lifecycle and stable physical-part identity; no manufacturing geometry rewrite" \
+            --changed-file gui.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue163_unfold_workspace_layout.py \
+            > /tmp/preflight.txt 2>&1
+          code=$?
+          cat /tmp/preflight.txt
+          exit $code
+      - name: Upload discovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue163-preflight-discovery
+          path: /tmp/preflight.txt
