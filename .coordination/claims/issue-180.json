@@ -1,0 +1,22 @@
+{
+  "issue": 180,
+  "url": "https://github.com/looaeedr/whd/issues/180",
+  "worker": "ChatGPT GPT-5.6 Sol",
+  "work_branch": "docs/issue180-t7-current-history-cleanup-20260913",
+  "claimed_at": "2026-09-13T07:30:00+08:00",
+  "recovered_at": "2026-09-13T07:35:00+08:00",
+  "recovery": {
+    "reason": "User explicitly requested takeover/resume. Existing claim owner identity is the same ChatGPT GPT-5.6 Sol; existing work branch had no T7 content commits or QA runs and was still at the pre-T6 production base. Resume continues the original claim rather than creating parallel ownership.",
+    "previous_base_sha": "92ea056701a10807cb41cc3bbda2355225081ec2",
+    "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
+  },
+  "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
+  "head_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
+  "phase": "PREFLIGHT",
+  "last_update": "2026-09-13T07:35:00+08:00",
+  "remote_qa": null,
+  "next_action": "Run T7 Knowledge Preflight, establish requirement-level RED for current-vs-historical sediment, then implement only approved T7 authority/history cleanup.",
+  "blocker": null,
+  "checkpoint": ".scratch/issue180-t7/T7.state.md",
+  "journal": ".scratch/issue180-t7/T7.journal.jsonl"
+}
