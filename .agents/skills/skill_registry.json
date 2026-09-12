@@ -145,7 +145,30 @@
         "尺寸語意分析"
       ],
       "required_references": [
-        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md"
+      ]
+    },
+    {
+      "id": "dm7-part-navigation",
+      "keywords": [
+        "DM7",
+        "Corner Data",
+        "截角資料",
+        "板件導覽",
+        "stale physical child",
+        "STALE_PHYSICAL_CHILD",
+        "RESTORE_CHILD_CONTEXT"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/截角資料入口收斂/**"
+      ],
+      "required_skills": [
+        "截角資料入口收斂"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md",
+        "個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md"
       ]
     },
     {

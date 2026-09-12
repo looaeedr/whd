@@ -233,3 +233,13 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 ### 永久驗證
 
 `tests/knowledge/test_knowledge_authority_contract.py` 是 T1 起始的 machine guard；它只判定 authority contract 是否符合，不成為任何製造／幾何／產品規則的 Source of Truth。
+
+
+## Domain route 必須包含 domain authority
+
+- Phase6 Knowledge Preflight 的 domain route 必須在 `required_references` 直接列出該 domain 的 **current canonical authority**；全域踩坑庫或通用 Skill-authoring 規則只能補充，不能代替 domain Source of Truth。
+- dimension semantics route 至少必須載入 canonical `07_Phase6尺寸語意與標準截角母規則.md`。
+- DM7 / Corner Data / physical-part navigation route 必須載入 current navigation rule 與 `dm7_part_navigation_pitfalls.md`；stale child identity 不得靠 generic Skill policy 決定。
+- manufacturing / DXF acceptance route 必須載入 current `04_WHD鈑金展開幾何引擎規範.md`。
+- 缺少 domain authority evidence 時 Preflight 必須 fail closed；不能因 `08_WHD技能建立與修改規則.md` 或全域 06 已讀就 false GREEN。
+- 每個 domain route 都要有 regression，至少證明「缺 domain evidence → RED；補齊 → GREEN」，並保留既有 domain reference 不被後續 Registry 編輯移除。
