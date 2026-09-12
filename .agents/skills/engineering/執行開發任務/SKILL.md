@@ -63,6 +63,16 @@ checkpoint/state 至少記錄 branch+HEAD、已完成/pending/failed、修改檔
 
 resume 前必須確認 checkpoint 的 `branch + HEAD SHA` 與目前 execution tree 一致；若 checkpoint 記有 remote QA，還必須確認 `run_id + head_sha` identity。`不一致時先分類 drift / stale checkpoint`，不得直接沿舊結果宣告 PASS、BLOCKED 或 COMPLETE。
 
+#### USER_VISIBLE_CHECKPOINT_GATE
+
+Durable checkpoint 不只要存在於內部／repo 狀態；在需要跨 runtime 恢復或長流程重要轉折時，也必須讓使用者看得到。
+
+- system hard-cut 前的最後一個 user-visible update 必須使用固定標題 `CHECKPOINT`，不得只留一般 progress update 或只在內部保存。
+- CHECKPOINT 至少顯示：`issue / task`、`role`、`branch + HEAD`、`production target`、`remote QA lock`、`completed / pending / failed / blocked`、`validation / invariant`、`temporary workflows / branches`、`next exact action`。
+- 長流程遇到重要 execution state transition 時刷新可見 checkpoint，至少包含 `RUNNING ↔ WAITING_REMOTE ↔ RECOVERING`、`branch / HEAD / production target` identity 改變、`remote QA lock acquired / terminal`、`accepted slice / major checkpoint`。不需要把每個 30 秒 observation 都升格成 checkpoint。
+- progress update 不得冒充 checkpoint；一般進度回報仍依 cadence 執行，但不能因此取代 durable/user-visible checkpoint。
+- 可見 checkpoint 不能成為正常停工點；`non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action`。只有 genuine BLOCKED、evidence-backed COMPLETE 或實際 system hard-cut 才能離開正常執行鏈。
+
 ## 4. 測試 timeout
 
 - GUI targeted gate 若 pytest 已有完整 PASS summary 但 Tk/Xvfb/interpreter 不退出，分類為 `complete_teardown_timeout`。
