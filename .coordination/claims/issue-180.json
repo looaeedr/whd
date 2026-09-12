@@ -3,33 +3,21 @@
   "url": "https://github.com/looaeedr/whd/issues/180",
   "worker": "ChatGPT GPT-5.6 Sol",
   "work_branch": "docs/issue180-t7-current-history-cleanup-20260913",
-  "claimed_at": "2026-09-13T07:30:00+08:00",
-  "recovered_at": "2026-09-13T07:35:00+08:00",
-  "recovery": {
-    "reason": "User explicitly requested takeover/resume. Existing claim owner identity is the same ChatGPT GPT-5.6 Sol; existing work branch had no T7 content commits or QA runs and was still at the pre-T6 production base. Resume continues the original claim rather than creating parallel ownership.",
-    "previous_base_sha": "92ea056701a10807cb41cc3bbda2355225081ec2",
-    "resumed_base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac"
-  },
   "base_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
-  "head_sha": "e9792c18d1323805615bf34156f362224c77c2e3",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-13T07:55:00+08:00",
-  "remote_qa": {
-    "red_run_id": 34726226149,
-    "red_head_sha": "6b2f845edf3d1c0bd0e8b201db2c8c5f3892c2a9",
-    "red_result": "7 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN",
-    "focused_green_run_id": 34726537402,
-    "focused_green_head_sha": "f5bd76032bfc962db0ddfbe97818543513f97649",
-    "focused_green_result": "SUCCESS; 8 PASS / 0 FAIL; Preflight and protected invariants PASS",
+  "closing_sha": "e9792c18d1323805615bf34156f362224c77c2e3",
+  "phase": "RELEASED",
+  "released_at": "2026-09-13T07:58:46+08:00",
+  "terminal_evidence": {
+    "issue_state": "closed/completed",
     "closing_qa_run_id": 34726602829,
     "closing_qa_head_sha": "22f4b9b0181687a7dd76bb6904e295556005b857",
-    "closing_qa_result": "SUCCESS; T7 focused 8 PASS; tests/knowledge + tests/process 75 PASS / 0 FAIL; Preflight and protected invariants PASS"
+    "closing_qa_result": "SUCCESS; T7 focused 8 PASS; tests/knowledge + tests/process 75 PASS / 0 FAIL; Preflight and protected invariants PASS",
+    "cleanup": "PASS; all T7 one-shot workflow and scratch artifacts removed",
+    "tested_to_closing_drift": "PASS; only six temporary artifact removals",
+    "production_to_closing_drift": "PASS; exactly 13 durable paths; no production code/config/baseline changes",
+    "production_head": "e9792c18d1323805615bf34156f362224c77c2e3",
+    "remote_reread": "PASS"
   },
-  "cleanup": "PASS; removed 3 one-shot workflows + migration script + checkpoint + journal",
-  "drift_audit": {
-    "tested_to_closing": "PASS; 22f4b9b0... -> e9792c18... only six temporary artifact removals",
-    "production_to_closing": "PASS; 476d64fd... -> e9792c18... exactly 13 durable paths: 12 authority/history docs + permanent test; no production code/config/baseline changes"
-  },
-  "next_action": "Non-force fast-forward cleanup/2d-3d-sync to closing head, reread production durable evidence, post terminal evidence, close #180, release claim, then start #181 T8.",
-  "blocker": null
+  "blocker": null,
+  "next_action": "T7 claim released; #181 T8 Combined Acceptance may claim latest production."
 }
