@@ -5352,6 +5352,11 @@ def _phase6_build_persistent_top_area(self):
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
     _phase6_sync_settings_panel_compat(self)
 
+    # #126: the left side is an engineering inspector, not a competing canvas.
+    # Keep its width bounded and let the central drawing workspace absorb resize growth.
+    # This is presentation-only: no workspace/domain state is created or mutated here.
+    self.left.configure(width=360)
+    self.left.pack_propagate(False)
     self.left.pack(side=original.tk.LEFT, fill=original.tk.Y)
     self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)
 
