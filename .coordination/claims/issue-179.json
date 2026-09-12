@@ -5,19 +5,18 @@
   "work_branch": "governance/issue179-active-skill-runtime-20260913",
   "claimed_at": "2026-09-13T07:17:05+08:00",
   "base_sha": "92ea056701a10807cb41cc3bbda2355225081ec2",
-  "head_sha": "7a8352acb8d9de588782bc2f38bc7137da94425f",
-  "phase": "GREEN_IMPLEMENTATION",
-  "last_update": "2026-09-13T07:21:30+08:00",
+  "head_sha": "476d64fd8c5cca85d50ce335d96d73a82ea914ac",
+  "phase": "CLOSED",
+  "last_update": "2026-09-13T07:31:03+08:00",
   "remote_qa": {
     "preflight_run_id": 34725142462,
-    "preflight_head_sha": "511fcdacee89cca76d22bfe7ff5131fad2ed0260",
-    "preflight_result": "SUCCESS; config.ini + 基準檔/** invariants PASS",
     "red_run_id": 34725193139,
-    "red_head_sha": "7a8352acb8d9de588782bc2f38bc7137da94425f",
-    "red_result": "6 FAIL / 1 PASS; requirement-level RED; Preflight and protected invariants GREEN"
+    "green_run_id": 34725472158,
+    "closing_run_id": 34725503054,
+    "result": "T6 accepted; broader QA GREEN; production integrated at 476d64fd8c5cca85d50ce335d96d73a82ea914ac"
   },
-  "next_action": "Repair active canonical Skills only: runtime capability fallback, canonical identities, missing-support-file dependencies, T5 catalog-aware discovery; then rerun exact T6 QA",
+  "next_action": "Claim released; #179 closed completed",
   "blocker": null,
-  "checkpoint": ".scratch/issue179-t6/T6.state.md",
-  "journal": ".scratch/issue179-t6/T6.journal.jsonl"
+  "checkpoint": null,
+  "journal": null
 }
