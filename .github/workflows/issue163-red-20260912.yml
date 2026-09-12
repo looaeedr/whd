@@ -1,0 +1,31 @@
+name: Issue163 structural layout RED
+on:
+  push:
+    branches:
+      - fix/issue163-unfold-workspace-layout-20260912
+    paths:
+      - .github/workflows/issue163-red-20260912.yml
+permissions:
+  contents: read
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture config invariant
+        run: sha256sum config.ini | tee /tmp/config.before
+      - name: Structural layout RED
+        run: xvfb-run -a pytest -q -s tests/test_issue163_unfold_workspace_layout.py
+      - name: Verify config invariant
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
