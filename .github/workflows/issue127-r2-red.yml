@@ -1,0 +1,54 @@
+name: Issue 127 R2 Genuine RED
+on:
+  push:
+    branches: [work/issue-127-ui-surfaces-scale-scroll-20260912-r2]
+    paths:
+      - .github/workflows/issue127-r2-red.yml
+permissions:
+  contents: read
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Lock latest production ancestry
+        shell: bash
+        run: |
+          git fetch origin cleanup/2d-3d-sync
+          BASE=17741535032ed2158e524425af1ffacb89698c7b
+          test "$(git rev-parse origin/cleanup/2d-3d-sync)" = "$BASE"
+          test "$(git merge-base HEAD origin/cleanup/2d-3d-sync)" = "$BASE"
+          git diff --quiet "$BASE" -- phase6_settings_panel.py fold_designer_bridge.py
+      - name: Snapshot protected invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.before
+      - name: Install GUI runtime
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk fonts-noto-cjk
+          python -m pip install -q pytest matplotlib pillow -r requirements.txt
+      - name: Verify genuine RED
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a -s '-screen 0 2000x1200x24' pytest -q tests/test_issue127_surfaces_scale_scroll.py 2>&1 | tee /tmp/red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -E '5 failed, 1 passed|5 failed.*1 passed' /tmp/red.log
+          grep -F '#127 requires one read-only Status Bar projection helper' /tmp/red.log
+          grep -F '#127 requires keyboard scroll reachability' /tmp/red.log
+          grep -F '#127 requires one shared floating-surface foreground contract' /tmp/red.log
+      - name: Protected invariant postcheck
+        if: always()
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          find 基準檔 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum > /tmp/baseline.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
+          test -z "$(git status --porcelain)"
