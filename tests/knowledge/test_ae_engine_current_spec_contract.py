@@ -24,7 +24,7 @@ def test_current_section_is_explicit_current_authority_and_repo_relative() -> No
     current, _ = _spec_sections()
     assert "WHD_AUTHORITY_ROLE: CURRENT" in current
     assert "`ae_engine/`" in current
-    assert "Z:\\" not in current
+    assert "Z:" not in current
 
 
 def test_current_section_tracks_exported_registry_public_api() -> None:
@@ -98,8 +98,7 @@ def test_validation_is_strictly_one_way() -> None:
 
 def test_stale_local_paths_and_collision_first_legacy_are_history_only() -> None:
     current, historical = _spec_sections()
-    assert "Z:\\Ollama-整合whd" not in current
-    assert "Z:\\whd-corner-new-engine-implemented" not in current
+    assert "Z:" not in current
     assert "Z:\\Ollama-整合whd" in historical
     assert "先形成名義板件與折後實體，再由實際干涉反推 2D CUTTING" in historical
     assert "Registry HIT" in current
