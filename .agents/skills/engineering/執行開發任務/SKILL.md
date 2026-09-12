@@ -14,6 +14,7 @@ disable-model-invocation: true
 - 若是 WHD / Phase6，先依 `AGENTS.md` 完成 Knowledge Preflight，並同時遵守 `.agents/skills/engineering/派工/SKILL.md`。
 - Git repository 修改必須已在本任務的新 work branch；不得直接 patch production target。
 - GitHub-backed ticketed work 在第一個 production write 前，必須反讀真實 GitHub owning Issue 的 `issue_number + URL`。`.scratch/**`、聊天 T 編號、branch、checkpoint 都不能替代。
+- 長流程持續執行與停工點踩坑固定反讀 `個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md`。
 
 若施工途中才發現漏建 Issue：停止新增 production 變更 → 補建 Issue → 明標 `Retroactive provenance / 施工後補建` → 寫入實際 branch/commit/run → 反讀成功 → 再 resume。不得倒填 chronology。
 
@@ -49,6 +50,23 @@ run terminal 前禁止繼續 code exploration、production/test/Skill write、�
 ## 6. 進度與完成
 
 任務尚未完成時，每 30 秒至少回報一次目前工單、正在做的事項、最新測試/進度數字與 blocker；回報不得中斷正常執行。
+
+### NONTERMINAL_NEXT_ACTION_GATE
+
+在輸出任何 `final`、把控制權交回使用者，或把目前工單描述成可自然停止前，先判定目前 execution state：
+
+1. 若已滿足本票全部 acceptance、必要 QA / invariant / cleanup / issue-state gate，才可視為 `COMPLETE`。
+2. 若確實需要使用者產品語意決策、缺必要權限、缺現有 authority 無法推導的資料，才可視為 `BLOCKED`。
+3. 若平台 Runtime / tooling 被實際切斷，先留下 durable checkpoint；這不是 `COMPLETE`。
+4. 除上述情況外，只要**存在可自主執行的下一步**，`final 禁止`；下一個動作必須直接執行該 next action，而不是等使用者再說「繼續」。
+
+以下一律是 non-terminal：建立 GitHub 工單／branch、完成 commit/push、取得 run_id、QA queued/in_progress、部分或 focused tests PASS、已知下一步、以及單純的進度回報。
+
+`Gate RED` / preflight FAIL 只禁止越過受保護階段，**不是停工點**。若所需資料可自行取得，必須繼續**完成 Gate 所要求的 evidence**、readback 或修復，再重跑 gate；只有符合上述真正 `BLOCKED` 條件才可停。
+
+Test / QA / invariant FAIL 若可自行診斷，必須進 recovery：讀 evidence/log → root cause → minimal fix → validation → retry；FAIL 本身不得直接轉成等待使用者的停止狀態。
+
+Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，仍唯一委派給 `monitoring-remote-qa`。
 
 完成前使用實際可用的 code-review Skill／review 工具檢查本票 diff；WHD repo 有 `.agents/skills/engineering/code-review/SKILL.md` 時直接讀取並套用。沒有該能力時以 inline diff review 退化，不得假裝已派 reviewer。
 
