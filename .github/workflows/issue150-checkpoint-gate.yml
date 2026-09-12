@@ -1,0 +1,55 @@
+name: Issue 150 User-visible CHECKPOINT Gate
+on:
+  push:
+    branches: [fix/issue150-user-visible-checkpoint-gate-20260912]
+    paths: [.github/workflows/issue150-checkpoint-gate.yml]
+permissions:
+  contents: read
+jobs:
+  preflight-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Evidence and preflight
+        shell: bash
+        run: |
+          cat > /tmp/evidence.md <<'EOF'
+          寫技能
+          執行開發任務
+          Python測試實務
+          tdd
+          issue-closure-gate
+          monitoring-remote-qa
+          派工
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "#150 修正 user-visible CHECKPOINT 漏洞：durable checkpoint 仍由既有 authority 管理，但 system hard-cut 與長流程重要 state transition 必須以固定 CHECKPOINT 區塊讓使用者看得到；progress update 不得冒充 checkpoint；non-terminal checkpoint 不得成為停工點" \
+            --changed-file .agents/skills/engineering/執行開發任務/SKILL.md \
+            --changed-file tests/process/test_checkpoint_resume_contract.py \
+            --changed-file .github/workflows/issue150-checkpoint-gate.yml \
+            --evidence /tmp/evidence.md
+      - name: Prove current baseline lacks visible checkpoint contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('.agents/skills/engineering/執行開發任務/SKILL.md').read_text(encoding='utf-8')
+          required = (
+              'USER_VISIBLE_CHECKPOINT_GATE',
+              '固定標題 `CHECKPOINT`',
+              'progress update 不得冒充 checkpoint',
+              '可見 checkpoint 不能成為正常停工點',
+          )
+          missing = [marker for marker in required if marker not in text]
+          print('MISSING=', missing)
+          if not missing:
+              raise SystemExit('baseline unexpectedly already satisfies #150')
+          PY
