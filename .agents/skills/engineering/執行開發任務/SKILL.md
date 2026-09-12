@@ -61,7 +61,7 @@ checkpoint/state 至少記錄 branch+HEAD、已完成/pending/failed、修改檔
 
 #### CHECKPOINT_IDENTITY_LOCK
 
-resume 前必須確認 checkpoint 的 `branch + HEAD SHA` 與目前 execution tree 一致；若 checkpoint 記有 remote QA，還必須確認 `run_id + head_sha` identity。任何不一致都先分類 `drift / stale checkpoint`，不得直接沿舊結果宣告 PASS、BLOCKED 或 COMPLETE。
+resume 前必須確認 checkpoint 的 `branch + HEAD SHA` 與目前 execution tree 一致；若 checkpoint 記有 remote QA，還必須確認 `run_id + head_sha` identity。`不一致時先分類 drift / stale checkpoint`，不得直接沿舊結果宣告 PASS、BLOCKED 或 COMPLETE。
 
 ## 4. 測試 timeout
 
