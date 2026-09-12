@@ -1,0 +1,101 @@
+name: Issue168 DM7 T2 Bridge Patch
+on:
+  push:
+    branches:
+      - feat/dm7-t2-navigation-core-20260913
+    paths:
+      - .github/workflows/issue168-t2-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/dm7-t2-navigation-core-20260913
+          fetch-depth: 0
+      - name: Patch bridge to thin navigation adapters
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('fold_designer_bridge.py')
+          text = path.read_text(encoding='utf-8')
+
+          import_anchor = 'from phase6_designer_workspace import Phase6DesignerWorkspace\n'
+          import_block = '''from phase6_part_navigation import (\n    NavigationIntent,\n    NavigationMemory,\n    NavigationRequest,\n    box_body_piece_keys as _dm7_box_body_piece_keys,\n    is_box_body_physical_piece_key as _dm7_is_box_body_physical_piece_key,\n    operator_part_selector_keys as _dm7_operator_part_selector_keys,\n    project_hierarchy as _dm7_project_hierarchy,\n    resolve_navigation as _dm7_resolve_navigation,\n)\n'''
+          if import_block not in text:
+              assert import_anchor in text, 'navigation import anchor missing'
+              text = text.replace(import_anchor, import_anchor + import_block, 1)
+
+          def replace_between(source, start_marker, end_marker, replacement):
+              start = source.index(start_marker)
+              end = source.index(end_marker, start)
+              return source[:start] + replacement + source[end:]
+
+          helpers = '''def _phase6_is_box_body_physical_piece_key(value) -> bool:\n    \"\"\"Compatibility adapter to the single DM7 navigation identity owner.\"\"\"\n    return _dm7_is_box_body_physical_piece_key(value)\n\n\ndef _phase6_is_side_back_editable_piece_key(value) -> bool:\n    \"\"\"Only side/back-split physical children own editable piece Fold profiles.\"\"\"\n    return str(value or \"\") in {\n        \"box_body:left_side\",\n        \"box_body:back\",\n        \"box_body:right_side\",\n    }\n\n\ndef _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:\n    \"\"\"Compatibility adapter to the common DM7 hierarchy projection.\"\"\"\n    return _dm7_operator_part_selector_keys(values)\n\n\ndef _phase6_box_body_piece_keys(values) -> tuple[str, ...]:\n    \"\"\"Compatibility adapter to authoritative child identity classification.\"\"\"\n    return _dm7_box_body_piece_keys(values)\n\n\ndef _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:\n    \"\"\"Compatibility adapter to the common DM7 hierarchy projection.\"\"\"\n    return tuple((row.part_key, row.parent_key) for row in _dm7_project_hierarchy(values))\n\n\n'''
+          text = replace_between(
+              text,
+              'def _phase6_is_box_body_physical_piece_key',
+              'def _phase6_reverse_fold_traversal',
+              helpers,
+          )
+
+          selector_start = text.index('def _phase6_refresh_box_body_piece_selector(self):')
+          selector_end = text.index('def _phase6_on_box_body_piece_tab_changed', selector_start)
+          selector = text[selector_start:selector_end]
+          old_start = '    active = str(getattr(_designer_workspace(self), "active_part", "") or "")\n'
+          old_end = '    # #124: tabs are retained only as compatibility state.'
+          assert old_start in selector and old_end in selector, 'selector fallback block markers missing'
+          before, rest = selector.split(old_start, 1)
+          _old_block, after = rest.split(old_end, 1)
+          new_block = '''    workspace = _designer_workspace(self)\n    active = str(getattr(workspace, \"active_part\", \"\") or \"\")\n    remembered = str(getattr(self, \"_phase6_box_body_active_piece_key\", \"\") or \"\")\n    if active in wanted:\n        desired = active\n        self._phase6_box_body_active_piece_key = active\n    else:\n        projection = _dm7_resolve_navigation(\n            getattr(workspace, \"available_parts\", ()) or (),\n            NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT),\n            NavigationMemory(remembered or None),\n        )\n        desired = str(projection.resolved_key or \"\")\n        self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child\n    if desired:\n        tab_map = dict(getattr(self, \"_phase6_box_body_piece_tab_map\", {}) or {})\n        target_tab = next(\n            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),\n            None,\n        )\n        if target_tab is not None and str(notebook.select()) != str(target_tab):\n            self._phase6_box_body_piece_tab_guard = True\n            try:\n                notebook.select(target_tab)\n            finally:\n                self._phase6_box_body_piece_tab_guard = False\n\n'''
+          selector = before + new_block + old_end + after
+          text = text[:selector_start] + selector + text[selector_end:]
+
+          resolver = '''def _phase6_resolve_operator_part_key(self, key):\n    \"\"\"Resolve one explicit identity through the pure DM7 navigation owner.\"\"\"\n    workspace = _designer_workspace(self)\n    projection = _dm7_resolve_navigation(\n        getattr(workspace, \"available_parts\", ()) or (),\n        NavigationRequest(str(key or \"\") or None, NavigationIntent.EXPLICIT_SELECT),\n        NavigationMemory(getattr(self, \"_phase6_box_body_active_piece_key\", None)),\n    )\n    self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child\n    return projection.resolved_key\n\n\n'''
+          text = replace_between(
+              text,
+              'def _phase6_resolve_operator_part_key',
+              'def _phase6_activate_operator_part',
+              resolver,
+          )
+
+          activate = '''def _phase6_activate_operator_part(self, key):\n    \"\"\"Activate only a successfully resolved explicit operator identity.\"\"\"\n    resolved = _phase6_resolve_operator_part_key(self, key)\n    if not resolved:\n        return None\n    return self.activate_part(resolved)\n\n\n'''
+          text = replace_between(
+              text,
+              'def _phase6_activate_operator_part',
+              'def _fix11_refresh_part_buttons',
+              activate,
+          )
+
+          corner_rows = '''def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:\n    \"\"\"Project Corner Data rows from the same DM7 hierarchy owner.\"\"\"\n    return tuple(\n        (row.part_key, row.depth)\n        for row in _dm7_project_hierarchy(_phase6_corner_data_part_keys(self))\n    )\n\n\n'''
+          text = replace_between(
+              text,
+              'def _phase6_corner_data_navigation_rows',
+              'def _phase6_select_corner_data_part',
+              corner_rows,
+          )
+
+          assert 'target = key if key in children else remembered if remembered in children else children[0]' not in text
+          patched_selector = text[text.index('def _phase6_refresh_box_body_piece_selector'):text.index('def _phase6_on_box_body_piece_tab_changed')]
+          assert 'wanted[0]' not in patched_selector
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Verify patch scope
+        run: |
+          python -m py_compile phase6_part_navigation.py fold_designer_bridge.py
+          git diff --check
+          git diff --stat
+          git diff -- fold_designer_bridge.py
+      - name: Commit production adapter patch
+        run: |
+          git config user.name 'looaeedr'
+          git config user.email '76246585+looaeedr@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git diff --cached --quiet && { echo 'No bridge patch produced'; exit 1; }
+          git commit -m 'refactor: route Phase6 navigation through DM7 core'
+          git push origin HEAD:feat/dm7-t2-navigation-core-20260913
