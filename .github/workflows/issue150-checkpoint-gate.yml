@@ -21,6 +21,8 @@ jobs:
           寫技能
           執行開發任務
           Python測試實務
+          phase6-release-packaging
+          diagnosing-bugs
           tdd
           issue-closure-gate
           monitoring-remote-qa
@@ -29,6 +31,7 @@ jobs:
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          READ_REFERENCE: release_required_artifacts.json
           EOF
           python tools/phase6_skill_preflight.py \
             --task "#150 修正 user-visible CHECKPOINT 漏洞：durable checkpoint 仍由既有 authority 管理，但 system hard-cut 與長流程重要 state transition 必須以固定 CHECKPOINT 區塊讓使用者看得到；progress update 不得冒充 checkpoint；non-terminal checkpoint 不得成為停工點" \
