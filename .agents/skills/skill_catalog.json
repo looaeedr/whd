@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "inventory_source": ".agents/skills/**/SKILL.md",
+  "authority": "Filesystem presence proves inventory only; skill_catalog.json classification decides WHD active status.",
+  "classifications": [
+    "canonical",
+    "reference",
+    "upstream-beta",
+    "tool-specific",
+    "retired"
+  ],
+  "active_classifications": [
+    "canonical"
+  ],
+  "ordered_rules": [
+    {
+      "glob": ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+      "classification": "canonical",
+      "reason": "WHD project-local remote sync fallback"
+    },
+    {
+      "glob": ".agents/skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "classification": "reference",
+      "reason": "upstream setup/reference material; not WHD governance owner"
+    },
+    {
+      "glob": ".agents/skills/productivity/grill-me/SKILL.md",
+      "classification": "retired",
+      "reason": "legacy alias replaced by 深度質詢"
+    },
+    {
+      "glob": ".agents/skills/in-progress/**/SKILL.md",
+      "classification": "upstream-beta",
+      "reason": "beta bucket; may change or disappear and is not active WHD authority"
+    },
+    {
+      "glob": ".agents/skills/deprecated/**/SKILL.md",
+      "classification": "retired",
+      "reason": "retired/deprecated bucket"
+    },
+    {
+      "glob": ".agents/skills/misc/**/SKILL.md",
+      "classification": "tool-specific",
+      "reason": "misc external/tool-specific helper; not active WHD canonical unless explicitly overridden above"
+    },
+    {
+      "glob": ".agents/skills/engineering/**/SKILL.md",
+      "classification": "canonical",
+      "reason": "stable WHD engineering skill bucket"
+    },
+    {
+      "glob": ".agents/skills/productivity/**/SKILL.md",
+      "classification": "canonical",
+      "reason": "stable WHD productivity skill bucket"
+    }
+  ],
+  "retired_aliases": [
+    {
+      "identity": "grill-me",
+      "replacement_identity": "深度質詢",
+      "replacement_path": ".agents/skills/productivity/深度質詢/SKILL.md",
+      "reason": "legacy wrapper invoked obsolete grilling identity"
+    }
+  ]
+}
