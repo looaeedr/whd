@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  preflight:
+  preflight-and-contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,3 +22,5 @@ jobs:
           --changed-file "tests/process/test_continuous_execution_durable_contract.py"
           --changed-file "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
           --evidence ".phase6_issue132_continuous_execution_evidence.txt"
+      - name: Run #132 contract
+        run: python -m pytest tests/process/test_continuous_execution_durable_contract.py -q
