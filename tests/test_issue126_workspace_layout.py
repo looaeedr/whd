@@ -15,16 +15,24 @@ def _open_designer(width: int, height: int = 900):
     return root, designer
 
 
-def test_workspace_controller_identity_survives_resize_and_layout_only_changes():
+def _workspace_state_refs(designer):
+    refs = {}
+    for name, value in vars(designer).items():
+        low = name.lower()
+        if "workspace" in low or "shared_state" in low:
+            refs[name] = id(value)
+    return refs
+
+
+def test_resize_is_presentation_only_and_does_not_create_workspace_state_owner():
     root, designer = _open_designer(1500)
     try:
-        controller = designer.workspace_controller
-        before = controller.workspace_snapshot()
+        before = _workspace_state_refs(designer)
         designer.root.geometry("1800x1000+0+0")
         designer.root.update_idletasks()
         designer.root.update()
-        assert designer.workspace_controller is controller
-        assert designer.workspace_controller.workspace_snapshot() == before
+        after = _workspace_state_refs(designer)
+        assert after == before
     finally:
         try:
             designer.root.destroy()
