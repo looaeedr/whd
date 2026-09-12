@@ -124,3 +124,21 @@ def test_dispatching_skill_keeps_github_issue_ai_library_and_remote_qa_gates():
         "REMOTE_QA_ACTIVE_LOCK",
     ):
         assert required in text
+
+
+def test_dispatching_skill_requires_non_terminal_continue_instead_of_returning_on_pending():
+    text = _skill_text()
+    for required in (
+        "NON_TERMINAL_CONTINUE",
+        "pending 本身不是停工點",
+        "不是結束回合的理由",
+        "不能當作 `return` condition",
+        "立即執行下一個可執行 action",
+        "不假報完成",
+        "持續施工",
+    ):
+        assert required in text
+
+    assert "使用者明確中止" in text
+    assert "不可繞過" in text
+    assert "硬閘門" in text
