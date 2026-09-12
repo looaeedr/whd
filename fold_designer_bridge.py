@@ -29,6 +29,16 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_part_key,
 )
 from phase6_designer_workspace import Phase6DesignerWorkspace
+from phase6_part_navigation import (
+    NavigationIntent,
+    NavigationMemory,
+    NavigationRequest,
+    box_body_piece_keys as _dm7_box_body_piece_keys,
+    is_box_body_physical_piece_key as _dm7_is_box_body_physical_piece_key,
+    operator_part_selector_keys as _dm7_operator_part_selector_keys,
+    project_hierarchy as _dm7_project_hierarchy,
+    resolve_navigation as _dm7_resolve_navigation,
+)
 from phase6_box_body_structure import (
     BoxBodyStructureType, normalize_box_body_structure_state, set_active_structure,
     activate_structure_with_defaults,
@@ -215,9 +225,8 @@ def _phase6_box_body_piece_dimension_projections(render_data) -> tuple[Phase6Par
 
 
 def _phase6_is_box_body_physical_piece_key(value) -> bool:
-    """Return True only for manufacturing-owned BoxBody child-piece identities."""
-    key = str(value or "")
-    return key.startswith("box_body:") and not key.startswith("box_body:divider:")
+    """Compatibility adapter to the single DM7 navigation identity owner."""
+    return _dm7_is_box_body_physical_piece_key(value)
 
 
 def _phase6_is_side_back_editable_piece_key(value) -> bool:
@@ -230,41 +239,19 @@ def _phase6_is_side_back_editable_piece_key(value) -> bool:
 
 
 def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
-    """Collapse BoxBody physical children under the single operator-facing 箱身 entry."""
-    return tuple(
-        str(key) for key in tuple(values or ())
-        if not _phase6_is_box_body_physical_piece_key(key)
-    )
+    """Compatibility adapter to the common DM7 hierarchy projection."""
+    return _dm7_operator_part_selector_keys(values)
 
 
 def _phase6_box_body_piece_keys(values) -> tuple[str, ...]:
-    """Return stable physical BoxBody children in authoritative workspace order."""
-    return tuple(
-        str(key) for key in tuple(values or ())
-        if _phase6_is_box_body_physical_piece_key(key)
-    )
-
+    """Compatibility adapter to authoritative child identity classification."""
+    return _dm7_box_body_piece_keys(values)
 
 
 def _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:
-    """Project authoritative physical identities into one operator hierarchy.
+    """Compatibility adapter to the common DM7 hierarchy projection."""
+    return tuple((row.part_key, row.parent_key) for row in _dm7_project_hierarchy(values))
 
-    This is a View adapter only: it never invents parts or owns topology.
-    Multipart BoxBody children nest below the real aggregate parent only when
-    that parent is present in the current authoritative workspace.
-    """
-    keys = tuple(str(key) for key in tuple(values or ()))
-    children = _phase6_box_body_piece_keys(keys)
-    child_keys = set(children)
-    parent_present = "box_body" in keys
-    rows = []
-    for key in keys:
-        if parent_present and key in child_keys:
-            continue
-        rows.append((key, None))
-        if parent_present and key == "box_body":
-            rows.extend((child, "box_body") for child in children)
-    return tuple(rows)
 
 def _phase6_reverse_fold_traversal(rows):
     """Reverse a fold chain while moving bend ownership to the same boundary."""
@@ -8751,15 +8738,21 @@ def _phase6_refresh_box_body_piece_selector(self):
         finally:
             self._phase6_box_body_piece_tab_guard = False
 
-    active = str(getattr(_designer_workspace(self), "active_part", "") or "")
+    workspace = _designer_workspace(self)
+    active = str(getattr(workspace, "active_part", "") or "")
     remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-    desired = (
-        active if active in wanted
-        else remembered if remembered in wanted
-        else (wanted[0] if wanted else "")
-    )
+    if active in wanted:
+        desired = active
+        self._phase6_box_body_active_piece_key = active
+    else:
+        projection = _dm7_resolve_navigation(
+            getattr(workspace, "available_parts", ()) or (),
+            NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT),
+            NavigationMemory(remembered or None),
+        )
+        desired = str(projection.resolved_key or "")
+        self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child
     if desired:
-        self._phase6_box_body_active_piece_key = desired
         tab_map = dict(getattr(self, "_phase6_box_body_piece_tab_map", {}) or {})
         target_tab = next(
             (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
@@ -8799,25 +8792,23 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
 
 
 def _phase6_resolve_operator_part_key(self, key):
-    """Resolve operator identity without letting child-memory replace the aggregate parent."""
-    key = str(key or "")
-    if key == "box_body":
-        return key
-    if _phase6_is_box_body_physical_piece_key(key):
-        children = _phase6_box_body_piece_keys(
-            getattr(_designer_workspace(self), "available_parts", ()) or ()
-        )
-        if children:
-            remembered = str(getattr(self, "_phase6_box_body_active_piece_key", "") or "")
-            target = key if key in children else remembered if remembered in children else children[0]
-            self._phase6_box_body_active_piece_key = target
-            return target
-    return key
+    """Resolve one explicit identity through the pure DM7 navigation owner."""
+    workspace = _designer_workspace(self)
+    projection = _dm7_resolve_navigation(
+        getattr(workspace, "available_parts", ()) or (),
+        NavigationRequest(str(key or "") or None, NavigationIntent.EXPLICIT_SELECT),
+        NavigationMemory(getattr(self, "_phase6_box_body_active_piece_key", None)),
+    )
+    self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child
+    return projection.resolved_key
 
 
 def _phase6_activate_operator_part(self, key):
-    """Activate the current physical target resolved from logical operator navigation."""
-    return self.activate_part(_phase6_resolve_operator_part_key(self, key))
+    """Activate only a successfully resolved explicit operator identity."""
+    resolved = _phase6_resolve_operator_part_key(self, key)
+    if not resolved:
+        return None
+    return self.activate_part(resolved)
 
 
 def _fix11_refresh_part_buttons(self):
@@ -8888,19 +8879,11 @@ def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
 
 
 def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
-    """Group current BoxBody physical pieces under the real aggregate parent for this View only."""
-    keys = _phase6_corner_data_part_keys(self)
-    children = _phase6_box_body_piece_keys(keys)
-    child_keys = set(children)
-    parent_present = "box_body" in keys
-    rows = []
-    for key in keys:
-        if parent_present and key in child_keys:
-            continue
-        rows.append((key, 0))
-        if parent_present and key == "box_body":
-            rows.extend((child, 1) for child in children)
-    return tuple(rows)
+    """Project Corner Data rows from the same DM7 hierarchy owner."""
+    return tuple(
+        (row.part_key, row.depth)
+        for row in _dm7_project_hierarchy(_phase6_corner_data_part_keys(self))
+    )
 
 
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
