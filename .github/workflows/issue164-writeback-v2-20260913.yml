@@ -1,0 +1,78 @@
+name: Issue164 durable writeback apply v2
+on:
+  push:
+    branches:
+      - qa/issue164-combined-acceptance-20260913
+    paths:
+      - .github/workflows/issue164-writeback-v2-20260913.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Lock T3 cleaned ancestor
+        run: git merge-base --is-ancestor 66ce390eadea44ccc1166cb355c2024f76f9bc18 HEAD
+      - name: Apply minimal durable writeback
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          ui = Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md')
+          dxf = Path('.agents/skills/engineering/驗證板件與DXF/SKILL.md')
+          pitfalls = Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md')
+
+          ui_text = ui.read_text(encoding='utf-8')
+          if 'ISSUE164_UNFOLD_WORKSPACE_OWNERSHIP' in ui_text or 'ISSUE164_VIEWPORT_PRESENTATION_ONLY' in ui_text:
+              raise SystemExit('UI durable markers already exist; refuse duplicate')
+          ui_text += '''\n\n## #160/#163 展開工作區 ownership 與 viewport 邊界（2026-09-13）\n\n<!-- ISSUE164_UNFOLD_WORKSPACE_OWNERSHIP -->\n- 展開工作區上方只保留 `檔案` 與 `截角資料庫`。\n- 左側整欄只負責板件選擇與目前板件輸入；整欄使用單一垂直 scroll owner。內容超高時必須可捲動，並在文字倍率 `1.0 / 1.2 / 1.4` 都能到達最底控制。\n- 其他全域設定、3D 顯示、還原／transaction、全螢幕等控制放到右側控制區；搬移 widget 不得改 callback、state owner、Save→Reload、physical-part identity 或 manufacturing authority。\n- Corner Data 進出 lifecycle 必須對稱；family / part switch 只有在 topology/state commit 完成後才 refresh，不得因 layout redraw 建立第二套狀態。\n\n<!-- ISSUE164_VIEWPORT_PRESENTATION_ONLY -->\n- 展開 canvas 的黑底、initial fit 與 `zoom / fit / pan` 全屬 presentation。\n- 顯示 transform 只能讀 authoritative `PartRenderData` 與目前 physical part/material；不得修改 `PartRenderData`、`part_key`、`material WKB`、Save→Reload payload 或 DXF。\n- fit ratio、像素 bbox、截圖與 viewport 量測只可作 validation evidence；不得回灌 manufacturing geometry。\n'''
+          ui.write_text(ui_text, encoding='utf-8')
+
+          dxf_text = dxf.read_text(encoding='utf-8')
+          if 'ISSUE164_RECEIVING_AGGREGATE_SELECTION_IDENTITY' in dxf_text:
+              raise SystemExit('DXF/part durable marker already exists; refuse duplicate')
+          dxf_text += '''\n\n## Receiving aggregate selection identity（2026-09-13）\n\n<!-- ISSUE164_RECEIVING_AGGREGATE_SELECTION_IDENTITY -->\n- 對多片受電箱，明確選擇 `box_body` 表示 logical / assembly aggregate；resolver 必須保持 `box_body`，任何 remembered child 都不得把這個 explicit parent selection 劫持成 `box_body:<role>`。\n- 明確選擇 `box_body:<role>` 時則必須維持該 stable physical-part identity；parent 與 child 是兩種不同且都合法的操作意圖。\n- remembered child 只能在操作語意本來就是「恢復先前 child context」時使用，不得覆蓋本次明確 parent intent。\n- Combined Acceptance 同時驗 aggregate `box_body` 與至少一個 physical child 的 routing/projection；DXF / manufacturing acceptance 仍必須列舉並逐件驗全部 resolved physical pieces，aggregate 不得冒充逐片加工驗收。\n'''
+          dxf.write_text(dxf_text, encoding='utf-8')
+
+          pit_text = pitfalls.read_text(encoding='utf-8')
+          if 'ISSUE164_AGGREGATE_PARENT_NOT_CHILD_MEMORY' in pit_text:
+              raise SystemExit('Issue164 pitfall markers already exist; refuse duplicate')
+          old_heading = '### 2026-08-27：3D UI 控制散落在右側畫布上方，導致版面與使用者操作模型不一致'
+          if old_heading not in pit_text:
+              raise SystemExit('historical layout pitfall heading not found')
+          pit_text = pit_text.replace(
+              old_heading,
+              old_heading + '\n\n> **SUPERSEDED_BY_ISSUE163_LAYOUT**：本節的「最上列還含 3D 顯示／全螢幕／transaction」已由 #160/#163 最新使用者規格取代；僅保留為歷史事故背景，不得再當 current layout oracle。',
+              1,
+          )
+          pit_text += '''\n\n## 2026-09-13 — #160/#164 展開工作區與受電箱 identity durable corrections\n\n### ISSUE164_AGGREGATE_PARENT_NOT_CHILD_MEMORY\n- **踩坑**：受電箱 multipart 曾在使用者明確選 `box_body` 時，被記住的 `box_body:back` 等 child context 劫持，造成 aggregate 展開 routing 看起來像錯公式。\n- **規則**：explicit `box_body` 永遠保持 aggregate intent；`box_body:<role>` 保持 physical-child intent。remembered child 只能恢復 child context，不能覆蓋本次明確 parent selection。\n- **驗收**：parent 與 child 都要各自驗 routing/projection；逐片 DXF 仍以 physical identities 為準。\n\n### ISSUE164_HISTORY_RECOVERY_BEFORE_REDERIVATION\n- 當使用者或既有 issue 明確指出「之前版本已經有正確行為」，先用 **Git history / diff** 找已知 good commit 與回歸點，確認是 routing、identity、adapter、UI projection 還是 production formula 退化。\n- 若歷史版本已有**已知正確公式**，不得在還沒證明公式本身錯誤前重新發明新 manufacturing formula；優先恢復既有正確 data-flow / routing。\n- current output、pytest expected、畫面量測或歷史 PASS 只能協助定位，不會因此升格成 manufacturing authority。\n\n### ISSUE164_VIEWPORT_PRESENTATION_BOUNDARY\n- 黑底、initial fit、`zoom / fit / pan`、canvas transform 都是 presentation state。\n- viewport 只能投影 authoritative `PartRenderData`；不得把 pixel/bbox/fit ratio/zoom factor 回寫 `part_key`、material、`material WKB`、Save→Reload 或 DXF，更不得用它修 production geometry。\n\n### ISSUE164_LAYOUT_OWNERSHIP_AND_SCROLL\n- #163 current layout authority：上方只留 `檔案` + `截角資料庫`；左側只放板件選擇 + active part inputs，整欄由單一 vertical scroll owner 管理；其他控制移到右側控制區。\n- 文字倍率 `1.0 / 1.2 / 1.4` 均必須可捲到最底控制；Structural UI 搬移只改 ownership / presentation，不得建立第二份 state、geometry 或 manufacturing owner。\n- 舊 2026-08-27「最上列含 3D 顯示／全螢幕／transaction」規則已標 `SUPERSEDED_BY_ISSUE163_LAYOUT`，禁止復活。\n'''
+          pitfalls.write_text(pit_text, encoding='utf-8')
+          PY
+      - name: Verify working diff is only the three writeback files
+        run: |
+          set -euo pipefail
+          git diff --check
+          git -c core.quotePath=false diff --name-only | sort | tee /tmp/changed.txt
+          cat > /tmp/expected.txt <<'EOF'
+          .agents/skills/engineering/UI設計與去AI味/SKILL.md
+          .agents/skills/engineering/驗證板件與DXF/SKILL.md
+          個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          EOF
+          diff -u /tmp/expected.txt /tmp/changed.txt
+      - name: Run durable contract
+        run: |
+          python -m pip install -q pytest
+          pytest -q tests/test_issue164_durable_contract.py
+      - name: Commit and push durable writeback
+        run: |
+          set -euo pipefail
+          git config user.name 'looaeedr'
+          git config user.email '76246585+looaeedr@users.noreply.github.com'
+          git add '.agents/skills/engineering/UI設計與去AI味/SKILL.md' '.agents/skills/engineering/驗證板件與DXF/SKILL.md' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          git commit -m 'docs: persist issue164 unfold and identity rules'
+          git push origin HEAD:qa/issue164-combined-acceptance-20260913
