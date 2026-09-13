@@ -15,6 +15,7 @@ jobs:
       - name: Verify extended changed-file preflight
         shell: bash
         run: |
+          # Evidence now includes phase6-release-packaging + release_required_artifacts.json.
           python tools/phase6_skill_preflight.py \
             --task "#187 T2 migrate 2D-only DXF/STOCK capabilities into 3D Primary Workspace; UI output panel; authoritative DXF/manufacturing; draw_stock; independent physical presence vs export selection; persistence test contract update; remote QA; 派工" \
             --changed-file gui.py \
