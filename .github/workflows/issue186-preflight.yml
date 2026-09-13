@@ -1,0 +1,21 @@
+name: issue186-preflight
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.scratch/issue186/**'
+      - '.github/workflows/issue186-preflight.yml'
+      - 'tools/phase6_skill_preflight.py'
+      - '.agents/skills/skill_registry.json'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Phase6 Knowledge Preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "派工 執行 #186 T1：修正 #163 後 3D UI 鈑金／板件選單不可見 regression；恢復板件顯示與板件切換，組合體 / Corner Data / Receiving multipart stable identity；使用 real Tk/Xvfb RED→GREEN、remote QA、完整板件驗收。" \
+            --evidence .scratch/issue186/preflight-evidence.md
