@@ -78,3 +78,19 @@ def test_remote_qa_waiting_state_cannot_survive_without_an_active_locked_run():
     assert "GitHub 已無 active run" in pitfalls
     assert "STALE_WAIT" in pitfalls
     assert "使用者不是 watchdog" in pitfalls
+
+
+def test_work_order_children_must_preserve_one_accepted_lineage_until_final_integration():
+    dispatch = _read(DISPATCH_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "WORK_ORDER_LINEAGE_CONTRACT" in dispatch
+    assert "工單主分支" in dispatch
+    assert "子票不得重新從 production target 起跑" in dispatch
+    assert "production target 只作 integration target / drift authority" in dispatch
+    assert "整張工單 final verified work-order HEAD" in dispatch
+    assert "一次 non-force 整合" in dispatch
+    assert "WORK_ORDER_LINEAGE_PITFALL" in pitfalls
+    assert "T4 吃到舊 T3 HEAD" in pitfalls
+    assert "前序 accepted lineage" in pitfalls
+    assert "task/QA branch" in pitfalls
