@@ -1,0 +1,19 @@
+name: work-order-lineage-contract
+
+on:
+  push:
+    branches:
+      - fix/work-order-lineage-contract-20260913
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run work-order lineage contract
+        run: python -m pytest -q tests/process/test_continuous_execution_durable_contract.py
