@@ -12,6 +12,7 @@ Required Skills read:
 - phase6-release-packaging
 - monitoring-remote-qa
 - 驗證板件與DXF
+- 寫技能
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
@@ -20,7 +21,14 @@ READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 READ_REFERENCE: release_required_artifacts.json
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md
 
 Persistence/release boundary reread for the added test file:
 - tests/test_phase6_project_file.py is a mandatory release artifact, so its contract update must retain .p6fold/load behavior and cannot smuggle runtime-only state into project truth.
 - release_required_artifacts.json keeps config.ini forbidden from UPDATE and .scratch/.git excluded from packages.
+
+Durable writeback baseline reread before edit:
+- .agents/skills/engineering/UI設計與去AI味/SKILL.md: preserve callback/state/Save→Reload/manufacturing authority; critical layout must survive text scales 1.0/1.2/1.4.
+- .agents/skills/engineering/驗證板件與DXF/SKILL.md: DXF reopen + Save→Reload + remote QA are validation-only; tests never become manufacturing authority.
+- 個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md: legacy shell retirement must retain shared capabilities; this is the nearest existing pitfall owner for #187 capability migration lessons.
+- Durable update will extend these existing authorities rather than create a parallel Skill/spec/pitfall file.
