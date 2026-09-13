@@ -141,6 +141,19 @@ def test_real_designer_load_button_replaces_workspace_from_p6fold(tmp_path, monk
         root.update_idletasks(); root.update()
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **kwargs: str(path))
 
+        # #187: DXF export intention is runtime operator state, independent from
+        # physical presence restored by .p6fold. Use opposite sentinels so both
+        # presence directions are proven: present head stays unchecked, absent
+        # tail stays checked. Project load must not rewrite either checkbox.
+        app.export_head_var.set(False)
+        app.export_tail_var.set(True)
+        app.export_door_var.set(False)
+        export_intention_before = (
+            bool(app.export_head_var.get()),
+            bool(app.export_tail_var.get()),
+            bool(app.export_door_var.get()),
+        )
+
         old_designer.load_project_file()
         for _ in range(6):
             root.update_idletasks(); root.update()
@@ -149,9 +162,11 @@ def test_real_designer_load_button_replaces_workspace_from_p6fold(tmp_path, monk
         assert float(app.h_var.get()) == pytest.approx(654.0)
         assert float(app.d_var.get()) == pytest.approx(210.0)
         assert set(app._phase6_existing_parts) == {"box_body", "head"}
-        assert app.export_head_var.get() is True
-        assert app.export_tail_var.get() is False
-        assert app.export_door_var.get() is False
+        assert (
+            bool(app.export_head_var.get()),
+            bool(app.export_tail_var.get()),
+            bool(app.export_door_var.get()),
+        ) == export_intention_before
         assert app.fold_designer_app is not old_designer
         assert app.fold_designer_window is not old_window
         assert app.fold_designer_app.active_part_key == "head"
