@@ -25,7 +25,6 @@ contract=api-inventory role=HISTORICAL path=docs/superpowers/CURRENT_API_INVENTO
 <!-- WHD_AUTHORITY_ROW contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
 contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 
-
 本文件只負責回答「同一個工程 contract 現在到底由哪一份文件擁有」。它不複製各 domain 的完整規格，也不取代 domain canonical 文件本身。
 
 ## Authority roles
@@ -53,6 +52,24 @@ contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案�
 2. 加工層分類：`加工層分類與定義.md` 為 CURRENT；內容完全相同但名稱誤導的 `標準基準檔格式.md` 降為 pointer-only MIRROR。
 
 README、AI_HANDOFF、handoff、舊 API snapshot、巨型 06 的 current/history sediment 由 T7/#180 負責；本文件不提前重寫那些 domain。
+
+## T8 Combined Acceptance guard matrix
+
+<!-- WHD_COMBINED_GUARD_MATRIX_V1 -->
+
+下列 rows 只定義 **validation-only anti-drift coverage**，不得成為 production manufacturing authority；各 domain 的計算與規格 authority 仍只由上方 CURRENT owner 與其 canonical domain 文件負責。
+
+<!-- WHD_COMBINED_GUARD requirement=R1 guard=tests/knowledge/test_knowledge_authority_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R1 guard=tests/knowledge/test_ae_engine_current_spec_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R1 guard=tests/knowledge/test_current_history_authority_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R2 guard=tests/test_issue175_dm7_navigation_authority_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R3 guard=tests/knowledge/test_skill_catalog_classification_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R3 guard=tests/knowledge/test_active_skill_runtime_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R4 guard=tests/knowledge/test_skill_registry_domain_reference_contract.py -->
+<!-- WHD_COMBINED_GUARD requirement=R4 guard=tests/test_phase6_skill_preflight_gate.py -->
+<!-- WHD_COMBINED_GUARD requirement=R5 guard=tests/knowledge/test_current_history_authority_contract.py -->
+
+T8 Combined Acceptance 必須把 R1–R5 全部跑在同一個 tested head；若任一 listed guard 被刪除、改名或從 matrix 脫鉤，Combined guard 直接 fail closed。這個 matrix 不複製 domain 規則，只固定「哪一條永久 regression 對哪一個 requirement 負責」。
 
 ## Change contract
 
