@@ -45,3 +45,52 @@ def test_remote_qa_authority_remains_delegated_to_monitoring_skill():
     assert "monitoring-remote-qa" in execution
     assert "REMOTE_QA_ACTIVE_LOCK" in monitoring
     assert "使用者不是 remote-QA scheduler" in monitoring
+
+
+def test_execution_window_cut_is_recovery_not_rollback_or_scheduler_handoff():
+    execution = _read(EXECUTION_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "EXECUTION_WINDOW_INTERRUPTION_RECOVERY" in execution
+    assert "ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL" in pitfalls
+    assert "execution window interruption" in pitfalls
+    assert "RECOVERING" in pitfalls
+    assert "completed phase evidence" in pitfalls
+    assert "只有 drift 才重驗受影響範圍" in pitfalls
+    assert "使用者不是續跑 scheduler" in pitfalls
+
+
+def test_remote_qa_waiting_state_cannot_survive_without_an_active_locked_run():
+    monitoring = _read(MONITORING_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "STALE_WAIT_WATCHDOG" in monitoring
+    assert "WAITING_REMOTE_QA" in monitoring
+    assert "RECOVERING_STALE_WAIT" in monitoring
+    assert "active run = 0" in monitoring
+    assert "沒有 run_id + head_sha 就禁止進入 waiting" in monitoring
+    assert "只有 queued / in_progress 才允許維持 waiting" in monitoring
+    assert "terminal run 立即退出 waiting" in monitoring
+    assert "連續 2 次" in monitoring
+    assert "30 秒" in monitoring
+    assert "ISSUE188_STALE_WAIT_PITFALL" in pitfalls
+    assert "checkpoint 寫著 WAITING_REMOTE_QA" in pitfalls
+    assert "GitHub 已無 active run" in pitfalls
+    assert "STALE_WAIT" in pitfalls
+    assert "使用者不是 watchdog" in pitfalls
+
+
+def test_work_order_children_must_preserve_one_accepted_lineage_until_final_integration():
+    dispatch = _read(DISPATCH_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "WORK_ORDER_LINEAGE_CONTRACT" in dispatch
+    assert "工單主分支" in dispatch
+    assert "子票不得重新從 production target 起跑" in dispatch
+    assert "production target 只作 integration target / drift authority" in dispatch
+    assert "整張工單 final verified work-order HEAD" in dispatch
+    assert "一次 non-force 整合" in dispatch
+    assert "WORK_ORDER_LINEAGE_PITFALL" in pitfalls
+    assert "T4 吃到舊 T3 HEAD" in pitfalls
+    assert "前序 accepted lineage" in pitfalls
+    assert "task/QA branch" in pitfalls

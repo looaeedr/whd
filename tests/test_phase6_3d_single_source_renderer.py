@@ -140,7 +140,7 @@ def _class_method_source(path, class_name, method_name):
 
 def test_gui_3d_callback_does_not_construct_part_specs_directly():
     gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "_query_fold_designer_render_data")
+    src = _class_method_source(gui_path, "Phase6ApplicationHost", "_query_fold_designer_render_data")
     assert "_fold_designer_part_spec_from_payload" in src
     assert "_authoritative_render_data" in src
     for ctor in (
@@ -155,7 +155,7 @@ def test_gui_authoritative_render_data_cache_reuses_exact_object(monkeypatch):
     from ae_engine.contracts import DoorPartSpec, ManufacturingContext
     from types import SimpleNamespace
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     calls = []
     expected = SimpleNamespace(scene=object(), material=object())
     monkeypatch.setattr(
@@ -187,7 +187,7 @@ def test_committed_and_fold_draft_door_use_identical_part_spec_mapping():
         def get(self):
             return "金庫型"
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     feature = CircleFeature(12.0, FeatureAnchor.PANEL_CENTER, Vec2(5.0, -7.0))
     app.surface_features = {"door": [feature]}
     app.door_indicator_offset_x = 11.0
@@ -217,7 +217,7 @@ def test_committed_and_fold_draft_door_use_identical_part_spec_mapping():
 
 def test_single_door_2d_draw_consumes_authoritative_final_scene_only():
     gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "draw_door")
+    src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_door")
     assert "_single_door_part_spec" in src
     assert "_authoritative_render_data" in src
     assert "render_drawing_scene" in src
@@ -247,7 +247,7 @@ def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
         def get(self):
             return "金庫型"
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     feature = CircleFeature(10.0, FeatureAnchor.PANEL_CENTER, Vec2(0.0, 0.0))
     app.surface_features = {"door": [feature]}
     app.door_indicator_offset_x = 0.0
@@ -285,7 +285,7 @@ def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
 
 def test_fold_draft_adapter_reuses_canonical_part_spec_helpers():
     gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "BoxCalculatorGUI", "_fold_designer_part_spec_from_payload")
+    src = _class_method_source(gui_path, "Phase6ApplicationHost", "_fold_designer_part_spec_from_payload")
     for ctor in (
         "DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(",
         "BasePlatePartSpec(", "IndicatorBoxPartSpec(",
@@ -308,13 +308,13 @@ def test_all_primary_2d_part_previews_use_authoritative_render_data():
         "draw_box_body", "draw_end_cap", "draw_door", "draw_base_plate",
         "draw_indicator_box", "draw_indicator_door",
     ):
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
         assert "_authoritative_render_data" in src, method
 
 
 def test_baseline_reload_invalidates_authoritative_render_cache():
     import gui
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     app._authoritative_part_render_cache = {("old", "ctx"): object()}
     app._door_layout_baseline_cache = {"old": object()}
     app._box_body_baseline_face_cache = {"old": object()}
@@ -422,7 +422,7 @@ def test_opening_phase6_designer_does_not_execute_legacy_renderer(monkeypatch):
     root = tk.Tk(); root.withdraw()
     app = None
     try:
-        app = gui.BoxCalculatorGUI(root)
+        app = gui.Phase6ApplicationHost(root)
         assert calls == []
         app.open_original_fold_designer()
         assert calls == []
@@ -462,7 +462,7 @@ def test_gui_export_reuses_cached_final_scene_without_second_manufacturing_build
     from shapely.geometry import box
     from types import SimpleNamespace
 
-    app = gui.BoxCalculatorGUI.__new__(gui.BoxCalculatorGUI)
+    app = gui.Phase6ApplicationHost.__new__(gui.Phase6ApplicationHost)
     app._authoritative_part_render_cache = {}
     scene = DrawingScene()
     render_data = SimpleNamespace(scene=scene, material=box(0, 0, 100, 80), fold_guides=())
@@ -498,6 +498,6 @@ def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_genera
         "export_multi_door_layout_dxfs",
         "export_multi_door_indicator_box_parts",
     ):
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method

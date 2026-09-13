@@ -119,9 +119,6 @@ def _legacy_owner():
     owner.COLOR_TEXT = "black"
     owner.COLOR_TEXT_MUTED = "gray"
     owner.draw_grid = lambda canvas, w, h: calls.append(("grid", canvas, w, h))
-    owner._draw_phase6_finished_dimension_summary = (
-        lambda canvas, *, part_key, y=132: calls.append(("finished", canvas, part_key))
-    )
     owner.open_part_hole_editor = lambda key: calls.append(("hole", key))
     owner.on_door_canvas_press = lambda event: calls.append(("door_press", event))
     owner.on_door_canvas_drag = lambda event: calls.append(("door_drag", event))
@@ -154,7 +151,7 @@ def test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_hel
     monkeypatch.setattr(
         gui,
         "_phase6_2d_material_viewport",
-        lambda bounds, cw, ch: (transform, 0.0, 0.0, 1.0, 0.0),
+        lambda bounds, cw, ch, **_kwargs: (transform, 0.0, 0.0, 1.0, 0.0),
     )
     monkeypatch.setattr(
         gui,
@@ -172,8 +169,8 @@ def test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_hel
     )
     monkeypatch.setattr(gui, "draw_hole_editor_hint", lambda target, cw, endcap=False: calls.append(("hint", target, cw, endcap)))
 
-    render = getattr(gui.BoxCalculatorGUI, "_render_fold_designer_corner_data_view", None)
-    assert callable(render), "T5 must install the existing 2D capability renderer for the new View"
+    render = getattr(gui.Phase6ApplicationHost, "_render_fold_designer_corner_data_view", None)
+    assert callable(render), "direct-3D application host must expose the existing Corner Data renderer"
 
     result = render(owner, canvas, "head", render_data)
 
@@ -181,7 +178,6 @@ def test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_hel
     assert canvas.deleted == ["all"]
     assert drawing_calls == [(canvas, render_data.scene, transform, ("CHECK", "STOCK"))]
     assert annotation_calls == [(canvas, render_data, transform, "head", False)]
-    assert ("finished", canvas, "head") in calls
     assert ("hint", canvas, 960, True) in calls
 
 
@@ -190,12 +186,12 @@ def test_full_2d_view_binds_existing_hole_editor_to_exact_stable_identity(monkey
     owner, calls = _legacy_owner()
     render_data = _render_data()
 
-    monkeypatch.setattr(gui, "_phase6_2d_material_viewport", lambda *_args: (object(), 0.0, 0.0, 1.0, 0.0))
+    monkeypatch.setattr(gui, "_phase6_2d_material_viewport", lambda *_args, **_kwargs: (object(), 0.0, 0.0, 1.0, 0.0))
     monkeypatch.setattr(gui, "render_drawing_scene", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(gui, "_draw_phase6_annotation_projection", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(gui, "draw_hole_editor_hint", lambda *_args, **_kwargs: None)
 
-    render = getattr(gui.BoxCalculatorGUI, "_render_fold_designer_corner_data_view", None)
+    render = getattr(gui.Phase6ApplicationHost, "_render_fold_designer_corner_data_view", None)
     assert callable(render)
     render(owner, canvas, "base_plate_c1_r2", render_data)
 
@@ -209,12 +205,12 @@ def test_full_2d_view_preserves_existing_door_drag_callbacks(monkeypatch):
     owner, calls = _legacy_owner()
     render_data = _render_data()
 
-    monkeypatch.setattr(gui, "_phase6_2d_material_viewport", lambda *_args: (object(), 0.0, 0.0, 1.0, 0.0))
+    monkeypatch.setattr(gui, "_phase6_2d_material_viewport", lambda *_args, **_kwargs: (object(), 0.0, 0.0, 1.0, 0.0))
     monkeypatch.setattr(gui, "render_drawing_scene", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(gui, "_draw_phase6_annotation_projection", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(gui, "draw_hole_editor_hint", lambda *_args, **_kwargs: None)
 
-    render = getattr(gui.BoxCalculatorGUI, "_render_fold_designer_corner_data_view", None)
+    render = getattr(gui.Phase6ApplicationHost, "_render_fold_designer_corner_data_view", None)
     assert callable(render)
     render(owner, canvas, "door_c1_r1", render_data)
 
@@ -230,7 +226,7 @@ def test_full_2d_view_preserves_existing_door_drag_callbacks(monkeypatch):
 
 
 def test_full_2d_renderer_source_has_no_second_manufacturing_calculation_path():
-    render = getattr(gui.BoxCalculatorGUI, "_render_fold_designer_corner_data_view", None)
+    render = getattr(gui.Phase6ApplicationHost, "_render_fold_designer_corner_data_view", None)
     assert callable(render)
     src = inspect.getsource(render).lower()
     for forbidden in (
@@ -254,9 +250,9 @@ def test_fold_designer_owns_a_real_corner_data_canvas_in_same_renderer_viewport(
     assert "_phase6_refresh_corner_data_unfold_view(self)" in show_src
 
 
-def test_main_gui_installs_new_view_callback_without_returning_to_legacy_notebook():
-    cls_src = inspect.getsource(gui.BoxCalculatorGUI)
+def test_direct_application_host_installs_new_view_callback_without_returning_to_legacy_notebook():
+    cls_src = inspect.getsource(gui.Phase6ApplicationHost)
     assert "designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view" in cls_src
-    renderer_src = inspect.getsource(gui.BoxCalculatorGUI._render_fold_designer_corner_data_view).lower()
+    renderer_src = inspect.getsource(gui.Phase6ApplicationHost._render_fold_designer_corner_data_view).lower()
     for forbidden in ("self.notebook", "tab_z", "tab_head", "tab_tail", "tab_door", "tab_base_plate"):
         assert forbidden not in renderer_src, forbidden

@@ -190,3 +190,16 @@ Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，
 完成前使用實際可用的 code-review Skill／review 工具檢查本票 diff；WHD repo 有 `.agents/skills/engineering/code-review/SKILL.md` 時直接讀取並套用。沒有該能力時以 inline diff review 退化，不得假裝已派 reviewer。
 
 只有 fresh verification 支持的狀態才能宣告完成。若來源不是 Git repository，Git/commit 步驟跳過，不為滿足形式硬造 repository；checkpoint + SHA/provenance 仍要完成。
+
+### EXECUTION_WINDOW_INTERRUPTION_RECOVERY
+
+當對話／工具的 execution window interruption 發生，但 GitHub / Git durable evidence 已存在時，狀態是 `RECOVERING`，不是 rollback、BLOCKED 或 COMPLETE。resume 固定依下列順序執行：
+
+1. `remote refetch` authoritative `production target` 與最新 SHA。
+2. 反讀 owning Issue recovery checkpoint，確認最後 durable phase、work branch + HEAD、temporary QA 與 next action。
+3. 驗證 `work branch + HEAD`、`production target`、必要時同一 `run_id + head_sha`；identity 不一致先分類 drift。
+4. `無 drift → continue exact next unique action`；**不得因 execution window 重開而重跑已完成 phase**。
+5. `有 drift → 只重驗受影響範圍`；禁止把整條已驗收鏈重跑一遍來掩蓋 provenance。
+6. exact tested HEAD / ancestry 未變時，既有 `terminal QA evidence 保持有效`；不能只因 runtime 重開就重建舊 run。
+
+長任務至少在下列 durable boundary 更新 checkpoint：`RED`、`GREEN`、`remote QA submitted`、`remote QA terminal`、`closing drift`、`integration`、`post-integration terminal`。execution window 被切斷只代表從最近 boundary 恢復；使用者不是續跑 scheduler，若 next action 可自主執行就立即繼續。

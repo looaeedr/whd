@@ -6,7 +6,7 @@ from types import MethodType, SimpleNamespace
 def _load_method(name):
     source = Path('gui.py').read_text(encoding='utf-8')
     tree = ast.parse(source)
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'BoxCalculatorGUI')
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Phase6ApplicationHost')
     method = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == name)
     fn = ast.FunctionDef(
         name=method.name, args=method.args, body=method.body,

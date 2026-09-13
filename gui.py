@@ -13,6 +13,7 @@ from dataclasses import replace
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
+from whd_theme import WHD_THEME, apply_ttk_dark_theme
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -729,7 +730,7 @@ class _Phase6DerivedCacheOwner:
         return dict(self._invalidations)
 
 
-class BoxCalculatorGUI:
+class Phase6ApplicationHost:
     def __init__(self, root):
         self.root = root
         self.project_controller = Phase6ProjectController(
@@ -743,14 +744,14 @@ class BoxCalculatorGUI:
         self.root.minsize(950, 650)
         
         # 設定現代暗黑風格配色
-        self.COLOR_BG = "#121214"          # 主背景
-        self.COLOR_PANEL = "#1e1e24"       # 面板背景
-        self.COLOR_INPUT_BG = "#151518"    # 輸入框背景
-        self.COLOR_TEXT = "#e0e0e6"        # 主要文字
-        self.COLOR_TEXT_MUTED = "#8e8e93"  # 次要文字
-        self.COLOR_ACCENT = "#0a84ff"      # 藍色亮點/按鈕
+        self.COLOR_BG = WHD_THEME["background"]          # 主背景
+        self.COLOR_PANEL = WHD_THEME["panel"]       # 面板背景
+        self.COLOR_INPUT_BG = WHD_THEME["input"]    # 輸入框背景
+        self.COLOR_TEXT = WHD_THEME["text"]        # 主要文字
+        self.COLOR_TEXT_MUTED = WHD_THEME["muted_text"]  # 次要文字
+        self.COLOR_ACCENT = WHD_THEME["action"]      # 藍色亮點/按鈕
         self.COLOR_ACCENT_HOVER = "#0066cc"# 按鈕懸停
-        self.COLOR_CANVAS_BG = "#0d0d0f"   # 畫布背景
+        self.COLOR_CANVAS_BG = WHD_THEME["canvas"]   # 畫布背景
         
         self.root.configure(bg=self.COLOR_BG)
 
@@ -826,8 +827,7 @@ class BoxCalculatorGUI:
         self.project_controller.set_project_path(path)
         
     def setup_styles(self):
-        self.style = ttk.Style()
-        self.style.theme_use('default')
+        self.style = apply_ttk_dark_theme(self.root, text_scale=1.0, style=ttk.Style(self.root))
         
         # Notebook 樣式
         self.style.configure('TNotebook', background=self.COLOR_BG, borderwidth=0)
@@ -1189,14 +1189,14 @@ class BoxCalculatorGUI:
 
     def _endcap_depth_comp_t_for_family(self, model_name=None):
         source = (
-            BoxCalculatorGUI._current_cabinet_type_name(self)
+            Phase6ApplicationHost._current_cabinet_type_name(self)
             if model_name is None else model_name
         )
         return cabinet_family_policy.endcap_depth_comp_t(source)
 
     def _known_corner_state_for_current_family(self, parts):
         return known_model_corner_state(
-            parts, cabinet_family=BoxCalculatorGUI._current_cabinet_type_name(self)
+            parts, cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)
         )
 
     def _enforce_known_model_corner_types(self, *, reset_all=False):
@@ -1473,7 +1473,7 @@ class BoxCalculatorGUI:
             return policy
 
         family_source = (
-            BoxCalculatorGUI._current_cabinet_type_name(self)
+            Phase6ApplicationHost._current_cabinet_type_name(self)
             if snapshot is None else snapshot
         )
         if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
@@ -1642,7 +1642,7 @@ class BoxCalculatorGUI:
             resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
             if resolved is None and not unknown:
                 fallback = known_model_corner_state(
-                    (part,), cabinet_family=BoxCalculatorGUI._current_cabinet_type_name(self)
+                    (part,), cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)
                 ).get(part)
                 resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
             return self._apply_cabinet_family_endcap_policy(
@@ -2171,7 +2171,7 @@ class BoxCalculatorGUI:
             self.door_indicator_offset_y = 0.0
 
         self.workspace_controller.set_active_part(snapshot.get("active_part") or workspace.get("active_part"))
-        self._active_cabinet_type = BoxCalculatorGUI._current_cabinet_type_name(self)
+        self._active_cabinet_type = Phase6ApplicationHost._current_cabinet_type_name(self)
         self._reload_current_baseline_features()
         self.refresh_corner_type_panel()
         self._request_phase6_update("geometry")
@@ -2341,7 +2341,7 @@ class BoxCalculatorGUI:
                     migration_source[key] = snapshot[key]
             migration_source["model"] = str(
                 snapshot.get("model")
-                or BoxCalculatorGUI._current_cabinet_type_name(self)
+                or Phase6ApplicationHost._current_cabinet_type_name(self)
             ).strip()
             box_profile = build_box_body_profile(migration_source)
             if not box_profile:
@@ -2596,7 +2596,7 @@ class BoxCalculatorGUI:
                 if isinstance(cache, dict):
                     cache.clear()
 
-    def open_original_fold_designer(self):
+    def open_original_fold_designer(self, *, target_window=None):
         if self.fold_designer_window is not None:
             try:
                 if self.fold_designer_window.winfo_exists():
@@ -2622,9 +2622,12 @@ class BoxCalculatorGUI:
             )
         }
 
-        window = tk.Toplevel(self.root)
-        window.transient(self.root)
-        window.grab_set()
+        if target_window is None:
+            window = tk.Toplevel(self.root)
+            window.transient(self.root)
+            window.grab_set()
+        else:
+            window = target_window
         designer = None
 
         def destroy_designer_window():
@@ -2944,7 +2947,7 @@ class BoxCalculatorGUI:
         # model semantics instead of crashing or silently dropping CornerType.
         model_name = self._baseline_source_model() if hasattr(self, "_baseline_source_model") else None
         if model_name:
-            fallback = known_model_corner_state((part_key,), cabinet_family=BoxCalculatorGUI._current_cabinet_type_name(self)).get(part_key)
+            fallback = known_model_corner_state((part_key,), cabinet_family=Phase6ApplicationHost._current_cabinet_type_name(self)).get(part_key)
         else:
             fallback = new_manual_corner_state((part_key,)).get(part_key)
         if fallback is None:
@@ -3038,7 +3041,7 @@ class BoxCalculatorGUI:
     }
 
     def _fixed_corner_summary(self, part_key):
-        if BoxCalculatorGUI._current_cabinet_type_name(self) == "受電箱" and part_key in {"head", "tail"}:
+        if Phase6ApplicationHost._current_cabinet_type_name(self) == "受電箱" and part_key in {"head", "tail"}:
             from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
 
             joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
@@ -6655,7 +6658,7 @@ class BoxCalculatorGUI:
             profile_source = {
                 key: var.get() for key, var in self._setting_var_map().items()
             }
-            profile_source["model"] = BoxCalculatorGUI._current_cabinet_type_name(self)
+            profile_source["model"] = Phase6ApplicationHost._current_cabinet_type_name(self)
             box_profile = build_box_body_profile(profile_source)
             if not box_profile:
                 raise ValueError("canonical Box Body Fold Profile materialization failed")
@@ -6697,7 +6700,7 @@ class BoxCalculatorGUI:
         self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
         if state.get("endcap_bottom_wrap") is not None:
             self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state({
-                "model": BoxCalculatorGUI._current_cabinet_type_name(self),
+                "model": Phase6ApplicationHost._current_cabinet_type_name(self),
                 "endcap_bottom_wrap": state.get("endcap_bottom_wrap"),
             })
         joint_state = state.get("assembly_joint_state")
@@ -6730,7 +6733,7 @@ class BoxCalculatorGUI:
         raw_model = normalize_custom_model_name(
             self.baseline_var.get() if getattr(self, "baseline_var", None) is not None else ""
         )
-        new_type = BoxCalculatorGUI._current_cabinet_type_name(self)
+        new_type = Phase6ApplicationHost._current_cabinet_type_name(self)
         previous = str(getattr(self, "_active_cabinet_type", "金庫型") or "金庫型")
 
         # Project load / 3D live-state application owns the complete snapshot.
@@ -6839,7 +6842,7 @@ class BoxCalculatorGUI:
             # 自訂沒有 baseline DXF；保留使用者輸入的折彎尺寸。
             self._request_phase6_update("baseline")
             return
-        if BoxCalculatorGUI._current_cabinet_type_name(self) == "受電箱":
+        if Phase6ApplicationHost._current_cabinet_type_name(self) == "受電箱":
             # 受電箱第一階段使用公式/Family policy，沒有自己的 baseline DXF。
             self._request_phase6_update("baseline")
             return
@@ -10012,6 +10015,29 @@ class BoxCalculatorGUI:
         )
 
 
+
+class BoxCalculatorGUI(Phase6ApplicationHost):
+    """Legacy 2D compatibility shell retained only for non-primary callers.
+
+    Production startup uses Phase6PrimaryApplication. T5 owns final dead-code
+    cleanup after the complete direct-3D regression matrix is terminal GREEN.
+    """
+
+
+class Phase6PrimaryApplication(Phase6ApplicationHost):
+    """Primary 3D application owner on the shared non-legacy application host."""
+
+    def __init__(self, root):
+        self._phase6_primary_workspace = True
+        super().__init__(root)
+        self.open_original_fold_designer(target_window=root)
+
+    def create_widgets(self):
+        """Legacy 2D user-facing widgets are not part of the primary lifecycle."""
+        self._legacy_2d_compat_host = None
+        return None
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
@@ -10024,7 +10050,7 @@ def main(argv=None):
         pass
 
     root = tk.Tk()
-    app = BoxCalculatorGUI(root)
+    app = Phase6PrimaryApplication(root)
     project_path = project_path_from_argv(argv)
     if project_path is not None:
         def open_project_after_startup():

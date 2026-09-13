@@ -340,3 +340,15 @@ Rewrite 後重新檢查：
 - WHD current primary workspace 的 top command row 維持真正頂層命令；DXF/STOCK 等 output controls 放在正式 operator/workspace control region，不因搬家重新塞回 top toolbar。
 - 對小／中／大 `1.0 / 1.2 / 1.4` 都要驗 control 仍可見或可到達，且 primary action 不 clipping、不被其他 surface 蓋住。
 - UI refresh / presence projection 只能刷新 presentation；不得藉 redraw、reload 或 presence sync 偷改另一個獨立的 operator intention。
+
+## #188：shared dark theme 的 runtime 契約（2026-09-13）
+
+<!-- ISSUE188_SHARED_DARK_THEME_RUNTIME -->
+- 暗色化只允許一個 `single shared WHD theme token/style provider`；2D/3D/Settings/Matplotlib 只能 consume 同一份角色 token，**不得複製第二套 raw palette truth**。
+- 本契約是 presentation-only；不得因 theme apply / refresh 修改 geometry、manufacturing、DXF、Save→Reload 或 workspace state。
+- `ttk.Style` 不會自動覆蓋 classic `tk.Menu`；Menu 必須獨立套用 `normal / active / disabled` 的 foreground/background，並保留 foreground-surface 的 focus/elevation 可辨識度。
+- Matplotlib render path 若會 `ax.clear()`，constructor-only theme 不足；每次 `render refresh` / clear 後都必須重新套 figure/axes/pane/grid/tick/text 的 presentation theme，operator dimensions/warning/error 不得掉回黑字。
+- generic 3D/workbench canvas 使用 shared canvas token `#0d0d0f`；已驗收的 `Corner Data / unfold` drawing viewport 是例外，必須保留 `#000000`，禁止 global canvas replace 覆蓋它。
+- `primary operator text`、尺寸、current selection、warning/error 不得降成 muted gray；action/selection/focus/warning/error 等 `semantic colors` 必須保持可辨識角色。
+- 真正 visual acceptance 要在 real Tk/Xvfb 驗有效 style/state 與 reachability，至少覆蓋 `1.0 / 1.2 / 1.4`、normal/selected/focus/readonly/disabled/active，以及 Matplotlib clear 後的文字可讀性；有 screenshot 能力才宣告 pixel review。
+- theme / text-scale refresh 必須維持既有 `persist=False` 外部同步邊界，不得 trace-echo 回設定 owner；`config.ini` 前後必須保持 invariant。

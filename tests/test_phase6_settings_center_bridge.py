@@ -122,7 +122,8 @@ def test_save_button_delegates_only_current_context(monkeypatch):
 
 def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monkeypatch):
     monkeypatch.setattr(bridge, "project_features_to_original_holes", lambda *a, **k: [])
-    root = tk.Tk(); root.withdraw()
+    default_root_before = getattr(tk, "_default_root", None)
+    root = tk.Tk(); root.withdraw(); win = tk.Toplevel(root)
     published = []
     try:
         snapshot = _snapshot()
@@ -139,19 +140,28 @@ def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monk
             }
         }
         snapshot["corner_pair_same"] = {"door": {"top": True, "bottom": True}}
-        app = bridge.Phase6FoldDesignerApp(root, snapshot, on_live_sync=lambda payload: published.append(payload))
+        app = bridge.Phase6FoldDesignerApp(win, snapshot, on_live_sync=lambda payload: published.append(payload))
         app._phase6_parameters_unlocked = True
         app.activate_part("door")
-        root.update_idletasks()
+        win.update_idletasks()
         published.clear()
         app.corner_pair_checkbuttons["top"].invoke()
-        root.update_idletasks()
+        win.update_idletasks()
         assert app._phase6_corner_pair_same["door"]["top"] is False
         assert published
         assert published[-1]["corner_pair_same"]["door"]["top"] is False
     finally:
         try:
+            win.destroy()
+        except tk.TclError:
+            pass
+        try:
+            root.update_idletasks()
+        except tk.TclError:
+            pass
+        try:
             root.destroy()
         except tk.TclError:
             pass
+    assert getattr(tk, "_default_root", None) is default_root_before
 

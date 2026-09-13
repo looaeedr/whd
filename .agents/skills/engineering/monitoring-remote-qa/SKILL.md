@@ -114,7 +114,7 @@ Remote QA monitoring is **active polling**, not event notification.
 | 「先回報一下，等使用者再說繼續」 | 錯。回報後立即 poll 同一 locked run。 |
 | 「沒有狀態變化，可以先停」 | 錯。無變化就是下一輪仍 poll。 |
 | 「我已經回報 30 秒，所以這回合完成」 | 錯。cadence 是 observation，不是 turn boundary。 |
-| 「卡住太久，只能把控制權交回使用者」 | 錯。保持 lock；只有合法 terminalization 或真正 Runtime interruption 才能中斷。 |
+| 「卡住太久，只能把控制權交回使用者」 | 錯。保持 lock；只有合法 terminalization 或真正 Runtime interruption才可中斷。 |
 | 「使用者可以打『輪』再叫我查」 | 錯。使用者不是 scheduler，不能靠下一則訊息驅動監控。 |
 
 ## Remote QA Active Lock
@@ -135,3 +135,17 @@ Remote QA monitoring is **active polling**, not event notification.
   - Runtime/tooling 被平台實際切斷。下次取得控制權時，若目標未改，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
 - terminal failure 後，先抓 log 並完成 failure classification；之後才可解除舊 run lock、進修正流程。修正若觸發 replacement run，立即對新 `run_id + head_sha` 建立新的 active lock。
 - 每次非 polling 工具呼叫與每次送出 `final` 前都必須自問：目前是否存在 non-terminal locked run？若是且 Runtime/tools 仍可用，該動作非法，先 poll。
+
+## STALE_WAIT_WATCHDOG
+
+`WAITING_REMOTE_QA` 不是被動文字狀態；它只有在一個**可驗證、仍 active 的 locked run**存在時才合法。
+
+- **沒有 run_id + head_sha 就禁止進入 waiting**。沒有 durable run identity 時只能分類為 `NOT_SUBMITTED`、`RECOVERING` 或其他實際階段，必須執行可自主完成的 next action；不得寫成「等待 QA」。
+- **只有 queued / in_progress 才允許維持 waiting**。每次 resume、checkpoint reread、30 秒輪詢與 final gate 前，都先用保存的 `run_id + head_sha` 查該 exact run；不能只相信舊 checkpoint 的 `WAITING_REMOTE_QA` 字樣。
+- **terminal run 立即退出 waiting**。`completed/success` 直接進 counts/invariants/cleanup/closure；`failure/cancelled/timed_out` 立即抓 evidence 並進 failure classification。terminal state 不需要 watchdog 連續確認。
+- 若 exact `run_id` 已不存在/404、run identity 與 `head_sha` 不符，或 checkpoint 寫著 `WAITING_REMOTE_QA` 但 repository readback 顯示 **active run = 0**，先標記 `STALE_WAIT`；這是 recovery signal，不是「繼續等」。
+- 為避免短暫 API/read-after-write 延遲造成誤判：非 terminal 的「查不到 matching active run」情況以 **連續 2 次**觀測確認；兩次觀測仍無 matching active locked run，就強制轉成 `RECOVERING_STALE_WAIT`。
+- `RECOVERING_STALE_WAIT` 固定執行：`remote refetch → owning Issue/checkpoint reread → work HEAD/production HEAD drift verification → exact run identity recheck → continue exact next action`。若沒有 drift，不得重跑已完成 RED/GREEN/terminal QA；若有 drift，只重驗受影響範圍。
+- watchdog observation 沿用既有 **30 秒** cadence；但一旦讀到 terminal run、404/invalid identity 或第二次 stale confirmation，就立即處理，不必等滿下一個 30 秒。
+- global `active run = 0` 只能作 supporting evidence；canonical 判定仍以保存的 exact `run_id + head_sha` 為先，避免 unrelated workflow 或 pagination 造成誤分類。
+- **使用者不是 watchdog**。不得要求使用者輸入「繼續／輪／poll」來解除 stale waiting；一旦判定 `STALE_WAIT` / `RECOVERING_STALE_WAIT`，assistant/controller 必須自己恢復並推進 next action。

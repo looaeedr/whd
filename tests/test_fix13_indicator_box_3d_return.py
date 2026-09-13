@@ -49,8 +49,8 @@ def test_indicator_box_and_small_door_profiles_use_real_bend_span_but_show_outsi
 
 
 def test_hidden_indicator_part_returned_from_3d_becomes_manual_corner_context():
-    sync = _load_class_method("gui.py", "BoxCalculatorGUI", "_sync_fold_designer_manual_corner_context")
-    current = _load_class_method("gui.py", "BoxCalculatorGUI", "_current_manual_corner_part_key")
+    sync = _load_class_method("gui.py", "Phase6ApplicationHost", "_sync_fold_designer_manual_corner_context")
+    current = _load_class_method("gui.py", "Phase6ApplicationHost", "_current_manual_corner_part_key")
 
     refreshed = []
     app = SimpleNamespace(
@@ -72,7 +72,7 @@ def test_hidden_indicator_part_returned_from_3d_becomes_manual_corner_context():
 def test_apply_path_syncs_active_designer_part_back_to_manual_corner_context():
     source = Path("gui.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
-    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "BoxCalculatorGUI")
+    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "Phase6ApplicationHost")
     method = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == "_apply_original_fold_designer_snapshot")
     text = ast.get_source_segment(source, method)
     assert "_sync_fold_designer_manual_corner_context" in text
