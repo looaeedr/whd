@@ -34,6 +34,14 @@ def test_issue189_primary_application_is_not_legacy_box_calculator_type():
     assert not issubclass(gui.Phase6PrimaryApplication, gui.BoxCalculatorGUI)
 
 
+def test_issue189_primary_application_does_not_borrow_legacy_controller_lifecycle():
+    """The direct 3D application must own its lifecycle instead of proxying BoxCalculatorGUI."""
+    source = inspect.getsource(gui.Phase6PrimaryApplication)
+    assert "BoxCalculatorGUI.__init__" not in source
+    assert "vars(BoxCalculatorGUI)" not in source
+    assert "def __getattr__" not in source
+
+
 def test_issue189_real_tk_mounts_3d_designer_directly_on_single_root():
     root = tk.Tk()
     app = None
