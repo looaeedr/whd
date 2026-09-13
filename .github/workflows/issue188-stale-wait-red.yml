@@ -1,0 +1,17 @@
+name: issue188-stale-wait-red
+
+on:
+  push:
+    branches:
+      - fix/issue188-stale-wait-watchdog-20260913
+
+jobs:
+  stale-wait-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run stale-wait process contract
+        run: python -m pytest -q tests/process/test_continuous_execution_durable_contract.py
