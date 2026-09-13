@@ -5367,6 +5367,36 @@ def _phase6_build_global_persistent_controls(self):
     _phase6_refresh_persistent_structure_controls(self)
 
 
+def _phase6_refresh_sticky_structure_tree(self):
+    """Keep the one #124 Structure Tree on-screen while lower left inputs scroll.
+
+    This is presentation-only.  The existing Treeview remains the single
+    navigation surface and continues to consume DM7 stable identities/callbacks.
+    A spacer owns its normal layout slot; ``place`` only offsets that same widget
+    against the left Canvas viewport.
+    """
+    canvas = getattr(self, "left_scroll_canvas", None)
+    host = getattr(self, "structure_tree_host", None)
+    spacer = getattr(self, "structure_tree_spacer", None)
+    if canvas is None or host is None or spacer is None:
+        return
+    try:
+        requested_height = max(1, int(host.winfo_reqheight()))
+        current_height = int(float(spacer.cget("height") or 0))
+        if current_height != requested_height:
+            spacer.configure(height=requested_height)
+        base_y = float(spacer.winfo_y())
+        scroll_y = float(canvas.canvasy(0))
+        host.place_configure(
+            x=0, y=int(round(max(base_y, scroll_y))),
+            relwidth=1.0, height=requested_height,
+        )
+        host.lift()
+    except Exception:
+        # Presentation refresh must never block manufacturing/navigation state.
+        return
+
+
 def _phase6_build_persistent_top_area(self):
     """Operator layout: top commands, scrollable left inputs, right controls/canvas."""
     previous_status = getattr(self, "status_bar", None)
@@ -5434,12 +5464,20 @@ def _phase6_build_persistent_top_area(self):
     self.left_scroll_canvas = original.tk.Canvas(
         self.root, width=338, highlightthickness=0, borderwidth=0
     )
+    def _left_scroll_command(*args):
+        self.left_scroll_canvas.yview(*args)
+        _phase6_refresh_sticky_structure_tree(self)
+
+    def _left_yview_changed(first, last):
+        self.left_scrollbar.set(first, last)
+        _phase6_refresh_sticky_structure_tree(self)
+
     self.left_scrollbar = original.ttk.Scrollbar(
         self.root,
         orient=original.tk.VERTICAL,
-        command=self.left_scroll_canvas.yview,
+        command=_left_scroll_command,
     )
-    self.left_scroll_canvas.configure(yscrollcommand=self.left_scrollbar.set)
+    self.left_scroll_canvas.configure(yscrollcommand=_left_yview_changed)
     try:
         self.left.pack_propagate(True)
     except Exception:
@@ -5453,6 +5491,7 @@ def _phase6_build_persistent_top_area(self):
             bbox = self.left_scroll_canvas.bbox("all")
             if bbox is not None:
                 self.left_scroll_canvas.configure(scrollregion=bbox)
+            _phase6_refresh_sticky_structure_tree(self)
         except Exception:
             pass
 
@@ -8483,8 +8522,13 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     # One CAD-style Structure Tree is now the visible part/mode navigator. Its
     # rows are rebuilt from designer_workspace.available_parts and own no state.
+    # #186: reserve the Tree's normal flow slot, but render that same single
+    # Structure Tree as a sticky navigation surface.  Only lower inputs scroll.
+    self.structure_tree_spacer = original.ttk.Frame(self.left, height=1)
+    self.structure_tree_spacer.pack(fill=original.tk.X, pady=(0, 6))
+    self.structure_tree_spacer.pack_propagate(False)
     self.structure_tree_host = original.ttk.Frame(self.left)
-    self.structure_tree_host.pack(fill=original.tk.X, pady=(0, 6))
+    self.structure_tree_host.place(x=0, y=0, relwidth=1.0)
     self.structure_tree = original.ttk.Treeview(
         self.structure_tree_host, columns=("visibility",),
         show="tree headings", selectmode="browse", height=9,
@@ -8501,6 +8545,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.structure_tree.configure(yscrollcommand=self.structure_tree_scrollbar.set)
     self.structure_tree_scrollbar.pack(side=original.tk.RIGHT, fill=original.tk.Y)
     self.structure_tree.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
+    self.structure_tree_spacer.configure(
+        height=max(1, int(self.structure_tree_host.winfo_reqheight()))
+    )
+    self.root.after_idle(lambda: _phase6_refresh_sticky_structure_tree(self))
     self.structure_tree.tag_configure("hidden", foreground="#777777")
     self._phase6_structure_tree_guard = False
     self.structure_tree.bind(
