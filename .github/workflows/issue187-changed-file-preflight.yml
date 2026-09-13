@@ -1,0 +1,19 @@
+name: issue187-changed-file-preflight
+on:
+  push:
+    branches:
+      - feat/issue187-3d-output-migration-20260913
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify changed-file preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "#187 T2 migrate 2D-only DXF/STOCK capabilities into 3D Primary Workspace; UI output panel; authoritative DXF/manufacturing; draw_stock; physical part export selection; multipart; persistence; remote QA; 派工" \
+            --changed-file gui.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue187_3d_output_migration.py \
+            --evidence .scratch/issue187/changed_file_preflight_evidence.md
