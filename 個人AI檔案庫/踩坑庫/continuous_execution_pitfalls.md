@@ -39,3 +39,15 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - `.agents/skills/engineering/issue-closure-gate/SKILL.md` → closure gate + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
 - `tests/process/test_checkpoint_resume_contract.py`
 - `tests/process/test_continuous_execution_durable_contract.py`
+
+## ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL
+
+#188 在 real Tk/Xvfb 與 inherited QA 已 terminal GREEN 後，execution window interruption 發生在 durable writeback 前。如果因視窗重開就把 RED/GREEN/remote QA 全部從頭重跑，會浪費 runner、模糊 tested-head provenance，甚至把新的 harness noise 誤當舊 production regression。
+
+永久規則：
+
+- execution window interruption 只把語意狀態切到 `RECOVERING`；它本身不撤銷既有 completed phase evidence。
+- 先 remote refetch production target、反讀 owning Issue recovery checkpoint、核對 work branch + HEAD 與既有 run identity；無 drift 就接 exact next action。
+- **只有 drift 才重驗受影響範圍**；不能因 runtime 重開就重跑全部已完成 phase。
+- exact tested HEAD / ancestry 未變時，既有 terminal QA 可繼續作 evidence；若 run identity / ancestry 改變才重新分類。
+- **使用者不是續跑 scheduler。** recovery identity 驗完且 next action 可自主執行時，要直接續做，不等使用者再說「繼續」。
