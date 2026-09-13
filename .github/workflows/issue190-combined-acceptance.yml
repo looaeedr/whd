@@ -1,0 +1,104 @@
+name: Issue 190 Combined Acceptance
+
+on:
+  push:
+    branches:
+      - fix/issue190-combined-acceptance-20260913
+      - cleanup/2d-3d-sync
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  combined-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf
+          python -m pip install -r requirements.txt
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep
+          fi
+
+      - name: Snapshot config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f config.ini ]; then
+            sha256sum config.ini > /tmp/issue190-config-before.sha256
+            cat /tmp/issue190-config-before.sha256
+          fi
+
+      - name: Compile production modules
+        run: python -m compileall core ui
+
+      - name: T1 selector and text acceptance
+        run: |
+          python -m pytest -q tests/test_drawing_selector_scoping.py
+          python -m pytest -q tests/test_drawing_text_renderer.py
+          python -m pytest -q tests/test_attribute_figure_section_3d.py
+
+      - name: T2 3D workspace preservation acceptance
+        run: |
+          python -m pytest -q tests/test_main_window_width_edit_preserves_3d.py
+          python -m pytest -q tests/test_main_window_output_edit_preserves_3d.py
+          python -m pytest -q tests/test_workspace_state_machine.py
+          python -m pytest -q tests/test_drawing_status_sync.py
+
+      - name: T3 serializer and output regression acceptance
+        run: |
+          python -m pytest -q tests/test_output_serializer.py
+          python -m pytest -q tests/test_issue187_output_regression.py
+
+      - name: T4 direct 3D startup acceptance
+        run: python -m pytest -q tests/test_issue189_direct_3d_startup.py
+
+      - name: Baseline and data-path invariants
+        run: |
+          python -m pytest -q tests/test_test_reference_config.py
+          python -m pytest -q tests/test_data_path_resolver.py
+
+      - name: Full-suite Save-Reload DXF manufacturing coverage
+        run: python -m pytest -q
+
+      - name: Caller-proof audit evidence
+        shell: bash
+        run: |
+          set -uo pipefail
+          pattern='attr1|entity1|selected_1|part1_bins|part2_bins|_part1_bins|_part2_bins|sum\(self\.part|set_three_segment_preset|set_three_segment_partition|_bboxes|_legacy_storage|part2|刨除|反向刨除|not supported yet'
+          set +e
+          rg -n "$pattern" . --glob '!tests/**' --glob '!docs/**' | tee /tmp/issue190-caller-audit.txt
+          rg_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$rg_status" -gt 1 ]; then
+            exit "$rg_status"
+          fi
+          echo "CALLER_AUDIT_MATCH_COUNT=$(wc -l < /tmp/issue190-caller-audit.txt)"
+
+      - name: Post-run config and repository invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/issue190-config-before.sha256 ]; then
+            sha256sum -c /tmp/issue190-config-before.sha256
+          fi
+          git diff --exit-code
+          status_output="$(git status --porcelain)"
+          if [ -n "$status_output" ]; then
+            printf '%s\n' "$status_output"
+            exit 1
+          fi
