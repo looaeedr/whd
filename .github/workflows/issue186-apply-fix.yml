@@ -1,0 +1,32 @@
+name: issue186-apply-fix
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.scratch/issue186/apply_sticky_selector.py'
+      - '.github/workflows/issue186-apply-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Apply minimal issue186 production fix
+        run: python .scratch/issue186/apply_sticky_selector.py
+      - name: Commit exact production diff
+        run: |
+          git diff --check
+          git diff -- fold_designer_bridge.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'fix(issue186): keep sheet-metal selector visible while inputs scroll'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
