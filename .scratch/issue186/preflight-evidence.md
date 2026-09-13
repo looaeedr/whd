@@ -11,6 +11,7 @@ READ_SKILL: UI設計與去AI味
 READ_SKILL: phase6-corner-3d-model-integrity
 READ_SKILL: diagnosing-bugs
 READ_SKILL: tdd
+READ_SKILL: Python測試實務
 READ_SKILL: monitoring-remote-qa
 READ_SKILL: 驗證板件與DXF
 READ_SKILL: 截角資料入口收斂
@@ -31,3 +32,4 @@ Notes:
 - UI rehost structural presence is not sufficient; critical selector must be mapped/reachable/interactive.
 - Explicit parent/child identity remains owned by DM7 navigation; no new selector may become identity authority.
 - Validation is judge-only; no manufacturing/DXF geometry authority change is permitted in T1.
+- Planned changed files for the RED/GREEN slice: fold_designer_bridge.py and tests/test_issue186_sheetmetal_selector_visibility.py.
