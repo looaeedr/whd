@@ -51,3 +51,17 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - **只有 drift 才重驗受影響範圍**；不能因 runtime 重開就重跑全部已完成 phase。
 - exact tested HEAD / ancestry 未變時，既有 terminal QA 可繼續作 evidence；若 run identity / ancestry 改變才重新分類。
 - **使用者不是續跑 scheduler。** recovery identity 驗完且 next action 可自主執行時，要直接續做，不等使用者再說「繼續」。
+
+## ISSUE188_STALE_WAIT_PITFALL
+
+這次 #188 又暴露另一個長流程失敗模式：checkpoint 寫著 `WAITING_REMOTE_QA`，但實際 GitHub 已無 active run，worker 仍把舊 waiting 字樣當成目前真實狀態，因而無限等待。
+
+永久規則：
+
+- `WAITING_REMOTE_QA` 不是 durable truth；它必須由 exact `run_id + head_sha` 的 live readback 支持。沒有 run identity 或 run 已 terminal，就不得繼續 waiting。
+- checkpoint 寫著 WAITING_REMOTE_QA 但 GitHub 已無 active run 時，分類為 `STALE_WAIT`，不是「還在跑」。
+- exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
+- recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
+- global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
+- 30 秒 polling 是 controller 責任，不是使用者責任；**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
+- machine guard 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 鎖定。
