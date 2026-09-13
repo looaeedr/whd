@@ -58,3 +58,23 @@ def test_execution_window_cut_is_recovery_not_rollback_or_scheduler_handoff():
     assert "completed phase evidence" in pitfalls
     assert "只有 drift 才重驗受影響範圍" in pitfalls
     assert "使用者不是續跑 scheduler" in pitfalls
+
+
+def test_remote_qa_waiting_state_cannot_survive_without_an_active_locked_run():
+    monitoring = _read(MONITORING_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "STALE_WAIT_WATCHDOG" in monitoring
+    assert "WAITING_REMOTE_QA" in monitoring
+    assert "RECOVERING_STALE_WAIT" in monitoring
+    assert "active run = 0" in monitoring
+    assert "沒有 run_id + head_sha 就禁止進入 waiting" in monitoring
+    assert "只有 queued / in_progress 才允許維持 waiting" in monitoring
+    assert "terminal run 立即退出 waiting" in monitoring
+    assert "連續 2 次" in monitoring
+    assert "30 秒" in monitoring
+    assert "ISSUE188_STALE_WAIT_PITFALL" in pitfalls
+    assert "checkpoint 寫著 WAITING_REMOTE_QA" in pitfalls
+    assert "GitHub 已無 active run" in pitfalls
+    assert "STALE_WAIT" in pitfalls
+    assert "使用者不是 watchdog" in pitfalls
