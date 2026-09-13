@@ -1,0 +1,121 @@
+name: issue187-durable-writeback-green
+on:
+  push:
+    branches:
+      - feat/issue187-3d-output-migration-20260913
+    paths:
+      - .github/workflows/issue187-durable-writeback-green.yml
+permissions:
+  contents: write
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Append minimal durable #187 contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          updates = {
+              Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md'): r'''
+
+## #187：3D Output rehost 的操作面契約
+
+<!-- ISSUE187_3D_OUTPUT_REHOST_CONTRACT -->
+
+把既有功能搬到 3D primary workspace 時，**rehost widget 不等於重建 state**：
+
+- 若 application 已有正式 state owner / callback（例如既有 `BooleanVar`、SettingsService、export action），新 3D control 直接綁定該 owner；不得為了畫面方便建立第二份 presentation-owned state。
+- `輸出` 這類 shop-floor critical controls，驗收不能只證明 Frame / container 被建立；必須在真 Tk/Xvfb 證明 control **mapped、reachable、interactive**。
+- WHD current primary workspace 的 top command row 維持真正頂層命令；DXF/STOCK 等 output controls 放在正式 operator/workspace control region，不因搬家重新塞回 top toolbar。
+- 對小／中／大 `1.0 / 1.2 / 1.4` 都要驗 control 仍可見或可到達，且 primary action 不 clipping、不被其他 surface 蓋住。
+- UI refresh / presence projection 只能刷新 presentation；不得藉 redraw、reload 或 presence sync 偷改另一個獨立的 operator intention。
+''',
+              Path('.agents/skills/engineering/驗證板件與DXF/SKILL.md'): r'''
+
+## #187：Output 三種 truth 分離與差分驗收
+
+<!-- ISSUE187_OUTPUT_TRUTH_SEPARATION_CONTRACT -->
+
+3D Output / DXF 驗收必須把下列三種 truth 分開驗，不得共用一份 checkbox state 冒充：
+
+1. **physical presence**：current workspace / manufacturing resolver 的實體板件集合；
+2. **3D visibility**：assembly view-only 顯示狀態；
+3. **DXF export intention**：操作員要輸出的板件選擇。
+
+正式規則：
+
+- 實際可輸出的檔案集合可以由 `export intention ∩ physical presence` 約束；但 presence add/remove/restore **不得反向改寫 export intention**，3D visibility 也不得控制 DXF export selection。
+- Current `.p6fold` project load 負責恢復 physical topology / project state；若 schema 沒有明確擁有 runtime export intention，就不得因「板件存在／不存在」偷偷勾選或取消 DXF export checkbox。
+- 3D 的「輸出選取的 DXF 檔案」只應委派既有 authoritative exporter / manufacturing pipeline；UI regression 可以驗 delegation 與 state routing，真正製造成品仍要做 save DXF → `ezdxf.readfile()` reopen → canonical compare。
+- 若 Combined/acceptance 出現失敗，先在**精確 production baseline**重跑同 nodeid。只有 production baseline 原本也以同原因失敗、candidate 沒新增失敗時，才可標記為 inherited baseline debt；不得把一般 FAIL 改名成 PASS。
+- Tk/GUI 測試若只在大包同 process 失敗、fresh process GREEN，先分類 test-order / lifecycle leakage；未證明 production 行為錯誤前不得修改 production 迎合污染狀態。
+''',
+              Path('個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md'): r'''
+
+## Issue #187 延伸：搬功能時不要把 state 一起複製（2026-09-13）
+
+Marker: ISSUE187_OUTPUT_MIGRATION_PITFALL
+
+舊 2D shell 的能力搬進 3D 時，最容易犯的錯不是「按鈕沒搬」，而是把 widget、presence 與 output selection 一起複製成第二套 state。正確做法是 **搬操作面，不搬 authority**：新 3D control 直接重用既有 SettingsService / export variables / batch export callback。
+
+必須分清：physical presence、3D visibility、DXF export intention 是三件事。presence 只能限制不存在的板件不能實際輸出，不能在 add/remove/load 時順手把 export checkbox 改掉；`.p6fold` 恢復 physical topology 也不等於恢復未納入 schema 的 runtime export intention。
+
+驗收若在大型 Xvfb suite 才出現 Tk `after` / widget lifecycle 失敗，先把可疑 nodeid 放 fresh process 重跑，再到 exact production baseline 做同 nodeid 分類；production 與 candidate 精確同紅才算 inherited debt。不要看到大包紅燈就直接改 production，也不要用「既有失敗」掩蓋 candidate 新增 failure。
+
+Critical Output surface 最後仍要在 `1.0 / 1.2 / 1.4` 真 GUI 下驗 mapped / reachable / interactive，不能只 grep widget 名稱或只看 container 存在。
+''',
+          }
+
+          for path, addition in updates.items():
+              text = path.read_text(encoding='utf-8')
+              marker = next(line.strip('<!-> ') for line in addition.splitlines() if line.strip().startswith('<!-- ISSUE187'))
+              if marker in text:
+                  raise SystemExit(f'{path}: marker already exists unexpectedly: {marker}')
+              if not text.endswith('\n'):
+                  text += '\n'
+              path.write_text(text + addition.lstrip('\n'), encoding='utf-8')
+          PY
+      - name: Durable contracts GREEN
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          ui = Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md').read_text(encoding='utf-8')
+          validation = Path('.agents/skills/engineering/驗證板件與DXF/SKILL.md').read_text(encoding='utf-8')
+          pitfall = Path('個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md').read_text(encoding='utf-8')
+          assert 'ISSUE187_3D_OUTPUT_REHOST_CONTRACT' in ui
+          assert 'mapped、reachable、interactive' in ui
+          assert '第二份 presentation-owned state' in ui
+          assert 'ISSUE187_OUTPUT_TRUTH_SEPARATION_CONTRACT' in validation
+          assert 'export intention ∩ physical presence' in validation
+          assert 'exact production baseline' in validation
+          assert 'ISSUE187_OUTPUT_MIGRATION_PITFALL' in pitfall
+          assert '搬操作面，不搬 authority' in pitfall
+          assert 'fresh process' in pitfall
+          print('ISSUE187_DURABLE_WRITEBACK=GREEN')
+          PY
+      - name: Re-run exact changed-file preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "#187 T2 durable writeback after 3D DXF/STOCK migration; update existing UI Skill, DXF validation Skill, and legacy 2D retirement pitfall; physical presence vs 3D visibility vs DXF export intention; project load; differential baseline QA; 派工" \
+            --changed-file '.agents/skills/engineering/UI設計與去AI味/SKILL.md' \
+            --changed-file '.agents/skills/engineering/驗證板件與DXF/SKILL.md' \
+            --changed-file '個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md' \
+            --evidence .scratch/issue187/changed_file_preflight_evidence.md
+      - name: Diff check
+        run: git diff --check -- '.agents/skills/engineering/UI設計與去AI味/SKILL.md' '.agents/skills/engineering/驗證板件與DXF/SKILL.md' '個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md'
+      - name: Commit durable writeback
+        shell: bash
+        run: |
+          git config user.name 'looaeedr'
+          git config user.email '76246585+looaeedr@users.noreply.github.com'
+          git add '.agents/skills/engineering/UI設計與去AI味/SKILL.md' '.agents/skills/engineering/驗證板件與DXF/SKILL.md' '個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md'
+          git diff --cached --check
+          git commit -m 'docs(issue187): preserve output state authorities during 3D migration'
+          git push origin HEAD:feat/issue187-3d-output-migration-20260913
