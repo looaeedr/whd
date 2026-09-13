@@ -39,14 +39,17 @@ jobs:
           diagnosing-bugs
           tdd
           寫技能
+          截角資料入口收斂
           phase6-release-packaging
           monitoring-remote-qa
           UI設計與去AI味
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
           READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
           READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          READ_REFERENCE: release_required_artifacts.json
           EOF
           python tools/phase6_skill_preflight.py \
             --task 'T8 派工：#181 Knowledge Skill Authority Combined Acceptance，整合 R1-R5 anti-drift guards，補回 #175 已驗證但未進 production 的 DM7 durable artifacts' \
