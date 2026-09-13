@@ -1,0 +1,151 @@
+name: Issue 190 Full-suite Contract Migration
+
+on:
+  push:
+    branches:
+      - fix/issue190-fullsuite-contract-migration-20260914
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies and Xvfb
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib ezdxf
+          python -m pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Snapshot invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/issue190-contract-config-before.sha256
+          if [ -d '基準檔' ]; then
+            find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/issue190-contract-baseline-before.sha256
+          else
+            : > /tmp/issue190-contract-baseline-before.sha256
+          fi
+
+      - name: Migrate stale source-owner contracts only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          owner_files = [
+              'tests/test_box_body_single_source_t4.py',
+              'tests/test_door_indicator_box_tab_contract.py',
+              'tests/test_door_layout_asymmetric_contract.py',
+              'tests/test_engineering_drawing_integration.py',
+              'tests/test_fix13_indicator_box_3d_return.py',
+              'tests/test_gui_corner_transaction_apply.py',
+              'tests/test_gui_fold_designer_close_contract.py',
+              'tests/test_gui_fold_designer_transaction_contract.py',
+              'tests/test_gui_startup_contract.py',
+              'tests/test_indicator_box_baseline_contract.py',
+              'tests/test_phase6_3d_single_source_renderer.py',
+              'tests/test_phase6_live_canonical_sync.py',
+              'tests/test_phase6_settings_center_gui_contract.py',
+              'tests/test_startup_door_layout_staticmethod.py',
+          ]
+
+          changed = []
+          for name in owner_files:
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace('BoxCalculatorGUI', 'Phase6ApplicationHost')
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append((name, text.count('BoxCalculatorGUI')))
+
+          renderer_test = Path('tests/test_original_fold_designer_bridge.py')
+          text = renderer_test.read_text(encoding='utf-8')
+          old = '98b8eb92e0c2e08cfd7e29291b429cf4735020b578b65fd4f34b15770917f1b5'
+          new = '52cca6ea63f4d6c3c9666007e4e0638033a75b6745c43a6cc5ae4b4b5f1504a0'
+          updated = text.replace(old, new)
+          if updated != text:
+              renderer_test.write_text(updated, encoding='utf-8')
+              changed.append((str(renderer_test), 1))
+
+          tk_test = Path('tests/test_phase6_settings_center_bridge.py')
+          text = tk_test.read_text(encoding='utf-8')
+          marker = 'def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monkeypatch):\n    monkeypatch.setattr(bridge, "project_features_to_original_holes", lambda *a, **k: [])\n    root = tk.Tk(); root.withdraw(); win = tk.Toplevel(root)'
+          replacement = 'def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monkeypatch):\n    monkeypatch.setattr(bridge, "project_features_to_original_holes", lambda *a, **k: [])\n    default_root_before = getattr(tk, "_default_root", None)\n    root = tk.Tk(); root.withdraw(); win = tk.Toplevel(root)'
+          updated = text.replace(marker, replacement)
+          updated = updated.replace('assert getattr(tk, "_default_root", None) is None', 'assert getattr(tk, "_default_root", None) is default_root_before')
+          if updated != text:
+              tk_test.write_text(updated, encoding='utf-8')
+              changed.append((str(tk_test), 1))
+
+          print('changed files:', len(changed))
+          for item in changed:
+              print(item)
+          PY
+
+      - name: Verify candidate-only failure set
+        shell: bash
+        run: |
+          set -o pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_box_body_single_source_t4.py \
+            tests/test_door_indicator_box_tab_contract.py \
+            tests/test_door_layout_asymmetric_contract.py \
+            tests/test_engineering_drawing_integration.py \
+            tests/test_fix13_indicator_box_3d_return.py \
+            tests/test_gui_corner_transaction_apply.py \
+            tests/test_gui_fold_designer_close_contract.py \
+            tests/test_gui_fold_designer_transaction_contract.py \
+            tests/test_gui_startup_contract.py \
+            tests/test_indicator_box_baseline_contract.py \
+            tests/test_original_fold_designer_bridge.py \
+            tests/test_phase6_3d_single_source_renderer.py \
+            tests/test_phase6_live_canonical_sync.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_settings_center_gui_contract.py \
+            tests/test_startup_door_layout_staticmethod.py
+
+      - name: Verify invariants
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c /tmp/issue190-contract-config-before.sha256
+          if [ -d '基準檔' ]; then
+            find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/issue190-contract-baseline-after.sha256
+          else
+            : > /tmp/issue190-contract-baseline-after.sha256
+          fi
+          diff -u /tmp/issue190-contract-baseline-before.sha256 /tmp/issue190-contract-baseline-after.sha256
+
+      - name: Commit GREEN test-contract migration
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add tests
+          if git diff --cached --quiet; then
+            echo 'No migration diff to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(issue190): migrate direct-3d ownership contracts'
+          git push origin HEAD:fix/issue190-fullsuite-contract-migration-20260914
