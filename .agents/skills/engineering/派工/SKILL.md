@@ -39,6 +39,21 @@ disable-model-invocation: true
 
 修改任務一律遵守 branch-first：反讀 authoritative target HEAD → 從該 HEAD 建新 work branch → 反讀 branch base → 才能寫檔。不得直接 patch `cleanup/2d-3d-sync` / `main`。
 
+### WORK_ORDER_LINEAGE_CONTRACT
+
+當一個 Master / 工單被拆成 T1/T2/... 多張子票時，branch-first 的單位是**整張工單**，不是每張子票各自重新從 production 起跑。
+
+- 派工開始時，從當下 authoritative production target HEAD 建立唯一長期 **工單主分支**，並記錄 work-order branch、base SHA、production target、production HEAD。
+- 工單主分支是該 Master 在 final integration 前的 accepted lineage owner。每完成一張子票並通過必要 acceptance，就把 accepted result non-force 收回工單主分支，更新其 accepted HEAD。
+- **子票不得重新從 production target 起跑**。下一張子票的 authoritative base 必須是目前工單主分支 accepted HEAD；如果 production 尚未包含上一張子票，這正是不能從 production 重開的原因。
+- 若需要隔離修改／QA，可從目前工單主分支 HEAD 開短命 `task/QA branch`；該 branch 只負責隔離施工或驗證，驗收後 non-force 回到工單主分支，不得成為新的長期 lineage owner。
+- 工單完成前，**production target 只作 integration target / drift authority**；可用來 refetch、比較 drift、檢查外部變更，但不得用其較舊 HEAD 覆蓋或取代前序 accepted lineage。
+- 每張 child Issue / checkpoint / handoff 必須同時記錄 `work-order branch + accepted HEAD + production target + production HEAD`；只寫 production SHA 不足以作下一張票的 branch base authority。
+- Tn → Tn+1 handoff 前必須證明 Tn accepted HEAD 是 Tn+1 base 的 ancestor；若不成立，先分類 lineage divergence，禁止直接施工。
+- 只有整張工單 Combined Acceptance、durable Skill/AI writeback、config/protected invariants、temporary QA cleanup、tested-head→closing-head drift audit 全完成後，才把**整張工單 final verified work-order HEAD**對 production 做**一次 non-force 整合**。
+- production 整合後才由 post-integration ticket / sentinel 以 actual production HEAD 作 authority；若 post-integration FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不 force target 回舊 SHA。
+- 若既有工單已發生 T3/T4 類 lineage divergence，先保留所有已驗收 commit/evidence，建立或修復單一 work-order lineage，再續工；不得為了「從 production 重新開始比較乾淨」而丟掉前序 accepted work。
+
 ### 1.2 能力偵測
 
 - 若環境真的支援獨立 Subagent Runtime，可以把 Worker/QA 放到隔離上下文；每個 Subagent 仍必須自行重跑相同 Preflight、讀相同 authority 並留下自己的 evidence。
@@ -392,6 +407,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] description 只描述觸發邊界與核心責任，不塞完整 workflow。
 - [ ] Skill 少於 500 行。
 - [ ] `AGENTS.md` / Preflight / branch-first 明確且不被派工繞過。
+- [ ] `WORK_ORDER_LINEAGE_CONTRACT`：多子票 Master 只建立一條工單主分支；子票從 accepted work-order HEAD 續工，production 只作 integration target / drift authority，整張工單 final verified work-order HEAD 才一次 non-force 整合。
 - [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可當 observation；沒有合法 stop condition 時立即執行下一個可執行 action。
 - [ ] 「不假報完成」與「持續施工」兩個義務都存在，前者不能被拿來當停工理由。
 - [ ] PM → Implementer → QA 角色標記完整。
