@@ -5397,6 +5397,86 @@ def _phase6_refresh_sticky_structure_tree(self):
         return
 
 
+def _phase6_commit_output_draw_stock(self):
+    """Commit the 3D STOCK toggle through the existing draw_stock setting."""
+    value = bool(self.output_draw_stock_var.get())
+    _phase6_stage_setting_update(self, "draw_stock", value)
+    return value
+
+
+def _phase6_export_selected_dxf_from_3d(self):
+    """Delegate the 3D action to the existing authoritative batch exporter."""
+    self.flush_pending_settings()
+    callback = getattr(self, "_phase6_export_selected_dxf_callback", None)
+    if callback is None:
+        return None
+    return callback()
+
+
+def _phase6_build_output_controls(self):
+    """Formal 3D Output surface; presentation only, with existing state owners."""
+    host = self.right_controls_host
+    self.output_controls_frame = original.ttk.LabelFrame(
+        host, text="輸出", padding=(8, 6)
+    )
+    self.output_controls_frame.pack(fill=original.tk.X, pady=(5, 0))
+
+    draw_stock_var = getattr(self, "_phase6_external_draw_stock_var", None)
+    if draw_stock_var is None:
+        draw_stock_var = original.tk.BooleanVar(
+            master=self.output_controls_frame,
+            value=bool(self._settings_values.get("draw_stock", False)),
+        )
+    self.output_draw_stock_var = draw_stock_var
+    self.output_draw_stock_check = original.ttk.Checkbutton(
+        self.output_controls_frame,
+        text="輸出 STOCK 母材外框",
+        variable=self.output_draw_stock_var,
+        command=lambda: _phase6_commit_output_draw_stock(self),
+    )
+    self.output_draw_stock_check.pack(anchor=original.tk.W, pady=(0, 4))
+
+    parts_host = original.ttk.Frame(self.output_controls_frame)
+    parts_host.pack(fill=original.tk.X)
+    external_vars = dict(getattr(self, "_phase6_external_export_vars", {}) or {})
+    labels = (
+        ("box_body", "箱身"),
+        ("head", "封頭"),
+        ("tail", "封尾"),
+        ("door", "門"),
+        ("base_plate", "底板"),
+        ("indicator_box", "指示燈盒子"),
+        ("indicator_door", "指示燈小門"),
+    )
+    default_enabled = {
+        "box_body": True, "head": True, "tail": True,
+        "door": True, "base_plate": True,
+        "indicator_box": False, "indicator_door": False,
+    }
+    self.output_export_vars = {}
+    self.output_export_checks = {}
+    for index, (key, label) in enumerate(labels):
+        var = external_vars.get(key)
+        if var is None:
+            var = original.tk.BooleanVar(
+                master=parts_host, value=bool(default_enabled[key])
+            )
+        self.output_export_vars[key] = var
+        check = original.ttk.Checkbutton(parts_host, text=label, variable=var)
+        check.grid(
+            row=index // 3, column=index % 3, sticky=original.tk.W,
+            padx=(0, 12), pady=1,
+        )
+        self.output_export_checks[key] = check
+
+    self.output_export_button = original.ttk.Button(
+        self.output_controls_frame,
+        text="輸出選取的 DXF 檔案",
+        command=lambda: _phase6_export_selected_dxf_from_3d(self),
+    )
+    self.output_export_button.pack(anchor=original.tk.W, pady=(5, 0))
+
+
 def _phase6_build_persistent_top_area(self):
     """Operator layout: top commands, scrollable left inputs, right controls/canvas."""
     previous_status = getattr(self, "status_bar", None)
@@ -5457,6 +5537,7 @@ def _phase6_build_persistent_top_area(self):
         command=lambda: _phase6_toggle_fullscreen(self),
     )
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
+    _phase6_build_output_controls(self)
     _phase6_pack_right_panel_above_canvas(self, self.right_controls_host)
 
     # The complete existing left workspace is one scroll owner. It keeps the same
@@ -8340,7 +8421,7 @@ _FIX10_INIT = Phase6FoldDesignerApp.__init__
 _FIX10_EXPORT = Phase6FoldDesignerApp.export_phase6_snapshot
 
 
-def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None):
+def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
     # Atomic lifecycle: inherited Tk construction may invoke traced callbacks and
     # legacy do_update() methods, but none of those bootstrap intermediates are
     # authoritative live-sync state. Publish is disabled until the final Phase6
@@ -8394,6 +8475,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._project_load_callback = on_project_load
     self._project_path_change_callback = on_project_path_change
     self._project_save_callback = on_project_save
+    self._phase6_external_draw_stock_var = output_draw_stock_var
+    self._phase6_external_export_vars = dict(output_export_vars or {})
+    self._phase6_export_selected_dxf_callback = on_export_selected_dxf
     self._phase6_box_body_active_piece_key = str(snapshot.get("box_body_active_piece") or "")
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})

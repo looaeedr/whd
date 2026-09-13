@@ -2055,12 +2055,9 @@ class BoxCalculatorGUI:
         # Box body is the mandatory Fold Chain owner.
         existing.add("box_body")
         existing = self.workspace_controller.apply_authoritative_existing_parts(existing)
-        for key, var in (
-            ("box_body", self.export_z_var), ("head", self.export_head_var),
-            ("tail", self.export_tail_var), ("door", self.export_door_var),
-            ("base_plate", self.export_base_plate_var),
-        ):
-            var.set(self._phase6_logical_part_present(existing, key))
+        # DXF export selection is an independent operator intention.
+        # Physical presence constrains what export_selected_dxf() may emit, but
+        # changing presence must never rewrite the export checkboxes themselves.
         self.is_indicator_box_var.set("indicator_box" in existing)
         # Small indicator door may exist independently of the box in project
         # state; the existing legacy toggle represents the standalone-door mode.
@@ -2697,6 +2694,17 @@ class BoxCalculatorGUI:
             on_project_load=load_project_from_designer,
             on_project_path_change=project_path_changed,
             on_project_save=save_project_from_designer,
+            output_draw_stock_var=self.draw_stock_var,
+            output_export_vars={
+                "box_body": self.export_z_var,
+                "head": self.export_head_var,
+                "tail": self.export_tail_var,
+                "door": self.export_door_var,
+                "base_plate": self.export_base_plate_var,
+                "indicator_box": self.export_ib_var,
+                "indicator_door": self.export_ib_door_var,
+            },
+            on_export_selected_dxf=lambda: self.export_selected_dxf(),
         )
         designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
         self.fold_designer_window = window
