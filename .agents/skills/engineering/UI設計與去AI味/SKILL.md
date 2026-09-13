@@ -254,7 +254,7 @@ WHD 現有 text scale：
 
 ### Structural
 
-只有當整個 workspace 的 grouping / canvas-control split / scroll structure 本身妨礙使用時才採用。即使 Structural，也不能改 business behavior、domain semantics 或 manufacturing authority。
+只有當整個 workspace 的 grouping / canvas-control split / scroll structure本身妨礙使用時才採用。即使 Structural，也不能改 business behavior、domain semantics 或 manufacturing authority。
 
 禁止把「去 AI 味」當成整份 `gui.py` 重建許可。
 
@@ -319,3 +319,12 @@ Rewrite 後重新檢查：
 - 展開 canvas 的黑底、initial fit 與 `zoom / fit / pan` 全屬 presentation。
 - 顯示 transform 只能讀 authoritative `PartRenderData` 與目前 physical part/material；不得修改 `PartRenderData`、`part_key`、`material WKB`、Save→Reload payload 或 DXF。
 - fit ratio、像素 bbox、截圖與 viewport 量測只可作 validation evidence；不得回灌 manufacturing geometry。
+
+## #186 critical operator control 的 real-GUI 驗收（2026-09-13）
+
+<!-- ISSUE186_CRITICAL_CONTROL_VISIBILITY -->
+- UI rehost / layout rewrite 的 structural contract（parent/container 存在、widget 已建立）**不等於** operator control 真正可用。對 Structure Tree、板件 selector、主要 action 等 critical control，驗收必須在可用 visual runtime 下直接驗 `mapped/viewable`、viewport overlap / reachability、interaction，以及 resize / scroll 後仍可操作。
+- 文字倍率 `1.0 / 1.2 / 1.4` 都屬正式 contract；不得只驗初始大視窗或小字級。若 control 是固定導覽面、下方 inputs 需要 scroll，必須明確驗證捲到底時 critical control 不會一起消失。
+- 修 layout regression 時優先保留既有 single authoritative selector / callback / stable identity；不得用新增第二顆 selector 掩蓋 mounting / scroll-owner 根因。
+- 若較新的 accepted layout contract 已 rehost controls，舊測試仍硬鎖舊 parent/row ownership，該測試屬 superseded authority。必須先依 current accepted contract 分類並更新 stale assertion；**不得為了讓舊測試 GREEN 把 production UI 搬回舊 layout**。
+- QA harness 的 FAIL 必須區分 production regression、stale/superseded test contract 與 harness false failure；只有 production regression 才能驅動 production fix。
