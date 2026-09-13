@@ -9,6 +9,7 @@ Required Skills read:
 - 派工
 - issue-closure-gate
 - phase6-corner-3d-model-integrity
+- phase6-release-packaging
 - monitoring-remote-qa
 - 驗證板件與DXF
 
@@ -17,4 +18,9 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與�
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: release_required_artifacts.json
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+Persistence/release boundary reread for the added test file:
+- tests/test_phase6_project_file.py is a mandatory release artifact, so its contract update must retain .p6fold/load behavior and cannot smuggle runtime-only state into project truth.
+- release_required_artifacts.json keeps config.ini forbidden from UPDATE and .scratch/.git excluded from packages.
