@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "issue": 190,
+  "issue_url": "https://github.com/looaeedr/whd/issues/190",
+  "status": "active",
+  "owner": "chatgpt-gpt-5.6-sol",
+  "generation": 1,
+  "claimed_at": "2026-09-13T12:23:28Z",
+  "last_update": "2026-09-13T12:23:28Z",
+  "released_at": null,
+  "phase": "PREFLIGHT_READ",
+  "branch": "fix/issue190-combined-acceptance-20260913",
+  "base_sha": "68f0cc24a33ace3c22d5665ae96d3d63b8daa391",
+  "head_sha": "20c5ae97778f61dd9eaa2b966d3f0d083878fa01",
+  "work_order_branch": "work/issue185-3d-primary-workspace-20260913",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_target_sha": "06da676e18a365075cbfa0a517ff73a1784b2a6d",
+  "remote_qa": {
+    "run_id": 34756850687,
+    "head_sha": "20c5ae97778f61dd9eaa2b966d3f0d083878fa01",
+    "status": "failure",
+    "result": "Preflight discovery fail-closed: required Skills/references not yet acknowledged"
+  },
+  "next_action": "Read all required Skills and references from run 34756850687, then rerun the same Phase6 preflight to GREEN before production/test/Skill/AI Library writes.",
+  "blocker": null,
+  "terminal_evidence": null,
+  "issue_closed_at": null,
+  "checkpoint": "T5 branch created from accepted T4 work-order HEAD. Production is ancestor of work-order lineage. Preflight discovery ran remotely and correctly failed closed on unread required evidence."
+}
