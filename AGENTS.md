@@ -50,6 +50,14 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 5. 總控不得接受只有口頭進度、無 checkpoint path、無 journal/state、無角色標記的 Subagent / Worker 回報；此類回報必須退回補落盤，或標記為不可續跑並重建證據。
 6. **同步遠端 QA 必須啟動 `monitoring-remote-qa`**：只要建立 GitHub Actions / remote QA run，就必須記錄本輪 `run_id + head_sha` 並持續監控至 terminal state；`queued`、`in_progress`、部分 step GREEN、或「workflow 已觸發」都不是停工點。紅燈先抓 logs 分類；GREEN 後才清 temp workflow、寫 durable state/provenance、關單。
 
+### 0.0.2 超長 Log / Context-Safe Execution 硬閘門
+
+<!-- LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 -->
+pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能產生大量輸出，就必須讀並遵守：
+
+`.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`
+
+硬規則：完整 raw log 落檔／artifact，不得整包灌入執行或聊天 context；running 期間只讀 structured status、bounded tail/new chunk；FAIL 先定位 failure marker 再擷取有限上下文；分段讀取必須保存 offset/cursor；Runtime/聊天視窗被切斷後先反查 run/process + branch + HEAD + checkpoint + artifact + cursor，從同一工作續接，禁止因視窗中斷就重跑 full-suite。Remote QA 的 30 秒 active polling 仍由 `monitoring-remote-qa` 擁有，本 gate 不建立第二套 polling state machine。
 ### 0.0.3 成品板件驗收硬閘門：Focused GREEN 不能直接合併
 
 > 本節屬所有 AI / Agent 的第一閱讀規則。只要改動會影響實體板件使用路徑，issue-specific QA 通過後仍必須交接到 `驗證板件與DXF`。

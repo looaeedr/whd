@@ -5,6 +5,9 @@ description: Use when a task has synchronized changes to a remote repository and
 
 # Monitoring Remote QA
 
+## LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 bridge
+
+Remote QA 的 polling 狀態機仍由本 Skill 擁有；**長 Log 的讀取方式一律委派** `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`。正常 poll 只讀 run/jobs/steps + bounded tail/new chunk；完整 raw log 落檔／artifact。FAIL 先定位 failed step/error marker 再讀有限上下文，禁止每輪把整份 job log 灌進 context。
 ## Overview
 Remote QA is a monitored condition loop, not a fire-and-forget action. Triggering a workflow run starts this skill; it does not complete the QA stage.
 
@@ -22,7 +25,7 @@ Remote QA is a monitored condition loop, not a fire-and-forget action. Triggerin
 Remote QA monitoring is **active polling**, not event notification.
 
 - Once a remote `run_id + head_sha` is known, the assistant must proactively query the run state on a recurring loop while the current Runtime is available.
-- Each polling cycle must read at least: **run → jobs → active/pending/failed steps**. When a job or step fails, fetch its log immediately.
+- Each polling cycle must read at least: **run → jobs → active/pending/failed steps**. When a job or step fails, immediately locate the failed step/error marker and retrieve only a bounded failure slice; if the provider exposes only a full download, persist it first and search/chunk it outside the chat context.
 - Do **not** wait for GitHub/webhook/UI/event notifications to tell the assistant that the run changed state. Notifications may be supplemental evidence only; they never replace polling.
 - A lack of new events/messages is **not** a reason to stop. If the run remains `queued` / `in_progress`, schedule the next poll in the same execution loop.
 - During normal active monitoring, poll approximately every **30 seconds** unless a tool call itself is still executing. If a terminal state appears sooner, handle it immediately.
@@ -32,7 +35,7 @@ Remote QA monitoring is **active polling**, not event notification.
 ## Required loop
 1. Record the remote head SHA, workflow/run ID, intended QA gates, and any invariant such as `config.ini` SHA before treating the run as evidence.
 2. **Actively poll** the workflow run, then its jobs and steps, until every required job reaches a terminal state. Do not wait for event notifications/webhooks. A progress update to the user is only an observation point; it must not stop the polling loop.
-3. If a job fails, fetch that job log immediately. Classify the failure as production/test failure vs harness/runner/setup failure using the project debugging/timeout rules. Apply the smallest valid fix or rerun only the affected scope, then monitor the replacement run to terminal state.
+3. If a job fails, locate the failed step/error first and read a bounded slice under `LONG_LOG_CONTEXT_SAFE_EXECUTION_V1`; do not repeatedly fetch/paste the whole log. Classify the failure as production/test failure vs harness/runner/setup failure using the project debugging/timeout rules. Apply the smallest valid fix or rerun only the affected scope, then monitor the replacement run to terminal state.
 4. While the run is `queued` or `in_progress`, continue monitoring in the current execution. **不得只因「已觸發／已開始／還在跑」就停止任務或用進度回報收尾。**
 5. On success, extract exact pass/fail counts and required invariant checks from logs. Remove temporary QA workflow/trigger files, then re-read the remote branch to confirm cleanup.
 6. Write durable state/provenance with run ID, head SHA, terminal conclusion, pass counts, cleanup result, and remaining blockers. Only after this may dispatching QA accept/close the ticket.
@@ -57,6 +60,7 @@ Remote QA monitoring is **active polling**, not event notification.
 - Ending a response because the run is still executing even though monitoring tools are available.
 - Treating GitHub/event notifications as the monitor instead of proactively polling the locked run.
 - Polling only the run status and never checking which job/step failed.
+- Re-fetching or pasting the complete long job log on every poll instead of using bounded failed slices / tail + cursor.
 - Closing the ticket before temporary workflow cleanup and durable state are verified remotely.
 - Sending a 30-second progress update and then ending the assistant turn while the same locked run is still non-terminal.
 - Waiting for the user to type `繼續`, `輪`, `continue`, or `poll` before resuming a remote-QA loop.

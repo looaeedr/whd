@@ -425,6 +425,30 @@
       "required_references": []
     },
     {
+      "id": "long-log-context-safe-execution",
+      "keywords": [
+        "超長 Log",
+        "長輸出",
+        "Long-Log",
+        "long log",
+        "context-safe execution",
+        "tail output",
+        "tail log",
+        "log-failed",
+        "offset cursor",
+        "log 太長",
+        "Xvfb full-suite",
+        "Combined Acceptance log"
+      ],
+      "file_globs": [],
+      "required_skills": [
+        "long-log-context-safe-execution"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      ]
+    },
+    {
       "id": "remote-qa-monitoring",
       "keywords": [
         "遠端 QA",
@@ -442,9 +466,12 @@
         ".github/workflows/*qa*.yaml"
       ],
       "required_skills": [
-        "monitoring-remote-qa"
+        "monitoring-remote-qa",
+        "long-log-context-safe-execution"
       ],
-      "required_references": []
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+      ]
     },
     {
       "id": "part-dxf-acceptance",

@@ -23,6 +23,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 - **[prototype](./prototype/SKILL.md)**
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
+- **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**
 - **[research](./research/SKILL.md)**
 - **[tdd](./tdd/SKILL.md)**
