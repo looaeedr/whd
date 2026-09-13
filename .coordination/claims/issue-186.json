@@ -1,0 +1,15 @@
+{
+  "issue": 186,
+  "issue_url": "https://github.com/looaeedr/whd/issues/186",
+  "worker": "ChatGPT GPT-5.6 Sol / current conversation",
+  "claim_ref": "coord/claim-issue-186",
+  "work_branch": "fix/issue186-restore-sheetmetal-selector-20260913",
+  "claimed_at": "2026-09-13T00:41:00Z",
+  "base_sha": "2e27870497927fa8912135998ef7c4be3ab4220b",
+  "head_sha": "2e27870497927fa8912135998ef7c4be3ab4220b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-13T00:41:00Z",
+  "remote_qa": null,
+  "next_action": "Run required Knowledge Preflight evidence, then create fresh work branch from exact production base and establish real GUI RED.",
+  "blocker": null
+}
