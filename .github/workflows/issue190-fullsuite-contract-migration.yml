@@ -57,12 +57,9 @@ jobs:
               'tests/test_engineering_drawing_integration.py',
               'tests/test_fix13_indicator_box_3d_return.py',
               'tests/test_gui_corner_transaction_apply.py',
-              'tests/test_gui_fold_designer_close_contract.py',
-              'tests/test_gui_fold_designer_transaction_contract.py',
               'tests/test_gui_startup_contract.py',
               'tests/test_indicator_box_baseline_contract.py',
               'tests/test_phase6_3d_single_source_renderer.py',
-              'tests/test_phase6_live_canonical_sync.py',
               'tests/test_phase6_settings_center_gui_contract.py',
               'tests/test_startup_door_layout_staticmethod.py',
           ]
@@ -74,7 +71,22 @@ jobs:
               updated = text.replace('BoxCalculatorGUI', 'Phase6ApplicationHost')
               if updated != text:
                   path.write_text(updated, encoding='utf-8')
-                  changed.append((name, text.count('BoxCalculatorGUI')))
+                  changed.append((name, 'owner'))
+
+          lifecycle_files = [
+              'tests/test_gui_fold_designer_close_contract.py',
+              'tests/test_gui_fold_designer_transaction_contract.py',
+              'tests/test_phase6_live_canonical_sync.py',
+          ]
+          old_signature = '    def open_original_fold_designer(self):'
+          new_signature = '    def open_original_fold_designer(self, *, target_window=None):'
+          for name in lifecycle_files:
+              path = Path(name)
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace(old_signature, new_signature)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append((name, 'direct-3d-signature'))
 
           renderer_test = Path('tests/test_original_fold_designer_bridge.py')
           text = renderer_test.read_text(encoding='utf-8')
@@ -83,7 +95,7 @@ jobs:
           updated = text.replace(old, new)
           if updated != text:
               renderer_test.write_text(updated, encoding='utf-8')
-              changed.append((str(renderer_test), 1))
+              changed.append((str(renderer_test), 'accepted-renderer-theme-hash'))
 
           tk_test = Path('tests/test_phase6_settings_center_bridge.py')
           text = tk_test.read_text(encoding='utf-8')
@@ -93,7 +105,7 @@ jobs:
           updated = updated.replace('assert getattr(tk, "_default_root", None) is None', 'assert getattr(tk, "_default_root", None) is default_root_before')
           if updated != text:
               tk_test.write_text(updated, encoding='utf-8')
-              changed.append((str(tk_test), 1))
+              changed.append((str(tk_test), 'default-root-isolation'))
 
           print('changed files:', len(changed))
           for item in changed:
