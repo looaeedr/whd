@@ -24,56 +24,75 @@ jobs:
           python-version: '3.11'
           cache: pip
 
-      - name: Install dependencies
+      - name: Install dependencies and real-GUI runner
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest matplotlib ezdxf
           python -m pip install -r requirements.txt
-          if ! command -v rg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y ripgrep
-          fi
+          sudo apt-get update
+          sudo apt-get install -y ripgrep xvfb
 
-      - name: Snapshot config invariant
+      - name: Snapshot config and protected-baseline invariants
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f config.ini ]; then
-            sha256sum config.ini > /tmp/issue190-config-before.sha256
-            cat /tmp/issue190-config-before.sha256
+          sha256sum config.ini > /tmp/issue190-config-before.sha256
+          if [ -d '基準檔' ]; then
+            find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/issue190-baseline-before.sha256
+          else
+            : > /tmp/issue190-baseline-before.sha256
           fi
 
       - name: Compile production modules
-        run: python -m compileall core ui
-
-      - name: T1 selector and text acceptance
+        shell: bash
         run: |
-          python -m pytest -q tests/test_drawing_selector_scoping.py
-          python -m pytest -q tests/test_drawing_text_renderer.py
-          python -m pytest -q tests/test_attribute_figure_section_3d.py
+          python -m compileall -q \
+            gui.py fold_designer_bridge.py fold_designer_original.py \
+            phase6_*.py whd_theme.py ae_engine
 
-      - name: T2 3D workspace preservation acceptance
+      - name: T1-T4 permanent real-GUI acceptance
         run: |
-          python -m pytest -q tests/test_main_window_width_edit_preserves_3d.py
-          python -m pytest -q tests/test_main_window_output_edit_preserves_3d.py
-          python -m pytest -q tests/test_workspace_state_machine.py
-          python -m pytest -q tests/test_drawing_status_sync.py
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_issue186_sheetmetal_selector_visibility.py \
+            tests/test_issue187_3d_output_migration.py \
+            tests/test_issue188_dark_theme_readability.py \
+            tests/test_issue189_direct_3d_startup.py
 
-      - name: T3 serializer and output regression acceptance
+      - name: Navigation layout and readability inheritance
         run: |
-          python -m pytest -q tests/test_output_serializer.py
-          python -m pytest -q tests/test_issue187_output_regression.py
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue123_ui_foundation.py \
+            tests/test_issue124_structure_tree.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            tests/test_phase6_latest_layout_contract.py \
+            tests/test_phase6_ui_state_regressions.py \
+            tests/test_phase6_3d_view_regressions.py \
+            tests/test_phase6_final_scene_view_ownership.py \
+            tests/test_phase6_settings_panel_ownership.py
 
-      - name: T4 direct 3D startup acceptance
-        run: python -m pytest -q tests/test_issue189_direct_3d_startup.py
-
-      - name: Baseline and data-path invariants
+      - name: DXF manufacturing export and multipart inheritance
         run: |
-          python -m pytest -q tests/test_test_reference_config.py
-          python -m pytest -q tests/test_data_path_resolver.py
+          xvfb-run -a python -m pytest -q \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_gui_manufacturing_adapter.py \
+            tests/test_phase6_settings_center.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_settings_service.py \
+            tests/test_issue98_existing_2d_capability_migration.py \
+            tests/test_issue100_remove_legacy_2d_entry.py \
+            tests/test_multi_door_gui.py \
+            tests/test_phase6_receiving_multipart_integration.py
 
-      - name: Full-suite Save-Reload DXF manufacturing coverage
-        run: python -m pytest -q
+      - name: Save-Reload project persistence inheritance
+        run: xvfb-run -a python -m pytest -q tests/test_phase6_project_file.py
+
+      - name: Full-suite combined acceptance under Xvfb
+        run: xvfb-run -a python -m pytest -q
 
       - name: Caller-proof audit evidence
         shell: bash
@@ -89,13 +108,18 @@ jobs:
           fi
           echo "CALLER_AUDIT_MATCH_COUNT=$(wc -l < /tmp/issue190-caller-audit.txt)"
 
-      - name: Post-run config and repository invariants
+      - name: Post-run exact invariants
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f /tmp/issue190-config-before.sha256 ]; then
-            sha256sum -c /tmp/issue190-config-before.sha256
+          sha256sum -c /tmp/issue190-config-before.sha256
+          if [ -d '基準檔' ]; then
+            find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/issue190-baseline-after.sha256
+          else
+            : > /tmp/issue190-baseline-after.sha256
           fi
+          diff -u /tmp/issue190-baseline-before.sha256 /tmp/issue190-baseline-after.sha256
           git diff --exit-code
           status_output="$(git status --porcelain)"
           if [ -n "$status_output" ]; then
