@@ -146,3 +146,47 @@ def test_issue187_red_stock_reuses_existing_setting_and_batch_action_delegates()
         )
     finally:
         _close(root)
+
+
+def test_issue187_presence_refresh_never_rewrites_export_intention():
+    root, app, designer = _open_designer()
+    try:
+        export_var = designer.output_export_vars["head"]
+        export_var.set(False)
+        _pump(root)
+        assert bool(app.export_head_var.get()) is False
+
+        current = tuple(app._phase6_current_existing_parts())
+        without_head = tuple(key for key in current if key != "head")
+        app._apply_existing_parts_from_fold_workspace(without_head)
+        _pump(root)
+        assert bool(export_var.get()) is False
+        assert bool(app.export_head_var.get()) is False
+
+        restored = tuple(dict.fromkeys((*without_head, "head")))
+        app._apply_existing_parts_from_fold_workspace(restored)
+        _pump(root)
+        assert bool(export_var.get()) is False, (
+            "physical presence restoration must not silently re-enable DXF export"
+        )
+    finally:
+        _close(root)
+
+
+@pytest.mark.parametrize("ui_text_size", ("small", "medium", "large"))
+def test_issue187_output_surface_stays_mapped_and_reachable_at_all_text_scales(ui_text_size):
+    root, _app, designer = _open_designer()
+    try:
+        designer.apply_external_settings({"ui_text_size": ui_text_size})
+        _pump(root, cycles=5)
+
+        frame = designer.output_controls_frame
+        button = designer.output_export_button
+        assert frame.winfo_ismapped(), f"Output surface hidden at {ui_text_size}"
+        assert button.winfo_ismapped(), f"DXF export action hidden at {ui_text_size}"
+        assert frame.winfo_width() > 1 and frame.winfo_height() > 1
+        assert button.winfo_width() > 1 and button.winfo_height() > 1
+        assert frame.winfo_rootx() >= designer.right_controls_host.winfo_rootx()
+        assert frame.winfo_rooty() >= designer.right_controls_host.winfo_rooty()
+    finally:
+        _close(root)
