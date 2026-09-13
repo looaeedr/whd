@@ -1,0 +1,81 @@
+name: issue186-clean-acceptance-v2
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'tests/test_issue186_sheetmetal_selector_visibility.py'
+      - 'tests/test_phase6_latest_layout_contract.py'
+      - '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+      - '個人AI檔案庫/踩坑庫/issue186_ui_rehost_visibility_and_stale_layout_test_pitfall.md'
+      - '.github/workflows/issue186-clean-acceptance-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  clean-acceptance-v2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+
+      - name: Verify exact candidate surface
+        run: |
+          git fetch origin cleanup/2d-3d-sync --depth=1
+          git diff --name-only origin/cleanup/2d-3d-sync...HEAD | tee /tmp/issue186.changed
+          python - <<'PY'
+          from pathlib import Path
+          changed = {line.strip() for line in Path('/tmp/issue186.changed').read_text().splitlines() if line.strip()}
+          expected = {
+              'fold_designer_bridge.py',
+              'tests/test_issue186_sheetmetal_selector_visibility.py',
+              'tests/test_phase6_latest_layout_contract.py',
+              '.agents/skills/engineering/UI設計與去AI味/SKILL.md',
+              '個人AI檔案庫/踩坑庫/issue186_ui_rehost_visibility_and_stale_layout_test_pitfall.md',
+              '.github/workflows/issue186-clean-acceptance-v2.yml',
+          }
+          assert changed == expected, f'candidate surface mismatch: changed={sorted(changed)} expected={sorted(expected)}'
+          PY
+          grep -F '<!-- ISSUE186_CRITICAL_CONTROL_VISIBILITY -->' '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+          grep -F '<!-- ISSUE186_UI_REHOST_VISIBILITY_PITFALL -->' '個人AI檔案庫/踩坑庫/issue186_ui_rehost_visibility_and_stale_layout_test_pitfall.md'
+
+      - name: Capture exact invariants
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+
+      - name: Focused real Tk selector regression
+        run: xvfb-run -a pytest -q -s tests/test_issue186_sheetmetal_selector_visibility.py
+
+      - name: Current layout authority and inherited UI navigation regressions
+        run: |
+          xvfb-run -a pytest -q \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue124_structure_tree.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_phase6_latest_layout_contract.py \
+            tests/test_phase6_ui_state_regressions.py \
+            tests/test_phase6_3d_view_regressions.py
+
+      - name: Verify exact invariants
+        if: always()
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
