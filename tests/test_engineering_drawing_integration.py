@@ -57,7 +57,7 @@ def test_all_primary_2d_previews_delegate_annotation_projection():
     )
     missing = []
     for method in methods:
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
         if "_draw_phase6_annotation_projection" not in src:
             missing.append(method)
     assert not missing, (
@@ -133,7 +133,7 @@ def test_all_primary_2d_previews_consume_shared_finished_dimension_summary():
     )
     missing = []
     for method in methods:
-        src = _class_method_source(gui_path, "BoxCalculatorGUI", method)
+        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
         if "_draw_phase6_finished_dimension_summary" not in src:
             missing.append(method)
     assert not missing, (

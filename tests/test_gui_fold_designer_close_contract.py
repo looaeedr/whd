@@ -3,7 +3,7 @@ from pathlib import Path
 
 def _open_block():
     source = Path('gui.py').read_text(encoding='utf-8')
-    start = source.index('    def open_original_fold_designer(self):')
+    start = source.index('    def open_original_fold_designer(self, *, target_window=None):')
     end = source.index('\n    def on_fw_selected', start)
     return source[start:end]
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 SOURCE = Path("gui.py").read_text(encoding="utf-8")
 TREE = ast.parse(SOURCE)
-GUI = next(node for node in TREE.body if isinstance(node, ast.ClassDef) and node.name == "BoxCalculatorGUI")
+GUI = next(node for node in TREE.body if isinstance(node, ast.ClassDef) and node.name == "Phase6ApplicationHost")
 
 
 def method_source(name):

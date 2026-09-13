@@ -122,6 +122,7 @@ def test_save_button_delegates_only_current_context(monkeypatch):
 
 def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monkeypatch):
     monkeypatch.setattr(bridge, "project_features_to_original_holes", lambda *a, **k: [])
+    default_root_before = getattr(tk, "_default_root", None)
     root = tk.Tk(); root.withdraw(); win = tk.Toplevel(root)
     published = []
     try:
@@ -162,5 +163,5 @@ def test_part_settings_center_corner_pair_edit_uses_live_canonical_callback(monk
             root.destroy()
         except tk.TclError:
             pass
-    assert getattr(tk, "_default_root", None) is None
+    assert getattr(tk, "_default_root", None) is default_root_before
 

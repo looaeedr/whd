@@ -61,16 +61,16 @@ def _receiving_profile_and_spec(*, structure=False):
 def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     gui_path = ROOT / "gui.py"
 
-    update_src = _class_method_source(gui_path, "BoxCalculatorGUI", "update_calculations")
+    update_src = _class_method_source(gui_path, "Phase6ApplicationHost", "update_calculations")
     assert "calculate_z_length(" not in update_src
 
-    draw_src = _class_method_source(gui_path, "BoxCalculatorGUI", "draw_box_body")
+    draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_box_body")
     assert "build_box_body_result(" not in draw_src
     assert "build_box_body_result_from_fold_profile(" not in draw_src
     assert "_authoritative_render_data(" in draw_src
     assert "box_body_face_contexts" in draw_src
 
-    hole_src = _class_method_source(gui_path, "BoxCalculatorGUI", "open_part_hole_editor")
+    hole_src = _class_method_source(gui_path, "Phase6ApplicationHost", "open_part_hole_editor")
     early = hole_src.index('if part_key == "box_body":')
     early_return = hole_src.index("return", early)
     legacy = hole_src.index("build_box_body_result(", early_return)
@@ -114,7 +114,7 @@ def test_t4_receiving_designer_controller_project_profile_owner_parity():
     root.withdraw()
     designer = None
     try:
-        app = gui.BoxCalculatorGUI(root)
+        app = gui.Phase6ApplicationHost(root)
         app.baseline_var.set("受電箱")
         root.update_idletasks()
         root.update()

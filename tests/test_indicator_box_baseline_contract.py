@@ -123,7 +123,7 @@ def _gui_method_source(name):
     path = Path(__file__).parents[1] / 'gui.py'
     source = path.read_text(encoding='utf-8')
     tree = ast.parse(source)
-    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'BoxCalculatorGUI')
+    cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Phase6ApplicationHost')
     method = next(node for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == name)
     return ast.get_source_segment(source, method)
 
