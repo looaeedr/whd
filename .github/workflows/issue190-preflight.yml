@@ -10,7 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Phase6 Knowledge Preflight discovery
+      - name: Phase6 Knowledge Preflight verification
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "派工 #190 T5 Combined Acceptance：驗證 3D Primary Workspace UI、Corner Data、multipart physical part、Save→Reload、DXF、regression matrix、remote QA 與 production integration；完成 caller-proof dead-code cleanup、durable Skill/AI writeback、invariants、drift audit。"
+            --task "派工 #190 T5 Combined Acceptance：驗證 3D Primary Workspace UI、Corner Data、multipart physical part、Save→Reload、DXF、regression matrix、remote QA 與 production integration；完成 caller-proof dead-code cleanup、durable Skill/AI writeback、invariants、drift audit。" \
+            --evidence .scratch/issue190/preflight_evidence.md
