@@ -1,0 +1,94 @@
+name: Issue181 T8 Combined Authority QA
+
+on:
+  push:
+    branches:
+      - qa/issue181-combined-authority-acceptance-20260913
+    paths:
+      - 'tests/knowledge/test_combined_authority_acceptance_contract.py'
+      - 'tests/test_issue175_dm7_navigation_authority_contract.py'
+      - '.agents/skills/engineering/截角資料入口收斂/SKILL.md'
+      - '個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - '.github/workflows/issue181-t8-qa.yml'
+  workflow_dispatch:
+
+jobs:
+  combined-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Record protected invariants before
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          git ls-files -s '基準檔/**' | sha256sum > /tmp/baseline.before
+      - name: Run changed-file Knowledge Preflight
+        shell: bash
+        run: |
+          cat > /tmp/issue181-evidence.txt <<'EOF'
+          派工
+          issue-closure-gate
+          Python測試實務
+          diagnosing-bugs
+          tdd
+          寫技能
+          phase6-release-packaging
+          monitoring-remote-qa
+          UI設計與去AI味
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task 'T8 派工：#181 Knowledge Skill Authority Combined Acceptance，整合 R1-R5 anti-drift guards，補回 #175 已驗證但未進 production 的 DM7 durable artifacts' \
+            --changed-file 'tests/knowledge/test_combined_authority_acceptance_contract.py' \
+            --changed-file 'tests/test_issue175_dm7_navigation_authority_contract.py' \
+            --changed-file '.agents/skills/engineering/截角資料入口收斂/SKILL.md' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md' \
+            --changed-file '.github/workflows/issue181-t8-qa.yml' \
+            --evidence /tmp/issue181-evidence.txt
+      - name: Run R1-R5 Combined knowledge and process guards
+        run: |
+          python -m pytest -q \
+            tests/knowledge \
+            tests/process \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_issue175_dm7_navigation_authority_contract.py \
+            tests/test_dm7_part_navigation.py
+      - name: Canonical DM7 module probe
+        run: |
+          python - <<'PY'
+          from phase6_part_navigation import (
+              NavigationIntent, NavigationMemory, NavigationRequest, resolve_navigation
+          )
+          parts=("box_body","box_body:back","box_body:right_side","head")
+          restored=resolve_navigation(parts, NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT), NavigationMemory("box_body:back"))
+          assert restored.resolved_key == "box_body:back"
+          stale_memory=resolve_navigation(parts, NavigationRequest(None, NavigationIntent.RESTORE_CHILD_CONTEXT), NavigationMemory("box_body:left_side"))
+          assert stale_memory.resolved_key is None
+          assert stale_memory.memory.remembered_box_body_child is None
+          parent=resolve_navigation(parts, NavigationRequest("box_body"), NavigationMemory("box_body:back"))
+          assert parent.resolved_key == "box_body"
+          stale_explicit=resolve_navigation(parts, NavigationRequest("box_body:left_side"), NavigationMemory("box_body:back"))
+          assert stale_explicit.resolved_key is None
+          assert stale_explicit.reason == "STALE_PHYSICAL_CHILD"
+          print("DM7_CANONICAL_MODULE=PASS")
+          PY
+      - name: Verify protected invariants
+        if: always()
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          git ls-files -s '基準檔/**' | sha256sum > /tmp/baseline.after
+          diff -u /tmp/config.before /tmp/config.after
+          diff -u /tmp/baseline.before /tmp/baseline.after
