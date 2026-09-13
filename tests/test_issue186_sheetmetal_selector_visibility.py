@@ -72,7 +72,7 @@ def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
         _close(root)
 
 
-def test_issue186_red_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
+def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
     """#163 must not make the critical part selector disappear with input scrolling."""
     root, app, designer = _open_designer()
     try:
