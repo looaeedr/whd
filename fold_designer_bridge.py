@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 from typing import Mapping, MutableMapping, Sequence
+from whd_theme import WHD_THEME, apply_ttk_dark_theme
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
@@ -8530,6 +8531,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # those legacy geometry draws completely; opening the 3D workspace should
     # construct UI state only and render nothing until a Phase6 part is selected.
     self.preview_3d_enabled = False
+    self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
     _FIX10_INIT(self, root, snapshot)
     # FIX10 marks itself ready as soon as its legacy snapshot is loaded. Phase6
     # still has to build the persistent controls/workspace, so keep the public

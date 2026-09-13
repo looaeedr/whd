@@ -13,6 +13,7 @@ import matplotlib.projections as _matplotlib_projections  # noqa: F401
 
 from phase6_fold_profiles import _num
 from ae_engine.display_dimensions import folded_outside_envelope, resolve_operator_finished_dimensions
+from whd_theme import WHD_THEME, apply_mpl_dark_theme
 
 def _phase6_profile_base_index(profile):
     """Return the semantic finished-face/core segment used as the 3D base plane."""
@@ -1280,6 +1281,7 @@ class Phase6FinalSceneView:
             if ax2d is not None:
                 ax2d.clear()
                 ax2d.axis("off")
+            apply_mpl_dark_theme(getattr(ax, "figure", None), (ax, ax2d))
             self.configure_3d_only_figure()
             try:
                 self.render(request_provider())

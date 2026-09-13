@@ -13,6 +13,7 @@ from dataclasses import replace
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
+from whd_theme import WHD_THEME, apply_ttk_dark_theme
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -743,14 +744,14 @@ class BoxCalculatorGUI:
         self.root.minsize(950, 650)
         
         # 設定現代暗黑風格配色
-        self.COLOR_BG = "#121214"          # 主背景
-        self.COLOR_PANEL = "#1e1e24"       # 面板背景
-        self.COLOR_INPUT_BG = "#151518"    # 輸入框背景
-        self.COLOR_TEXT = "#e0e0e6"        # 主要文字
-        self.COLOR_TEXT_MUTED = "#8e8e93"  # 次要文字
-        self.COLOR_ACCENT = "#0a84ff"      # 藍色亮點/按鈕
+        self.COLOR_BG = WHD_THEME["background"]          # 主背景
+        self.COLOR_PANEL = WHD_THEME["panel"]       # 面板背景
+        self.COLOR_INPUT_BG = WHD_THEME["input"]    # 輸入框背景
+        self.COLOR_TEXT = WHD_THEME["text"]        # 主要文字
+        self.COLOR_TEXT_MUTED = WHD_THEME["muted_text"]  # 次要文字
+        self.COLOR_ACCENT = WHD_THEME["action"]      # 藍色亮點/按鈕
         self.COLOR_ACCENT_HOVER = "#0066cc"# 按鈕懸停
-        self.COLOR_CANVAS_BG = "#0d0d0f"   # 畫布背景
+        self.COLOR_CANVAS_BG = WHD_THEME["canvas"]   # 畫布背景
         
         self.root.configure(bg=self.COLOR_BG)
 
@@ -826,8 +827,7 @@ class BoxCalculatorGUI:
         self.project_controller.set_project_path(path)
         
     def setup_styles(self):
-        self.style = ttk.Style()
-        self.style.theme_use('default')
+        self.style = apply_ttk_dark_theme(self.root, text_scale=1.0, style=ttk.Style(self.root))
         
         # Notebook 樣式
         self.style.configure('TNotebook', background=self.COLOR_BG, borderwidth=0)

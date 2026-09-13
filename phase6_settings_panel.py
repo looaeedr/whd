@@ -109,6 +109,7 @@ def baseline_row_text(row) -> str:
 import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Mapping
+from whd_theme import WHD_THEME, configure_tk_menu
 
 from phase6_settings_center import (
     GLOBAL_CONTEXT,
@@ -141,6 +142,7 @@ def build_choice_menubutton(
     menu = tk.Menu(
         button, tearoff=False, relief=tk.RAISED, borderwidth=1, activeborderwidth=1
     )
+    configure_tk_menu(menu)
     for value in tuple(values or ()):
         menu.add_radiobutton(
             label=str(value),
