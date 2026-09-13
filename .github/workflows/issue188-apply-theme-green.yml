@@ -1,0 +1,111 @@
+name: issue188-apply-theme-green
+on:
+  push:
+    branches:
+      - feat/issue188-dark-engineering-theme-20260913
+    paths:
+      - .github/workflows/issue188-apply-theme-green.yml
+permissions:
+  contents: write
+jobs:
+  apply-and-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply minimal presentation-only theme wiring
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              actual = text.count(old)
+              assert actual == count, f'{path}: expected {count} occurrence(s), found {actual}: {old[:80]!r}'
+              p.write_text(text.replace(old, new, count), encoding='utf-8')
+
+          # Legacy host: consume shared tokens/styles while retaining compatibility attribute names.
+          patch('gui.py',
+                'from tkinter import filedialog\nimport ae_engine.ae as ae',
+                'from tkinter import filedialog\nfrom whd_theme import WHD_THEME, apply_ttk_dark_theme\nimport ae_engine.ae as ae')
+          for old, new in (
+              ('self.COLOR_BG = "#121214"', 'self.COLOR_BG = WHD_THEME["background"]'),
+              ('self.COLOR_PANEL = "#1e1e24"', 'self.COLOR_PANEL = WHD_THEME["panel"]'),
+              ('self.COLOR_INPUT_BG = "#151518"', 'self.COLOR_INPUT_BG = WHD_THEME["input"]'),
+              ('self.COLOR_TEXT = "#e0e0e6"', 'self.COLOR_TEXT = WHD_THEME["text"]'),
+              ('self.COLOR_TEXT_MUTED = "#8e8e93"', 'self.COLOR_TEXT_MUTED = WHD_THEME["muted_text"]'),
+              ('self.COLOR_ACCENT = "#0a84ff"', 'self.COLOR_ACCENT = WHD_THEME["action"]'),
+              ('self.COLOR_CANVAS_BG = "#0d0d0f"', 'self.COLOR_CANVAS_BG = WHD_THEME["canvas"]'),
+          ):
+              patch('gui.py', old, new)
+          patch('gui.py',
+                "    def setup_styles(self):\n        self.style = ttk.Style()\n        self.style.theme_use('default')",
+                "    def setup_styles(self):\n        self.style = apply_ttk_dark_theme(self.root, text_scale=1.0, style=ttk.Style(self.root))")
+
+          # Original Fold Designer shell: shared Tk styling plus Matplotlib reapply after clear().
+          patch('fold_designer_original.py',
+                'import os\n',
+                'import os\nfrom whd_theme import WHD_THEME, apply_ttk_dark_theme, apply_mpl_dark_theme\n')
+          patch('fold_designer_original.py',
+                'class MainApp:\n    def __init__(self, root):\n        self.root = root\n        self.root.title("雙重架構設計系統：標準型與金庫型")',
+                'class MainApp:\n    def __init__(self, root):\n        self.root = root\n        self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)\n        self.root.title("雙重架構設計系統：標準型與金庫型")')
+          patch('fold_designer_original.py',
+                "        self.ax3d.clear(); self.ax2d.clear(); self.ax2d.axis('off')",
+                "        self.ax3d.clear(); self.ax2d.clear(); self.ax2d.axis('off')\n        apply_mpl_dark_theme(self.ax3d.figure, (self.ax3d, self.ax2d))")
+
+          # Bridge: apply theme before inherited MainApp creates its UI; no state authority changes.
+          patch('fold_designer_bridge.py',
+                'from typing import Mapping, MutableMapping, Sequence\n',
+                'from typing import Mapping, MutableMapping, Sequence\nfrom whd_theme import WHD_THEME, apply_ttk_dark_theme\n')
+          patch('fold_designer_bridge.py',
+                '    self.preview_3d_enabled = False\n    _FIX10_INIT(self, root, snapshot)',
+                '    self.preview_3d_enabled = False\n    self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)\n    _FIX10_INIT(self, root, snapshot)')
+
+          # Settings panel classic Menu needs explicit foreground/active/disabled treatment.
+          patch('phase6_settings_panel.py',
+                'from tkinter import ttk\nfrom typing import Callable, Mapping\n',
+                'from tkinter import ttk\nfrom typing import Callable, Mapping\nfrom whd_theme import WHD_THEME, configure_tk_menu\n')
+          patch('phase6_settings_panel.py',
+                '    menu = tk.Menu(\n        button, tearoff=False, relief=tk.RAISED, borderwidth=1, activeborderwidth=1\n    )\n    for value in tuple(values or ()):',
+                '    menu = tk.Menu(\n        button, tearoff=False, relief=tk.RAISED, borderwidth=1, activeborderwidth=1\n    )\n    configure_tk_menu(menu)\n    for value in tuple(values or ()):' )
+
+          # FinalScene must reapply dark styling after every clear().
+          patch('phase6_final_scene_view.py',
+                'from ae_engine.display_dimensions import folded_outside_envelope, resolve_operator_finished_dimensions\n',
+                'from ae_engine.display_dimensions import folded_outside_envelope, resolve_operator_finished_dimensions\nfrom whd_theme import WHD_THEME, apply_mpl_dark_theme\n')
+          patch('phase6_final_scene_view.py',
+                '            ax.clear()\n            ax2d = getattr(self.renderer, "ax2d", None)\n            if ax2d is not None:\n                ax2d.clear()\n                ax2d.axis("off")\n            self.configure_3d_only_figure()',
+                '            ax.clear()\n            ax2d = getattr(self.renderer, "ax2d", None)\n            if ax2d is not None:\n                ax2d.clear()\n                ax2d.axis("off")\n            apply_mpl_dark_theme(getattr(ax, "figure", None), (ax, ax2d))\n            self.configure_3d_only_figure()')
+          PY
+          git diff --check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture exact invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+      - name: Focused dark-theme GREEN under Xvfb
+        run: xvfb-run -a pytest -q -s tests/test_issue188_dark_theme_readability.py
+      - name: Verify exact invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
+      - name: Commit exact production diff
+        shell: bash
+        run: |
+          git config user.name looaeedr
+          git config user.email 76246585+looaeedr@users.noreply.github.com
+          git add whd_theme.py gui.py fold_designer_original.py fold_designer_bridge.py phase6_settings_panel.py phase6_final_scene_view.py
+          git diff --cached --check
+          git commit -m 'feat(issue188): apply shared WHD dark engineering theme'
+          git push origin HEAD:feat/issue188-dark-engineering-theme-20260913
