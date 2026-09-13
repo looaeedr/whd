@@ -45,3 +45,16 @@ def test_remote_qa_authority_remains_delegated_to_monitoring_skill():
     assert "monitoring-remote-qa" in execution
     assert "REMOTE_QA_ACTIVE_LOCK" in monitoring
     assert "使用者不是 remote-QA scheduler" in monitoring
+
+
+def test_execution_window_cut_is_recovery_not_rollback_or_scheduler_handoff():
+    execution = _read(EXECUTION_SKILL)
+    pitfalls = _read(PITFALLS)
+
+    assert "EXECUTION_WINDOW_INTERRUPTION_RECOVERY" in execution
+    assert "ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL" in pitfalls
+    assert "execution window interruption" in pitfalls
+    assert "RECOVERING" in pitfalls
+    assert "completed phase evidence" in pitfalls
+    assert "只有 drift 才重驗受影響範圍" in pitfalls
+    assert "使用者不是續跑 scheduler" in pitfalls

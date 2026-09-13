@@ -114,6 +114,33 @@ def test_visible_checkpoint_never_replaces_progress_or_continuous_execution():
     assert "non-terminal state 顯示 CHECKPOINT 後仍必須繼續 next action" in text
 
 
+def test_execution_window_interruption_recovers_without_replaying_completed_phases():
+    text = _text()
+    assert "EXECUTION_WINDOW_INTERRUPTION_RECOVERY" in text
+    for marker in (
+        "remote refetch",
+        "owning Issue recovery checkpoint",
+        "work branch + HEAD",
+        "production target",
+        "run_id + head_sha",
+        "無 drift",
+        "continue exact next unique action",
+        "不得因 execution window 重開而重跑已完成 phase",
+        "有 drift",
+        "只重驗受影響範圍",
+        "terminal QA evidence 保持有效",
+        "RED",
+        "GREEN",
+        "remote QA submitted",
+        "remote QA terminal",
+        "closing drift",
+        "integration",
+        "post-integration terminal",
+        "RECOVERING",
+    ):
+        assert marker in text, f"missing execution-window recovery marker: {marker}"
+
+
 def test_dispatch_skill_bridges_to_canonical_user_visible_checkpoint_gate():
     _assert_user_visible_checkpoint_bridge(DISPATCH_SKILL)
 
