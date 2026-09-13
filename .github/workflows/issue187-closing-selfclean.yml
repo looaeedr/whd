@@ -1,0 +1,111 @@
+name: issue187-closing-selfclean
+on:
+  push:
+    branches:
+      - feat/issue187-3d-output-migration-20260913
+    paths:
+      - .github/workflows/issue187-closing-selfclean.yml
+permissions:
+  contents: write
+jobs:
+  closing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Self-clean workflow and lock closing SHA
+        shell: bash
+        run: |
+          git config user.name looaeedr
+          git config user.email 76246585+looaeedr@users.noreply.github.com
+          rm .github/workflows/issue187-closing-selfclean.yml
+          git add -A
+          git commit -m 'chore(issue187): remove closing QA harness'
+          git push origin HEAD:feat/issue187-3d-output-migration-20260913
+          echo "CLOSING_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "ISSUE187_TESTED_CLOSING_SHA=$(git rev-parse HEAD)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture exact invariants and source authority
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$CLOSING_SHA"
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+          python - <<'PY'
+          from pathlib import Path
+          bridge = Path('fold_designer_bridge.py').read_text(encoding='utf-8')
+          gui = Path('gui.py').read_text(encoding='utf-8')
+          ui = Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md').read_text(encoding='utf-8')
+          dx = Path('.agents/skills/engineering/驗證板件與DXF/SKILL.md').read_text(encoding='utf-8')
+          pit = Path('個人AI檔案庫/踩坑庫/legacy_2d_entry_retirement_20260910.md').read_text(encoding='utf-8')
+          assert 'output_export_vars' in bridge
+          assert 'output_draw_stock_var' in bridge
+          assert 'on_export_selected_dxf=lambda: self.export_selected_dxf()' in gui
+          assert 'var.set(self._phase6_logical_part_present(existing, key))' not in gui
+          assert 'ISSUE187_3D_OUTPUT_REHOST_CONTRACT' in ui
+          assert 'ISSUE187_OUTPUT_TRUTH_SEPARATION_CONTRACT' in dx
+          assert 'ISSUE187_OUTPUT_MIGRATION_PITFALL' in pit
+          print('ISSUE187_CLOSING_SOURCE_AND_DURABLE=PASS')
+          PY
+      - name: T2 authoritative closing matrix
+        shell: bash
+        run: |
+          xvfb-run -a pytest -q -s \
+            tests/test_issue187_3d_output_migration.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_gui_manufacturing_adapter.py \
+            tests/test_phase6_settings_center.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_settings_service.py \
+            tests/test_issue98_existing_2d_capability_migration.py \
+            --deselect=tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_helpers \
+            --deselect=tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_binds_existing_hole_editor_to_exact_stable_identity \
+            --deselect=tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_preserves_existing_door_drag_callbacks \
+            tests/test_issue100_remove_legacy_2d_entry.py \
+            tests/test_issue124_structure_tree.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_phase6_receiving_multipart_integration.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_controller.py
+      - name: Multi-door fresh-process closing gate
+        run: xvfb-run -a pytest -q -s tests/test_multi_door_gui.py
+      - name: Exact inherited issue98 differential
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a pytest -q -s \
+            tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_helpers \
+            tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_binds_existing_hole_editor_to_exact_stable_identity \
+            tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_preserves_existing_door_drag_callbacks \
+            2>&1 | tee /tmp/issue98.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -ne 0
+          python - <<'PY'
+          from pathlib import Path
+          failed = sorted(line.split(' - ', 1)[0].removeprefix('FAILED ').strip() for line in Path('/tmp/issue98.log').read_text(encoding='utf-8', errors='replace').splitlines() if line.startswith('FAILED '))
+          expected = sorted([
+              'tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_helpers',
+              'tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_binds_existing_hole_editor_to_exact_stable_identity',
+              'tests/test_issue98_existing_2d_capability_migration.py::test_full_2d_view_preserves_existing_door_drag_callbacks',
+          ])
+          assert failed == expected, (failed, expected)
+          print('ISSUE98_CLOSING_DIFFERENTIAL=EXACT_PRODUCTION_BASELINE')
+          PY
+      - name: Verify exact invariants and clean tree
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
+          test -z "$(git status --porcelain)"
+          test ! -e .github/workflows/issue187-closing-selfclean.yml
+          echo "ISSUE187_CLOSING_HEAD_GREEN=$CLOSING_SHA"
