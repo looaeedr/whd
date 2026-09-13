@@ -254,7 +254,7 @@ WHD 現有 text scale：
 
 ### Structural
 
-只有當整個 workspace 的 grouping / canvas-control split / scroll structure本身妨礙使用時才採用。即使 Structural，也不能改 business behavior、domain semantics 或 manufacturing authority。
+只有當整個 workspace 的 grouping / canvas-control split / scroll structure 本身妨礙使用時才採用。即使 Structural，也不能改 business behavior、domain semantics 或 manufacturing authority。
 
 禁止把「去 AI 味」當成整份 `gui.py` 重建許可。
 
