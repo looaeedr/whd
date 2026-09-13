@@ -119,9 +119,6 @@ def _legacy_owner():
     owner.COLOR_TEXT = "black"
     owner.COLOR_TEXT_MUTED = "gray"
     owner.draw_grid = lambda canvas, w, h: calls.append(("grid", canvas, w, h))
-    owner._draw_phase6_finished_dimension_summary = (
-        lambda canvas, *, part_key, y=132: calls.append(("finished", canvas, part_key))
-    )
     owner.open_part_hole_editor = lambda key: calls.append(("hole", key))
     owner.on_door_canvas_press = lambda event: calls.append(("door_press", event))
     owner.on_door_canvas_drag = lambda event: calls.append(("door_drag", event))
@@ -181,7 +178,6 @@ def test_full_2d_view_consumes_supplied_authoritative_render_data_and_shared_hel
     assert canvas.deleted == ["all"]
     assert drawing_calls == [(canvas, render_data.scene, transform, ("CHECK", "STOCK"))]
     assert annotation_calls == [(canvas, render_data, transform, "head", False)]
-    assert ("finished", canvas, "head") in calls
     assert ("hint", canvas, 960, True) in calls
 
 
