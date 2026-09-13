@@ -328,3 +328,15 @@ Rewrite 後重新檢查：
 - 修 layout regression 時優先保留既有 single authoritative selector / callback / stable identity；不得用新增第二顆 selector 掩蓋 mounting / scroll-owner 根因。
 - 若較新的 accepted layout contract 已 rehost controls，舊測試仍硬鎖舊 parent/row ownership，該測試屬 superseded authority。必須先依 current accepted contract 分類並更新 stale assertion；**不得為了讓舊測試 GREEN 把 production UI 搬回舊 layout**。
 - QA harness 的 FAIL 必須區分 production regression、stale/superseded test contract 與 harness false failure；只有 production regression 才能驅動 production fix。
+
+## #187：3D Output rehost 的操作面契約
+
+<!-- ISSUE187_3D_OUTPUT_REHOST_CONTRACT -->
+
+把既有功能搬到 3D primary workspace 時，**rehost widget 不等於重建 state**：
+
+- 若 application 已有正式 state owner / callback（例如既有 `BooleanVar`、SettingsService、export action），新 3D control 直接綁定該 owner；不得為了畫面方便建立第二份 presentation-owned state。
+- `輸出` 這類 shop-floor critical controls，驗收不能只證明 Frame / container 被建立；必須在真 Tk/Xvfb 證明 control **mapped、reachable、interactive**。
+- WHD current primary workspace 的 top command row 維持真正頂層命令；DXF/STOCK 等 output controls 放在正式 operator/workspace control region，不因搬家重新塞回 top toolbar。
+- 對小／中／大 `1.0 / 1.2 / 1.4` 都要驗 control 仍可見或可到達，且 primary action 不 clipping、不被其他 surface 蓋住。
+- UI refresh / presence projection 只能刷新 presentation；不得藉 redraw、reload 或 presence sync 偷改另一個獨立的 operator intention。

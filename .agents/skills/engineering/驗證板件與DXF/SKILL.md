@@ -243,3 +243,21 @@ issue-specific regression 只證明該 bug seam，不能取代 DXF reopen、phys
 完整驗收至少覆蓋：`parent → child → parent`、`child A → child B`、stale explicit child、stale remembered child、topology contraction、missing aggregate parent、first family/structure switch、Save→Reload、2D/3D identity parity、Corner Data purity，以及 label/index independence。
 
 Validation 只能判斷上述 contract 是否符合；測試 expected、fixture、UI order、目前 observed child 都不得反向成為 production topology/identity authority。
+
+## #187：Output 三種 truth 分離與差分驗收
+
+<!-- ISSUE187_OUTPUT_TRUTH_SEPARATION_CONTRACT -->
+
+3D Output / DXF 驗收必須把下列三種 truth 分開驗，不得共用一份 checkbox state 冒充：
+
+1. **physical presence**：current workspace / manufacturing resolver 的實體板件集合；
+2. **3D visibility**：assembly view-only 顯示狀態；
+3. **DXF export intention**：操作員要輸出的板件選擇。
+
+正式規則：
+
+- 實際可輸出的檔案集合可以由 `export intention ∩ physical presence` 約束；但 presence add/remove/restore **不得反向改寫 export intention**，3D visibility 也不得控制 DXF export selection。
+- Current `.p6fold` project load 負責恢復 physical topology / project state；若 schema 沒有明確擁有 runtime export intention，就不得因「板件存在／不存在」偷偷勾選或取消 DXF export checkbox。
+- 3D 的「輸出選取的 DXF 檔案」只應委派既有 authoritative exporter / manufacturing pipeline；UI regression 可以驗 delegation 與 state routing，真正製造成品仍要做 save DXF → `ezdxf.readfile()` reopen → canonical compare。
+- 若 Combined/acceptance 出現失敗，先在**精確 production baseline**重跑同 nodeid。只有 production baseline 原本也以同原因失敗、candidate 沒新增失敗時，才可標記為 inherited baseline debt；不得把一般 FAIL 改名成 PASS。
+- Tk/GUI 測試若只在大包同 process 失敗、fresh process GREEN，先分類 test-order / lifecycle leakage；未證明 production 行為錯誤前不得修改 production 迎合污染狀態。
