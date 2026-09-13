@@ -2596,7 +2596,7 @@ class BoxCalculatorGUI:
                 if isinstance(cache, dict):
                     cache.clear()
 
-    def open_original_fold_designer(self):
+    def open_original_fold_designer(self, *, target_window=None):
         if self.fold_designer_window is not None:
             try:
                 if self.fold_designer_window.winfo_exists():
@@ -2622,9 +2622,12 @@ class BoxCalculatorGUI:
             )
         }
 
-        window = tk.Toplevel(self.root)
-        window.transient(self.root)
-        window.grab_set()
+        if target_window is None:
+            window = tk.Toplevel(self.root)
+            window.transient(self.root)
+            window.grab_set()
+        else:
+            window = target_window
         designer = None
 
         def destroy_designer_window():
@@ -10012,6 +10015,34 @@ class BoxCalculatorGUI:
         )
 
 
+
+class Phase6PrimaryApplication:
+    """Primary 3D application owner without constructing the legacy 2D shell.
+
+    T4 deliberately reuses the already-validated application/state methods on
+    BoxCalculatorGUI while the remaining non-UI responsibilities are migrated
+    to dedicated owners. This object is neither a BoxCalculatorGUI instance
+    nor subclass; create_widgets() is intentionally suppressed.
+    """
+
+    def __init__(self, root):
+        self._phase6_primary_workspace = True
+        BoxCalculatorGUI.__init__(self, root)
+        self.open_original_fold_designer(target_window=root)
+
+    def __getattr__(self, name):
+        descriptor = vars(BoxCalculatorGUI).get(name)
+        if descriptor is None:
+            raise AttributeError(name)
+        if hasattr(descriptor, "__get__"):
+            return descriptor.__get__(self, type(self))
+        return descriptor
+
+    def create_widgets(self):
+        """Legacy 2D user-facing widgets are not part of the primary lifecycle."""
+        self._legacy_2d_compat_host = None
+        return None
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
@@ -10024,7 +10055,7 @@ def main(argv=None):
         pass
 
     root = tk.Tk()
-    app = BoxCalculatorGUI(root)
+    app = Phase6PrimaryApplication(root)
     project_path = project_path_from_argv(argv)
     if project_path is not None:
         def open_project_after_startup():
