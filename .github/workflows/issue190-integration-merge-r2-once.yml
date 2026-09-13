@@ -1,0 +1,82 @@
+name: Issue 190 Guarded Production Merge R2 Once
+
+on:
+  push:
+    branches:
+      - integrate/issue190-production-merge-r2-20260914
+
+permissions:
+  contents: write
+
+jobs:
+  guarded-merge-r2:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch exact T5 closing head
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin fix/issue190-final-clean-acceptance-20260914
+          test "$(git rev-parse origin/fix/issue190-final-clean-acceptance-20260914)" = "5481de98328021ae3ce51a72839a0b59fbd89ce6"
+
+      - name: Merge T5 and assert governance convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-ff --no-commit origin/fix/issue190-final-clean-acceptance-20260914
+
+          test -z "$(git diff --name-only --diff-filter=U)"
+          grep -q 'LONG_LOG_CONTEXT_SAFE_EXECUTION_V1' .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+          grep -q 'STALE_WAIT_WATCHDOG' .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+          grep -q 'REMOTE_QA_ACTIVE_LOCK' .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+
+          for f in \
+            .github/workflows/issue190-combined-acceptance.yml \
+            .github/workflows/issue190-fullsuite-contract-migration.yml \
+            .github/workflows/issue190-post-migration-fullsuite.yml \
+            .github/workflows/issue190-preflight.yml \
+            .github/workflows/issue190-production-baseline.yml \
+            .scratch/issue190/preflight_evidence.md \
+            .scratch/issue190_preflight_evidence.txt; do
+            test ! -e "$f"
+          done
+
+      - name: Verify integration governance contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m pytest -q \
+            tests/process/test_long_log_context_safe_execution_contract.py \
+            tests/process/test_continuous_execution_durable_contract.py \
+            tests/process/test_checkpoint_resume_contract.py \
+            tests/process/test_monitoring_remote_qa_turn_boundary_contract.py \
+            tests/process/test_remote_qa_state_bridge_contract.py \
+            tests/process/test_issue188_durable_theme_contract.py
+
+      - name: Commit true two-parent merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .git/MERGE_HEAD
+          test "$(cat .git/MERGE_HEAD)" = "5481de98328021ae3ce51a72839a0b59fbd89ce6"
+          git diff --check
+          git commit -m 'merge(issue190): integrate T5 accepted lineage with production governance'
+          parents=$(git show -s --format='%P' HEAD)
+          echo "MERGE_PARENTS=$parents"
+          test "$(printf '%s\n' "$parents" | wc -w)" -eq 2
+          git push origin HEAD:integrate/issue190-production-merge-r2-20260914
