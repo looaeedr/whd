@@ -33,6 +33,15 @@ def _make_app(monkeypatch):
     return root, win, app
 
 
+def _is_descendant(widget, ancestor):
+    current = widget
+    while current is not None:
+        if current is ancestor:
+            return True
+        current = getattr(current, "master", None)
+    return False
+
+
 def test_first_3d_view_is_assembly_and_assembly_is_first_part_choice(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
@@ -60,21 +69,28 @@ def test_selecting_real_sheet_part_switches_to_single_part_editor(monkeypatch):
 def test_latest_top_and_global_layout_contract(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        # Top row: file -> 3D display -> fullscreen -> transaction buttons.
-        # T7 removed the dedicated return-to-2D button; 2D now lives under the
-        # Fold Designer's operator selector as the 截角資料 mode.
+        # #163 is the current layout authority: top is intentionally tiny and
+        # contains only project File + Corner Data. Non-file controls live with
+        # the drawing workspace on the right; this test must not resurrect the
+        # superseded pre-#163 top-row ownership contract.
         assert app.project_toolbar.master is app.top_command_row
-        assert app.visual_controls.master is app.top_command_row
-        assert app.fullscreen_button.master is app.top_command_row
-        assert app.transaction_buttons.master is app.top_command_row
+        for name in (
+            "visual_controls",
+            "fullscreen_button",
+            "transaction_buttons",
+            "left_global_controls",
+        ):
+            assert _is_descendant(getattr(app, name), app.right_controls_host), (
+                f"{name} must remain owned by right_controls_host under #163"
+            )
         assert app.fullscreen_button.cget("text") == "全螢幕"
         assert not hasattr(app, "return_2d_button")
         assert app.part_choice_menu.entrycget(0, "label") == "組合體"
         assert app.part_choice_menu.entrycget(1, "label") == "截角資料"
         assert app.ui_text_size_combo.master is app.visual_controls
 
-        # Global row 1: baseline + lock + save defaults.
-        assert app.left_global_controls.master is app.top_global_host
+        # Global controls are now mounted under the right-side global host.
+        assert app.left_global_controls.master is app.right_global_host
         assert int(app.baseline_model_combo.grid_info()["row"]) == 0
         assert app.parameter_lock_button.master is app.left_global_controls
         assert int(app.parameter_lock_button.grid_info()["row"]) == 0
@@ -131,6 +147,7 @@ def test_assembly_left_panel_lists_all_sheet_parts_with_view_only_checkboxes(mon
         assert app.assembly_parts_panel.winfo_manager() == ""
     finally:
         root.destroy()
+
 
 def test_fullscreen_toggle_maximizes_and_restores_without_touching_geometry_state():
     from types import SimpleNamespace
