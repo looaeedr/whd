@@ -1,0 +1,128 @@
+name: Long Log Context Safe Rule Once
+
+on:
+  push:
+    branches:
+      - docs/long-log-context-safe-execution-20260914
+
+permissions:
+  contents: write
+
+jobs:
+  install-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout governance branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Read required references and build preflight evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' > /dev/null
+          cat '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' > /dev/null
+          cat '.agents/skills/engineering/寫技能/SKILL.md' > /dev/null
+          cat '.agents/skills/engineering/monitoring-remote-qa/SKILL.md' > /dev/null
+          cat > /tmp/long-log-preflight-evidence.txt <<'EOF'
+          寫技能
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task '修改技能 SKILL.md：建立超長 Log / remote QA context-safe execution durable rule' \
+            --evidence /tmp/long-log-preflight-evidence.txt
+
+      - name: RED probe baseline contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python - <<'PY'
+          from pathlib import Path
+          marker = 'LONG_LOG_CONTEXT_SAFE_EXECUTION_V1'
+          paths = [
+              Path('AGENTS.md'),
+              Path('.agents/skills/engineering/monitoring-remote-qa/SKILL.md'),
+              Path('個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md'),
+              Path('.agents/skills/engineering/long-log-context-safe-execution/SKILL.md'),
+          ]
+          assert all(path.exists() and marker in path.read_text(encoding='utf-8') for path in paths)
+          PY
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          echo 'RED confirmed: baseline lacks the complete durable contract.'
+
+      - name: Apply minimal durable-rule patch
+        run: python tools/_apply_long_log_context_safe_rule_once.py
+
+      - name: GREEN contract and neighboring process guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m pytest -q \
+            tests/process/test_long_log_context_safe_execution_contract.py \
+            tests/process/test_continuous_execution_durable_contract.py \
+            tests/process/test_checkpoint_resume_contract.py \
+            tests/process/test_monitoring_remote_qa_turn_boundary_contract.py \
+            tests/process/test_remote_qa_state_bridge_contract.py
+
+      - name: Post-edit readback and Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool .agents/skills/skill_registry.json > /dev/null
+          cat '.agents/skills/engineering/long-log-context-safe-execution/SKILL.md' > /dev/null
+          cat '.agents/skills/engineering/monitoring-remote-qa/SKILL.md' > /dev/null
+          cat '個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md' > /dev/null
+          cat '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' > /dev/null
+          cat '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md' > /dev/null
+          cat '.agents/skills/engineering/寫技能/SKILL.md' > /dev/null
+          cat > /tmp/long-log-post-evidence.txt <<'EOF'
+          寫技能
+          monitoring-remote-qa
+          long-log-context-safe-execution
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task '修改技能 SKILL.md：建立超長 Log / remote QA context-safe execution durable rule' \
+            --changed-file '.agents/skills/engineering/long-log-context-safe-execution/SKILL.md' \
+            --changed-file '.agents/skills/engineering/monitoring-remote-qa/SKILL.md' \
+            --changed-file 'AGENTS.md' \
+            --changed-file '.agents/skills/skill_registry.json' \
+            --changed-file '個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md' \
+            --changed-file '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' \
+            --changed-file 'tests/process/test_long_log_context_safe_execution_contract.py' \
+            --evidence /tmp/long-log-post-evidence.txt
+
+      - name: Commit verified durable rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            AGENTS.md \
+            .agents/skills/engineering/README.md \
+            .agents/skills/engineering/long-log-context-safe-execution/SKILL.md \
+            .agents/skills/engineering/monitoring-remote-qa/SKILL.md \
+            .agents/skills/skill_registry.json \
+            '個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md' \
+            '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' \
+            tests/process/test_long_log_context_safe_execution_contract.py
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs(governance): enforce context-safe long-log handling'
+          git push origin HEAD:docs/long-log-context-safe-execution-20260914
