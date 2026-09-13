@@ -1,0 +1,70 @@
+name: issue187-acceptance
+on:
+  push:
+    branches:
+      - feat/issue187-3d-output-migration-20260913
+    paths:
+      - .github/workflows/issue187-acceptance.yml
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest matplotlib ezdxf -r requirements.txt
+      - name: Capture invariants
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+      - name: Source authority guards
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          gui = Path('gui.py').read_text(encoding='utf-8')
+          bridge = Path('fold_designer_bridge.py').read_text(encoding='utf-8')
+          assert 'output_export_vars' in bridge
+          assert 'output_draw_stock_var' in bridge
+          assert 'on_export_selected_dxf=lambda: self.export_selected_dxf()' in gui
+          assert 'Physical presence constrains what export_selected_dxf() may emit' in gui
+          assert 'var.set(self._phase6_logical_part_present(existing, key))' not in gui
+          assert 'output_export_button' in bridge
+          assert 'self.top_command_row' in bridge
+          print('ISSUE187_SOURCE_GUARDS=PASS')
+          PY
+      - name: T2 Xvfb acceptance matrix
+        shell: bash
+        run: |
+          xvfb-run -a pytest -q -s \
+            tests/test_issue187_3d_output_migration.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py \
+            tests/test_resolved_manufacturing_export.py \
+            tests/test_gui_manufacturing_adapter.py \
+            tests/test_phase6_settings_center.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_settings_service.py \
+            tests/test_issue98_existing_2d_capability_migration.py \
+            tests/test_issue100_remove_legacy_2d_entry.py \
+            tests/test_issue124_structure_tree.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_multi_door_gui.py \
+            tests/test_phase6_receiving_multipart_integration.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_project_controller.py
+      - name: Verify invariants
+        if: always()
+        shell: bash
+        run: |
+          sha256sum config.ini > /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
