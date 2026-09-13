@@ -1,0 +1,77 @@
+name: issue186-clean-acceptance
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'tests/test_issue186_sheetmetal_selector_visibility.py'
+      - '.github/workflows/issue186-clean-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  clean-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install pytest matplotlib ezdxf -r requirements.txt
+
+      - name: Verify clean candidate diff
+        run: |
+          git fetch origin cleanup/2d-3d-sync --depth=1
+          git diff --name-only origin/cleanup/2d-3d-sync...HEAD | tee /tmp/issue186.changed
+          python - <<'PY'
+          from pathlib import Path
+          changed = {line.strip() for line in Path('/tmp/issue186.changed').read_text().splitlines() if line.strip()}
+          allowed = {
+              'fold_designer_bridge.py',
+              'tests/test_issue186_sheetmetal_selector_visibility.py',
+              '.github/workflows/issue186-clean-acceptance.yml',
+          }
+          extra = changed - allowed
+          missing = {'fold_designer_bridge.py', 'tests/test_issue186_sheetmetal_selector_visibility.py'} - changed
+          assert not extra, f'unexpected clean-candidate files: {sorted(extra)}'
+          assert not missing, f'missing expected clean-candidate files: {sorted(missing)}'
+          print('ISSUE186_CLEAN_DIFF', sorted(changed))
+          PY
+
+      - name: Capture exact invariants
+        run: |
+          sha256sum config.ini | tee /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.before
+
+      - name: Focused real Tk selector regression
+        run: xvfb-run -a pytest -q -s tests/test_issue186_sheetmetal_selector_visibility.py
+
+      - name: Inherited UI and navigation regressions
+        run: |
+          xvfb-run -a pytest -q \
+            tests/test_issue119_corner_data_transition_ui.py \
+            tests/test_issue124_structure_tree.py \
+            tests/test_issue127_surfaces_scale_scroll.py \
+            tests/test_issue162_unfold_viewport.py \
+            tests/test_issue163_unfold_workspace_layout.py \
+            tests/test_issue96_corner_data_selection_lifecycle.py \
+            tests/test_issue97_authoritative_unfold_view_adapter.py \
+            tests/test_phase6_latest_layout_contract.py \
+            tests/test_phase6_ui_state_regressions.py \
+            tests/test_phase6_3d_view_regressions.py
+
+      - name: Verify exact invariants
+        run: |
+          sha256sum config.ini | tee /tmp/config.after
+          diff -u /tmp/config.before /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/baselines.after
+          diff -u /tmp/baselines.before /tmp/baselines.after
