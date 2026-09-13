@@ -65,3 +65,19 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
 - 30 秒 polling 是 controller 責任，不是使用者責任；**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
 - machine guard 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 鎖定。
+
+## WORK_ORDER_LINEAGE_PITFALL
+
+#185 暴露工單級 branch lineage 缺陷：T3 尚未整合回 production 時，T4 依「每張子票從 latest production 開 fresh branch」起跑，結果 **T4 吃到舊 T3 HEAD**，形成已驗收前序成果與後續子票分叉。
+
+永久規則：
+
+- 派工一個含 T1/T2/... 的 Master 工單時，先從當下 authoritative production target 建立唯一 **工單主分支**；此 branch 持有整張工單從第一個 accepted slice 到 final Combined Acceptance 的前序 accepted lineage。
+- 子票不得重新從 production target 起跑。下一張子票的 authoritative base 必須是工單主分支目前 accepted HEAD，或是從該 HEAD 開出的短命 `task/QA branch`；完成後回到工單主分支。
+- `production target` 在工單完成前只作 **integration target / drift authority**；不能因它尚未包含上一張子票，就拿它覆蓋工單主分支 lineage。
+- `task/QA branch` 只負責隔離實作或驗證，不得成為新的長期 lineage owner；驗收後 non-force 回到工單主分支，臨時 QA workflow/branch 依 cleanup 規則處理。
+- 工單內所有 checkpoint / owning Issue / handoff 都必須記錄 `work-order branch + accepted HEAD + production target HEAD` 三者，避免只寫 production SHA 造成下一張票誤起跑。
+- 只有整張工單 final Combined Acceptance、durable writeback、invariants、cleanup、closing drift audit 全完成後，才把 final verified work-order HEAD **一次 non-force 整合**到 production target。
+- 整合後另做 production-head verification/readback；若 FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不能倒退或 force production。
+- 若歷史工單已發生 lineage divergence，先 classify accepted commits，建立/修復單一 work-order lineage，再續工；不得把舊 production branch 當作「比較乾淨」而丟掉前序 accepted lineage。
+- machine guard 由 `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 鎖定。
