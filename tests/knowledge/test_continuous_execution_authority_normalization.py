@@ -13,6 +13,7 @@ OPERATIONS_CONTRACT = "continuous-execution-operations"
 MACHINE_OWNER = "tools/continuity_controller.py"
 OPERATIONS_OWNER = ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
 LEGACY_REFERENCE = "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md"
+REMOTE_QA_OWNER = ".agents/skills/engineering/monitoring-remote-qa/SKILL.md"
 
 
 def _rows_for(contract: str):
@@ -53,3 +54,10 @@ def test_legacy_pitfall_is_reference_and_explicitly_defers_machine_enforcement()
     assert OPERATIONS_OWNER in text
     assert "documentation compatibility evidence" in text
     assert "not executable enforcement" in text
+
+
+def test_legacy_pitfall_does_not_assign_polling_cadence_to_continuity_controller():
+    text = LEGACY_PITFALL.read_text(encoding="utf-8")
+    assert REMOTE_QA_OWNER in text
+    assert "polling cadence" in text
+    assert "30 秒 polling 是 controller 責任" not in text
