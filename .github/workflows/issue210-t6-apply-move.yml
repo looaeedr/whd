@@ -1,0 +1,110 @@
+name: Issue 210 T6 Apply Move-Only
+
+on:
+  pull_request:
+    branches:
+      - qa/issue210-project-actions-runner-20260914
+
+permissions:
+  contents: write
+
+jobs:
+  apply-move-only:
+    if: github.event.pull_request.head.ref == 'refactor/issue210-project-actions-20260914'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Move four project-action bodies without changing contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          import textwrap
+          from pathlib import Path
+
+          names = (
+              'save_phase6_project_as',
+              'save_phase6_project',
+              'open_phase6_project',
+              'load_phase6_project',
+          )
+          gui_path = Path('gui.py')
+          module_path = Path('gui_modules/project_actions.py')
+          source = gui_path.read_text(encoding='utf-8')
+          tree = ast.parse(source)
+          host = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Phase6ApplicationHost')
+          methods = {
+              node.name: node
+              for node in host.body
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names
+          }
+
+          if not methods:
+              if module_path.is_file() and 'from gui_modules.project_actions import' in source:
+                  print('MOVE_ALREADY_APPLIED')
+                  raise SystemExit(0)
+              raise SystemExit('partial move state: methods missing but module/import not complete')
+          missing = [name for name in names if name not in methods]
+          if missing:
+              raise SystemExit(f'partial source ownership before move: {missing}')
+          if module_path.exists():
+              raise SystemExit('project_actions.py already exists while gui.py still owns method bodies')
+
+          ordered = [methods[name] for name in names]
+          bodies = []
+          for node in ordered:
+              segment = ast.get_source_segment(source, node)
+              if not segment:
+                  raise SystemExit(f'cannot extract source for {node.name}')
+              bodies.append(textwrap.dedent(segment).rstrip())
+
+          module = '''\"\"\"Global Phase6 project-file action wrappers.\n\nThese functions remain methods of Phase6ApplicationHost through explicit aliasing in\n``gui.py``. ProjectController/ProjectSession retain all persistence and transaction\nauthority; this module owns only the existing GUI action wrappers.\n\"\"\"\nfrom pathlib import Path\nfrom tkinter import filedialog, messagebox\n\nfrom phase6_project_file import PROJECT_EXTENSION as PHASE6_PROJECT_EXTENSION\n\n\n'''
+          module += '\n\n'.join(bodies) + '\n'
+          module_path.write_text(module, encoding='utf-8')
+
+          lines = source.splitlines(keepends=True)
+          first = min(node.lineno for node in ordered) - 1
+          last = max(node.end_lineno for node in ordered)
+          alias_lines = [
+              '    save_phase6_project_as = _save_phase6_project_as_impl\n',
+              '    save_phase6_project = _save_phase6_project_impl\n',
+              '    open_phase6_project = _open_phase6_project_impl\n',
+              '    load_phase6_project = _load_phase6_project_impl\n',
+              '\n',
+          ]
+          lines[first:last] = alias_lines
+          moved = ''.join(lines)
+
+          anchor = '''from gui_modules.part_panels import (\n    _phase6_logical_part_present as _phase6_logical_part_present_impl,\n)\n\n'''
+          imports = '''from gui_modules.project_actions import (\n    save_phase6_project_as as _save_phase6_project_as_impl,\n    save_phase6_project as _save_phase6_project_impl,\n    open_phase6_project as _open_phase6_project_impl,\n    load_phase6_project as _load_phase6_project_impl,\n)\n\n'''
+          if anchor not in moved:
+              raise SystemExit('project-actions import anchor not found')
+          moved = moved.replace(anchor, anchor + imports, 1)
+          gui_path.write_text(moved, encoding='utf-8')
+
+          ast.parse(gui_path.read_text(encoding='utf-8'))
+          ast.parse(module_path.read_text(encoding='utf-8'))
+          print('MOVE_ONLY_APPLIED')
+          PY
+
+      - name: Commit exact move-only result
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- gui.py gui_modules/project_actions.py; then
+            echo 'No implementation diff to commit.'
+            exit 0
+          fi
+          git diff --check
+          git config user.name 'looaeedr'
+          git config user.email '76246585+looaeedr@users.noreply.github.com'
+          git add gui.py gui_modules/project_actions.py
+          git commit -m 'refactor(issue210): move global project action wrappers'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
