@@ -6,6 +6,11 @@ on:
       - qa/issue251-post255-integrated-acceptance-20260914
     paths:
       - '.github/workflows/qa-issue251-post255-integrated-acceptance.yml'
+  pull_request:
+    branches:
+      - feat/issue251-t6-matrix-migrator-20260914
+    paths:
+      - '.github/workflows/qa-issue251-post255-integrated-acceptance.yml'
 
 jobs:
   integrated-acceptance:
