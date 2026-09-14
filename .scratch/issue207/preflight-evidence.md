@@ -18,6 +18,11 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防�
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
 
+## Refreshed missing evidence after run 34807677789
+- `驗證板件與DXF` reread from the current T3 branch. Relevant contract: GUI/renderer changes that can affect operator-visible physical-part paths require later canonical part/DXF acceptance; focused QA cannot replace final acceptance; validation remains one-way and must never feed manufacturing calculations.
+- `04_WHD鈑金展開幾何引擎規範.md` reread from the current T3 branch. Relevant contract: 2D/3D/DXF/Save→Reload consume the same canonical manufacturing answer; renderer/UI must not reconstruct geometry or become a second authority; Certified Registry/project canonical state remain production authority.
+- The machine preflight parser was reread at `tools/phase6_skill_preflight.py`; skill completion is detected by canonical skill-name presence and required references require the exact `READ_REFERENCE: <repo-relative-path>` marker. The markers above are intentionally exact.
+
 Inherited accepted evidence:
 - #204/T0 dependency inventory run `34806853791`;
 - #205/T1 state ownership + SAFE/HOLD classification run `34807186543`;
