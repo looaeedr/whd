@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 .p6fold GUI 讀檔驗證 — 2026-08-23
 
 - RED：Footer 無 `讀檔`，`Phase6FoldDesignerApp` 無 `load_project_file()`；兩個 regression 均失敗。

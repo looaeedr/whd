@@ -1,6 +1,6 @@
 ---
 whd_doc_role: REFERENCE
-whd_contract: ai-library-navigation
+whd_contract: ai-library-reference
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---

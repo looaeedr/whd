@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 截角資料：authoritative state 已更新但 View 仍可能停舊畫面（2026-09-10）
 
 ## 問題

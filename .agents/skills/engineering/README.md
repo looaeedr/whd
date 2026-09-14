@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: skill-navigation
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Engineering
 
 Engineering skills used for code, design, QA, specs and delivery.

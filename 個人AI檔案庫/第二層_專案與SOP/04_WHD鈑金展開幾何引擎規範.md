@@ -1,3 +1,9 @@
+---
+whd_doc_role: CURRENT
+whd_contract: manufacturing-architecture
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
 > 本文件的 CURRENT 區只描述 **現行 ae_engine 製造架構、公開 API 與 authority boundary**。實際 Corner/Relief 製造公式仍由 Certified Registry 與其 canonical references 擁有；本文件不得複製一套第二公式來源。

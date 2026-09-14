@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # T15 Per-Door Inner Door + Physical Panel Contract
 
 ## Authoritative state

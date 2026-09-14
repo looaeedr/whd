@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 通用設定面板實作計畫
 
 > **供代理執行者：** 必須逐項使用 TDD 執行；每個 production 變更前先建立可觀察的 RED，再做最小 GREEN。

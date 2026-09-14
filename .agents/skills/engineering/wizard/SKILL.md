@@ -1,6 +1,10 @@
 ---
 name: wizard
 description: Generate a guided human-run procedure or script for steps only a human can perform. Use for credentials, dashboards, manual migrations or cutovers; do not invoke for steps the agent can safely perform itself.
+whd_doc_role: CURRENT
+whd_contract: wizard
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Wizard

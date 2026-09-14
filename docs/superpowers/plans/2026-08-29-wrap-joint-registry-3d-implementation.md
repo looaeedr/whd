@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # PHASE6 WRAP / AssemblyJoint / Certified Relief Registry / 3D Solver v2 實作任務清單
 
 > 日期：2026-08-29  

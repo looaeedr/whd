@@ -1,6 +1,10 @@
 ---
 name: long-log-context-safe-execution
 description: Use when commands, tests, remote CI, pytest, Xvfb, Combined Acceptance, or other long-running jobs can produce logs large enough to overflow or repeatedly consume the execution/chat context.
+whd_doc_role: CURRENT
+whd_contract: long-log-context-safe-execution
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Long-Log Handling / Context-Safe Execution

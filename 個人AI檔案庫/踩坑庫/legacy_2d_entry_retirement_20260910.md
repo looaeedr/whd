@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Legacy 2D 入口退役踩坑（2026-09-10）
 
 Marker: ISSUE100_LEGACY_2D_ENTRY_RETIREMENT_RULE

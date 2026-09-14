@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 2026-09-10 中文 Skill Identity / Content Audit Evidence
 
 Task: 掃描 `.agents/skills/**` 全樹；所有中文資料夾 Skill 的 frontmatter `name` 必須等於資料夾 basename，並檢查/修復內容中的 stale identity、斷掉路由、不存在工具或背景 Subagent 假設，以及已 superseded 的 WHD authority。

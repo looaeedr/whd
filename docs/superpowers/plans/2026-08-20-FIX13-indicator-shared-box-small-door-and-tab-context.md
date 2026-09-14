@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # FIX13 — 指示燈盒 / 小門全域共用與 Door 三分頁顯示修正
 
 日期：2026-08-20

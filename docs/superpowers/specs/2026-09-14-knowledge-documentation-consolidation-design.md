@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # WHD AI 庫與文件權威整理規格書
 
 **規格代號：** Knowledge & Documentation Consolidation  

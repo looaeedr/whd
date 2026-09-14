@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # DM7 展開工作區導覽 identity / topology 踩坑規則
 
 <!-- DM7_OPERATOR_NAVIGATION_DURABLE_CONTRACT -->

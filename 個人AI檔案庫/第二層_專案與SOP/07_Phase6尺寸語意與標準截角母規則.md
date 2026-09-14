@@ -1,3 +1,9 @@
+---
+whd_doc_role: CURRENT
+whd_contract: phase6-dimension-semantics
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 尺寸語意與標準截角母規則
 
 ## [CURRENT] 名稱與 Family 補償硬性對照

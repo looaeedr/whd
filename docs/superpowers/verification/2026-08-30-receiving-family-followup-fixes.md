@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 2026-08-30 受電箱 Family / WRAP / Blank 漂移 / 組合區 Follow-up 驗證
 
 ## 使用者回報

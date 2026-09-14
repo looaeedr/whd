@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: teach
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # MISSION.md Format
 
 `MISSION.md` lives at the workspace root. It captures the _reason_ the user is learning this topic. Every teaching decision (what to teach next, which resources to surface, which exercises to design) should trace back to this document.

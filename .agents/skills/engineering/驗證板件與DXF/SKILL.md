@@ -1,6 +1,10 @@
 ---
 name: 驗證板件與DXF
 description: 使用者要求驗目前板件、指定板件、全部板件、DXF反驗證或 Save→Reload 驗收時，對 current production state 執行 canonical geometry、2D/3D、DXF reopen、multipart physical-part 與 persistence parity；中隔另加 certified CROSS 參數、placement 與 shadow collision diagnostics。
+whd_doc_role: CURRENT
+whd_contract: part-dxf-acceptance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 驗證板件與DXF

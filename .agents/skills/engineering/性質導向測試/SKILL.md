@@ -1,6 +1,10 @@
 ---
 name: 性質導向測試
 description: 當工作需要為大輸入空間設計 property / invariant、roundtrip、idempotence、oracle、generator strategy，或解讀 shrinking 後的 counterexample 時使用；它負責「該驗什麼性質」，不取代 pytest mechanics、TDD 或 debugging authority。
+whd_doc_role: CURRENT
+whd_contract: property-invariant-testing
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 性質導向測試

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # #188 Dark Theme Runtime Pitfall
 
 <!-- ISSUE188_DARK_THEME_RUNTIME_PITFALL -->

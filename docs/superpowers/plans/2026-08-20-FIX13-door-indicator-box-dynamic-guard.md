@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # FIX13 — 多門 / 指示燈盒 / 動態基準 / 越界防呆修改紀錄
 
 日期：2026-08-20  

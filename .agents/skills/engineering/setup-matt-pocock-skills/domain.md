@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: setup-matt-pocock-skills
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Domain Docs
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.

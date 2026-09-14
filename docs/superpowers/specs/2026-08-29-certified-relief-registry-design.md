@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 已認證截角資料庫與 3D Fallback 架構規格書
 
 **Certified Relief Registry / 3D Discovery & Shadow Validation**

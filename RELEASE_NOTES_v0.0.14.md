@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # WHD 板金展開自動化系統 Release Notes (v0.0.14)
 
 **發布日期**：2026-08-11

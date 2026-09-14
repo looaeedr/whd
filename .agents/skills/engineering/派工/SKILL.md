@@ -2,6 +2,10 @@
 name: 派工
 description: 人工指定「派工」時使用：執行 WHD 的 PM → Implementer → QA 角色切換、GitHub owning Issue、checkpoint/journal、30 秒進度回報與 remote QA 監控協定。
 disable-model-invocation: true
+whd_doc_role: CURRENT
+whd_contract: dispatching-workflow
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 派工

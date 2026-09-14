@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 箱身多結構型態 Buildable Spec
 
 版本：2026-08-23 16:28（Asia/Taipei）  

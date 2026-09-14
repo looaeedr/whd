@@ -1,6 +1,10 @@
 ---
 name: deterministic-repo-migration
 description: Use when a repository-wide role, path, metadata, workflow, or governed artifact migration must be derived from an authoritative matrix/registry and applied completely, repeatably, and fail-closed without turning validation output into production authority.
+whd_doc_role: CURRENT
+whd_contract: deterministic-repo-migration
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Deterministic Repo Migration

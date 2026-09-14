@@ -1,6 +1,10 @@
 ---
 name: 截角資料入口收斂
 description: Use when moving WHD legacy 2D/unfold entry into Fold Designer 截角資料 mode, including authoritative part projection, multipart selection, unfold view adapter, legacy Notebook removal, and parity validation.
+whd_doc_role: CURRENT
+whd_contract: dm7-part-navigation
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 截角資料入口收斂 Skill

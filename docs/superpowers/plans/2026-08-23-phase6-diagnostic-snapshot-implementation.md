@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 診斷快照實作計畫
 
 > **給代理執行者：** 必須使用 `superpowers:subagent-driven-development`（建議）或 `superpowers:executing-plans`，依任務逐項實作；使用核取方塊追蹤完成狀態。

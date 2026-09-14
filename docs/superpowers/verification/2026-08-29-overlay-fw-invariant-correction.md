@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # OVERLAY FW Width Invariant Correction — SUPERSEDED
 
 > **本文件曾把 nominal/material FW=25 直接當成裝配避讓量，得到 25/350。這已被實際 formed-FW 組裝驗證推翻，不再是現行契約。**

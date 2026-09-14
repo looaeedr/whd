@@ -1,6 +1,6 @@
 ---
 whd_doc_role: CURRENT
-whd_contract: canonical-authority-map
+whd_contract: pitfall-ledger
 whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---

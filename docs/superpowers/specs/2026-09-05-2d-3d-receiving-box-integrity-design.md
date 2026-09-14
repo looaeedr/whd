@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # WHD 受電箱 2D／3D 組裝與幾何一致性修正規格
 
 - 日期：2026-09-05

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 超長 Log / Context-Safe Execution 踩坑
 
 ## LONG_LOG_CONTEXT_SAFE_EXECUTION_V1

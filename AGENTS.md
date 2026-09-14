@@ -1,3 +1,9 @@
+---
+whd_doc_role: CURRENT
+whd_contract: agent-startup-process
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 <!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->
 > **[CURRENT — PROCESS ONLY]** `AGENTS.md` 擁有 Agent 啟動、Knowledge Preflight、派工與驗收流程入口；不擁有製造公式或 ae_engine 架構真值。
 > Current authority pointers：

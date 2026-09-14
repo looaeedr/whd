@@ -1,6 +1,10 @@
 ---
 name: diagnosing-bugs
 description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+whd_doc_role: CURRENT
+whd_contract: diagnosing-bugs
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Diagnosing Bugs
