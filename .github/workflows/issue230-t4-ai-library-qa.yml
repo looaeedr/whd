@@ -1,0 +1,36 @@
+name: Issue230 T4 AI Library Navigation QA
+
+on:
+  push:
+    branches:
+      - fix/issue230-t4-ai-library-cleanup-20260914
+    paths:
+      - 'tests/knowledge/test_issue230_ai_library_navigation_contract.py'
+      - '個人AI檔案庫/README.md'
+      - '個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則.md'
+      - 'docs/superpowers/checkpoints/issue230-t4-preflight-evidence.txt'
+      - '.github/workflows/issue230-t4-ai-library-qa.yml'
+
+jobs:
+  t4-ai-library:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover changed-file preflight requirements
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T4 AI Library README core rules navigation reference normalization authority map" \
+            --changed-file tests/knowledge/test_issue230_ai_library_navigation_contract.py \
+            --changed-file 個人AI檔案庫/README.md \
+            --changed-file 個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則.md \
+            --evidence docs/superpowers/checkpoints/issue230-t4-preflight-evidence.txt
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run focused T4 navigation contract
+        run: python -m pytest tests/knowledge/test_issue230_ai_library_navigation_contract.py -q
+      - name: Keep T0 bootstrap governance GREEN
+        run: python -m pytest tests/knowledge/test_knowledge_governance_bootstrap.py -q
