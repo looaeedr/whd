@@ -38,6 +38,12 @@ jobs:
             --evidence .scratch/issue210/preflight-evidence.md \
             | tee .scratch/issue210/run/preflight.txt
 
+      - name: Install TDD runner dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pytest
+
       - name: TDD RED project-action extraction contract
         shell: bash
         run: |
