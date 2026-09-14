@@ -5,8 +5,6 @@ acquired shared coordination claim immediately before a branch/write/QA action s
 second worker cannot treat comments, branch names, or stale chat state as ownership.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import re
