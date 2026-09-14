@@ -1,5 +1,6 @@
 name: Issue 208 T4 Apply Move Only
 
+# Retrigger marker: workflow now exists on the PR head before this synchronize event.
 on:
   pull_request:
     branches:
