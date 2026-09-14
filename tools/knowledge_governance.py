@@ -50,7 +50,8 @@ class DocMetadata(NamedTuple):
 
 
 def _norm(value: str | Path) -> str:
-    return Path(value).as_posix().lstrip("./")
+    normalized = Path(value).as_posix()
+    return normalized[2:] if normalized.startswith("./") else normalized
 
 
 def _strip_inline_comment(value: str) -> str:
@@ -401,7 +402,6 @@ def validate_bootstrap(
             owners[str(baseline["contract"])].discard(rel)
 
     errors: list[str] = []
-    parsed_changed: dict[str, DocMetadata] = {}
     for rel in changed:
         path = root / rel
         if not path.exists():
@@ -413,7 +413,6 @@ def validate_bootstrap(
         except (GovernanceError, UnicodeDecodeError) as exc:
             errors.append(f"{rel}: missing/invalid {DOC_SCHEMA} metadata: {exc}")
             continue
-        parsed_changed[rel] = metadata
         if metadata.role == "MIRROR":
             assert metadata.canonical is not None
             target = root / metadata.canonical
