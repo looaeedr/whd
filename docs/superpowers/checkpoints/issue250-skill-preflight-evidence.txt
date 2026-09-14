@@ -1,0 +1,30 @@
+# Issue #250 Skill Preflight Evidence
+
+TASK: Issue250 deterministic repository migration Skill authoring and focused QA
+BRANCH: fix/issue250-deterministic-repo-migration-skill-20260914
+
+READ_SKILL: 寫技能
+READ_SKILL: Python測試實務
+READ_SKILL: phase6-release-packaging
+READ_SKILL: deterministic-repo-migration
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+READBACK_SHA: Python測試實務=84f7a78ac45a853582624e571dad40b84845dd33
+READBACK_SHA: release_required_artifacts.json=29968e4b3f4255ebbd547e13a308ad47f127ed83
+READBACK_SHA: deterministic_repo_migration_pitfalls.md=c1717e524920b88319a2385a8e6cbc69fe9f2b26
+READBACK_SHA: long_log_context_safe_execution.md=9175243b852ecb096df2dc1d1ead0c6b74d2efb4
+READBACK_SHA: executable_continuity_controller_pitfall.md=60128f6aecc4e811ddf4c33f71cf496241ef8427
+READBACK_SHA: long-log-context-safe-execution=3e5ae7fc97d87db1125eb38b29786831adebdfd0
+READBACK_SHA: executable-continuity-controller=d653958bb46fb111f2c957a76d22f54e7e245dad
+
+AUTHORITY_BOUNDARY: Validator/test evidence judges correctness only and must not become migration or production calculation authority.
+DOMAIN_BOUNDARY: Production geometry, DXF, and manufacturing truth are outside Issue #250 migration-framework scope.
