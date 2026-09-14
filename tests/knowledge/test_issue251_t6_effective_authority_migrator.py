@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
 from pathlib import Path
 
 import pytest
@@ -20,9 +21,28 @@ def _load_migrator():
     return module
 
 
-def test_repository_effective_authority_builds_total_plan() -> None:
+def test_repository_effective_authority_builds_total_plan(tmp_path: Path) -> None:
+    """The frozen T6 migration must stay total for its accepted 398-path snapshot.
+
+    Post-T6 governed documents are validated by current strict/permanent governance and
+    must not be backfilled into the frozen T1 matrix or #255 resolution overlay.
+    """
     migrator = _load_migrator()
-    plan = migrator.build_plan(ROOT, MATRIX, OVERLAY)
+    from tools.knowledge_authority_overlay import merge_effective_authority
+
+    effective = tuple(merge_effective_authority(MATRIX, OVERLAY))
+    frozen_paths = tuple(sorted(str(row["path"]) for row in effective))
+    assert len(frozen_paths) == 398
+
+    snapshot = tmp_path / "frozen-t6-snapshot"
+    for rel in frozen_paths:
+        source = ROOT / rel
+        assert source.is_file(), f"frozen T6 governed path disappeared: {rel}"
+        target = snapshot / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+
+    plan = migrator.build_plan(snapshot, MATRIX, OVERLAY)
     assert len(plan) == 398
     assert len({operation.path for operation in plan}) == 398
     assert all(operation.role in {"CURRENT", "REFERENCE", "MIRROR", "HISTORICAL"} for operation in plan)
