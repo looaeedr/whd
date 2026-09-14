@@ -14,15 +14,17 @@ Completed:
 - Durable ownership report recorded at `.scratch/issue211/renderer-dependency-report.md`.
 - Existing 3D owner confirmed: `phase6_final_scene_view.py::Phase6FinalSceneView`; no second `render_3d.py` authorized.
 - SAFE staged 2D first cut limited to `_draw_layout_resolved_features`, `_draw_layout_baseline_secondary`, `draw_grid`.
-- Behavior characterization + structural Move-Only test added at `tests/test_issue211_renderer_dependency_gate.py`.
 - First characterization attempt `34837150513` rejected because the test fixture bypassed `ResolvedRect` public construction; production unchanged.
-- Corrected characterization `34837260545 @ 43468fb1267e85619e1062a40393bf38acd3c7b1`: behavior tests GREEN; structural ownership test RED as intended.
+- Corrected characterization `34837260545 @ 43468fb1267e85619e1062a40393bf38acd3c7b1`: behavior GREEN; structural ownership RED as intended.
+- Apply attempt `34837398082` fail-closed because text dedent changed a docstring AST value; no production commit.
+- Apply attempt `34837468792` constructed the exact move successfully, then fail-closed because the QA allowed-diff command omitted the untracked new module; no production commit.
+- QA allowed-diff gate corrected with `git add -N gui_modules/render_2d.py`; Move-Only production logic unchanged.
 
 Pending:
-- exact Move-Only extraction of only the three SAFE helpers;
+- exact Move-Only commit of only `gui.py` + `gui_modules/render_2d.py`;
 - exact-head L1/L2/L3 + 2D↔3D/identity/DXF/invariant acceptance;
 - cleanup/drift audit and controller review.
 
 Failed / blocked: none.
 
-Resume: valid RED is locked; run deterministic AST Move-Only applier, commit only `gui.py` + `gui_modules/render_2d.py`, then validate the committed head. Keep manufacturing/state/query/3D-owner seams unchanged.
+Resume: rerun deterministic Move-Only apply; after the bot-created implementation SHA exists, trigger acceptance on that committed lineage and do not use mutation-workspace test output as final evidence.
