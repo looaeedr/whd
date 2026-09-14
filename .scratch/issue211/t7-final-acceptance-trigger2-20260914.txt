@@ -1,0 +1,8 @@
+Issue #211 T7 corrected exact-head final acceptance trigger.
+
+QA runner base: qa/issue211-final-acceptance-fix2-20260914
+Runner commit: 33df564eaab41a49f660df86bdcccfb757c05258
+Exact implementation target: 254f82f589e684b59e48dabb93ce2a6767d440bc
+Expected implementation parent: f486a61534f02890c9f497422bf99d7a2bec34c3
+Previous false-red run: 34841694471
+Reason for rerun: old runner used a wrong parent SHA and nonexistent test paths; production implementation is unchanged.
