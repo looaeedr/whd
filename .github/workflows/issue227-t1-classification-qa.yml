@@ -32,3 +32,4 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run focused T1 classification tests
         run: python -m pytest tests/knowledge/test_knowledge_authority_classification.py -q
+      # Triggered after runner-applied implementation because GITHUB_TOKEN pushes do not recurse.
