@@ -9,9 +9,9 @@ masks, persistence, or application state.
 def _phase6_logical_part_present(existing_parts, logical_key):
     """Project dynamic physical stable IDs into the legacy top-level UI groups.
 
-    The physical IDs remain authoritative; this helper only answers whether a
-    logical main-GUI group should be visible.
-    """
+        The physical IDs remain authoritative; this helper only answers whether a
+        logical main-GUI group should be visible.
+        """
     existing = set(str(key) for key in (existing_parts or ()))
     key = str(logical_key or "")
     if key == "door":
