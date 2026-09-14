@@ -12,7 +12,7 @@ on:
       - 'tools/knowledge_metadata_migrator.py'
 
 jobs:
-  census:
+  census-and-contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,3 +89,7 @@ jobs:
           for rel, role, blocker, error in unresolved_debt:
               print('DEBT_BLOCKED', rel, role, blocker, error)
           PY
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run focused Issue251 migrator contract
+        run: python -m pytest tests/knowledge/test_issue251_t6_matrix_migrator.py -q -s
