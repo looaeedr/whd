@@ -30,6 +30,14 @@ T6 accepted evidence：migrated HEAD `2ef002cc6cc9476fc36eccbbe6b8b64acda6a777`�
 
 後續 T7 不得重新分類這批 metadata；只能在 accepted strict-mode state 上增加永久 governance guard。
 
+## T8 Combined Acceptance 必須驗同一 tested HEAD
+
+#235 的 combined acceptance 固定同時驗：R1–R7 permanent governance、完整 `tests/knowledge`、durable Skill/AI readback、`config.ini`、`基準檔/**` byte manifest，以及 working-tree clean。不可把不同 branch／不同 run 的綠燈拼成 Combined Acceptance。
+
+第一輪 combined run `34907199320` / job `104186513540` 證明 accepted T7 head 上：permanent governance `GREEN governed=398`、`tests/knowledge` `107 PASS / 0 FAIL`、durable readback GREEN、`config.ini` SHA256 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67` 不變、protected `基準檔/**` 共 `24` files manifest 不變、working tree clean。
+
+T8 最終驗收仍必須在包含本 durable writeback 的 exact HEAD 重新跑同一 Combined Acceptance；第一輪 run 只能作 pre-write evidence，不能代替 final tested-head proof。
+
 ## 不跨越 domain authority
 
 這個流程不能拿來修 production geometry、DXF 或 manufacturing truth。若 migration 發現 domain truth 有問題，停止並交給該 domain 的 authority/Skill；不要藉 migration 順手改製造資料。
