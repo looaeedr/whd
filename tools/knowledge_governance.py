@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import hashlib
 import json
 import re
 import subprocess
@@ -353,6 +354,7 @@ def build_inventory(root: Path, *, source_head: str) -> dict[str, object]:
                 "replacement": replacement,
                 "action": action,
                 "metadata_status": metadata_status,
+                "content_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
             }
         )
 
@@ -395,6 +397,24 @@ def validate_bootstrap(
         contract = raw_row.get("contract")
         if role == "CURRENT" and isinstance(contract, str) and contract:
             owners[contract].add(path)
+
+    # PR bases can predate the inventory freeze. A path listed by the PR diff
+    # is not post-freeze drift when its current bytes still match the frozen
+    # inventory snapshot. Only true post-freeze changes enter enforcement.
+    effective_changed: list[str] = []
+    for rel in changed:
+        path = root / rel
+        baseline = baseline_by_path.get(rel)
+        frozen_hash = baseline.get("content_sha256") if baseline else None
+        if (
+            path.is_file()
+            and isinstance(frozen_hash, str)
+            and frozen_hash
+            and hashlib.sha256(path.read_bytes()).hexdigest() == frozen_hash
+        ):
+            continue
+        effective_changed.append(rel)
+    changed = tuple(effective_changed)
 
     for rel in changed:
         baseline = baseline_by_path.get(rel)
