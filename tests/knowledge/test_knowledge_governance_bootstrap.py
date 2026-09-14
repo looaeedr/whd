@@ -8,6 +8,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools" / "knowledge_governance.py"
+BOOTSTRAP_WORKFLOW = ROOT / ".github/workflows/knowledge-governance-bootstrap.yml"
+INVENTORY = ROOT / "docs/superpowers/verification/knowledge_governance_inventory_v1.json"
 
 
 def _load_governance():
@@ -191,3 +193,21 @@ def test_inventory_covers_required_scopes_and_records_required_fields(tmp_path: 
     }
     assert all(required <= set(row) for row in rows.values())
     assert inventory["source_head"] == "fixture-head"
+
+
+def test_permanent_bootstrap_workflow_invokes_governance_against_pr_base() -> None:
+    assert BOOTSTRAP_WORKFLOW.is_file(), "T0 requires permanent knowledge-governance-bootstrap.yml"
+    text = BOOTSTRAP_WORKFLOW.read_text(encoding="utf-8")
+    assert "pull_request:" in text
+    assert "cleanup/2d-3d-sync" in text
+    assert "tools/knowledge_governance.py bootstrap" in text
+    assert "docs/superpowers/verification/knowledge_governance_inventory_v1.json" in text
+    assert "github.event.pull_request.base.sha" in text
+    assert "fetch-depth: 0" in text
+
+
+def test_frozen_inventory_file_exists_and_names_its_source_head() -> None:
+    assert INVENTORY.is_file(), "T0 requires a committed frozen governance inventory"
+    text = INVENTORY.read_text(encoding="utf-8")
+    assert '"schema": "WHD_KNOWLEDGE_INVENTORY_V1"' in text
+    assert '"source_head":' in text
