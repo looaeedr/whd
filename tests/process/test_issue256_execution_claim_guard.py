@@ -193,8 +193,8 @@ def test_dispatch_skill_requires_executable_prewrite_gate() -> None:
     assert "tools/execution_claim_guard.py" in text
     assert "branch-create" in text
     assert "qa-dispatch" in text
-    assert "--base-sha" in text
-    assert "--head-sha" in text
+    assert "base SHA" in text
+    assert "stale" in text
 
 
 def test_ai_pitfall_records_claim_acquisition_is_not_enough() -> None:
