@@ -6,6 +6,7 @@ on:
       - work/issue225-knowledge-documentation-consolidation-20260914
     paths:
       - '.github/workflows/issue228-t2-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue228-t2-preflight-evidence.txt'
 
 jobs:
   preflight:
@@ -15,8 +16,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Discover T2 Knowledge Preflight requirements
+      - name: Enforce T2 Knowledge Preflight
         shell: bash
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "T2 continuous execution authority continuity controller executable state finalization operations authority legacy pitfall reference marker string enforcement" || true
+            --task "T2 continuous execution authority continuity controller executable state finalization operations authority legacy pitfall reference marker string enforcement" \
+            --evidence docs/superpowers/checkpoints/issue228-t2-preflight-evidence.txt
