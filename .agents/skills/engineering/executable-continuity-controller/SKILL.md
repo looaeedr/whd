@@ -1,6 +1,10 @@
 ---
 name: executable-continuity-controller
 description: Use for long-running WHD execution, remote QA, recovery, checkpoint persistence, resume after runtime cuts, and any workflow finalization decision that must be enforced by executable state rather than prose alone.
+whd_doc_role: CURRENT
+whd_contract: continuous-execution-operations
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Executable Continuity Controller
@@ -9,7 +13,7 @@ description: Use for long-running WHD execution, remote QA, recovery, checkpoint
 
 Canonical executable authority: `tools/continuity_controller.py`.
 
-This Skill does not replace domain Skills. It provides the machine-enforced continuity layer that `執行開發任務`, `monitoring-remote-qa`, and closure/finalization gates must delegate to.
+This Skill is the unique operations/semantic CURRENT authority for using that executable controller. It does not replace domain Skills. It provides the operational contract that `執行開發任務`, `monitoring-remote-qa`, and closure/finalization gates must delegate to.
 
 ## Required states
 
