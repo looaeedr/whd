@@ -1,0 +1,30 @@
+name: Knowledge Documentation Consolidation Requirement RED
+
+on:
+  push:
+    branches:
+      - test/knowledge-documentation-consolidation-red-20260914
+
+permissions:
+  contents: read
+
+jobs:
+  requirement-red:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout RED branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: Run requirement-level RED probes
+        run: >-
+          python -m pytest
+          tests/knowledge/test_knowledge_documentation_consolidation_requirement_red.py
+          -q
