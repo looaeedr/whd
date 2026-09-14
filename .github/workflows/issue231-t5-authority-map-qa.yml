@@ -1,0 +1,36 @@
+name: Issue231 T5 Authority Map QA
+
+on:
+  push:
+    branches:
+      - fix/issue231-t5-authority-map-normalization-20260914
+    paths:
+      - 'tests/knowledge/test_issue231_authority_map_normalization.py'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - 'docs/superpowers/checkpoints/issue231-t5-preflight-evidence.txt'
+      - '.github/workflows/issue231-t5-authority-map-qa.yml'
+
+jobs:
+  t5-authority-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover changed-file preflight requirements
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T5 normalize canonical authority map permanent process contracts unique current owner" \
+            --changed-file tests/knowledge/test_issue231_authority_map_normalization.py \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md \
+            --evidence docs/superpowers/checkpoints/issue231-t5-preflight-evidence.txt
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run focused T5 authority-map contract
+        run: python -m pytest tests/knowledge/test_issue231_authority_map_normalization.py -q
+      - name: Keep existing authority contract GREEN
+        run: python -m pytest tests/knowledge/test_knowledge_authority_contract.py -q
+      - name: Keep T0 bootstrap governance GREEN
+        run: python -m pytest tests/knowledge/test_knowledge_governance_bootstrap.py -q
