@@ -18,13 +18,14 @@ Move-only extraction of `_project_toolbar_presentation` into `gui_modules/layout
 ## Progress
 - changed-file Phase6 preflight run `34824145664`: GREEN;
 - `gui_modules/layout.py` created with the exact characterized toolbar presentation body;
-- registered workflow `issue208-t4-preflight.yml` upgraded at `a315a89c6a6cc8ba7c0f42c1fb0ce6428037fc4b` into a dual-mode execution/acceptance gate;
-- this checkpoint commit intentionally triggers the registered gate through a non-workflow path so the new workflow revision is actually executed.
+- complex dual-mode workflow was rejected/not scheduled by Actions, so the registered gate was simplified to a minimal apply-only workflow at `33419ea37a4abb5436beba795419f8404db85aa0`;
+- this checkpoint commit triggers that registered apply gate through a normal matched path.
 
 ## Pending
-1. execution mode removes only the old toolbar function body from `gui.py` and adds compatibility import;
-2. connector checkpoint triggers exact-head acceptance mode;
-3. source-contract/import-direction checks;
-4. Xvfb characterization + focused UI regression;
-5. config/baseline invariants;
-6. remove temporary workflows, drift audit, total-control review.
+1. apply gate removes only the old toolbar function body from `gui.py` and adds compatibility import;
+2. replace registered gate with acceptance-only workflow;
+3. connector checkpoint triggers exact-head acceptance;
+4. source-contract/import-direction checks;
+5. Xvfb characterization + focused UI regression;
+6. config/baseline invariants;
+7. remove temporary workflows, drift audit, total-control review.
