@@ -12,6 +12,7 @@ READ_SKILL: UI設計與去AI味
 READ_SKILL: monitoring-remote-qa
 READ_SKILL: long-log-context-safe-execution
 READ_SKILL: 驗證板件與DXF
+READ_SKILL: diagnosing-bugs
 READ_PROCESS: AGENTS.md Phase6 Knowledge Preflight / Branch-First / dispatch / issue closure
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
@@ -35,4 +36,5 @@ T3 constraints:
 - 2D/3D/DXF/Save→Reload continue to consume the same canonical manufacturing answer; renderer/module extraction must not reconstruct manufacturing geometry;
 - physical-part identity remains owned by current workspace/resolved manufacturing output, never GUI labels;
 - validation, DXF reopen, fixture, screenshot, collision and test expected values remain one-way evidence only and cannot become production calculation authority;
+- acceptance/debug RED must be reproduced and classified at a tight seam before any fix; harness/preflight failures are not production failures;
 - because GUI/renderer seams can affect operator-visible physical-part paths, final project acceptance will still require the canonical `驗證板件與DXF` gate at the applicable later acceptance stage; T3 focused QA does not replace that final gate.
