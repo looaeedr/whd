@@ -1,0 +1,26 @@
+ISSUE: #228
+TASK: T2 Consolidate Continuous Execution Authority
+CLEANED_HEAD: 45cc36b32770fee7775a49c19d8c93f5e5045397
+TESTED_HEAD: ec4157921477c31f14686ca3d98d5246fa683d22
+FINAL_RUN: 34840904337
+RESULT: 59 PASS / 0 FAIL
+CONTROLLER_BLOB_SHA: a7e5a7f1863954e1aa35242095619f10d5596be2
+AUTHORITY_SEMANTICS: GREEN
+TEMP_WORKFLOWS: REMOVED
+PRODUCTION_HEAD: e0a82f28f4ce3204c9fae56326f34f1a0964851f
+
+RED_CHAIN:
+- 34840342399: fail-closed changed-file preflight SUCCESS; authority requirements RED.
+- 34840737616: review regression RED exposed legacy polling-authority conflict (1 failed / 15 passed).
+
+GREEN_CHAIN:
+- 34840525410: focused authority + controller regression SUCCESS.
+- 34840845261: polling-authority correction SUCCESS.
+- 34840904337: final completion audit SUCCESS, 59 PASS / 0 FAIL.
+
+ACCEPTANCE:
+- tools/continuity_controller.py is the unique continuous-execution-machine CURRENT authority.
+- .agents/skills/engineering/executable-continuity-controller/SKILL.md is the unique continuous-execution-operations CURRENT authority.
+- continuous_execution_pitfalls.md is structured WHD_DOC_META_V1 REFERENCE and explicitly defers executable enforcement.
+- polling cadence belongs to monitoring-remote-qa; durable state/resume/finalization belongs to continuity_controller.py.
+- controller implementation was not redesigned or modified in T2.
