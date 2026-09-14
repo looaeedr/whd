@@ -79,6 +79,21 @@ Compare the tested state against the allowed changed-file set and the pinned aut
 
 If a temporary QA workflow or harness was introduced, include its lifecycle in the drift audit and do not silently ship it as production behavior unless the owning issue explicitly requires that.
 
+## T6 strict-metadata accepted handoff
+
+For the #225/#233 knowledge-consolidation migration, the accepted T6 lineage uses the frozen T1 classification authority plus the explicit #255 deterministic resolution overlay. That pair is the migration input; **do not re-run classification heuristics** and do not reconstruct desired metadata from strict-validator failures.
+
+Accepted T6-B evidence at migrated HEAD `2ef002cc6cc9476fc36eccbbe6b8b64acda6a777`:
+
+- governed inventory: `398`, mapped: `398`, rejected/unmapped: `0`;
+- second migration pass: `CHANGED_COUNT=0`;
+- strict/focused validation: `29 PASS / 0 FAIL`;
+- full `tests/knowledge`: `102 PASS / 0 FAIL`;
+- remote QA: run `34905919429`, job `104182413876`;
+- scope-external drift: `0`.
+
+T7 and later governance work must consume this accepted strict-mode state. It may add permanent guards, but it must not silently reopen T1 classification or treat tests/validator output as a replacement authority.
+
 ## Evidence schema
 
 A completion record for this Skill must include, at minimum:
