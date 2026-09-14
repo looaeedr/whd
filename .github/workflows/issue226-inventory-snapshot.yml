@@ -1,0 +1,43 @@
+name: Issue226 Governance Inventory Snapshot
+
+on:
+  push:
+    branches:
+      - work/issue225-knowledge-documentation-consolidation-20260914
+    paths:
+      - '.github/workflows/issue226-inventory-snapshot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout work-order branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/issue225-knowledge-documentation-consolidation-20260914
+          fetch-depth: 1
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate frozen knowledge inventory
+        shell: bash
+        run: |
+          python tools/knowledge_governance.py inventory \
+            --source-head "$GITHUB_SHA" \
+            --output docs/superpowers/verification/knowledge_governance_inventory_v1.json
+      - name: Commit inventory snapshot
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/superpowers/verification/knowledge_governance_inventory_v1.json
+          if git diff --cached --quiet; then
+            echo "inventory unchanged"
+            exit 0
+          fi
+          git commit -m "docs(issue226): freeze knowledge governance inventory"
+          git push origin HEAD:work/issue225-knowledge-documentation-consolidation-20260914
