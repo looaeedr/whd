@@ -18,6 +18,12 @@ READ_PROCESS: AGENTS.md Phase6 Knowledge Preflight / Branch-First / issue closur
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+
+Long-log execution constraint reread from current branch:
+- running QA monitoring uses structured run/job/step state and bounded failure context rather than repeatedly injecting full raw logs;
+- execution-window interruption does not mean remote-job failure; resume from run/HEAD/evidence state;
+- terminal evidence is consolidated after completion, and raw log remains a durable source rather than a repeated chat payload.
 
 T4 slice contract:
 - move only `_project_toolbar_presentation` from `gui.py` to `gui_modules/layout.py`;
