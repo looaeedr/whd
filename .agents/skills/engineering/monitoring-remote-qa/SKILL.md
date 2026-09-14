@@ -20,6 +20,16 @@ Remote QA is a monitored condition loop, not a fire-and-forget action. Triggerin
 - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
 - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
 
+### EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE
+
+Remote-QA polling mechanics 仍由本 Skill 唯一擁有，但 durable wait/recovery/finalization state 必須委派 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 與 `tools/continuity_controller.py`。
+
+- 一旦取得 non-terminal remote `run_id + head_sha`，先把 controller checkpoint transition/persist 成 `WAITING_REMOTE`，`next_action` 必須明確為同一 locked run 的 poll；已知時同步保存 `job_id / log_cursor / evidence`。
+- `WAITING_REMOTE` checkpoint 若缺 run identity 或 next action，controller 必須 fail closed；不能只因文字 checkpoint 寫著 WAITING 就繼續假等。
+- chat/tool Runtime hard-cut 後，先 `load_checkpoint` 取得 exact run/head/cursor，再做 live readback；無 drift 續 poll 同一 run，不新 trigger。
+- terminal run 只代表解除 remote active lock；若 counts/invariants/cleanup/issue closure 還沒完成，controller 應 transition 回 `RUNNING(next_acceptance_action)`，不能直接 `TERMINAL_SUCCESS`。
+- 每次準備離開整條 workflow／關單前，由 owning execution/closure gate 呼叫 `assert_finalizable`；本 Skill 的 `REMOTE_QA_ACTIVE_LOCK` / `final 禁止` 文字只提供操作規範，不再被當成 machine enforcement 本身。
+
 ## Active polling is mandatory
 
 Remote QA monitoring is **active polling**, not event notification.
@@ -134,7 +144,7 @@ Remote QA monitoring is **active polling**, not event notification.
   - 使用者明確改變／取消目前目標；
   - Runtime/tooling 被平台實際切斷。下次取得控制權時，若目標未改，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
 - terminal failure 後，先抓 log 並完成 failure classification；之後才可解除舊 run lock、進修正流程。修正若觸發 replacement run，立即對新 `run_id + head_sha` 建立新的 active lock。
-- 每次非 polling 工具呼叫與每次送出 `final` 前都必須自問：目前是否存在 non-terminal locked run？若是且 Runtime/tools 仍可用，該動作非法，先 poll。
+- 每次非 polling工具呼叫與每次送出 `final` 前都必須自問：目前是否存在 non-terminal locked run？若是且 Runtime/tools 仍可用，該動作非法，先 poll。
 
 ## STALE_WAIT_WATCHDOG
 
