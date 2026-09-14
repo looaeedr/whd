@@ -1,0 +1,5 @@
+Issue #211 T7 final acceptance trigger.
+Acceptance target (immutable): 254f82f589e684b59e48dabb93ce2a6767d440bc
+QA workflow source branch: qa/issue211-renderer-gate-20260914
+QA workflow commit: bcdbf98829cb75da98b8fbef59e25bcaab4a6487
+This file exists only to emit a PR synchronize event. It is not part of the acceptance target and must not be treated as production evidence.
