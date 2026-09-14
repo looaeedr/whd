@@ -1,0 +1,28 @@
+name: Issue256 Execution Claim Hard Gate
+
+on:
+  push:
+    branches:
+      - fix/issue256-execution-claim-hard-gate-20260914
+    paths:
+      - 'tests/process/test_issue256_execution_claim_guard.py'
+      - 'tools/execution_claim_guard.py'
+      - '.agents/skills/engineering/派工/SKILL.md'
+      - '個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md'
+      - '.github/workflows/issue256-execution-claim-hard-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  focused-claim-gate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run Issue256 focused contract
+        run: python -m pytest tests/process/test_issue256_execution_claim_guard.py -q
