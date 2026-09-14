@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/issue204-t0-analysis.yml'
       - '.scratch/issue204-t0-checkpoint.md'
+      - '.scratch/issue204/**'
       - 'gui.py'
       - 'AGENTS.md'
       - '.agents/skills/**'
@@ -39,6 +40,10 @@ jobs:
           set -o pipefail
           python tools/phase6_skill_preflight.py \
             --task "Issue #204 T0 GUI modularization baseline lock, preflight, AST inventory and dependency mapping for gui.py; no production behavior changes" \
+            --changed-file '.github/workflows/issue204-t0-analysis.yml' \
+            --changed-file '.scratch/issue204-t0-checkpoint.md' \
+            --changed-file '.scratch/issue204/preflight-evidence.md' \
+            --evidence '.scratch/issue204/preflight-evidence.md' \
             | tee .scratch/issue204/preflight.txt
       - name: Build AST dependency inventory
         if: always()
@@ -126,6 +131,31 @@ jobs:
           pathlib.Path('.scratch/issue204/ast_inventory.md').write_text('\n'.join(summary)+'\n',encoding='utf-8')
           print('\n'.join(summary[:14]))
           PY
+      - name: Repository-wide caller and symbol reference search
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess
+          p=pathlib.Path('.scratch/issue204/ast_inventory.json')
+          if not p.exists():
+              raise SystemExit('AST inventory missing')
+          data=json.loads(p.read_text(encoding='utf-8'))
+          out={}
+          for item in data['top_level_symbols']:
+              name=item['name']
+              proc=subprocess.run(['git','grep','-n','-w',name,'--','.'],text=True,capture_output=True)
+              refs=[]
+              if proc.returncode in (0,1):
+                  refs=[line for line in proc.stdout.splitlines() if line.strip()]
+              else:
+                  refs=[f'GIT_GREP_ERROR:{proc.returncode}:{proc.stderr.strip()}']
+              out[name]=refs
+          pathlib.Path('.scratch/issue204/repo_symbol_references.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          for name, refs in out.items():
+              external=[r for r in refs if not r.startswith('gui.py:')]
+              print(name, 'refs=', len(refs), 'external=', len(external))
+          PY
       - name: Candidate dependency slices
         if: always()
         shell: bash
@@ -136,15 +166,16 @@ jobs:
           if not p.exists():
               raise SystemExit('AST inventory missing')
           data=json.loads(p.read_text(encoding='utf-8'))
+          repo=json.loads(pathlib.Path('.scratch/issue204/repo_symbol_references.json').read_text(encoding='utf-8'))
           candidates=['_corner_preview_canvas_point','_corner_preview_flip_y_for_target','_project_toolbar_presentation','layout_reference_overlay_rects','_YMirroredPreviewTransform','render_structural_result','render_drawing_scene']
           rows=[]
           for c in candidates:
               matches=[f for f in data['functions'] if f['name']==c]
               callers=data['call_index'].get(c,[])
-              rows.append({'candidate':c,'definitions':matches,'callers':callers})
+              rows.append({'candidate':c,'definitions':matches,'callers':callers,'repo_references':repo.get(c,[])})
           pathlib.Path('.scratch/issue204/candidate_dependencies.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
           for r in rows:
-              print(r['candidate'], 'defs=', len(r['definitions']), 'callers=', len(r['callers']))
+              print(r['candidate'], 'defs=', len(r['definitions']), 'callers=', len(r['callers']), 'repo_refs=', len(r['repo_references']))
           PY
       - name: Upload T0 evidence
         if: always()
@@ -155,6 +186,7 @@ jobs:
             .scratch/issue204/preflight.txt
             .scratch/issue204/ast_inventory.json
             .scratch/issue204/ast_inventory.md
+            .scratch/issue204/repo_symbol_references.json
             .scratch/issue204/candidate_dependencies.json
             .scratch/issue204/global_pitfall.md
             .scratch/issue204/gui_snapshot.py
