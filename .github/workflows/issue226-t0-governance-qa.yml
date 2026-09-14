@@ -1,5 +1,6 @@
 name: Issue226 T0 Governance QA
 
+# Temporary acceptance harness for #226; removed after terminal GREEN.
 on:
   push:
     branches:
