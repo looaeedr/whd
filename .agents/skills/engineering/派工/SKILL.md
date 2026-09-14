@@ -144,6 +144,25 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 6. **claim 失敗**、shared authority 已顯示其他 owner、或 atomic compare-and-swap 衝突時，必須 fail closed：**禁止施工該 Issue**、禁止另開平行實作來繞過 claim。若 dispatch pool 尚有可執行的未認領工單，依 `NON_TERMINAL_CONTINUE` 立即轉往下一張，而不是停在「已被鎖定」。
 7. 若目前環境沒有任何可提供 shared + atomic ownership 的能力，必須把它記成 capability blocker；不得把 branch-local 檔案或 comment 假裝成安全鎖。
 
+### EXECUTION_CLAIM_PREWRITE_HARD_GATE
+
+成功取得 atomic claim **不等於已獲准寫入**。在每一次會建立或改動 repository state 的動作前，必須立即執行 `tools/execution_claim_guard.py`，以 shared coordination claim 的最新內容作唯一 authority；不得只相信 Issue comment、branch 名稱、聊天記憶或先前一次 guard 結果。
+
+- `branch-create`：任何 implementation / QA branch 建立前都必須先驗 issue、canonical URL、worker、claimed work branch、base SHA 與 claim active state。
+- `write` / `commit` / `pr-write`：production、test、Skill、AI Library、workflow 或其他 repo write 前都必須 fail-closed 驗證 owner 與 branch。
+- `qa-dispatch` / `workflow-dispatch`：遠端 QA/Actions 啟動前必須重新驗證；只有 claim 中明確列出的 delegated branch 可替 owner branch 執行 QA。
+- missing claim、non-owner、issue/URL mismatch、branch mismatch、malformed/stale/inactive/ambiguous claim 一律 **FAIL**；不得用新 branch、手動 comment、重跑 workflow 或其他旁路繞過。
+- guard 成功只授權該次 action，不建立永久 session 權限；下一次 repo mutation 必須再次驗證最新 claim。
+- 若 guard 本身不可執行或無法讀到 shared claim，視同 capability blocker，禁止 repo mutation；不得降級回 documentation-only `NO_WORK_WITHOUT_CLAIM`。
+
+CLI precondition 形式：
+
+```text
+python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD>
+```
+
+只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
+
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
@@ -419,6 +438,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] 每票都有 `Requirement Authority`、`AI Library References`、`AI Library Writeback`。
 - [ ] GitHub 專案每票在 Worker 前都有真正 GitHub owning Issue 並反讀 number + URL + title。
 - [ ] `NO_WORK_WITHOUT_CLAIM`：一票同時只有一個 execution claim owner；第一筆施工 write 前必須 atomic claim shared coordination authority。
+- [ ] `EXECUTION_CLAIM_PREWRITE_HARD_GATE`：每次 branch-create / write / commit / QA dispatch 前都要執行 `tools/execution_claim_guard.py`；missing/non-owner/branch mismatch/base SHA/head SHA/stale/malformed/inactive/ambiguous 一律 fail closed。
 - [ ] branch-local lock / Issue comment / label 沒有被誤當全域互斥 authority；claim 失敗時 fail closed 並轉下一張可執行未認領票。
 - [ ] `CLAIM_PROGRESS_STATE` 同步 phase/state、last_update、branch/HEAD、remote QA、next_action、blocker，重大 transition 即時更新。
 - [ ] 未完成工單可分成 `我持有` / `其他 AI 已鎖定` / `尚未認領`，且 claimed ticket 可看見進度與下一步。
