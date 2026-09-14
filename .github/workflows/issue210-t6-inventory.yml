@@ -33,9 +33,17 @@ jobs:
             --changed-file gui.py \
             --changed-file gui_modules/project_actions.py \
             --changed-file tests/test_phase6_project_file.py \
+            --changed-file tests/test_issue210_project_actions_move_contract.py \
             --changed-file .scratch/issue210/preflight-evidence.md \
             --evidence .scratch/issue210/preflight-evidence.md \
             | tee .scratch/issue210/run/preflight.txt
+
+      - name: TDD RED project-action extraction contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue210_project_actions_move_contract.py \
+            | tee .scratch/issue210/run/tdd-red.txt
 
       - name: AST project-action dependency inventory
         shell: bash
@@ -47,7 +55,6 @@ jobs:
 
           source = Path('gui.py').read_text(encoding='utf-8')
           tree = ast.parse(source)
-          lines = source.splitlines()
           needles = ('open', 'save', 'reload', 'project', 'file', 'path')
           rows = []
 
@@ -95,7 +102,6 @@ jobs:
               print('  SIDEFX=' + ','.join(row[7]))
           print(f'CANDIDATE_COUNT={len(rows)}')
           PY
-          git diff --exit-code -- gui.py gui_modules tests/test_phase6_project_file.py
           git rev-parse HEAD | tee .scratch/issue210/run/tested-head.txt
 
       - name: Upload evidence
