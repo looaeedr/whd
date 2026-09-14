@@ -24,6 +24,15 @@ This Skill does not replace domain Skills. It provides the machine-enforced cont
 
 `WAITING_REMOTE` additionally MUST contain the exact positive `run_id` and nonblank `head_sha`; when known, persist `job_id`, `log_cursor`, and accepted evidence too.
 
+### RUN_IDENTITY_REQUIRED_NO_WAIT_GATE
+
+**No run identity = no wait.** A remote wait state is legal only after an exact, verifiable `run_id + head_sha` exists.
+
+- If `run_id` is missing, unknown, not yet created, or only implied by prose such as “workflow triggered”, the controller MUST NOT persist `WAITING_REMOTE`.
+- Instead it MUST remain/transition to `RUNNING` or `RECOVERING` with a concrete `next_action` that immediately acquires the identity: dispatch the workflow, repair the trigger/permission/branch condition, or read back the workflow-run collection and resolve the matching `head_sha`.
+- The 30-second remote polling cadence belongs only to an already-known exact run. It MUST NOT be used to wait for a run identity to appear.
+- A checkpoint that says `WAITING_REMOTE` but lacks exact `run_id + head_sha` is invalid stale wait. Recovery must happen immediately; do not sleep, do not “observe once more”, and do not wait for user input.
+
 Terminal checkpoints MUST have `next_action = null`. A terminal checkpoint cannot transition back into an active state; new work starts from a new checkpoint lineage/branch as required by Branch-First.
 
 ## Durable checkpoint contract
@@ -71,13 +80,15 @@ The returned action is the exact durable next action. `WAITING_REMOTE` still del
 
 ## Remote QA bridge
 
-When remote QA is submitted, transition and persist:
+When remote QA is submitted **and exact run identity has been read back**, transition and persist:
 
 - state = `WAITING_REMOTE`
 - exact `run_id + head_sha`
 - `job_id` when available
 - bounded `log_cursor`/step cursor when available
 - `next_action = poll same locked run`
+
+If submission has not produced a resolvable exact `run_id + head_sha`, do **not** transition to `WAITING_REMOTE`; stay `RUNNING/RECOVERING` and execute the concrete dispatch/identity-recovery action immediately.
 
 The remote runner itself must continue independently to terminal. Chat polling is observation, not the scheduler. A runtime cut must not create a new run merely to recover context.
 
@@ -91,6 +102,7 @@ On terminal failure, use `RECOVERING` with the concrete evidence/root-cause acti
 
 - non-terminal `next_action` fail-closed behavior;
 - `WAITING_REMOTE` exact identity requirement;
+- **missing run identity cannot enter/retain `WAITING_REMOTE`; recovery action is immediate rather than timed waiting**;
 - atomic save/load and runtime-cut resume preservation;
 - version rejection;
 - non-terminal finalization rejection;
