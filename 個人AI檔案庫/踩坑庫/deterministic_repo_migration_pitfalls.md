@@ -38,6 +38,18 @@ T6 accepted evidence：migrated HEAD `2ef002cc6cc9476fc36eccbbe6b8b64acda6a777`�
 
 T8 最終驗收仍必須在包含本 durable writeback 的 exact HEAD 重新跑同一 Combined Acceptance；第一輪 run 只能作 pre-write evidence，不能代替 final tested-head proof。
 
+## T9 Production Integration：外部 drift 先 reconcile，再 non-force
+
+#236 refetch production 時，`cleanup/2d-3d-sync @ 591a7127e09f8ab537e6de4ca84d5ec8c148c237` 與 #225 work-order T8 lineage 發生預期 divergence。production-only 淨變更來自已完成的 #256 execution-claim hard gate；禁止 force 覆蓋，也禁止直接拿 production 舊版 `派工/SKILL.md` 覆掉 T6 metadata-aware Skill。
+
+正確處理是：建立 two-parent reconciliation，保留 T8 lineage tree、補回 #256 durable files；對 post-T6 新增 pitfall 補上已接受的 `REFERENCE / pitfall-ledger / WHD_DOC_META_V1` metadata；保持 frozen T6 matrix/overlay 為原本 `398` 路徑歷史 authority，而第 `399` 份 post-T6 governed document 由 current strict/permanent governance 驗證，不回寫 frozen authority；最後恢復 #256 `EXECUTION_CLAIM_PREWRITE_HARD_GATE` 到 current metadata-aware `派工` Skill。
+
+verified reconciliation candidate `11b359dbab1936ab88d306557e3de12a9459f31a` 在 run `34908327071` / job `104189997798` 通過：production ancestry PASS、permanent governance `GREEN governed=399`、`tests/knowledge` `107 PASS / 0 FAIL`、#256 execution-claim guard `14 PASS / 0 FAIL`、config invariant PASS、protected `基準檔/**` 24 files invariant PASS、clean tree。
+
+production 隨後以 **non-force fast-forward** 整合到 `11b359dbab1936ab88d306557e3de12a9459f31a`。post-integration exact-production run `34908535340` / job `104190648538` 先證明 remote `cleanup/2d-3d-sync` 正是該 SHA，再 detached checkout 同一 SHA 驗收：permanent governance `GREEN governed=399`、`tests/knowledge` `107 PASS / 0 FAIL`、#256 guard `14 PASS / 0 FAIL`、durable readback GREEN、`config.ini` SHA256 `980eab68d4a1732a5313b22329852dfc9691c83e4e2a64cccd18022afae4ee67` invariant、protected `基準檔/**` 24 files invariant、working tree clean。
+
+本段 final production readback 本身也是 required durable output，因此它的 commit 必須再以 exact-head acceptance 驗證，並只可對 production 做下一次 non-force fast-forward；不得把前一輪 `11b359db...` 的 GREEN 證據冒充成包含本段 writeback 的 final production 證據。
+
 ## 不跨越 domain authority
 
 這個流程不能拿來修 production geometry、DXF 或 manufacturing truth。若 migration 發現 domain truth 有問題，停止並交給該 domain 的 authority/Skill；不要藉 migration 順手改製造資料。
