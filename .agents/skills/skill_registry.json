@@ -237,10 +237,12 @@
         ".agents/skills/engineering/issue-closure-gate/**"
       ],
       "required_skills": [
-        "issue-closure-gate"
+        "issue-closure-gate",
+        "executable-continuity-controller"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md"
+        "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
       ]
     },
     {
@@ -449,6 +451,34 @@
       ]
     },
     {
+      "id": "executable-continuity-controller",
+      "keywords": [
+        "不停工",
+        "持續執行",
+        "continuous execution",
+        "continuity controller",
+        "runtime cut",
+        "runtime interruption",
+        "checkpoint resume",
+        "nonterminal",
+        "non-terminal",
+        "finalization gate",
+        "使用者不是 scheduler"
+      ],
+      "file_globs": [
+        "tools/continuity_controller.py",
+        "tests/process/test_continuity_controller.py",
+        "tests/process/test_continuous_execution_durable_contract.py",
+        ".agents/skills/engineering/executable-continuity-controller/**"
+      ],
+      "required_skills": [
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "remote-qa-monitoring",
       "keywords": [
         "遠端 QA",
@@ -467,10 +497,12 @@
       ],
       "required_skills": [
         "monitoring-remote-qa",
-        "long-log-context-safe-execution"
+        "long-log-context-safe-execution",
+        "executable-continuity-controller"
       ],
       "required_references": [
-        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
       ]
     },
     {
