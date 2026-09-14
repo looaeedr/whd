@@ -6,39 +6,43 @@ on:
       - refactor/issue208-layout-presentation-20260914
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  characterization:
+  apply-first-slice:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install test dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest matplotlib
       - name: Phase6 preflight
         run: |
           mkdir -p .scratch/issue209/run
-          python tools/phase6_skill_preflight.py --task "Issue #209 T5 characterize logical part presence projection before part-panel extraction; preserve identity/navigation/visibility authority" --changed-file tests/test_issue209_part_panel_projection.py --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
-      - name: Focused characterization and linked regression
+          python tools/phase6_skill_preflight.py --task "Issue #209 T5 move-only extraction of logical part presence projector into part_panels; preserve identity navigation visibility and authoritative state" --changed-file gui.py --changed-file gui_modules/part_panels.py --changed-file tests/test_issue209_part_panel_projection.py --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
+      - name: Apply exact first-slice move
         run: |
-          pytest -q tests/test_issue209_part_panel_projection.py tests/test_phase6_linked_fold_chain_and_parts.py | tee .scratch/issue209/run/pytest.txt
-      - name: Assert production source drift zero
+          python .scratch/issue209/apply_t5_first_slice.py
+          git diff --check
+          git diff -- gui.py
+      - name: Commit and push first slice
         run: |
-          git fetch origin refactor/issue208-layout-presentation-20260914 --depth=1
-          changed=$(git diff --name-only origin/refactor/issue208-layout-presentation-20260914...HEAD -- . ':!.scratch/**' ':!.github/workflows/issue209-t5-inventory.yml' ':!tests/test_issue209_part_panel_projection.py')
-          if [ -n "$changed" ]; then echo "$changed"; exit 1; fi
-          echo production_source_drift=0 | tee .scratch/issue209/run/drift.txt
-      - name: Upload characterization evidence
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gui.py
+          git commit -m "refactor(issue209): move logical part projector to part panels"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git rev-parse HEAD | tee .scratch/issue209/run/applied_head.txt
+      - name: Upload apply evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue209-t5-characterization
+          name: issue209-t5-apply-first-slice
           path: .scratch/issue209/run/
