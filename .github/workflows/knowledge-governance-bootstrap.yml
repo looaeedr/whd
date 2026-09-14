@@ -1,0 +1,38 @@
+name: Knowledge Governance Bootstrap
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '*.md'
+      - '個人AI檔案庫/**/*.md'
+      - '.agents/skills/**/*.md'
+      - 'docs/**/*.md'
+      - 'handoff/**/*.md'
+      - 'tools/knowledge_governance.py'
+      - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
+      - '.github/workflows/knowledge-governance-bootstrap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout proposed tree
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reject new documentation drift
+        shell: bash
+        run: |
+          python tools/knowledge_governance.py bootstrap \
+            --inventory docs/superpowers/verification/knowledge_governance_inventory_v1.json \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.sha }}"
