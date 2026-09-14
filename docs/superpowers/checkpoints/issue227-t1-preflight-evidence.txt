@@ -1,0 +1,15 @@
+ISSUE: #227
+TASK: T1 Authority Classification and Conflict Matrix
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+APPROVED_SPEC: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md @ 57807a4e3ea0aa64d055891dc0a5fe856ce40935
+
+REQUIRED_SKILLS: none matched
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_READ_RANGE: lines 1 through EOF (EOF confirmed before requested line 1201)
+
+NOTES:
+- The pitfall ledger is REFERENCE / incident history, not current domain authority.
+- T1 classification must prefer the approved v1.1 spec and canonical authority map over current-looking historical prose.
+- T1 produces classification/conflict evidence only; content migration is forbidden until the matrix is complete.
