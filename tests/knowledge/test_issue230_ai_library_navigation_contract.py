@@ -19,7 +19,7 @@ def test_ai_library_readme_is_reference_navigation_with_structured_metadata() ->
     assert text.startswith("---\n")
     for marker in (
         "whd_doc_role: REFERENCE",
-        "whd_contract: ai-library-navigation",
+        "whd_contract: ai-library-reference",
         "whd_canonical: null",
         "whd_schema: WHD_DOC_META_V1",
     ):
