@@ -8,8 +8,7 @@
 - Active PR: #223
 
 ## Dependency inventory
-Run `34825565059`: SUCCESS.
-- Phase6 preflight GREEN
+Run `34825565059`: inventory itself GREEN.
 - AST inventory GREEN
 - repo-wide caller search GREEN
 - analysis-only production drift=0
@@ -22,36 +21,33 @@ Run `34825565059`: SUCCESS.
 - no geometry/state/persistence/visibility/active-child authority
 - compatibility surface remains `BoxCalculatorGUI._phase6_logical_part_present` via static binding.
 
-## Characterization
-Run `34825759867`: SUCCESS.
-- Phase6 preflight GREEN
-- focused projection + linked fold-chain regression GREEN
-- production-source drift=0
+## QA correction
+Earlier characterization/acceptance workflows used `command | tee` without `set -o pipefail`, so GitHub step status falsely reported GREEN despite command failures. Full logs proved:
+- characterization run `34825759867`: actually `1 failed, 34 passed, 5 skipped`;
+- acceptance run `34826685129`: actually `1 failed, 97 passed` plus validator failure;
+- inherited failing test: `test_confirm_existing_parts_updates_main_2d_export_presence_flags`;
+- the same failing assertion exists before the T5 production move and conflicts with current production authority: physical presence must not rewrite DXF export-checkbox intention.
+
+Blocker split to #224 on fresh test-only branch `test/issue209-inherited-export-selection-contract-20260914` from accepted T4 SHA.
 
 ## Current branch state
 - `gui_modules/part_panels.py` owns the projector implementation;
-- `gui.py` contains only compatibility import + `staticmethod` binding for this seam;
-- `.scratch/issue209/validate_t5_first_slice.py` compares accepted T4 parent AST against moved implementation and validates binding/import direction;
-- prior apply run `34825889729` fail-closed because the old body was already absent; it did not commit or push any duplicate edit;
-- registered T5 workflow is now acceptance-only and must not write production source.
-
-## Exact-head acceptance scope
-1. Phase6 preflight;
-2. parent-vs-current AST move-only contract;
-3. compatibility static binding + no `gui_modules -> gui` import;
-4. Xvfb L1/L4 focused regression including linked fold chain, UI state and 3D single-source renderer;
-5. config.ini + protected baseline invariants;
-6. allowed T5 diff only;
-7. tested HEAD recorded before cleanup.
+- `gui.py` contains compatibility import + `staticmethod` binding;
+- validator is pinned to accepted T4 SHA `a098498d7459e974bbf18a5573e6b209eaeb4404`, never a movable branch ref;
+- T5 workflow is fail-closed with `set -o pipefail` for preflight/validator/pytest;
+- current gate records inherited base/current stale-test failure separately and runs remaining L1/L4 scope without masking failures.
 
 ## Hard boundaries
 - physical identity remains authoritative;
 - logical `box_body` grouping does not replace nested physical child navigation;
 - visibility remains renderer-only;
-- no Event Bus/Store/geometry/DXF/persistence authority in `part_panels.py`.
+- no Event Bus/Store/geometry/DXF/persistence authority in `part_panels.py`;
+- validation failures must never be hidden by `tee`.
 
-## Pending after GREEN
-- remove temporary workflow/apply/validate/inventory scripts;
-- cleaned-head drift audit;
-- decide second T5 slice SAFE vs HOLD from inventory evidence;
-- close #209 only if T5 acceptance contract is fully satisfied.
+## Pending
+1. fail-closed T5 first-slice acceptance excluding only documented inherited #224 stale assertion;
+2. migrate #224 test-only contract on independent branch and verify no production diff;
+3. integrate #224 test migration into T5 lineage;
+4. rerun full T5 scope with no exclusions;
+5. cleanup temporary workflows/scripts and perform cleaned-head drift audit;
+6. only then decide T5 close / second slice HOLD.
