@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  acceptance-first-slice:
+  acceptance:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
@@ -31,7 +31,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p .scratch/issue209/run
-          python tools/phase6_skill_preflight.py --task "Issue #209 T5 exact-head acceptance for logical part presence projector extraction; preserve physical identity navigation visibility authoritative state; Receiving Vault multipart selector UI parity" --changed-file gui.py --changed-file gui_modules/part_panels.py --changed-file tests/test_issue209_part_panel_projection.py --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
+          python tools/phase6_skill_preflight.py --task "Issue #209 T5 full no-exclusion acceptance after #224 test-contract migration; preserve physical identity navigation visibility authoritative state; Receiving Vault multipart selector UI parity" --changed-file gui.py --changed-file gui_modules/part_panels.py --changed-file tests/test_issue209_part_panel_projection.py --changed-file tests/test_phase6_linked_fold_chain_and_parts.py --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
       - name: Validate move-only source and compatibility contract
         shell: bash
         run: |
@@ -39,20 +39,7 @@ jobs:
           python .scratch/issue209/validate_t5_first_slice.py | tee .scratch/issue209/run/source-contract.txt
           python -c "import sys, gui_modules.part_panels; assert 'gui' not in sys.modules"
           python -c "import gui; assert callable(gui.BoxCalculatorGUI._phase6_logical_part_present)"
-      - name: Record inherited stale contract evidence
-        shell: bash
-        run: |
-          set +e
-          pytest -q tests/test_phase6_linked_fold_chain_and_parts.py::test_confirm_existing_parts_updates_main_2d_export_presence_flags > .scratch/issue209/run/inherited-current.txt 2>&1
-          current_rc=$?
-          git worktree add --detach /tmp/issue209-base a098498d7459e974bbf18a5573e6b209eaeb4404 >/dev/null
-          (cd /tmp/issue209-base && pytest -q tests/test_phase6_linked_fold_chain_and_parts.py::test_confirm_existing_parts_updates_main_2d_export_presence_flags) > .scratch/issue209/run/inherited-base.txt 2>&1
-          base_rc=$?
-          git worktree remove /tmp/issue209-base --force
-          echo "base_rc=$base_rc current_rc=$current_rc" | tee .scratch/issue209/run/inherited-status.txt
-          test "$base_rc" -ne 0
-          test "$current_rc" -ne 0
-      - name: Xvfb L1 and L4 regression excluding inherited #224 stale assertion
+      - name: Xvfb full L1 and L4 regression
         shell: bash
         run: |
           set -o pipefail
@@ -63,7 +50,6 @@ jobs:
             tests/test_phase6_linked_fold_chain_and_parts.py \
             tests/test_phase6_ui_state_regressions.py \
             tests/test_phase6_3d_single_source_renderer.py \
-            -k 'not test_confirm_existing_parts_updates_main_2d_export_presence_flags' \
             | tee .scratch/issue209/run/pytest.txt
           sha256sum config.ini > .scratch/issue209/run/config.after.sha256
           find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue209/run/baseline.after.sha256
@@ -75,11 +61,11 @@ jobs:
         run: |
           changed=$(git diff --name-only a098498d7459e974bbf18a5573e6b209eaeb4404...HEAD)
           printf '%s\n' "$changed" | tee .scratch/issue209/run/changed-files.txt
-          bad=$(printf '%s\n' "$changed" | grep -Ev '^(gui\.py|gui_modules/part_panels\.py|tests/test_issue209_part_panel_projection\.py|\.scratch/issue209.*|\.github/workflows/issue209-t5-inventory\.yml)$' || true)
+          bad=$(printf '%s\n' "$changed" | grep -Ev '^(gui\.py|gui_modules/part_panels\.py|tests/test_issue209_part_panel_projection\.py|tests/test_phase6_linked_fold_chain_and_parts\.py|\.scratch/issue209.*|\.github/workflows/issue209-t5-inventory\.yml)$' || true)
           if [ -n "$bad" ]; then echo "$bad"; exit 1; fi
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue209-t5-first-slice-acceptance
+          name: issue209-t5-full-acceptance
           path: .scratch/issue209/run/
