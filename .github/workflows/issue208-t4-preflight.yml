@@ -1,0 +1,61 @@
+name: Issue 208 T4 Preflight
+
+on:
+  pull_request:
+    branches:
+      - refactor/issue207-pure-drawing-move-20260914
+    paths:
+      - '.github/workflows/issue208-t4-preflight.yml'
+      - '.scratch/issue208/**'
+      - '.scratch/issue208-t4-checkpoint.md'
+      - 'docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md'
+  workflow_dispatch:
+
+jobs:
+  t4-preflight:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Phase6 preflight for planned T4 files
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .scratch/issue208/run
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #208 T4 UI layout presentation strict move-only extraction of toolbar presentation; preserve operator behavior and state authority; remote QA" \
+            --changed-file 'gui.py' \
+            --changed-file 'gui_modules/layout.py' \
+            --changed-file '.scratch/issue208/preflight-evidence.md' \
+            --changed-file '.scratch/issue208-t4-checkpoint.md' \
+            --changed-file 'docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md' \
+            --evidence '.scratch/issue208/preflight-evidence.md' \
+            | tee .scratch/issue208/run/preflight.txt
+      - name: Assert no T4 production implementation yet
+        shell: bash
+        run: |
+          git fetch origin refactor/issue207-pure-drawing-move-20260914 --depth=1
+          changed=$(git diff --name-only origin/refactor/issue207-pure-drawing-move-20260914...HEAD -- . \
+            ':!.scratch/**' \
+            ':!docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md' \
+            ':!.github/workflows/issue208-t4-preflight.yml')
+          if [ -n "$changed" ]; then
+            echo "Unexpected pre-implementation T4 changes:"
+            echo "$changed"
+            exit 1
+          fi
+          echo 'pre_implementation_production_drift=0' | tee .scratch/issue208/run/drift.txt
+      - name: Upload T4 preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue208-t4-preflight
+          path: .scratch/issue208/run/
