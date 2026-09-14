@@ -9,9 +9,9 @@ on:
       - '.scratch/issue207/**'
       - '.scratch/issue207-t3-checkpoint.md'
       - 'docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md'
+      - 'tests/test_issue206_gui_modularization_characterization.py'
   workflow_dispatch:
 
-# R2: required 驗證板件與DXF + 04_WHD鈑金展開幾何引擎規範 evidence is recorded.
 jobs:
   t3-preflight:
     runs-on: ubuntu-latest
@@ -26,6 +26,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install characterization dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest matplotlib
       - name: Phase6 preflight for planned changed files
         shell: bash
         run: |
@@ -42,20 +47,32 @@ jobs:
             --changed-file 'docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md' \
             --evidence '.scratch/issue207/preflight-evidence.md' \
             | tee .scratch/issue207/run/preflight.txt
-      - name: Assert pre-implementation production drift is zero
+      - name: Assert pre-implementation production drift is test-and-evidence only
         shell: bash
         run: |
           git fetch origin cleanup/2d-3d-sync --depth=1
           changed=$(git diff --name-only origin/cleanup/2d-3d-sync...HEAD -- . \
             ':!.scratch/**' \
             ':!docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md' \
-            ':!.github/workflows/issue207-t3-preflight.yml')
+            ':!.github/workflows/issue207-t3-preflight.yml' \
+            ':!tests/test_issue206_gui_modularization_characterization.py')
           if [ -n "$changed" ]; then
             echo "Unexpected production changes before T3 implementation:"
             echo "$changed"
             exit 1
           fi
           echo 'preimplementation_production_drift=0' | tee .scratch/issue207/run/drift.txt
+      - name: Baseline characterization before production move
+        shell: bash
+        run: |
+          sha256sum config.ini > .scratch/issue207/run/config.before.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue207/run/baseline.before.sha256
+          pytest -q tests/test_issue206_gui_modularization_characterization.py | tee .scratch/issue207/run/pytest-baseline.txt
+          sha256sum config.ini > .scratch/issue207/run/config.after.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue207/run/baseline.after.sha256
+          diff -u .scratch/issue207/run/config.before.sha256 .scratch/issue207/run/config.after.sha256
+          diff -u .scratch/issue207/run/baseline.before.sha256 .scratch/issue207/run/baseline.after.sha256
+          git diff --exit-code -- config.ini '基準檔'
       - name: Upload T3 preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
