@@ -1,0 +1,78 @@
+name: Issue 208 T4 Apply Move Only
+
+on:
+  pull_request:
+    branches:
+      - refactor/issue207-pure-drawing-move-20260914
+    paths:
+      - '.github/workflows/issue208-t4-apply-move.yml'
+      - 'gui_modules/layout.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-move:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply exact move-only edit
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('gui.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''def _project_toolbar_presentation():
+    """Pure presentation contract for the compact engineering workbench header."""
+    return {
+        "actions": (
+            ("open", "開啟專案", "secondary"),
+            ("save", "儲存專案", "primary"),
+            ("save_as", "另存新檔", "secondary"),
+        ),
+        "primary_action": "save",
+        "toolbar_padx": 10,
+        "toolbar_pady": 4,
+        "button_padx": 8,
+        "button_pady": 2,
+        "title": "WHD｜箱體板金工程工作台",
+        "subtitle": "專案・板件・圖面・製造輸出",
+    }
+
+
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one toolbar presentation body, found {text.count(old)}')
+          anchor = '''from gui_modules.drawing import (
+    _corner_preview_canvas_point,
+    _corner_preview_flip_y_for_target,
+    render_drawing_scene,
+)
+
+
+'''
+          replacement = anchor + 'from gui_modules.layout import _project_toolbar_presentation\n\n\n'
+          if text.count(anchor) != 1:
+              raise SystemExit(f'expected exactly one drawing import anchor, found {text.count(anchor)}')
+          text = text.replace(old, '', 1).replace(anchor, replacement, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- gui.py
+      - name: Commit and push exact edit
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gui.py
+          git commit -m 'refactor(issue208): move toolbar presentation to layout module'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
