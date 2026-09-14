@@ -87,6 +87,13 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 
+### 0.0.3.1 Executable Continuity finalization bridge
+
+<!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
+當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
+
+正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
+
 ### 0.1 知識載入優先級
 
 ```text

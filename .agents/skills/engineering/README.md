@@ -23,6 +23,7 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 - **[prototype](./prototype/SKILL.md)**
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
+- **[executable-continuity-controller](./executable-continuity-controller/SKILL.md)**: durable state / resume / finalization controller；本 README 只提供 navigation，權威語意仍由該 Skill 與 executable controller 擁有。
 - **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**
 - **[research](./research/SKILL.md)**
