@@ -1,0 +1,44 @@
+name: Issue 209 T5 Inventory
+
+on:
+  pull_request:
+    branches:
+      - refactor/issue208-layout-presentation-20260914
+  workflow_dispatch:
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Phase6 preflight
+        run: |
+          mkdir -p .scratch/issue209/run
+          python tools/phase6_skill_preflight.py --task "Issue #209 T5 part selector and input panel dependency inventory; explicit callback command boundary; no production move" --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --changed-file .scratch/issue209/inventory_t5.py --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
+      - name: AST selector panel inventory
+        run: python .scratch/issue209/inventory_t5.py | tee .scratch/issue209/run/ast_candidates.txt
+      - name: Repo-wide caller search
+        run: |
+          for token in part selector panel visibility visible child; do
+            echo "=== $token ==="
+            git grep -n -i "$token" -- '*.py' ':!gui.py' || true
+          done | tee .scratch/issue209/run/repo_callers.txt
+      - name: Assert analysis-only drift
+        run: |
+          git fetch origin refactor/issue208-layout-presentation-20260914 --depth=1
+          changed=$(git diff --name-only origin/refactor/issue208-layout-presentation-20260914...HEAD -- . ':!.scratch/**' ':!.github/workflows/issue209-t5-inventory.yml')
+          if [ -n "$changed" ]; then echo "$changed"; exit 1; fi
+          echo production_source_drift=0 | tee .scratch/issue209/run/drift.txt
+      - name: Upload inventory evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue209-t5-inventory
+          path: .scratch/issue209/run/
