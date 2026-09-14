@@ -1,10 +1,23 @@
 from pathlib import Path
 
+import pytest
+
+from tools.continuity_controller import (
+    Checkpoint,
+    ContinuityState,
+    FinalizationBlocked,
+    assert_finalizable,
+)
+
 
 DISPATCH_SKILL = Path(".agents/skills/engineering/派工/SKILL.md")
 EXECUTION_SKILL = Path(".agents/skills/engineering/執行開發任務/SKILL.md")
 PITFALLS = Path("個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md")
+EXECUTABLE_PITFALL = Path("個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md")
 MONITORING_SKILL = Path(".agents/skills/engineering/monitoring-remote-qa/SKILL.md")
+CLOSURE_SKILL = Path(".agents/skills/engineering/issue-closure-gate/SKILL.md")
+CONTROLLER_SKILL = Path(".agents/skills/engineering/executable-continuity-controller/SKILL.md")
+CONTROLLER = Path("tools/continuity_controller.py")
 
 
 def _read(path: Path) -> str:
@@ -94,3 +107,34 @@ def test_work_order_children_must_preserve_one_accepted_lineage_until_final_inte
     assert "T4 吃到舊 T3 HEAD" in pitfalls
     assert "前序 accepted lineage" in pitfalls
     assert "task/QA branch" in pitfalls
+
+
+def test_continuity_docs_delegate_to_executable_controller_not_markers_only():
+    execution = _read(EXECUTION_SKILL)
+    monitoring = _read(MONITORING_SKILL)
+    closure = _read(CLOSURE_SKILL)
+    controller_skill = _read(CONTROLLER_SKILL)
+    pitfall = _read(EXECUTABLE_PITFALL)
+
+    assert CONTROLLER.exists()
+    assert "EXECUTABLE_CONTINUITY_CONTROLLER_V1" in controller_skill
+    assert "EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE" in execution
+    assert "EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE" in monitoring
+    assert "EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE" in closure
+    assert "assert_finalizable" in execution
+    assert "assert_finalizable" in closure
+    assert "Documentation != enforcement" in pitfall
+    assert "只搜文字不算" in pitfall
+
+
+def test_nonterminal_finalization_is_behaviorally_rejected_not_just_documented():
+    checkpoint = Checkpoint(
+        issue="#216",
+        branch="fix/continuous-execution-runtime-guard-20260914",
+        head_sha="behavior-proof",
+        state=ContinuityState.RUNNING,
+        next_action="continue exact action",
+    )
+
+    with pytest.raises(FinalizationBlocked, match="non-terminal"):
+        assert_finalizable(checkpoint)
