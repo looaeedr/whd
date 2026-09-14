@@ -1,4 +1,4 @@
-name: Issue 209 T5 Inventory
+name: Issue 209 T5 Gate
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  inventory:
+  characterization:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
@@ -18,27 +18,27 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest matplotlib
       - name: Phase6 preflight
         run: |
           mkdir -p .scratch/issue209/run
-          python tools/phase6_skill_preflight.py --task "Issue #209 T5 part selector and input panel dependency inventory; explicit callback command boundary; no production move" --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --changed-file .scratch/issue209/inventory_t5.py --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
-      - name: AST selector panel inventory
-        run: python .scratch/issue209/inventory_t5.py | tee .scratch/issue209/run/ast_candidates.txt
-      - name: Repo-wide caller search
+          python tools/phase6_skill_preflight.py --task "Issue #209 T5 characterize logical part presence projection before part-panel extraction; preserve identity/navigation/visibility authority" --changed-file tests/test_issue209_part_panel_projection.py --changed-file .scratch/issue209/preflight-evidence.md --changed-file .scratch/issue209-t5-checkpoint.md --evidence .scratch/issue209/preflight-evidence.md | tee .scratch/issue209/run/preflight.txt
+      - name: Focused characterization and linked regression
         run: |
-          for token in part selector panel visibility visible child; do
-            echo "=== $token ==="
-            git grep -n -i "$token" -- '*.py' ':!gui.py' || true
-          done | tee .scratch/issue209/run/repo_callers.txt
-      - name: Assert analysis-only drift
+          pytest -q tests/test_issue209_part_panel_projection.py tests/test_phase6_linked_fold_chain_and_parts.py | tee .scratch/issue209/run/pytest.txt
+      - name: Assert production source drift zero
         run: |
           git fetch origin refactor/issue208-layout-presentation-20260914 --depth=1
-          changed=$(git diff --name-only origin/refactor/issue208-layout-presentation-20260914...HEAD -- . ':!.scratch/**' ':!.github/workflows/issue209-t5-inventory.yml')
+          changed=$(git diff --name-only origin/refactor/issue208-layout-presentation-20260914...HEAD -- . ':!.scratch/**' ':!.github/workflows/issue209-t5-inventory.yml' ':!tests/test_issue209_part_panel_projection.py')
           if [ -n "$changed" ]; then echo "$changed"; exit 1; fi
           echo production_source_drift=0 | tee .scratch/issue209/run/drift.txt
-      - name: Upload inventory evidence
+      - name: Upload characterization evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue209-t5-inventory
+          name: issue209-t5-characterization
           path: .scratch/issue209/run/
