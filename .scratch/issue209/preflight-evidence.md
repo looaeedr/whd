@@ -15,11 +15,13 @@ READ_SKILL: monitoring-remote-qa
 READ_SKILL: long-log-context-safe-execution
 READ_SKILL: 驗證板件與DXF
 READ_SKILL: phase6-assembly-view-boundaries
+READ_SKILL: phase6-release-packaging
 READ_PROCESS: AGENTS.md Phase6 Knowledge Preflight / Branch-First / dispatch / issue closure
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: release_required_artifacts.json
 
 ## T5 authoritative boundaries reread
 - physical identity, operator navigation, and renderer visibility are distinct responsibilities;
@@ -28,6 +30,13 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
 - child visibility changes renderer mask only; it must not remove manufacturing/collision/persistence geometry or alter world placement;
 - Receiving side/back physical child commit authority differs from W split-body projection authority;
 - part panels may present selectors/inputs and forward intent, but must not become geometry/state/persistence authority.
+
+## Full-gate release evidence reread
+- full/release QA must be fail-closed and preserve execution-tree provenance;
+- `.scratch/**` is temporary evidence and never package authority;
+- `config.ini` remains protected and UPDATE-forbidden;
+- required artifacts/policy come from machine-readable `release_required_artifacts.json`, not from chat memory;
+- this T5 acceptance is not a release package build, but its full-gate classification still requires the release skill/reference evidence.
 
 ## T5 dependency gate
 Before moving any widget construction:
