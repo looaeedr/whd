@@ -14,26 +14,34 @@ Run `34825565059`: SUCCESS.
 - repo-wide caller search GREEN
 - analysis-only production drift=0
 
-First manually reviewed candidate:
-- `BoxCalculatorGUI._phase6_logical_part_present` at the accepted parent seam
-- AST evidence: 0 `self` reads, 0 `self` writes; calls only `set`, `str`, `any`, `startswith`
-- responsibility: PURE_PRESENTATION projection from authoritative physical IDs to legacy/logical top-level UI presence
-- it does not create physical IDs, mutate workspace state, change active child, visibility mask, geometry, persistence, or DXF authority
-- existing caller/regression uses it through `BoxCalculatorGUI._phase6_logical_part_present`, so compatibility surface must remain.
+## First approved slice
+`BoxCalculatorGUI._phase6_logical_part_present`
+- AST: 0 `self` reads / 0 writes
+- category: PURE_PRESENTATION
+- function projects authoritative physical IDs into logical top-level UI presence only
+- no geometry/state/persistence/visibility/active-child authority
+- compatibility surface remains `BoxCalculatorGUI._phase6_logical_part_present` via static binding.
 
-## Characterization gate
-- added `tests/test_issue209_part_panel_projection.py` for box-body child aggregation, dynamic door/base-plate IDs, ordinary absent/present logical keys;
-- prior inventory run2 RED was workflow-scope-only because the old analysis drift gate correctly saw the newly added test;
-- registered workflow was switched to a characterization gate at `eea7344de7e2ef55be4c5ea8409e4723a118823c`;
-- this checkpoint commit triggers the characterization gate.
+## Characterization
+Run `34825759867`: SUCCESS.
+- Phase6 preflight GREEN
+- `tests/test_issue209_part_panel_projection.py` + `tests/test_phase6_linked_fold_chain_and_parts.py` GREEN
+- production-source drift=0
+
+## Move-only preparation
+- `gui_modules/part_panels.py` now contains the exact projector body;
+- temporary `.scratch/issue209/apply_t5_first_slice.py` performs only: import compatibility helper + replace old class staticmethod body with a `staticmethod` binding;
+- registered T5 workflow switched to apply-first-slice at `face35457b8becefbef1334e5956ee71f47220f3`;
+- this checkpoint commit triggers that apply gate.
 
 ## Hard boundaries
-- logical `box_body` presence projection is presentation only; stable physical identity remains authoritative;
-- nested active child and renderer visibility remain separate from logical presence;
-- no Event Bus/Store/geometry/persistence authority in `part_panels.py`;
-- characterization expected values are validation-only.
+- physical identity remains authoritative;
+- logical `box_body` grouping does not replace nested physical child navigation;
+- visibility remains renderer-only;
+- no Event Bus/Store/geometry/DXF/persistence authority in `part_panels.py`.
 
 ## Pending
-1. focused characterization + linked fold-chain regression GREEN;
-2. only then move this one pure projector to `gui_modules/part_panels.py` with compatibility binding in `gui.py`;
-3. exact-head acceptance and cleanup before considering a second T5 slice.
+1. exact first-slice apply commit;
+2. exact-head source/compatibility/import-direction + linked UI/state acceptance;
+3. cleanup temporary workflow/script;
+4. decide whether a second T5 slice is actually SAFE or HOLD based on inventory evidence.
