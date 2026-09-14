@@ -2,11 +2,11 @@ import ast
 import pathlib
 import subprocess
 
-PARENT = 'origin/refactor/issue208-layout-presentation-20260914'
+PARENT_SHA = 'a098498d7459e974bbf18a5573e6b209eaeb4404'
 NAME = '_phase6_logical_part_present'
 
 parent = subprocess.check_output(
-    ['git', 'show', f'{PARENT}:gui.py'], text=True, encoding='utf-8'
+    ['git', 'show', f'{PARENT_SHA}:gui.py'], text=True, encoding='utf-8'
 )
 current = pathlib.Path('gui.py').read_text(encoding='utf-8')
 module_source = pathlib.Path('gui_modules/part_panels.py').read_text(encoding='utf-8')
@@ -26,7 +26,6 @@ def find_top_function(source, name):
 parent_method = find_class_method(parent, 'BoxCalculatorGUI', NAME)
 moved = find_top_function(module_source, NAME)
 
-# Move-only semantic/source contract: same signature and body AST; decorator/class indentation are intentionally excluded.
 if ast.dump(parent_method.args, include_attributes=False) != ast.dump(moved.args, include_attributes=False):
     raise SystemExit('projector signature changed during extraction')
 if [ast.dump(n, include_attributes=False) for n in parent_method.body] != [ast.dump(n, include_attributes=False) for n in moved.body]:
@@ -60,6 +59,7 @@ for path in pathlib.Path('gui_modules').rglob('*.py'):
     if 'import gui' in text or 'from gui import' in text:
         raise SystemExit(f'forbidden gui_modules -> gui import: {path}')
 
+print(f'accepted_parent={PARENT_SHA}')
 print('t5_first_slice_source_contract=GREEN')
 print('t5_first_slice_compatibility=GREEN')
 print('import_direction=GREEN')
