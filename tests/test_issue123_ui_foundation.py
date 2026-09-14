@@ -5,11 +5,13 @@ import ast
 from pathlib import Path
 
 
-GUI_PATH = Path(__file__).resolve().parents[1] / "gui.py"
+ROOT = Path(__file__).resolve().parents[1]
+GUI_PATH = ROOT / "gui.py"
+LAYOUT_PATH = ROOT / "gui_modules" / "layout.py"
 
 
 def _project_toolbar_spec_from_source():
-    tree = ast.parse(GUI_PATH.read_text(encoding="utf-8"))
+    tree = ast.parse(LAYOUT_PATH.read_text(encoding="utf-8"))
     func = next(
         (
             node
@@ -19,7 +21,7 @@ def _project_toolbar_spec_from_source():
         ),
         None,
     )
-    assert func is not None, "_project_toolbar_presentation must exist"
+    assert func is not None, "gui_modules.layout._project_toolbar_presentation must exist"
     returns = [node for node in ast.walk(func) if isinstance(node, ast.Return)]
     assert len(returns) == 1
     return ast.literal_eval(returns[0].value)
@@ -47,3 +49,8 @@ def test_project_toolbar_is_compact_and_not_marketing_copy():
     assert spec["subtitle"] == "專案・板件・圖面・製造輸出"
     assert "支援" not in spec["subtitle"]
     assert "實時" not in spec["subtitle"]
+
+
+def test_gui_keeps_toolbar_presentation_public_surface_after_move():
+    source = GUI_PATH.read_text(encoding="utf-8")
+    assert "from gui_modules.layout import _project_toolbar_presentation" in source
