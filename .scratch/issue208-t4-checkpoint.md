@@ -10,25 +10,16 @@
 ## Approved first slice
 Move-only extraction of `_project_toolbar_presentation` into `gui_modules/layout.py`.
 
-## Why only this slice
-- T1 classified it SAFE.
-- #206 characterization already locks its full current observable contract.
-- It has no `self`/widget/state/geometry ownership.
-- Other layout/frame/selector/scrollbar/panel builders may have runtime/widget coupling and remain HOLD until independently characterized.
-
 ## Progress
 - changed-file Phase6 preflight run `34824145664`: GREEN;
-- `gui_modules/layout.py` created with the exact characterized toolbar presentation body;
-- registered workflow simplified to an apply-only gate at `33419ea37a4abb5436beba795419f8404db85aa0`;
-- stale/superseded PRs #218, #219, #220 and QA experiment #222 have been closed without merge;
-- #221 is the sole active T4 execution PR;
-- this commit is intentionally created after #221 opened, producing a fresh head SHA and a real pull_request synchronize event for the simplified registered gate.
+- `gui_modules/layout.py` contains the exact characterized toolbar presentation body;
+- later workflow revisions produced Actions check-suite failures with zero check-runs, proving the blocker is workflow-definition parsing/registration rather than production code;
+- registered workflow is now minimized at `79985aa490e5f08dce0074c76f129a67e14f654b` to a one-step parser probe;
+- this commit intentionally triggers that minimal workflow through its only path filter.
 
 ## Pending
-1. apply gate removes only the old toolbar function body from `gui.py` and adds compatibility import;
-2. switch registered gate to acceptance-only;
-3. trigger exact-head acceptance;
-4. source-contract/import-direction checks;
-5. Xvfb characterization + focused UI regression;
-6. config/baseline invariants;
-7. remove temporary workflows, drift audit, total-control review.
+1. parser probe GREEN;
+2. restore a minimal apply-only gate without the construct that caused zero-job failure;
+3. apply exact `gui.py` move-only edit;
+4. exact-head acceptance: source contract, import direction, Xvfb regression, invariants;
+5. cleanup temporary workflows/QA branch and drift audit.
