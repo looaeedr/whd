@@ -19,6 +19,7 @@ from typing import Iterable
 
 
 CHECKPOINT_VERSION = 1
+_UNSET = object()
 
 
 class ContinuityState(str, Enum):
@@ -229,16 +230,19 @@ def transition_checkpoint(
     *,
     state: ContinuityState,
     next_action: str | None = None,
-    run_id: int | None = None,
-    job_id: int | None = None,
-    head_sha: str | None = None,
-    log_cursor: str | None = None,
+    run_id: int | None | object = _UNSET,
+    job_id: int | None | object = _UNSET,
+    head_sha: str | None | object = _UNSET,
+    log_cursor: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
 ) -> Checkpoint:
-    """Return a validated next checkpoint while preserving resume evidence.
+    """Return a validated next checkpoint without reusing stale remote ownership.
 
-    Optional ownership/cursor fields inherit the prior value when omitted. New evidence
-    is appended instead of replacing earlier accepted evidence.
+    Omitted remote fields are distinct from explicit ``None``.  While remaining inside
+    one WAITING_REMOTE lock, omitted owner/cursor fields inherit that same lock.  When
+    entering WAITING_REMOTE from any other state, ``run_id`` must be supplied explicitly
+    and stale job/cursor data is cleared unless the caller supplies replacements.
+    Other transitions preserve prior remote identity as provenance when fields are omitted.
     """
 
     if checkpoint.is_terminal:
@@ -246,15 +250,43 @@ def transition_checkpoint(
             f"terminal checkpoint {checkpoint.state.value} cannot transition back to active work"
         )
 
+    entering_new_remote_lock = (
+        state is ContinuityState.WAITING_REMOTE
+        and checkpoint.state is not ContinuityState.WAITING_REMOTE
+    )
+    staying_on_remote_lock = (
+        state is ContinuityState.WAITING_REMOTE
+        and checkpoint.state is ContinuityState.WAITING_REMOTE
+    )
+
+    if entering_new_remote_lock and (run_id is _UNSET or run_id is None):
+        raise CheckpointError("explicit run_id is required when entering a new WAITING_REMOTE lock")
+
+    if entering_new_remote_lock:
+        next_run_id = run_id
+        next_job_id = None if job_id is _UNSET else job_id
+        next_head_sha = checkpoint.head_sha if head_sha is _UNSET else head_sha
+        next_log_cursor = None if log_cursor is _UNSET else log_cursor
+    elif staying_on_remote_lock:
+        next_run_id = checkpoint.run_id if run_id is _UNSET else run_id
+        next_job_id = checkpoint.job_id if job_id is _UNSET else job_id
+        next_head_sha = checkpoint.head_sha if head_sha is _UNSET else head_sha
+        next_log_cursor = checkpoint.log_cursor if log_cursor is _UNSET else log_cursor
+    else:
+        next_run_id = checkpoint.run_id if run_id is _UNSET else run_id
+        next_job_id = checkpoint.job_id if job_id is _UNSET else job_id
+        next_head_sha = checkpoint.head_sha if head_sha is _UNSET else head_sha
+        next_log_cursor = checkpoint.log_cursor if log_cursor is _UNSET else log_cursor
+
     merged_evidence = checkpoint.evidence + (() if evidence is None else tuple(evidence))
     return replace(
         checkpoint,
         state=state,
         next_action=next_action,
-        run_id=checkpoint.run_id if run_id is None else run_id,
-        job_id=checkpoint.job_id if job_id is None else job_id,
-        head_sha=checkpoint.head_sha if head_sha is None else head_sha,
-        log_cursor=checkpoint.log_cursor if log_cursor is None else log_cursor,
+        run_id=next_run_id,
+        job_id=next_job_id,
+        head_sha=next_head_sha,
+        log_cursor=next_log_cursor,
         evidence=merged_evidence,
     )
 
