@@ -1,0 +1,21 @@
+name: Issue229 T3 Final Knowledge Regression
+
+on:
+  push:
+    branches:
+      - fix/issue229-t3-navigation-green-20260914
+    paths:
+      - '.github/workflows/issue229-t3-final-regression.yml'
+
+jobs:
+  knowledge-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run complete knowledge contract suite
+        run: python -m pytest tests/knowledge -q
