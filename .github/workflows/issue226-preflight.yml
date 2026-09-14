@@ -13,8 +13,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Discover required skills and references
+      - name: Enforce required skills and references
         shell: bash
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "T0 Inventory Freeze bootstrap governance guard AI Library documentation metadata authority classification" || true
+            --task "T0 Inventory Freeze bootstrap governance guard AI Library documentation metadata authority classification" \
+            --evidence docs/superpowers/checkpoints/issue226-t0-preflight-evidence.txt
