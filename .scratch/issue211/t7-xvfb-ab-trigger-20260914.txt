@@ -1,0 +1,6 @@
+Issue #211 T7 Xvfb parent-target A-B trigger.
+
+Parent: f486a61534f02890c9f497422bf99d7a2bec34c3
+Target: 254f82f589e684b59e48dabb93ce2a6767d440bc
+Diagnostic test: tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material
+Source run: 34846387933
