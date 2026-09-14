@@ -1,0 +1,107 @@
+name: Issue 210 T6 Project Actions Inventory
+
+on:
+  pull_request:
+    branches:
+      - qa/issue210-project-actions-runner-20260914
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Phase6 preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue210/run
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #210 T6 Project Actions extraction: inventory Open Save Save As project path persistence Save Reload project schema; behavior-preserving Move-Only GUI modularization" \
+            --changed-file gui.py \
+            --changed-file gui_modules/project_actions.py \
+            --changed-file tests/test_phase6_project_file.py \
+            --changed-file .scratch/issue210/preflight-evidence.md \
+            --evidence .scratch/issue210/preflight-evidence.md \
+            | tee .scratch/issue210/run/preflight.txt
+
+      - name: AST project-action dependency inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee .scratch/issue210/run/inventory.txt
+          import ast
+          from pathlib import Path
+
+          source = Path('gui.py').read_text(encoding='utf-8')
+          tree = ast.parse(source)
+          lines = source.splitlines()
+          needles = ('open', 'save', 'reload', 'project', 'file', 'path')
+          rows = []
+
+          for node in ast.walk(tree):
+              if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                  continue
+              name = node.name.lower()
+              segment = ast.get_source_segment(source, node) or ''
+              low = segment.lower()
+              if not (any(k in name for k in needles) or any(k in low for k in ('asksaveas', 'askopen', 'project_path', 'save→reload', 'save_reload'))):
+                  continue
+              self_reads, self_writes, calls = set(), set(), set()
+              sidefx = set()
+              for sub in ast.walk(node):
+                  if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id == 'self':
+                      if isinstance(sub.ctx, ast.Store):
+                          self_writes.add(sub.attr)
+                      else:
+                          self_reads.add(sub.attr)
+                  if isinstance(sub, ast.Call):
+                      fn = sub.func
+                      if isinstance(fn, ast.Attribute):
+                          if isinstance(fn.value, ast.Name):
+                              calls.add(f'{fn.value.id}.{fn.attr}')
+                          elif isinstance(fn.value, ast.Attribute):
+                              calls.add(fn.attr)
+                          if fn.attr in {'write_text','write_bytes','open','dump','dumps','load','loads','destroy','config','set'}:
+                              sidefx.add(fn.attr)
+                      elif isinstance(fn, ast.Name):
+                          calls.add(fn.id)
+                          if fn.id in {'open','setattr'}:
+                              sidefx.add(fn.id)
+              owner = '<module>'
+              for cls in tree.body:
+                  if isinstance(cls, ast.ClassDef) and node in cls.body:
+                      owner = cls.name
+                      break
+              rows.append((node.lineno, getattr(node,'end_lineno',node.lineno), owner, node.name, sorted(self_reads), sorted(self_writes), sorted(calls), sorted(sidefx)))
+
+          for row in sorted(rows):
+              print(f'LINES={row[0]}-{row[1]} OWNER={row[2]} NAME={row[3]}')
+              print('  SELF_READS=' + ','.join(row[4]))
+              print('  SELF_WRITES=' + ','.join(row[5]))
+              print('  CALLS=' + ','.join(row[6]))
+              print('  SIDEFX=' + ','.join(row[7]))
+          print(f'CANDIDATE_COUNT={len(rows)}')
+          PY
+          git diff --exit-code -- gui.py gui_modules tests/test_phase6_project_file.py
+          git rev-parse HEAD | tee .scratch/issue210/run/tested-head.txt
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue210-t6-preflight-inventory
+          path: .scratch/issue210/run/
+          if-no-files-found: warn
