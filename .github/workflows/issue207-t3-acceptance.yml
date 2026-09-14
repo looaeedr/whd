@@ -1,0 +1,158 @@
+name: Issue 207 T3 Final Acceptance
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.github/workflows/issue207-t3-acceptance.yml'
+      - 'gui.py'
+      - 'gui_modules/**'
+      - 'tests/test_issue206_gui_modularization_characterization.py'
+      - '.scratch/issue207/**'
+      - '.scratch/issue207-t3-checkpoint.md'
+  workflow_dispatch:
+
+jobs:
+  t3-acceptance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest matplotlib
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+      - name: Phase6 preflight for actual T3 diff
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .scratch/issue207/acceptance
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #207 T3 final acceptance for strict move-only extraction of gui drawing helpers; verify compatibility, source ownership, focused regressions and invariants" \
+            --changed-file 'gui.py' \
+            --changed-file 'gui_modules/__init__.py' \
+            --changed-file 'gui_modules/drawing.py' \
+            --changed-file 'tests/test_issue206_gui_modularization_characterization.py' \
+            --changed-file '.scratch/issue207/preflight-evidence.md' \
+            --changed-file '.scratch/issue207-t3-checkpoint.md' \
+            --evidence '.scratch/issue207/preflight-evidence.md' \
+            | tee .scratch/issue207/acceptance/preflight.txt
+      - name: Verify exact move-only source contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast, subprocess, json
+          from pathlib import Path
+
+          baseline = '82d1763f02ab44d6e6138b3d626193da87550687'
+          current = Path('gui.py').read_text(encoding='utf-8')
+          old = subprocess.check_output(['git','show',f'{baseline}:gui.py'], text=True)
+
+          moved = {'_corner_preview_canvas_point','_corner_preview_flip_y_for_target','render_drawing_scene'}
+          protected = {'_project_toolbar_presentation','layout_reference_overlay_rects','_YMirroredPreviewTransform','render_structural_result'}
+
+          def segments(text, names):
+              tree=ast.parse(text)
+              out={}
+              for node in tree.body:
+                  if isinstance(node,(ast.FunctionDef,ast.ClassDef)) and node.name in names:
+                      out[node.name]=ast.get_source_segment(text,node)
+              return out
+
+          old_moved=segments(old,moved)
+          current_moved=segments(current,moved)
+          if set(old_moved) != moved:
+              raise SystemExit(f'baseline moved symbols missing: {sorted(moved-set(old_moved))}')
+          if current_moved:
+              raise SystemExit(f'moved bodies still defined in gui.py: {sorted(current_moved)}')
+
+          old_protected=segments(old,protected)
+          cur_protected=segments(current,protected)
+          if set(old_protected) != protected or set(cur_protected) != protected:
+              raise SystemExit('protected symbols missing')
+          changed=[name for name in sorted(protected) if old_protected[name] != cur_protected[name]]
+          if changed:
+              raise SystemExit(f'protected/HOLD symbols changed: {changed}')
+
+          drawing=Path('gui_modules/drawing.py').read_text(encoding='utf-8')
+          drawing_segments=segments(drawing,moved)
+          changed_moved=[name for name in sorted(moved) if drawing_segments.get(name) != old_moved.get(name)]
+          if changed_moved:
+              raise SystemExit(f'moved implementation changed: {changed_moved}')
+
+          tree=ast.parse(current)
+          imported=set()
+          for node in tree.body:
+              if isinstance(node,ast.ImportFrom) and node.module=='gui_modules.drawing':
+                  imported.update(alias.name for alias in node.names)
+          if not moved <= imported:
+              raise SystemExit(f'compatibility re-export missing: {sorted(moved-imported)}')
+
+          result={'moved_exact':sorted(moved),'protected_exact':sorted(protected),'compatibility_imports':sorted(imported & moved)}
+          Path('.scratch/issue207/acceptance/source-contract.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+          print(json.dumps(result,indent=2))
+          PY
+      - name: Verify import direction and compatibility
+        shell: bash
+        run: |
+          python -c "import sys, gui_modules.drawing; assert 'gui' not in sys.modules"
+          python -c "import gui; assert callable(gui._corner_preview_canvas_point); assert callable(gui._corner_preview_flip_y_for_target); assert callable(gui.render_drawing_scene); assert callable(gui._project_toolbar_presentation)"
+          if grep -R -n -E '(^|[[:space:]])(from[[:space:]]+gui[[:space:]]+import|import[[:space:]]+gui([[:space:]]|$))' gui_modules; then
+            echo 'gui_modules imports gui.py'
+            exit 1
+          fi
+      - name: Verify allowed branch diff only
+        shell: bash
+        run: |
+          git fetch origin cleanup/2d-3d-sync --depth=1
+          git diff --name-only origin/cleanup/2d-3d-sync...HEAD | tee .scratch/issue207/acceptance/changed-files.txt
+          unexpected=$(git diff --name-only origin/cleanup/2d-3d-sync...HEAD -- . \
+            ':!.scratch/**' \
+            ':!docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md' \
+            ':!.github/workflows/issue207-t3-preflight.yml' \
+            ':!.github/workflows/issue207-t3-apply-move.yml' \
+            ':!.github/workflows/issue207-t3-acceptance.yml' \
+            ':!gui.py' \
+            ':!gui_modules/__init__.py' \
+            ':!gui_modules/drawing.py' \
+            ':!tests/test_issue206_gui_modularization_characterization.py')
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected T3 changes:"
+            echo "$unexpected"
+            exit 1
+          fi
+      - name: Run characterization and focused regressions under Xvfb
+        shell: bash
+        run: |
+          set -o pipefail
+          sha256sum config.ini > .scratch/issue207/acceptance/config.before.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue207/acceptance/baseline.before.sha256
+          xvfb-run -a pytest -q \
+            tests/test_issue206_gui_modularization_characterization.py \
+            tests/test_phase6_ui_state_regressions.py \
+            tests/test_phase6_3d_single_source_renderer.py \
+            | tee .scratch/issue207/acceptance/pytest.txt
+          sha256sum config.ini > .scratch/issue207/acceptance/config.after.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue207/acceptance/baseline.after.sha256
+          diff -u .scratch/issue207/acceptance/config.before.sha256 .scratch/issue207/acceptance/config.after.sha256
+          diff -u .scratch/issue207/acceptance/baseline.before.sha256 .scratch/issue207/acceptance/baseline.after.sha256
+          git diff --exit-code -- config.ini '基準檔'
+      - name: Upload T3 acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue207-t3-final-acceptance
+          path: .scratch/issue207/acceptance/
