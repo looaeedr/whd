@@ -19,6 +19,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Discover changed-file Knowledge Preflight requirements
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T0 Inventory Freeze bootstrap governance guard AI Library documentation metadata authority classification" \
+            --changed-file tools/knowledge_governance.py \
+            --changed-file tests/knowledge/test_knowledge_governance_bootstrap.py \
+            --changed-file .github/workflows/knowledge-governance-bootstrap.yml \
+            --changed-file docs/superpowers/verification/knowledge_governance_inventory_v1.json || true
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run focused T0 governance tests
