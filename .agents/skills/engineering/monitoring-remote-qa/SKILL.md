@@ -11,6 +11,17 @@ Remote QA 的 polling 狀態機仍由本 Skill 擁有；**長 Log 的讀取方�
 ## Overview
 Remote QA is a monitored condition loop, not a fire-and-forget action. Triggering a workflow run starts this skill; it does not complete the QA stage.
 
+## RUN_IDENTITY_NO_WAIT_GATE
+
+**沒有完整 run identity，就禁止等待。** 這是進入任何 remote-QA waiting / polling cadence 之前的硬閘門。
+
+- 可等待的最低 identity 是 **`run_id + head_sha`**；兩者缺一、未知、無法驗證或彼此不匹配，都視為 **沒有 run identity**。
+- **沒有 run identity 時，禁止 sleep、30 秒等待、輪詢倒數、`WAITING_REMOTE`、`WAITING_REMOTE_QA`、或對使用者回報「正在等 RUN 出現」。** 30 秒 cadence 只適用於已鎖定 identity 且狀態為 `queued` / `in_progress` 的 exact run。
+- 沒有 identity 時必須立刻分類為 `NOT_SUBMITTED`、`RECOVERING_IDENTITY` 或其他實際非等待階段，然後執行能建立／找回 identity 的 next action：例如檢查 trigger/dispatch 是否成功、反讀 workflow runs、確認 branch/SHA/workflow 條件、修正未觸發原因後重新觸發。
+- dispatch/同步動作做完後，不得「先等一下看 RUN 會不會出現」；必須立即 readback。若 readback 沒有 matching run，這是 **trigger/identity recovery 問題**，不是 waiting 狀態。
+- 只有 exact `run_id + head_sha` 已存在且 live readback 為 `queued` / `in_progress`，才可建立 `REMOTE_QA_ACTIVE_LOCK` 並進入 30 秒 active polling。
+- identity 404、run/head 不一致、只知道 workflow/branch 但不知道 exact run、或 checkpoint 只有「WAITING」文字，都必須退出 waiting 並立即 recovery；不得把「identity 還沒找到」包裝成「run 還在跑」。
+
 ### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
 
 本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
@@ -43,7 +54,7 @@ Remote QA monitoring is **active polling**, not event notification.
 - If the chat/tool Runtime is interrupted, the remote runner continues independently; when control returns, the first monitoring action is to re-read the durable `run_id + head_sha` and resume active polling from that exact run.
 
 ## Required loop
-1. Record the remote head SHA, workflow/run ID, intended QA gates, and any invariant such as `config.ini` SHA before treating the run as evidence.
+1. Record the remote head SHA, workflow/run ID, intended QA gates, and any invariant such as `config.ini` SHA before treating the run as evidence. **若 `run_id + head_sha` 尚未完整取得，停在 RUN_IDENTITY_NO_WAIT_GATE 執行 identity recovery；不得進入第 2 步等待。**
 2. **Actively poll** the workflow run, then its jobs and steps, until every required job reaches a terminal state. Do not wait for event notifications/webhooks. A progress update to the user is only an observation point; it must not stop the polling loop.
 3. If a job fails, locate the failed step/error first and read a bounded slice under `LONG_LOG_CONTEXT_SAFE_EXECUTION_V1`; do not repeatedly fetch/paste the whole log. Classify the failure as production/test failure vs harness/runner/setup failure using the project debugging/timeout rules. Apply the smallest valid fix or rerun only the affected scope, then monitor the replacement run to terminal state.
 4. While the run is `queued` or `in_progress`, continue monitoring in the current execution. **不得只因「已觸發／已開始／還在跑」就停止任務或用進度回報收尾。**
@@ -51,6 +62,7 @@ Remote QA monitoring is **active polling**, not event notification.
 6. Write durable state/provenance with run ID, head SHA, terminal conclusion, pass counts, cleanup result, and remaining blockers. Only after this may dispatching QA accept/close the ticket.
 
 ## Fail-closed conditions
+- Run identity is absent or incomplete: `run_id` or `head_sha` missing/unknown/unverifiable. **This forbids waiting; immediately recover/trigger identity instead.**
 - Run ID is unknown or evidence belongs to a different head SHA.
 - Any required job/step is still pending, queued, or in progress.
 - Failure logs were not inspected.
@@ -60,12 +72,14 @@ Remote QA monitoring is **active polling**, not event notification.
 ## Quick reference
 | State | Action |
 |---|---|
+| no / partial run identity | **DO NOT WAIT** → classify `NOT_SUBMITTED` / `RECOVERING_IDENTITY` → immediately trigger/readback/diagnose until exact `run_id + head_sha` exists |
 | queued / in_progress | poll run → jobs → steps → progress observation if due → **immediately poll the same locked run again**; never final and never wait for the user to say continue |
 | failed | fetch failed-job log → diagnose → fix/rerun affected scope → monitor again |
 | success | capture counts/invariants → cleanup temp files → durable state → accept |
 | cancelled / timed_out | inspect logs/state; classify and rerun only unresolved scope |
 
 ## Common mistakes
+- **Waiting 30 seconds for a RUN to appear before an exact `run_id + head_sha` exists.** This is illegal; recover/trigger identity immediately.
 - Treating “workflow triggered” as completed work.
 - Ending a response because the run is still executing even though monitoring tools are available.
 - Treating GitHub/event notifications as the monitor instead of proactively polling the locked run.
@@ -95,6 +109,7 @@ Remote QA monitoring is **active polling**, not event notification.
 - 不因「沒有變化」而完全靜默；若 30 秒內沒有新結果，明確回報「仍在同一 run/step，無新 blocker」。
 - 若 run 已 terminal，立即回報，不必等滿 30 秒。
 - 30 秒 cadence 只影響聊天中的觀測回報；**不得用聊天回報節奏驅動 remote runner**。遠端 durable checkpoint/resume 仍必須 controller-independent。
+- **30 秒 cadence 的前提是 exact `run_id + head_sha` 已鎖定。沒有完整 run identity 時不得啟動 cadence。**
 - 若聊天 Runtime 被平台切斷，remote runner 照常繼續；下一 Runtime 先讀 durable `run_id/head_sha/state/artifact` 後恢復監控，不補發缺失的 30 秒訊息。
 
 ## Progress updates are not turn boundaries
@@ -121,6 +136,7 @@ Remote QA monitoring is **active polling**, not event notification.
 
 | 想法 | 正確判定 |
 |---|---|
+| 「還沒有 run identity，先等 30 秒看看」 | 錯。沒有 exact `run_id + head_sha` 就沒有 waiting 資格；立即 trigger/readback/recovery。 |
 | 「先回報一下，等使用者再說繼續」 | 錯。回報後立即 poll 同一 locked run。 |
 | 「沒有狀態變化，可以先停」 | 錯。無變化就是下一輪仍 poll。 |
 | 「我已經回報 30 秒，所以這回合完成」 | 錯。cadence 是 observation，不是 turn boundary。 |
@@ -132,6 +148,7 @@ Remote QA monitoring is **active polling**, not event notification.
 這是 active polling 的**不可跳過執行鎖**，不是提醒。
 
 - 一旦取得 `run_id + head_sha`，且該 run 仍為 `queued` / `in_progress`，立即進入 `REMOTE_QA_ACTIVE_LOCK`。
+- **取得完整 `run_id + head_sha` 之前，不存在 Active Lock，也不存在合法 waiting；此時唯一合法方向是 trigger/readback/identity recovery。**
 - Lock 存在期間，下一個工具動作只能是：
   1. poll 該 `run_id`；
   2. poll 該 run 的 jobs/steps；
@@ -150,12 +167,12 @@ Remote QA monitoring is **active polling**, not event notification.
 
 `WAITING_REMOTE_QA` 不是被動文字狀態；它只有在一個**可驗證、仍 active 的 locked run**存在時才合法。
 
-- **沒有 run_id + head_sha 就禁止進入 waiting**。沒有 durable run identity 時只能分類為 `NOT_SUBMITTED`、`RECOVERING` 或其他實際階段，必須執行可自主完成的 next action；不得寫成「等待 QA」。
+- **沒有 run_id + head_sha 就禁止進入 waiting**。沒有 durable run identity 時只能分類為 `NOT_SUBMITTED`、`RECOVERING_IDENTITY`、`RECOVERING_STALE_WAIT` 或其他實際階段，必須執行可自主完成的 next action；不得寫成「等待 QA」。
 - **只有 queued / in_progress 才允許維持 waiting**。每次 resume、checkpoint reread、30 秒輪詢與 final gate 前，都先用保存的 `run_id + head_sha` 查該 exact run；不能只相信舊 checkpoint 的 `WAITING_REMOTE_QA` 字樣。
 - **terminal run 立即退出 waiting**。`completed/success` 直接進 counts/invariants/cleanup/closure；`failure/cancelled/timed_out` 立即抓 evidence 並進 failure classification。terminal state 不需要 watchdog 連續確認。
 - 若 exact `run_id` 已不存在/404、run identity 與 `head_sha` 不符，或 checkpoint 寫著 `WAITING_REMOTE_QA` 但 repository readback 顯示 **active run = 0**，先標記 `STALE_WAIT`；這是 recovery signal，不是「繼續等」。
-- 為避免短暫 API/read-after-write 延遲造成誤判：非 terminal 的「查不到 matching active run」情況以 **連續 2 次**觀測確認；兩次觀測仍無 matching active locked run，就強制轉成 `RECOVERING_STALE_WAIT`。
+- 為避免短暫 API/read-after-write 延遲造成誤判：非 terminal 的「查不到 matching active run」情況以 **連續 2 次立即 readback** 確認；這是 identity recovery verification，**不是 30 秒 waiting cadence**。兩次仍無 matching active locked run，就強制轉成 `RECOVERING_STALE_WAIT`。
 - `RECOVERING_STALE_WAIT` 固定執行：`remote refetch → owning Issue/checkpoint reread → work HEAD/production HEAD drift verification → exact run identity recheck → continue exact next action`。若沒有 drift，不得重跑已完成 RED/GREEN/terminal QA；若有 drift，只重驗受影響範圍。
-- watchdog observation 沿用既有 **30 秒** cadence；但一旦讀到 terminal run、404/invalid identity 或第二次 stale confirmation，就立即處理，不必等滿下一個 30 秒。
+- watchdog 的 **30 秒 cadence 只適用於已有 valid exact identity 的 active run**；identity missing/invalid 時立即 recovery，不等待下一個 cadence。
 - global `active run = 0` 只能作 supporting evidence；canonical 判定仍以保存的 exact `run_id + head_sha` 為先，避免 unrelated workflow 或 pagination 造成誤分類。
 - **使用者不是 watchdog**。不得要求使用者輸入「繼續／輪／poll」來解除 stale waiting；一旦判定 `STALE_WAIT` / `RECOVERING_STALE_WAIT`，assistant/controller 必須自己恢復並推進 next action。
