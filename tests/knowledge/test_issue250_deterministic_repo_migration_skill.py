@@ -62,3 +62,13 @@ def test_issue250_navigation_and_pitfall_writeback_exist():
     assert 'validator' in pitfall and 'authority' in pitfall
     assert 'same authority input' in pitfall
     assert 'second execution' in pitfall or 'zero diff' in pitfall
+
+
+def test_issue250_preflight_route_discovers_skill():
+    from tools.phase6_skill_preflight import required_skills_for
+
+    routed = required_skills_for(
+        task='deterministic repository migration from authoritative matrix registry',
+        changed_files=(),
+    )
+    assert 'deterministic-repo-migration' in routed
