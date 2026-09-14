@@ -149,3 +149,14 @@ Remote QA monitoring is **active polling**, not event notification.
 - watchdog observation 沿用既有 **30 秒** cadence；但一旦讀到 terminal run、404/invalid identity 或第二次 stale confirmation，就立即處理，不必等滿下一個 30 秒。
 - global `active run = 0` 只能作 supporting evidence；canonical 判定仍以保存的 exact `run_id + head_sha` 為先，避免 unrelated workflow 或 pagination 造成誤分類。
 - **使用者不是 watchdog**。不得要求使用者輸入「繼續／輪／poll」來解除 stale waiting；一旦判定 `STALE_WAIT` / `RECOVERING_STALE_WAIT`，assistant/controller 必須自己恢復並推進 next action。
+
+<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
+## QA Pipeline Fail-Closed Gate
+
+Remote QA 的 workflow/job 顯示 GREEN 不足以單獨成為 acceptance evidence。只要 fail-significant command 透過 pipe（特別是 `tee`）輸出，shell 必須啟用 `set -o pipefail` 或等價機制，並保留左側 validator/test command 的真實 exit status。
+
+- `pytest ... | tee ...`、`python validator.py | tee ...` 沒有 pipefail 時，左側 exit != 0 可能被 `tee` 的 0 覆蓋；此類 run 即使 GitHub step/job 顯示 SUCCESS 也視為**證據無效**，必須重跑 fail-closed gate。
+- Acceptance 必須反讀 terminal test/validator summary（PASS/FAIL/SKIP/ERROR 或等價終態）與 tested `head_sha`；不能只看 workflow conclusion。
+- Characterization / Move-Only validator 的 baseline 必須鎖 immutable accepted commit SHA；禁止用會移動的 branch ref 當比較真值。
+- Symbol owner/class 必須由 AST/dependency inventory 或 exact source reread 決定；不得因 public subclass 能呼叫該 symbol 就假定它是實際 owner。
+- 以上規則也適用於 remote QA replacement run；修 gate 後必須在新的 exact head 上重新取得 terminal evidence。
