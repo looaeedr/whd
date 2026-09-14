@@ -6,6 +6,7 @@ on:
       - work/issue225-knowledge-documentation-consolidation-20260914
     paths:
       - '.github/workflows/issue229-t3-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue229-t3-preflight-evidence.txt'
 
 jobs:
   preflight:
@@ -15,8 +16,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Discover T3 Knowledge Preflight requirements
+      - name: Enforce T3 Knowledge Preflight
         shell: bash
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "T3 AGENTS startup process routing executable continuity controller assert-finalizable skill registry skill catalog engineering README active skill navigation preflight" || true
+            --task "T3 AGENTS startup process routing executable continuity controller assert-finalizable skill registry skill catalog engineering README active skill navigation preflight" \
+            --evidence docs/superpowers/checkpoints/issue229-t3-preflight-evidence.txt
