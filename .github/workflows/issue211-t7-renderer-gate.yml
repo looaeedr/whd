@@ -1,4 +1,4 @@
-name: Issue 211 T7 Renderer Dependency Gate
+name: Issue 211 T7 Exact-Head Final Acceptance
 
 on:
   pull_request:
@@ -6,79 +6,163 @@ on:
       - qa/issue211-renderer-gate-20260914
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply-render2d-move:
+  exact-head-acceptance:
     runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: 254f82f589e684b59e48dabb93ce2a6767d440bc
+      PARENT_SHA: f486a6150dc4c1be76241893e6c36ae0aa57e0c8
     steps:
-      - name: Checkout PR head
+      - name: Checkout exact implementation commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
+      - name: Lock exact lineage and production diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue211/final-acceptance
+          actual=$(git rev-parse HEAD)
+          test "$actual" = "$TARGET_SHA"
+          parent=$(git rev-parse HEAD^)
+          test "$parent" = "$PARENT_SHA"
+          changed=$(git -c core.quotepath=false diff --name-only "$PARENT_SHA" "$TARGET_SHA")
+          printf '%s\n' "$changed" | tee .scratch/issue211/final-acceptance/production-diff.txt
+          test "$changed" = $'gui.py\ngui_modules/render_2d.py'
+          test -f gui_modules/render_2d.py
+          test ! -e gui_modules/render_3d.py
+          grep -q 'class Phase6FinalSceneView' phase6_final_scene_view.py
+          git status --porcelain=v1 | tee .scratch/issue211/final-acceptance/status-before.txt
+          test ! -s .scratch/issue211/final-acceptance/status-before.txt
+
+      - name: Set up Python and Xvfb
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Phase6 preflight
+      - name: Install validation dependencies
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .scratch/issue211/run
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib
+
+      - name: Phase6 knowledge preflight
+        shell: bash
+        run: |
+          set -euo pipefail
           python tools/phase6_skill_preflight.py \
-            --task "Issue #211 T7 staged 2D renderer helper Move-Only after valid behavior GREEN structural RED; keep Phase6FinalSceneView as existing 3D owner" \
+            --task "Issue #211 T7 exact committed-head final acceptance for stateless 2D renderer Move-Only; preserve Phase6FinalSceneView as existing 3D owner" \
             --changed-file gui.py \
             --changed-file gui_modules/render_2d.py \
             --changed-file tests/test_issue211_renderer_dependency_gate.py \
             --changed-file .scratch/issue211/preflight-evidence.md \
             --evidence .scratch/issue211/preflight-evidence.md \
-            | tee .scratch/issue211/run/preflight.txt
+            | tee .scratch/issue211/final-acceptance/preflight.txt
 
-      - name: Apply exact AST Move-Only extraction
+      - name: Discover exact acceptance test paths
         shell: bash
         run: |
           set -euo pipefail
-          python .scratch/issue211/apply_render2d_move.py \
-            | tee .scratch/issue211/run/apply.txt
-          git add -N gui_modules/render_2d.py
-          git diff --check
-          changed=$(git -c core.quotepath=false diff --name-only)
-          printf '%s\n' "$changed" | tee .scratch/issue211/run/worktree-changed-files.txt
-          test "$changed" = $'gui.py\ngui_modules/render_2d.py'
+          out=.scratch/issue211/final-acceptance/test-paths.txt
+          : > "$out"
+          required=(
+            test_issue211_renderer_dependency_gate.py
+            test_phase6_final_scene_projection_parity.py
+            test_phase6_final_scene_visibility.py
+            test_phase6_final_scene_xvfb.py
+            test_phase6_canonical_manufacturing_adapter.py
+            test_phase6_canonical_manufacturing_registry.py
+            test_phase6_canonical_manufacturing_roundtrip.py
+            test_phase6_canonical_manufacturing_sync_clean_room.py
+            test_phase6_canonical_manufacturing_sync_acceptance_gate.py
+          )
+          for name in "${required[@]}"; do
+            path=$(find tests -type f -name "$name" -print -quit)
+            if [ -z "$path" ]; then
+              echo "MISSING REQUIRED TEST: $name" >&2
+              exit 1
+            fi
+            printf '%s\n' "$path" >> "$out"
+          done
+          find tests -type f \( \
+              -iname '*physical*identity*.py' -o \
+              -iname '*stable*part*.py' -o \
+              -iname '*dxf*roundtrip*.py' -o \
+              -iname '*roundtrip*dxf*.py' -o \
+              -iname '*dxf*reopen*.py' -o \
+              -iname '*reopen*dxf*.py' \
+            \) -print | sort -u >> "$out"
+          sort -u "$out" -o "$out"
+          cat "$out"
+          grep -q 'physical\|identity\|stable.*part' "$out" || {
+            echo 'MISSING physical identity / stable-part regression' >&2
+            exit 1
+          }
+          grep -q -i 'dxf.*roundtrip\|roundtrip.*dxf\|dxf.*reopen\|reopen.*dxf' "$out" || {
+            echo 'MISSING DXF roundtrip/reopen regression' >&2
+            exit 1
+          }
 
-      - name: Install focused validation dependencies
+      - name: Capture config and DXF invariant manifest before tests
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest matplotlib
+          find . -type f \( -name 'config.ini' -o -iname '*.dxf' \) -not -path './.git/*' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > .scratch/issue211/final-acceptance/invariants-before.sha256
 
-      - name: Focused behavior and structural GREEN before commit
+      - name: L1-L3 headless parity, identity, and DXF reopen
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py \
-            | tee .scratch/issue211/run/focused-green.txt
+          mapfile -t all < .scratch/issue211/final-acceptance/test-paths.txt
+          headless=()
+          for p in "${all[@]}"; do
+            case "$p" in
+              *test_phase6_final_scene_xvfb.py) ;;
+              *) headless+=("$p") ;;
+            esac
+          done
+          printf '%s\n' "${headless[@]}" | tee .scratch/issue211/final-acceptance/headless-paths.txt
+          python -m pytest -q "${headless[@]}" \
+            | tee .scratch/issue211/final-acceptance/headless.txt
 
-      - name: Commit and push exact Move-Only production change
+      - name: L4 final-scene Xvfb behavior
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add gui.py gui_modules/render_2d.py
-          git commit -m 'refactor(issue211): extract stateless 2d renderer helpers'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          git rev-parse HEAD | tee .scratch/issue211/run/move-commit.txt
+          xvfb-run -a python -m pytest -q "$(find tests -type f -name 'test_phase6_final_scene_xvfb.py' -print -quit)" \
+            | tee .scratch/issue211/final-acceptance/xvfb.txt
 
-      - name: Upload apply evidence
+      - name: Post-test drift and invariant audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f \( -name 'config.ini' -o -iname '*.dxf' \) -not -path './.git/*' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > .scratch/issue211/final-acceptance/invariants-after.sha256
+          diff -u \
+            .scratch/issue211/final-acceptance/invariants-before.sha256 \
+            .scratch/issue211/final-acceptance/invariants-after.sha256 \
+            | tee .scratch/issue211/final-acceptance/invariant-diff.txt
+          git diff --exit-code
+          git status --porcelain=v1 --untracked-files=no \
+            | tee .scratch/issue211/final-acceptance/status-after.txt
+          test ! -s .scratch/issue211/final-acceptance/status-after.txt
+
+      - name: Upload exact-head acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue211-t7-render2d-apply
-          path: .scratch/issue211/run/
-          if-no-files-found: warn
+          name: issue211-t7-exact-head-final-acceptance
+          path: .scratch/issue211/final-acceptance/
+          if-no-files-found: error
