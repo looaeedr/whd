@@ -12,17 +12,27 @@ Move-only extraction of `_project_toolbar_presentation` into `gui_modules/layout
 
 ## Progress
 - changed-file Phase6 preflight run `34824145664`: GREEN;
-- `gui_modules/layout.py` contains the exact characterized toolbar presentation body;
-- minimal parser probe run `34824959521`: GREEN, proving the registered workflow path is valid when YAML is simple;
-- exact edit logic moved out of YAML into temporary `.scratch/issue208/apply_t4_move.py`;
-- registered gate at `62f91f4e155cbae477e36a3afa55b3cc8d601352` is now a simple checkout/preflight/script/commit workflow;
-- this checkpoint commit triggers the script-based apply gate.
+- minimal parser probe run `34824959521`: GREEN;
+- script-based apply run `34825034790`: GREEN;
+- Move-Only implementation commit pushed by the gate: `5d8123f2d37af9b1c7f920684705cb861e5f3b8b`;
+- `gui_modules/layout.py` owns the exact characterized function body;
+- `gui.py` now retains only the compatibility import for `_project_toolbar_presentation`;
+- validation logic is isolated in temporary `.scratch/issue208/validate_t4_move.py`;
+- registered workflow switched to acceptance-only at `84f34a867d2808f289bf66d4acc597ec67cf3523`;
+- this checkpoint commit triggers exact-head acceptance.
 
-## Pending
-1. apply gate commits only `gui.py` move-only change;
-2. replace gate with acceptance-only workflow;
-3. trigger exact-head acceptance;
-4. source-contract/import-direction checks;
-5. Xvfb characterization + focused UI regression;
-6. config/baseline invariants;
-7. remove temporary workflows/scripts/QA branch and drift audit.
+## Acceptance scope
+1. Phase6 changed-file preflight;
+2. exact parent-body == moved-body source contract;
+3. old body absent from `gui.py`, compatibility import count == 1;
+4. no `gui_modules -> gui` import;
+5. allowed T4 production diff only `gui.py` + `gui_modules/layout.py`;
+6. Xvfb characterization + focused UI/3D renderer regression;
+7. `config.ini` + protected `基準檔/**` invariants;
+8. tested HEAD recorded before cleanup.
+
+## Pending after GREEN
+- remove temporary workflows/scripts and stale QA runner branch residue;
+- cleaned-head drift audit;
+- total-control review and #208 closure;
+- #209 fresh branch from accepted T4 cleaned head.
