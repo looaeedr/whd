@@ -9,6 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "tools/knowledge_authority_overlay.py"
+GOVERNANCE = ROOT / "tools/knowledge_governance.py"
 FROZEN = ROOT / "docs/superpowers/verification/knowledge_authority_classification_v1.json"
 OVERLAY = ROOT / "docs/superpowers/verification/knowledge_authority_resolution_overlay_v1.json"
 CONTRACT_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -17,6 +18,14 @@ CONTRACT_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 def _load_tool():
     assert TOOL.is_file(), "#255 requires tools/knowledge_authority_overlay.py"
     spec = importlib.util.spec_from_file_location("knowledge_authority_overlay_issue255", TOOL)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_governance():
+    spec = importlib.util.spec_from_file_location("knowledge_governance_issue255", GOVERNANCE)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -108,12 +117,21 @@ def test_resolution_row_requires_explicit_evidence(tmp_path: Path) -> None:
 
 def test_repository_effective_authority_is_total_and_unblocked() -> None:
     tool = _load_tool()
+    governance = _load_governance()
     assert OVERLAY.is_file(), "#255 requires a reviewed T6 resolution overlay"
     rows = tool.merge_effective_authority(FROZEN, OVERLAY)
     effective = {row["path"]: row for row in rows}
     governed = set(tool.governed_paths(ROOT))
-    assert set(effective) == governed
-    assert len(effective) == len(rows)
+
+    # #255 completed a frozen 398-path T6 authority snapshot. Current repository
+    # growth must not mutate that reviewed authority; post-T6 documents are owned
+    # by current strict/permanent governance instead.
+    assert len(effective) == len(rows) == 398
+    assert set(effective) <= governed
+    post_t6_paths = governed - set(effective)
+    assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
+    assert governance.validate_strict(ROOT) == ()
+
     for path, row in effective.items():
         assert row["target_role"] in {"CURRENT", "REFERENCE", "MIRROR", "HISTORICAL"}, path
         assert row.get("blocker") in {None, ""}, path
