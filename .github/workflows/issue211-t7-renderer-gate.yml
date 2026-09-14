@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  preflight-dependency-gate:
+  renderer-characterization-red:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
@@ -29,59 +29,34 @@ jobs:
           set -euo pipefail
           mkdir -p .scratch/issue211/run
           python tools/phase6_skill_preflight.py \
-            --task "Issue #211 T7 2D 3D renderer dependency gate and staged behavior-preserving extraction; audit state owner geometry source physical-part identity visibility transforms callbacks synchronization before introducing render_2d.py or render_3d.py" \
+            --task "Issue #211 T7 staged 2D renderer helper Move-Only after dependency gate; preserve 3D Phase6FinalSceneView owner, physical identity, canonical geometry and 2D 3D parity" \
             --changed-file gui.py \
             --changed-file gui_modules/render_2d.py \
-            --changed-file gui_modules/render_3d.py \
             --changed-file tests/test_issue211_renderer_dependency_gate.py \
             --changed-file .scratch/issue211/preflight-evidence.md \
             --evidence .scratch/issue211/preflight-evidence.md \
             | tee .scratch/issue211/run/preflight.txt
 
-      - name: Renderer AST dependency inventory
+      - name: Install characterization dependencies
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee .scratch/issue211/run/inventory.txt
-          import ast
-          from pathlib import Path
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib
 
-          source = Path('gui.py').read_text(encoding='utf-8')
-          tree = ast.parse(source)
-          renderer_tokens = (
-              'draw_', 'render_', 'canvas', '2d', '3d', 'scene', 'preview',
-              'visibility', 'visible', 'transform', 'projection', 'sync',
-              'active_part', 'part_key', 'workspace_controller', 'finalscene',
-          )
-          rows = []
-          for cls in [n for n in tree.body if isinstance(n, ast.ClassDef)]:
-              for node in cls.body:
-                  if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                      continue
-                  segment = ast.get_source_segment(source, node) or ''
-                  low = (node.name + '\n' + segment).lower()
-                  if not any(token in low for token in renderer_tokens):
-                      continue
-                  self_reads, self_writes, calls = set(), set(), set()
-                  for sub in ast.walk(node):
-                      if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id == 'self':
-                          (self_writes if isinstance(sub.ctx, ast.Store) else self_reads).add(sub.attr)
-                      if isinstance(sub, ast.Call):
-                          fn = sub.func
-                          if isinstance(fn, ast.Attribute):
-                              calls.add(fn.attr)
-                          elif isinstance(fn, ast.Name):
-                              calls.add(fn.id)
-                  rows.append((node.lineno, getattr(node,'end_lineno',node.lineno), cls.name, node.name, sorted(self_reads), sorted(self_writes), sorted(calls)))
-          for row in sorted(rows):
-              print(f'LINES={row[0]}-{row[1]} OWNER={row[2]} NAME={row[3]}')
-              print('  SELF_READS=' + ','.join(row[4]))
-              print('  SELF_WRITES=' + ','.join(row[5]))
-              print('  CALLS=' + ','.join(row[6]))
-          print(f'CANDIDATE_COUNT={len(rows)}')
-          PY
-          git rev-parse HEAD | tee .scratch/issue211/run/tested-head.txt
-          git diff --exit-code -- gui.py gui_modules tests
+      - name: Behavior characterization must stay GREEN before extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py -k behavior \
+            | tee .scratch/issue211/run/behavior.txt
+
+      - name: Structural TDD RED for renderer ownership move
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py -k structure \
+            | tee .scratch/issue211/run/structural-red.txt
 
       - name: Upload dependency evidence
         if: always()
