@@ -1,0 +1,25 @@
+name: Issue226 T0 Governance QA
+
+on:
+  push:
+    branches:
+      - work/issue225-knowledge-documentation-consolidation-20260914
+    paths:
+      - 'tests/knowledge/test_knowledge_governance_bootstrap.py'
+      - 'tools/knowledge_governance.py'
+      - 'docs/superpowers/verification/knowledge_governance_inventory_v1.json'
+      - '.github/workflows/knowledge-governance-bootstrap.yml'
+      - '.github/workflows/issue226-t0-governance-qa.yml'
+
+jobs:
+  t0-governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run focused T0 governance tests
+        run: python -m pytest tests/knowledge/test_knowledge_governance_bootstrap.py -q
