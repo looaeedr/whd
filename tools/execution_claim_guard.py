@@ -1,8 +1,9 @@
 """Fail-closed execution-claim ownership guard for WHD development actions.
 
-This module does not acquire, transfer, or release claims.  It validates an already
+This module does not acquire, transfer, or release claims. It validates an already
 acquired shared coordination claim immediately before a branch/write/QA action so a
-second worker cannot treat comments, branch names, or stale chat state as ownership.
+second worker cannot treat comments, branch names, stale chat state, or a stale claim
+snapshot as ownership.
 """
 
 import argparse
@@ -24,6 +25,18 @@ ALLOWED_ACTIONS = frozenset(
         "pr-write",
     }
 )
+ACTIVE_PHASES = frozenset(
+    {
+        "CLAIMED",
+        "RED",
+        "IMPLEMENTING",
+        "GREEN",
+        "REMOTE_QA",
+        "CLEANUP",
+        "DRIFT_AUDIT",
+        "CLOSING",
+    }
+)
 INACTIVE_PHASES = frozenset(
     {
         "RELEASED",
@@ -38,6 +51,15 @@ class ExecutionClaimError(RuntimeError):
     """Raised when execution ownership cannot be proven exactly."""
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise ExecutionClaimError(f"ambiguous execution claim: duplicate JSON key {key!r}")
+        payload[key] = value
+    return payload
+
+
 def _require_text(payload: dict[str, object], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
@@ -45,11 +67,15 @@ def _require_text(payload: dict[str, object], key: str) -> str:
     return value.strip()
 
 
-def _require_sha(payload: dict[str, object], key: str) -> str:
-    value = _require_text(payload, key)
+def _validate_sha(value: str, label: str) -> str:
+    value = str(value).strip()
     if not _SHA_RE.fullmatch(value):
-        raise ExecutionClaimError(f"malformed claim field {key}: expected 40-char lowercase SHA")
+        raise ExecutionClaimError(f"malformed {label}: expected 40-char lowercase SHA")
     return value
+
+
+def _require_sha(payload: dict[str, object], key: str) -> str:
+    return _validate_sha(_require_text(payload, key), f"claim field {key}")
 
 
 def _normalize_delegated(payload: dict[str, object]) -> tuple[str, ...]:
@@ -86,9 +112,14 @@ class ExecutionClaim:
 def load_execution_claim(path: Path) -> ExecutionClaim:
     path = Path(path)
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
     except FileNotFoundError as exc:
         raise ExecutionClaimError(f"execution claim not found: {path}") from exc
+    except ExecutionClaimError:
+        raise
     except (OSError, json.JSONDecodeError) as exc:
         raise ExecutionClaimError(f"malformed execution claim {path}: {exc}") from exc
 
@@ -115,6 +146,8 @@ def load_execution_claim(path: Path) -> ExecutionClaim:
         )
     if phase in INACTIVE_PHASES:
         raise ExecutionClaimError(f"execution claim is inactive: phase={phase}")
+    if phase not in ACTIVE_PHASES:
+        raise ExecutionClaimError(f"ambiguous execution claim state: unknown phase={phase}")
 
     return ExecutionClaim(
         issue=issue,
@@ -136,13 +169,17 @@ def assert_execution_claim(
     worker: str,
     branch: str,
     action: str,
+    expected_base_sha: str,
+    expected_head_sha: str,
 ) -> ExecutionClaim:
-    """Return the validated claim or raise before the requested repository action."""
+    """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
         raise ExecutionClaimError("issue must be a positive integer")
     worker = str(worker).strip()
     branch = str(branch).strip()
     action = str(action).strip()
+    expected_base_sha = _validate_sha(expected_base_sha, "expected base SHA")
+    expected_head_sha = _validate_sha(expected_head_sha, "expected head SHA")
     if not worker:
         raise ExecutionClaimError("worker must be nonblank")
     if not branch:
@@ -166,6 +203,14 @@ def assert_execution_claim(
         raise ExecutionClaimError(
             f"worker is not claim owner: requested={worker!r}, owner={claim.worker!r}"
         )
+    if claim.base_sha != expected_base_sha:
+        raise ExecutionClaimError(
+            f"base SHA mismatch: expected={expected_base_sha}, claim={claim.base_sha}"
+        )
+    if claim.head_sha != expected_head_sha:
+        raise ExecutionClaimError(
+            f"stale claim head SHA: expected={expected_head_sha}, claim={claim.head_sha}"
+        )
 
     allowed_branches = {claim.work_branch, *claim.delegated_branches}
     if branch not in allowed_branches:
@@ -178,13 +223,15 @@ def assert_execution_claim(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Fail closed unless the caller owns the shared WHD execution claim"
+        description="Fail closed unless the caller owns the current shared WHD execution claim"
     )
     parser.add_argument("--claim", required=True, type=Path)
     parser.add_argument("--issue", required=True, type=int)
     parser.add_argument("--worker", required=True)
     parser.add_argument("--branch", required=True)
     parser.add_argument("--action", required=True, choices=sorted(ALLOWED_ACTIONS))
+    parser.add_argument("--base-sha", required=True, dest="expected_base_sha")
+    parser.add_argument("--head-sha", required=True, dest="expected_head_sha")
     return parser
 
 
@@ -197,13 +244,16 @@ def main(argv: Iterable[str] | None = None) -> int:
             worker=args.worker,
             branch=args.branch,
             action=args.action,
+            expected_base_sha=args.expected_base_sha,
+            expected_head_sha=args.expected_head_sha,
         )
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")
         return 2
     print(
         "EXECUTION_CLAIM_GUARD_GREEN "
-        f"issue={claim.issue} worker={claim.worker} branch={args.branch} action={args.action}"
+        f"issue={claim.issue} worker={claim.worker} branch={args.branch} action={args.action} "
+        f"base_sha={claim.base_sha} head_sha={claim.head_sha} phase={claim.phase}"
     )
     return 0
 
