@@ -15,15 +15,16 @@ agents_block = '''\n\n<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->\n### 0.0.2A QA Pipelin
 for path, block in ((monitoring, monitoring_block), (pitfall, pitfall_block)):
     text = path.read_text(encoding='utf-8')
     if MARKER not in text:
-        path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+        text = text.rstrip() + block
+    path.write_text(text.rstrip() + '\n', encoding='utf-8')
 
 text = agents.read_text(encoding='utf-8')
 if MARKER not in text:
     anchor = '<!-- WHD_SECTION_ROLE role=HISTORICAL contract=legacy-v5-architecture-roadmap -->'
     if anchor not in text:
         raise SystemExit('AGENTS historical anchor missing')
-    text = text.replace(anchor, agents_block + '\n' + anchor, 1)
-    agents.write_text(text, encoding='utf-8')
+    text = text.replace(anchor, agents_block.rstrip() + '\n\n' + anchor, 1)
+agents.write_text(text.rstrip() + '\n', encoding='utf-8')
 
 for path in (monitoring, pitfall, agents):
     text = path.read_text(encoding='utf-8')
