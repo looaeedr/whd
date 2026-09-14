@@ -157,6 +157,11 @@ from gui_modules.drawing import (
 from gui_modules.layout import _project_toolbar_presentation
 
 
+from gui_modules.part_panels import (
+    _phase6_logical_part_present as _phase6_logical_part_present_impl,
+)
+
+
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
     """Return render profiles consistent with the current box assembly type.
 
@@ -1974,22 +1979,7 @@ class Phase6ApplicationHost:
             return str(int(nearest_int))
         return str(value)
 
-    @staticmethod
-    def _phase6_logical_part_present(existing_parts, logical_key):
-        """Project dynamic physical stable IDs into the legacy top-level UI groups.
-
-        The physical IDs remain authoritative; this helper only answers whether a
-        logical main-GUI group should be visible.
-        """
-        existing = set(str(key) for key in (existing_parts or ()))
-        key = str(logical_key or "")
-        if key == "door":
-            return "door" in existing or any(item.startswith("door_c") for item in existing)
-        if key == "base_plate":
-            return "base_plate" in existing or any(item.startswith("base_plate_c") for item in existing)
-        if key == "box_body":
-            return "box_body" in existing or any(item.startswith("box_body:") for item in existing)
-        return key in existing
+    _phase6_logical_part_present = staticmethod(_phase6_logical_part_present_impl)
 
     def _apply_existing_parts_from_fold_workspace(self, existing_parts):
         """Apply one exact physical-presence set across the whole main-GUI chain."""
