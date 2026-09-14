@@ -85,7 +85,7 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
 - recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
-- 30 秒 polling 是 controller 責任，不是使用者責任；**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
+- polling cadence 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 負責，不是使用者責任；durable state / resume / finalization 則由 `tools/continuity_controller.py` 負責。**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
 - `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 remote-QA/documentation regression guards；它們不取代 executable checkpoint state/finalization authority。
 
 ## WORK_ORDER_LINEAGE_PITFALL
