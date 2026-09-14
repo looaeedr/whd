@@ -9,15 +9,20 @@ Branch: `refactor/issue211-renderer-dependency-gate-20260914`
 Completed:
 - #210/T6 CLOSED / completed and sequentially integrated.
 - Fresh T7 branch created from exact accepted T6 head.
-- QA-only runner branch created.
-- Initial fail-closed preflight evidence seeded without false READ claims.
+- Required renderer authority reread complete.
+- Dependency gate run `34836595570 @ 1c53f7ac3e419454856ab34176afbde94cd85833` GREEN with production/test drift=0.
+- Durable ownership report recorded at `.scratch/issue211/renderer-dependency-report.md`.
+- Existing 3D owner confirmed: `phase6_final_scene_view.py::Phase6FinalSceneView`; no second `render_3d.py` authorized.
+- SAFE staged 2D first cut limited to `_draw_layout_resolved_features`, `_draw_layout_baseline_secondary`, `draw_grid`.
+- Behavior characterization + structural Move-Only test added at `tests/test_issue211_renderer_dependency_gate.py`.
 
 Pending:
-- enumerate and reread exact required Skills/references;
-- renderer AST/dependency inventory;
-- classify candidate seams SAFE / REVIEW / HOLD;
-- only after gate GREEN decide whether any staged 2D/3D extraction is authorized.
+- behavior characterization GREEN on pre-extraction head;
+- structural ownership RED proving `render_2d.py` move is not yet implemented;
+- exact Move-Only extraction of only the three SAFE helpers;
+- L1/L2/L3 + 2D↔3D/identity/DXF/invariant acceptance;
+- cleanup/drift audit and controller review.
 
 Failed / blocked: none.
 
-Resume: run exact T7 preflight on this branch; if RED, read only enumerated authority gaps, update evidence, rerun; do not introduce renderer modules before gate GREEN.
+Resume: run characterization/structural RED gate; on valid RED, move only the three SAFE Canvas helpers to `gui_modules/render_2d.py`; keep all manufacturing/state/query/3D-owner seams unchanged.
