@@ -83,7 +83,7 @@ def test_current_named_api_snapshot_is_structurally_historical() -> None:
     governance = _load_governance()
     metadata = governance.parse_doc_metadata(CURRENT_API.read_text(encoding="utf-8"), path=CURRENT_API.relative_to(ROOT).as_posix())
     assert metadata.role == "HISTORICAL"
-    assert metadata.contract == "api-inventory-snapshot"
+    assert metadata.contract == "api-inventory"
     prefix = CURRENT_API.read_text(encoding="utf-8")[:1600]
     assert "HISTORICAL" in prefix
     assert "不參與 current routing" in prefix

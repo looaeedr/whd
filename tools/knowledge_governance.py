@@ -452,6 +452,115 @@ def validate_bootstrap(
 
 
 
+def _body_after_frontmatter(text: str, *, path: str) -> list[str]:
+    source = text.lstrip("\ufeff")
+    lines = source.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise GovernanceError(f"{path}: missing {DOC_SCHEMA} YAML frontmatter")
+    try:
+        end = next(index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---")
+    except StopIteration as exc:
+        raise GovernanceError(f"{path}: unterminated YAML frontmatter") from exc
+    return [line.strip() for line in lines[end + 1 :] if line.strip()]
+
+
+def _explicit_authority_routing_by_path(
+    root: Path, governed: Sequence[Path]
+) -> dict[str, list[str]]:
+    """Return only explicit route dependencies, excluding trigger-only file globs."""
+    registry_path = root / ".agents/skills/skill_registry.json"
+    if not registry_path.is_file():
+        return {}
+    try:
+        registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    routes = registry.get("routes")
+    if not isinstance(routes, list):
+        return {}
+
+    skill_name_to_path: dict[str, str] = {}
+    for path in governed:
+        rel = _norm(path.relative_to(root))
+        if rel.startswith(".agents/skills/") and path.name == "SKILL.md":
+            name = _generic_frontmatter_value(path.read_text(encoding="utf-8"), "name")
+            if name:
+                skill_name_to_path[name] = rel
+
+    routing: dict[str, set[str]] = defaultdict(set)
+    for route in routes:
+        if not isinstance(route, dict):
+            continue
+        route_id = str(route.get("id") or "<unnamed-route>")
+        for reference in route.get("required_references", ()) or ():
+            routing[_norm(str(reference))].add(route_id)
+        for skill in route.get("required_skills", ()) or ():
+            skill_path = skill_name_to_path.get(str(skill))
+            if skill_path:
+                routing[skill_path].add(route_id)
+    return {path: sorted(route_ids) for path, route_ids in routing.items()}
+
+
+def validate_strict(root: Path) -> tuple[str, ...]:
+    """Validate the complete governed Markdown tree after T6 migration."""
+    root = root.resolve()
+    governed = _iter_governed_markdown(root)
+    explicit_routing = _explicit_authority_routing_by_path(root, governed)
+    errors: list[str] = []
+    current_owners: dict[str, set[str]] = defaultdict(set)
+
+    for path in governed:
+        rel = _norm(path.relative_to(root))
+        try:
+            text = path.read_text(encoding="utf-8")
+            metadata = parse_doc_metadata(text, path=rel)
+        except (GovernanceError, UnicodeDecodeError, OSError) as exc:
+            errors.append(f"{rel}: missing/invalid {DOC_SCHEMA} metadata: {exc}")
+            continue
+
+        if metadata.role == "CURRENT":
+            current_owners[metadata.contract].add(rel)
+
+        if metadata.role == "HISTORICAL" and explicit_routing.get(rel):
+            errors.append(
+                f"{rel}: HISTORICAL document must not participate in explicit authority routing: "
+                f"{explicit_routing[rel]}"
+            )
+
+        if metadata.role == "MIRROR":
+            assert metadata.canonical is not None
+            target = root / metadata.canonical
+            if not target.is_file():
+                errors.append(
+                    f"{rel}: MIRROR canonical target does not exist: {metadata.canonical}"
+                )
+            try:
+                body = _body_after_frontmatter(text, path=rel)
+            except GovernanceError as exc:
+                errors.append(str(exc))
+                continue
+            joined = "\n".join(body)
+            if not 3 <= len(body) <= 5:
+                errors.append(
+                    f"{rel}: MIRROR must use pointer-only 3-5 non-empty body lines; got {len(body)}"
+                )
+            if metadata.canonical not in joined:
+                errors.append(
+                    f"{rel}: MIRROR pointer-only body must name canonical target {metadata.canonical}"
+                )
+            if "不得新增或複製 normative 規則" not in joined:
+                errors.append(
+                    f"{rel}: MIRROR pointer-only body missing normative-copy prohibition"
+                )
+
+    for contract, owners in sorted(current_owners.items()):
+        if len(owners) > 1:
+            errors.append(f"{contract}: multiple CURRENT owners in strict mode: {sorted(owners)}")
+
+    return tuple(sorted(errors))
+
+
+
 def _safe_target_role(path: str) -> tuple[str, str | None]:
     rel = _norm(path)
     name = Path(rel).name
@@ -696,6 +805,9 @@ def build_parser() -> argparse.ArgumentParser:
     classify_parser.add_argument("--root", default=".")
     classify_parser.add_argument("--inventory", required=True)
     classify_parser.add_argument("--output", required=True)
+
+    strict_parser = subparsers.add_parser("strict", help="validate all governed Markdown in strict mode")
+    strict_parser.add_argument("--root", default=".")
     return parser
 
 
@@ -724,6 +836,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             output = root / output
         _write_json(output, payload)
         print(f"classification rows={len(payload['rows'])} conflicts={len(payload['conflicts'])}")
+        return 0
+
+    if args.command == "strict":
+        errors = validate_strict(root)
+        if errors:
+            for error in errors:
+                print(f"ERROR: {error}", file=sys.stderr)
+            return 1
+        print(f"strict governance GREEN governed={len(_iter_governed_markdown(root))}")
         return 0
 
     inventory_path = Path(args.inventory)
