@@ -6,10 +6,10 @@ on:
       - qa/issue211-renderer-gate-20260914
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  renderer-characterization-red:
+  apply-render2d-move:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR head
@@ -17,6 +17,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +30,7 @@ jobs:
           set -euo pipefail
           mkdir -p .scratch/issue211/run
           python tools/phase6_skill_preflight.py \
-            --task "Issue #211 T7 staged 2D renderer helper Move-Only after dependency gate; preserve 3D Phase6FinalSceneView owner, physical identity, canonical geometry and 2D 3D parity" \
+            --task "Issue #211 T7 staged 2D renderer helper Move-Only after valid behavior GREEN structural RED; keep Phase6FinalSceneView as existing 3D owner" \
             --changed-file gui.py \
             --changed-file gui_modules/render_2d.py \
             --changed-file tests/test_issue211_renderer_dependency_gate.py \
@@ -37,31 +38,46 @@ jobs:
             --evidence .scratch/issue211/preflight-evidence.md \
             | tee .scratch/issue211/run/preflight.txt
 
-      - name: Install characterization dependencies
+      - name: Apply exact AST Move-Only extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .scratch/issue211/apply_render2d_move.py \
+            | tee .scratch/issue211/run/apply.txt
+          git diff --check
+          changed=$(git -c core.quotepath=false diff --name-only)
+          printf '%s\n' "$changed" | tee .scratch/issue211/run/worktree-changed-files.txt
+          test "$changed" = $'gui.py\ngui_modules/render_2d.py'
+
+      - name: Install focused validation dependencies
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib
 
-      - name: Behavior characterization must stay GREEN before extraction
+      - name: Focused behavior and structural GREEN before commit
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py -k behavior \
-            | tee .scratch/issue211/run/behavior.txt
+          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py \
+            | tee .scratch/issue211/run/focused-green.txt
 
-      - name: Structural TDD RED for renderer ownership move
+      - name: Commit and push exact Move-Only production change
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py -k structure \
-            | tee .scratch/issue211/run/structural-red.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gui.py gui_modules/render_2d.py
+          git commit -m 'refactor(issue211): extract stateless 2d renderer helpers'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git rev-parse HEAD | tee .scratch/issue211/run/move-commit.txt
 
-      - name: Upload dependency evidence
+      - name: Upload apply evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue211-t7-renderer-gate
+          name: issue211-t7-render2d-apply
           path: .scratch/issue211/run/
           if-no-files-found: warn
