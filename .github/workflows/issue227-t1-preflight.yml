@@ -15,8 +15,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Discover T1 Knowledge Preflight requirements
+      - name: Enforce T1 Knowledge Preflight
         shell: bash
         run: |
           python tools/phase6_skill_preflight.py \
-            --task "T1 Authority Classification Conflict Matrix CURRENT REFERENCE MIRROR HISTORICAL dual-current orphan-current unknown-active stale-route misleading historical snapshot AI Library canonical authority" || true
+            --task "T1 Authority Classification Conflict Matrix CURRENT REFERENCE MIRROR HISTORICAL dual-current orphan-current unknown-active stale-route misleading historical snapshot AI Library canonical authority" \
+            --evidence docs/superpowers/checkpoints/issue227-t1-preflight-evidence.txt
