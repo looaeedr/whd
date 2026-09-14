@@ -31,12 +31,13 @@ jobs:
           assert text.count(anchor) == 1, 'AGENTS navigation anchor drifted'
           block = '''### 0.0.3.1 Executable Continuity finalization bridge
 
-<!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
-當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
+          <!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
+          當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
 
-正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
-'''
-          text = text.replace(anchor, block + '\n' + anchor, 1)
+          正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
+          '''
+          block = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines())
+          text = text.replace(anchor, block + '\n\n' + anchor, 1)
           agents.write_text(text, encoding='utf-8')
 
           readme = Path('.agents/skills/engineering/README.md')
