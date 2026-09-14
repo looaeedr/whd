@@ -63,3 +63,31 @@ NOTES:
 - Engineering README is navigation only, never authority.
 - Existing active-Skill classification and preflight contracts must remain GREEN.
 - Four required-artifact checks above are pinned to exact current-parent paths and full blob SHAs before production-document edits.
+
+RED_EVIDENCE:
+- RUN_ID: 34844663751
+- HEAD_SHA: cecb22b95429c84c5b10e5d3454ab254fe683990
+- PREFLIGHT: GREEN / fail-closed
+- FOCUSED_RESULT: 2 failed / 2 passed
+- EXPECTED_GAPS: AGENTS executable-continuity bridge marker; engineering README canonical navigation link.
+
+IMPLEMENTATION:
+- PRODUCTION_DOC_COMMIT: e2278320574a1cb58a123198e9919077233a3c79
+- CHANGED_PRODUCTION_DOCS_ONLY: AGENTS.md; .agents/skills/engineering/README.md
+- PRODUCTION_DOC_DIFF: 8 insertions; registry/catalog/Skill files unchanged.
+
+GREEN_EVIDENCE:
+- FOCUSED_RUN_ID: 34846170019
+- FOCUSED_JOB_ID: 103982537584
+- FOCUSED_HEAD_SHA: d4f5f4ecde675cf847ca52fdd692eb0bbd93ecef
+- PREFLIGHT: GREEN / all required Skills and references satisfied
+- FOCUSED_RESULT: 4 passed / 0 failed
+- KNOWLEDGE_REGRESSION_RUN_ID: 34846508784
+- KNOWLEDGE_REGRESSION_JOB_ID: 103983654033
+- KNOWLEDGE_REGRESSION_HEAD_SHA: dcc858b3f76a510c64bbb1f0bd16a191655f8fe9
+- KNOWLEDGE_REGRESSION_RESULT: tests/knowledge = 61 passed / 0 failed
+
+REVOKED_NON_ACCEPTANCE_HARNESS_EVIDENCE:
+- RUN 34845036305: workflow YAML parse failure; no job created; INVALID / NON_ACCEPTANCE_EVIDENCE.
+- RUN 34845896545: applicator bootstrap used system Python without tkinter; harness failure; INVALID / NON_ACCEPTANCE_EVIDENCE.
+- RUN 34846066662: bounded applicator succeeded and produced production-doc commit e2278320574a1cb58a123198e9919077233a3c79; used only as implementation provenance, not final acceptance.
