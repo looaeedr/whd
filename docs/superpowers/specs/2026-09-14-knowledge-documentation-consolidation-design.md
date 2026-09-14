@@ -1,9 +1,11 @@
 # WHD AI 庫與文件權威整理規格書
 
 **規格代號：** Knowledge & Documentation Consolidation  
-**狀態：** Draft for Approval  
+**狀態：** Approved  
 **目標分支：** `cleanup/2d-3d-sync`  
-**規格日期：** 2026-09-14
+**規格日期：** 2026-09-14  
+**規格版本：** v1.1 — Approved with governance hardening  
+**核准補充：** YAML metadata schema、T0 early drift guard、MIRROR pointer-only template
 
 ---
 
@@ -37,6 +39,34 @@ WHD 專案目前已累積：
 ---
 
 ## 2. 核心目標
+
+### 2.0 結構化文件 metadata（WHD_DOC_META_V1）
+
+為避免 R1-R7 依賴正則表達式或自然語言猜測文件角色，本工單建立統一 YAML Frontmatter schema。凡屬本規格治理範圍、會參與 current routing / preflight / canonical authority / mirror / historical isolation 的 Markdown 文件，最終都必須使用下列 machine-readable metadata：
+
+```yaml
+---
+whd_doc_role: CURRENT          # CURRENT | REFERENCE | MIRROR | HISTORICAL
+whd_contract: continuous-execution-machine
+whd_canonical: null            # MIRROR 必填；其他角色預設 null
+whd_schema: WHD_DOC_META_V1
+---
+```
+
+欄位規則：
+
+- `whd_schema`：固定為 `WHD_DOC_META_V1`。
+- `whd_doc_role`：只允許 `CURRENT / REFERENCE / MIRROR / HISTORICAL`。
+- `whd_contract`：穩定、kebab-case contract id；不得用 T-number、日期或 branch 名稱當 contract。
+- `whd_canonical`：`MIRROR` 必須填 repo-relative canonical path；其他角色應為 `null`，除非未來 schema 明確擴充。
+- 同一 `whd_contract` 必須恰有一個 `CURRENT`。
+- YAML metadata 是結構化治理資料；正文仍可保留人類可讀 banner，但 machine guard 不得再以正文 marker 作主要 authority parser。
+- Python、JSON、YAML 等非 Markdown executable/config authority 不強迫加入 Markdown frontmatter；它們由 Authority Map 以 path + contract 直接登記。
+
+本 schema 的 rollout 採兩階段：
+
+1. **Bootstrap mode（T0 起）**：新建或本工單修改到的 governed Markdown 必須立即有合法 metadata；既有未觸碰 legacy 文件先列 inventory debt，不因尚未遷移而全面阻塞。
+2. **Strict mode（T6 完成後）**：所有納入 active knowledge inventory 的 governed Markdown 都必須有合法 metadata；缺失、未知角色、MIRROR 缺 canonical pointer 一律 fail closed。
 
 本工單完成後，任何 AI、Agent 或人工維護者都必須能明確回答：
 
@@ -751,12 +781,56 @@ marker 即 machine guard
 
 ---
 
-## 22. 建議整理順序
+## 22. T0 Early Drift Guard（併行開發防禦）
+
+T0 Inventory Freeze 完成後，不得等到 T7 才第一次啟用治理防線。必須先建立 **bootstrap CI guard**，防止整理期間其他分支／PR 再引入新的無角色文件。
+
+Bootstrap guard 至少檢查：
+
+1. 新增的 governed Markdown 必須有合法 `WHD_DOC_META_V1` YAML frontmatter。
+2. 本工單修改到的 governed Markdown 必須補齊合法 metadata。
+3. `whd_doc_role=MIRROR` 必須有 `whd_canonical`，且 canonical path 存在。
+4. 新增 `CURRENT` 時不得造成同 contract 第二個 CURRENT。
+5. Bootstrap mode **不得因尚未遷移的 untouched legacy 文件而全庫 fail**；legacy debt 由 T0 inventory 明確列出並在 T6 前收斂。
+6. T6 完成後切換 strict mode，從此任何 governed Markdown 缺 metadata 都 fail closed。
+
+這個 early guard 的目的不是提前宣告整理完成，而是建立「**migration 期間只能減少 drift，不能新增 drift**」的單向門。
+
+---
+
+## 23. MIRROR 標準範本
+
+MIRROR 只允許 pointer-only。YAML frontmatter 不計入正文行數，正文建議限制 **3～5 行**，禁止複製 canonical 規格段落。
+
+標準範本：
+
+```markdown
+---
+whd_doc_role: MIRROR
+whd_contract: phase6-dimension-semantics
+whd_canonical: 個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md
+whd_schema: WHD_DOC_META_V1
+---
+# Phase6 尺寸語意（Mirror）
+> Canonical: `個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md`
+> 本檔僅為相容入口；不得新增或複製 normative 規則。
+```
+
+永久限制：
+
+- MIRROR 正文不得重新敘述 CURRENT requirement。
+- MIRROR 不得出現「最高權威」「目前正式規格」等自我宣告。
+- 修改規則只能修改 canonical owner；MIRROR 只在 canonical path 變更時更新 pointer。
+- Machine guard 應驗 metadata + pointer-only size/structure，不以語意相似度猜測為主要判定。
+
+---
+
+## 24. 建議整理順序
 
 實作順序固定：
 
 ```text
-T0 Inventory Freeze
+T0 Inventory Freeze + Bootstrap CI Guard
 ↓
 T1 Authority Classification
 ↓
@@ -768,7 +842,7 @@ T4 AI Library README / Core Rules Cleanup
 ↓
 T5 Authority Map Normalization
 ↓
-T6 Historical / Mirror Labelling
+T6 Historical / Mirror Labelling + Strict Metadata Mode
 ↓
 T7 Permanent Machine Guards
 ↓
@@ -781,9 +855,11 @@ T9 Production Integration
 
 ---
 
-## 23. T0 — Inventory Freeze
+## 25. T0 — Inventory Freeze
 
-建立完整 inventory，至少涵蓋：
+建立完整 inventory：
+
+至少涵蓋：
 
 ```text
 AGENTS.md
@@ -801,12 +877,15 @@ handoff/**
 path
 role
 contract
+metadata status
 canonical owner
 incoming references
 machine routing
 replacement
 action
 ```
+
+T0 同票必須交付 bootstrap metadata/authority CI guard；從此新建或本輪修改的 governed Markdown 不得再以 `UNKNOWN_ACTIVE` / 無 `WHD_DOC_META_V1` 狀態進入 branch。
 
 Action 只能為：
 
@@ -821,7 +900,7 @@ DELETE_CANDIDATE
 
 ---
 
-## 24. T1 — Authority Classification
+## 26. T1 — Authority Classification
 
 所有 active knowledge contract 必須分類。
 
@@ -850,7 +929,7 @@ project persistence
 
 ---
 
-## 25. T2 — Continuous Execution Consolidation
+## 27. T2 — Continuous Execution Consolidation
 
 完成：
 
@@ -864,7 +943,7 @@ project persistence
 
 ---
 
-## 26. T3 — AGENTS / Skill Routing Alignment
+## 28. T3 — AGENTS / Skill Routing Alignment
 
 同步：
 
@@ -879,7 +958,7 @@ engineering/README.md
 
 ---
 
-## 27. T4 — AI Library Cleanup
+## 29. T4 — AI Library Cleanup
 
 重整：
 
@@ -894,7 +973,7 @@ engineering/README.md
 
 ---
 
-## 28. T5 — Authority Map Normalization
+## 30. T5 — Authority Map Normalization
 
 Authority Map 移除 ticket-era narrative。
 
@@ -912,7 +991,7 @@ short purpose
 
 ---
 
-## 29. T6 — Historical / Mirror Labelling
+## 31. T6 — Historical / Mirror Labelling
 
 對容易誤讀文件加：
 
@@ -931,9 +1010,11 @@ CURRENT_API_INVENTORY_20260818.md
 duplicate mirrors
 ```
 
+T6 完成時必須把 governed Markdown 從 bootstrap mode 切到 strict metadata mode；所有 MIRROR 必須符合本規格第 23 節 pointer-only 範本，所有 active inventory 文件不得再留無角色 metadata debt。
+
 ---
 
-## 30. T7 — Permanent Machine Guards
+## 32. T7 — Permanent Machine Guards
 
 新增永久 knowledge regression。
 
@@ -956,16 +1037,18 @@ classification
 並驗：
 
 ```text
+yaml-metadata-schema
 single-current
 no-current-from-history
 mirror-pointer-only
 registry/catalog coherence
 controller authority
+bootstrap-to-strict-mode
 ```
 
 ---
 
-## 31. T8 — Combined Acceptance
+## 33. T8 — Combined Acceptance
 
 同一 tested HEAD 至少驗：
 
@@ -994,7 +1077,7 @@ protected baseline invariant
 
 ---
 
-## 32. T9 — Integration
+## 34. T9 — Integration
 
 完成所有驗收後：
 
@@ -1012,7 +1095,7 @@ protected baseline invariant
 
 ---
 
-## 33. Branch 規則
+## 35. Branch 規則
 
 所有修改必須從當下：
 
@@ -1040,7 +1123,7 @@ production
 
 ---
 
-## 34. 測試不可成為規格來源
+## 36. 測試不可成為規格來源
 
 Knowledge tests 只能驗：
 
@@ -1059,7 +1142,7 @@ validation 不得成為 production / documentation truth source。
 
 ---
 
-## 35. 驗收標準
+## 37. 驗收標準
 
 本工單只有在以下全部成立才可 ACCEPT：
 
@@ -1075,6 +1158,9 @@ validation 不得成為 production / documentation truth source。
 - [ ] HISTORICAL 文件無法被當 current routing owner。
 - [ ] `CURRENT_API_INVENTORY_20260818.md` 已有 HISTORICAL 防誤讀標記。
 - [ ] pitfall library 明確為 REFERENCE。
+- [ ] 所有 governed Markdown 已符合 `WHD_DOC_META_V1`；無 metadata debt。
+- [ ] T0 bootstrap CI guard 已生效，且 T6 後已切 strict mode。
+- [ ] 所有 MIRROR 符合 pointer-only 3～5 行正文範本。
 - [ ] 無 dual CURRENT。
 - [ ] 無 orphan CURRENT。
 - [ ] permanent anti-drift tests GREEN。
@@ -1085,11 +1171,11 @@ validation 不得成為 production / documentation truth source。
 
 ---
 
-## 36. 最終預期狀態
+## 38. 最終預期狀態
 
 整理完成後，一個新的 AI 進入 WHD 專案時，不應再需要：
 
-> 把全部 Markdown 都讀一遍，自己猜哪一份比較新。
+> 「把全部 Markdown 都讀一遍，自己猜哪一份比較新。」
 
 而應該變成：
 
