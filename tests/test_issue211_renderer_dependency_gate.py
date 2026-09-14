@@ -58,17 +58,13 @@ def test_behavior_draw_grid_preserves_current_canvas_contract():
 def test_behavior_resolved_feature_projection_preserves_current_primitives():
     import gui
 
-    circle = _instance(
-        ResolvedCircle,
+    circle = ResolvedCircle(
         center=Vec2(10.0, 5.0), radius=2.0, layer="CUTTING", add_centerline=True,
     )
-    rect = _instance(
-        ResolvedRect,
-        points=(Vec2(2.0, 2.0), Vec2(4.0, 2.0), Vec2(4.0, 4.0), Vec2(2.0, 4.0)),
-        layer="MARKING",
+    rect = ResolvedRect(
+        center=Vec2(3.0, 3.0), width=2.0, height=2.0, layer="MARKING",
     )
-    profile = _instance(
-        ResolvedProfile,
+    profile = ResolvedProfile(
         points=(Vec2(6.0, 1.0), Vec2(8.0, 1.0), Vec2(8.0, 3.0)),
         layer="BLIND_HOLE",
         layered_profiles=(("DATUM", (Vec2(6.0, 2.0), Vec2(8.0, 2.0)), False),),
