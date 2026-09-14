@@ -8,7 +8,9 @@ on:
       - 'tests/knowledge/test_issue250_deterministic_repo_migration_skill.py'
       - '.agents/skills/engineering/deterministic-repo-migration/**'
       - '.agents/skills/engineering/README.md'
+      - '.agents/skills/skill_registry.json'
       - '個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md'
+      - 'docs/superpowers/checkpoints/issue250-skill-preflight-evidence.txt'
       - '.github/workflows/issue250-deterministic-repo-migration-skill-qa.yml'
   workflow_dispatch:
 
@@ -24,3 +26,17 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run Issue250 focused contract
         run: python -m pytest tests/knowledge/test_issue250_deterministic_repo_migration_skill.py -q -s
+      - name: Run changed-file Skill Preflight
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "Issue250 deterministic repository migration Skill authoring and focused QA" \
+            --changed-file tests/knowledge/test_issue250_deterministic_repo_migration_skill.py \
+            --changed-file .agents/skills/engineering/deterministic-repo-migration/SKILL.md \
+            --changed-file .agents/skills/engineering/README.md \
+            --changed-file .agents/skills/skill_registry.json \
+            --changed-file 個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md \
+            --changed-file .github/workflows/issue250-deterministic-repo-migration-skill-qa.yml \
+            --changed-file docs/superpowers/checkpoints/issue250-skill-preflight-evidence.txt \
+            --evidence docs/superpowers/checkpoints/issue250-skill-preflight-evidence.txt
+      - name: Run Skill preflight regression
+        run: python -m pytest tests/test_phase6_skill_preflight_gate.py -q
