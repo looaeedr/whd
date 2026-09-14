@@ -160,3 +160,60 @@ def test_transition_to_waiting_remote_preserves_existing_evidence_and_sets_owner
     assert waiting.head_sha == "def456"
     assert waiting.log_cursor == "step:3"
     assert waiting.evidence == ("branch-first", "RED fixed")
+
+
+def test_new_waiting_remote_lock_requires_explicit_run_id_instead_of_reusing_stale_owner():
+    stale = _running(
+        run_id=111,
+        job_id=222,
+        log_cursor="old-run-cursor",
+        evidence=("previous remote run terminal",),
+    )
+
+    with pytest.raises(CheckpointError, match="explicit run_id"):
+        transition_checkpoint(
+            stale,
+            state=ContinuityState.WAITING_REMOTE,
+            next_action="poll newly submitted run",
+        )
+
+
+def test_new_waiting_remote_lock_clears_stale_job_and_cursor_when_not_explicitly_replaced():
+    stale = _running(run_id=111, job_id=222, log_cursor="old-run-cursor")
+
+    waiting = transition_checkpoint(
+        stale,
+        state=ContinuityState.WAITING_REMOTE,
+        next_action="poll run 333",
+        run_id=333,
+        head_sha="new-head",
+    )
+
+    assert waiting.run_id == 333
+    assert waiting.job_id is None
+    assert waiting.log_cursor is None
+    assert waiting.head_sha == "new-head"
+
+
+def test_same_waiting_remote_lock_can_preserve_owner_while_advancing_cursor():
+    waiting = _running(
+        state=ContinuityState.WAITING_REMOTE,
+        next_action="poll same run",
+        run_id=333,
+        job_id=444,
+        log_cursor="step:2",
+    )
+
+    advanced = transition_checkpoint(
+        waiting,
+        state=ContinuityState.WAITING_REMOTE,
+        next_action="poll same run",
+        log_cursor="step:3",
+        evidence=("step 2 complete",),
+    )
+
+    assert advanced.run_id == 333
+    assert advanced.job_id == 444
+    assert advanced.head_sha == waiting.head_sha
+    assert advanced.log_cursor == "step:3"
+    assert advanced.evidence == ("step 2 complete",)
