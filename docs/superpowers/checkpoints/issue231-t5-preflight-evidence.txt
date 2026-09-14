@@ -1,0 +1,52 @@
+ISSUE: #231
+TASK: T5 Normalize Canonical Authority Map
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+CURRENT_PARENT_SHA: b1c620c9238b509eb20e01ce0feb8caf8ba6e58a
+
+APPROVED_SPEC_PATH: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md
+APPROVED_SPEC_BLOB_SHA: 1f828b8aeab8c9596b189e6c5b15a757b3858c54
+APPROVED_SCOPE: normalize the Authority Map to permanent contract→role→path routing; remove ticket-era narrative; do not modify production behavior.
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_ROLE: REFERENCE / incident ledger; must not be promoted to domain/process CURRENT merely to satisfy map uniqueness.
+
+READ_REFERENCE: docs/superpowers/verification/knowledge_authority_classification_v1.json
+REFERENCE_SHA: d1afe3013d74010ee23660659cd4692fade4a815
+REFERENCE_FINDING: T1 classified conflicts/provenance but did not create a new pitfall-ledger CURRENT owner.
+
+READ_TARGET: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+TARGET_SHA_BEFORE: 03d1c2fc1f7683f563b5ec839c5bfbb2f93a68a7
+TARGET_FINDINGS:
+- missing WHD_DOC_META_V1 YAML frontmatter;
+- contains ticket-era sections/headings including T7 entrypoint wording, T1 scope boundary and T8 Combined Acceptance guard matrix;
+- contains standalone REFERENCE/HISTORICAL pseudo-contract rows without a canonical CURRENT owner;
+- process contracts are split between legacy WHD_AUTHORITY_ROW and WHD_AUTHORITY formats;
+- remote-qa-monitoring, issue-closure, skill-routing, skill-classification and knowledge-preflight are not normalized into permanent machine rows.
+
+CANONICAL_OWNERS_FROM_APPROVED_SPEC:
+- continuous-execution-machine -> tools/continuity_controller.py
+- continuous-execution-operations -> .agents/skills/engineering/executable-continuity-controller/SKILL.md
+- remote-qa-monitoring -> .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+- issue-closure -> .agents/skills/engineering/issue-closure-gate/SKILL.md
+- skill-routing -> .agents/skills/skill_registry.json
+- skill-classification -> .agents/skills/skill_catalog.json
+- knowledge-preflight -> AGENTS.md
+
+PITFALL_LEDGER_BOUNDARY:
+- approved spec requires pitfall-ledger routing but does not authorize a pitfall/reference file as CURRENT;
+- Authority Map is the permanent owner of contract→role→path routing, so the map may own the pitfall-ledger routing contract while actual pitfall artifacts remain REFERENCE;
+- README/pitfall/reference artifacts must not become parallel CURRENT owners.
+
+GATE:
+- RED must be established before editing the Authority Map.
+- validation is not authority; assertions derive from #231 + approved spec + already-accepted T1–T4 authority decisions.
+- production code, geometry, UI, DXF, registry/catalog contents, Skills, config.ini and baselines are out of T5 edit scope.
