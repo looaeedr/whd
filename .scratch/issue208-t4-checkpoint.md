@@ -15,12 +15,16 @@ Move-only extraction of `_project_toolbar_presentation` into `gui_modules/layout
 - It has no `self`/widget/state/geometry ownership.
 - Other layout/frame/selector/scrollbar/panel builders may have runtime/widget coupling and remain HOLD until independently characterized.
 
+## Progress
+- changed-file Phase6 preflight run `34824145664`: GREEN;
+- `gui_modules/layout.py` created with the exact characterized toolbar presentation body;
+- registered workflow `issue208-t4-preflight.yml` upgraded at `a315a89c6a6cc8ba7c0f42c1fb0ce6428037fc4b` into a dual-mode execution/acceptance gate;
+- this checkpoint commit intentionally triggers the registered gate through a non-workflow path so the new workflow revision is actually executed.
+
 ## Pending
-1. changed-file Phase6 preflight GREEN;
-2. create T4 plan;
-3. move exact function body to `gui_modules/layout.py`;
-4. compatibility import/re-export from `gui.py`;
-5. source-contract/import-direction checks;
-6. Xvfb characterization + focused UI regression;
-7. config/baseline invariants;
-8. remove temporary workflow, drift audit, total-control review.
+1. execution mode removes only the old toolbar function body from `gui.py` and adds compatibility import;
+2. connector checkpoint triggers exact-head acceptance mode;
+3. source-contract/import-direction checks;
+4. Xvfb characterization + focused UI regression;
+5. config/baseline invariants;
+6. remove temporary workflows, drift audit, total-control review.
