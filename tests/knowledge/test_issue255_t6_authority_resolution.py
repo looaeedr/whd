@@ -98,13 +98,18 @@ def test_unique_t1_machine_route_fails_closed_on_ambiguity() -> None:
         resolver.resolve_unique_machine_route_current(row)
 
 
-def test_t5_authority_map_row_is_explicit_contract_authority() -> None:
+def test_t5_authority_map_rows_support_multiple_contracts_per_path() -> None:
     resolver = _load_resolver()
     rows = resolver.parse_authority_map(AUTHORITY_MAP)
-    row = rows[".agents/skills/engineering/monitoring-remote-qa/SKILL.md"]
-    assert row["role"] == "CURRENT"
-    assert row["contract"] == "remote-qa-monitoring"
-    assert row["evidence"]["type"] == "canonical_authority_map"
+    monitoring = rows[".agents/skills/engineering/monitoring-remote-qa/SKILL.md"]
+    assert len(monitoring) == 1
+    assert monitoring[0]["role"] == "CURRENT"
+    assert monitoring[0]["contract"] == "remote-qa-monitoring"
+    assert monitoring[0]["evidence"]["type"] == "canonical_authority_map"
+    assert {row["contract"] for row in rows["AGENTS.md"]} == {
+        "agent-startup-process",
+        "knowledge-preflight",
+    }
 
 
 def test_effective_authority_never_mutates_frozen_t1_rows_in_place(tmp_path: Path) -> None:
