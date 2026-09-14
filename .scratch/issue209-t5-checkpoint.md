@@ -25,14 +25,24 @@ Run `34825565059`: SUCCESS.
 ## Characterization
 Run `34825759867`: SUCCESS.
 - Phase6 preflight GREEN
-- `tests/test_issue209_part_panel_projection.py` + `tests/test_phase6_linked_fold_chain_and_parts.py` GREEN
+- focused projection + linked fold-chain regression GREEN
 - production-source drift=0
 
-## Move-only preparation
-- `gui_modules/part_panels.py` now contains the exact projector body;
-- temporary `.scratch/issue209/apply_t5_first_slice.py` performs only: import compatibility helper + replace old class staticmethod body with a `staticmethod` binding;
-- registered T5 workflow switched to apply-first-slice at `face35457b8becefbef1334e5956ee71f47220f3`;
-- this checkpoint commit triggers that apply gate.
+## Current branch state
+- `gui_modules/part_panels.py` owns the projector implementation;
+- `gui.py` contains only compatibility import + `staticmethod` binding for this seam;
+- `.scratch/issue209/validate_t5_first_slice.py` compares accepted T4 parent AST against moved implementation and validates binding/import direction;
+- prior apply run `34825889729` fail-closed because the old body was already absent; it did not commit or push any duplicate edit;
+- registered T5 workflow is now acceptance-only and must not write production source.
+
+## Exact-head acceptance scope
+1. Phase6 preflight;
+2. parent-vs-current AST move-only contract;
+3. compatibility static binding + no `gui_modules -> gui` import;
+4. Xvfb L1/L4 focused regression including linked fold chain, UI state and 3D single-source renderer;
+5. config.ini + protected baseline invariants;
+6. allowed T5 diff only;
+7. tested HEAD recorded before cleanup.
 
 ## Hard boundaries
 - physical identity remains authoritative;
@@ -40,8 +50,8 @@ Run `34825759867`: SUCCESS.
 - visibility remains renderer-only;
 - no Event Bus/Store/geometry/DXF/persistence authority in `part_panels.py`.
 
-## Pending
-1. exact first-slice apply commit;
-2. exact-head source/compatibility/import-direction + linked UI/state acceptance;
-3. cleanup temporary workflow/script;
-4. decide whether a second T5 slice is actually SAFE or HOLD based on inventory evidence.
+## Pending after GREEN
+- remove temporary workflow/apply/validate/inventory scripts;
+- cleaned-head drift audit;
+- decide second T5 slice SAFE vs HOLD from inventory evidence;
+- close #209 only if T5 acceptance contract is fully satisfied.
