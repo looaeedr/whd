@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -10,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[2]
 GUARD = ROOT / "tools/execution_claim_guard.py"
 DISPATCH_SKILL = ROOT / ".agents/skills/engineering/派工/SKILL.md"
 PITFALL = ROOT / "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md"
+BASE_SHA = "e0a82f28f4ce3204c9fae56326f34f1a0964851f"
+HEAD_SHA = "6c1189a1b991bad2c953a5fbc95f0acda903b5d5"
+WORK_BRANCH = "fix/issue256-execution-claim-hard-gate-20260914"
 
 
 def _load_guard():
@@ -26,12 +31,12 @@ def _claim(**overrides):
         "issue": 256,
         "issue_url": "https://github.com/looaeedr/whd/issues/256",
         "worker": "chatgpt",
-        "work_branch": "fix/issue256-execution-claim-hard-gate-20260914",
+        "work_branch": WORK_BRANCH,
         "claimed_at": "2026-09-14T15:23:10Z",
-        "base_sha": "e0a82f28f4ce3204c9fae56326f34f1a0964851f",
-        "head_sha": "e0a82f28f4ce3204c9fae56326f34f1a0964851f",
+        "base_sha": BASE_SHA,
+        "head_sha": HEAD_SHA,
         "phase": "IMPLEMENTING",
-        "last_update": "2026-09-14T15:23:10Z",
+        "last_update": "2026-09-14T22:29:31Z",
         "remote_qa": None,
         "next_action": "continue",
         "blocker": None,
@@ -46,68 +51,53 @@ def _write_claim(tmp_path: Path, payload: dict) -> Path:
     return path
 
 
+def _assert_claim(guard, path: Path, **overrides):
+    kwargs = {
+        "issue": 256,
+        "worker": "chatgpt",
+        "branch": WORK_BRANCH,
+        "action": "write",
+        "expected_base_sha": BASE_SHA,
+        "expected_head_sha": HEAD_SHA,
+    }
+    kwargs.update(overrides)
+    return guard.assert_execution_claim(path, **kwargs)
+
+
 def test_owner_on_claimed_branch_is_allowed(tmp_path: Path) -> None:
     guard = _load_guard()
     path = _write_claim(tmp_path, _claim())
-    claim = guard.assert_execution_claim(
-        path,
-        issue=256,
-        worker="chatgpt",
-        branch="fix/issue256-execution-claim-hard-gate-20260914",
-        action="write",
-    )
+    claim = _assert_claim(guard, path)
     assert claim.worker == "chatgpt"
-    assert claim.work_branch == "fix/issue256-execution-claim-hard-gate-20260914"
+    assert claim.work_branch == WORK_BRANCH
 
 
 def test_missing_claim_fails_closed(tmp_path: Path) -> None:
     guard = _load_guard()
     with pytest.raises(guard.ExecutionClaimError, match="not found|missing"):
-        guard.assert_execution_claim(
-            tmp_path / "missing.json",
-            issue=256,
-            worker="chatgpt",
-            branch="fix/issue256-execution-claim-hard-gate-20260914",
-            action="write",
-        )
+        _assert_claim(guard, tmp_path / "missing.json")
 
 
 def test_competing_worker_is_rejected(tmp_path: Path) -> None:
     guard = _load_guard()
     path = _write_claim(tmp_path, _claim())
     with pytest.raises(guard.ExecutionClaimError, match="owner|worker"):
-        guard.assert_execution_claim(
-            path,
-            issue=256,
-            worker="other-worker",
-            branch="fix/issue256-execution-claim-hard-gate-20260914",
-            action="write",
-        )
+        _assert_claim(guard, path, worker="other-worker")
 
 
 def test_competing_branch_is_rejected(tmp_path: Path) -> None:
     guard = _load_guard()
     path = _write_claim(tmp_path, _claim())
     with pytest.raises(guard.ExecutionClaimError, match="branch"):
-        guard.assert_execution_claim(
-            path,
-            issue=256,
-            worker="chatgpt",
-            branch="fix/competing-issue256-branch",
-            action="qa-dispatch",
-        )
+        _assert_claim(guard, path, branch="fix/competing-issue256-branch", action="qa-dispatch")
 
 
 def test_explicit_delegated_qa_branch_is_allowed(tmp_path: Path) -> None:
     guard = _load_guard()
-    path = _write_claim(
-        tmp_path,
-        _claim(delegated_branches=["qa/issue256-focused-20260914"]),
-    )
-    claim = guard.assert_execution_claim(
+    path = _write_claim(tmp_path, _claim(delegated_branches=["qa/issue256-focused-20260914"]))
+    claim = _assert_claim(
+        guard,
         path,
-        issue=256,
-        worker="chatgpt",
         branch="qa/issue256-focused-20260914",
         action="qa-dispatch",
     )
@@ -118,26 +108,83 @@ def test_issue_or_url_mismatch_is_rejected(tmp_path: Path) -> None:
     guard = _load_guard()
     path = _write_claim(tmp_path, _claim(issue=255))
     with pytest.raises(guard.ExecutionClaimError, match="issue"):
-        guard.assert_execution_claim(
-            path,
-            issue=256,
-            worker="chatgpt",
-            branch="fix/issue256-execution-claim-hard-gate-20260914",
-            action="branch-create",
-        )
+        _assert_claim(guard, path, action="branch-create")
 
 
 def test_malformed_claim_fails_closed(tmp_path: Path) -> None:
     guard = _load_guard()
     path = _write_claim(tmp_path, {"issue": 256, "worker": "chatgpt"})
     with pytest.raises(guard.ExecutionClaimError, match="missing|required|malformed"):
-        guard.assert_execution_claim(
-            path,
-            issue=256,
-            worker="chatgpt",
-            branch="fix/issue256-execution-claim-hard-gate-20260914",
-            action="write",
-        )
+        _assert_claim(guard, path)
+
+
+def test_duplicate_json_key_is_rejected_as_ambiguous(tmp_path: Path) -> None:
+    guard = _load_guard()
+    path = tmp_path / "claim.json"
+    payload = json.dumps(_claim())
+    path.write_text(payload[:-1] + ', "worker": "other-worker"}', encoding="utf-8")
+    with pytest.raises(guard.ExecutionClaimError, match="duplicate|ambiguous"):
+        _assert_claim(guard, path)
+
+
+def test_unknown_phase_is_rejected_as_ambiguous_state(tmp_path: Path) -> None:
+    guard = _load_guard()
+    path = _write_claim(tmp_path, _claim(phase="MAYBE"))
+    with pytest.raises(guard.ExecutionClaimError, match="phase|state|ambiguous"):
+        _assert_claim(guard, path)
+
+
+def test_stale_head_sha_is_rejected(tmp_path: Path) -> None:
+    guard = _load_guard()
+    stale = "a4a2264dc9bb39c363531fe9e94caa37c3f55c03"
+    path = _write_claim(tmp_path, _claim(head_sha=stale))
+    with pytest.raises(guard.ExecutionClaimError, match="head|stale"):
+        _assert_claim(guard, path)
+
+
+def test_base_sha_mismatch_is_rejected(tmp_path: Path) -> None:
+    guard = _load_guard()
+    wrong_base = "0" * 40
+    path = _write_claim(tmp_path, _claim(base_sha=wrong_base))
+    with pytest.raises(guard.ExecutionClaimError, match="base"):
+        _assert_claim(guard, path)
+
+
+def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
+    path = _write_claim(tmp_path, _claim())
+    common = [
+        sys.executable,
+        str(GUARD),
+        "--claim",
+        str(path),
+        "--issue",
+        "256",
+        "--branch",
+        WORK_BRANCH,
+        "--action",
+        "write",
+        "--base-sha",
+        BASE_SHA,
+        "--head-sha",
+        HEAD_SHA,
+    ]
+    owner = subprocess.run(
+        [*common, "--worker", "chatgpt"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert owner.returncode == 0, owner.stdout + owner.stderr
+    assert "EXECUTION_CLAIM_GUARD_GREEN" in owner.stdout
+
+    intruder = subprocess.run(
+        [*common, "--worker", "other-worker"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert intruder.returncode == 2
+    assert "EXECUTION_CLAIM_GUARD_ERROR" in intruder.stdout
 
 
 def test_dispatch_skill_requires_executable_prewrite_gate() -> None:
@@ -146,6 +193,8 @@ def test_dispatch_skill_requires_executable_prewrite_gate() -> None:
     assert "tools/execution_claim_guard.py" in text
     assert "branch-create" in text
     assert "qa-dispatch" in text
+    assert "--base-sha" in text
+    assert "--head-sha" in text
 
 
 def test_ai_pitfall_records_claim_acquisition_is_not_enough() -> None:
