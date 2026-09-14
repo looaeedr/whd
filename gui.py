@@ -147,36 +147,32 @@ from ae_engine.corner_type_ui import (
 )
 
 
-def _corner_preview_canvas_point(point, *, ox, oy, scale, span, flip_y=True):
-    """Map semantic preview coordinates to the operator-facing canvas."""
-    canvas_y = oy - (span - point.y) * scale if flip_y else oy - point.y * scale
-    return (
-        ox + point.x * scale,
-        canvas_y,
-    )
+from gui_modules.drawing import (
+    _corner_preview_canvas_point,
+    _corner_preview_flip_y_for_target,
+    render_drawing_scene,
+)
 
 
-def _corner_preview_flip_y_for_target(target_key):
-    """Top thumbnails stay flipped; bottom thumbnails use their original orientation."""
-    return str(target_key or "").strip() not in {"bottom", "bottom_left", "bottom_right"}
+from gui_modules.layout import _project_toolbar_presentation
 
 
-def _project_toolbar_presentation():
-    """Pure presentation contract for the compact engineering workbench header."""
-    return {
-        "actions": (
-            ("open", "開啟專案", "secondary"),
-            ("save", "儲存專案", "primary"),
-            ("save_as", "另存新檔", "secondary"),
-        ),
-        "primary_action": "save",
-        "toolbar_padx": 10,
-        "toolbar_pady": 4,
-        "button_padx": 8,
-        "button_pady": 2,
-        "title": "WHD｜箱體板金工程工作台",
-        "subtitle": "專案・板件・圖面・製造輸出",
-    }
+from gui_modules.part_panels import (
+    _phase6_logical_part_present as _phase6_logical_part_present_impl,
+)
+
+from gui_modules.render_2d import (
+    _draw_layout_resolved_features as _draw_layout_resolved_features_impl,
+    _draw_layout_baseline_secondary as _draw_layout_baseline_secondary_impl,
+    draw_grid as _draw_grid_impl,
+)
+
+from gui_modules.project_actions import (
+    save_phase6_project_as as _save_phase6_project_as_impl,
+    save_phase6_project as _save_phase6_project_impl,
+    open_phase6_project as _open_phase6_project_impl,
+    load_phase6_project as _load_phase6_project_impl,
+)
 
 
 def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_key):
@@ -402,42 +398,6 @@ def render_structural_result(canvas, result, transform, tags=None):
         if tags is not None:
             line_kwargs["tags"] = tags
         canvas.create_line(*p1, *p2, **line_kwargs)
-
-
-def render_drawing_scene(canvas, scene, transform, *, skip_layers=()):
-    skip = set(skip_layers)
-    for primitive in scene.primitives:
-        if primitive.layer in skip:
-            continue
-        if isinstance(primitive, PolylinePrimitive):
-            coords = []
-            for point in primitive.points:
-                coords.extend(transform.world_to_canvas(point))
-            if len(coords) < 4:
-                continue
-            color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(primitive.layer, "#30d158")
-            if primitive.layer == "BEND":
-                color = "#0a84ff"
-            if primitive.closed and len(coords) >= 6:
-                canvas.create_polygon(*coords, outline=color, fill="", width=2 if primitive.layer == "CUTTING" else 1.5)
-            else:
-                kwargs = {"fill": color, "width": 1.5}
-                if primitive.layer == "BEND":
-                    kwargs["dash"] = (6, 4)
-                canvas.create_line(*coords, **kwargs)
-        elif isinstance(primitive, LinePrimitive):
-            p1 = transform.world_to_canvas(primitive.p1)
-            p2 = transform.world_to_canvas(primitive.p2)
-            color = "#0a84ff" if primitive.layer == "BEND" else {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(primitive.layer, "#30d158")
-            kwargs = {"fill": color, "width": 1.5}
-            if primitive.layer == "BEND":
-                kwargs["dash"] = (6, 4)
-            canvas.create_line(*p1, *p2, **kwargs)
-        elif isinstance(primitive, CirclePrimitive):
-            cx, cy = transform.world_to_canvas(primitive.center)
-            r_px = primitive.radius * transform.scale
-            color = {"CUTTING":"#30d158", "BLIND_HOLE":"#ff453a", "MARKING":"#8e8e93", "DATUM":"#bf5af2"}.get(primitive.layer, "#8e8e93")
-            canvas.create_oval(cx-r_px, cy-r_px, cx+r_px, cy+r_px, outline=color, width=1.5)
 
 
 def render_secondary_scene(canvas, scene, transform):
@@ -2032,22 +1992,7 @@ class Phase6ApplicationHost:
             return str(int(nearest_int))
         return str(value)
 
-    @staticmethod
-    def _phase6_logical_part_present(existing_parts, logical_key):
-        """Project dynamic physical stable IDs into the legacy top-level UI groups.
-
-        The physical IDs remain authoritative; this helper only answers whether a
-        logical main-GUI group should be visible.
-        """
-        existing = set(str(key) for key in (existing_parts or ()))
-        key = str(logical_key or "")
-        if key == "door":
-            return "door" in existing or any(item.startswith("door_c") for item in existing)
-        if key == "base_plate":
-            return "base_plate" in existing or any(item.startswith("base_plate_c") for item in existing)
-        if key == "box_body":
-            return "box_body" in existing or any(item.startswith("box_body:") for item in existing)
-        return key in existing
+    _phase6_logical_part_present = staticmethod(_phase6_logical_part_present_impl)
 
     def _apply_existing_parts_from_fold_workspace(self, existing_parts):
         """Apply one exact physical-presence set across the whole main-GUI chain."""
@@ -2218,73 +2163,11 @@ class Phase6ApplicationHost:
             self._compose_phase6_project_snapshot_from_main_gui()
         )
 
-    def save_phase6_project_as(self, *, _active_part_hint=None):
-        """把 committed 全專案另存到使用者選擇的 .p6fold 路徑。"""
-        model = self.baseline_var.get().strip() or "自訂"
-        safe_model = "".join(ch if ch not in '\\/:*?"<>|' else "_" for ch in model)
-        current = self.project_controller.project_path
-        initial = Path(current).name if current else f"{safe_model}{PHASE6_PROJECT_EXTENSION}"
-        path = filedialog.asksaveasfilename(
-            parent=self.root, title="另存新檔：Phase6 專案",
-            defaultextension=PHASE6_PROJECT_EXTENSION,
-            filetypes=[("Phase6 折彎專案", f"*{PHASE6_PROJECT_EXTENSION}"), ("所有檔案", "*.*")],
-            initialfile=initial,
-        )
-        if not path:
-            return None
-        self._flush_phase6_authoritative_state()
-        try:
-            return self.project_controller.save(
-                path,
-                self._compose_phase6_project_snapshot_from_main_gui,
-                active_part_hint=_active_part_hint,
-            )
-        except Exception as exc:
-            messagebox.showerror("存檔失敗", f"無法儲存 Phase6 專案：\n{exc}", parent=self.root)
-            return None
+    save_phase6_project_as = _save_phase6_project_as_impl
+    save_phase6_project = _save_phase6_project_impl
+    open_phase6_project = _open_phase6_project_impl
+    load_phase6_project = _load_phase6_project_impl
 
-    def save_phase6_project(self, *, _active_part_hint=None):
-        """儲存到目前專案路徑；尚無路徑時改走另存新檔。"""
-        current = self.project_controller.project_path
-        if not current:
-            return self.save_phase6_project_as(_active_part_hint=_active_part_hint)
-        self._flush_phase6_authoritative_state()
-        try:
-            return self.project_controller.save(
-                current,
-                self._compose_phase6_project_snapshot_from_main_gui,
-                active_part_hint=_active_part_hint,
-            )
-        except Exception as exc:
-            messagebox.showerror("存檔失敗", f"無法儲存 Phase6 專案：\n{exc}", parent=self.root)
-            return None
-
-    def open_phase6_project(self):
-        """把完整專案載入 committed 主 GUI，不強制開啟 3D。"""
-        path = filedialog.askopenfilename(
-            parent=self.root, title="開啟專案：Phase6",
-            filetypes=[("Phase6 折彎專案", f"*{PHASE6_PROJECT_EXTENSION}"), ("所有檔案", "*.*")],
-        )
-        if not path:
-            return None
-        try:
-            self.load_phase6_project(path, open_designer=False)
-            return str(Path(path))
-        except Exception as exc:
-            messagebox.showerror("讀檔失敗", f"無法讀取 Phase6 專案：\n{exc}", parent=self.root)
-            return None
-
-    def load_phase6_project(self, path, *, open_designer=True):
-        """載入 .p6fold 專案，並可選擇進入其保存的 3D 板件。"""
-        payload, committed = self.project_controller.load(path)
-        snapshot = self._apply_phase6_project_snapshot(committed)
-        if not open_designer:
-            return payload
-        designer = self.open_original_fold_designer()
-        active = snapshot.get("active_part") or (snapshot.get("workspace") or {}).get("active_part")
-        if active in getattr(designer, "available_parts", ()):
-            designer.activate_part(active)
-        return designer
 
     def _apply_original_fold_designer_snapshot(self, snapshot):
         settings = dict(snapshot.get("settings") or {})
@@ -5481,88 +5364,11 @@ class Phase6ApplicationHost:
         if menu.index("end") is not None:
             entry.bind("<Button-3>", lambda e, m=menu: (m.tk_popup(e.x_root, e.y_root), "break")[1])
 
-    @staticmethod
-    def _draw_layout_resolved_features(canvas, resolved, blank_w, blank_h, bounds, tag):
-        """Render a Door cell's edited features into the compact cabinet-layout rectangle."""
-        if blank_w <= 0 or blank_h <= 0:
-            return
-        x1, y1, x2, y2 = bounds
-        sx = (x2 - x1) / float(blank_w)
-        sy = (y2 - y1) / float(blank_h)
-        scale = max(0.01, min(abs(sx), abs(sy)))
+    _draw_layout_resolved_features = staticmethod(_draw_layout_resolved_features_impl)
 
-        def pt(p):
-            return (x1 + p.x * sx, y2 - p.y * sy)
 
-        for feature in resolved:
-            layer = getattr(feature, "layer", "CUTTING")
-            color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(layer, "#ff9f0a")
-            tags = ("door_layout_feature", tag)
-            if isinstance(feature, ResolvedCircle):
-                cx, cy = pt(feature.center)
-                r = max(2.0, feature.radius * scale)
-                canvas.create_oval(cx-r, cy-r, cx+r, cy+r, outline=color, width=2, tags=tags)
-                if feature.add_centerline:
-                    canvas.create_line(cx-r, cy, cx+r, cy, fill="#bf5af2", width=1, tags=tags)
-            elif isinstance(feature, ResolvedRect):
-                coords = []
-                for p in feature.points:
-                    coords.extend(pt(p))
-                canvas.create_polygon(*coords, outline=color, fill="", width=2, tags=tags)
-            elif isinstance(feature, ResolvedProfile):
-                coords = []
-                for p in feature.points:
-                    coords.extend(pt(p))
-                if len(coords) >= 6:
-                    canvas.create_polygon(*coords, outline=color, fill="", width=2, tags=tags)
-                for sub_layer, points, closed in getattr(feature, "layered_profiles", ()):
-                    sub_color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(sub_layer, color)
-                    sub = []
-                    for p in points:
-                        sub.extend(pt(p))
-                    if len(sub) >= 4:
-                        if closed and len(sub) >= 6:
-                            canvas.create_polygon(*sub, outline=sub_color, fill="", width=1, tags=tags)
-                        else:
-                            canvas.create_line(*sub, fill=sub_color, width=1, tags=tags)
+    _draw_layout_baseline_secondary = staticmethod(_draw_layout_baseline_secondary_impl)
 
-    @staticmethod
-    def _draw_layout_baseline_secondary(canvas, scene, blank_w, blank_h, bounds, tag):
-        if scene is None or blank_w <= 0 or blank_h <= 0:
-            return
-        x1, y1, x2, y2 = bounds
-        sx = (x2 - x1) / float(blank_w)
-        sy = (y2 - y1) / float(blank_h)
-        scale = max(0.01, min(abs(sx), abs(sy)))
-        skipped_outline = False
-
-        def pt(p):
-            return (x1 + p.x * sx, y2 - p.y * sy)
-
-        for primitive in scene.primitives:
-            if primitive.layer in {"BEND", "CHECK", "STOCK"}:
-                continue
-            if isinstance(primitive, PolylinePrimitive) and primitive.layer == "CUTTING" and primitive.closed and not skipped_outline:
-                skipped_outline = True
-                continue
-            color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(primitive.layer, "#64d2ff")
-            tags = ("door_layout_baseline", tag)
-            if isinstance(primitive, CirclePrimitive):
-                cx, cy = pt(primitive.center)
-                r = max(1.5, primitive.radius * scale)
-                canvas.create_oval(cx-r, cy-r, cx+r, cy+r, outline=color, width=1.5, tags=tags)
-            elif isinstance(primitive, LinePrimitive):
-                a = pt(primitive.p1); b = pt(primitive.p2)
-                canvas.create_line(*a, *b, fill=color, width=1.2, tags=tags)
-            elif isinstance(primitive, PolylinePrimitive):
-                coords = []
-                for p in primitive.points:
-                    coords.extend(pt(p))
-                if len(coords) >= 4:
-                    if primitive.closed and len(coords) >= 6:
-                        canvas.create_polygon(*coords, outline=color, fill="", width=1.2, tags=tags)
-                    else:
-                        canvas.create_line(*coords, fill=color, width=1.2, tags=tags)
 
     def _door_layout_cell_result(self, cell, val=None):
         val = val or self.get_float_values()
@@ -7183,18 +6989,8 @@ class Phase6ApplicationHost:
         refresh = getattr(designer, "_phase6_refresh_corner_data_unfold_view", None)
         return refresh() if callable(refresh) else None
 
-    def draw_grid(self, canvas, w, h, tags=None):
-        """
-        在畫布背景上繪製科技感的微弱網格
-        """
-        grid_size = 40
-        kwargs = {"fill": "#1c1c22", "width": 1}
-        if tags:
-            kwargs["tags"] = tags
-        for x in range(0, w, grid_size):
-            canvas.create_line(x, 0, x, h, **kwargs)
-        for y in range(0, h, grid_size):
-            canvas.create_line(0, y, w, y, **kwargs)
+    draw_grid = _draw_grid_impl
+
 
     def _box_body_face_at_canvas_point(self, x, y):
         for face_key, bounds in self.box_body_face_bounds.items():

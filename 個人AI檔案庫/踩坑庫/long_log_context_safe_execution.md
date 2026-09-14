@@ -25,3 +25,25 @@
 - terminal 後才收斂完整 evidence；raw log 是證據來源，不是每次監控都要搬進 context 的內容。
 
 Canonical execution rule：`.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`。Remote QA state machine 仍由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 擁有。
+
+<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
+## QA pipeline 假綠 / movable baseline 踩坑（2026-09-14）
+
+### 事故模式
+
+T5 GUI modularization 曾出現 `pytest ... | tee` 與 `python validator.py | tee` 左側已 FAIL，但 GitHub step/job 因 `tee` exit 0 顯示 SUCCESS。另一個 Move-Only validator 同時使用 movable branch ref、並把可繼承呼叫 symbol 的 public subclass 誤認成真正 owner，造成驗證結果不可信。
+
+### 根因
+
+- shell pipeline 未啟用 `pipefail`，wrapper 的成功遮蔽真正 validator/test failure。
+- 把 CI 綠燈顏色當 acceptance authority，沒有反讀 pytest/validator terminal summary。
+- baseline 用 branch name 而非 immutable accepted SHA，驗證基準可在執行途中漂移。
+- 由 public API surface 猜 class owner，沒有用 AST/原始碼確認實際定義位置。
+
+### 永久規則
+
+- fail-significant command 只要經過 pipe/`tee`，必須 `set -o pipefail`（或等價取得左側 exit status）；沒有這條的舊 GREEN evidence 一律不得沿用。
+- Acceptance 同時要求：workflow terminal + 實際 test/validator terminal summary + exact tested `head_sha`。
+- Characterization / Move-Only 比較基準固定寫 immutable accepted commit SHA；禁止 movable branch ref。
+- owner/class 由 AST dependency inventory 或 exact source reread 確認；繼承可見性不等於 ownership。
+- 發現假綠後要回溯原 log 重新分類，不能為了維持 GREEN 去改 production 配合 stale test。

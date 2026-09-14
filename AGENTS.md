@@ -132,6 +132,22 @@ production code
 
 ---
 
+
+
+<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
+### 0.0.2A QA Pipeline Fail-Closed 硬閘門
+
+任何會影響 PASS/FAIL 判定的命令，只要透過 pipe（尤其 `tee`）輸出，必須啟用 `set -o pipefail` 或等價保留左側命令 exit status。`pytest ... | tee ...` / `python validator.py | tee ...` 若未 fail-closed，即使 GitHub Actions step/job 顯示 SUCCESS 也不是有效驗收證據。
+
+正式接受前同時必須確認：
+
+1. test / validator 的完整 terminal summary 或等價終態，而不是只看 workflow conclusion；
+2. exact tested `head_sha`；
+3. characterization / Move-Only baseline 使用 immutable accepted commit SHA，禁止 movable branch ref；
+4. symbol owner/class 來自 AST/dependency inventory 或 exact source reread，不得由 public inheritance surface 猜測。
+
+若歷史 run 違反任一條，狀態只能標記為 evidence invalid / rerun required；禁止拿假綠結果關單、合併或 release。
+
 <!-- WHD_SECTION_ROLE role=HISTORICAL contract=legacy-v5-architecture-roadmap -->
 > **[HISTORICAL/SUPERSEDED]** 第 1～10 節是 V5 / Layer A-B-C / GUI Preview 時代的架構與 roadmap snapshot，只保留 provenance，不參與 current routing。現行製造架構請讀 Canonical Authority Map 指向的 ae_engine 規範。
 
