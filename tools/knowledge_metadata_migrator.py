@@ -4,7 +4,6 @@
 Authority flows one way: explicit classification matrix -> migration plan -> files.
 Validation may reject the result but must never invent roles/contracts/canonical paths.
 """
-from __future__ import annotations
 
 import argparse
 import json
