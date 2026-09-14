@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 from pathlib import Path
 
@@ -19,6 +20,10 @@ def _load_governance():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _current_doc(contract: str) -> str:
@@ -77,11 +82,12 @@ def test_metadata_parser_requires_kebab_contract_and_mirror_canonical() -> None:
         governance.parse_doc_metadata(mirror, path="docs/mirror.md")
 
 
-def test_bootstrap_ignores_untouched_legacy_but_rejects_changed_missing_metadata(tmp_path: Path) -> None:
+def test_bootstrap_grandfathers_frozen_legacy_but_rejects_post_freeze_edits(tmp_path: Path) -> None:
     governance = _load_governance()
     legacy = tmp_path / "docs" / "legacy.md"
     legacy.parent.mkdir(parents=True)
-    legacy.write_text("# legacy without metadata\n", encoding="utf-8")
+    frozen_text = "# legacy without metadata\n"
+    legacy.write_text(frozen_text, encoding="utf-8")
     inventory = {
         "schema": "WHD_KNOWLEDGE_INVENTORY_V1",
         "rows": [
@@ -94,11 +100,20 @@ def test_bootstrap_ignores_untouched_legacy_but_rejects_changed_missing_metadata
                 "machine_routing": [],
                 "replacement": None,
                 "action": "UPDATE",
+                "metadata_status": "legacy-or-unclassified",
+                "content_sha256": _sha256(frozen_text),
             }
         ],
     }
 
-    assert governance.validate_bootstrap(tmp_path, inventory, changed_files=[]) == ()
+    # A PR may have been opened from a base older than the T0 freeze. If the
+    # current legacy content still matches the frozen inventory, bootstrap mode
+    # must not misclassify it as new drift merely because PR-base diff lists it.
+    assert governance.validate_bootstrap(
+        tmp_path, inventory, changed_files=["docs/legacy.md"]
+    ) == ()
+
+    legacy.write_text(frozen_text + "post-freeze change\n", encoding="utf-8")
     errors = governance.validate_bootstrap(tmp_path, inventory, changed_files=["docs/legacy.md"])
     assert any("WHD_DOC_META_V1" in error for error in errors)
 
@@ -107,9 +122,10 @@ def test_bootstrap_rejects_new_second_current_but_allows_atomic_authority_transf
     governance = _load_governance()
     docs = tmp_path / "docs"
     docs.mkdir()
+    old_text = _current_doc("sample-contract")
     old_owner = docs / "old.md"
     new_owner = docs / "new.md"
-    old_owner.write_text(_current_doc("sample-contract"), encoding="utf-8")
+    old_owner.write_text(old_text, encoding="utf-8")
     new_owner.write_text(_current_doc("sample-contract"), encoding="utf-8")
     inventory = {
         "schema": "WHD_KNOWLEDGE_INVENTORY_V1",
@@ -123,6 +139,8 @@ def test_bootstrap_rejects_new_second_current_but_allows_atomic_authority_transf
                 "machine_routing": [],
                 "replacement": None,
                 "action": "KEEP",
+                "metadata_status": "v1",
+                "content_sha256": _sha256(old_text),
             }
         ],
     }
@@ -190,6 +208,7 @@ def test_inventory_covers_required_scopes_and_records_required_fields(tmp_path: 
         "machine_routing",
         "replacement",
         "action",
+        "content_sha256",
     }
     assert all(required <= set(row) for row in rows.values())
     assert inventory["source_head"] == "fixture-head"
@@ -211,3 +230,4 @@ def test_frozen_inventory_file_exists_and_names_its_source_head() -> None:
     text = INVENTORY.read_text(encoding="utf-8")
     assert '"schema": "WHD_KNOWLEDGE_INVENTORY_V1"' in text
     assert '"source_head":' in text
+    assert '"content_sha256":' in text
