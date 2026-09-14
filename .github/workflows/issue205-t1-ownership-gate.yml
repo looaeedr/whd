@@ -1,0 +1,130 @@
+name: Issue 205 T1 Ownership Gate
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.github/workflows/issue205-t1-ownership-gate.yml'
+      - '.scratch/issue205/**'
+      - '.scratch/issue205-t1-checkpoint.md'
+  workflow_dispatch:
+
+jobs:
+  t1-ownership-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Phase6 preflight
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .scratch/issue205/run
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #205 T1 SAFE REVIEW HOLD classification and state ownership map for gui.py modularization; analysis only, no file movement or behavior change" \
+            --changed-file '.scratch/issue205/preflight-evidence.md' \
+            --changed-file '.scratch/issue205/t1-classification.md' \
+            --changed-file '.scratch/issue205-t1-checkpoint.md' \
+            --evidence '.scratch/issue205/preflight-evidence.md' \
+            | tee .scratch/issue205/run/preflight.txt
+      - name: Assert no production-source drift
+        shell: bash
+        run: |
+          git fetch origin cleanup/2d-3d-sync --depth=1
+          changed=$(git diff --name-only origin/cleanup/2d-3d-sync...HEAD -- . ':!.scratch/**' ':!.github/workflows/issue205-t1-ownership-gate.yml')
+          if [ -n "$changed" ]; then
+            echo "Unexpected non-evidence changes:"
+            echo "$changed"
+            exit 1
+          fi
+          echo 'production_source_drift=0' | tee .scratch/issue205/run/drift.txt
+      - name: Verify candidate dependency facts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast, json, pathlib
+          source=pathlib.Path('gui.py').read_text(encoding='utf-8')
+          tree=ast.parse(source)
+          wanted={
+            '_corner_preview_canvas_point':'SAFE',
+            '_corner_preview_flip_y_for_target':'SAFE',
+            '_project_toolbar_presentation':'SAFE',
+            'render_drawing_scene':'SAFE',
+            'layout_reference_overlay_rects':'HOLD',
+            'render_structural_result':'HOLD',
+          }
+          defs={}
+          for node in tree.body:
+            if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)):
+              defs[node.name]=node
+          rows=[]
+          for name,status in wanted.items():
+            node=defs.get(name)
+            if node is None:
+              raise SystemExit(f'missing candidate: {name}')
+            self_refs=[]
+            calls=[]
+            for n in ast.walk(node):
+              if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id=='self':
+                self_refs.append(n.attr)
+              if isinstance(n, ast.Call):
+                try: calls.append(ast.unparse(n.func))
+                except Exception: pass
+            rows.append({'name':name,'status':status,'line':node.lineno,'self_refs':sorted(set(self_refs)),'calls':sorted(set(calls))})
+            if status=='SAFE' and self_refs:
+              raise SystemExit(f'SAFE candidate unexpectedly reads/writes self: {name}: {sorted(set(self_refs))}')
+          # class negative guard
+          classes={n.name:n for n in tree.body if isinstance(n,ast.ClassDef)}
+          if '_YMirroredPreviewTransform' not in classes:
+            raise SystemExit('missing _YMirroredPreviewTransform')
+          pathlib.Path('.scratch/issue205/run/candidate_facts.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(rows,ensure_ascii=False,indent=2))
+          PY
+      - name: Verify state-owner contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, json
+          gui=pathlib.Path('gui.py').read_text(encoding='utf-8')
+          project=pathlib.Path('phase6_project_controller.py').read_text(encoding='utf-8')
+          workspace=pathlib.Path('phase6_workspace_controller.py').read_text(encoding='utf-8')
+          settings=pathlib.Path('phase6_settings_center.py').read_text(encoding='utf-8')
+          checks={
+            'host_creates_project_controller':'self.project_controller = Phase6ProjectController(' in gui,
+            'host_creates_workspace_controller':'self.workspace_controller = Phase6WorkspaceController()' in gui,
+            'host_creates_settings_service':'self.settings_service = SettingsService(ae)' in gui,
+            'project_controller_owns_session':'self._session = ProjectSession()' in project,
+            'workspace_controller_declares_single_owner':'committed workspace' in workspace and 'SharedWorkspaceState' in workspace,
+            'settings_declares_committed_runtime_owner':'owns committed' in settings or 'committed\nruntime settings' in settings,
+            'authoritative_render_uses_manufacturing_api':'manufacturing_api.build_part_render_data' in gui,
+            'scheduler_present':'_Phase6UpdateScheduler' in gui and '_request_phase6_update' in gui,
+          }
+          failed=[k for k,v in checks.items() if not v]
+          pathlib.Path('.scratch/issue205/run/state_owner_checks.json').write_text(json.dumps(checks,indent=2),encoding='utf-8')
+          print(json.dumps(checks,indent=2))
+          if failed: raise SystemExit('owner contract checks failed: '+', '.join(failed))
+          PY
+      - name: Verify HOLD negative/live-caller evidence
+        shell: bash
+        run: |
+          {
+            echo 'layout_reference_overlay_rects'; git grep -n -w layout_reference_overlay_rects -- ':!gui.py' || true
+            echo '_YMirroredPreviewTransform'; git grep -n -w _YMirroredPreviewTransform -- ':!gui.py' || true
+            echo 'render_structural_result'; git grep -n -w render_structural_result -- ':!gui.py' || true
+            echo 'render_drawing_scene'; git grep -n -w render_drawing_scene -- ':!gui.py' || true
+          } | tee .scratch/issue205/run/references.txt
+      - name: Upload T1 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue205-t1-ownership-gate
+          path: .scratch/issue205/run/
