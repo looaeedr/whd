@@ -1,0 +1,25 @@
+name: Issue234 Permanent Governance RED
+
+on:
+  push:
+    branches:
+      - feat/issue234-permanent-knowledge-guards-20260915
+    paths:
+      - 'tests/knowledge/test_issue234_permanent_governance_guards.py'
+      - 'tools/knowledge_governance.py'
+      - '.github/workflows/issue234-permanent-governance-red.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pytest
+      - name: Run issue234 RED contracts
+        run: python -m pytest tests/knowledge/test_issue234_permanent_governance_guards.py -q
