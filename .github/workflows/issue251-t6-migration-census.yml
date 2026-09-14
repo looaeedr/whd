@@ -1,0 +1,91 @@
+name: Issue251 T6 Migration Census
+
+on:
+  push:
+    branches:
+      - feat/issue251-t6-matrix-migrator-20260914
+    paths:
+      - '.github/workflows/issue251-t6-migration-census.yml'
+      - 'docs/superpowers/verification/knowledge_authority_classification_v1.json'
+      - 'tools/knowledge_governance.py'
+      - 'tests/knowledge/test_issue251_t6_matrix_migrator.py'
+      - 'tools/knowledge_metadata_migrator.py'
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read-only migration census
+        shell: bash
+        run: |
+          python - <<'PY'
+          import importlib.util, json
+          from collections import Counter
+          from pathlib import Path
+
+          root = Path('.').resolve()
+          tool = root / 'tools/knowledge_governance.py'
+          spec = importlib.util.spec_from_file_location('knowledge_governance_issue251', tool)
+          module = importlib.util.module_from_spec(spec)
+          assert spec and spec.loader
+          spec.loader.exec_module(module)
+
+          matrix_path = root / 'docs/superpowers/verification/knowledge_authority_classification_v1.json'
+          matrix = json.loads(matrix_path.read_text(encoding='utf-8'))
+          rows = matrix['rows']
+          by_path = {row['path']: row for row in rows}
+          assert len(by_path) == len(rows), 'duplicate matrix path'
+
+          governed = []
+          debt = []
+          for path in root.rglob('*.md'):
+              if not path.is_file():
+                  continue
+              rel = path.relative_to(root).as_posix()
+              if not module.is_governed_markdown(rel):
+                  continue
+              governed.append(rel)
+              try:
+                  module.parse_doc_metadata(path.read_text(encoding='utf-8'), path=rel)
+              except Exception as exc:
+                  debt.append((rel, str(exc)))
+
+          governed = sorted(governed)
+          debt = sorted(debt)
+          governed_set = set(governed)
+          matrix_set = set(by_path)
+          debt_roles = Counter()
+          debt_blockers = Counter()
+          unresolved_debt = []
+          missing_matrix = []
+          for rel, error in debt:
+              row = by_path.get(rel)
+              if row is None:
+                  missing_matrix.append(rel)
+                  continue
+              role = str(row.get('target_role'))
+              blocker = row.get('blocker')
+              debt_roles[role] += 1
+              if blocker:
+                  debt_blockers[str(blocker)] += 1
+              if role == 'UNRESOLVED' or blocker:
+                  unresolved_debt.append((rel, role, blocker, error))
+
+          print('MATRIX_ROWS', len(rows))
+          print('CURRENT_GOVERNED', len(governed))
+          print('CURRENT_METADATA_DEBT', len(debt))
+          print('DEBT_TARGET_ROLES', dict(sorted(debt_roles.items())))
+          print('DEBT_BLOCKERS', dict(sorted(debt_blockers.items())))
+          print('GOVERNED_NOT_IN_MATRIX', len(governed_set - matrix_set))
+          print('MATRIX_NOT_IN_GOVERNED', len(matrix_set - governed_set))
+          print('DEBT_NOT_IN_MATRIX', len(missing_matrix))
+          print('UNRESOLVED_OR_BLOCKED_DEBT', len(unresolved_debt))
+          for item in missing_matrix:
+              print('DEBT_MISSING_MATRIX', item)
+          for rel, role, blocker, error in unresolved_debt:
+              print('DEBT_BLOCKED', rel, role, blocker, error)
+          PY
