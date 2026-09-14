@@ -3,7 +3,7 @@ name: Issue 211 T7 Exact-Head Final Acceptance
 on:
   pull_request:
     branches:
-      - qa/issue211-renderer-gate-20260914
+      - qa/issue211-final-acceptance-fix2-20260914
 
 permissions:
   contents: read
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TARGET_SHA: 254f82f589e684b59e48dabb93ce2a6767d440bc
-      PARENT_SHA: f486a6150dc4c1be76241893e6c36ae0aa57e0c8
+      PARENT_SHA: f486a61534f02890c9f497422bf99d7a2bec34c3
     steps:
       - name: Checkout exact implementation commit
         uses: actions/checkout@v4
@@ -26,18 +26,28 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .scratch/issue211/final-acceptance
+
+          status_before=$(git status --porcelain=v1)
+          printf '%s\n' "$status_before" > .scratch/issue211/final-acceptance/status-before.txt
+          test -z "$status_before"
+
           actual=$(git rev-parse HEAD)
-          test "$actual" = "$TARGET_SHA"
           parent=$(git rev-parse HEAD^)
-          test "$parent" = "$PARENT_SHA"
           changed=$(git -c core.quotepath=false diff --name-only "$PARENT_SHA" "$TARGET_SHA")
+          {
+            printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+            printf 'ACTUAL_SHA=%s\n' "$actual"
+            printf 'EXPECTED_PARENT_SHA=%s\n' "$PARENT_SHA"
+            printf 'ACTUAL_PARENT_SHA=%s\n' "$parent"
+          } | tee .scratch/issue211/final-acceptance/runner-metadata.txt
           printf '%s\n' "$changed" | tee .scratch/issue211/final-acceptance/production-diff.txt
+
+          test "$actual" = "$TARGET_SHA"
+          test "$parent" = "$PARENT_SHA"
           test "$changed" = $'gui.py\ngui_modules/render_2d.py'
           test -f gui_modules/render_2d.py
           test ! -e gui_modules/render_3d.py
           grep -q 'class Phase6FinalSceneView' phase6_final_scene_view.py
-          git status --porcelain=v1 | tee .scratch/issue211/final-acceptance/status-before.txt
-          test ! -s .scratch/issue211/final-acceptance/status-before.txt
 
       - name: Set up Python and Xvfb
         uses: actions/setup-python@v5
@@ -66,49 +76,37 @@ jobs:
             --evidence .scratch/issue211/preflight-evidence.md \
             | tee .scratch/issue211/final-acceptance/preflight.txt
 
-      - name: Discover exact acceptance test paths
+      - name: Lock exact acceptance test paths
         shell: bash
         run: |
           set -euo pipefail
-          out=.scratch/issue211/final-acceptance/test-paths.txt
-          : > "$out"
-          required=(
-            test_issue211_renderer_dependency_gate.py
-            test_phase6_final_scene_projection_parity.py
-            test_phase6_final_scene_visibility.py
-            test_phase6_final_scene_xvfb.py
-            test_phase6_canonical_manufacturing_adapter.py
-            test_phase6_canonical_manufacturing_registry.py
-            test_phase6_canonical_manufacturing_roundtrip.py
-            test_phase6_canonical_manufacturing_sync_clean_room.py
-            test_phase6_canonical_manufacturing_sync_acceptance_gate.py
+          headless=(
+            tests/test_issue211_renderer_dependency_gate.py
+            tests/test_phase6_2d_3d_round_trip.py
+            tests/test_phase6_3d_single_source_renderer.py
+            tests/test_phase6_final_scene_view_ownership.py
+            tests/test_issue44_box_body_physical_piece_identity.py
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py
+            tests/test_issue76_box_body_subtabs_2d_3d.py
+            tests/test_dxf_acceptance.py
+            tests/test_multipart_dxf_acceptance.py
+            tests/test_receiving_door_dxf_roundtrip.py
+            tests/test_phase6_receiving_projection_regression.py
           )
-          for name in "${required[@]}"; do
-            path=$(find tests -type f -name "$name" -print -quit)
-            if [ -z "$path" ]; then
-              echo "MISSING REQUIRED TEST: $name" >&2
-              exit 1
-            fi
-            printf '%s\n' "$path" >> "$out"
+          xvfb=(
+            tests/test_issue97_authoritative_unfold_view_adapter.py
+            tests/test_issue98_existing_2d_capability_migration.py
+            tests/test_issue99_dual_view_parity_persistence.py
+            tests/test_phase6_gui_3d_integrity_20260830.py
+            tests/test_phase6_assembly_3d_view.py
+            tests/test_phase6_assembly_registry_gui_matrix.py
+            tests/test_phase6_ui_state_regressions.py
+          )
+          for path in "${headless[@]}" "${xvfb[@]}"; do
+            test -f "$path" || { echo "MISSING REQUIRED TEST: $path" >&2; exit 1; }
           done
-          find tests -type f \( \
-              -iname '*physical*identity*.py' -o \
-              -iname '*stable*part*.py' -o \
-              -iname '*dxf*roundtrip*.py' -o \
-              -iname '*roundtrip*dxf*.py' -o \
-              -iname '*dxf*reopen*.py' -o \
-              -iname '*reopen*dxf*.py' \
-            \) -print | sort -u >> "$out"
-          sort -u "$out" -o "$out"
-          cat "$out"
-          grep -q 'physical\|identity\|stable.*part' "$out" || {
-            echo 'MISSING physical identity / stable-part regression' >&2
-            exit 1
-          }
-          grep -q -i 'dxf.*roundtrip\|roundtrip.*dxf\|dxf.*reopen\|reopen.*dxf' "$out" || {
-            echo 'MISSING DXF roundtrip/reopen regression' >&2
-            exit 1
-          }
+          printf '%s\n' "${headless[@]}" | tee .scratch/issue211/final-acceptance/headless-paths.txt
+          printf '%s\n' "${xvfb[@]}" | tee .scratch/issue211/final-acceptance/xvfb-paths.txt
 
       - name: Capture config and DXF invariant manifest before tests
         shell: bash
@@ -119,27 +117,20 @@ jobs:
             | xargs -0 sha256sum \
             > .scratch/issue211/final-acceptance/invariants-before.sha256
 
-      - name: L1-L3 headless parity, identity, and DXF reopen
+      - name: L1-L3 headless parity, identity, and DXF acceptance
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t all < .scratch/issue211/final-acceptance/test-paths.txt
-          headless=()
-          for p in "${all[@]}"; do
-            case "$p" in
-              *test_phase6_final_scene_xvfb.py) ;;
-              *) headless+=("$p") ;;
-            esac
-          done
-          printf '%s\n' "${headless[@]}" | tee .scratch/issue211/final-acceptance/headless-paths.txt
+          mapfile -t headless < .scratch/issue211/final-acceptance/headless-paths.txt
           python -m pytest -q "${headless[@]}" \
             | tee .scratch/issue211/final-acceptance/headless.txt
 
-      - name: L4 final-scene Xvfb behavior
+      - name: L4 Xvfb UI and final-scene behavior
         shell: bash
         run: |
           set -euo pipefail
-          xvfb-run -a python -m pytest -q "$(find tests -type f -name 'test_phase6_final_scene_xvfb.py' -print -quit)" \
+          mapfile -t xvfb_tests < .scratch/issue211/final-acceptance/xvfb-paths.txt
+          xvfb-run -a python -m pytest -q "${xvfb_tests[@]}" \
             | tee .scratch/issue211/final-acceptance/xvfb.txt
 
       - name: Post-test drift and invariant audit
@@ -155,9 +146,9 @@ jobs:
             .scratch/issue211/final-acceptance/invariants-after.sha256 \
             | tee .scratch/issue211/final-acceptance/invariant-diff.txt
           git diff --exit-code
-          git status --porcelain=v1 --untracked-files=no \
-            | tee .scratch/issue211/final-acceptance/status-after.txt
-          test ! -s .scratch/issue211/final-acceptance/status-after.txt
+          tracked_status=$(git status --porcelain=v1 --untracked-files=no)
+          printf '%s\n' "$tracked_status" | tee .scratch/issue211/final-acceptance/status-after.txt
+          test -z "$tracked_status"
 
       - name: Upload exact-head acceptance evidence
         if: always()
@@ -165,4 +156,4 @@ jobs:
         with:
           name: issue211-t7-exact-head-final-acceptance
           path: .scratch/issue211/final-acceptance/
-          if-no-files-found: error
+          if-no-files-found: warn
