@@ -34,6 +34,17 @@ fresh extract、restore、工具回合重建或手動複製後，先驗 executio
 
 checkpoint/state 至少記錄 branch+HEAD、已完成/pending/failed、修改檔、最後驗證結果、owning Issue、下一步 resume 指令。
 
+### EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE
+
+本 Skill 的 execution-state 文字規則只負責**語意與操作責任**；durable state integrity、runtime-cut reload 與 workflow finalization 的 machine enforcement 一律委派 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 與 `tools/continuity_controller.py`。
+
+- 長流程 checkpoint 必須能以 `Checkpoint` 模型表達；`RUNNING / WAITING_REMOTE / RECOVERING / BLOCKED` 都是 non-terminal，必須有非空 `next_action`。
+- remote QA 進 `WAITING_REMOTE` 時必須持久化 exact `run_id + head_sha`；已知時同步保存 `job_id / log_cursor / evidence`。
+- runtime/tool window 被切斷後先 `load_checkpoint`，驗 branch/HEAD/run identity；無 drift 就執行保存的 exact `next_action`，不得重新要求使用者驅動。
+- 在任何 workflow/issue/acceptance closure 或「本工作可以終止」的 machine gate 前，必須對 durable checkpoint 執行 `assert_finalizable`。非 terminal checkpoint 必須 raise `FinalizationBlocked` / CLI nonzero；不得因本 Skill 文字出現 `final 禁止` 就視為已 enforce。
+- 語意 `COMPLETE` 只有在所有 acceptance evidence 完成後，才能落成 controller 的 `TERMINAL_SUCCESS`；不可恢復且有完整終態 evidence 的失敗才可落成 `TERMINAL_FAILURE`。單純 `BLOCKED` 仍是 non-terminal，不通過 workflow finalization。
+- `tests/process/test_continuity_controller.py` 是 machine behavior authority；字串 marker tests 只做文件相容性 guard，不能取代 executable behavior proof。
+
 ### CHECKPOINT_RESUME_CONTRACT
 
 遇到平台／工具的 system hard-cut 時，`system hard-cut → checkpoint`；checkpoint 不是 COMPLETE evidence，**不得把系統硬切寫成 COMPLETE**。checkpoint 最低欄位必須完整包含：
