@@ -22,6 +22,16 @@ description: Use when GitHub ticketed work reaches QA acceptance, branch/PR merg
 - non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
 - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
 
+### EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE
+
+本 Skill 的 closure 判定必須服從 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 與 `tools/continuity_controller.py`；GitHub issue state readback 與 executable continuity gate 兩者缺一不可。
+
+- 在 close leaf / closing ticket / Master，或對使用者輸出「正式完成／全部完成／已關單」前，先載入目前 owning workflow 的 durable checkpoint 並執行 `assert_finalizable`。
+- `RUNNING / WAITING_REMOTE / RECOVERING / BLOCKED` 全部都是 non-terminal；即使 GitHub code 已 merge、focused/Combined tests 已 PASS、或文字 Skill 寫著可見 checkpoint，也不得通過 executable closure gate。
+- 只有 acceptance / invariant / cleanup / drift / required issue-state evidence 全部收齊後，才允許 durable state 落成 `TERMINAL_SUCCESS`；之後仍須逐票 GitHub readback 才能關單。
+- 若 executable guard 與 GitHub process-state 不一致，採 fail-closed：不能以其中任一方單獨宣告完成。
+- Markdown marker/string tests 僅保護文件契約；真正的 non-terminal finalization rejection 由 `tests/process/test_continuity_controller.py` 行為測試驗證。
+
 ## 核心原則
 
 **合併不等於關單。** `integration != completion`。
@@ -121,6 +131,7 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 ## 快速檢查
 
 - [ ] 已讀 `個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md`。
+- [ ] executable checkpoint 已通過 `assert_finalizable`。
 - [ ] 已辨識 active issue chain。
 - [ ] 已指定 `Issue Closure owner`。
 - [ ] leaf/current ticket evidence 已回寫並 CLOSED/completed。
