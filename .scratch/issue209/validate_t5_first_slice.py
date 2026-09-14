@@ -31,9 +31,22 @@ def find_top_function(source, name):
 parent_method = find_class_method(parent, OWNER, NAME)
 moved = find_top_function(module_source, NAME)
 
-if ast.dump(parent_method.args, include_attributes=False) != ast.dump(moved.args, include_attributes=False):
+parent_args = ast.dump(parent_method.args, include_attributes=False)
+moved_args = ast.dump(moved.args, include_attributes=False)
+if parent_args != moved_args:
+    print('PARENT_ARGS', parent_args)
+    print('MOVED_ARGS', moved_args)
     raise SystemExit('projector signature changed during extraction')
-if [ast.dump(n, include_attributes=False) for n in parent_method.body] != [ast.dump(n, include_attributes=False) for n in moved.body]:
+
+parent_body = [ast.dump(n, include_attributes=False) for n in parent_method.body]
+moved_body = [ast.dump(n, include_attributes=False) for n in moved.body]
+if parent_body != moved_body:
+    print('PARENT_BODY')
+    for row in parent_body:
+        print(row)
+    print('MOVED_BODY')
+    for row in moved_body:
+        print(row)
     raise SystemExit('projector body changed during extraction')
 
 current_owner = find_class(current, OWNER)
@@ -58,12 +71,8 @@ expected_import = 'from gui_modules.part_panels import (\n    _phase6_logical_pa
 if current.count(expected_import) != 1:
     raise SystemExit('part_panels compatibility import is not exactly one canonical import')
 
-# Public compatibility surface still resolves on the concrete application class through inheritance.
 box_cls = find_class(current, 'BoxCalculatorGUI')
-if not any(
-    isinstance(base, ast.Name) and base.id == OWNER
-    for base in box_cls.bases
-):
+if not any(isinstance(base, ast.Name) and base.id == OWNER for base in box_cls.bases):
     raise SystemExit('BoxCalculatorGUI no longer inherits Phase6ApplicationHost')
 
 for path in pathlib.Path('gui_modules').rglob('*.py'):
