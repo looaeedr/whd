@@ -1,0 +1,33 @@
+# #204 / T0 Checkpoint
+
+- Parent: #203
+- Task: T0 — Baseline lock, preflight, AST inventory, dependency map
+- Current role: T0 實作者
+- Production baseline: cleanup/2d-3d-sync @ 82d1763f02ab44d6e6138b3d626193da87550687
+- Work branch: refactor/gui-modularization-20260914
+- Completed:
+  - Master #203 created
+  - T0–T8 issues #204–#212 created
+  - fresh branch created from exact production SHA
+  - AGENTS.md preflight/dispatch/remote-QA/long-log gates reread
+  - UI設計與去AI味 skill reread
+  - engineering skill inventory reread; monitoring-remote-qa and long-log-context-safe-execution confirmed present
+- Pending:
+  - run/replicate Phase6 preflight requirements for this exact task and changed-file scope
+  - read remaining required Skills/references
+  - obtain full gui.py for AST/static inventory
+  - produce caller/callee + global/self/widget/model/geometry/project dependency report
+  - classify no symbols yet; T1 remains blocked
+- Failed/blocked:
+  - direct raw download path was unavailable in this tool context; no fallback downgrade allowed
+- Related files:
+  - gui.py
+  - AGENTS.md
+  - .agents/skills/engineering/UI設計與去AI味/SKILL.md
+  - .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+  - .agents/skills/engineering/long-log-context-safe-execution/SKILL.md
+- Verification / evidence:
+  - GitHub remote branch readback confirms production baseline SHA
+  - No production source/behavior changes performed
+- Resume command/intention:
+  - continue #204 preflight evidence readback, then static inventory; do not start #205 until #204 acceptance is complete
