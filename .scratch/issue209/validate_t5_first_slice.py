@@ -3,6 +3,7 @@ import pathlib
 import subprocess
 
 PARENT_SHA = 'a098498d7459e974bbf18a5573e6b209eaeb4404'
+OWNER = 'Phase6ApplicationHost'
 NAME = '_phase6_logical_part_present'
 
 parent = subprocess.check_output(
@@ -12,9 +13,13 @@ current = pathlib.Path('gui.py').read_text(encoding='utf-8')
 module_source = pathlib.Path('gui_modules/part_panels.py').read_text(encoding='utf-8')
 
 
-def find_class_method(source, class_name, method_name):
+def find_class(source, class_name):
     tree = ast.parse(source)
-    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+    return next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+
+
+def find_class_method(source, class_name, method_name):
+    cls = find_class(source, class_name)
     return next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == method_name)
 
 
@@ -23,7 +28,7 @@ def find_top_function(source, name):
     return next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
 
 
-parent_method = find_class_method(parent, 'BoxCalculatorGUI', NAME)
+parent_method = find_class_method(parent, OWNER, NAME)
 moved = find_top_function(module_source, NAME)
 
 if ast.dump(parent_method.args, include_attributes=False) != ast.dump(moved.args, include_attributes=False):
@@ -31,13 +36,12 @@ if ast.dump(parent_method.args, include_attributes=False) != ast.dump(moved.args
 if [ast.dump(n, include_attributes=False) for n in parent_method.body] != [ast.dump(n, include_attributes=False) for n in moved.body]:
     raise SystemExit('projector body changed during extraction')
 
-current_tree = ast.parse(current)
-current_cls = next(n for n in current_tree.body if isinstance(n, ast.ClassDef) and n.name == 'BoxCalculatorGUI')
-if any(isinstance(n, ast.FunctionDef) and n.name == NAME for n in current_cls.body):
-    raise SystemExit('old projector method body still exists in BoxCalculatorGUI')
+current_owner = find_class(current, OWNER)
+if any(isinstance(n, ast.FunctionDef) and n.name == NAME for n in current_owner.body):
+    raise SystemExit(f'old projector method body still exists in {OWNER}')
 
 binding_ok = False
-for node in current_cls.body:
+for node in current_owner.body:
     if not isinstance(node, ast.Assign) or len(node.targets) != 1:
         continue
     target = node.targets[0]
@@ -48,11 +52,19 @@ for node in current_cls.body:
     if len(node.value.args) == 1 and isinstance(node.value.args[0], ast.Name) and node.value.args[0].id == '_phase6_logical_part_present_impl':
         binding_ok = True
 if not binding_ok:
-    raise SystemExit('BoxCalculatorGUI static compatibility binding missing')
+    raise SystemExit(f'{OWNER} static compatibility binding missing')
 
 expected_import = 'from gui_modules.part_panels import (\n    _phase6_logical_part_present as _phase6_logical_part_present_impl,\n)'
 if current.count(expected_import) != 1:
     raise SystemExit('part_panels compatibility import is not exactly one canonical import')
+
+# Public compatibility surface still resolves on the concrete application class through inheritance.
+box_cls = find_class(current, 'BoxCalculatorGUI')
+if not any(
+    isinstance(base, ast.Name) and base.id == OWNER
+    for base in box_cls.bases
+):
+    raise SystemExit('BoxCalculatorGUI no longer inherits Phase6ApplicationHost')
 
 for path in pathlib.Path('gui_modules').rglob('*.py'):
     text = path.read_text(encoding='utf-8')
@@ -60,6 +72,7 @@ for path in pathlib.Path('gui_modules').rglob('*.py'):
         raise SystemExit(f'forbidden gui_modules -> gui import: {path}')
 
 print(f'accepted_parent={PARENT_SHA}')
+print(f'owner={OWNER}')
 print('t5_first_slice_source_contract=GREEN')
 print('t5_first_slice_compatibility=GREEN')
 print('import_direction=GREEN')
