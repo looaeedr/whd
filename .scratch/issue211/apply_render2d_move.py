@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import ast
-import textwrap
+import copy
 from pathlib import Path
 
 GUI = Path("gui.py")
@@ -29,7 +29,12 @@ if set(methods) != set(NAMES):
 
 
 def function_source(node: ast.FunctionDef) -> str:
-    return textwrap.dedent("\n".join(lines[node.lineno - 1:node.end_lineno])).rstrip() + "\n"
+    # Preserve the original AST (including docstring value) while only removing
+    # the class-level decorator. Text dedent can mutate triple-quoted docstrings.
+    clone = copy.deepcopy(node)
+    clone.decorator_list = []
+    ast.fix_missing_locations(clone)
+    return ast.unparse(clone).rstrip() + "\n"
 
 
 module_text = '''"""Stateless 2D Canvas presentation helpers.
