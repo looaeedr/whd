@@ -11,6 +11,7 @@ on:
       - 'docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md'
   workflow_dispatch:
 
+# R2: required 驗證板件與DXF + 04_WHD鈑金展開幾何引擎規範 evidence is recorded.
 jobs:
   t3-preflight:
     runs-on: ubuntu-latest
