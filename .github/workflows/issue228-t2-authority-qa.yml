@@ -1,0 +1,40 @@
+name: Issue228 T2 Continuous Execution Authority QA
+
+on:
+  push:
+    branches:
+      - work/issue225-knowledge-documentation-consolidation-20260914
+    paths:
+      - 'tests/knowledge/test_continuous_execution_authority_normalization.py'
+      - 'tools/continuity_controller.py'
+      - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
+      - '個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - 'docs/superpowers/checkpoints/issue228-t2-preflight-evidence.txt'
+      - '.github/workflows/issue228-t2-authority-qa.yml'
+
+jobs:
+  t2-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover changed-file preflight requirements
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T2 continuous execution authority normalization machine owner operations owner legacy reference metadata supersession" \
+            --changed-file tests/knowledge/test_continuous_execution_authority_normalization.py \
+            --changed-file .agents/skills/engineering/executable-continuity-controller/SKILL.md \
+            --changed-file 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md \
+            --changed-file 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md \
+            --evidence docs/superpowers/checkpoints/issue228-t2-preflight-evidence.txt || true
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run T2 RED plus controller regression
+        run: |
+          python -m pytest \
+            tests/knowledge/test_continuous_execution_authority_normalization.py \
+            tests/process/test_continuity_controller.py -q
