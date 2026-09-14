@@ -1,0 +1,56 @@
+name: Issue227 T1 Matrix Snapshot
+
+on:
+  push:
+    branches:
+      - work/issue225-knowledge-documentation-consolidation-20260914
+    paths:
+      - '.github/workflows/issue227-t1-matrix-snapshot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build real T1 classification matrix
+        shell: bash
+        run: |
+          python tools/knowledge_governance.py classify \
+            --root . \
+            --inventory docs/superpowers/verification/knowledge_governance_inventory_v1.json \
+            --output docs/superpowers/verification/knowledge_authority_classification_v1.json
+          python - <<'PY'
+          import collections
+          import json
+          from pathlib import Path
+          p = Path('docs/superpowers/verification/knowledge_authority_classification_v1.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          roles = collections.Counter(row['target_role'] for row in data['rows'])
+          blockers = collections.Counter(row['blocker'] for row in data['rows'] if row.get('blocker'))
+          conflicts = collections.Counter(row['code'] for row in data['conflicts'])
+          missing = [row['contract'] for row in data['contracts'] if not row.get('proposed_current_owner')]
+          unresolved_active = [row['path'] for row in data['rows'] if row['target_role'] == 'UNRESOLVED' and (row.get('machine_routing') or row.get('incoming_references'))]
+          print('T1_ROLE_COUNTS=' + json.dumps(roles, ensure_ascii=False, sort_keys=True))
+          print('T1_BLOCKER_COUNTS=' + json.dumps(blockers, ensure_ascii=False, sort_keys=True))
+          print('T1_CONFLICT_COUNTS=' + json.dumps(conflicts, ensure_ascii=False, sort_keys=True))
+          print('T1_CONTRACTS_WITHOUT_OWNER=' + json.dumps(missing, ensure_ascii=False))
+          print('T1_UNKNOWN_ACTIVE_COUNT=' + str(len(unresolved_active)))
+          print('T1_UNKNOWN_ACTIVE_SAMPLE=' + json.dumps(unresolved_active[:30], ensure_ascii=False))
+          PY
+      - name: Commit matrix and self-clean
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/superpowers/verification/knowledge_authority_classification_v1.json
+          git rm .github/workflows/issue227-t1-matrix-snapshot.yml
+          git commit -m 'docs(issue227): freeze authority classification matrix'
+          git push origin HEAD:work/issue225-knowledge-documentation-consolidation-20260914
