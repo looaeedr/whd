@@ -1,6 +1,7 @@
 name: Issue226 T0 Governance QA
 
 # Temporary acceptance harness for #226; removed after terminal GREEN.
+# Re-run after hash-aware inventory regeneration.
 on:
   push:
     branches:
