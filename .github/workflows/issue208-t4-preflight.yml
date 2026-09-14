@@ -6,11 +6,47 @@ on:
       - refactor/issue207-pure-drawing-move-20260914
     paths:
       - '.scratch/issue208-t4-checkpoint.md'
+      - '.scratch/issue208/apply_t4_move.py'
+      - '.github/workflows/issue208-t4-preflight.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  parser-probe:
+  apply-move:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe
-        run: echo T4_WORKFLOW_PARSER_GREEN
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Phase6 preflight
+        run: |
+          mkdir -p .scratch/issue208/run
+          python tools/phase6_skill_preflight.py --task "Issue #208 T4 UI layout presentation strict move-only extraction; preserve operator behavior and state authority; remote QA" --changed-file gui.py --changed-file gui_modules/layout.py --changed-file .scratch/issue208/preflight-evidence.md --changed-file .scratch/issue208-t4-checkpoint.md --evidence .scratch/issue208/preflight-evidence.md | tee .scratch/issue208/run/preflight.txt
+      - name: Apply exact move
+        run: |
+          python .scratch/issue208/apply_t4_move.py
+          git diff --check
+          git diff -- gui.py
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gui.py
+          git commit -m "refactor(issue208): move toolbar presentation to layout module"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git rev-parse HEAD | tee .scratch/issue208/run/applied_head.txt
+      - name: Upload apply evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue208-t4-apply
+          path: .scratch/issue208/run/
