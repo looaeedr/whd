@@ -42,11 +42,9 @@ def _norm(value: str | Path) -> str:
 
 
 def _canonical_from_row(row: dict[str, object], *, path: str, role: str) -> str | None:
-    raw = row.get("replacement") or row.get("canonical") or row.get("canonical_owner")
     if role != "MIRROR":
-        if raw not in (None, ""):
-            raise MigrationPlanError(f"{path}: non-MIRROR canonical must be null")
         return None
+    raw = row.get("replacement") or row.get("canonical") or row.get("canonical_owner")
     if not isinstance(raw, str) or not raw.strip():
         raise MigrationPlanError(f"{path}: MIRROR missing canonical target")
     canonical = _norm(raw)
