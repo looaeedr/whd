@@ -43,7 +43,7 @@ def test_authority_map_has_current_structured_metadata_and_no_legacy_row_format(
     assert text.startswith("---\n")
     for marker in (
         "whd_doc_role: CURRENT",
-        "whd_contract: canonical-authority-map",
+        "whd_contract: pitfall-ledger",
         "whd_canonical: null",
         "whd_schema: WHD_DOC_META_V1",
         "WHD_AUTHORITY_MAP_V1",
