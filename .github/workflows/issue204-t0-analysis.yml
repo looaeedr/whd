@@ -25,15 +25,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Collect required reference source
+        shell: bash
+        run: |
+          mkdir -p .scratch/issue204
+          cp '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md' .scratch/issue204/global_pitfall.md
+          cp gui.py .scratch/issue204/gui_snapshot.py
       - name: Run Phase6 preflight
+        id: preflight
+        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p .scratch/issue204
           python tools/phase6_skill_preflight.py \
             --task "Issue #204 T0 GUI modularization baseline lock, preflight, AST inventory and dependency mapping for gui.py; no production behavior changes" \
             | tee .scratch/issue204/preflight.txt
       - name: Build AST dependency inventory
+        if: always()
         shell: bash
         run: |
           python - <<'PY'
@@ -92,7 +100,6 @@ jobs:
               })
 
           call_index=collections.defaultdict(list)
-          def enclosing_name(node): return getattr(node,'name','<module>')
           for fn in functions:
               for c in fn['calls']:
                   call_index[c.split('.')[-1]].append({'caller':fn['name'],'line':fn['lineno'],'call':c})
@@ -105,25 +112,30 @@ jobs:
           }
           pathlib.Path('.scratch/issue204/ast_inventory.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
           summary=[]
-          summary.append(f"# Issue #204 T0 AST Inventory\n")
-          summary.append(f"- gui.py lines: {lines}")
-          summary.append(f"- imports: {len(imports)}")
-          summary.append(f"- top-level symbols: {len(top)}")
-          summary.append(f"- class methods: {len(methods)}")
-          summary.append(f"- function/method bodies analyzed: {len(functions)}")
-          summary.append(f"- module globals assigned: {len(set(globals_assigned))}\n")
+          summary.append('# Issue #204 T0 AST Inventory')
+          summary.append(f'- gui.py lines: {lines}')
+          summary.append(f'- imports: {len(imports)}')
+          summary.append(f'- top-level symbols: {len(top)}')
+          summary.append(f'- class methods: {len(methods)}')
+          summary.append(f'- function/method bodies analyzed: {len(functions)}')
+          summary.append(f'- module globals assigned: {len(set(globals_assigned))}')
+          summary.append('')
           summary.append('## Top-level symbols')
           for x in top:
               summary.append(f"- {x['kind']} `{x['name']}` L{x['lineno']}-L{x['end_lineno']}")
           pathlib.Path('.scratch/issue204/ast_inventory.md').write_text('\n'.join(summary)+'\n',encoding='utf-8')
-          print('\n'.join(summary[:12]))
+          print('\n'.join(summary[:14]))
           PY
       - name: Candidate dependency slices
+        if: always()
         shell: bash
         run: |
           python - <<'PY'
           import json, pathlib
-          data=json.loads(pathlib.Path('.scratch/issue204/ast_inventory.json').read_text(encoding='utf-8'))
+          p=pathlib.Path('.scratch/issue204/ast_inventory.json')
+          if not p.exists():
+              raise SystemExit('AST inventory missing')
+          data=json.loads(p.read_text(encoding='utf-8'))
           candidates=['_corner_preview_canvas_point','_corner_preview_flip_y_for_target','_project_toolbar_presentation','layout_reference_overlay_rects','_YMirroredPreviewTransform','render_structural_result','render_drawing_scene']
           rows=[]
           for c in candidates:
@@ -144,3 +156,11 @@ jobs:
             .scratch/issue204/ast_inventory.json
             .scratch/issue204/ast_inventory.md
             .scratch/issue204/candidate_dependencies.json
+            .scratch/issue204/global_pitfall.md
+            .scratch/issue204/gui_snapshot.py
+      - name: Enforce preflight fail-closed gate
+        if: always() && steps.preflight.outcome != 'success'
+        shell: bash
+        run: |
+          echo 'Phase6 preflight evidence is incomplete; keeping T0 RED.'
+          exit 1
