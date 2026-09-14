@@ -44,6 +44,7 @@ jobs:
           set -euo pipefail
           python .scratch/issue211/apply_render2d_move.py \
             | tee .scratch/issue211/run/apply.txt
+          git add -N gui_modules/render_2d.py
           git diff --check
           changed=$(git -c core.quotepath=false diff --name-only)
           printf '%s\n' "$changed" | tee .scratch/issue211/run/worktree-changed-files.txt
