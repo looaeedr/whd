@@ -25,6 +25,22 @@ contract=api-inventory role=HISTORICAL path=docs/superpowers/CURRENT_API_INVENTO
 <!-- WHD_AUTHORITY_ROW contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md -->
 contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 
+## Continuous execution authority
+
+<!-- WHD_AUTHORITY_ROW contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py -->
+contract=continuous-execution-machine role=CURRENT path=tools/continuity_controller.py
+
+<!-- WHD_AUTHORITY_ROW contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md -->
+contract=continuous-execution-machine role=REFERENCE path=個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+<!-- WHD_AUTHORITY_ROW contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md -->
+contract=continuous-execution-operations role=CURRENT path=.agents/skills/engineering/executable-continuity-controller/SKILL.md
+
+<!-- WHD_AUTHORITY_ROW contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md -->
+contract=continuous-execution-operations role=REFERENCE path=個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+
+`continuous-execution-machine` 只由 `tools/continuity_controller.py` 擁有 executable durable state / transition / finalization enforcement；`continuous-execution-operations` 只由 `executable-continuity-controller` Skill 擁有操作與語意 guidance。REFERENCE pitfall 只能提供事故背景與相容性提醒，marker/string presence 不得被當成 executable enforcement。
+
 本文件只負責回答「同一個工程 contract 現在到底由哪一份文件擁有」。它不複製各 domain 的完整規格，也不取代 domain canonical 文件本身。
 
 ## Authority roles
