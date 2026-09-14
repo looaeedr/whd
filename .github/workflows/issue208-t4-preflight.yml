@@ -1,4 +1,4 @@
-name: Issue 208 T4 Preflight
+name: Issue 208 T4 Gate
 
 on:
   pull_request:
@@ -9,23 +9,28 @@ on:
       - '.scratch/issue208/**'
       - '.scratch/issue208-t4-checkpoint.md'
       - 'docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md'
+      - 'gui.py'
+      - 'gui_modules/layout.py'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  t4-preflight:
+  t4-gate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Phase6 preflight for planned T4 files
+      - name: Phase6 preflight
         shell: bash
         run: |
           set -o pipefail
@@ -39,23 +44,168 @@ jobs:
             --changed-file 'docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md' \
             --evidence '.scratch/issue208/preflight-evidence.md' \
             | tee .scratch/issue208/run/preflight.txt
-      - name: Assert no T4 production implementation yet
+      - name: Detect T4 mode
+        id: mode
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          text = Path('gui.py').read_text(encoding='utf-8')
+          old = '''def _project_toolbar_presentation():
+    """Pure presentation contract for the compact engineering workbench header."""
+    return {
+        "actions": (
+            ("open", "開啟專案", "secondary"),
+            ("save", "儲存專案", "primary"),
+            ("save_as", "另存新檔", "secondary"),
+        ),
+        "primary_action": "save",
+        "toolbar_padx": 10,
+        "toolbar_pady": 4,
+        "button_padx": 8,
+        "button_pady": 2,
+        "title": "WHD｜箱體板金工程工作台",
+        "subtitle": "專案・板件・圖面・製造輸出",
+    }
+
+
+'''
+          compat = 'from gui_modules.layout import _project_toolbar_presentation'
+          old_count = text.count(old)
+          compat_count = text.count(compat)
+          if old_count == 1 and compat_count == 0:
+              mode = 'apply'
+          elif old_count == 0 and compat_count == 1:
+              mode = 'accept'
+          else:
+              raise SystemExit(f'ambiguous T4 state: old_count={old_count}, compat_count={compat_count}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
+              fh.write(f'mode={mode}\n')
+          print('mode='+mode)
+          PY
+      - name: Apply exact move-only edit
+        if: steps.mode.outputs.mode == 'apply'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('gui.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''def _project_toolbar_presentation():
+    """Pure presentation contract for the compact engineering workbench header."""
+    return {
+        "actions": (
+            ("open", "開啟專案", "secondary"),
+            ("save", "儲存專案", "primary"),
+            ("save_as", "另存新檔", "secondary"),
+        ),
+        "primary_action": "save",
+        "toolbar_padx": 10,
+        "toolbar_pady": 4,
+        "button_padx": 8,
+        "button_pady": 2,
+        "title": "WHD｜箱體板金工程工作台",
+        "subtitle": "專案・板件・圖面・製造輸出",
+    }
+
+
+'''
+          anchor = '''from gui_modules.drawing import (
+    _corner_preview_canvas_point,
+    _corner_preview_flip_y_for_target,
+    render_drawing_scene,
+)
+
+
+'''
+          if text.count(old) != 1 or text.count(anchor) != 1:
+              raise SystemExit('move-only source anchors are not unique')
+          replacement = anchor + 'from gui_modules.layout import _project_toolbar_presentation\n\n\n'
+          path.write_text(text.replace(old, '', 1).replace(anchor, replacement, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- gui.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gui.py
+          git commit -m 'refactor(issue208): move toolbar presentation to layout module'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git rev-parse HEAD | tee .scratch/issue208/run/applied_head.txt
+      - name: Install acceptance dependencies
+        if: steps.mode.outputs.mode == 'accept'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest matplotlib
+      - name: Verify exact move-only source contract
+        if: steps.mode.outputs.mode == 'accept'
         shell: bash
         run: |
           git fetch origin refactor/issue207-pure-drawing-move-20260914 --depth=1
+          python - <<'PY'
+          import ast, pathlib, subprocess
+          parent = subprocess.check_output(['git','show','origin/refactor/issue207-pure-drawing-move-20260914:gui.py'], text=True, encoding='utf-8')
+          current = pathlib.Path('gui.py').read_text(encoding='utf-8')
+          layout = pathlib.Path('gui_modules/layout.py').read_text(encoding='utf-8')
+          def func_segment(src, name):
+              tree = ast.parse(src)
+              node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
+              return ast.get_source_segment(src, node)
+          expected = func_segment(parent, '_project_toolbar_presentation')
+          moved = func_segment(layout, '_project_toolbar_presentation')
+          assert expected == moved, 'moved function source changed'
+          tree = ast.parse(current)
+          assert not any(isinstance(n, ast.FunctionDef) and n.name == '_project_toolbar_presentation' for n in tree.body)
+          assert current.count('from gui_modules.layout import _project_toolbar_presentation') == 1
+          print('move_only_source_contract=GREEN')
+          PY
+          python - <<'PY'
+          import pathlib
+          for path in pathlib.Path('gui_modules').rglob('*.py'):
+              text = path.read_text(encoding='utf-8')
+              assert 'import gui' not in text and 'from gui import' not in text, path
+          print('import_direction=GREEN')
+          PY
+          python -c "import sys, gui_modules.layout; assert 'gui' not in sys.modules"
+          python -c "import gui; assert callable(gui._project_toolbar_presentation)"
+      - name: Assert allowed T4 diff only
+        if: steps.mode.outputs.mode == 'accept'
+        shell: bash
+        run: |
           changed=$(git diff --name-only origin/refactor/issue207-pure-drawing-move-20260914...HEAD -- . \
             ':!.scratch/**' \
             ':!docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md' \
-            ':!.github/workflows/issue208-t4-preflight.yml')
-          if [ -n "$changed" ]; then
-            echo "Unexpected pre-implementation T4 changes:"
-            echo "$changed"
-            exit 1
+            ':!.github/workflows/issue208-t4-preflight.yml' \
+            ':!.github/workflows/issue208-t4-apply-move.yml')
+          printf '%s\n' "$changed" | tee .scratch/issue208/run/changed.txt
+          unexpected=$(printf '%s\n' "$changed" | grep -Ev '^(gui\.py|gui_modules/layout\.py)$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected T4 production diff:"; echo "$unexpected"; exit 1
           fi
-          echo 'pre_implementation_production_drift=0' | tee .scratch/issue208/run/drift.txt
-      - name: Upload T4 preflight evidence
+      - name: Xvfb characterization and focused UI regression
+        if: steps.mode.outputs.mode == 'accept'
+        shell: bash
+        run: |
+          sha256sum config.ini > .scratch/issue208/run/config.before.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue208/run/baseline.before.sha256
+          xvfb-run -a pytest -q \
+            tests/test_issue206_gui_modularization_characterization.py \
+            tests/test_phase6_ui_state_regressions.py \
+            tests/test_phase6_3d_single_source_renderer.py \
+            | tee .scratch/issue208/run/pytest.txt
+          sha256sum config.ini > .scratch/issue208/run/config.after.sha256
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > .scratch/issue208/run/baseline.after.sha256
+          diff -u .scratch/issue208/run/config.before.sha256 .scratch/issue208/run/config.after.sha256
+          diff -u .scratch/issue208/run/baseline.before.sha256 .scratch/issue208/run/baseline.after.sha256
+          git diff --exit-code -- config.ini '基準檔'
+          git rev-parse HEAD | tee .scratch/issue208/run/tested_head.txt
+      - name: Upload T4 gate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue208-t4-preflight
+          name: issue208-t4-gate-${{ steps.mode.outputs.mode }}
           path: .scratch/issue208/run/
