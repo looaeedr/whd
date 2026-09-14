@@ -22,6 +22,14 @@ Migration 的 desired state 必須來自已釘住 SHA 的 authoritative matrix/r
 
 如果邊掃邊改，就無法證明 governed inventory 完整，也容易漏掉 role/path。先固定 inventory count 與 mapping，再一次套用；任何 changed-file set 超出計畫都由 drift audit 擋下。
 
+## T6 實際踩坑：strict FAIL 不能反推 authority
+
+#252 第一次 full regression 出現 4 個 FAIL 時，根因是 pre-T6 stale test contract / legacy marker，而不是 strict metadata authority 錯誤。正確處理方式是回查 frozen T1 matrix + #255 resolution overlay，證明舊測試已 stale 後只更新測試；禁止為了讓測試變綠而改 authority metadata。
+
+T6 accepted evidence：migrated HEAD `2ef002cc6cc9476fc36eccbbe6b8b64acda6a777`，governed/mapped `398/398`，second pass `CHANGED_COUNT=0`，focused `29 PASS`，full `tests/knowledge` `102 PASS / 0 FAIL`，remote run `34905919429` / job `104182413876`，scope drift `0`。
+
+後續 T7 不得重新分類這批 metadata；只能在 accepted strict-mode state 上增加永久 governance guard。
+
 ## 不跨越 domain authority
 
 這個流程不能拿來修 production geometry、DXF 或 manufacturing truth。若 migration 發現 domain truth 有問題，停止並交給該 domain 的 authority/Skill；不要藉 migration 順手改製造資料。
