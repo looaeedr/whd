@@ -84,14 +84,15 @@ def _attrs(raw: str) -> dict[str, str]:
     return result
 
 
-def parse_authority_map(path: Path) -> dict[str, dict[str, object]]:
-    """Parse exact machine-readable rows from the accepted T5 Authority Map."""
+def parse_authority_map(path: Path) -> dict[str, list[dict[str, object]]]:
+    """Parse exact T5 map rows while preserving valid multi-contract ownership per path."""
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         raise AuthorityResolutionError(f"cannot read authority map {path}: {exc}") from exc
 
-    rows: dict[str, dict[str, object]] = {}
+    rows: dict[str, list[dict[str, object]]] = {}
+    seen_contract_path: set[tuple[str, str]] = set()
     for match in AUTHORITY_COMMENT_RE.finditer(text):
         attrs = _attrs(match.group("attrs"))
         if not {"contract", "role", "path"} <= set(attrs):
@@ -103,23 +104,30 @@ def parse_authority_map(path: Path) -> dict[str, dict[str, object]]:
             raise AuthorityResolutionError(f"{rel}: authority map has unknown role {role!r}")
         if not CONTRACT_RE.fullmatch(contract):
             raise AuthorityResolutionError(f"{rel}: authority map contract is not stable kebab-case")
-        if rel in rows:
-            raise AuthorityResolutionError(f"{rel}: duplicate authority-map path")
+        key = (contract, rel)
+        if key in seen_contract_path:
+            raise AuthorityResolutionError(f"{rel}: duplicate authority-map contract/path {contract}")
+        seen_contract_path.add(key)
         canonical = attrs.get("canonical")
         if role == "MIRROR" and not canonical:
             raise AuthorityResolutionError(f"{rel}: MIRROR authority-map row lacks canonical")
         if role != "MIRROR":
             canonical = None
-        rows[rel] = {
-            "path": rel,
-            "role": role,
-            "contract": contract,
-            "canonical": _norm(canonical) if isinstance(canonical, str) else None,
-            "evidence": {
-                "type": "canonical_authority_map",
-                "source": AUTHORITY_MAP_REL,
-            },
-        }
+        rows.setdefault(rel, []).append(
+            {
+                "path": rel,
+                "role": role,
+                "contract": contract,
+                "canonical": _norm(canonical) if isinstance(canonical, str) else None,
+                "evidence": {
+                    "type": "canonical_authority_map",
+                    "source": AUTHORITY_MAP_REL,
+                    "contract": contract,
+                },
+            }
+        )
+    for rel in rows:
+        rows[rel].sort(key=lambda row: (str(row["contract"]), str(row["role"])))
     return rows
 
 
@@ -353,11 +361,11 @@ def build_resolution_census(
         contract = row.get("contract")
         blocker = row.get("blocker")
 
-        map_row = authority_map.get(path)
-        if map_row is not None and (
+        map_rows = authority_map.get(path, [])
+        if len(map_rows) == 1 and (
             role not in VALID_ROLES or blocker or not isinstance(contract, str) or not contract
         ):
-            authority_map_resolved.append(_authority_map_resolution(row, map_row))
+            authority_map_resolved.append(_authority_map_resolution(row, map_rows[0]))
             resolved_paths.add(path)
             continue
 
