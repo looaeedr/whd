@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 """Resolve incomplete WHD knowledge authority without mutating governed docs.
 
-The frozen T1 matrix remains provenance.  This module may derive a reviewed T6
-resolution only from explicit authority sources (for example skill_registry
-routing), and otherwise reports unresolved debt fail-closed.
+The frozen T1 matrix remains provenance. This module may derive a reviewed T6
+resolution only from explicit authority sources (for example the canonical
+Authority Map, skill_registry routing, or a unique T1 machine-routing fact),
+and otherwise reports unresolved debt fail-closed.
 """
 
 import copy
 import fnmatch
 import json
+import re
+from collections import Counter
 from pathlib import Path
 from typing import Mapping
 
@@ -16,7 +19,17 @@ T1_SCHEMA = "WHD_KNOWLEDGE_CLASSIFICATION_V1"
 OVERLAY_SCHEMA = "WHD_KNOWLEDGE_T6_OVERLAY_V1"
 EFFECTIVE_SCHEMA = "WHD_KNOWLEDGE_EFFECTIVE_AUTHORITY_V1"
 VALID_ROLES = {"CURRENT", "REFERENCE", "MIRROR", "HISTORICAL"}
+CONTRACT_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+AUTHORITY_COMMENT_RE = re.compile(
+    r"<!--\s+WHD_AUTHORITY(?:_ROW)?\s+(?P<attrs>.*?)\s*-->", re.DOTALL
+)
+ATTR_RE = re.compile(
+    r"(?P<key>[A-Za-z_][A-Za-z0-9_-]*)=(?P<value>\"[^\"]*\"|'[^']*'|[^\s]+)"
+)
 SKIP_PARTS = {".git", ".scratch", "BACKUP", "__pycache__", ".pytest_cache"}
+T1_MATRIX_REL = "docs/superpowers/verification/knowledge_authority_classification_v1.json"
+AUTHORITY_MAP_REL = "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+REGISTRY_REL = ".agents/skills/skill_registry.json"
 
 
 class AuthorityResolutionError(ValueError):
@@ -61,6 +74,55 @@ def _load_json(path: Path) -> dict:
     return payload
 
 
+def _attrs(raw: str) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for match in ATTR_RE.finditer(raw):
+        value = match.group("value")
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        result[match.group("key")] = value
+    return result
+
+
+def parse_authority_map(path: Path) -> dict[str, dict[str, object]]:
+    """Parse exact machine-readable rows from the accepted T5 Authority Map."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise AuthorityResolutionError(f"cannot read authority map {path}: {exc}") from exc
+
+    rows: dict[str, dict[str, object]] = {}
+    for match in AUTHORITY_COMMENT_RE.finditer(text):
+        attrs = _attrs(match.group("attrs"))
+        if not {"contract", "role", "path"} <= set(attrs):
+            continue
+        rel = _norm(attrs["path"])
+        role = attrs["role"]
+        contract = attrs["contract"]
+        if role not in VALID_ROLES:
+            raise AuthorityResolutionError(f"{rel}: authority map has unknown role {role!r}")
+        if not CONTRACT_RE.fullmatch(contract):
+            raise AuthorityResolutionError(f"{rel}: authority map contract is not stable kebab-case")
+        if rel in rows:
+            raise AuthorityResolutionError(f"{rel}: duplicate authority-map path")
+        canonical = attrs.get("canonical")
+        if role == "MIRROR" and not canonical:
+            raise AuthorityResolutionError(f"{rel}: MIRROR authority-map row lacks canonical")
+        if role != "MIRROR":
+            canonical = None
+        rows[rel] = {
+            "path": rel,
+            "role": role,
+            "contract": contract,
+            "canonical": _norm(canonical) if isinstance(canonical, str) else None,
+            "evidence": {
+                "type": "canonical_authority_map",
+                "source": AUTHORITY_MAP_REL,
+            },
+        }
+    return rows
+
+
 def _skill_name_from_path(path: str) -> str:
     candidate = Path(path)
     if candidate.name != "SKILL.md" or len(candidate.parts) < 2:
@@ -79,6 +141,26 @@ def _route_matches_skill(route: Mapping[str, object], *, path: str, skill_name: 
     if skill_name not in required:
         return False
     return any(isinstance(pattern, str) and fnmatch.fnmatchcase(path, pattern) for pattern in globs)
+
+
+def _current_resolution(
+    row: Mapping[str, object], contract: str, evidence: Mapping[str, object]
+) -> dict[str, object]:
+    if not CONTRACT_RE.fullmatch(contract):
+        raise AuthorityResolutionError(f"{row.get('path')}: unstable contract {contract!r}")
+    return {
+        "path": row.get("path"),
+        "target_role": "CURRENT",
+        "contract": contract,
+        "canonical_owner": None,
+        "blocker": None,
+        "evidence": dict(evidence),
+        "resolves": {
+            "target_role": row.get("target_role"),
+            "contract": row.get("contract"),
+            "blocker": row.get("blocker"),
+        },
+    }
 
 
 def resolve_registry_current_skill(
@@ -107,22 +189,70 @@ def resolve_registry_current_skill(
         )
 
     route_id = candidates[0]["id"]
-    return {
-        "path": path,
-        "target_role": "CURRENT",
-        "contract": route_id,
-        "canonical_owner": None,
-        "blocker": None,
-        "evidence": {
+    assert isinstance(route_id, str)
+    return _current_resolution(
+        row,
+        route_id,
+        {
             "type": "skill_registry_route",
-            "source": ".agents/skills/skill_registry.json",
+            "source": REGISTRY_REL,
             "route_id": route_id,
             "required_skill": skill_name,
         },
+    )
+
+
+def resolve_unique_machine_route_current(row: Mapping[str, object]) -> dict[str, object]:
+    """Resolve CURRENT contract only when frozen T1 recorded one unique machine route."""
+    path = row.get("path")
+    if not isinstance(path, str) or not path:
+        raise AuthorityResolutionError("row path is required")
+    if row.get("target_role") != "CURRENT":
+        raise AuthorityResolutionError(f"{path}: machine-route resolver only accepts CURRENT rows")
+    routing = row.get("machine_routing")
+    candidates = sorted(
+        {
+            route
+            for route in routing
+            if isinstance(route, str) and CONTRACT_RE.fullmatch(route)
+        }
+    ) if isinstance(routing, list) else []
+    if len(candidates) != 1:
+        raise AuthorityResolutionError(
+            f"{path}: explicit T1 machine route must be unique; candidates={candidates!r}"
+        )
+    route_id = candidates[0]
+    return _current_resolution(
+        row,
+        route_id,
+        {
+            "type": "t1_unique_machine_routing",
+            "source": T1_MATRIX_REL,
+            "route_id": route_id,
+        },
+    )
+
+
+def _authority_map_resolution(
+    t1_row: Mapping[str, object], map_row: Mapping[str, object]
+) -> dict[str, object]:
+    role = map_row.get("role")
+    contract = map_row.get("contract")
+    path = map_row.get("path")
+    if role not in VALID_ROLES or not isinstance(contract, str) or not CONTRACT_RE.fullmatch(contract):
+        raise AuthorityResolutionError(f"{path}: invalid authority-map resolution")
+    canonical = map_row.get("canonical") if role == "MIRROR" else None
+    return {
+        "path": path,
+        "target_role": role,
+        "contract": contract,
+        "canonical_owner": canonical,
+        "blocker": None,
+        "evidence": copy.deepcopy(map_row.get("evidence")),
         "resolves": {
-            "target_role": row.get("target_role"),
-            "contract": row.get("contract"),
-            "blocker": row.get("blocker"),
+            "target_role": t1_row.get("target_role"),
+            "contract": t1_row.get("contract"),
+            "blocker": t1_row.get("blocker"),
         },
     }
 
@@ -175,14 +305,21 @@ def merge_effective_authority(t1: Mapping[str, object], overlay: Mapping[str, ob
     }
 
 
-def build_resolution_census(root: Path, matrix_path: Path, registry_path: Path) -> dict[str, object]:
-    """Read-only census: resolve only explicit registry-backed CURRENT Skill contracts."""
+def build_resolution_census(
+    root: Path,
+    matrix_path: Path,
+    registry_path: Path,
+    authority_map_path: Path,
+) -> dict[str, object]:
+    """Read-only census split by authority debt type and explicit resolution source."""
     root = root.resolve()
     matrix_path = matrix_path.resolve()
     registry_path = registry_path.resolve()
+    authority_map_path = authority_map_path.resolve()
     before = matrix_path.read_bytes()
     matrix = _load_json(matrix_path)
     registry = _load_json(registry_path)
+    authority_map = parse_authority_map(authority_map_path)
     if matrix.get("schema") != T1_SCHEMA:
         raise AuthorityResolutionError(f"matrix schema must be {T1_SCHEMA}")
     rows = matrix.get("rows")
@@ -200,8 +337,13 @@ def build_resolution_census(root: Path, matrix_path: Path, registry_path: Path) 
 
     governed = _governed_paths(root)
     missing_from_t1 = sorted(set(governed) - set(by_path))
+    authority_map_resolved: list[dict[str, object]] = []
     registry_resolved: list[dict[str, object]] = []
+    machine_route_resolved: list[dict[str, object]] = []
+    unresolved_roles: list[dict[str, object]] = []
+    missing_contract_by_role: Counter[str] = Counter()
     remaining: list[dict[str, object]] = []
+    resolved_paths: set[str] = set()
 
     for path in governed:
         row = by_path.get(path)
@@ -210,19 +352,52 @@ def build_resolution_census(root: Path, matrix_path: Path, registry_path: Path) 
         role = row.get("target_role")
         contract = row.get("contract")
         blocker = row.get("blocker")
+
+        map_row = authority_map.get(path)
+        if map_row is not None and (
+            role not in VALID_ROLES or blocker or not isinstance(contract, str) or not contract
+        ):
+            authority_map_resolved.append(_authority_map_resolution(row, map_row))
+            resolved_paths.add(path)
+            continue
+
         if role == "CURRENT" and (not contract or blocker == "MISSING_STABLE_CONTRACT") and path.endswith("/SKILL.md"):
             try:
                 registry_resolved.append(resolve_registry_current_skill(row, registry))
+                resolved_paths.add(path)
                 continue
             except AuthorityResolutionError:
                 pass
-        if role not in VALID_ROLES or blocker or not isinstance(contract, str) or not contract:
+            try:
+                machine_route_resolved.append(resolve_unique_machine_route_current(row))
+                resolved_paths.add(path)
+                continue
+            except AuthorityResolutionError:
+                pass
+
+        if role not in VALID_ROLES or blocker == "ROLE_REQUIRES_AUTHORITY_REVIEW":
+            item = {
+                "path": path,
+                "target_role": role,
+                "contract": contract,
+                "blocker": blocker,
+                "machine_routing": list(row.get("machine_routing") or []),
+                "incoming_references": list(row.get("incoming_references") or []),
+            }
+            unresolved_roles.append(item)
+            remaining.append(item)
+            continue
+
+        if not isinstance(contract, str) or not contract:
+            missing_contract_by_role[str(role)] += 1
             remaining.append(
                 {
                     "path": path,
                     "target_role": role,
                     "contract": contract,
                     "blocker": blocker,
+                    "machine_routing": list(row.get("machine_routing") or []),
+                    "incoming_references": list(row.get("incoming_references") or []),
                 }
             )
 
@@ -232,8 +407,16 @@ def build_resolution_census(root: Path, matrix_path: Path, registry_path: Path) 
         "governed_count": len(governed),
         "missing_from_t1_count": len(missing_from_t1),
         "missing_from_t1": missing_from_t1,
+        "authority_map_resolved_count": len(authority_map_resolved),
+        "authority_map_resolved": authority_map_resolved,
         "registry_resolved_current_count": len(registry_resolved),
         "registry_resolved_current": registry_resolved,
+        "machine_route_resolved_current_count": len(machine_route_resolved),
+        "machine_route_resolved_current": machine_route_resolved,
+        "resolved_path_count": len(resolved_paths),
+        "unresolved_role_count": len(unresolved_roles),
+        "unresolved_roles": unresolved_roles,
+        "missing_contract_by_role": dict(sorted(missing_contract_by_role.items())),
         "remaining_unresolved_count": len(remaining),
         "remaining_unresolved": remaining,
         "frozen_t1_modified": before != after,
@@ -244,8 +427,9 @@ def main() -> int:
     root = Path(".").resolve()
     census = build_resolution_census(
         root,
-        root / "docs/superpowers/verification/knowledge_authority_classification_v1.json",
-        root / ".agents/skills/skill_registry.json",
+        root / T1_MATRIX_REL,
+        root / REGISTRY_REL,
+        root / AUTHORITY_MAP_REL,
     )
     print(json.dumps(census, ensure_ascii=False, indent=2, sort_keys=True))
     return 0
