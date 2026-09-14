@@ -1,4 +1,4 @@
-name: Issue234 Permanent Governance RED
+name: Issue234 Permanent Governance Acceptance
 
 on:
   push:
@@ -7,13 +7,14 @@ on:
     paths:
       - 'tests/knowledge/test_issue234_permanent_governance_guards.py'
       - 'tools/knowledge_governance.py'
+      - 'tools/permanent_knowledge_governance.py'
       - '.github/workflows/issue234-permanent-governance-red.yml'
 
 permissions:
   contents: read
 
 jobs:
-  red:
+  acceptance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,5 +22,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install --disable-pip-version-check pytest
-      - name: Run issue234 RED contracts
+      - name: Run issue234 focused guard contracts
         run: python -m pytest tests/knowledge/test_issue234_permanent_governance_guards.py -q
+      - name: Run permanent guard on actual repository
+        run: python tools/permanent_knowledge_governance.py --root .
+      - name: Run full knowledge regression
+        run: python -m pytest tests/knowledge -q
