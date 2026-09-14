@@ -1,0 +1,146 @@
+name: Issue 204 T0 Analysis
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - '.github/workflows/issue204-t0-analysis.yml'
+      - '.scratch/issue204-t0-checkpoint.md'
+      - 'gui.py'
+      - 'AGENTS.md'
+      - '.agents/skills/**'
+      - 'tools/phase6_skill_preflight.py'
+  workflow_dispatch:
+
+jobs:
+  t0-analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run Phase6 preflight
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p .scratch/issue204
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #204 T0 GUI modularization baseline lock, preflight, AST inventory and dependency mapping for gui.py; no production behavior changes" \
+            | tee .scratch/issue204/preflight.txt
+      - name: Build AST dependency inventory
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast, json, pathlib, collections
+          path = pathlib.Path('gui.py')
+          source = path.read_text(encoding='utf-8')
+          tree = ast.parse(source, filename=str(path))
+          lines = source.count('\n') + 1
+
+          def dotted(node):
+              if isinstance(node, ast.Name):
+                  return node.id
+              if isinstance(node, ast.Attribute):
+                  p = dotted(node.value)
+                  return f"{p}.{node.attr}" if p else node.attr
+              return None
+
+          imports=[]; globals_assigned=[]; top=[]; methods=[]
+          for node in tree.body:
+              if isinstance(node, (ast.Import, ast.ImportFrom)):
+                  imports.append(ast.unparse(node))
+              elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                  targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                  for t in targets:
+                      if isinstance(t, ast.Name): globals_assigned.append(t.id)
+              elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                  top.append({'kind':'function','name':node.name,'lineno':node.lineno,'end_lineno':node.end_lineno})
+              elif isinstance(node, ast.ClassDef):
+                  top.append({'kind':'class','name':node.name,'lineno':node.lineno,'end_lineno':node.end_lineno,'bases':[ast.unparse(b) for b in node.bases]})
+                  for m in node.body:
+                      if isinstance(m,(ast.FunctionDef,ast.AsyncFunctionDef)):
+                          methods.append({'class':node.name,'name':m.name,'lineno':m.lineno,'end_lineno':m.end_lineno})
+
+          functions=[]
+          for node in ast.walk(tree):
+              if not isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)): continue
+              self_reads=set(); self_writes=set(); names_read=set(); names_write=set(); calls=set(); attrs=set()
+              for n in ast.walk(node):
+                  if isinstance(n, ast.Attribute):
+                      full=dotted(n)
+                      if full: attrs.add(full)
+                      if isinstance(n.value, ast.Name) and n.value.id=='self':
+                          if isinstance(n.ctx, ast.Load): self_reads.add(n.attr)
+                          elif isinstance(n.ctx,(ast.Store,ast.Del)): self_writes.add(n.attr)
+                  elif isinstance(n, ast.Name):
+                      if isinstance(n.ctx, ast.Load): names_read.add(n.id)
+                      elif isinstance(n.ctx,(ast.Store,ast.Del)): names_write.add(n.id)
+                  elif isinstance(n, ast.Call):
+                      f=dotted(n.func)
+                      if f: calls.add(f)
+              functions.append({
+                  'name':node.name,'lineno':node.lineno,'end_lineno':node.end_lineno,
+                  'self_reads':sorted(self_reads),'self_writes':sorted(self_writes),
+                  'names_read':sorted(names_read),'names_write':sorted(names_write),
+                  'calls':sorted(calls),'attrs':sorted(attrs)
+              })
+
+          call_index=collections.defaultdict(list)
+          def enclosing_name(node): return getattr(node,'name','<module>')
+          for fn in functions:
+              for c in fn['calls']:
+                  call_index[c.split('.')[-1]].append({'caller':fn['name'],'line':fn['lineno'],'call':c})
+
+          report={
+              'file':'gui.py','line_count':lines,'imports':imports,
+              'module_globals_assigned':sorted(set(globals_assigned)),
+              'top_level_symbols':top,'methods':methods,'functions':functions,
+              'call_index':dict(call_index)
+          }
+          pathlib.Path('.scratch/issue204/ast_inventory.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          summary=[]
+          summary.append(f"# Issue #204 T0 AST Inventory\n")
+          summary.append(f"- gui.py lines: {lines}")
+          summary.append(f"- imports: {len(imports)}")
+          summary.append(f"- top-level symbols: {len(top)}")
+          summary.append(f"- class methods: {len(methods)}")
+          summary.append(f"- function/method bodies analyzed: {len(functions)}")
+          summary.append(f"- module globals assigned: {len(set(globals_assigned))}\n")
+          summary.append('## Top-level symbols')
+          for x in top:
+              summary.append(f"- {x['kind']} `{x['name']}` L{x['lineno']}-L{x['end_lineno']}")
+          pathlib.Path('.scratch/issue204/ast_inventory.md').write_text('\n'.join(summary)+'\n',encoding='utf-8')
+          print('\n'.join(summary[:12]))
+          PY
+      - name: Candidate dependency slices
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          data=json.loads(pathlib.Path('.scratch/issue204/ast_inventory.json').read_text(encoding='utf-8'))
+          candidates=['_corner_preview_canvas_point','_corner_preview_flip_y_for_target','_project_toolbar_presentation','layout_reference_overlay_rects','_YMirroredPreviewTransform','render_structural_result','render_drawing_scene']
+          rows=[]
+          for c in candidates:
+              matches=[f for f in data['functions'] if f['name']==c]
+              callers=data['call_index'].get(c,[])
+              rows.append({'candidate':c,'definitions':matches,'callers':callers})
+          pathlib.Path('.scratch/issue204/candidate_dependencies.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
+          for r in rows:
+              print(r['candidate'], 'defs=', len(r['definitions']), 'callers=', len(r['callers']))
+          PY
+      - name: Upload T0 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue204-t0-analysis
+          path: |
+            .scratch/issue204/preflight.txt
+            .scratch/issue204/ast_inventory.json
+            .scratch/issue204/ast_inventory.md
+            .scratch/issue204/candidate_dependencies.json
