@@ -19,4 +19,8 @@ HOLD in `gui.py`:
 
 Do not modify `Phase6ProjectController`, `ProjectSession`, `.p6fold` schema, or persistence ordering.
 
-Next expected evidence: structural TDD RED because `gui_modules/project_actions.py` does not yet exist and the four method bodies still live in `Phase6ApplicationHost`.
+## RED provenance
+- run `34835064768 @ 6f79e0cb2cde68ab2ac153ef96912dc9e54893fd` is **INVALID / HARNESS FAILURE**: Preflight GREEN, but pytest was not installed, so the structural test never collected.
+- QA runner base commit `86eaee21cd2861bf7aea11189e450faa8760b0f2` adds only the missing pytest runner dependency.
+
+Next expected evidence: a real structural TDD RED because `gui_modules/project_actions.py` does not yet exist and the four method bodies still live in `Phase6ApplicationHost`.
