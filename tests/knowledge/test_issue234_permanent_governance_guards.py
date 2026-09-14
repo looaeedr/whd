@@ -6,10 +6,12 @@ from pathlib import Path
 from tools.permanent_knowledge_governance import validate_permanent_governance
 
 
-def _doc(role: str, contract: str, body: str, canonical: str | None = None) -> str:
+def _doc(role: str, contract: str, body: str, canonical: str | None = None, *, name: str | None = None) -> str:
     canonical_text = "null" if canonical is None else canonical
+    name_line = f"name: {name}\n" if name is not None else ""
     return (
         "---\n"
+        f"{name_line}"
         f"whd_doc_role: {role}\n"
         f"whd_contract: {contract}\n"
         f"whd_canonical: {canonical_text}\n"
@@ -39,8 +41,8 @@ def _base_repo(tmp_path: Path) -> Path:
             "<!-- WHD_AUTHORITY contract=skill-routing role=CURRENT path=.agents/skills/skill_registry.json -->",
         ),
     )
-    _write(root, ".agents/skills/engineering/executable-continuity-controller/SKILL.md", _doc("CURRENT", "continuous-execution-operations", "controller operations"))
-    _write(root, ".agents/skills/engineering/example/SKILL.md", _doc("CURRENT", "example-skill", "example"))
+    _write(root, ".agents/skills/engineering/executable-continuity-controller/SKILL.md", _doc("CURRENT", "continuous-execution-operations", "controller operations", name="executable-continuity-controller"))
+    _write(root, ".agents/skills/engineering/example/SKILL.md", _doc("CURRENT", "example-skill", "example", name="example"))
     _write(root, ".agents/skills/engineering/README.md", _doc("REFERENCE", "skill-navigation", "example"))
     (root / "tools").mkdir(parents=True, exist_ok=True)
     (root / "tools/continuity_controller.py").write_text("def main(): return 0\n", encoding="utf-8")
