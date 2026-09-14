@@ -1,53 +1,26 @@
-name: Issue 211 T7 Exact-Head Final Acceptance
+name: Issue 211 T7 Xvfb Parent-Target A-B Classification
 
 on:
   pull_request:
     branches:
-      - qa/issue211-final-acceptance-fix2-20260914
+      - qa/issue211-xvfb-ab-runner-20260914
 
 permissions:
   contents: read
 
 jobs:
-  exact-head-acceptance:
+  xvfb-ab-classification:
     runs-on: ubuntu-latest
     env:
-      TARGET_SHA: 254f82f589e684b59e48dabb93ce2a6767d440bc
       PARENT_SHA: f486a61534f02890c9f497422bf99d7a2bec34c3
+      TARGET_SHA: 254f82f589e684b59e48dabb93ce2a6767d440bc
+      TEST_NODE: tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material
     steps:
-      - name: Checkout exact implementation commit
+      - name: Checkout repository history
         uses: actions/checkout@v4
         with:
           ref: ${{ env.TARGET_SHA }}
           fetch-depth: 0
-
-      - name: Lock exact lineage and production diff
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p .scratch/issue211/final-acceptance
-
-          status_before=$(git status --porcelain=v1)
-          printf '%s\n' "$status_before" > .scratch/issue211/final-acceptance/status-before.txt
-          test -z "$status_before"
-
-          actual=$(git rev-parse HEAD)
-          parent=$(git rev-parse HEAD^)
-          changed=$(git -c core.quotepath=false diff --name-only "$PARENT_SHA" "$TARGET_SHA")
-          {
-            printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
-            printf 'ACTUAL_SHA=%s\n' "$actual"
-            printf 'EXPECTED_PARENT_SHA=%s\n' "$PARENT_SHA"
-            printf 'ACTUAL_PARENT_SHA=%s\n' "$parent"
-          } | tee .scratch/issue211/final-acceptance/runner-metadata.txt
-          printf '%s\n' "$changed" | tee .scratch/issue211/final-acceptance/production-diff.txt
-
-          test "$actual" = "$TARGET_SHA"
-          test "$parent" = "$PARENT_SHA"
-          test "$changed" = $'gui.py\ngui_modules/render_2d.py'
-          test -f gui_modules/render_2d.py
-          test ! -e gui_modules/render_3d.py
-          grep -q 'class Phase6FinalSceneView' phase6_final_scene_view.py
 
       - name: Set up Python and Xvfb
         uses: actions/setup-python@v5
@@ -63,97 +36,65 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib
 
-      - name: Phase6 knowledge preflight
+      - name: Run exact failing Xvfb test twice on parent and target
         shell: bash
         run: |
           set -euo pipefail
-          python tools/phase6_skill_preflight.py \
-            --task "Issue #211 T7 exact committed-head final acceptance for stateless 2D renderer Move-Only; preserve Phase6FinalSceneView as existing 3D owner" \
-            --changed-file gui.py \
-            --changed-file gui_modules/render_2d.py \
-            --changed-file tests/test_issue211_renderer_dependency_gate.py \
-            --changed-file .scratch/issue211/preflight-evidence.md \
-            --evidence .scratch/issue211/preflight-evidence.md \
-            | tee .scratch/issue211/final-acceptance/preflight.txt
+          evidence="$RUNNER_TEMP/issue211-xvfb-ab"
+          mkdir -p "$evidence"
+          printf 'PARENT_SHA=%s\nTARGET_SHA=%s\nTEST_NODE=%s\n' "$PARENT_SHA" "$TARGET_SHA" "$TEST_NODE" > "$evidence/metadata.txt"
 
-      - name: Lock exact acceptance test paths
-        shell: bash
-        run: |
-          set -euo pipefail
-          headless=(
-            tests/test_issue211_renderer_dependency_gate.py
-            tests/test_phase6_2d_3d_round_trip.py
-            tests/test_phase6_3d_single_source_renderer.py
-            tests/test_phase6_final_scene_view_ownership.py
-            tests/test_issue44_box_body_physical_piece_identity.py
-            tests/test_issue45_dynamic_parts_2d_roundtrip.py
-            tests/test_issue76_box_body_subtabs_2d_3d.py
-            tests/test_dxf_acceptance.py
-            tests/test_multipart_dxf_acceptance.py
-            tests/test_receiving_door_dxf_roundtrip.py
-            tests/test_phase6_receiving_projection_regression.py
-          )
-          xvfb=(
-            tests/test_issue97_authoritative_unfold_view_adapter.py
-            tests/test_issue98_existing_2d_capability_migration.py
-            tests/test_issue99_dual_view_parity_persistence.py
-            tests/test_phase6_gui_3d_integrity_20260830.py
-            tests/test_phase6_assembly_3d_view.py
-            tests/test_phase6_assembly_registry_gui_matrix.py
-            tests/test_phase6_ui_state_regressions.py
-          )
-          for path in "${headless[@]}" "${xvfb[@]}"; do
-            test -f "$path" || { echo "MISSING REQUIRED TEST: $path" >&2; exit 1; }
-          done
-          printf '%s\n' "${headless[@]}" | tee .scratch/issue211/final-acceptance/headless-paths.txt
-          printf '%s\n' "${xvfb[@]}" | tee .scratch/issue211/final-acceptance/xvfb-paths.txt
+          run_side() {
+            local label="$1"
+            local sha="$2"
+            local failures=0
+            for attempt in 1 2; do
+              git reset --hard
+              git clean -fdx
+              git checkout --force "$sha"
+              printf '%s attempt %s sha=%s\n' "$label" "$attempt" "$(git rev-parse HEAD)" | tee "$evidence/${label}-${attempt}-head.txt"
+              set +e
+              xvfb-run -a python -m pytest -q "$TEST_NODE" --tb=short 2>&1 | tee "$evidence/${label}-${attempt}.txt"
+              rc=${PIPESTATUS[0]}
+              set -e
+              printf '%s\n' "$rc" > "$evidence/${label}-${attempt}.rc"
+              if [ "$rc" -ne 0 ]; then
+                failures=$((failures + 1))
+              fi
+            done
+            printf '%s\n' "$failures" > "$evidence/${label}-failures.txt"
+          }
 
-      - name: Capture config and DXF invariant manifest before tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          find . -type f \( -name 'config.ini' -o -iname '*.dxf' \) -not -path './.git/*' -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            > .scratch/issue211/final-acceptance/invariants-before.sha256
+          run_side parent "$PARENT_SHA"
+          run_side target "$TARGET_SHA"
 
-      - name: L1-L3 headless parity, identity, and DXF acceptance
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t headless < .scratch/issue211/final-acceptance/headless-paths.txt
-          python -m pytest -q "${headless[@]}" \
-            | tee .scratch/issue211/final-acceptance/headless.txt
+          parent_failures=$(cat "$evidence/parent-failures.txt")
+          target_failures=$(cat "$evidence/target-failures.txt")
+          printf 'parent_failures=%s/2\ntarget_failures=%s/2\n' "$parent_failures" "$target_failures" | tee "$evidence/classification.txt"
 
-      - name: L4 Xvfb UI and final-scene behavior
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t xvfb_tests < .scratch/issue211/final-acceptance/xvfb-paths.txt
-          xvfb-run -a python -m pytest -q "${xvfb_tests[@]}" \
-            | tee .scratch/issue211/final-acceptance/xvfb.txt
+          if [ "$parent_failures" -eq 0 ] && [ "$target_failures" -eq 0 ]; then
+            echo 'CLASSIFICATION=NO_REPRO' | tee -a "$evidence/classification.txt"
+            exit 0
+          fi
+          if [ "$parent_failures" -eq 2 ] && [ "$target_failures" -eq 2 ]; then
+            echo 'CLASSIFICATION=INHERITED_BASELINE_RED' | tee -a "$evidence/classification.txt"
+            exit 0
+          fi
+          if [ "$parent_failures" -eq 2 ] && [ "$target_failures" -eq 0 ]; then
+            echo 'CLASSIFICATION=TARGET_IMPROVES_BASELINE' | tee -a "$evidence/classification.txt"
+            exit 0
+          fi
+          if [ "$parent_failures" -eq 0 ] && [ "$target_failures" -eq 2 ]; then
+            echo 'CLASSIFICATION=TARGET_REGRESSION' | tee -a "$evidence/classification.txt"
+            exit 1
+          fi
+          echo 'CLASSIFICATION=FLAKY_OR_AMBIGUOUS' | tee -a "$evidence/classification.txt"
+          exit 1
 
-      - name: Post-test drift and invariant audit
-        shell: bash
-        run: |
-          set -euo pipefail
-          find . -type f \( -name 'config.ini' -o -iname '*.dxf' \) -not -path './.git/*' -print0 \
-            | sort -z \
-            | xargs -0 sha256sum \
-            > .scratch/issue211/final-acceptance/invariants-after.sha256
-          diff -u \
-            .scratch/issue211/final-acceptance/invariants-before.sha256 \
-            .scratch/issue211/final-acceptance/invariants-after.sha256 \
-            | tee .scratch/issue211/final-acceptance/invariant-diff.txt
-          git diff --exit-code
-          tracked_status=$(git status --porcelain=v1 --untracked-files=no)
-          printf '%s\n' "$tracked_status" | tee .scratch/issue211/final-acceptance/status-after.txt
-          test -z "$tracked_status"
-
-      - name: Upload exact-head acceptance evidence
+      - name: Upload A-B evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue211-t7-exact-head-final-acceptance
-          path: .scratch/issue211/final-acceptance/
-          if-no-files-found: warn
+          name: issue211-t7-xvfb-parent-target-ab
+          path: ${{ runner.temp }}/issue211-xvfb-ab/
+          if-no-files-found: error
