@@ -29,5 +29,8 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install focused test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+
       - name: Run executable continuity behavior contract
         run: python -m pytest tests/process/test_continuity_controller.py -q
