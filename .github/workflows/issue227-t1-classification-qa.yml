@@ -8,6 +8,7 @@ on:
       - 'tests/knowledge/test_knowledge_authority_classification.py'
       - 'tools/knowledge_governance.py'
       - 'docs/superpowers/verification/knowledge_authority_classification_v1.json'
+      - 'docs/superpowers/checkpoints/issue227-t1-preflight-evidence.txt'
       - '.github/workflows/issue227-t1-classification-qa.yml'
 
 jobs:
@@ -18,14 +19,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Discover changed-file preflight requirements
+      - name: Enforce changed-file preflight requirements
         shell: bash
         run: |
           python tools/phase6_skill_preflight.py \
             --task "T1 Authority Classification Conflict Matrix CURRENT REFERENCE MIRROR HISTORICAL dual-current orphan-current unknown-active stale-route" \
             --changed-file tests/knowledge/test_knowledge_authority_classification.py \
             --changed-file tools/knowledge_governance.py \
-            --changed-file docs/superpowers/verification/knowledge_authority_classification_v1.json || true
+            --changed-file docs/superpowers/verification/knowledge_authority_classification_v1.json \
+            --evidence docs/superpowers/checkpoints/issue227-t1-preflight-evidence.txt
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run focused T1 classification tests
