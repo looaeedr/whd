@@ -25,6 +25,6 @@ jobs:
       - name: Run issue234 focused guard contracts
         run: python -m pytest tests/knowledge/test_issue234_permanent_governance_guards.py -q
       - name: Run permanent guard on actual repository
-        run: python tools/permanent_knowledge_governance.py --root .
+        run: python -m tools.permanent_knowledge_governance --root .
       - name: Run full knowledge regression
         run: python -m pytest tests/knowledge -q
