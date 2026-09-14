@@ -1,0 +1,44 @@
+ISSUE: #230
+TASK: T4 Clean AI Library README and Core Rules
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+CURRENT_PARENT_SHA: 12497eeb17bac1066374ed23f8597f4efec39d79
+
+APPROVED_SPEC_PATH: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md
+APPROVED_SPEC_BLOB_SHA: 1f828b8aeab8c9596b189e6c5b15a757b3858c54
+APPROVED_SCOPE: README navigation/reference normalization; core rules remain REFERENCE; no production code/geometry/UI behavior change.
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+REFERENCE_SHA: 03d1c2fc1f7683f563b5ec839c5bfbb2f93a68a7
+REFERENCE_FINDING: README/reference prose must not create a parallel CURRENT owner; CURRENT ownership is resolved through the Authority Map.
+
+READ_TARGET: 個人AI檔案庫/README.md
+TARGET_SHA: 42f246b280c70e9fba0d9b6af6f3482b9000e80d
+TARGET_FINDING: lacks WHD_DOC_META_V1 frontmatter; top-level tree omits 踩坑庫; second-layer navigation is stale; contains legacy Pre-Edit 備份 summary and multiple dated UI/assembly/product CURRENT-style sections.
+
+READ_TARGET: 個人AI檔案庫/第一層_核心檔案/04_全域AI協作規則.md
+TARGET_SHA: 10eaae346d96d94b4768a9e45e8ce0d5a5227e67
+TARGET_FINDING: already declares REFERENCE role/pointers and Git branch/commit rollback semantics; do not churn substantive rules unless RED proves a remaining T4 acceptance gap.
+
+READ_GUARD: tests/knowledge/test_knowledge_governance_bootstrap.py
+GUARD_SHA: e701a0f55b1e07c4273bcd69fc09b405b093082f
+GUARD_FINDING: any governed Markdown modified in bootstrap mode must immediately carry valid WHD_DOC_META_V1 metadata.
+
+DIRECTORY_FACTS:
+- 個人AI檔案庫 has exactly the current top-level navigation entries README.md, 第一層_核心檔案, 第二層_專案與SOP, 踩坑庫.
+- Current second-layer entries include 06_踩坑記錄與防錯經驗庫.md, both 07_* SOPs, both 08_* SOPs, and 09_WHD_Canonical_Authority_Map.md; README currently does not reflect this current navigation.
+
+GATE:
+- RED must be produced before production-document edits.
+- Validation is not authority; assertions are derived from #230 + approved spec only.
+- Production code, geometry, registry/catalog, Skills, config.ini and baselines are out of T4 scope.
