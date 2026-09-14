@@ -45,3 +45,5 @@ jobs:
         run: python -m pytest tests/knowledge/test_knowledge_authority_contract.py -q
       - name: Keep T0 bootstrap governance GREEN
         run: python -m pytest tests/knowledge/test_knowledge_governance_bootstrap.py -q
+      - name: Run complete knowledge contract suite
+        run: python -m pytest tests/knowledge -q
