@@ -37,13 +37,17 @@ def test_exact_governed_set_matches_effective_authority_and_strict_validation() 
     governance = _load_governance()
     from tools.knowledge_authority_overlay import governed_paths, merge_effective_authority
 
-    governed = tuple(governed_paths(ROOT))
+    governed = set(governed_paths(ROOT))
     effective = tuple(merge_effective_authority(MATRIX, OVERLAY))
-    effective_paths = tuple(sorted(str(row["path"]) for row in effective))
+    effective_paths = {str(row["path"]) for row in effective}
 
-    assert len(governed) == 398
+    # T6's reviewed authority remains a frozen 398-path migration snapshot. Later
+    # governed documents are valid only if current strict governance accepts them;
+    # they must not be retroactively inserted into the frozen matrix/overlay.
     assert len(effective_paths) == 398
-    assert tuple(sorted(governed)) == effective_paths
+    assert effective_paths <= governed
+    post_t6_paths = governed - effective_paths
+    assert "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md" in post_t6_paths
     assert hasattr(governance, "validate_strict")
     assert governance.validate_strict(ROOT) == ()
 
