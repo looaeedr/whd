@@ -1,0 +1,33 @@
+name: issue216 continuity controller QA
+
+on:
+  push:
+    branches:
+      - fix/continuous-execution-runtime-guard-20260914
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  continuity-controller:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show authority
+        run: |
+          echo "HEAD_SHA=$(git rev-parse HEAD)"
+          echo "BRANCH=${GITHUB_REF_NAME}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run executable continuity behavior contract
+        run: python -m pytest tests/process/test_continuity_controller.py -q
