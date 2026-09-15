@@ -1,0 +1,41 @@
+name: Issue 288 T0 AST Audit
+
+on:
+  push:
+    branches:
+      - qa/issue288-t0-ast-audit-20260915
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Record identity
+        run: |
+          echo "RUN_SHA=${GITHUB_SHA}"
+          echo "BASELINE=d72e81b5820b9cb54008a2dda9e96cdc673a9734"
+          git status --short
+
+      - name: Run gui.py AST inventory
+        run: |
+          python tools/issue288_gui_inventory.py
+
+      - name: Print inventory markdown
+        run: |
+          cat .scratch/issue288/gui_ast_inventory.md
+
+      - name: Upload inventory evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue288-t0-ast-inventory
+          path: .scratch/issue288/
+          if-no-files-found: error
