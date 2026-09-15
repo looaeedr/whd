@@ -1,0 +1,2 @@
+issue279 parent classifier replacement trigger
+TASK_HEAD=770d3f15eff46a289f19d418722a779e53d0698a
