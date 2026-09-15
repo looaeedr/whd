@@ -5,15 +5,15 @@
   "work_branch": "test-cleanup/issue280-reconcile-rename-20260915",
   "claimed_at": "2026-09-15T15:51:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "phase": "CLAIMED",
+  "head_sha": "8f336206b900a0890f5128d64af2a67ba68a6697",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-15T15:51:00Z",
+  "last_update": "2026-09-15T15:53:00Z",
   "accepted_inputs": {
     "t2": "eb967e92c951cec8fde9c76d171a9685232a3ea2",
     "t3": "e1d484c247af5b7f384a8883d31357efb7820049",
     "t4": "0eabb64a8308f74b9c8b66f982626d2907f00646"
   },
-  "next_action": "Write the T5 implementation/reconciliation plan on the fresh T1-rooted work branch, then explicitly reconcile T2/T3/T4 accepted heads before any permanent rename/move/consolidation.",
+  "next_action": "Explicitly merge T2, then T3, then T4 accepted branches into the T1-rooted T5 work branch with non-force merge commits; verify all accepted heads are ancestors before any test move.",
   "blocker": null
 }
