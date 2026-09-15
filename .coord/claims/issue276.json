@@ -5,11 +5,11 @@
   "work_branch": "test-cleanup/issue276-taxonomy-20260915",
   "claimed_at": "2026-09-15T14:08:00Z",
   "base_sha": "b5ae852e4aaa236413b0a1acaf097ffb5dbb2776",
-  "head_sha": "e59fd01cd18fd93e027f691c0d028c316105dc46",
-  "phase": "IMPLEMENTING",
+  "head_sha": "70fc5bf24e91aa91b884dc5aff578b0a680fdb31",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:22:00Z",
+  "last_update": "2026-09-15T14:23:00Z",
   "remote_qa": null,
-  "next_action": "Dispatch replacement T1 QA that proves the fd682c61 pre-fix CLI regression RED in an isolated worktree, then proves current-head GREEN, lane-union parity, outcome-control safety, and invariants.",
+  "next_action": "Lock the new Issue 276 T1 taxonomy QA run for head 70fc5bf2..., verify isolated CLI RED proof then current-head GREEN, lane-union parity, no outcome-control drift, and protected invariants to terminal.",
   "blocker": null
 }
