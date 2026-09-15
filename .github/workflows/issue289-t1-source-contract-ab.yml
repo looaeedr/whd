@@ -1,0 +1,65 @@
+name: Issue 289 T1 Source Contract A-B
+
+on:
+  push:
+    branches:
+      - qa/issue289-t1-source-contract-ab-20260915
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  BASELINE: "89630f54767207f26252b81505b783e01d938be2"
+
+jobs:
+  exact-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
+      - name: Prepare baseline worktree
+        run: git worktree add --detach /tmp/t1-baseline "$BASELINE"
+      - name: Exact A-B source-location contract
+        shell: bash
+        run: |
+          set -uo pipefail
+          nodes=(
+            tests/test_fix13_indicator_box_3d_return.py::test_apply_path_syncs_active_designer_part_back_to_manual_corner_context
+            tests/test_gui_corner_transaction_apply.py::test_legacy_corner_transaction_delegates_to_live_snapshot_and_confirms_when_applied
+            tests/test_gui_corner_transaction_apply.py::test_legacy_corner_transaction_does_not_confirm_when_live_apply_is_rejected
+            tests/test_gui_fold_designer_close_contract.py::test_window_x_flushes_live_canonical_state_then_closes_without_rollback
+            tests/test_gui_fold_designer_close_contract.py::test_open_designer_has_no_deferred_confirm_apply_path
+            tests/test_gui_fold_designer_transaction_contract.py::test_window_x_flushes_live_state_without_cancel_or_confirm_transaction
+            tests/test_gui_fold_designer_transaction_contract.py::test_main_snapshot_supplies_baseline_choices_to_3d
+            tests/test_gui_fold_designer_transaction_contract.py::test_open_3d_uses_live_canonical_callback_and_never_creates_project_draft
+            tests/test_gui_fold_designer_transaction_contract.py::test_live_snapshot_applies_settings_workspace_and_commits_one_canonical_state
+            tests/test_phase6_live_canonical_sync.py::test_main_gui_3d_open_path_has_no_project_draft_confirm_cancel
+            tests/test_phase6_settings_center_gui_contract.py::test_gui_owns_one_shared_settings_state_loaded_from_ae_and_snapshot_carries_it
+            tests/test_phase6_settings_center_gui_contract.py::test_open_designer_uses_transactional_settings_and_save_default_callback
+            tests/test_phase6_settings_center_gui_contract.py::test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_explicit_only
+          )
+          set +e
+          (cd /tmp/t1-baseline && python -m pytest -q "${nodes[@]}")
+          baseline_rc=$?
+          python -m pytest -q "${nodes[@]}"
+          candidate_rc=$?
+          set -e
+          echo "BASELINE_RC=$baseline_rc"
+          echo "CANDIDATE_RC=$candidate_rc"
+          if [ "$baseline_rc" -ne 0 ]; then
+            echo "A_B_CLASSIFICATION=INVALID_BASELINE_NOT_GREEN"
+            exit 1
+          fi
+          if [ "$candidate_rc" -eq 0 ]; then
+            echo "A_B_CLASSIFICATION=NO_REPRODUCTION"
+            exit 1
+          fi
+          echo "A_B_CLASSIFICATION=BASELINE_PASS_CANDIDATE_FAIL_SOURCE_LOCATION_CONTRACT"
