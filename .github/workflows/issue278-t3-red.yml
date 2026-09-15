@@ -1,0 +1,188 @@
+name: Issue 278 T3 Box Body RED
+
+on:
+  push:
+    branches:
+      - qa/issue278-t3-red-20260915
+
+permissions:
+  contents: read
+
+env:
+  ISSUE: 278
+  WORKER: chatgpt
+  TASK_BRANCH: test-cleanup/issue278-box-body-identity-20260915
+  CLAIM_REF: coord/claim-issue278-20260915
+  BASE_SHA: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+  ISSUE76_RED: tests/test_issue76_box_body_subtabs_2d_3d.py::test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_subtabs
+  IDENTITY_RED: tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout exact task candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$TASK_BRANCH" "$CLAIM_REF" --depth=1
+          git checkout --detach "origin/$TASK_BRANCH"
+          TASK_HEAD="$(git rev-parse HEAD)"
+          echo "TASK_HEAD=$TASK_HEAD" >> "$GITHUB_ENV"
+          git show "origin/$CLAIM_REF:.coord/claims/issue278.json" > /tmp/issue278-claim.json
+          python - <<'PY'
+          import json, os
+          claim=json.load(open('/tmp/issue278-claim.json', encoding='utf-8'))
+          assert claim['issue'] == 278
+          assert claim['worker'] == 'chatgpt'
+          assert claim['work_branch'] == os.environ['TASK_BRANCH']
+          assert claim['base_sha'] == os.environ['BASE_SHA']
+          assert claim['head_sha'] == os.environ['TASK_HEAD'], (claim['head_sha'], os.environ['TASK_HEAD'])
+          print('T3_CLAIM_HEAD_LOCK=GREEN')
+          PY
+      - name: Lock parallel lineage and RED scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASE_SHA" "$TASK_HEAD"
+          test "$(git merge-base "$BASE_SHA" "$TASK_HEAD")" = "$BASE_SHA"
+          git -c core.quotepath=false diff --name-only "$BASE_SHA" "$TASK_HEAD" | tee /tmp/changed.txt
+          python - <<'PY'
+          from pathlib import Path
+          allowed={
+            'docs/superpowers/plans/2026-09-15-issue278-box-body-identity-test-cleanup.md',
+            '.github/workflows/issue278-t3-red.yml',
+          }
+          changed={line.strip() for line in Path('/tmp/changed.txt').read_text().splitlines() if line.strip()}
+          assert not (changed-allowed), sorted(changed-allowed)
+          print('T3_PARALLEL_SCOPE_LOCK=GREEN')
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+          command -v xvfb-run
+      - name: Execution claim guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim /tmp/issue278-claim.json \
+            --issue "$ISSUE" --worker "$WORKER" --branch "$TASK_BRANCH" \
+            --action qa-dispatch --base-sha "$BASE_SHA" --head-sha "$TASK_HEAD"
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue278/red
+          cat > .scratch/issue278/red/preflight-evidence.md <<'EOF'
+          # Issue #278 / T3 preflight evidence
+
+          MASTER_ID: #274
+          TASK_ID: #278 / T3
+          TARGET_X: cleanup/2d-3d-sync
+          FROZEN_X_BASE_SHA: 269a2972f0f88ffc7085ee3f1483a57145d8b2e8
+          EXPECTED_PARENT_SHA: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+          WORK_ORDER_BRANCH: work/test-cleanup-274-20260915
+          TASK_BRANCH: test-cleanup/issue278-box-body-identity-20260915
+          ROLE: T3 implementer / QA classifier
+
+          READ_SKILL: Python測試實務
+          READ_SKILL: 派工
+          READ_SKILL: UI設計與去AI味
+          READ_SKILL: diagnosing-bugs
+          READ_SKILL: tdd
+          READ_SKILL: monitoring-remote-qa
+          READ_SKILL: long-log-context-safe-execution
+          READ_SKILL: executable-continuity-controller
+          READ_SKILL: issue-closure-gate
+
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+          AUTHORITY_EVIDENCE:
+          - box_body is the single logical top-level identity.
+          - Receiving multipart children are box_body:left_side, box_body:back, box_body:right_side.
+          - Structure Tree is the single visible physical-child navigation surface; legacy box_body_piece_selector is compatibility state only.
+          - Corner Data / 3D consume authoritative render/material data; tests cannot redefine identity or geometry authority.
+
+          BOUNDARY:
+          - RED phase changes no production source and no target test assertions.
+          - Known reds must be classified by exact failure signature before migration.
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task '派工 pytest UI regression box body identity test cleanup' \
+            --changed-file docs/superpowers/plans/2026-09-15-issue278-box-body-identity-test-cleanup.md \
+            --changed-file .github/workflows/issue278-t3-red.yml \
+            --evidence .scratch/issue278/red/preflight-evidence.md
+      - name: Prove exact-parent issue76 stale visibility RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/.scratch/issue278/red"
+          git worktree add --detach /tmp/issue278-parent "$BASE_SHA"
+          set +e
+          (cd /tmp/issue278-parent && xvfb-run -a python -m pytest -q --tb=short "$ISSUE76_RED") > "$root/issue76-red.txt" 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -F "FAILED $ISSUE76_RED" "$root/issue76-red.txt" >/dev/null
+          grep -F 'winfo_manager' "$root/issue76-red.txt" >/dev/null
+          echo 'ISSUE76_IMPLEMENTATION_DETAIL_RED=PROVEN' | tee "$root/issue76-proof.txt"
+      - name: Prove exact-parent logical-vs-physical identity RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/.scratch/issue278/red"
+          set +e
+          (cd /tmp/issue278-parent && xvfb-run -a python -m pytest -q --tb=short "$IDENTITY_RED") > "$root/identity-red.txt" 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -F "FAILED $IDENTITY_RED" "$root/identity-red.txt" >/dev/null
+          grep -F 'box_body:left_side' "$root/identity-red.txt" >/dev/null
+          echo 'LOGICAL_PHYSICAL_IDENTITY_RED=PROVEN' | tee "$root/identity-proof.txt"
+      - name: Prove durable sibling contracts GREEN on exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$GITHUB_WORKSPACE/.scratch/issue278/red"
+          cd /tmp/issue278-parent
+          xvfb-run -a python -m pytest -q --tb=short \
+            tests/test_issue76_box_body_subtabs_2d_3d.py::test_corner_data_box_body_lists_physical_children_and_draws_selected_piece \
+            tests/test_issue76_box_body_subtabs_2d_3d.py::test_box_body_physical_child_has_same_authoritative_material_in_3d_and_corner_data_2d \
+            tests/test_box_body_single_source_t3.py::test_corner_data_box_body_consumes_authoritative_render_without_caller_structural_rebuild \
+            tests/test_issue209_part_panel_projection.py | tee "$root/durable-parent-green.txt"
+          cd "$GITHUB_WORKSPACE"
+          git worktree remove --force /tmp/issue278-parent
+      - name: Seal RED classification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > .scratch/issue278/red/result.txt <<EOF
+          ISSUE278_T3_RED_CLASSIFICATION=VALID
+          TASK_HEAD=$TASK_HEAD
+          BASE_SHA=$BASE_SHA
+          ISSUE76_CLASS=TEST_CONTRACT_DRIFT_IMPLEMENTATION_DETAIL
+          IDENTITY_CLASS=TEST_CONTRACT_DRIFT_LOGICAL_VS_PHYSICAL
+          PRODUCTION_MUTATION=0
+          EOF
+          cat .scratch/issue278/red/result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue278-t3-red
+          path: .scratch/issue278/red/
+          if-no-files-found: error
