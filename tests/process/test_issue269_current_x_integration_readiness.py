@@ -94,14 +94,14 @@ def _manifest() -> dict:
             "merge_base_sha": MASTER_BASE_SHA,
             "ahead_by": 9,
             "behind_by": 0,
-            "changed_paths": TASK_PATHS,
+            "changed_paths": list(TASK_PATHS),
         },
         "base_to_x": {
             "status": "ahead",
             "merge_base_sha": MASTER_BASE_SHA,
             "ahead_by": 116,
             "behind_by": 0,
-            "changed_paths": X_PATHS,
+            "changed_paths": list(X_PATHS),
         },
         "task_to_x": {
             "status": "diverged",
@@ -112,7 +112,7 @@ def _manifest() -> dict:
         "conflict_audit": {
             "status": "CLEAN",
             "method": "three_way_merge_tree",
-            "evidence": "merge-tree clean at frozen task-final/current-X pair",
+            "evidence": "three-way merge-tree proof is clean for the frozen task-final/current-X pair",
         },
     }
 
