@@ -78,3 +78,19 @@ Registry route：
 `.agents/skills/skill_registry.json` → `issue-closure-gate`
 
 任何派工收尾、Final Combined、production integration、關單、Master completion 都必須讓 Preflight 命中此 Skill，不得靠聊天記憶。
+
+## OPEN_PR_BASE_REF_CLEANUP_PITFALL
+
+### 事故
+
+2026-09-15 分支整理曾使用「已是 X ancestor + 非 OPEN PR head」作安全刪除條件。這個條件仍然不完整：它只保護 OPEN PR 的 `head.ref`，漏掉 `base.ref`。結果四張仍 OPEN 的 PR 保留 head branch，但 base branch 被 cleanup 刪除；之後只能依 PR metadata 記錄的 exact base SHA 原樣恢復 refs。
+
+### 永久規則
+
+- OPEN PR 是雙端 ref contract：**`head.ref` 與 `base.ref` 都是 protected refs**。
+- branch 已 merged、已是 X ancestor、對應 issue 已 CLOSED/completed、或名稱看似 QA/runner，都不足以覆蓋 OPEN PR ref protection。
+- 每批刪除前 fresh live-fetch OPEN PR；不能沿用上一輪 inventory。
+- 任一 OPEN PR 的 head/base ref evidence 缺失、空白或 malformed，整批 branch deletion fail closed，不能「先刪確定的」。
+- Canonical executable guard 是 `tools/branch_cleanup_ref_guard.py`；刪除候選必須先經 `assert_delete_candidates_safe`。
+- Primary regression 是 `tests/process/test_branch_cleanup_ref_guard.py`，其中必須保留「base ref deletion 被拒絕」案例。文字 marker 不是 runtime protection。
+- 若誤刪 OPEN PR ref，修復必須使用該 PR remote metadata 記錄的 exact ref + SHA；不得猜 branch tip、不得從 current X 重建冒充原 base。
