@@ -5,15 +5,11 @@
   "work_branch": "test-cleanup/issue277-governance-20260915",
   "claimed_at": "2026-09-15T14:29:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "9ed8ffd87771d73da3d372a04f654d59cc9ace84",
-  "phase": "RED",
+  "head_sha": "65a8f612eaf0aea78ab1cd98e9375cf0f375d8f7",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:42:00Z",
-  "remote_qa": {
-    "run_id": 34983398130,
-    "head_sha": "9ed8ffd87771d73da3d372a04f654d59cc9ace84",
-    "workflow": "Issue 277 T2 Governance RED"
-  },
-  "next_action": "Monitor only run 34983398130 to terminal. Require Unicode-safe scope lock, preflight GREEN, exact-parent stale semantic RED proof, and strict structured-metadata baseline GREEN before semantic test implementation.",
+  "last_update": "2026-09-15T14:44:00Z",
+  "remote_qa": null,
+  "next_action": "Replace the temporary RED workflow with final T2 governance QA, then lock only the new exact-head run. Required gates: stale-parent RED proof, semantic migration GREEN, strict metadata GREEN, full governance lane GREEN, durable process coverage present, no skip/xfail drift, and protected invariants GREEN.",
   "blocker": null
 }
