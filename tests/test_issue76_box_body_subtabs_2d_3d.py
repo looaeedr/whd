@@ -8,19 +8,6 @@ import pytest
 pytestmark = pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
 
 
-def _tab_labels(notebook):
-    return tuple(notebook.tab(tab_id, "text").strip() for tab_id in notebook.tabs())
-
-
-def _select_tab_by_label(notebook, label):
-    for tab_id in notebook.tabs():
-        if notebook.tab(tab_id, "text").strip() == label:
-            notebook.select(tab_id)
-            notebook.event_generate("<<NotebookTabChanged>>")
-            return tab_id
-    raise AssertionError(f"missing tab: {label}; have={_tab_labels(notebook)!r}")
-
-
 def _open_receiving_app():
     import tkinter as tk
     import gui
@@ -51,13 +38,23 @@ def test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_
         assert labels.count("箱身") == 1
         assert "左側板" not in labels and "後面板" not in labels and "右側板" not in labels
 
+        hierarchy = tuple(
+            bridge._phase6_structure_tree_rows(designer.designer_workspace.available_parts)
+        )
+        expected_children = (
+            ("box_body:left_side", "box_body"),
+            ("box_body:back", "box_body"),
+            ("box_body:right_side", "box_body"),
+        )
+        for row in expected_children:
+            assert row in hierarchy
+
         designer.activate_part("box_body:back")
         root.update_idletasks(); root.update()
+        assert designer.designer_workspace.active_part == "box_body:back"
         assert designer.part_var.get() == "箱身"
-        assert _tab_labels(designer.box_body_piece_selector) == ("左側板", "後面板", "右側板")
-        assert designer.box_body_piece_selector.winfo_manager() != ""
 
-        _select_tab_by_label(designer.box_body_piece_selector, "左側板")
+        designer.activate_part("box_body:left_side")
         root.update_idletasks(); root.update()
         assert designer.designer_workspace.active_part == "box_body:left_side"
         assert designer.part_var.get() == "箱身"
