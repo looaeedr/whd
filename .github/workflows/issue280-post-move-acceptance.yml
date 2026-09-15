@@ -8,6 +8,7 @@ on:
       - '.github/workflows/issue280-post-move-acceptance.yml'
       - 'tests/**'
       - 'tools/test_lane_policy.py'
+      - 'docs/superpowers/verification/2026-09-16-issue280-post-move-preflight-evidence.md'
 
 permissions:
   contents: read
@@ -64,7 +65,7 @@ jobs:
             --changed-file tests/projection/test_renderer_behavior.py \
             --changed-file tests/architecture/test_renderer_ownership.py \
             --changed-file tools/test_lane_policy.py \
-            --evidence .scratch/issue280/post-move-preflight-evidence.md
+            --evidence docs/superpowers/verification/2026-09-16-issue280-post-move-preflight-evidence.md
 
       - name: Capture protected invariants
         shell: bash
@@ -220,7 +221,10 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           changed = [x.strip() for x in Path('.scratch/issue280/runtime/changed.txt').read_text(encoding='utf-8').splitlines() if x.strip()]
-          allowed_exact = {'tools/test_lane_policy.py'}
+          allowed_exact = {
+              'tools/test_lane_policy.py',
+              'docs/superpowers/verification/2026-09-16-issue280-post-move-preflight-evidence.md',
+          }
           allowed_prefixes = ('tests/', '.github/workflows/issue280-')
           bad = [x for x in changed if x not in allowed_exact and not x.startswith(allowed_prefixes)]
           assert not bad, f'PRODUCTION_SOURCE_DRIFT: {bad}'
