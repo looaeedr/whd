@@ -8,8 +8,8 @@
   "head_sha": "1695643e739aaa80e381cce8e755265d1e29df64",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-15T13:52:00Z",
+  "last_update": "2026-09-15T13:52:30Z",
   "remote_qa": null,
-  "next_action": "Push atomic T0 QA harness commit to task branch; then lock the new #275 run_id + head_sha and monitor only that run to terminal.",
+  "next_action": "Advance task branch ref non-force to 1695643e..., then identify and monitor the #275 QA run only.",
   "blocker": null
 }
