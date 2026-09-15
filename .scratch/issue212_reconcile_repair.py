@@ -98,9 +98,7 @@ T5 GUI modularization 曾出現 `pytest ... | tee` 與 `python validator.py | te
 
 
 def main() -> None:
-    parent = run("git", "rev-parse", "HEAD^", capture=True)
-    if parent != BAD_HEAD:
-        raise SystemExit(f"unexpected bootstrap parent: {parent}")
+    run("git", "merge-base", "--is-ancestor", BAD_HEAD, "HEAD")
     run("git", "cat-file", "-e", f"{PRODUCTION_SHA}^{{commit}}")
     run("git", "cat-file", "-e", f"{ACCEPTED_SHA}^{{commit}}")
     run("git", "merge-base", "--is-ancestor", PRODUCTION_SHA, BAD_HEAD)
