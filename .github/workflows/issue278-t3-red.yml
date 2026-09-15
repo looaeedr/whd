@@ -29,9 +29,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .scratch/issue278/red
-          git fetch origin "$TASK_BRANCH" "$CLAIM_REF" --depth=1
+          git fetch origin "$TASK_BRANCH" "$CLAIM_REF"
           git checkout --detach "origin/$TASK_BRANCH"
+          mkdir -p .scratch/issue278/red
+          printf 'QA_BOOTSTRAP=GREEN\n' > .scratch/issue278/red/bootstrap.txt
           TASK_HEAD="$(git rev-parse HEAD)"
           export TASK_HEAD
           echo "TASK_HEAD=$TASK_HEAD" >> "$GITHUB_ENV"
@@ -85,7 +86,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .scratch/issue278/red
           cat > .scratch/issue278/red/preflight-evidence.md <<'EOF'
           # Issue #278 / T3 preflight evidence
 
