@@ -69,13 +69,40 @@ jobs:
         run: |
           set -euo pipefail
           cat > .scratch/issue277/preflight-evidence.md <<'EOF'
-          # Issue 277 preflight evidence
-          - Read issue #277 scope / hard gates.
-          - Read stale semantic-doc test.
-          - Read tests/knowledge/test_issue233_strict_metadata_migration.py.
-          - Read tools/knowledge_governance.py metadata parser authority.
-          - Read AI_HANDOFF.md and CONTEXT.md structured metadata.
-          - Read Canonical Authority Map phase6-dimension-semantics CURRENT row.
+          # Issue #277 / T2 preflight evidence
+
+          MASTER_ID: #274
+          TASK_ID: #277 / T2
+          TARGET_X: cleanup/2d-3d-sync
+          FROZEN_X_BASE_SHA: 269a2972f0f88ffc7085ee3f1483a57145d8b2e8
+          EXPECTED_PARENT_SHA: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+          WORK_ORDER_BRANCH: work/test-cleanup-274-20260915
+          TASK_BRANCH: test-cleanup/issue277-governance-20260915
+          ROLE: T2 implementer
+
+          READ_SKILL: Python測試實務
+          READ_SKILL: 派工
+          READ_SKILL: monitoring-remote-qa
+          READ_SKILL: long-log-context-safe-execution
+          READ_SKILL: executable-continuity-controller
+          READ_SKILL: issue-closure-gate
+
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+          AUTHORITY_EVIDENCE:
+          - AI_HANDOFF.md is WHD_DOC_META_V1 REFERENCE / handoff-ledger.
+          - CONTEXT.md is WHD_DOC_META_V1 REFERENCE / project-reference.
+          - phase6-dimension-semantics CURRENT owner is declared by the Canonical Authority Map.
+
+          BOUNDARY:
+          - T2 changes governance tests only.
+          - T2 does not modify production geometry, DXF, UI behavior, or runtime identity.
+          - Free-text CURRENT and fixture dimensions cannot be promoted to runtime authority.
           EOF
           python tools/phase6_skill_preflight.py \
             --task '派工 governance TEST cleanup semantic metadata RED' \
