@@ -150,3 +150,17 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 `code integrated, process incomplete` 是精確 observation，不是合法停工點。只要 owning checkpoint 仍是 `RUNNING` 且 `next_action` 為 workflow cleanup、tested→closing drift、close/readback leaf、closing ticket 或 Master，本 Skill 在任何 user-visible response boundary 都必須呼叫 `assert_turn_exitable`；machine guard 拒絕時立即續做 next action。
 
 只有 genuine `BLOCKED`（需要外部 authority/capability）或 terminal checkpoint 才能合法結束 turn。Workflow 是否真的完成仍另外要求 `assert_finalizable` + 全 issue chain readback；兩個 gate 不得合併。
+
+## BRANCH_CLEANUP_OPEN_PR_REF_GATE
+
+任何 remote branch cleanup 都必須在**每一批刪除前 fresh live-fetch 所有 OPEN PR**，並把每張 OPEN PR 的 **`head.ref` 與 `base.ref` 兩端同時列為 protected refs**。只保護 head 不足以維持 PR 可操作性。
+
+Canonical executable guard：`tools/branch_cleanup_ref_guard.py`。
+
+- 刪除候選在執行 `git push origin --delete ...` 或等價 remote-ref deletion 前，必須先通過 `assert_delete_candidates_safe(candidates, open_pulls)`。
+- 任一候選命中 OPEN PR 的 `head.ref` **或** `base.ref`，立即 fail closed；branch 已是 production/X ancestor、對應 issue 已 CLOSED、或看起來只是 QA/runner branch，都不能繞過 OPEN PR ref protection。
+- 任一 OPEN PR 的 `head.ref` / `base.ref` 缺失、空白、型別錯誤或資料不完整，分類為 malformed OPEN PR ref evidence，**禁止刪除任何候選**直到 fresh evidence 可被驗證。
+- OPEN PR list 必須是刪除當下的 live evidence；不得使用聊天記憶、過期 branch inventory 或先前 cleanup run 的快照代替。
+- branch cleanup 只處理 ref hygiene，不會自動形成 integration / acceptance / issue-completion evidence。
+
+Primary behavior guard：`tests/process/test_branch_cleanup_ref_guard.py`。文件 marker 只能保護 routing/知識不漂移，不能取代 executable guard。
