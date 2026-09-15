@@ -1,0 +1,173 @@
+name: Issue 280 T5 Reconciled Pre-Move Baseline
+
+on:
+  push:
+    branches:
+      - qa/issue280-t5-reconciled-baseline-20260915
+
+permissions:
+  contents: read
+
+env:
+  ISSUE: 280
+  WORKER: chatgpt
+  QA_BRANCH: qa/issue280-t5-reconciled-baseline-20260915
+  CLAIM_REF: coord/claim-issue280-20260915
+  CANDIDATE_SHA: d268511b4fb62a226ef303856387e0619889ea28
+  T2_HEAD: eb967e92c951cec8fde9c76d171a9685232a3ea2
+  T3_HEAD: e1d484c247af5b7f384a8883d31357efb7820049
+  T4_HEAD: 0eabb64a8308f74b9c8b66f982626d2907f00646
+
+jobs:
+  reconciled-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock reconciliation ancestry and candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$QA_BRANCH"
+          for ancestor in "$T2_HEAD" "$T3_HEAD" "$T4_HEAD"; do
+            git merge-base --is-ancestor "$ancestor" "$CANDIDATE_SHA"
+          done
+          git merge-base --is-ancestor "$CANDIDATE_SHA" "$GITHUB_SHA"
+          git diff --exit-code "$CANDIDATE_SHA" "$GITHUB_SHA" -- tests docs 個人AI檔案庫
+          echo 'T2_T3_T4_RECONCILIATION_ANCESTRY=GREEN'
+          echo 'QA_CANDIDATE_LOCK=GREEN'
+
+      - name: Read shared execution claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue280/runtime
+          git fetch origin "$CLAIM_REF" --depth=1
+          git show FETCH_HEAD:.coord/claims/issue280.json > .scratch/issue280/runtime/claim.json
+
+      - name: Execution claim guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim .scratch/issue280/runtime/claim.json \
+            --issue "$ISSUE" \
+            --worker "$WORKER" \
+            --branch "$QA_BRANCH" \
+            --action qa-dispatch \
+            --base-sha a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6 \
+            --head-sha "$GITHUB_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task 'pytest TEST cleanup reconciliation UI projection architecture governance remote QA before rename move' \
+            --changed-file tests/test_phase6_semantic_doc_status.py \
+            --changed-file tests/test_issue76_box_body_subtabs_2d_3d.py \
+            --changed-file tests/test_box_body_single_source_t3.py \
+            --changed-file tests/test_issue209_part_panel_projection.py \
+            --changed-file tests/test_gui_drawing_contract.py \
+            --changed-file tests/test_gui_toolbar_contract.py \
+            --changed-file tests/test_issue210_project_actions_move_contract.py \
+            --changed-file tests/test_issue211_renderer_dependency_gate.py \
+            --evidence .scratch/issue280/pre-move-preflight-evidence.md
+
+      - name: Capture protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue280/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/before.sha256"
+
+      - name: Run reconciled focused baseline under Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q --tb=short \
+            tests/test_phase6_semantic_doc_status.py \
+            tests/test_issue76_box_body_subtabs_2d_3d.py \
+            tests/test_box_body_single_source_t3.py \
+            tests/test_issue209_part_panel_projection.py \
+            tests/test_gui_drawing_contract.py \
+            tests/test_gui_toolbar_contract.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py \
+            | tee .scratch/issue280/runtime/focused.txt
+
+      - name: Reject outcome-control masking
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -n -E 'pytest\.(skip|xfail)\(|pytest\.mark\.(skip|skipif|xfail)' \
+            tests/test_phase6_semantic_doc_status.py \
+            tests/test_issue76_box_body_subtabs_2d_3d.py \
+            tests/test_box_body_single_source_t3.py \
+            tests/test_issue209_part_panel_projection.py \
+            tests/test_gui_drawing_contract.py \
+            tests/test_gui_toolbar_contract.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py
+          echo 'OUTCOME_CONTROL_DRIFT=0'
+
+      - name: Verify candidate production drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6 "$CANDIDATE_SHA" | tee .scratch/issue280/runtime/changed.txt
+          python - <<'PY'
+          from pathlib import Path
+          changed = [x.strip() for x in Path('.scratch/issue280/runtime/changed.txt').read_text().splitlines() if x.strip()]
+          allowed = ('tests/', 'docs/', '個人AI檔案庫/')
+          bad = [x for x in changed if not x.startswith(allowed)]
+          assert not bad, f'PRODUCTION_SOURCE_DRIFT: {bad}'
+          print('PRODUCTION_SOURCE_DRIFT=0')
+          PY
+
+      - name: Verify protected invariants
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue280/runtime
+          if [ ! -f "$root/before.sha256" ]; then
+            echo 'INVARIANT_CHECK_NOT_REACHED=1'
+            exit 0
+          fi
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/after.sha256"
+          diff -u "$root/before.sha256" "$root/after.sha256"
+          git diff --exit-code
+          echo 'CONFIG_DXF_INVARIANTS=GREEN'
+
+      - name: Seal reconciled baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ISSUE280_RECONCILED_PRE_MOVE_BASELINE=GREEN' | tee .scratch/issue280/runtime/result.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue280-reconciled-pre-move-baseline
+          path: .scratch/issue280/runtime/
+          if-no-files-found: error
