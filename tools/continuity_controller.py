@@ -1,9 +1,9 @@
-"""Executable continuity checkpoint/resume/finalization authority.
+"""Executable continuity checkpoint/resume/finalization/turn-exit authority.
 
-This module is intentionally independent from application geometry and UI code.  It
+This module is intentionally independent from application geometry and UI code. It
 exists to make long-running development/QA workflows fail closed when their durable
-state is incomplete, resumable after a runtime cut, and impossible to finalize while
-non-terminal.
+state is incomplete, resumable after a runtime cut, impossible to finalize while
+non-terminal, and unable to end an assistant turn while autonomous work remains.
 """
 
 from __future__ import annotations
@@ -45,6 +45,13 @@ TERMINAL_STATES = frozenset(
         ContinuityState.TERMINAL_FAILURE,
     }
 )
+TURN_EXIT_BLOCKING_STATES = frozenset(
+    {
+        ContinuityState.RUNNING,
+        ContinuityState.WAITING_REMOTE,
+        ContinuityState.RECOVERING,
+    }
+)
 
 
 class CheckpointError(RuntimeError):
@@ -53,6 +60,10 @@ class CheckpointError(RuntimeError):
 
 class FinalizationBlocked(CheckpointError):
     """Raised when closure/finalization is attempted before a terminal state."""
+
+
+class TurnExitBlocked(CheckpointError):
+    """Raised when an assistant turn tries to end while autonomous work remains."""
 
 
 def _require_text(name: str, value: str | None) -> str:
@@ -238,8 +249,8 @@ def transition_checkpoint(
 ) -> Checkpoint:
     """Return a validated next checkpoint without reusing stale remote ownership.
 
-    Omitted remote fields are distinct from explicit ``None``.  While remaining inside
-    one WAITING_REMOTE lock, omitted owner/cursor fields inherit that same lock.  When
+    Omitted remote fields are distinct from explicit ``None``. While remaining inside
+    one WAITING_REMOTE lock, omitted owner/cursor fields inherit that same lock. When
     entering WAITING_REMOTE from any other state, ``run_id`` must be supplied explicitly
     and stale job/cursor data is cleared unless the caller supplies replacements.
     Other transitions preserve prior remote identity as provenance when fields are omitted.
@@ -299,6 +310,23 @@ def assert_finalizable(checkpoint: Checkpoint) -> None:
         )
 
 
+def assert_turn_exitable(checkpoint: Checkpoint) -> None:
+    """Reject ending an assistant turn while autonomous work remains executable.
+
+    BLOCKED is deliberately turn-exitable because it represents a genuine external
+    authority/capability wait, but it remains non-finalizable. Terminal states are both
+    turn-exitable and finalizable. RUNNING, WAITING_REMOTE, and RECOVERING must keep the
+    current execution loop moving to ``next_action`` instead of handing scheduling back
+    to the user.
+    """
+
+    if checkpoint.state in TURN_EXIT_BLOCKING_STATES:
+        raise TurnExitBlocked(
+            f"turn exit blocked for checkpoint {checkpoint.state.value}; "
+            f"next_action={checkpoint.next_action!r}"
+        )
+
+
 def _format_checkpoint(checkpoint: Checkpoint) -> str:
     return json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
 
@@ -314,6 +342,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "assert-finalizable", help="exit nonzero unless checkpoint is terminal"
     )
     finalizable.add_argument("path", type=Path)
+
+    turn_exitable = subparsers.add_parser(
+        "assert-turn-exitable",
+        help="exit nonzero while autonomous non-terminal work must continue in this turn",
+    )
+    turn_exitable.add_argument("path", type=Path)
 
     resume = subparsers.add_parser("resume", help="print the exact next action for non-terminal work")
     resume.add_argument("path", type=Path)
@@ -331,6 +365,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             assert_finalizable(checkpoint)
             print(f"FINALIZABLE {checkpoint.state.value}")
             return 0
+        if args.command == "assert-turn-exitable":
+            assert_turn_exitable(checkpoint)
+            print(f"TURN_EXITABLE {checkpoint.state.value}")
+            return 0
         if args.command == "resume":
             if checkpoint.is_terminal:
                 raise CheckpointError(
@@ -339,6 +377,9 @@ def main(argv: Iterable[str] | None = None) -> int:
             print(checkpoint.next_action)
             return 0
         raise CheckpointError(f"unsupported command: {args.command}")
+    except TurnExitBlocked as exc:
+        print(f"TURN_EXIT_GUARD_ERROR: {exc}")
+        return 2
     except CheckpointError as exc:
         print(f"CONTINUITY_GUARD_ERROR: {exc}")
         return 2
