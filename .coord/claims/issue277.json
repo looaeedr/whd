@@ -5,15 +5,11 @@
   "work_branch": "test-cleanup/issue277-governance-20260915",
   "claimed_at": "2026-09-15T14:29:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "88412d2e3dd042bec4dc06d13e9eaa4c0d9cb79c",
+  "head_sha": "d340ec070e4ae6fe3203efa303a25a2a133543dd",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:34:00Z",
-  "remote_qa": {
-    "run_id": 34982431691,
-    "head_sha": "88412d2e3dd042bec4dc06d13e9eaa4c0d9cb79c",
-    "workflow": "Issue 277 T2 Governance RED"
-  },
-  "next_action": "Monitor only run 34982431691 to terminal. Preflight must be GREEN, stale free-text authority node must be proven RED on exact parent, and structured metadata baseline must remain GREEN before implementation.",
+  "last_update": "2026-09-15T14:36:00Z",
+  "remote_qa": null,
+  "next_action": "Push exact metadata-debt repair head d340ec07..., then lock only its new Issue 277 T2 Governance RED run. Require preflight GREEN, stale semantic free-text RED proof, and strict structured metadata baseline GREEN before editing semantic tests.",
   "blocker": null
 }
