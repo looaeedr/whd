@@ -44,7 +44,7 @@ jobs:
           assert claim['work_branch'] == os.environ['TASK_BRANCH']
           assert claim['base_sha'] == os.environ['BASE_SHA']
           assert claim['head_sha'] == os.environ['TASK_HEAD'], (claim['head_sha'], os.environ['TASK_HEAD'])
-          assert claim['phase'] == 'GREEN_QA', claim['phase']
+          assert claim['phase'] == 'REMOTE_QA', claim['phase']
           print('T3_ACCEPTANCE_CLAIM_LOCK=GREEN')
           PY
       - name: Lock parallel lineage and candidate scope
