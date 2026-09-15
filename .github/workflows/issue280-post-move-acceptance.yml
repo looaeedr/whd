@@ -1,0 +1,245 @@
+name: Issue280 T5 Post-Move Acceptance
+
+on:
+  push:
+    branches:
+      - test-cleanup/issue280-permanent-move-20260916
+    paths:
+      - '.github/workflows/issue280-post-move-acceptance.yml'
+      - 'tests/**'
+      - 'tools/test_lane_policy.py'
+
+permissions:
+  contents: read
+
+jobs:
+  post-move-acceptance:
+    runs-on: ubuntu-latest
+    env:
+      RECONCILIATION_HEAD: c549e631d9999aceb5f7204f9fd693fda405e90f
+      T2_HEAD: eb967e92c951cec8fde9c76d171a9685232a3ea2
+      T3_HEAD: e1d484c247af5b7f384a8883d31357efb7820049
+      T4_HEAD: 0eabb64a8308f74b9c8b66f982626d2907f00646
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ancestor in "$T2_HEAD" "$T3_HEAD" "$T4_HEAD" "$RECONCILIATION_HEAD"; do
+            git merge-base --is-ancestor "$ancestor" "$GITHUB_SHA"
+          done
+          echo 'ANCESTRY_GATE=GREEN'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install verification dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue280
+          python tools/phase6_skill_preflight.py \
+            --task 'pytest TEST cleanup permanent taxonomy move UI projection architecture governance Xvfb collection equivalence post-move acceptance' \
+            --changed-file tests/governance/test_semantic_doc_status.py \
+            --changed-file tests/ui/test_box_body_physical_child_navigation.py \
+            --changed-file tests/architecture/test_box_body_single_source.py \
+            --changed-file tests/projection/test_part_panel_projection.py \
+            --changed-file tests/ui/test_gui_drawing_contract.py \
+            --changed-file tests/ui/test_gui_toolbar_contract.py \
+            --changed-file tests/architecture/test_project_actions_ownership.py \
+            --changed-file tests/projection/test_renderer_behavior.py \
+            --changed-file tests/architecture/test_renderer_ownership.py \
+            --changed-file tools/test_lane_policy.py \
+            --evidence .scratch/issue280/post-move-preflight-evidence.md
+
+      - name: Capture protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue280/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > .scratch/issue280/runtime/before.sha256
+
+      - name: Verify whole-file byte identity and #211 AST equivalence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import ast
+          import subprocess
+          from pathlib import Path
+
+          base = 'c549e631d9999aceb5f7204f9fd693fda405e90f'
+          whole = {
+              'tests/test_phase6_semantic_doc_status.py': 'tests/governance/test_semantic_doc_status.py',
+              'tests/test_issue76_box_body_subtabs_2d_3d.py': 'tests/ui/test_box_body_physical_child_navigation.py',
+              'tests/test_box_body_single_source_t3.py': 'tests/architecture/test_box_body_single_source.py',
+              'tests/test_issue209_part_panel_projection.py': 'tests/projection/test_part_panel_projection.py',
+              'tests/test_gui_drawing_contract.py': 'tests/ui/test_gui_drawing_contract.py',
+              'tests/test_gui_toolbar_contract.py': 'tests/ui/test_gui_toolbar_contract.py',
+              'tests/test_issue210_project_actions_move_contract.py': 'tests/architecture/test_project_actions_ownership.py',
+          }
+          for old, new in whole.items():
+              before = subprocess.check_output(['git', 'show', f'{base}:{old}'])
+              after = Path(new).read_bytes()
+              assert before.rstrip(b'\n') == after.rstrip(b'\n'), (old, new, 'BYTE_DRIFT')
+
+          approved = {
+              'test_behavior_draw_grid_preserves_current_canvas_contract',
+              'test_behavior_resolved_feature_projection_preserves_current_primitives',
+              'test_behavior_baseline_secondary_skips_primary_outline_and_bend_layers',
+              'test_structure_safe_helpers_move_to_render_2d_without_reverse_gui_dependency',
+              'test_structure_phase6_host_no_longer_defines_safe_helper_bodies',
+              'test_structure_existing_3d_deep_module_remains_the_only_new_3d_owner',
+          }
+          old_source = subprocess.check_output(
+              ['git', 'show', f'{base}:tests/test_issue211_renderer_dependency_gate.py'], text=True
+          )
+          old_tree = ast.parse(old_source)
+          old_functions = {
+              node.name: ast.dump(node, include_attributes=False)
+              for node in old_tree.body
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in approved
+          }
+          current_functions = {}
+          for path in (
+              'tests/projection/test_renderer_behavior.py',
+              'tests/architecture/test_renderer_ownership.py',
+          ):
+              tree = ast.parse(Path(path).read_text(encoding='utf-8'))
+              for node in tree.body:
+                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith('test_'):
+                      assert node.name not in current_functions, ('DUPLICATE_NODE', node.name)
+                      current_functions[node.name] = ast.dump(node, include_attributes=False)
+          assert set(old_functions) == approved
+          assert set(current_functions) == approved, (set(current_functions), approved)
+          for name in approved:
+              assert old_functions[name] == current_functions[name], ('AST_DRIFT', name)
+          print('MOVE_CONTENT_EQUIVALENCE=GREEN')
+          PY
+
+      - name: Verify post-move collection equivalence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest --collect-only -q \
+            tests/governance/test_semantic_doc_status.py \
+            tests/ui/test_box_body_physical_child_navigation.py \
+            tests/architecture/test_box_body_single_source.py \
+            tests/projection/test_part_panel_projection.py \
+            tests/ui/test_gui_drawing_contract.py \
+            tests/ui/test_gui_toolbar_contract.py \
+            tests/architecture/test_project_actions_ownership.py \
+            tests/projection/test_renderer_behavior.py \
+            tests/architecture/test_renderer_ownership.py \
+            | tee .scratch/issue280/runtime/collection.txt
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('.scratch/issue280/runtime/collection.txt').read_text(encoding='utf-8')
+          match = re.search(r'(\d+) tests? collected', text)
+          assert match, text[-1000:]
+          assert int(match.group(1)) == 42, match.group(1)
+          print('COLLECTION_EQUIVALENCE=42')
+          PY
+
+      - name: Run taxonomy relocation guard
+        shell: bash
+        run: python -m pytest -q tests/test_issue280_taxonomy_relocation_safety.py
+
+      - name: Run post-move focused acceptance under Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q --tb=short \
+            tests/governance/test_semantic_doc_status.py \
+            tests/ui/test_box_body_physical_child_navigation.py \
+            tests/architecture/test_box_body_single_source.py \
+            tests/projection/test_part_panel_projection.py \
+            tests/ui/test_gui_drawing_contract.py \
+            tests/ui/test_gui_toolbar_contract.py \
+            tests/architecture/test_project_actions_ownership.py \
+            tests/projection/test_renderer_behavior.py \
+            tests/architecture/test_renderer_ownership.py \
+            | tee .scratch/issue280/runtime/focused.txt
+          grep -Eq '42 passed' .scratch/issue280/runtime/focused.txt
+
+      - name: Verify no new outcome-control masking
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          allowed_skipif = {
+              'tests/ui/test_box_body_physical_child_navigation.py',
+              'tests/architecture/test_box_body_single_source.py',
+          }
+          files = [
+              'tests/governance/test_semantic_doc_status.py',
+              'tests/ui/test_box_body_physical_child_navigation.py',
+              'tests/architecture/test_box_body_single_source.py',
+              'tests/projection/test_part_panel_projection.py',
+              'tests/ui/test_gui_drawing_contract.py',
+              'tests/ui/test_gui_toolbar_contract.py',
+              'tests/architecture/test_project_actions_ownership.py',
+              'tests/projection/test_renderer_behavior.py',
+              'tests/architecture/test_renderer_ownership.py',
+          ]
+          for path in files:
+              text = Path(path).read_text(encoding='utf-8')
+              assert 'pytest.xfail(' not in text and 'pytest.mark.xfail' not in text, path
+              assert 'pytest.skip(' not in text and 'pytest.mark.skip(' not in text, path
+              if 'pytest.mark.skipif' in text:
+                  assert path in allowed_skipif, path
+                  assert 'DISPLAY' in text, path
+          print('OUTCOME_CONTROL_DRIFT=0')
+          PY
+
+      - name: Verify no production source drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c core.quotepath=false diff --name-only "$RECONCILIATION_HEAD" "$GITHUB_SHA" \
+            | tee .scratch/issue280/runtime/changed.txt
+          python - <<'PY'
+          from pathlib import Path
+          changed = [x.strip() for x in Path('.scratch/issue280/runtime/changed.txt').read_text(encoding='utf-8').splitlines() if x.strip()]
+          allowed_exact = {'tools/test_lane_policy.py'}
+          allowed_prefixes = ('tests/', '.github/workflows/issue280-')
+          bad = [x for x in changed if x not in allowed_exact and not x.startswith(allowed_prefixes)]
+          assert not bad, f'PRODUCTION_SOURCE_DRIFT: {bad}'
+          print('PRODUCTION_SOURCE_DRIFT=0')
+          PY
+
+      - name: Verify protected invariants and clean tracked tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > .scratch/issue280/runtime/after.sha256
+          diff -u .scratch/issue280/runtime/before.sha256 .scratch/issue280/runtime/after.sha256
+          git diff --exit-code
+          echo 'CONFIG_DXF_INVARIANTS=GREEN'
+          echo 'TRACKED_WORKTREE_CLEAN=GREEN'
+
+      - name: Seal post-move acceptance
+        shell: bash
+        run: |
+          echo 'ISSUE280_POST_MOVE_ACCEPTANCE=GREEN' | tee .scratch/issue280/runtime/result.txt
