@@ -43,6 +43,8 @@ whd_schema: WHD_DOC_META_V1
 
 修改任務一律遵守 branch-first：反讀 authoritative target HEAD → 從該 HEAD 建新 work branch → 反讀 branch base → 才能寫檔。不得直接 patch `cleanup/2d-3d-sync` / `main`。
 
+當 target 是 X 第二主分支、或同時存在 A/B/C/D 等多個 Master 工單鏈時，**REQUIRED REFERENCE:** `個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md`。
+
 ### WORK_ORDER_LINEAGE_CONTRACT
 
 當一個 Master / 工單被拆成 T1/T2/... 多張子票時，branch-first 的單位是**整張工單**，不是每張子票各自重新從 production 起跑。
@@ -57,6 +59,21 @@ whd_schema: WHD_DOC_META_V1
 - 只有整張工單 Combined Acceptance、durable Skill/AI writeback、config/protected invariants、temporary QA cleanup、tested-head→closing-head drift audit 全完成後，才把**整張工單 final verified work-order HEAD**對 production 做**一次 non-force 整合**。
 - production 整合後才由 post-integration ticket / sentinel 以 actual production HEAD 作 authority；若 post-integration FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不 force target 回舊 SHA。
 - 若既有工單已發生 T3/T4 類 lineage divergence，先保留所有已驗收 commit/evidence，建立或修復單一 work-order lineage，再續工；不得為了「從 production 重新開始比較乾淨」而丟掉前序 accepted work。
+
+### X_SECOND_MAIN_INDEPENDENT_CHAIN_CONTRACT
+
+當 `X` 被指定為第二主分支／主要整合目標（WHD 現行 `X = cleanup/2d-3d-sync`），且 A/B/C/D 等多個 Master 工單組可能並行時，本節是 `WORK_ORDER_LINEAGE_CONTRACT` 的強化硬閘門。
+
+1. **每個 Master 都有自己的 frozen X base。** 建立 A/B/C/D 任一 Master 時，先反讀 X HEAD，記錄 `FROZEN_X_BASE_SHA`，從該 exact SHA 建該 Master 的 `WORK_ORDER_BRANCH`，並反讀證明 branch base 正確。若 A/B/C/D 是同一批次同時建立，除非使用者另有指定，應共用同一個 X snapshot SHA；不同時間建立則各自在建立當下凍結自己的 X HEAD。
+2. **active chain 不追 X。** Master 建立後，即使 X 前進，也禁止 merge X → chain、rebase chain onto X、reset 到新 X、以新 X HEAD 取代 child parent，或因「X 比較新」重開 child branch。`CURRENT_X_HEAD` 只能用於 drift / integration-readiness 觀測。
+3. **兄弟鏈完全隔離。** A/B/C/D 之間禁止 merge、rebase、cherry-pick 尚未進 X 的 production change、共用另一條 chain 的 accepted HEAD、temporary QA lineage 或 remote QA acceptance evidence。若存在真 dependency，該 chain 停在 dependency gate，不能偷搬 sibling commit。
+4. **child parent 唯一合法來源是上一個 accepted HEAD。** `Tn accepted HEAD → Tn+1 base` 必須有 ancestor 證明；不得跳回 X，也不得跳到兄弟鏈。
+5. **整鏈完成前禁止合回 X。** child GREEN、focused QA、單票 ACCEPT、局部 PR success 都不是 X integration gate。只有完整 Master Chain Task Acceptance 後才可進入 Integration Acceptance。
+6. **Task Acceptance 與 Integration Acceptance 必須分離。** Task Acceptance 驗 sealed chain 本身；Integration Acceptance 才比較 `FROZEN_X_BASE_SHA → FINAL_CHAIN_HEAD`、`FROZEN_X_BASE_SHA → CURRENT_X_HEAD` 與兩者 overlap/conflict/drift。不得為了 integration readiness 反向污染已驗收 chain history。
+7. **READY_FOR_X_INTEGRATION 不等於自動 merge。** 完整 chain 最多先到 `ACCEPTED / READY_FOR_X_INTEGRATION`。若 Master、工單或使用者明確寫 `DO_NOT_MERGE_X`／「完成後先不要合回 X」，必須停在此狀態直到取得新的 explicit authorization。
+8. **對 X 的正式整合只能 non-force 且一次整鏈完成。** 整合前再次反讀 current X identity，完成 conflict/drift audit，確認 post-integration owner/sentinel；不得把 partial task 分段塞回 X。
+9. **每張票與 QA identity 必須帶 chain authority。** 至少包含 `MASTER_ID / TASK_ID / TARGET_X / FROZEN_X_BASE_SHA / EXPECTED_PARENT_SHA / WORK_ORDER_BRANCH / CHAIN_HEAD / CURRENT_X_HEAD(observation only)`；remote QA 再鎖 `RUN_ID + HEAD_SHA + BRANCH`。若 RUN 尚未建立，狀態是 `RUN_NOT_CREATED`，不得等待不存在的 RUN，應立即處理 prerequisite。
+10. **任何 cross-chain contamination 一律 fail closed。** frozen base 不明、parent 不符、兄弟鏈 commit 混入、active chain 被 merge/rebase newer X、RUN HEAD 錯鏈、partial task 被要求直接 merge X，都必須先停止該 chain 的 production mutation並修正 authority。
 
 ### 1.2 能力偵測
 
@@ -431,6 +448,8 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] Skill 少於 500 行。
 - [ ] `AGENTS.md` / Preflight / branch-first 明確且不被派工繞過。
 - [ ] `WORK_ORDER_LINEAGE_CONTRACT`：多子票 Master 只建立一條工單主分支；子票從 accepted work-order HEAD 續工，production 只作 integration target / drift authority，整張工單 final verified work-order HEAD 才一次 non-force 整合。
+- [ ] `X_SECOND_MAIN_INDEPENDENT_CHAIN_CONTRACT`：每個 Master 凍結自己的 X base；active chain 不追 X；A/B/C/D 彼此隔離；child 只接 previous accepted HEAD；完整 Master Task Acceptance 後才進 Integration Acceptance；`DO_NOT_MERGE_X` 時停在 `READY_FOR_X_INTEGRATION`。
+- [ ] X task-chain dispatch / checkpoint / QA identity 帶 `MASTER_ID / TASK_ID / TARGET_X / FROZEN_X_BASE_SHA / EXPECTED_PARENT_SHA / WORK_ORDER_BRANCH / CHAIN_HEAD`，current X 只作 observation；RUN 不存在時標示 `RUN_NOT_CREATED` 並立即修 prerequisite，不等待不存在的 run。
 - [ ] `NON_TERMINAL_CONTINUE`：pending / CHECKPOINT /「尚未完成」只可當 observation；沒有合法 stop condition 時立即執行下一個可執行 action。
 - [ ] 「不假報完成」與「持續施工」兩個義務都存在，前者不能被拿來當停工理由。
 - [ ] PM → Implementer → QA 角色標記完整。
