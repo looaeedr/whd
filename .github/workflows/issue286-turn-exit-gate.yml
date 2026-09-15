@@ -32,3 +32,5 @@ jobs:
             --changed-file "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md" \
             --changed-file "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md" \
             --evidence docs/superpowers/checkpoints/issue286-preflight-evidence.txt
+
+# trigger: issue286-preflight-1
