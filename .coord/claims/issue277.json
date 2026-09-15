@@ -5,11 +5,11 @@
   "work_branch": "test-cleanup/issue277-governance-20260915",
   "claimed_at": "2026-09-15T14:29:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "d340ec070e4ae6fe3203efa303a25a2a133543dd",
+  "head_sha": "54ffc0358294f78c02db1f5440ff84d6b0b3077e",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:36:00Z",
+  "last_update": "2026-09-15T14:38:00Z",
   "remote_qa": null,
-  "next_action": "Push exact metadata-debt repair head d340ec07..., then lock only its new Issue 277 T2 Governance RED run. Require preflight GREEN, stale semantic free-text RED proof, and strict structured metadata baseline GREEN before editing semantic tests.",
+  "next_action": "Lock only the newly created Issue 277 T2 Governance RED run for exact head 54ffc035..., requiring preflight GREEN, exact-parent stale semantic RED proof, and strict structured metadata baseline GREEN after the four-document debt repair.",
   "blocker": null
 }
