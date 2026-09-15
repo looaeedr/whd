@@ -1,0 +1,38 @@
+name: Issue 297 Knowledge Preflight
+
+on:
+  push:
+    branches:
+      - fix/issue297-open-pr-ref-cleanup-guard-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Knowledge preflight
+        shell: bash
+        run: |
+          cat > /tmp/issue297-evidence.txt <<'EOF'
+          READ_SKILL: 寫技能
+          READ_SKILL: Python測試實務
+          READ_SKILL: issue-closure-gate
+          READ_SKILL: tdd
+          READ_SKILL: diagnosing-bugs
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "fix branch cleanup bug preserve open PR head and base refs fail closed skill pitfall python test" \
+            --changed-file tools/branch_cleanup_ref_guard.py \
+            --changed-file tests/process/test_branch_cleanup_ref_guard.py \
+            --changed-file .agents/skills/engineering/issue-closure-gate/SKILL.md \
+            --changed-file 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md \
+            --evidence /tmp/issue297-evidence.txt
