@@ -5,11 +5,11 @@
   "work_branch": "test-cleanup/issue277-governance-20260915",
   "claimed_at": "2026-09-15T14:29:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "phase": "CLAIMED",
+  "head_sha": "58b7f35afd50126aaf57c9ccce57f5bce5d1c074",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:29:00Z",
+  "last_update": "2026-09-15T14:31:00Z",
   "remote_qa": null,
-  "next_action": "Create fresh T2 branch from exact accepted head, write the implementation plan, then prove the inherited semantic-doc free-text authority test RED before replacing it with structured metadata / canonical-authority contracts.",
+  "next_action": "Lock the new T2 RED run for head 58b7f35a..., prove the stale CURRENT-text authority node fails on exact parent for the expected reason while strict structured metadata baseline remains GREEN.",
   "blocker": null
 }
