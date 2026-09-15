@@ -104,7 +104,6 @@ def main() -> None:
     run("git", "merge-base", "--is-ancestor", PRODUCTION_SHA, BAD_HEAD)
     run("git", "merge-base", "--is-ancestor", ACCEPTED_SHA, BAD_HEAD)
 
-    # Start the repaired tree from exact current production, not from the broken merge tree.
     run("git", "read-tree", f"{PRODUCTION_SHA}^{{tree}}")
     run("git", "checkout-index", "-a", "-f")
     run("git", "clean", "-fdx")
@@ -116,7 +115,7 @@ def main() -> None:
     run("git", "add", "AGENTS.md", "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md")
 
     actual = tuple(sorted(filter(None, run(
-        "git", "diff", "--cached", "--name-only", PRODUCTION_SHA, capture=True
+        "git", "-c", "core.quotepath=false", "diff", "--cached", "--name-only", PRODUCTION_SHA, capture=True
     ).splitlines())))
     if actual != EXPECTED_PATHS:
         raise SystemExit(f"approved diff mismatch\nexpected={EXPECTED_PATHS!r}\nactual={actual!r}")
