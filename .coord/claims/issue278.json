@@ -5,11 +5,11 @@
   "work_branch": "test-cleanup/issue278-box-body-identity-20260915",
   "claimed_at": "2026-09-15T14:50:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "phase": "PREFLIGHT",
-  "delegated_branches": [],
-  "last_update": "2026-09-15T14:50:00Z",
+  "head_sha": "a76b5c413608e1268100bb8db197b6df469a2361",
+  "phase": "RED",
+  "delegated_branches": ["qa/issue278-t3-red-20260915"],
+  "last_update": "2026-09-15T14:54:00Z",
   "remote_qa": null,
-  "next_action": "Read the box-body identity/single-source tests and current production projection paths, classify inherited reds before changing tests, then create a minimal T3 RED proof on the exact parent.",
+  "next_action": "Run only the T3 RED classifier against exact task head a76b5c413608e1268100bb8db197b6df469a2361. Require both known stale contracts RED with exact signatures and all durable sibling contracts GREEN before editing target tests.",
   "blocker": null
 }
