@@ -1,0 +1,182 @@
+name: Issue 275 T0 TEST Inventory QA
+
+on:
+  push:
+    branches:
+      - test-cleanup/issue275-inventory-v2-20260915
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue275-t0-test-inventory
+  cancel-in-progress: false
+
+env:
+  ISSUE: '275'
+  WORKER: chatgpt
+  TASK_BRANCH: test-cleanup/issue275-inventory-v2-20260915
+  CLAIM_REF: coord/claim-issue275-20260915
+  BASE_SHA: 269a2972f0f88ffc7085ee3f1483a57145d8b2e8
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock exact T0 identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$TASK_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" "$GITHUB_SHA"
+          test "$(git merge-base "$BASE_SHA" "$GITHUB_SHA")" = "$BASE_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install collection environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Read shared claim without merging claim branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue275/runtime
+          git fetch origin "$CLAIM_REF" --depth=1
+          git show FETCH_HEAD:.coord/claims/issue275.json > .scratch/issue275/runtime/claim.json
+
+      - name: Execution claim guard — QA dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim .scratch/issue275/runtime/claim.json \
+            --issue "$ISSUE" \
+            --worker "$WORKER" \
+            --branch "$TASK_BRANCH" \
+            --action qa-dispatch \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$GITHUB_SHA"
+
+      - name: Fail-closed knowledge preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工 pytest TEST inventory remote QA' \
+            --changed-file .github/workflows/issue275-test-inventory-qa.yml \
+            --changed-file .scratch/issue275/build_test_inventory.py \
+            --changed-file .scratch/issue275/inherited-nodeids.txt \
+            --evidence .scratch/issue275/preflight-evidence.md
+
+      - name: Start durable checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from tools.continuity_controller import Checkpoint, ContinuityState, save_checkpoint
+          save_checkpoint(
+              Path('.scratch/issue275/runtime/checkpoint.json'),
+              Checkpoint(
+                  issue='#275',
+                  branch=os.environ['TASK_BRANCH'],
+                  head_sha=os.environ['GITHUB_SHA'],
+                  state=ContinuityState.RUNNING,
+                  next_action='Collect exact headless and Xvfb pytest inventories, merge/classify them, then verify protected invariants.',
+                  evidence=('claim guard GREEN', 'knowledge preflight GREEN'),
+              ),
+          )
+          PY
+
+      - name: Capture protected manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue275/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) -not -path './.git/*' -not -path './.scratch/*' -print0 | sort -z | xargs -0 sha256sum > "$root/before.sha256"
+
+      - name: Collect Headless inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u DISPLAY python .scratch/issue275/build_test_inventory.py collect \
+            --mode headless \
+            --inherited .scratch/issue275/inherited-nodeids.txt \
+            --output .scratch/issue275/runtime/headless-collection.json
+
+      - name: Collect Xvfb inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python .scratch/issue275/build_test_inventory.py collect \
+            --mode xvfb \
+            --inherited .scratch/issue275/inherited-nodeids.txt \
+            --output .scratch/issue275/runtime/xvfb-collection.json
+
+      - name: Merge and classify exact collection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .scratch/issue275/build_test_inventory.py merge \
+            --headless .scratch/issue275/runtime/headless-collection.json \
+            --xvfb .scratch/issue275/runtime/xvfb-collection.json \
+            --inherited .scratch/issue275/inherited-nodeids.txt \
+            --out-dir .scratch/issue275/runtime/final
+
+      - name: Verify no production/config/DXF drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue275/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) -not -path './.git/*' -not -path './.scratch/*' -print0 | sort -z | xargs -0 sha256sum > "$root/after.sha256"
+          diff -u "$root/before.sha256" "$root/after.sha256"
+          git diff --exit-code -- . ':!.scratch/**'
+          test -z "$(git status --porcelain=v1 --untracked-files=no -- . ':!.scratch/**')"
+
+      - name: Terminalize checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from tools.continuity_controller import (
+              ContinuityState,
+              assert_finalizable,
+              load_checkpoint,
+              save_checkpoint,
+              transition_checkpoint,
+          )
+          path=Path('.scratch/issue275/runtime/checkpoint.json')
+          cp=load_checkpoint(path)
+          cp=transition_checkpoint(
+              cp,
+              state=ContinuityState.TERMINAL_SUCCESS,
+              next_action=None,
+              evidence=cp.evidence + ('headless collection GREEN', 'xvfb collection GREEN', 'inventory merge GREEN', 'protected invariants GREEN'),
+          )
+          save_checkpoint(path, cp)
+          assert_finalizable(cp)
+          print('ISSUE275_T0_INVENTORY_QA=GREEN')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue275-t0-test-inventory
+          path: .scratch/issue275/runtime/
+          if-no-files-found: error
