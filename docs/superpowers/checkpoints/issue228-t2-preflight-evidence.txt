@@ -1,0 +1,51 @@
+ISSUE: #228
+TASK: T2 Consolidate Continuous Execution Authority
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+APPROVED_SPEC: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md @ 57807a4e3ea0aa64d055891dc0a5fe856ce40935
+
+READ_SKILL: executable-continuity-controller
+READ_SKILL_PATH: .agents/skills/engineering/executable-continuity-controller/SKILL.md
+READ_SKILL_SHA: 6bb92f628857a0f03defddf10415de02b7769307
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_READ: previously read through EOF on the same work-order lineage; unchanged since T1 cleanup
+
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+REFERENCE_SHA: 60128f6aecc4e811ddf4c33f71cf496241ef8427
+
+READ_LEGACY_TARGET: 個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md
+LEGACY_TARGET_SHA: 5bb4bfc88342aadc96d675c3461781908c1178b5
+
+READ_EXECUTABLE_AUTHORITY: tools/continuity_controller.py
+EXECUTABLE_AUTHORITY_SHA: a7e5a7f1863954e1aa35242095619f10d5596be2
+
+READ_BEHAVIOR_GUARD: tests/process/test_continuity_controller.py
+BEHAVIOR_GUARD_SHA: d6ad4eb09e934f6f4e7cf242fcfc83c772adccb2
+
+READ_SKILL: 寫技能
+READ_SKILL_PATH: .agents/skills/engineering/寫技能/SKILL.md
+READ_SKILL_SHA: 9fc8d323f255d118ebedc1f0a361d4472a667596
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_SKILL: phase6-release-packaging
+READ_SKILL_PATH: .agents/skills/engineering/phase6-release-packaging/SKILL.md
+READ_SKILL_SHA: 241fd49fe86e7f43f77ace157e071df454e98bff
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+REFERENCE_READ: previously read through EOF on the same work-order lineage; unchanged since T1 cleanup
+
+READ_REFERENCE: release_required_artifacts.json
+REFERENCE_SHA: 29968e4b3f4255ebbd547e13a308ad47f127ed83
+
+NOTES:
+- `tools/continuity_controller.py` owns executable durable state/finalization behavior and must not be redesigned in T2.
+- `.agents/skills/engineering/executable-continuity-controller/SKILL.md` owns operator/semantic guidance for using that machine authority.
+- `continuous_execution_pitfalls.md` is legacy prose and may remain useful only as REFERENCE; marker/string presence is documentation compatibility evidence, never executable enforcement.
+- Existing behavior tests are validation-only and must remain GREEN; they do not become production/domain authority.
+- T2 is a low-risk governance/metadata normalization; release packaging policy was read because Skill/AI Library changes are mandatory update artifacts, but no release package is being produced in this child task.

@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 Inner-Door Panel Pitfalls
 
 ## 2026-09-06：有 inner-door 設定與框，不代表已有真實內門板件

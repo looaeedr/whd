@@ -2,6 +2,10 @@
 name: 掃描深模組
 description: 需要掃描程式碼庫架構摩擦、找 deep module 深化機會、檢查 module/interface/seam/locality，或使用者明確要求「掃描深模組」時使用。WHD 必須先回讀既有 DM baseline，產生繁體中文報告，並以中文 canonical Skill 路徑銜接程式碼庫設計、深度質詢與領域建模。
 disable-model-invocation: true
+whd_doc_role: CURRENT
+whd_contract: scan-deep-modules
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 掃描深模組

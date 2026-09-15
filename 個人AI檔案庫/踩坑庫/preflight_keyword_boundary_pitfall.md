@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 Preflight Keyword Boundary 踩坑
 
 ## 問題

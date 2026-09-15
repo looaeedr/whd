@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # OVERLAY nominal-side-fold correction — SUPERSEDED
 
 > 本文件記錄兩次已被推翻的中間結論：40/320 與 25/350。兩者都不是現行製造契約。

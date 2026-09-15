@@ -2,6 +2,10 @@
 name: setup-ts-deep-modules
 description: Wire dependency-cruiser into a TypeScript repo so each package is a deep module, with implementation hidden in subfolders and reachable only through its entry-point files. User-invoked.
 disable-model-invocation: true
+whd_doc_role: REFERENCE
+whd_contract: setup-ts-deep-modules
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Setup TS Deep Modules

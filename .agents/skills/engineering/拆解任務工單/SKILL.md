@@ -2,6 +2,10 @@
 name: 拆解任務工單
 description: 將已確認的 plan/spec/issue/conversation 拆成可實作工單。必須先以可執行 requirement-level RED 證明需求、取得使用者核准，再依 root contract 切票；WHD 工單還要帶 Requirement Authority、AI Library traceability、GitHub owning Issue 與 closing ownership。
 disable-model-invocation: true
+whd_doc_role: CURRENT
+whd_contract: requirement-red-ticket-decomposition
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 拆解任務工單

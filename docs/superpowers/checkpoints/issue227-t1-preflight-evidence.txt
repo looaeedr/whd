@@ -1,0 +1,25 @@
+ISSUE: #227
+TASK: T1 Authority Classification and Conflict Matrix
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+APPROVED_SPEC: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md @ 57807a4e3ea0aa64d055891dc0a5fe856ce40935
+
+TASK_LEVEL_REQUIRED_SKILLS: none matched
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_READ_RANGE: lines 1 through EOF (EOF confirmed before requested line 1201)
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+REFERENCE_READ_RANGE: lines 1 through EOF (EOF confirmed before requested line 401)
+
+NOTES:
+- Python testing practice is the pytest engineering layer; TDD remains the RED→GREEN authority.
+- The pitfall ledger is REFERENCE / incident history, not current domain authority.
+- T1 classification must prefer the approved v1.1 spec and canonical authority map over current-looking historical prose.
+- Validation evidence cannot become production/domain authority.
+- T1 produces classification/conflict evidence only; content migration is forbidden until the matrix is complete.

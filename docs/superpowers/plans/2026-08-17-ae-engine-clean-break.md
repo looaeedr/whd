@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # AE Engine Clean Break Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Steps use checkbox syntax for tracking.

@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 2026-09-10 找技能 Skill Preflight Evidence
 
 Task: 依使用者上傳的 `找技能` SKILL.md 新增 WHD productivity Skill；保留「理解需求 → leaderboard/search → 品質驗證 → 呈現候選 → 使用者同意後安裝」的來源流程，但把 `npx skills` / `skills.sh` / 安裝能力改成 capability-adaptive，不得假裝已執行。外部 Skill 被找到不代表自動成為 WHD 專案 Skill；納入本專案需使用者明確決定並走 WHD 寫技能/Preflight/Registry 流程。

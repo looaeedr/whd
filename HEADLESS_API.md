@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Headless Manufacturing API（Phase 6：AE Engine Clean Break）
 
 目的：讓 GUI、自動拆圖、CLI 或其他 Python 程式都使用同一個 AE 出圖入口，不必建立 Tkinter GUI，也不必直接呼叫 `ae.export_xxx_dxf()`。

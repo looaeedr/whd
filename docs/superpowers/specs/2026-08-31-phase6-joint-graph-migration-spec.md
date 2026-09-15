@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # PHASE6 Joint Graph / 尺寸 / STANDARD 截角收斂實作規格
 
 狀態：ready-for-agent  

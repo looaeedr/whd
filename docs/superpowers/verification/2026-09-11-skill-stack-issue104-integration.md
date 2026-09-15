@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 2026-09-11 Skill Stack × Issue #104 Integration Evidence
 
 Task: 將已驗收的中文 Skill identity／寫技能／派工／找技能 stack 整合到最新 `cleanup/2d-3d-sync`，不得回退 Issue #104 的 DXF verifier tolerance authority。

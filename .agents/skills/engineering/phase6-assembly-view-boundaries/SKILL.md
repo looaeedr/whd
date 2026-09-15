@@ -1,6 +1,10 @@
 ---
 name: phase6-assembly-view-boundaries
 description: Use when modifying Phase6 組合圖、3D assembly rendering、Assembly Joint、collision/relief diagnostics、operator status UI，或修正組合圖出現不該出現的診斷圖元與控制項時。
+whd_doc_role: CURRENT
+whd_contract: phase6-assembly-view-boundaries
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 組合圖／診斷邊界

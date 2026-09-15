@@ -3,6 +3,10 @@ name: handoff
 description: Compact current work into a durable handoff so another session or agent can continue without relying on hidden conversation state.
 argument-hint: "What will the next session be used for?"
 disable-model-invocation: true
+whd_doc_role: CURRENT
+whd_contract: handoff
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Handoff

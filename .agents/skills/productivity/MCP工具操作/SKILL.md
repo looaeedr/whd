@@ -1,6 +1,10 @@
 ---
 name: MCP工具操作
 description: 透過目前實際可用的 Model Context Protocol（MCP）介面發現 server/tool、檢查 schema 並安全執行外部工具。當使用者提到 MCP、Model Context Protocol、MCP server、MCP tool、mcp-cli，或要求透過 MCP 連接外部系統時使用。優先使用 runtime 已提供的原生 connector/tool 介面；只有真的存在 mcp-cli 時才走 CLI，沒有可用 MCP 能力就 fail closed，不得假裝已列出、已呼叫或已成功。
+whd_doc_role: CURRENT
+whd_contract: mcp-tool-operation
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # MCP工具操作

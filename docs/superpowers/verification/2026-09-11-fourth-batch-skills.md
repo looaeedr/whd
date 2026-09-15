@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # 2026-09-11 第四批 Skill Preflight / Verification Evidence
 
 ## 已核准設計

@@ -1,6 +1,10 @@
 ---
 name: 寫技能
 description: 建立、修改、驗證與改善 Agent Skill。當使用者要求「寫技能」「修改技能」「修好這個 SKILL.md」「把流程寫進技能」「優化技能觸發/規則」，或要把既有工作流程沉澱為可重用技能時使用。既有技能修改必須保留可追溯 baseline、遵守專案自己的 AGENTS/Preflight/branch 規則，並用可執行驗證證明修改沒有只停在文字層。
+whd_doc_role: CURRENT
+whd_contract: skill-authoring
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # 寫技能

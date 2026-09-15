@@ -1,0 +1,45 @@
+{
+  "schema": "WHD_COMBINED_GUARD_MATRIX_V1",
+  "role": "VALIDATION_ONLY",
+  "authority": "none",
+  "note": "validation-only anti-drift coverage；不得成為 production manufacturing authority。",
+  "rows": [
+    {
+      "requirement": "R1",
+      "guard": "tests/knowledge/test_knowledge_authority_contract.py"
+    },
+    {
+      "requirement": "R1",
+      "guard": "tests/knowledge/test_ae_engine_current_spec_contract.py"
+    },
+    {
+      "requirement": "R1",
+      "guard": "tests/knowledge/test_current_history_authority_contract.py"
+    },
+    {
+      "requirement": "R2",
+      "guard": "tests/test_issue175_dm7_navigation_authority_contract.py"
+    },
+    {
+      "requirement": "R3",
+      "guard": "tests/knowledge/test_skill_catalog_classification_contract.py"
+    },
+    {
+      "requirement": "R3",
+      "guard": "tests/knowledge/test_active_skill_runtime_contract.py"
+    },
+    {
+      "requirement": "R4",
+      "guard": "tests/knowledge/test_skill_registry_domain_reference_contract.py"
+    },
+    {
+      "requirement": "R4",
+      "guard": "tests/test_phase6_skill_preflight_gate.py"
+    },
+    {
+      "requirement": "R5",
+      "guard": "tests/knowledge/test_current_history_authority_contract.py"
+    }
+  ],
+  "provenance": "Moved from ticket-era Authority Map guard section by #231 T5; validation evidence only."
+}

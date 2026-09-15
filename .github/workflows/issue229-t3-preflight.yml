@@ -1,0 +1,24 @@
+name: Issue229 T3 Knowledge Preflight
+
+on:
+  push:
+    branches:
+      - work/issue225-knowledge-documentation-consolidation-20260914
+    paths:
+      - '.github/workflows/issue229-t3-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue229-t3-preflight-evidence.txt'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Enforce T3 Knowledge Preflight
+        shell: bash
+        run: |
+          python tools/phase6_skill_preflight.py \
+            --task "T3 AGENTS startup process routing executable continuity controller assert-finalizable skill registry skill catalog engineering README active skill navigation preflight" \
+            --evidence docs/superpowers/checkpoints/issue229-t3-preflight-evidence.txt

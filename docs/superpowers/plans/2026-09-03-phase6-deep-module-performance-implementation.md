@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 深模組效能架構深化 — T01～T14 派工／實作計畫
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development`（建議）或 `superpowers:executing-plans` 逐工單執行。每一張工單都必須自行重跑 Phase6 Knowledge Preflight；總控的 evidence 不得代用。

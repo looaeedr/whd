@@ -1,4 +1,10 @@
-﻿# 封頭／封尾 Hole and Secondary Feature Provenance Trace 規格書
+﻿---
+whd_doc_role: HISTORICAL
+whd_contract: design-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+# 封頭／封尾 Hole and Secondary Feature Provenance Trace 規格書
 
 - **工單編號**: T5 (Issue #5)
 - **基準分支**: cleanup/2d-3d-sync

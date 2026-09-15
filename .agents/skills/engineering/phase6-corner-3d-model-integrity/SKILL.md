@@ -1,6 +1,10 @@
 ---
 name: phase6-corner-3d-model-integrity
 description: Use whenever modifying Phase6 截角、避讓、AssemblyJoint、Fold/placement、3D 單板或組合圖、碰撞求解、FinalScene，或任何會改變 2D/3D 幾何一致性的功能。
+whd_doc_role: CURRENT
+whd_contract: phase6-corner-3d-model-integrity
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 截角 / 3D 模型完整性 Gate

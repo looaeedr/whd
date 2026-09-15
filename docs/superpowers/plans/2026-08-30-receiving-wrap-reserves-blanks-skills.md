@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Receiving WRAP Reserves, Blanks, and Skills Relocation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. This workspace is a non-Git isolated project copy, so file snapshots and test checkpoints replace commits.

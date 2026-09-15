@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: domain-modeling
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # ADR Format
 
 ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.

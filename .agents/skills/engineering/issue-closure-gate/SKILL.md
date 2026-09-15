@@ -1,6 +1,10 @@
 ---
 name: issue-closure-gate
 description: Use when GitHub ticketed work reaches QA acceptance, branch/PR merge, production integration, child/parent issue closure, Final Combined acceptance, or when reporting a ticket/Master as complete.
+whd_doc_role: CURRENT
+whd_contract: issue-closure
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # GitHub Issue Closure Gate

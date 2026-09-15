@@ -2,6 +2,10 @@
 name: writing-beats
 description: Writing, exploit; assemble raw material into a journey of beats, grounding each term before a beat leans on it.
 disable-model-invocation: true
+whd_doc_role: REFERENCE
+whd_contract: writing-beats
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 <what-to-do>

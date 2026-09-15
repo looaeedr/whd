@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+AUTHORITY_MAP_REL = "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
 
 
 def read(rel: str) -> str:
@@ -33,7 +34,7 @@ def test_t7_documents_have_machine_readable_roles() -> None:
 def test_current_entrypoints_point_to_current_authorities() -> None:
     for rel in ("README.md", "AI_HANDOFF.md", "AGENTS.md", "handoff/00_AI_HANDOFF_README.md"):
         text = read(rel)[:5000]
-        assert "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md" in text, rel
+        assert AUTHORITY_MAP_REL in text, rel
         assert "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md" in text, rel
 
 
@@ -64,7 +65,7 @@ def test_global_pitfall_file_is_reference_index_not_parallel_domain_ssot() -> No
     prefix = text[:2200]
     assert "role=REFERENCE" in prefix
     assert "不是 CURRENT domain authority" in prefix
-    assert "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md" in prefix
+    assert AUTHORITY_MAP_REL in prefix
 
     collision = text.index("### 50. 先用截角公式猜 Assembly Relief")
     collision_window = text[max(0, collision - 400):collision + 650]
@@ -83,17 +84,18 @@ def test_global_ai_collaboration_rules_do_not_make_giant_06_the_domain_owner() -
     assert "04_WHD鈑金展開幾何引擎規範.md" in text
 
 
-def test_authority_map_records_t7_current_history_roles() -> None:
-    text = read("個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md")
+def test_authority_map_records_permanent_current_history_roles() -> None:
+    text = read(AUTHORITY_MAP_REL)
     required_rows = (
-        "contract=agent-startup-process role=CURRENT path=AGENTS.md",
-        "contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
-        "contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md",
-        "contract=api-inventory role=HISTORICAL path=docs/superpowers/CURRENT_API_INVENTORY_20260818.md",
-        "contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md",
+        "WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+        "WHD_AUTHORITY contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md",
+        f"WHD_AUTHORITY contract=pitfall-ledger role=CURRENT path={AUTHORITY_MAP_REL}",
+        "WHD_AUTHORITY contract=pitfall-ledger role=REFERENCE path=個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
     )
     for row in required_rows:
         assert row in text
+    assert "contract=api-inventory role=HISTORICAL" not in text
 
 
 def test_historical_evidence_is_preserved_instead_of_deleted() -> None:

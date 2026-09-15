@@ -2,6 +2,10 @@
 name: writing-fragments
 description: "Writing, explore: mine raw fragments, no structure yet."
 disable-model-invocation: true
+whd_doc_role: REFERENCE
+whd_contract: writing-fragments
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 <what-to-do>

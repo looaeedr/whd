@@ -1,0 +1,57 @@
+ISSUE: #233
+TASK: T6 Migrate Historical/Mirror Metadata and Enable Strict Mode
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+CURRENT_PARENT_SHA: 4254182b784ab3d3cbac4def76ebc8b7e523e688
+
+APPROVED_SPEC_PATH: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md
+APPROVED_SPEC_BLOB_SHA: 1f828b8aeab8c9596b189e6c5b15a757b3858c54
+APPROVED_SCOPE: eliminate governed Markdown metadata debt, migrate HISTORICAL/MIRROR artifacts structurally, and switch bootstrap governance to strict mode without deleting provenance.
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+REFERENCE_SHA: 628c88c42bc0580657653e3a558e721725bbbc62
+
+READ_REFERENCE: docs/superpowers/verification/knowledge_governance_inventory_v1.json
+REFERENCE_ROLE: T0 frozen governed-document inventory / migration debt baseline.
+
+READ_REFERENCE: docs/superpowers/verification/knowledge_authority_classification_v1.json
+REFERENCE_SHA: d1afe3013d74010ee23660659cd4692fade4a815
+REFERENCE_ROLE: T1 role/conflict classification provenance; not production authority.
+
+READ_TARGET: tools/knowledge_governance.py
+TARGET_SHA_BEFORE: 493cfb4a820cd2e043609bfc9d3997deedadd0fe
+TARGET_FINDING: parser supports inventory/bootstrap/classify only; no strict validator or strict CLI command exists yet.
+
+READ_TARGET: docs/superpowers/CURRENT_API_INVENTORY_20260818.md
+TARGET_SHA_BEFORE: f579f226beff0f3638487660094e91d532b5232c
+TARGET_FINDING: semantic HISTORICAL marker/banner already exists, but no WHD_DOC_META_V1 YAML frontmatter yet.
+
+READ_TARGET: 07_Phase6尺寸語意與標準截角母規則.md
+TARGET_SHA_BEFORE: 8eb725810b5eed124802e091b1c76da2a08a22f8
+TARGET_FINDING: pointer-only legacy MIRROR markers exist, but no WHD_DOC_META_V1 YAML frontmatter and body exceeds the canonical 3–5 line mirror template.
+
+READ_TARGET: 標準基準檔格式.md
+TARGET_SHA_BEFORE: 594108f7cec74176a7a53251dcb482e27c6c4b18
+TARGET_FINDING: pointer-only legacy MIRROR markers exist, but no WHD_DOC_META_V1 YAML frontmatter and body exceeds the canonical 3–5 line mirror template.
+
+STRICT_REQUIREMENTS:
+- every currently governed Markdown path must parse valid WHD_DOC_META_V1 metadata;
+- MIRROR requires existing whd_canonical and pointer-only 3–5 non-empty body lines;
+- HISTORICAL is preserved and must not route as CURRENT merely because its filename/body says CURRENT;
+- strict validation must inspect the full governed tree, not only changed files;
+- strict mode replaces bootstrap tolerance only after metadata debt is zero.
+
+GATE:
+- first RED must enumerate complete current metadata debt and prove strict validator is absent;
+- do not blindly delete/rename or guess unresolved roles;
+- production geometry/UI/DXF behavior, config.ini and protected baselines are out of scope.

@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 3D Designer 草稿工作區實作計畫
 
 > **給代理工作者：** 必須使用 `superpowers:subagent-driven-development`（建議）或 `superpowers:executing-plans` 逐項實作。本計畫以核取方塊追蹤。

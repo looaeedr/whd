@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Issue #117 — UI設計與去AI味 Combined Acceptance Evidence
 
 ## Owning Issue / Authority

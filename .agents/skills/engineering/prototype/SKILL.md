@@ -1,6 +1,10 @@
 ---
 name: prototype
 description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.
+whd_doc_role: CURRENT
+whd_contract: prototype
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 
 # Prototype

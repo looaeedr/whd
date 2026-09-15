@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # PHASE6 組合、尺寸、標準截角與 AssemblyJoint Graph 整合最高優先規格
 
 > **版本日期：2026-08-31**  

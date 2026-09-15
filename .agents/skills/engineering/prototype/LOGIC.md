@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: prototype
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Logic Prototype
 
 A single, self-contained HTML file (a **shareable demo**) that lets anyone drive a state model by clicking buttons. Use this when the question is about **business logic, state transitions, or data shape**: the kind of thing that looks reasonable on paper but only feels wrong once you push it through real cases.

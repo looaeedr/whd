@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 領域詞彙
 
 ## [CURRENT] 2026-09-02 Runtime semantic guard

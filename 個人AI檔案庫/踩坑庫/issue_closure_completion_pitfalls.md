@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue-closure
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # GitHub Issue Closure / Completion 踩坑規則
 
 ## 事故模式：把 code integrated 誤報成 process completed

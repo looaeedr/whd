@@ -1,0 +1,96 @@
+ISSUE: #231
+TASK: T5 Normalize Canonical Authority Map
+WORK_ORDER: #225
+WORK_ORDER_BRANCH: work/issue225-knowledge-documentation-consolidation-20260914
+CURRENT_PARENT_SHA: b1c620c9238b509eb20e01ce0feb8caf8ba6e58a
+
+APPROVED_SPEC_PATH: docs/superpowers/specs/2026-09-14-knowledge-documentation-consolidation-design.md
+APPROVED_SPEC_BLOB_SHA: 1f828b8aeab8c9596b189e6c5b15a757b3858c54
+APPROVED_SCOPE: normalize the Authority Map to permanent contract→role→path routing; remove ticket-era narrative; do not modify production behavior.
+
+READ_SKILL: Python測試實務
+READ_SKILL_PATH: .agents/skills/engineering/Python測試實務/SKILL.md
+READ_SKILL_SHA: 84f7a78ac45a853582624e571dad40b84845dd33
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+REFERENCE_SHA: fc26fb2de544483fe2fbeb4d0b3d08cc6691aa37
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+REFERENCE_SHA: 6aa8db5265e6f49fdd1ebacd450b76e16bf3f6e0
+REFERENCE_ROLE: REFERENCE / incident ledger; not promoted to domain/process CURRENT.
+
+READ_REFERENCE: docs/superpowers/verification/knowledge_authority_classification_v1.json
+REFERENCE_SHA: d1afe3013d74010ee23660659cd4692fade4a815
+REFERENCE_FINDING: T1 classified conflicts/provenance but did not create a new pitfall-ledger CURRENT owner.
+
+READ_TARGET: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+TARGET_SHA_BEFORE: 03d1c2fc1f7683f563b5ec839c5bfbb2f93a68a7
+TARGET_SHA_AFTER: 628c88c42bc0580657653e3a558e721725bbbc62
+TARGET_RESULT:
+- valid WHD_DOC_META_V1 CURRENT metadata with contract canonical-authority-map;
+- one normalized WHD_AUTHORITY row format only;
+- ticket-era T7/T1/T8 narrative and combined validation matrix removed from normative body;
+- permanent process contracts include continuous execution, remote QA, issue closure, skill routing/classification, knowledge preflight and pitfall-ledger routing;
+- each mapped contract has exactly one CURRENT owner;
+- README/pitfall artifacts are not parallel CURRENT owners.
+
+VALIDATION_PROVENANCE:
+PATH: docs/superpowers/verification/combined_authority_guard_matrix_v1.json
+BLOB_SHA: f6bfc99467b18f86de8412c917e75988185dcae6
+ROLE: VALIDATION_ONLY
+AUTHORITY: none
+RESULT: prior R1-R5 Combined guard coverage preserved outside normative Authority Map.
+
+CANONICAL_OWNERS_FROM_APPROVED_SPEC:
+- continuous-execution-machine -> tools/continuity_controller.py
+- continuous-execution-operations -> .agents/skills/engineering/executable-continuity-controller/SKILL.md
+- remote-qa-monitoring -> .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+- issue-closure -> .agents/skills/engineering/issue-closure-gate/SKILL.md
+- skill-routing -> .agents/skills/skill_registry.json
+- skill-classification -> .agents/skills/skill_catalog.json
+- knowledge-preflight -> AGENTS.md
+
+PITFALL_LEDGER_BOUNDARY:
+- Authority Map owns the permanent pitfall-ledger routing contract;
+- `06_踩坑記錄與防錯經驗庫.md` remains REFERENCE / incident ledger;
+- actual pitfall/README artifacts are forbidden from becoming parallel CURRENT owners.
+
+RED_EVIDENCE_1:
+- RUN_ID: 34850081969
+- HEAD_SHA: ff31155951e4c5ba99d4b6f6bda2d9b0d579bbd8
+- PREFLIGHT: GREEN; Python測試實務 + 06 + 08 all satisfied.
+- RESULT: 4 failed / 3 passed.
+- FAILURES: missing metadata; ticket-era normative prose; process rows not normalized; pitfall reference routing absent from normalized parser.
+
+RED_EVIDENCE_2:
+- RUN_ID: 34850290640
+- HEAD_SHA: 493ddc1bb0c91636bc5c8ded8c77853d19a4096e
+- PREFLIGHT: GREEN.
+- RESULT: 7 failed / 11 passed.
+- FAILURES additionally proved combined guard provenance file had to exist outside the Authority Map and current/history tests had to migrate from legacy T7 rows.
+
+FOCUSED_GREEN_EVIDENCE:
+- RUN_ID: 34850518714
+- HEAD_SHA: 75e8fdf8a46f8329f288245b228d555addd3f2bc
+- PREFLIGHT: GREEN.
+- NORMALIZATION_AND_PROVENANCE: 18 passed / 0 failed.
+- EXISTING_AUTHORITY_CONTRACT: 4 passed / 0 failed.
+- BOOTSTRAP: 8 passed / 0 failed.
+
+FINAL_KNOWLEDGE_EVIDENCE:
+- RUN_ID: 34850585204
+- TESTED_HEAD_SHA: 99e032955d194a8d7f70bc7a47e95f1d4a7899cb
+- PREFLIGHT: GREEN.
+- NORMALIZATION_AND_PROVENANCE: 18 passed / 0 failed.
+- EXISTING_AUTHORITY_CONTRACT: 4 passed / 0 failed.
+- BOOTSTRAP: 8 passed / 0 failed.
+- COMPLETE_TESTS_KNOWLEDGE: 72 passed / 0 failed.
+
+CLEANUP:
+- temporary `.github/workflows/issue231-t5-authority-map-qa.yml` removed after terminal GREEN at cleanup commit `4a9854ef112bc4ff3f94664032d97a185631017f`.
+- no production geometry/UI/DXF code, registry/catalog contents, Skills, config.ini or protected baselines were modified by T5.
+
+GATE:
+- RED was established before Authority Map edits.
+- validation was not used as authority; it was migrated to verification provenance and kept authority=none.
+- tested-head -> closing-head drift must remain limited to temporary workflow cleanup + durable acceptance evidence.

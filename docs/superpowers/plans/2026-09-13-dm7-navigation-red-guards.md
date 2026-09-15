@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # DM7 T1 Navigation RED Guards — Implementation Plan
 
 > Owning issue: #167  

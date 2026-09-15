@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: pitfall-ledger
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 
 ## 2026-08-29：已知公式不能被 3D discovery 覆蓋
 - 錯誤模式：已知正確 INSERT 公式應為 38×27，但 3D skin intersection 可能求出 38.98、39 或回退 40。

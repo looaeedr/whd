@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: skill-authoring
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Preflight Registry Keyword Boundary Rule
 
 這份 reference 屬於 `寫技能` 的 Preflight / Registry routing 防錯規則。當工作涉及 `.agents/skills/skill_registry.json`、`tools/phase6_skill_preflight.py`、trigger accuracy、route over-trigger / under-trigger 時讀取。

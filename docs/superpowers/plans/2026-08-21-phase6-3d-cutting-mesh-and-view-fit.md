@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 3D 真實 CUTTING Mesh 與視野 Fit 計畫
 
 ## 目標

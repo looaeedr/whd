@@ -1,3 +1,9 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: project-reference
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 尺寸語意／STANDARD 截角－進度包
 
 此包是使用者要求的「先給目前改好的」進度版本，**不是正式 Release FULL/UPDATE**。

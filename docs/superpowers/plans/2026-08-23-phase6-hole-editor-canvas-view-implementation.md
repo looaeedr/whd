@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Phase6 統一開孔編輯器 Canvas View 實作計畫
 
 > **給代理執行者：** 必須使用 superpowers:executing-plans 或等效逐任務流程執行；每個行為先 RED 再 GREEN。

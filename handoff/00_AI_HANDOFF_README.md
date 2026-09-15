@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: handoff-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 <!-- WHD_DOC_ROLE role=MIRROR contract=handoff-entry POINTER_ONLY -->
 # 00 — Handoff Compatibility Entry
 
