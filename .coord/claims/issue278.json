@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-15T14:50:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
   "head_sha": "e1d484c247af5b7f384a8883d31357efb7820049",
-  "phase": "CLOSING",
+  "phase": "CLOSED",
   "delegated_branches": ["qa/issue278-t3-red-20260915"],
-  "last_update": "2026-09-15T15:10:00Z",
+  "last_update": "2026-09-15T15:11:00Z",
   "remote_qa": {
     "red_run_id": 34985361465,
     "red_candidate_sha": "a76b5c413608e1268100bb8db197b6df469a2361",
@@ -17,6 +17,6 @@
     "acceptance_head_sha": "8c9596b97b53830034d261955649c47ac4b7cc33",
     "acceptance_conclusion": "success"
   },
-  "next_action": "Verify tested head 8c9596b97b53830034d261955649c47ac4b7cc33 to closing head e1d484c247af5b7f384a8883d31357efb7820049 drift is limited to permanent acceptance documentation and temporary workflow removal, then close #278 and update Master #274 T3_ACCEPTED_HEAD.",
+  "next_action": "No further #278 mutation. Master #274 records T3_ACCEPTED_HEAD=e1d484c247af5b7f384a8883d31357efb7820049. #279 / T4 must start independently from the common T1 parent a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6.",
   "blocker": null
 }
