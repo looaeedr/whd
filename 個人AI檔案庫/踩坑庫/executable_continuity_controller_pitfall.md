@@ -42,3 +42,14 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 - 「pytest 有檢查 marker，所以 runtime guard 已完成。」——錯，那只是 documentation contract。
 - 「remote run 還在跑，等使用者下次打繼續再查。」——錯；chat runtime 可用時主動 poll，runtime 被硬切後則從 durable run identity 恢復。
 - 「平台切掉就沒辦法，所以 checkpoint 沒意義。」——錯；無法控制平台不代表可以接受 state loss 或把 remote scheduler 交給使用者。
+
+## TURN_EXIT_ENFORCEMENT_V2
+
+`assert_finalizable` 只能拒絕「把 non-terminal workflow 宣告完成」，不能單獨拒絕「assistant 在 non-terminal progress 回報後結束目前 turn」。這兩個 boundary 必須分離：
+
+- workflow/issue completion → `assert_finalizable`；
+- assistant response/turn boundary → `assert_turn_exitable`。
+
+`RUNNING / WAITING_REMOTE / RECOVERING` 有可自主 next action，因此 turn exit fail closed；`BLOCKED` 代表真正外部 wait，可結束 turn但仍不可 finalizable；terminal states 可通過兩者。特別是 remote run terminal 後，只要 cleanup/drift/closure 未完，必須回 `RUNNING(next_acceptance_action)` 並由 turn-exit guard 接手，不能因 remote lock 解除就回報後停止。
+
+對應 machine guard：`tools/continuity_controller.py` + `tests/process/test_continuity_controller.py`。Skill/AI marker tests 只保護 bridge 存在，不得再次被誤稱為 runtime enforcement。

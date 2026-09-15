@@ -477,3 +477,9 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] success 後仍做 cleanup + durable state + drift audit 才 ACCEPT。
 - [ ] 未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與 blocker，且不得中斷執行。
 - [ ] 未宣稱不存在的背景工程師、subagent 或 scheduler 正在替你工作。
+
+## GLOBAL_TURN_EXIT_GATE_BRIDGE
+
+`NON_TERMINAL_CONTINUE` 的 machine enforcement 一律委派 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1`。任何 progress/CHECKPOINT/QA PASS/code integrated 回報後，只要 owning checkpoint 仍為 `RUNNING / WAITING_REMOTE / RECOVERING`，結束 assistant turn 前必須呼叫 `assert_turn_exitable`；被拒絕就立即執行 `next_action`，不得等待使用者再輸入「繼續／輪／GO」。
+
+`BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。

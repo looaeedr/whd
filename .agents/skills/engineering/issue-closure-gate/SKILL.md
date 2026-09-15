@@ -144,3 +144,9 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 - [ ] 每次 close 後都有 remote readback。
 - [ ] target integration 與 issue closure 分開判定。
 - [ ] 沒有 open required issue 時才宣告正式完成。
+
+## CLOSING_TURN_EXIT_BRIDGE
+
+`code integrated, process incomplete` 是精確 observation，不是合法停工點。只要 owning checkpoint 仍是 `RUNNING` 且 `next_action` 為 workflow cleanup、tested→closing drift、close/readback leaf、closing ticket 或 Master，本 Skill 在任何 user-visible response boundary 都必須呼叫 `assert_turn_exitable`；machine guard 拒絕時立即續做 next action。
+
+只有 genuine `BLOCKED`（需要外部 authority/capability）或 terminal checkpoint 才能合法結束 turn。Workflow 是否真的完成仍另外要求 `assert_finalizable` + 全 issue chain readback；兩個 gate 不得合併。

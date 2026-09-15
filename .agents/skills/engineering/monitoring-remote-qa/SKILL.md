@@ -163,3 +163,9 @@ Remote QA monitoring is **active polling**, not event notification.
 - watchdog observation 沿用既有 **30 秒** cadence；但一旦讀到 terminal run、404/invalid identity 或第二次 stale confirmation，就立即處理，不必等滿下一個 30 秒。
 - global `active run = 0` 只能作 supporting evidence；canonical 判定仍以保存的 exact `run_id + head_sha` 為先，避免 unrelated workflow 或 pagination 造成誤分類。
 - **使用者不是 watchdog**。不得要求使用者輸入「繼續／輪／poll」來解除 stale waiting；一旦判定 `STALE_WAIT` / `RECOVERING_STALE_WAIT`，assistant/controller 必須自己恢復並推進 next action。
+
+## GLOBAL_TURN_EXIT_AFTER_REMOTE_BRIDGE
+
+`REMOTE_QA_ACTIVE_LOCK` 只擁有 remote run 非終態期間的 polling lock；它在 run terminal 時解除，**不代表 assistant turn 因此可結束**。Terminal success 若還有 counts/invariants/cleanup/drift/writeback/closure，先把 durable checkpoint 轉成 `RUNNING(next_acceptance_action)`，再由 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1` 接手。
+
+因此 `remote success → RUNNING(cleanup)` 必須讓 `assert_turn_exitable` fail closed；任何「RUN PASS」進度回報之後直接停止，都屬 closing-lock-gap regression。

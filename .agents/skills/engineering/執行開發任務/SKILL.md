@@ -218,3 +218,12 @@ Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，
 6. exact tested HEAD / ancestry 未變時，既有 `terminal QA evidence 保持有效`；不能只因 runtime 重開就重建舊 run。
 
 長任務至少在下列 durable boundary 更新 checkpoint：`RED`、`GREEN`、`remote QA submitted`、`remote QA terminal`、`closing drift`、`integration`、`post-integration terminal`。execution window 被切斷只代表從最近 boundary 恢復；使用者不是續跑 scheduler，若 next action 可自主執行就立即繼續。
+
+## GLOBAL_TURN_EXIT_GATE_BRIDGE
+
+所有長流程的 user-visible response boundary 必須 bridge 到 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1`。在準備結束 assistant turn 前，先載入 owning durable checkpoint 並執行 `assert_turn_exitable`／`assert-turn-exitable`。
+
+- `RUNNING / WAITING_REMOTE / RECOVERING` 被 machine guard 拒絕時，輸出只能是 observation，下一個動作必須立刻執行 checkpoint 的 `next_action`；不得把使用者當 scheduler。
+- `BLOCKED` 才能因真正外部 authority/capability wait 把控制權交回使用者；但它仍不能通過 `assert_finalizable`。
+- Remote QA terminal 後若轉成 `RUNNING(cleanup / invariant / drift / closure)`，remote lock 雖解除，global turn-exit lock 立即接手；PASS 回報不是停工點。
+- `USER_VISIBLE_CHECKPOINT_GATE` 只負責呈現/恢復面，不取代 executable turn-exit gate。

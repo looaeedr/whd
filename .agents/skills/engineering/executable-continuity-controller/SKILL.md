@@ -103,3 +103,36 @@ On terminal failure, use `RECOVERING` with the concrete evidence/root-cause acti
 - remote ownership/evidence preservation.
 
 Documentation marker tests may remain, but they MUST NOT be treated as proof that runtime continuity is enforced.
+
+## ASSISTANT_TURN_EXIT_GATE_V1
+
+Workflow finalization 與 assistant turn exit 是兩個不同 machine gate。Canonical executable authority 仍是 `tools/continuity_controller.py`：
+
+```python
+from tools.continuity_controller import load_checkpoint, assert_turn_exitable
+
+checkpoint = load_checkpoint(path)
+assert_turn_exitable(checkpoint)
+```
+
+CLI：
+
+```bash
+python -m tools.continuity_controller assert-turn-exitable path/to/checkpoint.json
+```
+
+Turn-exit state contract：
+
+- `RUNNING`：**拒絕 turn exit**；立即執行 `next_action`。
+- `WAITING_REMOTE`：**拒絕 turn exit**；維持 exact run/head lock 並 poll。
+- `RECOVERING`：**拒絕 turn exit**；沿 evidence → root cause → fix → retry。
+- `BLOCKED`：允許結束目前 turn，因為它代表真正需要外部 authority/capability；但它仍是 non-terminal，`assert_finalizable` 必須失敗。
+- `TERMINAL_SUCCESS / TERMINAL_FAILURE`：允許 turn exit；是否可宣告 workflow 完成仍由 `assert_finalizable` 與 owning closure gate 判定。
+
+`assert_turn_exitable` 與 `assert_finalizable` 不得互相取代。前者回答「目前 assistant response 能不能停」，後者回答「workflow/issue 能不能被宣告 terminal」。
+
+### Remote-terminal → closing handoff
+
+Remote run terminal 只解除 `REMOTE_QA_ACTIVE_LOCK`。只要 counts、invariant、cleanup、tested→closing drift、AI writeback 或 issue/Master closure 尚有工作，checkpoint 必須轉成 `RUNNING(next_acceptance_action)`；此時 `ASSISTANT_TURN_EXIT_GATE_V1` 立即接手，禁止在「QA PASS／code integrated／process incomplete」等進度回報後結束 turn。
+
+`tests/process/test_continuity_controller.py` 是 turn-exit machine behavior authority；它必須保留 `WAITING_REMOTE → RUNNING(cleanup)` 後 turn exit 被拒絕的 regression。`tests/process/test_issue286_turn_exit_bridge_contract.py` 只保護各入口 Skill/踩坑 bridge 不漂移，不能取代 behavior test。
