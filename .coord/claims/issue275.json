@@ -8,8 +8,13 @@
   "head_sha": "f688d428bc5a8c2d176867079d455e879c88a06c",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-15T13:59:00Z",
-  "remote_qa": null,
-  "next_action": "Advance task branch non-force to f688d428..., then identify replacement #275 QA run and monitor only that run to terminal.",
+  "last_update": "2026-09-15T13:59:20Z",
+  "remote_qa": {
+    "run_id": 34978576155,
+    "head_sha": "f688d428bc5a8c2d176867079d455e879c88a06c",
+    "branch": "test-cleanup/issue275-inventory-v2-20260915",
+    "state": "queued"
+  },
+  "next_action": "Poll replacement run 34978576155 and its job/steps until terminal; do not switch tasks.",
   "blocker": null
 }
