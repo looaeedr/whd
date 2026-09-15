@@ -1,6 +1,6 @@
 ---
 name: 寫成規格書
-description: 將目前對話整理成工程／產品規格，但必須先以 current codebase、AI Library、既有規格、測試與 certified data 做 grounding；共享尺寸與機械語意需跨 Family 查證，不能把現況、測試或 probe 當成產品真值。
+description: 將目前對話整理成工程／產品規格，但必須先以 current codebase、AI Library、既有規格、測試與 certified data 做 grounding；共享尺寸與機械語意需跨 Family 查證，不能把現況、測試或 probe 當成產品真值；規格完成時必須同步產出可下載的 UTF-8 Markdown 檔。
 disable-model-invocation: true
 whd_doc_role: CURRENT
 whd_contract: grounded-spec-authoring
@@ -77,6 +77,25 @@ Passing tests 不得覆蓋已確認 mechanical rule。
 6. 每個 normative numeric value 都要交代 authority。
 7. 規格保留 AI Library traceability。
 8. 最後再檢查一次，確保 hypothesis/diagnostic 沒被寫成固定 oracle。
+9. 依 `DOWNLOADABLE_MD_DELIVERY_GATE` 產生並交付最終 Markdown 檔後，才可宣告規格書完成。
+
+## DOWNLOADABLE_MD_DELIVERY_GATE
+
+只要本 Skill 產出「最終規格書」，完成條件必須包含一份**實際可下載的 UTF-8 `.md` 檔**；這是完成硬閘門，不是可選附件。
+
+1. 最終規格定稿後，必須把同一份最終內容實際寫成 UTF-8 Markdown 檔，檔名需具可辨識意義並以 `.md` 結尾。
+2. 最終 user-visible response 必須提供**真實可用的下載連結／artifact attachment**；在支援 sandbox artifact 的 runtime，使用已實際存在的 `sandbox:/mnt/data/<filename>.md` 或當前 runtime 的等價可下載 artifact。
+3. **不得只把 Markdown 貼在聊天裡**、只給 repository URL、只寫本機路徑、只說「已建立」或「可以幫你建立」，也不得提供未實際存在的 sandbox path；以上都不算交付完成。
+4. 可下載 `.md` 的內容必須與本輪最後交付／核准的規格一致。若規格在生成檔案後又被修改，必須重新產生／覆寫下載檔，禁止讓聊天版本、repo 版本與下載 artifact 漂移。
+5. 若同時把規格寫回 repository / AI Library，下載檔仍不得省略；repository copy 與 downloadable artifact 是兩個獨立交付責任。
+6. 若當前 runtime 確實無法建立可下載 artifact，必須明確標示 capability blocker，**不得宣告規格書已完成，也不得假稱下載檔存在**。
+
+完成前自檢：
+
+- [ ] 最終規格已實際輸出為 UTF-8 `.md`。
+- [ ] 最終回覆包含可點擊／可下載的真實 artifact link。
+- [ ] artifact 實際存在，不是推測或虛構路徑。
+- [ ] 下載檔內容與最終規格完全一致；最後修改後已重新產生。
 
 ## Required spec structure
 
@@ -103,4 +122,7 @@ Passing tests 不得覆蓋已確認 mechanical rule。
 - shared term 只查單一 Family；
 - Family representation 被當 global definition；
 - cross-Family evidence 未查；
-- 驗證資料被反向拿去決定 production 計算。
+- 驗證資料被反向拿去決定 production 計算；
+- 最終規格沒有實際產生可下載的 UTF-8 `.md`；
+- 最終回覆沒有提供真實可用的 Markdown 下載連結；
+- 下載檔內容落後於最後修訂的規格內容。
