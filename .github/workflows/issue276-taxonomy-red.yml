@@ -1,0 +1,90 @@
+name: Issue 276 T1 Taxonomy RED
+
+on:
+  push:
+    branches:
+      - test-cleanup/issue276-taxonomy-20260915
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue276-t1-taxonomy
+  cancel-in-progress: false
+
+env:
+  ISSUE: '276'
+  WORKER: chatgpt
+  TASK_BRANCH: test-cleanup/issue276-taxonomy-20260915
+  CLAIM_REF: coord/claim-issue276-20260915
+  BASE_SHA: b5ae852e4aaa236413b0a1acaf097ffb5dbb2776
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lock exact T1 lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$TASK_BRANCH"
+          git merge-base --is-ancestor "$BASE_SHA" "$GITHUB_SHA"
+          test "$(git merge-base "$BASE_SHA" "$GITHUB_SHA")" = "$BASE_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Read shared claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue276/runtime
+          git fetch origin "$CLAIM_REF" --depth=1
+          git show FETCH_HEAD:.coord/claims/issue276.json > .scratch/issue276/runtime/claim.json
+      - name: Execution claim guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim .scratch/issue276/runtime/claim.json \
+            --issue "$ISSUE" --worker "$WORKER" --branch "$TASK_BRANCH" \
+            --action qa-dispatch --base-sha "$BASE_SHA" --head-sha "$GITHUB_SHA"
+      - name: Fail-closed preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工 pytest TEST taxonomy markers remote QA' \
+            --changed-file tests/test_issue276_test_taxonomy_contract.py \
+            --changed-file .github/workflows/issue276-taxonomy-red.yml \
+            --evidence .scratch/issue276/preflight-evidence.md
+      - name: Verify requirement RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q --tb=short tests/test_issue276_test_taxonomy_contract.py > .scratch/issue276/runtime/red.log 2>&1
+          rc=$?
+          set -e
+          cat .scratch/issue276/runtime/red.log
+          test "$rc" -ne 0
+          grep -F 'test_pytest_ini_registers_required_taxonomy_markers' .scratch/issue276/runtime/red.log >/dev/null
+          grep -F 'test_lane_policy_declares_required_primary_lanes_and_selection_expressions' .scratch/issue276/runtime/red.log >/dev/null
+          grep -F 'test_pytest_collection_hook_adds_taxonomy_without_replacing_display_skip_policy' .scratch/issue276/runtime/red.log >/dev/null
+          grep -E '[3-4] failed' .scratch/issue276/runtime/red.log >/dev/null
+          echo 'ISSUE276_T1_REQUIREMENT_RED=VERIFIED'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue276-t1-red
+          path: .scratch/issue276/runtime/
+          if-no-files-found: error
