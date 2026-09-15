@@ -8,8 +8,12 @@
   "head_sha": "88412d2e3dd042bec4dc06d13e9eaa4c0d9cb79c",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:33:00Z",
-  "remote_qa": null,
-  "next_action": "Push exact RED head 88412d2e..., then lock only the newly created Issue 277 T2 Governance RED run. Preflight must be GREEN before stale free-text authority RED and structured-metadata baseline are evaluated.",
+  "last_update": "2026-09-15T14:34:00Z",
+  "remote_qa": {
+    "run_id": 34982431691,
+    "head_sha": "88412d2e3dd042bec4dc06d13e9eaa4c0d9cb79c",
+    "workflow": "Issue 277 T2 Governance RED"
+  },
+  "next_action": "Monitor only run 34982431691 to terminal. Preflight must be GREEN, stale free-text authority node must be proven RED on exact parent, and structured metadata baseline must remain GREEN before implementation.",
   "blocker": null
 }
