@@ -1,0 +1,72 @@
+name: issue279 T4 parent classifier
+
+on:
+  push:
+    branches:
+      - qa/issue279-parent-classifier-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      T1_PARENT: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+      TASK_HEAD: ee45ddf431ea68ab88f77030d896bd3fe4ccce3a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock exact T4 lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$TASK_HEAD^{commit}"
+          actual_parent="$(git rev-parse "$TASK_HEAD^")"
+          test "$actual_parent" = "$T1_PARENT"
+          echo "TASK_HEAD=$TASK_HEAD"
+          echo "T1_PARENT=$T1_PARENT"
+          echo "PARALLEL_LINEAGE=GREEN"
+
+      - name: Prove migration characterization is present on parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$T1_PARENT"
+          test -f tests/test_issue206_gui_modularization_characterization.py
+          grep -q 'theme_width' tests/test_issue206_gui_modularization_characterization.py
+          grep -q 'canvas.calls' tests/test_issue206_gui_modularization_characterization.py
+          test ! -e tests/test_gui_drawing_contract.py
+          test ! -e tests/test_gui_toolbar_contract.py
+          echo "CLASSIFICATION=MIGRATION_CHARACTERIZATION_PRESENT"
+          echo "PERMANENT_SUCCESSORS=ABSENT"
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install pytest
+
+      - name: Run focused parent baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue206_gui_modularization_characterization.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py
+
+      - name: Verify task head is plan-only before implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "$T1_PARENT" "$TASK_HEAD")"
+          printf '%s\n' "$changed"
+          test "$changed" = "docs/plans/2026-09-15-test-cleanup-t4-gui-characterization-retirement.md"
+          echo "PRODUCTION_SOURCE_DRIFT=0"
+          echo "OUTCOME_CONTROL_DRIFT=0"
