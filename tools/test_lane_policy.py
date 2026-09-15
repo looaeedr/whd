@@ -51,6 +51,16 @@ MARKER_DESCRIPTIONS = {
     "requires_tk_display": "test requires a real Tk display; skipped only when DISPLAY is absent",
 }
 
+# T5 permanent responsibility directories are authoritative for the primary lane.
+# Keep this narrow to the directories explicitly introduced by the #280 move
+# manifest; legacy/root tests continue to use the established filename policy.
+_DIRECTORY_PRIMARY_LANES = (
+    ("tests/governance/", "governance"),
+    ("tests/ui/", "ui"),
+    ("tests/architecture/", "architecture"),
+    ("tests/projection/", "projection"),
+)
+
 _ARCHITECTURE_EXACT = {
     "test_issue210_project_actions_move_contract.py",
     "test_issue211_renderer_dependency_gate.py",
@@ -127,24 +137,29 @@ def classify_test(*, path: str, nodeid: str = "", requires_display: bool = False
     filename = PurePosixPath(normalized).name.lower()
     identity = f"{normalized}::{nodeid}".lower()
 
-    if normalized.startswith("tests/knowledge/") or normalized.startswith("tests/process/"):
-        primary = "governance"
-    elif requires_display or any(token in filename for token in _UI_TOKENS):
-        primary = "ui"
-    elif filename in _ARCHITECTURE_EXACT or any(token in filename for token in _ARCHITECTURE_TOKENS):
-        primary = "architecture"
-    elif "dxf" in filename:
-        primary = "dxf"
-    elif any(token in filename for token in _PERSISTENCE_TOKENS):
-        primary = "persistence"
-    elif any(token in filename for token in _PROJECTION_TOKENS):
-        primary = "projection"
-    elif any(token in filename for token in _GEOMETRY_TOKENS):
-        primary = "geometry"
-    elif any(token in filename for token in _UNIT_TOKENS):
-        primary = "unit"
-    else:
-        primary = "integration"
+    primary = next(
+        (lane for prefix, lane in _DIRECTORY_PRIMARY_LANES if normalized.startswith(prefix)),
+        None,
+    )
+    if primary is None:
+        if normalized.startswith("tests/knowledge/") or normalized.startswith("tests/process/"):
+            primary = "governance"
+        elif requires_display or any(token in filename for token in _UI_TOKENS):
+            primary = "ui"
+        elif filename in _ARCHITECTURE_EXACT or any(token in filename for token in _ARCHITECTURE_TOKENS):
+            primary = "architecture"
+        elif "dxf" in filename:
+            primary = "dxf"
+        elif any(token in filename for token in _PERSISTENCE_TOKENS):
+            primary = "persistence"
+        elif any(token in filename for token in _PROJECTION_TOKENS):
+            primary = "projection"
+        elif any(token in filename for token in _GEOMETRY_TOKENS):
+            primary = "geometry"
+        elif any(token in filename for token in _UNIT_TOKENS):
+            primary = "unit"
+        else:
+            primary = "integration"
 
     secondary: list[str] = []
     if requires_display:
