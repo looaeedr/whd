@@ -5,17 +5,17 @@
   "work_branch": "test-cleanup/issue279-gui-characterization-20260915",
   "claimed_at": "2026-09-15T15:12:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "955b8d017c487d5a88ec8ac27a87f53174a903cb",
+  "head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
   "phase": "REMOTE_QA",
   "delegated_branches": [
     "qa/issue279-t4-replacement-20260915"
   ],
-  "last_update": "2026-09-15T15:34:00Z",
+  "last_update": "2026-09-15T15:36:30Z",
   "remote_qa": {
-    "replacement_head_sha": "955b8d017c487d5a88ec8ac27a87f53174a903cb",
+    "replacement_head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
     "replacement_run_id": null,
     "replacement_conclusion": null
   },
-  "next_action": "Lock the concrete replacement-proof RUN; if no RUN exists, fix the trigger prerequisite immediately. Retire #206 only after terminal GREEN.",
+  "next_action": "Lock the concrete replacement-proof RUN for QA head 8fd68802295239f7ed1aa83f90809d83494f3b92. If the first attempt read the previous claim snapshot, rerun the same RUN after this claim update; do not create a different candidate.",
   "blocker": null
 }
