@@ -1,0 +1,34 @@
+name: issue286-turn-exit-gate
+
+on:
+  push:
+    branches:
+      - fix/issue286-closing-turn-exit-gate-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Changed-files knowledge preflight
+        shell: bash
+        run: |
+          set -o pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "fix regression continuous execution non-terminal turn exit after remote QA terminal cleanup drift close issue finalization gate Skill update pytest GitHub Actions" \
+            --changed-file "tools/continuity_controller.py" \
+            --changed-file "tests/process/test_continuity_controller.py" \
+            --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md" \
+            --changed-file ".agents/skills/engineering/執行開發任務/SKILL.md" \
+            --changed-file ".agents/skills/engineering/派工/SKILL.md" \
+            --changed-file ".agents/skills/engineering/monitoring-remote-qa/SKILL.md" \
+            --changed-file ".agents/skills/engineering/issue-closure-gate/SKILL.md" \
+            --changed-file "個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md" \
+            --changed-file "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md" \
+            --evidence docs/superpowers/checkpoints/issue286-preflight-evidence.txt
