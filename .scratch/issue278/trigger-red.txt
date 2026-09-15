@@ -1,0 +1,2 @@
+issue278 T3 RED trigger
+candidate=a76b5c413608e1268100bb8db197b6df469a2361
