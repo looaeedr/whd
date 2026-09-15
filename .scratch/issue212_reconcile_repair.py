@@ -94,7 +94,7 @@ T5 GUI modularization 曾出現 `pytest ... | tee` 與 `python validator.py | te
 - owner/class 由 AST dependency inventory 或 exact source reread 確認；繼承可見性不等於 ownership。
 - 發現假綠後要回溯原 log 重新分類，不能為了維持 GREEN 去改 production 配合 stale test。
 """
-    pitfall.write_text(text.rstrip() + block + "\n", encoding="utf-8")
+    pitfall.write_text(text.rstrip() + block, encoding="utf-8")
 
 
 def main() -> None:
