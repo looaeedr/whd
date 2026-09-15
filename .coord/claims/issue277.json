@@ -8,8 +8,12 @@
   "head_sha": "9ed8ffd87771d73da3d372a04f654d59cc9ace84",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:41:00Z",
-  "remote_qa": null,
-  "next_action": "Lock only the new Issue 277 T2 Governance RED run for exact head 9ed8ffd8..., after fixing Unicode diff-path normalization. Require scope/preflight GREEN, exact-parent stale semantic RED proof, and strict structured-metadata baseline GREEN.",
+  "last_update": "2026-09-15T14:42:00Z",
+  "remote_qa": {
+    "run_id": 34983398130,
+    "head_sha": "9ed8ffd87771d73da3d372a04f654d59cc9ace84",
+    "workflow": "Issue 277 T2 Governance RED"
+  },
+  "next_action": "Monitor only run 34983398130 to terminal. Require Unicode-safe scope lock, preflight GREEN, exact-parent stale semantic RED proof, and strict structured-metadata baseline GREEN before semantic test implementation.",
   "blocker": null
 }
