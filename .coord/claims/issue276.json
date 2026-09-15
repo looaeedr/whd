@@ -5,16 +5,11 @@
   "work_branch": "test-cleanup/issue276-taxonomy-20260915",
   "claimed_at": "2026-09-15T14:08:00Z",
   "base_sha": "b5ae852e4aaa236413b0a1acaf097ffb5dbb2776",
-  "head_sha": "5d192fba12e36cc879ab82242f82ee0bc121d878",
-  "phase": "RED",
+  "head_sha": "9c9f2ebcf63cec561f69145b1a058946b680a487",
+  "phase": "GREEN",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:10:30Z",
-  "remote_qa": {
-    "run_id": 34979789448,
-    "head_sha": "5d192fba12e36cc879ab82242f82ee0bc121d878",
-    "branch": "test-cleanup/issue276-taxonomy-20260915",
-    "state": "queued"
-  },
-  "next_action": "Poll RED run 34979789448 to terminal and inspect the RED log; implementation is forbidden until expected requirement failures are verified.",
+  "last_update": "2026-09-15T14:12:30Z",
+  "remote_qa": null,
+  "next_action": "Advance T1 branch to GREEN candidate 9c9f2ebc..., identify the new #276 taxonomy QA run, and monitor only that exact run to terminal.",
   "blocker": null
 }
