@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: design-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # GUI Overlay / Guide Single-Source Design
 
 **Date:** 2026-08-11

@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: ai-library-reference
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # WHD 技能建立與修改規則
 
 > 目的：讓所有後續 AI 在建立或修改 `.agents/skills/**` 時，不再把特定模型、特定 CLI、背景 Subagent、viewer 或 TodoList 當成普遍存在的能力，並維持 Skill 資料夾、frontmatter、路由與引用的一致 identity。

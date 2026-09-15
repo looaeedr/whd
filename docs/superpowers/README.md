@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: superpowers-history-index
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 <!-- WHD_DOC_ROLE role=REFERENCE contract=superpowers-history-index -->
 > **[REFERENCE / HISTORY INDEX]** 本目錄 README 索引 dated Superpowers/spec/verification evidence，不是 current manufacturing 或 project roadmap authority。
 > Current authority：`個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md`；製造架構/API：`個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md`。

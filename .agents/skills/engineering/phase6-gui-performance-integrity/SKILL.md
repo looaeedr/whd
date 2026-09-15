@@ -1,10 +1,6 @@
 ---
 name: phase6-gui-performance-integrity
 description: Use when Phase6 GUI/3D feels slow, freezes, stutters, recalculates repeatedly, reloads DXF unexpectedly, or when changing Tk trace/live-sync, 3D initialization, cache invalidation, debounce, render scheduling, or GUI performance tests.
-whd_doc_role: CURRENT
-whd_contract: phase6-gui-performance-integrity
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 GUI / 3D 效能完整性 Gate

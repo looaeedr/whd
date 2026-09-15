@@ -1,20 +1,4 @@
----
-whd_doc_role: REFERENCE
-whd_contract: continuous-execution-operations
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
-
 # 長流程持續執行 / 停工點踩坑規則
-
-## Authority status
-
-本文件只保留歷史事故、操作提醒與相容性回歸背景，角色是 **REFERENCE**，不是 executable authority。
-
-- executable machine CURRENT：`tools/continuity_controller.py`
-- operations/semantic CURRENT：`.agents/skills/engineering/executable-continuity-controller/SKILL.md`
-- marker/string presence is **documentation compatibility evidence**, not executable enforcement.
-- 本文件若與上述 CURRENT authority 衝突，以上述 CURRENT 為準；不得從本文件的 marker、字串或舊 test 反推 machine state/finalization 行為。
 
 ## 事故模式：把派工完成當成停工點
 
@@ -30,8 +14,6 @@ WHD 曾發生：Master 與子工單已建立、第一張可執行子工單也已
 - 只有 COMPLETE、真正需要產品決策/權限/不可推導資料的 BLOCKED，或平台實際 Runtime/tool interruption，才允許離開目前工作鏈。
 - Runtime 被硬切時要留下 durable checkpoint；下一回合先驗 drift，再從 next exact action 續跑，不重新要求使用者交代已知上下文。
 
-以上是 reference guidance；真正 checkpoint schema、合法 state、transition 與 finalization 是否可通過，必須由 `tools/continuity_controller.py` 的實際 behavior 判定。
-
 ## CHECKPOINT 可見層事故
 
 WHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部流程責任、沒有 user-visible gate；結果長流程中的一般進度回報逐漸取代 CHECKPOINT，使用者長時間看不到可恢復狀態。這不是「checkpoint 不需要了」，而是可見層漏規則。
@@ -43,13 +25,13 @@ WHD 曾出現 durable checkpoint / resume contract 已存在，但只有內部�
 - 可見 CHECKPOINT 仍是 non-terminal observation / recovery surface；只要 next action 可自主執行，就必須在顯示 CHECKPOINT 後繼續，不得把 CHECKPOINT 變成停工點。
 - `.agents/skills/engineering/執行開發任務/SKILL.md` 的 `USER_VISIBLE_CHECKPOINT_GATE` 是唯一 canonical CHECKPOINT 呈現 authority；不得在其他 Skill 建第二套欄位、refresh 或 execution state machine。
 - 所有可獨立進入長流程的入口目前至少包含 `.agents/skills/engineering/派工/SKILL.md`、`.agents/skills/engineering/monitoring-remote-qa/SKILL.md`、`.agents/skills/engineering/issue-closure-gate/SKILL.md`，都必須以 `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE` 強制 bridge 回 canonical gate；入口 Skill 的 progress/polling/closure domain responsibility 不取代 CHECKPOINT 呈現責任。
-- `USER_VISIBLE_CHECKPOINT_GATE`、各 bridge 與 `tests/process/test_checkpoint_resume_contract.py` 只負責 presentation/routing regression coverage；它們不是 executable durable-state/finalization authority。
+- machine guard 由 canonical `USER_VISIBLE_CHECKPOINT_GATE`、三個入口的 `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE` 與 `tests/process/test_checkpoint_resume_contract.py` 共同鎖定。
 
 ## Remote QA 邊界
 
-Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 為唯一 authority；本規則不建立第二套 polling state machine。Durable WAITING/RECOVERING state 仍由 executable controller 判定。
+Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 為唯一 authority；本規則不建立第二套 polling state machine。
 
-## 相容性／回歸參考（非 executable enforcement）
+## 對應 Machine Guard
 
 - `.agents/skills/engineering/執行開發任務/SKILL.md` → `NONTERMINAL_NEXT_ACTION_GATE` + canonical `USER_VISIBLE_CHECKPOINT_GATE`
 - `.agents/skills/engineering/派工/SKILL.md` → PM → Implementer 同工作流程轉移規則 + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
@@ -57,8 +39,6 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - `.agents/skills/engineering/issue-closure-gate/SKILL.md` → closure gate + `USER_VISIBLE_CHECKPOINT_GATE_BRIDGE`
 - `tests/process/test_checkpoint_resume_contract.py`
 - `tests/process/test_continuous_execution_durable_contract.py`
-
-上述 marker/string/tests 可證明文件與 routing 沒 drift；不能證明 runtime state 已保存、resume identity 正確或 non-terminal finalization 已被 machine 拒絕。
 
 ## ISSUE188_EXECUTION_WINDOW_RECOVERY_PITFALL
 
@@ -72,8 +52,6 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - exact tested HEAD / ancestry 未變時，既有 terminal QA 可繼續作 evidence；若 run identity / ancestry 改變才重新分類。
 - **使用者不是續跑 scheduler。** recovery identity 驗完且 next action 可自主執行時，要直接續做，不等使用者再說「繼續」。
 
-這些 recovery 提醒不建立第二套 state machine；實際 `RECOVERING` checkpoint 合法性與 transition 仍交給 `tools/continuity_controller.py`。
-
 ## ISSUE188_STALE_WAIT_PITFALL
 
 這次 #188 又暴露另一個長流程失敗模式：checkpoint 寫著 `WAITING_REMOTE_QA`，但實際 GitHub 已無 active run，worker 仍把舊 waiting 字樣當成目前真實狀態，因而無限等待。
@@ -85,8 +63,8 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - exact run terminal 時立即退出 waiting；非 terminal 但找不到 matching active run 時，以連續 2 次 observation 排除短暫 API 延遲，之後強制進 `RECOVERING_STALE_WAIT`。
 - recovery 必須先 remote refetch、反讀 checkpoint、驗 work/production HEAD 與 exact run identity；無 drift 就接 next exact action，不重跑已完成證據。
 - global active run = 0 只作 supporting evidence；exact `run_id + head_sha` 才是 canonical remote-QA identity。
-- polling cadence 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md` 負責，不是使用者責任；durable state / resume / finalization 則由 `tools/continuity_controller.py` 負責。**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
-- `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 remote-QA/documentation regression guards；它們不取代 executable checkpoint state/finalization authority。
+- 30 秒 polling 是 controller 責任，不是使用者責任；**使用者不是 watchdog**，不得靠使用者再輸入「輪／繼續」才讓 stale wait 解鎖。
+- machine guard 由 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md::STALE_WAIT_WATCHDOG` 與 `tests/process/test_continuous_execution_durable_contract.py` 鎖定。
 
 ## WORK_ORDER_LINEAGE_PITFALL
 
@@ -102,4 +80,4 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - 只有整張工單 final Combined Acceptance、durable writeback、invariants、cleanup、closing drift audit 全完成後，才把 final verified work-order HEAD **一次 non-force 整合**到 production target。
 - 整合後另做 production-head verification/readback；若 FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不能倒退或 force production。
 - 若歷史工單已發生 lineage divergence，先 classify accepted commits，建立/修復單一 work-order lineage，再續工；不得把舊 production branch 當作「比較乾淨」而丟掉前序 accepted lineage。
-- `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 workflow lineage regression guards；它們不建立另一套 executable continuity state machine。
+- machine guard 由 `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 鎖定。

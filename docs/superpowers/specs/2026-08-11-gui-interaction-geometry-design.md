@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: design-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # GUI Interaction Geometry Design
 
 **Goal:** Remove the remaining manufacturing/feature coordinate derivation from `gui.py` while preserving the current Vault-type GUI behavior.

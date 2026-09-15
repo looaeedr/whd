@@ -25,11 +25,8 @@ def _read(path: Path) -> str:
 
 def _assert_pointer_only(path: Path, canonical_path: str) -> None:
     text = _read(path)
-    assert text.startswith("---\n"), f"{path.name} must use WHD_DOC_META_V1 frontmatter"
-    assert "whd_doc_role: MIRROR" in text, f"{path.name} must declare MIRROR role"
-    assert f"whd_canonical: {canonical_path}" in text, f"{path.name} must point to {canonical_path}"
-    assert "whd_schema: WHD_DOC_META_V1" in text, f"{path.name} must use WHD_DOC_META_V1"
-    assert "不得新增或複製 normative 規則" in text, f"{path.name} must remain pointer-only"
+    assert "WHD_AUTHORITY_ROLE: MIRROR" in text, f"{path.name} must declare MIRROR role"
+    assert "WHD_MIRROR_MODE: POINTER_ONLY" in text, f"{path.name} must be pointer-only"
     assert canonical_path in text, f"{path.name} must point to {canonical_path}"
     assert len(text) < 2000, f"{path.name} is too large for a pointer-only mirror"
 

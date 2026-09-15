@@ -1,10 +1,6 @@
 ---
 name: tdd
 description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
-whd_doc_role: CURRENT
-whd_contract: tdd
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Test-Driven Development

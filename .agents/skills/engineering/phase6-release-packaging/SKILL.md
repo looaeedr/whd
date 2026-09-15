@@ -1,10 +1,6 @@
 ---
 name: phase6-release-packaging
 description: Use when preparing, rebuilding, validating, or delivering Phase6 FULL/UPDATE ZIP packages, especially after code, geometry, GUI, registry, AI/SOP, or release-policy changes.
-whd_doc_role: CURRENT
-whd_contract: phase6-release-packaging
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Phase6 正確打包交付

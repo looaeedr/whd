@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: skill-navigation
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Engineering
 
 Engineering skills used for code, design, QA, specs and delivery.
@@ -29,8 +23,6 @@ Engineering skills used for code, design, QA, specs and delivery.
 
 - **[prototype](./prototype/SKILL.md)**
 - **[monitoring-remote-qa](./monitoring-remote-qa/SKILL.md)**
-- **[executable-continuity-controller](./executable-continuity-controller/SKILL.md)**: durable state / resume / finalization controller；本 README 只提供 navigation，權威語意仍由該 Skill 與 executable controller 擁有。
-- **[deterministic-repo-migration](./deterministic-repo-migration/SKILL.md)**: authority-driven repository migration；先 inventory，再 deterministic apply、strict validation、idempotence 與 drift audit，validator 不得成為 authority。
 - **[long-log-context-safe-execution](./long-log-context-safe-execution/SKILL.md)**: 超長 pytest/Xvfb/remote CI 輸出的落檔、bounded tail、failure slice、cursor 與 Runtime-cut 續接規則。
 - **[diagnosing-bugs](./diagnosing-bugs/SKILL.md)**
 - **[research](./research/SKILL.md)**

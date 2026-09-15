@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: handoff-ledger
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 <!-- WHD_DOC_ROLE role=REFERENCE contract=handoff-ledger -->
 > **[REFERENCE / HANDOFF LEDGER]** 本檔保留歷史接手紀錄與 migration evidence，不是 current domain SSOT，也不是新的第一入口。
 > Current authority pointers：

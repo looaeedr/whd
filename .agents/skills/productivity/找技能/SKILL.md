@@ -1,10 +1,6 @@
 ---
 name: 找技能
 description: 當使用者問「怎麼做 X」「有沒有技能可以做 X」「幫我找技能」「能不能擴充這個能力」，或想搜尋、比較、安裝可重用 Agent Skill 時使用。先理解需求，再搜尋候選、驗證品質、呈現選項；只有使用者明確同意後才安裝，外部 Skill 也不得自動納入 WHD 專案技能樹。
-whd_doc_role: CURRENT
-whd_contract: skill-discovery
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 找技能

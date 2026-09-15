@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: ai-library-reference
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # WHD 拷問／需求澄清 Source-first 規則
 
 日期：2026-09-11

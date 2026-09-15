@@ -1,10 +1,6 @@
 ---
 name: monitoring-remote-qa
 description: Use when a task has synchronized changes to a remote repository and starts or relies on remote CI/QA such as GitHub Actions, especially while workflow run status can still change.
-whd_doc_role: CURRENT
-whd_contract: remote-qa-monitoring
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Monitoring Remote QA

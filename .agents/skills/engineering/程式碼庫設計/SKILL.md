@@ -1,10 +1,6 @@
 ---
 name: 程式碼庫設計
 description: 深模組設計的共用 vocabulary 與 interface/seam 原則。當要改善 module interface、找 deepening opportunity、決定 seam、提升 testability/AI navigability，或其他 Skill 需要 module/interface/depth/seam/adapter/leverage/locality 詞彙時使用。
-whd_doc_role: CURRENT
-whd_contract: deep-module-codebase-design
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 程式碼庫設計

@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: skill-navigation
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Misc
 
 Tool-specific or rarely used helpers.

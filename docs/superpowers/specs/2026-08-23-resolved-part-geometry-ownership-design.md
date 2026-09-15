@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: design-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # 最終板件幾何唯一所有權設計
 
 ## 目的

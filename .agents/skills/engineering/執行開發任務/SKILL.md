@@ -2,10 +2,6 @@
 name: 執行開發任務
 description: 依已核准規格或工單執行實作。用於進入實作者階段、修改 production/test/Skill、跑 targeted 驗證、產生 durable checkpoint，並在 WHD 專案遵守派工、Preflight、owning Issue、remote QA 與 resume 規則。
 disable-model-invocation: true
-whd_doc_role: CURRENT
-whd_contract: development-task-execution
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 執行開發任務

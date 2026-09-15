@@ -1,10 +1,6 @@
 ---
 name: Python測試實務
 description: 當工作需要撰寫、整理或改善 Python pytest 測試，尤其涉及 fixture、parameterization、mock/monkeypatch、async、test isolation、markers、property-based testing、coverage 或 CI 測試結構時使用。
-whd_doc_role: CURRENT
-whd_contract: python-testing-practices
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Python測試實務

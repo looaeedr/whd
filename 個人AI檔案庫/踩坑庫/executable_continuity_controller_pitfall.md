@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: continuous-execution-machine
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Executable Continuity Controller / 文件規則不等於執行鎖
 
 ## EXECUTABLE_CONTINUITY_CONTROLLER_PITFALL_V1

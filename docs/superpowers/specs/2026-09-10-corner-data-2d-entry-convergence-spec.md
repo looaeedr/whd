@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: design-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # WHD 截角資料整合與 2D 入口收斂規格書
 
 ## 目標

@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: deep-module-codebase-design
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Design It Twice
 
 當使用者要比較一個 deepening candidate 的多種 interface 設計時，不要停在第一個合理答案。用至少 3 個**刻意不同的設計約束**產生方案，再以 depth、locality、seam placement 比較。

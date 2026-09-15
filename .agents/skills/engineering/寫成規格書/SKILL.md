@@ -2,10 +2,6 @@
 name: 寫成規格書
 description: 將目前對話整理成工程／產品規格，但必須先以 current codebase、AI Library、既有規格、測試與 certified data 做 grounding；共享尺寸與機械語意需跨 Family 查證，不能把現況、測試或 probe 當成產品真值。
 disable-model-invocation: true
-whd_doc_role: CURRENT
-whd_contract: grounded-spec-authoring
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 寫成規格書

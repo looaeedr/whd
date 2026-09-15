@@ -145,7 +145,7 @@ def test_main_gui_part_spec_carries_committed_box_profile_back_to_2d():
     assert len(spec.fold_profile) == 5
 
 
-def test_confirm_existing_parts_updates_main_2d_export_presence_flags():
+def test_confirm_existing_parts_preserves_main_2d_export_selection_intent():
     class Var:
         def __init__(self, value=True): self.value = value
         def set(self, value): self.value = bool(value)
@@ -155,20 +155,23 @@ def test_confirm_existing_parts_updates_main_2d_export_presence_flags():
     import gui
     dummy = SimpleNamespace(
         workspace_controller=Phase6WorkspaceController(),
-        export_z_var=Var(True), export_head_var=Var(True), export_tail_var=Var(True),
-        export_door_var=Var(True), export_base_plate_var=Var(True),
+        export_z_var=Var(True), export_head_var=Var(False), export_tail_var=Var(True),
+        export_door_var=Var(False), export_base_plate_var=Var(True),
         is_indicator_box_var=Var(True), is_door_indicator_var=Var(False),
         _phase6_logical_part_present=gui.BoxCalculatorGUI._phase6_logical_part_present,
     )
-    # This helper is intentionally GUI-light so commit/project-load share it.
+    before = (
+        dummy.export_z_var.get(), dummy.export_head_var.get(), dummy.export_tail_var.get(),
+        dummy.export_door_var.get(), dummy.export_base_plate_var.get(),
+    )
     gui.BoxCalculatorGUI._apply_existing_parts_from_fold_workspace(
         dummy, ['box_body', 'head', 'door']
     )
-    assert dummy.export_z_var.get() is True
-    assert dummy.export_head_var.get() is True
-    assert dummy.export_tail_var.get() is False
-    assert dummy.export_door_var.get() is True
-    assert dummy.export_base_plate_var.get() is False
+    after = (
+        dummy.export_z_var.get(), dummy.export_head_var.get(), dummy.export_tail_var.get(),
+        dummy.export_door_var.get(), dummy.export_base_plate_var.get(),
+    )
+    assert after == before
     assert dummy.is_indicator_box_var.get() is False
 
 from ae_engine.contracts import EndCapPartSpec

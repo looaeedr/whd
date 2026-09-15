@@ -1,10 +1,6 @@
 ---
 name: git-remote-sync-fallback
 description: Use when Git remote synchronization is blocked by DNS, network, authentication transport, or harness limitations; when git push/fetch/pull cannot reach GitHub; or when an authorized GitHub Connector may be available as a fallback.
-whd_doc_role: CURRENT
-whd_contract: git-remote-sync-fallback
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Git Remote Sync Fallback

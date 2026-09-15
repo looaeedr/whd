@@ -1,9 +1,3 @@
----
-whd_doc_role: CURRENT
-whd_contract: agent-startup-process
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 <!-- WHD_DOC_ROLE role=CURRENT contract=agent-startup-process -->
 > **[CURRENT — PROCESS ONLY]** `AGENTS.md` 擁有 Agent 啟動、Knowledge Preflight、派工與驗收流程入口；不擁有製造公式或 ae_engine 架構真值。
 > Current authority pointers：
@@ -93,13 +87,6 @@ pytest、Xvfb、Combined Acceptance、remote CI 或其他長流程只要可能�
 6. 若缺少 `驗證板件與DXF` 的 final evidence，狀態只能是 **focused GREEN / final acceptance pending**，禁止標記 ACCEPTED、merge 或 release。
 7. `.agents/skills/skill_registry.json` 的 `part-dxf-acceptance` route 是機器可讀防線；命中相關 changed-file / task keyword 時，Preflight 必須自動要求此 Skill，禁止靠 AI 記憶決定要不要跑。
 
-### 0.0.3.1 Executable Continuity finalization bridge
-
-<!-- EXECUTABLE_CONTINUITY_BRIDGE_V1 -->
-當任務具有 durable checkpoint、remote QA、runtime cut / resume，或準備宣告完成／關單時，`AGENTS.md` 只負責導向 `executable-continuity-controller`，不得在此複製第二套 controller state machine。Canonical executable 是 `tools/continuity_controller.py`；操作語意以 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 為準。
-
-正式 finalization 前必須對 authoritative checkpoint 實際執行 `python -m tools.continuity_controller assert-finalizable path/to/checkpoint.json`（`assert-finalizable`）。若 executable guard 尚未放行，就不得因文字進度、聊天結尾、部分 QA GREEN 或 runtime 視窗中斷而宣告完成；續工／remote polling 仍依 controller Skill 與對應領域 Skill 的既有權責執行。
-
 ### 0.1 知識載入優先級
 
 ```text
@@ -144,6 +131,22 @@ production code
 > 若需要了解完整架構、金庫型製造規則、零件拓撲對照、開發規範或後續計畫，請再閱讀 `handoff/` 目錄內的細節文件。
 
 ---
+
+
+
+<!-- QA_PIPELINE_FAIL_CLOSED_V1 -->
+### 0.0.2A QA Pipeline Fail-Closed 硬閘門
+
+任何會影響 PASS/FAIL 判定的命令，只要透過 pipe（尤其 `tee`）輸出，必須啟用 `set -o pipefail` 或等價保留左側命令 exit status。`pytest ... | tee ...` / `python validator.py | tee ...` 若未 fail-closed，即使 GitHub Actions step/job 顯示 SUCCESS 也不是有效驗收證據。
+
+正式接受前同時必須確認：
+
+1. test / validator 的完整 terminal summary 或等價終態，而不是只看 workflow conclusion；
+2. exact tested `head_sha`；
+3. characterization / Move-Only baseline 使用 immutable accepted commit SHA，禁止 movable branch ref；
+4. symbol owner/class 來自 AST/dependency inventory 或 exact source reread，不得由 public inheritance surface 猜測。
+
+若歷史 run 違反任一條，狀態只能標記為 evidence invalid / rerun required；禁止拿假綠結果關單、合併或 release。
 
 <!-- WHD_SECTION_ROLE role=HISTORICAL contract=legacy-v5-architecture-roadmap -->
 > **[HISTORICAL/SUPERSEDED]** 第 1～10 節是 V5 / Layer A-B-C / GUI Preview 時代的架構與 roadmap snapshot，只保留 provenance，不參與 current routing。現行製造架構請讀 Canonical Authority Map 指向的 ae_engine 規範。

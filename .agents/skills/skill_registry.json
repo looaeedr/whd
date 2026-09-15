@@ -24,27 +24,6 @@
       ]
     },
     {
-      "id": "deterministic-repo-migration",
-      "keywords": [
-        "deterministic repo migration",
-        "deterministic repository migration",
-        "authority-driven repository migration",
-        "authority-driven repo migration",
-        "authoritative matrix migration",
-        "authoritative registry migration",
-        "idempotent repository migration"
-      ],
-      "file_globs": [
-        ".agents/skills/engineering/deterministic-repo-migration/**"
-      ],
-      "required_skills": [
-        "deterministic-repo-migration"
-      ],
-      "required_references": [
-        "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md"
-      ]
-    },
-    {
       "id": "skill-discovery",
       "keywords": [
         "找技能",

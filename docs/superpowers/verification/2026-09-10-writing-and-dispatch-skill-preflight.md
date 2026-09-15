@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: verification-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # 2026-09-10 寫技能 / 派工 Skill Preflight Evidence
 
 Task: 修復使用者提供的 `寫技能`，再用修復後規則修改 `.agents/skills/engineering/派工/SKILL.md`，並依使用者明確指示把 frontmatter 名稱改成 `派工`。

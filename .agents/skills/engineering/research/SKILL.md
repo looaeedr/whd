@@ -1,10 +1,6 @@
 ---
 name: research
 description: Investigate a question against high-trust primary sources and capture cited findings. Use current-session tools by default; delegate only when the runtime actually provides a suitable background/subagent capability.
-whd_doc_role: CURRENT
-whd_contract: research
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Research

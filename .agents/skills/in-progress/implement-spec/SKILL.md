@@ -2,10 +2,6 @@
 name: implement-spec
 description: "Implement a specification in code."
 disable-model-invocation: true
-whd_doc_role: REFERENCE
-whd_contract: implement-spec
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 You have been provided a spec. This spec should have tickets associated with it, describing how to implement the spec.

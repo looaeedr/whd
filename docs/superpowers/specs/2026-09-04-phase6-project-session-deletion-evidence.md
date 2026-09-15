@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: design-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Phase6 ProjectSession Deletion / Reuse Evidence
 
 - 日期：2026-09-04（Asia/Taipei）

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-import json
+import re
 from collections import defaultdict
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-GUARD_MATRIX = ROOT / "docs/superpowers/verification/combined_authority_guard_matrix_v1.json"
+AUTHORITY_MAP = ROOT / "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+
+GUARD_RE = re.compile(
+    r"<!-- WHD_COMBINED_GUARD requirement=(?P<requirement>R[1-5]) guard=(?P<guard>[^ ]+) -->"
+)
 
 EXPECTED_GUARDS = {
     "R1": {
@@ -31,20 +35,18 @@ EXPECTED_GUARDS = {
 }
 
 
-def _load_matrix() -> dict:
-    assert GUARD_MATRIX.is_file(), "Combined guard matrix must live in verification provenance, not Authority Map"
-    return json.loads(GUARD_MATRIX.read_text(encoding="utf-8"))
+def _read(path: Path) -> str:
+    assert path.is_file(), f"required durable artifact is missing: {path.relative_to(ROOT)}"
+    return path.read_text(encoding="utf-8")
 
 
 def test_r1_to_r5_combined_guard_matrix_is_machine_readable_and_complete() -> None:
-    matrix = _load_matrix()
-    assert matrix["schema"] == "WHD_COMBINED_GUARD_MATRIX_V1"
-    assert matrix["role"] == "VALIDATION_ONLY"
-    assert matrix["authority"] == "none"
+    text = _read(AUTHORITY_MAP)
+    assert "WHD_COMBINED_GUARD_MATRIX_V1" in text
 
     rows: dict[str, set[str]] = defaultdict(set)
-    for row in matrix["rows"]:
-        rows[row["requirement"]].add(row["guard"])
+    for match in GUARD_RE.finditer(text):
+        rows[match.group("requirement")].add(match.group("guard"))
 
     assert set(rows) == set(EXPECTED_GUARDS), rows
     for requirement, expected in EXPECTED_GUARDS.items():
@@ -61,7 +63,7 @@ def test_every_combined_guard_path_exists_in_the_tree() -> None:
 
 
 def test_combined_matrix_keeps_validation_as_guard_not_domain_authority() -> None:
-    matrix = _load_matrix()
-    note = matrix["note"]
-    assert "validation-only" in note
-    assert "不得成為 production manufacturing authority" in note
+    text = _read(AUTHORITY_MAP)
+    section = text.split("WHD_COMBINED_GUARD_MATRIX_V1", 1)[-1]
+    assert "validation-only" in section
+    assert "不得成為 production manufacturing authority" in section

@@ -1,10 +1,6 @@
 ---
 name: 領域建模
 description: 建立並持續磨利專案 domain model。當需要定義/修正 codebase terminology、寫或更新 CONTEXT.md、釐清共享詞義，或記錄真正值得留下的 ADR 時使用；純讀 glossary 不等於啟動本 Skill。
-whd_doc_role: CURRENT
-whd_contract: domain-modeling
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 領域建模

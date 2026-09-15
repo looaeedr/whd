@@ -1,10 +1,6 @@
 ---
 name: 深度質詢
 description: 對 plan、decision 或 idea 做高強度逐輪質詢，建立 design tree，直到所有可決策分支都被明確處理。事實由執行者查證、決策由使用者做；沒有真正 Subagent Runtime 時必須 inline 查證，不得虛構背景工作。
-whd_doc_role: CURRENT
-whd_contract: deep-design-inquiry
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 深度質詢

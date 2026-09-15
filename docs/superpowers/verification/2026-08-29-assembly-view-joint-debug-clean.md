@@ -1,9 +1,3 @@
----
-whd_doc_role: HISTORICAL
-whd_contract: verification-provenance
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # Assembly View Joint Debug Clean — Corrected Verification
 
 ## Root cause

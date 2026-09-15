@@ -2,10 +2,6 @@
 name: ask-matt
 description: Ask which skill or flow fits the current situation. Routes to the real filesystem skills in this repo and uses Chinese canonical identities for Chinese-named skill folders.
 disable-model-invocation: true
-whd_doc_role: CURRENT
-whd_contract: ask-matt
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # Ask Matt

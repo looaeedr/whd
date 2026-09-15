@@ -1,10 +1,6 @@
 ---
 name: UI設計與去AI味
 description: 當工作要新增、重整或審查 WHD UI，尤其使用者要求 UI 設計、介面重整、去 AI 味、AI slop audit、視覺層級、layout、typography 或「像真正工程軟體」時使用；只負責 presentation / hierarchy / interaction presentation，不取代產品、幾何、製造與資料 authority。
-whd_doc_role: CURRENT
-whd_contract: ui-design-de-ai
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # UI設計與去AI味

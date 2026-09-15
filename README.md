@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: repo-overview
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 <!-- WHD_DOC_ROLE role=REFERENCE contract=repo-overview -->
 > **[REFERENCE]** 本 README 只提供專案概覽；其中既有架構描述保留作歷史背景，不擁有 current manufacturing contract。
 > Current authority pointers：

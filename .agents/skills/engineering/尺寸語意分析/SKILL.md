@@ -1,10 +1,6 @@
 ---
 name: 尺寸語意分析
 description: 當工作需要追蹤 WHD 數值運算中的尺寸語意，尤其要分清料尺寸、包外、flat、formed、FW、T、datum、截角與 collision envelope，並找出同為 mm 卻語意不相容的混用時使用；此 Skill 只做分析與驗證，不建立 production 公式 authority。
-whd_doc_role: CURRENT
-whd_contract: dimension-semantics-analysis
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 尺寸語意分析

@@ -2,10 +2,6 @@
 name: 拷問邊建立文件
 description: 用深度質詢把 plan/design 的決策樹問清楚，並在決策形成時同步維護 CONTEXT.md 與必要 ADR。適合在有 repository/workspace 的情境，把訪談結果變成 durable domain docs，而不是只留在聊天。
 disable-model-invocation: true
-whd_doc_role: CURRENT
-whd_contract: inquiry-driven-domain-documentation
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
 ---
 
 # 拷問邊建立文件

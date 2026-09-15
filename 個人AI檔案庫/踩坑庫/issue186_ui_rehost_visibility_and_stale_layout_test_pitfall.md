@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: pitfall-ledger
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # #186 UI rehost：critical control 可見性與 stale layout test 踩坑
 
 <!-- ISSUE186_UI_REHOST_VISIBILITY_PITFALL -->

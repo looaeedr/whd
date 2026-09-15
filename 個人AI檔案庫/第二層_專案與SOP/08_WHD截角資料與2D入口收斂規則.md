@@ -1,9 +1,3 @@
----
-whd_doc_role: REFERENCE
-whd_contract: ai-library-reference
-whd_canonical: null
-whd_schema: WHD_DOC_META_V1
----
 # WHD 截角資料與 2D 入口收斂規則
 
 ## 已確認產品規則
