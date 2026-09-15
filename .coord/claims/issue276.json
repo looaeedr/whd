@@ -6,15 +6,15 @@
   "claimed_at": "2026-09-15T14:08:00Z",
   "base_sha": "b5ae852e4aaa236413b0a1acaf097ffb5dbb2776",
   "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:25:00Z",
+  "last_update": "2026-09-15T14:27:00Z",
   "remote_qa": {
     "run_id": 34981248957,
     "head_sha": "70fc5bf24e91aa91b884dc5aff578b0a680fdb31",
     "workflow": "Issue 276 T1 Taxonomy QA",
     "conclusion": "success"
   },
-  "next_action": "Fast-forward work/test-cleanup-274-20260915 to closing head a6f0eaae..., update Master #274 and close #276; then release this claim.",
+  "next_action": "Issue #276 is closed/completed. Master accepted head is a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6; downstream T2/T3/T4 must branch fresh from that exact head.",
   "blocker": null
 }
