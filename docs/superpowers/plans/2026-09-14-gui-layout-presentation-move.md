@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: implementation-plan-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # GUI Layout Presentation Move Implementation Plan
 
 > **For agentic workers:** execute inline, one independently verifiable slice at a time.
