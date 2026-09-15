@@ -5,13 +5,13 @@
   "work_branch": "test-cleanup/issue279-gui-characterization-20260915",
   "claimed_at": "2026-09-15T15:12:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "2c48b6b789f7cec21eb9053a2951c09f98c9460d",
-  "phase": "REMOTE_QA",
+  "head_sha": "0eabb64a8308f74b9c8b66f982626d2907f00646",
+  "phase": "CLOSED",
   "delegated_branches": [
     "qa/issue279-t4-replacement-20260915",
     "qa/issue279-t4-final-acceptance-20260915"
   ],
-  "last_update": "2026-09-15T15:46:30Z",
+  "last_update": "2026-09-15T15:50:30Z",
   "remote_qa": {
     "replacement_head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
     "replacement_run_id": 34990283992,
@@ -19,9 +19,12 @@
     "replacement_passed": 36,
     "final_candidate_sha": "84ae70954967b476227f7e11bcbcf15624e8e013",
     "final_qa_head_sha": "2c48b6b789f7cec21eb9053a2951c09f98c9460d",
-    "final_run_id": null,
-    "final_conclusion": null
+    "final_run_id": 34990686579,
+    "final_conclusion": "success",
+    "final_passed": 23,
+    "accepted_closing_head_sha": "0eabb64a8308f74b9c8b66f982626d2907f00646",
+    "closing_drift": "acceptance-doc-only"
   },
-  "next_action": "Lock the concrete final acceptance RUN for QA head 2c48b6b789f7cec21eb9053a2951c09f98c9460d. If attempt 1 read the prior claim head 14d36d3c..., rerun the same RUN after this claim update.",
+  "next_action": "No further #279 mutation. Master #274 records T4_ACCEPTED_HEAD=0eabb64a8308f74b9c8b66f982626d2907f00646. Handoff to #280/T5 for explicit reconciliation of T2/T3/T4 accepted sibling heads before permanent rename/move/consolidation.",
   "blocker": null
 }
