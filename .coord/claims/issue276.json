@@ -8,8 +8,13 @@
   "head_sha": "5d192fba12e36cc879ab82242f82ee0bc121d878",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:10:00Z",
-  "remote_qa": null,
-  "next_action": "Advance task branch to RED head 5d192fba..., identify its #276 RED run, and verify the taxonomy contract fails for the expected missing marker/policy/hook reasons before implementation.",
+  "last_update": "2026-09-15T14:10:30Z",
+  "remote_qa": {
+    "run_id": 34979789448,
+    "head_sha": "5d192fba12e36cc879ab82242f82ee0bc121d878",
+    "branch": "test-cleanup/issue276-taxonomy-20260915",
+    "state": "queued"
+  },
+  "next_action": "Poll RED run 34979789448 to terminal and inspect the RED log; implementation is forbidden until expected requirement failures are verified.",
   "blocker": null
 }
