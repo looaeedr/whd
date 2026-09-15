@@ -29,9 +29,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p .scratch/issue278/red
           git fetch origin "$TASK_BRANCH" "$CLAIM_REF" --depth=1
           git checkout --detach "origin/$TASK_BRANCH"
           TASK_HEAD="$(git rev-parse HEAD)"
+          export TASK_HEAD
           echo "TASK_HEAD=$TASK_HEAD" >> "$GITHUB_ENV"
           git show "origin/$CLAIM_REF:.coord/claims/issue278.json" > /tmp/issue278-claim.json
           python - <<'PY'
