@@ -1,0 +1,92 @@
+name: issue279 T4 parent baseline evidence v2
+
+on:
+  push:
+    branches:
+      - qa/issue279-parent-baseline-evidence-v2-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      T1_PARENT: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock exact parent and classify migration snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$T1_PARENT"
+          test "$(git rev-parse HEAD)" = "$T1_PARENT"
+          test -f tests/test_issue206_gui_modularization_characterization.py
+          grep -Fq 'assert gui._project_toolbar_presentation() == {' tests/test_issue206_gui_modularization_characterization.py
+          grep -Fq '"toolbar_padx": 10' tests/test_issue206_gui_modularization_characterization.py
+          grep -Fq 'assert canvas.calls == [' tests/test_issue206_gui_modularization_characterization.py
+          test ! -e tests/test_gui_drawing_contract.py
+          test ! -e tests/test_gui_toolbar_contract.py
+          echo 'CLASSIFICATION=MIGRATION_CHARACTERIZATION_PRESENT'
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install pytest
+
+      - name: Capture issue206 baseline
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue206_gui_modularization_characterization.py 2>&1 | tee issue206.txt
+          echo ${PIPESTATUS[0]} > issue206.exit
+          exit 0
+
+      - name: Capture issue210 baseline
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue210_project_actions_move_contract.py 2>&1 | tee issue210.txt
+          echo ${PIPESTATUS[0]} > issue210.exit
+          exit 0
+
+      - name: Capture issue211 baseline
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue211_renderer_dependency_gate.py 2>&1 | tee issue211.txt
+          echo ${PIPESTATUS[0]} > issue211.exit
+          exit 0
+
+      - name: Write evidence summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "T1_PARENT=$T1_PARENT"
+            echo "CLASSIFICATION=MIGRATION_CHARACTERIZATION_PRESENT"
+            echo "issue206_exit=$(cat issue206.exit)"
+            echo "issue210_exit=$(cat issue210.exit)"
+            echo "issue211_exit=$(cat issue211.exit)"
+          } | tee summary.txt
+
+      - name: Upload exact parent evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue279-parent-baseline-v2
+          path: |
+            issue206.txt
+            issue206.exit
+            issue210.txt
+            issue210.exit
+            issue211.txt
+            issue211.exit
+            summary.txt
+          if-no-files-found: error
