@@ -1,3 +1,4 @@
+# T7 branch-only acceptance workflow
 name: issue270-t7-durable-governance-final-regression
 
 on:
