@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+import tools.continuity_controller as continuity
 from tools.continuity_controller import (
     Checkpoint,
     CheckpointError,
@@ -25,6 +26,14 @@ def _running(**overrides):
     )
     values.update(overrides)
     return Checkpoint(**values)
+
+
+def _turn_exit_api():
+    guard = getattr(continuity, "assert_turn_exitable", None)
+    blocked_error = getattr(continuity, "TurnExitBlocked", None)
+    assert callable(guard), "continuity controller is missing assert_turn_exitable()"
+    assert isinstance(blocked_error, type), "continuity controller is missing TurnExitBlocked"
+    return guard, blocked_error
 
 
 def test_every_nonterminal_checkpoint_requires_next_action():
@@ -217,3 +226,75 @@ def test_same_waiting_remote_lock_can_preserve_owner_while_advancing_cursor():
     assert advanced.head_sha == waiting.head_sha
     assert advanced.log_cursor == "step:3"
     assert advanced.evidence == ("step 2 complete",)
+
+
+def test_turn_exit_is_blocked_for_autonomous_nonterminal_states():
+    guard, blocked_error = _turn_exit_api()
+
+    for state in (
+        ContinuityState.RUNNING,
+        ContinuityState.WAITING_REMOTE,
+        ContinuityState.RECOVERING,
+    ):
+        kwargs = {}
+        if state is ContinuityState.WAITING_REMOTE:
+            kwargs["run_id"] = 123
+        checkpoint = _running(state=state, next_action="continue closing work", **kwargs)
+        with pytest.raises(blocked_error, match="continue closing work"):
+            guard(checkpoint)
+
+
+def test_blocked_checkpoint_can_exit_turn_but_remains_nonfinalizable():
+    guard, _blocked_error = _turn_exit_api()
+    checkpoint = _running(
+        state=ContinuityState.BLOCKED,
+        next_action="wait for missing external authority",
+    )
+
+    guard(checkpoint)
+    with pytest.raises(FinalizationBlocked, match="non-terminal"):
+        assert_finalizable(checkpoint)
+
+
+def test_terminal_checkpoints_can_exit_turn():
+    guard, _blocked_error = _turn_exit_api()
+
+    for state in (
+        ContinuityState.TERMINAL_SUCCESS,
+        ContinuityState.TERMINAL_FAILURE,
+    ):
+        guard(_running(state=state, next_action=None))
+
+
+def test_remote_success_handoff_to_closing_running_blocks_turn_exit():
+    guard, blocked_error = _turn_exit_api()
+    waiting = _running(
+        state=ContinuityState.WAITING_REMOTE,
+        next_action="poll run 34980000000",
+        run_id=34980000000,
+        job_id=104400000000,
+        evidence=("remote QA active",),
+    )
+    closing = transition_checkpoint(
+        waiting,
+        state=ContinuityState.RUNNING,
+        next_action="cleanup temporary QA workflow then drift audit",
+        evidence=("remote QA terminal success",),
+    )
+
+    assert closing.state is ContinuityState.RUNNING
+    assert closing.evidence[-1] == "remote QA terminal success"
+    with pytest.raises(blocked_error, match="cleanup temporary QA workflow then drift audit"):
+        guard(closing)
+
+
+def test_assert_turn_exitable_cli_blocks_running_checkpoint(tmp_path: Path, capsys):
+    path = tmp_path / "continuity.json"
+    save_checkpoint(path, _running(next_action="close issue after cleanup"))
+
+    exit_code = continuity.main(["assert-turn-exitable", str(path)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 2
+    assert "TURN_EXIT_GUARD_ERROR" in output
+    assert "close issue after cleanup" in output
