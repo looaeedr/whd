@@ -5,23 +5,23 @@
   "work_branch": "test-cleanup/issue279-gui-characterization-20260915",
   "claimed_at": "2026-09-15T15:12:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "14d36d3c2a4546986f5fff5cc85bae4af8a403ec",
+  "head_sha": "2c48b6b789f7cec21eb9053a2951c09f98c9460d",
   "phase": "REMOTE_QA",
   "delegated_branches": [
     "qa/issue279-t4-replacement-20260915",
     "qa/issue279-t4-final-acceptance-20260915"
   ],
-  "last_update": "2026-09-15T15:45:30Z",
+  "last_update": "2026-09-15T15:46:30Z",
   "remote_qa": {
     "replacement_head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
     "replacement_run_id": 34990283992,
     "replacement_conclusion": "success",
     "replacement_passed": 36,
     "final_candidate_sha": "84ae70954967b476227f7e11bcbcf15624e8e013",
-    "final_qa_head_sha": "14d36d3c2a4546986f5fff5cc85bae4af8a403ec",
+    "final_qa_head_sha": "2c48b6b789f7cec21eb9053a2951c09f98c9460d",
     "final_run_id": null,
     "final_conclusion": null
   },
-  "next_action": "Add the final acceptance workflow to the delegated QA branch, then lock the concrete RUN for the resulting QA head. If the first attempt sees the prior claim head, update this claim to that workflow commit and rerun the same RUN.",
+  "next_action": "Lock the concrete final acceptance RUN for QA head 2c48b6b789f7cec21eb9053a2951c09f98c9460d. If attempt 1 read the prior claim head 14d36d3c..., rerun the same RUN after this claim update.",
   "blocker": null
 }
