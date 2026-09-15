@@ -76,7 +76,7 @@ jobs:
             -not -path './.git/*' -not -path './.scratch/*' \
             -print0 | sort -z | xargs -0 sha256sum > .scratch/issue280/runtime/before.sha256
 
-      - name: Verify whole-file byte identity and #211 AST equivalence
+      - name: Verify whole-file content identity and #211 AST equivalence
         shell: bash
         run: |
           set -euo pipefail
@@ -96,10 +96,20 @@ jobs:
               'tests/test_gui_toolbar_contract.py': 'tests/ui/test_gui_toolbar_contract.py',
               'tests/test_issue210_project_actions_move_contract.py': 'tests/architecture/test_project_actions_ownership.py',
           }
+          semantic_old = 'tests/test_phase6_semantic_doc_status.py'
+          root_before = 'ROOT = Path(__file__).resolve().parents[1]'
+          root_after = 'ROOT = Path(__file__).resolve().parents[2]'
           for old, new in whole.items():
               before = subprocess.check_output(['git', 'show', f'{base}:{old}'])
               after = Path(new).read_bytes()
-              assert before.rstrip(b'\n') == after.rstrip(b'\n'), (old, new, 'BYTE_DRIFT')
+              if old == semantic_old:
+                  before_text = before.decode('utf-8').rstrip('\n')
+                  after_text = after.decode('utf-8').rstrip('\n')
+                  assert before_text.count(root_before) == 1, (old, 'UNEXPECTED_BASE_ROOT_PATTERN')
+                  expected_after = before_text.replace(root_before, root_after, 1)
+                  assert after_text == expected_after, (old, new, 'RELOCATION_ADAPTER_DRIFT')
+              else:
+                  assert before.rstrip(b'\n') == after.rstrip(b'\n'), (old, new, 'BYTE_DRIFT')
 
           approved = {
               'test_behavior_draw_grid_preserves_current_canvas_contract',
