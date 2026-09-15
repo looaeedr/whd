@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # WHD TEST Inventory — #275 / T0
 
 - Exact tested head: `f688d428bc5a8c2d176867079d455e879c88a06c`

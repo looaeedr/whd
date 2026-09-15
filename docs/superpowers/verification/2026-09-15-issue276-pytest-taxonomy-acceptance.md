@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # Issue 276 / T1 Pytest Taxonomy Acceptance
 
 - Date: 2026-09-15
