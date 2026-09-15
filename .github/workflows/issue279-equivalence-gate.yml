@@ -1,0 +1,107 @@
+name: issue279 T4 characterization equivalence gate
+
+on:
+  push:
+    branches:
+      - qa/issue279-equivalence-gate-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  equivalence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      T1_PARENT: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+      TASK_HEAD: 9a5fb21dc82849cb7d3487fa9b89c35b1206a41e
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock candidate and retirement prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$TASK_HEAD"
+          git merge-base --is-ancestor "$T1_PARENT" "$TASK_HEAD"
+          git cat-file -e "$TASK_HEAD:tests/test_issue206_gui_modularization_characterization.py"
+          git cat-file -e "$TASK_HEAD:tests/test_gui_drawing_contract.py"
+          git cat-file -e "$TASK_HEAD:tests/test_gui_toolbar_contract.py"
+          echo 'RETIREMENT_PREREQUISITES=GREEN'
+
+      - name: Verify task scope is test-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$T1_PARENT" "$TASK_HEAD")
+          printf '%s\n' "${changed[@]}"
+          for path in "${changed[@]}"; do
+            case "$path" in
+              docs/plans/2026-09-15-test-cleanup-t4-gui-characterization-retirement.md|tests/test_gui_drawing_contract.py|tests/test_gui_toolbar_contract.py) ;;
+              *) echo "UNEXPECTED_DRIFT=$path"; exit 1 ;;
+            esac
+          done
+          echo 'PRODUCTION_SOURCE_DRIFT=0'
+
+      - name: Verify no outcome-control weakening
+        shell: bash
+        run: |
+          set -euo pipefail
+          diff_text="$(git diff "$T1_PARENT" "$TASK_HEAD" -- tests)"
+          if printf '%s\n' "$diff_text" | grep -E '^\+.*(pytest\.mark\.(skip|skipif|xfail)|pytest\.skip\(|@unittest\.skip)' ; then
+            echo 'OUTCOME_CONTROL_DRIFT=1'
+            exit 1
+          fi
+          echo 'OUTCOME_CONTROL_DRIFT=0'
+
+      - name: Install runtime test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          python -m pip install pytest matplotlib
+
+      - name: Run old and permanent contracts side by side
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$TASK_HEAD"
+          python -m pytest -q \
+            tests/test_issue206_gui_modularization_characterization.py \
+            tests/test_gui_drawing_contract.py \
+            tests/test_gui_toolbar_contract.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py \
+            2>&1 | tee equivalence-pytest.txt
+
+      - name: Record retirement mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > retirement-mapping.txt <<'EOF'
+          OLD=test_issue206_gui_modularization_characterization.py
+          corner_canvas_projection -> tests/test_gui_drawing_contract.py
+          corner_target_flip_matrix -> tests/test_gui_drawing_contract.py
+          toolbar_whole_dictionary_snapshot -> tests/test_gui_toolbar_contract.py
+          drawing_whole_canvas_calls_snapshot -> tests/test_gui_drawing_contract.py
+          issue210_project_actions -> PERMANENT_RETAIN
+          issue211_renderer_dependency -> PERMANENT_RETAIN
+          PRODUCTION_BEHAVIOR_CHANGED=NO
+          GEOMETRY_AUTHORITY_CHANGED=NO
+          DXF_AUTHORITY_CHANGED=NO
+          EOF
+          cat retirement-mapping.txt
+
+      - name: Upload equivalence evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue279-equivalence-evidence
+          path: |
+            equivalence-pytest.txt
+            retirement-mapping.txt
+          if-no-files-found: error
