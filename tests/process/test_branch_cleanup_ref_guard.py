@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tools.branch_cleanup_ref_guard import (
@@ -7,6 +9,9 @@ from tools.branch_cleanup_ref_guard import (
     assert_delete_candidates_safe,
     protected_open_pr_refs,
 )
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _pull(*, head: str, base: str) -> dict[str, object]:
@@ -70,3 +75,26 @@ def test_multiple_open_prs_protect_union_of_both_sides() -> None:
 def test_malformed_open_pr_ref_evidence_fails_closed(pull: dict[str, object]) -> None:
     with pytest.raises(BranchCleanupGuardError, match="malformed OPEN PR ref evidence"):
         protected_open_pr_refs([pull])
+
+
+def test_issue_closure_skill_routes_cleanup_to_executable_guard() -> None:
+    text = (ROOT / ".agents/skills/engineering/issue-closure-gate/SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "BRANCH_CLEANUP_OPEN_PR_REF_GATE" in text
+    assert "tools/branch_cleanup_ref_guard.py" in text
+    assert "head.ref" in text
+    assert "base.ref" in text
+    assert "assert_delete_candidates_safe" in text
+
+
+def test_issue_closure_pitfall_records_open_pr_base_ref_incident() -> None:
+    text = (ROOT / "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "OPEN_PR_BASE_REF_CLEANUP_PITFALL" in text
+    assert "head.ref" in text
+    assert "base.ref" in text
+    assert "tools/branch_cleanup_ref_guard.py" in text
