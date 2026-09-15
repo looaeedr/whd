@@ -3,6 +3,8 @@ from __future__ import annotations
 import configparser
 import importlib.util
 from pathlib import Path
+import subprocess
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,3 +100,15 @@ def test_pytest_collection_hook_adds_taxonomy_without_replacing_display_skip_pol
     assert "item.add_marker" in text
     assert "def pytest_runtest_setup" in text
     assert "def pytest_runtest_makereport" in text
+
+
+def test_lane_audit_cli_bootstraps_repo_import_path():
+    proc = subprocess.run(
+        [sys.executable, "tools/test_lane_audit.py", "--help"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout
