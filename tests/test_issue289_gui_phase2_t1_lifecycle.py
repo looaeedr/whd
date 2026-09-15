@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 
+# RED contract for #289/T1. Keep this structural gate independent from implementation details.
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 APPLICATION = ROOT / "gui_modules" / "application"
