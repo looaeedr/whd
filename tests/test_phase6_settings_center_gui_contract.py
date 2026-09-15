@@ -1,20 +1,16 @@
-import ast
 from pathlib import Path
 
-SOURCE = Path("gui.py").read_text(encoding="utf-8")
-TREE = ast.parse(SOURCE)
-GUI = next(node for node in TREE.body if isinstance(node, ast.ClassDef) and node.name == "Phase6ApplicationHost")
+from gui_source_contract_helpers import application_source_bundle, phase6_host_method_source
 
 
 def method_source(name):
-    node = next(node for node in GUI.body if isinstance(node, ast.FunctionDef) and node.name == name)
-    return ast.get_source_segment(SOURCE, node)
+    return phase6_host_method_source(name)
 
 
 def test_gui_owns_one_shared_settings_state_loaded_from_ae_and_snapshot_carries_it():
     init = method_source("init_variables")
     snap = method_source("_make_original_fold_designer_snapshot")
-    source = Path("gui.py").read_text(encoding="utf-8")
+    source = application_source_bundle()
     assert "self.settings_service = SettingsService(ae)" in source
     assert "settings = self.settings_service.snapshot()" in init
     assert 'snapshot["settings"]' in snap
@@ -31,7 +27,7 @@ def test_open_designer_uses_transactional_settings_and_save_default_callback():
         "_save_fold_designer_defaults",
         "_on_main_setting_var_changed",
     ):
-        assert any(isinstance(node, ast.FunctionDef) and node.name == name for node in GUI.body)
+        assert method_source(name)
 
 
 def test_old_main_gui_no_longer_constructs_fold_advanced_panel_but_keeps_global_dimensions():
@@ -86,6 +82,7 @@ def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_exp
     assert "self.update_calculations()" not in live_text
     assert "self.project_controller.capture_committed(" in live_text
 
+
 def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d_page():
     source = Path("gui.py").read_text(encoding="utf-8")
     bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
@@ -93,4 +90,3 @@ def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d
     assert "SettingsService" in source
     assert "Phase6SettingsPanel" in bridge_source
     assert "self.global_settings_button =" not in bridge_source
-
