@@ -11,15 +11,20 @@ READ_SKILL: monitoring-remote-qa
 READ_SKILL: long-log-context-safe-execution
 READ_SKILL: diagnosing-bugs
 READ_SKILL: tdd
+READ_SKILL: phase6-corner-3d-model-integrity
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 
 BOUNDARY:
 - Test-governance cleanup only.
 - No production source, geometry, DXF, persistence, schema, or runtime identity mutation.
+- The phase6 corner/3D skill and canonical relief references are read as required guardrails because the characterization scope includes corner-preview/drawing semantics; they do not authorize any geometry change.
 - Replacement proof must run old #206 and permanent successors together before retirement.
 - No skip/xfail masking and no assertion weakening to manufacture GREEN.
