@@ -22,5 +22,13 @@ jobs:
           python-version: "3.11"
       - name: Install test dependency
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Run #270 durable governance regression
-        run: python -m pytest -q tests/process/test_issue270_durable_governance_writeback.py
+      - name: Run full T1-T7 governance regression
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue264_frozen_base_guard.py
+          tests/process/test_issue265_parent_contract.py
+          tests/process/test_issue266_cross_chain_isolation.py
+          tests/process/test_issue267_dispatch_run_identity.py
+          tests/process/test_issue268_atomic_chain_acceptance.py
+          tests/process/test_issue269_current_x_integration_readiness.py
+          tests/process/test_issue270_durable_governance_writeback.py
