@@ -5,10 +5,12 @@
   "work_branch": "test-cleanup/issue280-reconcile-rename-20260915",
   "claimed_at": "2026-09-15T15:51:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "d268511b4fb62a226ef303856387e0619889ea28",
-  "phase": "IMPLEMENTING",
-  "delegated_branches": [],
-  "last_update": "2026-09-15T15:57:00Z",
+  "head_sha": "3363142c986021bca9661fa8920436a1cdc82190",
+  "phase": "REMOTE_QA",
+  "delegated_branches": [
+    "qa/issue280-t5-reconciled-baseline-20260915"
+  ],
+  "last_update": "2026-09-15T15:59:00Z",
   "accepted_inputs": {
     "t2": "eb967e92c951cec8fde9c76d171a9685232a3ea2",
     "t3": "e1d484c247af5b7f384a8883d31357efb7820049",
@@ -20,8 +22,11 @@
     "t4_pr": 300,
     "reconciled_head_sha": "5fc8b0da173fc42f1aaf41a1d620646402de38b0",
     "audit_head_sha": "d268511b4fb62a226ef303856387e0619889ea28",
-    "ancestry_proven": true
+    "ancestry_proven": true,
+    "baseline_qa_head_sha": "3363142c986021bca9661fa8920436a1cdc82190",
+    "baseline_run_id": null,
+    "baseline_conclusion": null
   },
-  "next_action": "Run a fresh combined focused baseline on the reconciled tree before any path move. Only after terminal GREEN may the frozen move/split manifest be executed.",
+  "next_action": "Lock the concrete pre-move baseline RUN for QA head 3363142c986021bca9661fa8920436a1cdc82190. If attempt 1 read a prior claim snapshot, rerun the same RUN after this claim update. No path move until terminal GREEN.",
   "blocker": null
 }
