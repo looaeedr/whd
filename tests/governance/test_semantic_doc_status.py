@@ -5,7 +5,7 @@ import pytest
 from tools.knowledge_governance import _authority_rows, parse_doc_metadata
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_MAP = "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
 DIMENSION_CONTRACT = "phase6-dimension-semantics"
 DIMENSION_OWNER = "個人AI檔案庫/第二層_專案與SOP/07_Phase6尺寸語意與標準截角母規則.md"
