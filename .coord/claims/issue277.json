@@ -9,7 +9,11 @@
   "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-15T14:31:00Z",
-  "remote_qa": null,
-  "next_action": "Lock the new T2 RED run for head 58b7f35a..., prove the stale CURRENT-text authority node fails on exact parent for the expected reason while strict structured metadata baseline remains GREEN.",
+  "remote_qa": {
+    "run_id": 34982016896,
+    "head_sha": "58b7f35afd50126aaf57c9ccce57f5bce5d1c074",
+    "workflow": "Issue 277 T2 Governance RED"
+  },
+  "next_action": "Monitor only run 34982016896 to terminal; require stale free-text authority RED for the expected AI_HANDOFF CURRENT assertion and structured metadata baseline GREEN before modifying tests.",
   "blocker": null
 }
