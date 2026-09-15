@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "task_id": "262",
+  "stage_id": "T3",
+  "frozen_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "expected_parent_sha": "59ee94b5320db3236c2f93d8a3aaed0fbca9219f",
+  "external_dependency_policy": "STOP_REQUIRED"
+}
