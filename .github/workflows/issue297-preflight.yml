@@ -36,3 +36,4 @@ jobs:
             --changed-file .agents/skills/engineering/issue-closure-gate/SKILL.md \
             --changed-file 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md \
             --evidence /tmp/issue297-evidence.txt
+          echo 'issue297-preflight-trigger=2'
