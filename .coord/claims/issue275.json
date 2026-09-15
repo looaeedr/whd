@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-15T13:29:46Z",
   "base_sha": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
   "head_sha": "b5ae852e4aaa236413b0a1acaf097ffb5dbb2776",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:02:00Z",
+  "last_update": "2026-09-15T14:06:30Z",
   "remote_qa": {
     "run_id": 34978576155,
     "head_sha": "f688d428bc5a8c2d176867079d455e879c88a06c",
@@ -16,6 +16,6 @@
     "state": "success",
     "artifact_id": 10400915083
   },
-  "next_action": "Advance task branch non-force to closing head b5ae852e..., then verify tested f688d428 -> closing b5ae852e drift is evidence/cleanup-only and base->closing contains no production/test behavior change.",
+  "next_action": "Close #275 as completed, read back terminal issue state, then release this claim and start #276 from Master accepted head b5ae852e....",
   "blocker": null
 }
