@@ -9,7 +9,11 @@
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-15T14:23:00Z",
-  "remote_qa": null,
-  "next_action": "Lock the new Issue 276 T1 taxonomy QA run for head 70fc5bf2..., verify isolated CLI RED proof then current-head GREEN, lane-union parity, no outcome-control drift, and protected invariants to terminal.",
+  "remote_qa": {
+    "run_id": 34981248957,
+    "head_sha": "70fc5bf24e91aa91b884dc5aff578b0a680fdb31",
+    "workflow": "Issue 276 T1 Taxonomy QA"
+  },
+  "next_action": "Monitor only run 34981248957 to terminal; accept only if isolated CLI RED proof, current-head GREEN, lane-union parity, no outcome-control drift, and protected invariants all succeed.",
   "blocker": null
 }
