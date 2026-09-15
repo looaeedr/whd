@@ -1,0 +1,211 @@
+name: Issue 279 T4 Final Acceptance
+
+on:
+  push:
+    branches:
+      - qa/issue279-t4-final-acceptance-20260915
+
+permissions:
+  contents: read
+
+env:
+  ISSUE: 279
+  WORKER: chatgpt
+  QA_BRANCH: qa/issue279-t4-final-acceptance-20260915
+  CLAIM_REF: coord/claim-issue279-20260915
+  BASE_SHA: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+  CANDIDATE_SHA: 84ae70954967b476227f7e11bcbcf15624e8e013
+  T2_HEAD: eb967e92c951cec8fde9c76d171a9685232a3ea2
+  T3_HEAD: e1d484c247af5b7f384a8883d31357efb7820049
+
+jobs:
+  final-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock exact candidate and sibling isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$QA_BRANCH"
+          git merge-base --is-ancestor "$BASE_SHA" "$CANDIDATE_SHA"
+          test "$(git merge-base "$BASE_SHA" "$CANDIDATE_SHA")" = "$BASE_SHA"
+          git merge-base --is-ancestor "$CANDIDATE_SHA" "$GITHUB_SHA"
+          if git merge-base --is-ancestor "$T2_HEAD" "$CANDIDATE_SHA"; then
+            echo 'T2_SIBLING_LEAK=1'
+            exit 1
+          fi
+          if git merge-base --is-ancestor "$T3_HEAD" "$CANDIDATE_SHA"; then
+            echo 'T3_SIBLING_LEAK=1'
+            exit 1
+          fi
+          git diff --exit-code "$CANDIDATE_SHA" "$GITHUB_SHA" -- tests docs
+          echo 'FINAL_CANDIDATE_LOCK=GREEN'
+
+      - name: Read shared execution claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue279/final-runtime
+          git fetch origin "$CLAIM_REF" --depth=1
+          git show FETCH_HEAD:.coord/claims/issue279.json > .scratch/issue279/final-runtime/claim.json
+
+      - name: Execution claim guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim .scratch/issue279/final-runtime/claim.json \
+            --issue "$ISSUE" \
+            --worker "$WORKER" \
+            --branch "$QA_BRANCH" \
+            --action qa-dispatch \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$GITHUB_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task 'pytest TEST cleanup UI characterization retirement final acceptance remote QA issue closure' \
+            --changed-file tests/test_gui_drawing_contract.py \
+            --changed-file tests/test_gui_toolbar_contract.py \
+            --changed-file docs/plans/2026-09-15-test-cleanup-t4-gui-characterization-retirement.md \
+            --evidence .scratch/issue279/final-preflight-evidence.md
+
+      - name: Prove retirement and permanent replacement state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$BASE_SHA:tests/test_issue206_gui_modularization_characterization.py"
+          test ! -e tests/test_issue206_gui_modularization_characterization.py
+          test -f tests/test_gui_drawing_contract.py
+          test -f tests/test_gui_toolbar_contract.py
+          echo 'ISSUE206_MIGRATION_FILE_RETIRED=GREEN'
+          echo 'PERMANENT_SUCCESSORS_PRESENT=GREEN'
+
+      - name: Prove exact task scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/final-runtime
+          git diff --name-only "$BASE_SHA" "$CANDIDATE_SHA" | sort -u | tee "$root/candidate-changed.txt"
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('.scratch/issue279/final-runtime/candidate-changed.txt').read_text().splitlines())
+          expected = {
+              'docs/plans/2026-09-15-test-cleanup-t4-gui-characterization-retirement.md',
+              'tests/test_gui_drawing_contract.py',
+              'tests/test_gui_toolbar_contract.py',
+          }
+          assert actual == expected, (sorted(expected), sorted(actual))
+          print('T4_EXACT_CHANGED_FILE_SET=GREEN')
+          PY
+
+      - name: Capture protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/final-runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/before.sha256"
+
+      - name: Run permanent post-retirement contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q --tb=short \
+            tests/test_gui_drawing_contract.py \
+            tests/test_gui_toolbar_contract.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py \
+            | tee .scratch/issue279/final-runtime/focused.txt
+
+      - name: Verify taxonomy responsibilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from tools.test_lane_policy import classify_test
+          cases = {
+              'tests/test_gui_drawing_contract.py': 'ui',
+              'tests/test_gui_toolbar_contract.py': 'ui',
+              'tests/test_issue210_project_actions_move_contract.py': 'architecture',
+              'tests/test_issue211_renderer_dependency_gate.py': 'architecture',
+          }
+          for path, expected in cases.items():
+              actual = classify_test(path=path).primary
+              assert actual == expected, (path, expected, actual)
+          print('T4_FINAL_TAXONOMY=GREEN')
+          PY
+
+      - name: Reject outcome-control masking
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -n -E 'pytest\.(skip|xfail)\(|pytest\.mark\.(skip|skipif|xfail)' \
+            tests/test_gui_drawing_contract.py tests/test_gui_toolbar_contract.py
+          echo 'OUTCOME_CONTROL_DRIFT=0'
+
+      - name: Verify QA-only delta from candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/final-runtime
+          git diff --name-only "$CANDIDATE_SHA" "$GITHUB_SHA" | sort -u | tee "$root/qa-only-changed.txt"
+          python - <<'PY'
+          from pathlib import Path
+          changed = [line.strip() for line in Path('.scratch/issue279/final-runtime/qa-only-changed.txt').read_text().splitlines() if line.strip()]
+          allowed = ('.scratch/issue279/', '.github/workflows/issue279-t4-final-')
+          extra = [path for path in changed if not path.startswith(allowed)]
+          assert not extra, f'QA_BRANCH_DRIFT: {extra}'
+          print('QA_ONLY_DELTA=GREEN')
+          PY
+
+      - name: Verify protected invariants and clean tracked runtime
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/final-runtime
+          if [ ! -f "$root/before.sha256" ]; then
+            echo 'INVARIANT_CHECK_NOT_REACHED=1'
+            echo 'Protected invariant comparison skipped because the capture step was not reached.' > "$root/invariant-not-reached.txt"
+            exit 0
+          fi
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/after.sha256"
+          diff -u "$root/before.sha256" "$root/after.sha256" | tee "$root/invariant-diff.txt"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
+          echo 'CONFIG_DXF_INVARIANTS=GREEN'
+
+      - name: Seal final acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ISSUE279_T4_FINAL_ACCEPTANCE=GREEN' | tee .scratch/issue279/final-runtime/result.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue279-t4-final-acceptance
+          path: .scratch/issue279/final-runtime/
+          if-no-files-found: error
