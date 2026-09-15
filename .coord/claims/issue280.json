@@ -5,15 +5,23 @@
   "work_branch": "test-cleanup/issue280-reconcile-rename-20260915",
   "claimed_at": "2026-09-15T15:51:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "8f336206b900a0890f5128d64af2a67ba68a6697",
+  "head_sha": "d268511b4fb62a226ef303856387e0619889ea28",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-15T15:53:00Z",
+  "last_update": "2026-09-15T15:57:00Z",
   "accepted_inputs": {
     "t2": "eb967e92c951cec8fde9c76d171a9685232a3ea2",
     "t3": "e1d484c247af5b7f384a8883d31357efb7820049",
     "t4": "0eabb64a8308f74b9c8b66f982626d2907f00646"
   },
-  "next_action": "Explicitly merge T2, then T3, then T4 accepted branches into the T1-rooted T5 work branch with non-force merge commits; verify all accepted heads are ancestors before any test move.",
+  "reconciliation": {
+    "t2_pr": 298,
+    "t3_pr": 299,
+    "t4_pr": 300,
+    "reconciled_head_sha": "5fc8b0da173fc42f1aaf41a1d620646402de38b0",
+    "audit_head_sha": "d268511b4fb62a226ef303856387e0619889ea28",
+    "ancestry_proven": true
+  },
+  "next_action": "Run a fresh combined focused baseline on the reconciled tree before any path move. Only after terminal GREEN may the frozen move/split manifest be executed.",
   "blocker": null
 }
