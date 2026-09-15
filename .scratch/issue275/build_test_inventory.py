@@ -46,11 +46,23 @@ def issue_provenance(path: str) -> str:
     return ""
 
 
-def classify_lane(path: str, markers: set[str]) -> str:
+def marker_requires_display(item) -> bool:  # noqa: ANN001
+    for mark in item.iter_markers():
+        if mark.name in {"requires_tk_display", "xvfb"}:
+            return True
+        if mark.name == "skipif":
+            reason = str(mark.kwargs.get("reason", "")).lower()
+            condition = bool(mark.args[0]) if mark.args else False
+            if condition and any(token in reason for token in ("display", "tk", "xvfb")):
+                return True
+    return False
+
+
+def classify_lane(path: str, requires_display: bool) -> str:
     low = path.lower()
     if path.startswith("tests/knowledge/") or path.startswith("tests/process/"):
         return "governance"
-    if "requires_tk_display" in markers:
+    if requires_display:
         return "ui"
     if any(token in low for token in ("architecture", "dependency", "module_ownership")):
         return "architecture"
@@ -65,7 +77,7 @@ def classify_lane(path: str, markers: set[str]) -> str:
     return "regression"
 
 
-def contract_for(path: str, nodeid: str) -> str:
+def contract_for(path: str) -> str:
     if path.startswith("tests/knowledge/"):
         return "knowledge-governance"
     if path.startswith("tests/process/"):
@@ -98,14 +110,15 @@ def authority_for(path: str, contract: str) -> str:
     return "current product contract / canonical domain authority"
 
 
-def classification_for(nodeid: str, path: str, markers: set[str], inherited: set[str]) -> tuple[str, str]:
+def classification_for(nodeid: str, path: str, requires_display: bool, inherited: set[str]) -> tuple[str, str]:
+    # Current authority beats historical baseline classification when the contract itself is superseded.
+    if nodeid == STALE_SEMANTIC_NODE:
+        return "REWRITE_SUPERSEDED_CONTRACT", "HISTORICALLY_INHERITED_RED_CURRENT_CONTRACT_DRIFT"
     if nodeid in inherited:
         return "INHERITED_BASELINE_REQUIRES_SEPARATE_FIX", "KNOWN_INHERITED_EVIDENCE"
-    if nodeid == STALE_SEMANTIC_NODE:
-        return "REWRITE_SUPERSEDED_CONTRACT", "KNOWN_TEST_CONTRACT_DRIFT"
     if path.startswith("tests/knowledge/") or path.startswith("tests/process/"):
         return "MOVE_TO_GOVERNANCE_LANE", "CURRENT_CONTRACT_REHOME"
-    if "requires_tk_display" in markers:
+    if requires_display:
         return "MOVE_TO_UI_LANE", "CURRENT_CONTRACT_REHOME"
     if path == "tests/test_issue206_gui_modularization_characterization.py":
         return "KEEP_CURRENT_CONTRACT", "REVIEW_CHARACTERIZATION_PROMOTE_OR_RETIRE"
@@ -123,25 +136,27 @@ class InventoryPlugin:
             nodeid = item.nodeid.replace("\\", "/")
             path = nodeid.split("::", 1)[0]
             markers = {mark.name for mark in item.iter_markers()}
-            classification, status = classification_for(nodeid, path, markers, self.inherited)
-            lane = classify_lane(path, markers)
-            contract = contract_for(path, nodeid)
-            row = {
-                "path": path,
-                "test_node": nodeid,
-                "lane": lane,
-                "contract": contract,
-                "authority": authority_for(path, contract),
-                "classification": classification,
-                "replacement": "",
-                "status": status,
-                "requires_display": "requires_tk_display" in markers,
-                "issue_provenance": issue_provenance(path),
-                "collection_mode": self.mode,
-                "markers": sorted(markers),
-            }
+            requires_display = marker_requires_display(item)
+            classification, status = classification_for(nodeid, path, requires_display, self.inherited)
+            lane = classify_lane(path, requires_display)
+            contract = contract_for(path)
+            self.rows.append(
+                {
+                    "path": path,
+                    "test_node": nodeid,
+                    "lane": lane,
+                    "contract": contract,
+                    "authority": authority_for(path, contract),
+                    "classification": classification,
+                    "replacement": "",
+                    "status": status,
+                    "requires_display": requires_display,
+                    "issue_provenance": issue_provenance(path),
+                    "collection_mode": self.mode,
+                    "markers": sorted(markers),
+                }
+            )
             assert classification in CLASSIFICATIONS
-            self.rows.append(row)
 
 
 def collect(mode: str, inherited_path: Path, output: Path) -> int:
@@ -149,8 +164,10 @@ def collect(mode: str, inherited_path: Path, output: Path) -> int:
     plugin = InventoryPlugin(inherited, mode)
     rc = pytest.main(["--collect-only", "-q", "tests"], plugins=[plugin])
     output.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"mode": mode, "pytest_rc": rc, "count": len(plugin.rows), "rows": plugin.rows}
-    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps({"mode": mode, "pytest_rc": rc, "count": len(plugin.rows), "rows": plugin.rows}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     if rc != pytest.ExitCode.OK:
         raise SystemExit(int(rc))
     return 0
@@ -168,12 +185,22 @@ def merge(headless_path: Path, xvfb_path: Path, inherited_path: Path, out_dir: P
         source = dict(xm.get(node) or hm[node])
         source["collected_headless"] = node in hm
         source["collected_xvfb"] = node in xm
+        source["requires_display"] = bool(hm.get(node, {}).get("requires_display")) or bool(xm.get(node, {}).get("requires_display"))
+        if source["requires_display"] and source["classification"] == "KEEP_CURRENT_CONTRACT":
+            source["lane"] = "ui"
+            source["classification"] = "MOVE_TO_UI_LANE"
+            source["status"] = "CURRENT_CONTRACT_REHOME"
         source.pop("collection_mode", None)
         rows.append(source)
 
     missing_inherited = sorted(inherited - set(all_nodes))
     if missing_inherited:
         raise SystemExit(f"known inherited nodeids missing from current collection: {missing_inherited}")
+
+    # The superseded semantic-doc node remains represented even though it has historical inherited-red evidence.
+    semantic = next(row for row in rows if row["test_node"] == STALE_SEMANTIC_NODE)
+    if semantic["classification"] != "REWRITE_SUPERSEDED_CONTRACT":
+        raise SystemExit(f"semantic-doc classification drift: {semantic}")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / "test_inventory.json"
@@ -208,7 +235,7 @@ def merge(headless_path: Path, xvfb_path: Path, inherited_path: Path, out_dir: P
         f"- Total collected nodes: {summary['total_nodes']}",
         f"- Headless collection: {summary['headless_nodes']}",
         f"- Xvfb collection: {summary['xvfb_nodes']}",
-        f"- Known inherited evidence rows: {summary['known_inherited_nodes']}",
+        f"- Historical inherited evidence nodeids represented: {summary['known_inherited_nodes']}",
         "",
         "## Lane counts",
     ]
@@ -216,10 +243,20 @@ def merge(headless_path: Path, xvfb_path: Path, inherited_path: Path, out_dir: P
     lines += ["", "## Classification counts"]
     lines.extend(f"- `{key}`: {value}" for key, value in summary["classification_counts"].items())
     lines += ["", "## First cleanup candidates", ""]
-    candidates = [r for r in rows if r["classification"] != "KEEP_CURRENT_CONTRACT" or r["status"] == "REVIEW_CHARACTERIZATION_PROMOTE_OR_RETIRE"]
+    candidates = [
+        r for r in rows
+        if r["classification"] != "KEEP_CURRENT_CONTRACT"
+        or r["status"] == "REVIEW_CHARACTERIZATION_PROMOTE_OR_RETIRE"
+    ]
     for row in candidates:
         lines.append(f"- `{row['test_node']}` — `{row['classification']}` — {row['status']}")
-    lines += ["", "## Safety boundary", "", "- No production files are modified by T0.", "- No failing test is deleted merely because it is red.", "- Unknown cases default to `KEEP_CURRENT_CONTRACT`.", "- Historical inherited-red evidence is annotation only; it is not runtime product authority."]
+    lines += [
+        "", "## Safety boundary", "",
+        "- No production files are modified by T0.",
+        "- No failing test is deleted merely because it is red.",
+        "- Unknown cases default to `KEEP_CURRENT_CONTRACT`.",
+        "- Historical inherited-red evidence is annotation only; current canonical authority still decides whether a test contract is superseded.",
+    ]
     md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(json.dumps(summary, sort_keys=True))
