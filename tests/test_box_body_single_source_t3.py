@@ -86,20 +86,39 @@ def test_receiving_corner_data_box_body_uses_same_authoritative_context_projecti
         designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
         bundle = bridge._phase6_query_assembly_render_data(designer)
+        aggregate = next(part for part in bundle.assembly_parts if part.part_key == "box_body").render_data
+
         bridge._phase6_show_corner_data(designer)
         resolved = bridge._phase6_select_corner_data_part(designer, "box_body")
         projection = bridge._phase6_corner_data_unfold_projection(designer)
 
-        # Receiving keeps one top-level 箱身 selector, but its authoritative
-        # manufacturing identity is one of the three physical child plates.
-        assert resolved == "box_body:left_side"
+        # The logical selector remains the aggregate Box Body identity.  It may
+        # expose physical children, but it must not silently rewrite itself to
+        # whichever child happens to be first.
+        assert resolved == "box_body"
         assert projection is not None
-        assert projection.part_key == resolved
-        aggregate = next(part for part in bundle.assembly_parts if part.part_key == "box_body").render_data
-        expected = next(piece.render_data for piece in aggregate.pieces if piece.role == "left_side")
-        assert projection.render_data.material.equals(expected.material)
+        assert projection.part_key == "box_body"
+        assert projection.render_data.material.equals(aggregate.material)
+
+        physical_keys = tuple(bridge._phase6_corner_data_part_keys(designer))
+        expected_roles = {
+            "box_body:left_side": "left_side",
+            "box_body:back": "back",
+            "box_body:right_side": "right_side",
+        }
+        for key, role in expected_roles.items():
+            assert key in physical_keys
+            assert bridge._phase6_select_corner_data_part(designer, key) == key
+            child_projection = bridge._phase6_corner_data_unfold_projection(designer)
+            expected = next(piece.render_data for piece in aggregate.pieces if piece.role == role)
+            assert child_projection is not None
+            assert child_projection.part_key == key
+            assert child_projection.render_data.material.equals(expected.material)
+
         assert app.workspace_controller.box_body_profile()
-        assert projection.render_data is bridge._phase6_corner_data_unfold_projection(designer).render_data
+        final_projection = bridge._phase6_corner_data_unfold_projection(designer)
+        assert final_projection is not None
+        assert final_projection.render_data is bridge._phase6_corner_data_unfold_projection(designer).render_data
         assert not hasattr(app, "notebook")
     finally:
         try:
