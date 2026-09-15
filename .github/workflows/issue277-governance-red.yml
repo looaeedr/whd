@@ -27,10 +27,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p .scratch/issue277/red
           test "$GITHUB_REF_NAME" = "$TASK_BRANCH"
           git merge-base --is-ancestor "$BASE_SHA" "$GITHUB_SHA"
           test "$(git merge-base "$BASE_SHA" "$GITHUB_SHA")" = "$BASE_SHA"
-          git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | tee /tmp/changed.txt
+          git -c core.quotepath=false diff --name-only "$BASE_SHA" "$GITHUB_SHA" | tee /tmp/changed.txt
           python - <<'PY'
           from pathlib import Path
           allowed={
