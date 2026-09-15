@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "task_id": "262",
+  "target": "cleanup/2d-3d-sync",
+  "frozen_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "base_frozen": true,
+  "t0_accepted_head": "475c848c6801b53d0f09df80c50f804769a93287"
+}
