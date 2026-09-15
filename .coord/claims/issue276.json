@@ -6,15 +6,17 @@
   "claimed_at": "2026-09-15T14:08:00Z",
   "base_sha": "b5ae852e4aaa236413b0a1acaf097ffb5dbb2776",
   "head_sha": "9c9f2ebcf63cec561f69145b1a058946b680a487",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:14:00Z",
+  "last_update": "2026-09-15T14:15:00Z",
   "remote_qa": {
     "run_id": 34980188260,
     "head_sha": "9c9f2ebcf63cec561f69145b1a058946b680a487",
     "branch": "test-cleanup/issue276-taxonomy-20260915",
-    "state": "queued"
+    "state": "failure",
+    "failed_step": "Audit lane collection union",
+    "root_cause": "tools/test_lane_audit.py is executed as a script, so sys.path[0] is tools/ and 'from tools.test_lane_policy' fails before repo root is inserted"
   },
-  "next_action": "Poll GREEN run 34980188260 and its job/steps to terminal; on failure inspect only the failed T1 harness/policy step and keep production untouched.",
+  "next_action": "Add a CLI-bootstrap regression test that fails on current head, verify that RED, then minimally insert repo root into sys.path before importing tools.test_lane_policy.",
   "blocker": null
 }
