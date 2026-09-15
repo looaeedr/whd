@@ -105,5 +105,9 @@ def test_render_drawing_scene_preserves_semantic_projection_without_mutating_sou
     assert bend[1] == (1.0, 98.0, 5.0, 98.0)
     assert circle[1] == (2.0, 97.0, 4.0, 99.0)
 
+    assert polygon[2]["outline"] == "#30d158"
+    assert marking[2]["fill"] == "#8e8e93"
+    assert bend[2]["fill"] == "#0a84ff"
+    assert circle[2]["outline"] == "#30d158"
     assert "dash" not in marking[2]
     assert bend[2].get("dash") == (6, 4)
