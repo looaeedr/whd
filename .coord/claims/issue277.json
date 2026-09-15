@@ -1,0 +1,15 @@
+{
+  "issue": 277,
+  "issue_url": "https://github.com/looaeedr/whd/issues/277",
+  "worker": "chatgpt",
+  "work_branch": "test-cleanup/issue277-governance-20260915",
+  "claimed_at": "2026-09-15T14:29:00Z",
+  "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
+  "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
+  "phase": "CLAIMED",
+  "delegated_branches": [],
+  "last_update": "2026-09-15T14:29:00Z",
+  "remote_qa": null,
+  "next_action": "Create fresh T2 branch from exact accepted head, write the implementation plan, then prove the inherited semantic-doc free-text authority test RED before replacing it with structured metadata / canonical-authority contracts.",
+  "blocker": null
+}
