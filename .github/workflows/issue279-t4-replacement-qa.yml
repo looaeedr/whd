@@ -1,0 +1,196 @@
+name: Issue 279 T4 Replacement QA
+
+on:
+  push:
+    branches:
+      - qa/issue279-t4-replacement-20260915
+
+permissions:
+  contents: read
+
+env:
+  ISSUE: 279
+  WORKER: chatgpt
+  TASK_BRANCH: test-cleanup/issue279-gui-characterization-20260915
+  QA_BRANCH: qa/issue279-t4-replacement-20260915
+  CLAIM_REF: coord/claim-issue279-20260915
+  BASE_SHA: a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6
+  T2_HEAD: eb967e92c951cec8fde9c76d171a9685232a3ea2
+  T3_HEAD: e1d484c247af5b7f384a8883d31357efb7820049
+
+jobs:
+  replacement-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Lock lineage and sibling isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "$QA_BRANCH"
+          git merge-base --is-ancestor "$BASE_SHA" "$GITHUB_SHA"
+          test "$(git merge-base "$BASE_SHA" "$GITHUB_SHA")" = "$BASE_SHA"
+          if git merge-base --is-ancestor "$T2_HEAD" "$GITHUB_SHA"; then
+            echo 'T2_SIBLING_LEAK=1'
+            exit 1
+          fi
+          if git merge-base --is-ancestor "$T3_HEAD" "$GITHUB_SHA"; then
+            echo 'T3_SIBLING_LEAK=1'
+            exit 1
+          fi
+          echo 'T4_SIBLING_ISOLATION=GREEN'
+
+      - name: Read shared execution claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue279/runtime
+          git fetch origin "$CLAIM_REF" --depth=1
+          git show FETCH_HEAD:.coord/claims/issue279.json > .scratch/issue279/runtime/claim.json
+
+      - name: Execution claim guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py \
+            --claim .scratch/issue279/runtime/claim.json \
+            --issue "$ISSUE" \
+            --worker "$WORKER" \
+            --branch "$QA_BRANCH" \
+            --action qa-dispatch \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$GITHUB_SHA"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task 'pytest TEST cleanup UI characterization replacement remote QA issue closure' \
+            --changed-file tests/test_gui_drawing_contract.py \
+            --changed-file tests/test_gui_toolbar_contract.py \
+            --changed-file tests/test_issue206_gui_modularization_characterization.py \
+            --changed-file docs/plans/2026-09-15-test-cleanup-t4-gui-characterization-retirement.md \
+            --evidence .scratch/issue279/preflight-evidence.md
+
+      - name: Prove migration RED facts and coexistence state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$BASE_SHA:tests/test_issue206_gui_modularization_characterization.py"
+          if git cat-file -e "$BASE_SHA:tests/test_gui_drawing_contract.py" 2>/dev/null; then
+            echo 'PARENT_DRAWING_SUCCESSOR_ALREADY_EXISTS=1'
+            exit 1
+          fi
+          if git cat-file -e "$BASE_SHA:tests/test_gui_toolbar_contract.py" 2>/dev/null; then
+            echo 'PARENT_TOOLBAR_SUCCESSOR_ALREADY_EXISTS=1'
+            exit 1
+          fi
+          test -f tests/test_issue206_gui_modularization_characterization.py
+          test -f tests/test_gui_drawing_contract.py
+          test -f tests/test_gui_toolbar_contract.py
+          echo 'MIGRATION_CHARACTERIZATION_PRESENT=1'
+          echo 'SUCCESSOR_COEXISTENCE=GREEN'
+
+      - name: Capture protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/before.sha256"
+
+      - name: Run old and permanent contracts together
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q --tb=short \
+            tests/test_issue206_gui_modularization_characterization.py \
+            tests/test_gui_drawing_contract.py \
+            tests/test_gui_toolbar_contract.py \
+            tests/test_issue210_project_actions_move_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py \
+            | tee .scratch/issue279/runtime/focused.txt
+
+      - name: Verify taxonomy responsibilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from tools.test_lane_policy import classify_test
+          cases = {
+              'tests/test_gui_drawing_contract.py': 'ui',
+              'tests/test_gui_toolbar_contract.py': 'ui',
+              'tests/test_issue210_project_actions_move_contract.py': 'architecture',
+              'tests/test_issue211_renderer_dependency_gate.py': 'architecture',
+          }
+          for path, expected in cases.items():
+              actual = classify_test(path=path).primary
+              assert actual == expected, (path, expected, actual)
+          print('T4_TAXONOMY_RESPONSIBILITY=GREEN')
+          PY
+
+      - name: Reject outcome-control masking
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -n -E 'pytest\.(skip|xfail)\(|pytest\.mark\.(skip|skipif|xfail)' \
+            tests/test_gui_drawing_contract.py tests/test_gui_toolbar_contract.py
+          echo 'OUTCOME_CONTROL_DRIFT=0'
+
+      - name: Scope and production drift audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/runtime
+          git diff --name-only "$BASE_SHA" "$GITHUB_SHA" | sort -u | tee "$root/changed.txt"
+          python - <<'PY'
+          from pathlib import Path
+          changed = [line.strip() for line in Path('.scratch/issue279/runtime/changed.txt').read_text().splitlines() if line.strip()]
+          allowed_prefixes = ('tests/', 'docs/', '.scratch/issue279/', '.github/workflows/issue279-t4-')
+          extra = [path for path in changed if not path.startswith(allowed_prefixes)]
+          assert not extra, f'PRODUCTION_SOURCE_DRIFT: {extra}'
+          print('PRODUCTION_SOURCE_DRIFT=0')
+          PY
+
+      - name: Verify protected invariants and clean tracked runtime
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.scratch/issue279/runtime
+          find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+            -not -path './.git/*' -not -path './.scratch/*' \
+            -print0 | sort -z | xargs -0 sha256sum > "$root/after.sha256"
+          diff -u "$root/before.sha256" "$root/after.sha256" | tee "$root/invariant-diff.txt"
+          git diff --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=no)"
+          echo 'CONFIG_DXF_INVARIANTS=GREEN'
+
+      - name: Seal replacement proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'ISSUE279_T4_REPLACEMENT_PROOF=GREEN' | tee .scratch/issue279/runtime/result.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue279-t4-replacement-proof
+          path: .scratch/issue279/runtime/
+          if-no-files-found: error
