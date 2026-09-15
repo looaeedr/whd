@@ -6,14 +6,16 @@
   "claimed_at": "2026-09-15T14:50:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
   "head_sha": "8c9596b97b53830034d261955649c47ac4b7cc33",
-  "phase": "GREEN_QA",
+  "phase": "REMOTE_QA",
   "delegated_branches": ["qa/issue278-t3-red-20260915"],
-  "last_update": "2026-09-15T15:02:00Z",
+  "last_update": "2026-09-15T15:05:00Z",
   "remote_qa": {
     "red_run_id": 34985361465,
     "red_candidate_sha": "a76b5c413608e1268100bb8db197b6df469a2361",
-    "red_conclusion": "success"
+    "red_conclusion": "success",
+    "failed_acceptance_run_id": 34985855801,
+    "failed_acceptance_reason": "claim phase GREEN_QA is not a legal execution-claim phase; candidate tests were not executed"
   },
-  "next_action": "Run exact-head GREEN acceptance for 8c9596b97b53830034d261955649c47ac4b7cc33. Require all T3 contracts GREEN, parent RED provenance retained, no outcome-control weakening, production drift zero, and config/DXF invariants unchanged.",
+  "next_action": "Run replacement exact-head acceptance for 8c9596b97b53830034d261955649c47ac4b7cc33 under legal REMOTE_QA phase. Require all T3 contracts GREEN, parent RED provenance retained, no outcome-control weakening, production drift zero, and config/DXF invariants unchanged.",
   "blocker": null
 }
