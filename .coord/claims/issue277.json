@@ -5,16 +5,11 @@
   "work_branch": "test-cleanup/issue277-governance-20260915",
   "claimed_at": "2026-09-15T14:29:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "54ffc0358294f78c02db1f5440ff84d6b0b3077e",
+  "head_sha": "9ed8ffd87771d73da3d372a04f654d59cc9ace84",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-15T14:40:00Z",
-  "remote_qa": {
-    "run_id": 34983148877,
-    "head_sha": "54ffc0358294f78c02db1f5440ff84d6b0b3077e",
-    "workflow": "Issue 277 T2 Governance RED",
-    "conclusion": "failure"
-  },
-  "next_action": "Inspect only run 34983148877 failure, identify exact RED prerequisite/root cause, and do not modify the semantic test until stale exact-parent RED proof and strict structured-metadata baseline are both valid.",
-  "blocker": "Exact-head RED run 34983148877 is terminal failure; failure step requires classification."
+  "last_update": "2026-09-15T14:41:00Z",
+  "remote_qa": null,
+  "next_action": "Lock only the new Issue 277 T2 Governance RED run for exact head 9ed8ffd8..., after fixing Unicode diff-path normalization. Require scope/preflight GREEN, exact-parent stale semantic RED proof, and strict structured-metadata baseline GREEN.",
+  "blocker": null
 }
