@@ -5,11 +5,13 @@
   "work_branch": "test-cleanup/issue279-gui-characterization-20260915",
   "claimed_at": "2026-09-15T15:12:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "phase": "PREFLIGHT",
-  "delegated_branches": [],
-  "last_update": "2026-09-15T15:12:00Z",
+  "head_sha": "00876cc7dc6ee3ad9d5229b1f3e81fd340dc2389",
+  "phase": "IMPLEMENTING",
+  "delegated_branches": [
+    "qa/issue279-t4-replacement-20260915"
+  ],
+  "last_update": "2026-09-15T15:32:00Z",
   "remote_qa": null,
-  "next_action": "Classify issue206/210/211 tests into permanent UI behavior, permanent architecture/dependency, migration-only characterization, duplicate, or superseded before any retirement or assertion change.",
+  "next_action": "Run replacement proof with old #206 and permanent successors coexisting; only after GREEN may the migration characterization file be retired.",
   "blocker": null
 }
