@@ -9,7 +9,11 @@
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-15T14:45:00Z",
-  "remote_qa": null,
-  "next_action": "Lock only the new Issue 277 T2 Governance QA run for exact head 010b80c9..., then monitor that run to terminal. Acceptance requires stale-parent RED proof, semantic/strict/full-governance GREEN, durable process coverage, no outcome-control weakening, and protected invariants GREEN.",
+  "remote_qa": {
+    "run_id": 34983681537,
+    "head_sha": "010b80c9e277d440dd22343823ff0578c52fba4a",
+    "workflow": "Issue 277 T2 Governance QA"
+  },
+  "next_action": "Monitor only run 34983681537 to terminal; accept only if stale-parent RED proof, migrated semantic governance contracts, strict metadata, full governance lane, durable process coverage, no outcome-control weakening, and protected invariants all succeed.",
   "blocker": null
 }
