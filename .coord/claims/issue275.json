@@ -5,11 +5,11 @@
   "work_branch": "test-cleanup/issue275-inventory-v2-20260915",
   "claimed_at": "2026-09-15T13:29:46Z",
   "base_sha": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
-  "head_sha": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
-  "phase": "CLAIMED",
+  "head_sha": "1695643e739aaa80e381cce8e755265d1e29df64",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-15T13:35:00Z",
+  "last_update": "2026-09-15T13:52:00Z",
   "remote_qa": null,
-  "next_action": "Run executable branch-create guard for corrected work branch, then create fresh T0 branch and run fail-closed preflight before inventory collection.",
+  "next_action": "Push atomic T0 QA harness commit to task branch; then lock the new #275 run_id + head_sha and monitor only that run to terminal.",
   "blocker": null
 }
