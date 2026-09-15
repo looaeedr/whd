@@ -5,17 +5,22 @@
   "work_branch": "test-cleanup/issue279-gui-characterization-20260915",
   "claimed_at": "2026-09-15T15:12:00Z",
   "base_sha": "a6f0eaae87c4a4aa7dea8c55feaaee1dafbf21f6",
-  "head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
+  "head_sha": "84ae70954967b476227f7e11bcbcf15624e8e013",
   "phase": "REMOTE_QA",
   "delegated_branches": [
-    "qa/issue279-t4-replacement-20260915"
+    "qa/issue279-t4-replacement-20260915",
+    "qa/issue279-t4-final-acceptance-20260915"
   ],
-  "last_update": "2026-09-15T15:36:30Z",
+  "last_update": "2026-09-15T15:44:30Z",
   "remote_qa": {
     "replacement_head_sha": "8fd68802295239f7ed1aa83f90809d83494f3b92",
-    "replacement_run_id": null,
-    "replacement_conclusion": null
+    "replacement_run_id": 34990283992,
+    "replacement_conclusion": "success",
+    "replacement_passed": 36,
+    "final_candidate_sha": "84ae70954967b476227f7e11bcbcf15624e8e013",
+    "final_run_id": null,
+    "final_conclusion": null
   },
-  "next_action": "Lock the concrete replacement-proof RUN for QA head 8fd68802295239f7ed1aa83f90809d83494f3b92. If the first attempt read the previous claim snapshot, rerun the same RUN after this claim update; do not create a different candidate.",
+  "next_action": "Run final post-retirement acceptance from exact task candidate 84ae70954967b476227f7e11bcbcf15624e8e013. The retired issue206 file must be absent; permanent drawing/toolbar contracts plus issue210/211 must pass with production drift and config/DXF invariants green.",
   "blocker": null
 }
