@@ -26,6 +26,17 @@ whd_schema: WHD_DOC_META_V1
 - Every modified file is on `ci-sharding/issue304-t0-baseline-20260916`; production `cleanup/2d-3d-sync` is untouched.
 - Final evidence must report queue delay, `EXECUTION_WALL_CLOCK`, `END_TO_END_WALL_CLOCK`, per-lane timings, slowest tests, exact Xvfb failed node IDs, classifier state, and protected hashes.
 
+## Fail-closed knowledge preflight evidence
+
+The required skills/references for this CI + pytest + UI/Xvfb validation task were explicitly read before continuing the implementation:
+
+- `Python測試實務`
+- `UI設計與去AI味`
+- `READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md`
+- `READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md`
+
+The preflight remains fail-closed: if the registry requires additional skills/references, the workflow must stop before collection/execution until the evidence is complete.
+
 ---
 
 ### Task 1: Baseline QA Workflow
