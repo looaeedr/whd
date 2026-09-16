@@ -62,11 +62,3 @@ def test_corner_ui_slice_root_methods_are_thin_delegates():
         if span > 4:
             fat[name] = span
     assert not fat, f"corner UI presentation still implemented in gui.py: {fat}"
-
-
-def test_corner_ui_slice_keeps_large_panel_builder_out_of_this_slice():
-    methods = _host_methods()
-    builder = methods["create_corner_type_panel"]
-    assert builder.end_lineno - builder.lineno + 1 > 150, (
-        "create_corner_type_panel unexpectedly became small; split it explicitly before moving it"
-    )

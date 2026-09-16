@@ -336,3 +336,199 @@ def refresh_corner_type_panel(self):
         self._draw_corner_type_icon(
             self.corner_type_preview_canvas, selection, large=True, flip_y=flip_y
         )
+
+from tkinter import ttk
+from ae_engine.corner_type_ui import CORNER_LABELS
+from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS
+
+def _build_corner_pair_controls(host, editor):
+    # 預設以上方／下方成對編輯；只有取消「左右相同」才拆成左右兩個角。
+    host.manual_corner_pair_buttons = {}
+    host.manual_corner_pair_same_checkbuttons = {}
+    for pair_key, pair_label, same_var in (
+        ('top', '上方截角', host.manual_top_same_var),
+        ('bottom', '下方截角', host.manual_bottom_same_var),
+    ):
+        pair_row = tk.Frame(editor, bg=host.COLOR_INPUT_BG)
+        pair_row.pack(fill=tk.X, padx=8, pady=3)
+        tk.Label(
+            pair_row, text=pair_label, width=8, anchor=tk.W,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            font=('Microsoft JhengHei', 9, 'bold'),
+        ).pack(side=tk.LEFT)
+        same_cb = tk.Checkbutton(
+            pair_row, text='左右相同', variable=same_var,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG, activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL,
+            command=lambda p=pair_key: host.on_manual_corner_pair_same_changed(p),
+        )
+        same_cb.pack(side=tk.LEFT, padx=(2, 8))
+        host.manual_corner_pair_same_checkbuttons[pair_key] = same_cb
+        button_frame = tk.Frame(pair_row, bg=host.COLOR_INPUT_BG)
+        button_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        left_key, right_key = CORNER_PAIR_CORNERS[pair_key]
+        pair_button = tk.Button(
+            button_frame, text=('上方' if pair_key == 'top' else '下方'),
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0,
+            activebackground=host.COLOR_ACCENT_HOVER, activeforeground='#ffffff',
+            command=lambda p=pair_key: host.select_manual_corner(p),
+        )
+        left_button = tk.Button(
+            button_frame, text=CORNER_LABELS[left_key],
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0,
+            activebackground=host.COLOR_ACCENT_HOVER, activeforeground='#ffffff',
+            command=lambda k=left_key: host.select_manual_corner(k),
+        )
+        right_button = tk.Button(
+            button_frame, text=CORNER_LABELS[right_key],
+            bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0,
+            activebackground=host.COLOR_ACCENT_HOVER, activeforeground='#ffffff',
+            command=lambda k=right_key: host.select_manual_corner(k),
+        )
+        host.manual_corner_pair_buttons[pair_key] = {
+            'frame': button_frame, 'pair': pair_button,
+            'left': left_button, 'right': right_button,
+        }
+
+def _build_corner_type_selector(host, editor):
+    type_frame = tk.Frame(editor, bg=host.COLOR_INPUT_BG)
+    type_frame.pack(fill=tk.X, padx=8, pady=(5, 2))
+    host.manual_corner_type_frame = type_frame
+    host.corner_type_small_canvases = {}
+    host.manual_corner_type_buttons = {}
+    for type_id in EDITABLE_CORNER_TYPE_IDS:
+        row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+        row.pack(fill=tk.X, pady=2)
+        icon = tk.Canvas(
+            row, width=54, height=40, bg=host.COLOR_CANVAS_BG,
+            highlightthickness=1, highlightbackground='#34343a'
+        )
+        icon.pack(side=tk.LEFT, padx=(0, 6))
+        icon.bind('<Button-1>', lambda e, tid=type_id: host.set_manual_corner_type(tid))
+        host.corner_type_small_canvases[type_id] = icon
+        rb = tk.Radiobutton(
+            row,
+            text=CORNER_TYPE_LABELS[type_id],
+            variable=host.manual_corner_type_var,
+            value=type_id.value,
+            command=lambda tid=type_id: host.set_manual_corner_type(tid),
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG, activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL, anchor=tk.W,
+        )
+        rb.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        host.manual_corner_type_buttons[type_id] = rb
+
+def _build_corner_parameter_controls(host, editor):
+    host.manual_corner_param_summary = tk.Label(
+        editor, text="", justify=tk.LEFT, anchor=tk.W,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT_MUTED,
+        font=('Microsoft JhengHei', 9), wraplength=520,
+    )
+
+    host.manual_corner_param_frame = tk.Frame(editor, bg=host.COLOR_INPUT_BG)
+
+    host.manual_corner_mode_row = tk.Frame(host.manual_corner_param_frame, bg=host.COLOR_INPUT_BG)
+    tk.Label(host.manual_corner_mode_row, text="方式 :", width=12, anchor=tk.W,
+             bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT).pack(side=tk.LEFT)
+    host.manual_corner_mode_cb = ttk.Combobox(
+        host.manual_corner_mode_row, textvariable=host.manual_corner_cross_mode_var,
+        values=['標準', '單邊留肉', '多切'], width=12, state='readonly', style='TCombobox'
+    )
+    host.manual_corner_mode_cb.pack(side=tk.LEFT, padx=4)
+    host.manual_corner_mode_cb.bind('<<ComboboxSelected>>', host.on_manual_corner_mode_changed)
+
+    host.manual_corner_direction_row = tk.Frame(host.manual_corner_param_frame, bg=host.COLOR_INPUT_BG)
+    host.manual_corner_direction_label = tk.Label(
+        host.manual_corner_direction_row, text="方向 :", width=12, anchor=tk.W,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT
+    )
+    host.manual_corner_direction_label.pack(side=tk.LEFT)
+    host.manual_corner_direction_cb = ttk.Combobox(
+        host.manual_corner_direction_row, textvariable=host.manual_corner_direction_var,
+        width=12, state='readonly', style='TCombobox'
+    )
+    host.manual_corner_direction_cb.pack(side=tk.LEFT, padx=4)
+    host.manual_corner_direction_cb.bind('<<ComboboxSelected>>', host.on_manual_corner_parameter_changed)
+
+    host.manual_corner_amount_row = tk.Frame(host.manual_corner_param_frame, bg=host.COLOR_INPUT_BG)
+    host.manual_corner_amount_label = tk.Label(
+        host.manual_corner_amount_row, text="數值 :", width=12, anchor=tk.W,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT
+    )
+    host.manual_corner_amount_label.pack(side=tk.LEFT)
+    host.manual_corner_amount_entry = ttk.Entry(
+        host.manual_corner_amount_row, textvariable=host.manual_corner_amount_var,
+        width=8, justify=tk.CENTER
+    )
+    host.manual_corner_amount_entry.pack(side=tk.LEFT, padx=4)
+    tk.Label(host.manual_corner_amount_row, text="T", bg=host.COLOR_INPUT_BG,
+             fg=host.COLOR_TEXT_MUTED).pack(side=tk.LEFT)
+    host.manual_corner_amount_entry.bind('<Return>', host.on_manual_corner_parameter_changed)
+    host.manual_corner_amount_entry.bind('<FocusOut>', host.on_manual_corner_parameter_changed)
+
+    host.manual_corner_secondary_row = tk.Frame(host.manual_corner_param_frame, bg=host.COLOR_INPUT_BG)
+    tk.Label(host.manual_corner_secondary_row, text="嵌入留肉 :", width=12, anchor=tk.W,
+             bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT).pack(side=tk.LEFT)
+    host.manual_corner_secondary_retain_entry = ttk.Entry(
+        host.manual_corner_secondary_row, textvariable=host.manual_corner_secondary_retain_var,
+        width=7, justify=tk.CENTER
+    )
+    host.manual_corner_secondary_retain_entry.pack(side=tk.LEFT, padx=(4, 2))
+    tk.Label(host.manual_corner_secondary_row, text="T   深度 :", bg=host.COLOR_INPUT_BG,
+             fg=host.COLOR_TEXT_MUTED).pack(side=tk.LEFT)
+    host.manual_corner_secondary_depth_entry = ttk.Entry(
+        host.manual_corner_secondary_row, textvariable=host.manual_corner_secondary_depth_var,
+        width=7, justify=tk.CENTER
+    )
+    host.manual_corner_secondary_depth_entry.pack(side=tk.LEFT, padx=(4, 2))
+    tk.Label(host.manual_corner_secondary_row, text="T", bg=host.COLOR_INPUT_BG,
+             fg=host.COLOR_TEXT_MUTED).pack(side=tk.LEFT)
+    for entry in (host.manual_corner_secondary_retain_entry, host.manual_corner_secondary_depth_entry):
+        entry.bind('<Return>', host.on_manual_corner_parameter_changed)
+        entry.bind('<FocusOut>', host.on_manual_corner_parameter_changed)
+
+    host.corner_type_preview_canvas = tk.Canvas(
+        editor, width=150, height=105, bg=host.COLOR_CANVAS_BG,
+        highlightthickness=1, highlightbackground='#34343a'
+    )
+    host.corner_type_preview_canvas.pack(padx=8, pady=(4, 8))
+
+def create_corner_type_panel(host, parent):
+    panel = tk.Frame(parent, bg=host.COLOR_INPUT_BG, bd=1, relief=tk.SOLID)
+    host.corner_type_panel = panel
+
+    title_row = tk.Frame(panel, bg=host.COLOR_INPUT_BG)
+    title_row.pack(fill=tk.X, padx=8, pady=(8, 4))
+    host.manual_corner_title_label = tk.Label(
+        title_row, text="截角類型", bg=host.COLOR_INPUT_BG,
+        fg=host.COLOR_ACCENT, font=('Microsoft JhengHei', 10, 'bold')
+    )
+    host.manual_corner_title_label.pack(side=tk.LEFT)
+    host.manual_corner_param_lock_button = tk.Button(
+        title_row, text="🔒 參數鎖定", command=host.toggle_manual_corner_parameter_lock,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0, cursor="hand2",
+        activebackground=host.COLOR_ACCENT_HOVER, activeforeground="#ffffff",
+        font=('Microsoft JhengHei', 9, 'bold'), padx=6, pady=1,
+    )
+    host.manual_corner_part_label = tk.Label(
+        title_row, text="", bg=host.COLOR_INPUT_BG,
+        fg=host.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9)
+    )
+    host.manual_corner_part_label.pack(side=tk.RIGHT)
+
+    host.manual_corner_fixed_summary = tk.Label(
+        panel, text="", justify=tk.LEFT, anchor=tk.W,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        font=('Microsoft JhengHei', 9), wraplength=520,
+    )
+
+    host.manual_corner_editor_frame = tk.Frame(panel, bg=host.COLOR_INPUT_BG)
+    editor = host.manual_corner_editor_frame
+    _build_corner_pair_controls(host, editor)
+    _build_corner_type_selector(host, editor)
+    _build_corner_parameter_controls(host, editor)
+    panel.pack_forget()
+    host.corner_type_panel_anchor = tk.Frame(parent, bg=host.COLOR_PANEL, height=1)
+    host.corner_type_panel_anchor.pack(fill=tk.X)
