@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -7,6 +9,9 @@ import pytest
 
 from tools import xvfb_shard_execution as execution
 from tools.phase6_release_test_runner import ProcessResult, XvfbSession
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _manifest() -> dict[str, object]:
@@ -25,6 +30,19 @@ def _manifest() -> dict[str, object]:
             },
         },
     }
+
+
+def test_xvfb_direct_cli_can_start_from_repo_root() -> None:
+    proc = subprocess.run(
+        [sys.executable, "tools/xvfb_shard_execution.py", "--help"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout
+    assert "Execute exact WHD Xvfb manifest shards" in proc.stdout
 
 
 def test_xvfb_matrix_is_exactly_four_way_and_uses_ci_budget() -> None:
