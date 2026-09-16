@@ -1,0 +1,24 @@
+name: Issue321 Turn Exit Enforcement
+
+on:
+  push:
+    branches:
+      - fix/issue321-turn-exit-enforcement-20260916
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Run focused turn-exit enforcement tests
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue321_turn_exit_enforcement.py
+          tests/process/test_continuity_controller.py
+          tests/process/test_issue286_turn_exit_bridge_contract.py
