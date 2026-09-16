@@ -3,19 +3,19 @@
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue309-t5.json",
   "claimed_at": "2026-09-17T00:40:32+08:00",
-  "head_sha": "7281a2ac571fa0c332daa8902de7ee0edca2da83",
+  "head_sha": "17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
   "issue": 309,
   "issue_url": "https://github.com/looaeedr/whd/issues/309",
-  "last_update": "2026-09-17T00:43:38+08:00",
-  "next_action": "Run exact current-branch state-isolation census by authoritative manifest; static-clean scopes remain candidates until repeat xdist proof",
-  "phase": "STATE_CENSUS",
+  "last_update": "2026-09-17T02:12:00+08:00",
+  "next_action": "Handoff #310/T6 from exact accepted T5 closing head 17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
+  "phase": "ACCEPTED",
   "remote_qa": {
-    "head_sha": "7281a2ac571fa0c332daa8902de7ee0edca2da83",
-    "run_id": 35123702526,
+    "head_sha": "17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
+    "run_id": 35132821695,
     "status": "success",
-    "result": "18 passed / 0 failed"
+    "result": "ISSUE309_CLOSING_SCOPE=EVIDENCE_ONLY; FINALIZABLE TERMINAL_SUCCESS; 24 passed / 0 failed"
   },
-  "state": "RUNNING",
+  "state": "TERMINAL_SUCCESS",
   "work_branch": "ci-sharding/issue309-t5-xdist-isolation-20260917",
   "worker": "chatgpt-gpt5.6-sol"
 }
