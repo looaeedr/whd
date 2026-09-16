@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issue": "310",
+  "branch": "ci-sharding/issue310-t6-duration-tuning-20260917",
+  "head_sha": "17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
+  "state": "RUNNING",
+  "next_action": "Run T6 Knowledge Preflight from exact accepted T5 head; do not change concurrency budget, duration weighting, or manifest authority before preflight GREEN",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T5 base 17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
+    "Issue #310 requires separate execution/end-to-end timing, measured queue pressure, 1.75x-median imbalance investigation, and HRW authority unless evidence justifies versioned duration-aware replacement",
+    "T6 Knowledge Preflight evidence recorded before any execution-config or manifest-authority change",
+    "No T6 concurrency-budget, duration-weighting, manifest-version, production, geometry, UI, persistence, or DXF behavior change has been made yet"
+  ]
+}
