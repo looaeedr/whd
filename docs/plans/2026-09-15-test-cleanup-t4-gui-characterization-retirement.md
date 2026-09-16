@@ -1,3 +1,9 @@
+---
+whd_doc_role: HISTORICAL
+whd_contract: verification-provenance
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
 # TEST Cleanup T4 — GUI Characterization Retirement Plan
 
 Issue: #279
