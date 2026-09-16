@@ -1,0 +1,15 @@
+{
+  "schema": "WHD_ISSUE312_T8_CHECKPOINT_V1",
+  "issue": 312,
+  "branch": "ci-sharding/issue312-t8-final-qualification-20260917",
+  "accepted_predecessor_sha": "db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f",
+  "tested_sha": "db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f",
+  "orchestration_sha": null,
+  "run_id": null,
+  "phase": "PREP",
+  "final_acceptance": null,
+  "evidence_secured": false,
+  "cleanup_authorized": false,
+  "final_state": null,
+  "production_mutated": false
+}
