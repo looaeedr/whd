@@ -17,12 +17,9 @@ jobs:
           python-version: '3.12'
       - name: Install focused test dependency
         run: python -m pip install pytest
-      - name: Run finalization and continuity process regression
-        run: |
-          python -m pytest -q \
-            tests/process/test_finalization_owner_guard.py \
-            tests/process/test_continuity_controller.py \
-            tests/process/test_checkpoint_resume_contract.py \
-            tests/process/test_continuous_execution_durable_contract.py \
-            tests/process/test_issue256_execution_claim_guard.py \
-            tests/process/test_issue286_turn_exit_bridge_contract.py
+      - name: Run all process contracts
+        run: python -m pytest -q tests/process
+      - name: Run all knowledge contracts
+        run: python -m pytest -q tests/knowledge
+      - name: Run issue-closure skill contract
+        run: python -m pytest -q tests/test_issue_closure_completion_skill_contract.py
