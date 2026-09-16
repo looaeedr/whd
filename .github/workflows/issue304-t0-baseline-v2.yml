@@ -15,7 +15,7 @@ jobs:
   legacy-baseline:
     runs-on: ubuntu-latest
     env:
-      BASE_SHA: 3b59cb7bcc8ee5dc649924d17b164a55ec10f821
+      BASE_SHA: 74c4b41c55a73fb3a76c650a79a38131b28d6f41
       TEST_CLEANUP_ACCEPTED_SHA: a632d1158ba49364b1962a0ed27f4b4109ea4b85
     steps:
       - name: Capture runner start
