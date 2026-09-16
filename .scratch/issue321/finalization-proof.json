@@ -1,0 +1,7 @@
+{
+  "branch": "cleanup/2d-3d-sync",
+  "checkpoint_fingerprint": "31b425b98cc7bb2209fc0ac7c7e9818c5f0c2e46b6cadd32a929b936d814fb5b",
+  "head_sha": "8ccf1a9404a641ed892ab63e6f2c0e01ee80d6d9",
+  "issue": "#321",
+  "version": 1
+}
