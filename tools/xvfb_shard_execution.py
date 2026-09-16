@@ -156,6 +156,22 @@ def _exception_type(item: ET.Element, *, kind: str, message: str) -> tuple[str, 
     return kind.upper(), "junit_kind_fallback"
 
 
+def _failure_location(case: ET.Element, item: ET.Element, node: str) -> tuple[str, int | None]:
+    """Read pytest source location from testcase attrs or its failure traceback."""
+    node_file = node.split("::", 1)[0].replace("\\", "/")
+    file_name = (case.get("file") or node_file).replace("\\", "/")
+    raw_line = case.get("line")
+    if raw_line is not None and raw_line.isdigit():
+        return file_name, int(raw_line)
+
+    traceback = item.text or ""
+    for match in re.finditer(r"(?m)^([^:\n]+\.py):(\d+):", traceback):
+        candidate = match.group(1).replace("\\", "/").lstrip("./")
+        if candidate == node_file.lstrip("./"):
+            return node_file, int(match.group(2))
+    return file_name, None
+
+
 def read_xvfb_junit(path: Path, assigned: Iterable[str]) -> dict[str, object]:
     """Reconcile actual terminal testcase identities with immutable assignment.
 
@@ -195,9 +211,7 @@ def read_xvfb_junit(path: Path, assigned: Iterable[str]) -> dict[str, object]:
                 exception_type, exception_type_source = _exception_type(
                     item, kind=kind, message=message
                 )
-                file_name = case.get("file") or node.split("::", 1)[0]
-                raw_line = case.get("line")
-                line = int(raw_line) if raw_line is not None and raw_line.isdigit() else None
+                file_name, line = _failure_location(case, item, node)
                 failure_evidence[node] = {
                     "file": file_name,
                     "line": line,
