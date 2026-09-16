@@ -5,7 +5,7 @@ on:
     branches:
       - fix/issue321-turn-exit-enforcement-20260916
 
-# trigger strengthened exact-head verification
+# final strengthened cleanup verification
 jobs:
   focused:
     runs-on: ubuntu-latest
