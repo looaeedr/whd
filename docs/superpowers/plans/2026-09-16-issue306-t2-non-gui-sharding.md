@@ -16,6 +16,8 @@ whd_schema: WHD_DOC_META_V1
 
 - READ_SKILL: Python測試實務
 - READ_SKILL: UI設計與去AI味
+- READ_SKILL: diagnosing-bugs
+- READ_SKILL: tdd
 - READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 - READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 
