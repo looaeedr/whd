@@ -1,0 +1,20 @@
+{
+  "base_sha": "3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue308-t4.json",
+  "claimed_at": "2026-09-17T00:00:00+08:00",
+  "head_sha": "f41fe3446f9a7522af7d13c78d100f8caa061e48",
+  "issue": 308,
+  "issue_url": "https://github.com/looaeedr/whd/issues/308",
+  "last_update": "2026-09-17T00:00:00+08:00",
+  "next_action": "Create T4 fail-closed aggregation tests and focused QA; require fresh RED before aggregator implementation",
+  "phase": "TDD_RED_PREP",
+  "remote_qa": {
+    "head_sha": "80ca5c0e42f56ca6dcf3a9170dfe7f67f441066e",
+    "run_id": 35120577426,
+    "status": "success"
+  },
+  "state": "RUNNING",
+  "work_branch": "ci-sharding/issue308-t4-aggregation-20260917",
+  "worker": "chatgpt-gpt5.6-sol"
+}
