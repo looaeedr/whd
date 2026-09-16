@@ -3,7 +3,7 @@ name: Issue321 Turn Exit Enforcement
 on:
   push:
     branches:
-      - fix/issue321-turn-exit-enforcement-20260916
+      - fix/issue321-owning-checkpoint-guard-proof-20260916
 
 jobs:
   focused:
