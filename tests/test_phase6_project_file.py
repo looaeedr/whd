@@ -98,10 +98,10 @@ def test_project_file_controls_are_global_not_embedded_in_3d_settings_footer():
     settings_center = source[source.index("def _phase6_build_settings_center"):source.index("def _hide_original_structure_mode_controls")]
     assert 'text="讀檔"' not in settings_center
     assert 'text="存檔"' not in settings_center
-    gui_source = Path(__import__("gui").__file__).read_text(encoding="utf-8")
-    assert 'text="開啟專案"' in gui_source
-    assert 'text="儲存專案"' in gui_source
-    assert 'text="另存新檔"' in gui_source
+    toolbar_source = (Path(__file__).resolve().parents[1] / "gui_modules" / "layout" / "toolbar.py").read_text(encoding="utf-8")
+    assert 'text="開啟專案"' in toolbar_source
+    assert 'text="儲存專案"' in toolbar_source
+    assert 'text="另存新檔"' in toolbar_source
 
 
 def test_real_designer_load_button_replaces_workspace_from_p6fold(tmp_path, monkeypatch):

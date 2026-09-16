@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import gui
 import fold_designer_bridge as bridge
+from gui_modules.layout import workspace as layout_workspace
 
 
 def _source(obj):
@@ -10,7 +11,9 @@ def _source(obj):
 
 
 def test_t7_main_create_widgets_has_no_user_reachable_legacy_2d_notebook():
-    src = _source(gui.BoxCalculatorGUI.create_widgets)
+    entry_src = _source(gui.BoxCalculatorGUI.create_widgets)
+    src = _source(layout_workspace.build_workspace)
+    assert '_build_main_layout(self)' in entry_src
     assert 'self.notebook = ttk.Notebook(right_container)' not in src
     assert 'self.notebook.add(' not in src
     assert '<<NotebookTabChanged>>' not in src
