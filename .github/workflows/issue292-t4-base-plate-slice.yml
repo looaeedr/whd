@@ -1,4 +1,4 @@
-# trigger: base-plate characterization RED
+# trigger: focused GREEN verification after base-plate extraction
 name: Issue292 T4 Base Plate Slice
 
 on:
