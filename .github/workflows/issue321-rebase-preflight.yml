@@ -5,9 +5,6 @@ on:
     branches:
       - fix/issue321-rebase-current-production-20260916
 
-permissions:
-  contents: write
-
 jobs:
   focused:
     runs-on: ubuntu-latest
@@ -39,16 +36,6 @@ jobs:
           --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
           --changed-file "個人AI檔案庫/踩坑庫/turn_exit_guard_invocation_fail_closed.md"
           --evidence /tmp/issue321-rebase-evidence.txt
-      - name: Apply additive turn-exit proof layer
-        run: |
-          python tools/issue321_rebase_apply.py
-          if ! git diff --quiet -- tools/continuity_controller.py .agents/skills/engineering/executable-continuity-controller/SKILL.md; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add tools/continuity_controller.py .agents/skills/engineering/executable-continuity-controller/SKILL.md
-            git commit -m "fix(#321): rebase turn-exit proof onto current production guard"
-            git push origin HEAD:fix/issue321-rebase-current-production-20260916
-          fi
       - name: Install pytest
         run: python -m pip install --upgrade pip pytest
       - name: Run focused continuity regressions
