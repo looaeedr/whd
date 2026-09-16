@@ -3,13 +3,18 @@
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue310-t6.json",
   "claimed_at": "2026-09-17T02:13:00+08:00",
-  "head_sha": "17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef",
+  "head_sha": "4bae1ae132349da27683b30f3dbd940dc40dd452",
   "issue": 310,
   "issue_url": "https://github.com/looaeedr/whd/issues/310",
-  "last_update": "2026-09-17T02:13:00+08:00",
-  "next_action": "Run T6 Knowledge Preflight from exact accepted T5 head before changing concurrency budget, duration weighting, or manifest authority",
-  "phase": "PREFLIGHT",
-  "remote_qa": null,
+  "last_update": "2026-09-17T02:18:00+08:00",
+  "next_action": "Add T6 timing/imbalance/budget RED contracts before any concurrency-budget or manifest-authority change",
+  "phase": "TDD_RED",
+  "remote_qa": {
+    "head_sha": "4bae1ae132349da27683b30f3dbd940dc40dd452",
+    "run_id": 35133382074,
+    "status": "success",
+    "result": "T6 Knowledge Preflight GREEN after registry-required release authority readback"
+  },
   "state": "RUNNING",
   "work_branch": "ci-sharding/issue310-t6-duration-tuning-20260917",
   "worker": "chatgpt-gpt5.6-sol"
