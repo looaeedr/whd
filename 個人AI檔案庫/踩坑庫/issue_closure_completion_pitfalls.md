@@ -63,15 +63,42 @@ WHD 曾發生以下錯誤流程：
 - 只靠 issue body 的 Depends on / child list 猜 dependency 已完成；
 - 沒有遠端反讀就聲稱 `state_reason=completed`。
 
+## OWNING_CHECKPOINT_GUARD_BYPASS_PITFALL
+
+### 事故模式
+
+只有「checkpoint 看起來 terminal」或 Skill 文字寫著「要呼叫 guard」，仍然不足以證明 closure 是由正確 owner 執行：
+
+1. 可能載入別張工單／別分支／舊 HEAD 的 terminal checkpoint；
+2. 可能完全沒有真正呼叫 executable guard，只在聊天或 evidence 中寫「guard PASS」；
+3. 可能 guard 呼叫後又修改 checkpoint，卻拿舊結果去關單；
+4. bare `assert_finalizable` 只驗 state terminal，不能證明 owning identity，也不能證明 closure boundary 真的執行過 guard。
+
+### 永久 fail-closed 規則
+
+- Canonical executable owner：`tools/continuity_controller.py`。
+- `assert_finalizable` 僅為 state-only predicate；不得當 issue/workflow closure authorization。
+- closure 必須 fresh 綁定 `issue + owning branch + owning HEAD SHA`，三者任一缺失或與 checkpoint 不完全一致，立即 fail closed。
+- 必須實際呼叫 `authorize-finalization` 並產生 bound `FinalizationProof`；聊天文字、stdout 摘錄、marker、舊 acceptance 記錄不能代替 proof。
+- 真正 close/finalize mutation 前必須再次 `verify-finalization-proof`。
+- proof 不存在、malformed、owner 不符、version 不符或 checkpoint fingerprint 改變，立即 fail closed。
+- checkpoint / issue / branch / HEAD 有任何 drift，舊 proof 失效，必須重新 authorization。
+- Proof 是 process-integrity receipt，用於防 accidental bypass / wrong owner / stale mutation；不是 malicious-writer cryptographic signature，不得過度宣稱。
+- GitHub close 後仍必須 remote readback `state=closed + state_reason=completed`；proof 不能取代 issue-state evidence。
+
+Primary behavior regression：`tests/process/test_finalization_owner_guard.py`。Canonical Skill：`.agents/skills/engineering/executable-continuity-controller/SKILL.md`；closure bridge：`.agents/skills/engineering/issue-closure-gate/SKILL.md`。
+
 ## 對應 Skill / Machine Guard
 
 Canonical Skill：
 
 `.agents/skills/engineering/issue-closure-gate/SKILL.md`
 
-Machine guard：
+Machine guards：
 
-`tests/test_issue_closure_completion_skill_contract.py`
+- `tests/process/test_finalization_owner_guard.py`
+- `tests/process/test_continuity_controller.py`
+- `tests/test_issue_closure_completion_skill_contract.py`
 
 Registry route：
 

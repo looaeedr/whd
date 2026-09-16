@@ -10,6 +10,7 @@ from tools.continuity_controller import (
 )
 
 
+ROOT = Path(__file__).resolve().parents[2]
 ISSUE = "#291"
 BRANCH = "fix/fail-closed-owning-checkpoint-guard-20260916"
 HEAD = "2bbf59fbb2ff2e79c67d9817964d3ff6213b2228"
@@ -159,3 +160,23 @@ def test_authorize_cli_writes_proof_and_verify_cli_requires_it(tmp_path: Path, c
     missing_output = capsys.readouterr().out
     assert missing_code == 2
     assert "FINALIZATION_GUARD_ERROR" in missing_output
+
+
+def test_skills_and_pitfall_route_closure_through_owned_guard_proof():
+    controller_skill = (ROOT / ".agents/skills/engineering/executable-continuity-controller/SKILL.md").read_text(encoding="utf-8")
+    closure_skill = (ROOT / ".agents/skills/engineering/issue-closure-gate/SKILL.md").read_text(encoding="utf-8")
+    pitfall = (ROOT / "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md").read_text(encoding="utf-8")
+
+    assert "OWNING_FINALIZATION_GUARD_V2" in controller_skill
+    assert "authorize-finalization" in controller_skill
+    assert "verify-finalization-proof" in controller_skill
+    assert "Bare `assert_finalizable(checkpoint)` must never" in controller_skill
+
+    assert "OWNING_FINALIZATION_GUARD_V2" in closure_skill
+    assert "沒有 owning checkpoint" in closure_skill
+    assert "沒有本次 guard invocation proof" in closure_skill
+    assert "verify-finalization-proof" in closure_skill
+
+    assert "OWNING_CHECKPOINT_GUARD_BYPASS_PITFALL" in pitfall
+    assert "assert_finalizable` 僅為 state-only predicate" in pitfall
+    assert "真正 close/finalize mutation 前必須再次 `verify-finalization-proof`" in pitfall
