@@ -2,18 +2,20 @@
   "version": 1,
   "issue": "311",
   "branch": "ci-sharding/issue311-t7-ab-acceptance-20260917",
-  "head_sha": "f87d188db6e6524312c54e3e8b8e77cb1e016b7d",
+  "head_sha": "db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f",
   "state": "RUNNING",
-  "next_action": "Resolve the missing RUN prerequisite by triggering the focused T7 RED contract from the already-present branch workflow; once a concrete run_id exists, lock run_id + head_sha and monitor it to terminal before implementing the comparator",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
+  "next_action": "Continue owning authoritative T7 A/B RUN 35159157894 at execution HEAD db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f through terminal. Current active job is legacy-full / Run authoritative legacy lanes serially. On RED, capture exact failing job, step, and log evidence and continue from that gate without mutating production. On GREEN, record permanent A/B parity evidence and accepted T7 handoff before closure.",
+  "run_id": 35159157894,
+  "job_id": 105006067527,
+  "log_cursor": "legacy-full:step-9:Run authoritative legacy lanes serially",
   "evidence": [
     "Exact accepted T6 base cf656c1efaf0e3f9c2a74330d7fb988847226db7",
-    "T7 RED contract test committed at 01a0ac0e0696c8b2b09578f7267d5b178c399d93",
-    "T7 Knowledge Preflight evidence committed at e2240d4ea6d0762b2fa0a5f45f6d091687850d78",
-    "T7 focused workflow committed at f87d188db6e6524312c54e3e8b8e77cb1e016b7d",
-    "No GitHub Actions run identity existed after the workflow-creation push; no waiting/polling was entered without a run_id",
-    "No production source, geometry, UI, persistence, project schema, config.ini, or DXF authority was modified"
+    "T7 execution HEAD db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f",
+    "Authoritative T7 A/B RUN 35159157894 is active",
+    "focused-contract completed SUCCESS",
+    "plan completed SUCCESS and locked the exact SHA, authoritative live manifest, inherited RED contract, and optimized matrices",
+    "legacy-full job 105006067527 is currently executing authoritative legacy lanes serially",
+    "No production source, geometry, UI, persistence, project schema, config.ini, or DXF authority was modified",
+    "Checkpoint synchronization is metadata-only and must not create a replacement acceptance RUN"
   ]
 }
