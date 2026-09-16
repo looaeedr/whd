@@ -6,21 +6,87 @@
     "head_sha": "2a99806493c69f4a6c9142d43dd502c7eb65757a",
     "artifact_name": "issue304-t0-baseline-evidence-v2",
     "artifact_id": 10445586630,
-    "artifact_digest": "sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77"
+    "artifact_digest": "sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77",
+    "junit_path": "xvfb_ui.xml"
   },
   "failures": {
-    "tests/test_ai_chime_tts.py::test_no_auto_tts_when_disabled": {"file": "tests/test_ai_chime_tts.py", "line": 31, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_ai_chime_tts.py::test_auto_tts_next_track_and_callback_once": {"file": "tests/test_ai_chime_tts.py", "line": 41, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_ai_chime_tts.py::test_auto_tts_respects_time_range": {"file": "tests/test_ai_chime_tts.py", "line": 70, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_ai_chime_tts.py::test_manual_play_disables_auto_tts_temporarily": {"file": "tests/test_ai_chime_tts.py", "line": 103, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_auto_resume.py::test_auto_resume_after_delay": {"file": "tests/test_auto_resume.py", "line": 65, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_auto_resume.py::test_manual_pause_blocks_auto_resume": {"file": "tests/test_auto_resume.py", "line": 85, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_auto_resume.py::test_auto_resume_after_network_reconnect": {"file": "tests/test_auto_resume.py", "line": 104, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_auto_resume_paused.py::test_auto_resume_paused_when_manual_pause": {"file": "tests/test_auto_resume_paused.py", "line": 51, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_mainwindow_network_reconnect.py::test_auto_resume_if_manual_flag_false": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 50, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_mainwindow_network_reconnect.py::test_no_auto_resume_after_manual_pause": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 69, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_mainwindow_network_reconnect.py::test_manual_play_resets_flag": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 84, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_mainwindow_network_reconnect.py::test_manual_pause_sets_flag": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 96, "junit_kind": "failure", "exception_type": "AssertionError"},
-    "tests/test_ui_companion.py::test_combined_receiving_operator_path_from_live_family_switch": {"file": "tests/test_ui_companion.py", "line": 531, "junit_kind": "failure", "exception_type": "AssertionError"}
+    "tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material": {
+      "file": "tests/test_phase6_gui_3d_integrity_20260830.py",
+      "line": 292,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 58,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 118,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 155,
+      "junit_kind": "failure",
+      "exception_type": "KeyError"
+    },
+    "tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry": {
+      "file": "tests/test_phase6_t02_endcap_edge_controls.py",
+      "line": 102,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics": {
+      "file": "tests/test_phase6_t08_ui_text_and_edge_selectors.py",
+      "line": 30,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed": {
+      "file": "tests/test_phase6_t08_ui_text_and_edge_selectors.py",
+      "line": 137,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport": {
+      "file": "tests/test_phase6_t22_settings_vertical_scroll.py",
+      "line": 83,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]": {
+      "file": "tests/test_phase6_t23_bottom_edge_visibility.py",
+      "line": 53,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]": {
+      "file": "tests/test_phase6_t23_bottom_edge_visibility.py",
+      "line": 53,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]": {
+      "file": "tests/test_phase6_t24_edge_selector_width.py",
+      "line": 35,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]": {
+      "file": "tests/test_phase6_t24_edge_selector_width.py",
+      "line": 35,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch": {
+      "file": "tests/test_phase6_t25_combined_receiving_acceptance.py",
+      "line": 131,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    }
   }
 }
