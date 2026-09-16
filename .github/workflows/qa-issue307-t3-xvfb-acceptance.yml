@@ -1,0 +1,285 @@
+name: Issue 307 T3 Four-Way Xvfb Acceptance
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue307-t3-xvfb-isolation-20260916
+    paths:
+      - '.github/workflows/qa-issue307-t3-xvfb-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_SHA: 858a60ccd2fb6c20ddbfc30313b8d65c26362902
+    outputs:
+      matrix: ${{ steps.xvfb-matrix.outputs.matrix }}
+      max_parallel: ${{ steps.xvfb-matrix.outputs.max_parallel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install collection dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Lock acceptance delta to workflow only
+        run: |
+          set -euo pipefail
+          git diff --name-only "$TARGET_SHA" "$GITHUB_SHA" | tee /tmp/issue307-delta.txt
+          python - <<'PY'
+          from pathlib import Path
+          changed = [x for x in Path('/tmp/issue307-delta.txt').read_text().splitlines() if x]
+          expected = ['.github/workflows/qa-issue307-t3-xvfb-acceptance.yml']
+          assert changed == expected, f'ISSUE307_ACCEPTANCE_SCOPE_DRIFT={changed}'
+          print('ISSUE307_ACCEPTANCE_SCOPE=GREEN')
+          PY
+      - name: Generate one authoritative live shard manifest
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue307/plan
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue307/plan/manifest \
+            --source-sha "$TARGET_SHA" \
+            | tee .scratch/issue307/plan/manifest-generation.log
+      - name: Extract accepted T0 inherited Xvfb set
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          text = Path('.github/workflows/issue304-t0-baseline.yml').read_text(encoding='utf-8')
+          marker = 'expected_xvfb = {'
+          assert marker in text, 'T0_EXPECTED_XVFB_SOURCE_MISSING'
+          block = text.split(marker, 1)[1].split('\n          }', 1)[0]
+          nodes = sorted(set(re.findall(r"'(tests/[^']+::[^']+)'", block)))
+          assert len(nodes) == 13, f'T0_EXPECTED_XVFB_COUNT_MISMATCH={len(nodes)}'
+
+          manifest = json.loads(Path('.scratch/issue307/plan/manifest/shard-manifest.json').read_text(encoding='utf-8'))
+          shards = manifest['shards']['xvfb_ui']
+          union = sorted({node for item in shards.values() for node in item['nodes']})
+          missing = sorted(set(nodes) - set(union))
+          assert not missing, f'T0_EXPECTED_XVFB_NOT_IN_CURRENT_MANIFEST={missing}'
+          Path('.scratch/issue307/plan/expected-xvfb-global.json').write_text(
+              json.dumps(nodes, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(f'XVFB_LIVE_UNION={len(union)}')
+          print(f'XVFB_ACCEPTED_INHERITED_RED={len(nodes)}')
+          PY
+      - name: Emit exact four-way Xvfb matrix
+        id: xvfb-matrix
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py matrix \
+            --manifest .scratch/issue307/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload shared plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+          if-no-files-found: error
+
+  xvfb-shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xvfb and test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download authoritative plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+      - name: Slice accepted inherited set by manifest ownership
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+          EXPECTED_NODE_COUNT: ${{ matrix.node_count }}
+        run: |
+          set -euo pipefail
+          mkdir -p ".scratch/issue307/shards/$SHARD_ID"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          shard_id = os.environ['SHARD_ID']
+          expected_count = int(os.environ['EXPECTED_NODE_COUNT'])
+          root = Path('.scratch/issue307/plan')
+          manifest = json.loads((root / 'manifest/shard-manifest.json').read_text(encoding='utf-8'))
+          assert manifest['source_sha'] == '858a60ccd2fb6c20ddbfc30313b8d65c26362902', manifest['source_sha']
+          assigned = manifest['shards']['xvfb_ui'][shard_id]['nodes']
+          assert len(assigned) == expected_count, (len(assigned), expected_count)
+          inherited = set(json.loads((root / 'expected-xvfb-global.json').read_text(encoding='utf-8')))
+          expected = sorted(inherited.intersection(assigned))
+          out = Path('.scratch/issue307/shards') / shard_id / 'expected.json'
+          out.write_text(json.dumps(expected, indent=2) + '\n', encoding='utf-8')
+          print(f'SHARD={shard_id} NODES={len(assigned)} EXPECTED_INHERITED_RED={len(expected)}')
+          PY
+      - name: Capture protected hashes before shard
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p ".scratch/issue307/shards/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > ".scratch/issue307/shards/$SHARD_ID/protected-before.sha256"
+      - name: Run exact isolated Xvfb shard serially
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py run \
+            --manifest .scratch/issue307/plan/manifest/shard-manifest.json \
+            --shard "$SHARD_ID" \
+            --expected-failures ".scratch/issue307/shards/$SHARD_ID/expected.json" \
+            --result-json ".scratch/issue307/shards/$SHARD_ID/result.json" \
+            --log ".scratch/issue307/shards/$SHARD_ID/pytest.log" \
+            --basetemp ".scratch/issue307/shards/$SHARD_ID/pytest-tmp" \
+            --timeout-seconds 1200
+      - name: Verify shard terminal proof and protected invariants
+        if: always()
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue307/shards/$SHARD_ID"
+          test -f "$root/result.json"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          p = json.loads((Path('.scratch/issue307/shards') / os.environ['SHARD_ID'] / 'result.json').read_text())
+          assert p['classification'] in {'GREEN', 'INHERITED_BASELINE_RED'}, p
+          assert p['timed_out'] is False, p
+          assert p['classifier_started'] is True, p
+          assert p['classifier_rc'] == 0, p
+          assert p['child_rc'] in {0, 1}, p
+          if p['child_rc'] == 1:
+              assert p['classification'] == 'INHERITED_BASELINE_RED', p
+          assert p['child_started_epoch'] <= p['child_ended_epoch'], p
+          assert p['xvfb_display'], p
+          assert isinstance(p['xvfb_pid'], int) and p['xvfb_pid'] > 0, p
+          print(json.dumps(p, indent=2, sort_keys=True))
+          PY
+      - name: Upload shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-shard-${{ matrix.shard_id }}
+          path: .scratch/issue307/shards/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  aggregate:
+    if: always()
+    needs: [plan, xvfb-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download shared plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+      - name: Download four shard evidence artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue307-xvfb-shard-*
+          path: .scratch/issue307/all-shards
+      - name: Fail-closed aggregate and timing evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          manifest = json.loads(Path('.scratch/issue307/plan/manifest/shard-manifest.json').read_text())
+          accepted = set(json.loads(Path('.scratch/issue307/plan/expected-xvfb-global.json').read_text()))
+          expected_shards = set(manifest['shards']['xvfb_ui'])
+          assert len(expected_shards) == 4, expected_shards
+
+          results = []
+          for path in Path('.scratch/issue307/all-shards').glob('**/result.json'):
+              results.append(json.loads(path.read_text()))
+          assert len(results) == 4, f'XVFB_RESULT_COUNT={len(results)}'
+          actual_shards = {p['shard_id'] for p in results}
+          assert actual_shards == expected_shards, (actual_shards, expected_shards)
+
+          all_assigned = [node for p in results for node in p['assigned_nodes']]
+          expected_union = {
+              node
+              for item in manifest['shards']['xvfb_ui'].values()
+              for node in item['nodes']
+          }
+          counts = Counter(all_assigned)
+          duplicate = sorted(node for node, count in counts.items() if count != 1)
+          assert not duplicate, f'XVFB_DUPLICATE_EXECUTION={duplicate}'
+          assert set(all_assigned) == expected_union, (
+              sorted(expected_union - set(all_assigned)),
+              sorted(set(all_assigned) - expected_union),
+          )
+
+          failed_union = {node for p in results for node in p['failed_nodes']}
+          assert failed_union == accepted, (
+              sorted(accepted - failed_union),
+              sorted(failed_union - accepted),
+          )
+          for p in results:
+              assert p['classification'] in {'GREEN', 'INHERITED_BASELINE_RED'}, p
+              assert p['timed_out'] is False, p
+              assert p['classifier_started'] is True, p
+              assert p['classifier_rc'] == 0, p
+              if p['child_rc'] == 1:
+                  assert p['classification'] == 'INHERITED_BASELINE_RED', p
+
+          summary = {
+              'xvfb_shards': len(results),
+              'xvfb_unique_nodes': len(expected_union),
+              'xvfb_failed_nodes': len(failed_union),
+              'classifications': {p['shard_id']: p['classification'] for p in sorted(results, key=lambda x: x['shard_id'])},
+              'child_rc': {p['shard_id']: p['child_rc'] for p in sorted(results, key=lambda x: x['shard_id'])},
+              'execution_seconds': {p['shard_id']: p['execution_seconds'] for p in sorted(results, key=lambda x: x['shard_id'])},
+              'displays': {p['shard_id']: p['xvfb_display'] for p in sorted(results, key=lambda x: x['shard_id'])},
+              'xvfb_pids': {p['shard_id']: p['xvfb_pid'] for p in sorted(results, key=lambda x: x['shard_id'])},
+          }
+          Path('.scratch/issue307/aggregate.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          print('ISSUE307_T3_XVFB_ACCEPTANCE=GREEN')
+          PY
+      - name: Upload aggregate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-aggregate
+          path: .scratch/issue307/aggregate.json
+          if-no-files-found: error
