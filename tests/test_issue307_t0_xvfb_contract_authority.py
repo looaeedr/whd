@@ -1,3 +1,4 @@
+"""Authority regression: T3 inherited Xvfb failures must come from accepted T0."""
 from __future__ import annotations
 
 import json
