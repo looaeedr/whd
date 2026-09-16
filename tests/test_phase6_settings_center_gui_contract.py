@@ -91,4 +91,5 @@ def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d
     bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     assert "from phase6_settings_center import" in source
     assert "SettingsService" in source
-    assert "global_3d" not in bridge_source
+    assert "Phase6SettingsPanel" in bridge_source
+    assert "self.global_settings_button =" not in bridge_source
