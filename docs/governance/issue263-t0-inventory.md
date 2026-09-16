@@ -1,7 +1,8 @@
 ---
-whd_doc_meta: WHD_DOC_META_V1
-role: HISTORICAL
-contract: ISSUE263_T0_GOVERNANCE_INVENTORY
+whd_doc_role: HISTORICAL
+whd_contract: issue263-governance-inventory
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
 ---
 # #263 T0 — Governance inventory and conflict audit
 
