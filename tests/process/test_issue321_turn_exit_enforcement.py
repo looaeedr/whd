@@ -1,4 +1,6 @@
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -183,13 +185,65 @@ def test_guard_invocation_proof_becomes_stale_if_checkpoint_changes(tmp_path: Pa
         )
 
 
-def test_outer_agents_contract_requires_machine_turn_exit_hook():
-    text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    assert "ASSISTANT_TURN_EXIT_HARD_GATE_V2" in text
-    assert "assert-turn-exitable" in text
-    assert "missing / unreadable checkpoint" in text
-    assert "guard invocation proof" in text
-    assert "owning checkpoint" in text
+def test_outer_process_hook_fails_closed_without_guard_proof(tmp_path: Path):
+    hook = ROOT / "tools" / "assistant_turn_exit_gate.py"
+    assert hook.exists(), "missing outer executable assistant turn-exit hook"
+
+    path = tmp_path / "continuity.json"
+    receipt = tmp_path / "receipt.json"
+    _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(hook),
+            str(path),
+            str(receipt),
+            "--issue",
+            EXPECTED_ISSUE,
+            "--branch",
+            EXPECTED_BRANCH,
+            "--head-sha",
+            EXPECTED_HEAD_SHA,
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "guard invocation proof missing" in (result.stdout + result.stderr)
+
+
+def test_outer_process_hook_accepts_only_after_actual_guard_invocation(tmp_path: Path):
+    hook = ROOT / "tools" / "assistant_turn_exit_gate.py"
+    assert hook.exists(), "missing outer executable assistant turn-exit hook"
+
+    path = tmp_path / "continuity.json"
+    receipt = tmp_path / "receipt.json"
+    _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
+    continuity.assert_turn_exitable_path(path, **_guard_kwargs(receipt))
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(hook),
+            str(path),
+            str(receipt),
+            "--issue",
+            EXPECTED_ISSUE,
+            "--branch",
+            EXPECTED_BRANCH,
+            "--head-sha",
+            EXPECTED_HEAD_SHA,
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "TURN_EXIT_PERMITTED" in result.stdout
 
 
 def test_canonical_controller_skill_requires_path_level_boundary():
