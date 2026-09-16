@@ -9,6 +9,7 @@ non-terminal, and unable to end an assistant turn while autonomous work remains.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -19,6 +20,7 @@ from typing import Iterable
 
 
 CHECKPOINT_VERSION = 1
+FINALIZATION_PROOF_VERSION = 1
 _UNSET = object()
 
 
@@ -59,7 +61,7 @@ class CheckpointError(RuntimeError):
 
 
 class FinalizationBlocked(CheckpointError):
-    """Raised when closure/finalization is attempted before a terminal state."""
+    """Raised when closure/finalization is attempted without current machine authority."""
 
 
 class TurnExitBlocked(CheckpointError):
@@ -137,6 +139,22 @@ class Checkpoint:
         return self.state in TERMINAL_STATES
 
 
+@dataclass(frozen=True)
+class FinalizationProof:
+    """Machine receipt emitted only after the owned finalization guard passes.
+
+    This receipt is process-integrity evidence, not a cryptographic signature against a
+    malicious local writer. Its purpose is to make the canonical closure path reject
+    accidental guard bypass, wrong-owner checkpoints, and stale post-guard mutations.
+    """
+
+    version: int
+    issue: str
+    branch: str
+    head_sha: str
+    checkpoint_fingerprint: str
+
+
 def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     data = asdict(checkpoint)
     data["state"] = checkpoint.state.value
@@ -144,17 +162,19 @@ def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     return {"version": CHECKPOINT_VERSION, **data}
 
 
-def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
-    """Persist checkpoint atomically in the target directory.
+def _checkpoint_fingerprint(checkpoint: Checkpoint) -> str:
+    canonical = json.dumps(
+        _to_payload(checkpoint),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
-    The temporary file is flushed and fsynced before os.replace so a runtime cut cannot
-    leave a half-written JSON file at the authoritative path.
-    """
 
+def _atomic_write_text(path: Path, payload: str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
-
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -167,7 +187,8 @@ def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
         ) as handle:
             temp_name = handle.name
             handle.write(payload)
-            handle.write("\n")
+            if not payload.endswith("\n"):
+                handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temp_name, path)
@@ -178,6 +199,13 @@ def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
                 os.unlink(temp_name)
             except FileNotFoundError:
                 pass
+
+
+def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
+    """Persist checkpoint atomically in the target directory."""
+
+    payload = json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
+    _atomic_write_text(Path(path), payload)
 
 
 def load_checkpoint(path: Path) -> Checkpoint:
@@ -247,14 +275,7 @@ def transition_checkpoint(
     log_cursor: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
 ) -> Checkpoint:
-    """Return a validated next checkpoint without reusing stale remote ownership.
-
-    Omitted remote fields are distinct from explicit ``None``. While remaining inside
-    one WAITING_REMOTE lock, omitted owner/cursor fields inherit that same lock. When
-    entering WAITING_REMOTE from any other state, ``run_id`` must be supplied explicitly
-    and stale job/cursor data is cleared unless the caller supplies replacements.
-    Other transitions preserve prior remote identity as provenance when fields are omitted.
-    """
+    """Return a validated next checkpoint without reusing stale remote ownership."""
 
     if checkpoint.is_terminal:
         raise CheckpointError(
@@ -303,6 +324,12 @@ def transition_checkpoint(
 
 
 def assert_finalizable(checkpoint: Checkpoint) -> None:
+    """State-only predicate retained for controller internals and legacy behavior tests.
+
+    Closure authorization MUST use :func:`authorize_finalization`, which additionally
+    binds the terminal state to the expected owning checkpoint identity.
+    """
+
     if not checkpoint.is_terminal:
         raise FinalizationBlocked(
             f"non-terminal checkpoint {checkpoint.state.value} cannot be finalized; "
@@ -310,15 +337,166 @@ def assert_finalizable(checkpoint: Checkpoint) -> None:
         )
 
 
-def assert_turn_exitable(checkpoint: Checkpoint) -> None:
-    """Reject ending an assistant turn while autonomous work remains executable.
+def _expected_owner(
+    *,
+    expected_issue: str | None,
+    expected_branch: str | None,
+    expected_head_sha: str | None,
+) -> tuple[str, str, str]:
+    fields = {
+        "issue": expected_issue,
+        "branch": expected_branch,
+        "head_sha": expected_head_sha,
+    }
+    normalized: dict[str, str] = {}
+    for name, value in fields.items():
+        if value is None or not str(value).strip():
+            raise FinalizationBlocked(
+                f"owning checkpoint identity is required: missing expected_{name}"
+            )
+        normalized[name] = str(value).strip()
+    return normalized["issue"], normalized["branch"], normalized["head_sha"]
 
-    BLOCKED is deliberately turn-exitable because it represents a genuine external
-    authority/capability wait, but it remains non-finalizable. Terminal states are both
-    turn-exitable and finalizable. RUNNING, WAITING_REMOTE, and RECOVERING must keep the
-    current execution loop moving to ``next_action`` instead of handing scheduling back
-    to the user.
-    """
+
+def _assert_owning_checkpoint(
+    checkpoint: Checkpoint,
+    *,
+    expected_issue: str | None,
+    expected_branch: str | None,
+    expected_head_sha: str | None,
+) -> tuple[str, str, str]:
+    issue, branch, head_sha = _expected_owner(
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
+    mismatches: list[str] = []
+    if checkpoint.issue != issue:
+        mismatches.append(f"issue expected={issue!r} actual={checkpoint.issue!r}")
+    if checkpoint.branch != branch:
+        mismatches.append(f"branch expected={branch!r} actual={checkpoint.branch!r}")
+    if checkpoint.head_sha != head_sha:
+        mismatches.append(f"head_sha expected={head_sha!r} actual={checkpoint.head_sha!r}")
+    if mismatches:
+        raise FinalizationBlocked("owning checkpoint mismatch: " + "; ".join(mismatches))
+    return issue, branch, head_sha
+
+
+def authorize_finalization(
+    checkpoint: Checkpoint,
+    *,
+    expected_issue: str | None,
+    expected_branch: str | None,
+    expected_head_sha: str | None,
+) -> FinalizationProof:
+    """Run the canonical closure guard and return proof bound to exact checkpoint bytes."""
+
+    issue, branch, head_sha = _assert_owning_checkpoint(
+        checkpoint,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
+    assert_finalizable(checkpoint)
+    return FinalizationProof(
+        version=FINALIZATION_PROOF_VERSION,
+        issue=issue,
+        branch=branch,
+        head_sha=head_sha,
+        checkpoint_fingerprint=_checkpoint_fingerprint(checkpoint),
+    )
+
+
+def save_finalization_proof(path: Path, proof: FinalizationProof) -> None:
+    payload = json.dumps(asdict(proof), ensure_ascii=False, indent=2, sort_keys=True)
+    _atomic_write_text(Path(path), payload)
+
+
+def load_finalization_proof(path: Path) -> FinalizationProof:
+    path = Path(path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise FinalizationBlocked(
+            f"guard invocation proof is required but proof file is missing: {path}"
+        ) from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise FinalizationBlocked(f"invalid finalization proof: {path}") from exc
+
+    if not isinstance(payload, dict):
+        raise FinalizationBlocked("invalid finalization proof: root must be an object")
+    expected_fields = {
+        "version",
+        "issue",
+        "branch",
+        "head_sha",
+        "checkpoint_fingerprint",
+    }
+    if set(payload) != expected_fields:
+        raise FinalizationBlocked(
+            "invalid finalization proof fields: "
+            f"expected={sorted(expected_fields)!r} actual={sorted(payload)!r}"
+        )
+    if payload.get("version") != FINALIZATION_PROOF_VERSION:
+        raise FinalizationBlocked(
+            f"unsupported finalization proof version {payload.get('version')!r}; "
+            f"expected {FINALIZATION_PROOF_VERSION}"
+        )
+    try:
+        issue = _require_text("proof issue", payload.get("issue"))
+        branch = _require_text("proof branch", payload.get("branch"))
+        head_sha = _require_text("proof head_sha", payload.get("head_sha"))
+        fingerprint = _require_text(
+            "proof checkpoint_fingerprint", payload.get("checkpoint_fingerprint")
+        )
+    except CheckpointError as exc:
+        raise FinalizationBlocked(f"invalid finalization proof: {exc}") from exc
+    return FinalizationProof(
+        version=FINALIZATION_PROOF_VERSION,
+        issue=issue,
+        branch=branch,
+        head_sha=head_sha,
+        checkpoint_fingerprint=fingerprint,
+    )
+
+
+def assert_finalization_proof(
+    checkpoint: Checkpoint,
+    proof: FinalizationProof | None,
+    *,
+    expected_issue: str | None,
+    expected_branch: str | None,
+    expected_head_sha: str | None,
+) -> None:
+    """Fail closed unless closure has current proof from the owned guard invocation."""
+
+    if proof is None:
+        raise FinalizationBlocked(
+            "guard invocation proof is required; authorize_finalization must run before closure"
+        )
+
+    issue, branch, head_sha = _assert_owning_checkpoint(
+        checkpoint,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
+    assert_finalizable(checkpoint)
+
+    if proof.version != FINALIZATION_PROOF_VERSION:
+        raise FinalizationBlocked("stale finalization proof: unsupported proof version")
+    if (proof.issue, proof.branch, proof.head_sha) != (issue, branch, head_sha):
+        raise FinalizationBlocked(
+            "stale finalization proof: proof owner does not match current owning checkpoint"
+        )
+    if proof.checkpoint_fingerprint != _checkpoint_fingerprint(checkpoint):
+        raise FinalizationBlocked(
+            "stale finalization proof: checkpoint changed after guard invocation"
+        )
+
+
+def assert_turn_exitable(checkpoint: Checkpoint) -> None:
+    """Reject ending an assistant turn while autonomous work remains executable."""
 
     if checkpoint.state in TURN_EXIT_BLOCKING_STATES:
         raise TurnExitBlocked(
@@ -331,6 +509,12 @@ def _format_checkpoint(checkpoint: Checkpoint) -> str:
     return json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def _add_owner_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--issue", required=True, dest="expected_issue")
+    parser.add_argument("--branch", required=True, dest="expected_branch")
+    parser.add_argument("--head-sha", required=True, dest="expected_head_sha")
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Executable continuity checkpoint guard")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -339,9 +523,26 @@ def _build_parser() -> argparse.ArgumentParser:
     show.add_argument("path", type=Path)
 
     finalizable = subparsers.add_parser(
-        "assert-finalizable", help="exit nonzero unless checkpoint is terminal"
+        "assert-finalizable",
+        help="state-only check: exit nonzero unless checkpoint is terminal",
     )
     finalizable.add_argument("path", type=Path)
+
+    authorize = subparsers.add_parser(
+        "authorize-finalization",
+        help="validate exact owning checkpoint and emit machine closure proof",
+    )
+    authorize.add_argument("path", type=Path)
+    _add_owner_arguments(authorize)
+    authorize.add_argument("--proof-out", required=True, type=Path)
+
+    verify = subparsers.add_parser(
+        "verify-finalization-proof",
+        help="fail closed unless current checkpoint has a valid guard invocation proof",
+    )
+    verify.add_argument("path", type=Path)
+    verify.add_argument("proof_path", type=Path)
+    _add_owner_arguments(verify)
 
     turn_exitable = subparsers.add_parser(
         "assert-turn-exitable",
@@ -365,6 +566,34 @@ def main(argv: Iterable[str] | None = None) -> int:
             assert_finalizable(checkpoint)
             print(f"FINALIZABLE {checkpoint.state.value}")
             return 0
+        if args.command == "authorize-finalization":
+            proof = authorize_finalization(
+                checkpoint,
+                expected_issue=args.expected_issue,
+                expected_branch=args.expected_branch,
+                expected_head_sha=args.expected_head_sha,
+            )
+            save_finalization_proof(args.proof_out, proof)
+            print(
+                "FINALIZATION_GUARD_PASS "
+                f"issue={proof.issue} branch={proof.branch} head_sha={proof.head_sha} "
+                f"proof={args.proof_out}"
+            )
+            return 0
+        if args.command == "verify-finalization-proof":
+            proof = load_finalization_proof(args.proof_path)
+            assert_finalization_proof(
+                checkpoint,
+                proof,
+                expected_issue=args.expected_issue,
+                expected_branch=args.expected_branch,
+                expected_head_sha=args.expected_head_sha,
+            )
+            print(
+                "FINALIZATION_PROOF_VALID "
+                f"issue={proof.issue} branch={proof.branch} head_sha={proof.head_sha}"
+            )
+            return 0
         if args.command == "assert-turn-exitable":
             assert_turn_exitable(checkpoint)
             print(f"TURN_EXITABLE {checkpoint.state.value}")
@@ -379,6 +608,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         raise CheckpointError(f"unsupported command: {args.command}")
     except TurnExitBlocked as exc:
         print(f"TURN_EXIT_GUARD_ERROR: {exc}")
+        return 2
+    except FinalizationBlocked as exc:
+        print(f"FINALIZATION_GUARD_ERROR: {exc}")
         return 2
     except CheckpointError as exc:
         print(f"CONTINUITY_GUARD_ERROR: {exc}")
