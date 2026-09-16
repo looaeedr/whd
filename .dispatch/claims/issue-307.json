@@ -3,18 +3,18 @@
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue307-t3.json",
   "claimed_at": "2026-09-16T15:05:40.845Z",
-  "head_sha": "548215758543d9047ce70e1fe8fbb9cbdf173755",
+  "head_sha": "3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb",
   "issue": 307,
   "issue_url": "https://github.com/looaeedr/whd/issues/307",
-  "last_update": "2026-09-16T15:54:00.000Z",
-  "next_action": "Monitor four-way acceptance 35118327193 to terminal; require four shard evidence plus aggregate GREEN before any completion claim",
-  "phase": "ACCEPTANCE_RUNNING",
+  "last_update": "2026-09-16T16:09:00.000Z",
+  "next_action": null,
+  "phase": "COMPLETED",
   "remote_qa": {
-    "head_sha": "548215758543d9047ce70e1fe8fbb9cbdf173755",
-    "run_id": 35118327193,
-    "status": "in_progress"
+    "head_sha": "3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb",
+    "run_id": 35119854583,
+    "status": "success"
   },
-  "state": "RUNNING",
+  "state": "TERMINAL_SUCCESS",
   "work_branch": "ci-sharding/issue307-t3-xvfb-isolation-20260916",
   "worker": "codex-work-f83247bd2416"
 }
