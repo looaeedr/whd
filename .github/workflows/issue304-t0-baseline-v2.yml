@@ -58,6 +58,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: .
         run: python tools/issue304_t0_baseline.py
 
       - name: Upload T0 baseline evidence
