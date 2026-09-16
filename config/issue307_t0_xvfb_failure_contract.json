@@ -3,9 +3,10 @@
   "provenance": {
     "workflow": ".github/workflows/issue304-t0-baseline.yml",
     "run_id": 35092857584,
+    "head_sha": "2a99806493c69f4a6c9142d43dd502c7eb65757a",
     "artifact_name": "issue304-t0-baseline-evidence-v2",
     "artifact_id": 10445586630,
-    "artifact_digest": "sha256:d27bbb5d"
+    "artifact_digest": "sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77"
   },
   "failures": {
     "tests/test_ai_chime_tts.py::test_no_auto_tts_when_disabled": {"file": "tests/test_ai_chime_tts.py", "line": 31, "junit_kind": "failure", "exception_type": "AssertionError"},
