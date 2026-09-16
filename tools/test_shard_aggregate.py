@@ -3,9 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Iterable
+
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.test_shard_execution import (
     ExecutionError,
@@ -201,7 +207,7 @@ def main() -> int:
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
     except (AggregationError, ExecutionError, OSError, json.JSONDecodeError) as exc:
-        print(str(exc), file=__import__("sys").stderr)
+        print(str(exc), file=sys.stderr)
         return 1
 
 
