@@ -327,6 +327,18 @@ def assert_turn_exitable(checkpoint: Checkpoint) -> None:
         )
 
 
+def assert_turn_exitable_path(path: Path) -> Checkpoint:
+    """Load the authoritative checkpoint and enforce turn-exit eligibility in one call.
+
+    Missing or unreadable checkpoint state is a guard failure via ``load_checkpoint``;
+    callers must not treat the absence of durable state as permission to end the turn.
+    """
+
+    checkpoint = load_checkpoint(path)
+    assert_turn_exitable(checkpoint)
+    return checkpoint
+
+
 def _format_checkpoint(checkpoint: Checkpoint) -> str:
     return json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
 
@@ -366,7 +378,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             print(f"FINALIZABLE {checkpoint.state.value}")
             return 0
         if args.command == "assert-turn-exitable":
-            assert_turn_exitable(checkpoint)
+            checkpoint = assert_turn_exitable_path(args.path)
             print(f"TURN_EXITABLE {checkpoint.state.value}")
             return 0
         if args.command == "resume":

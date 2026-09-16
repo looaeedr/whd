@@ -109,10 +109,9 @@ Documentation marker tests may remain, but they MUST NOT be treated as proof tha
 Workflow finalization 與 assistant turn exit 是兩個不同 machine gate。Canonical executable authority 仍是 `tools/continuity_controller.py`：
 
 ```python
-from tools.continuity_controller import load_checkpoint, assert_turn_exitable
+from tools.continuity_controller import assert_turn_exitable_path
 
-checkpoint = load_checkpoint(path)
-assert_turn_exitable(checkpoint)
+checkpoint = assert_turn_exitable_path(path)
 ```
 
 CLI：
@@ -120,6 +119,8 @@ CLI：
 ```bash
 python -m tools.continuity_controller assert-turn-exitable path/to/checkpoint.json
 ```
+
+`assert_turn_exitable_path(path)` 是 canonical path-level boundary：它把 checkpoint load/validation 與 turn-exit assertion 綁成同一個 executable operation。對已進入 long-flow / ticketed execution 的工作，**missing / unreadable checkpoint** 也是 guard failure，絕不是允許結束 turn；呼叫端必須先 recovery／持久化 owning checkpoint，再重跑同一 boundary，禁止直接略過 guard。
 
 Turn-exit state contract：
 
