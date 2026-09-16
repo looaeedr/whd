@@ -1,0 +1,42 @@
+name: Issue 290 T2 Focused
+
+on:
+  push:
+    branches:
+      - refactor/issue290-gui-phase2-t2-layout-20260916
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+  PREDECESSOR_SHA: "7504e628f7648bb18925151b5e44912c53a913c4"
+
+jobs:
+  t2-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
+      - name: Run T2 layout contract
+        run: python -m pytest -q tests/test_issue290_gui_phase2_t2_layout.py
+      - name: Protected source drift gate
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only "${PREDECESSOR_SHA}"...HEAD -- \
+            config.ini '基準檔/**' ae_engine fold_designer_bridge.py phase6_fold_profiles.py phase6_project_file.py release_required_artifacts.json)"
+          if [ -n "$changed" ]; then
+            echo "Unexpected protected drift:"
+            echo "$changed"
+            exit 1
+          fi
+          echo T2_PROTECTED_SOURCE_DRIFT=0
