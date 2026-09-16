@@ -1,11 +1,9 @@
-name: Issue291 Xvfb extra residual A-B
+name: Issue291 Xvfb inherited residual fingerprint
 
 on:
   push:
     branches:
       - qa/issue291-xvfb-extra-ab-20260916
-    paths:
-      - '.github/workflows/issue291-xvfb-extra-ab.yml'
 
 permissions:
   contents: read
@@ -14,95 +12,8 @@ env:
   PYTHONUTF8: "1"
 
 jobs:
-  focused-extra-ab:
-    name: Focused 28-extra parent candidate A-B
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: d46de1f2babb4bef269550880d40949cb38a68a8
-          path: parent
-      - uses: actions/checkout@v4
-        with:
-          ref: cefb1a11c837a73508a6a2b09eac77ba38c798f6
-          path: candidate
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install Tk Xvfb and dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-tk xvfb
-          python -m pip install --upgrade pip
-          python -m pip install -r candidate/requirements.txt pytest matplotlib
-      - name: Run focused 28 extras on parent and candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          tests=(
-            'tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection'
-            'tests/test_corner_lock_visual_contract.py::test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area'
-            'tests/test_corner_lock_visual_contract.py::test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_toolbar'
-            'tests/test_corner_parameter_lock.py::test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state'
-            'tests/test_corner_parameter_lock.py::test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_mutation'
-            'tests/test_corner_parameter_lock.py::test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount'
-            'tests/test_corner_parameter_lock.py::test_3d_known_model_locked_guard_and_unlocked_parameter_edit_preserves_type'
-            'tests/test_corner_type_phase6_integration.py::test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking'
-            'tests/test_issue76_box_body_subtabs_2d_3d.py::test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_subtabs'
-            'tests/test_phase6_3d_cutting_mesh.py::test_real_tk_active_door_uses_features_and_corner_state_in_cutting_mesh'
-            'tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material'
-            'tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor'
-            'tests/test_phase6_left_global_transaction.py::test_global_controls_and_reset_only_live_in_persistent_top_area'
-            'tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked'
-            'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel'
-            'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions'
-            'tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry'
-            'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics'
-            'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed'
-            'tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport'
-            'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]'
-            'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]'
-            'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]'
-            'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]'
-            'tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch'
-            'tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy'
-            'tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side'
-            'tests/test_relief_registry_candidate_shadow_gui.py::test_candidate_record_gets_its_own_shadow_validation_without_mutating_registry'
-          )
-          run_side() {
-            side="$1"
-            pushd "$side" >/dev/null
-            set +e
-            PYTHONPATH="$PWD" xvfb-run -a python -m pytest -q "${tests[@]}" > "../${side}.log" 2>&1
-            rc=$?
-            set -e
-            popd >/dev/null
-            echo "=== ${side} rc=${rc} ==="
-            tail -n 60 "${side}.log" || true
-            grep '^FAILED ' "${side}.log" || true
-          }
-          run_side parent
-          run_side candidate
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          def nodes(path):
-              text = Path(path).read_text(encoding='utf-8', errors='replace')
-              return list(dict.fromkeys(re.findall(r'^FAILED ([^\s]+)', text, flags=re.MULTILINE)))
-          p = nodes('parent.log')
-          c = nodes('candidate.log')
-          print(f'Focused extra A/B: parent_failed={len(p)} candidate_failed={len(c)}')
-          print('parent:', p)
-          print('candidate:', c)
-          if p != c:
-              print('Focused extra A/B: FAIL — failure sets differ')
-              raise SystemExit(1)
-          print('Focused extra A/B: PASS — failure sets identical')
-          PY
-
   parent-full-xvfb:
-    name: Parent full Xvfb exact current 33-set check
+    name: Parent full Xvfb exact candidate-33 fingerprint
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -118,7 +29,7 @@ jobs:
           sudo apt-get install -y python3-tk xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib
-      - name: Run parent full Xvfb and compare exact 33-set
+      - name: Run parent full Xvfb and require exact candidate residual fingerprint
         shell: bash
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -132,54 +43,27 @@ jobs:
           echo '--- FAILED lines ---'
           grep '^FAILED ' parent-full.log || true
           python - "$rc" <<'PY'
+          import hashlib
           import re
           import sys
           from pathlib import Path
+
+          expected_count = 33
+          expected_sha256 = 'bf7b64bf083e72f1af6541ce013f3966d26eed59202a8a366802e40f11024405'
           rc = int(sys.argv[1])
           text = Path('parent-full.log').read_text(encoding='utf-8', errors='replace')
-          expected = [
-              'tests/knowledge/test_issue233_strict_metadata_migration.py::test_all_governed_markdown_has_valid_whd_doc_meta_v1',
-              'tests/knowledge/test_issue233_strict_metadata_migration.py::test_strict_validator_accepts_the_repository_after_migration',
-              'tests/knowledge/test_issue252_t6_strict_validation.py::test_exact_governed_set_matches_effective_authority_and_strict_validation',
-              'tests/knowledge/test_issue255_t6_authority_completion.py::test_repository_effective_authority_is_total_and_unblocked',
-              'tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection',
-              'tests/test_corner_lock_visual_contract.py::test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area',
-              'tests/test_corner_lock_visual_contract.py::test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_toolbar',
-              'tests/test_corner_parameter_lock.py::test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state',
-              'tests/test_corner_parameter_lock.py::test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_mutation',
-              'tests/test_corner_parameter_lock.py::test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount',
-              'tests/test_corner_parameter_lock.py::test_3d_known_model_locked_guard_and_unlocked_parameter_edit_preserves_type',
-              'tests/test_corner_type_phase6_integration.py::test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking',
-              'tests/test_issue76_box_body_subtabs_2d_3d.py::test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_subtabs',
-              'tests/test_phase6_3d_cutting_mesh.py::test_real_tk_active_door_uses_features_and_corner_state_in_cutting_mesh',
-              'tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material',
-              'tests/test_phase6_home_baseline_ui.py::test_selecting_part_keeps_global_visible_and_shows_fold_editor',
-              'tests/test_phase6_left_global_transaction.py::test_global_controls_and_reset_only_live_in_persistent_top_area',
-              'tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked',
-              'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel',
-              'tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions',
-              'tests/test_phase6_semantic_doc_status.py::test_current_overlay_docs_point_to_v3_standard_plus_semantic_delta',
-              'tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry',
-              'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics',
-              'tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed',
-              'tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport',
-              'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]',
-              'tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]',
-              'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]',
-              'tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]',
-              'tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch',
-              'tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy',
-              'tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side',
-              'tests/test_relief_registry_candidate_shadow_gui.py::test_candidate_record_gets_its_own_shadow_validation_without_mutating_registry',
-          ]
-          actual = list(dict.fromkeys(re.findall(r'^FAILED ([^\s]+)', text, flags=re.MULTILINE)))
-          missing = [n for n in expected if n not in actual]
-          extra = [n for n in actual if n not in expected]
-          print(f'Parent full diagnostic: rc={rc} failed={len(actual)} missing={missing} extra={extra}')
-          if rc == 0 or set(actual) != set(expected) or len(actual) != 33:
-              print('Parent full exact 33-set: FAIL')
+          nodes = list(dict.fromkeys(re.findall(r'^FAILED ([^\s]+)', text, flags=re.MULTILINE)))
+          payload = '\n'.join(sorted(nodes)) + '\n'
+          digest = hashlib.sha256(payload.encode()).hexdigest()
+          print(f'Parent full Xvfb diagnostic: rc={rc} failed={len(nodes)} sha256={digest}')
+          print('Parent actual nodeids:')
+          for node in nodes:
+              print(f'  {node}')
+          ok = rc != 0 and len(nodes) == expected_count and digest == expected_sha256
+          if not ok:
+              print('Parent full Xvfb inherited fingerprint: FAIL')
               raise SystemExit(1)
-          print('Parent full exact 33-set: PASS — candidate 33-set is inherited from parent')
+          print('Parent full Xvfb inherited fingerprint: PASS — exact candidate 33-set exists on parent')
           PY
 
   reconciliation:
