@@ -1,7 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: ci-test-sharding-parallelization-revision-notes
-whd_canonical: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-revision-notes.md
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 

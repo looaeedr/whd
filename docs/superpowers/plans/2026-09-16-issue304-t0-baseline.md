@@ -1,7 +1,7 @@
 ---
 whd_doc_role: CURRENT
 whd_contract: ci-sharding-t0-implementation-plan
-whd_canonical: docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 # #304 T0 Baseline Timing + Authoritative Inventory Implementation Plan
