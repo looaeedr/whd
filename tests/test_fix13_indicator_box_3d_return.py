@@ -51,7 +51,7 @@ def test_indicator_box_and_small_door_profiles_use_real_bend_span_but_show_outsi
 
 
 def test_hidden_indicator_part_returned_from_3d_becomes_manual_corner_context():
-    sync = _load_class_method("gui.py", "Phase6ApplicationHost", "_sync_fold_designer_manual_corner_context")
+    from gui_modules.parts.panels.assembly_corner import sync_fold_designer_manual_corner_context as sync
     current = _load_class_method("gui.py", "Phase6ApplicationHost", "_current_manual_corner_part_key")
 
     refreshed = []

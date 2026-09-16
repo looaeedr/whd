@@ -165,6 +165,14 @@ from gui_modules.part_panels import (
     _phase6_logical_part_present as _phase6_logical_part_present_impl,
 )
 
+from gui_modules.parts.panels.assembly_corner import (
+    sync_endcap_fw_controls as _sync_endcap_fw_controls_impl,
+    sync_fold_designer_manual_corner_context as _sync_fold_designer_manual_corner_context_impl,
+    fixed_corner_summary as _fixed_corner_summary_impl,
+    normalize_manual_corner_target as _normalize_manual_corner_target_impl,
+    corner_parameter_summary as _corner_parameter_summary_impl,
+)
+
 from gui_modules.parts.selector import (
     refresh_presence_ui as _refresh_presence_ui_impl,
 )
@@ -1856,20 +1864,7 @@ class Phase6ApplicationHost:
         return float(resolve_endcap_fw(snapshot, part_key, state=state))
 
     def _sync_endcap_fw_controls(self):
-        box_fw = float(self.fw_z_var.get())
-        for part, var, follow_var, combo in (
-            ("head", self.fw_head_var, self.fw_head_follow_var, getattr(self, "cb_fw_head", None)),
-            ("tail", self.fw_tail_var, self.fw_tail_follow_var, getattr(self, "cb_fw_tail", None)),
-        ):
-            state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-            follow = bool(state.get("follow_box", True))
-            follow_var.set(follow)
-            value = box_fw if follow else float(state.get("value", box_fw))
-            text = self._fold_designer_number_text(value)
-            if var.get() != text:
-                var.set(text)
-            if combo is not None:
-                combo.configure(state="normal")
+        return _sync_endcap_fw_controls_impl(self)
 
     def _apply_endcap_fw_snapshot(self, snapshot):
         state = normalize_endcap_fw_state(snapshot)
@@ -1932,12 +1927,7 @@ class Phase6ApplicationHost:
         )
 
     def _sync_fold_designer_manual_corner_context(self, active_part):
-        key = str(active_part or "")
-        if key in {"indicator_box", "indicator_door"} and key in self.manual_corner_state:
-            self._manual_corner_part_override = key
-        else:
-            self._manual_corner_part_override = None
-        self.refresh_corner_type_panel()
+        return _sync_fold_designer_manual_corner_context_impl(self, active_part)
 
     def _current_manual_corner_part_key(self):
         override = getattr(self, '_manual_corner_part_override', None)
@@ -2062,24 +2052,9 @@ class Phase6ApplicationHost:
     }
 
     def _fixed_corner_summary(self, part_key):
-        if Phase6ApplicationHost._current_cabinet_type_name(self) == "受電箱" and part_key in {"head", "tail"}:
-            from ae_engine.assembly_joint import AssemblyJointRelation, edge_relation_for_part
-
-            joint_state = dict(getattr(self, "assembly_joint_state", {}) or {})
-            bottom_relation = edge_relation_for_part(joint_state, part_key, "BOTTOM")
-            if bottom_relation is AssemblyJointRelation.WRAP:
-                bottom_summary = "下方：包覆貼外（BOTTOM＝WRAP；FW 基準＝側板後折＋1T）"
-            elif bottom_relation is AssemblyJointRelation.INSERT:
-                bottom_summary = "下方：標準截角（BOTTOM＝嵌入；WRAP 關閉）"
-            elif bottom_relation is None:
-                bottom_summary = "下方：標準截角（BOTTOM Joint 未定義）"
-            else:
-                bottom_summary = f"下方：標準截角（BOTTOM＝{bottom_relation.value}）"
-            return (
-                "上方：嵌入貼外型（貼外留肉 1T／嵌入留肉 0.5T／深度 2T）\n"
-                + bottom_summary
-            )
-        return self._FIXED_CORNER_SUMMARIES.get(part_key, "目前板件使用固定截角規則")
+        return _fixed_corner_summary_impl(
+            self, part_key, Phase6ApplicationHost._current_cabinet_type_name(self)
+        )
 
     def _corner_part_type_editable(self, part_key):
         # CornerType 本身只在自訂盤型開放切換；已知盤型保留基準類型。
@@ -2122,22 +2097,7 @@ class Phase6ApplicationHost:
 
     @classmethod
     def _corner_parameter_summary(cls, selection):
-        selection = normalize_corner_selection(selection)
-        if selection.type_id is CornerTypeId.CROSS:
-            mode = cls._CORNER_MODE_LABELS[selection.cross_mode]
-            if selection.cross_mode is CrossCornerMode.STANDARD:
-                return mode
-            direction = cls._CORNER_DIRECTION_LABELS[selection.direction]
-            return f"{mode}｜{direction}｜{cls._corner_number_text(selection.amount_t)}T"
-        if selection.type_id is CornerTypeId.OVERLAY:
-            return f"留肉（高）｜{cls._corner_number_text(selection.amount_t)}T"
-        if selection.type_id is CornerTypeId.INSERT:
-            return f"多切（高）｜{cls._corner_number_text(selection.amount_t)}T"
-        return (
-            f"貼外留肉 {cls._corner_number_text(selection.amount_t)}T｜"
-            f"嵌入留肉 {cls._corner_number_text(selection.secondary_retain_t)}T｜"
-            f"深度 {cls._corner_number_text(selection.secondary_depth_t)}T"
-        )
+        return _corner_parameter_summary_impl(cls, selection)
 
     def create_corner_type_panel(self, parent):
         panel = tk.Frame(parent, bg=self.COLOR_INPUT_BG, bd=1, relief=tk.SOLID)
@@ -2376,17 +2336,7 @@ class Phase6ApplicationHost:
         return None
 
     def _normalize_manual_corner_target(self, part_key):
-        target = self.manual_active_corner_var.get()
-        same = self.manual_corner_pair_same[part_key]
-        pair = self._pair_for_corner_target(target)
-        if pair is None:
-            target = 'top'; pair = 'top'
-        if same[pair]:
-            target = pair
-        elif target == pair:
-            target = CORNER_PAIR_CORNERS[pair][0]
-        self.manual_active_corner_var.set(target)
-        return target
+        return _normalize_manual_corner_target_impl(self, part_key)
 
     def _manual_selection_for_target(self, part_key, target_key):
         if target_key in CORNER_PAIR_CORNERS:
