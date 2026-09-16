@@ -200,3 +200,51 @@ Turn-exit state contract：
 Remote run terminal 只解除 `REMOTE_QA_ACTIVE_LOCK`。只要 counts、invariant、cleanup、tested→closing drift、AI writeback 或 issue/Master closure 尚有工作，checkpoint 必須轉成 `RUNNING(next_acceptance_action)`；此時 `ASSISTANT_TURN_EXIT_GATE_V1` 立即接手，禁止在「QA PASS／code integrated／process incomplete」等進度回報後結束 turn。
 
 `tests/process/test_continuity_controller.py` 是 turn-exit machine behavior authority；它必須保留 `WAITING_REMOTE → RUNNING(cleanup)` 後 turn exit 被拒絕的 regression。`tests/process/test_issue286_turn_exit_bridge_contract.py` 只保護各入口 Skill/踩坑 bridge 不漂移，不能取代 behavior test。
+
+## ASSISTANT_TURN_EXIT_HARD_GATE_V2
+
+V1 的 state guard 不足以證明「這次 turn 真的跑過 guard」。V2 把 owning checkpoint 與 actual guard invocation 都變成必要條件。
+
+### Valid owning checkpoint
+
+Turn-exit boundary 不得只接受「有 checkpoint」或「JSON 可讀」。它必須驗證 active execution context 的 exact owner：
+
+- `issue`
+- `branch`
+- `head_sha`
+
+缺檔、壞檔、owner 不符、stale branch/head 都視為 **missing / unreadable checkpoint** 的同一 fail-closed 類別；foreign/stale checkpoint 絕不是可退出授權。
+
+### Actual guard invocation
+
+Canonical path boundary `assert_turn_exitable_path(...)` 必須在載入與 ownership 驗證後，**實際呼叫** canonical `assert_turn_exitable(checkpoint)`。禁止：
+
+- 只讀 state 後自行複製判斷；
+- 只看到 checkpoint valid 就放行；
+- 只靠文件 marker 或聊天文字宣稱 guard 已執行。
+
+成功 guard invocation 必須產生 machine-verifiable **guard invocation proof**，綁定 owning identity 與該次 checkpoint 內容 digest。外層 boundary 再以 `assert_turn_exit_permitted(...)` 驗證 proof。
+
+以下任何一項都必須 fail closed：
+
+```text
+NO_VALID_OWNING_CHECKPOINT
+NO_ACTUAL_GUARD_INVOCATION
+NO_CURRENT_GUARD_INVOCATION_PROOF
+STALE_OR_OWNER_MISMATCHED_PROOF
+```
+
+checkpoint 在 guard 後只要被改寫，先前 proof 立即失效。`BLOCKED` 或 terminal state 也不能因 state 本身而繞過 owning-checkpoint / proof gate。
+
+### Required behavior tests
+
+`tests/process/test_issue321_turn_exit_enforcement.py` 必須至少證明：
+
+- missing / malformed checkpoint fail closed；
+- valid JSON 但 non-owning checkpoint fail closed；
+- `RUNNING` 不 mint proof；
+- path boundary 確實呼叫 canonical `assert_turn_exitable`；
+- valid owning checkpoint 但沒有 guard invocation proof 仍 fail closed；
+- successful guard invocation 產生 bound proof；
+- checkpoint 改寫後 proof stale 並 fail closed。
+
