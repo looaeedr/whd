@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   focused:
@@ -43,3 +44,498 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest -q tests/test_issue310_t6_duration_tuning.py
+
+  plan:
+    needs: focused
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      source_sha: ${{ steps.owner.outputs.source_sha }}
+      manifest_sha256: ${{ steps.manifest.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind A/B experiment to exact current SHA
+        id: owner
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "source_sha=$actual" >> "$GITHUB_OUTPUT"
+          echo "ISSUE310_AB_SOURCE_SHA=$actual"
+      - name: Reject config, production, or unrelated drift from accepted T5
+        env:
+          ACCEPTED_T5_HEAD: 17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef
+        run: |
+          set -euo pipefail
+          git diff --name-only "$ACCEPTED_T5_HEAD" "$GITHUB_SHA" | sort | tee /tmp/issue310-ab-scope.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue310-ab-scope.txt').read_text().splitlines())
+          expected = {
+              '.github/workflows/qa-issue310-t6-preflight.yml',
+              '.github/workflows/qa-issue310-t6-tuning.yml',
+              'docs/superpowers/checkpoints/issue310-t6-preflight-evidence.txt',
+              'docs/superpowers/checkpoints/issue310-t6.json',
+              'tests/test_issue310_t6_duration_tuning.py',
+              'tools/test_shard_tuning.py',
+          }
+          assert actual == expected, f'ISSUE310_AB_SCOPE_DRIFT={sorted(actual)}'
+          print('ISSUE310_AB_SCOPE=MEASUREMENT_ONLY')
+          PY
+      - name: Verify baseline execution policy is still budget four with exact T5 xdist proof
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('config/ci_test_execution.json').read_text())
+          assert p['ci_concurrency_budget'] == 4, p
+          assert set(p['xdist']['safe_shards']) == {'dxf:s00'}, p
+          entry = p['xdist']['safe_shards']['dxf:s00']
+          assert entry['workers'] == 2, entry
+          assert entry['proof_run_id'] == 35124104891, entry
+          assert entry['proof_head_sha'] == '45811716bb03b95927a33451bf7f1c8d0769c407', entry
+          print('ISSUE310_BASELINE_BUDGET=4')
+          print('ISSUE310_XDIST_SCOPE=dxf:s00:2_ONLY')
+          PY
+      - name: Install collection dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Generate one authoritative live manifest
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue310/ab/plan
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue310/ab/plan/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue310/ab/plan/manifest-generation.log
+      - name: Bind manifest identity and require exact reconciliation
+        id: manifest
+        run: |
+          set -euo pipefail
+          manifest=.scratch/issue310/ab/plan/manifest/shard-manifest.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads(Path('.scratch/issue310/ab/plan/manifest/shard-manifest.json').read_text())
+          assert p['source_sha'] == os.environ['GITHUB_SHA'], p
+          r = p['reconciliation']
+          assert r['full_count'] == r['lane_union_count'] == r['unique_shard_union_count'], r
+          for key in ('lane_missing','lane_extra','lane_duplicate','shard_missing','shard_extra','shard_duplicate'):
+              assert not r[key], (key, r[key])
+          print(f"FULL_COLLECTION={r['full_count']}")
+          PY
+          echo "manifest_sha256=$digest" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$digest" > .scratch/issue310/ab/plan/manifest.sha256
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue310/ab/plan/source.sha
+      - name: Emit one non-GUI matrix reused by both budgets
+        id: matrix
+        run: |
+          set -euo pipefail
+          python tools/test_shard_execution.py matrix \
+            --manifest .scratch/issue310/ab/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload shared A/B plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue310-t6-ab-plan
+          path: .scratch/issue310/ab/plan
+          if-no-files-found: error
+
+  baseline-shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      VARIANT: baseline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact shard dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Download authoritative A/B plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue310-t6-ab-plan
+          path: .scratch/issue310/ab/plan
+      - name: Verify exact checkout and manifest identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue310/ab/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue310/ab/plan/manifest.sha256)" = "$PLAN_MANIFEST_SHA256"
+          test "$(sha256sum .scratch/issue310/ab/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+      - name: Capture protected hashes before shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          mkdir -p "$root"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-before.sha256"
+      - name: Run exact baseline manifest shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          set +e
+          python tools/test_shard_execution.py run \
+            --manifest .scratch/issue310/ab/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --lane "$LANE" \
+            --shard "$SHARD_ID" \
+            --result-json "$root/shard-result.json" \
+            --junit-xml "$root/result.xml" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp"
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$root/runner-rc.txt"
+          test -f "$root/shard-result.json"
+          LANE="$LANE" SHARD_ID="$SHARD_ID" RESULT="$root/shard-result.json" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads(Path(os.environ['RESULT']).read_text())
+          expected_workers = 2 if (os.environ['LANE'], os.environ['SHARD_ID']) == ('dxf', 's00') else 1
+          assert p['xdist_workers'] == expected_workers, p
+          assert p['child_rc'] == 0, p
+          PY
+          test "$rc" -eq 0
+      - name: Verify protected invariants after baseline shard
+        if: always()
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+      - name: Upload complete baseline shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue310-baseline-${{ matrix.lane }}-${{ matrix.shard_id }}
+          path: .scratch/issue310/ab/baseline/${{ matrix.lane }}/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  candidate-shard:
+    if: always() && needs.plan.result == 'success' && needs.baseline-shard.result == 'success'
+    needs: [plan, baseline-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      VARIANT: candidate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact shard dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Download authoritative A/B plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue310-t6-ab-plan
+          path: .scratch/issue310/ab/plan
+      - name: Verify exact checkout and manifest identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue310/ab/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue310/ab/plan/manifest.sha256)" = "$PLAN_MANIFEST_SHA256"
+      - name: Capture protected hashes before shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          mkdir -p "$root"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-before.sha256"
+      - name: Run exact candidate manifest shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          set +e
+          python tools/test_shard_execution.py run \
+            --manifest .scratch/issue310/ab/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --lane "$LANE" \
+            --shard "$SHARD_ID" \
+            --result-json "$root/shard-result.json" \
+            --junit-xml "$root/result.xml" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp"
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$root/runner-rc.txt"
+          test -f "$root/shard-result.json"
+          LANE="$LANE" SHARD_ID="$SHARD_ID" RESULT="$root/shard-result.json" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads(Path(os.environ['RESULT']).read_text())
+          expected_workers = 2 if (os.environ['LANE'], os.environ['SHARD_ID']) == ('dxf', 's00') else 1
+          assert p['xdist_workers'] == expected_workers, p
+          assert p['child_rc'] == 0, p
+          PY
+          test "$rc" -eq 0
+      - name: Verify protected invariants after candidate shard
+        if: always()
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue310/ab/$VARIANT/$LANE/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+      - name: Upload complete candidate shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue310-candidate-${{ matrix.lane }}-${{ matrix.shard_id }}
+          path: .scratch/issue310/ab/candidate/${{ matrix.lane }}/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  compare:
+    if: always() && needs.plan.result == 'success' && needs.baseline-shard.result == 'success' && needs.candidate-shard.result == 'success'
+    needs: [plan, baseline-shard, candidate-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download authoritative A/B plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue310-t6-ab-plan
+          path: .scratch/issue310/ab/plan
+      - name: Download baseline evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue310-baseline-*
+          path: .scratch/issue310/ab/all-baseline
+      - name: Download candidate evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue310-candidate-*
+          path: .scratch/issue310/ab/all-candidate
+      - name: Fetch exact current-run job timestamps
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" \
+            > .scratch/issue310/ab/jobs.json
+      - name: Compare same-head budgets fail closed
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from tools.test_shard_aggregation import normalize_shard_artifact
+          from tools.test_shard_tuning import choose_budget_from_ab, job_wait_seconds, summarize_workflow_timing
+
+          root = Path('.scratch/issue310/ab')
+          manifest_path = root / 'plan/manifest/shard-manifest.json'
+          manifest_bytes = manifest_path.read_bytes()
+          manifest_digest = hashlib.sha256(manifest_bytes).hexdigest()
+          assert manifest_digest == os.environ['PLAN_MANIFEST_SHA256']
+          manifest = json.loads(manifest_bytes)
+          assert manifest['source_sha'] == os.environ['PLAN_SOURCE_SHA']
+
+          expected = {}
+          expected_nodes = set()
+          for lane, lane_shards in manifest['shards'].items():
+              if lane == 'xvfb_ui':
+                  continue
+              for shard_id, item in lane_shards.items():
+                  key = f'{lane}:{shard_id}'
+                  nodes = sorted(item['nodes'])
+                  assert item['count'] == len(nodes), (key, item)
+                  expected[key] = nodes
+                  overlap = expected_nodes.intersection(nodes)
+                  assert not overlap, (key, sorted(overlap))
+                  expected_nodes.update(nodes)
+
+          def load_variant(variant):
+              base = root / f'all-{variant}'
+              node_outcomes = {}
+              shard_seconds = {}
+              for key, assigned in sorted(expected.items()):
+                  lane, shard_id = key.split(':', 1)
+                  artifact = base / f'issue310-{variant}-{lane}-{shard_id}'
+                  result_path = artifact / 'shard-result.json'
+                  junit_path = artifact / 'result.xml'
+                  before = artifact / 'protected-before.sha256'
+                  after = artifact / 'protected-after.sha256'
+                  rc_path = artifact / 'runner-rc.txt'
+                  for path in (result_path, junit_path, before, after, rc_path):
+                      assert path.is_file(), f'{variant.upper()}_EVIDENCE_MISSING={path}'
+                  assert before.read_bytes() == after.read_bytes(), f'{variant.upper()}_PROTECTED_DRIFT={key}'
+                  assert rc_path.read_text().strip() == '0', f'{variant.upper()}_RUNNER_RC={key}'
+                  payload = json.loads(result_path.read_text())
+                  assert payload['child_rc'] == 0, (variant, key, payload)
+                  assert sorted(payload['assigned_nodes']) == assigned, (variant, key)
+                  expected_workers = 2 if key == 'dxf:s00' else 1
+                  assert payload['xdist_workers'] == expected_workers, (variant, key, payload)
+                  normalized = normalize_shard_artifact(
+                      result_payload=payload,
+                      junit_xml=junit_path,
+                      expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                      artifact_refs=[f'artifact://{artifact.name}'],
+                  )
+                  assert sorted(normalized['assigned_nodes']) == assigned, (variant, key)
+                  shard_seconds[key] = normalized['execution_seconds']
+                  for node, record in normalized['node_results'].items():
+                      assert node not in node_outcomes, f'{variant.upper()}_DUPLICATE_NODE={node}'
+                      node_outcomes[node] = record['outcome']
+              assert set(node_outcomes) == expected_nodes, (
+                  variant,
+                  sorted(expected_nodes - set(node_outcomes)),
+                  sorted(set(node_outcomes) - expected_nodes),
+              )
+              canonical = json.dumps(node_outcomes, sort_keys=True, separators=(',', ':')).encode()
+              return node_outcomes, hashlib.sha256(canonical).hexdigest(), shard_seconds
+
+          baseline_nodes, baseline_digest, baseline_shards = load_variant('baseline')
+          candidate_nodes, candidate_digest, candidate_shards = load_variant('candidate')
+          assert baseline_nodes == candidate_nodes, 'AB_NODE_OUTCOME_MISMATCH'
+          assert baseline_digest == candidate_digest, (baseline_digest, candidate_digest)
+
+          jobs = json.loads((root / 'jobs.json').read_text())['jobs']
+          def timing(prefix):
+              selected = [job for job in jobs if job['name'].startswith(prefix)]
+              assert len(selected) == len(expected), (prefix, len(selected), len(expected))
+              for job in selected:
+                  assert job['status'] == 'completed' and job['conclusion'] == 'success', job
+                  assert job['created_at'] and job['started_at'] and job['completed_at'], job
+              created = min(job['created_at'] for job in selected)
+              started = min(job['started_at'] for job in selected)
+              completed = max(job['completed_at'] for job in selected)
+              summary = summarize_workflow_timing(
+                  created_at=created,
+                  first_required_job_started_at=started,
+                  final_required_job_completed_at=completed,
+              )
+              waits = [job_wait_seconds(created_at=job['created_at'], started_at=job['started_at']) for job in selected]
+              summary['max_job_wait_seconds'] = max(waits)
+              summary['job_count'] = len(selected)
+              return summary
+
+          baseline_timing = timing('baseline-shard (')
+          candidate_timing = timing('candidate-shard (')
+          common = {
+              'head_sha': os.environ['PLAN_SOURCE_SHA'],
+              'manifest_sha256': manifest_digest,
+              'collection_count': len(expected_nodes),
+              'result_digest': baseline_digest,
+              'correctness_green': True,
+              'protected_invariants_green': True,
+          }
+          baseline = {
+              **common,
+              **baseline_timing,
+              'budget': 4,
+          }
+          candidate = {
+              **common,
+              **candidate_timing,
+              'budget': 8,
+          }
+          decision = choose_budget_from_ab(baseline, candidate, logical_shard_count=len(expected))
+          out = root / 'comparison'
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              'schema': 'WHD_T6_BUDGET_AB_V1',
+              'source_sha': os.environ['PLAN_SOURCE_SHA'],
+              'manifest_sha256': manifest_digest,
+              'non_gui_collection_count': len(expected_nodes),
+              'semantic_result_digest': baseline_digest,
+              'manifest_strategy': 'KEEP_HRW',
+              'baseline': baseline,
+              'candidate': candidate,
+              'decision': decision,
+              'baseline_shard_execution_seconds': baseline_shards,
+              'candidate_shard_execution_seconds': candidate_shards,
+          }
+          (out / 'budget-comparison.json').write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          print(f"ISSUE310_SELECTED_BUDGET={decision['selected_budget']}")
+          print(f"ISSUE310_AB_REASON={decision['reason']}")
+          print('ISSUE310_MANIFEST_STRATEGY=KEEP_HRW')
+          PY
+      - name: Publish A/B timing summary
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          p = json.loads(Path('.scratch/issue310/ab/comparison/budget-comparison.json').read_text())
+          print('## #310 T6 concurrency budget A/B')
+          print()
+          print(f"- Source SHA: `{p['source_sha']}`")
+          print(f"- Manifest SHA-256: `{p['manifest_sha256']}`")
+          print(f"- Non-GUI nodes: **{p['non_gui_collection_count']}**")
+          print(f"- Semantic result digest: `{p['semantic_result_digest']}`")
+          print(f"- Manifest strategy: **{p['manifest_strategy']}**")
+          for label in ('baseline', 'candidate'):
+              m = p[label]
+              print(f"- {label.title()} budget **{m['budget']}**: execution **{m['execution_wall_clock_seconds']:.1f}s**, end-to-end **{m['end_to_end_wall_clock_seconds']:.1f}s**, max job wait **{m['max_job_wait_seconds']:.1f}s**")
+          print(f"- Selected budget: **{p['decision']['selected_budget']}** — `{p['decision']['reason']}`")
+          PY
+      - name: Upload A/B comparison evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue310-t6-budget-ab
+          path: .scratch/issue310/ab/comparison
+          if-no-files-found: error
