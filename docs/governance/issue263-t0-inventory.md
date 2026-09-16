@@ -1,3 +1,8 @@
+---
+whd_doc_meta: WHD_DOC_META_V1
+role: HISTORICAL
+contract: ISSUE263_T0_GOVERNANCE_INVENTORY
+---
 # #263 T0 — Governance inventory and conflict audit
 
 ## Frozen identity
