@@ -1,0 +1,102 @@
+name: Issue 289 Step7 Signature Diagnostic
+
+on:
+  push:
+    branches:
+      - qa/issue289-step7-signature-20260916
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PYTHONUTF8: "1"
+  CANDIDATE_SHA: "3ee91f61d313f0ff3931a80efebb9c798d1e9328"
+
+jobs:
+  reproduce-step7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
+      - name: Install Xvfb when absent
+        shell: bash
+        run: |
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+          fi
+      - name: Discover lifecycle-related GUI regression files exactly as acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -rlE \
+            'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
+            tests --include='test_*.py' | sort -u | tee /tmp/t1-test-files.txt
+          test -s /tmp/t1-test-files.txt
+          echo "Matched files:"
+          cat /tmp/t1-test-files.txt
+      - name: Reproduce first Xvfb failure with exact evidence
+        id: repro
+        shell: bash
+        run: |
+          set +e
+          mapfile -t files < /tmp/t1-test-files.txt
+          xvfb-run -a python -m pytest -x -vv --tb=short "${files[@]}" tests/test_issue289_gui_phase2_t1_lifecycle.py 2>&1 | tee /tmp/pytest-step7.txt
+          rc=${PIPESTATUS[0]}
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+          grep -E '^tests/.*::.* (FAILED|ERROR)' /tmp/pytest-step7.txt | tail -n 1 | tee /tmp/failing-node-line.txt || true
+          sed -n '/=================================== FAILURES ===================================/,/=========================== short test summary info ============================/p' /tmp/pytest-step7.txt > /tmp/failure-block.txt || true
+          if [ ! -s /tmp/failure-block.txt ]; then
+            tail -n 180 /tmp/pytest-step7.txt > /tmp/failure-block.txt
+          fi
+          exit 0
+      - name: Upload diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue289-step7-signature
+          path: |
+            /tmp/t1-test-files.txt
+            /tmp/failing-node-line.txt
+            /tmp/failure-block.txt
+            /tmp/pytest-step7.txt
+          if-no-files-found: error
+          retention-days: 7
+      - name: Comment exact evidence on issue 289
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### QA diagnostic — exact Step 7 Xvfb signature'
+            echo
+            echo "Candidate: \`${CANDIDATE_SHA}\`"
+            echo "Diagnostic run: \`${GITHUB_RUN_ID}\`"
+            echo "pytest rc: \`${{ steps.repro.outputs.rc }}\`"
+            echo
+            echo '**First failing node line**'
+            echo '```text'
+            cat /tmp/failing-node-line.txt 2>/dev/null || true
+            echo '```'
+            echo
+            echo '**Failure block**'
+            echo '```text'
+            cat /tmp/failure-block.txt 2>/dev/null | tail -n 160 || true
+            echo '```'
+          } > /tmp/issue289-diagnostic-comment.md
+          gh issue comment 289 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue289-diagnostic-comment.md
+      - name: Preserve reproduction result
+        if: always()
+        shell: bash
+        run: |
+          rc='${{ steps.repro.outputs.rc }}'
+          if [ -z "$rc" ]; then rc=1; fi
+          exit "$rc"
