@@ -165,6 +165,18 @@ from gui_modules.part_panels import (
     _phase6_logical_part_present as _phase6_logical_part_present_impl,
 )
 
+from gui_modules.parts.selector import (
+    refresh_presence_ui as _refresh_presence_ui_impl,
+)
+from gui_modules.parts.subtabs import (
+    build_box_body_piece_selector,
+    box_body_piece_label as _box_body_piece_label_impl,
+    box_body_piece_face_key as _box_body_piece_face_key_impl,
+    refresh_box_body_piece_tabs_2d as _refresh_box_body_piece_tabs_2d_impl,
+    on_box_body_piece_2d_tab_changed as _on_box_body_piece_2d_tab_changed_impl,
+    on_box_body_piece_double_click as _on_box_body_piece_double_click_impl,
+)
+
 from gui_modules.render_2d import (
     _draw_layout_resolved_features as _draw_layout_resolved_features_impl,
     _draw_layout_baseline_secondary as _draw_layout_baseline_secondary_impl,
@@ -2716,49 +2728,7 @@ class Phase6ApplicationHost:
         return existing
 
     def _phase6_refresh_presence_ui(self, existing_parts=None):
-        """Hide absent-part controls completely so they occupy zero layout space."""
-        existing = set(existing_parts) if existing_parts is not None else self._phase6_current_existing_parts()
-        existing.add("box_body")
-
-        result_groups = getattr(self, "_phase6_result_part_rows", {}) or {}
-        visibility = {
-            "box_body": self._phase6_logical_part_present(existing, "box_body"),
-            "endcap": bool({"head", "tail"} & existing),
-            "door": self._phase6_logical_part_present(existing, "door"),
-            "base_plate": self._phase6_logical_part_present(existing, "base_plate"),
-            "indicator_box": "indicator_box" in existing,
-            "indicator_door": "indicator_door" in existing,
-        }
-        for group in ("box_body", "endcap", "door", "base_plate", "indicator_box", "indicator_door"):
-            for row in result_groups.get(group, ()): 
-                row.pack_forget()
-                if visibility[group]:
-                    row.pack(fill=tk.X, pady=6, padx=10)
-
-        output_widgets = getattr(self, "_phase6_output_part_widgets", {}) or {}
-        output_order = ("box_body", "head", "tail", "door", "base_plate", "indicator_box", "indicator_door")
-        for widget in output_widgets.values():
-            widget.pack_forget()
-        visible_keys = [
-            key for key in output_order
-            if self._phase6_logical_part_present(existing, key) and key in output_widgets
-        ]
-        for index, key in enumerate(visible_keys):
-            pady = (6, 1) if index == 0 else ((1, 6) if index == len(visible_keys) - 1 else (1, 1))
-            output_widgets[key].pack(anchor=tk.W, padx=10, pady=pady)
-
-        # No stale numbers for absent physical panels.
-        if not visibility["endcap"]:
-            self.result_y_w_var.set("-"); self.result_y_d_var.set("-")
-        if not visibility["door"]:
-            self.result_door_w_var.set("-"); self.result_door_h_var.set("-")
-        if not visibility["base_plate"]:
-            self.result_base_plate_w_var.set("-"); self.result_base_plate_h_var.set("-")
-        if not visibility["indicator_box"]:
-            self.result_ib_w_var.set("-"); self.result_ib_h_var.set("-")
-        if not visibility["indicator_door"]:
-            self.result_ib_door_w_var.set("-"); self.result_ib_door_h_var.set("-")
-        return existing
+        return _refresh_presence_ui_impl(self, existing_parts)
         
     def create_separator(self, parent):
         sep = tk.Frame(parent, height=1, bg="#2a2a30")
@@ -2976,10 +2946,7 @@ class Phase6ApplicationHost:
         info_lbl.pack(side=tk.LEFT, padx=5)
 
         # 多件式箱身只占一個頂層「箱身」，物理子板件用第二層標籤切換。
-        self.box_body_piece_tabs = ttk.Notebook(self.tab_z, height=1)
-        self.box_body_piece_tabs.bind(
-            "<<NotebookTabChanged>>", self._on_box_body_piece_2d_tab_changed
-        )
+        self.box_body_piece_tabs = build_box_body_piece_selector(self, self.tab_z)
         
         # 畫布 Frame
         canvas_frame = tk.Frame(self.tab_z, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
@@ -5889,116 +5856,20 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _box_body_piece_label(part_key):
-        return {
-            "box_body:left_side": "左側板",
-            "box_body:back": "後面板",
-            "box_body:right_side": "右側板",
-            "box_body:left": "左箱身",
-            "box_body:middle": "中箱身",
-            "box_body:right": "右箱身",
-        }.get(str(part_key or ""), str(part_key or ""))
+        return _box_body_piece_label_impl(part_key)
 
     @staticmethod
     def _box_body_piece_face_key(part_key):
-        return {
-            "box_body:left_side": "left",
-            "box_body:back": "back",
-            "box_body:right_side": "right",
-        }.get(str(part_key or ""))
+        return _box_body_piece_face_key_impl(part_key)
 
     def _refresh_box_body_piece_tabs_2d(self, render_data):
-        pieces = tuple(getattr(render_data, "pieces", ()) or ())
-        keys = tuple(
-            f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
-            for piece in pieces
-            if str(getattr(piece, "role", "") or "").strip()
-        )
-        notebook = getattr(self, "box_body_piece_tabs", None)
-        if notebook is None:
-            return ""
-        if len(keys) <= 1:
-            if notebook.winfo_manager():
-                notebook.pack_forget()
-            self._box_body_piece_2d_tab_keys = keys
-            return ""
+        return _refresh_box_body_piece_tabs_2d_impl(self, render_data)
 
-        current = tuple(getattr(self, "_box_body_piece_2d_tab_keys", ()) or ())
-        if current != keys:
-            self._box_body_piece_2d_tab_guard = True
-            try:
-                for tab_id in tuple(notebook.tabs()):
-                    try:
-                        widget = self.root.nametowidget(tab_id)
-                    except Exception:
-                        widget = None
-                    notebook.forget(tab_id)
-                    if widget is not None:
-                        try:
-                            widget.destroy()
-                        except Exception:
-                            pass
-                tab_map = {}
-                for key in keys:
-                    frame = ttk.Frame(notebook)
-                    notebook.add(frame, text=self._box_body_piece_label(key))
-                    tab_map[str(frame)] = key
-                self._box_body_piece_2d_tab_map = tab_map
-                self._box_body_piece_2d_tab_keys = keys
-            finally:
-                self._box_body_piece_2d_tab_guard = False
+    def _on_box_body_piece_2d_tab_changed(self, event=None):
+        return _on_box_body_piece_2d_tab_changed_impl(self, event)
 
-        selected = str(self.box_body_piece_2d_selected_var.get() or "")
-        desired = selected if selected in keys else (
-            "box_body:back" if "box_body:back" in keys else keys[0]
-        )
-        if selected != desired:
-            self.box_body_piece_2d_selected_var.set(desired)
-        tab_map = dict(getattr(self, "_box_body_piece_2d_tab_map", {}) or {})
-        target = next(
-            (tab_id for tab_id in notebook.tabs() if tab_map.get(str(tab_id)) == desired),
-            None,
-        )
-        if target is not None and str(notebook.select()) != str(target):
-            self._box_body_piece_2d_tab_guard = True
-            try:
-                notebook.select(target)
-            finally:
-                self._box_body_piece_2d_tab_guard = False
-        if not notebook.winfo_manager():
-            notebook.pack(
-                fill=tk.X, padx=10, pady=(0, 2),
-                before=self.box_body_canvas_frame,
-            )
-        face_key = self._box_body_piece_face_key(desired)
-        if face_key is not None:
-            self.box_body_face_selected_var.set(face_key)
-        return desired
-
-    def _on_box_body_piece_2d_tab_changed(self, _event=None):
-        if bool(getattr(self, "_box_body_piece_2d_tab_guard", False)):
-            return
-        notebook = getattr(self, "box_body_piece_tabs", None)
-        if notebook is None:
-            return
-        key = dict(getattr(self, "_box_body_piece_2d_tab_map", {}) or {}).get(
-            str(notebook.select())
-        )
-        if not key:
-            return
-        self.box_body_piece_2d_selected_var.set(key)
-        face_key = self._box_body_piece_face_key(key)
-        if face_key is not None:
-            self.box_body_face_selected_var.set(face_key)
-        self.draw_preview()
-
-    def on_box_body_piece_double_click(self, _event=None):
-        piece_var = getattr(self, "box_body_piece_2d_selected_var", None)
-        key = str(piece_var.get() if piece_var is not None else "")
-        face_key = self._box_body_piece_face_key(key)
-        if face_key is None:
-            return None
-        self.open_box_body_face_editor(face_key)
-        return "break"
+    def on_box_body_piece_double_click(self, event=None):
+        return _on_box_body_piece_double_click_impl(self, event)
 
     def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
         """Draw one manufacturing-owned BoxBody physical child in the main 2D view."""
