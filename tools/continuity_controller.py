@@ -9,6 +9,7 @@ non-terminal, and unable to end an assistant turn while autonomous work remains.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import tempfile
@@ -19,6 +20,7 @@ from typing import Iterable
 
 
 CHECKPOINT_VERSION = 1
+TURN_EXIT_PROOF_VERSION = 1
 _UNSET = object()
 
 
@@ -144,17 +146,9 @@ def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     return {"version": CHECKPOINT_VERSION, **data}
 
 
-def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
-    """Persist checkpoint atomically in the target directory.
-
-    The temporary file is flushed and fsynced before os.replace so a runtime cut cannot
-    leave a half-written JSON file at the authoritative path.
-    """
-
+def _atomic_write_text(path: Path, text: str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
-
     temp_name: str | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -166,8 +160,9 @@ def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
             delete=False,
         ) as handle:
             temp_name = handle.name
-            handle.write(payload)
-            handle.write("\n")
+            handle.write(text)
+            if not text.endswith("\n"):
+                handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temp_name, path)
@@ -178,6 +173,13 @@ def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
                 os.unlink(temp_name)
             except FileNotFoundError:
                 pass
+
+
+def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
+    """Persist checkpoint atomically in the target directory."""
+
+    payload = json.dumps(_to_payload(checkpoint), ensure_ascii=False, indent=2, sort_keys=True)
+    _atomic_write_text(Path(path), payload)
 
 
 def load_checkpoint(path: Path) -> Checkpoint:
@@ -247,15 +249,6 @@ def transition_checkpoint(
     log_cursor: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
 ) -> Checkpoint:
-    """Return a validated next checkpoint without reusing stale remote ownership.
-
-    Omitted remote fields are distinct from explicit ``None``. While remaining inside
-    one WAITING_REMOTE lock, omitted owner/cursor fields inherit that same lock. When
-    entering WAITING_REMOTE from any other state, ``run_id`` must be supplied explicitly
-    and stale job/cursor data is cleared unless the caller supplies replacements.
-    Other transitions preserve prior remote identity as provenance when fields are omitted.
-    """
-
     if checkpoint.is_terminal:
         raise CheckpointError(
             f"terminal checkpoint {checkpoint.state.value} cannot transition back to active work"
@@ -311,20 +304,137 @@ def assert_finalizable(checkpoint: Checkpoint) -> None:
 
 
 def assert_turn_exitable(checkpoint: Checkpoint) -> None:
-    """Reject ending an assistant turn while autonomous work remains executable.
-
-    BLOCKED is deliberately turn-exitable because it represents a genuine external
-    authority/capability wait, but it remains non-finalizable. Terminal states are both
-    turn-exitable and finalizable. RUNNING, WAITING_REMOTE, and RECOVERING must keep the
-    current execution loop moving to ``next_action`` instead of handing scheduling back
-    to the user.
-    """
-
     if checkpoint.state in TURN_EXIT_BLOCKING_STATES:
         raise TurnExitBlocked(
             f"turn exit blocked for checkpoint {checkpoint.state.value}; "
             f"next_action={checkpoint.next_action!r}"
         )
+
+
+def _checkpoint_digest(path: Path) -> str:
+    try:
+        data = Path(path).read_bytes()
+    except FileNotFoundError as exc:
+        raise CheckpointError(f"checkpoint file not found: {path}") from exc
+    except OSError as exc:
+        raise CheckpointError(f"cannot read checkpoint file: {path}") from exc
+    return hashlib.sha256(data).hexdigest()
+
+
+def _assert_checkpoint_owner(
+    checkpoint: Checkpoint,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+) -> None:
+    expected = (
+        _require_text("expected_issue", expected_issue),
+        _require_text("expected_branch", expected_branch),
+        _require_text("expected_head_sha", expected_head_sha),
+    )
+    actual = (checkpoint.issue, checkpoint.branch, checkpoint.head_sha)
+    if actual != expected:
+        raise CheckpointError(
+            "checkpoint owner mismatch: "
+            f"expected issue={expected[0]!r} branch={expected[1]!r} head_sha={expected[2]!r}; "
+            f"got issue={actual[0]!r} branch={actual[1]!r} head_sha={actual[2]!r}"
+        )
+
+
+def _turn_exit_proof_payload(
+    checkpoint: Checkpoint,
+    *,
+    checkpoint_digest: str,
+) -> dict[str, object]:
+    return {
+        "version": TURN_EXIT_PROOF_VERSION,
+        "issue": checkpoint.issue,
+        "branch": checkpoint.branch,
+        "head_sha": checkpoint.head_sha,
+        "checkpoint_digest": checkpoint_digest,
+        "guard": "assert_turn_exitable",
+    }
+
+
+def assert_turn_exitable_path(
+    path: Path,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    receipt_path: Path,
+) -> Checkpoint:
+    """Load the owning checkpoint, invoke the canonical guard, and mint proof.
+
+    The proof is written only after ``assert_turn_exitable`` returns successfully.
+    """
+
+    path = Path(path)
+    receipt_path = Path(receipt_path)
+    checkpoint = load_checkpoint(path)
+    _assert_checkpoint_owner(
+        checkpoint,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
+    assert_turn_exitable(checkpoint)
+    digest = _checkpoint_digest(path)
+    proof = json.dumps(
+        _turn_exit_proof_payload(checkpoint, checkpoint_digest=digest),
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    _atomic_write_text(receipt_path, proof)
+    return checkpoint
+
+
+def assert_turn_exit_permitted(
+    checkpoint_path: Path,
+    receipt_path: Path,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+) -> Checkpoint:
+    """Verify current owning checkpoint has current proof from actual guard invocation."""
+
+    checkpoint_path = Path(checkpoint_path)
+    receipt_path = Path(receipt_path)
+    checkpoint = load_checkpoint(checkpoint_path)
+    _assert_checkpoint_owner(
+        checkpoint,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
+
+    try:
+        payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise TurnExitBlocked(f"guard invocation proof missing: {receipt_path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise TurnExitBlocked(f"guard invocation proof invalid: {receipt_path}") from exc
+
+    if not isinstance(payload, dict):
+        raise TurnExitBlocked("guard invocation proof invalid: payload must be an object")
+    if payload.get("version") != TURN_EXIT_PROOF_VERSION:
+        raise TurnExitBlocked("guard invocation proof invalid: unsupported version")
+    if payload.get("guard") != "assert_turn_exitable":
+        raise TurnExitBlocked("guard invocation proof invalid: canonical guard identity mismatch")
+
+    owner = (payload.get("issue"), payload.get("branch"), payload.get("head_sha"))
+    expected_owner = (checkpoint.issue, checkpoint.branch, checkpoint.head_sha)
+    if owner != expected_owner:
+        raise TurnExitBlocked("guard invocation proof stale: owner mismatch")
+
+    current_digest = _checkpoint_digest(checkpoint_path)
+    if payload.get("checkpoint_digest") != current_digest:
+        raise TurnExitBlocked("guard invocation proof stale: checkpoint digest mismatch")
+
+    return checkpoint
 
 
 def _format_checkpoint(checkpoint: Checkpoint) -> str:
