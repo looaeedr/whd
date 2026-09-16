@@ -9,8 +9,14 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
-from tools.continuity_controller import (
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.continuity_controller import (  # noqa: E402
     CheckpointError,
     TurnExitBlocked,
     assert_turn_exit_permitted,
