@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tools import test_shard_execution as execution
+from tools import xvfb_shard_execution as execution
 from tools.phase6_release_test_runner import ProcessResult, XvfbSession
 
 
