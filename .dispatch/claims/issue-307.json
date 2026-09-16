@@ -1,0 +1,20 @@
+{
+  "issue": 307,
+  "issue_url": "https://github.com/looaeedr/whd/issues/307",
+  "worker": "codex-work-f83247bd2416",
+  "work_branch": "ci-sharding/issue307-t3-xvfb-isolation-20260916",
+  "claimed_at": "2026-09-16T15:05:40.845Z",
+  "last_update": "2026-09-16T15:05:40.846Z",
+  "base_sha": "1f1e12ddd8991548758069e8bbb515888083716b",
+  "head_sha": "838a87cdfd82551f50a43758411de043887a73b6",
+  "phase": "RED",
+  "state": "RECOVERING",
+  "next_action": "Read terminal focused and acceptance logs; repair CLI import regression",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue307-t3.json",
+  "remote_qa": {
+    "run_id": 35111990796,
+    "head_sha": "838a87cdfd82551f50a43758411de043887a73b6",
+    "status": "completed/failure"
+  }
+}
