@@ -14,6 +14,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Run changed-file knowledge preflight
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "Issue #321 enforce assistant turn-exit boundary when checkpoint or guard invocation is bypassed"
+          --changed-file "tools/continuity_controller.py"
+          --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+          --changed-file "AGENTS.md"
+          --changed-file "tests/process/test_issue321_turn_exit_enforcement.py"
       - name: Install pytest
         run: python -m pip install --upgrade pip pytest
       - name: Run focused turn-exit enforcement tests
