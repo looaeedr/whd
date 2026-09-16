@@ -240,3 +240,117 @@ def test_junit_rejects_missing_duplicate_and_unassigned_execution(tmp_path, case
 
 def test_inherited_nodes_cannot_hide_pytest_internal_error():
     assert execution.classify_xvfb_failed_nodes(child_rc=3, failed_nodes=["a"], expected_failed_nodes=["a"]) == (1, "UNCLASSIFIED_RED")
+
+
+def test_junit_failure_evidence_records_location_kind_and_exception_type(tmp_path: Path) -> None:
+    xml = tmp_path / "result.xml"
+    xml.write_text(
+        '<testsuites><testsuite>'
+        '<testcase classname="tests.x" name="test_a" file="tests/x.py" line="17">'
+        '<failure message="AssertionError: boom" type="AssertionError" />'
+        '</testcase></testsuite></testsuites>'
+    )
+    result = execution.read_xvfb_junit(xml, ["tests/x.py::test_a"])
+    assert result["failure_evidence"] == {
+        "tests/x.py::test_a": {
+            "file": "tests/x.py",
+            "line": 17,
+            "junit_kind": "failure",
+            "exception_type": "AssertionError",
+            "exception_type_source": "junit_type",
+            "signature": "failure:AssertionError: boom",
+        }
+    }
+
+
+def _acceptance_result(shard_id: str, node: str, *, digest: str = "manifest-digest") -> dict[str, object]:
+    failed = node == "tests/x.py::test_a"
+    return {
+        "shard_id": shard_id,
+        "source_sha": "run-sha",
+        "manifest_sha256": digest,
+        "assigned_nodes": [node],
+        "executed_nodes": [node],
+        "failure_evidence": {
+            node: {
+                "file": "tests/x.py",
+                "line": 17,
+                "junit_kind": "failure",
+                "exception_type": "AssertionError",
+                "exception_type_source": "junit_type",
+                "signature": "failure:AssertionError: boom",
+            }
+        } if failed else {},
+        "classification": "INHERITED_BASELINE_RED" if failed else "GREEN",
+        "timed_out": False,
+        "classifier_started": True,
+        "classifier_rc": 0,
+        "child_rc": 1 if failed else 0,
+    }
+
+
+def test_acceptance_aggregate_is_bound_to_junit_nodes_source_sha_digest_and_t0_evidence() -> None:
+    manifest = _manifest()
+    manifest["source_sha"] = "run-sha"
+    results = [
+        _acceptance_result("s00", "tests/x.py::test_a"),
+        _acceptance_result("s01", "tests/x.py::test_b"),
+        _acceptance_result("s02", "tests/x.py::test_c"),
+        _acceptance_result("s03", "tests/x.py::test_d"),
+    ]
+    contract = {
+        "tests/x.py::test_a": {
+            "file": "tests/x.py",
+            "line": 17,
+            "junit_kind": "failure",
+            "exception_type": "AssertionError",
+        }
+    }
+    summary = execution.validate_xvfb_acceptance_evidence(
+        manifest=manifest,
+        results=results,
+        expected_source_sha="run-sha",
+        expected_manifest_sha256="manifest-digest",
+        expected_failure_contract=contract,
+    )
+    assert summary["xvfb_shards"] == 4
+    assert summary["xvfb_unique_nodes"] == 4
+    assert summary["xvfb_failed_nodes"] == 1
+
+
+@pytest.mark.parametrize("mutation", ["missing_result", "digest", "executed_node", "failure_line", "failure_type"])
+def test_acceptance_aggregate_fails_closed_when_any_required_evidence_is_wrong(mutation: str) -> None:
+    manifest = _manifest()
+    manifest["source_sha"] = "run-sha"
+    results = [
+        _acceptance_result("s00", "tests/x.py::test_a"),
+        _acceptance_result("s01", "tests/x.py::test_b"),
+        _acceptance_result("s02", "tests/x.py::test_c"),
+        _acceptance_result("s03", "tests/x.py::test_d"),
+    ]
+    contract = {
+        "tests/x.py::test_a": {
+            "file": "tests/x.py",
+            "line": 17,
+            "junit_kind": "failure",
+            "exception_type": "AssertionError",
+        }
+    }
+    if mutation == "missing_result":
+        results.pop()
+    elif mutation == "digest":
+        results[1]["manifest_sha256"] = "stale"
+    elif mutation == "executed_node":
+        results[2]["executed_nodes"] = ["tests/x.py::test_wrong"]
+    elif mutation == "failure_line":
+        results[0]["failure_evidence"]["tests/x.py::test_a"]["line"] = 18  # type: ignore[index]
+    elif mutation == "failure_type":
+        results[0]["failure_evidence"]["tests/x.py::test_a"]["exception_type"] = "KeyError"  # type: ignore[index]
+    with pytest.raises(execution.ExecutionError):
+        execution.validate_xvfb_acceptance_evidence(
+            manifest=manifest,
+            results=results,
+            expected_source_sha="run-sha",
+            expected_manifest_sha256="manifest-digest",
+            expected_failure_contract=contract,
+        )
