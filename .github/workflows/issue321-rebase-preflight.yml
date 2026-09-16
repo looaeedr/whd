@@ -1,0 +1,25 @@
+name: Issue321 Rebase Preflight
+
+on:
+  push:
+    branches:
+      - fix/issue321-rebase-current-production-20260916
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Discover changed-file knowledge requirements
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "Issue #321 rebase tightened owning-checkpoint turn-exit guard proof onto current production without replacing finalization-owner guard"
+          --changed-file "tools/continuity_controller.py"
+          --changed-file "tools/assistant_turn_exit_gate.py"
+          --changed-file "tests/process/test_issue321_turn_exit_enforcement.py"
+          --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+          --changed-file "個人AI檔案庫/踩坑庫/turn_exit_guard_invocation_fail_closed.md"
