@@ -1,4 +1,4 @@
-name: Issue 289 Residual Reds Exact AB
+name: Issue 289 Xvfb Residual Gate 22
 
 on:
   push:
@@ -7,21 +7,20 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 env:
   PYTHONUTF8: "1"
   CANDIDATE_SHA: "3ee91f61d313f0ff3931a80efebb9c798d1e9328"
-  BASELINE_SHA: "d72e81b5820b9cb54008a2dda9e96cdc673a9734"
 
 jobs:
-  exact-ab:
+  residual-xvfb:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_SHA }}
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -34,10 +33,19 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y xvfb
           fi
-      - name: Record exact residual nodes and candidate tests
+      - name: Discover lifecycle-related GUI regression files exactly as acceptance
         shell: bash
         run: |
-          cat > /tmp/nodes.txt <<'EOF'
+          set -euo pipefail
+          grep -rlE \
+            'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
+            tests --include='test_*.py' | sort -u | tee /tmp/t1-test-files.txt
+          test -s /tmp/t1-test-files.txt
+      - name: Record 22 exact A/B-proven inherited nodes
+        shell: bash
+        run: |
+          cat > /tmp/inherited-nodes.txt <<'EOF'
+          tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection
           tests/test_corner_lock_visual_contract.py::test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area
           tests/test_corner_lock_visual_contract.py::test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_toolbar
           tests/test_corner_parameter_lock.py::test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state
@@ -60,72 +68,67 @@ jobs:
           tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
           tests/test_relief_registry_candidate_shadow_gui.py::test_candidate_record_gets_its_own_shadow_validation_without_mutating_registry
           EOF
-          sed -i 's/^          //' /tmp/nodes.txt
-          test "$(wc -l < /tmp/nodes.txt)" -eq 21
-          tar -czf /tmp/candidate-tests.tar.gz tests
-      - name: Candidate exact residual nodes
-        id: candidate
+          sed -i 's/^          //' /tmp/inherited-nodes.txt
+          test "$(wc -l < /tmp/inherited-nodes.txt)" -eq 22
+      - name: Run full Xvfb residual excluding only 22 A/B-proven inherited nodes
+        id: residual
         shell: bash
         run: |
           set +e
-          mapfile -t nodes < /tmp/nodes.txt
-          xvfb-run -a python -m pytest -q "${nodes[@]}" 2>&1 | tee /tmp/candidate.txt
+          mapfile -t files < /tmp/t1-test-files.txt
+          mapfile -t inherited < /tmp/inherited-nodes.txt
+          deselect_args=()
+          for node in "${inherited[@]}"; do
+            deselect_args+=(--deselect "$node")
+          done
+          xvfb-run -a python -m pytest -q "${files[@]}" tests/test_issue289_gui_phase2_t1_lifecycle.py \
+            "${deselect_args[@]}" 2>&1 | tee /tmp/residual-xvfb.txt
           rc=${PIPESTATUS[0]}
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/candidate.txt > /tmp/candidate-summary.txt || true
+          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/residual-xvfb.txt > /tmp/residual-failures.txt || true
+          tail -n 160 /tmp/residual-xvfb.txt > /tmp/residual-tail.txt
           exit 0
-      - name: Baseline exact residual nodes with candidate tests
-        id: baseline
-        shell: bash
-        run: |
-          set +e
-          git checkout --detach "$BASELINE_SHA"
-          rm -rf tests
-          tar -xzf /tmp/candidate-tests.tar.gz
-          mapfile -t nodes < /tmp/nodes.txt
-          xvfb-run -a python -m pytest -q "${nodes[@]}" 2>&1 | tee /tmp/baseline.txt
-          rc=${PIPESTATUS[0]}
-          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/baseline.txt > /tmp/baseline-summary.txt || true
-          exit 0
-      - name: Build normalized A/B evidence
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re, json
-          def parse(path):
-              text = Path(path).read_text(encoding='utf-8', errors='replace')
-              rows = {}
-              for line in text.splitlines():
-                  m = re.match(r'^(FAILED|ERROR) (tests/[^ ]+)(?: - (.*))?$', line)
-                  if m:
-                      rows[m.group(2)] = {'status': m.group(1), 'summary': (m.group(3) or '').strip()}
-              return rows
-          c=parse('/tmp/candidate.txt'); b=parse('/tmp/baseline.txt')
-          nodes=[x.strip() for x in Path('/tmp/nodes.txt').read_text().splitlines() if x.strip()]
-          out=[]
-          for n in nodes:
-              out.append({'nodeid':n,'candidate':c.get(n,{'status':'PASS_OR_NOT_LISTED','summary':''}), 'baseline':b.get(n,{'status':'PASS_OR_NOT_LISTED','summary':''})})
-          Path('/tmp/normalized.json').write_text(json.dumps(out,indent=2,ensure_ascii=False),encoding='utf-8')
-          print(Path('/tmp/normalized.json').read_text())
-          PY
-      - name: Upload exact A/B evidence
+      - name: Upload residual evidence
         uses: actions/upload-artifact@v4
         with:
-          name: issue289-residual-21-exact-ab
+          name: issue289-xvfb-residual-after-22-inherited
           path: |
-            /tmp/nodes.txt
-            /tmp/candidate-summary.txt
-            /tmp/baseline-summary.txt
-            /tmp/normalized.json
-            /tmp/candidate.txt
-            /tmp/baseline.txt
+            /tmp/t1-test-files.txt
+            /tmp/inherited-nodes.txt
+            /tmp/residual-failures.txt
+            /tmp/residual-tail.txt
+            /tmp/residual-xvfb.txt
           if-no-files-found: error
           retention-days: 7
-      - name: Diagnostic execution must complete on both sides
+      - name: Comment residual result on issue 289
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### QA residual — full focused Xvfb after 22 exact inherited-red deselections'
+            echo
+            echo "Run: \`${GITHUB_RUN_ID}\`"
+            echo "Candidate: \`${CANDIDATE_SHA}\`"
+            echo "Exact deselected inherited nodes: \`22\`"
+            echo "Residual pytest rc: \`${{ steps.residual.outputs.rc }}\`"
+            echo
+            echo '**Residual failures**'
+            echo '```text'
+            cat /tmp/residual-failures.txt 2>/dev/null || true
+            echo '```'
+            echo
+            echo '**Pytest tail**'
+            echo '```text'
+            cat /tmp/residual-tail.txt 2>/dev/null || true
+            echo '```'
+          } > /tmp/issue289-residual-comment.md
+          gh issue comment 289 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue289-residual-comment.md
+      - name: Preserve residual result
+        if: always()
         shell: bash
         run: |
-          test -n '${{ steps.candidate.outputs.rc }}'
-          test -n '${{ steps.baseline.outputs.rc }}'
-          echo "candidate_rc=${{ steps.candidate.outputs.rc }} baseline_rc=${{ steps.baseline.outputs.rc }}"
+          rc='${{ steps.residual.outputs.rc }}'
+          if [ -z "$rc" ]; then rc=1; fi
+          exit "$rc"
