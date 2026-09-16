@@ -31,7 +31,7 @@ jobs:
       - name: Install Python test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest
+          python -m pip install -r requirements.txt pytest matplotlib
       - name: Run headless full suite
         run: python -m pytest -q
 
@@ -54,7 +54,7 @@ jobs:
       - name: Install Python test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest
+          python -m pip install -r requirements.txt pytest matplotlib
       - name: Run Xvfb full suite
         run: xvfb-run -a python -m pytest -q
 
