@@ -82,9 +82,12 @@ def test_path_boundary_allows_genuine_blocked_checkpoint(tmp_path: Path):
     assert checkpoint.state is continuity.ContinuityState.BLOCKED
 
 
-def test_outer_agents_contract_requires_machine_turn_exit_hook():
+def test_outer_agents_contract_requires_one_machine_turn_exit_hook():
     text = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    assert "ASSISTANT_TURN_EXIT_HARD_GATE_V2" in text
+    heading = "### 0.0.3.0 ASSISTANT_TURN_EXIT_HARD_GATE_V2"
+    marker = "<!-- ASSISTANT_TURN_EXIT_HARD_GATE_V2 -->"
+    assert text.count(heading) == 1, "turn-exit hard gate must have exactly one canonical section"
+    assert text.count(marker) == 1, "turn-exit hard gate marker must not be duplicated"
     assert "assert-turn-exitable" in text
     assert "missing / unreadable checkpoint" in text
 
