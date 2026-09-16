@@ -1,0 +1,70 @@
+name: Issue 291 T3 Selector Reconciliation
+
+on:
+  push:
+    branches:
+      - refactor/issue291-gui-phase2-t3-selector-20260916
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Inventory selector/navigation responsibility
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('gui.py')
+          text = path.read_text(encoding='utf-8')
+          tree = ast.parse(text)
+          host = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Phase6ApplicationHost')
+
+          strong_markers = (
+              'workspace_controller.set_active_part',
+              'workspace_controller.set_part_presence',
+              'workspace_controller.active_part',
+              'workspace_controller.existing_parts',
+              '_phase6_refresh_presence_ui',
+              '_phase6_set_part_presence',
+              'baseline_cb',
+              'baseline_var',
+              'on_baseline_changed',
+              'part_choice',
+              'piece_selector',
+              'NotebookTabChanged',
+          )
+          name_markers = ('part', 'presence', 'baseline', 'selector', 'tab', 'visible', 'visibility')
+
+          rows=[]
+          for node in host.body:
+              if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                  continue
+              src = ast.get_source_segment(text, node) or ''
+              marker_hits = tuple(m for m in strong_markers if m in src)
+              name_hits = tuple(m for m in name_markers if m in node.name.lower())
+              if marker_hits or name_hits:
+                  loc = node.end_lineno-node.lineno+1
+                  rows.append((node.lineno,node.end_lineno,loc,node.name,marker_hits,name_hits))
+
+          print(f'GUI_LINES={len(text.splitlines())}')
+          print('=== T3 selector/navigation candidate methods ===')
+          for start,end,loc,name,hits,nhits in rows:
+              print(f'{start:5d}-{end:<5d} LOC={loc:<4d} {name} markers={hits} name_hits={nhits}')
+          print(f'CANDIDATE_METHOD_COUNT={len(rows)}')
+          print(f'RAW_CANDIDATE_LOC={sum(r[2] for r in rows)}')
+
+          # Fail closed on predecessor identity assumptions used for gate reconciliation.
+          assert len(text.splitlines()) <= 8650, 'T2 accepted predecessor must satisfy <=8650'
+          PY
