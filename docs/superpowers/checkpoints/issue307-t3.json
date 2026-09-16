@@ -1,0 +1,18 @@
+{
+  "branch": "ci-sharding/issue307-t3-xvfb-isolation-20260916",
+  "evidence": [
+    "Accepted T2 base 1f1e12ddd8991548758069e8bbb515888083716b",
+    "Remote RED 35111990796: 1 failed 28 passed",
+    "Local execution proof RED: 6 failed 16 passed",
+    "Local GREEN: 34 passed",
+    "Production untouched"
+  ],
+  "head_sha": "838a87cdfd82551f50a43758411de043887a73b6",
+  "issue": "307",
+  "job_id": null,
+  "log_cursor": null,
+  "next_action": "Push CLI and actual execution proof fix; monitor focused then run repaired acceptance",
+  "run_id": null,
+  "state": "RUNNING",
+  "version": 1
+}

@@ -11,8 +11,12 @@ import os
 import re
 import sys
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Iterable, Sequence
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.phase6_release_test_runner import managed_xvfb, run_process_group
 from tools.test_shard_execution import (
@@ -92,7 +96,7 @@ def classify_xvfb_failed_nodes(
     expected = {str(node) for node in expected_failed_nodes}
     if child_rc == 0 and not actual:
         return 0, "GREEN"
-    if child_rc != 0 and actual and actual == expected:
+    if child_rc == 1 and actual and actual == expected:
         return 0, "INHERITED_BASELINE_RED"
     return 1, "UNCLASSIFIED_RED"
 
@@ -133,6 +137,46 @@ def _failed_nodes_from_output(output: str) -> list[str]:
     return sorted(failed)
 
 
+def read_xvfb_junit(path: Path, assigned: Iterable[str]) -> dict[str, object]:
+    """Reconcile actual terminal testcase identities with the immutable assignment."""
+    expected = list(assigned)
+    identities = {}
+    for node in expected:
+        file, *names = node.split("::")
+        identity = (".".join([file[:-3].replace("/", "."), *names[:-1]]), names[-1])
+        if identity in identities:
+            raise ExecutionError("XVFB_EXECUTION_NODE_MISMATCH: ambiguous assignment")
+        identities[identity] = node
+    executed = []
+    signatures = {}
+    counts = dict(passed=0, failures=0, errors=0, skipped=0)
+    try:
+        root = ET.parse(path).getroot()
+        for case in root.iter("testcase"):
+            identity = (case.get("classname"), case.get("name"))
+            if identity not in identities:
+                raise ExecutionError(f"XVFB_EXECUTION_NODE_MISMATCH: unassigned {identity}")
+            node = identities[identity]
+            executed.append(node)
+            failure, error, skipped = case.find("failure"), case.find("error"), case.find("skipped")
+            if error is not None or failure is not None:
+                item = error if error is not None else failure
+                kind = "error" if error is not None else "failure"
+                counts["errors" if error is not None else "failures"] += 1
+                # Memory addresses are process-local, never an assertion's semantic identity.
+                message = re.sub(r"0x[0-9a-fA-F]+", "0xADDR", item.get("message", ""))
+                signatures[node] = f"{kind}:{message}"
+            elif skipped is not None:
+                counts["skipped"] += 1
+            else:
+                counts["passed"] += 1
+    except (OSError, ET.ParseError) as exc:
+        raise ExecutionError(f"XVFB_JUNIT_INVALID: {exc}") from exc
+    if sorted(executed) != sorted(expected):
+        raise ExecutionError("XVFB_EXECUTION_NODE_MISMATCH: missing or duplicate testcase")
+    return {"executed_nodes": sorted(executed), "failure_signatures": signatures, **counts}
+
+
 def execute_xvfb_shard(
     *,
     nodes: Iterable[str],
@@ -158,12 +202,15 @@ def execute_xvfb_shard(
     result_json.parent.mkdir(parents=True, exist_ok=True)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     basetemp.parent.mkdir(parents=True, exist_ok=True)
+    junit_xml = result_json.with_suffix(".xml")
+    junit_xml.unlink(missing_ok=True)
     command = [
         sys.executable,
         "-m",
         "pytest",
         *[str(arg) for arg in pytest_args],
         f"--basetemp={basetemp}",
+        f"--junitxml={junit_xml}",
         *assigned,
     ]
 
@@ -204,7 +251,23 @@ def execute_xvfb_shard(
         classifier_rc=classifier_rc,
         classifier_classification=classifier_classification,
     )
+    execution_proof = {}
+    proof_error = None
+    if not result.timed_out:
+        try:
+            execution_proof = read_xvfb_junit(junit_xml, assigned)
+            if sorted(execution_proof["failure_signatures"]) != failed_nodes:
+                raise ExecutionError("XVFB_JUNIT_LOG_FAILURE_MISMATCH")
+            if execution_proof["errors"]:
+                raise ExecutionError("XVFB_SETUP_TEARDOWN_ERROR")
+        except ExecutionError as exc:
+            proof_error = str(exc)
+            classification = "EXECUTION_PROOF_INVALID"
+            classifier_rc = 1
     payload: dict[str, object] = {
+        **execution_proof,
+        "execution_proof_error": proof_error,
+        "junit_xml": str(junit_xml),
         "lane": XVFB_LANE,
         "shard_id": shard_id,
         "assigned_nodes": assigned,

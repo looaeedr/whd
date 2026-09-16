@@ -173,6 +173,8 @@ def test_execute_xvfb_shard_owns_display_process_and_emits_terminal_proof(
         seen["command"] = list(command)
         seen["env"] = dict(env or {})
         seen["timeout_seconds"] = timeout_seconds
+        xml = next(arg.split("=", 1)[1] for arg in command if arg.startswith("--junitxml="))
+        Path(xml).write_text('<testsuites><testsuite><testcase classname="tests.x" name="test_a"><failure message="AssertionError" /></testcase></testsuite></testsuites>')
         return ProcessResult(
             returncode=1,
             stdout="FAILED tests/x.py::test_a - AssertionError\n1 failed in 0.10s\n",
@@ -212,3 +214,29 @@ def test_execute_xvfb_shard_owns_display_process_and_emits_terminal_proof(
     assert payload["log_path"] == str(tmp_path / "pytest.log")
     assert (tmp_path / "result.json").is_file()
     assert (tmp_path / "pytest.log").is_file()
+
+
+def test_junit_proves_exact_executed_nodes_and_failure_signatures(tmp_path):
+    xml = tmp_path / "result.xml"
+    xml.write_text('<testsuites><testsuite><testcase classname="tests.x" name="test_a"><failure message="KeyError: TOP" /></testcase><testcase classname="tests.x" name="test_b" /></testsuite></testsuites>')
+    result = execution.read_xvfb_junit(xml, ["tests/x.py::test_a", "tests/x.py::test_b"])
+    assert result["executed_nodes"] == ["tests/x.py::test_a", "tests/x.py::test_b"]
+    assert result["failure_signatures"] == {"tests/x.py::test_a": "failure:KeyError: TOP"}
+    assert result["passed"] == 1
+    assert result["failures"] == 1
+
+
+@pytest.mark.parametrize("cases", [
+    '<testcase classname="tests.x" name="test_a" />',
+    '<testcase classname="tests.x" name="test_a" /><testcase classname="tests.x" name="test_a" />',
+    '<testcase classname="tests.x" name="test_a" /><testcase classname="tests.x" name="test_other" />',
+])
+def test_junit_rejects_missing_duplicate_and_unassigned_execution(tmp_path, cases):
+    xml = tmp_path / "result.xml"
+    xml.write_text(f'<testsuites><testsuite>{cases}</testsuite></testsuites>')
+    with pytest.raises(execution.ExecutionError, match="XVFB_EXECUTION_NODE_MISMATCH"):
+        execution.read_xvfb_junit(xml, ["tests/x.py::test_a", "tests/x.py::test_b"])
+
+
+def test_inherited_nodes_cannot_hide_pytest_internal_error():
+    assert execution.classify_xvfb_failed_nodes(child_rc=3, failed_nodes=["a"], expected_failed_nodes=["a"]) == (1, "UNCLASSIFIED_RED")

@@ -8,6 +8,7 @@ on:
       - 'tests/test_issue307_xvfb_sharding.py'
       - 'tests/test_issue306_non_gui_sharding.py'
       - 'tools/test_shard_execution.py'
+      - 'tools/xvfb_shard_execution.py'
       - 'tools/phase6_release_test_runner.py'
       - 'config/ci_test_shards.json'
       - 'config/ci_test_execution.json'
