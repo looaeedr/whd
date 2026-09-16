@@ -1,0 +1,25 @@
+{
+  "schema": "WHD_ISSUE307_T0_XVFB_FAILURE_CONTRACT_V1",
+  "provenance": {
+    "workflow": ".github/workflows/issue304-t0-baseline.yml",
+    "run_id": 35092857584,
+    "artifact_name": "issue304-t0-baseline-evidence-v2",
+    "artifact_id": 10445586630,
+    "artifact_digest": "sha256:d27bbb5d"
+  },
+  "failures": {
+    "tests/test_ai_chime_tts.py::test_no_auto_tts_when_disabled": {"file": "tests/test_ai_chime_tts.py", "line": 31, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_ai_chime_tts.py::test_auto_tts_next_track_and_callback_once": {"file": "tests/test_ai_chime_tts.py", "line": 41, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_ai_chime_tts.py::test_auto_tts_respects_time_range": {"file": "tests/test_ai_chime_tts.py", "line": 70, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_ai_chime_tts.py::test_manual_play_disables_auto_tts_temporarily": {"file": "tests/test_ai_chime_tts.py", "line": 103, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_auto_resume.py::test_auto_resume_after_delay": {"file": "tests/test_auto_resume.py", "line": 65, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_auto_resume.py::test_manual_pause_blocks_auto_resume": {"file": "tests/test_auto_resume.py", "line": 85, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_auto_resume.py::test_auto_resume_after_network_reconnect": {"file": "tests/test_auto_resume.py", "line": 104, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_auto_resume_paused.py::test_auto_resume_paused_when_manual_pause": {"file": "tests/test_auto_resume_paused.py", "line": 51, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_mainwindow_network_reconnect.py::test_auto_resume_if_manual_flag_false": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 50, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_mainwindow_network_reconnect.py::test_no_auto_resume_after_manual_pause": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 69, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_mainwindow_network_reconnect.py::test_manual_play_resets_flag": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 84, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_mainwindow_network_reconnect.py::test_manual_pause_sets_flag": {"file": "tests/test_mainwindow_network_reconnect.py", "line": 96, "junit_kind": "failure", "exception_type": "AssertionError"},
+    "tests/test_ui_companion.py::test_combined_receiving_operator_path_from_live_family_switch": {"file": "tests/test_ui_companion.py", "line": 531, "junit_kind": "failure", "exception_type": "AssertionError"}
+  }
+}
