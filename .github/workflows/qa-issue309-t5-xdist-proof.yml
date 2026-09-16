@@ -1,0 +1,220 @@
+name: Issue 309 T5 xdist Repeat Proof
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue309-t5-xdist-isolation-20260917
+    paths:
+      - '.github/workflows/qa-issue309-t5-xdist-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install proof dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Generate authoritative live manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue309/xdist-proof/manifest
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue309/xdist-proof/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue309/xdist-proof/manifest-generation.log
+      - name: Reconfirm dxf s00 is static-clean candidate on this exact SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.test_shard_execution import select_shard_nodes
+          from tools.xdist_state_isolation import XDIST_CANDIDATE, audit_source_text, classify_scope
+
+          root = Path('.')
+          manifest = json.loads(Path('.scratch/issue309/xdist-proof/manifest/shard-manifest.json').read_text())
+          nodes = select_shard_nodes(manifest, 'dxf', 's00')
+          assert len(nodes) == 15, len(nodes)
+          files = sorted({node.split('::', 1)[0] for node in nodes})
+          sources = {Path(path) for path in files}
+          for test_path in list(sources):
+              current = test_path.parent
+              while True:
+                  candidate = current / 'conftest.py'
+                  if candidate.is_file():
+                      sources.add(candidate)
+                  if current == root or current == Path('.'):
+                      break
+                  parent = current.parent
+                  if parent == current:
+                      break
+                  current = parent
+              if Path('conftest.py').is_file():
+                  sources.add(Path('conftest.py'))
+          risks = set()
+          for path in sorted(sources, key=lambda p: p.as_posix()):
+              risks.update(audit_source_text(path.read_text(encoding='utf-8')))
+          assert not risks, f'DXF_S00_STATIC_RISK={sorted(risks)}'
+          classification = classify_scope(
+              lane='dxf',
+              risk_flags=risks,
+              proof={
+                  'repeat_runs': 0,
+                  'stable_nodes': False,
+                  'stable_results': False,
+                  'protected_invariants': False,
+                  'cross_worker_leakage': False,
+              },
+          )
+          assert classification == XDIST_CANDIDATE, classification
+          Path('.scratch/issue309/xdist-proof/nodes.json').write_text(
+              json.dumps(nodes, indent=2) + '\n'
+          )
+          print(f'DXF_S00_CANDIDATE_NODES={len(nodes)}')
+          PY
+      - name: Capture protected baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > .scratch/issue309/xdist-proof/protected-before.sha256
+      - name: Run serial baseline and two xdist repeats
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+          import time
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path('.scratch/issue309/xdist-proof')
+          nodes = json.loads((root / 'nodes.json').read_text())
+          assert len(nodes) == 15
+
+          def run(label, xdist):
+              out = root / label
+              out.mkdir(parents=True, exist_ok=True)
+              junit = out / 'result.xml'
+              log = out / 'pytest.log'
+              basetemp = out / 'pytest-tmp'
+              cmd = [
+                  sys.executable, '-m', 'pytest', '-vv',
+                  f'--junitxml={junit}', f'--basetemp={basetemp}',
+              ]
+              if xdist:
+                  cmd += ['-n', '2', '--dist=load']
+              cmd += nodes
+              start = time.monotonic()
+              proc = subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+              elapsed = time.monotonic() - start
+              log.write_text(proc.stdout, encoding='utf-8')
+              if proc.returncode != 0:
+                  print(proc.stdout)
+                  raise AssertionError(f'{label}_RC={proc.returncode}')
+              if xdist:
+                  text = proc.stdout.lower()
+                  assert '2 workers' in text or '2/2 workers' in text or 'created: 2/2 workers' in text or '2 nodes' in text, text[-2000:]
+              return junit, elapsed
+
+          serial_xml, serial_seconds = run('serial', False)
+          x1_xml, x1_seconds = run('xdist-repeat-1', True)
+          x2_xml, x2_seconds = run('xdist-repeat-2', True)
+
+          def normalized(path):
+              tree = ET.parse(path)
+              cases = tree.findall('.//testcase')
+              assert len(cases) == len(nodes), (path, len(cases), len(nodes))
+              result = {}
+              for case in cases:
+                  identity = (case.attrib.get('classname', ''), case.attrib.get('name', ''))
+                  assert identity not in result, (path, identity)
+                  if case.find('failure') is not None:
+                      status = 'FAIL'
+                  elif case.find('error') is not None:
+                      status = 'ERROR'
+                  elif case.find('skipped') is not None:
+                      status = 'SKIP'
+                  else:
+                      status = 'PASS'
+                  result[identity] = status
+              return result
+
+          serial = normalized(serial_xml)
+          repeat1 = normalized(x1_xml)
+          repeat2 = normalized(x2_xml)
+          assert serial == repeat1 == repeat2, {
+              'serial_only': sorted(set(serial) - set(repeat1)),
+              'repeat1_only': sorted(set(repeat1) - set(serial)),
+              'repeat2_delta': repeat2 != serial,
+          }
+          assert set(serial.values()) <= {'PASS', 'SKIP'}
+
+          proof = {
+              'schema': 'WHD_XDIST_REPEAT_PROOF_V1',
+              'lane': 'dxf',
+              'shard_id': 's00',
+              'assigned_node_count': len(nodes),
+              'workers': 2,
+              'distribution': 'load',
+              'repeat_runs': 2,
+              'stable_nodes': True,
+              'stable_results': True,
+              'cross_worker_leakage': False,
+              'serial_seconds': serial_seconds,
+              'xdist_repeat_1_seconds': x1_seconds,
+              'xdist_repeat_2_seconds': x2_seconds,
+              'outcomes': {
+                  status: sum(1 for value in serial.values() if value == status)
+                  for status in sorted(set(serial.values()))
+              },
+          }
+          (root / 'repeat-proof.json').write_text(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(proof, indent=2, sort_keys=True))
+          PY
+      - name: Verify protected invariants and classify repeat proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > .scratch/issue309/xdist-proof/protected-after.sha256
+          cmp .scratch/issue309/xdist-proof/protected-before.sha256 .scratch/issue309/xdist-proof/protected-after.sha256
+          git diff --exit-code
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.xdist_state_isolation import XDIST_SAFE, classify_scope, worker_count_for
+
+          path = Path('.scratch/issue309/xdist-proof/repeat-proof.json')
+          proof = json.loads(path.read_text())
+          proof['protected_invariants'] = True
+          classification = classify_scope(lane='dxf', risk_flags=set(), proof=proof)
+          assert classification == XDIST_SAFE, classification
+          assert worker_count_for(classification, requested=2) == 2
+          proof['protected_invariants'] = True
+          proof['classification'] = classification
+          path.write_text(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+          print(f'DXF_S00_REPEAT_CLASSIFICATION={classification}')
+          PY
+      - name: Upload repeat proof evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue309-t5-dxf-s00-xdist-repeat-proof
+          path: .scratch/issue309/xdist-proof
+          if-no-files-found: error
