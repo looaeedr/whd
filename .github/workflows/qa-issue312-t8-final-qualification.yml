@@ -25,7 +25,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Re-enforce T8 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Run final CI integration qualification from the exact accepted T7 tested SHA, preserve tested/orchestration identity separation, secure fresh optimized acceptance evidence before cleanup, qualify production drift read-only, persist durable CI rules, and stop at QUALIFIED_FOR_INTEGRATION until explicit user authorization 合." \
+            --changed-file tests/test_issue312_t8_final_qualification.py \
+            --changed-file tools/issue312_t8_final_qualification.py \
+            --changed-file .github/workflows/qa-issue312-t8-final-qualification.yml \
+            --changed-file docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue312-t8.json \
+            --evidence docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt
       - name: Install focused dependency
         run: python -m pip install pytest
-      - name: Run T8 qualification RED contract
+      - name: Run T8 qualification contract
         run: python -m pytest -q tests/test_issue312_t8_final_qualification.py
