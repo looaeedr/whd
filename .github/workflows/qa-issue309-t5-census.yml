@@ -1,0 +1,183 @@
+name: Issue 309 T5 State Isolation Census
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue309-t5-xdist-isolation-20260917
+    paths:
+      - '.github/workflows/qa-issue309-t5-census.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install collection dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Generate authoritative live manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue309/census/manifest
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue309/census/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue309/census/manifest-generation.log
+      - name: Audit actual shard source state risks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.xdist_state_isolation import (
+              SERIAL_ONLY,
+              XDIST_CANDIDATE,
+              XDIST_SAFE,
+              audit_source_text,
+              classify_scope,
+          )
+
+          root = Path('.')
+          scratch = Path('.scratch/issue309/census')
+          manifest = json.loads((scratch / 'manifest/shard-manifest.json').read_text(encoding='utf-8'))
+          assert manifest['source_sha'] == __import__('os').environ['GITHUB_SHA']
+
+          def visible_conftests(test_path: Path):
+              found = []
+              current = test_path.parent
+              while True:
+                  candidate = current / 'conftest.py'
+                  if candidate.is_file():
+                      found.append(candidate)
+                  if current == root or current == Path('.'):
+                      break
+                  parent = current.parent
+                  if parent == current:
+                      break
+                  current = parent
+              top = Path('conftest.py')
+              if top.is_file() and top not in found:
+                  found.append(top)
+              return found
+
+          records = []
+          lane_summary = {}
+          for lane, shards in sorted(manifest['shards'].items()):
+              lane_counts = {'SERIAL_ONLY': 0, 'XDIST_CANDIDATE': 0, 'nodes': 0}
+              for shard_id, shard in sorted(shards.items()):
+                  nodes = list(shard['nodes'])
+                  files = sorted({node.split('::', 1)[0] for node in nodes})
+                  sources = {Path(path) for path in files}
+                  for path in list(sources):
+                      sources.update(visible_conftests(path))
+
+                  file_risks = {}
+                  all_risks = set()
+                  for path in sorted(sources, key=lambda p: p.as_posix()):
+                      if not path.is_file():
+                          raise AssertionError(f'CENSUS_SOURCE_MISSING={path.as_posix()}')
+                      risks = sorted(audit_source_text(path.read_text(encoding='utf-8', errors='strict')))
+                      if risks:
+                          file_risks[path.as_posix()] = risks
+                          all_risks.update(risks)
+
+                  classification = classify_scope(
+                      lane=lane,
+                      risk_flags=all_risks,
+                      proof={
+                          'repeat_runs': 0,
+                          'stable_nodes': False,
+                          'stable_results': False,
+                          'protected_invariants': False,
+                          'cross_worker_leakage': False,
+                      },
+                      gui=(lane == 'xvfb_ui'),
+                  )
+                  assert classification in {SERIAL_ONLY, XDIST_CANDIDATE}
+                  assert classification != XDIST_SAFE
+                  lane_counts[classification] += 1
+                  lane_counts['nodes'] += len(nodes)
+                  records.append({
+                      'lane': lane,
+                      'shard_id': shard_id,
+                      'node_count': len(nodes),
+                      'source_file_count': len(files),
+                      'audited_source_count': len(sources),
+                      'classification': classification,
+                      'risk_flags': sorted(all_risks),
+                      'risk_files': file_risks,
+                  })
+              lane_summary[lane] = lane_counts
+
+          payload = {
+              'schema': 'WHD_XDIST_STATE_CENSUS_V1',
+              'source_sha': manifest['source_sha'],
+              'full_collection_count': manifest['full_collection_count'],
+              'census_rule': 'STATIC_CLEAN_IS_CANDIDATE_NOT_SAFE',
+              'records': records,
+              'lane_summary': lane_summary,
+          }
+          (scratch / 'census.json').write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+
+          candidate = [r for r in records if r['classification'] == XDIST_CANDIDATE]
+          serial = [r for r in records if r['classification'] == SERIAL_ONLY]
+          lines = [
+              '# Issue 309 T5 State Isolation Census',
+              '',
+              f"- Source SHA: `{manifest['source_sha']}`",
+              f"- Full collection: **{manifest['full_collection_count']}**",
+              f"- Logical shards audited: **{len(records)}**",
+              f"- Static xdist candidates: **{len(candidate)}**",
+              f"- Serial-only by static risk / GUI policy: **{len(serial)}**",
+              '- Promotion rule: static clean is only `XDIST_CANDIDATE`; repeat proof is still required.',
+              '',
+              '| Lane | Nodes | Candidate shards | Serial-only shards |',
+              '|---|---:|---:|---:|',
+          ]
+          for lane, counts in sorted(lane_summary.items()):
+              lines.append(
+                  f"| {lane} | {counts['nodes']} | {counts['XDIST_CANDIDATE']} | {counts['SERIAL_ONLY']} |"
+              )
+          lines += ['', '## Candidate shards']
+          if candidate:
+              lines.extend(
+                  f"- `{r['lane']}:{r['shard_id']}` — {r['node_count']} nodes"
+                  for r in candidate
+              )
+          else:
+              lines.append('- none')
+          lines += ['', '## Serial-only risk flags']
+          for r in serial:
+              flags = ', '.join(r['risk_flags']) or 'GUI/Xvfb serial policy'
+              lines.append(f"- `{r['lane']}:{r['shard_id']}` — {flags}")
+          summary = '\n'.join(lines) + '\n'
+          (scratch / 'census-summary.md').write_text(summary, encoding='utf-8')
+          print(summary)
+          PY
+      - name: Publish census summary
+        shell: bash
+        run: cat .scratch/issue309/census/census-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload census evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue309-t5-state-census
+          path: .scratch/issue309/census
+          if-no-files-found: error
