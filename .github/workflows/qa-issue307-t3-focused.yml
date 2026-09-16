@@ -1,0 +1,35 @@
+name: Issue 307 T3 Focused QA
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue307-t3-xvfb-isolation-20260916
+    paths:
+      - 'tests/test_issue307_xvfb_sharding.py'
+      - 'tests/test_issue306_non_gui_sharding.py'
+      - 'tools/test_shard_execution.py'
+      - 'tools/phase6_release_test_runner.py'
+      - 'config/ci_test_shards.json'
+      - 'config/ci_test_execution.json'
+      - '.github/workflows/qa-issue307-t3-focused.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Run T3 RED contracts and T2 regression
+        run: |
+          python -m pytest -q \
+            tests/test_issue307_xvfb_sharding.py \
+            tests/test_issue306_non_gui_sharding.py
