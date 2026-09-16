@@ -1,4 +1,4 @@
-# trigger: authoritative T0 contract repaired after focused GREEN
+# trigger: JUnit traceback location fallback focused GREEN
 name: Issue 307 T3 Four-Way Xvfb Acceptance
 
 on:
@@ -39,7 +39,7 @@ jobs:
           echo "ISSUE307_ACCEPTANCE_SOURCE_SHA=$actual"
       - name: Reject production or unrelated drift since focused GREEN
         env:
-          ACCEPTANCE_BASE_SHA: fce9d143a059ef4a33e1f9b3dd402d158738e59c
+          ACCEPTANCE_BASE_SHA: 01474774a9b918f4beff052bab96323f4058a54a
         run: |
           set -euo pipefail
           git diff --name-only "$ACCEPTANCE_BASE_SHA" "$GITHUB_SHA" | sort | tee /tmp/issue307-acceptance-delta.txt
