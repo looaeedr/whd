@@ -1,0 +1,19 @@
+{
+  "branch": "cleanup/2d-3d-sync",
+  "evidence": [
+    "RED 35105053212: 11 failed / 28 passed on current-production lineage",
+    "working GREEN 35105292980: 39 passed / 0 failed",
+    "exact-head acceptance 35105430724 @ 9d9b1fb0: 39 passed / 0 failed",
+    "tested-to-cleaned drift: only temporary QA workflow deletion",
+    "production non-force fast-forward readback: 8ccf1a9404a641ed892ab63e6f2c0e01ee80d6d9",
+    "issue #321 has zero sub-issues and zero dependencies"
+  ],
+  "head_sha": "8ccf1a9404a641ed892ab63e6f2c0e01ee80d6d9",
+  "issue": "#321",
+  "job_id": null,
+  "log_cursor": null,
+  "next_action": null,
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
+}
