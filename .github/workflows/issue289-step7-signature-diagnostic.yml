@@ -1,4 +1,4 @@
-name: Issue 289 Xvfb Residual Shards
+name: Issue 289 Residual Reds Exact AB
 
 on:
   push:
@@ -11,20 +11,17 @@ permissions:
 env:
   PYTHONUTF8: "1"
   CANDIDATE_SHA: "3ee91f61d313f0ff3931a80efebb9c798d1e9328"
-  INHERITED_NODE: "tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection"
+  BASELINE_SHA: "d72e81b5820b9cb54008a2dda9e96cdc673a9734"
 
 jobs:
-  residual-shard:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3]
+  exact-ab:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -37,41 +34,98 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y xvfb
           fi
-      - name: Discover and select shard
+      - name: Record exact residual nodes and candidate tests
         shell: bash
-        env:
-          SHARD: ${{ matrix.shard }}
         run: |
-          set -euo pipefail
-          grep -rlE \
-            'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
-            tests --include='test_*.py' | sort -u > /tmp/all.txt
-          grep -qxF 'tests/test_issue289_gui_phase2_t1_lifecycle.py' /tmp/all.txt || echo 'tests/test_issue289_gui_phase2_t1_lifecycle.py' >> /tmp/all.txt
-          sort -u /tmp/all.txt -o /tmp/all.txt
-          awk -v shard="$SHARD" '((NR-1)%4)==shard' /tmp/all.txt | tee /tmp/shard.txt
-          test -s /tmp/shard.txt
-      - name: Run Xvfb shard
-        id: shardrun
+          cat > /tmp/nodes.txt <<'EOF'
+          tests/test_corner_lock_visual_contract.py::test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area
+          tests/test_corner_lock_visual_contract.py::test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_toolbar
+          tests/test_corner_parameter_lock.py::test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state
+          tests/test_corner_parameter_lock.py::test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_mutation
+          tests/test_corner_parameter_lock.py::test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount
+          tests/test_corner_parameter_lock.py::test_3d_known_model_locked_guard_and_unlocked_parameter_edit_preserves_type
+          tests/test_corner_type_phase6_integration.py::test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking
+          tests/test_issue76_box_body_subtabs_2d_3d.py::test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_subtabs
+          tests/test_phase6_3d_cutting_mesh.py::test_real_tk_active_door_uses_features_and_corner_state_in_cutting_mesh
+          tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material
+          tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics
+          tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed
+          tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport
+          tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]
+          tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]
+          tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]
+          tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]
+          tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch
+          tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+          tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
+          tests/test_relief_registry_candidate_shadow_gui.py::test_candidate_record_gets_its_own_shadow_validation_without_mutating_registry
+          EOF
+          sed -i 's/^          //' /tmp/nodes.txt
+          test "$(wc -l < /tmp/nodes.txt)" -eq 21
+          tar -czf /tmp/candidate-tests.tar.gz tests
+      - name: Candidate exact residual nodes
+        id: candidate
         shell: bash
         run: |
           set +e
-          mapfile -t files < /tmp/shard.txt
-          timeout 900s xvfb-run -a python -m pytest -q "${files[@]}" \
-            --deselect "$INHERITED_NODE" 2>&1 | tee /tmp/shard-output.txt
+          mapfile -t nodes < /tmp/nodes.txt
+          xvfb-run -a python -m pytest -q "${nodes[@]}" 2>&1 | tee /tmp/candidate.txt
           rc=${PIPESTATUS[0]}
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/shard-output.txt > /tmp/shard-failures.txt || true
-          tail -n 100 /tmp/shard-output.txt > /tmp/shard-tail.txt
-          exit "$rc"
-      - name: Upload shard evidence
-        if: always()
+          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/candidate.txt > /tmp/candidate-summary.txt || true
+          exit 0
+      - name: Baseline exact residual nodes with candidate tests
+        id: baseline
+        shell: bash
+        run: |
+          set +e
+          git checkout --detach "$BASELINE_SHA"
+          rm -rf tests
+          tar -xzf /tmp/candidate-tests.tar.gz
+          mapfile -t nodes < /tmp/nodes.txt
+          xvfb-run -a python -m pytest -q "${nodes[@]}" 2>&1 | tee /tmp/baseline.txt
+          rc=${PIPESTATUS[0]}
+          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
+          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/baseline.txt > /tmp/baseline-summary.txt || true
+          exit 0
+      - name: Build normalized A/B evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, json
+          def parse(path):
+              text = Path(path).read_text(encoding='utf-8', errors='replace')
+              rows = {}
+              for line in text.splitlines():
+                  m = re.match(r'^(FAILED|ERROR) (tests/[^ ]+)(?: - (.*))?$', line)
+                  if m:
+                      rows[m.group(2)] = {'status': m.group(1), 'summary': (m.group(3) or '').strip()}
+              return rows
+          c=parse('/tmp/candidate.txt'); b=parse('/tmp/baseline.txt')
+          nodes=[x.strip() for x in Path('/tmp/nodes.txt').read_text().splitlines() if x.strip()]
+          out=[]
+          for n in nodes:
+              out.append({'nodeid':n,'candidate':c.get(n,{'status':'PASS_OR_NOT_LISTED','summary':''}), 'baseline':b.get(n,{'status':'PASS_OR_NOT_LISTED','summary':''})})
+          Path('/tmp/normalized.json').write_text(json.dumps(out,indent=2,ensure_ascii=False),encoding='utf-8')
+          print(Path('/tmp/normalized.json').read_text())
+          PY
+      - name: Upload exact A/B evidence
         uses: actions/upload-artifact@v4
         with:
-          name: issue289-xvfb-residual-shard-${{ matrix.shard }}
+          name: issue289-residual-21-exact-ab
           path: |
-            /tmp/shard.txt
-            /tmp/shard-failures.txt
-            /tmp/shard-tail.txt
-            /tmp/shard-output.txt
-          if-no-files-found: warn
+            /tmp/nodes.txt
+            /tmp/candidate-summary.txt
+            /tmp/baseline-summary.txt
+            /tmp/normalized.json
+            /tmp/candidate.txt
+            /tmp/baseline.txt
+          if-no-files-found: error
           retention-days: 7
+      - name: Diagnostic execution must complete on both sides
+        shell: bash
+        run: |
+          test -n '${{ steps.candidate.outputs.rc }}'
+          test -n '${{ steps.baseline.outputs.rc }}'
+          echo "candidate_rc=${{ steps.candidate.outputs.rc }} baseline_rc=${{ steps.baseline.outputs.rc }}"
