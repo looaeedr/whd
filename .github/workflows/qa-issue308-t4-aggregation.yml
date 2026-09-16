@@ -1,0 +1,43 @@
+name: Issue 308 T4 Aggregation QA
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue308-t4-aggregation-20260917
+    paths:
+      - 'tests/test_issue308_t4_aggregation.py'
+      - 'tools/test_shard_aggregation.py'
+      - '.github/workflows/qa-issue308-t4-aggregation.yml'
+      - 'docs/superpowers/checkpoints/issue308-t4.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-enforce T4 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Implement #308 T4 aggregation and Unified Markdown Summary for deterministic shard results and GitHub Actions remote QA; fail closed on missing shard, duplicate/missing node and unclassified RED; preserve first-run and retry outcomes including FLAKY-WARNING; preserve protected invariants." \
+            --changed-file tools/test_shard_aggregation.py \
+            --changed-file tests/test_issue308_t4_aggregation.py \
+            --changed-file .github/workflows/qa-issue308-t4-aggregation.yml \
+            --changed-file docs/superpowers/checkpoints/issue308-t4.json \
+            --evidence docs/superpowers/checkpoints/issue308-t4-preflight-evidence.txt
+      - name: Install focused dependency
+        run: python -m pip install pytest
+      - name: Run T4 aggregation contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue308_t4_aggregation.py
