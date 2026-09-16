@@ -1,0 +1,20 @@
+{
+  "base_sha": "a415f10fca808a19debba62e27cf90a7a864d46b",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue309-t5.json",
+  "claimed_at": "2026-09-17T00:40:32+08:00",
+  "head_sha": "562df006f67084d116396642c74fa6b081a7cdcb",
+  "issue": 309,
+  "issue_url": "https://github.com/looaeedr/whd/issues/309",
+  "last_update": "2026-09-17T00:40:32+08:00",
+  "next_action": "Build T5 state-isolation census and fail-closed RED contracts before enabling any xdist worker count",
+  "phase": "AUDIT_RED_PREP",
+  "remote_qa": {
+    "head_sha": "562df006f67084d116396642c74fa6b081a7cdcb",
+    "run_id": 35123369936,
+    "status": "success"
+  },
+  "state": "RUNNING",
+  "work_branch": "ci-sharding/issue309-t5-xdist-isolation-20260917",
+  "worker": "chatgpt-gpt5.6-sol"
+}
