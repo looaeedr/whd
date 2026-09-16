@@ -1,0 +1,40 @@
+# Issue 312 / T8 Knowledge Preflight Evidence
+
+BASE_ACCEPTED_HEAD: db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f
+BRANCH: ci-sharding/issue312-t8-final-qualification-20260917
+TASK: Run final CI integration qualification from the exact accepted T7 tested SHA, preserve tested/orchestration identity separation, secure fresh optimized acceptance evidence before cleanup, qualify production drift read-only, persist durable CI rules, and stop at QUALIFIED_FOR_INTEGRATION until explicit user authorization `合`.
+
+READ_SKILL: Python測試實務
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8.json
+PLANNED_CHANGED_FILE: tests/test_issue312_t8_final_qualification.py
+PLANNED_CHANGED_FILE: tools/issue312_t8_final_qualification.py
+PLANNED_CHANGED_FILE: .github/workflows/qa-issue312-t8-final-qualification.yml
+PLANNED_CHANGED_FILE: tools/issue312_t8_drift_audit.py
+PLANNED_CHANGED_FILE: tools/issue312_t8_cleanup_gate.py
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8-drift-evidence.md
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8-cleanup-evidence.md
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8-knowledge-readback.md
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue312-t8-final-payload.json
+
+BOUNDARIES:
+- Exact accepted T7 tested SHA is db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f and remains immutable as the final full-acceptance test target.
+- T8 orchestration commits are CI/evidence only and must never be mislabeled as the tested SHA without their own full acceptance.
+- Every full collection/execution/Xvfb job must explicitly checkout the accepted T7 tested SHA.
+- cleanup/2d-3d-sync remains read-only throughout qualification; no production mutation is authorized.
+- Cleanup is forbidden until permanent final-acceptance evidence has been secured and read back.
+- Before branch/ref deletion, every OPEN PR head.ref and base.ref is protected.
+- Missing/extra/duplicate nodes, unclassified RED, broadened inherited-RED matching, protected drift, or production mutation fail closed.
+- Queue, execution, and end-to-end timing remain separate evidence.
+- No concrete RUN identity means diagnose/fix the trigger immediately; never poll a nonexistent run.
+- Final state is QUALIFIED_FOR_INTEGRATION, not merged. Production integration requires explicit user authorization `合`.
