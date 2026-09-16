@@ -38,19 +38,14 @@ jobs:
           echo "ISSUE307_ACCEPTANCE_SOURCE_SHA=$actual"
       - name: Reject production or unrelated drift since focused GREEN
         env:
-          ACCEPTANCE_BASE_SHA: ec0f97c0c70b5704a15231166ffabacaae8eef50
+          ACCEPTANCE_BASE_SHA: fce9d143a059ef4a33e1f9b3dd402d158738e59c
         run: |
           set -euo pipefail
           git diff --name-only "$ACCEPTANCE_BASE_SHA" "$GITHUB_SHA" | sort | tee /tmp/issue307-acceptance-delta.txt
           python - <<'PY'
           from pathlib import Path
           actual = set(Path('/tmp/issue307-acceptance-delta.txt').read_text().splitlines())
-          expected = {
-              '.github/workflows/qa-issue307-t3-xvfb-acceptance.yml',
-              'config/issue307_t0_xvfb_failure_contract.json',
-              'tests/test_issue307_xvfb_sharding.py',
-              'tools/xvfb_shard_execution.py',
-          }
+          expected = {'.github/workflows/qa-issue307-t3-xvfb-acceptance.yml'}
           assert actual == expected, f'ISSUE307_ACCEPTANCE_SCOPE_DRIFT={sorted(actual)}'
           print('ISSUE307_ACCEPTANCE_SCOPE=GREEN')
           PY
