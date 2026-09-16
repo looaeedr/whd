@@ -1,3 +1,4 @@
+# trigger: verify focused box-body GREEN after extraction
 name: Issue292 T4 Box Body Slice
 
 on:
