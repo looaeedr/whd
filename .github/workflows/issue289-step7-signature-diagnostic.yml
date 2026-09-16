@@ -1,4 +1,4 @@
-name: Issue 289 Xvfb Residual Gate
+name: Issue 289 Xvfb Residual Shards
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 env:
   PYTHONUTF8: "1"
@@ -15,9 +14,13 @@ env:
   INHERITED_NODE: "tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection"
 
 jobs:
-  residual-xvfb:
+  residual-shard:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,67 +37,41 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y xvfb
           fi
-      - name: Discover lifecycle-related GUI regression files exactly as acceptance
+      - name: Discover and select shard
         shell: bash
+        env:
+          SHARD: ${{ matrix.shard }}
         run: |
           set -euo pipefail
           grep -rlE \
             'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
-            tests --include='test_*.py' | sort -u | tee /tmp/t1-test-files.txt
-          test -s /tmp/t1-test-files.txt
-      - name: Run full Xvfb residual excluding only A/B-proven inherited node
-        id: residual
+            tests --include='test_*.py' | sort -u > /tmp/all.txt
+          grep -qxF 'tests/test_issue289_gui_phase2_t1_lifecycle.py' /tmp/all.txt || echo 'tests/test_issue289_gui_phase2_t1_lifecycle.py' >> /tmp/all.txt
+          sort -u /tmp/all.txt -o /tmp/all.txt
+          awk -v shard="$SHARD" '((NR-1)%4)==shard' /tmp/all.txt | tee /tmp/shard.txt
+          test -s /tmp/shard.txt
+      - name: Run Xvfb shard
+        id: shardrun
         shell: bash
         run: |
           set +e
-          mapfile -t files < /tmp/t1-test-files.txt
-          xvfb-run -a python -m pytest -q "${files[@]}" tests/test_issue289_gui_phase2_t1_lifecycle.py \
-            --deselect "$INHERITED_NODE" 2>&1 | tee /tmp/residual-xvfb.txt
+          mapfile -t files < /tmp/shard.txt
+          timeout 900s xvfb-run -a python -m pytest -q "${files[@]}" \
+            --deselect "$INHERITED_NODE" 2>&1 | tee /tmp/shard-output.txt
           rc=${PIPESTATUS[0]}
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/residual-xvfb.txt > /tmp/residual-failures.txt || true
-          tail -n 120 /tmp/residual-xvfb.txt > /tmp/residual-tail.txt
-          exit 0
-      - name: Upload residual evidence
+          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/shard-output.txt > /tmp/shard-failures.txt || true
+          tail -n 100 /tmp/shard-output.txt > /tmp/shard-tail.txt
+          exit "$rc"
+      - name: Upload shard evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue289-xvfb-residual
+          name: issue289-xvfb-residual-shard-${{ matrix.shard }}
           path: |
-            /tmp/t1-test-files.txt
-            /tmp/residual-failures.txt
-            /tmp/residual-tail.txt
-            /tmp/residual-xvfb.txt
-          if-no-files-found: error
+            /tmp/shard.txt
+            /tmp/shard-failures.txt
+            /tmp/shard-tail.txt
+            /tmp/shard-output.txt
+          if-no-files-found: warn
           retention-days: 7
-      - name: Comment residual result on issue 289
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo '### QA residual — focused Xvfb after exact inherited-red deselection'
-            echo
-            echo "Run: \`${GITHUB_RUN_ID}\`"
-            echo "Candidate: \`${CANDIDATE_SHA}\`"
-            echo "Only deselected node: \`${INHERITED_NODE}\`"
-            echo "Residual pytest rc: \`${{ steps.residual.outputs.rc }}\`"
-            echo
-            echo '**Residual failures**'
-            echo '```text'
-            cat /tmp/residual-failures.txt 2>/dev/null || true
-            echo '```'
-            echo
-            echo '**Pytest tail**'
-            echo '```text'
-            cat /tmp/residual-tail.txt 2>/dev/null || true
-            echo '```'
-          } > /tmp/issue289-residual-comment.md
-          gh issue comment 289 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue289-residual-comment.md
-      - name: Preserve residual result
-        if: always()
-        shell: bash
-        run: |
-          rc='${{ steps.residual.outputs.rc }}'
-          if [ -z "$rc" ]; then rc=1; fi
-          exit "$rc"
