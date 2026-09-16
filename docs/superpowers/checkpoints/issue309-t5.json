@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issue": "309",
+  "branch": "ci-sharding/issue309-t5-xdist-isolation-20260917",
+  "head_sha": "a415f10fca808a19debba62e27cf90a7a864d46b",
+  "state": "RUNNING",
+  "next_action": "Run T5 Knowledge Preflight for xdist state-isolation audit from exact accepted T4 head before any worker-parallelism behavior change",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T4 base a415f10fca808a19debba62e27cf90a7a864d46b",
+    "Issue #309 requires state-isolation proof before conservative xdist and keeps Xvfb/Tk serial inside each display",
+    "Design authority section 7 makes job-level sharding primary and xdist optional only for proven-safe non-GUI shards",
+    "No T5 xdist/config implementation change has been made yet"
+  ]
+}
