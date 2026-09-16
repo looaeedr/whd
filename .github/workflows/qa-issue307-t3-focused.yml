@@ -7,6 +7,7 @@ on:
     paths:
       - 'tests/test_issue307_xvfb_sharding.py'
       - 'tests/test_issue307_t0_xvfb_contract_authority.py'
+      - 'tests/test_issue307_junit_location_fallback.py'
       - 'tests/test_issue306_non_gui_sharding.py'
       - 'tools/test_shard_execution.py'
       - 'tools/xvfb_shard_execution.py'
@@ -36,4 +37,5 @@ jobs:
           python -m pytest -q \
             tests/test_issue307_xvfb_sharding.py \
             tests/test_issue307_t0_xvfb_contract_authority.py \
+            tests/test_issue307_junit_location_fallback.py \
             tests/test_issue306_non_gui_sharding.py
