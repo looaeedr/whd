@@ -1,0 +1,65 @@
+name: Issue 290 T2 Layout Reconciliation
+
+on:
+  push:
+    branches:
+      - refactor/issue290-gui-phase2-t2-layout-20260916
+
+permissions:
+  contents: read
+
+env:
+  ACCEPTED_PREDECESSOR: "7504e628f7648bb18925151b5e44912c53a913c4"
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ACCEPTED_PREDECESSOR }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Exact T2 AST responsibility accounting
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('gui.py')
+          text = path.read_text(encoding='utf-8')
+          lines = text.splitlines()
+          tree = ast.parse(text)
+          host = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Phase6ApplicationHost')
+          methods = {n.name: n for n in host.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+          names = [
+              'setup_styles',
+              'init_variables',
+              '_apply_ui_text_size_preference',
+              'on_ui_text_size_changed',
+              '_current_box_assembly_type',
+              'create_widgets',
+          ]
+          print(f'GUI_TOTAL_LOC={len(lines)}')
+          for name in names:
+              n = methods[name]
+              print(f'METHOD {name} start={n.lineno} end={n.end_lineno} loc={n.end_lineno-n.lineno+1}')
+              nested = [x.name for x in ast.walk(n) if isinstance(x, ast.FunctionDef) and x is not n]
+              if nested:
+                  print(f'  nested={nested}')
+
+          unambiguous = sum(methods[n].end_lineno-methods[n].lineno+1 for n in ('setup_styles','create_widgets'))
+          print(f'UNAMBIGUOUS_T2_METHOD_LOC={unambiguous}')
+          print(f'THEORETICAL_ROOT_AFTER_FULL_METHOD_REMOVAL={len(lines)-unambiguous}')
+          print('RULE=create_widgets must be region-split; init_variables and T2/T4 mixed callbacks are excluded from gate accounting')
+          PY
+      - name: Confirm T0 authority docs exist
+        shell: bash
+        run: |
+          test -f docs/superpowers/plans/2026-09-15-gui-phase2-t0/gui_responsibility_inventory.md
+          test -f docs/superpowers/plans/2026-09-15-gui-phase2-t0/gui_dependency_map.md
+          test -f docs/superpowers/plans/2026-09-15-gui-phase2-t0/gui_state_owner_map.md
+          echo T0_AUTHORITY_DOCS=PASS
