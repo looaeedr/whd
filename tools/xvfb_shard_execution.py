@@ -1,17 +1,20 @@
 """T3 Xvfb extension for the authoritative T2 shard execution system.
 
-Shard ownership stays in ``tools.test_shard_execution``.  This module adds only
-the Xvfb-specific process/display and terminal-classification boundary.
+Shard ownership stays in ``tools.test_shard_execution``. This module adds only
+the Xvfb-specific process/display and terminal-classification boundary plus
+fail-closed acceptance evidence derived from pytest JUnit output.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 import time
 import xml.etree.ElementTree as ET
+from collections import Counter
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -137,18 +140,40 @@ def _failed_nodes_from_output(output: str) -> list[str]:
     return sorted(failed)
 
 
+def _normalise_failure_message(message: str) -> str:
+    return re.sub(r"0x[0-9a-fA-F]+", "0xADDR", str(message))
+
+
+def _exception_type(item: ET.Element, *, kind: str, message: str) -> tuple[str, str]:
+    raw_type = (item.get("type") or "").strip()
+    if raw_type:
+        return raw_type, "junit_type"
+    match = re.match(r"\s*([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception))\b", message)
+    if match:
+        return match.group(1).split(".")[-1], "message_prefix"
+    if kind == "failure" and (message.lstrip().startswith("assert ") or "AssertionError" in message):
+        return "AssertionError", "pytest_assertion"
+    return kind.upper(), "junit_kind_fallback"
+
+
 def read_xvfb_junit(path: Path, assigned: Iterable[str]) -> dict[str, object]:
-    """Reconcile actual terminal testcase identities with the immutable assignment."""
+    """Reconcile actual terminal testcase identities with immutable assignment.
+
+    The returned failure evidence is derived only from actual JUnit testcase
+    records and carries the source location, JUnit failure/error kind, and a
+    provenance-tagged exception type for aggregate T0 comparison.
+    """
     expected = list(assigned)
-    identities = {}
+    identities: dict[tuple[str, str], str] = {}
     for node in expected:
         file, *names = node.split("::")
         identity = (".".join([file[:-3].replace("/", "."), *names[:-1]]), names[-1])
         if identity in identities:
             raise ExecutionError("XVFB_EXECUTION_NODE_MISMATCH: ambiguous assignment")
         identities[identity] = node
-    executed = []
-    signatures = {}
+    executed: list[str] = []
+    signatures: dict[str, str] = {}
+    failure_evidence: dict[str, dict[str, object]] = {}
     counts = dict(passed=0, failures=0, errors=0, skipped=0)
     try:
         root = ET.parse(path).getroot()
@@ -161,20 +186,135 @@ def read_xvfb_junit(path: Path, assigned: Iterable[str]) -> dict[str, object]:
             failure, error, skipped = case.find("failure"), case.find("error"), case.find("skipped")
             if error is not None or failure is not None:
                 item = error if error is not None else failure
+                assert item is not None
                 kind = "error" if error is not None else "failure"
                 counts["errors" if error is not None else "failures"] += 1
-                # Memory addresses are process-local, never an assertion's semantic identity.
-                message = re.sub(r"0x[0-9a-fA-F]+", "0xADDR", item.get("message", ""))
-                signatures[node] = f"{kind}:{message}"
+                message = _normalise_failure_message(item.get("message", ""))
+                signature = f"{kind}:{message}"
+                signatures[node] = signature
+                exception_type, exception_type_source = _exception_type(
+                    item, kind=kind, message=message
+                )
+                file_name = case.get("file") or node.split("::", 1)[0]
+                raw_line = case.get("line")
+                line = int(raw_line) if raw_line is not None and raw_line.isdigit() else None
+                failure_evidence[node] = {
+                    "file": file_name,
+                    "line": line,
+                    "junit_kind": kind,
+                    "exception_type": exception_type,
+                    "exception_type_source": exception_type_source,
+                    "signature": signature,
+                }
             elif skipped is not None:
                 counts["skipped"] += 1
             else:
                 counts["passed"] += 1
-    except (OSError, ET.ParseError) as exc:
+    except (OSError, ET.ParseError, ValueError) as exc:
         raise ExecutionError(f"XVFB_JUNIT_INVALID: {exc}") from exc
     if sorted(executed) != sorted(expected):
         raise ExecutionError("XVFB_EXECUTION_NODE_MISMATCH: missing or duplicate testcase")
-    return {"executed_nodes": sorted(executed), "failure_signatures": signatures, **counts}
+    return {
+        "executed_nodes": sorted(executed),
+        "failure_signatures": signatures,
+        "failure_evidence": failure_evidence,
+        **counts,
+    }
+
+
+def validate_xvfb_acceptance_evidence(
+    *,
+    manifest: dict[str, object],
+    results: Sequence[dict[str, object]],
+    expected_source_sha: str,
+    expected_manifest_sha256: str,
+    expected_failure_contract: dict[str, dict[str, object]],
+) -> dict[str, object]:
+    """Fail closed unless four JUnit-proven shards match one manifest and T0 contract."""
+    if not expected_source_sha or not expected_manifest_sha256:
+        raise ExecutionError("XVFB_ACCEPTANCE_OWNER_EVIDENCE_MISSING")
+    if manifest.get("source_sha") != expected_source_sha:
+        raise ExecutionError("XVFB_ACCEPTANCE_SOURCE_SHA_MISMATCH")
+    shards = _require_manifest(manifest)
+    lane = shards.get(XVFB_LANE)
+    if not isinstance(lane, dict) or len(lane) != XVFB_SHARD_COUNT:
+        raise ExecutionError("XVFB_ACCEPTANCE_SHARD_SET_INVALID")
+    expected_shards = set(str(x) for x in lane)
+    if len(results) != XVFB_SHARD_COUNT:
+        raise ExecutionError(f"XVFB_RESULT_COUNT={len(results)}")
+    actual_ids = [str(p.get("shard_id", "")) for p in results]
+    if set(actual_ids) != expected_shards or len(set(actual_ids)) != len(actual_ids):
+        raise ExecutionError("XVFB_ACCEPTANCE_SHARD_ID_MISMATCH")
+
+    executed_all: list[str] = []
+    failure_evidence: dict[str, dict[str, object]] = {}
+    classifications: dict[str, object] = {}
+    for payload in results:
+        shard_id = str(payload.get("shard_id", ""))
+        if payload.get("source_sha") != expected_source_sha:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_RESULT_SOURCE_SHA_MISMATCH:{shard_id}")
+        if payload.get("manifest_sha256") != expected_manifest_sha256:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_MANIFEST_DIGEST_MISMATCH:{shard_id}")
+        if payload.get("classification") not in XVFB_ACCEPTED_CLASSIFICATIONS:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_CLASSIFICATION_INVALID:{shard_id}")
+        if payload.get("timed_out") is not False:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_TIMEOUT:{shard_id}")
+        if payload.get("classifier_started") is not True or payload.get("classifier_rc") != 0:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_CLASSIFIER_INVALID:{shard_id}")
+        if payload.get("child_rc") not in {0, 1}:
+            raise ExecutionError(f"XVFB_ACCEPTANCE_CHILD_RC_INVALID:{shard_id}")
+        executed = payload.get("executed_nodes")
+        if not isinstance(executed, list) or not all(isinstance(x, str) for x in executed):
+            raise ExecutionError(f"XVFB_ACCEPTANCE_EXECUTED_NODES_MISSING:{shard_id}")
+        expected_nodes = lane[shard_id].get("nodes") if isinstance(lane[shard_id], dict) else None
+        if not isinstance(expected_nodes, list) or sorted(executed) != sorted(expected_nodes):
+            raise ExecutionError(f"XVFB_ACCEPTANCE_JUNIT_SHARD_NODE_MISMATCH:{shard_id}")
+        executed_all.extend(executed)
+        evidence = payload.get("failure_evidence")
+        if not isinstance(evidence, dict):
+            raise ExecutionError(f"XVFB_ACCEPTANCE_FAILURE_EVIDENCE_MISSING:{shard_id}")
+        failed_nodes = payload.get("failed_nodes")
+        if isinstance(failed_nodes, list) and set(evidence) != set(failed_nodes):
+            raise ExecutionError(f"XVFB_ACCEPTANCE_JUNIT_LOG_FAILURE_MISMATCH:{shard_id}")
+        for node, record in evidence.items():
+            if node in failure_evidence or not isinstance(record, dict):
+                raise ExecutionError(f"XVFB_ACCEPTANCE_FAILURE_EVIDENCE_DUPLICATE:{node}")
+            failure_evidence[node] = record
+        classifications[shard_id] = payload.get("classification")
+
+    counts = Counter(executed_all)
+    duplicates = sorted(node for node, count in counts.items() if count != 1)
+    if duplicates:
+        raise ExecutionError(f"XVFB_ACCEPTANCE_JUNIT_DUPLICATE={duplicates}")
+    expected_union = {
+        node
+        for item in lane.values()
+        if isinstance(item, dict)
+        for node in item.get("nodes", [])
+    }
+    if set(executed_all) != expected_union:
+        raise ExecutionError("XVFB_ACCEPTANCE_JUNIT_UNION_MISMATCH")
+    if set(failure_evidence) != set(expected_failure_contract):
+        raise ExecutionError("XVFB_ACCEPTANCE_T0_FAILURE_NODE_MISMATCH")
+
+    required_fields = ("file", "line", "junit_kind", "exception_type")
+    for node, expected in expected_failure_contract.items():
+        actual = failure_evidence[node]
+        for field in required_fields:
+            if field not in expected or field not in actual or actual[field] != expected[field]:
+                raise ExecutionError(
+                    f"XVFB_ACCEPTANCE_T0_FAILURE_EVIDENCE_MISMATCH:{node}:{field}:"
+                    f"expected={expected.get(field)!r}:actual={actual.get(field)!r}"
+                )
+
+    return {
+        "source_sha": expected_source_sha,
+        "manifest_sha256": expected_manifest_sha256,
+        "xvfb_shards": XVFB_SHARD_COUNT,
+        "xvfb_unique_nodes": len(expected_union),
+        "xvfb_failed_nodes": len(failure_evidence),
+        "classifications": dict(sorted(classifications.items())),
+    }
 
 
 def execute_xvfb_shard(
@@ -251,7 +391,7 @@ def execute_xvfb_shard(
         classifier_rc=classifier_rc,
         classifier_classification=classifier_classification,
     )
-    execution_proof = {}
+    execution_proof: dict[str, object] = {}
     proof_error = None
     if not result.timed_out:
         try:
@@ -325,7 +465,21 @@ def _cmd_matrix(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    manifest_bytes = args.manifest.read_bytes()
+    manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
     manifest = _load_manifest(args.manifest)
+    source_sha = manifest.get("source_sha")
+    if not isinstance(source_sha, str) or not source_sha:
+        raise ExecutionError("XVFB_MANIFEST_SOURCE_SHA_MISSING")
+    if args.expected_source_sha and source_sha != args.expected_source_sha:
+        raise ExecutionError(
+            f"XVFB_MANIFEST_SOURCE_SHA_MISMATCH: expected={args.expected_source_sha} actual={source_sha}"
+        )
+    if args.expected_manifest_sha256 and manifest_sha256 != args.expected_manifest_sha256:
+        raise ExecutionError(
+            "XVFB_MANIFEST_DIGEST_MISMATCH: "
+            f"expected={args.expected_manifest_sha256} actual={manifest_sha256}"
+        )
     nodes = select_shard_nodes(manifest, XVFB_LANE, args.shard, allow_xvfb=True)
     expected = _load_expected_failures(args.expected_failures, shard_id=args.shard)
     payload = execute_xvfb_shard(
@@ -337,6 +491,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
         basetemp=args.basetemp,
         timeout_seconds=args.timeout_seconds,
     )
+    payload["source_sha"] = source_sha
+    payload["manifest_sha256"] = manifest_sha256
+    _write_json(args.result_json, payload)
     return 0 if payload["classification"] in XVFB_ACCEPTED_CLASSIFICATIONS else 1
 
 
@@ -362,6 +519,8 @@ def main() -> int:
     run.add_argument("--log", type=Path, required=True)
     run.add_argument("--basetemp", type=Path, required=True)
     run.add_argument("--timeout-seconds", type=float, default=900.0)
+    run.add_argument("--expected-source-sha")
+    run.add_argument("--expected-manifest-sha256")
     run.set_defaults(handler=_cmd_run)
 
     args = parser.parse_args()
