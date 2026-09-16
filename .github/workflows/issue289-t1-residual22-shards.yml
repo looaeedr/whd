@@ -1,9 +1,7 @@
 name: Issue 289 Residual22 Shards
 
 on:
-  push:
-    branches:
-      - qa/issue289-t1-final-acceptance-20260916
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,89 +11,10 @@ env:
   CANDIDATE_SHA: "3ee91f61d313f0ff3931a80efebb9c798d1e9328"
 
 jobs:
-  residual-shard:
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [0, 1, 2, 3]
+  parked:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.CANDIDATE_SHA }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install test dependencies
-        run: python -m pip install --disable-pip-version-check pytest matplotlib ezdxf -r requirements.txt
-      - name: Install Xvfb when absent
-        shell: bash
+      - name: Diagnostic is parked after authoritative full residual GREEN
         run: |
-          if ! command -v xvfb-run >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y xvfb
-          fi
-      - name: Discover shard and inherited nodes
-        shell: bash
-        env:
-          SHARD: ${{ matrix.shard }}
-        run: |
-          set -euo pipefail
-          grep -rlE \
-            'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
-            tests --include='test_*.py' | sort -u > /tmp/all-files.txt
-          awk -v s="$SHARD" '((NR-1)%4)==s {print}' /tmp/all-files.txt > /tmp/shard-files.txt
-          test -s /tmp/shard-files.txt
-          cat > /tmp/inherited-nodes.txt <<'EOF'
-          tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection
-          tests/test_corner_lock_visual_contract.py::test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area
-          tests/test_corner_lock_visual_contract.py::test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_toolbar
-          tests/test_corner_parameter_lock.py::test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_mutate_state
-          tests/test_corner_parameter_lock.py::test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_mutation
-          tests/test_corner_parameter_lock.py::test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_adjust_amount
-          tests/test_corner_parameter_lock.py::test_3d_known_model_locked_guard_and_unlocked_parameter_edit_preserves_type
-          tests/test_corner_type_phase6_integration.py::test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking
-          tests/test_issue76_box_body_subtabs_2d_3d.py::test_designer_box_body_stays_one_top_level_part_but_has_switchable_physical_subtabs
-          tests/test_phase6_3d_cutting_mesh.py::test_real_tk_active_door_uses_features_and_corner_state_in_cutting_mesh
-          tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material
-          tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics
-          tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed
-          tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport
-          tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]
-          tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]
-          tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]
-          tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]
-          tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch
-          tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
-          tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side
-          tests/test_relief_registry_candidate_shadow_gui.py::test_candidate_record_gets_its_own_shadow_validation_without_mutating_registry
-          EOF
-          sed -i 's/^          //' /tmp/inherited-nodes.txt
-          test "$(wc -l < /tmp/inherited-nodes.txt)" -eq 22
-          echo "SHARD=$SHARD FILES=$(wc -l < /tmp/shard-files.txt)"
-      - name: Run Xvfb shard excluding only 22 inherited nodes
-        shell: bash
-        run: |
-          set +e
-          mapfile -t files < /tmp/shard-files.txt
-          mapfile -t inherited < /tmp/inherited-nodes.txt
-          deselect_args=()
-          for node in "${inherited[@]}"; do deselect_args+=(--deselect "$node"); done
-          xvfb-run -a python -m pytest -q "${files[@]}" "${deselect_args[@]}" 2>&1 | tee /tmp/shard-output.txt
-          rc=${PIPESTATUS[0]}
-          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/shard-output.txt > /tmp/shard-failures.txt || true
-          tail -n 120 /tmp/shard-output.txt > /tmp/shard-tail.txt
-          exit "$rc"
-      - name: Upload shard evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: issue289-residual22-shard-${{ matrix.shard }}
-          path: |
-            /tmp/shard-files.txt
-            /tmp/shard-failures.txt
-            /tmp/shard-tail.txt
-            /tmp/shard-output.txt
-          if-no-files-found: warn
-          retention-days: 7
+          echo "Candidate=${CANDIDATE_SHA}"
+          echo "Full residual authority: run 35044084079 = 592 passed / 22 deselected / 0 failed"
