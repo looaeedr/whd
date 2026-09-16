@@ -1,4 +1,17 @@
 {
   "schema": "WHD_TEST_EXECUTION_CONFIG_V1",
-  "ci_concurrency_budget": 4
+  "ci_concurrency_budget": 4,
+  "xdist": {
+    "default_workers": 1,
+    "distribution": "load",
+    "safe_shards": {
+      "dxf:s00": {
+        "workers": 2,
+        "proof_run_id": 35124104891,
+        "proof_head_sha": "45811716bb03b95927a33451bf7f1c8d0769c407",
+        "proof_artifact_id": 10458605621,
+        "proof_artifact_sha256": "21340f1f0d39a97ab3c40cf756c624a7f5f3b00c22430f90a35d4f9a514d3ada"
+      }
+    }
+  }
 }

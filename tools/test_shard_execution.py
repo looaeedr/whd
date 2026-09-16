@@ -1,13 +1,16 @@
-"""Exact non-Xvfb shard planning and execution for WHD CI T2.
+"""Exact non-Xvfb shard planning and execution for WHD CI T2/T5.
 
 Ownership comes exclusively from the accepted T1 shard manifest.  This module
-never re-derives lane membership from pytest markers inside shard jobs.
+never re-derives lane membership from pytest markers inside shard jobs.  T5 may
+optionally add conservative in-job xdist only for exact shards carrying accepted
+repeat-proof provenance in the execution config.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -48,11 +51,132 @@ def _validate_budget(value: object) -> int:
     return value
 
 
-def load_execution_config(path: Path) -> int:
+def _load_execution_payload(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ExecutionError("EXECUTION_CONFIG_INVALID: root is not an object")
     if payload.get("schema") != EXECUTION_CONFIG_SCHEMA:
         raise ExecutionError(f"EXECUTION_CONFIG_SCHEMA_MISMATCH: {payload.get('schema')!r}")
+    return payload
+
+
+def load_execution_config(path: Path) -> int:
+    """Return the historical job-level concurrency budget unchanged."""
+    payload = _load_execution_payload(path)
     return _validate_budget(payload.get("ci_concurrency_budget"))
+
+
+def load_xdist_policy(path: Path) -> dict[str, object]:
+    """Load an exact-shard xdist allowlist with mandatory proof provenance.
+
+    Absence of an ``xdist`` section is backward-compatible and means serial
+    execution for every shard.  There is deliberately no lane-wide/default
+    parallel mode and ``xvfb_ui`` can never appear in this allowlist.
+    """
+    payload = _load_execution_payload(path)
+    raw = payload.get("xdist")
+    if raw is None:
+        return {
+            "default_workers": 1,
+            "distribution": "load",
+            "safe_shards": {},
+        }
+    if not isinstance(raw, dict):
+        raise ExecutionError("XDIST_POLICY_INVALID: xdist is not an object")
+
+    default_workers = raw.get("default_workers", 1)
+    if default_workers != 1 or isinstance(default_workers, bool):
+        raise ExecutionError(f"XDIST_DEFAULT_MUST_BE_SERIAL: {default_workers!r}")
+    distribution = raw.get("distribution", "load")
+    if distribution != "load":
+        raise ExecutionError(f"XDIST_DISTRIBUTION_UNSUPPORTED: {distribution!r}")
+    safe_shards = raw.get("safe_shards", {})
+    if not isinstance(safe_shards, dict):
+        raise ExecutionError("XDIST_SAFE_SHARDS_INVALID: safe_shards is not an object")
+
+    normalized: dict[str, dict[str, object]] = {}
+    for raw_key, raw_entry in sorted(safe_shards.items()):
+        key = str(raw_key)
+        if ":" not in key:
+            raise ExecutionError(f"XDIST_SAFE_SHARD_KEY_INVALID: {key!r}")
+        lane, shard_id = key.split(":", 1)
+        if not lane or not shard_id:
+            raise ExecutionError(f"XDIST_SAFE_SHARD_KEY_INVALID: {key!r}")
+        if lane == XVFB_LANE:
+            raise ExecutionError(f"XDIST_XVFB_FORBIDDEN: {key}")
+        if not isinstance(raw_entry, dict):
+            raise ExecutionError(f"XDIST_SAFE_SHARD_INVALID: {key}")
+
+        workers = raw_entry.get("workers")
+        if isinstance(workers, bool) or not isinstance(workers, int) or workers != 2:
+            raise ExecutionError(f"XDIST_WORKERS_MUST_BE_EXPLICIT_TWO: {key}={workers!r}")
+        proof_run_id = raw_entry.get("proof_run_id")
+        proof_head_sha = raw_entry.get("proof_head_sha")
+        proof_artifact_id = raw_entry.get("proof_artifact_id")
+        proof_digest = raw_entry.get("proof_artifact_sha256")
+        if isinstance(proof_run_id, bool) or not isinstance(proof_run_id, int) or proof_run_id <= 0:
+            raise ExecutionError(f"XDIST_PROOF_RUN_REQUIRED: {key}")
+        if not isinstance(proof_head_sha, str) or re.fullmatch(r"[0-9a-f]{40}", proof_head_sha) is None:
+            raise ExecutionError(f"XDIST_PROOF_HEAD_REQUIRED: {key}")
+        if isinstance(proof_artifact_id, bool) or not isinstance(proof_artifact_id, int) or proof_artifact_id <= 0:
+            raise ExecutionError(f"XDIST_PROOF_ARTIFACT_REQUIRED: {key}")
+        if not isinstance(proof_digest, str) or re.fullmatch(r"[0-9a-f]{64}", proof_digest) is None:
+            raise ExecutionError(f"XDIST_PROOF_DIGEST_REQUIRED: {key}")
+
+        normalized[key] = {
+            "workers": workers,
+            "proof_run_id": proof_run_id,
+            "proof_head_sha": proof_head_sha,
+            "proof_artifact_id": proof_artifact_id,
+            "proof_artifact_sha256": proof_digest,
+        }
+
+    return {
+        "default_workers": 1,
+        "distribution": distribution,
+        "safe_shards": normalized,
+    }
+
+
+def resolve_xdist_workers(policy: dict[str, object], *, lane: str, shard_id: str) -> int:
+    if lane == XVFB_LANE:
+        return 1
+    safe_shards = policy.get("safe_shards", {})
+    if not isinstance(safe_shards, dict):
+        raise ExecutionError("XDIST_SAFE_SHARDS_INVALID: safe_shards is not an object")
+    entry = safe_shards.get(f"{lane}:{shard_id}")
+    if entry is None:
+        return 1
+    if not isinstance(entry, dict) or entry.get("workers") != 2:
+        raise ExecutionError(f"XDIST_SAFE_SHARD_INVALID: {lane}:{shard_id}")
+    return 2
+
+
+def build_pytest_command(
+    *,
+    nodes: Iterable[str],
+    junit_xml: Path,
+    basetemp: Path,
+    xdist_workers: int = 1,
+    xdist_distribution: str = "load",
+) -> list[str]:
+    assigned = sorted(str(node) for node in nodes)
+    if isinstance(xdist_workers, bool) or xdist_workers not in {1, 2}:
+        raise ExecutionError(f"XDIST_WORKER_COUNT_INVALID: {xdist_workers!r}")
+    if xdist_distribution != "load":
+        raise ExecutionError(f"XDIST_DISTRIBUTION_UNSUPPORTED: {xdist_distribution!r}")
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        f"--junitxml={junit_xml}",
+        f"--basetemp={basetemp}",
+    ]
+    if xdist_workers == 2:
+        cmd.extend(["-n", "2", "--dist=load"])
+    cmd.extend(assigned)
+    return cmd
 
 
 def build_non_xvfb_matrix(
@@ -209,6 +333,8 @@ def run_exact_nodes(
     junit_xml: Path,
     log_path: Path,
     basetemp: Path,
+    xdist_workers: int = 1,
+    xdist_distribution: str = "load",
 ) -> int:
     assigned = sorted(str(node) for node in nodes)
     result_json.parent.mkdir(parents=True, exist_ok=True)
@@ -234,19 +360,19 @@ def run_exact_nodes(
             "execution_seconds": 0.0,
             "started_epoch": started_epoch,
             "ended_epoch": time.time(),
+            "xdist_workers": xdist_workers,
+            "xdist_distribution": xdist_distribution,
         }
         _write_json(result_json, payload)
         return 0
 
-    cmd = [
-        sys.executable,
-        "-m",
-        "pytest",
-        "-q",
-        f"--junitxml={junit_xml}",
-        f"--basetemp={basetemp}",
-        *assigned,
-    ]
+    cmd = build_pytest_command(
+        nodes=assigned,
+        junit_xml=junit_xml,
+        basetemp=basetemp,
+        xdist_workers=xdist_workers,
+        xdist_distribution=xdist_distribution,
+    )
     with log_path.open("w", encoding="utf-8") as stream:
         proc = subprocess.run(
             cmd,
@@ -267,6 +393,8 @@ def run_exact_nodes(
         "execution_seconds": execution_seconds,
         "started_epoch": started_epoch,
         "ended_epoch": ended_epoch,
+        "xdist_workers": xdist_workers,
+        "xdist_distribution": xdist_distribution,
     }
     try:
         payload.update(parse_junit_counts(junit_xml, assigned_count=len(assigned)))
@@ -303,14 +431,18 @@ def _cmd_matrix(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     manifest = _load_manifest(args.manifest)
+    policy = load_xdist_policy(args.execution_config)
+    distribution = str(policy["distribution"])
     if args.all_shards:
         nodes = select_lane_nodes(manifest, args.lane)
         shard_id = "serial"
+        xdist_workers = 1
     else:
         if not args.shard:
             raise ExecutionError("SHARD_REQUIRED")
         nodes = select_shard_nodes(manifest, args.lane, args.shard)
         shard_id = args.shard
+        xdist_workers = resolve_xdist_workers(policy, lane=args.lane, shard_id=args.shard)
     return run_exact_nodes(
         nodes=nodes,
         lane=args.lane,
@@ -319,6 +451,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         junit_xml=args.junit_xml,
         log_path=args.log,
         basetemp=args.basetemp,
+        xdist_workers=xdist_workers,
+        xdist_distribution=distribution,
     )
 
 
@@ -341,6 +475,11 @@ def main() -> int:
     run.add_argument("--lane", required=True)
     run.add_argument("--shard")
     run.add_argument("--all-shards", action="store_true")
+    run.add_argument(
+        "--execution-config",
+        type=Path,
+        default=ROOT / "config" / "ci_test_execution.json",
+    )
     run.add_argument("--result-json", type=Path, required=True)
     run.add_argument("--junit-xml", type=Path, required=True)
     run.add_argument("--log", type=Path, required=True)
