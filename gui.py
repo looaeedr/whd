@@ -184,6 +184,8 @@ from gui_modules.parts.panels.box_body import setup_tab_z_ui as _setup_tab_z_ui_
 
 from gui_modules.parts.panels.endcap import setup_tab_endcap_ui as _setup_tab_endcap_ui_impl
 
+from gui_modules.parts.panels.base_plate import setup_tab_base_plate_ui as _setup_tab_base_plate_ui_impl
+
 from gui_modules.parts.selector import (
     refresh_presence_ui as _refresh_presence_ui_impl,
 )
@@ -2586,18 +2588,7 @@ class Phase6ApplicationHost:
         return _setup_tab_endcap_ui_impl(self, tab_frame, key)
 
     def setup_tab_base_plate_ui(self):
-        # 底板收縮/折邊已集中到 3D 設定中心；此頁只保留預覽/開孔入口。
-        canvas_frame = tk.Frame(self.tab_base_plate, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
-
-        self.canvas_base_plate = tk.Canvas(canvas_frame, bg=self.COLOR_CANVAS_BG, highlightthickness=0)
-        self.canvas_base_plate.pack(fill=tk.BOTH, expand=True)
-        self.canvas_base_plate.bind("<Configure>", lambda e: self.draw_preview())
-        self._attach_part_hole_entrypoint(self.canvas_base_plate, "base_plate", allow_double=True)
-
-        # 舊版 draw_base_plate 會查這兩個容器；保留空容器避免相容路徑失效。
-        self.canvas_frames = {}
-        self.canvas_window_ids = {}
+        return _setup_tab_base_plate_ui_impl(self)
 
     @staticmethod
     def _door_layout_number_text(value):
