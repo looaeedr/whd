@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "308",
+  "branch": "ci-sharding/issue308-t4-aggregation-20260917",
+  "head_sha": "80ca5c0e42f56ca6dcf3a9170dfe7f67f441066e",
+  "state": "RUNNING",
+  "next_action": "Create T4 fail-closed aggregation regression tests and a focused QA workflow; obtain fresh RED before implementing tools/test_shard_aggregation.py",
+  "run_id": 35120577426,
+  "job_id": 104877028994,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T3 base 3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb",
+    "T4 Knowledge Preflight run 35120577426 at 80ca5c0e42f56ca6dcf3a9170dfe7f67f441066e: terminal SUCCESS",
+    "Preflight required monitoring-remote-qa, long-log-context-safe-execution, executable-continuity-controller and all required references were GREEN",
+    "T2 non-GUI result schema and T3 Xvfb evidence schema reread before T4 API design",
+    "No T4 aggregation implementation exists yet"
+  ]
+}
