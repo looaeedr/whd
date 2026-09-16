@@ -6,6 +6,7 @@ on:
       - fix/fail-closed-owning-checkpoint-guard-20260916
   workflow_dispatch:
 
+# QA-only trigger: workflow already exists before this push.
 jobs:
   focused-contract:
     runs-on: ubuntu-latest
