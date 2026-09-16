@@ -8,12 +8,14 @@ READ_SKILL: Python測試實務
 READ_SKILL: monitoring-remote-qa
 READ_SKILL: long-log-context-safe-execution
 READ_SKILL: executable-continuity-controller
+READ_SKILL: phase6-release-packaging
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
 READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+READ_REFERENCE: release_required_artifacts.json
 
 PLANNED_CHANGED_FILE: tools/test_shard_tuning.py
 PLANNED_CHANGED_FILE: tests/test_issue310_t6_duration_tuning.py
@@ -32,3 +34,4 @@ BOUNDARIES:
 - Any manifest-version change must preserve deterministic reproducibility and rerun missing/extra/duplicate ownership plus A/B parity gates.
 - Xvfb/Tk remains serial inside each isolated display; T5 proof-authorized dxf:s00 xdist policy is not broadened without a separate proof.
 - Protected config/DXF/project/production invariants remain fail-closed.
+- phase6-release-packaging and release_required_artifacts.json were read because the registry's FULL keyword route matched this task; this does not expand T6 into release packaging work.
