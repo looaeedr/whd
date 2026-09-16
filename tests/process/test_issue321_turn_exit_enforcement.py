@@ -117,7 +117,13 @@ def test_valid_owning_checkpoint_without_guard_invocation_proof_fails_closed(tmp
     _save_checkpoint(path, continuity.ContinuityState.BLOCKED)
 
     with pytest.raises(continuity.TurnExitBlocked, match="guard invocation proof missing"):
-        verify(path, receipt, expected_issue=EXPECTED_ISSUE, expected_branch=EXPECTED_BRANCH, expected_head_sha=EXPECTED_HEAD_SHA)
+        verify(
+            path,
+            receipt,
+            expected_issue=EXPECTED_ISSUE,
+            expected_branch=EXPECTED_BRANCH,
+            expected_head_sha=EXPECTED_HEAD_SHA,
+        )
 
 
 def test_guard_invocation_mints_bound_proof_and_allows_genuine_blocked_checkpoint(tmp_path: Path):
@@ -134,7 +140,13 @@ def test_guard_invocation_mints_bound_proof_and_allows_genuine_blocked_checkpoin
     assert checkpoint.state is continuity.ContinuityState.BLOCKED
     assert receipt.exists(), "successful guard invocation must mint proof"
 
-    verified = verify(path, receipt, expected_issue=EXPECTED_ISSUE, expected_branch=EXPECTED_BRANCH, expected_head_sha=EXPECTED_HEAD_SHA)
+    verified = verify(
+        path,
+        receipt,
+        expected_issue=EXPECTED_ISSUE,
+        expected_branch=EXPECTED_BRANCH,
+        expected_head_sha=EXPECTED_HEAD_SHA,
+    )
     assert verified.state is continuity.ContinuityState.BLOCKED
 
 
@@ -162,7 +174,13 @@ def test_guard_invocation_proof_becomes_stale_if_checkpoint_changes(tmp_path: Pa
     )
 
     with pytest.raises(continuity.TurnExitBlocked, match="guard invocation proof stale"):
-        verify(path, receipt, expected_issue=EXPECTED_ISSUE, expected_branch=EXPECTED_BRANCH, expected_head_sha=EXPECTED_HEAD_SHA)
+        verify(
+            path,
+            receipt,
+            expected_issue=EXPECTED_ISSUE,
+            expected_branch=EXPECTED_BRANCH,
+            expected_head_sha=EXPECTED_HEAD_SHA,
+        )
 
 
 def test_outer_agents_contract_requires_machine_turn_exit_hook():
