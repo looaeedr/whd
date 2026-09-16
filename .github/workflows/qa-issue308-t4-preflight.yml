@@ -1,3 +1,4 @@
+# trigger: branch-resident T4 preflight
 name: Issue 308 T4 Knowledge Preflight
 
 on:
