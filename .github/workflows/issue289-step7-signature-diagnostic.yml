@@ -1,4 +1,4 @@
-name: Issue 289 Step7 Signature Diagnostic
+name: Issue 289 Xvfb Residual Gate
 
 on:
   push:
@@ -12,17 +12,16 @@ permissions:
 env:
   PYTHONUTF8: "1"
   CANDIDATE_SHA: "3ee91f61d313f0ff3931a80efebb9c798d1e9328"
-  BASELINE_SHA: "d72e81b5820b9cb54008a2dda9e96cdc673a9734"
+  INHERITED_NODE: "tests/test_box_body_single_source_t3.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection"
 
 jobs:
-  reproduce-and-ab:
+  residual-xvfb:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.CANDIDATE_SHA }}
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -43,90 +42,59 @@ jobs:
             'open_original_fold_designer|_apply_phase6_project_snapshot|_compose_phase6_project_snapshot_from_main_gui|_capture_phase6_committed_snapshot|_apply_original_fold_designer_snapshot|_store_fold_designer_workspace|_apply_fold_designer_live_snapshot|_Phase6UpdateScheduler|_request_phase6_update|_flush_phase6_authoritative_state|bind_live_updates' \
             tests --include='test_*.py' | sort -u | tee /tmp/t1-test-files.txt
           test -s /tmp/t1-test-files.txt
-          tar -czf /tmp/candidate-tests.tar.gz tests
-      - name: Candidate — reproduce first Xvfb failure
-        id: candidate
+      - name: Run full Xvfb residual excluding only A/B-proven inherited node
+        id: residual
         shell: bash
         run: |
           set +e
           mapfile -t files < /tmp/t1-test-files.txt
-          xvfb-run -a python -m pytest -x -vv --tb=short "${files[@]}" tests/test_issue289_gui_phase2_t1_lifecycle.py 2>&1 | tee /tmp/candidate.txt
+          xvfb-run -a python -m pytest -q "${files[@]}" tests/test_issue289_gui_phase2_t1_lifecycle.py \
+            --deselect "$INHERITED_NODE" 2>&1 | tee /tmp/residual-xvfb.txt
           rc=${PIPESTATUS[0]}
           echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          line="$(grep -E '^tests/.*::.* (FAILED|ERROR)' /tmp/candidate.txt | tail -n 1 || true)"
-          printf '%s\n' "$line" > /tmp/candidate-node-line.txt
-          node="$(printf '%s\n' "$line" | sed -E 's/[[:space:]]+(FAILED|ERROR)([[:space:]].*)?$//')"
-          printf '%s\n' "$node" > /tmp/failing-nodeid.txt
-          if [ -z "$node" ]; then
-            node="$(grep -E '^FAILED tests/.*::' /tmp/candidate.txt | head -n 1 | sed -E 's/^FAILED[[:space:]]+//' | sed -E 's/[[:space:]]+-[[:space:]].*$//' || true)"
-            printf '%s\n' "$node" > /tmp/failing-nodeid.txt
-          fi
-          sed -n '/=================================== FAILURES ===================================/,/=========================== short test summary info ============================/p' /tmp/candidate.txt > /tmp/candidate-failure-block.txt || true
-          if [ ! -s /tmp/candidate-failure-block.txt ]; then tail -n 180 /tmp/candidate.txt > /tmp/candidate-failure-block.txt; fi
+          grep -E '^FAILED tests/.*::|^ERROR tests/.*::' /tmp/residual-xvfb.txt > /tmp/residual-failures.txt || true
+          tail -n 120 /tmp/residual-xvfb.txt > /tmp/residual-tail.txt
           exit 0
-      - name: Baseline — same candidate test code and exact nodeid
-        id: baseline
-        shell: bash
-        run: |
-          set +e
-          node="$(cat /tmp/failing-nodeid.txt)"
-          if [ -z "$node" ]; then
-            echo 'NO_FAILING_NODEID_PARSED' | tee /tmp/baseline.txt
-            echo 'rc=125' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git checkout --detach "$BASELINE_SHA"
-          rm -rf tests
-          tar -xzf /tmp/candidate-tests.tar.gz
-          xvfb-run -a python -m pytest -vv --tb=short "$node" 2>&1 | tee /tmp/baseline.txt
-          rc=${PIPESTATUS[0]}
-          echo "rc=${rc}" >> "$GITHUB_OUTPUT"
-          sed -n '/=================================== FAILURES ===================================/,/=========================== short test summary info ============================/p' /tmp/baseline.txt > /tmp/baseline-failure-block.txt || true
-          if [ ! -s /tmp/baseline-failure-block.txt ]; then tail -n 180 /tmp/baseline.txt > /tmp/baseline-failure-block.txt; fi
-          exit 0
-      - name: Upload A/B evidence
+      - name: Upload residual evidence
         uses: actions/upload-artifact@v4
         with:
-          name: issue289-step7-exact-ab
+          name: issue289-xvfb-residual
           path: |
             /tmp/t1-test-files.txt
-            /tmp/failing-nodeid.txt
-            /tmp/candidate-node-line.txt
-            /tmp/candidate-failure-block.txt
-            /tmp/baseline-failure-block.txt
-            /tmp/candidate.txt
-            /tmp/baseline.txt
+            /tmp/residual-failures.txt
+            /tmp/residual-tail.txt
+            /tmp/residual-xvfb.txt
           if-no-files-found: error
           retention-days: 7
-      - name: Comment exact A/B evidence on issue 289
+      - name: Comment residual result on issue 289
         if: always()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo '### QA diagnostic — exact Step 7 candidate/baseline A/B'
+            echo '### QA residual — focused Xvfb after exact inherited-red deselection'
             echo
             echo "Run: \`${GITHUB_RUN_ID}\`"
-            echo "Candidate: \`${CANDIDATE_SHA}\` — rc \`${{ steps.candidate.outputs.rc }}\`"
-            echo "Baseline: \`${BASELINE_SHA}\` — rc \`${{ steps.baseline.outputs.rc }}\`"
-            echo "Exact nodeid: \`$(cat /tmp/failing-nodeid.txt 2>/dev/null || true)\`"
+            echo "Candidate: \`${CANDIDATE_SHA}\`"
+            echo "Only deselected node: \`${INHERITED_NODE}\`"
+            echo "Residual pytest rc: \`${{ steps.residual.outputs.rc }}\`"
             echo
-            echo '**Candidate failure block**'
+            echo '**Residual failures**'
             echo '```text'
-            tail -n 120 /tmp/candidate-failure-block.txt 2>/dev/null || true
+            cat /tmp/residual-failures.txt 2>/dev/null || true
             echo '```'
             echo
-            echo '**Baseline exact-node block**'
+            echo '**Pytest tail**'
             echo '```text'
-            tail -n 120 /tmp/baseline-failure-block.txt 2>/dev/null || true
+            cat /tmp/residual-tail.txt 2>/dev/null || true
             echo '```'
-          } > /tmp/issue289-ab-comment.md
-          gh issue comment 289 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue289-ab-comment.md
-      - name: Preserve candidate reproduction result
+          } > /tmp/issue289-residual-comment.md
+          gh issue comment 289 --repo "$GITHUB_REPOSITORY" --body-file /tmp/issue289-residual-comment.md
+      - name: Preserve residual result
         if: always()
         shell: bash
         run: |
-          rc='${{ steps.candidate.outputs.rc }}'
+          rc='${{ steps.residual.outputs.rc }}'
           if [ -z "$rc" ]; then rc=1; fi
           exit "$rc"
