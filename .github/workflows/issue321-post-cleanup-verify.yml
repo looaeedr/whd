@@ -1,0 +1,55 @@
+name: Issue321 Post Cleanup Verify
+
+on:
+  push:
+    branches:
+      - qa/issue321-post-cleanup-verify-20260916
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Prove QA tree is candidate plus only this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATE=7ab3970b024d949d869fb4c5542eec2e725109c5
+          mapfile -t extra < <(git diff --name-only "$CANDIDATE"...HEAD | grep -vx '.github/workflows/issue321-post-cleanup-verify.yml' || true)
+          if (( ${#extra[@]} != 0 )); then
+            printf 'unexpected QA drift from candidate:\n%s\n' "${extra[*]}"
+            exit 1
+          fi
+          test ! -e .github/workflows/issue321-turn-exit-enforcement.yml
+      - name: Run focused issue321 process acceptance
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue321_turn_exit_enforcement.py
+          tests/process/test_continuity_controller.py
+          tests/process/test_issue286_turn_exit_bridge_contract.py
+      - name: Verify production readback and protected drift allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_PROD=2bbf59fbb2ff2e79c67d9817964d3ff6213b2228
+          git fetch origin cleanup/2d-3d-sync
+          ACTUAL_PROD=$(git rev-parse origin/cleanup/2d-3d-sync)
+          test "$ACTUAL_PROD" = "$EXPECTED_PROD"
+          mapfile -t changed < <(git diff --name-only "$EXPECTED_PROD"...HEAD)
+          allowed_regex='^(\.agents/skills/engineering/executable-continuity-controller/SKILL\.md|\.github/workflows/issue321-post-cleanup-verify\.yml|tests/process/test_issue321_turn_exit_enforcement\.py|tools/assistant_turn_exit_gate\.py|tools/continuity_controller\.py|個人AI檔案庫/踩坑庫/turn_exit_guard_invocation_fail_closed\.md)$'
+          for path in "${changed[@]}"; do
+            if ! [[ "$path" =~ $allowed_regex ]]; then
+              echo "unexpected protected/application drift: $path"
+              exit 1
+            fi
+          done
+          printf 'production=%s\n' "$ACTUAL_PROD"
+          printf 'changed-files:\n%s\n' "${changed[*]}"
