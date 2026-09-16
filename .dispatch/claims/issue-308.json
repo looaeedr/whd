@@ -3,16 +3,16 @@
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue308-t4.json",
   "claimed_at": "2026-09-17T00:00:00+08:00",
-  "head_sha": "f41fe3446f9a7522af7d13c78d100f8caa061e48",
+  "head_sha": "4f43ca1296c410eb9cdd59441e8f6a3475db9f5b",
   "issue": 308,
   "issue_url": "https://github.com/looaeedr/whd/issues/308",
-  "last_update": "2026-09-17T00:00:00+08:00",
-  "next_action": "Create T4 fail-closed aggregation tests and focused QA; require fresh RED before aggregator implementation",
-  "phase": "TDD_RED_PREP",
+  "last_update": "2026-09-17T00:30:00+08:00",
+  "next_action": "Monitor exact T4 full aggregation acceptance run 35121912254 at 4f43ca1296c410eb9cdd59441e8f6a3475db9f5b through non-GUI, Xvfb and aggregate terminal evidence",
+  "phase": "ACCEPTANCE_RUNNING",
   "remote_qa": {
-    "head_sha": "80ca5c0e42f56ca6dcf3a9170dfe7f67f441066e",
-    "run_id": 35120577426,
-    "status": "success"
+    "head_sha": "4f43ca1296c410eb9cdd59441e8f6a3475db9f5b",
+    "run_id": 35121912254,
+    "status": "in_progress"
   },
   "state": "RUNNING",
   "work_branch": "ci-sharding/issue308-t4-aggregation-20260917",
