@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Inventory selector/navigation responsibility
+      - name: Reconcile exact T3 selector/navigation LOC
         shell: bash
         run: |
           python - <<'PY'
@@ -28,43 +28,63 @@ jobs:
 
           path = Path('gui.py')
           text = path.read_text(encoding='utf-8')
+          lines = text.splitlines()
           tree = ast.parse(text)
           host = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Phase6ApplicationHost')
+          methods = {
+              n.name: n for n in host.body
+              if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+          }
 
-          strong_markers = (
-              'workspace_controller.set_active_part',
-              'workspace_controller.set_part_presence',
-              'workspace_controller.active_part',
-              'workspace_controller.existing_parts',
+          # Exact T3 root responsibilities proven presentation/navigation-only.
+          # Mixed state/geometry methods such as on_baseline_changed,
+          # _apply_cabinet_family_for_current_model, setup_tab_* panels,
+          # open_part_hole_editor and _open_unified_hole_editor are excluded.
+          exact = (
               '_phase6_refresh_presence_ui',
-              '_phase6_set_part_presence',
-              'baseline_cb',
-              'baseline_var',
-              'on_baseline_changed',
-              'part_choice',
-              'piece_selector',
-              'NotebookTabChanged',
+              '_box_body_piece_label',
+              '_box_body_piece_face_key',
+              '_refresh_box_body_piece_tabs_2d',
+              '_on_box_body_piece_2d_tab_changed',
+              'on_box_body_piece_double_click',
           )
-          name_markers = ('part', 'presence', 'baseline', 'selector', 'tab', 'visible', 'visibility')
 
-          rows=[]
-          for node in host.body:
-              if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                  continue
-              src = ast.get_source_segment(text, node) or ''
-              marker_hits = tuple(m for m in strong_markers if m in src)
-              name_hits = tuple(m for m in name_markers if m in node.name.lower())
-              if marker_hits or name_hits:
-                  loc = node.end_lineno-node.lineno+1
-                  rows.append((node.lineno,node.end_lineno,loc,node.name,marker_hits,name_hits))
+          exact_loc = 0
+          delegate_loc = 0
+          print(f'GUI_LINES={len(lines)}')
+          print('=== exact T3 whole-method responsibility ===')
+          for name in exact:
+              node = methods[name]
+              loc = node.end_lineno - node.lineno + 1
+              exact_loc += loc
+              # Compatibility-preserving root seam budget: decorator (when any),
+              # def line, one return/delegate line. Static helpers get 4 lines max.
+              seam = 4 if any(isinstance(d, ast.Name) and d.id == 'staticmethod' for d in node.decorator_list) else 3
+              delegate_loc += seam
+              print(f'{node.lineno:5d}-{node.end_lineno:<5d} LOC={loc:<4d} seam_budget={seam} {name}')
 
-          print(f'GUI_LINES={len(text.splitlines())}')
-          print('=== T3 selector/navigation candidate methods ===')
-          for start,end,loc,name,hits,nhits in rows:
-              print(f'{start:5d}-{end:<5d} LOC={loc:<4d} {name} markers={hits} name_hits={nhits}')
-          print(f'CANDIDATE_METHOD_COUNT={len(rows)}')
-          print(f'RAW_CANDIDATE_LOC={sum(r[2] for r in rows)}')
+          setup = methods['setup_tab_z_ui']
+          setup_src = ast.get_source_segment(text, setup) or ''
+          block_start = setup_src.index('# 多件式箱身只占一個頂層「箱身」')
+          block_end = setup_src.index('# 畫布 Frame', block_start)
+          selector_block = setup_src[block_start:block_end]
+          selector_block_loc = len(selector_block.rstrip().splitlines())
+          # replacement is one call to the focused subtab builder.
+          selector_seam = 1
+          print(f'SETUP_TAB_Z_SELECTOR_BLOCK_LOC={selector_block_loc}')
 
-          # Fail closed on predecessor identity assumptions used for gate reconciliation.
-          assert len(text.splitlines()) <= 8650, 'T2 accepted predecessor must satisfy <=8650'
+          removable = exact_loc + selector_block_loc
+          retained_seams = delegate_loc + selector_seam
+          net_reduction = removable - retained_seams
+          theoretical = len(lines) - net_reduction
+
+          print(f'EXACT_T3_METHOD_LOC={exact_loc}')
+          print(f'ROOT_DELEGATE_SEAM_BUDGET={delegate_loc}')
+          print(f'EXACT_T3_SELECTOR_BLOCK_LOC={selector_block_loc}')
+          print(f'NET_LEGAL_T3_REDUCTION={net_reduction}')
+          print(f'THEORETICAL_T3_ROOT_LOC={theoretical}')
+
+          # Fail closed: predecessor and responsibility accounting must stay exact.
+          assert len(lines) == 8644, len(lines)
+          assert theoretical > 7000, 'If this trips, the original 7000 gate became reachable and must be re-reviewed'
           PY
