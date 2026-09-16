@@ -1,0 +1,45 @@
+name: Issue321 Turn Exit Enforcement
+
+on:
+  push:
+    branches:
+      - fix/issue321-turn-exit-enforcement-20260916
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Write knowledge evidence
+        run: |
+          cat > /tmp/issue321-preflight-evidence.txt <<'EOF'
+          寫技能
+          Python測試實務
+          phase6-release-packaging
+          executable-continuity-controller
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: release_required_artifacts.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+          EOF
+      - name: Run changed-file knowledge preflight
+        run: >-
+          python tools/phase6_skill_preflight.py
+          --task "Issue #321 enforce assistant turn-exit boundary when checkpoint or guard invocation is bypassed"
+          --changed-file "tools/continuity_controller.py"
+          --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
+          --changed-file "AGENTS.md"
+          --changed-file "tests/process/test_issue321_turn_exit_enforcement.py"
+          --evidence /tmp/issue321-preflight-evidence.txt
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Run focused turn-exit enforcement tests
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue321_turn_exit_enforcement.py
+          tests/process/test_continuity_controller.py
+          tests/process/test_issue286_turn_exit_bridge_contract.py
