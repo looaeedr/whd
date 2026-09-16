@@ -1,5 +1,6 @@
 name: Issue321 Current Production RED
 
+# trigger after workflow exists in parent
 on:
   push:
     branches:
