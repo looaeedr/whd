@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GUI = ROOT / "gui.py"
 RAW_ISSUE_GATE = 5_500
 ACCEPTED_PREDECESSOR = "cefb1a11c837a73508a6a2b09eac77ba38c798f6"
-RECONCILED_GATE = 0  # RED sentinel; replace only with machine-measured legal gate.
+RECONCILED_GATE = 7_464
 DELEGATE_LINES_PER_METHOD = 3
 IMPORT_WIRING_BUDGET = 24
 SAFETY_MARGIN = 20
@@ -166,10 +166,9 @@ def test_issue292_reconciled_gate_matches_conservative_legal_t4_budget():
     suggested_gate = theoretical_root + SAFETY_MARGIN
 
     assert RECONCILED_GATE == suggested_gate, (
-        "#292 reconciled structural gate has not been locked to the measured legal T4 budget: "
+        "#292 reconciled structural gate drifted from the measured legal T4 budget: "
         f"current_loc={current_loc}, unambiguous_methods={len(UNAMBIGUOUS_T4_PRESENTATION_METHODS)}, "
         f"removable_loc={removable_loc}, delegate_budget={delegate_budget}, "
         f"import_wiring_budget={IMPORT_WIRING_BUDGET}, theoretical_root={theoretical_root}, "
-        f"safety_margin={SAFETY_MARGIN}, suggested_gate={suggested_gate}. "
-        "Do not start extraction until #292/design/test all use this measured gate."
+        f"safety_margin={SAFETY_MARGIN}, suggested_gate={suggested_gate}."
     )
