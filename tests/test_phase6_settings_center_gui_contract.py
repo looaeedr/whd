@@ -32,12 +32,15 @@ def test_open_designer_uses_transactional_settings_and_save_default_callback():
 
 def test_old_main_gui_no_longer_constructs_fold_advanced_panel_but_keeps_global_dimensions():
     create = method_source("create_widgets")
-    assert '"寬度 (W) :"' in create
-    assert '"高度 (H) :"' in create
-    assert '"深度 (D) :"' in create
+    left_panel = Path("gui_modules/layout/left_panel.py").read_text(encoding="utf-8")
+    assert "_build_main_layout(self)" in create
+    for token in ('"寬度 (W) :"', '"高度 (H) :"', '"深度 (D) :"'):
+        assert token in left_panel
     assert "create_advanced_inputs" not in create
+    assert "create_advanced_inputs" not in left_panel
     assert "self.adv_btn" not in create
-    assert "create_corner_type_panel" in create
+    assert "host.adv_btn" not in left_panel
+    assert "host.create_corner_type_panel" in left_panel
 
 
 def test_box_body_tab_keeps_global_fw_t_but_removes_z_comp_input():
@@ -88,5 +91,4 @@ def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d
     bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
     assert "from phase6_settings_center import" in source
     assert "SettingsService" in source
-    assert "Phase6SettingsPanel" in bridge_source
-    assert "self.global_settings_button =" not in bridge_source
+    assert "global_3d" not in bridge_source
