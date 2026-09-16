@@ -1,3 +1,4 @@
+# trigger: focused GREEN verification after endcap extraction
 name: Issue292 T4 Endcap Slice
 
 on:
