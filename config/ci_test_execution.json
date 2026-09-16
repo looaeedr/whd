@@ -1,0 +1,4 @@
+{
+  "schema": "WHD_TEST_EXECUTION_CONFIG_V1",
+  "ci_concurrency_budget": 4
+}
