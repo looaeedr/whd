@@ -1,0 +1,20 @@
+name: Issue321 Current Production RED
+
+on:
+  push:
+    branches:
+      - integrate/issue321-on-4554c065-20260916
+
+jobs:
+  focused-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Reproduce missing turn-exit V2 on current production base
+        run: python -m pytest -q tests/process/test_issue321_turn_exit_enforcement.py
