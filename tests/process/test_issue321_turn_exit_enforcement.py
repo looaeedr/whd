@@ -8,15 +8,19 @@ import tools.continuity_controller as continuity
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _write_running_checkpoint(path: Path) -> None:
+def _write_checkpoint(path: Path, state: continuity.ContinuityState) -> None:
+    kwargs = {}
+    if state is continuity.ContinuityState.WAITING_REMOTE:
+        kwargs["run_id"] = 35102914224
     continuity.save_checkpoint(
         path,
         continuity.Checkpoint(
             issue="#321",
             branch="fix/issue321-turn-exit-enforcement-20260916",
             head_sha="abc123",
-            state=continuity.ContinuityState.RUNNING,
+            state=state,
             next_action="execute exact next action",
+            **kwargs,
         ),
     )
 
@@ -39,12 +43,22 @@ def test_path_boundary_rejects_malformed_checkpoint(tmp_path: Path):
         guard(path)
 
 
-def test_path_boundary_blocks_autonomous_nonterminal_checkpoint(tmp_path: Path):
+@pytest.mark.parametrize(
+    "state",
+    (
+        continuity.ContinuityState.RUNNING,
+        continuity.ContinuityState.WAITING_REMOTE,
+        continuity.ContinuityState.RECOVERING,
+    ),
+)
+def test_path_boundary_blocks_every_autonomous_nonterminal_state(
+    tmp_path: Path, state: continuity.ContinuityState
+):
     guard = getattr(continuity, "assert_turn_exitable_path", None)
     assert callable(guard), "missing canonical path-level turn-exit boundary"
 
-    path = tmp_path / "continuity.json"
-    _write_running_checkpoint(path)
+    path = tmp_path / f"continuity-{state.value}.json"
+    _write_checkpoint(path, state)
     with pytest.raises(continuity.TurnExitBlocked, match="execute exact next action"):
         guard(path)
 
