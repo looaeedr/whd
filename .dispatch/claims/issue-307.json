@@ -3,16 +3,16 @@
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue307-t3.json",
   "claimed_at": "2026-09-16T15:05:40.845Z",
-  "head_sha": "ec0f97c0c70b5704a15231166ffabacaae8eef50",
+  "head_sha": "955bea43d9c8e49f3b8276e6a45d70d1bd440615",
   "issue": 307,
   "issue_url": "https://github.com/looaeedr/whd/issues/307",
-  "last_update": "2026-09-16T15:15:00.000Z",
-  "next_action": "Wire four-way acceptance to current SHA/digest, shared manifest artifact, JUnit node union, and exact T0 failure evidence; then require fresh terminal acceptance",
-  "phase": "ACCEPTANCE_PREP",
+  "last_update": "2026-09-16T15:34:00.000Z",
+  "next_action": "Monitor four-way acceptance 35116118110 to terminal; if GREEN inspect aggregate/artifacts before any completion claim",
+  "phase": "ACCEPTANCE_RUNNING",
   "remote_qa": {
-    "head_sha": "ec0f97c0c70b5704a15231166ffabacaae8eef50",
-    "run_id": 35113601278,
-    "status": "completed/success"
+    "head_sha": "955bea43d9c8e49f3b8276e6a45d70d1bd440615",
+    "run_id": 35116118110,
+    "status": "queued/in_progress"
   },
   "state": "RUNNING",
   "work_branch": "ci-sharding/issue307-t3-xvfb-isolation-20260916",
