@@ -9,11 +9,12 @@ GUI = ROOT / "gui.py"
 RAW_ISSUE_GATE = 5_500
 ACCEPTED_PREDECESSOR = "cefb1a11c837a73508a6a2b09eac77ba38c798f6"
 
-# Exhaustive T0 rows tagged T4/T2-T4/T4-T6 plus the whole mixed init_variables
-# method. Counting init_variables wholesale is intentionally MORE permissive than
-# the legal T4 design, so this is an upper bound on removable root LOC. Wiring
-# budget is also set to zero. If that best-case bound still misses 5,500, the
-# raw issue gate is structurally impossible without stealing later-slice scope.
+# Exhaustive T0 rows tagged T4/T2-T4/T4-T6 that still live on the accepted
+# #291 root, plus the whole mixed init_variables method. T1 already extracted
+# _request_phase6_update and _flush_phase6_authoritative_state, so they are not
+# root-removal opportunities for T4. Counting init_variables wholesale is
+# intentionally MORE permissive than the legal T4 design, making this an upper
+# bound on removable root LOC. Wiring budget is also zero.
 MAXIMAL_T4_UPPER_BOUND_METHODS = {
     "init_variables",
     "_apply_ui_text_size_preference",
@@ -98,8 +99,6 @@ MAXIMAL_T4_UPPER_BOUND_METHODS = {
     "remove_door_layout_height",
     "_on_door_layout_value_changed",
     "_on_total_door_dimension_changed",
-    "_request_phase6_update",
-    "_flush_phase6_authoritative_state",
     "_on_main_geometry_var_changed",
     "_receiving_inner_door_stable_id_for_cell",
     "_receiving_inner_door_enabled",
@@ -121,9 +120,6 @@ MAXIMAL_T4_UPPER_BOUND_METHODS = {
     "setup_tab_indicator_door_ui",
 }
 
-# These are explicitly later-slice examples and must not be counted merely to
-# force the T4 root LOC down. The test checks that the upper-bound set stays
-# disjoint from them.
 EXPLICIT_LATER_SLICE_METHODS = {
     "draw_indicator_box",            # T6 rendering
     "draw_indicator_door",           # T6 rendering
