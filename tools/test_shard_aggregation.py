@@ -5,7 +5,9 @@ It never re-derives lane/shard ownership from pytest markers or collection order
 """
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
+from pathlib import Path
 from typing import Mapping, Sequence
 
 from tools.test_shard_execution import SHARD_MANIFEST_SCHEMA
@@ -62,6 +64,11 @@ def _expected_ownership(
                         f"MANIFEST_DUPLICATE_NODE:{node}:{prior[0]}:{prior[1]}:{lane}:{shard_id}"
                     )
                 owner_by_node[node] = (lane, shard_id)
+    declared_count = manifest.get("full_collection_count")
+    if declared_count is not None and declared_count != len(owner_by_node):
+        raise AggregationError(
+            f"MANIFEST_FULL_COUNT_MISMATCH:declared={declared_count}:actual={len(owner_by_node)}"
+        )
     return expected, owner_by_node
 
 
@@ -99,6 +106,162 @@ def _normalize_record(node: str, raw: object) -> dict[str, object]:
     if excerpt is not None:
         record["error_excerpt"] = str(excerpt)
     return record
+
+
+def _node_identity(node: str) -> tuple[str, str]:
+    parts = node.split("::")
+    if len(parts) < 2 or not parts[0].endswith(".py"):
+        raise AggregationError(f"NODE_ID_INVALID:{node}")
+    module = parts[0][:-3].replace("\\", "/").replace("/", ".")
+    classname = ".".join([module, *parts[1:-1]])
+    return classname, parts[-1]
+
+
+def _failure_excerpt(item: ET.Element) -> str:
+    message = (item.get("message") or "").strip()
+    if message:
+        return " ".join(message.split())[:500]
+    text = (item.text or "").strip()
+    if not text:
+        return ""
+    first = next((line.strip() for line in text.splitlines() if line.strip()), text)
+    return " ".join(first.split())[:500]
+
+
+def _read_junit_nodes(path: Path, assigned: Sequence[str]) -> dict[str, dict[str, object]]:
+    identities: dict[tuple[str, str], str] = {}
+    for node in assigned:
+        identity = _node_identity(node)
+        if identity in identities:
+            raise AggregationError(f"JUNIT_ASSIGNMENT_AMBIGUOUS:{node}")
+        identities[identity] = node
+
+    try:
+        root = ET.parse(path).getroot()
+    except (OSError, ET.ParseError) as exc:
+        raise AggregationError(f"JUNIT_INVALID:{path}:{exc}") from exc
+
+    node_results: dict[str, dict[str, object]] = {}
+    for case in root.iter("testcase"):
+        identity = (case.get("classname") or "", case.get("name") or "")
+        node = identities.get(identity)
+        if node is None:
+            raise AggregationError(f"JUNIT_UNEXPECTED_NODE:{identity}")
+        if node in node_results:
+            raise AggregationError(f"JUNIT_DUPLICATE_NODE:{node}")
+        raw_time = case.get("time", "0") or "0"
+        try:
+            duration = float(raw_time)
+        except ValueError as exc:
+            raise AggregationError(f"JUNIT_DURATION_INVALID:{node}:{raw_time!r}") from exc
+        if duration < 0:
+            raise AggregationError(f"JUNIT_DURATION_INVALID:{node}:{raw_time!r}")
+        failure = case.find("failure")
+        error = case.find("error")
+        skipped = case.find("skipped")
+        record: dict[str, object] = {"duration_seconds": duration}
+        if error is not None:
+            record["outcome"] = "error"
+            record["error_excerpt"] = _failure_excerpt(error)
+        elif failure is not None:
+            record["outcome"] = "failed"
+            record["error_excerpt"] = _failure_excerpt(failure)
+        elif skipped is not None:
+            record["outcome"] = "skipped"
+        else:
+            record["outcome"] = "passed"
+        node_results[node] = record
+
+    missing = sorted(set(assigned) - set(node_results))
+    if missing:
+        raise AggregationError(f"JUNIT_MISSING_NODE:{missing}")
+    return node_results
+
+
+def normalize_shard_artifact(
+    *,
+    result_payload: Mapping[str, object],
+    junit_xml: Path,
+    expected_source_sha: str,
+    artifact_refs: Sequence[str] = (),
+) -> dict[str, object]:
+    """Normalize accepted T2/T3 shard JSON + JUnit into the T4 evidence schema."""
+    lane = result_payload.get("lane")
+    shard_id = result_payload.get("shard_id")
+    if not isinstance(lane, str) or not isinstance(shard_id, str):
+        raise AggregationError("SHARD_IDENTITY_INVALID")
+    embedded_sha = result_payload.get("source_sha")
+    if embedded_sha is not None and embedded_sha != expected_source_sha:
+        raise AggregationError(
+            f"RESULT_SOURCE_SHA_MISMATCH:{lane}:{shard_id}:expected={expected_source_sha}:actual={embedded_sha}"
+        )
+    assigned = _require_str_list(
+        result_payload.get("assigned_nodes"),
+        token=f"ASSIGNED_NODES_INVALID:{lane}:{shard_id}",
+    )
+    assigned_count = result_payload.get("assigned_count")
+    if assigned_count is not None and assigned_count != len(assigned):
+        raise AggregationError(f"ASSIGNED_COUNT_MISMATCH:{lane}:{shard_id}")
+    executed = result_payload.get("executed_nodes")
+    if executed is not None:
+        executed_nodes = _require_str_list(
+            executed, token=f"EXECUTED_NODES_INVALID:{lane}:{shard_id}"
+        )
+        if sorted(executed_nodes) != sorted(assigned):
+            raise AggregationError(f"EXECUTED_NODE_MISMATCH:{lane}:{shard_id}")
+
+    node_results = _read_junit_nodes(junit_xml, assigned)
+    counts = Counter(str(record["outcome"]) for record in node_results.values())
+    expected_counts = {
+        "passed": counts["passed"],
+        "failures": counts["failed"],
+        "errors": counts["error"],
+        "skipped": counts["skipped"],
+    }
+    for field, actual in expected_counts.items():
+        if field in result_payload and result_payload.get(field) != actual:
+            raise AggregationError(
+                f"RESULT_JUNIT_COUNT_MISMATCH:{lane}:{shard_id}:{field}:"
+                f"result={result_payload.get(field)!r}:junit={actual}"
+            )
+    if "tests" in result_payload and result_payload.get("tests") != len(node_results):
+        raise AggregationError(
+            f"RESULT_JUNIT_COUNT_MISMATCH:{lane}:{shard_id}:tests:"
+            f"result={result_payload.get('tests')!r}:junit={len(node_results)}"
+        )
+
+    failed_nodes = sorted(
+        node for node, record in node_results.items()
+        if record["outcome"] in {"failed", "error"}
+    )
+    embedded_failed = result_payload.get("failed_nodes")
+    if embedded_failed is not None:
+        embedded_failed_nodes = _require_str_list(
+            embedded_failed, token=f"FAILED_NODES_INVALID:{lane}:{shard_id}"
+        )
+        if sorted(embedded_failed_nodes) != failed_nodes:
+            raise AggregationError(f"RESULT_JUNIT_FAILURE_NODE_MISMATCH:{lane}:{shard_id}")
+
+    shard_classification = result_payload.get("classification")
+    if shard_classification == INHERITED_RED:
+        for node in failed_nodes:
+            node_results[node]["classification"] = INHERITED_RED
+
+    duration = result_payload.get("execution_seconds", 0.0)
+    if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration < 0:
+        raise AggregationError(f"SHARD_DURATION_INVALID:{lane}:{shard_id}")
+    refs = list(artifact_refs)
+    if not all(isinstance(ref, str) for ref in refs):
+        raise AggregationError(f"ARTIFACT_REFS_INVALID:{lane}:{shard_id}")
+    return {
+        "lane": lane,
+        "shard_id": shard_id,
+        "source_sha": expected_source_sha,
+        "assigned_nodes": assigned,
+        "node_results": node_results,
+        "execution_seconds": float(duration),
+        "artifact_refs": refs,
+    }
 
 
 def _validate_invariants(
@@ -160,8 +323,6 @@ def aggregate_shard_results(
         formatted = [f"{lane}:{shard}" for lane, shard in extra_shards]
         raise AggregationError(f"UNEXPECTED_SHARD:{formatted}")
 
-    # Detect duplicate execution globally before per-shard ownership mismatch so
-    # the failure reason preserves the stronger one-node/one-owner invariant.
     execution_owners: dict[str, list[str]] = defaultdict(list)
     for (lane, shard_id), result in actual_by_key.items():
         node_results = _node_result_map(
@@ -197,14 +358,10 @@ def aggregate_shard_results(
         result_set = set(node_results)
         missing_nodes = sorted(assigned_set - result_set)
         if missing_nodes:
-            raise AggregationError(
-                f"MISSING_NODE:{lane}:{shard_id}:{missing_nodes}"
-            )
+            raise AggregationError(f"MISSING_NODE:{lane}:{shard_id}:{missing_nodes}")
         extra_nodes = sorted(result_set - assigned_set)
         if extra_nodes:
-            raise AggregationError(
-                f"UNEXPECTED_NODE:{lane}:{shard_id}:{extra_nodes}"
-            )
+            raise AggregationError(f"UNEXPECTED_NODE:{lane}:{shard_id}:{extra_nodes}")
         if sorted(assigned) != expected_shards[(lane, shard_id)]:
             raise AggregationError(f"SHARD_ASSIGNMENT_MISMATCH:{lane}:{shard_id}")
 
