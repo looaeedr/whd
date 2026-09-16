@@ -1,0 +1,45 @@
+name: Issue 311 T7 Legacy Optimized A-B Acceptance
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue311-t7-ab-acceptance-20260917
+    paths:
+      - 'tests/test_issue311_t7_ab_acceptance.py'
+      - 'tools/issue311_t7_ab_acceptance.py'
+      - '.github/workflows/qa-issue311-t7-ab-acceptance.yml'
+      - 'docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue311-t7.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  focused-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-enforce T7 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Compare legacy and optimized CI on one exact repository head using canonical collection, failure, skip, invariant, and timing evidence; fail closed on any semantic mismatch without mutating production." \
+            --changed-file tests/test_issue311_t7_ab_acceptance.py \
+            --changed-file tools/issue311_t7_ab_acceptance.py \
+            --changed-file .github/workflows/qa-issue311-t7-ab-acceptance.yml \
+            --changed-file docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue311-t7.json \
+            --evidence docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt
+      - name: Install focused dependency
+        run: python -m pip install pytest
+      - name: Run T7 comparator contract
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue311_t7_ab_acceptance.py
