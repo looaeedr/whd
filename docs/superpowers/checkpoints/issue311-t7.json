@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "issue": "311",
+  "branch": "ci-sharding/issue311-t7-ab-acceptance-20260917",
+  "head_sha": "f87d188db6e6524312c54e3e8b8e77cb1e016b7d",
+  "state": "RUNNING",
+  "next_action": "Resolve the missing RUN prerequisite by triggering the focused T7 RED contract from the already-present branch workflow; once a concrete run_id exists, lock run_id + head_sha and monitor it to terminal before implementing the comparator",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "evidence": [
+    "Exact accepted T6 base cf656c1efaf0e3f9c2a74330d7fb988847226db7",
+    "T7 RED contract test committed at 01a0ac0e0696c8b2b09578f7267d5b178c399d93",
+    "T7 Knowledge Preflight evidence committed at e2240d4ea6d0762b2fa0a5f45f6d091687850d78",
+    "T7 focused workflow committed at f87d188db6e6524312c54e3e8b8e77cb1e016b7d",
+    "No GitHub Actions run identity existed after the workflow-creation push; no waiting/polling was entered without a run_id",
+    "No production source, geometry, UI, persistence, project schema, config.ini, or DXF authority was modified"
+  ]
+}
