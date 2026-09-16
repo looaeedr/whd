@@ -1,4 +1,4 @@
-name: Issue321 Rebase Preflight
+name: Issue321 Rebase Acceptance
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - fix/issue321-rebase-current-production-20260916
 
 jobs:
-  preflight:
+  focused:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,3 +36,12 @@ jobs:
           --changed-file ".agents/skills/engineering/executable-continuity-controller/SKILL.md"
           --changed-file "個人AI檔案庫/踩坑庫/turn_exit_guard_invocation_fail_closed.md"
           --evidence /tmp/issue321-rebase-evidence.txt
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+      - name: Run focused continuity regressions
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue321_turn_exit_enforcement.py
+          tests/process/test_continuity_controller.py
+          tests/process/test_finalization_owner_guard.py
+          tests/process/test_issue286_turn_exit_bridge_contract.py
