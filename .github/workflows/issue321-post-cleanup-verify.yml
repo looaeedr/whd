@@ -1,6 +1,5 @@
 name: Issue321 Post Cleanup Verify
 
-# second push: workflow exists in parent before this trigger commit
 on:
   push:
     branches:
@@ -24,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           CANDIDATE=7ab3970b024d949d869fb4c5542eec2e725109c5
-          mapfile -t extra < <(git diff --name-only "$CANDIDATE"...HEAD | grep -vx '.github/workflows/issue321-post-cleanup-verify.yml' || true)
+          mapfile -t extra < <(git -c core.quotePath=false diff --name-only "$CANDIDATE"...HEAD | grep -vx '.github/workflows/issue321-post-cleanup-verify.yml' || true)
           if (( ${#extra[@]} != 0 )); then
             printf 'unexpected QA drift from candidate:\n%s\n' "${extra[*]}"
             exit 1
@@ -44,7 +43,7 @@ jobs:
           git fetch origin cleanup/2d-3d-sync
           ACTUAL_PROD=$(git rev-parse origin/cleanup/2d-3d-sync)
           test "$ACTUAL_PROD" = "$EXPECTED_PROD"
-          mapfile -t changed < <(git diff --name-only "$EXPECTED_PROD"...HEAD)
+          mapfile -t changed < <(git -c core.quotePath=false diff --name-only "$EXPECTED_PROD"...HEAD)
           allowed_regex='^(\.agents/skills/engineering/executable-continuity-controller/SKILL\.md|\.github/workflows/issue321-post-cleanup-verify\.yml|tests/process/test_issue321_turn_exit_enforcement\.py|tools/assistant_turn_exit_gate\.py|tools/continuity_controller\.py|個人AI檔案庫/踩坑庫/turn_exit_guard_invocation_fail_closed\.md)$'
           for path in "${changed[@]}"; do
             if ! [[ "$path" =~ $allowed_regex ]]; then
