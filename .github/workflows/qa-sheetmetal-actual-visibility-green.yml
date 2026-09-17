@@ -21,29 +21,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Append visibility rules to clean candidate
+      - name: Append visibility rules to final candidate
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin
-          git switch -C fix/sheetmetal-actual-visibility-clean-integration-20260917 origin/fix/sheetmetal-actual-visibility-clean-integration-20260917
-
+          git switch -C fix/sheetmetal-actual-visibility-final-integration-20260917 origin/fix/sheetmetal-actual-visibility-final-integration-20260917
           ui='.agents/skills/engineering/UI設計與去AI味/SKILL.md'
           pit='個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
-
           if ! grep -q 'REAL_PIXEL_VISIBILITY_GATE_V1' "$ui"; then
             cat >> "$ui" <<'EOF'
-
+          
           ### REAL_PIXEL_VISIBILITY_GATE_V1
           - Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。
           - 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。
           - Canvas `create_window(window=...)` 若嵌入的是 Canvas 的 sibling/root child，必須明確處理 stacking order；mapped child 仍可能被 sibling Canvas 完整塗在下面。
           EOF
           fi
-
           if ! grep -q 'SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917' "$pit"; then
             cat >> "$pit" <<'EOF'
-
+          
           ### SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917
           - 症狀：鈑金選單物件存在、`winfo_ismapped()==1`，測試看似 GREEN，但現場完全看不到。
           - 根因：`self.left` 是 root child，卻透過 sibling `left_scroll_canvas.create_window(..., window=self.left)` 顯示；Canvas 的 stacking order 在上層，把 embedded left workspace 與鈑金 Menubutton 畫在下面。
@@ -51,8 +48,6 @@ jobs:
           - 防錯：UI 可見性回歸必須做 pixel hit-test（中心點 topmost widget）、viewport intersection、實際尺寸；`mapped` 不能當作真實可見性的充分條件。
           EOF
           fi
-
-          sed -i 's/^          //' "$ui" "$pit"
           git diff --check
           python tools/validate_knowledge_docs.py "$ui" "$pit"
           changed=$(git diff --name-only | sort)
@@ -67,5 +62,5 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add '.agents/skills/engineering/UI設計與去AI味/SKILL.md' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
           git commit -m 'Document real-pixel UI visibility gate'
-          git push origin HEAD:fix/sheetmetal-actual-visibility-clean-integration-20260917
-          echo "CLEAN_HEAD=$(git rev-parse HEAD)"
+          git push origin HEAD:fix/sheetmetal-actual-visibility-final-integration-20260917
+          echo "FINAL_HEAD=$(git rev-parse HEAD)"
