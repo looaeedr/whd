@@ -394,6 +394,45 @@ def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
     )
 
 
+class HoleEditorRoundSettingsLauncher:
+    """Launch round-hole settings against the current live editor context."""
+
+    def __init__(
+        self, *, editor, theme, hole_session, context_provider,
+        round_window, position_authority, refresh_created,
+        refresh_reference_fields, redraw, sync_all,
+        open_round_hole_settings,
+    ):
+        self.editor = editor
+        self.theme = theme
+        self.hole_session = hole_session
+        self.context_provider = context_provider
+        self.round_window = round_window
+        self.position_authority = position_authority
+        self.refresh_created = refresh_created
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+        self.open_round_hole_settings = open_round_hole_settings
+
+    def open(self):
+        context = self.context_provider()
+        return self.open_round_hole_settings(
+            editor=self.editor,
+            theme=self.theme,
+            hole_session=self.hole_session,
+            feature_list=context["feature_list"],
+            surface=context["surface"],
+            width=context["width"],
+            height=context["height"],
+            round_window=self.round_window,
+            position_authority=self.position_authority,
+            refresh_created=self.refresh_created,
+            refresh_reference_fields=self.refresh_reference_fields,
+            redraw=self.redraw,
+            sync_all=self.sync_all,
+        )
+
 def open_round_hole_settings(
     *, editor, theme, hole_session, feature_list, surface, width, height,
     round_window, position_authority, refresh_created, refresh_reference_fields,

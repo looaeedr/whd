@@ -169,6 +169,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
     HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
+    HoleEditorRoundSettingsLauncher as _HoleEditorRoundSettingsLauncher,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -6568,30 +6569,29 @@ class Phase6ApplicationHost:
         for angle, btn in rotation_buttons:
             btn.configure(command=lambda a=angle: rotate_selected(a))
 
-        def _open_round_settings():
-            return _open_round_hole_settings_impl(
-                editor=editor,
-                theme={
-                    "bg": self.COLOR_BG,
-                    "panel": self.COLOR_PANEL,
-                    "text": self.COLOR_TEXT,
-                    "input_bg": self.COLOR_INPUT_BG,
-                    "muted": self.COLOR_TEXT_MUTED,
-                },
-                hole_session=hole_session,
-                feature_list=feature_list,
-                surface=surface,
-                width=width,
-                height=height,
-                round_window=round_window,
-                position_authority=position_authority,
-                refresh_created=refresh_created,
-                refresh_reference_fields=refresh_reference_fields,
-                redraw=redraw,
-                sync_all=sync_all,
-            )
-
-        round_settings_btn.configure(command=_open_round_settings)
+        round_settings_launcher = _HoleEditorRoundSettingsLauncher(
+            editor=editor,
+            theme={
+                "bg": self.COLOR_BG,
+                "panel": self.COLOR_PANEL,
+                "text": self.COLOR_TEXT,
+                "input_bg": self.COLOR_INPUT_BG,
+                "muted": self.COLOR_TEXT_MUTED,
+            },
+            hole_session=hole_session,
+            context_provider=lambda: {
+                "feature_list": feature_list, "surface": surface,
+                "width": width, "height": height,
+            },
+            round_window=round_window,
+            position_authority=position_authority,
+            refresh_created=refresh_created,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+            open_round_hole_settings=_open_round_hole_settings_impl,
+        )
+        round_settings_btn.configure(command=round_settings_launcher.open)
 
         def _baseline_status_color(text):
             return "#64d2ff" if str(text or "").startswith("基準檔：") else "#ff9f0a"
