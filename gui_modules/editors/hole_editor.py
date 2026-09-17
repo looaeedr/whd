@@ -40,6 +40,100 @@ from ae_engine.sheetmetal_part_adapters import (
 
 
 
+class HoleEditorLiveContext:
+    """Transient live CAD context shared by editor handlers; never committed state."""
+
+    def __init__(
+        self, *, feature_list, surface, width, height, reference_guide,
+        baseline_scene, part_key,
+    ):
+        self.feature_list = feature_list
+        self.surface = surface
+        self.width = float(width)
+        self.height = float(height)
+        self.reference_guide = reference_guide
+        self.baseline_scene = baseline_scene
+        self.part_key = part_key
+
+    def apply(self, context):
+        self.feature_list = context["feature_list"]
+        self.surface = context["surface"]
+        self.width = float(context["width"])
+        self.height = float(context["height"])
+        self.reference_guide = context["reference_guide"]
+        self.baseline_scene = context.get("baseline_scene")
+        if context.get("part_key") is not None:
+            self.part_key = context["part_key"]
+
+    def as_dict(self):
+        return {
+            "feature_list": self.feature_list,
+            "surface": self.surface,
+            "width": self.width,
+            "height": self.height,
+            "reference_guide": self.reference_guide,
+            "baseline_scene": self.baseline_scene,
+            "part_key": self.part_key,
+        }
+
+
+class HoleEditorContextSwitcher:
+    """Switch transient editor projection while reusing the existing session."""
+
+    def __init__(
+        self, *, live_context, hole_session, door_context, indicator_contexts,
+        cancel_active_edit, insert_mode, insert_button, active_part_key,
+        position_authority, baseline_status_var, baseline_status_label,
+        baseline_status_color, refresh_created, refresh_reference_fields, redraw,
+    ):
+        self.live_context = live_context
+        self.hole_session = hole_session
+        self.door_context = door_context
+        self.indicator_contexts = indicator_contexts
+        self.cancel_active_edit = cancel_active_edit
+        self.insert_mode = insert_mode
+        self.insert_button = insert_button
+        self.active_part_key = active_part_key
+        self.position_authority = position_authority
+        self.baseline_status_var = baseline_status_var
+        self.baseline_status_label = baseline_status_label
+        self.baseline_status_color = baseline_status_color
+        self.refresh_created = refresh_created
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+
+    def switch(self, context_key):
+        if self.hole_session.has_active_edit:
+            self.cancel_active_edit()
+        if self.insert_mode[0]:
+            self.insert_mode[0] = False
+            self.insert_button.configure(text="插入", bg="#30d158")
+        context = (
+            self.door_context
+            if context_key == "door"
+            else self.indicator_contexts.get(context_key)
+        )
+        if not context:
+            return False
+        self.live_context.apply(context)
+        part_key = context.get("part_key", context_key)
+        self.live_context.part_key = part_key
+        self.active_part_key[0] = part_key
+        self.hole_session.activate_context(context_key, self.live_context.feature_list)
+        self.live_context.feature_list = self.hole_session.active_features
+        self.position_authority[0] = None
+        status_text = str(context.get("baseline_status_text") or "")
+        self.baseline_status_var.set(status_text)
+        if self.baseline_status_label is not None:
+            self.baseline_status_label.configure(
+                fg=self.baseline_status_color(status_text)
+            )
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.redraw()
+        return True
+
+
 class HoleEditorFeatureFactory:
     """Create editor features while delegating catalog and geometry authority."""
 

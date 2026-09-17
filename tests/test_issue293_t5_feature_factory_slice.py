@@ -89,7 +89,7 @@ def test_make_feature_callback_moves_out_of_unified_root():
 
 def test_gui_wiring_uses_live_size_context_provider():
     gui = GUI.read_text(encoding="utf-8")
-    assert 'context_provider=lambda: {"width": width, "height": height}' in gui
+    assert 'context_provider=lambda: {"width": live_context.width, "height": live_context.height}' in gui
     assert "make_feature = feature_factory.make_feature" in gui
 
 

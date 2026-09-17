@@ -152,6 +152,8 @@ from ae_engine.corner_type_ui import (
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
+    HoleEditorContextSwitcher as _HoleEditorContextSwitcher,
+    HoleEditorLiveContext as _HoleEditorLiveContext,
     HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorFeatureFactory as _HoleEditorFeatureFactory,
@@ -6152,6 +6154,15 @@ class Phase6ApplicationHost:
             "baseline_scene": baseline_scene, "baseline_status_text": str(baseline_status_text or ""),
         }
         indicator_component_contexts = {}
+        live_context = _HoleEditorLiveContext(
+            feature_list=feature_list,
+            surface=surface,
+            width=width,
+            height=height,
+            reference_guide=reference_guide,
+            baseline_scene=baseline_scene,
+            part_key=part_key,
+        )
 
         var_x_edge = tk.StringVar()
         var_x_neighbor = tk.StringVar()
@@ -6209,7 +6220,7 @@ class Phase6ApplicationHost:
 
         created_list_presentation = _HoleEditorCreatedListPresentation(
             created_list=created_list,
-            feature_list_provider=lambda: feature_list,
+            feature_list_provider=lambda: live_context.feature_list,
             selected_index_provider=lambda: hole_session.selected_index,
             end_token=tk.END,
         )
@@ -6220,9 +6231,9 @@ class Phase6ApplicationHost:
         last_distances = [None]
 
         reference_presentation = _HoleEditorReferencePresentation(
-            selection_provider=lambda: (hole_session.selected_index, feature_list),
+            selection_provider=lambda: (hole_session.selected_index, live_context.feature_list),
             context_provider=lambda: {
-                "reference_guide": reference_guide,
+                "reference_guide": live_context.reference_guide,
                 "active_part_key": active_part_key[0],
                 "indicator_box_dist_enabled": bool(
                     indicator_box_dist_var is not None and indicator_box_dist_var.get()
@@ -6232,9 +6243,9 @@ class Phase6ApplicationHost:
                 "door_gap_w": door_gap_w,
                 "door_gap_h": door_gap_h,
                 "door_frame_edges": door_frame_edges,
-                "surface": surface,
-                "width": width,
-                "height": height,
+                "surface": live_context.surface,
+                "width": live_context.width,
+                "height": live_context.height,
             },
             feature_reference_anchor=feature_reference_anchor,
             reference_distances=reference_distances,
@@ -6259,12 +6270,12 @@ class Phase6ApplicationHost:
 
         canvas_renderer = _HoleEditorCanvasRenderer(
             context_provider=lambda: {
-                "surface": surface,
-                "feature_list": feature_list,
-                "width": width,
-                "height": height,
-                "reference_guide": reference_guide,
-                "baseline_scene": baseline_scene,
+                "surface": live_context.surface,
+                "feature_list": live_context.feature_list,
+                "width": live_context.width,
+                "height": live_context.height,
+                "reference_guide": live_context.reference_guide,
+                "baseline_scene": live_context.baseline_scene,
                 "active_part_key": active_part_key[0],
                 "indicator_box_dist_enabled": bool(
                     indicator_box_dist_var is not None and indicator_box_dist_var.get()
@@ -6308,7 +6319,7 @@ class Phase6ApplicationHost:
             width_var=var_w,
             height_var=var_h,
             blind_var=var_blind,
-            context_provider=lambda: {"width": width, "height": height},
+            context_provider=lambda: {"width": live_context.width, "height": live_context.height},
             catalog_by_label=catalog_by_label,
             custom_circle_definition=custom_circle_definition,
             custom_rectangle_definition=custom_rectangle_definition,
@@ -6335,7 +6346,7 @@ class Phase6ApplicationHost:
 
         session_actions = _HoleEditorTransientActions(
             hole_session=hole_session,
-            feature_list_provider=lambda: feature_list,
+            feature_list_provider=lambda: live_context.feature_list,
             var_rotation=var_rotation,
             refresh_created=refresh_created,
             refresh_reference_fields=refresh_reference_fields,
@@ -6354,10 +6365,10 @@ class Phase6ApplicationHost:
             dragging=dragging,
             insert_mode=insert_mode,
             context_provider=lambda: {
-                "surface": surface,
-                "width": width,
-                "height": height,
-                "feature_list": feature_list,
+                "surface": live_context.surface,
+                "width": live_context.width,
+                "height": live_context.height,
+                "feature_list": live_context.feature_list,
             },
             select_feature=select_feature,
             make_feature=make_feature,
@@ -6377,7 +6388,7 @@ class Phase6ApplicationHost:
 
         created_list_actions = _HoleEditorCreatedListActions(
             hole_session=hole_session,
-            feature_list_provider=lambda: feature_list,
+            feature_list_provider=lambda: live_context.feature_list,
             created_list=created_list,
             select_feature=select_feature,
             feature_with_process=feature_with_process,
@@ -6394,8 +6405,8 @@ class Phase6ApplicationHost:
         reference_actions = _HoleEditorReferenceActions(
             hole_session=hole_session,
             context_provider=lambda: {
-                "feature_list": feature_list, "surface": surface,
-                "width": width, "height": height,
+                "feature_list": live_context.feature_list, "surface": live_context.surface,
+                "width": live_context.width, "height": live_context.height,
             },
             suppress_entry_events=suppress_entry_events,
             reference_variables={
@@ -6426,8 +6437,8 @@ class Phase6ApplicationHost:
             hole_session=hole_session,
             canvas_view=canvas_view,
             context_provider=lambda: {
-                "feature_list": feature_list, "surface": surface,
-                "width": width, "height": height,
+                "feature_list": live_context.feature_list, "surface": live_context.surface,
+                "width": live_context.width, "height": live_context.height,
             },
             select_feature=select_feature,
             menu_factory=lambda: tk.Menu(editor, tearoff=0),
@@ -6461,8 +6472,8 @@ class Phase6ApplicationHost:
             },
             hole_session=hole_session,
             context_provider=lambda: {
-                "feature_list": feature_list, "surface": surface,
-                "width": width, "height": height,
+                "feature_list": live_context.feature_list, "surface": live_context.surface,
+                "width": live_context.width, "height": live_context.height,
             },
             round_window=round_window,
             position_authority=position_authority,
@@ -6474,36 +6485,24 @@ class Phase6ApplicationHost:
         )
         round_settings_btn.configure(command=round_settings_launcher.open)
 
-        def _switch_editor_context(context_key):
-            nonlocal feature_list, surface, width, height, reference_guide, baseline_scene
-            # Finish/cancel transient placement state before changing which physical
-            # part the shared CAD canvas represents.
-            if hole_session.has_active_edit:
-                cancel_active_edit()
-            if insert_mode[0]:
-                insert_mode[0] = False
-                insert_btn.configure(text="插入", bg="#30d158")
-
-            context = door_editor_context if context_key == "door" else indicator_component_contexts.get(context_key)
-            if not context:
-                return
-            feature_list = context["feature_list"]
-            surface = context["surface"]
-            width = float(context["width"])
-            height = float(context["height"])
-            reference_guide = context["reference_guide"]
-            baseline_scene = context.get("baseline_scene")
-            active_part_key[0] = context.get("part_key", context_key)
-            hole_session.activate_context(context_key, feature_list)
-            feature_list = hole_session.active_features
-            position_authority[0] = None
-            status_text = str(context.get("baseline_status_text") or "")
-            baseline_status_var.set(status_text)
-            if baseline_status_label is not None:
-                baseline_status_label.configure(fg=_HoleEditorIndicatorContextRefresh.baseline_status_color(status_text))
-            refresh_created()
-            refresh_reference_fields()
-            redraw()
+        context_switcher = _HoleEditorContextSwitcher(
+            live_context=live_context,
+            hole_session=hole_session,
+            door_context=door_editor_context,
+            indicator_contexts=indicator_component_contexts,
+            cancel_active_edit=cancel_active_edit,
+            insert_mode=insert_mode,
+            insert_button=insert_btn,
+            active_part_key=active_part_key,
+            position_authority=position_authority,
+            baseline_status_var=baseline_status_var,
+            baseline_status_label=baseline_status_label,
+            baseline_status_color=_HoleEditorIndicatorContextRefresh.baseline_status_color,
+            refresh_created=refresh_created,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+        )
+        switch_editor_context = context_switcher.switch
 
         indicator_context_refresh_controller = _HoleEditorIndicatorContextRefresh(
             component_context_provider=indicator_component_context_provider,
@@ -6514,7 +6513,7 @@ class Phase6ApplicationHost:
             baseline_status_label=baseline_status_label,
             set_indicator_page_visible=set_indicator_page_visible,
             active_context_key_provider=lambda: hole_session.active_context_key,
-            switch_editor_context=_switch_editor_context,
+            switch_editor_context=switch_editor_context,
             redraw=redraw,
             editor_tabs=editor_tabs,
             indicator_page=indicator_page,
@@ -6532,7 +6531,7 @@ class Phase6ApplicationHost:
             indicator_door_page=indicator_door_page,
             toolbar=toolbar,
             refresh_indicator_component_contexts=_refresh_indicator_component_contexts,
-            switch_editor_context=_switch_editor_context,
+            switch_editor_context=switch_editor_context,
         )
         _on_editor_page_changed = page_navigation.on_editor_page_changed
         _on_indicator_component_page_changed = page_navigation.on_indicator_component_page_changed
@@ -6549,7 +6548,7 @@ class Phase6ApplicationHost:
 
         modal_lifecycle = _HoleEditorModalLifecycle(
             hole_session=hole_session,
-            has_selected_feature=lambda: 0 <= hole_session.selected_index < len(feature_list),
+            has_selected_feature=lambda: 0 <= hole_session.selected_index < len(live_context.feature_list),
             position_authority=position_authority,
             commit_active_edit=commit_active_edit,
             sync_all=sync_all,
