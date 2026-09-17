@@ -1,5 +1,6 @@
 name: Corner Registry Chinese UI QA
 
+# Triggered after presentation-only production localization.
 on:
   push:
     branches:
