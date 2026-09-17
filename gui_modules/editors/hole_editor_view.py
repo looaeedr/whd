@@ -79,6 +79,53 @@ class HoleEditorCatalogControls:
         return "break"
 
 
+class HoleEditorPageNavigation:
+    """Own transient notebook/page routing for the shared hole editor."""
+
+    def __init__(
+        self, *, editor_tabs, main_page, indicator_page,
+        component_tabs, indicator_door_page, toolbar,
+        refresh_indicator_component_contexts, switch_editor_context,
+    ):
+        self.editor_tabs = editor_tabs
+        self.main_page = main_page
+        self.indicator_page = indicator_page
+        self.component_tabs = component_tabs
+        self.indicator_door_page = indicator_door_page
+        self.toolbar = toolbar
+        self.refresh_indicator_component_contexts = refresh_indicator_component_contexts
+        self.switch_editor_context = switch_editor_context
+
+    def selected_indicator_component_key(self):
+        if self.component_tabs is None:
+            return "indicator_box"
+        selected_tab = self.component_tabs.select()
+        if self.indicator_door_page is not None and selected_tab == str(self.indicator_door_page):
+            return "indicator_door"
+        return "indicator_box"
+
+    def on_editor_page_changed(self, event=None):
+        if self.editor_tabs is None or self.main_page is None:
+            return
+        selected_page = self.editor_tabs.select()
+        if self.indicator_page is not None and selected_page == str(self.indicator_page):
+            if self.component_tabs is not None and not self.component_tabs.winfo_manager():
+                self.component_tabs.pack(fill=tk.X, pady=(0, 4), before=self.toolbar)
+            self.refresh_indicator_component_contexts()
+        else:
+            if self.component_tabs is not None:
+                self.component_tabs.pack_forget()
+            self.switch_editor_context("door")
+
+    def on_indicator_component_page_changed(self, event=None):
+        if (
+            self.editor_tabs is None
+            or self.indicator_page is None
+            or self.editor_tabs.select() != str(self.indicator_page)
+        ):
+            return
+        self.switch_editor_context(self.selected_indicator_component_key())
+
 class HoleEditorFormRowBuilders:
     """Own presentation-only construction of compact editor input rows."""
 

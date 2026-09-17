@@ -167,6 +167,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
+    HoleEditorPageNavigation as _HoleEditorPageNavigation,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -6631,14 +6632,6 @@ class Phase6ApplicationHost:
             refresh_reference_fields()
             redraw()
 
-        def _selected_indicator_component_key():
-            if component_tabs is None:
-                return "indicator_box"
-            selected_tab = component_tabs.select()
-            if indicator_door_page is not None and selected_tab == str(indicator_door_page):
-                return "indicator_door"
-            return "indicator_box"
-
         def _refresh_indicator_component_contexts():
             if indicator_component_context_provider is None or indicator_mode_var is None:
                 return
@@ -6674,29 +6667,24 @@ class Phase6ApplicationHost:
             if editor_tabs is not None and indicator_page is not None and editor_tabs.select() == str(indicator_page):
                 if component_tabs is not None and not component_tabs.winfo_manager():
                     component_tabs.pack(fill=tk.X, pady=(0, 4), before=toolbar)
-                _switch_editor_context(_selected_indicator_component_key())
+                _switch_editor_context(page_navigation.selected_indicator_component_key())
             elif hole_session.active_context_key != "door":
                 _switch_editor_context("door")
             else:
                 redraw()
 
-        def _on_editor_page_changed(event=None):
-            if editor_tabs is None or main_page is None:
-                return
-            selected_page = editor_tabs.select()
-            if indicator_page is not None and selected_page == str(indicator_page):
-                if component_tabs is not None and not component_tabs.winfo_manager():
-                    component_tabs.pack(fill=tk.X, pady=(0, 4), before=toolbar)
-                _refresh_indicator_component_contexts()
-            else:
-                if component_tabs is not None:
-                    component_tabs.pack_forget()
-                _switch_editor_context("door")
-
-        def _on_indicator_component_page_changed(event=None):
-            if editor_tabs is None or indicator_page is None or editor_tabs.select() != str(indicator_page):
-                return
-            _switch_editor_context(_selected_indicator_component_key())
+        page_navigation = _HoleEditorPageNavigation(
+            editor_tabs=editor_tabs,
+            main_page=main_page,
+            indicator_page=indicator_page,
+            component_tabs=component_tabs,
+            indicator_door_page=indicator_door_page,
+            toolbar=toolbar,
+            refresh_indicator_component_contexts=_refresh_indicator_component_contexts,
+            switch_editor_context=_switch_editor_context,
+        )
+        _on_editor_page_changed = page_navigation.on_editor_page_changed
+        _on_indicator_component_page_changed = page_navigation.on_indicator_component_page_changed
 
         if editor_tabs is not None:
             editor_tabs.bind("<<NotebookTabChanged>>", _on_editor_page_changed)
