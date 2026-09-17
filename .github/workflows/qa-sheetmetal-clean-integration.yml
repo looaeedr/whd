@@ -3,7 +3,7 @@ name: Sheet-metal Clean Integration Acceptance
 on:
   push:
     branches:
-      - fix/restore-sheetmetal-structure-tree-20260917
+      - qa/sheetmetal-clean-integration-v3-20260917
     paths:
       - '.github/workflows/qa-sheetmetal-clean-integration.yml'
 
@@ -57,7 +57,7 @@ jobs:
           for path, marker, block in ((skill, skill_marker, skill_text), (pitfall, pitfall_marker, pitfall_text)):
               text = path.read_text(encoding='utf-8')
               if marker not in text:
-                  path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+                  path.write_text((text.rstrip() + block).rstrip() + '\n', encoding='utf-8')
 
           s = skill.read_text(encoding='utf-8')[:1200]
           p = pitfall.read_text(encoding='utf-8')[:1200]
