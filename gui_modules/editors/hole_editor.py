@@ -42,11 +42,11 @@ class HoleEditorTransientActions:
     """Own transient editor transaction commands while reusing session authority."""
 
     def __init__(
-        self, *, hole_session, feature_list, var_rotation,
+        self, *, hole_session, feature_list=None, feature_list_provider=None, var_rotation,
         refresh_created, refresh_reference_fields, redraw, sync_all,
     ):
         self.hole_session = hole_session
-        self.feature_list = feature_list
+        self.feature_list_provider = feature_list_provider or (lambda: feature_list)
         self.var_rotation = var_rotation
         self.refresh_created = refresh_created
         self.refresh_reference_fields = refresh_reference_fields
@@ -86,9 +86,10 @@ class HoleEditorTransientActions:
                 self.hole_session.execute(HoleEditorAction.select(idx))
         else:
             self.hole_session.execute(HoleEditorAction.select(idx))
-        if 0 <= idx < len(self.feature_list):
+        feature_list = self.feature_list_provider()
+        if 0 <= idx < len(feature_list):
             rotation = int(
-                getattr(self.feature_list[idx], "rotation_deg", 0) or 0
+                getattr(feature_list[idx], "rotation_deg", 0) or 0
             ) % 360
             self.var_rotation.set(f"{360 if rotation == 0 else rotation}°")
         self.refresh_created()
@@ -103,12 +104,12 @@ class HoleEditorCreatedListActions:
     """Own created-list selection/process/delete commands via session authority."""
 
     def __init__(
-        self, *, hole_session, feature_list, created_list, select_feature,
+        self, *, hole_session, feature_list=None, feature_list_provider=None, created_list, select_feature,
         feature_with_process, refresh_created, refresh_reference_fields,
         redraw, sync_all,
     ):
         self.hole_session = hole_session
-        self.feature_list = feature_list
+        self.feature_list_provider = feature_list_provider or (lambda: feature_list)
         self.created_list = created_list
         self.select_feature = select_feature
         self.feature_with_process = feature_with_process
@@ -128,7 +129,8 @@ class HoleEditorCreatedListActions:
             return
         idx = selected[0]
         self.hole_session.execute(HoleEditorAction.select(idx))
-        old = self.feature_list[idx]
+        feature_list = self.feature_list_provider()
+        old = feature_list[idx]
         process = (
             "CUTTING"
             if getattr(old, "layer", "CUTTING") == "BLIND_HOLE"
@@ -142,7 +144,8 @@ class HoleEditorCreatedListActions:
 
     def delete_selected(self):
         idx = self.hole_session.selected_index
-        if not (0 <= idx < len(self.feature_list)):
+        feature_list = self.feature_list_provider()
+        if not (0 <= idx < len(feature_list)):
             return
         self.hole_session.execute(HoleEditorAction.delete_selected())
         self._refresh_all()

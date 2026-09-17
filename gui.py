@@ -6498,7 +6498,7 @@ class Phase6ApplicationHost:
 
         session_actions = _HoleEditorTransientActions(
             hole_session=hole_session,
-            feature_list=feature_list,
+            feature_list_provider=lambda: feature_list,
             var_rotation=var_rotation,
             refresh_created=refresh_created,
             refresh_reference_fields=refresh_reference_fields,
@@ -6574,7 +6574,7 @@ class Phase6ApplicationHost:
 
         created_list_actions = _HoleEditorCreatedListActions(
             hole_session=hole_session,
-            feature_list=feature_list,
+            feature_list_provider=lambda: feature_list,
             created_list=created_list,
             select_feature=select_feature,
             feature_with_process=feature_with_process,
