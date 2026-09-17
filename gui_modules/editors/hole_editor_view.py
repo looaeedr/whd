@@ -12,6 +12,7 @@ from tkinter import messagebox
 
 from ae_engine.sheetmetal_features import (
     CircleFeature,
+    RectFeature,
     align_circle_to_neighbor,
     circle_center_distance_from_gap,
     circle_gap_from_center_distance,
@@ -77,6 +78,42 @@ class HoleEditorCatalogControls:
         self.canvas.focus_set()
         return "break"
 
+
+class HoleEditorCreatedListPresentation:
+    """Own presentation-only rendering of the created-hole list."""
+
+    def __init__(
+        self, *, created_list, feature_list_provider,
+        selected_index_provider, end_token,
+    ):
+        self.created_list = created_list
+        self.feature_list_provider = feature_list_provider
+        self.selected_index_provider = selected_index_provider
+        self.end_token = end_token
+
+    def feature_display(self, feature, i):
+        process = (
+            "盲孔" if getattr(feature, "layer", "CUTTING") == "BLIND_HOLE" else ""
+        )
+        if isinstance(feature, CircleFeature):
+            desc = f"Ø{feature.diameter:g}"
+        elif isinstance(feature, RectFeature):
+            desc = f"{feature.width:g}×{feature.height:g}"
+        else:
+            desc = feature.source_type or "DXF孔型"
+        return f"{i+1:02d}  {desc:<14}  {process}"
+
+    def refresh_created(self):
+        feature_list = self.feature_list_provider()
+        self.created_list.delete(0, self.end_token)
+        for i, feature in enumerate(feature_list):
+            self.created_list.insert(
+                self.end_token, self.feature_display(feature, i)
+            )
+        selected_index = self.selected_index_provider()
+        if 0 <= selected_index < len(feature_list):
+            self.created_list.selection_set(selected_index)
+            self.created_list.see(selected_index)
 
 class HoleEditorIndicatorUiActions:
     """Own transient indicator-page visibility and redraw scheduling."""

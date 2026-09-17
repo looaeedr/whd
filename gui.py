@@ -163,6 +163,7 @@ from gui_modules.editors.hole_editor import (
 )
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
+    HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
@@ -6269,23 +6270,14 @@ class Phase6ApplicationHost:
                 sync_callback()
             self.draw_preview()
 
-        def feature_display(feature, i):
-            process = "盲孔" if getattr(feature, "layer", "CUTTING") == "BLIND_HOLE" else ""
-            if isinstance(feature, CircleFeature):
-                desc = f"Ø{feature.diameter:g}"
-            elif isinstance(feature, RectFeature):
-                desc = f"{feature.width:g}×{feature.height:g}"
-            else:
-                desc = feature.source_type or "DXF孔型"
-            return f"{i+1:02d}  {desc:<14}  {process}"
-
-        def refresh_created():
-            created_list.delete(0, tk.END)
-            for i, feature in enumerate(feature_list):
-                created_list.insert(tk.END, feature_display(feature, i))
-            if 0 <= hole_session.selected_index < len(feature_list):
-                created_list.selection_set(hole_session.selected_index)
-                created_list.see(hole_session.selected_index)
+        created_list_presentation = _HoleEditorCreatedListPresentation(
+            created_list=created_list,
+            feature_list_provider=lambda: feature_list,
+            selected_index_provider=lambda: hole_session.selected_index,
+            end_token=tk.END,
+        )
+        feature_display = created_list_presentation.feature_display
+        refresh_created = created_list_presentation.refresh_created
 
         side_zh = {"left": "左", "right": "右", "top": "上", "bottom": "下"}
         last_distances = [None]
