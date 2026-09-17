@@ -11,6 +11,7 @@ from dataclasses import replace
 from tkinter import messagebox
 
 from phase6_hole_editor_session import HoleEditorAction
+from phase6_hole_editor_session import Phase6HoleEditorSession
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
@@ -38,6 +39,16 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 
 
+
+
+class HoleEditorSessionFactory:
+    """Construct the existing editor session authority; owns no session state."""
+
+    @staticmethod
+    def create(context_key, features, *, max_undo_steps=50):
+        return Phase6HoleEditorSession(
+            context_key, features, max_undo_steps=max_undo_steps
+        )
 
 
 class HoleEditorLiveContext:

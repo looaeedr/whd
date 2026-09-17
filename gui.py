@@ -154,6 +154,7 @@ from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
     HoleEditorContextSwitcher as _HoleEditorContextSwitcher,
     HoleEditorLiveContext as _HoleEditorLiveContext,
+    HoleEditorSessionFactory as _HoleEditorSessionFactory,
     HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorFeatureFactory as _HoleEditorFeatureFactory,
@@ -5822,7 +5823,7 @@ class Phase6ApplicationHost:
     ):
         """Unified CAD-like hole editor for every FeatureSurface."""
         feature_list = self.surface_features[part_key] if feature_list_override is None else feature_list_override
-        hole_session = Phase6HoleEditorSession("door", feature_list, max_undo_steps=50)
+        hole_session = _HoleEditorSessionFactory.create("door", feature_list, max_undo_steps=50)
         if reference_guide is None:
             rminx, rminy, rmaxx, rmaxy = surface.polygon.bounds
             reference_guide = RectGuide(Vec2(rminx, rminy), Vec2(rmaxx, rmaxy), "finished_boundary")
