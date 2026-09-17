@@ -192,6 +192,22 @@ from gui_modules.parts.panels.common import (
     toggle_advanced_panel as _toggle_advanced_panel_impl,
 )
 
+from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as __attach_part_hole_entrypoint_impl
+from gui_modules.parts.panels.door import (
+    _parse_layout_value as __parse_layout_value_impl,
+    _reject_door_layout_dimension as __reject_door_layout_dimension_impl,
+    rebuild_door_layout_ui as _rebuild_door_layout_ui_impl,
+    refresh_door_layout_status as _refresh_door_layout_status_impl,
+    setup_tab_door_ui as _setup_tab_door_ui_impl,
+)
+from gui_modules.parts.panels.indicator_box import (
+    setup_tab_indicator_box_ui as _setup_tab_indicator_box_ui_impl,
+    _indicator_small_door_size_chain_label as __indicator_small_door_size_chain_label_impl,
+    setup_tab_indicator_door_ui as _setup_tab_indicator_door_ui_impl,
+    rebuild_layers_config_ui as _rebuild_layers_config_ui_impl,
+)
+from gui_modules.parts.panels.base_plate import sync_base_plate_shrink as _sync_base_plate_shrink_impl
+
 from gui_modules.parts.panels.box_body import setup_tab_z_ui as _setup_tab_z_ui_impl
 
 from gui_modules.parts.panels.endcap import setup_tab_endcap_ui as _setup_tab_endcap_ui_impl
@@ -2247,12 +2263,7 @@ class Phase6ApplicationHost:
         self._request_phase6_update("geometry")
 
     def sync_base_plate_shrink(self, *args):
-        if self.base_plate_all_same_var.get():
-            val = self.base_plate_shrink_same_var.get()
-            self.base_plate_shrink_top_var.set(val)
-            self.base_plate_shrink_bottom_var.set(val)
-            self.base_plate_shrink_left_var.set(val)
-            self.base_plate_shrink_right_var.set(val)
+        return _sync_base_plate_shrink_impl(self, *args)
 
     def create_input_row(self, parent, label_text, var):
         return _create_input_row_impl(self, parent, label_text, var)
@@ -2408,10 +2419,7 @@ class Phase6ApplicationHost:
         return render_data
 
     def _attach_part_hole_entrypoint(self, canvas, part_key, *, allow_double=True):
-        """All supported panels use one memorable entry point: double-click opens holes."""
-        canvas.unbind("<Button-3>")
-        if allow_double:
-            canvas.bind("<Double-Button-1>", lambda e, k=part_key: self.open_part_hole_editor(k))
+        return __attach_part_hole_entrypoint_impl(self, canvas, part_key, allow_double=allow_double)
 
     def setup_tab_endcap_ui(self, tab_frame, key):
         return _setup_tab_endcap_ui_impl(self, tab_frame, key)
@@ -2467,13 +2475,7 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _parse_layout_value(var, label):
-        try:
-            value = float(var.get())
-        except ValueError as exc:
-            raise ValueError(f"{label}不是有效數字") from exc
-        if value <= 0:
-            raise ValueError(f"{label}必須大於 0")
-        return value
+        return __parse_layout_value_impl(var, label)
 
     def _recompute_column_height_remainder(self, column, column_index, total_height):
         fixed = []
@@ -2636,14 +2638,7 @@ class Phase6ApplicationHost:
         self._on_door_layout_value_changed()
 
     def _reject_door_layout_dimension(self, var, previous_value, message):
-        var.set(self._door_layout_number_text(previous_value))
-        messagebox.showwarning("多門尺寸錯誤", message)
-        self.refresh_door_layout_status()
-        try:
-            self.draw_preview()
-        except Exception:
-            pass
-        return False
+        return __reject_door_layout_dimension_impl(self, var, previous_value, message)
 
     def commit_door_layout_width(self, column_index):
         column = self.door_layout_columns[column_index]
@@ -2940,329 +2935,23 @@ class Phase6ApplicationHost:
         return enabled
 
     def refresh_door_layout_status(self):
-        if not hasattr(self, "door_layout_status_label"):
-            return
-        if not self.multi_door_enabled_var.get():
-            self.door_layout_status_label.config(text="單門模式：沿用左側 W / H", fg=self.COLOR_TEXT_MUTED)
-            return
-        try:
-            width_completion = getattr(self, "_door_layout_width_completion", None)
-            if width_completion is not None and not width_completion.valid:
-                self.door_layout_status_label.config(
-                    text=f"配置待修正：寬度超出 {width_completion.excess:g} mm", fg="#ff9f0a"
-                )
-                return
-            for index, column in enumerate(self.door_layout_columns, start=1):
-                completion = column.get("height_completion")
-                if completion is not None and not completion.valid:
-                    self.door_layout_status_label.config(
-                        text=f"配置待修正：欄 {index} 高度超出 {completion.excess:g} mm", fg="#ff9f0a"
-                    )
-                    return
-            cells = self.get_door_layout_cells()
-            self.door_layout_status_label.config(
-                text=f"配置有效：{len(cells)} 片門｜點選格子可選擇門片", fg="#30d158"
-            )
-        except Exception as exc:
-            self.door_layout_status_label.config(text=f"配置待修正：{exc}", fg="#ff9f0a")
+        return _refresh_door_layout_status_impl(self)
 
     def rebuild_door_layout_ui(self):
-        if not hasattr(self, "door_layout_columns_frame"):
-            return
-        for widget in self.door_layout_columns_frame.winfo_children():
-            widget.destroy()
-        self.door_layout_inner_door_vars = {}
-        self.door_layout_inner_door_offset_vars = {}
-        self.door_layout_inner_door_offset_entries = {}
-        self._ensure_door_layout_default()
-
-        for column_index, column in enumerate(self.door_layout_columns):
-            col_frame = tk.Frame(self.door_layout_columns_frame, bg=self.COLOR_PANEL, bd=1, relief=tk.SOLID)
-            col_frame.pack(side=tk.LEFT, fill=tk.Y, expand=True, padx=3, pady=3)
-
-            width_row = tk.Frame(col_frame, bg=self.COLOR_PANEL)
-            width_row.pack(fill=tk.X, padx=4, pady=(4, 2))
-            width_caption = f"欄 {column_index+1} 寬" + (" (自動)" if column.get("width_auto") else "")
-            tk.Label(
-                width_row, text=width_caption, bg=self.COLOR_PANEL,
-                fg="#30d158" if column.get("width_auto") else self.COLOR_TEXT,
-                font=('Microsoft JhengHei', 8, 'bold')
-            ).pack(anchor=tk.CENTER)
-            width_entry = tk.Entry(
-                width_row, textvariable=column["width_var"], width=8,
-                bg=self.COLOR_INPUT_BG, fg="#30d158" if column.get("width_auto") else self.COLOR_TEXT,
-                insertbackground=self.COLOR_TEXT, font=('Consolas', 10, 'bold'), justify=tk.CENTER
-            )
-            width_entry.pack(anchor=tk.CENTER, pady=2)
-            width_entry.bind("<FocusOut>", lambda e, c=column_index: self.commit_door_layout_width(c))
-            width_entry.bind("<Return>", lambda e, c=column_index: self.commit_door_layout_width(c))
-
-            tk.Label(
-                col_frame, text="高度 ↓", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
-                font=('Microsoft JhengHei', 8)
-            ).pack(anchor=tk.CENTER, pady=(2, 0))
-
-            for row_index, (height_var, is_auto) in enumerate(zip(column["height_vars"], column["height_auto"])):
-                height_row = tk.Frame(col_frame, bg=self.COLOR_PANEL)
-                height_row.pack(fill=tk.X, padx=4, pady=1)
-                tk.Label(
-                    height_row, text=f"{row_index+1}", width=2, bg=self.COLOR_PANEL,
-                    fg="#30d158" if is_auto else self.COLOR_TEXT_MUTED, font=('Consolas', 8, 'bold')
-                ).pack(side=tk.LEFT)
-                height_entry = tk.Entry(
-                    height_row, textvariable=height_var, width=7,
-                    bg=self.COLOR_INPUT_BG, fg="#30d158" if is_auto else self.COLOR_TEXT,
-                    insertbackground=self.COLOR_TEXT, font=('Consolas', 10), justify=tk.CENTER
-                )
-                height_entry.pack(side=tk.LEFT, padx=2)
-                height_entry.bind(
-                    "<FocusOut>", lambda e, c=column_index, r=row_index: self.commit_door_layout_height(c, r)
-                )
-                height_entry.bind(
-                    "<Return>", lambda e, c=column_index, r=row_index: self.commit_door_layout_height(c, r)
-                )
-                if is_auto:
-                    tk.Label(
-                        height_row, text="自動", bg=self.COLOR_PANEL, fg="#30d158",
-                        font=('Microsoft JhengHei', 7, 'bold')
-                    ).pack(side=tk.LEFT, padx=(1, 0))
-                else:
-                    tk.Button(
-                        height_row, text="−", width=2,
-                        command=lambda c=column_index, r=row_index: self.remove_door_layout_height(c, r),
-                        bg=self.COLOR_BG, fg="#ff6b6b", bd=1, relief=tk.SOLID,
-                        activebackground=self.COLOR_PANEL, activeforeground="#ff6b6b"
-                    ).pack(side=tk.LEFT, padx=(1, 0))
-
-                if str(self.baseline_var.get() or "").strip() == "受電箱":
-                    cell_key = f"{column_index}:{row_index}"
-                    inner_var = tk.BooleanVar(
-                        master=self.root,
-                        value=self._receiving_inner_door_enabled(cell_key),
-                    )
-                    self.door_layout_inner_door_vars[cell_key] = inner_var
-                    tk.Checkbutton(
-                        height_row, text="內門", variable=inner_var,
-                        bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                        activebackground=self.COLOR_PANEL, activeforeground=self.COLOR_ACCENT,
-                        font=('Microsoft JhengHei', 8, 'bold'), cursor="hand2",
-                        command=lambda key=cell_key: self._commit_receiving_inner_door_checkbox(key),
-                    ).pack(side=tk.LEFT, padx=(5, 0))
-                    offset_var = tk.StringVar(
-                        master=self.root,
-                        value=self._fold_designer_number_text(self._receiving_inner_door_inward_offset(cell_key)),
-                    )
-                    self.door_layout_inner_door_offset_vars[cell_key] = offset_var
-                    tk.Label(
-                        height_row, text="內退", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
-                        font=('Microsoft JhengHei', 7, 'bold')
-                    ).pack(side=tk.LEFT, padx=(3, 1))
-                    offset_entry = tk.Entry(
-                        height_row, textvariable=offset_var, width=5,
-                        state=tk.NORMAL if inner_var.get() else tk.DISABLED,
-                        bg=self.COLOR_INPUT_BG, fg=self.COLOR_TEXT, disabledforeground=self.COLOR_TEXT_MUTED,
-                        insertbackground=self.COLOR_TEXT, font=('Consolas', 9), justify=tk.CENTER
-                    )
-                    offset_entry.pack(side=tk.LEFT, padx=(0, 1))
-                    offset_entry.bind(
-                        "<FocusOut>", lambda e, key=cell_key: self._commit_receiving_inner_door_inward_offset(key)
-                    )
-                    offset_entry.bind(
-                        "<Return>", lambda e, key=cell_key: self._commit_receiving_inner_door_inward_offset(key)
-                    )
-                    self.door_layout_inner_door_offset_entries[cell_key] = offset_entry
-                    tk.Label(
-                        height_row, text="mm", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
-                        font=('Consolas', 7)
-                    ).pack(side=tk.LEFT)
-
-            if not column.get("width_auto"):
-                tk.Button(
-                    col_frame, text="刪除此欄", command=lambda c=column_index: self.remove_door_layout_column(c),
-                    bg=self.COLOR_BG, fg="#ff6b6b", bd=1, relief=tk.SOLID,
-                    activebackground=self.COLOR_PANEL, activeforeground="#ff6b6b",
-                    font=('Microsoft JhengHei', 8, 'bold')
-                ).pack(anchor=tk.CENTER, pady=(3, 4))
-
-        self.refresh_door_layout_status()
+        return _rebuild_door_layout_ui_impl(self)
 
     def setup_tab_door_ui(self):
-        # Door 第一頁只保留「啟用多門配置」；其餘編輯都直接在 Canvas / 開孔 editor。
-        top_ctrl = tk.Frame(self.tab_door, bg=self.COLOR_BG)
-        top_ctrl.pack(fill=tk.X, padx=10, pady=5)
-        tk.Checkbutton(
-            top_ctrl, text="啟用多門配置", variable=self.multi_door_enabled_var,
-            bg=self.COLOR_BG, fg=self.COLOR_TEXT, selectcolor=self.COLOR_PANEL,
-            activebackground=self.COLOR_BG, activeforeground=self.COLOR_ACCENT,
-            font=('Microsoft JhengHei', 9, 'bold'), cursor="hand2",
-            command=self.toggle_multi_door_layout,
-        ).pack(side=tk.LEFT, padx=5)
-        self.door_layout_status_label = tk.Label(
-            top_ctrl, text="", bg=self.COLOR_BG, fg=self.COLOR_TEXT_MUTED,
-            font=('Microsoft JhengHei', 8, 'bold')
-        )
-        # 狀態 label 只留作既有邏輯相容，不 pack、不佔畫面。
-
-        self.door_layout_body = tk.Frame(self.tab_door, bg=self.COLOR_PANEL, bd=1, relief=tk.SOLID)
-        self.door_layout_columns_frame = tk.Frame(self.door_layout_body, bg=self.COLOR_PANEL)
-        self.door_layout_columns_frame.pack(fill=tk.X, padx=4, pady=(4, 2))
-        layout_actions = tk.Frame(self.door_layout_body, bg=self.COLOR_PANEL)
-        layout_actions.pack(fill=tk.X, padx=4, pady=(0, 4))
-        tk.Label(
-            layout_actions,
-            text="寬度由左→右；高度由上→下。綠色『自動』格是剩餘尺寸，直接修改它就會固定並自動補下一格。",
-            bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 8)
-        ).pack(side=tk.LEFT, padx=8)
-        self._ensure_door_layout_default()
-        self.rebuild_door_layout_ui()
-        # 預設單門模式，不顯示多門明細。
-        self.door_layout_body.pack_forget()
-        
-        # 門指示燈選項面板 (預設隱藏)
-        self.door_indicator_opts_frame = tk.Frame(self.tab_door, bg=self.COLOR_BG)
-        
-        door_ind_ctrl = tk.Frame(self.door_indicator_opts_frame, bg=self.COLOR_BG)
-        door_ind_ctrl.pack(fill=tk.X, pady=2)
-        
-        lbl_door_grid = tk.Label(door_ind_ctrl, text="指示燈層數 (3個為一層) :", bg=self.COLOR_BG, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 10, 'bold'))
-        lbl_door_grid.pack(side=tk.LEFT, padx=5)
-        
-        self.cb_door_ind_l = ttk.Combobox(door_ind_ctrl, textvariable=self.door_indicator_l_var, values=["1", "2", "3", "4", "5", "6"], width=6, state="readonly", style='TCombobox')
-        self.cb_door_ind_l.pack(side=tk.LEFT, padx=2)
-        self.cb_door_ind_l.bind("<<ComboboxSelected>>", lambda e: self.on_door_layers_count_changed())
-        
-        btn_reset_pos_x = tk.Button(
-            door_ind_ctrl,
-            text="左右置中",
-            font=('Microsoft JhengHei', 9, 'bold'),
-            bg=self.COLOR_PANEL, fg=self.COLOR_ACCENT, bd=1, relief=tk.SOLID,
-            activebackground=self.COLOR_BG, activeforeground=self.COLOR_ACCENT,
-            cursor="hand2", padx=10,
-            command=self.reset_door_indicator_offset_x
-        )
-        btn_reset_pos_x.pack(side=tk.LEFT, padx=10)
-        
-        btn_reset_pos_y = tk.Button(
-            door_ind_ctrl,
-            text="上下置中",
-            font=('Microsoft JhengHei', 9, 'bold'),
-            bg=self.COLOR_PANEL, fg=self.COLOR_ACCENT, bd=1, relief=tk.SOLID,
-            activebackground=self.COLOR_BG, activeforeground=self.COLOR_ACCENT,
-            cursor="hand2", padx=10,
-            command=self.reset_door_indicator_offset_y
-        )
-        btn_reset_pos_y.pack(side=tk.LEFT, padx=10)
-        
-        self.chk_box_dist = tk.Checkbutton(
-            door_ind_ctrl,
-            text="箱體定位距離",
-            variable=self.is_box_dist_var,
-            bg=self.COLOR_BG,
-            fg=self.COLOR_TEXT,
-            selectcolor=self.COLOR_PANEL,
-            activebackground=self.COLOR_BG,
-            activeforeground=self.COLOR_ACCENT,
-            font=('Microsoft JhengHei', 9, 'bold'),
-            cursor="hand2",
-            command=self.update_calculations
-        )
-        self.chk_box_dist.pack(side=tk.LEFT, padx=15)
-        
-        # 每層組數配置
-        self.door_layers_config_frame = tk.Frame(self.door_indicator_opts_frame, bg=self.COLOR_PANEL)
-        self.door_layers_config_frame.pack(fill=tk.X, padx=10, pady=2)
-        
-        self.rebuild_door_layers_config_ui()
-        
-        # 畫布 Frame
-        canvas_frame = tk.Frame(self.tab_door, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
-        self.door_canvas_frame = canvas_frame
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
-        
-        # 門畫布
-        self.canvas_door = tk.Canvas(canvas_frame, bg=self.COLOR_CANVAS_BG, highlightthickness=0)
-        self.canvas_door.pack(fill=tk.BOTH, expand=True)
-        self.canvas_door.bind("<Configure>", lambda e: self.draw_preview())
-        self.canvas_door.bind("<Button-1>", self.on_door_canvas_press)
-        self.canvas_door.bind("<B1-Motion>", self.on_door_canvas_drag)
-        self.canvas_door.bind("<ButtonRelease-1>", self.on_door_canvas_release)
-        self._attach_part_hole_entrypoint(self.canvas_door, "door", allow_double=True)
-        # 覆寫通用雙擊：單門開 Door editor；多門由格子 tag 精準處理並阻止重複開窗。
-        self.canvas_door.bind("<Double-Button-1>", self.on_door_canvas_double_click)
+        return _setup_tab_door_ui_impl(self)
 
     def setup_tab_indicator_box_ui(self):
-        # 頂部控制列
-        top_ctrl = tk.Frame(self.tab_indicator_box, bg=self.COLOR_BG)
-        top_ctrl.pack(fill=tk.X, padx=10, pady=5)
-        
-        self.chk_indicator_box_enabled = tk.Checkbutton(
-            top_ctrl, text="門板預留指示燈盒開孔", variable=self.is_indicator_box_var,
-            bg=self.COLOR_BG, fg=self.COLOR_TEXT, selectcolor=self.COLOR_PANEL,
-            activebackground=self.COLOR_BG, activeforeground=self.COLOR_ACCENT,
-            font=('Microsoft JhengHei', 9, 'bold'), cursor="hand2",
-            command=self.on_indicator_box_toggle,
-        )
-        self.chk_indicator_box_enabled.pack(side=tk.LEFT, padx=(5, 14))
-
-        # 層數選擇
-        lbl_grid = tk.Label(top_ctrl, text="指示燈層數 (3個為一層) :", bg=self.COLOR_BG, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 10, 'bold'))
-        lbl_grid.pack(side=tk.LEFT, padx=5)
-        
-        self.cb_ib_l = ttk.Combobox(top_ctrl, textvariable=self.indicator_l_var, values=["1", "2", "3", "4", "5", "6"], width=6, state="readonly", style='TCombobox')
-        self.cb_ib_l.pack(side=tk.LEFT, padx=2)
-        self.cb_ib_l.bind("<<ComboboxSelected>>", lambda e: self.on_layers_count_changed())
-        
-        # 說明標籤
-        lbl_formula = ttk.Label(top_ctrl, text="公式：W=171+90*(g_max-1)+135 (單組W=326) / H=280*(L-1)+445 | 線槽跨距 100", style='TLabel')
-        lbl_formula.pack(side=tk.RIGHT, padx=5)
-        
-        # 每層組數的配置區域 (動態 Frame)
-        self.layers_config_frame = tk.Frame(self.tab_indicator_box, bg=self.COLOR_PANEL)
-        self.layers_config_frame.pack(fill=tk.X, padx=10, pady=2)
-        
-        # 畫布 Frame
-        canvas_frame = tk.Frame(self.tab_indicator_box, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
-        
-        # 畫布
-        self.canvas_indicator_box = tk.Canvas(canvas_frame, bg=self.COLOR_CANVAS_BG, highlightthickness=0)
-        self.canvas_indicator_box.pack(fill=tk.BOTH, expand=True)
-        self.canvas_indicator_box.bind("<Configure>", lambda e: self.draw_preview())
-        self._attach_part_hole_entrypoint(self.canvas_indicator_box, "indicator_box", allow_double=True)
-        
-        # 初始化動態組數選單
-        self.rebuild_layers_config_ui()
+        return _setup_tab_indicator_box_ui_impl(self)
 
     def on_layers_count_changed(self):
         self.rebuild_layers_config_ui()
         self._request_phase6_update("geometry")
 
     def rebuild_layers_config_ui(self):
-        # 清空先前的元件
-        for widget in self.layers_config_frame.winfo_children():
-            widget.destroy()
-            
-        try:
-            layers = int(self.indicator_l_var.get())
-        except ValueError:
-            layers = 3
-            
-        # 逐層建立橫向的組數選擇選單
-        for ly in range(layers):
-            ly_frame = tk.Frame(self.layers_config_frame, bg=self.COLOR_PANEL)
-            ly_frame.pack(side=tk.LEFT, padx=15, pady=4)
-            
-            label_text = f"第 {ly+1} 層組數:"
-            if ly == 0:
-                label_text = "第 1 層 (底) 組數:"
-            elif ly == layers - 1 and layers > 1:
-                label_text = f"第 {ly+1} 層 (頂) 組數:"
-                
-            tk.Label(ly_frame, text=label_text, bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 9, 'bold')).pack(side=tk.LEFT, padx=2)
-            
-            cb = ttk.Combobox(ly_frame, textvariable=self.indicator_layer_g_vars[ly], values=["1", "2", "3", "4", "5", "6", "7", "8"], width=4, state="readonly", style='TCombobox')
-            cb.pack(side=tk.LEFT, padx=2)
-            cb.bind("<<ComboboxSelected>>", lambda e: self._request_phase6_update("geometry"))
+        return _rebuild_layers_config_ui_impl(self)
 
 
 
@@ -4387,35 +4076,10 @@ class Phase6ApplicationHost:
             self.draw_preview()
 
     def _indicator_small_door_size_chain_label(self):
-        gap = float(manufacturing_api.resolve_policy().indicator_small_door_gap)
-        gap_text = f"{gap:g}"
-        return (
-            "指示燈小門展開圖預覽 | 尺寸連動：盒子內部淨開口 "
-            f"→ 四邊各留 {gap_text} mm → 小門成品 → 小門展開"
-        )
+        return __indicator_small_door_size_chain_label_impl(self)
 
     def setup_tab_indicator_door_ui(self):
-        # 頂部控制列
-        top_ctrl = tk.Frame(self.tab_indicator_door, bg=self.COLOR_BG)
-        top_ctrl.pack(fill=tk.X, padx=10, pady=5)
-        
-        # 說明標籤
-        lbl_formula = ttk.Label(
-            top_ctrl, 
-            text=self._indicator_small_door_size_chain_label(), 
-            style='TLabel'
-        )
-        lbl_formula.pack(side=tk.LEFT, padx=5)
-        
-        # 畫布 Frame
-        canvas_frame = tk.Frame(self.tab_indicator_door, bg=self.COLOR_CANVAS_BG, bd=1, relief=tk.SOLID)
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 10))
-        
-        # 畫布
-        self.canvas_indicator_door = tk.Canvas(canvas_frame, bg=self.COLOR_CANVAS_BG, highlightthickness=0)
-        self.canvas_indicator_door.pack(fill=tk.BOTH, expand=True)
-        self.canvas_indicator_door.bind("<Configure>", lambda e: self.draw_preview())
-        self._attach_part_hole_entrypoint(self.canvas_indicator_door, "indicator_door", allow_double=True)
+        return _setup_tab_indicator_door_ui_impl(self)
 
     def draw_indicator_door(self, val):
         canvas = self.canvas_indicator_door

@@ -19,3 +19,11 @@ def setup_tab_base_plate_ui(self):
     # 舊版 draw_base_plate 會查這兩個容器；保留空容器避免相容路徑失效。
     self.canvas_frames = {}
     self.canvas_window_ids = {}
+
+def sync_base_plate_shrink(host, *args):
+    if host.base_plate_all_same_var.get():
+        val = host.base_plate_shrink_same_var.get()
+        host.base_plate_shrink_top_var.set(val)
+        host.base_plate_shrink_bottom_var.set(val)
+        host.base_plate_shrink_left_var.set(val)
+        host.base_plate_shrink_right_var.set(val)

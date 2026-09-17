@@ -220,3 +220,9 @@ def toggle_advanced_panel(host):
             host.adv_frame.pack(fill=tk.X, before=host.adv_btn.master.children[list(host.adv_btn.master.children.keys())[-3]]) # 插在計算結果前
             host.adv_frame.pack(fill=tk.X, pady=(5, 10))
             host.adv_btn.configure(text="▼ 收起進階參數設定")
+
+def _attach_part_hole_entrypoint(host, canvas, part_key, *, allow_double=True):
+    """All supported panels use one memorable entry point: double-click opens holes."""
+    canvas.unbind("<Button-3>")
+    if allow_double:
+        canvas.bind("<Double-Button-1>", lambda e, k=part_key: host.open_part_hole_editor(k))
