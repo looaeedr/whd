@@ -1,5 +1,6 @@
 name: Sheet-metal Xvfb A-B Diagnostic
 
+# QA alias trigger for candidate 40ae7f9b3d28e1f5d911b505fe1698f40fc91c9d
 on:
   push:
     branches:
@@ -33,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           BASE_SHA='ec0724c892dd0d44f1bb4e0b80e90a85820df209'
-          CANDIDATE_SHA="$GITHUB_SHA"
+          CANDIDATE_SHA='40ae7f9b3d28e1f5d911b505fe1698f40fc91c9d'
 
           extract_failures() {
             python - "$1" "$2" <<'PY'
@@ -78,6 +79,7 @@ jobs:
           tail -n 20 /tmp/candidate-xvfb.log
 
           xvfb-run -a python -m pytest -q \
+            tests/test_issue124_structure_tree.py \
             tests/test_issue186_sheetmetal_selector_visibility.py \
             tests/test_phase6_t21_live_switch_selector.py
 
