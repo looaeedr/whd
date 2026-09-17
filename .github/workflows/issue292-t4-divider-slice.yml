@@ -6,16 +6,13 @@ on:
       - refactor/issue292-divider-green-20260917
     paths:
       - '.github/workflows/issue292-t4-divider-slice.yml'
+      - 'tools/issue292_divider_green_patch.py'
       - 'tests/test_issue292_t4_divider_slice.py'
       - 'gui.py'
       - 'gui_modules/parts/panels/divider.py'
 
 permissions:
   contents: write
-
-env:
-  PYTHONUTF8: '1'
-  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   focused:
@@ -28,65 +25,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Route divider payload through panel boundary
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('gui.py')
-          text = p.read_text(encoding='utf-8')
-          import_anchor = 'from gui_modules.parts.panels.base_plate import setup_tab_base_plate_ui as _setup_tab_base_plate_ui_impl\n'
-          import_line = 'from gui_modules.parts.panels.divider import collect_divider_input\n'
-          if import_line not in text:
-              if import_anchor not in text:
-                  raise SystemExit('base-plate import anchor missing')
-              text = text.replace(import_anchor, import_anchor + '\n' + import_line, 1)
-          old = '''            data = dict(payload or {})
-            columns = tuple(
-                (float(row[0]), tuple(float(value) for value in row[1]))
-                for row in tuple(data.get("door_layout_columns") or ())
-            )
-            if not columns:
-                raise ValueError(f"中隔缺少 authoritative multi-door topology: {key}")
-            dividers = derive_box_body_dividers(
-                columns,
-                depth=float(data.get("d", ae.D)),
-                thickness=float(data.get("t", ae.T)),
-                layout_scope=str(data.get("door_layout_scope") or "main").strip() or "main",
-                handle_edges=dict(data.get("door_handle_edges") or {}),
-                model_name=str(data.get("model") or "").strip() or None,
-            )
-'''
-          new = '''            divider_input = collect_divider_input(
-                key,
-                payload,
-                default_depth=ae.D,
-                default_thickness=ae.T,
-            )
-            dividers = derive_box_body_dividers(
-                divider_input["columns"],
-                depth=divider_input["depth"],
-                thickness=divider_input["thickness"],
-                layout_scope=divider_input["layout_scope"],
-                handle_edges=divider_input["handle_edges"],
-                model_name=divider_input["model_name"],
-            )
-'''
-          if old not in text:
-              raise SystemExit('divider host block anchor missing')
-          text = text.replace(old, new, 1)
-          p.write_text(text, encoding='utf-8')
-          PY
+      - name: Apply host routing
+        run: python tools/issue292_divider_green_patch.py
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Compile divider extraction boundary
+      - name: Compile boundary
         run: python -m py_compile gui.py gui_modules/parts/panels/divider.py
-      - name: Run focused Task 5 regressions
+      - name: Focused regressions
         run: python -m pytest -q tests/test_issue292_t4_divider_slice.py tests/test_issue292_t4_box_body_slice.py tests/test_issue292_t4_endcap_slice.py tests/test_issue292_t4_base_plate_slice.py
-      - name: Commit minimal GREEN routing
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add gui.py
-          git diff --cached --quiet && exit 0
-          git commit -m 'refactor(#292): route divider payload through panel boundary'
-          git push origin HEAD:refactor/issue292-divider-green-20260917
+      - name: Commit GREEN
+        run: git config user.name github-actions[bot] && git config user.email 41898282+github-actions[bot]@users.noreply.github.com && git add gui.py && git diff --cached --quiet || (git commit -m 'refactor(#292): route divider payload through panel boundary' && git push origin HEAD:refactor/issue292-divider-green-20260917)
