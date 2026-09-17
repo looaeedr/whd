@@ -1,0 +1,51 @@
+name: Sheet-metal Menu Post-commit GREEN
+
+on:
+  push:
+    branches:
+      - fix/restore-sheetmetal-structure-tree-20260917
+    paths:
+      - '.github/workflows/qa-sheetmetal-menu-postcommit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postcommit-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind exact committed source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -F 'self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))' fold_designer_bridge.py
+      - name: Install Xvfb and focused dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Capture protected invariants
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
+      - name: Run production direct-3D visibility and menu callback regressions
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_issue186_sheetmetal_selector_visibility.py \
+            tests/test_phase6_t21_live_switch_selector.py
+      - name: Verify protected invariants and clean worktree
+        if: always()
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-after.sha256
+          cmp /tmp/protected-before.sha256 /tmp/protected-after.sha256
+          git diff --exit-code
