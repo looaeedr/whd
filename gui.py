@@ -4014,11 +4014,8 @@ class Phase6ApplicationHost:
         return "break"
 
     def ask_xy_dialog(self, current_x, current_y):
-        return _ask_xy_dialog_impl(
-            self.root, current_x, current_y,
-            color_bg=self.COLOR_BG, color_text=self.COLOR_TEXT,
-            color_panel=self.COLOR_PANEL, color_accent=self.COLOR_ACCENT,
-        )
+        return _ask_xy_dialog_impl(self.root, current_x, current_y, color_bg=self.COLOR_BG, color_text=self.COLOR_TEXT,
+                                   color_panel=self.COLOR_PANEL, color_accent=self.COLOR_ACCENT)
 
     def on_double_click_indicator(self):
         params = self.last_door_draw_params
