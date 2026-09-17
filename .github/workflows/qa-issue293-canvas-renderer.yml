@@ -1,4 +1,4 @@
-name: QA #293 canvas renderer slice
+name: QA #293 canvas renderer GREEN
 
 on:
   push:
@@ -7,20 +7,113 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   focused:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Apply minimal GUI wiring
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("gui.py")
+          text = path.read_text(encoding="utf-8")
+
+          import_line = (
+              "from gui_modules.editors.hole_editor_render import "
+              "HoleEditorCanvasRenderer as _HoleEditorCanvasRenderer\n"
+          )
+          view_anchor = "from gui_modules.editors.hole_editor_view import (\n"
+          if import_line not in text:
+              if text.count(view_anchor) != 1:
+                  raise SystemExit(f"view import anchor mismatch: {text.count(view_anchor)}")
+              text = text.replace(view_anchor, import_line + view_anchor, 1)
+
+          method_start = text.index("    def _open_unified_hole_editor(")
+          nested_start = text.find("        def redraw():\n", method_start)
+          marker = "        indicator_redraw[0] = redraw\n"
+          if nested_start != -1:
+              nested_end = text.index(marker, nested_start) + len(marker)
+              wiring = '''        canvas_renderer = _HoleEditorCanvasRenderer(
+              context_provider=lambda: {
+                  "surface": surface,
+                  "feature_list": feature_list,
+                  "width": width,
+                  "height": height,
+                  "reference_guide": reference_guide,
+                  "baseline_scene": baseline_scene,
+                  "active_part_key": active_part_key[0],
+                  "indicator_box_dist_enabled": bool(
+                      indicator_box_dist_var is not None and indicator_box_dist_var.get()
+                  ),
+                  "indicator_mode_available": indicator_mode_var is not None,
+                  "door_indicator_context": door_indicator_context,
+                  "door_frame_width": door_frame_width,
+                  "door_thickness": door_thickness,
+                  "door_gap_w": door_gap_w,
+                  "door_gap_h": door_gap_h,
+                  "door_frame_edges": door_frame_edges,
+              },
+              canvas_view=canvas_view,
+              selected_index_provider=lambda: hole_session.selected_index,
+              reference_distances_provider=lambda: last_distances[0],
+              measure_guide_provider=active_reference_guide,
+              selected_catalog_text_provider=selected_catalog_text.get,
+              insert_mode_provider=lambda: insert_mode[0],
+              error_text_provider=lambda: indicator_fit_error[0],
+              collect_indicator_state=collect_indicator_state,
+              validate_current_indicator_fit=validate_current_indicator_fit,
+              door_enclosure_reference_offsets=door_enclosure_reference_offsets,
+              door_frame_edges_factory=DoorFrameEdges,
+              vec2_factory=Vec2,
+              resolve_door_indicator_layout=resolve_door_indicator_layout,
+              render_resolved_features=render_resolved_features,
+              measure_door_indicator_position=measure_door_indicator_position,
+              resolve_door_indicator_dimension_guides=resolve_door_indicator_dimension_guides,
+              indicator_box_opening_size=manufacturing_api.indicator_box_opening_size,
+              resolved_rect_factory=ResolvedRect,
+              canvas_frame_factory=HoleEditorCanvasFrame,
+              arrow_both=tk.BOTH,
+          )
+          redraw = canvas_renderer.redraw
+          indicator_redraw[0] = redraw
+'''
+              text = text[:nested_start] + wiring + text[nested_end:]
+          elif "canvas_renderer = _HoleEditorCanvasRenderer(" not in text:
+              raise SystemExit("neither rooted redraw nor canvas renderer wiring found")
+
+          path.write_text(text, encoding="utf-8")
+          PY
       - name: Install pytest
         run: python -m pip install -q pytest
-      - name: Run canvas renderer RED
-        run: python -m pytest -q tests/test_issue293_t5_canvas_renderer_slice.py
-
-# trigger after workflow registration
+      - name: Verify syntax and focused GREEN
+        run: |
+          python -m py_compile gui.py gui_modules/editors/hole_editor_render.py
+          python -m pytest -q \
+            tests/test_issue293_t5_canvas_renderer_slice.py \
+            tests/test_issue293_t5_feature_factory_slice.py \
+            tests/test_issue293_t5_indicator_fit_validation_slice.py \
+            tests/test_issue293_gui_phase2_t5_editors.py
+      - name: Commit GREEN after verification
+        shell: bash
+        run: |
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git add gui.py
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No GUI wiring changes to commit."
+          else
+            git commit -m "refactor(#293): extract canvas renderer"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
