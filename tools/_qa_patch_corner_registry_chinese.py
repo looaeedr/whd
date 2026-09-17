@@ -23,36 +23,52 @@ for old, new in (
 ):
     ensure_replace(old, new)
 
-# The work branch already owns a Chinese label for this stable rule id.  Accept
-# that projection; never add a duplicate dictionary key just to satisfy QA.
+# Registry values loaded by the Receiving divider rule are valid internal
+# tokens.  Localize only their operator projection.
+operator_anchor = '    "HEAD_OR_TAIL": "封頭／封尾",'
+operator_rows = (
+    '    "DIVIDER": "中隔",',
+    '    "ENDS": "封頭／封尾",',
+    '    "receiving_divider_four_segment": "受電箱中隔四段式",',
+    '    "cross_slot_min_y": "十字槽最小縱向",',
+)
+missing_operator_rows = [row for row in operator_rows if row not in text]
+if missing_operator_rows:
+    if text.count(operator_anchor) != 1:
+        raise SystemExit('operator-label insertion anchor missing or ambiguous')
+    text = text.replace(
+        operator_anchor,
+        operator_anchor + '\n' + '\n'.join(missing_operator_rows),
+        1,
+    )
+
+# The branch already owns a Chinese label for this stable rule id.  Accept it;
+# never add a duplicate dict key just to satisfy QA.
 divider_marker = '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字截角（標準）"'
 if divider_marker not in text:
     raise SystemExit('existing Chinese divider rule projection is missing')
 
-source_block_old = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
-    "linked-FW": "連動框寬",
-    "FW": "框寬",
-    "3D": "立體",
-    "2D": "平面",
-}
-
-
-def _phase6_source_display(value):
-    text = str(value or "")
-    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
-        text = text.replace(raw, label)
-    return text
-
-
-def _phase6_source_raw(value):
-    text = str(value or "")
-    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
-        text = text.replace(label, raw)
-    return text
-'''
 source_block_new = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
     "CornerType": "截角類型",
     "linked-FW": "連動框寬",
+    "STANDARD": "標準",
+    "manufacturing": "製造",
+    "contract": "契約",
+    "projection": "投影",
+    "Registry": "資料庫",
+    "formed": "成形",
+    "shadow": "陰影",
+    "evidence": "證據",
+    "CROSS": "十字",
+    "C04": "型號04",
+    "X/Y": "橫向／縱向",
+    "1T": "1板厚",
+    ".dxf": "圖檔",
+    "band": "帶區",
+    "base": "基底",
+    "face": "面",
+    "HIT": "命中",
+    "mm": "毫米",
     "3D": "立體",
     "2D": "平面",
 }
@@ -69,8 +85,8 @@ def _phase6_source_display(value):
 
 def _phase6_source_raw(value):
     text = str(value or "")
-    # Reverse the source-specific phrases first so labels such as 連動框寬 are
-    # not partially consumed by the generic formula alias for 框寬.
+    # Reverse source-specific phrases first so compound labels are not partially
+    # consumed by the generic formula aliases.
     for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
         text = text.replace(label, raw)
     reverse_operator = sorted(
@@ -88,9 +104,14 @@ def _phase6_source_raw(value):
     return _phase6_formula_raw(text)
 '''
 
-if source_block_old in text:
-    text = text.replace(source_block_old, source_block_new, 1)
-elif source_block_new not in text:
+if '_PHASE6_SOURCE_DISPLAY_TOKENS =' in text:
+    start = text.index('_PHASE6_SOURCE_DISPLAY_TOKENS =')
+    end_marker = '\n\ndef _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
+    end = text.find(end_marker, start)
+    if end < 0:
+        raise SystemExit('existing source-display block has no translated-var boundary')
+    text = text[:start] + source_block_new + text[end:]
+else:
     marker = 'def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
     if text.count(marker) != 1:
         raise SystemExit('translated-var authority marker missing or ambiguous')
@@ -115,6 +136,8 @@ required_markers = (
     'entry("第一級橫向公式", self.relief_registry_primary_u_display_var)',
     '("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self))',
     '"CornerType": "截角類型"',
+    '"DIVIDER": "中隔"',
+    '"receiving_divider_four_segment": "受電箱中隔四段式"',
     'text = _phase6_operator_text(text)',
     'text = _phase6_formula_display(text)',
 )
