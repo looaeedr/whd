@@ -14,7 +14,6 @@ REQUIRED_EDITOR_FILES = {
     "hole_editor_view.py",
 }
 ROOT_EDITOR_ENTRYPOINTS = {
-    "draw_hole_editor_hint",
     "ask_xy_dialog",
     "open_part_hole_editor",
     "_open_unified_hole_editor",
