@@ -44,14 +44,18 @@ jobs:
           from pathlib import Path
           p = Path('fold_designer_bridge.py')
           text = p.read_text(encoding='utf-8')
-          old = '''def _phase6_activate_operator_part(self: Any, key: str) -> Any:
-              snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-              resolved = _phase6_redirect_operator_part_key(str(key), snapshot)
+          old = '''def _phase6_activate_operator_part(self, key):
+              """Activate only a successfully resolved explicit operator identity."""
+              resolved = _phase6_resolve_operator_part_key(self, key)
+              if not resolved:
+                  return None
               return self.activate_part(resolved)
           '''
-          new = '''def _phase6_activate_operator_part(self: Any, key: str) -> Any:
-              snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-              resolved = _phase6_redirect_operator_part_key(str(key), snapshot)
+          new = '''def _phase6_activate_operator_part(self, key):
+              """Activate only a successfully resolved explicit operator identity."""
+              resolved = _phase6_resolve_operator_part_key(self, key)
+              if not resolved:
+                  return None
               result = self.activate_part(resolved)
               _phase6_refresh_structure_tree(self)
               return result
