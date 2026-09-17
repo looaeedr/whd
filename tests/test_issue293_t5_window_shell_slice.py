@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 def _unified_method() -> ast.FunctionDef:
@@ -39,16 +40,18 @@ def test_window_shell_builder_is_bounded_and_keeps_geometry_policy_exact():
     assert builder.window_geometry(800, 600) == (720, 560, 40, 20, "720x560+40+20")
 
 
-def test_unified_root_delegates_window_shell_construction():
+def test_composition_root_delegates_window_shell_construction():
     gui = GUI.read_text(encoding="utf-8")
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
+    root_segment = ast.get_source_segment(gui, method) or ""
 
     assert "HoleEditorWindowShellBuilder as _HoleEditorWindowShellBuilder" in gui
-    assert "_HoleEditorWindowShellBuilder(self).build(" in segment
-    assert "tk.Toplevel(self.root)" not in segment
-    assert "editor.winfo_screenwidth()" not in segment
-    assert "ttk.Notebook(center" not in segment
+    assert COMPOSITION.is_file(), "T5 RED: window-shell composition handoff is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorWindowShellBuilder(host).build(" in composition
+    assert "tk.Toplevel(self.root)" not in root_segment
+    assert "editor.winfo_screenwidth()" not in root_segment
+    assert "ttk.Notebook(center" not in root_segment
 
 
 def test_window_shell_slice_materially_reduces_root_without_creating_monolith():
