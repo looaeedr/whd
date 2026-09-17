@@ -1,0 +1,81 @@
+name: Apply Corner Registry Chinese UI Fix
+
+on:
+  push:
+    branches:
+      - fix/corner-db-chinese-only-20260917
+    paths:
+      - '.github/workflows/qa-corner-registry-chinese-apply.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/corner-db-chinese-only-20260917
+          fetch-depth: 0
+      - name: Apply presentation-only localization
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('fold_designer_bridge.py')
+          text = source.read_text(encoding='utf-8')
+
+          replacements = [
+              ('win.title("PHASE6 截角資料庫 / 組合接合")', 'win.title("截角資料庫／組合接合")'),
+              ('"CERTIFIED_FROM_3D": "3D 驗證認證",', '"CERTIFIED_FROM_3D": "立體驗證認證",'),
+              ('"PROVISIONAL_3D": "3D 暫定",', '"PROVISIONAL_3D": "立體暫定",'),
+              ('"RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",', '"RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",\n    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字截角（標準）",'),
+              ('"rear_mating": "後側接合區",', '"rear_mating": "後側接合區",\n    "top_edge": "上側邊",\n    "bottom_edge": "下側邊",\n    "left_edge": "左側邊",\n    "right_edge": "右側邊",\n    "top_mating_zone": "上側接合區",\n    "bottom_mating_zone": "下側接合區",\n    "left_mating_zone": "左側接合區",\n    "right_mating_zone": "右側接合區",'),
+              ('"x_folded": "X向有折",', '"x_folded": "橫向有折",'),
+              ('"x_flat": "X向平板",', '"x_flat": "橫向平板",'),
+              ('entry("第一級 X 公式", self.relief_registry_primary_u_display_var)', 'entry("第一級橫向公式", self.relief_registry_primary_u_display_var)'),
+              ('entry("第一級 Y 公式", self.relief_registry_primary_v_display_var)', 'entry("第一級縱向公式", self.relief_registry_primary_v_display_var)'),
+              ('entry("第二級 X 公式", self.relief_registry_secondary_u_display_var)', 'entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)'),
+              ('"側折：封頭／封尾 X 向側邊折彎基底；貼外沒有 X 折時為 0。",', '"側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",'),
+              ('"上折：封頭／封尾 Y 向第一折尺寸。",', '"上折：封頭／封尾縱向第一折尺寸。",'),
+              ('"第一級 X/Y：主要截角的 X/Y 切除量；第二級 X/深度：二級截角的內側位置與深度。",', '"第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",'),
+              ('text="預覽2D"', 'text="預覽平面"'),
+              ('text="預覽組合3D"', 'text="預覽立體組合"'),
+              ('f"公式矩陣通過：{len(samples)} cases；3D零穿透="', 'f"公式矩陣通過：{len(samples)} 組；立體零穿透="'),
+              ('"候選專屬組合3D驗證："', '"候選專屬立體組合驗證："'),
+              ('f"組合3D驗證失敗：{exc}"', 'f"立體組合驗證失敗：{exc}"'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'missing expected source fragment: {old}')
+              text = text.replace(old, new)
+          source.write_text(text, encoding='utf-8')
+
+          test = Path('tests/test_corner_registry_chinese_presentation.py')
+          body = test.read_text(encoding='utf-8')
+          old = '''    text = _safe_cget(widget, "text").strip()\n    if text:\n        rows.append((str(widget), "text", text))\n'''
+          new = '''    # ttk.Entry exposes its Tcl textvariable name (for example PY_VAR123)\n    # through cget("text"); that identifier is not painted for the operator.\n    if not isinstance(widget, (tk.Entry, ttk.Entry)):\n        text = _safe_cget(widget, "text").strip()\n        if text:\n            rows.append((str(widget), "text", text))\n'''
+          if old not in body:
+              raise SystemExit('missing expected Entry false-positive block')
+          test.write_text(body.replace(old, new), encoding='utf-8')
+
+          duplicate = Path('tests/test_relief_registry_chinese_ui.py')
+          if duplicate.exists():
+              duplicate.unlink()
+          PY
+      - name: Verify patch shape
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          test ! -e tests/test_relief_registry_chinese_ui.py
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add fold_designer_bridge.py tests/test_corner_registry_chinese_presentation.py tests/test_relief_registry_chinese_ui.py
+          git commit -m 'fix: localize corner registry operator presentation'
+          git push origin HEAD:fix/corner-db-chinese-only-20260917
