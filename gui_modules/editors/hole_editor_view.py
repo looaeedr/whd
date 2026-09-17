@@ -79,6 +79,95 @@ class HoleEditorCatalogControls:
         return "break"
 
 
+class HoleEditorReferencePresentation:
+    """Own presentation-only reference-distance field refresh behavior."""
+
+    def __init__(
+        self, *, selection_provider, context_provider,
+        feature_reference_anchor, reference_distances,
+        door_enclosure_reference_guide, door_frame_edges_factory,
+        round_settings_btn, labels, values, ref_entries, side_labels,
+        last_distances, suppress_entry_events,
+    ):
+        self.selection_provider = selection_provider
+        self.context_provider = context_provider
+        self.feature_reference_anchor = feature_reference_anchor
+        self.reference_distances = reference_distances
+        self.door_enclosure_reference_guide = door_enclosure_reference_guide
+        self.door_frame_edges_factory = door_frame_edges_factory
+        self.round_settings_btn = round_settings_btn
+        self.labels = labels
+        self.values = values
+        self.ref_entries = ref_entries
+        self.side_labels = side_labels
+        self.last_distances = last_distances
+        self.suppress_entry_events = suppress_entry_events
+
+    def active_reference_guide(self):
+        context = self.context_provider()
+        if (
+            context["active_part_key"] == "door"
+            and context["indicator_box_dist_enabled"]
+            and context["door_frame_width"] is not None
+            and context["door_thickness"] is not None
+            and context["door_gap_w"] is not None
+            and context["door_gap_h"] is not None
+        ):
+            return self.door_enclosure_reference_guide(
+                context["reference_guide"],
+                context["door_frame_edges"] or self.door_frame_edges_factory(),
+                frame_width=context["door_frame_width"],
+                thickness=context["door_thickness"],
+                gap_w=context["door_gap_w"],
+                gap_h=context["door_gap_h"],
+            )
+        return context["reference_guide"]
+
+    def refresh_reference_fields(self):
+        idx, feature_list = self.selection_provider()
+        self.suppress_entry_events[0] = True
+        try:
+            if not (0 <= idx < len(feature_list)):
+                for variable in self.values.values():
+                    variable.set("")
+                self.last_distances[0] = None
+                self.round_settings_btn.configure(state=tk.DISABLED)
+                return
+            feature = feature_list[idx]
+            anchor = self.feature_reference_anchor(feature)
+            self.round_settings_btn.configure(
+                state=(tk.NORMAL if isinstance(feature, CircleFeature) else tk.DISABLED)
+            )
+            context = self.context_provider()
+            distances = self.reference_distances(
+                context["surface"], feature_list, idx, anchor,
+                context["width"], context["height"],
+                reference_guide=self.active_reference_guide(),
+            )
+            self.last_distances[0] = distances
+            x_side = self.side_labels[distances.x_side]
+            y_side = self.side_labels[distances.y_side]
+            self.labels["x_edge"].set(f"X 到{x_side}邊框")
+            self.labels["x_neighbor"].set(f"X 到{x_side}側鄰近孔")
+            self.labels["y_edge"].set(f"Y 到{y_side}邊框")
+            self.labels["y_neighbor"].set(f"Y 到{y_side}側鄰近孔")
+            self.values["x_edge"].set(f"{distances.x_edge_distance:.2f}")
+            self.values["y_edge"].set(f"{distances.y_edge_distance:.2f}")
+            self.values["x_neighbor"].set(
+                "" if distances.x_neighbor_distance is None else f"{distances.x_neighbor_distance:.2f}"
+            )
+            self.values["y_neighbor"].set(
+                "" if distances.y_neighbor_distance is None else f"{distances.y_neighbor_distance:.2f}"
+            )
+            self.ref_entries[("x", "neighbor")].configure(
+                state=(tk.NORMAL if distances.x_neighbor_index is not None else tk.DISABLED)
+            )
+            self.ref_entries[("y", "neighbor")].configure(
+                state=(tk.NORMAL if distances.y_neighbor_index is not None else tk.DISABLED)
+            )
+        finally:
+            self.suppress_entry_events[0] = False
+
 class HoleEditorPageNavigation:
     """Own transient notebook/page routing for the shared hole editor."""
 

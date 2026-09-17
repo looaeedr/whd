@@ -168,6 +168,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
+    HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -6256,49 +6257,43 @@ class Phase6ApplicationHost:
         side_zh = {"left": "左", "right": "右", "top": "上", "bottom": "下"}
         last_distances = [None]
 
-        def active_reference_guide():
-            if (
-                active_part_key[0] == "door" and indicator_box_dist_var is not None and indicator_box_dist_var.get()
-                and door_frame_width is not None and door_thickness is not None
-                and door_gap_w is not None and door_gap_h is not None
-            ):
-                return door_enclosure_reference_guide(
-                    reference_guide, door_frame_edges or DoorFrameEdges(),
-                    frame_width=door_frame_width, thickness=door_thickness,
-                    gap_w=door_gap_w, gap_h=door_gap_h,
-                )
-            return reference_guide
-
-        def refresh_reference_fields():
-            idx = hole_session.selected_index
-            suppress_entry_events[0] = True
-            try:
-                if not (0 <= idx < len(feature_list)):
-                    for v in (var_x_edge, var_x_neighbor, var_y_edge, var_y_neighbor):
-                        v.set("")
-                    last_distances[0] = None
-                    round_settings_btn.configure(state=tk.DISABLED)
-                    return
-                anchor = feature_reference_anchor(feature_list[idx])
-                round_settings_btn.configure(state=(tk.NORMAL if isinstance(feature_list[idx], CircleFeature) else tk.DISABLED))
-                d = reference_distances(
-                    surface, feature_list, idx, anchor, width, height, reference_guide=active_reference_guide()
-                )
-                last_distances[0] = d
-                xs = side_zh[d.x_side]
-                ys = side_zh[d.y_side]
-                lbl_x_edge.set(f"X 到{xs}邊框")
-                lbl_x_neighbor.set(f"X 到{xs}側鄰近孔")
-                lbl_y_edge.set(f"Y 到{ys}邊框")
-                lbl_y_neighbor.set(f"Y 到{ys}側鄰近孔")
-                var_x_edge.set(f"{d.x_edge_distance:.2f}")
-                var_y_edge.set(f"{d.y_edge_distance:.2f}")
-                var_x_neighbor.set("" if d.x_neighbor_distance is None else f"{d.x_neighbor_distance:.2f}")
-                var_y_neighbor.set("" if d.y_neighbor_distance is None else f"{d.y_neighbor_distance:.2f}")
-                ref_entries[("x", "neighbor")].configure(state=(tk.NORMAL if d.x_neighbor_index is not None else tk.DISABLED))
-                ref_entries[("y", "neighbor")].configure(state=(tk.NORMAL if d.y_neighbor_index is not None else tk.DISABLED))
-            finally:
-                suppress_entry_events[0] = False
+        reference_presentation = _HoleEditorReferencePresentation(
+            selection_provider=lambda: (hole_session.selected_index, feature_list),
+            context_provider=lambda: {
+                "reference_guide": reference_guide,
+                "active_part_key": active_part_key[0],
+                "indicator_box_dist_enabled": bool(
+                    indicator_box_dist_var is not None and indicator_box_dist_var.get()
+                ),
+                "door_frame_width": door_frame_width,
+                "door_thickness": door_thickness,
+                "door_gap_w": door_gap_w,
+                "door_gap_h": door_gap_h,
+                "door_frame_edges": door_frame_edges,
+                "surface": surface,
+                "width": width,
+                "height": height,
+            },
+            feature_reference_anchor=feature_reference_anchor,
+            reference_distances=reference_distances,
+            door_enclosure_reference_guide=door_enclosure_reference_guide,
+            door_frame_edges_factory=DoorFrameEdges,
+            round_settings_btn=round_settings_btn,
+            labels={
+                "x_edge": lbl_x_edge, "x_neighbor": lbl_x_neighbor,
+                "y_edge": lbl_y_edge, "y_neighbor": lbl_y_neighbor,
+            },
+            values={
+                "x_edge": var_x_edge, "x_neighbor": var_x_neighbor,
+                "y_edge": var_y_edge, "y_neighbor": var_y_neighbor,
+            },
+            ref_entries=ref_entries,
+            side_labels=side_zh,
+            last_distances=last_distances,
+            suppress_entry_events=suppress_entry_events,
+        )
+        active_reference_guide = reference_presentation.active_reference_guide
+        refresh_reference_fields = reference_presentation.refresh_reference_fields
 
         def redraw():
             guide = reference_guide
