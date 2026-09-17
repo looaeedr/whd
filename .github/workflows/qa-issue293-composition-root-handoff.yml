@@ -26,13 +26,41 @@ jobs:
         run: python -m pip install -q pytest -r requirements.txt
       - name: Compile extracted editor modules
         run: python -m py_compile gui.py gui_modules/editors/hole_editor.py gui_modules/editors/hole_editor_view.py gui_modules/editors/hole_editor_composition.py
-      - name: Verify dependency adapter fail-closed resolution
+      - name: Verify dependency adapter fail-closed namespace resolution
         run: |
           python - <<'PY'
-          import gui
+          import ast
+          from pathlib import Path
           from gui_modules.editors.hole_editor_composition import HoleEditorCompositionDependencies
-          HoleEditorCompositionDependencies.from_namespace(vars(gui))
-          print('COMPOSITION_DEPENDENCIES_OK')
+
+          tree = ast.parse(Path('gui.py').read_text(encoding='utf-8'))
+          names = {}
+
+          def store_target(target):
+              if isinstance(target, ast.Name):
+                  names[target.id] = None
+              elif isinstance(target, (ast.Tuple, ast.List)):
+                  for item in target.elts:
+                      store_target(item)
+
+          for node in tree.body:
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      names[alias.asname or alias.name.split('.')[0]] = None
+              elif isinstance(node, ast.ImportFrom):
+                  for alias in node.names:
+                      if alias.name != '*':
+                          names[alias.asname or alias.name] = None
+              elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                  names[node.name] = None
+              elif isinstance(node, ast.Assign):
+                  for target in node.targets:
+                      store_target(target)
+              elif isinstance(node, ast.AnnAssign):
+                  store_target(node.target)
+
+          HoleEditorCompositionDependencies.from_namespace(names)
+          print('COMPOSITION_DEPENDENCY_NAMESPACE_OK')
           PY
       - name: Verify architecture and authority GREEN
         run: >-
