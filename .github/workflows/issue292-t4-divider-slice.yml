@@ -1,0 +1,35 @@
+name: Issue292 T4 Divider Slice
+
+on:
+  push:
+    branches:
+      - refactor/issue292-gui-phase2-t4-panels-20260916
+    paths:
+      - 'tests/test_issue292_t4_divider_slice.py'
+      - 'gui.py'
+      - 'gui_modules/parts/panels/divider.py'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: '1'
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile divider extraction boundary
+        run: python -m py_compile gui.py gui_modules/parts/panels/divider.py
+      - name: Run divider slice characterization
+        run: python -m pytest -q tests/test_issue292_t4_divider_slice.py tests/test_issue292_t4_box_body_slice.py tests/test_issue292_t4_endcap_slice.py tests/test_issue292_t4_base_plate_slice.py
