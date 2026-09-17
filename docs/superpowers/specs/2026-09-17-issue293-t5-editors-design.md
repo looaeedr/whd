@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue293-t5-editors-design
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #293 / T5 — Editors, dialogs, and modal workflow extraction design
 
 ## Identity
