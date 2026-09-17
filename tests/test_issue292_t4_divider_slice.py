@@ -11,6 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 DIVIDER = ROOT / "gui_modules" / "parts" / "panels" / "divider.py"
 
+# Focused Task 5 divider characterization. This file intentionally drives RED
+# before any divider production extraction is added.
+
 
 def _load_divider_module():
     spec = importlib.util.spec_from_file_location("issue292_divider_panel", DIVIDER)
