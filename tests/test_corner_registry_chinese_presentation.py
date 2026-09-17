@@ -130,20 +130,20 @@ def _visible_strings(widget):
     return rows
 
 
-def _assert_chinese_only(win):
+def _assert_chinese_only(win, *, context=""):
     visible = [(str(win), "title", str(win.title() or "").strip())]
     visible.extend(_visible_strings(win))
     leaks = [row for row in visible if row[2] and _ASCII_ALPHA.search(row[2])]
-    print("CORNER_REGISTRY_VISIBLE_TEXT", visible)
+    print("CORNER_REGISTRY_CONTEXT", context)
     print("CORNER_REGISTRY_ASCII_LEAKS", leaks)
     assert not leaks, (
         "截角資料庫使用者可見文字不得顯示英文字母；內部 enum/key/schema 可保留英文，"
-        f"但 presentation boundary 必須中文化。leaks={leaks!r}"
+        f"但 presentation boundary 必須中文化。context={context!r}, leaks={leaks!r}"
     )
 
 
 def test_corner_registry_user_visible_text_is_chinese_only():
-    """Registry presentation may localize internal IDs, but must never expose ASCII words."""
+    """Every rule projection must localize internal IDs without changing raw authority."""
     root, _app, designer = _open_designer()
     try:
         designer.relief_registry_button.invoke()
@@ -151,17 +151,18 @@ def test_corner_registry_user_visible_text_is_chinese_only():
         win = designer.relief_registry_window
         assert win.winfo_exists()
         assert win.winfo_ismapped()
-        _assert_chinese_only(win)
+        _assert_chinese_only(win, context="initial")
 
-        # Selecting a rule populates the editable presentation fields.  Recheck
-        # that state so raw rule/source/formula IDs cannot leak after interaction.
+        # Every rule can populate different metadata/source strings.  Walk all
+        # rows so one localized rule cannot hide English leakage in another.
         tree = designer.relief_registry_rule_tree
         children = tuple(tree.get_children())
-        if children:
-            tree.selection_set(children[0])
+        assert children, "截角資料庫應至少有一筆規則可驗證"
+        for item_id in children:
+            tree.selection_set(item_id)
             tree.event_generate("<<TreeviewSelect>>")
             _pump(root, 2)
-            _assert_chinese_only(win)
+            _assert_chinese_only(win, context=f"rule:{item_id}")
     finally:
         try:
             root.destroy()
