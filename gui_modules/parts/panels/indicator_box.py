@@ -2,7 +2,6 @@
 
 import tkinter as tk
 from tkinter import ttk
-from ae_engine import manufacturing_api
 
 def collect_indicator_box_input(payload):
     """Copy existing indicator input values without deriving drawing or geometry."""
@@ -45,7 +44,7 @@ def setup_tab_indicator_box_ui(host):
     # 畫布
     host.canvas_indicator_box = tk.Canvas(canvas_frame, bg=host.COLOR_CANVAS_BG, highlightthickness=0)
     host.canvas_indicator_box.pack(fill=tk.BOTH, expand=True)
-    host.canvas_indicator_box.bind("<Configure>", lambda e: host.draw_preview())
+    host.canvas_indicator_box.bind("<Configure>", host._route_indicator_canvas_configure)
     host._attach_part_hole_entrypoint(host.canvas_indicator_box, "indicator_box", allow_double=True)
 
     # 初始化動態組數選單
@@ -79,8 +78,7 @@ def rebuild_layers_config_ui(host):
         cb.bind("<<ComboboxSelected>>", lambda e: host._request_phase6_update("geometry"))
 
 def _indicator_small_door_size_chain_label(host):
-    gap = float(manufacturing_api.resolve_policy().indicator_small_door_gap)
-    gap_text = f"{gap:g}"
+    gap_text = host._indicator_small_door_gap_text()
     return (
         "指示燈小門展開圖預覽 | 尺寸連動：盒子內部淨開口 "
         f"→ 四邊各留 {gap_text} mm → 小門成品 → 小門展開"
@@ -106,5 +104,5 @@ def setup_tab_indicator_door_ui(host):
     # 畫布
     host.canvas_indicator_door = tk.Canvas(canvas_frame, bg=host.COLOR_CANVAS_BG, highlightthickness=0)
     host.canvas_indicator_door.pack(fill=tk.BOTH, expand=True)
-    host.canvas_indicator_door.bind("<Configure>", lambda e: host.draw_preview())
+    host.canvas_indicator_door.bind("<Configure>", host._route_indicator_canvas_configure)
     host._attach_part_hole_entrypoint(host.canvas_indicator_door, "indicator_door", allow_double=True)

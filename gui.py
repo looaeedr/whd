@@ -4075,6 +4075,13 @@ class Phase6ApplicationHost:
             self.door_indicator_offset_y = target.y
             self.draw_preview()
 
+    def _indicator_small_door_gap_text(self):
+        gap = float(manufacturing_api.resolve_policy().indicator_small_door_gap)
+        return f"{gap:g}"
+
+    def _route_indicator_canvas_configure(self, event=None):
+        return self.draw_preview()
+
     def _indicator_small_door_size_chain_label(self):
         return __indicator_small_door_size_chain_label_impl(self)
 
