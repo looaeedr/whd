@@ -3,16 +3,34 @@ from pathlib import Path
 p = Path('fold_designer_bridge.py')
 text = p.read_text(encoding='utf-8')
 
-replacements = [
-    ('"CERTIFIED_FROM_3D": "3D 驗證認證",', '"CERTIFIED_FROM_3D": "立體驗證認證",'),
-    ('"PROVISIONAL_3D": "3D 暫定",', '"PROVISIONAL_3D": "立體暫定",'),
-    ('"RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",', '"RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",\n    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準",'),
-    ('"ytop1_present": "有上折",\n    "ytop1_absent": "無獨立上折",\n    "ybottom1_present": "有下折",\n    "x_folded": "X向有折",\n    "x_flat": "X向平板",', '"ytop1_present": "有上折",\n    "ytop1_absent": "無獨立上折",\n    "ybottom1_present": "有下折",\n    "x_folded": "橫向有折",\n    "x_flat": "橫向平板",\n    "top_edge": "上側邊",\n    "bottom_edge": "下側邊",\n    "left_edge": "左側邊",\n    "right_edge": "右側邊",\n    "top_mating_zone": "上側接合區",\n    "bottom_mating_zone": "下側接合區",\n    "left_mating_zone": "左側接合區",\n    "right_mating_zone": "右側接合區",'),
+
+def ensure_replace(old: str, new: str) -> None:
+    global text
+    if old not in text:
+        if new in text:
+            return
+        raise SystemExit(f'neither old nor accepted new form found: {old!r}')
+    if text.count(old) != 1:
+        raise SystemExit(f'expected exactly one old match: {old!r}')
+    text = text.replace(old, new, 1)
+
+
+# These presentation aliases were partly applied by an earlier fail-closed QA
+# writer on this same work branch.  Keep this patcher idempotent: only finish
+# what is still missing and never mutate raw registry IDs/enums/schema.
+for old, new in (
     ('"reserve_u": "X預留",', '"reserve_u": "橫向預留",'),
     ('"reserve_v": "Y預留",', '"reserve_v": "縱向預留",'),
     ('"fold_u": "X向折邊",', '"fold_u": "橫向折邊",'),
     ('"fold_v": "Y向折邊",', '"fold_v": "縱向折邊",'),
-    ('def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):', '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
+):
+    ensure_replace(old, new)
+
+if '_PHASE6_SOURCE_DISPLAY_TOKENS =' not in text:
+    marker = 'def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
+    if text.count(marker) != 1:
+        raise SystemExit('translated-var authority marker missing or ambiguous')
+    source_projection = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
     "linked-FW": "連動框寬",
     "FW": "框寬",
     "3D": "立體",
@@ -34,26 +52,33 @@ def _phase6_source_raw(value):
     return text
 
 
-def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'''),
-    ('win.title("PHASE6 截角資料庫 / 組合接合")', 'win.title("截角資料庫／組合接合")'),
-    ('    entry("第一級 X 公式", self.relief_registry_primary_u_display_var)\n    entry("第一級 Y 公式", self.relief_registry_primary_v_display_var)\n    entry("第二級 X 公式", self.relief_registry_secondary_u_display_var)\n    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)\n    entry("適用條件", self.relief_registry_preconditions_display_var)\n    entry("公式來源／備註", self.relief_registry_source_var)', '    self.relief_registry_source_display_var = original.tk.StringVar(master=form)\n    _phase6_bind_translated_var(\n        self.relief_registry_source_var, self.relief_registry_source_display_var,\n        _phase6_source_display, _phase6_source_raw,\n    )\n    entry("第一級橫向公式", self.relief_registry_primary_u_display_var)\n    entry("第一級縱向公式", self.relief_registry_primary_v_display_var)\n    entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)\n    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)\n    entry("適用條件", self.relief_registry_preconditions_display_var)\n    entry("公式來源／備註", self.relief_registry_source_display_var)'),
-    ('"側折：封頭／封尾 X 向側邊折彎基底；貼外沒有 X 折時為 0。",', '"側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",'),
-    ('"上折：封頭／封尾 Y 向第一折尺寸。",', '"上折：封頭／封尾縱向第一折尺寸。",'),
-    ('"第一級 X/Y：主要截角的 X/Y 切除量；第二級 X/深度：二級截角的內側位置與深度。",', '"第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",'),
-    ('("預覽2D",lambda:_phase6_registry_preview_2d(self)),', '("預覽平面",lambda:_phase6_registry_preview_2d(self)),'),
-    ('("預覽組合3D",lambda:_phase6_registry_preview_assembly_3d(self)),', '("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self)),'),
-    ('f"公式矩陣通過：{len(samples)} cases；3D零穿透="', 'f"公式矩陣通過：{len(samples)} 組；立體零穿透="'),
-    ('"候選專屬組合3D驗證："', '"候選專屬立體組合驗證："'),
-    ('f"組合3D驗證失敗：{exc}"', 'f"立體組合驗證失敗：{exc}"'),
-    ('raise ValueError("只有 USER_ADDED Joint 可以刪除")', 'raise ValueError("只有使用者新增的接合規則可以刪除")'),
-    ('raise ValueError("相同 AssemblyJoint 已存在")', 'raise ValueError("相同接合規則已存在")'),
-]
+'''
+    text = text.replace(marker, source_projection + marker, 1)
 
-for old, new in replacements:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f'expected exactly one match, got {count}: {old!r}')
+if 'self.relief_registry_source_display_var' not in text:
+    old = '    entry("公式來源／備註", self.relief_registry_source_var)'
+    new = '''    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
+    _phase6_bind_translated_var(
+        self.relief_registry_source_var, self.relief_registry_source_display_var,
+        _phase6_source_display, _phase6_source_raw,
+    )
+    entry("公式來源／備註", self.relief_registry_source_display_var)'''
+    if text.count(old) != 1:
+        raise SystemExit('source presentation field marker missing or ambiguous')
     text = text.replace(old, new, 1)
+
+# Fail closed if the already-applied presentation layer regressed while this
+# writer was being iterated.
+required_markers = (
+    'win.title("截角資料庫／組合接合")',
+    '"CERTIFIED_FROM_3D": "立體驗證認證"',
+    '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準"',
+    'entry("第一級橫向公式", self.relief_registry_primary_u_display_var)',
+    '("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self))',
+)
+missing = [marker for marker in required_markers if marker not in text]
+if missing:
+    raise SystemExit(f'expected prior Chinese presentation markers missing: {missing!r}')
 
 p.write_text(text, encoding='utf-8')
 print('patched', p)
