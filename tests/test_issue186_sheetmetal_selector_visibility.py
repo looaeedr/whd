@@ -12,13 +12,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def _open_designer():
-    """Open the exact production direct-3D application path.
-
-    #189 retired BoxCalculatorGUI as the user-facing startup owner.  The sheet-
-    metal selector regression must therefore exercise Phase6PrimaryApplication,
-    otherwise a legacy helper path can stay GREEN while production loses the
-    Structure Tree.
-    """
+    """Open the exact production direct-3D application path."""
     root = tk.Tk()
     root.geometry("1400x900+0+0")
     root.update_idletasks()
@@ -51,6 +45,45 @@ def _tree_visible_overlap(designer):
     tree_top = float(host.winfo_y() + tree.winfo_y())
     tree_bottom = tree_top + float(tree.winfo_height())
     return max(0.0, min(content_bottom, tree_bottom) - max(content_top, tree_top))
+
+
+def _menu_values(designer):
+    menu = designer.part_choice_menu
+    end = menu.index("end")
+    if end is None:
+        return ()
+    values = []
+    for index in range(end + 1):
+        try:
+            values.append((index, str(menu.entrycget(index, "value"))))
+        except tk.TclError:
+            pass
+    return tuple(values)
+
+
+def test_issue186_sheetmetal_compact_menu_is_operator_visible_and_live():
+    """The existing sheet-metal Menubutton must be a real production control."""
+    root, _app, designer = _open_designer()
+    try:
+        _pump(root)
+        button = designer.part_choice_button
+        values = _menu_values(designer)
+
+        assert button.winfo_ismapped(), (
+            "sheet-metal part_choice_button still exists but is hidden as a compatibility-only "
+            "object instead of being restored to the production UI"
+        )
+        assert values, "visible sheet-metal menu must contain the current physical-part choices"
+
+        current = str(designer.part_var.get())
+        candidate = next(((index, value) for index, value in values if value != current), None)
+        assert candidate is not None, f"sheet-metal menu has no alternate live selection: {values!r}"
+        index, value = candidate
+        designer.part_choice_menu.invoke(index)
+        _pump(root)
+        assert str(designer.part_var.get()) == value
+    finally:
+        _close(root)
 
 
 def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
