@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import replace
 from tkinter import messagebox
 
+from phase6_hole_editor_session import HoleEditorAction
+
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
 from ae_engine.contracts import ManufacturingContext
@@ -34,6 +36,67 @@ from ae_engine.sheetmetal_part_adapters import (
     build_unknown_door_result,
     build_unknown_indicator_box_result,
 )
+
+
+class HoleEditorTransientActions:
+    """Own transient editor transaction commands while reusing session authority."""
+
+    def __init__(
+        self, *, hole_session, feature_list, var_rotation,
+        refresh_created, refresh_reference_fields, redraw, sync_all,
+    ):
+        self.hole_session = hole_session
+        self.feature_list = feature_list
+        self.var_rotation = var_rotation
+        self.refresh_created = refresh_created
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+
+    def commit_active_edit(self, keep_selected=True):
+        self.hole_session.execute(
+            HoleEditorAction.commit_active(keep_selected=keep_selected)
+        )
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.redraw()
+
+    def undo_last_action(self, event=None):
+        self.hole_session.execute(HoleEditorAction.undo())
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.redraw()
+        self.sync_all()
+        return "break"
+
+    def cancel_active_edit(self):
+        had_active = self.hole_session.has_active_edit
+        self.hole_session.execute(HoleEditorAction.cancel_active())
+        if not had_active:
+            return False
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.sync_all()
+        self.redraw()
+        return True
+
+    def begin_edit(self, idx, old_feature_marker="existing"):
+        if old_feature_marker == "new":
+            if self.hole_session.selected_index != idx:
+                self.hole_session.execute(HoleEditorAction.select(idx))
+        else:
+            self.hole_session.execute(HoleEditorAction.select(idx))
+        if 0 <= idx < len(self.feature_list):
+            rotation = int(
+                getattr(self.feature_list[idx], "rotation_deg", 0) or 0
+            ) % 360
+            self.var_rotation.set(f"{360 if rotation == 0 else rotation}°")
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.redraw()
+
+    def select_feature(self, idx):
+        self.begin_edit(idx, "existing")
 
 
 def open_hole_editor(host, key):

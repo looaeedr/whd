@@ -152,6 +152,7 @@ from ae_engine.corner_type_ui import (
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
+    HoleEditorTransientActions as _HoleEditorTransientActions,
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
 )
@@ -6518,48 +6519,20 @@ class Phase6ApplicationHost:
             canvas.focus_set()
             return "break"
 
-        def commit_active_edit(keep_selected=True):
-            hole_session.execute(HoleEditorAction.commit_active(keep_selected=keep_selected))
-            refresh_created()
-            refresh_reference_fields()
-            redraw()
-
-        def undo_last_action(event=None):
-            hole_session.execute(HoleEditorAction.undo())
-            refresh_created()
-            refresh_reference_fields()
-            redraw()
-            sync_all()
-            return "break"
-
-        def cancel_active_edit():
-            had_active = hole_session.has_active_edit
-            hole_session.execute(HoleEditorAction.cancel_active())
-            if not had_active:
-                return False
-            refresh_created()
-            refresh_reference_fields()
-            sync_all()
-            redraw()
-            return True
-
-        def begin_edit(idx, old_feature_marker="existing"):
-            if old_feature_marker == "new":
-                # New features enter through HoleEditorAction.insert(); selecting the
-                # already-inserted index must not create a second transaction.
-                if hole_session.selected_index != idx:
-                    hole_session.execute(HoleEditorAction.select(idx))
-            else:
-                hole_session.execute(HoleEditorAction.select(idx))
-            if 0 <= idx < len(feature_list):
-                rotation = int(getattr(feature_list[idx], "rotation_deg", 0) or 0) % 360
-                var_rotation.set(f"{360 if rotation == 0 else rotation}°")
-            refresh_created()
-            refresh_reference_fields()
-            redraw()
-
-        def select_feature(idx):
-            begin_edit(idx, "existing")
+        session_actions = _HoleEditorTransientActions(
+            hole_session=hole_session,
+            feature_list=feature_list,
+            var_rotation=var_rotation,
+            refresh_created=refresh_created,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+        )
+        commit_active_edit = session_actions.commit_active_edit
+        undo_last_action = session_actions.undo_last_action
+        cancel_active_edit = session_actions.cancel_active_edit
+        begin_edit = session_actions.begin_edit
+        select_feature = session_actions.select_feature
 
         def on_canvas_down(event):
             point = canvas_view.canvas_to_world(event.x, event.y)
