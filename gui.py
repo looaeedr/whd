@@ -163,6 +163,7 @@ from gui_modules.editors.hole_editor import (
 )
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
+    HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -5904,32 +5905,22 @@ class Phase6ApplicationHost:
         indicator_offset_y_var = None
         indicator_box_dist_var = None
 
-        def set_indicator_page_visible(visible):
-            if editor_tabs is None or indicator_page is None or main_page is None:
-                return
-            visible = bool(visible)
-            tabs = set(editor_tabs.tabs())
-            page_name = str(indicator_page)
-            if visible and page_name not in tabs:
-                editor_tabs.add(indicator_page, text="  指示燈盒  ")
-                indicator_page_visible[0] = True
-            elif not visible and page_name in tabs:
-                if editor_tabs.select() == page_name:
-                    editor_tabs.select(main_page)
-                editor_tabs.forget(indicator_page)
-                indicator_page_visible[0] = False
-
-        def request_indicator_redraw(*_args):
-            mode = indicator_mode_var.get() if indicator_mode_var is not None else "none"
-            set_indicator_page_visible(mode == "indicator_box")
-            if indicator_context_refresh[0] is not None:
-                editor.after_idle(indicator_context_refresh[0])
-            elif indicator_redraw[0] is not None:
-                editor.after_idle(indicator_redraw[0])
-
-        def on_box_distance_toggle():
-            request_indicator_redraw()
-            editor.after_idle(lambda: refresh_reference_fields())
+        indicator_ui_actions = _HoleEditorIndicatorUiActions(
+            editor_tabs=editor_tabs,
+            indicator_page=indicator_page,
+            main_page=main_page,
+            indicator_page_visible=indicator_page_visible,
+            mode_provider=lambda: (
+                indicator_mode_var.get() if indicator_mode_var is not None else "none"
+            ),
+            context_refresh_provider=lambda: indicator_context_refresh[0],
+            redraw_provider=lambda: indicator_redraw[0],
+            schedule_idle=editor.after_idle,
+            refresh_reference_fields=lambda: refresh_reference_fields(),
+        )
+        set_indicator_page_visible = indicator_ui_actions.set_indicator_page_visible
+        request_indicator_redraw = indicator_ui_actions.request_indicator_redraw
+        on_box_distance_toggle = indicator_ui_actions.on_box_distance_toggle
 
         def collect_indicator_state():
             if indicator_mode_var is None:

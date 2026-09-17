@@ -78,6 +78,51 @@ class HoleEditorCatalogControls:
         return "break"
 
 
+class HoleEditorIndicatorUiActions:
+    """Own transient indicator-page visibility and redraw scheduling."""
+
+    def __init__(
+        self, *, editor_tabs, indicator_page, main_page, indicator_page_visible,
+        mode_provider, context_refresh_provider, redraw_provider,
+        schedule_idle, refresh_reference_fields,
+    ):
+        self.editor_tabs = editor_tabs
+        self.indicator_page = indicator_page
+        self.main_page = main_page
+        self.indicator_page_visible = indicator_page_visible
+        self.mode_provider = mode_provider
+        self.context_refresh_provider = context_refresh_provider
+        self.redraw_provider = redraw_provider
+        self.schedule_idle = schedule_idle
+        self.refresh_reference_fields = refresh_reference_fields
+
+    def set_indicator_page_visible(self, visible):
+        if self.editor_tabs is None or self.indicator_page is None or self.main_page is None:
+            return
+        visible = bool(visible)
+        tabs = set(self.editor_tabs.tabs())
+        page_name = str(self.indicator_page)
+        if visible and page_name not in tabs:
+            self.editor_tabs.add(self.indicator_page, text="  指示燈盒  ")
+            self.indicator_page_visible[0] = True
+        elif not visible and page_name in tabs:
+            if self.editor_tabs.select() == page_name:
+                self.editor_tabs.select(self.main_page)
+            self.editor_tabs.forget(self.indicator_page)
+            self.indicator_page_visible[0] = False
+
+    def request_indicator_redraw(self, *_args):
+        self.set_indicator_page_visible(self.mode_provider() == "indicator_box")
+        callback = self.context_refresh_provider()
+        if callback is None:
+            callback = self.redraw_provider()
+        if callback is not None:
+            self.schedule_idle(callback)
+
+    def on_box_distance_toggle(self):
+        self.request_indicator_redraw()
+        self.schedule_idle(self.refresh_reference_fields)
+
 def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
     """Draw the existing double-click hole-editor hint without owning state."""
     text = "雙擊：開孔"
