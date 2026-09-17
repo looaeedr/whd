@@ -1,7 +1,7 @@
 name: Sheet-metal Xvfb A-B Diagnostic
 
-# One-shot atomic patch + focused GREEN. The production candidate branch is
-# updated only after exact-base, focused-Xvfb, and protected-file gates pass.
+# Full same-run A/B: current production baseline versus the exact accepted
+# sheet-metal candidate. Any candidate-only Xvfb failure or protected drift fails.
 on:
   push:
     branches:
@@ -10,12 +10,12 @@ on:
       - '.github/workflows/qa-sheetmetal-xvfb-ab-diagnostic.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch-and-focused-green:
+  full-xvfb-ab:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,63 +30,52 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-      - name: Checkout exact fix branch base
+      - name: Compare production and candidate full Xvfb failure sets
         run: |
           set -euo pipefail
-          git fetch origin fix/sheetmetal-tree-sync-from-menu-20260917
-          git checkout -B fix/sheetmetal-tree-sync-from-menu-20260917 origin/fix/sheetmetal-tree-sync-from-menu-20260917
-          test "$(git rev-parse HEAD)" = "c5337eb535b0917b906dc74eaf94abefa61a7a14"
-          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
-      - name: Apply minimal menu-to-tree projection refresh
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('fold_designer_bridge.py')
-          text = p.read_text(encoding='utf-8')
-          old = '''def _phase6_activate_operator_part(self, key):
-              """Activate only a successfully resolved explicit operator identity."""
-              resolved = _phase6_resolve_operator_part_key(self, key)
-              if not resolved:
-                  return None
-              return self.activate_part(resolved)
-          '''
-          new = '''def _phase6_activate_operator_part(self, key):
-              """Activate only a successfully resolved explicit operator identity."""
-              resolved = _phase6_resolve_operator_part_key(self, key)
-              if not resolved:
-                  return None
-              result = self.activate_part(resolved)
-              _phase6_refresh_structure_tree(self)
-              return result
-          '''
-          count = text.count(old)
-          if count != 1:
-              raise SystemExit(f'exact callback occurrence count={count}, expected 1')
-          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          BASE_SHA='ec0724c892dd0d44f1bb4e0b80e90a85820df209'
+          CANDIDATE_SHA='e96068280a238a6918ed1f166feac2ab9135ea6d'
+
+          extract_failures() {
+            python - "$1" "$2" <<'PY'
+          import pathlib, sys
+          src = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace').splitlines()
+          nodes = []
+          for line in src:
+              if line.startswith('FAILED '):
+                  node = line[len('FAILED '):].split(' - ', 1)[0].strip()
+                  nodes.append(node)
+          pathlib.Path(sys.argv[2]).write_text('\n'.join(sorted(set(nodes))) + ('\n' if nodes else ''), encoding='utf-8')
           PY
-          git diff --check
-          test "$(git diff --name-only)" = "fold_designer_bridge.py"
-          git diff -- fold_designer_bridge.py
-      - name: Run focused Xvfb contract suite
-        run: |
-          set -euo pipefail
-          xvfb-run -a python -m pytest -q \
-            tests/test_issue124_structure_tree.py \
-            tests/test_issue186_sheetmetal_selector_visibility.py \
-            tests/test_phase6_t21_live_switch_selector.py
-      - name: Verify protected invariants
-        run: |
-          set -euo pipefail
+          }
+
+          git checkout -q "$BASE_SHA"
+          set +e
+          xvfb-run -a python -m pytest -q > /tmp/base-xvfb.log 2>&1
+          BASE_RC=$?
+          set -e
+          extract_failures /tmp/base-xvfb.log /tmp/base.failures
+
+          git checkout -q "$CANDIDATE_SHA"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
+          set +e
+          xvfb-run -a python -m pytest -q > /tmp/candidate-xvfb.log 2>&1
+          CANDIDATE_RC=$?
+          set -e
+          extract_failures /tmp/candidate-xvfb.log /tmp/candidate.failures
           git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-after.sha256
           cmp /tmp/protected-before.sha256 /tmp/protected-after.sha256
-          test "$(git diff --name-only)" = "fold_designer_bridge.py"
-      - name: Commit and push accepted minimal fix
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add fold_designer_bridge.py
-          git commit -m 'fix: refresh structure tree after compact part selection'
-          git push origin HEAD:fix/sheetmetal-tree-sync-from-menu-20260917
-          echo "ACCEPTED_SHA=$(git rev-parse HEAD)"
+          git diff --exit-code
+
+          echo "BASE_RC=$BASE_RC"
+          echo "CANDIDATE_RC=$CANDIDATE_RC"
+          echo '=== BASE FAILURES ==='
+          cat /tmp/base.failures
+          echo '=== CANDIDATE FAILURES ==='
+          cat /tmp/candidate.failures
+          echo '=== FAILURE SET DIFF ==='
+          diff -u /tmp/base.failures /tmp/candidate.failures
+          echo '=== BASE SUMMARY ==='
+          tail -n 20 /tmp/base-xvfb.log
+          echo '=== CANDIDATE SUMMARY ==='
+          tail -n 20 /tmp/candidate-xvfb.log
