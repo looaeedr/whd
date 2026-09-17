@@ -22,8 +22,8 @@ jobs:
           python-version: '3.12'
       - name: Apply composition root handoff
         run: python tools/qa_issue293_composition_root_handoff_green.py
-      - name: Install pytest
-        run: python -m pip install -q pytest
+      - name: Install runtime test dependencies
+        run: python -m pip install -q pytest -r requirements.txt
       - name: Compile extracted editor modules
         run: python -m py_compile gui.py gui_modules/editors/hole_editor.py gui_modules/editors/hole_editor_view.py gui_modules/editors/hole_editor_composition.py
       - name: Verify dependency adapter fail-closed resolution
