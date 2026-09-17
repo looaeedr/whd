@@ -12,10 +12,31 @@ replacements = [
     ('"reserve_v": "Y預留",', '"reserve_v": "縱向預留",'),
     ('"fold_u": "X向折邊",', '"fold_u": "橫向折邊",'),
     ('"fold_v": "Y向折邊",', '"fold_v": "縱向折邊",'),
+    ('def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):', '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
+    "linked-FW": "連動框寬",
+    "FW": "框寬",
+    "3D": "立體",
+    "2D": "平面",
+}
+
+
+def _phase6_source_display(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
+        text = text.replace(raw, label)
+    return text
+
+
+def _phase6_source_raw(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
+        text = text.replace(label, raw)
+    return text
+
+
+def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'''),
     ('win.title("PHASE6 截角資料庫 / 組合接合")', 'win.title("截角資料庫／組合接合")'),
-    ('entry("第一級 X 公式", self.relief_registry_primary_u_display_var)', 'entry("第一級橫向公式", self.relief_registry_primary_u_display_var)'),
-    ('entry("第一級 Y 公式", self.relief_registry_primary_v_display_var)', 'entry("第一級縱向公式", self.relief_registry_primary_v_display_var)'),
-    ('entry("第二級 X 公式", self.relief_registry_secondary_u_display_var)', 'entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)'),
+    ('    entry("第一級 X 公式", self.relief_registry_primary_u_display_var)\n    entry("第一級 Y 公式", self.relief_registry_primary_v_display_var)\n    entry("第二級 X 公式", self.relief_registry_secondary_u_display_var)\n    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)\n    entry("適用條件", self.relief_registry_preconditions_display_var)\n    entry("公式來源／備註", self.relief_registry_source_var)', '    self.relief_registry_source_display_var = original.tk.StringVar(master=form)\n    _phase6_bind_translated_var(\n        self.relief_registry_source_var, self.relief_registry_source_display_var,\n        _phase6_source_display, _phase6_source_raw,\n    )\n    entry("第一級橫向公式", self.relief_registry_primary_u_display_var)\n    entry("第一級縱向公式", self.relief_registry_primary_v_display_var)\n    entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)\n    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)\n    entry("適用條件", self.relief_registry_preconditions_display_var)\n    entry("公式來源／備註", self.relief_registry_source_display_var)'),
     ('"側折：封頭／封尾 X 向側邊折彎基底；貼外沒有 X 折時為 0。",', '"側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",'),
     ('"上折：封頭／封尾 Y 向第一折尺寸。",', '"上折：封頭／封尾縱向第一折尺寸。",'),
     ('"第一級 X/Y：主要截角的 X/Y 切除量；第二級 X/深度：二級截角的內側位置與深度。",', '"第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",'),
