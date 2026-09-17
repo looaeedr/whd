@@ -4369,6 +4369,10 @@ _PHASE6_OPERATOR_LABELS = {
     "INSERT_OVERLAY": "嵌入貼外",
     "WRAP": "外側包覆",
     "HEAD_OR_TAIL": "封頭／封尾",
+    "DIVIDER": "中隔",
+    "ENDS": "封頭／封尾",
+    "receiving_divider_four_segment": "受電箱中隔四段式",
+    "cross_slot_min_y": "十字槽最小縱向",
     "HEAD": "封頭",
     "TAIL": "封尾",
     "BOX_BODY": "箱身",
@@ -4500,13 +4504,13 @@ _PHASE6_FORMULA_DISPLAY_TOKENS = {
     "mating_width": "成型接合寬",
     "side_fold": "側折",
     "rear_bend": "後折",
-    "reserve_u": "X預留",
-    "reserve_v": "Y預留",
+    "reserve_u": "橫向預留",
+    "reserve_v": "縱向預留",
     "ybottom1": "下折",
     "ytop1": "上折",
     "clearance": "間隙",
-    "fold_u": "X向折邊",
-    "fold_v": "Y向折邊",
+    "fold_u": "橫向折邊",
+    "fold_v": "縱向折邊",
     "FW": "框寬",
     "T": "板厚",
 }
@@ -4535,6 +4539,62 @@ def _phase6_preconditions_raw(value):
     reverse = {label: raw for raw, label in _PHASE6_OPERATOR_LABELS.items()}
     tokens = [token.strip() for token in re.split(r"[,，、]", str(value or "")) if token.strip()]
     return ",".join(reverse.get(token, token) for token in tokens)
+
+
+_PHASE6_SOURCE_DISPLAY_TOKENS = {
+    "CornerType": "截角類型",
+    "linked-FW": "連動框寬",
+    "STANDARD": "標準",
+    "manufacturing": "製造",
+    "contract": "契約",
+    "projection": "投影",
+    "Registry": "資料庫",
+    "formed": "成形",
+    "shadow": "陰影",
+    "evidence": "證據",
+    "CROSS": "十字",
+    "C04": "型號04",
+    "X/Y": "橫向／縱向",
+    "1T": "1板厚",
+    ".dxf": "圖檔",
+    "band": "帶區",
+    "base": "基底",
+    "face": "面",
+    "HIT": "命中",
+    "mm": "毫米",
+    "3D": "立體",
+    "2D": "平面",
+}
+
+
+def _phase6_source_display(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
+        text = text.replace(raw, label)
+    text = _phase6_operator_text(text)
+    text = _phase6_formula_display(text)
+    return text
+
+
+def _phase6_source_raw(value):
+    text = str(value or "")
+    # Reverse source-specific phrases first so compound labels are not partially
+    # consumed by the generic formula aliases.
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
+        text = text.replace(label, raw)
+    reverse_operator = sorted(
+        ((label, raw) for raw, label in _PHASE6_OPERATOR_LABELS.items()),
+        key=lambda item: len(item[0]), reverse=True,
+    )
+    for label, raw in reverse_operator:
+        text = text.replace(label, raw)
+    reverse_parts = sorted(
+        ((label, raw) for raw, label in PART_LABELS.items()),
+        key=lambda item: len(item[0]), reverse=True,
+    )
+    for label, raw in reverse_parts:
+        text = text.replace(label, raw)
+    return _phase6_formula_raw(text)
 
 
 def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
@@ -5120,7 +5180,12 @@ def _phase6_open_relief_registry_form(self):
     entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)
     entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)
     entry("適用條件", self.relief_registry_preconditions_display_var)
-    entry("公式來源／備註", self.relief_registry_source_var)
+    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
+    _phase6_bind_translated_var(
+        self.relief_registry_source_var, self.relief_registry_source_display_var,
+        _phase6_source_display, _phase6_source_raw,
+    )
+    entry("公式來源／備註", self.relief_registry_source_display_var)
 
     help_box = original.ttk.LabelFrame(form, text="公式變數說明", padding=6)
     help_box.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(5, 3)); row += 1
