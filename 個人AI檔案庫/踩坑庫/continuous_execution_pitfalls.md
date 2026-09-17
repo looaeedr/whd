@@ -103,3 +103,18 @@ Remote QA 的 polling 細節與 `REMOTE_QA_ACTIVE_LOCK` 仍以 `.agents/skills/e
 - 整合後另做 production-head verification/readback；若 FAIL，從 actual production HEAD 開 fresh hotfix/revert branch，不能倒退或 force production。
 - 若歷史工單已發生 lineage divergence，先 classify accepted commits，建立/修復單一 work-order lineage，再續工；不得把舊 production branch 當作「比較乾淨」而丟掉前序 accepted lineage。
 - `.agents/skills/engineering/派工/SKILL.md::WORK_ORDER_LINEAGE_CONTRACT` 與 `tests/process/test_continuous_execution_durable_contract.py` 是 workflow lineage regression guards；它們不建立另一套 executable continuity state machine。
+
+## REMOTE_TERMINAL_CLOSING_LOCK_GAP
+
+### 事故模式
+
+Remote QA 在 `queued / in_progress` 時有 `REMOTE_QA_ACTIVE_LOCK`，所以 30 秒回報後仍會繼續 poll；但 run 一 terminal，remote lock 解除，工作其實通常才進入 counts → invariant → cleanup → tested→closing drift → AI writeback → issue/Master closure。舊流程只有 `assert_finalizable`，沒有 machine-level assistant turn-exit gate，因此最容易在「QA PASS」「code integrated」「process incomplete」回報後結束回合。
+
+### 根因與永久修正
+
+- 根因不是缺少 `NON_TERMINAL_CONTINUE` 文字，而是 enforcement scope 只覆蓋 workflow finalization，沒有覆蓋 assistant turn boundary。
+- Canonical fix 是 `tools/continuity_controller.py::assert_turn_exitable` / CLI `assert-turn-exitable`。
+- `RUNNING / WAITING_REMOTE / RECOVERING` 必須拒絕 turn exit並回傳 exact `next_action`；`BLOCKED` 可 turn-exit 但不可 finalizable；terminal states 可 turn-exit。
+- Remote terminal 後若還有收尾，必須 `WAITING_REMOTE → RUNNING(next_acceptance_action)`，由 global turn-exit gate 無縫接手 remote lock。
+- progress / CHECKPOINT / PASS / integrated / process-incomplete 都只是 observation；只要 machine checkpoint 還有可自主 next action，使用者就不是續跑 scheduler。
+- Behavior authority：`tests/process/test_continuity_controller.py` 的 remote-success → closing-RUNNING regression。入口文字 marker 只作 routing compatibility guard。

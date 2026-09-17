@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "master_task_id": "262",
+  "master_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+  "target": "X",
+  "target_branch": "cleanup/2d-3d-sync",
+  "task_final_sha": "89d1f304036937d2a5cfd24ccbfdff2b8dee26b1",
+  "current_x_before": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
+  "current_x_after": "269a2972f0f88ffc7085ee3f1483a57145d8b2e8",
+  "task_acceptance": {
+    "status": "ACCEPTED",
+    "code": "ELIGIBLE_FOR_INTEGRATION_ACCEPTANCE_CONSIDERATION",
+    "evidence": "#268 closed/completed; remote run 34979004488 succeeded at exact task-final 89d1f304036937d2a5cfd24ccbfdff2b8dee26b1"
+  },
+  "base_to_task": {
+    "status": "ahead",
+    "merge_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+    "ahead_by": 9,
+    "behind_by": 0,
+    "changed_paths": [
+      ".github/workflows/issue268-t5-atomic-chain-acceptance.yml",
+      "docs/governance/issue262-task-chain-contract.json",
+      "docs/governance/issue263-t0-inventory.md",
+      "docs/governance/issue265-t2-parent-contract.json",
+      "docs/governance/issue266-t3-isolation-contract.json",
+      "docs/governance/issue267-t4-dispatch-run-contract.json",
+      "docs/governance/issue268-t5-atomic-chain-contract.json",
+      "tests/process/test_issue264_frozen_base_guard.py",
+      "tests/process/test_issue265_parent_contract.py",
+      "tests/process/test_issue266_cross_chain_isolation.py",
+      "tests/process/test_issue267_dispatch_run_identity.py",
+      "tests/process/test_issue268_atomic_chain_acceptance.py",
+      "tools/task_chain_atomic_acceptance_gate.py",
+      "tools/task_chain_dispatch_run_guard.py",
+      "tools/task_chain_guard.py",
+      "tools/task_chain_isolation_guard.py"
+    ]
+  },
+  "base_to_x": {
+    "status": "ahead",
+    "merge_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+    "ahead_by": 116,
+    "behind_by": 0,
+    "changed_paths": [
+      ".agents/skills/engineering/寫成規格書/SKILL.md",
+      ".agents/skills/engineering/派工/SKILL.md",
+      "AGENTS.md",
+      "docs/superpowers/plans/2026-09-14-gui-layout-presentation-move.md",
+      "docs/superpowers/plans/2026-09-14-gui-pure-drawing-move.md",
+      "docs/superpowers/plans/2026-09-14-issue212-final-integration.md",
+      "docs/superpowers/specs/2026-09-14-issue212-final-integration-design.md",
+      "gui.py",
+      "gui_modules/__init__.py",
+      "gui_modules/drawing.py",
+      "gui_modules/layout.py",
+      "gui_modules/part_panels.py",
+      "gui_modules/project_actions.py",
+      "gui_modules/render_2d.py",
+      "tests/test_issue111_corner_data_grid_isolation.py",
+      "tests/test_issue123_ui_foundation.py",
+      "tests/test_issue206_gui_modularization_characterization.py",
+      "tests/test_issue209_part_panel_projection.py",
+      "tests/test_issue210_project_actions_move_contract.py",
+      "tests/test_issue211_renderer_dependency_gate.py",
+      "tests/test_phase6_linked_fold_chain_and_parts.py",
+      "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
+      "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md"
+    ]
+  },
+  "task_to_x": {
+    "status": "diverged",
+    "merge_base_sha": "0e20662d4e36907d5e529346cccb2a5cafbf4f72",
+    "task_only_commits": 9,
+    "x_only_commits": 116
+  },
+  "conflict_audit": {
+    "status": "CLEAN",
+    "method": "three_way_merge_tree",
+    "evidence": "Frozen-base three-way path merge-tree proof: both deltas share merge-base 0e20662d..., changed path sets have no exact overlap and no file/directory prefix collision; no X mutation performed."
+  }
+}
