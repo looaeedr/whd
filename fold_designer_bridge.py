@@ -5591,6 +5591,10 @@ def _phase6_build_persistent_top_area(self):
     self.left_scroll_canvas.pack(side=original.tk.LEFT, fill=original.tk.Y)
     self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)
     self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)
+    # self.left is a root child embedded as a Canvas window. Keep the embedded
+    # operator workspace above its sibling Canvas so mapped controls are actually
+    # visible and hit-testable instead of being painted underneath the Canvas.
+    self.left.lift(self.left_scroll_canvas)
     _sync_left_scrollregion()
 
 

@@ -61,6 +61,23 @@ def _menu_values(designer):
     return tuple(values)
 
 
+def _root_rect(widget):
+    return (
+        int(widget.winfo_rootx()),
+        int(widget.winfo_rooty()),
+        int(widget.winfo_rootx() + widget.winfo_width()),
+        int(widget.winfo_rooty() + widget.winfo_height()),
+    )
+
+
+def _intersection(a, b):
+    left = max(a[0], b[0])
+    top = max(a[1], b[1])
+    right = min(a[2], b[2])
+    bottom = min(a[3], b[3])
+    return max(0, right - left), max(0, bottom - top)
+
+
 def test_issue186_sheetmetal_compact_menu_is_operator_visible_and_live():
     """The existing sheet-metal Menubutton must be a real production control."""
     root, _app, designer = _open_designer()
@@ -82,6 +99,46 @@ def test_issue186_sheetmetal_compact_menu_is_operator_visible_and_live():
         designer.part_choice_menu.invoke(index)
         _pump(root)
         assert str(designer.part_var.get()) == value
+    finally:
+        _close(root)
+
+
+def test_issue186_sheetmetal_compact_menu_has_real_unobscured_pixels():
+    """Mapped is insufficient: the compact selector must occupy unobscured on-screen pixels."""
+    root, app, designer = _open_designer()
+    try:
+        app._apply_ui_text_size_preference("large", persist=False, notify_designer=True)
+        designer.root.geometry("760x420+0+0")
+        _pump(root, 5)
+
+        button = designer.part_choice_button
+        canvas = designer.left_scroll_canvas
+        button_rect = _root_rect(button)
+        canvas_rect = _root_rect(canvas)
+        visible_w, visible_h = _intersection(button_rect, canvas_rect)
+        center_x = (button_rect[0] + button_rect[2]) // 2
+        center_y = (button_rect[1] + button_rect[3]) // 2
+        topmost = root.winfo_containing(center_x, center_y)
+
+        print(
+            "ISSUE186_COMPACT_MENU_PIXELS",
+            f"button_rect={button_rect}",
+            f"canvas_rect={canvas_rect}",
+            f"visible={visible_w}x{visible_h}",
+            f"button_size={button.winfo_width()}x{button.winfo_height()}",
+            f"topmost={topmost}",
+            f"tree_host_rect={_root_rect(designer.structure_tree_host)}",
+        )
+
+        assert button.winfo_ismapped()
+        assert button.winfo_width() >= 120
+        assert button.winfo_height() >= 20
+        assert visible_w >= min(120, button.winfo_width())
+        assert visible_h >= button.winfo_height()
+        assert topmost is button, (
+            "compact selector is mapped but another widget is stacked above its center: "
+            f"{topmost!r}"
+        )
     finally:
         _close(root)
 
