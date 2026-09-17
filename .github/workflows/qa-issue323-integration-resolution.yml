@@ -39,7 +39,7 @@ jobs:
             marker = block.strip().splitlines()[0].strip('# ').strip('`')
             if marker and marker in text:
               continue
-            path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+            path.write_text(text.rstrip() + block.rstrip() + '\n', encoding='utf-8')
           PY
           git diff --check
       - name: Install test dependencies
@@ -49,8 +49,7 @@ jobs:
       - name: Record protected invariant
         run: sha256sum config.ini > /tmp/config.before
       - name: Run CI optimization contracts
-        run: |
-          python -m pytest -q tests/test_issue305_shard_manifest.py tests/test_issue306_aggregate_cli_import.py tests/test_issue306_non_gui_sharding.py tests/test_issue307_junit_location_fallback.py tests/test_issue307_t0_xvfb_contract_authority.py tests/test_issue307_xvfb_sharding.py tests/test_issue308_t4_aggregation.py tests/test_issue309_t5_xdist_state_isolation.py tests/test_issue310_t6_duration_tuning.py tests/test_issue311_t7_ab_acceptance.py tests/test_issue312_t8_final_qualification.py
+        run: python -m pytest -q tests/test_issue305_shard_manifest.py tests/test_issue306_aggregate_cli_import.py tests/test_issue306_non_gui_sharding.py tests/test_issue307_junit_location_fallback.py tests/test_issue307_t0_xvfb_contract_authority.py tests/test_issue307_xvfb_sharding.py tests/test_issue308_t4_aggregation.py tests/test_issue309_t5_xdist_state_isolation.py tests/test_issue310_t6_duration_tuning.py tests/test_issue311_t7_ab_acceptance.py tests/test_issue312_t8_final_qualification.py
       - name: Run current production governance/process contracts
         run: python -m pytest -q tests/process
       - name: Verify protected invariant
