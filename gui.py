@@ -156,6 +156,7 @@ from gui_modules.editors.hole_editor import (
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorReferenceActions as _HoleEditorReferenceActions,
+    HoleEditorSelectedFeatureActions as _HoleEditorSelectedFeatureActions,
     HoleEditorTransientActions as _HoleEditorTransientActions,
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
@@ -6540,19 +6541,6 @@ class Phase6ApplicationHost:
         on_canvas_drag = canvas_pointer_actions.on_canvas_drag
         on_canvas_up = canvas_pointer_actions.on_canvas_up
 
-        def on_canvas_right(event):
-            hit = canvas_view.hit_test(event.x, event.y)
-            if hit is None:
-                return
-            select_feature(hit)
-            menu = tk.Menu(editor, tearoff=0)
-            menu.add_command(label="十字基準線",state=tk.DISABLED)
-            menu.add_separator()
-            for anchor, label in REFERENCE_ANCHOR_LABELS.items():
-                mark = "✓ " if anchor == feature_reference_anchor(feature_list[hit]) else "   "
-                menu.add_command(label=mark + label, command=lambda a=anchor: set_reference_anchor(a))
-            menu.tk_popup(event.x_root, event.y_root)
-
         created_list_actions = _HoleEditorCreatedListActions(
             hole_session=hole_session,
             feature_list_provider=lambda: feature_list,
@@ -6600,20 +6588,30 @@ class Phase6ApplicationHost:
             ent.bind("<Return>", lambda e, a=axis, m=mode: apply_reference_value(a, m, True))
             ent.bind("<FocusOut>", lambda e, a=axis, m=mode: apply_reference_value(a, m, False))
 
-        def rotate_selected(angle):
-            var_rotation.set(f"{angle}°")
-            idx = hole_session.selected_index
-            if not (0 <= idx < len(feature_list)):
-                return
-            normalized = 0 if angle == 360 else angle
-            candidate = replace(feature_list[idx], rotation_deg=normalized)
-            if not feature_is_within_surface(surface, candidate, width, height):
-                messagebox.showwarning("旋轉失敗", "旋轉後孔的完整外形會超出板面框。")
-                return
-            hole_session.execute(HoleEditorAction.replace_selected(candidate))
-            refresh_reference_fields()
-            redraw()
-            sync_all()
+        selected_feature_actions = _HoleEditorSelectedFeatureActions(
+            hole_session=hole_session,
+            canvas_view=canvas_view,
+            context_provider=lambda: {
+                "feature_list": feature_list, "surface": surface,
+                "width": width, "height": height,
+            },
+            select_feature=select_feature,
+            menu_factory=lambda: tk.Menu(editor, tearoff=0),
+            reference_anchor_labels=REFERENCE_ANCHOR_LABELS,
+            feature_reference_anchor=feature_reference_anchor,
+            set_reference_anchor=set_reference_anchor,
+            var_rotation=var_rotation,
+            rotate_feature=lambda feature, rotation: replace(feature, rotation_deg=rotation),
+            feature_is_within_surface=feature_is_within_surface,
+            warn_rotation_out_of_bounds=lambda: messagebox.showwarning(
+                "旋轉失敗", "旋轉後孔的完整外形會超出板面框。"
+            ),
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+        )
+        on_canvas_right = selected_feature_actions.on_canvas_right
+        rotate_selected = selected_feature_actions.rotate_selected
 
         for angle, btn in rotation_buttons:
             btn.configure(command=lambda a=angle: rotate_selected(a))

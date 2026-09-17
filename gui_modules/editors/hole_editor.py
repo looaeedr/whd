@@ -313,6 +313,69 @@ class HoleEditorReferenceActions:
             350, lambda a=axis, m=mode: self.apply_reference_value(a, m, False)
         )
 
+class HoleEditorSelectedFeatureActions:
+    """Own selected-feature context menu and rotation UI orchestration."""
+
+    def __init__(
+        self, *, hole_session, canvas_view, context_provider, select_feature,
+        menu_factory, reference_anchor_labels, feature_reference_anchor,
+        set_reference_anchor, var_rotation, rotate_feature,
+        feature_is_within_surface, warn_rotation_out_of_bounds,
+        refresh_reference_fields, redraw, sync_all,
+    ):
+        self.hole_session = hole_session
+        self.canvas_view = canvas_view
+        self.context_provider = context_provider
+        self.select_feature = select_feature
+        self.menu_factory = menu_factory
+        self.reference_anchor_labels = reference_anchor_labels
+        self.feature_reference_anchor = feature_reference_anchor
+        self.set_reference_anchor = set_reference_anchor
+        self.var_rotation = var_rotation
+        self.rotate_feature = rotate_feature
+        self.feature_is_within_surface = feature_is_within_surface
+        self.warn_rotation_out_of_bounds = warn_rotation_out_of_bounds
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+
+    def on_canvas_right(self, event):
+        hit = self.canvas_view.hit_test(event.x, event.y)
+        if hit is None:
+            return
+        self.select_feature(hit)
+        feature_list = self.context_provider()["feature_list"]
+        menu = self.menu_factory()
+        menu.add_command(label="十字基準線", state="disabled")
+        menu.add_separator()
+        current_anchor = self.feature_reference_anchor(feature_list[hit])
+        for anchor, label in self.reference_anchor_labels.items():
+            mark = "✓ " if anchor == current_anchor else "   "
+            menu.add_command(
+                label=mark + label,
+                command=lambda a=anchor: self.set_reference_anchor(a),
+            )
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def rotate_selected(self, angle):
+        self.var_rotation.set(f"{angle}°")
+        context = self.context_provider()
+        feature_list = context["feature_list"]
+        idx = self.hole_session.selected_index
+        if not (0 <= idx < len(feature_list)):
+            return
+        normalized = 0 if angle == 360 else angle
+        candidate = self.rotate_feature(feature_list[idx], normalized)
+        if not self.feature_is_within_surface(
+            context["surface"], candidate, context["width"], context["height"]
+        ):
+            self.warn_rotation_out_of_bounds()
+            return
+        self.hole_session.execute(HoleEditorAction.replace_selected(candidate))
+        self.refresh_reference_fields()
+        self.redraw()
+        self.sync_all()
+
 class HoleEditorModalLifecycle:
     """Own modal confirm/cancel/Escape flow while delegating all authorities."""
 
