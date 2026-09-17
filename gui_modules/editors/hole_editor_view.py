@@ -168,6 +168,78 @@ class HoleEditorReferencePresentation:
         finally:
             self.suppress_entry_events[0] = False
 
+class HoleEditorIndicatorContextRefresh:
+    """Own indicator-context refresh presentation/routing only."""
+
+    def __init__(
+        self, *, component_context_provider, indicator_mode_available,
+        collect_indicator_state, component_contexts, baseline_status_var,
+        baseline_status_label, set_indicator_page_visible,
+        active_context_key_provider, switch_editor_context, redraw,
+        editor_tabs, indicator_page, component_tabs, toolbar,
+        selected_component_key_provider,
+    ):
+        self.component_context_provider = component_context_provider
+        self.indicator_mode_available = indicator_mode_available
+        self.collect_indicator_state = collect_indicator_state
+        self.component_contexts = component_contexts
+        self.baseline_status_var = baseline_status_var
+        self.baseline_status_label = baseline_status_label
+        self.set_indicator_page_visible = set_indicator_page_visible
+        self.active_context_key_provider = active_context_key_provider
+        self.switch_editor_context = switch_editor_context
+        self.redraw = redraw
+        self.editor_tabs = editor_tabs
+        self.indicator_page = indicator_page
+        self.component_tabs = component_tabs
+        self.toolbar = toolbar
+        self.selected_component_key_provider = selected_component_key_provider
+
+    @staticmethod
+    def baseline_status_color(text):
+        return "#64d2ff" if str(text or "").startswith("基準檔：") else "#ff9f0a"
+
+    def refresh(self):
+        if self.component_context_provider is None or not self.indicator_mode_available:
+            return
+        state_now = self.collect_indicator_state()
+        if state_now is None or state_now.get("mode") != "indicator_box":
+            if self.component_tabs is not None:
+                self.component_tabs.pack_forget()
+            if self.active_context_key_provider() != "door":
+                self.switch_editor_context("door")
+            self.set_indicator_page_visible(False)
+            if self.active_context_key_provider() == "door":
+                self.redraw()
+            return
+        try:
+            contexts = self.component_context_provider(state_now) or {}
+        except Exception as exc:
+            self.baseline_status_var.set(f"指示燈盒資料錯誤：{exc}")
+            if self.baseline_status_label is not None:
+                self.baseline_status_label.configure(fg="#ff453a")
+            self.set_indicator_page_visible(True)
+            if self.active_context_key_provider() == "door":
+                self.redraw()
+            return
+        for context_key in ("indicator_box", "indicator_door"):
+            context = contexts.get(context_key)
+            if context:
+                self.component_contexts[context_key] = context
+        self.set_indicator_page_visible(True)
+        if (
+            self.editor_tabs is not None
+            and self.indicator_page is not None
+            and self.editor_tabs.select() == str(self.indicator_page)
+        ):
+            if self.component_tabs is not None and not self.component_tabs.winfo_manager():
+                self.component_tabs.pack(fill=tk.X, pady=(0, 4), before=self.toolbar)
+            self.switch_editor_context(self.selected_component_key_provider())
+        elif self.active_context_key_provider() != "door":
+            self.switch_editor_context("door")
+        else:
+            self.redraw()
+
 class HoleEditorPageNavigation:
     """Own transient notebook/page routing for the shared hole editor."""
 

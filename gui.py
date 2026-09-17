@@ -166,6 +166,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
     HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
+    HoleEditorIndicatorContextRefresh as _HoleEditorIndicatorContextRefresh,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
     HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
@@ -6593,9 +6594,6 @@ class Phase6ApplicationHost:
         )
         round_settings_btn.configure(command=round_settings_launcher.open)
 
-        def _baseline_status_color(text):
-            return "#64d2ff" if str(text or "").startswith("基準檔：") else "#ff9f0a"
-
         def _switch_editor_context(context_key):
             nonlocal feature_list, surface, width, height, reference_guide, baseline_scene
             # Finish/cancel transient placement state before changing which physical
@@ -6622,51 +6620,29 @@ class Phase6ApplicationHost:
             status_text = str(context.get("baseline_status_text") or "")
             baseline_status_var.set(status_text)
             if baseline_status_label is not None:
-                baseline_status_label.configure(fg=_baseline_status_color(status_text))
+                baseline_status_label.configure(fg=_HoleEditorIndicatorContextRefresh.baseline_status_color(status_text))
             refresh_created()
             refresh_reference_fields()
             redraw()
 
-        def _refresh_indicator_component_contexts():
-            if indicator_component_context_provider is None or indicator_mode_var is None:
-                return
-            state_now = collect_indicator_state()
-            if state_now is None or state_now.get("mode") != "indicator_box":
-                if component_tabs is not None:
-                    component_tabs.pack_forget()
-                if hole_session.active_context_key != "door":
-                    _switch_editor_context("door")
-                set_indicator_page_visible(False)
-                if hole_session.active_context_key == "door":
-                    redraw()
-                return
-
-            try:
-                contexts = indicator_component_context_provider(state_now) or {}
-            except Exception as exc:
-                baseline_status_var.set(f"指示燈盒資料錯誤：{exc}")
-                if baseline_status_label is not None:
-                    baseline_status_label.configure(fg="#ff453a")
-                set_indicator_page_visible(True)
-                if hole_session.active_context_key == "door":
-                    redraw()
-                return
-
-            for context_key in ("indicator_box", "indicator_door"):
-                context = contexts.get(context_key)
-                if not context:
-                    continue
-                indicator_component_contexts[context_key] = context
-
-            set_indicator_page_visible(True)
-            if editor_tabs is not None and indicator_page is not None and editor_tabs.select() == str(indicator_page):
-                if component_tabs is not None and not component_tabs.winfo_manager():
-                    component_tabs.pack(fill=tk.X, pady=(0, 4), before=toolbar)
-                _switch_editor_context(page_navigation.selected_indicator_component_key())
-            elif hole_session.active_context_key != "door":
-                _switch_editor_context("door")
-            else:
-                redraw()
+        indicator_context_refresh_controller = _HoleEditorIndicatorContextRefresh(
+            component_context_provider=indicator_component_context_provider,
+            indicator_mode_available=(indicator_mode_var is not None),
+            collect_indicator_state=collect_indicator_state,
+            component_contexts=indicator_component_contexts,
+            baseline_status_var=baseline_status_var,
+            baseline_status_label=baseline_status_label,
+            set_indicator_page_visible=set_indicator_page_visible,
+            active_context_key_provider=lambda: hole_session.active_context_key,
+            switch_editor_context=_switch_editor_context,
+            redraw=redraw,
+            editor_tabs=editor_tabs,
+            indicator_page=indicator_page,
+            component_tabs=component_tabs,
+            toolbar=toolbar,
+            selected_component_key_provider=lambda: page_navigation.selected_indicator_component_key(),
+        )
+        _refresh_indicator_component_contexts = indicator_context_refresh_controller.refresh
 
         page_navigation = _HoleEditorPageNavigation(
             editor_tabs=editor_tabs,
