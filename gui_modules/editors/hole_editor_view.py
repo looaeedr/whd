@@ -79,6 +79,45 @@ class HoleEditorCatalogControls:
         return "break"
 
 
+class HoleEditorFormRowBuilders:
+    """Own presentation-only construction of compact editor input rows."""
+
+    def __init__(
+        self, *, panel_bg, text_color, normal_font,
+        entry_font, ref_entries_provider,
+    ):
+        self.panel_bg = panel_bg
+        self.text_color = text_color
+        self.normal_font = normal_font
+        self.entry_font = entry_font
+        self.ref_entries_provider = ref_entries_provider
+
+    def small_row(self, parent, label, variable):
+        row = tk.Frame(parent, bg=self.panel_bg)
+        row.pack(fill=tk.X, padx=6, pady=2)
+        tk.Label(
+            row, text=label, bg=self.panel_bg, fg=self.text_color,
+            width=7, anchor=tk.W, font=self.normal_font,
+        ).pack(side=tk.LEFT)
+        tk.Entry(
+            row, textvariable=variable, font=('Consolas', 13), width=9,
+        ).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def add_group_entry(self, group, label_var, value_var, axis, mode):
+        row = tk.Frame(group, bg="#24242c")
+        row.pack(fill=tk.X, padx=5, pady=2)
+        tk.Label(
+            row, textvariable=label_var, bg="#24242c", fg="#ffd60a",
+            font=('Microsoft JhengHei', 10, 'bold'), width=13, anchor=tk.W,
+        ).pack(side=tk.LEFT)
+        ent = tk.Entry(
+            row, textvariable=value_var, font=self.entry_font,
+            justify=tk.RIGHT, width=8,
+        )
+        ent.pack(side=tk.LEFT, padx=(4, 0), ipady=2)
+        self.ref_entries_provider()[(axis, mode)] = ent
+        return ent
+
 class HoleEditorFullscreenActions:
     """Own transient fullscreen-window presentation state only."""
 

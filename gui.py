@@ -164,6 +164,7 @@ from gui_modules.editors.hole_editor import (
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
+    HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
@@ -6065,15 +6066,16 @@ class Phase6ApplicationHost:
         var_blind = tk.BooleanVar(value=False)
         var_rotation = tk.StringVar(value="360°")
 
-        def small_row(label, variable):
-            row = tk.Frame(custom_frame, bg=self.COLOR_PANEL)
-            row.pack(fill=tk.X, padx=6, pady=2)
-            tk.Label(row, text=label, bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, width=7, anchor=tk.W, font=normal_font).pack(side=tk.LEFT)
-            tk.Entry(row, textvariable=variable, font=('Consolas', 13), width=9).pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        small_row("直徑", var_d)
-        small_row("寬 W", var_w)
-        small_row("高 H", var_h)
+        form_row_builders = _HoleEditorFormRowBuilders(
+            panel_bg=self.COLOR_PANEL,
+            text_color=self.COLOR_TEXT,
+            normal_font=normal_font,
+            entry_font=entry_font,
+            ref_entries_provider=lambda: ref_entries,
+        )
+        form_row_builders.small_row(custom_frame, "直徑", var_d)
+        form_row_builders.small_row(custom_frame, "寬 W", var_w)
+        form_row_builders.small_row(custom_frame, "高 H", var_h)
         tk.Checkbutton(custom_frame, text="盲孔", variable=var_blind, bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
                        selectcolor=self.COLOR_INPUT_BG, activebackground=self.COLOR_PANEL,
                        font=('Microsoft JhengHei', 12, 'bold')).pack(anchor=tk.W, padx=6, pady=3)
@@ -6200,28 +6202,18 @@ class Phase6ApplicationHost:
         overlay_widgets = []
         ref_entries = {}
 
-        def add_group_entry(group, label_var, value_var, axis, mode):
-            row = tk.Frame(group, bg="#24242c")
-            row.pack(fill=tk.X, padx=5, pady=2)
-            tk.Label(row, textvariable=label_var, bg="#24242c", fg="#ffd60a",
-                     font=('Microsoft JhengHei', 10, 'bold'), width=13, anchor=tk.W).pack(side=tk.LEFT)
-            ent = tk.Entry(row, textvariable=value_var, font=entry_font, justify=tk.RIGHT, width=8)
-            ent.pack(side=tk.LEFT, padx=(4, 0), ipady=2)
-            ref_entries[(axis, mode)] = ent
-            return ent
-
         # Pair each axis together: X edge + X neighbor, Y edge + Y neighbor.
         x_group = tk.Frame(canvas, bg="#24242c", bd=1, relief=tk.SOLID)
         tk.Label(x_group, text="X 定位", bg="#24242c", fg="#30d158",
                  font=('Microsoft JhengHei', 10, 'bold')).pack(fill=tk.X, padx=5, pady=(3, 1))
-        ent_x_edge = add_group_entry(x_group, lbl_x_edge, var_x_edge, "x", "edge")
-        ent_x_neighbor = add_group_entry(x_group, lbl_x_neighbor, var_x_neighbor, "x", "neighbor")
+        ent_x_edge = form_row_builders.add_group_entry(x_group, lbl_x_edge, var_x_edge, "x", "edge")
+        ent_x_neighbor = form_row_builders.add_group_entry(x_group, lbl_x_neighbor, var_x_neighbor, "x", "neighbor")
 
         y_group = tk.Frame(canvas, bg="#24242c", bd=1, relief=tk.SOLID)
         tk.Label(y_group, text="Y 定位", bg="#24242c", fg="#64d2ff",
                  font=('Microsoft JhengHei', 10, 'bold')).pack(fill=tk.X, padx=5, pady=(3, 1))
-        ent_y_edge = add_group_entry(y_group, lbl_y_edge, var_y_edge, "y", "edge")
-        ent_y_neighbor = add_group_entry(y_group, lbl_y_neighbor, var_y_neighbor, "y", "neighbor")
+        ent_y_edge = form_row_builders.add_group_entry(y_group, lbl_y_edge, var_y_edge, "y", "edge")
+        ent_y_neighbor = form_row_builders.add_group_entry(y_group, lbl_y_neighbor, var_y_neighbor, "y", "neighbor")
         overlay_widgets.extend([x_group, y_group])
 
         ref_panel = tk.Frame(canvas, bg="#1f1f27", bd=2, relief=tk.RIDGE)
