@@ -23,16 +23,13 @@ for old, new in (
 ):
     ensure_replace(old, new)
 
-if '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準"' not in text:
-    old = '    "RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",'
-    new = old + '\n    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準",'
-    ensure_replace(old, new)
+# The work branch already owns a Chinese label for this stable rule id.  Accept
+# that projection; never add a duplicate dictionary key just to satisfy QA.
+divider_marker = '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字截角（標準）"'
+if divider_marker not in text:
+    raise SystemExit('existing Chinese divider rule projection is missing')
 
-if '_PHASE6_SOURCE_DISPLAY_TOKENS =' not in text:
-    marker = 'def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
-    if text.count(marker) != 1:
-        raise SystemExit('translated-var authority marker missing or ambiguous')
-    source_projection = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
+source_block_old = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
     "linked-FW": "連動框寬",
     "FW": "框寬",
     "3D": "立體",
@@ -52,10 +49,52 @@ def _phase6_source_raw(value):
     for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
         text = text.replace(label, raw)
     return text
-
-
 '''
-    text = text.replace(marker, source_projection + marker, 1)
+source_block_new = '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
+    "CornerType": "截角類型",
+    "linked-FW": "連動框寬",
+    "3D": "立體",
+    "2D": "平面",
+}
+
+
+def _phase6_source_display(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
+        text = text.replace(raw, label)
+    text = _phase6_operator_text(text)
+    text = _phase6_formula_display(text)
+    return text
+
+
+def _phase6_source_raw(value):
+    text = str(value or "")
+    # Reverse the source-specific phrases first so labels such as 連動框寬 are
+    # not partially consumed by the generic formula alias for 框寬.
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
+        text = text.replace(label, raw)
+    reverse_operator = sorted(
+        ((label, raw) for raw, label in _PHASE6_OPERATOR_LABELS.items()),
+        key=lambda item: len(item[0]), reverse=True,
+    )
+    for label, raw in reverse_operator:
+        text = text.replace(label, raw)
+    reverse_parts = sorted(
+        ((label, raw) for raw, label in PART_LABELS.items()),
+        key=lambda item: len(item[0]), reverse=True,
+    )
+    for label, raw in reverse_parts:
+        text = text.replace(label, raw)
+    return _phase6_formula_raw(text)
+'''
+
+if source_block_old in text:
+    text = text.replace(source_block_old, source_block_new, 1)
+elif source_block_new not in text:
+    marker = 'def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
+    if text.count(marker) != 1:
+        raise SystemExit('translated-var authority marker missing or ambiguous')
+    text = text.replace(marker, source_block_new + '\n\n' + marker, 1)
 
 if 'self.relief_registry_source_display_var' not in text:
     old = '    entry("公式來源／備註", self.relief_registry_source_var)'
@@ -72,9 +111,12 @@ if 'self.relief_registry_source_display_var' not in text:
 required_markers = (
     'win.title("截角資料庫／組合接合")',
     '"CERTIFIED_FROM_3D": "立體驗證認證"',
-    '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準"',
+    divider_marker,
     'entry("第一級橫向公式", self.relief_registry_primary_u_display_var)',
     '("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self))',
+    '"CornerType": "截角類型"',
+    'text = _phase6_operator_text(text)',
+    'text = _phase6_formula_display(text)',
 )
 missing = [marker for marker in required_markers if marker not in text]
 if missing:
