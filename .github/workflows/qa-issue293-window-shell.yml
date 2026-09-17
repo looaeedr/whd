@@ -1,4 +1,4 @@
-name: QA issue293 window shell GREEN
+name: QA issue293 window shell readback
 
 on:
   push:
@@ -7,31 +7,33 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   focused:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply window shell extraction
-        run: python tools/qa_issue293_window_shell_green.py
       - name: Install pytest
         run: python -m pip install -q pytest
-      - name: Verify focused GREEN
+      - name: Verify committed window shell GREEN
         run: python -m py_compile gui.py gui_modules/editors/hole_editor_view.py && python -m pytest -q tests/test_issue293_t5_window_shell_slice.py tests/test_issue293_t5_canvas_authority_slice.py tests/test_issue293_t5_session_authority_slice.py
-      - name: Commit GREEN after verification
-        shell: bash
+      - name: Verify no writer drift and print residual size
         run: |
-          git config user.name "looaeedr"
-          git config user.email "76246585+looaeedr@users.noreply.github.com"
-          git add gui.py gui_modules/editors/hole_editor_view.py
-          git diff --cached --check
-          git commit -m "refactor(#293): extract editor window shell"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git diff --check
+          git diff --exit-code -- gui.py gui_modules/editors/hole_editor_view.py tests/test_issue293_t5_window_shell_slice.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          p=Path('gui.py')
+          text=p.read_text(encoding='utf-8')
+          tree=ast.parse(text)
+          host=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='Phase6ApplicationHost')
+          fn=next(n for n in host.body if isinstance(n,ast.FunctionDef) and n.name=='_open_unified_hole_editor')
+          print(f'ROOT_SPAN={fn.end_lineno-fn.lineno+1}')
+          print(f'GUI_LOC={len(text.splitlines())}')
+          PY
