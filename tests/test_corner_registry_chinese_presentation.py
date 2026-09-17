@@ -13,6 +13,8 @@ pytestmark = pytest.mark.skipif(
 )
 
 _ASCII_ALPHA = re.compile(r"[A-Za-z]")
+_TEXT_WIDGETS = (tk.Label, tk.Button, tk.Checkbutton, tk.Menubutton, tk.LabelFrame,
+                 ttk.Label, ttk.Button, ttk.Checkbutton, ttk.Menubutton, ttk.LabelFrame)
 
 
 def _open_designer():
@@ -39,12 +41,38 @@ def _safe_cget(widget, option):
         return ""
 
 
+def _menu_visible_strings(widget):
+    rows = []
+    menu_name = _safe_cget(widget, "menu").strip()
+    if not menu_name:
+        return rows
+    try:
+        menu = widget.nametowidget(menu_name)
+        end = menu.index("end")
+    except (tk.TclError, KeyError):
+        return rows
+    if end is None:
+        return rows
+    for index in range(end + 1):
+        try:
+            label = str(menu.entrycget(index, "label") or "").strip()
+        except tk.TclError:
+            continue
+        if label:
+            rows.append((str(widget), f"menu:{index}", label))
+    return rows
+
+
 def _visible_strings(widget):
     rows = []
 
-    text = _safe_cget(widget, "text").strip()
-    if text:
-        rows.append((str(widget), "text", text))
+    # Entry's Tcl "text" option can expose the internal PY_VAR name.  That is
+    # not rendered text, so only widgets that truly paint a text option belong
+    # in this presentation contract.
+    if isinstance(widget, _TEXT_WIDGETS):
+        text = _safe_cget(widget, "text").strip()
+        if text:
+            rows.append((str(widget), "text", text))
 
     textvariable = _safe_cget(widget, "textvariable").strip()
     if textvariable:
@@ -54,6 +82,9 @@ def _visible_strings(widget):
             value = ""
         if value:
             rows.append((str(widget), "textvariable", value))
+
+    if isinstance(widget, (tk.Menubutton, ttk.Menubutton)):
+        rows.extend(_menu_visible_strings(widget))
 
     if isinstance(widget, ttk.Notebook):
         for tab_id in widget.tabs():
@@ -99,6 +130,18 @@ def _visible_strings(widget):
     return rows
 
 
+def _assert_chinese_only(win):
+    visible = [(str(win), "title", str(win.title() or "").strip())]
+    visible.extend(_visible_strings(win))
+    leaks = [row for row in visible if row[2] and _ASCII_ALPHA.search(row[2])]
+    print("CORNER_REGISTRY_VISIBLE_TEXT", visible)
+    print("CORNER_REGISTRY_ASCII_LEAKS", leaks)
+    assert not leaks, (
+        "截角資料庫使用者可見文字不得顯示英文字母；內部 enum/key/schema 可保留英文，"
+        f"但 presentation boundary 必須中文化。leaks={leaks!r}"
+    )
+
+
 def test_corner_registry_user_visible_text_is_chinese_only():
     """Registry presentation may localize internal IDs, but must never expose ASCII words."""
     root, _app, designer = _open_designer()
@@ -108,17 +151,17 @@ def test_corner_registry_user_visible_text_is_chinese_only():
         win = designer.relief_registry_window
         assert win.winfo_exists()
         assert win.winfo_ismapped()
+        _assert_chinese_only(win)
 
-        visible = [(str(win), "title", str(win.title() or "").strip())]
-        visible.extend(_visible_strings(win))
-        leaks = [row for row in visible if row[2] and _ASCII_ALPHA.search(row[2])]
-
-        print("CORNER_REGISTRY_VISIBLE_TEXT", visible)
-        print("CORNER_REGISTRY_ASCII_LEAKS", leaks)
-        assert not leaks, (
-            "截角資料庫使用者可見文字不得顯示英文字母；內部 enum/key/schema 可保留英文，"
-            f"但 presentation boundary 必須中文化。leaks={leaks!r}"
-        )
+        # Selecting a rule populates the editable presentation fields.  Recheck
+        # that state so raw rule/source/formula IDs cannot leak after interaction.
+        tree = designer.relief_registry_rule_tree
+        children = tuple(tree.get_children())
+        if children:
+            tree.selection_set(children[0])
+            tree.event_generate("<<TreeviewSelect>>")
+            _pump(root, 2)
+            _assert_chinese_only(win)
     finally:
         try:
             root.destroy()
