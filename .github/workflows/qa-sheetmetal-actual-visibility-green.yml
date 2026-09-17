@@ -63,7 +63,7 @@ jobs:
               assert meta.canonical is None, (rel, meta)
           print('CHANGED_DOC_METADATA_GREEN=2')
           PY
-          changed=$(git diff --name-only | sort)
+          changed=$(git -c core.quotePath=false diff --name-only | sort)
           printf '%s\n' "$ui" "$pit" | sort > /tmp/expected.txt
           printf '%s\n' "$changed" | sort > /tmp/actual.txt
           diff -u /tmp/expected.txt /tmp/actual.txt
