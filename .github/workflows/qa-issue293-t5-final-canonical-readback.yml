@@ -1,4 +1,4 @@
-name: QA issue293 T5 composition contracts GREEN
+name: QA issue293 T5 committed contracts readback
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   focused:
@@ -20,17 +20,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply remaining composition contract reconciliation
-        run: python tools/qa_issue293_reconcile_composition_contracts.py
       - name: Install focused dependencies
         run: python -m pip install -q pytest -r requirements.txt
-      - name: Verify canonical ancestry and production source unchanged
+      - name: Verify committed test-only delta and production source unchanged
         shell: bash
         run: |
           git merge-base --is-ancestor 30050750cf15c04335130449265038424dc050d0 HEAD
           git diff --exit-code 30050750cf15c04335130449265038424dc050d0 HEAD -- gui.py gui_modules
+          mapfile -t changed < <(git diff --name-only 30050750cf15c04335130449265038424dc050d0 HEAD -- tests | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            tests/test_issue293_t5_canvas_renderer_slice.py
+            tests/test_issue293_t5_context_switch_slice.py
+            tests/test_issue293_t5_feature_factory_slice.py
+            tests/test_issue293_t5_indicator_fit_validation_slice.py
+          )
+          [[ "${changed[*]}" == "${expected[*]}" ]]
           echo "CANONICAL_SOURCE=30050750cf15c04335130449265038424dc050d0"
-      - name: Compile editor modules
+      - name: Compile committed editor modules
         run: python -m py_compile gui.py gui_modules/editors/hole_editor.py gui_modules/editors/hole_editor_view.py gui_modules/editors/hole_editor_composition.py
       - name: Verify dependency adapter namespace fail-closed
         run: |
@@ -58,7 +65,7 @@ jobs:
           HoleEditorCompositionDependencies.from_namespace(names)
           print('COMPOSITION_DEPENDENCY_NAMESPACE_OK')
           PY
-      - name: Run full T5 focused architecture suite
+      - name: Run committed full T5 architecture suite
         shell: bash
         run: |
           python -m pytest -q \
@@ -82,29 +89,7 @@ jobs:
           print(f'ROOT_SPAN={root_span}')
           print(f'GUI_LOC={gui_loc}')
           PY
-      - name: Verify intended test-only diff
-        shell: bash
+      - name: Verify working tree clean
         run: |
           git diff --check
-          mapfile -t changed < <(git diff --name-only | sort)
-          printf '%s\n' "${changed[@]}"
-          expected=(
-            tests/test_issue293_t5_canvas_renderer_slice.py
-            tests/test_issue293_t5_context_switch_slice.py
-            tests/test_issue293_t5_feature_factory_slice.py
-            tests/test_issue293_t5_indicator_fit_validation_slice.py
-          )
-          [[ "${changed[*]}" == "${expected[*]}" ]]
-      - name: Commit reconciled contracts
-        shell: bash
-        run: |
-          git config user.name "looaeedr"
-          git config user.email "76246585+looaeedr@users.noreply.github.com"
-          git add \
-            tests/test_issue293_t5_canvas_renderer_slice.py \
-            tests/test_issue293_t5_context_switch_slice.py \
-            tests/test_issue293_t5_feature_factory_slice.py \
-            tests/test_issue293_t5_indicator_fit_validation_slice.py
-          git diff --cached --check
-          git commit -m "test(#293): reconcile remaining composition-root contracts"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git diff --exit-code
