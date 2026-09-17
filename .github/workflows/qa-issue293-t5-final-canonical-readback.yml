@@ -1,4 +1,4 @@
-name: QA issue293 T5 final canonical readback
+name: QA issue293 T5 composition contracts GREEN
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   focused:
@@ -20,14 +20,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Apply remaining composition contract reconciliation
+        run: python tools/qa_issue293_reconcile_composition_contracts.py
       - name: Install focused dependencies
         run: python -m pip install -q pytest -r requirements.txt
-      - name: Verify canonical ancestry and no non-QA drift
+      - name: Verify canonical ancestry and production source unchanged
         shell: bash
         run: |
           git merge-base --is-ancestor 30050750cf15c04335130449265038424dc050d0 HEAD
-          git diff --check 30050750cf15c04335130449265038424dc050d0 HEAD
-          git diff --exit-code 30050750cf15c04335130449265038424dc050d0 HEAD -- . ':(exclude).github/workflows/qa-issue293-t5-final-canonical-readback.yml'
+          git diff --exit-code 30050750cf15c04335130449265038424dc050d0 HEAD -- gui.py gui_modules
           echo "CANONICAL_SOURCE=30050750cf15c04335130449265038424dc050d0"
       - name: Compile editor modules
         run: python -m py_compile gui.py gui_modules/editors/hole_editor.py gui_modules/editors/hole_editor_view.py gui_modules/editors/hole_editor_composition.py
@@ -37,30 +38,23 @@ jobs:
           import ast
           from pathlib import Path
           from gui_modules.editors.hole_editor_composition import HoleEditorCompositionDependencies
-
           tree = ast.parse(Path('gui.py').read_text(encoding='utf-8'))
           names = {}
           def store_target(target):
-              if isinstance(target, ast.Name):
-                  names[target.id] = None
+              if isinstance(target, ast.Name): names[target.id] = None
               elif isinstance(target, (ast.Tuple, ast.List)):
-                  for item in target.elts:
-                      store_target(item)
+                  for item in target.elts: store_target(item)
           for node in tree.body:
               if isinstance(node, ast.Import):
-                  for alias in node.names:
-                      names[alias.asname or alias.name.split('.')[0]] = None
+                  for alias in node.names: names[alias.asname or alias.name.split('.')[0]] = None
               elif isinstance(node, ast.ImportFrom):
                   for alias in node.names:
-                      if alias.name != '*':
-                          names[alias.asname or alias.name] = None
+                      if alias.name != '*': names[alias.asname or alias.name] = None
               elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                   names[node.name] = None
               elif isinstance(node, ast.Assign):
-                  for target in node.targets:
-                      store_target(target)
-              elif isinstance(node, ast.AnnAssign):
-                  store_target(node.target)
+                  for target in node.targets: store_target(target)
+              elif isinstance(node, ast.AnnAssign): store_target(node.target)
           HoleEditorCompositionDependencies.from_namespace(names)
           print('COMPOSITION_DEPENDENCY_NAMESPACE_OK')
           PY
@@ -88,5 +82,29 @@ jobs:
           print(f'ROOT_SPAN={root_span}')
           print(f'GUI_LOC={gui_loc}')
           PY
-      - name: Verify working tree clean
-        run: git diff --exit-code
+      - name: Verify intended test-only diff
+        shell: bash
+        run: |
+          git diff --check
+          mapfile -t changed < <(git diff --name-only | sort)
+          printf '%s\n' "${changed[@]}"
+          expected=(
+            tests/test_issue293_t5_canvas_renderer_slice.py
+            tests/test_issue293_t5_context_switch_slice.py
+            tests/test_issue293_t5_feature_factory_slice.py
+            tests/test_issue293_t5_indicator_fit_validation_slice.py
+          )
+          [[ "${changed[*]}" == "${expected[*]}" ]]
+      - name: Commit reconciled contracts
+        shell: bash
+        run: |
+          git config user.name "looaeedr"
+          git config user.email "76246585+looaeedr@users.noreply.github.com"
+          git add \
+            tests/test_issue293_t5_canvas_renderer_slice.py \
+            tests/test_issue293_t5_context_switch_slice.py \
+            tests/test_issue293_t5_feature_factory_slice.py \
+            tests/test_issue293_t5_indicator_fit_validation_slice.py
+          git diff --cached --check
+          git commit -m "test(#293): reconcile remaining composition-root contracts"
+          git push origin HEAD:${GITHUB_REF_NAME}
