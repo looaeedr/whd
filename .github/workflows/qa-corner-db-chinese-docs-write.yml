@@ -1,0 +1,63 @@
+name: Write Corner Database Chinese Presentation Rules
+
+on:
+  push:
+    branches:
+      - docs/corner-db-chinese-presentation-20260917
+    paths:
+      - '.github/workflows/qa-corner-db-chinese-docs-write.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/corner-db-chinese-presentation-20260917
+          fetch-depth: 0
+      - name: Append durable rules without touching metadata
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          targets = [
+              (
+                  Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md'),
+                  'CORNER_DB_CHINESE_PRESENTATION_V1',
+                  '''\n\n## 截角資料庫中文 presentation 邊界 — CORNER_DB_CHINESE_PRESENTATION_V1\n\n- 「截角資料庫／組合接合」屬 operator-facing 工程介面；使用者看得到的視窗標題、欄位、按鈕、分頁、選單、表格 heading/value、狀態與備註，不得直接漏出 ASCII 英文 token。\n- 內部 enum、rule id、schema、formula token 與 metadata 可以維持穩定英文；**不得為了中文 UI 去改 authority/schema**。中文化只能發生在 presentation mapper / raw↔display binding 邊界。\n- 同一欄位若需要保留內部原值並允許編輯，必須採 raw variable + display variable 雙向轉換；例如底層 `linked-FW` 可保留，畫面顯示「連動框寬」，儲存時再還原 raw token。\n- Runtime acceptance 要從真正可見的 widget / Treeview / Notebook / Menu / Canvas 與互動後狀態收集文字；Tk/ttk 內部 `PY_VAR...` 這類 control-variable 名稱不是畫面文字，不得當成 UI leak。\n- 只檢查 source code 是否含英文不算 UI acceptance；必須在 modern startup + Xvfb/真 GUI 開啟截角資料庫並驗證 mapped presentation。\n'''
+              ),
+              (
+                  Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'),
+                  'CORNER_DB_CHINESE_PRESENTATION_V1',
+                  '''\n\n## 截角資料庫英文漏到操作介面 — CORNER_DB_CHINESE_PRESENTATION_V1\n\n- **踩坑情境**：截角資料的 schema/enum 本來就用英文，UI 直接綁 raw variable 或 raw table value，結果 `PHASE6`、`3D`、rule ID、`top_edge`、`X/Y`、`linked-FW` 等內部字串跑到操作畫面。\n- **錯誤修法**：直接把 enum、rule ID、formula token 或 source metadata 改成中文。這會把 presentation 問題變成資料 authority/schema migration。\n- **正確做法**：保留 raw authority，集中用中文 label mapper；可編輯欄位使用 raw/display 雙向 binding。未知英文若真的進入 operator-visible presentation，runtime contract 必須紅燈。\n- **測試陷阱**：Tk/ttk 的 Entry `cget("text")` 可能回傳 `PY_VAR...` 內部 Tcl 變數名；它不是 painted copy。測試只能收真正會畫給操作者看的 text、textvariable value、Menu label、Notebook tab、Treeview heading/value、Canvas text。\n- **完成條件**：modern UI 實際開啟截角資料庫，互動前與選取規則後都無 ASCII 英文 leak，且 `config.ini` / DXF protected invariants 不變。\n'''
+              ),
+          ]
+
+          for path, marker, block in targets:
+              text = path.read_text(encoding='utf-8')
+              if marker in text:
+                  raise SystemExit(f'marker already exists: {path}')
+              if 'whd_schema: WHD_DOC_META_V1' not in text[:1000]:
+                  raise SystemExit(f'metadata missing before write: {path}')
+              path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+          PY
+      - name: Validate durable writeback shape
+        run: |
+          set -euo pipefail
+          git diff --check
+          grep -n 'whd_schema: WHD_DOC_META_V1' '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+          grep -n 'whd_schema: WHD_DOC_META_V1' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          grep -n 'CORNER_DB_CHINESE_PRESENTATION_V1' '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+          grep -n 'CORNER_DB_CHINESE_PRESENTATION_V1' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+      - name: Commit and push durable rules
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add '.agents/skills/engineering/UI設計與去AI味/SKILL.md' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          git commit -m 'docs: codify corner database Chinese presentation boundary'
+          git push origin HEAD:docs/corner-db-chinese-presentation-20260917
