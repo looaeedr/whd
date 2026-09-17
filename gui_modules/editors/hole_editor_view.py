@@ -79,6 +79,51 @@ class HoleEditorCatalogControls:
         return "break"
 
 
+class HoleEditorFullscreenActions:
+    """Own transient fullscreen-window presentation state only."""
+
+    def __init__(
+        self, *, editor, fullscreen_button, fullscreen_state,
+        restore_geometry, redraw_provider,
+    ):
+        self.editor = editor
+        self.fullscreen_button = fullscreen_button
+        self.fullscreen_state = fullscreen_state
+        self.restore_geometry = restore_geometry
+        self.redraw_provider = redraw_provider
+
+    def toggle_fullscreen(self, event=None):
+        entering = not self.fullscreen_state[0]
+        if entering:
+            self.restore_geometry[0] = self.editor.geometry()
+            self.fullscreen_state[0] = True
+            try:
+                self.editor.attributes("-fullscreen", True)
+                self.editor.update_idletasks()
+            except tk.TclError:
+                pass
+            try:
+                native_fullscreen = bool(self.editor.attributes("-fullscreen"))
+            except tk.TclError:
+                native_fullscreen = False
+            if not native_fullscreen:
+                self.editor.geometry(
+                    f"{self.editor.winfo_screenwidth()}x{self.editor.winfo_screenheight()}+0+0"
+                )
+        else:
+            self.fullscreen_state[0] = False
+            try:
+                self.editor.attributes("-fullscreen", False)
+            except tk.TclError:
+                pass
+            if self.restore_geometry[0]:
+                self.editor.geometry(self.restore_geometry[0])
+        self.fullscreen_button.configure(
+            text=("還原視窗" if self.fullscreen_state[0] else "全螢幕")
+        )
+        self.editor.after_idle(self.redraw_provider())
+        return "break"
+
 class HoleEditorCreatedListPresentation:
     """Own presentation-only rendering of the created-hole list."""
 

@@ -164,6 +164,7 @@ from gui_modules.editors.hole_editor import (
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
+    HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
@@ -6110,34 +6111,14 @@ class Phase6ApplicationHost:
                              font=('Microsoft JhengHei', 11, 'bold'), padx=12, pady=4)
         undo_btn.pack(side=tk.LEFT, padx=(8, 3), pady=4)
 
-        def toggle_fullscreen(event=None):
-            entering = not fullscreen_state[0]
-            if entering:
-                fullscreen_restore_geometry[0] = editor.geometry()
-                fullscreen_state[0] = True
-                try:
-                    editor.attributes("-fullscreen", True)
-                    editor.update_idletasks()
-                except tk.TclError:
-                    pass
-                try:
-                    native_fullscreen = bool(editor.attributes("-fullscreen"))
-                except tk.TclError:
-                    native_fullscreen = False
-                if not native_fullscreen:
-                    editor.geometry(f"{editor.winfo_screenwidth()}x{editor.winfo_screenheight()}+0+0")
-            else:
-                fullscreen_state[0] = False
-                try:
-                    editor.attributes("-fullscreen", False)
-                except tk.TclError:
-                    pass
-                if fullscreen_restore_geometry[0]:
-                    editor.geometry(fullscreen_restore_geometry[0])
-            fullscreen_btn.configure(text=("還原視窗" if fullscreen_state[0] else "全螢幕"))
-            editor.after_idle(redraw)
-            return "break"
-
+        fullscreen_actions = _HoleEditorFullscreenActions(
+            editor=editor,
+            fullscreen_button=fullscreen_btn,
+            fullscreen_state=fullscreen_state,
+            restore_geometry=fullscreen_restore_geometry,
+            redraw_provider=lambda: redraw,
+        )
+        toggle_fullscreen = fullscreen_actions.toggle_fullscreen
         fullscreen_btn.configure(command=toggle_fullscreen)
         tk.Label(toolbar, text="雙擊已開孔：切穿 ⇄ 盲孔　右鍵孔：選十字基準",
                  bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 10)).pack(side=tk.RIGHT, padx=10)
