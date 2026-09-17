@@ -1,5 +1,6 @@
 name: Sheet-metal Dual Projection Focused
 
+# second push intentionally triggers this branch-bound one-shot gate
 on:
   push:
     branches:
