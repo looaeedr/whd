@@ -176,6 +176,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorContextRefresh as _HoleEditorIndicatorContextRefresh,
     HoleEditorIndicatorGroupControls as _HoleEditorIndicatorGroupControls,
+    HoleEditorIndicatorPanelBuilder as _HoleEditorIndicatorPanelBuilder,
     HoleEditorIndicatorStateCollector as _HoleEditorIndicatorStateCollector,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
@@ -5899,70 +5900,16 @@ class Phase6ApplicationHost:
         )
         collect_indicator_state = indicator_state_collector.collect
 
-        if part_key == "door" and door_indicator_state is not None:
-            seed_state = self._normalize_door_indicator_state(door_indicator_state)
-            indicator_mode_var = tk.StringVar(value=seed_state["mode"])
-            indicator_layers_var = tk.StringVar(value=str(seed_state["layers"]))
-            indicator_group_vars = [tk.StringVar(value=str(int(seed_state["groups"][i]))) for i in range(6)]
-            indicator_offset_x_var = tk.StringVar(value=self._door_layout_number_text(seed_state["offset_x"]))
-            indicator_offset_y_var = tk.StringVar(value=self._door_layout_number_text(seed_state["offset_y"]))
-            indicator_box_dist_var = tk.BooleanVar(value=seed_state["is_box_dist"])
-
-            indicator_frame = tk.LabelFrame(
-                left, text=" 門指示燈 / 指示燈盒子 ", bg=self.COLOR_PANEL, fg="#ffd60a",
-                font=('Microsoft JhengHei', 11, 'bold')
-            )
-            indicator_frame.pack(fill=tk.X, padx=10, pady=(8, 4))
-            mode_row = tk.Frame(indicator_frame, bg=self.COLOR_PANEL)
-            mode_row.pack(fill=tk.X, padx=5, pady=(3, 2))
-            for text, value in (("不使用", "none"), ("直接指示燈", "indicator"), ("指示燈盒子", "indicator_box")):
-                tk.Radiobutton(
-                    mode_row, text=text, value=value, variable=indicator_mode_var,
-                    bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                    activebackground=self.COLOR_PANEL, activeforeground=self.COLOR_TEXT,
-                    font=('Microsoft JhengHei', 9, 'bold'), command=request_indicator_redraw,
-                ).pack(side=tk.LEFT, padx=(0, 5))
-
-            layer_row = tk.Frame(indicator_frame, bg=self.COLOR_PANEL)
-            layer_row.pack(fill=tk.X, padx=6, pady=2)
-            tk.Label(layer_row, text="層數", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, width=5, anchor=tk.W).pack(side=tk.LEFT)
-            layer_combo = ttk.Combobox(
-                layer_row, textvariable=indicator_layers_var,
-                values=["1", "2", "3", "4", "5", "6"], width=4, state="readonly"
-            )
-            layer_combo.pack(side=tk.LEFT)
-
-            groups_frame = tk.Frame(indicator_frame, bg=self.COLOR_PANEL)
-            groups_frame.pack(fill=tk.X, padx=6, pady=2)
-
-            indicator_group_controls = _HoleEditorIndicatorGroupControls(
-                groups_frame=groups_frame, layers_var=indicator_layers_var,
-                group_vars=indicator_group_vars, request_redraw=request_indicator_redraw,
-                panel_bg=self.COLOR_PANEL, muted_color=self.COLOR_TEXT_MUTED,
-            )
-            rebuild_indicator_group_controls = indicator_group_controls.rebuild
-            layer_combo.bind("<<ComboboxSelected>>", rebuild_indicator_group_controls)
-            rebuild_indicator_group_controls()
-
-            pos_row = tk.Frame(indicator_frame, bg=self.COLOR_PANEL)
-            pos_row.pack(fill=tk.X, padx=6, pady=2)
-            tk.Label(pos_row, text="X", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED).pack(side=tk.LEFT)
-            x_entry = tk.Entry(pos_row, textvariable=indicator_offset_x_var, width=6, justify=tk.CENTER)
-            x_entry.pack(side=tk.LEFT, padx=(2, 6))
-            tk.Label(pos_row, text="Y", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED).pack(side=tk.LEFT)
-            y_entry = tk.Entry(pos_row, textvariable=indicator_offset_y_var, width=6, justify=tk.CENTER)
-            y_entry.pack(side=tk.LEFT, padx=(2, 6))
-            tk.Button(pos_row, text="置中", command=lambda: (
-                indicator_offset_x_var.set("0"), indicator_offset_y_var.set("0"), request_indicator_redraw()
-            ), bg="#3a3a44", fg="white", bd=0).pack(side=tk.LEFT)
-            x_entry.bind("<KeyRelease>", request_indicator_redraw)
-            y_entry.bind("<KeyRelease>", request_indicator_redraw)
-            tk.Checkbutton(
-                indicator_frame, text="箱體定位距離", variable=indicator_box_dist_var,
-                bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                activebackground=self.COLOR_PANEL, command=on_box_distance_toggle,
-                font=('Microsoft JhengHei', 9),
-            ).pack(anchor=tk.W, padx=6, pady=(1, 4))
+        (
+            indicator_mode_var, indicator_layers_var, indicator_group_vars,
+            indicator_offset_x_var, indicator_offset_y_var, indicator_box_dist_var,
+        ) = _HoleEditorIndicatorPanelBuilder(self).build(
+            left=left,
+            part_key=part_key,
+            door_indicator_state=door_indicator_state,
+            request_redraw=request_indicator_redraw,
+            on_box_distance_toggle=on_box_distance_toggle,
+        )
 
         # ---- left: catalog ----
         tk.Label(left, text="一般開孔", bg=self.COLOR_PANEL, fg="#30d158", font=('Microsoft JhengHei', 13, 'bold')).pack(fill=tk.X, padx=10, pady=(10, 3))
