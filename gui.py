@@ -155,7 +155,10 @@ from gui_modules.editors.hole_editor import (
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
 )
-from gui_modules.editors.hole_editor_view import draw_hole_editor_hint as _draw_hole_editor_hint_impl
+from gui_modules.editors.hole_editor_view import (
+    draw_hole_editor_hint as _draw_hole_editor_hint_impl,
+    open_round_hole_settings as _open_round_hole_settings_impl,
+)
 
 from gui_modules.drawing import (
     _corner_preview_canvas_point,
@@ -6716,228 +6719,30 @@ class Phase6ApplicationHost:
         for angle, btn in rotation_buttons:
             btn.configure(command=lambda a=angle: rotate_selected(a))
 
-        def open_round_hole_settings():
-            idx = hole_session.selected_index
-            if not (0 <= idx < len(feature_list)) or not isinstance(feature_list[idx], CircleFeature):
-                return
-            if round_window[0] is not None and round_window[0].winfo_exists():
-                round_window[0].lift()
-                return
+        def _open_round_settings():
+            return _open_round_hole_settings_impl(
+                editor=editor,
+                theme={
+                    "bg": self.COLOR_BG,
+                    "panel": self.COLOR_PANEL,
+                    "text": self.COLOR_TEXT,
+                    "input_bg": self.COLOR_INPUT_BG,
+                    "muted": self.COLOR_TEXT_MUTED,
+                },
+                hole_session=hole_session,
+                feature_list=feature_list,
+                surface=surface,
+                width=width,
+                height=height,
+                round_window=round_window,
+                position_authority=position_authority,
+                refresh_created=refresh_created,
+                refresh_reference_fields=refresh_reference_fields,
+                redraw=redraw,
+                sync_all=sync_all,
+            )
 
-            # Round preview is its own Session transaction. Commit any earlier
-            # drag/rotate/reference edit first so there is only one active before
-            # snapshot and Undo remains deterministic.
-            hole_session.execute(HoleEditorAction.commit_active(keep_selected=True))
-            seed_snapshot = list(feature_list)
-            selected_feature = seed_snapshot[idx]
-            dialog = tk.Toplevel(editor)
-            round_window[0] = dialog
-            dialog.title("圓孔排列設定")
-            dialog.configure(bg=self.COLOR_BG)
-            dialog.transient(editor)
-            dialog.grab_set()
-            dialog.resizable(False, False)
-
-            direction_map = {
-                "向左": "left", "向右": "right", "向上": "up", "向下": "down",
-                "左右兩側": "both_horizontal", "上下兩側": "both_vertical",
-            }
-            round_direction = tk.StringVar(value="向右")
-            round_driver = tk.StringVar(value="center")
-            round_center = tk.StringVar(value=f"{max(float(selected_feature.diameter) * 2.0, 50.0):.2f}")
-            round_gap = tk.StringVar()
-            round_alignment = tk.StringVar(value="center")
-            sync_guard = [False]
-
-            def same_diameter_gap_from_center(center_value):
-                return circle_gap_from_center_distance(center_value, selected_feature.diameter, selected_feature.diameter)
-
-            def same_diameter_center_from_gap(gap_value):
-                return circle_center_distance_from_gap(gap_value, selected_feature.diameter, selected_feature.diameter)
-
-            def sync_from_center(event=None):
-                if sync_guard[0]:
-                    return
-                try:
-                    value = float(round_center.get())
-                except ValueError:
-                    return
-                round_driver.set("center")
-                sync_guard[0] = True
-                try:
-                    round_gap.set(f"{same_diameter_gap_from_center(value):.2f}")
-                finally:
-                    sync_guard[0] = False
-
-            def sync_from_gap(event=None):
-                if sync_guard[0]:
-                    return
-                try:
-                    value = float(round_gap.get())
-                except ValueError:
-                    return
-                round_driver.set("gap")
-                sync_guard[0] = True
-                try:
-                    round_center.set(f"{same_diameter_center_from_gap(value):.2f}")
-                finally:
-                    sync_guard[0] = False
-
-            sync_from_center()
-
-            # Find the nearest existing circular neighbor only for optional pipe alignment.
-            seed_point = feature_finished_point(selected_feature, width, height)
-            neighbor_index = None
-            neighbor_distance = None
-            for other_i, other in enumerate(seed_snapshot):
-                if other_i == idx or not isinstance(other, CircleFeature):
-                    continue
-                op = feature_finished_point(other, width, height)
-                distance = (op.x-seed_point.x) ** 2 + (op.y-seed_point.y) ** 2
-                if neighbor_distance is None or distance < neighbor_distance:
-                    neighbor_index = other_i
-                    neighbor_distance = distance
-
-            outer = tk.Frame(dialog, bg=self.COLOR_BG)
-            outer.pack(fill=tk.BOTH, expand=True, padx=14, pady=12)
-            tk.Label(outer, text=f"目前圓孔：Ø{selected_feature.diameter:g}", bg=self.COLOR_BG, fg="#ffd60a",
-                     font=('Microsoft JhengHei', 13, 'bold')).pack(anchor=tk.W, pady=(0, 8))
-
-            dir_frame = tk.LabelFrame(outer, text=" 填滿方向 ", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
-                                      font=('Microsoft JhengHei', 11, 'bold'))
-            dir_frame.pack(fill=tk.X, pady=4)
-            for col, label in enumerate(("向左", "向右", "向上", "向下", "左右兩側", "上下兩側")):
-                tk.Radiobutton(dir_frame, text=label, variable=round_direction, value=label,
-                               bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                               activebackground=self.COLOR_PANEL, font=('Microsoft JhengHei', 10, 'bold')).grid(
-                                   row=col//3, column=col%3, sticky="w", padx=8, pady=4)
-
-            spacing = tk.LabelFrame(outer, text=" 排列距離（兩欄同步） ", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
-                                    font=('Microsoft JhengHei', 11, 'bold'))
-            spacing.pack(fill=tk.X, pady=6)
-            tk.Radiobutton(spacing, text="孔心距為主", variable=round_driver, value="center",
-                           bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                           activebackground=self.COLOR_PANEL, font=('Microsoft JhengHei', 10, 'bold'),
-                           command=sync_from_center).grid(row=0, column=0, sticky="w", padx=8, pady=4)
-            center_entry = tk.Entry(spacing, textvariable=round_center, font=('Consolas', 13, 'bold'), width=10, justify=tk.RIGHT)
-            center_entry.grid(row=0, column=1, padx=6, pady=4)
-            tk.Label(spacing, text="mm", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED).grid(row=0, column=2, sticky="w")
-            tk.Radiobutton(spacing, text="間距為主", variable=round_driver, value="gap",
-                           bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                           activebackground=self.COLOR_PANEL, font=('Microsoft JhengHei', 10, 'bold'),
-                           command=sync_from_gap).grid(row=1, column=0, sticky="w", padx=8, pady=4)
-            gap_entry = tk.Entry(spacing, textvariable=round_gap, font=('Consolas', 13, 'bold'), width=10, justify=tk.RIGHT)
-            gap_entry.grid(row=1, column=1, padx=6, pady=4)
-            tk.Label(spacing, text="mm", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED).grid(row=1, column=2, sticky="w")
-            center_entry.bind("<KeyRelease>", sync_from_center)
-            center_entry.bind("<FocusIn>", lambda e: round_driver.set("center"))
-            gap_entry.bind("<KeyRelease>", sync_from_gap)
-            gap_entry.bind("<FocusIn>", lambda e: round_driver.set("gap"))
-
-            align_frame = tk.LabelFrame(outer, text=" 鄰近圓孔對齊 ", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT,
-                                        font=('Microsoft JhengHei', 11, 'bold'))
-            if neighbor_index is not None:
-                align_frame.pack(fill=tk.X, pady=6)
-                for label, value in (("孔心齊", "center"), ("管頂齊", "top"), ("管底齊", "bottom")):
-                    tk.Radiobutton(align_frame, text=label, variable=round_alignment, value=value,
-                                   bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, selectcolor=self.COLOR_INPUT_BG,
-                                   activebackground=self.COLOR_PANEL, font=('Microsoft JhengHei', 10, 'bold')).pack(side=tk.LEFT, padx=10, pady=6)
-
-            status_var = tk.StringVar(value="設定後可先預覽，再按確定。")
-            tk.Label(outer, textvariable=status_var, bg=self.COLOR_BG, fg="#64d2ff",
-                     font=('Microsoft JhengHei', 10)).pack(fill=tk.X, pady=(4, 2))
-
-            def driver_value():
-                try:
-                    value = float(round_center.get() if round_driver.get() == "center" else round_gap.get())
-                except ValueError as exc:
-                    raise ValueError("孔心距 / 間距必須是數字") from exc
-                if round_driver.get() == "center" and value <= 0:
-                    raise ValueError("孔心距必須大於 0")
-                if round_driver.get() == "gap" and value < 0:
-                    raise ValueError("間距不可小於 0")
-                return value
-
-            def aligned_seed():
-                seed = selected_feature
-                if neighbor_index is None:
-                    return seed
-                direction = direction_map[round_direction.get()]
-                axis = "x" if direction in {"left", "right", "both_horizontal"} else "y"
-                neighbor = seed_snapshot[neighbor_index]
-                candidate = align_circle_to_neighbor(seed, neighbor, round_alignment.get(), axis, width, height)
-                return candidate if feature_is_within_surface(surface, candidate, width, height) else seed
-
-            def apply_pattern(refill=False):
-                try:
-                    value = driver_value()
-                    direction = direction_map[round_direction.get()]
-                    seed = aligned_seed()
-                    generator = generate_round_refill if refill else generate_round_fill
-                    result = generator(seed, surface, width=width, height=height, direction=direction,
-                                       driver=round_driver.get(), value=value)
-                    if not result:
-                        raise ValueError("目前設定無法在合法板面內產生圓孔排列")
-                except ValueError as exc:
-                    messagebox.showerror("圓孔排列", str(exc), parent=dialog)
-                    return
-                original_point = feature_finished_point(selected_feature, width, height)
-                seed_result = min(result, key=lambda f: (feature_finished_point(f, width, height).x-original_point.x)**2 +
-                                                       (feature_finished_point(f, width, height).y-original_point.y)**2)
-                preview_features = list(seed_snapshot)
-                preview_features[idx] = seed_result
-                for generated in result:
-                    if generated is seed_result:
-                        continue
-                    preview_features.append(generated)
-                hole_session.execute(HoleEditorAction.preview_all(preview_features, selected_index=idx))
-                refresh_created()
-                refresh_reference_fields()
-                redraw()
-                sync_all()
-                status_var.set(f"預覽：{len(result)} 孔；{'重新填滿' if refill else '填滿'}。")
-
-            action_row = tk.Frame(outer, bg=self.COLOR_BG)
-            action_row.pack(fill=tk.X, pady=(7, 4))
-            tk.Button(action_row, text="填滿", command=lambda: apply_pattern(False), bg="#0a84ff", fg="white", bd=0,
-                      font=('Microsoft JhengHei', 11, 'bold'), padx=18, pady=6).pack(side=tk.LEFT, padx=(0, 6))
-            tk.Button(action_row, text="重新填滿", command=lambda: apply_pattern(True), bg="#bf5af2", fg="white", bd=0,
-                      font=('Microsoft JhengHei', 11, 'bold'), padx=18, pady=6).pack(side=tk.LEFT, padx=6)
-
-            def close_round_window():
-                if round_window[0] is dialog:
-                    round_window[0] = None
-                try:
-                    dialog.grab_release()
-                except tk.TclError:
-                    pass
-                dialog.destroy()
-
-            def cancel_round():
-                hole_session.execute(HoleEditorAction.cancel_active())
-                refresh_created(); refresh_reference_fields(); redraw(); sync_all()
-                close_round_window()
-
-            def confirm_round():
-                hole_session.execute(HoleEditorAction.commit_active(keep_selected=True))
-                position_authority[0] = "round"
-                refresh_created(); refresh_reference_fields(); redraw(); sync_all()
-                close_round_window()
-
-            footer_round = tk.Frame(outer, bg=self.COLOR_BG)
-            footer_round.pack(fill=tk.X, pady=(8, 0))
-            tk.Button(footer_round, text="確定", command=confirm_round, bg="#30d158", fg="white", bd=0,
-                      font=('Microsoft JhengHei', 12, 'bold'), padx=28, pady=7).pack(side=tk.RIGHT, padx=(6, 0))
-            tk.Button(footer_round, text="取消", command=cancel_round, bg="#ff453a", fg="white", bd=0,
-                      font=('Microsoft JhengHei', 12, 'bold'), padx=28, pady=7).pack(side=tk.RIGHT, padx=6)
-            dialog.protocol("WM_DELETE_WINDOW", cancel_round)
-            dialog.bind("<Escape>", lambda e: (cancel_round(), "break")[1])
-            dialog.update_idletasks()
-            dw = min(560, max(480, dialog.winfo_reqwidth()))
-            dh = min(650, max(430, dialog.winfo_reqheight()))
-            dialog.geometry(f"{dw}x{dh}+{max(0, editor.winfo_rootx()+60)}+{max(0, editor.winfo_rooty()+60)}")
-
-        round_settings_btn.configure(command=open_round_hole_settings)
+        round_settings_btn.configure(command=_open_round_settings)
 
         def _baseline_status_color(text):
             return "#64d2ff" if str(text or "").startswith("基準檔：") else "#ff9f0a"
