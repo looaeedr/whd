@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 
 import pytest
 
@@ -161,3 +162,34 @@ def test_cleanup_before_evidence_fails_closed():
     with pytest.raises(CleanupGateError) as exc:
         compute_safe_deletions({"qa/temp-a"}, set(), evidence_secured=False)
     assert exc.value.code == "CLEANUP_BEFORE_EVIDENCE"
+
+
+def _text(path):
+    return Path(path).read_text(encoding="utf-8")
+
+
+def test_durable_ci_sharding_rules_are_owned_by_python_testing_skill():
+    text = _text(".agents/skills/engineering/Python測試實務/SKILL.md")
+    for marker in (
+        "DETERMINISTIC_SHARD_OWNERSHIP",
+        "CI_CONCURRENCY_BUDGET",
+        "DURATION_REBALANCE",
+        "UNIFIED_SUMMARY",
+        "TESTED_SHA and ORCHESTRATION_SHA",
+    ):
+        assert marker in text
+
+
+def test_durable_remote_classification_rules_are_owned_by_long_log_skill():
+    text = _text(".agents/skills/engineering/long-log-context-safe-execution/SKILL.md")
+    assert "CLASSIFICATION_NOT_RUN != HANG/TIMEOUT" in text
+    assert "FLAKY_WARNING" in text
+
+
+def test_ai_library_has_ci_sharding_bridges_without_new_competing_skill():
+    sop06 = _text("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
+    sop08 = _text("個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md")
+    pitfall = _text("個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md")
+    assert "CI_SHARDING_PITFALL_BRIDGE_V1" in sop06
+    assert "CI_SHARDING_SKILL_OWNERSHIP_V1" in sop08
+    assert "CLASSIFICATION_NOT_RUN != HANG/TIMEOUT" in pitfall
