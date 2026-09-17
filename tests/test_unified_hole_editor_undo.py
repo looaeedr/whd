@@ -27,8 +27,13 @@ def test_session_undo_history_copies_list_container():
 
 
 def test_gui_has_undo_button_and_ctrl_z_binding_via_session_owner():
-    src = (Path(__file__).resolve().parents[1] / "gui.py").read_text(encoding="utf-8")
-    assert "↶ 回上一步" in src
-    assert '"<Control-z>"' in src or "'<Control-z>'" in src
-    assert 'Phase6HoleEditorSession("door", feature_list, max_undo_steps=50)' in src
-    assert "EditorUndoHistory(max_steps=50)" not in src
+    root = Path(__file__).resolve().parents[1]
+    view = (root / "gui_modules/editors/hole_editor_view.py").read_text(encoding="utf-8")
+    composition = (root / "gui_modules/editors/hole_editor_composition.py").read_text(encoding="utf-8")
+    editor = (root / "gui_modules/editors/hole_editor.py").read_text(encoding="utf-8")
+    joined = "\n".join((view, composition, editor))
+    assert "↶ 回上一步" in view
+    assert '"<Control-z>"' in composition or "'<Control-z>'" in composition
+    assert "_HoleEditorSessionFactory.create(" in composition
+    assert "max_undo_steps=50" in composition
+    assert "EditorUndoHistory(max_steps=50)" not in joined
