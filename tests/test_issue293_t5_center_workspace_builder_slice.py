@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 def _unified_method() -> ast.FunctionDef:
@@ -34,16 +35,18 @@ def test_center_workspace_builder_is_bounded_and_presentation_only():
     assert "Phase6HoleEditorSession" not in source
 
 
-def test_unified_root_delegates_widgets_but_keeps_fullscreen_controller_authority():
+def test_composition_root_delegates_widgets_but_keeps_fullscreen_controller_authority():
     gui = GUI.read_text(encoding="utf-8")
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
+    root_segment = ast.get_source_segment(gui, method) or ""
     assert "HoleEditorCenterWorkspaceBuilder as _HoleEditorCenterWorkspaceBuilder" in gui
-    assert "_HoleEditorCenterWorkspaceBuilder(self).build(" in segment
-    assert "_HoleEditorFullscreenActions(" in segment
-    assert 'text="旋轉"' not in segment
-    assert 'text="確定全部"' not in segment
-    assert 'text="取消全部"' not in segment
+    assert COMPOSITION.is_file(), "T5 RED: center-workspace composition handoff is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorCenterWorkspaceBuilder(host).build(" in composition
+    assert "_HoleEditorFullscreenActions(" in composition
+    assert 'text="旋轉"' not in root_segment
+    assert 'text="確定全部"' not in root_segment
+    assert 'text="取消全部"' not in root_segment
 
 
 def test_center_workspace_slice_materially_reduces_root():
