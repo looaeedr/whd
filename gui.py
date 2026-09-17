@@ -151,6 +151,8 @@ from ae_engine.corner_type_ui import (
 
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
+from gui_modules.editors.hole_editor import open_hole_editor as _open_hole_editor_impl
+from gui_modules.editors.hole_editor_view import draw_hole_editor_hint as _draw_hole_editor_hint_impl
 
 from gui_modules.drawing import (
     _corner_preview_canvas_point,
@@ -581,12 +583,7 @@ def _draw_phase6_corner_dimension_overlay(canvas, render_data, canvas_width):
 
 
 def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
-    text = "雙擊：開孔"
-    canvas.create_text(
-        canvas_width - 18, 18, text=text, anchor=tk.NE,
-        fill="#ff9f0a", font=('Microsoft JhengHei',9,'bold'),
-        tags=("phase6_hole_hint",),
-    )
+    return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap)
 
 
 def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gutter=175.0, right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
@@ -7334,25 +7331,7 @@ class Phase6ApplicationHost:
         editor.after(50, redraw)
 
     def open_hole_editor(self, key):
-        """Head/Tail compatibility adapter into the same unified editor."""
-        label_map={"head":"封頭","tail":"封尾"}
-        if key not in label_map:
-            messagebox.showerror("開孔失敗",f"未知板面: {key}"); return
-        try: val=self.get_float_values()
-        except ValueError:
-            messagebox.showerror("輸入錯誤","請先確保主畫面所有數值輸入正確"); return
-        width=float(val['w']); height=float(val['d']); thickness=float(val['t'])
-        face_guide=resolve_endcap_finished_face_guide(width,height,thickness)
-        surface=feature_surface_from_rect(f"{key}_finished_face",face_guide.min_point,face_guide.max_point)
-        legacy=self.tail_holes if key=="tail" else self.head_holes
-        self.surface_features[key]=[legacy_hole_to_feature(hole) for hole in legacy]
-        def sync_legacy():
-            legacy[:]=[feature_to_legacy_hole(feature,width,height) for feature in self.surface_features[key]]
-        reference_guide = RectGuide(Vec2(0.0, 0.0), Vec2(width, height), "finished_boundary")
-        self._open_unified_hole_editor(
-            key, label_map[key], surface, width, height,
-            sync_callback=sync_legacy, reference_guide=reference_guide,
-        )
+        return _open_hole_editor_impl(self, key)
 
 
 
