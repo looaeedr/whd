@@ -1,4 +1,4 @@
-name: QA issue293 composition root handoff GREEN
+name: QA issue293 composition root committed readback
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   focused:
@@ -15,16 +15,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply composition root handoff
-        run: python tools/qa_issue293_composition_root_handoff_green.py
       - name: Install runtime test dependencies
         run: python -m pip install -q pytest -r requirements.txt
-      - name: Compile extracted editor modules
+      - name: Compile committed editor modules
         run: python -m py_compile gui.py gui_modules/editors/hole_editor.py gui_modules/editors/hole_editor_view.py gui_modules/editors/hole_editor_composition.py
       - name: Verify dependency adapter fail-closed namespace resolution
         run: |
@@ -32,17 +28,14 @@ jobs:
           import ast
           from pathlib import Path
           from gui_modules.editors.hole_editor_composition import HoleEditorCompositionDependencies
-
           tree = ast.parse(Path('gui.py').read_text(encoding='utf-8'))
           names = {}
-
           def store_target(target):
               if isinstance(target, ast.Name):
                   names[target.id] = None
               elif isinstance(target, (ast.Tuple, ast.List)):
                   for item in target.elts:
                       store_target(item)
-
           for node in tree.body:
               if isinstance(node, ast.Import):
                   for alias in node.names:
@@ -58,11 +51,10 @@ jobs:
                       store_target(target)
               elif isinstance(node, ast.AnnAssign):
                   store_target(node.target)
-
           HoleEditorCompositionDependencies.from_namespace(names)
           print('COMPOSITION_DEPENDENCY_NAMESPACE_OK')
           PY
-      - name: Verify architecture and authority GREEN
+      - name: Verify committed architecture and authority GREEN
         run: >-
           python -m pytest -q
           tests/test_issue293_t5_composition_root_handoff.py
@@ -74,10 +66,11 @@ jobs:
           tests/test_issue293_t5_catalog_sidebar_builder_slice.py
           tests/test_issue293_t5_center_workspace_builder_slice.py
           tests/test_issue293_t5_fullscreen_actions_slice.py
-      - name: Verify diff and residual size
+      - name: Verify no drift and print final dimensions
         shell: bash
         run: |
           git diff --check
+          git diff --exit-code
           python - <<'PY'
           import ast
           from pathlib import Path
@@ -89,12 +82,3 @@ jobs:
           print(f'ROOT_SPAN={fn.end_lineno-fn.lineno+1}')
           print(f'GUI_LOC={len(text.splitlines())}')
           PY
-      - name: Commit GREEN after verification
-        shell: bash
-        run: |
-          git config user.name "looaeedr"
-          git config user.email "76246585+looaeedr@users.noreply.github.com"
-          git add gui.py gui_modules/editors/hole_editor_composition.py
-          git diff --cached --check
-          git commit -m "refactor(#293): hand off unified editor composition root"
-          git push origin HEAD:${GITHUB_REF_NAME}
