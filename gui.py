@@ -4,6 +4,7 @@
 """
 
 import tkinter as tk
+from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
 from gui_modules.parts.panels.door import collect_door_input
 import time
@@ -1478,6 +1479,8 @@ class Phase6ApplicationHost:
         return spec, context
 
     def _query_fold_designer_render_data(self, part_key, payload):
+        if str(part_key or "").startswith("indicator"):
+            payload = collect_indicator_box_input(payload)
         if str(part_key or "").startswith("box_body:part:"):
             payload = collect_multipart_input(payload)
         if str(part_key or "").startswith("door:"):
