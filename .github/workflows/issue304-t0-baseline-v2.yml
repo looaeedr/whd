@@ -1,0 +1,99 @@
+name: Issue304 T0 Legacy Baseline v2
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue304-t0-baseline-20260916
+    paths:
+      - '.github/workflows/issue304-t0-baseline-v2.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  legacy-baseline:
+    runs-on: ubuntu-latest
+    env:
+      BASE_SHA: 74c4b41c55a73fb3a76c650a79a38131b28d6f41
+      TEST_CLEANUP_ACCEPTED_SHA: a632d1158ba49364b1962a0ed27f4b4109ea4b85
+    steps:
+      - name: Capture runner start
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+          echo "JOB_START_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Fail-closed skill preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task 'CI pytest baseline timing collection lane governance unit geometry projection persistence DXF architecture UI Xvfb integration' \
+            --changed-file .github/workflows/issue304-t0-baseline-v2.yml \
+            --changed-file tools/issue304_t0_baseline.py \
+            --changed-file docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md \
+            --evidence docs/superpowers/plans/2026-09-16-issue304-t0-baseline.md
+
+      - name: Run legacy serial baseline and classify after child rc
+        id: baseline
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONPATH: .
+        run: python tools/issue304_t0_baseline.py
+
+      - name: Upload T0 baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue304-t0-baseline-evidence-v2
+          path: .scratch/issue304
+
+      - name: Fail closed on incomplete or unclassified baseline
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('.scratch/issue304')
+          timing_path = root / 'timing-summary.json'
+          summary_path = root / 'lane-summary.json'
+          if not timing_path.is_file() or not summary_path.is_file():
+              raise SystemExit('BASELINE_EVIDENCE_INCOMPLETE')
+          timing = json.loads(timing_path.read_text(encoding='utf-8'))
+          summary = json.loads(summary_path.read_text(encoding='utf-8'))
+          collection = timing['collection']
+          assert not collection['missing_from_union'], collection['missing_from_union']
+          assert not collection['extra_in_union'], collection['extra_in_union']
+          assert not summary['missing_lane_status'], summary['missing_lane_status']
+          assert not summary['non_xvfb_red'], summary['non_xvfb_red']
+          assert summary['xvfb_classification'] in {'GREEN', 'INHERITED_BASELINE_RED'}, summary['xvfb_classification']
+          assert summary['classifier_started'] is True
+          assert summary['classifier_rc'] == 0
+          invariants = timing['invariants']
+          assert invariants['tracked_authority_invariant'] == 'GREEN', invariants
+          assert invariants['config_dxf_invariant'] == 'GREEN', invariants
+          assert invariants['tracked_worktree_clean'] == 'GREEN', invariants
+          print('ISSUE304_T0_BASELINE=GREEN')
+          PY

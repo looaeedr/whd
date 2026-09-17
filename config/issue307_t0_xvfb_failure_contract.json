@@ -1,0 +1,91 @@
+{
+  "schema": "WHD_ISSUE307_T0_XVFB_FAILURE_CONTRACT_V1",
+  "provenance": {
+    "workflow": ".github/workflows/issue304-t0-baseline.yml",
+    "run_id": 35092857584,
+    "head_sha": "2a99806493c69f4a6c9142d43dd502c7eb65757a",
+    "artifact_name": "issue304-t0-baseline-evidence-v2",
+    "artifact_id": 10445586630,
+    "artifact_digest": "sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77"
+  },
+  "failures": {
+    "tests/test_phase6_gui_3d_integrity_20260830.py::test_real_box_body_2d_annotations_do_not_overlap_each_other_or_material": {
+      "file": "tests/test_phase6_gui_3d_integrity_20260830.py",
+      "line": 292,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_endcap_four_edge_controls_live_on_drawing_edges_even_when_parameters_locked": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 58,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_four_shrinks_live_on_drawing_edges_and_bend_stays_in_settings_panel": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 118,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_receiving_edge_controls_gui.py::test_base_plate_edge_shrink_commit_uses_canonical_settings_transaction_and_updates_dimensions": {
+      "file": "tests/test_phase6_receiving_edge_controls_gui.py",
+      "line": 155,
+      "junit_kind": "failure",
+      "exception_type": "KeyError"
+    },
+    "tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry": {
+      "file": "tests/test_phase6_t02_endcap_edge_controls.py",
+      "line": 102,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_endcap_four_direction_edge_selectors_are_narrowed_and_preserve_semantics": {
+      "file": "tests/test_phase6_t08_ui_text_and_edge_selectors.py",
+      "line": 30,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t08_ui_text_and_edge_selectors.py::test_fold_designer_controls_and_edge_selectors_update_on_text_size_changed": {
+      "file": "tests/test_phase6_t08_ui_text_and_edge_selectors.py",
+      "line": 137,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t22_settings_vertical_scroll.py::test_medium_unlocked_settings_uses_real_vertical_scroll_owner_and_scrollable_viewport": {
+      "file": "tests/test_phase6_t22_settings_vertical_scroll.py",
+      "line": 83,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[head]": {
+      "file": "tests/test_phase6_t23_bottom_edge_visibility.py",
+      "line": 53,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t23_bottom_edge_visibility.py::test_medium_unlocked_endcap_edge_hosts_are_fully_inside_canvas[tail]": {
+      "file": "tests/test_phase6_t23_bottom_edge_visibility.py",
+      "line": 53,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[head]": {
+      "file": "tests/test_phase6_t24_edge_selector_width.py",
+      "line": 35,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t24_edge_selector_width.py::test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply[tail]": {
+      "file": "tests/test_phase6_t24_edge_selector_width.py",
+      "line": 35,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    },
+    "tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch": {
+      "file": "tests/test_phase6_t25_combined_receiving_acceptance.py",
+      "line": 131,
+      "junit_kind": "failure",
+      "exception_type": "AssertionError"
+    }
+  }
+}

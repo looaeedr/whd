@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "307",
+  "branch": "ci-sharding/issue307-t3-xvfb-isolation-20260916",
+  "head_sha": "548215758543d9047ce70e1fe8fbb9cbdf173755",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35118327193,
+  "job_id": 104870964075,
+  "log_cursor": null,
+  "evidence": [
+    "Accepted T2 base 1f1e12ddd8991548758069e8bbb515888083716b",
+    "T3 focused RED 35117933958: 43 PASS / 1 FAIL proving missing JUnit traceback line fallback",
+    "T3 focused GREEN 35118195838 at 01474774a9b918f4beff052bab96323f4058a54a: 44 tests GREEN",
+    "T3 final four-way acceptance 35118327193 at 548215758543d9047ce70e1fe8fbb9cbdf173755: completed SUCCESS",
+    "Four Xvfb shards 33/27/25/28 all terminal SUCCESS; 113 unique nodes; exact 13 inherited baseline failures",
+    "Aggregate manifest sha256 0c308b5514fd4796435e10d357a8db06030060bc429b95d2fe92de2042a36c6f",
+    "Aggregate plan artifact digest 6aadb858f471bf9d62c8a9b90d1c0cd52c2b3f47e72a51f6e854c77dc19650f9",
+    "T0 provenance run 35092857584 artifact 10445586630 digest sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77",
+    "Post-fix JUnit evidence preserves authoritative inherited failure lines/types; no broadened exception contract",
+    "Protected invariants GREEN in all four shards; production source untouched"
+  ]
+}

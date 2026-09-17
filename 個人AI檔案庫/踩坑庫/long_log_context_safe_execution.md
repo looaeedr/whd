@@ -53,3 +53,8 @@ T5 GUI modularization 曾出現 `pytest ... | tee` 與 `python validator.py | te
 - Characterization / Move-Only 比較基準固定寫 immutable accepted commit SHA；禁止 movable branch ref。
 - owner/class 由 AST dependency inventory 或 exact source reread 確認；繼承可見性不等於 ownership。
 - 發現假綠後要回溯原 log 重新分類，不能為了維持 GREEN 去改 production 配合 stale test。
+
+## CI classification addendum
+`CLASSIFICATION_NOT_RUN != HANG/TIMEOUT`：看到 step 長時間不換畫面，只能說 classifier 尚未完成或尚無新 observation；必須讀 terminal state / bounded log evidence 後才能判 hang/timeout。
+
+`FLAKY_WARNING`：unexpected RED 若同 scope retry GREEN，保留首次 RED 的 node/reason/log evidence並標記 `[FLAKY-WARNING]`，不得用 retry GREEN 覆蓋第一次異常。

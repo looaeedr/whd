@@ -1,0 +1,37 @@
+# Issue 310 / T6 Knowledge Preflight Evidence
+
+BASE_ACCEPTED_HEAD: 17b0dd1f27d2b8d078a4b8d8021ee38eaadcf6ef
+BRANCH: ci-sharding/issue310-t6-duration-tuning-20260917
+TASK: Measure CI queue and shard duration evidence, evaluate concurrency budget and the 1.75x-median large-lane imbalance gate, keep HRW authoritative unless measured evidence justifies a deliberate versioned duration-aware manifest, preserve full collection ownership and protected invariants, and report execution versus end-to-end wall clock separately.
+
+READ_SKILL: Python測試實務
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: phase6-release-packaging
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+READ_REFERENCE: release_required_artifacts.json
+
+PLANNED_CHANGED_FILE: tools/test_shard_tuning.py
+PLANNED_CHANGED_FILE: tests/test_issue310_t6_duration_tuning.py
+PLANNED_CHANGED_FILE: config/ci_test_execution.json
+PLANNED_CHANGED_FILE: .github/workflows/qa-issue310-t6-tuning.yml
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue310-t6.json
+
+BOUNDARIES:
+- Exact accepted T5 closing head is the immutable T6 base; production cleanup/2d-3d-sync is not modified.
+- Measure EXECUTION_WALL_CLOCK and END_TO_END_WALL_CLOCK separately; GitHub queue delay must remain visible.
+- <=12 minutes is the normal target; >12 and <=15 minutes may functionally pass only with PERFORMANCE_TARGET_MISSED; >15 minutes is a performance FAIL unless separately evidenced GitHub service degradation applies.
+- Logical shard count and runner concurrency remain independent; max-parallel/concurrency budget changes require measured evidence.
+- HRW/Rendezvous remains authoritative unless measured imbalance justifies a deliberate versioned replacement manifest.
+- Large-lane shard duration above 1.75x median requires investigation; an indivisible slow test must be explicitly evidenced rather than hidden by rebalance.
+- Duration data is validation/tuning evidence, not permission to mutate test semantics or production behavior.
+- Any manifest-version change must preserve deterministic reproducibility and rerun missing/extra/duplicate ownership plus A/B parity gates.
+- Xvfb/Tk remains serial inside each isolated display; T5 proof-authorized dxf:s00 xdist policy is not broadened without a separate proof.
+- Protected config/DXF/project/production invariants remain fail-closed.
+- phase6-release-packaging and release_required_artifacts.json were read because the registry's FULL keyword route matched this task; this does not expand T6 into release packaging work.

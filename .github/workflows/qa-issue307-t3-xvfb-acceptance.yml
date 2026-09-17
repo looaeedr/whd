@@ -1,0 +1,344 @@
+# trigger: JUnit traceback location fallback focused GREEN
+name: Issue 307 T3 Four-Way Xvfb Acceptance
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue307-t3-xvfb-isolation-20260916
+    paths:
+      - '.github/workflows/qa-issue307-t3-xvfb-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.xvfb-matrix.outputs.matrix }}
+      max_parallel: ${{ steps.xvfb-matrix.outputs.max_parallel }}
+      source_sha: ${{ steps.owner.outputs.source_sha }}
+      manifest_sha256: ${{ steps.manifest-meta.outputs.manifest_sha256 }}
+      plan_artifact_digest: ${{ steps.upload-plan.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind acceptance owner to this exact run SHA
+        id: owner
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "source_sha=$actual" >> "$GITHUB_OUTPUT"
+          echo "ISSUE307_ACCEPTANCE_SOURCE_SHA=$actual"
+      - name: Reject production or unrelated drift since focused GREEN
+        env:
+          ACCEPTANCE_BASE_SHA: 01474774a9b918f4beff052bab96323f4058a54a
+        run: |
+          set -euo pipefail
+          git diff --name-only "$ACCEPTANCE_BASE_SHA" "$GITHUB_SHA" | sort | tee /tmp/issue307-acceptance-delta.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue307-acceptance-delta.txt').read_text().splitlines())
+          expected = {'.github/workflows/qa-issue307-t3-xvfb-acceptance.yml'}
+          assert actual == expected, f'ISSUE307_ACCEPTANCE_SCOPE_DRIFT={sorted(actual)}'
+          print('ISSUE307_ACCEPTANCE_SCOPE=GREEN')
+          PY
+      - name: Install collection dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Generate one authoritative live shard manifest
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue307/plan
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue307/plan/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue307/plan/manifest-generation.log
+      - name: Bind manifest content digest to run SHA
+        id: manifest-meta
+        run: |
+          set -euo pipefail
+          manifest=.scratch/issue307/plan/manifest/shard-manifest.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          payload = json.loads(Path('.scratch/issue307/plan/manifest/shard-manifest.json').read_text())
+          assert payload['source_sha'] == os.environ['GITHUB_SHA'], (payload['source_sha'], os.environ['GITHUB_SHA'])
+          PY
+          echo "manifest_sha256=$digest" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$digest" > .scratch/issue307/plan/manifest.sha256
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue307/plan/source.sha
+          echo "ISSUE307_MANIFEST_SHA256=$digest"
+      - name: Lock authoritative T0 failure location and type contract
+        run: |
+          set -euo pipefail
+          cp config/issue307_t0_xvfb_failure_contract.json .scratch/issue307/plan/t0-failure-contract.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          contract = json.loads(Path('.scratch/issue307/plan/t0-failure-contract.json').read_text())
+          provenance = contract['provenance']
+          assert provenance == {
+              'workflow': '.github/workflows/issue304-t0-baseline.yml',
+              'run_id': 35092857584,
+              'head_sha': '2a99806493c69f4a6c9142d43dd502c7eb65757a',
+              'artifact_name': 'issue304-t0-baseline-evidence-v2',
+              'artifact_id': 10445586630,
+              'artifact_digest': 'sha256:d27bbb5dddbba7b10364c830875e4289d362a7f256dc6e1b425b2bf320166d77',
+          }, provenance
+          failures = contract['failures']
+          assert len(failures) == 13, len(failures)
+          manifest = json.loads(Path('.scratch/issue307/plan/manifest/shard-manifest.json').read_text())
+          union = {node for item in manifest['shards']['xvfb_ui'].values() for node in item['nodes']}
+          missing = sorted(set(failures) - union)
+          assert not missing, f'T0_EXPECTED_XVFB_NOT_IN_CURRENT_MANIFEST={missing}'
+          Path('.scratch/issue307/plan/expected-xvfb-global.json').write_text(
+              json.dumps(sorted(failures), indent=2) + '\n'
+          )
+          print(f'XVFB_LIVE_UNION={len(union)}')
+          print(f'XVFB_T0_FAILURE_CONTRACT={len(failures)}')
+          PY
+      - name: Emit exact four-way Xvfb matrix
+        id: xvfb-matrix
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py matrix \
+            --manifest .scratch/issue307/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload one shared authoritative plan artifact
+        id: upload-plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+          if-no-files-found: error
+
+  xvfb-shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      PLAN_ARTIFACT_DIGEST: ${{ needs.plan.outputs.plan_artifact_digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xvfb and test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download the same authoritative plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+      - name: Verify checkout and downloaded manifest ownership
+        run: |
+          set -euo pipefail
+          test -n "$PLAN_SOURCE_SHA"
+          test -n "$PLAN_MANIFEST_SHA256"
+          test -n "$PLAN_ARTIFACT_DIGEST"
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue307/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue307/plan/manifest.sha256)" = "$PLAN_MANIFEST_SHA256"
+          test "$(sha256sum .scratch/issue307/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+          PLAN_SOURCE_SHA="$PLAN_SOURCE_SHA" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = json.loads(Path('.scratch/issue307/plan/manifest/shard-manifest.json').read_text())
+          assert manifest['source_sha'] == os.environ['PLAN_SOURCE_SHA']
+          PY
+      - name: Slice T0 inherited failures by manifest ownership
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+          EXPECTED_NODE_COUNT: ${{ matrix.node_count }}
+        run: |
+          set -euo pipefail
+          mkdir -p ".scratch/issue307/shards/$SHARD_ID"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          shard_id = os.environ['SHARD_ID']
+          expected_count = int(os.environ['EXPECTED_NODE_COUNT'])
+          root = Path('.scratch/issue307/plan')
+          manifest = json.loads((root / 'manifest/shard-manifest.json').read_text())
+          assigned = manifest['shards']['xvfb_ui'][shard_id]['nodes']
+          assert len(assigned) == expected_count, (len(assigned), expected_count)
+          inherited = set(json.loads((root / 'expected-xvfb-global.json').read_text()))
+          expected = sorted(inherited.intersection(assigned))
+          out = Path('.scratch/issue307/shards') / shard_id / 'expected.json'
+          out.write_text(json.dumps(expected, indent=2) + '\n')
+          print(f'SHARD={shard_id} NODES={len(assigned)} EXPECTED_T0_RED={len(expected)}')
+          PY
+      - name: Capture protected hashes before shard
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p ".scratch/issue307/shards/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > ".scratch/issue307/shards/$SHARD_ID/protected-before.sha256"
+      - name: Run exact isolated Xvfb shard serially
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py run \
+            --manifest .scratch/issue307/plan/manifest/shard-manifest.json \
+            --shard "$SHARD_ID" \
+            --expected-failures ".scratch/issue307/shards/$SHARD_ID/expected.json" \
+            --result-json ".scratch/issue307/shards/$SHARD_ID/result.json" \
+            --log ".scratch/issue307/shards/$SHARD_ID/pytest.log" \
+            --basetemp ".scratch/issue307/shards/$SHARD_ID/pytest-tmp" \
+            --timeout-seconds 1200 \
+            --expected-source-sha "$PLAN_SOURCE_SHA" \
+            --expected-manifest-sha256 "$PLAN_MANIFEST_SHA256"
+      - name: Verify terminal proof and protected invariants
+        if: always()
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue307/shards/$SHARD_ID"
+          test -f "$root/result.json"
+          test -f "$root/result.xml"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads((Path('.scratch/issue307/shards') / os.environ['SHARD_ID'] / 'result.json').read_text())
+          assert p['source_sha'] == os.environ['PLAN_SOURCE_SHA'], p
+          assert p['manifest_sha256'] == os.environ['PLAN_MANIFEST_SHA256'], p
+          assert p['classification'] in {'GREEN', 'INHERITED_BASELINE_RED'}, p
+          assert p['timed_out'] is False, p
+          assert p['classifier_started'] is True and p['classifier_rc'] == 0, p
+          assert p['child_rc'] in {0, 1}, p
+          assert p['execution_proof_error'] is None, p
+          assert isinstance(p['executed_nodes'], list) and p['executed_nodes'], p
+          assert isinstance(p['failure_evidence'], dict), p
+          print(json.dumps(p, indent=2, sort_keys=True))
+          PY
+      - name: Upload shard JUnit and result evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-shard-${{ matrix.shard_id }}
+          path: .scratch/issue307/shards/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  aggregate:
+    if: always()
+    needs: [plan, xvfb-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PLAN_RESULT: ${{ needs.plan.result }}
+      SHARD_RESULT: ${{ needs.xvfb-shard.result }}
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      PLAN_ARTIFACT_DIGEST: ${{ needs.plan.outputs.plan_artifact_digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require upstream evidence producers to be terminal success
+        run: |
+          set -euo pipefail
+          test "$PLAN_RESULT" = success
+          test "$SHARD_RESULT" = success
+          test -n "$PLAN_SOURCE_SHA"
+          test -n "$PLAN_MANIFEST_SHA256"
+          test -n "$PLAN_ARTIFACT_DIGEST"
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+      - name: Download shared plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue307-xvfb-plan
+          path: .scratch/issue307/plan
+      - name: Download four shard evidence artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue307-xvfb-shard-*
+          path: .scratch/issue307/all-shards
+      - name: Re-read actual JUnit and fail-closed aggregate
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from tools.xvfb_shard_execution import (
+              read_xvfb_junit,
+              validate_xvfb_acceptance_evidence,
+          )
+
+          plan = Path('.scratch/issue307/plan')
+          manifest_path = plan / 'manifest/shard-manifest.json'
+          manifest_bytes = manifest_path.read_bytes()
+          actual_digest = hashlib.sha256(manifest_bytes).hexdigest()
+          assert actual_digest == os.environ['PLAN_MANIFEST_SHA256'], (actual_digest, os.environ['PLAN_MANIFEST_SHA256'])
+          assert (plan / 'manifest.sha256').read_text().strip() == actual_digest
+          assert (plan / 'source.sha').read_text().strip() == os.environ['PLAN_SOURCE_SHA']
+          manifest = json.loads(manifest_bytes)
+          assert manifest['source_sha'] == os.environ['PLAN_SOURCE_SHA']
+
+          contract_doc = json.loads((plan / 't0-failure-contract.json').read_text())
+          contract = contract_doc['failures']
+          result_paths = sorted(Path('.scratch/issue307/all-shards').glob('**/result.json'))
+          assert len(result_paths) == 4, f'XVFB_RESULT_COUNT={len(result_paths)}'
+          results = []
+          for result_path in result_paths:
+              payload = json.loads(result_path.read_text())
+              junit_path = result_path.with_suffix('.xml')
+              assert junit_path.is_file(), f'XVFB_JUNIT_MISSING={junit_path}'
+              junit = read_xvfb_junit(junit_path, payload['assigned_nodes'])
+              for key in ('executed_nodes', 'failure_signatures', 'failure_evidence', 'passed', 'failures', 'errors', 'skipped'):
+                  assert payload.get(key) == junit.get(key), f'XVFB_JUNIT_RESULT_MISMATCH={payload.get("shard_id")}:{key}'
+              results.append(payload)
+
+          summary = validate_xvfb_acceptance_evidence(
+              manifest=manifest,
+              results=results,
+              expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+              expected_manifest_sha256=os.environ['PLAN_MANIFEST_SHA256'],
+              expected_failure_contract=contract,
+          )
+          summary['plan_artifact_digest'] = os.environ['PLAN_ARTIFACT_DIGEST']
+          summary['t0_provenance'] = contract_doc['provenance']
+          Path('.scratch/issue307/aggregate.json').write_text(
+              json.dumps(summary, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          print('ISSUE307_T3_XVFB_ACCEPTANCE=GREEN')
+          PY
+      - name: Upload aggregate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue307-xvfb-aggregate
+          path: .scratch/issue307/aggregate.json
+          if-no-files-found: error

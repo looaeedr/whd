@@ -195,3 +195,15 @@ Coverage 是「哪些 code path 被執行」的觀測，不是 correctness 證�
 輸入來源：`wshobson/agents@a30778f8c4e6b0a87567941b7cca4f534bf642b6` 的 `python-testing-patterns`、`references/details.md`、`references/advanced-patterns.md`。
 
 WHD 保留 pytest fixture、parameterization、mock/monkeypatch、async、temporary files、property-based、markers、coverage/CI 等實務；另外加上 repository isolation、validation authority 單向、真實製造 seam、SKIP/PASS 分離，以及 focused GREEN / final acceptance 邊界。
+
+## CI sharding / final qualification durable rules
+
+`DETERMINISTIC_SHARD_OWNERSHIP`：pytest 全量 collection 只能由一份 authoritative live manifest 分配；`missing / extra / duplicate` 任一非空即 FAIL。禁止各 job 自己重算 ownership，禁止用 Python built-in `hash()` 或 collection-index modulo 當跨 run authority。
+
+`CI_CONCURRENCY_BUDGET`：限制同時 runner 數，不等於 logical shard ownership 數。logical shards 可以多於 max-parallel；不得為了 runner budget 偷減 collection 或改 ownership contract。
+
+`DURATION_REBALANCE`：duration-based rebalance 必須是 deliberate、versioned、可回溯的設定變更；HRW/Rendezvous ownership 在沒有新 evidence 前保持 authoritative，不因一次 timing 波動就改演算法。
+
+`UNIFIED_SUMMARY`：人類可讀的一頁 summary 必須由完整 machine artifacts 支撐，至少保留 collection reconciliation、failure/skip identity、protected invariants、queue / execution / end-to-end timing；summary 不能取代 artifacts。
+
+`TESTED_SHA and ORCHESTRATION_SHA` 是 final qualification 的兩個獨立 identity。新增 workflow/evidence 的 orchestration commit 不得冒充受測程式碼 SHA；full acceptance 必須明確 checkout 並記錄真正的 TESTED_SHA。

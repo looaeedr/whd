@@ -1,0 +1,32 @@
+# Issue 311 / T7 Knowledge Preflight Evidence
+
+BASE_ACCEPTED_HEAD: cf656c1efaf0e3f9c2a74330d7fb988847226db7
+BRANCH: ci-sharding/issue311-t7-ab-acceptance-20260917
+TASK: Compare legacy and optimized CI on one exact repository head using canonical collection, failure, skip, invariant, and timing evidence; fail closed on any semantic mismatch without mutating production.
+
+READ_SKILL: Python測試實務
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: docs/superpowers/specs/2026-09-16-ci-test-sharding-parallelization-design.md
+
+PLANNED_CHANGED_FILE: tests/test_issue311_t7_ab_acceptance.py
+PLANNED_CHANGED_FILE: tools/issue311_t7_ab_acceptance.py
+PLANNED_CHANGED_FILE: .github/workflows/qa-issue311-t7-ab-acceptance.yml
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue311-t7-preflight-evidence.txt
+PLANNED_CHANGED_FILE: docs/superpowers/checkpoints/issue311-t7.json
+
+BOUNDARIES:
+- Exact accepted T6 head is immutable T7 base; cleanup/2d-3d-sync is not modified.
+- Legacy and optimized evidence must bind to the same tested head SHA.
+- Compare canonical node identities and stable failure reasons, never pytest pretty-print text.
+- Any collection mismatch, failed-node mismatch, allowed-skip mismatch, missing node, duplicate node, or protected drift fails closed.
+- config.ini, DXF, project/tracked-tree and other protected invariants remain read-only validation inputs.
+- Queue, execution, and end-to-end timing remain separate evidence.
+- Remote QA is monitored by exact run_id + head_sha; long logs stay in artifacts/provider storage with bounded failure reads.
+- T7 acceptance does not integrate or mutate production and does not make the optimized path authoritative before A/B GREEN.

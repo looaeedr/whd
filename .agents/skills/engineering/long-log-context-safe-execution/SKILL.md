@@ -53,3 +53,9 @@ whd_schema: WHD_DOC_META_V1
 - 把 raw log 當成 production/domain authority；log 只提供 validation/evidence。
 
 `monitoring-remote-qa` 擁有 remote run 的 active polling state machine；本 Skill 擁有**所有長輸出的 context-safe 讀取與續接策略**。兩者不得建立第二套互相衝突的 state machine。
+
+## CI classifier / retry semantics bridge
+
+`CLASSIFICATION_NOT_RUN != HANG/TIMEOUT`：classifier 尚未執行、沒有 terminal classifier record，不能推論成 hang 或 timeout。先確認 child process / job / step terminal state，再依 exact log evidence 分類。
+
+`FLAKY_WARNING`：首次 unexpected RED、同一 exact scope retry GREEN，仍必須保留 `[FLAKY-WARNING]` 與 first-run evidence；retry GREEN 不得抹除第一次異常，也不得自動升格成 deterministic PASS 證據。

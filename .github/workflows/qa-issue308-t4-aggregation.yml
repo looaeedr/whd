@@ -1,0 +1,489 @@
+name: Issue 308 T4 Aggregation QA
+
+on:
+  push:
+    branches:
+      - ci-sharding/issue308-t4-aggregation-20260917
+    paths:
+      - 'tests/test_issue308_t4_aggregation.py'
+      - 'tools/test_shard_aggregation.py'
+      - '.github/workflows/qa-issue308-t4-aggregation.yml'
+      - 'docs/superpowers/checkpoints/issue308-t4.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Re-enforce T4 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Implement #308 T4 aggregation and Unified Markdown Summary for deterministic shard results and GitHub Actions remote QA; fail closed on missing shard, duplicate/missing node and unclassified RED; preserve first-run and retry outcomes including FLAKY-WARNING; preserve protected invariants." \
+            --changed-file tools/test_shard_aggregation.py \
+            --changed-file tests/test_issue308_t4_aggregation.py \
+            --changed-file .github/workflows/qa-issue308-t4-aggregation.yml \
+            --changed-file docs/superpowers/checkpoints/issue308-t4.json \
+            --evidence docs/superpowers/checkpoints/issue308-t4-preflight-evidence.txt
+      - name: Install focused dependency
+        run: python -m pip install pytest
+      - name: Run T4 aggregation contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue308_t4_aggregation.py
+
+  plan:
+    needs: focused
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      non_gui_matrix: ${{ steps.non-gui-matrix.outputs.matrix }}
+      non_gui_max_parallel: ${{ steps.non-gui-matrix.outputs.max_parallel }}
+      xvfb_matrix: ${{ steps.xvfb-matrix.outputs.matrix }}
+      xvfb_max_parallel: ${{ steps.xvfb-matrix.outputs.max_parallel }}
+      source_sha: ${{ steps.owner.outputs.source_sha }}
+      manifest_sha256: ${{ steps.manifest-meta.outputs.manifest_sha256 }}
+      plan_artifact_digest: ${{ steps.upload-plan.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind T4 acceptance to this exact SHA
+        id: owner
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$GITHUB_SHA"
+          echo "source_sha=$actual" >> "$GITHUB_OUTPUT"
+          echo "ISSUE308_ACCEPTANCE_SOURCE_SHA=$actual"
+      - name: Reject production or unrelated drift from accepted T3
+        env:
+          T3_ACCEPTED_HEAD: 3fc5a4a7d5e0be071fcf1f58ac8cd0f504fa8feb
+        run: |
+          set -euo pipefail
+          git diff --name-only "$T3_ACCEPTED_HEAD" "$GITHUB_SHA" | sort | tee /tmp/issue308-scope.txt
+          python - <<'PY'
+          from pathlib import Path
+          actual = set(Path('/tmp/issue308-scope.txt').read_text().splitlines())
+          expected = {
+              '.github/workflows/qa-issue308-t4-aggregation.yml',
+              '.github/workflows/qa-issue308-t4-preflight.yml',
+              'docs/superpowers/checkpoints/issue308-t4-preflight-evidence.txt',
+              'docs/superpowers/checkpoints/issue308-t4.json',
+              'tests/test_issue308_t4_aggregation.py',
+              'tools/test_shard_aggregation.py',
+          }
+          assert actual == expected, f'ISSUE308_SCOPE_DRIFT={sorted(actual)}'
+          print('ISSUE308_SCOPE=CI_AGGREGATION_ONLY')
+          PY
+      - name: Install collection dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Generate one authoritative live manifest
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue308/plan
+          python tools/test_shard_manifest.py \
+            --out-dir .scratch/issue308/plan/manifest \
+            --source-sha "$GITHUB_SHA" \
+            | tee .scratch/issue308/plan/manifest-generation.log
+      - name: Bind manifest digest to exact acceptance SHA
+        id: manifest-meta
+        run: |
+          set -euo pipefail
+          manifest=.scratch/issue308/plan/manifest/shard-manifest.json
+          digest="$(sha256sum "$manifest" | awk '{print $1}')"
+          GITHUB_SHA="$GITHUB_SHA" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = json.loads(Path('.scratch/issue308/plan/manifest/shard-manifest.json').read_text())
+          assert p['source_sha'] == os.environ['GITHUB_SHA'], p
+          r = p['reconciliation']
+          assert r['full_count'] == r['lane_union_count'] == r['unique_shard_union_count'], r
+          assert not r['lane_missing'] and not r['lane_extra'] and not r['lane_duplicate'], r
+          assert not r['shard_missing'] and not r['shard_extra'] and not r['shard_duplicate'], r
+          print(f"FULL_COLLECTION={r['full_count']}")
+          PY
+          echo "manifest_sha256=$digest" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$digest" > .scratch/issue308/plan/manifest.sha256
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue308/plan/source.sha
+      - name: Lock authoritative T0 Xvfb inherited failure contract
+        run: |
+          set -euo pipefail
+          cp config/issue307_t0_xvfb_failure_contract.json .scratch/issue308/plan/t0-failure-contract.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('.scratch/issue308/plan')
+          contract = json.loads((root / 't0-failure-contract.json').read_text())
+          assert len(contract['failures']) == 13, len(contract['failures'])
+          manifest = json.loads((root / 'manifest/shard-manifest.json').read_text())
+          union = {node for item in manifest['shards']['xvfb_ui'].values() for node in item['nodes']}
+          missing = sorted(set(contract['failures']) - union)
+          assert not missing, f'T0_EXPECTED_XVFB_NOT_IN_CURRENT_MANIFEST={missing}'
+          (root / 'expected-xvfb-global.json').write_text(
+              json.dumps(sorted(contract['failures']), indent=2) + '\n'
+          )
+          print(f'XVFB_LIVE_UNION={len(union)}')
+          print('XVFB_T0_FAILURE_CONTRACT=13')
+          PY
+      - name: Emit non-GUI matrix from the live manifest
+        id: non-gui-matrix
+        run: |
+          set -euo pipefail
+          python tools/test_shard_execution.py matrix \
+            --manifest .scratch/issue308/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Emit exact four-way Xvfb matrix from the same manifest
+        id: xvfb-matrix
+        run: |
+          set -euo pipefail
+          python tools/xvfb_shard_execution.py matrix \
+            --manifest .scratch/issue308/plan/manifest/shard-manifest.json \
+            --execution-config config/ci_test_execution.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Upload one shared T4 plan artifact
+        id: upload-plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue308-t4-plan
+          path: .scratch/issue308/plan
+          if-no-files-found: error
+
+  non-gui-shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.non_gui_max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.non_gui_matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install shard dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download authoritative T4 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue308-t4-plan
+          path: .scratch/issue308/plan
+      - name: Verify exact checkout and manifest identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue308/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue308/plan/manifest.sha256)" = "$PLAN_MANIFEST_SHA256"
+          test "$(sha256sum .scratch/issue308/plan/manifest/shard-manifest.json | awk '{print $1}')" = "$PLAN_MANIFEST_SHA256"
+      - name: Capture protected hashes before shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/non-gui/$LANE/$SHARD_ID"
+          mkdir -p "$root"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-before.sha256"
+      - name: Run exact non-GUI manifest shard
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/non-gui/$LANE/$SHARD_ID"
+          set +e
+          python tools/test_shard_execution.py run \
+            --manifest .scratch/issue308/plan/manifest/shard-manifest.json \
+            --lane "$LANE" \
+            --shard "$SHARD_ID" \
+            --result-json "$root/shard-result.json" \
+            --junit-xml "$root/result.xml" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp"
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$root/runner-rc.txt"
+          test -f "$root/shard-result.json"
+          echo "NON_GUI_CHILD_RC=$rc"
+      - name: Verify protected invariants after shard
+        if: always()
+        env:
+          LANE: ${{ matrix.lane }}
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/non-gui/$LANE/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+      - name: Upload complete non-GUI shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue308-nongui-${{ matrix.lane }}-${{ matrix.shard_id }}
+          path: .scratch/issue308/non-gui/${{ matrix.lane }}/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  xvfb-shard:
+    if: always() && needs.plan.result == 'success'
+    needs: [plan, non-gui-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.xvfb_max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.xvfb_matrix) }}
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Xvfb and test dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Download authoritative T4 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue308-t4-plan
+          path: .scratch/issue308/plan
+      - name: Verify exact checkout and manifest identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue308/plan/source.sha)" = "$PLAN_SOURCE_SHA"
+          test "$(cat .scratch/issue308/plan/manifest.sha256)" = "$PLAN_MANIFEST_SHA256"
+      - name: Slice T0 inherited RED by manifest ownership
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+          EXPECTED_NODE_COUNT: ${{ matrix.node_count }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/xvfb/$SHARD_ID"
+          mkdir -p "$root"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          shard_id = os.environ['SHARD_ID']
+          expected_count = int(os.environ['EXPECTED_NODE_COUNT'])
+          plan = Path('.scratch/issue308/plan')
+          manifest = json.loads((plan / 'manifest/shard-manifest.json').read_text())
+          assigned = manifest['shards']['xvfb_ui'][shard_id]['nodes']
+          assert len(assigned) == expected_count, (len(assigned), expected_count)
+          inherited = set(json.loads((plan / 'expected-xvfb-global.json').read_text()))
+          expected = sorted(inherited.intersection(assigned))
+          out = Path('.scratch/issue308/xvfb') / shard_id / 'expected.json'
+          out.write_text(json.dumps(expected, indent=2) + '\n')
+          print(f'SHARD={shard_id} NODES={len(assigned)} EXPECTED_T0_RED={len(expected)}')
+          PY
+      - name: Capture protected hashes before shard
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/xvfb/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-before.sha256"
+      - name: Run exact isolated Xvfb shard serially
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/xvfb/$SHARD_ID"
+          set +e
+          python tools/xvfb_shard_execution.py run \
+            --manifest .scratch/issue308/plan/manifest/shard-manifest.json \
+            --shard "$SHARD_ID" \
+            --expected-failures "$root/expected.json" \
+            --result-json "$root/result.json" \
+            --log "$root/pytest.log" \
+            --basetemp "$root/pytest-tmp" \
+            --timeout-seconds 1200 \
+            --expected-source-sha "$PLAN_SOURCE_SHA" \
+            --expected-manifest-sha256 "$PLAN_MANIFEST_SHA256"
+          rc=$?
+          set -e
+          printf '%s\n' "$rc" > "$root/runner-rc.txt"
+          test -f "$root/result.json"
+          echo "XVFB_RUNNER_RC=$rc"
+      - name: Verify protected invariants after shard
+        if: always()
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+        run: |
+          set -euo pipefail
+          root=".scratch/issue308/xvfb/$SHARD_ID"
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > "$root/protected-after.sha256"
+          cmp "$root/protected-before.sha256" "$root/protected-after.sha256"
+          git diff --exit-code
+      - name: Upload complete Xvfb shard evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue308-xvfb-${{ matrix.shard_id }}
+          path: .scratch/issue308/xvfb/${{ matrix.shard_id }}
+          if-no-files-found: error
+
+  aggregate:
+    if: always() && needs.plan.result == 'success'
+    needs: [plan, non-gui-shard, xvfb-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PLAN_SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
+      PLAN_MANIFEST_SHA256: ${{ needs.plan.outputs.manifest_sha256 }}
+      PLAN_ARTIFACT_DIGEST: ${{ needs.plan.outputs.plan_artifact_digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify aggregate checkout identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_SOURCE_SHA"
+          test -n "$PLAN_MANIFEST_SHA256"
+          test -n "$PLAN_ARTIFACT_DIGEST"
+      - name: Download authoritative T4 plan
+        uses: actions/download-artifact@v4
+        with:
+          name: issue308-t4-plan
+          path: .scratch/issue308/plan
+      - name: Download all non-GUI evidence artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue308-nongui-*
+          path: .scratch/issue308/all-nongui
+      - name: Download all Xvfb evidence artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: issue308-xvfb-*
+          path: .scratch/issue308/all-xvfb
+      - name: Normalize actual artifacts and aggregate fail closed
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          from tools.test_shard_aggregation import (
+              aggregate_shard_results,
+              normalize_shard_artifact,
+              render_unified_summary,
+          )
+
+          plan = Path('.scratch/issue308/plan')
+          manifest_path = plan / 'manifest/shard-manifest.json'
+          manifest_bytes = manifest_path.read_bytes()
+          digest = hashlib.sha256(manifest_bytes).hexdigest()
+          assert digest == os.environ['PLAN_MANIFEST_SHA256'], (digest, os.environ['PLAN_MANIFEST_SHA256'])
+          assert (plan / 'manifest.sha256').read_text().strip() == digest
+          assert (plan / 'source.sha').read_text().strip() == os.environ['PLAN_SOURCE_SHA']
+          manifest = json.loads(manifest_bytes)
+
+          results = []
+          invariants = {}
+
+          non_gui_roots = sorted(Path('.scratch/issue308/all-nongui').glob('issue308-nongui-*'))
+          for root in non_gui_roots:
+              result_path = root / 'shard-result.json'
+              junit_path = root / 'result.xml'
+              assert result_path.is_file(), f'NON_GUI_RESULT_MISSING={root}'
+              assert junit_path.is_file(), f'NON_GUI_JUNIT_MISSING={root}'
+              payload = json.loads(result_path.read_text())
+              artifact_name = root.name
+              normalized = normalize_shard_artifact(
+                  result_payload=payload,
+                  junit_xml=junit_path,
+                  expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                  artifact_refs=[f'artifact://{artifact_name}'],
+              )
+              results.append(normalized)
+              before = root / 'protected-before.sha256'
+              after = root / 'protected-after.sha256'
+              assert before.is_file() and after.is_file(), f'NON_GUI_INVARIANT_MISSING={root}'
+              invariants[artifact_name] = {
+                  'before': hashlib.sha256(before.read_bytes()).hexdigest(),
+                  'after': hashlib.sha256(after.read_bytes()).hexdigest(),
+              }
+
+          xvfb_roots = sorted(Path('.scratch/issue308/all-xvfb').glob('issue308-xvfb-*'))
+          for root in xvfb_roots:
+              result_path = root / 'result.json'
+              junit_path = root / 'result.xml'
+              assert result_path.is_file(), f'XVFB_RESULT_MISSING={root}'
+              assert junit_path.is_file(), f'XVFB_JUNIT_MISSING={root}'
+              payload = json.loads(result_path.read_text())
+              artifact_name = root.name
+              normalized = normalize_shard_artifact(
+                  result_payload=payload,
+                  junit_xml=junit_path,
+                  expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+                  artifact_refs=[f'artifact://{artifact_name}'],
+              )
+              results.append(normalized)
+              before = root / 'protected-before.sha256'
+              after = root / 'protected-after.sha256'
+              assert before.is_file() and after.is_file(), f'XVFB_INVARIANT_MISSING={root}'
+              invariants[artifact_name] = {
+                  'before': hashlib.sha256(before.read_bytes()).hexdigest(),
+                  'after': hashlib.sha256(after.read_bytes()).hexdigest(),
+              }
+
+          summary = aggregate_shard_results(
+              manifest=manifest,
+              shard_results=results,
+              expected_source_sha=os.environ['PLAN_SOURCE_SHA'],
+              protected_invariants=invariants,
+          )
+          summary['manifest_sha256'] = digest
+          summary['plan_artifact_digest'] = os.environ['PLAN_ARTIFACT_DIGEST']
+          summary['t0_provenance'] = json.loads((plan / 't0-failure-contract.json').read_text())['provenance']
+          out = Path('.scratch/issue308/aggregate')
+          out.mkdir(parents=True, exist_ok=True)
+          (out / 'aggregation.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n')
+          markdown = render_unified_summary(summary)
+          (out / 'unified-summary.md').write_text(markdown)
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          print('ISSUE308_T4_AGGREGATION=GREEN')
+          PY
+      - name: Publish unified Markdown summary
+        run: |
+          set -euo pipefail
+          cat .scratch/issue308/aggregate/unified-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload T4 aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue308-t4-aggregate
+          path: .scratch/issue308/aggregate
+          if-no-files-found: error

@@ -1,0 +1,35 @@
+{
+  "schema": "WHD_TEST_EXECUTION_CONFIG_V1",
+  "ci_concurrency_budget": 8,
+  "concurrency_tuning": {
+    "selected_budget": 8,
+    "baseline_budget": 4,
+    "proof_run_id": 35134127715,
+    "proof_head_sha": "b4276bf7b16403166f2893f0933d9f59333a5a29",
+    "proof_artifact_id": 10462837430,
+    "proof_artifact_sha256": "994e1f4cca8f83347d129c6e07cbc83e62a9031a743fd44a4815d7d1c25e416d",
+    "proof_manifest_sha256": "e568e419786cb48069eb827a2a21c48876e7dd58631a9bd620f124378d405b64",
+    "semantic_result_digest": "61d5e6b47ab69c91279daf66f974ef13ae1afd18bbaabe8d5b80f2085d76a4cc",
+    "baseline_execution_wall_clock_seconds": 151.0,
+    "candidate_execution_wall_clock_seconds": 85.0,
+    "baseline_end_to_end_wall_clock_seconds": 154.0,
+    "candidate_end_to_end_wall_clock_seconds": 87.0,
+    "baseline_max_job_wait_seconds": 122.0,
+    "candidate_max_job_wait_seconds": 63.0,
+    "manifest_strategy": "KEEP_HRW",
+    "decision_reason": "MEASURED_EXECUTION_IMPROVEMENT"
+  },
+  "xdist": {
+    "default_workers": 1,
+    "distribution": "load",
+    "safe_shards": {
+      "dxf:s00": {
+        "workers": 2,
+        "proof_run_id": 35124104891,
+        "proof_head_sha": "45811716bb03b95927a33451bf7f1c8d0769c407",
+        "proof_artifact_id": 10458605621,
+        "proof_artifact_sha256": "21340f1f0d39a97ab3c40cf756c624a7f5f3b00c22430f90a35d4f9a514d3ada"
+      }
+    }
+  }
+}
