@@ -4,6 +4,7 @@
 """
 
 import tkinter as tk
+from gui_modules.parts.panels.multipart import collect_multipart_input
 from gui_modules.parts.panels.door import collect_door_input
 import time
 import sys
@@ -1477,6 +1478,8 @@ class Phase6ApplicationHost:
         return spec, context
 
     def _query_fold_designer_render_data(self, part_key, payload):
+        if str(part_key or "").startswith("box_body:part:"):
+            payload = collect_multipart_input(payload)
         if str(part_key or "").startswith("door:"):
             payload = collect_door_input(payload)
         """Return the same authoritative final geometry used by 2D consumers."""
