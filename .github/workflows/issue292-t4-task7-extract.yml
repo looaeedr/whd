@@ -56,21 +56,21 @@ jobs:
               if isinstance(n, ast.FunctionDef)
           }
 
-          fat = {
-              name: node
-              for name, node in nodes.items()
-              if (node.end_lineno or node.lineno) - node.lineno + 1 > 4
-          }
-          thin = names - fat.keys()
-          missing_existing = thin - existing
+          delegated = set()
+          for name, node in nodes.items():
+              source = ''.join(lines[node.lineno - 1:node.end_lineno])
+              if f'_{name}_impl(' in source:
+                  delegated.add(name)
+          missing_existing = delegated - existing
           assert not missing_existing, (
-              'thin root adapters without extracted implementation: '
+              'root delegates without extracted implementation: '
               f'{sorted(missing_existing)}'
           )
+          todo = names - delegated
 
           moved = []
-          for name in sorted(fat, key=lambda x: fat[x].lineno):
-              n = fat[name]
+          for name in sorted(todo, key=lambda x: nodes[x].lineno):
+              n = nodes[name]
               block = ''.join(lines[n.lineno - 1:n.end_lineno])
               block = block[4:] if block.startswith('    ') else block
               block = block.replace(
@@ -94,7 +94,11 @@ jobs:
                   encoding='utf-8',
               )
 
-          for n in sorted(fat.values(), key=lambda item: item.lineno, reverse=True):
+          for n in sorted(
+              (nodes[name] for name in todo),
+              key=lambda item: item.lineno,
+              reverse=True,
+          ):
               src = ''.join(lines[n.lineno - 1:n.end_lineno])
               header = src.splitlines()[0].rstrip()
               args = n.args
@@ -115,7 +119,7 @@ jobs:
               )
               lines[n.lineno - 1:n.end_lineno] = [repl]
 
-          if fat:
+          if todo:
               p.write_text(''.join(lines), encoding='utf-8')
           else:
               print('Task7 common adapters already extracted; transform is idempotent.')
