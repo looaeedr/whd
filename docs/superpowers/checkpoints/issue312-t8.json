@@ -1,0 +1,16 @@
+{
+  "issue": 312,
+  "phase": "BLOCKED_CLEANUP_REF_DELETION",
+  "accepted_t7_sha": "db0b79cd767717e67bcb65c8bd1f0e8eed6b2b4f",
+  "authoritative_run_id": 35159157894,
+  "production_branch": "cleanup/2d-3d-sync",
+  "production_sha_at_qualification": "8ccf1a9404a641ed892ab63e6f2c0e01ee80d6d9",
+  "blocker": "NO_BRANCH_DELETE_ACTION_IN_AVAILABLE_GITHUB_CONNECTOR",
+  "next_action": "Delete only the 15 recorded safe qa/* refs through an authorized branch-delete mechanism, then rerun fresh OPEN PR head/base protection gate and branch census before durable-rule readback and final verification.",
+  "continuity": {
+    "accepted_run_must_not_be_rerun": true,
+    "do_not_fake_delete_by_moving_refs": true,
+    "do_not_mutate_production": true,
+    "explicit_user_merge_authorization_required": "合"
+  }
+}
