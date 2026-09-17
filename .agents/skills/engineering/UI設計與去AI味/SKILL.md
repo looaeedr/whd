@@ -356,3 +356,13 @@ Rewrite 後重新檢查：
 - `primary operator text`、尺寸、current selection、warning/error 不得降成 muted gray；action/selection/focus/warning/error 等 `semantic colors` 必須保持可辨識角色。
 - 真正 visual acceptance 要在 real Tk/Xvfb 驗有效 style/state 與 reachability，至少覆蓋 `1.0 / 1.2 / 1.4`、normal/selected/focus/readonly/disabled/active，以及 Matplotlib clear 後的文字可讀性；有 screenshot 能力才宣告 pixel review。
 - theme / text-scale refresh 必須維持既有 `persist=False` 外部同步邊界，不得 trace-echo 回設定 owner；`config.ini` 前後必須保持 invariant。
+
+<!-- WHD_SHEETMETAL_DUAL_PROJECTION_RULE_20260917 -->
+## Modern 鈑金選單 / Structure Tree 共用 authority 規則
+
+- UI 物件存在不等於 UI 驗收通過；modern `Phase6PrimaryApplication` 必須實際證明控制項已 mapped/managed，且 callback 可由操作路徑觸發。legacy startup 綠燈不能替代 modern startup 可見性證據。
+- 「不要第二個 selector」的真正契約是：不得建立第二個 authoritative state owner / state machine；同一 authoritative workspace state 可以有多個 presentation projection。
+- Compact 鈑金選單與 Structure Tree 可以同時可見，但都必須讀寫同一個 `designer_workspace.active_part`，不得各自保存真實狀態。
+- 不同 projection 可以有不同粒度：Structure Tree 可指向 exact physical child；compact menu 可以只顯示 top-level parent label。禁止把 display `StringVar` 當成 physical-part authority 來做等值斷言。
+- 任一 selector 改變 authoritative part 後，必須 refresh 其他已顯示 projection，避免畫面殘留舊 selection。
+- 修復隱藏控制項時，優先恢復既有 widget/state/callback 的 layout 與 projection refresh；禁止為了讓 UI 出現而複製 state owner。
