@@ -7,9 +7,15 @@ on:
     paths:
       - 'tests/test_issue312_t8_final_qualification.py'
       - 'tools/issue312_t8_final_qualification.py'
+      - 'tools/issue312_t8_drift_audit.py'
+      - 'tools/issue312_t8_cleanup_gate.py'
       - '.github/workflows/qa-issue312-t8-final-qualification.yml'
       - 'docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt'
       - 'docs/superpowers/checkpoints/issue312-t8.json'
+      - 'docs/superpowers/checkpoints/issue312-t8-drift-evidence.md'
+      - 'docs/superpowers/checkpoints/issue312-t8-cleanup-evidence.md'
+      - 'docs/superpowers/checkpoints/issue312-t8-knowledge-readback.md'
+      - 'docs/superpowers/checkpoints/issue312-t8-final-payload.json'
   workflow_dispatch:
 
 permissions:
@@ -33,9 +39,15 @@ jobs:
             --task "Run final CI integration qualification from the exact accepted T7 tested SHA, preserve tested/orchestration identity separation, secure fresh optimized acceptance evidence before cleanup, qualify production drift read-only, persist durable CI rules, and stop at QUALIFIED_FOR_INTEGRATION until explicit user authorization 合." \
             --changed-file tests/test_issue312_t8_final_qualification.py \
             --changed-file tools/issue312_t8_final_qualification.py \
+            --changed-file tools/issue312_t8_drift_audit.py \
+            --changed-file tools/issue312_t8_cleanup_gate.py \
             --changed-file .github/workflows/qa-issue312-t8-final-qualification.yml \
             --changed-file docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt \
             --changed-file docs/superpowers/checkpoints/issue312-t8.json \
+            --changed-file docs/superpowers/checkpoints/issue312-t8-drift-evidence.md \
+            --changed-file docs/superpowers/checkpoints/issue312-t8-cleanup-evidence.md \
+            --changed-file docs/superpowers/checkpoints/issue312-t8-knowledge-readback.md \
+            --changed-file docs/superpowers/checkpoints/issue312-t8-final-payload.json \
             --evidence docs/superpowers/checkpoints/issue312-t8-preflight-evidence.txt
       - name: Install focused dependency
         run: python -m pip install pytest
