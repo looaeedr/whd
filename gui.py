@@ -169,6 +169,7 @@ from gui_modules.editors.hole_editor import (
 from gui_modules.editors.hole_editor_render import HoleEditorCanvasRenderer as _HoleEditorCanvasRenderer
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCanvasViewFactory as _HoleEditorCanvasViewFactory,
+    HoleEditorWindowShellBuilder as _HoleEditorWindowShellBuilder,
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
     HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
@@ -5846,72 +5847,20 @@ class Phase6ApplicationHost:
             catalog_by_label[label] = definition
             catalog_label_by_definition[id(definition)] = label
 
-        editor = tk.Toplevel(self.root)
-        self.last_unified_hole_editor = editor
-        editor.title(f"{title} — 統一開孔編輯器")
-        editor.configure(bg=self.COLOR_BG)
-        editor.transient(self.root)
-        editor.grab_set()
-        screen_w = editor.winfo_screenwidth()
-        screen_h = editor.winfo_screenheight()
-        win_w = max(720, min(1280, screen_w - 80))
-        win_h = max(560, min(820, screen_h - 120))
-        pos_x = max(0, (screen_w - win_w) // 2)
-        pos_y = max(0, (screen_h - win_h) // 2)
-        normal_geometry = [f"{win_w}x{win_h}+{pos_x}+{pos_y}"]
-        fullscreen_state = [False]
-        fullscreen_restore_geometry = [None]
-        editor.geometry(normal_geometry[0])
-        editor.minsize(min(760, win_w), min(560, win_h))
-
-        body = tk.Frame(editor, bg=self.COLOR_BG)
-        body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-        left = tk.Frame(body, bg=self.COLOR_PANEL, width=min(320, max(270, win_w // 4)))
-        left.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 8))
-        left.pack_propagate(False)
-        # Reserve a fixed bottom action strip before packing any scroll/content widgets.
-        # This keeps Insert reachable even on the editor's minimum-height window.
-        left_insert_bar = tk.Frame(left, bg=self.COLOR_PANEL)
-        left_insert_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        center = tk.Frame(body, bg=self.COLOR_BG)
-        center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        # Door-owned Indicator-Box assembly lives as a page in this same editor.
-        # The page selectors switch the shared CAD workspace context; no extra
-        # editor windows/buttons are created.
-        editor_tabs = None
-        main_page = None
-        indicator_page = None
-        component_tabs = None
-        indicator_box_page = None
-        indicator_door_page = None
-        indicator_page_visible = [False]
-        if part_key == "door" and door_indicator_state is not None and indicator_component_context_provider is not None:
-            editor_tabs = ttk.Notebook(center, height=32)
-            main_page = tk.Frame(editor_tabs, bg=self.COLOR_BG)
-            indicator_page = tk.Frame(editor_tabs, bg=self.COLOR_BG)
-            editor_tabs.add(main_page, text="  門板  ")
-            editor_tabs.pack(fill=tk.X, pady=(0, 4))
-
-            component_tabs = ttk.Notebook(center, height=30)
-            indicator_box_page = tk.Frame(component_tabs, bg=self.COLOR_BG)
-            indicator_door_page = tk.Frame(component_tabs, bg=self.COLOR_BG)
-            component_tabs.add(indicator_box_page, text="  盒體（基準檔＋指示燈）  ")
-            component_tabs.add(indicator_door_page, text="  小門（基準檔）  ")
-
-        big_font = ('Microsoft JhengHei', 15, 'bold')
-        entry_font = ('Consolas', 12, 'bold')
-        normal_font = ('Microsoft JhengHei', 11)
-
-        baseline_status_var = tk.StringVar(value=str(baseline_status_text or ""))
-        baseline_status_label = None
-        if baseline_status_text or indicator_component_context_provider is not None:
-            baseline_status_label = tk.Label(
-                left, textvariable=baseline_status_var, bg=self.COLOR_PANEL,
-                fg=("#64d2ff" if str(baseline_status_text or "").startswith("基準檔：") else "#ff9f0a"),
-                font=('Microsoft JhengHei', 9, 'bold'), anchor=tk.W, justify=tk.LEFT, wraplength=285,
-            )
-            baseline_status_label.pack(fill=tk.X, padx=10, pady=(7, 2))
+        (
+            editor, fullscreen_state, fullscreen_restore_geometry,
+            left, left_insert_bar, center,
+            editor_tabs, main_page, indicator_page, component_tabs,
+            indicator_door_page, indicator_page_visible,
+            big_font, entry_font, normal_font,
+            baseline_status_var, baseline_status_label,
+        ) = _HoleEditorWindowShellBuilder(self).build(
+            title,
+            part_key=part_key,
+            door_indicator_state=door_indicator_state,
+            indicator_component_context_provider=indicator_component_context_provider,
+            baseline_status_text=baseline_status_text,
+        )
 
         indicator_redraw = [None]
         indicator_context_refresh = [None]
