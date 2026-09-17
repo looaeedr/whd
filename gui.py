@@ -152,6 +152,7 @@ from ae_engine.corner_type_ui import (
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
+    HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorTransientActions as _HoleEditorTransientActions,
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
@@ -6828,56 +6829,33 @@ class Phase6ApplicationHost:
             )
             _refresh_indicator_component_contexts()
 
-        def confirm_reference_edit():
-            if not (0 <= hole_session.selected_index < len(feature_list)):
-                return
-            position_authority[0] = "reference"
-            commit_active_edit(keep_selected=False)
-            sync_all()
+        modal_lifecycle = _HoleEditorModalLifecycle(
+            hole_session=hole_session,
+            has_selected_feature=lambda: 0 <= hole_session.selected_index < len(feature_list),
+            position_authority=position_authority,
+            commit_active_edit=commit_active_edit,
+            sync_all=sync_all,
+            validate_current_indicator_fit=validate_current_indicator_fit,
+            door_indicator_state=door_indicator_state,
+            collect_indicator_state=collect_indicator_state,
+            door_indicator_commit=door_indicator_commit,
+            editor_closed=editor_closed,
+            editor=editor,
+            on_close=on_close,
+            insert_mode=insert_mode,
+            set_insert_mode=set_insert_mode,
+            cancel_active_edit=cancel_active_edit,
+        )
+        confirm_reference_edit = modal_lifecycle.confirm_reference_edit
+        confirm_all = modal_lifecycle.confirm_all
+        cancel_all = modal_lifecycle.cancel_all
+        on_escape = modal_lifecycle.on_escape
 
         confirm_ref_btn.configure(command=confirm_reference_edit)
         cancel_ref_btn.configure(command=cancel_active_edit)
         undo_btn.configure(command=undo_last_action)
-
-        def confirm_all():
-            if not validate_current_indicator_fit(show_error=True):
-                return
-            hole_session.finish(commit=True)
-            if door_indicator_state is not None:
-                committed = collect_indicator_state()
-                if committed is not None:
-                    door_indicator_state.clear()
-                    door_indicator_state.update(committed)
-                    if door_indicator_commit is not None:
-                        door_indicator_commit(committed)
-            editor_closed[0] = True
-            sync_all()
-            editor.destroy()
-            if on_close is not None:
-                on_close()
-
-        def cancel_all():
-            if editor_closed[0]:
-                return
-            hole_session.finish(commit=False)
-            editor_closed[0] = True
-            sync_all()
-            editor.destroy()
-            if on_close is not None:
-                on_close()
-
         confirm_all_btn.configure(command=confirm_all)
         cancel_all_btn.configure(command=cancel_all)
-
-        def on_escape(event=None):
-            if insert_mode[0]:
-                set_insert_mode(False)
-                return "break"
-            if hole_session.has_active_edit:
-                cancel_active_edit()
-                return "break"
-            cancel_all()
-            return "break"
 
         editor.bind("<F11>", toggle_fullscreen)
         editor.bind("<Control-z>", undo_last_action)

@@ -99,6 +99,77 @@ class HoleEditorTransientActions:
         self.begin_edit(idx, "existing")
 
 
+class HoleEditorModalLifecycle:
+    """Own modal confirm/cancel/Escape flow while delegating all authorities."""
+
+    def __init__(
+        self, *, hole_session, has_selected_feature, position_authority,
+        commit_active_edit, sync_all, validate_current_indicator_fit,
+        door_indicator_state, collect_indicator_state, door_indicator_commit,
+        editor_closed, editor, on_close, insert_mode, set_insert_mode,
+        cancel_active_edit,
+    ):
+        self.hole_session = hole_session
+        self.has_selected_feature = has_selected_feature
+        self.position_authority = position_authority
+        self.commit_active_edit = commit_active_edit
+        self.sync_all = sync_all
+        self.validate_current_indicator_fit = validate_current_indicator_fit
+        self.door_indicator_state = door_indicator_state
+        self.collect_indicator_state = collect_indicator_state
+        self.door_indicator_commit = door_indicator_commit
+        self.editor_closed = editor_closed
+        self.editor = editor
+        self.on_close = on_close
+        self.insert_mode = insert_mode
+        self.set_insert_mode = set_insert_mode
+        self.cancel_active_edit = cancel_active_edit
+
+    def confirm_reference_edit(self):
+        if not self.has_selected_feature():
+            return
+        self.position_authority[0] = "reference"
+        self.commit_active_edit(keep_selected=False)
+        self.sync_all()
+
+    def confirm_all(self):
+        if not self.validate_current_indicator_fit(show_error=True):
+            return
+        self.hole_session.finish(commit=True)
+        if self.door_indicator_state is not None:
+            committed = self.collect_indicator_state()
+            if committed is not None:
+                self.door_indicator_state.clear()
+                self.door_indicator_state.update(committed)
+                if self.door_indicator_commit is not None:
+                    self.door_indicator_commit(committed)
+        self.editor_closed[0] = True
+        self.sync_all()
+        self.editor.destroy()
+        if self.on_close is not None:
+            self.on_close()
+
+    def cancel_all(self):
+        if self.editor_closed[0]:
+            return
+        self.hole_session.finish(commit=False)
+        self.editor_closed[0] = True
+        self.sync_all()
+        self.editor.destroy()
+        if self.on_close is not None:
+            self.on_close()
+
+    def on_escape(self, event=None):
+        if self.insert_mode[0]:
+            self.set_insert_mode(False)
+            return "break"
+        if self.hole_session.has_active_edit:
+            self.cancel_active_edit()
+            return "break"
+        self.cancel_all()
+        return "break"
+
+
 def open_hole_editor(host, key):
     """Route the legacy head/tail command into the host's unified editor."""
     label_map = {"head": "封頭", "tail": "封尾"}
