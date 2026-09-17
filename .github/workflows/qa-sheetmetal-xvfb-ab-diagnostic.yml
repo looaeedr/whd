@@ -1,6 +1,7 @@
 name: Sheet-metal Xvfb A-B Diagnostic
 
-# QA alias focused GREEN for candidate c5337eb5...
+# One-shot atomic patch + focused GREEN. The production candidate branch is
+# updated only after exact-base, focused-Xvfb, and protected-file gates pass.
 on:
   push:
     branches:
@@ -9,12 +10,12 @@ on:
       - '.github/workflows/qa-sheetmetal-xvfb-ab-diagnostic.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  focused-green:
+  patch-and-focused-green:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,11 +30,40 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-      - name: Checkout exact candidate and capture invariants
+      - name: Checkout exact fix branch base
         run: |
           set -euo pipefail
-          git checkout -q c5337eb535b0917b906dc74eaf94abefa61a7a14
+          git fetch origin fix/sheetmetal-tree-sync-from-menu-20260917
+          git checkout -B fix/sheetmetal-tree-sync-from-menu-20260917 origin/fix/sheetmetal-tree-sync-from-menu-20260917
+          test "$(git rev-parse HEAD)" = "c5337eb535b0917b906dc74eaf94abefa61a7a14"
           git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
+      - name: Apply minimal menu-to-tree projection refresh
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('fold_designer_bridge.py')
+          text = p.read_text(encoding='utf-8')
+          old = '''def _phase6_activate_operator_part(self: Any, key: str) -> Any:
+              snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+              resolved = _phase6_redirect_operator_part_key(str(key), snapshot)
+              return self.activate_part(resolved)
+          '''
+          new = '''def _phase6_activate_operator_part(self: Any, key: str) -> Any:
+              snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+              resolved = _phase6_redirect_operator_part_key(str(key), snapshot)
+              result = self.activate_part(resolved)
+              _phase6_refresh_structure_tree(self)
+              return result
+          '''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'exact callback occurrence count={count}, expected 1')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = "fold_designer_bridge.py"
+          git diff -- fold_designer_bridge.py
       - name: Run focused Xvfb contract suite
         run: |
           set -euo pipefail
@@ -41,9 +71,18 @@ jobs:
             tests/test_issue124_structure_tree.py \
             tests/test_issue186_sheetmetal_selector_visibility.py \
             tests/test_phase6_t21_live_switch_selector.py
-      - name: Verify protected invariants and clean tree
+      - name: Verify protected invariants
         run: |
           set -euo pipefail
           git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-after.sha256
           cmp /tmp/protected-before.sha256 /tmp/protected-after.sha256
-          git diff --exit-code
+          test "$(git diff --name-only)" = "fold_designer_bridge.py"
+      - name: Commit and push accepted minimal fix
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'fix: refresh structure tree after compact part selection'
+          git push origin HEAD:fix/sheetmetal-tree-sync-from-menu-20260917
+          echo "ACCEPTED_SHA=$(git rev-parse HEAD)"
