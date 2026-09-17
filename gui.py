@@ -150,6 +150,8 @@ from ae_engine.corner_type_ui import (
 )
 
 
+from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
+
 from gui_modules.drawing import (
     _corner_preview_canvas_point,
     _corner_preview_flip_y_for_target,
@@ -3979,59 +3981,11 @@ class Phase6ApplicationHost:
         return "break"
 
     def ask_xy_dialog(self, current_x, current_y):
-        dialog = tk.Toplevel(self.root)
-        dialog.title("輸入指示燈定位距離")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        dialog.resizable(False, False)
-        
-        dialog.geometry("+%d+%d" % (self.root.winfo_rootx() + 200, self.root.winfo_rooty() + 150))
-        dialog.configure(bg=self.COLOR_BG)
-        
-        tk.Label(dialog, text="請輸入新的定位距離 (mm)", bg=self.COLOR_BG, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 10, 'bold')).pack(pady=10)
-        
-        input_frame = tk.Frame(dialog, bg=self.COLOR_BG)
-        input_frame.pack(padx=20, pady=5)
-        
-        tk.Label(input_frame, text="水平距離 X (mm):", bg=self.COLOR_BG, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 9)).grid(row=0, column=0, padx=5, pady=5, sticky=tk.E)
-        entry_x = ttk.Entry(input_frame, width=12)
-        entry_x.insert(0, f"{current_x:.1f}")
-        entry_x.grid(row=0, column=1, padx=5, pady=5)
-        entry_x.focus_set()
-        
-        tk.Label(input_frame, text="垂直距離 Y (mm):", bg=self.COLOR_BG, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 9)).grid(row=1, column=0, padx=5, pady=5, sticky=tk.E)
-        entry_y = ttk.Entry(input_frame, width=12)
-        entry_y.insert(0, f"{current_y:.1f}")
-        entry_y.grid(row=1, column=1, padx=5, pady=5)
-        
-        result = [None, None]
-        
-        def on_ok(event=None):
-            try:
-                result[0] = float(entry_x.get())
-                result[1] = float(entry_y.get())
-                dialog.destroy()
-            except ValueError:
-                from tkinter import messagebox
-                messagebox.showerror("錯誤", "請輸入正確的數字格式", parent=dialog)
-                
-        def on_cancel():
-            dialog.destroy()
-            
-        btn_frame = tk.Frame(dialog, bg=self.COLOR_BG)
-        btn_frame.pack(pady=15)
-        
-        btn_ok = tk.Button(btn_frame, text="確認", font=('Microsoft JhengHei', 9, 'bold'), bg=self.COLOR_PANEL, fg=self.COLOR_ACCENT, bd=1, relief=tk.SOLID, padx=15, command=on_ok)
-        btn_ok.pack(side=tk.LEFT, padx=10)
-        
-        btn_cancel = tk.Button(btn_frame, text="取消", font=('Microsoft JhengHei', 9), bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, bd=1, relief=tk.SOLID, padx=15, command=on_cancel)
-        btn_cancel.pack(side=tk.LEFT, padx=10)
-        
-        dialog.bind("<Return>", on_ok)
-        dialog.bind("<Escape>", lambda e: on_cancel())
-        
-        self.root.wait_window(dialog)
-        return result[0], result[1]
+        return _ask_xy_dialog_impl(
+            self.root, current_x, current_y,
+            color_bg=self.COLOR_BG, color_text=self.COLOR_TEXT,
+            color_panel=self.COLOR_PANEL, color_accent=self.COLOR_ACCENT,
+        )
 
     def on_double_click_indicator(self):
         params = self.last_door_draw_params
