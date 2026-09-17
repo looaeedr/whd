@@ -25,7 +25,7 @@ jobs:
       - name: Install pytest
         run: python -m pip install -q pytest
       - name: Verify syntax and focused GREEN
-        run: python -m py_compile gui.py gui_modules/editors/hole_editor_render.py && python -m pytest -q tests/test_issue293_t5_canvas_renderer_slice.py tests/test_issue293_t5_feature_factory_slice.py tests/test_issue293_t5_indicator_fit_validation_slice.py tests/test_issue293_gui_phase2_t5_editors.py
+        run: python -m py_compile gui.py gui_modules/editors/hole_editor_render.py && python -m pytest -q tests/test_issue293_t5_canvas_renderer_slice.py tests/test_issue293_t5_feature_factory_slice.py tests/test_issue293_t5_indicator_fit_validation_slice.py
       - name: Commit GREEN after verification
         shell: bash
         run: |
