@@ -4537,6 +4537,24 @@ def _phase6_preconditions_raw(value):
     return ",".join(reverse.get(token, token) for token in tokens)
 
 
+_PHASE6_SOURCE_DISPLAY_TOKENS = {
+    "linked-FW": "連動框寬",
+}
+
+
+def _phase6_source_display(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
+        text = text.replace(raw, label)
+    return text
+
+
+def _phase6_source_raw(value):
+    text = str(value or "")
+    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
+        text = text.replace(label, raw)
+    return text
+
 def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
     busy = {"value": False}
     def raw_changed(*_args):
@@ -5120,7 +5138,12 @@ def _phase6_open_relief_registry_form(self):
     entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)
     entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)
     entry("適用條件", self.relief_registry_preconditions_display_var)
-    entry("公式來源／備註", self.relief_registry_source_var)
+    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
+    _phase6_bind_translated_var(
+        self.relief_registry_source_var, self.relief_registry_source_display_var,
+        _phase6_source_display, _phase6_source_raw,
+    )
+    entry("公式來源／備註", self.relief_registry_source_display_var)
 
     help_box = original.ttk.LabelFrame(form, text="公式變數說明", padding=6)
     help_box.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(5, 3)); row += 1
