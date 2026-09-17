@@ -157,6 +157,78 @@ class HoleEditorCreatedListActions:
         self.sync_all()
 
 
+class HoleEditorCanvasPointerActions:
+    """Own canvas pointer orchestration while delegating geometry and session authority."""
+
+    def __init__(
+        self, *, hole_session, canvas_view, dragging, insert_mode, context_provider,
+        select_feature, make_feature, feature_is_within_surface,
+        move_feature_within_surface, begin_edit, refresh_reference_fields,
+        redraw, sync_all, warn_out_of_bounds,
+    ):
+        self.hole_session = hole_session
+        self.canvas_view = canvas_view
+        self.dragging = dragging
+        self.insert_mode = insert_mode
+        self.context_provider = context_provider
+        self.select_feature = select_feature
+        self.make_feature = make_feature
+        self.feature_is_within_surface = feature_is_within_surface
+        self.move_feature_within_surface = move_feature_within_surface
+        self.begin_edit = begin_edit
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+        self.warn_out_of_bounds = warn_out_of_bounds
+
+    def on_canvas_down(self, event):
+        point = self.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
+            return
+        hit = self.canvas_view.hit_test(event.x, event.y)
+        if hit is not None:
+            self.dragging[0] = True
+            self.select_feature(hit)
+            return
+        if not self.insert_mode[0]:
+            return
+        feature = self.make_feature(point)
+        if feature is None:
+            return
+        context = self.context_provider()
+        if not self.feature_is_within_surface(
+            context["surface"], feature, context["width"], context["height"]
+        ):
+            self.warn_out_of_bounds()
+            return
+        self.hole_session.execute(HoleEditorAction.insert(feature))
+        self.begin_edit(self.hole_session.selected_index, "new")
+        self.sync_all()
+
+    def on_canvas_drag(self, event):
+        context = self.context_provider()
+        feature_list = context["feature_list"]
+        if not self.dragging[0] or not (
+            0 <= self.hole_session.selected_index < len(feature_list)
+        ):
+            return
+        point = self.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
+            return
+        idx = self.hole_session.selected_index
+        moved = self.move_feature_within_surface(
+            feature_list[idx], point,
+            context["width"], context["height"], context["surface"],
+        )
+        self.hole_session.execute(HoleEditorAction.replace_selected(moved))
+        self.refresh_reference_fields()
+        self.redraw()
+
+    def on_canvas_up(self, event):
+        if self.dragging[0]:
+            self.dragging[0] = False
+            self.sync_all()
+
 class HoleEditorModalLifecycle:
     """Own modal confirm/cancel/Escape flow while delegating all authorities."""
 

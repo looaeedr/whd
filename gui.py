@@ -152,6 +152,7 @@ from ae_engine.corner_type_ui import (
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
+    HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorTransientActions as _HoleEditorTransientActions,
@@ -6511,43 +6512,32 @@ class Phase6ApplicationHost:
         begin_edit = session_actions.begin_edit
         select_feature = session_actions.select_feature
 
-        def on_canvas_down(event):
-            point = canvas_view.canvas_to_world(event.x, event.y)
-            if point is None:
-                return
-            hit = canvas_view.hit_test(event.x, event.y)
-            if hit is not None:
-                dragging[0] = True
-                select_feature(hit)
-                return
-            if not insert_mode[0]:
-                return
-            feature = make_feature(point)
-            if feature is None:
-                return
-            if not feature_is_within_surface(surface, feature, width, height):
-                messagebox.showwarning("超出開孔範圍", "孔的完整外形必須全部位於板面框內。")
-                return
-            hole_session.execute(HoleEditorAction.insert(feature))
-            begin_edit(hole_session.selected_index, "new")
-            sync_all()
-
-        def on_canvas_drag(event):
-            if not dragging[0] or not (0 <= hole_session.selected_index < len(feature_list)):
-                return
-            point = canvas_view.canvas_to_world(event.x, event.y)
-            if point is None:
-                return
-            idx = hole_session.selected_index
-            moved = move_feature_within_surface(feature_list[idx], point, width, height, surface)
-            hole_session.execute(HoleEditorAction.replace_selected(moved))
-            refresh_reference_fields()
-            redraw()
-
-        def on_canvas_up(event):
-            if dragging[0]:
-                dragging[0] = False
-                sync_all()
+        canvas_pointer_actions = _HoleEditorCanvasPointerActions(
+            hole_session=hole_session,
+            canvas_view=canvas_view,
+            dragging=dragging,
+            insert_mode=insert_mode,
+            context_provider=lambda: {
+                "surface": surface,
+                "width": width,
+                "height": height,
+                "feature_list": feature_list,
+            },
+            select_feature=select_feature,
+            make_feature=make_feature,
+            feature_is_within_surface=feature_is_within_surface,
+            move_feature_within_surface=move_feature_within_surface,
+            begin_edit=begin_edit,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+            warn_out_of_bounds=lambda: messagebox.showwarning(
+                "超出開孔範圍", "孔的完整外形必須全部位於板面框內。"
+            ),
+        )
+        on_canvas_down = canvas_pointer_actions.on_canvas_down
+        on_canvas_drag = canvas_pointer_actions.on_canvas_drag
+        on_canvas_up = canvas_pointer_actions.on_canvas_up
 
         def set_reference_anchor(anchor):
             if not (0 <= hole_session.selected_index < len(feature_list)):
