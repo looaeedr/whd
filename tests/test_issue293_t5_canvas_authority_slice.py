@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 class _FakeCanvasView:
@@ -58,10 +59,13 @@ def test_canvas_factory_is_tiny_and_delegates_to_existing_authority():
     }
 
 
-def test_unified_root_uses_editor_canvas_factory_not_direct_constructor():
+def test_unified_composition_uses_editor_canvas_factory_not_direct_constructor():
     gui = GUI.read_text(encoding="utf-8")
     assert "HoleEditorCanvasViewFactory as _HoleEditorCanvasViewFactory" in gui
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
-    assert "_HoleEditorCanvasViewFactory.create(" in segment
-    assert "Phase6HoleEditorCanvasView(" not in segment
+    root_segment = ast.get_source_segment(gui, method) or ""
+    assert "Phase6HoleEditorCanvasView(" not in root_segment
+    assert COMPOSITION.is_file(), "T5 RED: canvas authority handoff composition is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorCanvasViewFactory.create(" in composition
+    assert "Phase6HoleEditorCanvasView(" not in composition
