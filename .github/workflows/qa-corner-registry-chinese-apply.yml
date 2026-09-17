@@ -23,62 +23,45 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-
           p = Path('fold_designer_bridge.py')
           text = p.read_text(encoding='utf-8')
-
-          anchor = '''def _phase6_preconditions_raw(value):
-    reverse = {label: raw for raw, label in _PHASE6_OPERATOR_LABELS.items()}
-    tokens = [token.strip() for token in re.split(r"[,，、]", str(value or "")) if token.strip()]
-    return ",".join(reverse.get(token, token) for token in tokens)
-
-
-'''
-          insertion = anchor + '''_PHASE6_SOURCE_DISPLAY_TOKENS = {
-    "linked-FW": "連動框寬",
-}
-
-
-def _phase6_source_display(value):
-    text = str(value or "")
-    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):
-        text = text.replace(raw, label)
-    return text
-
-
-def _phase6_source_raw(value):
-    text = str(value or "")
-    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):
-        text = text.replace(label, raw)
-    return text
-
-
-'''
-          if text.count(anchor) != 1:
-              raise SystemExit(f'preconditions anchor count={text.count(anchor)}')
-          text = text.replace(anchor, insertion, 1)
-
-          bind_anchor = '''    _phase6_bind_translated_var(
-        self.relief_registry_preconditions_var, self.relief_registry_preconditions_display_var,
-        _phase6_preconditions_display, _phase6_preconditions_raw,
-    )
-'''
-          bind_new = bind_anchor + '''    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
-    _phase6_bind_translated_var(
-        self.relief_registry_source_var, self.relief_registry_source_display_var,
-        _phase6_source_display, _phase6_source_raw,
-    )
-'''
-          if text.count(bind_anchor) != 1:
-              raise SystemExit(f'source binding anchor count={text.count(bind_anchor)}')
-          text = text.replace(bind_anchor, bind_new, 1)
-
-          old_entry = '    entry("公式來源／備註", self.relief_registry_source_var)\n'
-          new_entry = '    entry("公式來源／備註", self.relief_registry_source_display_var)\n'
-          if text.count(old_entry) != 1:
-              raise SystemExit(f'source entry count={text.count(old_entry)}')
-          text = text.replace(old_entry, new_entry, 1)
-
+          helper_marker = 'def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):'
+          if text.count(helper_marker) != 1:
+              raise SystemExit(f'helper marker count={text.count(helper_marker)}')
+          helper_lines = [
+              '_PHASE6_SOURCE_DISPLAY_TOKENS = {',
+              '    "linked-FW": "連動框寬",',
+              '}',
+              '',
+              '',
+              'def _phase6_source_display(value):',
+              '    text = str(value or "")',
+              '    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[0]), reverse=True):',
+              '        text = text.replace(raw, label)',
+              '    return text',
+              '',
+              '',
+              'def _phase6_source_raw(value):',
+              '    text = str(value or "")',
+              '    for raw, label in sorted(_PHASE6_SOURCE_DISPLAY_TOKENS.items(), key=lambda item: len(item[1]), reverse=True):',
+              '        text = text.replace(label, raw)',
+              '    return text',
+              '',
+              '',
+          ]
+          text = text.replace(helper_marker, '\n'.join(helper_lines) + helper_marker, 1)
+          entry_marker = '    entry("公式來源／備註", self.relief_registry_source_var)'
+          if text.count(entry_marker) != 1:
+              raise SystemExit(f'entry marker count={text.count(entry_marker)}')
+          binding_lines = [
+              '    self.relief_registry_source_display_var = original.tk.StringVar(master=form)',
+              '    _phase6_bind_translated_var(',
+              '        self.relief_registry_source_var, self.relief_registry_source_display_var,',
+              '        _phase6_source_display, _phase6_source_raw,',
+              '    )',
+              '    entry("公式來源／備註", self.relief_registry_source_display_var)',
+          ]
+          text = text.replace(entry_marker, '\n'.join(binding_lines), 1)
           p.write_text(text, encoding='utf-8')
           PY
       - name: Verify patch shape
