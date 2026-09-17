@@ -39,6 +39,7 @@ class _FakeTk:
     X = "x"
     LEFT = "left"
     RIGHT = "right"
+    W = "w"
 
     @staticmethod
     def Frame(parent, **kwargs): return _Widget("Frame", parent, **kwargs)
