@@ -178,16 +178,17 @@ def test_missing_context_is_noop_after_transient_cleanup_guard():
 
 def test_gui_wiring_uses_live_context_instead_of_stale_lambda_captures():
     gui = GUI.read_text(encoding="utf-8")
+    composition = (ROOT / "gui_modules" / "editors" / "hole_editor_composition.py").read_text(encoding="utf-8")
     assert "HoleEditorLiveContext as _HoleEditorLiveContext" in gui
     assert "HoleEditorContextSwitcher as _HoleEditorContextSwitcher" in gui
-    assert "live_context = _HoleEditorLiveContext(" in gui
-    assert "context_switcher = _HoleEditorContextSwitcher(" in gui
-    assert "switch_editor_context = context_switcher.switch" in gui
-    assert "switch_editor_context=switch_editor_context" in gui
+    assert "s.live_context = d._HoleEditorLiveContext(" in composition
+    assert "context_switcher = d._HoleEditorContextSwitcher(" in composition
+    assert "s.switch_editor_context = context_switcher.switch" in composition
+    assert "switch_editor_context=s.switch_editor_context" in composition
 
-    unified = _unified_method()
+    tree = ast.parse(composition)
     stale = []
-    for node in ast.walk(unified):
+    for node in ast.walk(tree):
         if not isinstance(node, ast.Lambda):
             continue
         loaded = {
@@ -196,4 +197,4 @@ def test_gui_wiring_uses_live_context_instead_of_stale_lambda_captures():
         }
         if loaded:
             stale.append((node.lineno, sorted(loaded)))
-    assert not stale, f"T5 RED: dynamic callbacks still capture stale context locals: {stale}"
+    assert not stale, f"T5 RED: composition callbacks still capture stale context locals: {stale}"

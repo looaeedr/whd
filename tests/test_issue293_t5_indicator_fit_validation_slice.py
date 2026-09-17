@@ -78,10 +78,9 @@ def test_indicator_fit_callback_moves_out_of_unified_root():
 
 
 def test_gui_wiring_keeps_collect_state_late_bound():
-    gui = GUI.read_text(encoding="utf-8")
-    assert "collect_state=lambda: collect_indicator_state()" in gui, "T5 RED: indicator-state collection must stay late-bound"
-    assert "collect_state=collect_indicator_state," not in gui
-
+    composition = (ROOT / "gui_modules" / "editors" / "hole_editor_composition.py").read_text(encoding="utf-8")
+    assert "collect_state=lambda: s.collect_indicator_state()" in composition, "T5 RED: indicator-state collection must stay late-bound"
+    assert "collect_state=s.collect_indicator_state," not in composition
 
 def test_validation_without_indicator_context_clears_error_and_enables_confirm():
     validator, fit_error, button, validate_calls, error_calls = _build(state_marker=None)

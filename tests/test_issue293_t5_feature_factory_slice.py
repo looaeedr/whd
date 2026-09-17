@@ -88,10 +88,10 @@ def test_make_feature_callback_moves_out_of_unified_root():
 
 
 def test_gui_wiring_uses_live_size_context_provider():
-    gui = GUI.read_text(encoding="utf-8")
-    assert 'context_provider=lambda: {"width": live_context.width, "height": live_context.height}' in gui
-    assert "make_feature = feature_factory.make_feature" in gui
-
+    composition = (ROOT / "gui_modules" / "editors" / "hole_editor_composition.py").read_text(encoding="utf-8")
+    assert '"width": s.live_context.width' in composition
+    assert '"height": s.live_context.height' in composition
+    assert "s.make_feature = feature_factory.make_feature" in composition
 
 def test_catalog_definition_delegates_geometry_and_center_anchor():
     factory, calls, _ = _build()

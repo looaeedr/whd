@@ -140,17 +140,21 @@ def test_redraw_and_draw_extra_move_out_of_unified_root():
 
 def test_gui_wiring_uses_one_live_render_context_provider():
     gui = GUI.read_text(encoding="utf-8")
+    composition = (ROOT / "gui_modules" / "editors" / "hole_editor_composition.py").read_text(encoding="utf-8")
     assert "HoleEditorCanvasRenderer as _HoleEditorCanvasRenderer" in gui
-    assert "canvas_renderer = _HoleEditorCanvasRenderer(" in gui
-    assert "redraw = canvas_renderer.redraw" in gui
-    assert "indicator_redraw[0] = redraw" in gui
+    assert "canvas_renderer = d._HoleEditorCanvasRenderer(" in composition
+    assert "s.redraw = canvas_renderer.redraw" in composition
+    assert "s.indicator_redraw[0] = s.redraw" in composition
     for fragment in (
-        '"feature_list": feature_list', '"surface": surface', '"width": width',
-        '"height": height', '"reference_guide": reference_guide',
-        '"baseline_scene": baseline_scene', '"active_part_key": active_part_key[0]',
+        '"feature_list": s.live_context.feature_list',
+        '"surface": s.live_context.surface',
+        '"width": s.live_context.width',
+        '"height": s.live_context.height',
+        '"reference_guide": s.live_context.reference_guide',
+        '"baseline_scene": s.live_context.baseline_scene',
+        '"active_part_key": s.active_part_key[0]',
     ):
-        assert fragment in gui
-
+        assert fragment in composition
 
 def test_redraw_reads_context_late_and_builds_same_frame_contract():
     renderer, view, calls, context = _build()
