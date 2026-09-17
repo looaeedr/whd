@@ -168,6 +168,55 @@ class HoleEditorReferencePresentation:
         finally:
             self.suppress_entry_events[0] = False
 
+class HoleEditorIndicatorStateCollector:
+    """Collect live indicator UI state and delegate normalization."""
+
+    def __init__(
+        self, *, mode_var_provider, layers_var_provider, group_vars_provider,
+        offset_x_var_provider, offset_y_var_provider, box_dist_var_provider,
+        normalize_state,
+    ):
+        self.mode_var_provider = mode_var_provider
+        self.layers_var_provider = layers_var_provider
+        self.group_vars_provider = group_vars_provider
+        self.offset_x_var_provider = offset_x_var_provider
+        self.offset_y_var_provider = offset_y_var_provider
+        self.box_dist_var_provider = box_dist_var_provider
+        self.normalize_state = normalize_state
+
+    def collect(self):
+        mode_var = self.mode_var_provider()
+        if mode_var is None:
+            return None
+        try:
+            layers = max(1, min(6, int(self.layers_var_provider().get())))
+        except (TypeError, ValueError):
+            layers = 1
+        groups = []
+        for var in self.group_vars_provider():
+            try:
+                groups.append(max(1, int(var.get())))
+            except ValueError:
+                groups.append(2)
+        while len(groups) < 6:
+            groups.append(2)
+        try:
+            offset_x = float(self.offset_x_var_provider().get())
+        except ValueError:
+            offset_x = 0.0
+        try:
+            offset_y = float(self.offset_y_var_provider().get())
+        except ValueError:
+            offset_y = 0.0
+        return self.normalize_state({
+            "mode": mode_var.get(),
+            "layers": layers,
+            "groups": groups[:6],
+            "offset_x": offset_x,
+            "offset_y": offset_y,
+            "is_box_dist": bool(self.box_dist_var_provider().get()),
+        })
+
 class HoleEditorIndicatorGroupControls:
     """Own presentation-only rebuilding of indicator group rows."""
 

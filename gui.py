@@ -168,6 +168,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorContextRefresh as _HoleEditorIndicatorContextRefresh,
     HoleEditorIndicatorGroupControls as _HoleEditorIndicatorGroupControls,
+    HoleEditorIndicatorStateCollector as _HoleEditorIndicatorStateCollector,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
     HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
@@ -5931,37 +5932,16 @@ class Phase6ApplicationHost:
         request_indicator_redraw = indicator_ui_actions.request_indicator_redraw
         on_box_distance_toggle = indicator_ui_actions.on_box_distance_toggle
 
-        def collect_indicator_state():
-            if indicator_mode_var is None:
-                return None
-            try:
-                layers = max(1, min(6, int(indicator_layers_var.get())))
-            except (TypeError, ValueError):
-                layers = 1
-            groups = []
-            for var in indicator_group_vars:
-                try:
-                    groups.append(max(1, int(var.get())))
-                except ValueError:
-                    groups.append(2)
-            while len(groups) < 6:
-                groups.append(2)
-            try:
-                offset_x = float(indicator_offset_x_var.get())
-            except ValueError:
-                offset_x = 0.0
-            try:
-                offset_y = float(indicator_offset_y_var.get())
-            except ValueError:
-                offset_y = 0.0
-            return self._normalize_door_indicator_state({
-                "mode": indicator_mode_var.get(),
-                "layers": layers,
-                "groups": groups[:6],
-                "offset_x": offset_x,
-                "offset_y": offset_y,
-                "is_box_dist": bool(indicator_box_dist_var.get()),
-            })
+        indicator_state_collector = _HoleEditorIndicatorStateCollector(
+            mode_var_provider=lambda: indicator_mode_var,
+            layers_var_provider=lambda: indicator_layers_var,
+            group_vars_provider=lambda: indicator_group_vars,
+            offset_x_var_provider=lambda: indicator_offset_x_var,
+            offset_y_var_provider=lambda: indicator_offset_y_var,
+            box_dist_var_provider=lambda: indicator_box_dist_var,
+            normalize_state=self._normalize_door_indicator_state,
+        )
+        collect_indicator_state = indicator_state_collector.collect
 
         if part_key == "door" and door_indicator_state is not None:
             seed_state = self._normalize_door_indicator_state(door_indicator_state)
