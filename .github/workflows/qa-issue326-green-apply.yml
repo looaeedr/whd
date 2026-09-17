@@ -48,6 +48,7 @@ jobs:
           PY
 
           git diff --check
+          git config core.quotePath false
           git diff --name-only | sort | tee /tmp/issue326-green-files.txt
           expected=$(cat <<'EOF'
           .agents/skills/engineering/executable-continuity-controller/SKILL.md
