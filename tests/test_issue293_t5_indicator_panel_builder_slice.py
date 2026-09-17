@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 def _unified_method() -> ast.FunctionDef:
@@ -35,15 +36,17 @@ def test_indicator_panel_builder_is_bounded_presentation_only():
     assert "Phase6HoleEditorSession" not in source
 
 
-def test_unified_root_delegates_indicator_panel_construction():
+def test_composition_root_delegates_indicator_panel_construction():
     gui = GUI.read_text(encoding="utf-8")
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
+    root_segment = ast.get_source_segment(gui, method) or ""
     assert "HoleEditorIndicatorPanelBuilder as _HoleEditorIndicatorPanelBuilder" in gui
-    assert "_HoleEditorIndicatorPanelBuilder(self).build(" in segment
-    assert 'text=" 門指示燈 / 指示燈盒子 "' not in segment
-    assert "tk.Radiobutton(" not in segment
-    assert "rebuild_indicator_group_controls =" not in segment
+    assert COMPOSITION.is_file(), "T5 RED: indicator-panel composition handoff is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorIndicatorPanelBuilder(host).build(" in composition
+    assert 'text=" 門指示燈 / 指示燈盒子 "' not in root_segment
+    assert "tk.Radiobutton(" not in root_segment
+    assert "rebuild_indicator_group_controls =" not in root_segment
 
 
 def test_indicator_panel_slice_materially_reduces_root():
