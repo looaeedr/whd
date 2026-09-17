@@ -8600,11 +8600,13 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
     self.part_var = original.tk.StringVar(master=self.part_selector, value="組合體")
     self.part_buttons = {}
-    # Legacy menu remains as a compatibility object for old callbacks/tests, but
-    # #124 removes it as an operator-facing navigation surface.
+    # The compact sheet-metal menu and the Structure Tree are two presentation
+    # projections of the same authoritative part_var / workspace callbacks.
+    # Keep the existing menu visible; do not create a second state owner.
     self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var)
     self.part_choice_menu = original.tk.Menu(self.part_choice_button, tearoff=False)
     self.part_choice_button.configure(menu=self.part_choice_menu)
+    self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
 
     # One CAD-style Structure Tree is now the visible part/mode navigator. Its
     # rows are rebuilt from designer_workspace.available_parts and own no state.
