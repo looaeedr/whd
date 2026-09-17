@@ -12,11 +12,18 @@ pytestmark = pytest.mark.skipif(
 
 
 def _open_designer():
+    """Open the exact production direct-3D application path.
+
+    #189 retired BoxCalculatorGUI as the user-facing startup owner.  The sheet-
+    metal selector regression must therefore exercise Phase6PrimaryApplication,
+    otherwise a legacy helper path can stay GREEN while production loses the
+    Structure Tree.
+    """
     root = tk.Tk()
     root.geometry("1400x900+0+0")
     root.update_idletasks()
-    app = gui.BoxCalculatorGUI(root)
-    designer = app.open_original_fold_designer()
+    app = gui.Phase6PrimaryApplication(root)
+    designer = app.fold_designer_app
     root.update_idletasks()
     root.update()
     return root, app, designer
@@ -47,7 +54,7 @@ def _tree_visible_overlap(designer):
 
 
 def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
-    """The real operator navigator must be on-screen, not merely constructed."""
+    """The production operator navigator must be on-screen, not merely constructed."""
     root, _app, designer = _open_designer()
     try:
         canvas = designer.left_scroll_canvas
@@ -73,7 +80,7 @@ def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
 
 
 def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
-    """#163 must not make the critical part selector disappear with input scrolling."""
+    """The production Structure Tree must remain reachable while lower inputs scroll."""
     root, app, designer = _open_designer()
     try:
         designer.activate_part("head")
@@ -103,8 +110,8 @@ def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
         )
         assert after[0] > 0.0, "precondition: large-text input workspace must actually scroll"
         assert overlap >= min(120.0, float(tree.winfo_height())), (
-            "#163 wrapped the critical Structure Tree into the same scrolling input surface; "
-            "after scrolling to edit lower inputs, the sheet-metal/part selector disappears"
+            "critical Structure Tree disappeared from the production direct-3D viewport "
+            "while scrolling lower operator inputs"
         )
     finally:
         _close(root)
