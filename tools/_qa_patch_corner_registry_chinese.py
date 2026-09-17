@@ -15,15 +15,17 @@ def ensure_replace(old: str, new: str) -> None:
     text = text.replace(old, new, 1)
 
 
-# These presentation aliases were partly applied by an earlier fail-closed QA
-# writer on this same work branch.  Keep this patcher idempotent: only finish
-# what is still missing and never mutate raw registry IDs/enums/schema.
 for old, new in (
     ('"reserve_u": "X預留",', '"reserve_u": "橫向預留",'),
     ('"reserve_v": "Y預留",', '"reserve_v": "縱向預留",'),
     ('"fold_u": "X向折邊",', '"fold_u": "橫向折邊",'),
     ('"fold_v": "Y向折邊",', '"fold_v": "縱向折邊",'),
 ):
+    ensure_replace(old, new)
+
+if '"RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準"' not in text:
+    old = '    "RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",'
+    new = old + '\n    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字標準",'
     ensure_replace(old, new)
 
 if '_PHASE6_SOURCE_DISPLAY_TOKENS =' not in text:
@@ -67,8 +69,6 @@ if 'self.relief_registry_source_display_var' not in text:
         raise SystemExit('source presentation field marker missing or ambiguous')
     text = text.replace(old, new, 1)
 
-# Fail closed if the already-applied presentation layer regressed while this
-# writer was being iterated.
 required_markers = (
     'win.title("截角資料庫／組合接合")',
     '"CERTIFIED_FROM_3D": "立體驗證認證"',
@@ -78,7 +78,7 @@ required_markers = (
 )
 missing = [marker for marker in required_markers if marker not in text]
 if missing:
-    raise SystemExit(f'expected prior Chinese presentation markers missing: {missing!r}')
+    raise SystemExit(f'expected Chinese presentation markers missing: {missing!r}')
 
 p.write_text(text, encoding='utf-8')
 print('patched', p)
