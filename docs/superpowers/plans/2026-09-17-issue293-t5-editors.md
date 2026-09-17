@@ -10,7 +10,7 @@
 - Production integration remains #296/T8 responsibility.
 
 ## Execution rule
-Use TDD for each extraction slice: RED -> verify intended failure provenance -> minimal GREEN -> focused regression -> commit. Do not move T6 rendering/projection or T7 lifecycle/domain ownership to satisfy LOC. Validation judges correctness only and never becomes a production calculation source. No concrete Actions RUN ID means `RUN_NOT_CREATED`: fix trigger/ref/prerequisite immediately; poll only a concrete RUN.
+Use TDD for each extraction slice: RED -> verify intended failure provenance -> minimal GREEN -> focused regression -> commit. T5 owns transient editor state only; committed project state, geometry authority, manufacturing formulas, T6 rendering/projection and T7 lifecycle/domain ownership remain with their existing owners. Do not move later-slice ownership to satisfy LOC. Validation judges correctness only and never becomes a production calculation source. No concrete Actions RUN ID means `RUN_NOT_CREATED`: fix trigger/ref/prerequisite immediately; poll only a concrete RUN.
 
 ## Task 1 — Structural gate reconciliation [LOCKED]
 Machine contract: `tests/process/test_issue293_t5_scope_reconciliation.py`.
@@ -47,7 +47,7 @@ RED contract must prove:
 - existing `Phase6HoleEditorSession` and `Phase6HoleEditorCanvasView` remain required authorities;
 - final architecture contract includes class <=800, callback/method <=150, no giant mixin, no circular import and root `gui.py <=5,884`.
 
-Run this RED together with the accepted #292/T4 structural contracts. The new T5 assertions must fail for intended missing/existing-root structure while predecessor contracts remain GREEN.
+Run this RED with the #293 scope-reconciliation contract. The new T5 assertions must fail only for intended missing/existing-root structure while the locked T5 scope proof remains GREEN.
 
 ## Task 3 — Generic dialog extraction
 Characterize `ask_xy_dialog` first: defaults, invalid input behavior, confirm result, cancel/window-close/Escape behavior and transient-only state.
