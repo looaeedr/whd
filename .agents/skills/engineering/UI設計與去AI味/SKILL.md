@@ -371,3 +371,11 @@ Rewrite 後重新檢查：
 - Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。
 - 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。
 - Canvas `create_window(window=...)` 若嵌入的是 Canvas 的 sibling/root child，必須明確處理 stacking order；mapped child 仍可能被 sibling Canvas 完整塗在下面。
+
+
+### 截角資料庫中文展示邊界（WHD_CORNER_REGISTRY_CHINESE_PRESENTATION_RULE_20260917）
+
+- 截角資料庫中所有使用者可見文字都必須以繁體中文呈現；內部 raw ID、enum、schema、規則 ID 可維持既有英文值，但不得直接漏到畫面。
+- 中文化只能發生在 presentation adapter；不得為了 UI 驗收改寫 registry 原始資料、幾何 authority 或持久化契約。
+- 公式、前置條件、來源備註、選單值、Treeview、Canvas 文字與視窗標題都屬 presentation boundary。
+- 驗收必須逐筆選取資料庫中的全部規則並掃描實際 rendered text；只驗初始畫面或第一筆規則不算通過。
