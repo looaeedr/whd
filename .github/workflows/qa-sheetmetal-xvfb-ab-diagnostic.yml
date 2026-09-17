@@ -1,5 +1,6 @@
 name: Sheet-metal Xvfb A-B Diagnostic
 
+# trigger after branch retarget is present in parent
 on:
   push:
     branches:
