@@ -22,3 +22,5 @@ jobs:
         run: python -m pip install -q pytest
       - name: Run center workspace builder RED
         run: python -m pytest -q tests/test_issue293_t5_center_workspace_builder_slice.py
+
+# trigger after workflow registration
