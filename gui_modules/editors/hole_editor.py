@@ -229,6 +229,90 @@ class HoleEditorCanvasPointerActions:
             self.dragging[0] = False
             self.sync_all()
 
+class HoleEditorReferenceActions:
+    """Own reference-anchor/distance UI orchestration via explicit collaborators."""
+
+    def __init__(
+        self, *, hole_session, context_provider, suppress_entry_events,
+        reference_variables, pending_after, editor,
+        feature_with_reference_anchor, feature_reference_anchor,
+        move_feature_by_reference_distance, active_reference_guide,
+        refresh_reference_fields, redraw, sync_all, show_format_error,
+    ):
+        self.hole_session = hole_session
+        self.context_provider = context_provider
+        self.suppress_entry_events = suppress_entry_events
+        self.reference_variables = reference_variables
+        self.pending_after = pending_after
+        self.editor = editor
+        self.feature_with_reference_anchor = feature_with_reference_anchor
+        self.feature_reference_anchor = feature_reference_anchor
+        self.move_feature_by_reference_distance = move_feature_by_reference_distance
+        self.active_reference_guide = active_reference_guide
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+        self.show_format_error = show_format_error
+
+    def set_reference_anchor(self, anchor):
+        context = self.context_provider()
+        feature_list = context["feature_list"]
+        if not (0 <= self.hole_session.selected_index < len(feature_list)):
+            return
+        idx = self.hole_session.selected_index
+        candidate = self.feature_with_reference_anchor(feature_list[idx], anchor)
+        self.hole_session.execute(HoleEditorAction.replace_selected(candidate))
+        self.refresh_reference_fields()
+        self.redraw()
+        self.sync_all()
+
+    def apply_reference_value(self, axis, mode, show_errors=False):
+        if self.suppress_entry_events[0]:
+            return
+        context = self.context_provider()
+        feature_list = context["feature_list"]
+        idx = self.hole_session.selected_index
+        if not (0 <= idx < len(feature_list)):
+            return
+        raw = self.reference_variables[(axis, mode)].get().strip()
+        if not raw:
+            return
+        try:
+            value = float(raw)
+        except ValueError:
+            if show_errors:
+                self.show_format_error()
+                self.refresh_reference_fields()
+            return
+        if value < 0:
+            return
+        old = feature_list[idx]
+        moved = self.move_feature_by_reference_distance(
+            context["surface"], feature_list, idx,
+            self.feature_reference_anchor(old), context["width"], context["height"],
+            axis=axis, mode=mode, value=value,
+            reference_guide=self.active_reference_guide(),
+        )
+        if moved == old:
+            if show_errors:
+                self.refresh_reference_fields()
+            return
+        self.hole_session.execute(HoleEditorAction.replace_selected(moved))
+        self.refresh_reference_fields()
+        self.redraw()
+        self.sync_all()
+
+    def schedule_reference_value(self, axis, mode):
+        key = (axis, mode)
+        if key in self.pending_after:
+            try:
+                self.editor.after_cancel(self.pending_after[key])
+            except Exception:
+                pass
+        self.pending_after[key] = self.editor.after(
+            350, lambda a=axis, m=mode: self.apply_reference_value(a, m, False)
+        )
+
 class HoleEditorModalLifecycle:
     """Own modal confirm/cancel/Escape flow while delegating all authorities."""
 

@@ -155,6 +155,7 @@ from gui_modules.editors.hole_editor import (
     HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
+    HoleEditorReferenceActions as _HoleEditorReferenceActions,
     HoleEditorTransientActions as _HoleEditorTransientActions,
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
@@ -6539,16 +6540,6 @@ class Phase6ApplicationHost:
         on_canvas_drag = canvas_pointer_actions.on_canvas_drag
         on_canvas_up = canvas_pointer_actions.on_canvas_up
 
-        def set_reference_anchor(anchor):
-            if not (0 <= hole_session.selected_index < len(feature_list)):
-                return
-            idx = hole_session.selected_index
-            candidate = feature_with_reference_anchor(feature_list[idx], anchor)
-            hole_session.execute(HoleEditorAction.replace_selected(candidate))
-            refresh_reference_fields()
-            redraw()
-            sync_all()
-
         def on_canvas_right(event):
             hit = canvas_view.hit_test(event.x, event.y)
             if hit is None:
@@ -6578,48 +6569,31 @@ class Phase6ApplicationHost:
         delete_selected = created_list_actions.delete_selected
         delete_btn.configure(command=delete_selected)
 
-        def apply_reference_value(axis, mode, show_errors=False):
-            if suppress_entry_events[0]:
-                return
-            idx = hole_session.selected_index
-            if not (0 <= idx < len(feature_list)):
-                return
-            variable = {('x', 'edge'): var_x_edge, ('x', 'neighbor'): var_x_neighbor,
-                        ('y', 'edge'): var_y_edge, ('y', 'neighbor'): var_y_neighbor}[(axis, mode)]
-            raw = variable.get().strip()
-            if not raw:
-                return
-            try:
-                value = float(raw)
-            except ValueError:
-                if show_errors:
-                    messagebox.showerror("格式錯誤", "距離必須是數字")
-                    refresh_reference_fields()
-                return
-            if value < 0:
-                return
-            old = feature_list[idx]
-            moved = move_feature_by_reference_distance(
-                surface, feature_list, idx, feature_reference_anchor(old), width, height,
-                axis=axis, mode=mode, value=value, reference_guide=active_reference_guide()
-            )
-            if moved == old:
-                if show_errors:
-                    refresh_reference_fields()
-                return
-            hole_session.execute(HoleEditorAction.replace_selected(moved))
-            refresh_reference_fields()
-            redraw()
-            sync_all()
-
-        def schedule_reference_value(axis, mode):
-            key = (axis, mode)
-            if key in pending_after:
-                try:
-                    editor.after_cancel(pending_after[key])
-                except Exception:
-                    pass
-            pending_after[key] = editor.after(350, lambda a=axis, m=mode: apply_reference_value(a, m, False))
+        reference_actions = _HoleEditorReferenceActions(
+            hole_session=hole_session,
+            context_provider=lambda: {
+                "feature_list": feature_list, "surface": surface,
+                "width": width, "height": height,
+            },
+            suppress_entry_events=suppress_entry_events,
+            reference_variables={
+                ('x', 'edge'): var_x_edge, ('x', 'neighbor'): var_x_neighbor,
+                ('y', 'edge'): var_y_edge, ('y', 'neighbor'): var_y_neighbor,
+            },
+            pending_after=pending_after,
+            editor=editor,
+            feature_with_reference_anchor=feature_with_reference_anchor,
+            feature_reference_anchor=feature_reference_anchor,
+            move_feature_by_reference_distance=move_feature_by_reference_distance,
+            active_reference_guide=active_reference_guide,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+            show_format_error=lambda: messagebox.showerror("格式錯誤", "距離必須是數字"),
+        )
+        set_reference_anchor = reference_actions.set_reference_anchor
+        apply_reference_value = reference_actions.apply_reference_value
+        schedule_reference_value = reference_actions.schedule_reference_value
 
         for (axis, mode), ent in ref_entries.items():
             ent.bind("<KeyRelease>", lambda e, a=axis, m=mode: schedule_reference_value(a, m))
