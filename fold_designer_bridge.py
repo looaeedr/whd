@@ -4381,12 +4381,20 @@ _PHASE6_OPERATOR_LABELS = {
     "WRAP_ZONE": "包覆區",
     "rear_edge": "後側邊",
     "rear_mating": "後側接合區",
+    "top_edge": "上側邊",
+    "bottom_edge": "下側邊",
+    "left_edge": "左側邊",
+    "right_edge": "右側邊",
+    "top_mating_zone": "上側接合區",
+    "bottom_mating_zone": "下側接合區",
+    "left_mating_zone": "左側接合區",
+    "right_mating_zone": "右側接合區",
     "ZERO": "零間隙",
     "USER_ADDED": "使用者新增",
     "LEGACY_MIGRATED": "舊資料轉入",
     "CERTIFIED": "已認證",
-    "CERTIFIED_FROM_3D": "3D 驗證認證",
-    "PROVISIONAL_3D": "3D 暫定",
+    "CERTIFIED_FROM_3D": "立體驗證認證",
+    "PROVISIONAL_3D": "立體暫定",
     "ENGINE_CONFLICT": "引擎衝突",
     "REGISTRY_AMBIGUOUS": "規則不明確",
     "ENDCAP_TOP_INSERT_STRUCTURAL_CONTACT_V1": "封頭尾上方嵌入（結構接合）",
@@ -4395,11 +4403,12 @@ _PHASE6_OPERATOR_LABELS = {
     "ENDCAP_TOP_INSERT_OVERLAY_LINKED_FW_V1": "封頭尾上方嵌入貼外（連動框寬）",
     "ENDCAP_TOP_INSERT_OVERLAY_STANDARD_V1": "封頭尾上方嵌入貼外（標準）",
     "RECEIVING_ENDCAP_BOTTOM_WRAP_V1": "受電箱封頭尾下方外側包覆",
+    "RECEIVING_DIVIDER_CROSS_STANDARD_V1": "受電箱中隔十字截角（標準）",
     "ytop1_present": "有上折",
     "ytop1_absent": "無獨立上折",
     "ybottom1_present": "有下折",
-    "x_folded": "X向有折",
-    "x_flat": "X向平板",
+    "x_folded": "橫向有折",
+    "x_flat": "橫向平板",
 }
 
 
@@ -4729,7 +4738,7 @@ def _phase6_registry_run_formula_matrix(self):
         evidence.update({"matrix_passed": True, "cases": len(samples), "candidate_id": candidate_id})
         self._phase6_registry_regression_evidence = evidence
         self.relief_registry_status_var.set(
-            f"公式矩陣通過：{len(samples)} cases；3D零穿透=" + ("是" if evidence.get("zero_penetration") else "尚未")
+            f"公式矩陣通過：{len(samples)} 組；立體零穿透=" + ("是" if evidence.get("zero_penetration") else "尚未")
         )
         return evidence
     except Exception as exc:
@@ -4835,11 +4844,11 @@ def _phase6_registry_preview_assembly_3d(self):
         self._phase6_registry_regression_evidence = evidence
         zero = bool(evidence.get("zero_penetration"))
         self.relief_registry_status_var.set(
-            "候選專屬組合3D驗證：" + ("零非法穿透" if zero else "仍有非法穿透")
+            "候選專屬立體組合驗證：" + ("零非法穿透" if zero else "仍有非法穿透")
         )
         return zero
     except Exception as exc:
-        self.relief_registry_status_var.set(f"組合3D驗證失敗：{exc}")
+        self.relief_registry_status_var.set(f"立體組合驗證失敗：{exc}")
         return False
 
 
@@ -5028,7 +5037,7 @@ def _phase6_open_relief_registry_form(self):
     except Exception:
         pass
     win = original.tk.Toplevel(self.root)
-    win.title("PHASE6 截角資料庫 / 組合接合")
+    win.title("截角資料庫／組合接合")
     win.geometry("1120x720")
     _phase6_configure_floating_surface(win, self.root, modal=False)
     self.relief_registry_window = win
@@ -5106,9 +5115,9 @@ def _phase6_open_relief_registry_form(self):
         self.relief_registry_preconditions_var, self.relief_registry_preconditions_display_var,
         _phase6_preconditions_display, _phase6_preconditions_raw,
     )
-    entry("第一級 X 公式", self.relief_registry_primary_u_display_var)
-    entry("第一級 Y 公式", self.relief_registry_primary_v_display_var)
-    entry("第二級 X 公式", self.relief_registry_secondary_u_display_var)
+    entry("第一級橫向公式", self.relief_registry_primary_u_display_var)
+    entry("第一級縱向公式", self.relief_registry_primary_v_display_var)
+    entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)
     entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)
     entry("適用條件", self.relief_registry_preconditions_display_var)
     entry("公式來源／備註", self.relief_registry_source_var)
@@ -5118,10 +5127,10 @@ def _phase6_open_relief_registry_form(self):
     help_lines = (
         "板厚：目前板件厚度。",
         "名義框寬：封頭／封尾自身的框寬參數；不等於箱身成型後實際占位。",
-        "側折：封頭／封尾 X 向側邊折彎基底；貼外沒有 X 折時為 0。",
-        "上折：封頭／封尾 Y 向第一折尺寸。",
+        "側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",
+        "上折：封頭／封尾縱向第一折尺寸。",
         "成型接合寬：接合對象折好後真正需要避讓的寬度，例如貼外取箱身成型框寬。",
-        "第一級 X/Y：主要截角的 X/Y 切除量；第二級 X/深度：二級截角的內側位置與深度。",
+        "第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",
         "嵌入、貼外、嵌入貼外、外側包覆皆以同一接合語意資料層保存。",
     )
     for help_row, text in enumerate(help_lines):
@@ -5138,8 +5147,8 @@ def _phase6_open_relief_registry_form(self):
     actions=original.ttk.Frame(form); actions.grid(row=row,column=0,columnspan=4,sticky="ew",pady=4); row+=1
     for text,cmd in (
         ("驗證公式",lambda:_phase6_registry_validate_formula_form(self)),
-        ("預覽2D",lambda:_phase6_registry_preview_2d(self)),
-        ("預覽組合3D",lambda:_phase6_registry_preview_assembly_3d(self)),
+        ("預覽平面",lambda:_phase6_registry_preview_2d(self)),
+        ("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self)),
         ("儲存候選",lambda:_phase6_registry_save_candidate_form(self)),
         ("執行回歸",lambda:_phase6_registry_run_formula_matrix(self)),
     ):
