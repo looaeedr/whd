@@ -26,7 +26,6 @@ jobs:
 
           source = Path('fold_designer_bridge.py')
           text = source.read_text(encoding='utf-8')
-
           replacements = [
               ('win.title("PHASE6 截角資料庫 / 組合接合")', 'win.title("截角資料庫／組合接合")'),
               ('"CERTIFIED_FROM_3D": "3D 驗證認證",', '"CERTIFIED_FROM_3D": "立體驗證認證",'),
@@ -48,34 +47,22 @@ jobs:
               ('f"組合3D驗證失敗：{exc}"', 'f"立體組合驗證失敗：{exc}"'),
           ]
           for old, new in replacements:
-              if old not in text:
-                  raise SystemExit(f'missing expected source fragment: {old}')
-              text = text.replace(old, new)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one source fragment, got {count}: {old}')
+              text = text.replace(old, new, 1)
           source.write_text(text, encoding='utf-8')
-
-          test = Path('tests/test_corner_registry_chinese_presentation.py')
-          body = test.read_text(encoding='utf-8')
-          old = '''    text = _safe_cget(widget, "text").strip()\n    if text:\n        rows.append((str(widget), "text", text))\n'''
-          new = '''    # ttk.Entry exposes its Tcl textvariable name (for example PY_VAR123)\n    # through cget("text"); that identifier is not painted for the operator.\n    if not isinstance(widget, (tk.Entry, ttk.Entry)):\n        text = _safe_cget(widget, "text").strip()\n        if text:\n            rows.append((str(widget), "text", text))\n'''
-          if old not in body:
-              raise SystemExit('missing expected Entry false-positive block')
-          test.write_text(body.replace(old, new), encoding='utf-8')
-
-          duplicate = Path('tests/test_relief_registry_chinese_ui.py')
-          if duplicate.exists():
-              duplicate.unlink()
           PY
       - name: Verify patch shape
         run: |
           set -euo pipefail
           git diff --check
-          git status --short
-          test ! -e tests/test_relief_registry_chinese_ui.py
+          git diff -- fold_designer_bridge.py
       - name: Commit and push
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add fold_designer_bridge.py tests/test_corner_registry_chinese_presentation.py tests/test_relief_registry_chinese_ui.py
+          git add fold_designer_bridge.py
           git commit -m 'fix: localize corner registry operator presentation'
           git push origin HEAD:fix/corner-db-chinese-only-20260917
