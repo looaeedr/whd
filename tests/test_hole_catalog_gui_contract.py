@@ -24,7 +24,7 @@ def test_gui_uses_shared_hole_catalog_and_resource_directory():
 
 def test_gui_exposes_quadrant_rotation_and_blind_hole_color():
     source=_editor_source()
-    for angle in ('90°','180°','270°','360°'): assert angle in source
+    assert 'for angle in (90, 180, 270, 360):' in source
     assert 'BLIND_HOLE' in source and 'ResolvedProfile' in source
 
 
@@ -32,5 +32,5 @@ def test_catalog_double_click_enters_insert_mode_except_custom_rows():
     source=_editor_source()
     assert '"<Double-Button-1>"' in source
     assert 'def on_catalog_double_click' in source
-    assert 'label.startswith("＋ 自訂")' in source
+    assert 'self.selected_catalog_text.get().startswith("＋ 自訂")' in source
     assert 'self.set_insert_mode(True)' in source
