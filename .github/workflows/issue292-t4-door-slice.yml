@@ -1,0 +1,25 @@
+name: Issue292 T4 Door Slice
+
+on:
+  push:
+    branches:
+      - refactor/issue292-door-red-20260917
+    paths:
+      - '.github/workflows/issue292-t4-door-slice.yml'
+      - 'tests/test_issue292_t4_door_slice.py'
+      - 'gui.py'
+      - 'gui_modules/parts/panels/door.py'
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Door characterization RED
+        run: python -m pytest -q tests/test_issue292_t4_door_slice.py
