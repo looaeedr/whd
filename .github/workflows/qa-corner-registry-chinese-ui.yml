@@ -1,10 +1,10 @@
 name: Corner Registry Chinese UI QA
 
-# Triggered after presentation-only production localization.
+# Focused presentation contract for the source-note follow-up.
 on:
   push:
     branches:
-      - fix/corner-db-chinese-only-20260917
+      - fix/corner-db-source-note-chinese-20260917
     paths:
       - 'fold_designer_bridge.py'
       - 'tests/test_corner_registry_chinese_presentation.py'
