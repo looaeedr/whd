@@ -1,7 +1,7 @@
 name: Sheet-metal Xvfb A-B Diagnostic
 
-# Full same-run A/B: current production baseline versus the exact accepted
-# sheet-metal candidate. Any candidate-only Xvfb failure or protected drift fails.
+# Parallel same-run A/B. Production and candidate execute the identical full Xvfb
+# suite in separate jobs, then an aggregate job requires exact failure-set parity.
 on:
   push:
     branches:
@@ -13,9 +13,9 @@ permissions:
   contents: read
 
 jobs:
-  full-xvfb-ab:
+  base-full:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,52 +30,99 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-      - name: Compare production and candidate full Xvfb failure sets
+      - name: Run production full Xvfb and extract failures
         run: |
           set -euo pipefail
-          BASE_SHA='ec0724c892dd0d44f1bb4e0b80e90a85820df209'
-          CANDIDATE_SHA='e96068280a238a6918ed1f166feac2ab9135ea6d'
-
-          extract_failures() {
-            python - "$1" "$2" <<'PY'
-          import pathlib, sys
-          src = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8', errors='replace').splitlines()
+          git checkout -q ec0724c892dd0d44f1bb4e0b80e90a85820df209
+          mkdir -p ab-artifacts
+          set +e
+          xvfb-run -a python -m pytest -q > ab-artifacts/full.log 2>&1
+          RC=$?
+          set -e
+          echo "$RC" > ab-artifacts/rc.txt
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('ab-artifacts/full.log').read_text(encoding='utf-8', errors='replace').splitlines()
           nodes = []
           for line in src:
               if line.startswith('FAILED '):
-                  node = line[len('FAILED '):].split(' - ', 1)[0].strip()
-                  nodes.append(node)
-          pathlib.Path(sys.argv[2]).write_text('\n'.join(sorted(set(nodes))) + ('\n' if nodes else ''), encoding='utf-8')
+                  nodes.append(line[len('FAILED '):].split(' - ', 1)[0].strip())
+          Path('ab-artifacts/failures.txt').write_text('\n'.join(sorted(set(nodes))) + ('\n' if nodes else ''), encoding='utf-8')
           PY
-          }
+          tail -n 25 ab-artifacts/full.log > ab-artifacts/summary.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sheetmetal-ab-base
+          path: ab-artifacts
+          if-no-files-found: error
 
-          git checkout -q "$BASE_SHA"
-          set +e
-          xvfb-run -a python -m pytest -q > /tmp/base-xvfb.log 2>&1
-          BASE_RC=$?
-          set -e
-          extract_failures /tmp/base-xvfb.log /tmp/base.failures
-
-          git checkout -q "$CANDIDATE_SHA"
+  candidate-full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run candidate full Xvfb and extract failures
+        run: |
+          set -euo pipefail
+          git checkout -q e96068280a238a6918ed1f166feac2ab9135ea6d
+          mkdir -p ab-artifacts
           git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
           set +e
-          xvfb-run -a python -m pytest -q > /tmp/candidate-xvfb.log 2>&1
-          CANDIDATE_RC=$?
+          xvfb-run -a python -m pytest -q > ab-artifacts/full.log 2>&1
+          RC=$?
           set -e
-          extract_failures /tmp/candidate-xvfb.log /tmp/candidate.failures
+          echo "$RC" > ab-artifacts/rc.txt
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('ab-artifacts/full.log').read_text(encoding='utf-8', errors='replace').splitlines()
+          nodes = []
+          for line in src:
+              if line.startswith('FAILED '):
+                  nodes.append(line[len('FAILED '):].split(' - ', 1)[0].strip())
+          Path('ab-artifacts/failures.txt').write_text('\n'.join(sorted(set(nodes))) + ('\n' if nodes else ''), encoding='utf-8')
+          PY
+          tail -n 25 ab-artifacts/full.log > ab-artifacts/summary.txt
           git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-after.sha256
           cmp /tmp/protected-before.sha256 /tmp/protected-after.sha256
           git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sheetmetal-ab-candidate
+          path: ab-artifacts
+          if-no-files-found: error
 
-          echo "BASE_RC=$BASE_RC"
-          echo "CANDIDATE_RC=$CANDIDATE_RC"
-          echo '=== BASE FAILURES ==='
-          cat /tmp/base.failures
-          echo '=== CANDIDATE FAILURES ==='
-          cat /tmp/candidate.failures
+  aggregate:
+    needs: [base-full, candidate-full]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sheetmetal-ab-base
+          path: ab/base
+      - uses: actions/download-artifact@v4
+        with:
+          name: sheetmetal-ab-candidate
+          path: ab/candidate
+      - name: Require exact failure-set parity
+        run: |
+          set -euo pipefail
+          echo "BASE_RC=$(cat ab/base/rc.txt)"
+          echo "CANDIDATE_RC=$(cat ab/candidate/rc.txt)"
           echo '=== FAILURE SET DIFF ==='
-          diff -u /tmp/base.failures /tmp/candidate.failures
+          diff -u ab/base/failures.txt ab/candidate/failures.txt
           echo '=== BASE SUMMARY ==='
-          tail -n 20 /tmp/base-xvfb.log
+          cat ab/base/summary.txt
           echo '=== CANDIDATE SUMMARY ==='
-          tail -n 20 /tmp/candidate-xvfb.log
+          cat ab/candidate/summary.txt
