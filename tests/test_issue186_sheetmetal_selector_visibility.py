@@ -12,11 +12,12 @@ pytestmark = pytest.mark.skipif(
 
 
 def _open_designer():
+    """Open the exact production direct-3D application path."""
     root = tk.Tk()
     root.geometry("1400x900+0+0")
     root.update_idletasks()
-    app = gui.BoxCalculatorGUI(root)
-    designer = app.open_original_fold_designer()
+    app = gui.Phase6PrimaryApplication(root)
+    designer = app.fold_designer_app
     root.update_idletasks()
     root.update()
     return root, app, designer
@@ -46,8 +47,47 @@ def _tree_visible_overlap(designer):
     return max(0.0, min(content_bottom, tree_bottom) - max(content_top, tree_top))
 
 
+def _menu_values(designer):
+    menu = designer.part_choice_menu
+    end = menu.index("end")
+    if end is None:
+        return ()
+    values = []
+    for index in range(end + 1):
+        try:
+            values.append((index, str(menu.entrycget(index, "value"))))
+        except tk.TclError:
+            pass
+    return tuple(values)
+
+
+def test_issue186_sheetmetal_compact_menu_is_operator_visible_and_live():
+    """The existing sheet-metal Menubutton must be a real production control."""
+    root, _app, designer = _open_designer()
+    try:
+        _pump(root)
+        button = designer.part_choice_button
+        values = _menu_values(designer)
+
+        assert button.winfo_ismapped(), (
+            "sheet-metal part_choice_button still exists but is hidden as a compatibility-only "
+            "object instead of being restored to the production UI"
+        )
+        assert values, "visible sheet-metal menu must contain the current physical-part choices"
+
+        current = str(designer.part_var.get())
+        candidate = next(((index, value) for index, value in values if value != current), None)
+        assert candidate is not None, f"sheet-metal menu has no alternate live selection: {values!r}"
+        index, value = candidate
+        designer.part_choice_menu.invoke(index)
+        _pump(root)
+        assert str(designer.part_var.get()) == value
+    finally:
+        _close(root)
+
+
 def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
-    """The real operator navigator must be on-screen, not merely constructed."""
+    """The production operator navigator must be on-screen, not merely constructed."""
     root, _app, designer = _open_designer()
     try:
         canvas = designer.left_scroll_canvas
@@ -73,7 +113,7 @@ def test_issue186_sheetmetal_tree_is_visible_in_initial_left_viewport():
 
 
 def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
-    """#163 must not make the critical part selector disappear with input scrolling."""
+    """The production Structure Tree must remain reachable while lower inputs scroll."""
     root, app, designer = _open_designer()
     try:
         designer.activate_part("head")
@@ -103,8 +143,8 @@ def test_issue186_sheetmetal_tree_stays_available_while_inputs_need_scrolling():
         )
         assert after[0] > 0.0, "precondition: large-text input workspace must actually scroll"
         assert overlap >= min(120.0, float(tree.winfo_height())), (
-            "#163 wrapped the critical Structure Tree into the same scrolling input surface; "
-            "after scrolling to edit lower inputs, the sheet-metal/part selector disappears"
+            "critical Structure Tree disappeared from the production direct-3D viewport "
+            "while scrolling lower operator inputs"
         )
     finally:
         _close(root)
