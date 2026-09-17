@@ -152,11 +152,21 @@ jobs:
               ]
               if missing_imports:
                   parsed = ast.parse(current)
-                  if parsed.body and isinstance(parsed.body[0], ast.Expr) and isinstance(parsed.body[0].value, ast.Constant) and isinstance(parsed.body[0].value.value, str):
+                  if (
+                      parsed.body
+                      and isinstance(parsed.body[0], ast.Expr)
+                      and isinstance(parsed.body[0].value, ast.Constant)
+                      and isinstance(parsed.body[0].value.value, str)
+                  ):
                       doc_end = parsed.body[0].end_lineno
                       current_lines = current.splitlines(True)
                       insertion = ''.join(imp + '\n' for imp in missing_imports) + '\n'
-                      current = ''.join(current_lines[:doc_end]) + '\n' + insertion + ''.join(current_lines[doc_end:]).lstrip('\n')
+                      current = (
+                          ''.join(current_lines[:doc_end])
+                          + '\n'
+                          + insertion
+                          + ''.join(current_lines[doc_end:]).lstrip('\n')
+                      )
                   else:
                       current = ''.join(imp + '\n' for imp in missing_imports) + '\n' + current
               current = current.rstrip() + '\n\n' + '\n'.join(blocks)
@@ -197,31 +207,31 @@ jobs:
 
           text = gui.read_text(encoding='utf-8')
           marker = 'from gui_modules.parts.panels.box_body import setup_tab_z_ui as _setup_tab_z_ui_impl\n'
-          import_block = '''from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as __attach_part_hole_entrypoint_impl
-from gui_modules.parts.panels.door import (
-    _parse_layout_value as __parse_layout_value_impl,
-    _reject_door_layout_dimension as __reject_door_layout_dimension_impl,
-    rebuild_door_layout_ui as _rebuild_door_layout_ui_impl,
-    refresh_door_layout_status as _refresh_door_layout_status_impl,
-    setup_tab_door_ui as _setup_tab_door_ui_impl,
-)
-from gui_modules.parts.panels.indicator_box import (
-    setup_tab_indicator_box_ui as _setup_tab_indicator_box_ui_impl,
-    _indicator_small_door_size_chain_label as __indicator_small_door_size_chain_label_impl,
-    setup_tab_indicator_door_ui as _setup_tab_indicator_door_ui_impl,
-    rebuild_layers_config_ui as _rebuild_layers_config_ui_impl,
-)
-from gui_modules.parts.panels.base_plate import sync_base_plate_shrink as _sync_base_plate_shrink_impl
-
-'''
-          # Root aliases intentionally use exactly _<root-name>_impl. Leading
-          # underscore root names therefore become double-underscore aliases.
+          import_lines = [
+              'from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as __attach_part_hole_entrypoint_impl',
+              'from gui_modules.parts.panels.door import (',
+              '    _parse_layout_value as __parse_layout_value_impl,',
+              '    _reject_door_layout_dimension as __reject_door_layout_dimension_impl,',
+              '    rebuild_door_layout_ui as _rebuild_door_layout_ui_impl,',
+              '    refresh_door_layout_status as _refresh_door_layout_status_impl,',
+              '    setup_tab_door_ui as _setup_tab_door_ui_impl,',
+              ')',
+              'from gui_modules.parts.panels.indicator_box import (',
+              '    setup_tab_indicator_box_ui as _setup_tab_indicator_box_ui_impl,',
+              '    _indicator_small_door_size_chain_label as __indicator_small_door_size_chain_label_impl,',
+              '    setup_tab_indicator_door_ui as _setup_tab_indicator_door_ui_impl,',
+              '    rebuild_layers_config_ui as _rebuild_layers_config_ui_impl,',
+              ')',
+              'from gui_modules.parts.panels.base_plate import sync_base_plate_shrink as _sync_base_plate_shrink_impl',
+              '',
+              '',
+          ]
+          import_block = '\n'.join(import_lines)
           if import_block not in text:
               assert marker in text, 'panel import anchor missing'
               text = text.replace(marker, import_block + marker, 1)
               gui.write_text(text, encoding='utf-8')
 
-          # Verify each thin root now routes to its exact implementation alias.
           updated = gui.read_text(encoding='utf-8')
           updated_tree = ast.parse(updated)
           updated_host = next(
