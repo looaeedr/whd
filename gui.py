@@ -154,6 +154,7 @@ from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
     HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
+    HoleEditorFeatureFactory as _HoleEditorFeatureFactory,
     HoleEditorIndicatorFitValidation as _HoleEditorIndicatorFitValidation,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorReferenceActions as _HoleEditorReferenceActions,
@@ -6379,23 +6380,23 @@ class Phase6ApplicationHost:
 
         indicator_redraw[0] = redraw
 
-        def make_feature(point):
-            label = selected_catalog_text.get()
-            rotation = int(var_rotation.get().replace("°", ""))
-            try:
-                if label == "＋ 自訂圓孔":
-                    definition = custom_circle_definition(float(var_d.get()), blind=var_blind.get())
-                elif label == "＋ 自訂方孔":
-                    definition = custom_rectangle_definition(float(var_w.get()), float(var_h.get()), blind=var_blind.get())
-                else:
-                    definition = catalog_by_label.get(label)
-                    if definition is None:
-                        raise ValueError("請先從左側選擇孔型")
-                feature = feature_from_definition(definition, point, width, height, rotation_deg=rotation)
-                return feature_with_reference_anchor(feature, ReferenceAnchor.CENTER)
-            except (ValueError, FileNotFoundError) as exc:
-                messagebox.showerror("開孔錯誤", str(exc))
-                return None
+        feature_factory = _HoleEditorFeatureFactory(
+            selected_catalog_text=selected_catalog_text,
+            rotation_var=var_rotation,
+            diameter_var=var_d,
+            width_var=var_w,
+            height_var=var_h,
+            blind_var=var_blind,
+            context_provider=lambda: {"width": width, "height": height},
+            catalog_by_label=catalog_by_label,
+            custom_circle_definition=custom_circle_definition,
+            custom_rectangle_definition=custom_rectangle_definition,
+            feature_from_definition=feature_from_definition,
+            feature_with_reference_anchor=feature_with_reference_anchor,
+            center_anchor=ReferenceAnchor.CENTER,
+            show_error=messagebox.showerror,
+        )
+        make_feature = feature_factory.make_feature
 
         catalog_controls = _HoleEditorCatalogControls(
             catalog_list=catalog_list,

@@ -39,6 +39,60 @@ from ae_engine.sheetmetal_part_adapters import (
 
 
 
+
+class HoleEditorFeatureFactory:
+    """Create editor features while delegating catalog and geometry authority."""
+
+    def __init__(
+        self, *, selected_catalog_text, rotation_var, diameter_var, width_var,
+        height_var, blind_var, context_provider, catalog_by_label,
+        custom_circle_definition, custom_rectangle_definition,
+        feature_from_definition, feature_with_reference_anchor,
+        center_anchor, show_error,
+    ):
+        self.selected_catalog_text = selected_catalog_text
+        self.rotation_var = rotation_var
+        self.diameter_var = diameter_var
+        self.width_var = width_var
+        self.height_var = height_var
+        self.blind_var = blind_var
+        self.context_provider = context_provider
+        self.catalog_by_label = catalog_by_label
+        self.custom_circle_definition = custom_circle_definition
+        self.custom_rectangle_definition = custom_rectangle_definition
+        self.feature_from_definition = feature_from_definition
+        self.feature_with_reference_anchor = feature_with_reference_anchor
+        self.center_anchor = center_anchor
+        self.show_error = show_error
+
+    def make_feature(self, point):
+        label = self.selected_catalog_text.get()
+        rotation = int(self.rotation_var.get().replace("°", ""))
+        try:
+            if label == "＋ 自訂圓孔":
+                definition = self.custom_circle_definition(
+                    float(self.diameter_var.get()), blind=self.blind_var.get()
+                )
+            elif label == "＋ 自訂方孔":
+                definition = self.custom_rectangle_definition(
+                    float(self.width_var.get()), float(self.height_var.get()),
+                    blind=self.blind_var.get(),
+                )
+            else:
+                definition = self.catalog_by_label.get(label)
+                if definition is None:
+                    raise ValueError("請先從左側選擇孔型")
+            context = self.context_provider()
+            feature = self.feature_from_definition(
+                definition, point, context["width"], context["height"],
+                rotation_deg=rotation,
+            )
+            return self.feature_with_reference_anchor(feature, self.center_anchor)
+        except (ValueError, FileNotFoundError) as exc:
+            self.show_error("開孔錯誤", str(exc))
+            return None
+
+
 class HoleEditorIndicatorFitValidation:
     """Own indicator fit validation orchestration, not manufacturing geometry."""
 
