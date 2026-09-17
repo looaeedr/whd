@@ -3,7 +3,7 @@ name: Sheet-metal Xvfb A-B Diagnostic
 on:
   push:
     branches:
-      - fix/restore-sheetmetal-structure-tree-20260917
+      - fix/sheetmetal-dual-projection-contract-20260917
     paths:
       - '.github/workflows/qa-sheetmetal-xvfb-ab-diagnostic.yml'
   workflow_dispatch:
@@ -78,6 +78,7 @@ jobs:
           tail -n 20 /tmp/candidate-xvfb.log
 
           xvfb-run -a python -m pytest -q \
+            tests/test_issue124_structure_tree.py \
             tests/test_issue186_sheetmetal_selector_visibility.py \
             tests/test_phase6_t21_live_switch_selector.py
 
