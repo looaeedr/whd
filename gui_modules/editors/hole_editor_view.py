@@ -168,6 +168,18 @@ class HoleEditorReferencePresentation:
         finally:
             self.suppress_entry_events[0] = False
 
+class HoleEditorSyncCoordinator:
+    """Own hole-editor external-sync then preview coordination."""
+
+    def __init__(self, *, sync_callback, draw_preview):
+        self.sync_callback = sync_callback
+        self.draw_preview = draw_preview
+
+    def sync_all(self):
+        if self.sync_callback is not None:
+            self.sync_callback()
+        self.draw_preview()
+
 class HoleEditorIndicatorContextRefresh:
     """Own indicator-context refresh presentation/routing only."""
 

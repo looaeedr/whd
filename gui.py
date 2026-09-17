@@ -171,6 +171,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
     HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
     HoleEditorRoundSettingsLauncher as _HoleEditorRoundSettingsLauncher,
+    HoleEditorSyncCoordinator as _HoleEditorSyncCoordinator,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -6242,10 +6243,10 @@ class Phase6ApplicationHost:
             overlay_widgets={"x_group": x_group, "y_group": y_group, "panel": ref_panel},
         )
 
-        def sync_all():
-            if sync_callback is not None:
-                sync_callback()
-            self.draw_preview()
+        sync_coordinator = _HoleEditorSyncCoordinator(
+            sync_callback=sync_callback, draw_preview=self.draw_preview,
+        )
+        sync_all = sync_coordinator.sync_all
 
         created_list_presentation = _HoleEditorCreatedListPresentation(
             created_list=created_list,
