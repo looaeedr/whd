@@ -9,12 +9,17 @@ on:
       - 'tests/test_issue186_sheetmetal_selector_visibility.py'
       - 'fold_designer_bridge.py'
 
+permissions:
+  contents: write
+
 jobs:
   actual-visibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -25,8 +30,35 @@ jobs:
           sudo apt-get install -y -qq xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-      - name: Run actual visibility probe
+      - name: Apply minimal stacking fix
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('fold_designer_bridge.py')
+          text = p.read_text(encoding='utf-8')
+          old = '''    self.left_scroll_canvas.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n    _sync_left_scrollregion()\n'''
+          new = '''    self.left_scroll_canvas.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)\n    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)\n    # self.left is a root child embedded as a Canvas window.  Keep the embedded\n    # operator workspace above its sibling Canvas so mapped controls are actually\n    # visible/hit-testable instead of being painted underneath the Canvas.\n    self.left.lift(self.left_scroll_canvas)\n    _sync_left_scrollregion()\n'''
+          count = text.count(old)
+          assert count == 1, f'expected one left-canvas pack block, found {count}'
+          p.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+      - name: Run actual visibility and shared-authority regressions
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-before.sha256
           xvfb-run -a python -m pytest -q -s \
-            tests/test_issue186_sheetmetal_selector_visibility.py::test_issue186_sheetmetal_compact_menu_has_real_unobscured_pixels
+            tests/test_issue186_sheetmetal_selector_visibility.py \
+            tests/test_issue124_structure_tree.py
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > /tmp/protected-after.sha256
+          cmp /tmp/protected-before.sha256 /tmp/protected-after.sha256
+      - name: Commit accepted production fix
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'WHD QA'
+          git config user.email 'actions@users.noreply.github.com'
+          git add fold_designer_bridge.py
+          git commit -m 'Fix sheet-metal selector canvas stacking visibility'
+          git push origin HEAD:fix/sheetmetal-selector-actually-visible-20260917
+          echo "FIX_HEAD=$(git rev-parse HEAD)"
