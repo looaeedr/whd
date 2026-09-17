@@ -23,9 +23,11 @@ def test_gui_uses_shared_hole_catalog_and_resource_directory():
 
 
 def test_gui_exposes_quadrant_rotation_and_blind_hole_color():
-    source=_editor_source()
-    assert 'for angle in (90, 180, 270, 360):' in source
-    assert 'BLIND_HOLE' in source and 'ResolvedProfile' in source
+    editor_source=_editor_source()
+    render_source=Path('gui.py').read_text(encoding='utf-8')
+    assert 'for angle in (90, 180, 270, 360):' in editor_source
+    # T5 owns the rotation controls; T6 rendering still owns blind-hole color/profile drawing.
+    assert 'BLIND_HOLE' in render_source and 'ResolvedProfile' in render_source
 
 
 def test_catalog_double_click_enters_insert_mode_except_custom_rows():
