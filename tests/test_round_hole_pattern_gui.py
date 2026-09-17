@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = "\n".join(
     (ROOT / path).read_text(encoding='utf-8')
     for path in (
+        'gui_modules/editors/hole_editor.py',
         'gui_modules/editors/hole_editor_composition.py',
         'gui_modules/editors/hole_editor_view.py',
     )
