@@ -38,6 +38,57 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 
 
+
+class HoleEditorIndicatorFitValidation:
+    """Own indicator fit validation orchestration, not manufacturing geometry."""
+
+    def __init__(
+        self, *, door_indicator_state_provider, door_indicator_context_provider,
+        door_thickness_provider, fit_error, confirm_button, collect_state,
+        validate_fit, show_error, normal_state, disabled_state,
+    ):
+        self.door_indicator_state_provider = door_indicator_state_provider
+        self.door_indicator_context_provider = door_indicator_context_provider
+        self.door_thickness_provider = door_thickness_provider
+        self.fit_error = fit_error
+        self.confirm_button = confirm_button
+        self.collect_state = collect_state
+        self.validate_fit = validate_fit
+        self.show_error = show_error
+        self.normal_state = normal_state
+        self.disabled_state = disabled_state
+
+    def validate(self, show_error=False):
+        context = self.door_indicator_context_provider()
+        if self.door_indicator_state_provider() is None or context is None:
+            self.fit_error[0] = None
+            self.confirm_button.configure(state=self.normal_state)
+            return True
+        state_now = self.collect_state()
+        if state_now is None or state_now.get("mode") == "none":
+            self.fit_error[0] = None
+            self.confirm_button.configure(state=self.normal_state)
+            return True
+        try:
+            self.validate_fit(
+                mode=state_now["mode"],
+                groups=tuple(int(v) for v in state_now["groups"][:state_now["layers"]]),
+                finished_width=float(context.finished_width),
+                finished_height=float(context.finished_height),
+                thickness=float(self.door_thickness_provider() or 0.0),
+                offset=(float(state_now["offset_x"]), float(state_now["offset_y"])),
+            )
+        except (ValueError, TypeError) as exc:
+            self.fit_error[0] = str(exc)
+            self.confirm_button.configure(state=self.disabled_state)
+            if show_error:
+                self.show_error("指示燈配置無法套用", str(exc))
+            return False
+        self.fit_error[0] = None
+        self.confirm_button.configure(state=self.normal_state)
+        return True
+
+
 class HoleEditorTransientActions:
     """Own transient editor transaction commands while reusing session authority."""
 

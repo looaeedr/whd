@@ -154,6 +154,7 @@ from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
     HoleEditorCanvasPointerActions as _HoleEditorCanvasPointerActions,
     HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
+    HoleEditorIndicatorFitValidation as _HoleEditorIndicatorFitValidation,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorReferenceActions as _HoleEditorReferenceActions,
     HoleEditorSelectedFeatureActions as _HoleEditorSelectedFeatureActions,
@@ -6118,34 +6119,19 @@ class Phase6ApplicationHost:
 
         indicator_fit_error = [None]
 
-        def validate_current_indicator_fit(show_error=False):
-            if door_indicator_state is None or door_indicator_context is None:
-                indicator_fit_error[0] = None
-                confirm_all_btn.configure(state=tk.NORMAL)
-                return True
-            state_now = collect_indicator_state()
-            if state_now is None or state_now.get("mode") == "none":
-                indicator_fit_error[0] = None
-                confirm_all_btn.configure(state=tk.NORMAL)
-                return True
-            try:
-                manufacturing_api.validate_door_indicator_fit(
-                    mode=state_now["mode"],
-                    groups=tuple(int(v) for v in state_now["groups"][:state_now["layers"]]),
-                    finished_width=float(door_indicator_context.finished_width),
-                    finished_height=float(door_indicator_context.finished_height),
-                    thickness=float(door_thickness or 0.0),
-                    offset=(float(state_now["offset_x"]), float(state_now["offset_y"])),
-                )
-            except (ValueError, TypeError) as exc:
-                indicator_fit_error[0] = str(exc)
-                confirm_all_btn.configure(state=tk.DISABLED)
-                if show_error:
-                    messagebox.showerror("指示燈配置無法套用", str(exc))
-                return False
-            indicator_fit_error[0] = None
-            confirm_all_btn.configure(state=tk.NORMAL)
-            return True
+        indicator_fit_validation = _HoleEditorIndicatorFitValidation(
+            door_indicator_state_provider=lambda: door_indicator_state,
+            door_indicator_context_provider=lambda: door_indicator_context,
+            door_thickness_provider=lambda: door_thickness,
+            fit_error=indicator_fit_error,
+            confirm_button=confirm_all_btn,
+            collect_state=lambda: collect_indicator_state(),
+            validate_fit=manufacturing_api.validate_door_indicator_fit,
+            show_error=messagebox.showerror,
+            normal_state=tk.NORMAL,
+            disabled_state=tk.DISABLED,
+        )
+        validate_current_indicator_fit = indicator_fit_validation.validate
 
         dragging = [False]
         editor_closed = [False]
