@@ -163,6 +163,7 @@ from gui_modules.editors.hole_editor import (
     open_hole_editor as _open_hole_editor_impl,
     open_part_hole_editor as _open_part_hole_editor_impl,
 )
+from gui_modules.editors.hole_editor_render import HoleEditorCanvasRenderer as _HoleEditorCanvasRenderer
 from gui_modules.editors.hole_editor_view import (
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
@@ -6256,128 +6257,48 @@ class Phase6ApplicationHost:
         active_reference_guide = reference_presentation.active_reference_guide
         refresh_reference_fields = reference_presentation.refresh_reference_fields
 
-        def redraw():
-            guide = reference_guide
-            gminx = float(guide.min_point.x)
-            gminy = float(guide.min_point.y)
-            gmaxx = float(guide.max_point.x)
-            gmaxy = float(guide.max_point.y)
-            enclosure_bounds = None
-            if (
-                active_part_key[0] == "door"
-                and indicator_box_dist_var is not None
-                and indicator_box_dist_var.get()
-                and door_frame_width is not None
-                and door_thickness is not None
-                and door_gap_w is not None
-                and door_gap_h is not None
-            ):
-                enclosure_offsets = door_enclosure_reference_offsets(
-                    door_frame_edges or DoorFrameEdges(),
-                    frame_width=door_frame_width,
-                    thickness=door_thickness,
-                    gap_w=door_gap_w,
-                    gap_h=door_gap_h,
-                )
-                enclosure_bounds = (
-                    gminx - enclosure_offsets["left"],
-                    gminy - enclosure_offsets["bottom"],
-                    gmaxx + enclosure_offsets["right"],
-                    gmaxy + enclosure_offsets["top"],
-                )
-
-            def draw_extra(canvas_obj, tr, _cw, _ch):
-                if enclosure_bounds is not None:
-                    ex0, ey0, ex1, ey1 = enclosure_bounds
-                    edges = door_frame_edges or DoorFrameEdges()
-                    sides = (
-                        (Vec2(ex0, ey0), Vec2(ex0, ey1), edges.left),
-                        (Vec2(ex1, ey0), Vec2(ex1, ey1), edges.right),
-                        (Vec2(ex0, ey1), Vec2(ex1, ey1), edges.top),
-                        (Vec2(ex0, ey0), Vec2(ex1, ey0), edges.bottom),
-                    )
-                    for p1, p2, present in sides:
-                        c1 = tr.world_to_canvas(p1)
-                        c2 = tr.world_to_canvas(p2)
-                        canvas_obj.create_line(
-                            *c1, *c2,
-                            fill=("#64d2ff" if present else "#8e8e93"),
-                            width=2,
-                            dash=(None if present else (4, 4)),
-                            tags=("door_enclosure_reference",),
-                        )
-
-                if active_part_key[0] != "door" or indicator_mode_var is None or door_indicator_context is None:
-                    return
-                try:
-                    state_now = collect_indicator_state()
-                    groups = tuple(int(v) for v in state_now["groups"][:state_now["layers"]])
-                    if state_now["mode"] == "indicator":
-                        indicator_layout = resolve_door_indicator_layout(
-                            door_indicator_context,
-                            groups,
-                            Vec2(state_now["offset_x"], state_now["offset_y"]),
-                        )
-                        render_resolved_features(canvas_obj, indicator_layout.features, tr, color="#64d2ff")
-                        if state_now["is_box_dist"] and door_frame_width is not None and door_thickness is not None:
-                            position = measure_door_indicator_position(
-                                indicator_layout,
-                                door_indicator_context,
-                                frame_width=door_frame_width,
-                                thickness=door_thickness,
-                                use_box_distance=True,
-                                frame_edges=door_frame_edges or DoorFrameEdges(),
-                                gap_w=door_gap_w,
-                                gap_h=door_gap_h,
-                            )
-                            x_guide, y_guide = resolve_door_indicator_dimension_guides(position)
-                            x1 = tr.world_to_canvas(x_guide.start)
-                            x2 = tr.world_to_canvas(x_guide.end)
-                            y1 = tr.world_to_canvas(y_guide.start)
-                            y2 = tr.world_to_canvas(y_guide.end)
-                            canvas_obj.create_line(*x1, *x2, fill="#ff9f0a", width=2, arrow=tk.BOTH,
-                                                   tags=("door_enclosure_reference", "indicator_dimension"))
-                            canvas_obj.create_text((x1[0]+x2[0])/2, (x1[1]+x2[1])/2-12,
-                                                   text=f"X={x_guide.value:.1f}", fill="#ff9f0a",
-                                                   font=("Consolas", 10, "bold"), tags=("indicator_dimension",))
-                            canvas_obj.create_line(*y1, *y2, fill="#ff9f0a", width=2, arrow=tk.BOTH,
-                                                   tags=("door_enclosure_reference", "indicator_dimension"))
-                            canvas_obj.create_text((y1[0]+y2[0])/2-28, (y1[1]+y2[1])/2,
-                                                   text=f"Y={y_guide.value:.1f}", fill="#ff9f0a",
-                                                   font=("Consolas", 10, "bold"), angle=90, tags=("indicator_dimension",))
-                    elif state_now["mode"] == "indicator_box":
-                        hole_w, hole_h = manufacturing_api.indicator_box_opening_size(
-                            groups, thickness=float(door_thickness or 0.0)
-                        )
-                        center = Vec2(
-                            door_indicator_context.left_fold + door_indicator_context.finished_width / 2.0 + state_now["offset_x"],
-                            door_indicator_context.bottom_fold + door_indicator_context.finished_height / 2.0 + state_now["offset_y"],
-                        )
-                        box_feature = ResolvedRect(
-                            center=center, width=hole_w, height=hole_h,
-                            layer="CUTTING", source_type="indicator_box_opening",
-                        )
-                        render_resolved_features(canvas_obj, [box_feature], tr, color="#64d2ff")
-                except Exception:
-                    pass
-
-            validate_current_indicator_fit(False)
-            canvas_view.render(HoleEditorCanvasFrame(
-                surface=surface,
-                features=feature_list,
-                width=width,
-                height=height,
-                reference_guide=reference_guide,
-                selected_index=hole_session.selected_index,
-                reference_distances=last_distances[0],
-                measure_guide=active_reference_guide(),
-                baseline_scene=baseline_scene,
-                extra_bounds=enclosure_bounds,
-                insert_label=(selected_catalog_text.get() if insert_mode[0] else None),
-                error_text=indicator_fit_error[0],
-                draw_extra=draw_extra,
-            ))
-
+        canvas_renderer = _HoleEditorCanvasRenderer(
+            context_provider=lambda: {
+                "surface": surface,
+                "feature_list": feature_list,
+                "width": width,
+                "height": height,
+                "reference_guide": reference_guide,
+                "baseline_scene": baseline_scene,
+                "active_part_key": active_part_key[0],
+                "indicator_box_dist_enabled": bool(
+                    indicator_box_dist_var is not None and indicator_box_dist_var.get()
+                ),
+                "indicator_mode_available": indicator_mode_var is not None,
+                "door_indicator_context": door_indicator_context,
+                "door_frame_width": door_frame_width,
+                "door_thickness": door_thickness,
+                "door_gap_w": door_gap_w,
+                "door_gap_h": door_gap_h,
+                "door_frame_edges": door_frame_edges,
+            },
+            canvas_view=canvas_view,
+            selected_index_provider=lambda: hole_session.selected_index,
+            reference_distances_provider=lambda: last_distances[0],
+            measure_guide_provider=active_reference_guide,
+            selected_catalog_text_provider=selected_catalog_text.get,
+            insert_mode_provider=lambda: insert_mode[0],
+            error_text_provider=lambda: indicator_fit_error[0],
+            collect_indicator_state=collect_indicator_state,
+            validate_current_indicator_fit=validate_current_indicator_fit,
+            door_enclosure_reference_offsets=door_enclosure_reference_offsets,
+            door_frame_edges_factory=DoorFrameEdges,
+            vec2_factory=Vec2,
+            resolve_door_indicator_layout=resolve_door_indicator_layout,
+            render_resolved_features=render_resolved_features,
+            measure_door_indicator_position=measure_door_indicator_position,
+            resolve_door_indicator_dimension_guides=resolve_door_indicator_dimension_guides,
+            indicator_box_opening_size=manufacturing_api.indicator_box_opening_size,
+            resolved_rect_factory=ResolvedRect,
+            canvas_frame_factory=HoleEditorCanvasFrame,
+            arrow_both=tk.BOTH,
+        )
+        redraw = canvas_renderer.redraw
         indicator_redraw[0] = redraw
 
         feature_factory = _HoleEditorFeatureFactory(
