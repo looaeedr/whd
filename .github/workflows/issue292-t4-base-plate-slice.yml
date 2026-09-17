@@ -1,4 +1,4 @@
-# trigger: focused GREEN verification after base-plate extraction
+# trigger: focused Task 5 verification; divider temporarily rides this registered workflow
 name: Issue292 T4 Base Plate Slice
 
 on:
@@ -8,8 +8,10 @@ on:
     paths:
       - '.github/workflows/issue292-t4-base-plate-slice.yml'
       - 'tests/test_issue292_t4_base_plate_slice.py'
+      - 'tests/test_issue292_t4_divider_slice.py'
       - 'gui.py'
       - 'gui_modules/parts/panels/base_plate.py'
+      - 'gui_modules/parts/panels/divider.py'
 
 permissions:
   contents: read
@@ -32,6 +34,6 @@ jobs:
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
       - name: Compile extraction boundary
-        run: python -m py_compile gui.py gui_modules/parts/panels/base_plate.py
-      - name: Run base-plate slice characterization
-        run: python -m pytest -q tests/test_issue292_t4_base_plate_slice.py
+        run: python -m py_compile gui.py gui_modules/parts/panels/base_plate.py gui_modules/parts/panels/divider.py
+      - name: Run base-plate and divider slice characterization
+        run: python -m pytest -q tests/test_issue292_t4_base_plate_slice.py tests/test_issue292_t4_divider_slice.py
