@@ -39,6 +39,8 @@ new = '''            divider_input = collect_divider_input(
                 model_name=divider_input["model_name"],
             )
 '''
-if old not in text:
+if old in text:
+    text = text.replace(old, new, 1)
+elif new not in text:
     raise SystemExit('divider host block anchor missing')
-p.write_text(text.replace(old, new, 1), encoding='utf-8')
+p.write_text(text, encoding='utf-8')
