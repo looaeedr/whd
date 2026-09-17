@@ -31,7 +31,7 @@ jobs:
           pit='個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
           if ! grep -q 'REAL_PIXEL_VISIBILITY_GATE_V1' "$ui"; then
             cat >> "$ui" <<'EOF'
-          
+
           ### REAL_PIXEL_VISIBILITY_GATE_V1
           - Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。
           - 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。
@@ -40,7 +40,7 @@ jobs:
           fi
           if ! grep -q 'SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917' "$pit"; then
             cat >> "$pit" <<'EOF'
-          
+
           ### SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917
           - 症狀：鈑金選單物件存在、`winfo_ismapped()==1`，測試看似 GREEN，但現場完全看不到。
           - 根因：`self.left` 是 root child，卻透過 sibling `left_scroll_canvas.create_window(..., window=self.left)` 顯示；Canvas 的 stacking order 在上層，把 embedded left workspace 與鈑金 Menubutton 畫在下面。
@@ -49,7 +49,20 @@ jobs:
           EOF
           fi
           git diff --check
-          python tools/validate_knowledge_docs.py "$ui" "$pit"
+          python - <<'PY'
+          from pathlib import Path
+          from tools.knowledge_governance import parse_doc_metadata
+          checks = {
+              '.agents/skills/engineering/UI設計與去AI味/SKILL.md': ('CURRENT', 'ui-design-de-ai'),
+              '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md': ('REFERENCE', 'pitfall-ledger'),
+          }
+          for rel, expected in checks.items():
+              meta = parse_doc_metadata(Path(rel).read_text(encoding='utf-8'), path=rel)
+              assert (meta.role, meta.contract) == expected, (rel, meta)
+              assert meta.schema == 'WHD_DOC_META_V1', (rel, meta)
+              assert meta.canonical is None, (rel, meta)
+          print('CHANGED_DOC_METADATA_GREEN=2')
+          PY
           changed=$(git diff --name-only | sort)
           printf '%s\n' "$ui" "$pit" | sort > /tmp/expected.txt
           printf '%s\n' "$changed" | sort > /tmp/actual.txt
