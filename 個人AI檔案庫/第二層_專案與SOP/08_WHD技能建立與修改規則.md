@@ -260,3 +260,6 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 - `reference`、`upstream-beta`、`tool-specific`、`retired` 可在明確情境讀取，但不得和 canonical owner 競爭 routing。
 - Runtime repair 不得為了讓測試通過而把不存在能力包裝成假工具；驗證只判定契約，不能反過來創造 capability。
 - Permanent guard：`tests/knowledge/test_active_skill_runtime_contract.py`。
+
+### CI_SHARDING_SKILL_OWNERSHIP_V1
+CI sharding 的 pytest isolation / deterministic ownership / concurrency budget / timing / tested-vs-orchestration identity 規則由 `Python測試實務` 擁有；remote polling/no-RUN recovery 仍由 `monitoring-remote-qa` + `executable-continuity-controller` 擁有；長 log classifier 語意由 `long-log-context-safe-execution` 擁有。不得再建立第二套 competing Skill authority。
