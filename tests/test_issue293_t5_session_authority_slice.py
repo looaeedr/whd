@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 EDITOR = ROOT / "gui_modules" / "editors" / "hole_editor.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 def _unified_method() -> ast.FunctionDef:
@@ -44,10 +45,13 @@ def test_session_factory_is_tiny_and_delegates_to_existing_authority():
     assert session.args == ("door", features, 37)
 
 
-def test_unified_root_uses_editor_session_factory_not_direct_constructor():
+def test_unified_composition_uses_editor_session_factory_not_direct_constructor():
     gui = GUI.read_text(encoding="utf-8")
     assert "HoleEditorSessionFactory as _HoleEditorSessionFactory" in gui
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
-    assert "_HoleEditorSessionFactory.create(" in segment
-    assert "Phase6HoleEditorSession(" not in segment
+    root_segment = ast.get_source_segment(gui, method) or ""
+    assert "Phase6HoleEditorSession(" not in root_segment
+    assert COMPOSITION.is_file(), "T5 RED: session authority handoff composition is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorSessionFactory.create(" in composition
+    assert "Phase6HoleEditorSession(" not in composition
