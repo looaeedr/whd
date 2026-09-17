@@ -9,157 +9,82 @@ whd_schema: WHD_DOC_META_V1
 
 # Monitoring Remote QA
 
-## LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 bridge
+## Canonical remote-QA contract
 
-Remote QA 的 polling 狀態機仍由本 Skill 擁有；**長 Log 的讀取方式一律委派** `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`。正常 poll 只讀 run/jobs/steps + bounded tail/new chunk；完整 raw log 落檔／artifact。FAIL 先定位 failed step/error marker 再讀有限上下文，禁止每輪把整份 job log 灌進 context。
-## Overview
-Remote QA is a monitored condition loop, not a fire-and-forget action. Triggering a workflow run starts this skill; it does not complete the QA stage.
+Remote QA is an actively monitored condition loop, not a fire-and-forget action. Long-log handling delegates to `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`; durable wait/recovery/finalization delegates to `.agents/skills/engineering/executable-continuity-controller/SKILL.md` and `tools/continuity_controller.py`. User-visible CHECKPOINT formatting delegates to the canonical `執行開發任務` gate.
 
-### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
+## Run identity / no-run-no-wait
 
-本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
+- A real remote wait requires a concrete `run_id + head_sha` owned by the current ticket/branch.
+- **NO RUN IDENTITY => NO WAIT.** If a run should exist but does not, classify `RUN_NOT_CREATED` and immediately diagnose/fix/execute the prerequisite or trigger that should create it. Never enter polling merely because a workflow was expected.
+- Once a non-terminal run identity exists, lock to that exact run/head. Do not create duplicates because a poll shows no change.
+- A chat/runtime cut does not invalidate a remote run. Resume by loading durable identity and reading the same run first; never blindly retrigger.
 
-- 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
-- progress update 不得取代可見 CHECKPOINT；30 秒 observation 仍只屬 progress。
-- non-terminal CHECKPOINT 不是停工點；顯示後仍依本 Skill 原有 owner contract 繼續 next action。
-- 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
+## Active polling
 
-### EXECUTABLE_CONTINUITY_CONTROLLER_V1_BRIDGE
+- While a locked run is `queued` or `in_progress`, poll run -> jobs -> active/pending/failed steps approximately every 30 seconds while the runtime is available.
+- A progress report is an observation, not a turn boundary. Do not wait for the user to type `繼續`, `輪`, `continue`, or `poll`.
+- On failure, locate the failed step/error marker and inspect a bounded log slice; do not repeatedly inject the full log into chat context.
+- Terminal run status releases the remote-active lock but does not itself close acceptance: counts, classification, invariants, artifacts, cleanup, and durable writeback still have to pass.
 
-Remote-QA polling mechanics 仍由本 Skill 唯一擁有，但 durable wait/recovery/finalization state 必須委派 `.agents/skills/engineering/executable-continuity-controller/SKILL.md` 與 `tools/continuity_controller.py`。
+## CI sharding qualification contract
 
-- 一旦取得 non-terminal remote `run_id + head_sha`，先把 controller checkpoint transition/persist 成 `WAITING_REMOTE`，`next_action` 必須明確為同一 locked run 的 poll；已知時同步保存 `job_id / log_cursor / evidence`。
-- `WAITING_REMOTE` checkpoint 若缺 run identity 或 next action，controller 必須 fail closed；不能只因文字 checkpoint 寫著 WAITING 就繼續假等。
-- chat/tool Runtime hard-cut 後，先 `load_checkpoint` 取得 exact run/head/cursor，再做 live readback；無 drift 續 poll 同一 run，不新 trigger。
-- terminal run 只代表解除 remote active lock；若 counts/invariants/cleanup/issue closure 還沒完成，controller 應 transition 回 `RUNNING(next_acceptance_action)`，不能直接 `TERMINAL_SUCCESS`。
-- 每次準備離開整條 workflow／關單前，由 owning execution/closure gate 呼叫 `assert_finalizable`；本 Skill 的 `REMOTE_QA_ACTIVE_LOCK` / `final 禁止` 文字只提供操作規範，不再被當成 machine enforcement 本身。
+These rules are permanent for WHD optimized CI:
 
-## Active polling is mandatory
+1. **Deterministic ownership.** `FULL_COLLECTION == UNIQUE_SHARD_UNION`; missing, extra, or duplicate node ownership is FAIL. Ownership must be stable for the same manifest inputs. Do not use collection-index modulo or Python built-in `hash()` as shard authority. HRW/Rendezvous is the default deterministic owner; versioned duration-aware weighted/LPT rebalance is allowed only from measured evidence.
+2. **Concurrency budget is explicit.** Logical shard count is not runner concurrency. Respect `CI_CONCURRENCY_BUDGET` / workflow `max-parallel`; increasing logical shards must not silently increase runner pressure.
+3. **Duration-aware rebalance is evidence-driven.** Rebalance only when measured shard durations demonstrate imbalance; keep the algorithm/version/input evidence reproducible and re-check complete node ownership after rebalance.
+4. **GUI isolation.** Xvfb/Tk shards remain isolated display/process executions unless a separate state-isolation proof explicitly authorizes more concurrency. Never apply global GUI `pytest -n auto` for speed.
+5. **Safe result capture.** Capture pytest/Xvfb return code and result artifacts before shell fail-fast can abort classification. `CLASSIFICATION_NOT_RUN` means classification evidence never executed/was not produced; it is **not** equivalent to HANG/TIMEOUT and must not be reported as one without timeout evidence.
+6. **Flaky retry semantics.** First-run RED followed by retry GREEN remains `[FLAKY-WARNING]`; retry success does not erase the original instability. Preserve both attempts in evidence and the Unified Summary.
+7. **Inherited RED must be exact.** Accepted inherited failures require exact node identity and accepted classification/provenance. Any new or unclassified RED is fail-closed.
+8. **One-page Unified Summary.** Final aggregation must publish a concise one-page Markdown summary to `$GITHUB_STEP_SUMMARY` and retain complete machine-readable artifacts. The summary must expose collection/union counts, PASS/SKIP/FAIL classifications, inherited/new/flaky/unclassified status, shard completeness, protected invariants, and timing.
+9. **Timing vocabulary is fixed.** Report `EXECUTION_WALL_CLOCK`, `END_TO_END_WALL_CLOCK`, and queue time separately. Do not hide queue latency inside execution performance claims.
+10. **A/B authority switch.** Legacy vs optimized qualification uses the same exact source SHA and compares collection, failed-node set, allowed-skip contract, missing/duplicate ownership, protected drift, and timing. A faster run with weaker coverage is not acceptance.
+11. **Protected invariants.** CI optimization must not mutate production geometry/UI/persistence/DXF behavior for convenience. Preserve config.ini, protected DXF/project/tracked-tree invariants and read them back after acceptance.
+12. **Cleanup safety.** Secure final acceptance evidence before cleanup. Before deleting temporary QA refs, run a fresh OPEN PR `head.ref/base.ref` protection gate; never delete a live PR ref and never fake deletion by moving a ref. Verify absence by fresh remote readback.
+13. **Fresh branch rule.** Every code/workflow/skill modification starts from a fresh branch. Never modify `cleanup/2d-3d-sync` directly.
+14. **Integration authorization.** Qualification may determine an integration shape but must not mutate/merge production until the user explicitly says `合`.
 
-Remote QA monitoring is **active polling**, not event notification.
+## Required acceptance loop
 
-- Once a remote `run_id + head_sha` is known, the assistant must proactively query the run state on a recurring loop while the current Runtime is available.
-- Each polling cycle must read at least: **run → jobs → active/pending/failed steps**. When a job or step fails, immediately locate the failed step/error marker and retrieve only a bounded failure slice; if the provider exposes only a full download, persist it first and search/chunk it outside the chat context.
-- Do **not** wait for GitHub/webhook/UI/event notifications to tell the assistant that the run changed state. Notifications may be supplemental evidence only; they never replace polling.
-- A lack of new events/messages is **not** a reason to stop. If the run remains `queued` / `in_progress`, schedule the next poll in the same execution loop.
-- During normal active monitoring, poll approximately every **30 seconds** unless a tool call itself is still executing. If a terminal state appears sooner, handle it immediately.
-- Never create duplicate remote runs merely because a poll returned no change. Keep the same locked `run_id + head_sha` until it reaches terminal, unless a diagnosed fix explicitly creates a replacement run.
-- If the chat/tool Runtime is interrupted, the remote runner continues independently; when control returns, the first monitoring action is to re-read the durable `run_id + head_sha` and resume active polling from that exact run.
-
-## Required loop
-1. Record the remote head SHA, workflow/run ID, intended QA gates, and any invariant such as `config.ini` SHA before treating the run as evidence.
-2. **Actively poll** the workflow run, then its jobs and steps, until every required job reaches a terminal state. Do not wait for event notifications/webhooks. A progress update to the user is only an observation point; it must not stop the polling loop.
-3. If a job fails, locate the failed step/error first and read a bounded slice under `LONG_LOG_CONTEXT_SAFE_EXECUTION_V1`; do not repeatedly fetch/paste the whole log. Classify the failure as production/test failure vs harness/runner/setup failure using the project debugging/timeout rules. Apply the smallest valid fix or rerun only the affected scope, then monitor the replacement run to terminal state.
-4. While the run is `queued` or `in_progress`, continue monitoring in the current execution. **不得只因「已觸發／已開始／還在跑」就停止任務或用進度回報收尾。**
-5. On success, extract exact pass/fail counts and required invariant checks from logs. Remove temporary QA workflow/trigger files, then re-read the remote branch to confirm cleanup.
-6. Write durable state/provenance with run ID, head SHA, terminal conclusion, pass counts, cleanup result, and remaining blockers. Only after this may dispatching QA accept/close the ticket.
-
-## Fail-closed conditions
-- Run ID is unknown or evidence belongs to a different head SHA.
-- Any required job/step is still pending, queued, or in progress.
-- Failure logs were not inspected.
-- Temporary QA files remain when the workflow is intended to be one-shot.
-- Durable state does not contain the terminal remote QA evidence.
+1. Lock exact branch/head and expected gates; capture protected invariant fingerprints.
+2. If no concrete run exists when required, diagnose trigger immediately (`RUN_NOT_CREATED`); do not poll an imaginary run.
+3. When a run exists, actively poll it to terminal and classify failures from bounded evidence.
+4. Reconcile authoritative collection against unique shard union and result union. Fail on missing/duplicate/unclassified nodes.
+5. Preserve exact inherited RED, `[FLAKY-WARNING]`, and `CLASSIFICATION_NOT_RUN` semantics.
+6. Verify concurrency budget, shard timing, execution/end-to-end/queue metrics, Unified Summary, artifacts, and protected invariants.
+7. Secure evidence, then perform PR-protected temporary cleanup and fresh remote readback.
+8. Persist run/head/counts/classification/timing/artifact/cleanup evidence. Only then may the owning closure gate accept the ticket.
 
 ## Quick reference
-| State | Action |
-|---|---|
-| queued / in_progress | poll run → jobs → steps → progress observation if due → **immediately poll the same locked run again**; never final and never wait for the user to say continue |
-| failed | fetch failed-job log → diagnose → fix/rerun affected scope → monitor again |
-| success | capture counts/invariants → cleanup temp files → durable state → accept |
-| cancelled / timed_out | inspect logs/state; classify and rerun only unresolved scope |
 
-## Common mistakes
-- Treating “workflow triggered” as completed work.
-- Ending a response because the run is still executing even though monitoring tools are available.
-- Treating GitHub/event notifications as the monitor instead of proactively polling the locked run.
-- Polling only the run status and never checking which job/step failed.
-- Re-fetching or pasting the complete long job log on every poll instead of using bounded failed slices / tail + cursor.
-- Closing the ticket before temporary workflow cleanup and durable state are verified remotely.
-- Sending a 30-second progress update and then ending the assistant turn while the same locked run is still non-terminal.
-- Waiting for the user to type `繼續`, `輪`, `continue`, or `poll` before resuming a remote-QA loop.
+| State | Required action |
+|---|---|
+| expected workflow but no run ID | diagnose/fix trigger now; **do not wait** |
+| queued / in_progress | poll exact run -> jobs -> steps; 30s observation does not end turn |
+| failed | bounded failed-step evidence -> classify -> minimal fix/rerun unresolved scope |
+| retry GREEN after initial RED | retain `[FLAKY-WARNING]` |
+| classifier never ran | `CLASSIFICATION_NOT_RUN`, not HANG unless timeout evidence exists |
+| success | reconcile counts/classification/invariants/timing -> secure artifacts -> safe cleanup -> durable writeback |
+
+## Fail-closed conditions
+
+- Run identity is missing while code is trying to enter a wait/poll state.
+- Evidence belongs to a different head SHA.
+- Required job/step is still non-terminal at acceptance time.
+- Full collection differs from unique shard union, or ownership has missing/extra/duplicate nodes.
+- New RED is unclassified, inherited RED identity drifts, or a retry RED is silently erased.
+- Classification did not run but is mislabeled as HANG/TIMEOUT.
+- Execution/end-to-end/queue metrics or Unified Summary/artifacts are absent when required.
+- Protected invariants drift.
+- Temporary cleanup is attempted before evidence is secured or without fresh OPEN PR ref protection.
+- Production integration is attempted without explicit `合`.
 
 ## Runtime-cut resilience
 
-聊天／工具 Runtime 的執行時間窗不是 remote QA 的生命週期 owner。長遠端 QA 必須設計成 **controller-independent**：
+Remote runners are controller-independent: a chat/tool runtime cut must not be the scheduler. Durable evidence should preserve `run_id`, `head_sha`, collection identity, lane/shard state, journal/result artifacts, protected fingerprints, and unresolved node IDs. On recovery: load durable identity -> read terminal/live status -> inspect artifact/journal -> classify blocker -> continue only unresolved work. Never retrigger first.
 
-1. **Remote run 自己續跑**：durable runner 的 exit 75/checkpoint 必須由同一 GitHub Actions job / remote controller 自動 resume，同一 journal 直到 terminal state；不得要求聊天端下一次 poll 才啟動下一批。
-2. **每輪 run 必須自帶 resume evidence**：至少上傳或落盤 `run_id`、`head_sha`、collection SHA/count、headless/xvfb state、journal、config/tree fingerprint、unresolved failed/timeout nodeids。
-3. **遠端可見狀態**：長 gate 應在 `if: always()` 終態 step 將 resumable summary 寫到對應 GitHub Issue / job summary。聊天被切後，下一個 Runtime 可直接從 Issue + artifact 恢復，不依賴前一回合文字。
-4. **聊天 polling 只做觀測，不做驅動**：即使 assistant poll 中斷，已觸發的 remote job 必須繼續到自己的 terminal state；不得把「下一次 ChatGPT 回合」當遠端 runner 的 scheduler。
-5. **terminal failure 也要 durable**：failure/cancel/timeout 仍必須 `always()` 上傳 journal/state，讓下一 Runtime 精確定位 owning ticket，不重跑已完成證據。
-6. **恢復順序**：取得控制權 → 讀最新 durable run_id/head_sha → 讀 terminal status → 下載 artifact/journal → 分類 blocker → 才決定修正/重跑。禁止先重 trigger。
+## User-visible cadence and final-response gate
 
-## User-visible reporting cadence
-
-在 active remote QA 監控期間，對使用者的狀態回報節奏固定為 **每 30 秒一次**。
-
-- 只要 remote run 尚未 terminal，且聊天 Runtime 仍在線，就約每 30 秒回報一次目前狀態。
-- 回報內容至少包含：固定 `run_id`、`head_sha`、目前 step / mode（Headless 或 Xvfb）、最近一次 durable state（completed/pending/failed/timeout）。
-- 不因「沒有變化」而完全靜默；若 30 秒內沒有新結果，明確回報「仍在同一 run/step，無新 blocker」。
-- 若 run 已 terminal，立即回報，不必等滿 30 秒。
-- 30 秒 cadence 只影響聊天中的觀測回報；**不得用聊天回報節奏驅動 remote runner**。遠端 durable checkpoint/resume 仍必須 controller-independent。
-- 若聊天 Runtime 被平台切斷，remote runner 照常繼續；下一 Runtime 先讀 durable `run_id/head_sha/state/artifact` 後恢復監控，不補發缺失的 30 秒訊息。
-
-## Progress updates are not turn boundaries
-
-**進度回報不是 assistant turn / response 的結束點。** 30 秒回報只是同一個 active polling loop 裡的 observation。
-
-- 若 locked run 仍是 `queued` / `in_progress`，而 polling tools 與目前 Runtime 仍可用，送出 commentary 進度回報後，**下一個動作必須是同一個 locked `run_id + head_sha` 的 poll**。
-- 不得因「我已經回報過 30 秒狀態」就結束 assistant turn；回報本身不解除 `REMOTE_QA_ACTIVE_LOCK`。
-- **不得要求或依賴使用者輸入「繼續」「輪」「continue」「poll」**才恢復監控。**使用者不是 remote-QA scheduler**；scheduler/controller 責任在目前持有 lock 的 assistant/runtime。
-- 「狀態沒有變化」只代表下一輪仍然 poll 同一 run，不是把控制權交回使用者的理由。
-- run 疑似 hang/stale 時仍保持 lock。若專案 timeout policy 與目前工具明確提供合法 cancel/timeout 能力，才可依該 policy terminalize；若沒有，就繼續 poll 到 terminal 或實際 Runtime/tool interruption，不能用「卡太久」作為 status-only final 的理由。
-- 使用者若明確改變／取消目前目標，可依最新指示重新判斷；除此之外，non-terminal monitoring loop 不得由使用者訊息驅動。
-
-## Final-response gate
-
-在送出任何 `final` 前，先執行這個 turn-completion gate：
-
-1. 檢查目前是否存在 `REMOTE_QA_ACTIVE_LOCK`。
-2. 若存在，而且 locked run 仍是 **non-terminal**，且 polling tools/runtime 仍可用：**final 禁止**；下一個動作必須回到同一 `run_id + head_sha` 的 poll。
-3. commentary 形式的 30 秒進度觀測不滿足 final gate，也不算本回合完成。
-4. 只有 locked run 已 terminal、使用者明確改變／取消當前目標，或實際 Runtime/tool interruption，才允許離開 non-terminal polling loop。
-
-### Rationalization guard
-
-| 想法 | 正確判定 |
-|---|---|
-| 「先回報一下，等使用者再說繼續」 | 錯。回報後立即 poll 同一 locked run。 |
-| 「沒有狀態變化，可以先停」 | 錯。無變化就是下一輪仍 poll。 |
-| 「我已經回報 30 秒，所以這回合完成」 | 錯。cadence 是 observation，不是 turn boundary。 |
-| 「卡住太久，只能把控制權交回使用者」 | 錯。保持 lock；只有合法 terminalization 或真正 Runtime interruption才可中斷。 |
-| 「使用者可以打『輪』再叫我查」 | 錯。使用者不是 scheduler，不能靠下一則訊息驅動監控。 |
-
-## Remote QA Active Lock
-
-這是 active polling 的**不可跳過執行鎖**，不是提醒。
-
-- 一旦取得 `run_id + head_sha`，且該 run 仍為 `queued` / `in_progress`，立即進入 `REMOTE_QA_ACTIVE_LOCK`。
-- Lock 存在期間，下一個工具動作只能是：
-  1. poll 該 `run_id`；
-  2. poll 該 run 的 jobs/steps；
-  3. 若 terminal failure，讀 failed-job log；
-  4. 對使用者送出 30 秒進度觀測；**若觀測後 run 仍 non-terminal，必須立即回到第 1/2 項繼續 poll，不能結束 assistant turn**。
-- **禁止**在 non-terminal run 期間轉去讀無關 code、修改 production/test/skill、建立另一個 workflow/run、做 branch cleanup、開新診斷或處理別張票。這些動作一律等 terminal 後才可執行。
-- **禁止**把下一次使用者訊息當成 scheduler：不得以「等你說繼續／輪」取代 assistant 自己的 active polling。
-- 只有三種情況可中斷目前 polling loop：
-  - 該 locked run 到達 terminal；
-  - 使用者明確改變／取消目前目標；
-  - Runtime/tooling 被平台實際切斷。下次取得控制權時，若目標未改，第一個動作必須用 durable `run_id + head_sha` 恢復同一 lock。
-- terminal failure 後，先抓 log 並完成 failure classification；之後才可解除舊 run lock、進修正流程。修正若觸發 replacement run，立即對新 `run_id + head_sha` 建立新的 active lock。
-- 每次非 polling工具呼叫與每次送出 `final` 前都必須自問：目前是否存在 non-terminal locked run？若是且 Runtime/tools 仍可用，該動作非法，先 poll。
-
-## STALE_WAIT_WATCHDOG
-
-`WAITING_REMOTE_QA` 不是被動文字狀態；它只有在一個**可驗證、仍 active 的 locked run**存在時才合法。
-
-- **沒有 run_id + head_sha 就禁止進入 waiting**。沒有 durable run identity 時只能分類為 `NOT_SUBMITTED`、`RECOVERING` 或其他實際階段，必須執行可自主完成的 next action；不得寫成「等待 QA」。
-- **只有 queued / in_progress 才允許維持 waiting**。每次 resume、checkpoint reread、30 秒輪詢與 final gate 前，都先用保存的 `run_id + head_sha` 查該 exact run；不能只相信舊 checkpoint 的 `WAITING_REMOTE_QA` 字樣。
-- **terminal run 立即退出 waiting**。`completed/success` 直接進 counts/invariants/cleanup/closure；`failure/cancelled/timed_out` 立即抓 evidence 並進 failure classification。terminal state 不需要 watchdog 連續確認。
-- 若 exact `run_id` 已不存在/404、run identity 與 `head_sha` 不符，或 checkpoint 寫著 `WAITING_REMOTE_QA` 但 repository readback 顯示 **active run = 0**，先標記 `STALE_WAIT`；這是 recovery signal，不是「繼續等」。
-- 為避免短暫 API/read-after-write 延遲造成誤判：非 terminal 的「查不到 matching active run」情況以 **連續 2 次**觀測確認；兩次觀測仍無 matching active locked run，就強制轉成 `RECOVERING_STALE_WAIT`。
-- `RECOVERING_STALE_WAIT` 固定執行：`remote refetch → owning Issue/checkpoint reread → work HEAD/production HEAD drift verification → exact run identity recheck → continue exact next action`。若沒有 drift，不得重跑已完成 RED/GREEN/terminal QA；若有 drift，只重驗受影響範圍。
-- watchdog observation 沿用既有 **30 秒** cadence；但一旦讀到 terminal run、404/invalid identity 或第二次 stale confirmation，就立即處理，不必等滿下一個 30 秒。
-- global `active run = 0` 只能作 supporting evidence；canonical 判定仍以保存的 exact `run_id + head_sha` 為先，避免 unrelated workflow 或 pagination 造成誤分類。
-- **使用者不是 watchdog**。不得要求使用者輸入「繼續／輪／poll」來解除 stale waiting；一旦判定 `STALE_WAIT` / `RECOVERING_STALE_WAIT`，assistant/controller 必須自己恢復並推進 next action。
+During active remote QA, report approximately every 30 seconds while the runtime is available, including locked run/head, current job/step, and latest durable state. If the run remains non-terminal, immediately continue polling; the user is not the scheduler. A final response is allowed only after the locked run is terminal, the user changes/cancels the goal, or the runtime/tooling is actually interrupted. Terminal success still requires acceptance reconciliation and durable writeback before ticket closure.
