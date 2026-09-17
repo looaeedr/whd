@@ -7,6 +7,17 @@ whd_schema: WHD_DOC_META_V1
 
 # 長流程持續執行 / 停工點踩坑規則
 
+## SCHEDULED_WAKEUP_STATUS_ONLY_PITFALL
+
+排程／automation 只是 wake-up trigger，不是 execution owner；canonical shorthand：`wake-up trigger != execution owner`。醒來後只做狀態回報再停止，等同把排程誤當 execution cadence，屬於 continuity regression。
+
+- 先恢復 owning issue/checkpoint/branch/current concrete RUN identity。
+- 有 concrete RUN：沿 canonical remote-QA contract 追到 terminal，然後直接進下一個 autonomous step。
+- 沒有 concrete RUN 但 owning plan 需要 RUN：分類 `RUN_NOT_CREATED`，立即處理會建立 RUN 的 prerequisite/trigger/fix，禁止等待。
+- `status update != exit`；GREEN/RED 都不是自動停點。
+- 若平台被迫切斷，先留下完整 durable checkpoint，下一次 wake-up 從 exact next action 恢復。
+- 本段是 REFERENCE/pitfall；唯一 scheduled-wakeup execution authority 仍是 `.agents/skills/engineering/executable-continuity-controller/SKILL.md`。
+
 ## Authority status
 
 本文件只保留歷史事故、操作提醒與相容性回歸背景，角色是 **REFERENCE**，不是 executable authority。
