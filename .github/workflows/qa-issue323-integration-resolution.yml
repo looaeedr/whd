@@ -1,12 +1,10 @@
 name: Issue 323 Integration Resolution Acceptance
 
 on:
-  push:
+  pull_request:
     branches:
-      - integration/issue323-t8-history-resolution-20260917
-    paths:
-      - '.github/workflows/qa-issue323-integration-resolution.yml'
-      - '.agents/skills/engineering/monitoring-remote-qa/**'
+      - cleanup/2d-3d-sync
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -31,7 +29,6 @@ jobs:
         run: |
           set -euo pipefail
           sha256sum config.ini > /tmp/config.before
-          git status --porcelain > /tmp/status.before
       - name: Run CI optimization contracts
         shell: bash
         run: |
