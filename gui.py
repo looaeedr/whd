@@ -167,6 +167,7 @@ from gui_modules.editors.hole_editor_view import (
     HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
     HoleEditorFullscreenActions as _HoleEditorFullscreenActions,
     HoleEditorIndicatorContextRefresh as _HoleEditorIndicatorContextRefresh,
+    HoleEditorIndicatorGroupControls as _HoleEditorIndicatorGroupControls,
     HoleEditorIndicatorUiActions as _HoleEditorIndicatorUiActions,
     HoleEditorPageNavigation as _HoleEditorPageNavigation,
     HoleEditorReferencePresentation as _HoleEditorReferencePresentation,
@@ -5998,22 +5999,12 @@ class Phase6ApplicationHost:
             groups_frame = tk.Frame(indicator_frame, bg=self.COLOR_PANEL)
             groups_frame.pack(fill=tk.X, padx=6, pady=2)
 
-            def rebuild_indicator_group_controls(*_args):
-                for child in groups_frame.winfo_children():
-                    child.destroy()
-                try:
-                    layers = max(1, min(6, int(indicator_layers_var.get())))
-                except ValueError:
-                    layers = 1
-                for i in range(layers):
-                    tk.Label(groups_frame, text=f"{i+1}層", bg=self.COLOR_PANEL, fg=self.COLOR_TEXT_MUTED,
-                             font=('Microsoft JhengHei', 8)).grid(row=i, column=0, sticky="w", padx=(0, 3), pady=1)
-                    cb = ttk.Combobox(groups_frame, textvariable=indicator_group_vars[i],
-                                      values=[str(v) for v in range(1, 9)], width=3, state="readonly")
-                    cb.grid(row=i, column=1, sticky="w", pady=1)
-                    cb.bind("<<ComboboxSelected>>", request_indicator_redraw)
-                request_indicator_redraw()
-
+            indicator_group_controls = _HoleEditorIndicatorGroupControls(
+                groups_frame=groups_frame, layers_var=indicator_layers_var,
+                group_vars=indicator_group_vars, request_redraw=request_indicator_redraw,
+                panel_bg=self.COLOR_PANEL, muted_color=self.COLOR_TEXT_MUTED,
+            )
+            rebuild_indicator_group_controls = indicator_group_controls.rebuild
             layer_combo.bind("<<ComboboxSelected>>", rebuild_indicator_group_controls)
             rebuild_indicator_group_controls()
 

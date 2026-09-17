@@ -168,6 +168,37 @@ class HoleEditorReferencePresentation:
         finally:
             self.suppress_entry_events[0] = False
 
+class HoleEditorIndicatorGroupControls:
+    """Own presentation-only rebuilding of indicator group rows."""
+
+    def __init__(self, *, groups_frame, layers_var, group_vars, request_redraw, panel_bg, muted_color):
+        self.groups_frame = groups_frame
+        self.layers_var = layers_var
+        self.group_vars = group_vars
+        self.request_redraw = request_redraw
+        self.panel_bg = panel_bg
+        self.muted_color = muted_color
+
+    def rebuild(self, *_args):
+        for child in self.groups_frame.winfo_children():
+            child.destroy()
+        try:
+            layers = max(1, min(6, int(self.layers_var.get())))
+        except ValueError:
+            layers = 1
+        for i in range(layers):
+            tk.Label(
+                self.groups_frame, text=f"{i+1}層", bg=self.panel_bg, fg=self.muted_color,
+                font=('Microsoft JhengHei', 8),
+            ).grid(row=i, column=0, sticky="w", padx=(0, 3), pady=1)
+            cb = ttk.Combobox(
+                self.groups_frame, textvariable=self.group_vars[i],
+                values=[str(v) for v in range(1, 9)], width=3, state="readonly",
+            )
+            cb.grid(row=i, column=1, sticky="w", pady=1)
+            cb.bind("<<ComboboxSelected>>", self.request_redraw)
+        self.request_redraw()
+
 class HoleEditorSyncCoordinator:
     """Own hole-editor external-sync then preview coordination."""
 
