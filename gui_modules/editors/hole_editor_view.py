@@ -22,6 +22,15 @@ from ae_engine.sheetmetal_features import (
     generate_round_refill,
 )
 from phase6_hole_editor_session import HoleEditorAction
+from phase6_hole_editor_canvas_view import Phase6HoleEditorCanvasView
+
+
+class HoleEditorCanvasViewFactory:
+    """Construct the existing canvas view authority; owns no render state."""
+
+    @staticmethod
+    def create(canvas, **kwargs):
+        return Phase6HoleEditorCanvasView(canvas, **kwargs)
 
 
 class HoleEditorCatalogControls:

@@ -168,6 +168,7 @@ from gui_modules.editors.hole_editor import (
 )
 from gui_modules.editors.hole_editor_render import HoleEditorCanvasRenderer as _HoleEditorCanvasRenderer
 from gui_modules.editors.hole_editor_view import (
+    HoleEditorCanvasViewFactory as _HoleEditorCanvasViewFactory,
     HoleEditorCatalogControls as _HoleEditorCatalogControls,
     HoleEditorCreatedListPresentation as _HoleEditorCreatedListPresentation,
     HoleEditorFormRowBuilders as _HoleEditorFormRowBuilders,
@@ -351,7 +352,7 @@ from phase6_project_file import (
 from phase6_project_controller import Phase6ProjectController
 from phase6_workspace_controller import Phase6WorkspaceController
 from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession
-from phase6_hole_editor_canvas_view import HoleEditorCanvasFrame, Phase6HoleEditorCanvasView
+from phase6_hole_editor_canvas_view import HoleEditorCanvasFrame
 
 from ae_engine.sheetmetal_drawing import (
     PolylinePrimitive,
@@ -6206,7 +6207,7 @@ class Phase6ApplicationHost:
         round_settings_btn.grid(row=2, column=0, columnspan=2, sticky="ew", padx=4, pady=(0, 4))
         overlay_widgets.append(ref_panel)
 
-        canvas_view = Phase6HoleEditorCanvasView(
+        canvas_view = _HoleEditorCanvasViewFactory.create(
             canvas,
             draw_grid=self.draw_grid,
             render_secondary_scene=render_secondary_scene,
