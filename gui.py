@@ -158,6 +158,7 @@ from gui_modules.editors.hole_editor import (
     open_part_hole_editor as _open_part_hole_editor_impl,
 )
 from gui_modules.editors.hole_editor_view import (
+    HoleEditorCatalogControls as _HoleEditorCatalogControls,
     draw_hole_editor_hint as _draw_hole_editor_hint_impl,
     open_round_hole_settings as _open_round_hole_settings_impl,
 )
@@ -6462,19 +6463,6 @@ class Phase6ApplicationHost:
 
         indicator_redraw[0] = redraw
 
-        def on_catalog_select(event=None, source_list=None):
-            source = source_list
-            if source is None and event is not None:
-                source = event.widget
-            if source is None:
-                source = catalog_list
-            sel = source.curselection()
-            if not sel:
-                return
-            selected_catalog_text.set(source.get(sel[0]))
-            other = pipe_catalog_list if source is catalog_list else catalog_list
-            other.selection_clear(0, tk.END)
-
         def make_feature(point):
             label = selected_catalog_text.get()
             rotation = int(var_rotation.get().replace("°", ""))
@@ -6493,32 +6481,19 @@ class Phase6ApplicationHost:
                 messagebox.showerror("開孔錯誤", str(exc))
                 return None
 
-        def set_insert_mode(force=None):
-            if force is None:
-                insert_mode[0] = not insert_mode[0]
-            else:
-                insert_mode[0] = bool(force)
-            insert_btn.configure(text=("停止插入" if insert_mode[0] else "插入"),
-                                 bg=("#ff9f0a" if insert_mode[0] else "#30d158"))
-            redraw()
-
+        catalog_controls = _HoleEditorCatalogControls(
+            catalog_list=catalog_list,
+            pipe_catalog_list=pipe_catalog_list,
+            selected_catalog_text=selected_catalog_text,
+            insert_mode=insert_mode,
+            insert_btn=insert_btn,
+            canvas=canvas,
+            redraw=redraw,
+        )
+        on_catalog_select = catalog_controls.on_catalog_select
+        set_insert_mode = catalog_controls.set_insert_mode
+        on_catalog_double_click = catalog_controls.on_catalog_double_click
         insert_btn.configure(command=set_insert_mode)
-
-        def on_catalog_double_click(event=None, source_list=None):
-            source = source_list or (event.widget if event is not None else catalog_list)
-            if event is not None:
-                idx = source.nearest(event.y)
-                if 0 <= idx < source.size():
-                    source.selection_clear(0, tk.END)
-                    source.selection_set(idx)
-                    source.activate(idx)
-            on_catalog_select(source_list=source)
-            label = selected_catalog_text.get()
-            if label.startswith("＋ 自訂"):
-                return "break"
-            set_insert_mode(True)
-            canvas.focus_set()
-            return "break"
 
         session_actions = _HoleEditorTransientActions(
             hole_session=hole_session,

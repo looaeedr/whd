@@ -23,6 +23,61 @@ from ae_engine.sheetmetal_features import (
 from phase6_hole_editor_session import HoleEditorAction
 
 
+class HoleEditorCatalogControls:
+    """Own transient catalog selection / insert-mode presentation only."""
+
+    def __init__(
+        self, *, catalog_list, pipe_catalog_list, selected_catalog_text,
+        insert_mode, insert_btn, canvas, redraw,
+    ):
+        self.catalog_list = catalog_list
+        self.pipe_catalog_list = pipe_catalog_list
+        self.selected_catalog_text = selected_catalog_text
+        self.insert_mode = insert_mode
+        self.insert_btn = insert_btn
+        self.canvas = canvas
+        self.redraw = redraw
+
+    def on_catalog_select(self, event=None, source_list=None):
+        source = source_list
+        if source is None and event is not None:
+            source = event.widget
+        if source is None:
+            source = self.catalog_list
+        selected = source.curselection()
+        if not selected:
+            return
+        self.selected_catalog_text.set(source.get(selected[0]))
+        other = self.pipe_catalog_list if source is self.catalog_list else self.catalog_list
+        other.selection_clear(0, "end")
+
+    def set_insert_mode(self, force=None):
+        if force is None:
+            self.insert_mode[0] = not self.insert_mode[0]
+        else:
+            self.insert_mode[0] = bool(force)
+        self.insert_btn.configure(
+            text=("停止插入" if self.insert_mode[0] else "插入"),
+            bg=("#ff9f0a" if self.insert_mode[0] else "#30d158"),
+        )
+        self.redraw()
+
+    def on_catalog_double_click(self, event=None, source_list=None):
+        source = source_list or (event.widget if event is not None else self.catalog_list)
+        if event is not None:
+            idx = source.nearest(event.y)
+            if 0 <= idx < source.size():
+                source.selection_clear(0, "end")
+                source.selection_set(idx)
+                source.activate(idx)
+        self.on_catalog_select(source_list=source)
+        if self.selected_catalog_text.get().startswith("＋ 自訂"):
+            return "break"
+        self.set_insert_mode(True)
+        self.canvas.focus_set()
+        return "break"
+
+
 def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
     """Draw the existing double-click hole-editor hint without owning state."""
     text = "雙擊：開孔"
