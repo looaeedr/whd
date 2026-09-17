@@ -10,16 +10,47 @@ on:
       - 'gui.py'
       - 'gui_modules/parts/panels/indicator_box.py'
 
+permissions:
+  contents: write
+
 jobs:
   focused:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Apply minimal host routing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('gui.py'); text=p.read_text(encoding='utf-8')
+          marker='import tkinter as tk\n'
+          imp='from gui_modules.parts.panels.indicator_box import collect_indicator_box_input\n'
+          if imp not in text:
+              if marker not in text: raise SystemExit('indicator import marker missing')
+              text=text.replace(marker, marker+imp, 1)
+          route='    def _query_fold_designer_render_data(self, part_key, payload):\n'
+          if 'collect_indicator_box_input(payload)' not in text:
+              if route not in text: raise SystemExit('indicator route marker missing')
+              repl=route+'        if str(part_key or "").startswith("indicator"):\n            payload = collect_indicator_box_input(payload)\n'
+              text=text.replace(route,repl,1)
+          p.write_text(text,encoding='utf-8')
+          PY
       - name: Install pytest
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Indicator characterization RED
-        run: python -m pytest -q tests/test_issue292_t4_indicator_box_slice.py
+      - name: Focused indicator GREEN
+        run: python -m pytest -q tests/test_issue292_t4_indicator_box_slice.py tests/test_issue292_t4_multipart_slice.py tests/test_issue292_t4_door_slice.py tests/test_issue292_t4_divider_slice.py tests/test_issue292_t4_base_plate_slice.py tests/test_issue292_t4_endcap_slice.py tests/test_issue292_t4_box_body_slice.py
+      - name: Commit GREEN
+        if: success()
+        run: |
+          if git diff --quiet -- gui.py; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add gui.py
+          git commit -m 'refactor(#292): route indicator input through panel boundary'
+          git push origin HEAD:refactor/issue292-indicator-red-20260917
