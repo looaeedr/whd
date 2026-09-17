@@ -9,6 +9,12 @@ whd_schema: WHD_DOC_META_V1
 
 # Monitoring Remote QA
 
+## SCHEDULED_WAKEUP_CONTINUITY_BRIDGE
+
+Scheduled wake-up execution is owned by `.agents/skills/engineering/executable-continuity-controller/SKILL.md`; this Skill **does not own scheduled wake-up execution** and must not create a second execution authority. A schedule only wakes the owning execution context.
+
+On wake-up, restore the exact owning checkpoint/branch and concrete `run_id + head_sha` before polling. If the owning plan requires a run but no concrete RUN exists, classify `RUN_NOT_CREATED` and immediately execute/fix the prerequisite or trigger instead of waiting. While a locked run is queued/in-progress, retain this Skill's existing polling contract. Terminal status releases only the remote lock; unfinished acceptance returns to the continuity owner as `RUNNING(next_action)` and continues.
+
 ## LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 bridge
 
 Remote QA 的 polling 狀態機仍由本 Skill 擁有；**長 Log 的讀取方式一律委派** `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`。正常 poll 只讀 run/jobs/steps + bounded tail/new chunk；完整 raw log 落檔／artifact。FAIL 先定位 failed step/error marker 再讀有限上下文，禁止每輪把整份 job log 灌進 context。

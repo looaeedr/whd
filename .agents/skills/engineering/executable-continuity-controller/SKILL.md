@@ -9,6 +9,21 @@ whd_schema: WHD_DOC_META_V1
 
 # Executable Continuity Controller
 
+## SCHEDULED_WAKEUP_CONTINUITY_CONTRACT
+
+This Skill is the unique operations/semantic CURRENT authority for scheduled wake-up continuity. An automation or schedule is only a wake-up trigger; it never becomes the execution owner. Canonical shorthand: `wake-up trigger != execution owner`.
+
+On every scheduled wake-up, first restore and live-verify the owning issue/checkpoint/branch/current concrete RUN identity, then continue the owning plan rather than producing a status-only response.
+
+- Concrete RUN exists: lock exact `run_id + head_sha`, poll to terminal, read jobs/logs/evidence, then execute the next autonomous step. `terminal => continue next autonomous step`.
+- No concrete RUN exists when one is required: classify `RUN_NOT_CREATED`; do not wait or poll. Immediately execute/fix the prerequisite or trigger that should create the RUN.
+- GREEN is not an exit reason; advance to the next unfinished gate/slice.
+- RED is not an exit reason; inspect exact failure evidence, classify it, apply the smallest valid TDD repair, and revalidate.
+- A progress/status report is observation only: `status update != exit`.
+- Schedule cadence is wake-up cadence, not execution cadence. Once awake, continue execution/polling inside the available turn.
+- If the platform/tool forces the turn to end, persist `checkpoint before forced turn end`: owning issue, branch, HEAD, RUN identity/status, last accepted gate, next exact action, and prohibitions. The next wake-up resumes from that checkpoint.
+- Project-specific automation prompts may add owner/scope/prohibition data but must reference this contract rather than define a second continuity authority.
+
 ## EXECUTABLE_CONTINUITY_CONTROLLER_V1
 
 Canonical executable authority: `tools/continuity_controller.py`.
