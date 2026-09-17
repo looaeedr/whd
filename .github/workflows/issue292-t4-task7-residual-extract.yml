@@ -1,0 +1,267 @@
+name: Issue292 T4 Task7 Residual Extract
+on:
+  push:
+    branches: [refactor/issue292-task7-adapters-green-20260917]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Verify residual RED before extraction
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue292_gui_phase2_t4_part_panels.py::test_moved_root_methods_are_absent_or_thin_delegates
+          ROOT_RC=$?
+          python -m pytest -q tests/test_issue292_gui_phase2_t4_part_panels.py::test_gui_meets_reconciled_t4_root_gate
+          LOC_RC=$?
+          set -e
+          if [ "$ROOT_RC" -gt 1 ] || [ "$LOC_RC" -gt 1 ]; then
+            echo "unexpected pre-extraction error: root_rc=$ROOT_RC loc_rc=$LOC_RC"
+            exit 2
+          fi
+          if [ "$ROOT_RC" -eq 0 ] && [ "$LOC_RC" -eq 0 ]; then
+            echo 'Residual gates already GREEN; extraction is idempotent.'
+          else
+            echo "Expected residual RED confirmed: root_rc=$ROOT_RC loc_rc=$LOC_RC"
+          fi
+      - name: Extract remaining T4 presentation methods by owner
+        run: |
+          python - <<'PY'
+          import ast
+          import re
+          import textwrap
+          from pathlib import Path
+
+          gui = Path('gui.py')
+          text = gui.read_text(encoding='utf-8')
+          lines = text.splitlines(True)
+          tree = ast.parse(text)
+          host = next(
+              node for node in tree.body
+              if isinstance(node, ast.ClassDef) and node.name == 'Phase6ApplicationHost'
+          )
+
+          owners = {
+              'gui_modules/parts/panels/door.py': {
+                  '_parse_layout_value',
+                  '_reject_door_layout_dimension',
+                  'rebuild_door_layout_ui',
+                  'refresh_door_layout_status',
+                  'setup_tab_door_ui',
+              },
+              'gui_modules/parts/panels/indicator_box.py': {
+                  'setup_tab_indicator_box_ui',
+                  '_indicator_small_door_size_chain_label',
+                  'setup_tab_indicator_door_ui',
+                  'rebuild_layers_config_ui',
+              },
+              'gui_modules/parts/panels/base_plate.py': {
+                  'sync_base_plate_shrink',
+              },
+              'gui_modules/parts/panels/common.py': {
+                  '_attach_part_hole_entrypoint',
+              },
+          }
+          wanted = set().union(*owners.values())
+          nodes = {
+              node.name: node
+              for node in host.body
+              if isinstance(node, ast.FunctionDef) and node.name in wanted
+          }
+          assert wanted == nodes.keys(), f'missing residual root methods: {sorted(wanted - nodes.keys())}'
+
+          module_existing = {}
+          for module_path in owners:
+              p = Path(module_path)
+              mod_text = p.read_text(encoding='utf-8')
+              mod_tree = ast.parse(mod_text)
+              module_existing[module_path] = {
+                  node.name
+                  for node in mod_tree.body
+                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+              }
+
+          delegated = set()
+          for name, node in nodes.items():
+              source = ''.join(lines[node.lineno - 1:node.end_lineno])
+              if f'_{name}_impl(' in source:
+                  delegated.add(name)
+
+          for module_path, names in owners.items():
+              missing_impl = (names & delegated) - module_existing[module_path]
+              assert not missing_impl, (
+                  f'{module_path} missing implementations for delegated roots: '
+                  f'{sorted(missing_impl)}'
+              )
+
+          todo = wanted - delegated
+          owner_for = {
+              name: module_path
+              for module_path, names in owners.items()
+              for name in names
+          }
+
+          additions = {module_path: [] for module_path in owners}
+          for name in sorted(todo, key=lambda item: nodes[item].lineno):
+              node = nodes[name]
+              block = ''.join(lines[node.lineno - 1:node.end_lineno])
+              block = textwrap.dedent(block)
+              if name != '_parse_layout_value':
+                  block = re.sub(
+                      rf'^def {re.escape(name)}\(self(?P<tail>[,\)])',
+                      rf'def {name}(host\g<tail>',
+                      block,
+                      count=1,
+                  )
+                  block = block.replace('self.', 'host.')
+              block = '\n'.join(line.rstrip() for line in block.splitlines()) + '\n'
+              additions[owner_for[name]].append(block)
+
+          import_requirements = {
+              'gui_modules/parts/panels/door.py': [
+                  'import tkinter as tk',
+                  'from tkinter import ttk, messagebox',
+              ],
+              'gui_modules/parts/panels/indicator_box.py': [
+                  'import tkinter as tk',
+                  'from tkinter import ttk',
+                  'from ae_engine import manufacturing_api',
+              ],
+              'gui_modules/parts/panels/base_plate.py': [],
+              'gui_modules/parts/panels/common.py': [],
+          }
+
+          for module_path, blocks in additions.items():
+              if not blocks:
+                  continue
+              p = Path(module_path)
+              current = p.read_text(encoding='utf-8')
+              missing_imports = [
+                  imp for imp in import_requirements[module_path]
+                  if imp not in current
+              ]
+              if missing_imports:
+                  parsed = ast.parse(current)
+                  if parsed.body and isinstance(parsed.body[0], ast.Expr) and isinstance(parsed.body[0].value, ast.Constant) and isinstance(parsed.body[0].value.value, str):
+                      doc_end = parsed.body[0].end_lineno
+                      current_lines = current.splitlines(True)
+                      insertion = ''.join(imp + '\n' for imp in missing_imports) + '\n'
+                      current = ''.join(current_lines[:doc_end]) + '\n' + insertion + ''.join(current_lines[doc_end:]).lstrip('\n')
+                  else:
+                      current = ''.join(imp + '\n' for imp in missing_imports) + '\n' + current
+              current = current.rstrip() + '\n\n' + '\n'.join(blocks)
+              p.write_text(current, encoding='utf-8')
+
+          static_names = {'_parse_layout_value'}
+          for node in sorted(
+              (nodes[name] for name in todo),
+              key=lambda item: item.lineno,
+              reverse=True,
+          ):
+              source = ''.join(lines[node.lineno - 1:node.end_lineno])
+              header = source.splitlines()[0].rstrip()
+              args = node.args
+              call = []
+              positional = args.args if node.name in static_names else args.args[1:]
+              call.extend(a.arg for a in positional)
+              if args.vararg:
+                  call.append('*' + args.vararg.arg)
+              for arg in args.kwonlyargs:
+                  call.append(arg.arg + '=' + arg.arg)
+              if args.kwarg:
+                  call.append('**' + args.kwarg.arg)
+              prefix = '' if node.name in static_names else 'self'
+              forwarded = ', '.join(([prefix] if prefix else []) + call)
+              replacement = (
+                  header
+                  + '\n        return _'
+                  + node.name
+                  + '_impl('
+                  + forwarded
+                  + ')\n'
+              )
+              lines[node.lineno - 1:node.end_lineno] = [replacement]
+
+          if todo:
+              gui.write_text(''.join(lines), encoding='utf-8')
+
+          text = gui.read_text(encoding='utf-8')
+          marker = 'from gui_modules.parts.panels.box_body import setup_tab_z_ui as _setup_tab_z_ui_impl\n'
+          import_block = '''from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as __attach_part_hole_entrypoint_impl
+from gui_modules.parts.panels.door import (
+    _parse_layout_value as __parse_layout_value_impl,
+    _reject_door_layout_dimension as __reject_door_layout_dimension_impl,
+    rebuild_door_layout_ui as _rebuild_door_layout_ui_impl,
+    refresh_door_layout_status as _refresh_door_layout_status_impl,
+    setup_tab_door_ui as _setup_tab_door_ui_impl,
+)
+from gui_modules.parts.panels.indicator_box import (
+    setup_tab_indicator_box_ui as _setup_tab_indicator_box_ui_impl,
+    _indicator_small_door_size_chain_label as __indicator_small_door_size_chain_label_impl,
+    setup_tab_indicator_door_ui as _setup_tab_indicator_door_ui_impl,
+    rebuild_layers_config_ui as _rebuild_layers_config_ui_impl,
+)
+from gui_modules.parts.panels.base_plate import sync_base_plate_shrink as _sync_base_plate_shrink_impl
+
+'''
+          # Root aliases intentionally use exactly _<root-name>_impl. Leading
+          # underscore root names therefore become double-underscore aliases.
+          if import_block not in text:
+              assert marker in text, 'panel import anchor missing'
+              text = text.replace(marker, import_block + marker, 1)
+              gui.write_text(text, encoding='utf-8')
+
+          # Verify each thin root now routes to its exact implementation alias.
+          updated = gui.read_text(encoding='utf-8')
+          updated_tree = ast.parse(updated)
+          updated_host = next(
+              node for node in updated_tree.body
+              if isinstance(node, ast.ClassDef) and node.name == 'Phase6ApplicationHost'
+          )
+          updated_methods = {
+              node.name: node
+              for node in updated_host.body
+              if isinstance(node, ast.FunctionDef) and node.name in wanted
+          }
+          updated_lines = updated.splitlines(True)
+          for name, node in updated_methods.items():
+              source = ''.join(updated_lines[node.lineno - 1:node.end_lineno])
+              assert f'_{name}_impl(' in source, f'{name} not routed to owner'
+              span = (node.end_lineno or node.lineno) - node.lineno + 1
+              assert span <= 4, f'{name} root span {span} > 4'
+          PY
+      - name: Compile extracted owner modules
+        run: python -m compileall -q gui.py gui_modules/parts/panels
+      - name: Verify Task7 focused GREEN
+        run: |
+          python -m pytest -q \
+            tests/test_issue292_task7_harness_contract.py \
+            tests/test_issue292_gui_phase2_t4_part_panels.py
+          python - <<'PY'
+          from pathlib import Path
+          loc = len(Path('gui.py').read_text(encoding='utf-8').splitlines())
+          print('GUI_LOC', loc)
+          assert loc <= 7464, f'gui.py LOC {loc} exceeds 7464'
+          PY
+      - name: Commit Task7 residual extraction
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add gui.py gui_modules/parts/panels/common.py gui_modules/parts/panels/door.py gui_modules/parts/panels/indicator_box.py gui_modules/parts/panels/base_plate.py
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'No residual extraction delta; Task7 owner extraction already present.'
+            exit 0
+          fi
+          git commit -m 'refactor(#292): extract remaining T4 panel presentation owners'
+          git push origin HEAD:${GITHUB_REF_NAME}
