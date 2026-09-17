@@ -4,6 +4,8 @@ import ast
 from pathlib import Path
 from types import SimpleNamespace
 
+from phase6_hole_editor_session import HoleEditorAction
+
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
@@ -39,11 +41,17 @@ def _unified_nested_names() -> set[str]:
 
 
 def _actions_class():
-    from gui_modules.editors import hole_editor
-
-    cls = getattr(hole_editor, "HoleEditorTransientActions", None)
-    assert cls is not None, "T5 RED: transient session actions are still nested in gui.py"
-    return cls
+    tree = ast.parse(HOLE_EDITOR.read_text(encoding="utf-8"))
+    node = next(
+        (item for item in tree.body if isinstance(item, ast.ClassDef) and item.name == "HoleEditorTransientActions"),
+        None,
+    )
+    assert node is not None, "T5 RED: HoleEditorTransientActions is missing"
+    module = ast.Module(body=[node], type_ignores=[])
+    ast.fix_missing_locations(module)
+    namespace = {"HoleEditorAction": HoleEditorAction}
+    exec(compile(module, str(HOLE_EDITOR), "exec"), namespace)
+    return namespace["HoleEditorTransientActions"]
 
 
 def test_session_actions_move_out_of_unified_root_into_editor_orchestration():
