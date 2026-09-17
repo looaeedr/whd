@@ -22,6 +22,14 @@ def _drift_api():
     return module.classify_path
 
 
+def _cleanup_api():
+    try:
+        module = importlib.import_module("tools.issue312_t8_cleanup_gate")
+    except ModuleNotFoundError:
+        pytest.fail("T8 cleanup-gate helper is missing", pytrace=False)
+    return module.CleanupGateError, module.compute_safe_deletions
+
+
 def _good_payload():
     return {
         "accepted_t7_sha": ACCEPTED,
@@ -136,3 +144,20 @@ def test_production_source_fails_out_of_ci_class():
     classify_path = _drift_api()
     assert classify_path("gui.py") == "PRODUCTION_SOURCE"
     assert classify_path("gui_modules/parts/door.py") == "PRODUCTION_SOURCE"
+
+
+def test_open_pr_head_or_base_is_protected():
+    _, compute_safe_deletions = _cleanup_api()
+    result = compute_safe_deletions(
+        candidates={"qa/temp-a", "qa/temp-b"},
+        open_pr_refs={"qa/temp-a", "cleanup/2d-3d-sync"},
+        evidence_secured=True,
+    )
+    assert result == {"safe": ["qa/temp-b"], "protected": ["qa/temp-a"]}
+
+
+def test_cleanup_before_evidence_fails_closed():
+    CleanupGateError, compute_safe_deletions = _cleanup_api()
+    with pytest.raises(CleanupGateError) as exc:
+        compute_safe_deletions({"qa/temp-a"}, set(), evidence_secured=False)
+    assert exc.value.code == "CLEANUP_BEFORE_EVIDENCE"
