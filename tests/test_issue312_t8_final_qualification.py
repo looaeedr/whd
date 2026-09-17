@@ -14,6 +14,14 @@ def _api():
     return module.QualificationError, module.validate_final_qualification
 
 
+def _drift_api():
+    try:
+        module = importlib.import_module("tools.issue312_t8_drift_audit")
+    except ModuleNotFoundError:
+        pytest.fail("T8 drift-audit helper is missing", pytrace=False)
+    return module.classify_path
+
+
 def _good_payload():
     return {
         "accepted_t7_sha": ACCEPTED,
@@ -115,3 +123,16 @@ def test_final_qualification_fails_closed(mutation, code):
     with pytest.raises(QualificationError) as exc:
         validate(payload)
     assert exc.value.code == code
+
+
+def test_ci_paths_are_not_production_source():
+    classify_path = _drift_api()
+    assert classify_path(".github/workflows/qa-issue312-t8-final-qualification.yml") == "CI_OR_EVIDENCE"
+    assert classify_path("tools/test_shard_manifest.py") == "CI_OR_EVIDENCE"
+    assert classify_path("docs/superpowers/checkpoints/issue312-t8.json") == "CI_OR_EVIDENCE"
+
+
+def test_production_source_fails_out_of_ci_class():
+    classify_path = _drift_api()
+    assert classify_path("gui.py") == "PRODUCTION_SOURCE"
+    assert classify_path("gui_modules/parts/door.py") == "PRODUCTION_SOURCE"
