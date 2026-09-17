@@ -41,14 +41,21 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           updates = {
-              Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md'): '''\n\n### REAL_PIXEL_VISIBILITY_GATE_V1\n- Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。\n- 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。\n- Canvas `create_window(window=...)` 若嵌入的是 Canvas 的 sibling/root child，必須明確處理 stacking order；mapped child 仍可能被 sibling Canvas 完整塗在下面。\n''',
-              Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'): '''\n\n### SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917\n- 症狀：鈑金選單物件存在、`winfo_ismapped()==1`，測試看似 GREEN，但現場完全看不到。\n- 根因：`self.left` 是 root child，卻透過 sibling `left_scroll_canvas.create_window(..., window=self.left)` 顯示；Canvas 的 stacking order 在上層，把 embedded left workspace 與鈑金 Menubutton 畫在下面。\n- 修法：在 Canvas/scrollbar/right 完成 pack 後，明確 `self.left.lift(self.left_scroll_canvas)`，保持既有 selector/state/callback，不新增第二套狀態。\n- 防錯：UI 可見性回歸必須做 pixel hit-test（中心點 topmost widget）、viewport intersection、實際尺寸；`mapped` 不能當作真實可見性的充分條件。\n''',
+              Path('.agents/skills/engineering/UI設計與去AI味/SKILL.md'): '''### REAL_PIXEL_VISIBILITY_GATE_V1
+- Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。
+- 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。
+- Canvas `create_window(window=...)` 若嵌入的是 Canvas 的 sibling/root child，必須明確處理 stacking order；mapped child 仍可能被 sibling Canvas 完整塗在下面。''',
+              Path('個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'): '''### SHEETMETAL_SELECTOR_CANVAS_OCCLUSION_20260917
+- 症狀：鈑金選單物件存在、`winfo_ismapped()==1`，測試看似 GREEN，但現場完全看不到。
+- 根因：`self.left` 是 root child，卻透過 sibling `left_scroll_canvas.create_window(..., window=self.left)` 顯示；Canvas 的 stacking order 在上層，把 embedded left workspace 與鈑金 Menubutton 畫在下面。
+- 修法：在 Canvas/scrollbar/right 完成 pack 後，明確 `self.left.lift(self.left_scroll_canvas)`，保持既有 selector/state/callback，不新增第二套狀態。
+- 防錯：UI 可見性回歸必須做 pixel hit-test（中心點 topmost widget）、viewport intersection、實際尺寸；`mapped` 不能當作真實可見性的充分條件。''',
           }
           for path, block in updates.items():
               text = path.read_text(encoding='utf-8')
-              marker = block.strip().splitlines()[0].lstrip('# ').strip()
+              marker = block.splitlines()[0].lstrip('# ').strip()
               if marker not in text:
-                  path.write_text(text.rstrip() + block + '\n', encoding='utf-8')
+                  path.write_text(text.rstrip() + '\n\n' + block.strip() + '\n', encoding='utf-8')
           PY
 
           git diff --check
