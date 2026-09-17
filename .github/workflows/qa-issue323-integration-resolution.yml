@@ -1,0 +1,63 @@
+name: Issue 323 Integration Resolution Acceptance
+
+on:
+  push:
+    branches:
+      - integration/issue323-t8-history-resolution-20260917
+    paths:
+      - '.github/workflows/qa-issue323-integration-resolution.yml'
+      - '.agents/skills/engineering/monitoring-remote-qa/**'
+
+permissions:
+  contents: read
+
+jobs:
+  combined-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-xdist matplotlib ezdxf
+      - name: Record protected invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/config.before
+          git status --porcelain > /tmp/status.before
+      - name: Run CI optimization contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue305_shard_manifest.py \
+            tests/test_issue306_aggregate_cli_import.py \
+            tests/test_issue306_non_gui_sharding.py \
+            tests/test_issue307_junit_location_fallback.py \
+            tests/test_issue307_t0_xvfb_contract_authority.py \
+            tests/test_issue307_xvfb_sharding.py \
+            tests/test_issue308_t4_aggregation.py \
+            tests/test_issue309_t5_xdist_state_isolation.py \
+            tests/test_issue310_t6_duration_tuning.py \
+            tests/test_issue311_t7_ab_acceptance.py \
+            tests/test_issue312_t8_final_qualification.py
+      - name: Run current production governance/process contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process
+      - name: Verify protected invariants
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum -c /tmp/config.before
+          test -z "$(git status --porcelain)"
+          echo 'ISSUE323_PROTECTED_DRIFT=0'
