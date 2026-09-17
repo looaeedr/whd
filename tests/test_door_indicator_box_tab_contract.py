@@ -1,7 +1,11 @@
 import ast
 from pathlib import Path
 
-GUI = Path(__file__).parents[1] / 'gui.py'
+ROOT = Path(__file__).parents[1]
+GUI = ROOT / 'gui.py'
+EDITOR = ROOT / 'gui_modules' / 'editors' / 'hole_editor.py'
+COMPOSITION = ROOT / 'gui_modules' / 'editors' / 'hole_editor_composition.py'
+VIEW = ROOT / 'gui_modules' / 'editors' / 'hole_editor_view.py'
 
 
 def _source_of_method(name):
@@ -13,7 +17,7 @@ def _source_of_method(name):
 
 
 def test_door_editor_uses_dynamic_indicator_box_page_not_component_edit_buttons():
-    source = _source_of_method('_open_unified_hole_editor')
+    source = EDITOR.read_text(encoding='utf-8') + COMPOSITION.read_text(encoding='utf-8') + VIEW.read_text(encoding='utf-8')
     assert '編輯盒子' not in source
     assert '編輯小門' not in source
     assert 'indicator_component_context_provider' in source
@@ -30,7 +34,8 @@ def test_multi_door_editor_supplies_per_cell_indicator_component_context_provide
 
 
 def test_single_door_editor_uses_same_indicator_component_page_flow():
-    source = _source_of_method('open_part_hole_editor')
+    source = EDITOR.read_text(encoding='utf-8')
+    assert '"door": _door_context' in source
     assert 'indicator_component_context_provider' in source
     assert '_indicator_component_editor_contexts' in source
     assert 'indicator_component_openers' not in source
@@ -44,6 +49,6 @@ def test_small_door_spec_delegates_to_values_adapter_that_uses_manufacturing_api
 
 
 def test_active_indicator_component_reloads_formula_context_when_groups_change():
-    source = _source_of_method('_open_unified_hole_editor')
+    source = VIEW.read_text(encoding='utf-8')
     assert 'if context_key == active_context_key[0]:' not in source
-    assert 'indicator_component_context_provider(state_now)' in source
+    assert 'self.component_context_provider(state_now)' in source
