@@ -8945,7 +8945,9 @@ def _phase6_activate_operator_part(self, key):
     resolved = _phase6_resolve_operator_part_key(self, key)
     if not resolved:
         return None
-    return self.activate_part(resolved)
+    result = self.activate_part(resolved)
+    _phase6_refresh_structure_tree(self)
+    return result
 
 
 def _fix11_refresh_part_buttons(self):
