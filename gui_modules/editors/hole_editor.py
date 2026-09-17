@@ -99,6 +99,61 @@ class HoleEditorTransientActions:
         self.begin_edit(idx, "existing")
 
 
+class HoleEditorCreatedListActions:
+    """Own created-list selection/process/delete commands via session authority."""
+
+    def __init__(
+        self, *, hole_session, feature_list, created_list, select_feature,
+        feature_with_process, refresh_created, refresh_reference_fields,
+        redraw, sync_all,
+    ):
+        self.hole_session = hole_session
+        self.feature_list = feature_list
+        self.created_list = created_list
+        self.select_feature = select_feature
+        self.feature_with_process = feature_with_process
+        self.refresh_created = refresh_created
+        self.refresh_reference_fields = refresh_reference_fields
+        self.redraw = redraw
+        self.sync_all = sync_all
+
+    def on_created_select(self, event=None):
+        selected = self.created_list.curselection()
+        if selected:
+            self.select_feature(selected[0])
+
+    def toggle_created_process(self, event=None):
+        selected = self.created_list.curselection()
+        if not selected:
+            return
+        idx = selected[0]
+        self.hole_session.execute(HoleEditorAction.select(idx))
+        old = self.feature_list[idx]
+        process = (
+            "CUTTING"
+            if getattr(old, "layer", "CUTTING") == "BLIND_HOLE"
+            else "BLIND_HOLE"
+        )
+        replacement = self.feature_with_process(old, process)
+        self.hole_session.execute(
+            HoleEditorAction.replace_selected_committed(replacement)
+        )
+        self._refresh_all()
+
+    def delete_selected(self):
+        idx = self.hole_session.selected_index
+        if not (0 <= idx < len(self.feature_list)):
+            return
+        self.hole_session.execute(HoleEditorAction.delete_selected())
+        self._refresh_all()
+
+    def _refresh_all(self):
+        self.refresh_created()
+        self.refresh_reference_fields()
+        self.redraw()
+        self.sync_all()
+
+
 class HoleEditorModalLifecycle:
     """Own modal confirm/cancel/Escape flow while delegating all authorities."""
 

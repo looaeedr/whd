@@ -152,6 +152,7 @@ from ae_engine.corner_type_ui import (
 
 from gui_modules.editors.dialogs import ask_xy_dialog as _ask_xy_dialog_impl
 from gui_modules.editors.hole_editor import (
+    HoleEditorCreatedListActions as _HoleEditorCreatedListActions,
     HoleEditorModalLifecycle as _HoleEditorModalLifecycle,
     HoleEditorTransientActions as _HoleEditorTransientActions,
     open_hole_editor as _open_hole_editor_impl,
@@ -6571,35 +6572,20 @@ class Phase6ApplicationHost:
                 menu.add_command(label=mark + label, command=lambda a=anchor: set_reference_anchor(a))
             menu.tk_popup(event.x_root, event.y_root)
 
-        def on_created_select(event=None):
-            sel = created_list.curselection()
-            if sel:
-                select_feature(sel[0])
-
-        def toggle_created_process(event=None):
-            sel = created_list.curselection()
-            if not sel:
-                return
-            idx = sel[0]
-            hole_session.execute(HoleEditorAction.select(idx))
-            old = feature_list[idx]
-            process = "CUTTING" if getattr(old, "layer", "CUTTING") == "BLIND_HOLE" else "BLIND_HOLE"
-            replacement = feature_with_process(old, process)
-            hole_session.execute(HoleEditorAction.replace_selected_committed(replacement))
-            refresh_created()
-            refresh_reference_fields()
-            redraw()
-            sync_all()
-
-        def delete_selected():
-            idx = hole_session.selected_index
-            if 0 <= idx < len(feature_list):
-                hole_session.execute(HoleEditorAction.delete_selected())
-                refresh_created()
-                refresh_reference_fields()
-                redraw()
-                sync_all()
-
+        created_list_actions = _HoleEditorCreatedListActions(
+            hole_session=hole_session,
+            feature_list=feature_list,
+            created_list=created_list,
+            select_feature=select_feature,
+            feature_with_process=feature_with_process,
+            refresh_created=refresh_created,
+            refresh_reference_fields=refresh_reference_fields,
+            redraw=redraw,
+            sync_all=sync_all,
+        )
+        on_created_select = created_list_actions.on_created_select
+        toggle_created_process = created_list_actions.toggle_created_process
+        delete_selected = created_list_actions.delete_selected
         delete_btn.configure(command=delete_selected)
 
         def apply_reference_value(axis, mode, show_errors=False):
