@@ -366,3 +366,8 @@ Rewrite 後重新檢查：
 - 不同 projection 可以有不同粒度：Structure Tree 可指向 exact physical child；compact menu 可以只顯示 top-level parent label。禁止把 display `StringVar` 當成 physical-part authority 來做等值斷言。
 - 任一 selector 改變 authoritative part 後，必須 refresh 其他已顯示 projection，避免畫面殘留舊 selection。
 - 修復隱藏控制項時，優先恢復既有 widget/state/callback 的 layout 與 projection refresh；禁止為了讓 UI 出現而複製 state owner。
+
+### REAL_PIXEL_VISIBILITY_GATE_V1
+- Tk 控制項 `winfo_ismapped()` / geometry manager 非空，只能證明它被 geometry manager 管理，不能證明操作者真的看得到。若控制項與 Canvas / sibling 疊層共存，驗收至少要檢查：viewport 交集為正、實際寬高為正、控制項中心點 `winfo_containing()` 命中該控制項或其子元件，而不是被 Canvas / overlay 蓋住。
+- 現代啟動 UI 的「可見」驗收必須包含 real-pixel / stacking hit-test；不得再以 object exists、`mapped == 1`、pack/grid manager 非空單獨宣稱可見。
+- Canvas `create_window(window=...)` 若嵌入的是 Canvas 的 sibling/root child，必須明確處理 stacking order；mapped child 仍可能被 sibling Canvas 完整塗在下面。
