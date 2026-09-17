@@ -168,7 +168,7 @@ def test_structure_tree_refresh_guard_stays_active_until_tk_idle(monkeypatch):
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires Tk display")
 def test_structure_tree_and_compact_menu_share_authoritative_part_selection():
-    """Both visible selectors are projections of the same part/workspace authority."""
+    """Tree and compact menu may differ in granularity but must drive one workspace authority."""
     tk, root, _app, designer = _open_receiving_designer()
     try:
         tree = _structure_tree(designer)
@@ -188,21 +188,26 @@ def test_structure_tree_and_compact_menu_share_authoritative_part_selection():
         _pump_tk(root, 2)
 
         assert designer.designer_workspace.active_part == "box_body:back"
-        assert str(designer.part_var.get()) == "box_body:back"
         assert tuple(tree.selection()) == ("part:box_body:back",)
+        assert str(designer.part_var.get()) == bridge._phase6_part_label(
+            "box_body", snapshot=dict(designer._phase6_input_snapshot)
+        )
 
         menu = designer.part_choice_menu
         end = menu.index("end")
         assert end is not None
+        head_label = bridge._phase6_part_label(
+            "head", snapshot=dict(designer._phase6_input_snapshot)
+        )
         head_index = next(
             index
             for index in range(end + 1)
-            if str(menu.entrycget(index, "value")) == "head"
+            if str(menu.entrycget(index, "value")) == head_label
         )
         menu.invoke(head_index)
         _pump_tk(root, 2)
 
-        assert str(designer.part_var.get()) == "head"
+        assert str(designer.part_var.get()) == head_label
         assert designer.designer_workspace.active_part == "head"
         assert tuple(tree.selection()) == ("part:head",)
     finally:
