@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
 VIEW = ROOT / "gui_modules" / "editors" / "hole_editor_view.py"
+COMPOSITION = ROOT / "gui_modules" / "editors" / "hole_editor_composition.py"
 
 
 def _unified_method() -> ast.FunctionDef:
@@ -36,16 +37,18 @@ def test_catalog_sidebar_builder_is_bounded_presentation_only():
     assert "HoleEditorAction" not in source
 
 
-def test_unified_root_delegates_catalog_sidebar_construction():
+def test_composition_root_delegates_catalog_sidebar_construction():
     gui = GUI.read_text(encoding="utf-8")
     method = _unified_method()
-    segment = ast.get_source_segment(gui, method) or ""
+    root_segment = ast.get_source_segment(gui, method) or ""
     assert "HoleEditorCatalogSidebarBuilder as _HoleEditorCatalogSidebarBuilder" in gui
-    assert "_HoleEditorCatalogSidebarBuilder(self).build(" in segment
-    assert 'text="一般開孔"' not in segment
-    assert 'text="管孔清單"' not in segment
-    assert 'text=" 自訂尺寸 "' not in segment
-    assert 'text="已開孔（雙擊：切穿 ⇄ 盲孔）"' not in segment
+    assert COMPOSITION.is_file(), "T5 RED: catalog-sidebar composition handoff is missing"
+    composition = COMPOSITION.read_text(encoding="utf-8")
+    assert "_HoleEditorCatalogSidebarBuilder(host).build(" in composition
+    assert 'text="一般開孔"' not in root_segment
+    assert 'text="管孔清單"' not in root_segment
+    assert 'text=" 自訂尺寸 "' not in root_segment
+    assert 'text="已開孔（雙擊：切穿 ⇄ 盲孔）"' not in root_segment
 
 
 def test_catalog_sidebar_slice_materially_reduces_root():
