@@ -4,12 +4,15 @@ EDITOR = Path("gui_modules/editors/hole_editor.py")
 GUI = Path("gui.py")
 
 editor = EDITOR.read_text(encoding="utf-8")
-old_import = "from phase6_hole_editor_session import HoleEditorAction\n"
-new_import = "from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession\n"
-if new_import not in editor:
-    if editor.count(old_import) != 1:
-        raise SystemExit(f"session import anchor mismatch: {editor.count(old_import)}")
-    editor = editor.replace(old_import, new_import, 1)
+action_import = "from phase6_hole_editor_session import HoleEditorAction\n"
+session_import = "from phase6_hole_editor_session import Phase6HoleEditorSession\n"
+combined_import = "from phase6_hole_editor_session import HoleEditorAction, Phase6HoleEditorSession\n"
+if combined_import in editor:
+    editor = editor.replace(combined_import, action_import + session_import, 1)
+elif session_import not in editor:
+    if editor.count(action_import) != 1:
+        raise SystemExit(f"session import anchor mismatch: {editor.count(action_import)}")
+    editor = editor.replace(action_import, action_import + session_import, 1)
 
 factory = '''class HoleEditorSessionFactory:
     """Construct the existing editor session authority; owns no session state."""
