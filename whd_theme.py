@@ -76,6 +76,7 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
         "Secondary.TButton",
         background=[("disabled", colors["background"]), ("pressed", colors["background"]), ("active", colors["input"])],
         foreground=[("disabled", colors["muted_text"]), ("active", colors["text"])],
+        bordercolor=[("focus", colors["action"])],
     )
     style.configure(
         "Primary.TButton",
@@ -86,6 +87,7 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
         "Primary.TButton",
         background=[("disabled", colors["panel"]), ("pressed", colors["action_pressed"]), ("active", colors["action_hover"])],
         foreground=[("disabled", colors["muted_text"]), ("pressed", "#ffffff"), ("active", "#ffffff")],
+        bordercolor=[("focus", colors["action"])],
     )
     for widget_style in ("TCheckbutton", "TRadiobutton"):
         style.configure(widget_style, background=colors["panel"], foreground=colors["text"])
@@ -183,6 +185,7 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
         background=[("disabled", colors["panel"]), ("pressed", colors["background"]), ("active", colors["panel"])],
         foreground=[("disabled", colors["muted_text"])],
         arrowcolor=[("disabled", colors["muted_text"]), ("active", colors["action"])],
+        bordercolor=[("focus", colors["action"])],
     )
 
     style.configure(

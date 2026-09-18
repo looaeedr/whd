@@ -5153,7 +5153,31 @@ def _phase6_joint_form_delete(self):
 
 
 def _phase6_configure_floating_surface(window, owner, *, modal=False):
-    """Apply the shared foreground/focus contract without owning domain state."""
+    """Apply shared foreground/focus behavior without owning domain state."""
+    try:
+        return_focus = owner.focus_get()
+    except Exception:
+        return_focus = None
+    if return_focus is None:
+        return_focus = owner
+    window._phase6_return_focus = return_focus
+
+    def close_surface(_event=None):
+        try:
+            window.grab_release()
+        except Exception:
+            pass
+        try:
+            window.destroy()
+        finally:
+            try:
+                if bool(return_focus.winfo_exists()):
+                    return_focus.after_idle(return_focus.focus_set)
+            except Exception:
+                pass
+        return "break"
+
+    window._phase6_close_surface = close_surface
     try:
         window.transient(owner)
     except Exception:
@@ -5164,7 +5188,8 @@ def _phase6_configure_floating_surface(window, owner, *, modal=False):
         pass
     window._phase6_foreground_role = "floating_surface"
     try:
-        window.bind("<Escape>", lambda _event: window.destroy(), add="+")
+        window.bind("<Escape>", close_surface, add="+")
+        window.protocol("WM_DELETE_WINDOW", close_surface)
         window.lift()
         window.after_idle(window.focus_set)
     except Exception:
@@ -5389,12 +5414,43 @@ def _phase6_open_relief_registry_form(self):
     return win
 
 
+def _phase6_keyboard_save(self, _event=None):
+    """Ctrl+S delegates to the existing project-save authority."""
+    self.save_project_file()
+    return "break"
+
+
+def _phase6_keyboard_open(self, _event=None):
+    """Ctrl+O delegates to the existing project-open authority."""
+    self.load_project_file()
+    return "break"
+
+
+def _phase6_keyboard_fullscreen(self, _event=None):
+    """F11 delegates to the existing fullscreen presentation action."""
+    _phase6_toggle_fullscreen(self)
+    return "break"
+
+
+def _phase6_install_keyboard_shortcuts(self):
+    """Install one Fold Designer shortcut layer without creating action/state owners."""
+    if bool(getattr(self, "_phase6_keyboard_shortcuts_installed", False)):
+        return False
+    for sequence in ("<Control-s>", "<Control-S>"):
+        self.root.bind(sequence, lambda event: _phase6_keyboard_save(self, event), add="+")
+    for sequence in ("<Control-o>", "<Control-O>"):
+        self.root.bind(sequence, lambda event: _phase6_keyboard_open(self, event), add="+")
+    self.root.bind("<F11>", lambda event: _phase6_keyboard_fullscreen(self, event), add="+")
+    self._phase6_keyboard_shortcuts_installed = True
+    return True
+
+
 def _phase6_build_project_toolbar(self, parent=None):
     """永久置頂的「檔案」選單。"""
     parent = parent or self.left
     self.project_toolbar = original.ttk.Frame(parent)
     self.project_toolbar.pack(side=original.tk.LEFT, padx=(0, 8))
-    self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼", style="Secondary.TMenubutton")
+    self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼", style="Secondary.TMenubutton", takefocus=True)
     self.project_file_menu = configure_tk_menu(original.tk.Menu(self.project_file_button, tearoff=False))
     self.project_file_menu.add_command(label="開啟", command=self.load_project_file)
     self.project_file_menu.add_command(label="儲存", command=self.save_project_file)
@@ -5402,7 +5458,7 @@ def _phase6_build_project_toolbar(self, parent=None):
     self.project_file_button.configure(menu=self.project_file_menu)
     self.project_file_button.pack(side=original.tk.LEFT)
     self.relief_registry_button = original.ttk.Button(
-        self.project_toolbar, text="截角資料庫", command=lambda: _phase6_open_relief_registry_form(self), style="Secondary.TButton"
+        self.project_toolbar, text="截角資料庫", command=lambda: _phase6_open_relief_registry_form(self), style="Secondary.TButton", takefocus=True
     )
     self.relief_registry_button.pack(side=original.tk.LEFT, padx=(6, 0))
 
@@ -5416,7 +5472,7 @@ def _phase6_build_transaction_buttons(self, parent=None):
     self.transaction_buttons.pack(side=original.tk.RIGHT)
     self.transaction_buttons.columnconfigure(0, weight=1)
     self.reset_initial_button = original.ttk.Button(
-        self.transaction_buttons, text="還原初始值", command=self.reset_initial_values, style="Secondary.TButton"
+        self.transaction_buttons, text="還原初始值", command=self.reset_initial_values, style="Secondary.TButton", takefocus=True
     )
     self.reset_initial_button.grid(row=0, column=0, sticky="ew")
 
@@ -5672,6 +5728,7 @@ def _phase6_build_output_controls(self, parent=None):
         text="輸出選取的 DXF 檔案",
         command=lambda: _phase6_export_selected_dxf_from_3d(self),
         style="Primary.TButton",
+        takefocus=True,
     )
     self.output_export_button.pack(side=original.tk.LEFT, padx=(4, 0))
 
@@ -5736,6 +5793,7 @@ def _phase6_build_persistent_top_area(self):
         text="全螢幕",
         command=lambda: _phase6_toggle_fullscreen(self),
         style="Secondary.TButton",
+        takefocus=True,
     )
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
     self.right_global_host.pack(fill=original.tk.X, pady=(4, 0))
@@ -5744,7 +5802,7 @@ def _phase6_build_persistent_top_area(self):
     # The complete existing left workspace is one scroll owner. It keeps the same
     # selector/editor/state callbacks; this canvas changes presentation only.
     self.left_scroll_canvas = original.tk.Canvas(
-        self.root, width=338, highlightthickness=0, borderwidth=0
+        self.root, width=338, highlightthickness=0, borderwidth=0, takefocus=False
     )
     def _left_scroll_command(*args):
         self.left_scroll_canvas.yview(*args)
@@ -5796,6 +5854,7 @@ def _phase6_build_persistent_top_area(self):
     # visible and hit-testable instead of being painted underneath the Canvas.
     self.left.lift(self.left_scroll_canvas)
     _sync_left_scrollregion()
+    _phase6_install_keyboard_shortcuts(self)
 
 
 def _phase6_reset_initial_values(self):
@@ -7965,6 +8024,10 @@ def _phase6_on_3d_scroll(self, event):
 def _phase6_install_renderer_view(self):
     view = Phase6FinalSceneView(self.renderer, number_text=_setting_number_text)
     self.final_scene_view = view
+    try:
+        self.renderer.canvas.get_tk_widget().configure(takefocus=False)
+    except Exception:
+        pass
     view.install(
         lambda: _phase6_final_scene_view_request(self),
         after_render=lambda: (
@@ -8808,7 +8871,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # The compact sheet-metal menu and the Structure Tree are two presentation
     # projections of the same authoritative part_var / workspace callbacks.
     # Keep the existing menu visible; do not create a second state owner.
-    self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var, style="Selector.TMenubutton")
+    self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var, style="Selector.TMenubutton", takefocus=True)
     self.part_choice_menu = configure_tk_menu(original.tk.Menu(self.part_choice_button, tearoff=False))
     self.part_choice_button.configure(menu=self.part_choice_menu)
     self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
@@ -8824,7 +8887,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.structure_tree_host.place(x=0, y=0, relwidth=1.0)
     self.structure_tree = original.ttk.Treeview(
         self.structure_tree_host, columns=("visibility",),
-        show="tree headings", selectmode="browse", height=9,
+        show="tree headings", selectmode="browse", height=9, takefocus=True,
     )
     self.structure_tree.heading("#0", text="板件 / 功能", anchor=original.tk.W)
     self.structure_tree.heading("visibility", text="狀態", anchor=original.tk.CENTER)
@@ -8853,7 +8916,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     # Legacy multipart tabs remain internal compatibility state only; the
     # Structure Tree is the single visible child-navigation surface.
-    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1)
+    self.box_body_piece_selector = original.ttk.Notebook(self.left, height=1, takefocus=False)
     self._phase6_box_body_piece_tab_keys = ()
     self._phase6_box_body_piece_tab_map = {}
     self._phase6_box_body_piece_tab_guard = False
@@ -8864,12 +8927,12 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     self.part_action_row = original.ttk.Frame(self.part_selector)
     self.part_action_row.pack(fill=original.tk.X, pady=(0, 4))
-    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼", style="Secondary.TMenubutton")
+    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼", style="Secondary.TMenubutton", takefocus=True)
     self.add_part_menu = configure_tk_menu(original.tk.Menu(self.add_part_button, tearoff=False))
     self.add_part_button.configure(menu=self.add_part_menu)
     self.add_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 2))
     self.remove_part_button = original.ttk.Button(
-        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled", style="Secondary.TButton"
+        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled", style="Secondary.TButton", takefocus=True
     )
     self.remove_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(2, 0))
 
@@ -8881,7 +8944,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     assembly_scroll_host = original.ttk.Frame(self.assembly_parts_panel)
     assembly_scroll_host.pack(fill=original.tk.BOTH, expand=True)
     self.assembly_parts_canvas = original.tk.Canvas(
-        assembly_scroll_host, height=1, highlightthickness=0, borderwidth=0
+        assembly_scroll_host, height=1, highlightthickness=0, borderwidth=0, takefocus=False
     )
     self.assembly_parts_scrollbar = original.ttk.Scrollbar(
         assembly_scroll_host, orient=original.tk.VERTICAL, command=self.assembly_parts_canvas.yview
@@ -8996,16 +9059,19 @@ def _phase6_build_content_switch(self):
         self.content_switch_frame, text="輸入區",
         command=lambda: _phase6_show_input_content(self),
         style="Secondary.TButton",
+        takefocus=True,
     )
     self.assembly_content_button = original.ttk.Button(
         self.content_switch_frame, text="組合體",
         command=lambda: _phase6_show_assembly(self),
         style="Secondary.TButton",
+        takefocus=True,
     )
     self.corner_data_content_button = original.ttk.Button(
         self.content_switch_frame, text="截角資料",
         command=lambda: _phase6_show_corner_data(self),
         style="Secondary.TButton",
+        takefocus=True,
     )
     for button in (
         self.input_content_button,
@@ -9501,7 +9567,8 @@ def _phase6_prepare_corner_data_canvas(self):
         self.corner_data_info_label = info_label
     if not alive:
         canvas = original.tk.Canvas(
-            mpl_widget.master, bg=WHD_THEME["corner_data_canvas"], highlightthickness=0
+            mpl_widget.master, bg=WHD_THEME["corner_data_canvas"], highlightthickness=0,
+            takefocus=False,
         )
         self.corner_data_canvas = canvas
         canvas._phase6_unfold_zoom = 1.0
