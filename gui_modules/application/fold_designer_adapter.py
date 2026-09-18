@@ -13,6 +13,7 @@ from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
 from ae_engine.corner_type_ui import (
     is_unknown_model,
+    normalize_custom_model_name,
     known_model_corner_state,
     policy_from_corner_state,
 )
@@ -22,6 +23,8 @@ from ae_engine.sheetmetal_geometry import (
     normalize_corner_selection,
 )
 from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells, door_layout_export_filename
+from phase6_fold_profiles import formed_box_body_fw_widths
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
 from gui_modules.parts.panels.door import collect_door_input
@@ -307,4 +310,214 @@ def _query_fold_designer_render_data(self, part_key, payload):
         if state.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
             return manufacturing_api.build_box_body_structure_render_data(spec, context)
     return self._authoritative_render_data(spec, context)
+
+def _payload_topology_context(part_key, payload):
+    data = dict(payload or {})
+    key = str(part_key or "")
+    w = float(data.get("w", ae.W))
+    h = float(data.get("h", ae.H))
+    d = float(data.get("d", ae.D))
+    t = float(data.get("t", ae.T))
+    fw = float(data.get("fw", ae.FW))
+    model = normalize_custom_model_name(data.get("model"))
+    unknown = is_unknown_model(model)
+    corner_state = data.get("corner_state") or {}
+    features = tuple(data.get("features") or ())
+    face_features = data.get("face_features") or {}
+    door_cell = None
+    base_plate_cell = None
+    if key.startswith("door_c"):
+        columns = tuple(
+            (float(row[0]), tuple(float(value) for value in row[1]))
+            for row in tuple(data.get("door_layout_columns") or ())
+        )
+        if not columns:
+            raise ValueError(f"門格缺少 authoritative multi-door topology: {key}")
+        door_cell = next(
+            (
+                cell for cell in derive_door_layout_cells(columns)
+                if door_layout_export_filename(cell).removesuffix(".dxf") == key
+            ),
+            None,
+        )
+        if door_cell is None:
+            raise ValueError(f"門格 stable_id 不存在於 authoritative topology: {key}")
+        w = float(door_cell.start_width)
+        h = float(door_cell.start_height)
+    elif key.startswith("base_plate_c"):
+        columns = tuple(
+            (float(row[0]), tuple(float(value) for value in row[1]))
+            for row in tuple(data.get("door_layout_columns") or ())
+        )
+        if not columns:
+            raise ValueError(f"底板缺少 authoritative multi-door topology: {key}")
+        owner_door_key = key.replace("base_plate_", "door_", 1)
+        base_plate_cell = next(
+            (
+                cell for cell in derive_door_layout_cells(columns)
+                if door_layout_export_filename(cell).removesuffix(".dxf") == owner_door_key
+            ),
+            None,
+        )
+        if base_plate_cell is None:
+            raise ValueError(f"底板 stable_id 不存在於 authoritative topology: {key}")
+        w = float(base_plate_cell.start_width)
+        h = float(base_plate_cell.start_height)
+    return (
+        data, key, w, h, d, t, fw, model, unknown, corner_state,
+        features, face_features, door_cell, base_plate_cell,
+    )
+
+
+def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
+    resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
+    if resolved is None and not unknown:
+        fallback = known_model_corner_state(
+            (part,), cabinet_family=self._current_cabinet_type_name()
+        ).get(part)
+        resolved = policy_from_corner_state(fallback, fw=fw) if fallback is not None else None
+    return self._apply_cabinet_family_endcap_policy(
+        resolved,
+        part,
+        snapshot=data,
+        thickness=thickness,
+        structure_state=data.get("box_body_structure"),
+    )
+
+
+def _fold_designer_part_spec_from_payload(self, part_key, payload):
+    """Convert Fold Designer draft state to the canonical manufacturing request."""
+    (
+        data, key, w, h, d, t, fw, model, unknown, corner_state,
+        features, face_features, door_cell, base_plate_cell,
+    ) = _payload_topology_context(part_key, payload)
+    payload_policy = lambda part: _payload_policy(
+        self, data, corner_state, part, fw, unknown, t
+    )
+    policy_part = (
+        "door" if door_cell is not None
+        else ("base_plate" if base_plate_cell is not None else key)
+    )
+    policy = payload_policy(policy_part)
+    context = ManufacturingContext(draw_stock=False)
+
+    if key == "box_body":
+        spec = self._box_body_part_spec_from_values(
+            {
+                "w": w, "h": h, "d": d, "t": t, "fw": fw,
+                "zl1": float(data.get("zl1", ae.zl1_def)),
+                "zl2": float(data.get("zl2", ae.zl2_def)),
+                "zr1": float(data.get("zr1", ae.zr1_def)),
+                "zr2": float(data.get("zr2", ae.zr2_def)),
+                "z_comp": float(data.get("z_comp", getattr(ae, "z_comp_def", 0.0))),
+            },
+            model_name=(None if unknown else model),
+            features=features,
+            face_features=face_features,
+            head_corner_policy=payload_policy("head"),
+            tail_corner_policy=payload_policy("tail"),
+            fold_profile=data.get("fold_profile"),
+            structure_state=data.get("box_body_structure"),
+            head_ybottom1=float(data.get("head_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+            tail_ybottom1=float(data.get("tail_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
+        )
+    elif key in {"head", "tail"}:
+        endcap_values = {
+            "w": w, "h": h, "d": d, "t": t, "fw": fw,
+            "yl1": float(data.get("yl1", ae.yl1_def)),
+            "yr1": float(data.get("yr1", ae.yr1_def)),
+            "ytop1": float(data.get("ytop1", ae.ytop1_def)),
+            "ybottom1": float(data.get("ybottom1", ae.ybottom1_def)),
+            "zl1": float(data.get("zl1", ae.zl1_def)),
+            "zr1": float(data.get("zr1", ae.zr1_def)),
+        }
+        resolved_cuts = data.get("resolved_assembly_relief_cuts")
+        if resolved_cuts is None and bool(data.get("_use_committed_relief")):
+            resolved_cuts = self._resolved_committed_assembly_relief_cuts(
+                key, endcap_values, data.get("fold_profiles") or {}
+            )
+        formed_fw_left, formed_fw_right = formed_box_body_fw_widths(
+            data.get("box_body_profile") or self.workspace_controller.box_body_profile() or (),
+            t,
+        )
+        spec = self._end_cap_part_spec_from_values(
+            endcap_values,
+            model_name=(None if unknown else model),
+            is_tail=(key == "tail"),
+            holes=features,
+            corner_policy=policy,
+            fold_profiles=data.get("fold_profiles"),
+            resolved_assembly_relief_cuts=resolved_cuts or (),
+            box_body_formed_fw_left=formed_fw_left,
+            box_body_formed_fw_right=formed_fw_right,
+            box_body_structure_state=(
+                data.get("box_body_structure")
+                or self.workspace_controller.box_body_structure_state()
+            ),
+            endcap_bottom_wrap_state=data.get("endcap_bottom_wrap"),
+            assembly_joints=data.get("assembly_joints"),
+        )
+    elif key == "door" or door_cell is not None:
+        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or ()))
+        direct = tuple(int(v) for v in (data.get("door_indicator_groups") or ()))
+        indicator_hole = None
+        if bool(data.get("door_indicator_box_enabled")) and groups:
+            indicator_hole = manufacturing_api.indicator_box_opening_size(groups, thickness=t)
+        spec = self._door_part_spec_from_values(
+            {
+                "w": w, "h": h, "t": t, "fw": fw,
+                "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                "door_fold_l": float(data.get("door_fold_l", ae.door_fold_left_def)),
+                "door_fold_r": float(data.get("door_fold_r", ae.door_fold_right_def)),
+                "door_fold_t": float(data.get("door_fold_t", ae.door_fold_top_def)),
+                "door_fold_b": float(data.get("door_fold_b", ae.door_fold_bottom_def)),
+            },
+            model_name=(None if unknown else model),
+            features=features,
+            indicator_hole=indicator_hole,
+            door_indicator=(direct or None),
+            door_indicator_offset=tuple(data.get("door_indicator_offset") or (0.0, 0.0)),
+            use_box_distance=bool(data.get("use_box_distance", False)),
+            corner_policy=policy,
+            frame_edges=(door_cell.edges if door_cell is not None else None),
+        )
+    elif key == "base_plate" or key.startswith("base_plate_c"):
+        spec = self._base_plate_part_spec_from_values(
+            {
+                "w": w, "h": h, "t": t, "fw": fw,
+                "base_plate_shrink_top": float(data.get("base_plate_shrink_top", 0)),
+                "base_plate_shrink_bottom": float(data.get("base_plate_shrink_bottom", 0)),
+                "base_plate_shrink_left": float(data.get("base_plate_shrink_left", 0)),
+                "base_plate_shrink_right": float(data.get("base_plate_shrink_right", 0)),
+                "base_plate_bend": float(data.get("base_plate_bend", 20)),
+                "model": model,
+            },
+            features=features,
+            corner_policy=policy,
+        )
+    elif key == "indicator_box":
+        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+        spec = self._indicator_box_part_spec_from_values({"t": t}, groups, features=features)
+    elif key == "indicator_door":
+        groups = tuple(int(v) for v in (data.get("indicator_layer_groups") or (1,)))
+        spec, context = self._indicator_door_part_spec_from_values(
+            {
+                "t": t,
+                "fw": fw,
+                "door_gap_w": float(data.get("door_gap_w", ae.door_gap_w_def)),
+                "door_gap_h": float(data.get("door_gap_h", ae.door_gap_h_def)),
+                "indicator_door_fold": float(
+                    data.get(
+                        "indicator_door_fold",
+                        getattr(ae, "indicator_small_door_fold_def", 19.0),
+                    )
+                ),
+            },
+            groups,
+            features=features,
+        )
+    else:
+        raise ValueError(f"未知 3D 板件: {key}")
+    return spec, context
 
