@@ -11,9 +11,14 @@ import argparse
 import json
 import math
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import tkinter as tk
 from tkinter import ttk
