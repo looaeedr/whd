@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
+APP = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 BOX_VIEW = ROOT / "gui_modules" / "rendering" / "box_body_view.py"
 
 
@@ -41,22 +42,26 @@ def test_task6c_root_draw_box_body_is_thin_delegate():
     assert span <= 8, f"T6 TASK6C RED: draw_box_body span={span} > 8"
 
 
-def test_task6c_root_keeps_box_body_render_snapshot_authority():
-    source, methods = _host_methods()
-    name = "_box_body_render_snapshot"
-    assert name in methods, "T6 TASK6C RED: box-body render snapshot builder missing"
-    body = ast.get_source_segment(source, methods[name]) or ""
+def test_task6c_application_keeps_box_body_snapshot_orchestration():
+    source = APP.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    body = ast.get_source_segment(
+        source, functions["box_body_render_snapshot"]
+    ) or ""
     for token in (
         "_box_body_part_spec",
         "_authoritative_render_data",
         "_manufacturing_context",
         "_refresh_box_body_piece_tabs_2d",
         "_baseline_source_model",
-        "box_body_face_dimensions",
+        "face_dimensions_fn",
     ):
         assert token in body, f"snapshot builder missing authority token: {token}"
-
-
 def test_task6c_box_body_presenter_consumes_render_data_only():
     source = BOX_VIEW.read_text(encoding="utf-8")
     tree = ast.parse(source)
