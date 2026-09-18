@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: ci-sharding-acceptance-contract
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # CI Sharding / Parallel Acceptance Contract
 
 This reference is part of `monitoring-remote-qa` and preserves the durable #303/T8 CI qualification rules while the canonical `SKILL.md` retains the newer production continuity/checkpoint bridges.

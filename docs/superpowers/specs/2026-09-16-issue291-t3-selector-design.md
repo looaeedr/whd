@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue291-t3-selector-design
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #291 T3 Part Selector / Navigation / Subtab Extraction — Design
 
 ## Identity and authority
