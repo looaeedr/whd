@@ -22,6 +22,28 @@ from phase6_fold_profiles import _num
 from phase6_part_navigation import is_box_body_physical_piece_key
 
 
+_PHASE6_BRIDGE_CALLBACKS = {}
+
+
+def _phase6_bind_bridge_callbacks(**callbacks):
+    """Register move-only bridge callbacks without importing the bridge."""
+    for name, callback in callbacks.items():
+        if callable(callback):
+            _PHASE6_BRIDGE_CALLBACKS[str(name)] = callback
+
+
+def _phase6_call_bridge(self, name, *args, **kwargs):
+    """Prefer an app-bound callback; preserve legacy facade callers via injected fallback."""
+    callback = getattr(self, str(name), None)
+    if callable(callback):
+        return callback(*args, **kwargs)
+    callback = _PHASE6_BRIDGE_CALLBACKS.get(str(name))
+    if callback is None:
+        raise AttributeError(f"manufacturing bridge callback is not wired: {name}")
+    return callback(self, *args, **kwargs)
+
+
+
 _PHASE6_ASSEMBLY_PLACEMENTS = {
     "box_body": "box_body",
     "head": "top",
@@ -1349,7 +1371,7 @@ def _phase6_resolve_manufacturing_geometry(self):
     for key in self.designer_workspace.available_parts:
         if key not in available:
             continue
-        payload = self._phase6_scene_query_payload_for_part(key)
+        payload = _phase6_call_bridge(self, "_phase6_scene_query_payload_for_part", key)
         # Solver base must be pre-dynamic-relief material. If solving is off,
         # display the current canonical committed relief directly.
         payload["_use_committed_relief"] = False
@@ -1361,7 +1383,7 @@ def _phase6_resolve_manufacturing_geometry(self):
         else:
             if getattr(render_data, "scene", None) is None or getattr(render_data, "material", None) is None:
                 raise TypeError("manufacturing render provider must return scene + material or physical pieces")
-            x_profile, y_profile = self._phase6_mesh_profiles_for_part(key, render_data.material)
+            x_profile, y_profile = _phase6_call_bridge(self, "_phase6_mesh_profiles_for_part", key, render_data.material)
         placement, offset = _phase6_assembly_placement_for_part(
             getattr(self, "_phase6_input_snapshot", {}) or {}, key
         )
@@ -1387,7 +1409,7 @@ def _phase6_resolve_manufacturing_geometry(self):
         body_part = next((part for part in parts if part.part_key == "box_body"), None)
         if body_part is not None:
             from ae_engine.assembly_collision import solve_world_backprojected_endcap_relief
-            dims = self._phase6_operator_finished_dimensions()
+            dims = _phase6_call_bridge(self, "_phase6_operator_finished_dimensions")
             snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
             settings = getattr(self, "_settings_values", {}) or {}
             thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
@@ -1438,14 +1460,14 @@ def _phase6_resolve_manufacturing_geometry(self):
             if atomic_committable:
                 # Publish both cuts as one canonical state update before any
                 # solved geometry is displayed.
-                self._phase6_publish_live_state(force=True)
+                _phase6_call_bridge(self, "_phase6_publish_live_state", force=True)
                 solved_parts = []
                 for part in parts:
                     if part.part_key not in required:
                         solved_parts.append(part)
                         continue
                     solution = solutions[part.part_key]
-                    replay_payload = self._phase6_scene_query_payload_for_part(part.part_key)
+                    replay_payload = _phase6_call_bridge(self, "_phase6_scene_query_payload_for_part", part.part_key)
                     replay_payload["_use_committed_relief"] = False
                     replay_payload["resolved_assembly_relief_cuts"] = tuple(
                         tuple((float(x), float(y)) for x, y in polygon)
@@ -1477,7 +1499,7 @@ def _phase6_resolve_manufacturing_geometry(self):
                     if part.part_key not in required:
                         canonical_parts.append(part)
                         continue
-                    payload = self._phase6_scene_query_payload_for_part(part.part_key)
+                    payload = _phase6_call_bridge(self, "_phase6_scene_query_payload_for_part", part.part_key)
                     payload["_use_committed_relief"] = True
                     canonical_render = callback(part.part_key, payload)
                     canonical_parts.append(AssemblyScenePart(
@@ -1501,7 +1523,7 @@ def _phase6_resolve_manufacturing_geometry(self):
         thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
         parts, divider_joint_diagnostics, family_divider_joints = _phase6_resolve_family_divider_reliefs(
             tuple(parts),
-            finished_dimensions=self._phase6_operator_finished_dimensions(),
+            finished_dimensions=_phase6_call_bridge(self, "_phase6_operator_finished_dimensions"),
             sheet_thickness=thickness,
             clearance=_phase6_assembly_relief_clearance(self),
         )
@@ -1521,7 +1543,7 @@ def _phase6_resolve_manufacturing_geometry(self):
         thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
         parts, explicit_joint_diagnostics, explicit_joint_state = _phase6_resolve_explicit_joint_reliefs(
             tuple(parts), joints,
-            finished_dimensions=self._phase6_operator_finished_dimensions(),
+            finished_dimensions=_phase6_call_bridge(self, "_phase6_operator_finished_dimensions"),
             sheet_thickness=thickness,
             clearance=_phase6_assembly_relief_clearance(self),
             committed_state=snapshot.get("joint_relief_state"),
