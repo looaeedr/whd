@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 env:
-  CANDIDATE_SHA: 3db24241c8ff5b76b164690e03427aa2e20b8f88
+  CANDIDATE_SHA: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
   PRODUCTION_SHA: cfa1e0540ef3414913d4c5f402f4cf0fa5d727b1
   PYTHONPATH: .
   MPLBACKEND: Agg
@@ -292,3 +292,4 @@ jobs:
           PY
 
 # explicit valid-workflow trigger
+# rerun on refreshed final candidate
