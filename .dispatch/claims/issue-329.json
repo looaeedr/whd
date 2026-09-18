@@ -6,19 +6,25 @@
   "claimed_at": "2026-09-18T00:56:30Z",
   "base_sha": "7de32d6c53864ae48b276d4817f4a00e3baaa846",
   "head_sha": "9bb235918801a5917959d7e4237076573bac3f8f",
-  "phase": "REMOTE_QA",
-  "state": "RUNNING",
-  "last_update": "2026-09-18T04:16:00Z",
+  "phase": "COMPLETED",
+  "state": "TERMINAL_SUCCESS",
+  "last_update": "2026-09-18T04:18:00Z",
   "remote_qa": {
     "run_id": 35306244611,
     "head_sha": "55156128f8c9cb4e51900b07434868d6804f00ed",
-    "status": "in_progress",
-    "purpose": "issue #329 owning finalization guard + proof + close/readback"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "issue #329 owning finalization guard + proof + close/readback",
+    "artifact_id": 10531880432,
+    "result": "FINALIZATION_GUARD_PASS + FINALIZATION_PROOF_VALID; issue readback closed/completed"
   },
-  "next_action": "poll exact run 35306244611 to terminal; on success read back issue #329 closed/completed and cleanup QA branch",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-329.json",
   "production_target": "cleanup/2d-3d-sync",
   "production_head": "84fee5f25b55c4bdd648aa3947a68357124ed685",
-  "pr": 330
+  "pr": 330,
+  "final_issue_state": "closed",
+  "final_issue_state_reason": "completed",
+  "finalization_workflow_cleanup_commit": "623caab56ae73ecd2d524534270b1b60bb574c69"
 }
