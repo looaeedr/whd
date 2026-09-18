@@ -174,3 +174,5 @@ def test_issue358_resolve_for_app_keeps_signature_first_cache_hit_before_request
     )
 
     assert adapter.resolve_manufacturing_for_app(app) is cached
+
+# issue358 T4 GREEN trigger
