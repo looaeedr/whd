@@ -50,5 +50,12 @@ def test_door_input_collection_does_not_invent_missing_topology():
 
 def test_gui_routes_door_payload_collection_through_panel_boundary():
     text = GUI.read_text(encoding="utf-8")
-    assert "from gui_modules.parts.panels.door import collect_door_input" in text
+    tree = ast.parse(text)
+    imported = {
+        (node.module, alias.name)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert ("gui_modules.parts.panels.door", "collect_door_input") in imported
     assert "collect_door_input(" in text

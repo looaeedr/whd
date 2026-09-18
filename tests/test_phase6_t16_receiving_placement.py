@@ -164,9 +164,14 @@ def test_receiving_family_coordinate_contract_exposes_front_skin_door_plane_and_
 
 def test_2d_receiving_overlay_consumes_authoritative_placement_not_local_50px_offsets():
     import inspect
-    import gui
+    from gui_modules.application import render_snapshots
+    from gui_modules.rendering import door_view
 
-    source = inspect.getsource(gui.BoxCalculatorGUI._draw_door_layout_dividers_and_frames)
-    assert "resolve_assembly_placement" in source
-    assert "inset_px = 50.0 * scale" not in source
-    assert "world_to_canvas" in source
+    snapshot_source = inspect.getsource(render_snapshots.door_layout_divider_frame_snapshot)
+    divider_view = inspect.getsource(door_view._draw_door_layout_divider_payload)
+    frame_view = inspect.getsource(door_view._draw_door_layout_frame_payload)
+    render_source = divider_view + frame_view
+    assert "resolve_assembly_placement" in snapshot_source
+    assert "world_offset" in snapshot_source
+    assert "inset_px = 50.0 * scale" not in snapshot_source + render_source
+    assert "_door_layout_world_to_canvas" in render_source

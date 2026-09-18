@@ -4,6 +4,7 @@ from types import SimpleNamespace
 import gui
 import fold_designer_bridge as bridge
 from gui_modules.layout import workspace as layout_workspace
+from gui_modules.rendering import interaction as render_interaction
 
 
 def _source(obj):
@@ -108,12 +109,14 @@ def test_t7_corner_data_refresh_is_exposed_as_view_only_designer_method():
 
 
 def test_t7_legacy_draw_dispatch_is_not_a_navigation_authority():
-    src = _source(gui.BoxCalculatorGUI.draw_preview)
+    route_src = _source(gui.BoxCalculatorGUI.draw_preview)
+    owner_src = _source(render_interaction.draw_preview)
     for forbidden in (
         'self.notebook', 'tab_z', 'tab_head', 'tab_tail', 'tab_door',
         'tab_base_plate', 'draw_box_body(', 'draw_end_cap(', 'draw_door(',
         'draw_base_plate(',
     ):
-        assert forbidden not in src
-    assert 'fold_designer_app' in src
-    assert '_phase6_refresh_corner_data_unfold_view' in src
+        assert forbidden not in route_src + owner_src
+    assert '_draw_preview_route_impl' in route_src
+    assert 'fold_designer_app' in owner_src
+    assert '_phase6_refresh_corner_data_unfold_view' in owner_src
