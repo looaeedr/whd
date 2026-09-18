@@ -346,17 +346,17 @@ from gui_modules.parts.panels.common import (
     toggle_advanced_panel as _toggle_advanced_panel_impl,
 )
 
-from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as __attach_part_hole_entrypoint_impl
+from gui_modules.parts.panels.common import _attach_part_hole_entrypoint as _attach_part_hole_entrypoint_impl
 from gui_modules.parts.panels.door import (
-    _parse_layout_value as __parse_layout_value_impl,
-    _reject_door_layout_dimension as __reject_door_layout_dimension_impl,
+    _parse_layout_value as _parse_layout_value_impl,
+    _reject_door_layout_dimension as _reject_door_layout_dimension_impl,
     rebuild_door_layout_ui as _rebuild_door_layout_ui_impl,
     refresh_door_layout_status as _refresh_door_layout_status_impl,
     setup_tab_door_ui as _setup_tab_door_ui_impl,
 )
 from gui_modules.parts.panels.indicator_box import (
     setup_tab_indicator_box_ui as _setup_tab_indicator_box_ui_impl,
-    _indicator_small_door_size_chain_label as __indicator_small_door_size_chain_label_impl,
+    _indicator_small_door_size_chain_label as _indicator_small_door_size_chain_label_impl,
     setup_tab_indicator_door_ui as _setup_tab_indicator_door_ui_impl,
     rebuild_layers_config_ui as _rebuild_layers_config_ui_impl,
 )
@@ -1301,7 +1301,7 @@ class Phase6ApplicationHost:
         return render_data
 
     def _attach_part_hole_entrypoint(self, canvas, part_key, *, allow_double=True):
-        return __attach_part_hole_entrypoint_impl(self, canvas, part_key, allow_double=allow_double)
+        return _attach_part_hole_entrypoint_impl(self, canvas, part_key, allow_double=allow_double)
 
     def setup_tab_endcap_ui(self, tab_frame, key):
         return _setup_tab_endcap_ui_impl(self, tab_frame, key)
@@ -1357,7 +1357,7 @@ class Phase6ApplicationHost:
 
     @staticmethod
     def _parse_layout_value(var, label):
-        return __parse_layout_value_impl(var, label)
+        return _parse_layout_value_impl(var, label)
 
     def _recompute_column_height_remainder(self, column, column_index, total_height):
         fixed = []
@@ -1520,7 +1520,7 @@ class Phase6ApplicationHost:
         self._on_door_layout_value_changed()
 
     def _reject_door_layout_dimension(self, var, previous_value, message):
-        return __reject_door_layout_dimension_impl(self, var, previous_value, message)
+        return _reject_door_layout_dimension_impl(self, var, previous_value, message)
 
     def commit_door_layout_width(self, column_index):
         column = self.door_layout_columns[column_index]
@@ -2235,7 +2235,7 @@ class Phase6ApplicationHost:
         return self.draw_preview()
 
     def _indicator_small_door_size_chain_label(self):
-        return __indicator_small_door_size_chain_label_impl(self)
+        return _indicator_small_door_size_chain_label_impl(self)
 
     def setup_tab_indicator_door_ui(self):
         return _setup_tab_indicator_door_ui_impl(self)
