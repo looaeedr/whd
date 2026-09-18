@@ -4624,7 +4624,7 @@ def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
 
 def _phase6_form_choice(parent, variable, choices, *, width=18):
     display_var = original.tk.StringVar(master=parent, value=_phase6_operator_label(variable.get()))
-    button = original.ttk.Menubutton(parent, textvariable=display_var, width=width)
+    button = original.ttk.Menubutton(parent, textvariable=display_var, width=width, style="Selector.TMenubutton")
     menu = configure_tk_menu(original.tk.Menu(button, tearoff=False))
 
     def choose(raw):
@@ -5219,7 +5219,7 @@ def _phase6_open_relief_registry_form(self):
     ):
         original.ttk.Button(actions,text=text,command=cmd).pack(side=original.tk.LEFT,padx=2)
     self.relief_registry_save_candidate_button = next((w for w in actions.winfo_children() if str(w.cget("text"))=="儲存候選"), None)
-    self.relief_registry_promote_button=original.ttk.Button(actions,text="認證新版次",command=lambda:_phase6_registry_promote_form(self))
+    self.relief_registry_promote_button=original.ttk.Button(actions,text="認證新版次",command=lambda:_phase6_registry_promote_form(self),style="Primary.TButton")
     self.relief_registry_promote_button.pack(side=original.tk.LEFT,padx=2)
     original.ttk.Label(form,textvariable=self.relief_registry_status_var,foreground="#333").grid(row=row,column=0,columnspan=4,sticky="w",pady=(4,0))
     for col in (1,3): form.columnconfigure(col,weight=1)
@@ -5269,7 +5269,7 @@ def _phase6_build_project_toolbar(self, parent=None):
     parent = parent or self.left
     self.project_toolbar = original.ttk.Frame(parent)
     self.project_toolbar.pack(side=original.tk.LEFT, padx=(0, 8))
-    self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼")
+    self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼", style="Secondary.TMenubutton")
     self.project_file_menu = configure_tk_menu(original.tk.Menu(self.project_file_button, tearoff=False))
     self.project_file_menu.add_command(label="開啟", command=self.load_project_file)
     self.project_file_menu.add_command(label="儲存", command=self.save_project_file)
@@ -5277,7 +5277,7 @@ def _phase6_build_project_toolbar(self, parent=None):
     self.project_file_button.configure(menu=self.project_file_menu)
     self.project_file_button.pack(side=original.tk.LEFT)
     self.relief_registry_button = original.ttk.Button(
-        self.project_toolbar, text="截角資料庫", command=lambda: _phase6_open_relief_registry_form(self)
+        self.project_toolbar, text="截角資料庫", command=lambda: _phase6_open_relief_registry_form(self), style="Secondary.TButton"
     )
     self.relief_registry_button.pack(side=original.tk.LEFT, padx=(6, 0))
 
@@ -5291,7 +5291,7 @@ def _phase6_build_transaction_buttons(self, parent=None):
     self.transaction_buttons.pack(side=original.tk.RIGHT)
     self.transaction_buttons.columnconfigure(0, weight=1)
     self.reset_initial_button = original.ttk.Button(
-        self.transaction_buttons, text="還原初始值", command=self.reset_initial_values
+        self.transaction_buttons, text="還原初始值", command=self.reset_initial_values, style="Secondary.TButton"
     )
     self.reset_initial_button.grid(row=0, column=0, sticky="ew")
 
@@ -5402,6 +5402,7 @@ def _phase6_build_global_persistent_controls(self):
         host,
         text="參數鎖定",
         command=lambda: _phase6_toggle_parameter_panel(self),
+        style="Secondary.TButton",
     )
     self.parameter_lock_button.grid(row=0, column=3, sticky="ew", padx=2, pady=2)
 
@@ -5545,6 +5546,7 @@ def _phase6_build_output_controls(self, parent=None):
         self.output_controls_frame,
         text="輸出選取的 DXF 檔案",
         command=lambda: _phase6_export_selected_dxf_from_3d(self),
+        style="Primary.TButton",
     )
     self.output_export_button.pack(side=original.tk.LEFT, padx=(4, 0))
 
@@ -5608,6 +5610,7 @@ def _phase6_build_persistent_top_area(self):
         self.right_controls_primary,
         text="全螢幕",
         command=lambda: _phase6_toggle_fullscreen(self),
+        style="Secondary.TButton",
     )
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
     self.right_global_host.pack(fill=original.tk.X, pady=(4, 0))
@@ -8679,7 +8682,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # The compact sheet-metal menu and the Structure Tree are two presentation
     # projections of the same authoritative part_var / workspace callbacks.
     # Keep the existing menu visible; do not create a second state owner.
-    self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var)
+    self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var, style="Selector.TMenubutton")
     self.part_choice_menu = configure_tk_menu(original.tk.Menu(self.part_choice_button, tearoff=False))
     self.part_choice_button.configure(menu=self.part_choice_menu)
     self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
@@ -8735,12 +8738,12 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     self.part_action_row = original.ttk.Frame(self.part_selector)
     self.part_action_row.pack(fill=original.tk.X, pady=(0, 4))
-    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼")
+    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼", style="Secondary.TMenubutton")
     self.add_part_menu = configure_tk_menu(original.tk.Menu(self.add_part_button, tearoff=False))
     self.add_part_button.configure(menu=self.add_part_menu)
     self.add_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 2))
     self.remove_part_button = original.ttk.Button(
-        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled"
+        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled", style="Secondary.TButton"
     )
     self.remove_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(2, 0))
 
@@ -8866,14 +8869,17 @@ def _phase6_build_content_switch(self):
     self.input_content_button = original.ttk.Button(
         self.content_switch_frame, text="輸入區",
         command=lambda: _phase6_show_input_content(self),
+        style="Secondary.TButton",
     )
     self.assembly_content_button = original.ttk.Button(
         self.content_switch_frame, text="組合體",
         command=lambda: _phase6_show_assembly(self),
+        style="Secondary.TButton",
     )
     self.corner_data_content_button = original.ttk.Button(
         self.content_switch_frame, text="截角資料",
         command=lambda: _phase6_show_corner_data(self),
+        style="Secondary.TButton",
     )
     for button in (
         self.input_content_button,

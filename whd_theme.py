@@ -55,11 +55,35 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
 
     style.configure("TFrame", background=colors["panel"])
     style.configure("TLabel", background=colors["panel"], foreground=colors["text"])
-    style.configure("TButton", background=colors["panel"], foreground=colors["text"], padding=(8, padding_y))
+    style.configure(
+        "TButton",
+        background=colors["panel"], foreground=colors["text"],
+        padding=(8, padding_y), borderwidth=1, relief="raised",
+    )
     style.map(
         "TButton",
-        background=[("pressed", colors["action"]), ("active", colors["action"])],
-        foreground=[("disabled", colors["muted_text"]), ("active", "#ffffff")],
+        background=[("disabled", colors["background"]), ("pressed", colors["background"]), ("active", colors["input"])],
+        foreground=[("disabled", colors["muted_text"]), ("active", colors["text"])],
+    )
+    style.configure(
+        "Secondary.TButton",
+        background=colors["panel"], foreground=colors["text"],
+        padding=(8, padding_y), borderwidth=1, relief="raised",
+    )
+    style.map(
+        "Secondary.TButton",
+        background=[("disabled", colors["background"]), ("pressed", colors["background"]), ("active", colors["input"])],
+        foreground=[("disabled", colors["muted_text"]), ("active", colors["text"])],
+    )
+    style.configure(
+        "Primary.TButton",
+        background=colors["action"], foreground="#ffffff",
+        padding=(10, padding_y), borderwidth=1, relief="raised",
+    )
+    style.map(
+        "Primary.TButton",
+        background=[("disabled", colors["panel"]), ("pressed", "#0060df"), ("active", "#409cff")],
+        foreground=[("disabled", colors["muted_text"]), ("pressed", "#ffffff"), ("active", "#ffffff")],
     )
     for widget_style in ("TCheckbutton", "TRadiobutton"):
         style.configure(widget_style, background=colors["panel"], foreground=colors["text"])
@@ -75,11 +99,34 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
         foreground=colors["text"],
         background=colors["input"],
         insertcolor=colors["text"],
+        borderwidth=1,
+        relief="sunken",
     )
     style.map(
         "TEntry",
-        fieldbackground=[("readonly", colors["input"]), ("disabled", colors["panel"])],
+        fieldbackground=[("readonly", colors["panel"]), ("disabled", colors["background"])],
         foreground=[("disabled", colors["muted_text"]), ("readonly", colors["text"])],
+        bordercolor=[("focus", colors["action"])],
+    )
+    style.configure("Editable.TEntry",
+        fieldbackground=colors["input"], foreground=colors["text"],
+        background=colors["input"], insertcolor=colors["text"],
+        borderwidth=1, relief="sunken",
+    )
+    style.map(
+        "Editable.TEntry",
+        fieldbackground=[("disabled", colors["background"])],
+        foreground=[("disabled", colors["muted_text"])],
+        bordercolor=[("focus", colors["action"])],
+    )
+    style.configure("Readonly.TEntry",
+        fieldbackground=colors["panel"], foreground=colors["text"],
+        background=colors["panel"], borderwidth=1, relief="flat",
+    )
+    style.map(
+        "Readonly.TEntry",
+        foreground=[("disabled", colors["muted_text"])],
+        bordercolor=[("focus", colors["action"])],
     )
     style.configure(
         "TCombobox",
@@ -92,7 +139,7 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
     )
     style.map(
         "TCombobox",
-        fieldbackground=[("readonly", colors["input"]), ("disabled", colors["panel"])],
+        fieldbackground=[("readonly", colors["panel"]), ("disabled", colors["background"])],
         foreground=[("disabled", colors["muted_text"]), ("readonly", colors["text"])],
         arrowcolor=[("disabled", colors["muted_text"])],
     )
@@ -102,11 +149,38 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
         foreground=colors["text"],
         arrowcolor=colors["text"],
         padding=(8, padding_y),
+        borderwidth=1,
+        relief="raised",
     )
     style.map(
         "TMenubutton",
-        background=[("active", colors["input"]), ("pressed", colors["input"])],
+        background=[("disabled", colors["background"]), ("pressed", colors["background"]), ("active", colors["input"])],
         foreground=[("disabled", colors["muted_text"])],
+        arrowcolor=[("disabled", colors["muted_text"])],
+    )
+    style.configure(
+        "Secondary.TMenubutton",
+        background=colors["panel"], foreground=colors["text"],
+        arrowcolor=colors["text"], padding=(8, padding_y),
+        borderwidth=1, relief="raised",
+    )
+    style.map(
+        "Secondary.TMenubutton",
+        background=[("disabled", colors["background"]), ("pressed", colors["background"]), ("active", colors["input"])],
+        foreground=[("disabled", colors["muted_text"])],
+        arrowcolor=[("disabled", colors["muted_text"])],
+    )
+    style.configure(
+        "Selector.TMenubutton",
+        background=colors["input"], foreground=colors["text"],
+        arrowcolor=colors["action"], padding=(8, padding_y),
+        borderwidth=1, relief="sunken",
+    )
+    style.map(
+        "Selector.TMenubutton",
+        background=[("disabled", colors["panel"]), ("pressed", colors["background"]), ("active", colors["panel"])],
+        foreground=[("disabled", colors["muted_text"])],
+        arrowcolor=[("disabled", colors["muted_text"]), ("active", colors["action"])],
     )
 
     style.configure(

@@ -135,7 +135,7 @@ def build_choice_menubutton(
     在焦點切換時把其他 readonly Combobox 的文字畫成空白。每一次選單操作都
     直接走 command；數值 Source of Truth 仍是呼叫端傳入的 Tk variable。
     """
-    kwargs = {"textvariable": variable, "state": state, "takefocus": True}
+    kwargs = {"textvariable": variable, "state": state, "takefocus": True, "style": "Selector.TMenubutton"}
     if width is not None:
         kwargs["width"] = width
     button = ttk.Menubutton(parent, **kwargs)
@@ -260,7 +260,7 @@ class Phase6SettingsPanel:
             cell.grid(row=1, column=col, sticky="ew", padx=2, pady=2)
             cell.columnconfigure(1, weight=1)
             ttk.Label(cell, text=label).grid(row=0, column=0, sticky="w", padx=(0, 4))
-            entry = ttk.Entry(cell, textvariable=self.left_global_vars[key], width=6, justify=tk.CENTER)
+            entry = ttk.Entry(cell, textvariable=self.left_global_vars[key], width=6, justify=tk.CENTER, style="Editable.TEntry")
             entry.grid(row=0, column=1, sticky="ew")
             ttk.Label(cell, text="mm").grid(row=0, column=2, sticky="w", padx=(4, 0))
             entry.bind("<Return>", lambda _e: self._flush_settings())
@@ -283,6 +283,7 @@ class Phase6SettingsPanel:
         self.save_global_settings_button = ttk.Button(
             self.left_global_controls,
             text="儲存預設值",
+            style="Primary.TButton",
             command=lambda: self._save_defaults(GLOBAL_CONTEXT),
         )
         self.save_global_settings_button.grid(row=0, column=4, sticky="ew", padx=2, pady=2)
@@ -451,6 +452,7 @@ class Phase6SettingsPanel:
         self.save_settings_button = ttk.Button(
             footer,
             text="儲存此板件為預設值",
+            style="Primary.TButton",
             command=self.save_current_settings_as_defaults,
         )
         self.save_settings_button.pack(side=tk.RIGHT)
@@ -475,7 +477,7 @@ class Phase6SettingsPanel:
             )
         else:
             var = tk.StringVar(master=cell, value=setting_number_text(value))
-            widget = ttk.Entry(cell, textvariable=var, width=9, justify=tk.CENTER)
+            widget = ttk.Entry(cell, textvariable=var, width=9, justify=tk.CENTER, style="Editable.TEntry")
             widget.bind("<Return>", lambda _e: self._flush_settings())
             widget.bind("<FocusOut>", lambda _e: self._flush_settings())
         widget.pack(fill=tk.X)
@@ -509,7 +511,7 @@ class Phase6SettingsPanel:
             unit_text = ""
         else:
             var = tk.StringVar(master=row_frame, value=setting_number_text(value))
-            widget = ttk.Entry(row_frame, textvariable=var, width=9, justify=tk.CENTER)
+            widget = ttk.Entry(row_frame, textvariable=var, width=9, justify=tk.CENTER, style="Editable.TEntry")
             widget.bind("<Return>", lambda _e: self._flush_settings())
             widget.bind("<FocusOut>", lambda _e: self._flush_settings())
             unit_text = "mm"
@@ -591,6 +593,7 @@ class Phase6SettingsPanel:
                 baseline_data_toggle = ttk.Button(
                     page_frame,
                     text="▶ 基準檔開孔資料",
+                    style="Secondary.TButton",
                     command=self.toggle_baseline_data,
                 )
                 baseline_data_toggle.grid(row=next_row, column=0, columnspan=5, sticky="w", padx=3, pady=(7, 2))
