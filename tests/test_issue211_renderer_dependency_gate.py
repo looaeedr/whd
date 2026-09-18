@@ -2,6 +2,8 @@ from pathlib import Path
 from types import SimpleNamespace
 import ast
 
+import gui_modules.render_2d as render_2d
+
 from ae_engine.sheetmetal_geometry import Vec2
 from ae_engine.sheetmetal_features import ResolvedCircle, ResolvedRect, ResolvedProfile
 from ae_engine.sheetmetal_drawing import CirclePrimitive, LinePrimitive, PolylinePrimitive
@@ -43,7 +45,7 @@ def test_behavior_draw_grid_preserves_current_canvas_contract():
     import gui
 
     canvas = RecordingCanvas()
-    gui.Phase6ApplicationHost.draw_grid(object(), canvas, 100, 90, tags=("grid",))
+    render_2d.draw_grid(object(), canvas, 100, 90, tags=("grid",))
 
     assert [name for name, _, _ in canvas.calls] == ["line"] * 6
     assert canvas.calls[0][1] == (0, 0, 0, 90)
@@ -71,7 +73,7 @@ def test_behavior_resolved_feature_projection_preserves_current_primitives():
     )
     canvas = RecordingCanvas()
 
-    gui.Phase6ApplicationHost._draw_layout_resolved_features(
+    render_2d._draw_layout_resolved_features(
         canvas, (circle, rect, profile), 20.0, 10.0, (0.0, 0.0, 200.0, 100.0), "cell",
     )
 
@@ -107,7 +109,7 @@ def test_behavior_baseline_secondary_skips_primary_outline_and_bend_layers():
     scene = SimpleNamespace(primitives=(outline, marking, bend, hole))
     canvas = RecordingCanvas()
 
-    gui.Phase6ApplicationHost._draw_layout_baseline_secondary(
+    render_2d._draw_layout_baseline_secondary(
         canvas, scene, 20.0, 10.0, (0.0, 0.0, 200.0, 100.0), "baseline",
     )
 
