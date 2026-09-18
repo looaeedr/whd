@@ -29,4 +29,3 @@ def test_issue349_explicit_joint_relief_solver_has_one_canonical_owner():
             reverse.append(node.module)
     assert reverse == []
 
-# issue349 T4 RED trigger
