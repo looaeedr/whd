@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
+APP = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 DOOR_VIEW = ROOT / "gui_modules" / "rendering" / "door_view.py"
 
 
@@ -53,17 +54,16 @@ def test_task4b_single_door_and_base_plate_entrypoints_are_thin():
     )
 
 
-def test_task4b_root_keeps_authority_snapshot_builders():
-    source, methods = _host_methods()
-    required = {
-        "_single_door_render_snapshot",
-        "_base_plate_render_snapshot",
+def test_task4b_application_snapshot_helpers_call_host_authority():
+    source = APP.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-    missing = sorted(required - set(methods))
-    assert not missing, f"T6 TASK4B RED: authority snapshot builders missing: {missing}"
-
-    door_src = ast.get_source_segment(source, methods["_single_door_render_snapshot"]) or ""
-    base_src = ast.get_source_segment(source, methods["_base_plate_render_snapshot"]) or ""
+    door_src = ast.get_source_segment(source, functions["single_door_render_snapshot"]) or ""
+    base_src = ast.get_source_segment(source, functions["base_plate_render_snapshot"]) or ""
 
     for token in (
         "_single_door_part_spec",
@@ -78,8 +78,6 @@ def test_task4b_root_keeps_authority_snapshot_builders():
         "_manufacturing_context",
     ):
         assert token in base_src
-
-
 def test_task4b_door_view_stays_presentation_only():
     source = DOOR_VIEW.read_text(encoding="utf-8")
     tree = ast.parse(source)
