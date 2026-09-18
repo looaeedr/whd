@@ -1,0 +1,68 @@
+name: QA Issue 329 UI UX Pro Max Skill
+
+on:
+  push:
+    branches:
+      - skill/issue329-ui-ux-pro-max-20260918
+    paths:
+      - '.agents/skills/engineering/UI設計與去AI味/SKILL.md'
+      - '.agents/skills/skill_registry.json'
+      - 'tests/test_ui_design_de_ai_skill_contract.py'
+      - '個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md'
+      - 'docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md'
+      - '.github/workflows/qa-issue329-uiux-skill.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact QA head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install --disable-pip-version-check -q pytest
+
+      - name: Run focused UI and Skill governance contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_ui_design_de_ai_skill_contract.py \
+            tests/test_writing_skill_contract.py \
+            tests/test_writing_skill_preflight_route.py \
+            tests/test_chinese_skill_identity_contract.py \
+            tests/test_find_skill_contract.py \
+            tests/knowledge/test_active_skill_runtime_contract.py
+
+      - name: Run changed-file Phase6 Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue 329 UI UX Pro Max skill integration" \
+            --changed-file ".agents/skills/engineering/UI設計與去AI味/SKILL.md" \
+            --changed-file ".agents/skills/skill_registry.json" \
+            --changed-file "tests/test_ui_design_de_ai_skill_contract.py" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" \
+            --changed-file "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md" \
+            --changed-file ".github/workflows/qa-issue329-uiux-skill.yml" \
+            --evidence "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md"
+
+      - name: Verify exact head identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git status --short

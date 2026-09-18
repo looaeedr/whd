@@ -13,10 +13,15 @@
 REQUIRED_SKILL: UI設計與去AI味
 REQUIRED_SKILL: 寫技能
 REQUIRED_SKILL: phase6-release-packaging
+REQUIRED_SKILL: monitoring-remote-qa
+REQUIRED_SKILL: long-log-context-safe-execution
+REQUIRED_SKILL: executable-continuity-controller
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
 READ_REFERENCE: release_required_artifacts.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
 
 ## RED
 
@@ -36,4 +41,4 @@ Do not create a competing `ui-ux-pro-max` CURRENT skill. Integrate it as capabil
 
 ## Verification
 
-Pending after this implementation commit. Completion requires remote re-read plus executable contract/gate evidence; file write alone is not acceptance.
+Focused remote QA will execute the UI contract, Skill-authoring/governance guards, and changed-file Phase6 Knowledge Preflight against the exact QA head. The one-shot workflow is temporary and must be removed after terminal evidence; file write alone is not acceptance.
