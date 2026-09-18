@@ -213,6 +213,8 @@ from gui_modules.rendering import (
     draw_indicator_door_preview as _draw_indicator_door_preview_impl,
     draw_single_door_preview as _draw_single_door_preview_impl,
     draw_base_plate_preview as _draw_base_plate_preview_impl,
+    draw_door_layout_error as _draw_door_layout_error_impl,
+    draw_door_layout_overview_preview as _draw_door_layout_overview_preview_impl,
 )
 
 
@@ -3135,22 +3137,7 @@ class Phase6ApplicationHost:
             ),
         )
 
-    def draw_door_layout_overview(self, *, canvas=None, render_data_by_part_key=None):
-        """Draw the whole Door partition; dimensions are editable around the cells, cells only show holes."""
-        if canvas is None:
-            self._sync_door_canvas_double_click_binding()
-            canvas = self.canvas_door
-        self._destroy_door_layout_entry_widgets()
-        canvas.delete("all")
-        self.door_layout_cell_items = {}
-        self.door_layout_cell_bounds = {}
-
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
-        self.draw_grid(canvas, cw, ch)
-
+    def _door_layout_overview_snapshot(self, render_data_by_part_key=None):
         try:
             total_w = float(self.w_var.get())
             total_h = float(self.h_var.get())
@@ -3158,133 +3145,63 @@ class Phase6ApplicationHost:
             cells = self.get_door_layout_cells()
             val = self.get_float_values()
         except Exception as exc:
-            canvas.create_text(
-                cw / 2, ch / 2, text=f"多門配置無效:\n{exc}", fill="#ff9f0a",
-                font=('Microsoft JhengHei', 11, 'bold'), width=max(240, cw - 80),
-            )
-            return
+            return {"error": exc}
 
-        # Extra top/left space is only for direct dimension Entry widgets, not a separate panel.
-        left_margin, right_margin = 58.0, 24.0
-        top_margin, bottom_margin = 48.0, 24.0
-        avail_w = max(1.0, cw - left_margin - right_margin)
-        avail_h = max(1.0, ch - top_margin - bottom_margin)
-        scale = min(avail_w / total_w, avail_h / total_h)
-        draw_w = total_w * scale
-        draw_h = total_h * scale
-        x0 = left_margin + (avail_w - draw_w) / 2.0
-        y0 = top_margin + (avail_h - draw_h) / 2.0
-        selected_key = self.door_layout_selected_var.get()
-
-        cell_map = {(cell.column_index, cell.row_index): cell for cell in cells}
-        x_cursor = x0
-        for column_index, (column_w, heights) in enumerate(columns):
-            col_px = column_w * scale
-            column = self.door_layout_columns[column_index]
-            width_entry = tk.Entry(
-                canvas, textvariable=column["width_var"], width=9,
-                bg=self.COLOR_INPUT_BG,
-                fg="#30d158" if column.get("width_auto") else self.COLOR_TEXT,
-                insertbackground=self.COLOR_TEXT, font=('Consolas', 13, 'bold'), justify=tk.CENTER,
-                bd=1, relief=tk.SOLID,
-            )
-            width_entry.bind("<FocusOut>", lambda e, c=column_index: self.commit_door_layout_width(c))
-            width_entry.bind("<Return>", lambda e, c=column_index: self.commit_door_layout_width(c))
-            self._door_layout_entry_menu(width_entry, column_index=column_index)
-            win = canvas.create_window(x_cursor + col_px / 2.0, y0 - 24, window=width_entry, anchor=tk.CENTER,
-                                       tags=("door_layout_dimension", "door_layout_width_entry"))
-            self.door_layout_width_entries[column_index] = width_entry
-            self.door_layout_entry_windows.append(win)
-
-            y_cursor = y0
-            for row_index, segment_h in enumerate(heights):
-                row_px = segment_h * scale
-                x1, y1 = x_cursor, y_cursor
-                x2, y2 = x_cursor + col_px, y_cursor + row_px
-                key = f"{column_index}:{row_index}"
-                selected = key == selected_key
-                outline = self.COLOR_ACCENT if selected else "#30d158"
-                width = 3 if selected else 2
-                tag = f"door_layout_cell_{column_index}_{row_index}"
-                rect = canvas.create_rectangle(
-                    x1, y1, x2, y2, outline=outline, width=width,
-                    tags=("door_layout_cell", tag),
-                )
-                self.door_layout_cell_items[key] = rect
-                self.door_layout_cell_bounds[key] = (x1, y1, x2, y2)
-
-                height_entry = tk.Entry(
-                    canvas, textvariable=column["height_vars"][row_index], width=9,
-                    bg=self.COLOR_INPUT_BG,
-                    fg="#30d158" if column["height_auto"][row_index] else self.COLOR_TEXT,
-                    insertbackground=self.COLOR_TEXT, font=('Consolas', 13, 'bold'), justify=tk.CENTER,
-                    bd=1, relief=tk.SOLID,
-                )
-                height_entry.bind("<FocusOut>", lambda e, c=column_index, r=row_index: self.commit_door_layout_height(c, r))
-                height_entry.bind("<Return>", lambda e, c=column_index, r=row_index: self.commit_door_layout_height(c, r))
-                self._door_layout_entry_menu(height_entry, column_index=column_index, row_index=row_index)
-                # Keep the dimension control on the edge so the cell interior remains available for holes.
-                hwin = canvas.create_window(x1 + 4, (y1 + y2) / 2.0, window=height_entry, anchor=tk.W,
-                                            tags=("door_layout_dimension", "door_layout_height_entry"))
-                self.door_layout_height_entries[(column_index, row_index)] = height_entry
-                self.door_layout_entry_windows.append(hwin)
-
-                cell = cell_map[(column_index, row_index)]
-                if render_data_by_part_key is None:
-                    result = self._door_layout_cell_result(cell, val)
-                    baseline_scene, _baseline_status = self._door_layout_baseline_scene(cell, val)
-                    self._draw_layout_baseline_secondary(
-                        canvas, baseline_scene, result.width, result.height, (x1, y1, x2, y2),
-                        f"door_layout_baseline_{column_index}_{row_index}",
-                    )
-                    resolved = self._door_layout_cell_resolved_features(cell, result, key)
-                    self._draw_layout_resolved_features(
-                        canvas, resolved, result.width, result.height, (x1, y1, x2, y2),
-                        f"door_layout_feature_{column_index}_{row_index}",
-                    )
+        cell_payloads = {}
+        for cell in cells:
+            column_index = int(cell.column_index)
+            row_index = int(cell.row_index)
+            key = f"{column_index}:{row_index}"
+            if render_data_by_part_key is None:
+                result = self._door_layout_cell_result(cell, val)
+                baseline_scene, _baseline_status = self._door_layout_baseline_scene(cell, val)
+                resolved = self._door_layout_cell_resolved_features(cell, result, key)
+                cell_payloads[(column_index, row_index)] = {
+                    "mode": "local",
+                    "scene": baseline_scene,
+                    "resolved": resolved,
+                    "width": float(result.width),
+                    "height": float(result.height),
+                }
+            else:
+                stable_key = f"door_c{column_index + 1}_r{row_index + 1}"
+                peer_render_data = render_data_by_part_key.get(stable_key)
+                material = getattr(peer_render_data, "material", None)
+                scene = getattr(peer_render_data, "scene", None)
+                if (
+                    material is not None
+                    and scene is not None
+                    and not bool(getattr(material, "is_empty", False))
+                ):
+                    minx, miny, maxx, maxy = (float(v) for v in material.bounds)
+                    cell_payloads[(column_index, row_index)] = {
+                        "mode": "peer",
+                        "scene": scene,
+                        "width": max(maxx - minx, 1e-9),
+                        "height": max(maxy - miny, 1e-9),
+                    }
                 else:
-                    stable_key = f"door_c{column_index + 1}_r{row_index + 1}"
-                    peer_render_data = render_data_by_part_key.get(stable_key)
-                    material = getattr(peer_render_data, "material", None)
-                    scene = getattr(peer_render_data, "scene", None)
-                    if (
-                        material is not None
-                        and scene is not None
-                        and not bool(getattr(material, "is_empty", False))
-                    ):
-                        minx, miny, maxx, maxy = (float(v) for v in material.bounds)
-                        blank_w = max(maxx - minx, 1e-9)
-                        blank_h = max(maxy - miny, 1e-9)
-                        self._draw_layout_baseline_secondary(
-                            canvas, scene, blank_w, blank_h, (x1, y1, x2, y2),
-                            f"corner_data_door_{column_index}_{row_index}",
-                        )
-
-                # Mouse interaction is handled by canvas-level coordinate hit-testing so the
-                # whole cell interior is clickable even though the rectangle has no fill.
-                y_cursor = y2
-            x_cursor += col_px
+                    cell_payloads[(column_index, row_index)] = {"mode": "none"}
 
         baseline_model = self._baseline_source_model() or ""
-        baseline_status = ae.baseline_source_label(baseline_model, "門.dxf")
-        canvas.create_text(
-            10, 10, anchor=tk.NW, text=baseline_status,
-            fill=("#64d2ff" if baseline_status.startswith("基準檔：") else "#ff9f0a"),
-            font=('Microsoft JhengHei', 9, 'bold'), tags=("door_baseline_status",),
-        )
-        canvas.create_text(
-            10, 30, anchor=tk.NW,
-            text="各欄獨立分層：修改該欄綠色『自動』高度即可新增下一層（例 2 / 3 / 2）",
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9, 'bold'),
-            tags=("door_layout_asymmetric_hint",),
-        )
-
-        self._draw_door_layout_dividers_and_frames(canvas, scale, x0, y0, columns, cells, val)
-
-        self.last_door_layout_overview = {
-            "columns": columns, "cell_count": len(cells), "selected": selected_key,
-            "scale": scale, "origin": (x0, y0),
+        return {
+            "error": None,
+            "total_w": total_w,
+            "total_h": total_h,
+            "columns": columns,
+            "cells": cells,
+            "val": val,
+            "selected_key": self.door_layout_selected_var.get(),
+            "cell_payloads": cell_payloads,
+            "baseline_status": ae.baseline_source_label(baseline_model, "門.dxf"),
         }
+
+    def draw_door_layout_overview(self, *, canvas=None, render_data_by_part_key=None):
+        if canvas is None: self._sync_door_canvas_double_click_binding(); canvas = self.canvas_door
+        self._destroy_door_layout_entry_widgets()
+        snapshot = self._door_layout_overview_snapshot(render_data_by_part_key)
+        if snapshot.get("error") is not None: return _draw_door_layout_error_impl(self, canvas, snapshot["error"])
+        return _draw_door_layout_overview_preview_impl(self, snapshot, canvas)
 
     def _draw_door_layout_dividers_and_frames(self, canvas, scale, x0, y0, columns, cells, val):
         """Render derived parts from the authoritative assembly placement owner."""
