@@ -1,14 +1,22 @@
 from pathlib import Path
 
-SRC = (Path(__file__).resolve().parents[1] / 'gui.py').read_text(encoding='utf-8')
+ROOT = Path(__file__).resolve().parents[1]
+SRC = "\n".join(
+    (ROOT / path).read_text(encoding='utf-8')
+    for path in (
+        'gui_modules/editors/hole_editor.py',
+        'gui_modules/editors/hole_editor_composition.py',
+        'gui_modules/editors/hole_editor_view.py',
+    )
+)
 
 
 def test_unified_editor_has_separate_general_and_pipe_catalogs():
     assert '一般開孔' in SRC
     assert '管孔清單' in SRC
     assert 'pipe_catalog_list' in SRC
-    assert 'load_hole_catalog(hole_base_dir)' in SRC
-    assert 'load_pipe_catalog(hole_base_dir)' in SRC
+    assert 'load_hole_catalog(hole_base_dir)' in SRC or 'd.load_hole_catalog(hole_base_dir)' in SRC
+    assert 'load_pipe_catalog(hole_base_dir)' in SRC or 'd.load_pipe_catalog(hole_base_dir)' in SRC
 
 
 def test_round_hole_settings_exposes_all_requested_controls():

@@ -3,6 +3,7 @@ import inspect
 
 import fold_designer_bridge as bridge
 import gui
+from gui_modules.application import lifecycle as app_lifecycle
 
 
 class _Canvas:
@@ -251,8 +252,8 @@ def test_fold_designer_owns_a_real_corner_data_canvas_in_same_renderer_viewport(
 
 
 def test_direct_application_host_installs_new_view_callback_without_returning_to_legacy_notebook():
-    cls_src = inspect.getsource(gui.Phase6ApplicationHost)
-    assert "designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view" in cls_src
+    open_src = inspect.getsource(app_lifecycle.open_original_fold_designer)
+    assert "designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view" in open_src
     renderer_src = inspect.getsource(gui.Phase6ApplicationHost._render_fold_designer_corner_data_view).lower()
     for forbidden in ("self.notebook", "tab_z", "tab_head", "tab_tail", "tab_door", "tab_base_plate"):
         assert forbidden not in renderer_src, forbidden

@@ -129,8 +129,10 @@ def _gui_method_source(name):
 
 
 def test_gui_indicator_box_page_loads_baseline_plus_dynamic_layout():
-    spec_source = _gui_method_source('_indicator_box_part_spec')
-    context_source = _gui_method_source('_indicator_component_editor_contexts')
+    import inspect
+    from gui_modules.application import manufacturing_adapter as owner
+    spec_source = inspect.getsource(owner._indicator_box_part_spec)
+    context_source = inspect.getsource(owner._indicator_component_editor_contexts)
     assert 'model_name=None' in spec_source
     assert 'get_stretched_indicator_box_data' in context_source
     assert '盒子.dxf' in context_source

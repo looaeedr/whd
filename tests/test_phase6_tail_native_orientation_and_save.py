@@ -187,11 +187,13 @@ def test_diagnostic_json_writer_is_utf8_and_round_trips(tmp_path):
 
 
 def test_project_file_controls_are_global_not_in_fold_designer_footer():
+    root = Path(__file__).resolve().parents[1]
     source = Path(bridge.__file__).read_text(encoding="utf-8")
-    gui_source = Path(__file__).resolve().parents[1].joinpath("gui.py").read_text(encoding="utf-8")
-    assert 'text="開啟專案"' in gui_source
-    assert 'text="儲存專案"' in gui_source
-    assert 'text="另存新檔"' in gui_source
+    toolbar_source = (root / "gui_modules" / "layout" / "toolbar.py").read_text(encoding="utf-8")
+    project_source = (root / "phase6_project_file.py").read_text(encoding="utf-8")
+    assert 'text="開啟專案"' in toolbar_source
+    assert 'text="儲存專案"' in toolbar_source
+    assert 'text="另存新檔"' in toolbar_source
     assert 'text="讀檔"' not in source
     assert 'text="存檔"' not in source
-    assert ".p6fold" in gui_source
+    assert ".p6fold" in project_source

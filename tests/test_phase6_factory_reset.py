@@ -132,10 +132,11 @@ def test_reset_initial_values_is_local_and_restores_factory_profiles(monkeypatch
 
 
 def test_main_gui_passes_ae_factory_defaults_into_3d_snapshot():
-    source = open('gui.py', encoding='utf-8').read()
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    source = inspect.getsource(owner._snapshot_base_state)
     assert 'load_factory_defaults_from_ae' in source
     assert 'snapshot["factory_defaults"] = load_factory_defaults_from_ae(ae)' in source
-
 
 def test_factory_reset_does_not_poison_next_main_gui_baseline_model(monkeypatch):
     import gui

@@ -84,14 +84,14 @@ def test_text_size_setting_persists_to_ini(monkeypatch, tmp_path):
 
 def test_ui_sources_expose_small_medium_large_text_size_controls():
     root = Path(__file__).resolve().parents[1]
-    gui_source = (root / "gui.py").read_text(encoding="utf-8")
+    toolbar_source = (root / "gui_modules" / "layout" / "toolbar.py").read_text(encoding="utf-8")
     panel_source = (root / "phase6_settings_panel.py").read_text(encoding="utf-8")
-    assert "文字大小" in gui_source
+    assert "文字大小" in toolbar_source
     assert "文字大小" in panel_source
+    assert "UI_TEXT_SIZE_LABELS" in toolbar_source
     assert "UI_TEXT_SIZE_LABELS" in panel_source
+    assert "tuple(UI_TEXT_SIZE_LABELS.values())" in toolbar_source
     assert tuple(settings.UI_TEXT_SIZE_LABELS.values()) == ("小", "中", "大")
-    for label in ("小", "中", "大"):
-        assert label in gui_source
 
 
 def test_text_scale_controller_scales_existing_and_future_tk_text(monkeypatch):

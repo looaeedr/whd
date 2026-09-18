@@ -89,7 +89,7 @@ def test_dm6_t4_save_reload_rebuilds_same_annotation_semantics(tmp_path):
 
 def test_dm6_t4_production_source_has_no_display_text_semantic_authority():
     layout = Path("ae_engine/drawing_annotation_layout.py").read_text(encoding="utf-8")
-    gui = Path("gui.py").read_text(encoding="utf-8")
+    overlay = Path("gui_modules/rendering/overlays.py").read_text(encoding="utf-8")
     planner = Path("ae_engine/drawing_annotations.py").read_text(encoding="utf-8")
     persistence = (
         Path("phase6_project_file.py").read_text(encoding="utf-8")
@@ -103,9 +103,9 @@ def test_dm6_t4_production_source_has_no_display_text_semantic_authority():
     ]
     assert not [x for x in forbidden_layout if x in layout]
 
-    start = gui.index("def _draw_phase6_annotation_projection")
-    end = gui.index("def _draw_phase6_corner_dimension_overlay", start)
-    sink = gui[start:end]
+    start = overlay.index("def draw_phase6_annotation_projection")
+    end = overlay.index("def draw_phase6_corner_dimension_overlay", start)
+    sink = overlay[start:end]
     assert "dimensions_by_label" not in sink
     assert "get(str(primitive.text)" not in sink
     assert "semantic_id" in sink

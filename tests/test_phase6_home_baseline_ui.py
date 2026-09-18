@@ -1,6 +1,9 @@
+import inspect
 import tkinter as tk
 
 import fold_designer_bridge as bridge
+from gui_modules.application import lifecycle as app_lifecycle
+from gui_modules.application import fold_designer_adapter as fold_adapter
 from test_phase6_corner_transaction import _transaction_snapshot
 
 
@@ -116,7 +119,9 @@ def test_known_parts_show_readonly_factory_corner_types(monkeypatch):
 
 def test_main_gui_wires_lazy_baseline_numeric_query_into_3d():
     source = open('gui.py', encoding='utf-8').read()
-    assert 'def _query_fold_designer_baseline_data' in source
-    assert 'on_baseline_data_query=self._query_fold_designer_baseline_data' in source
-    assert 'ae.get_stretched_door_data' in source
-    assert 'self._fold_designer_secondary_scene_rows(data.scene)' in source
+    owner_source = inspect.getsource(fold_adapter._query_fold_designer_baseline_data)
+    lifecycle_source = inspect.getsource(app_lifecycle.open_original_fold_designer)
+    assert '_query_fold_designer_baseline_data = _phase6_fold_adapter._query_fold_designer_baseline_data' in source
+    assert 'on_baseline_data_query=self._query_fold_designer_baseline_data' in lifecycle_source
+    assert 'ae.get_stretched_door_data' in owner_source
+    assert 'self._fold_designer_secondary_scene_rows(data.scene)' in owner_source

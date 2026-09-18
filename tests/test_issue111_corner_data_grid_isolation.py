@@ -1,10 +1,11 @@
 import ast
 from pathlib import Path
 
-EXPECTED_OTHER_GRID_CALLERS = ('draw_base_plate', 'draw_box_body', 'draw_door', 'draw_door_layout_overview', 'draw_end_cap', 'draw_indicator_box', 'draw_indicator_door')
+EXPECTED_ROOT_GRID_CALLERS = ('draw_base_plate', 'draw_box_body', 'draw_door', 'draw_end_cap', 'draw_indicator_box', 'draw_indicator_door')
 TARGET = "_render_fold_designer_corner_data_view"
 GUI_PATH = Path("gui.py")
 RENDER_2D_PATH = Path("gui_modules/render_2d.py")
+DOOR_VIEW_PATH = Path("gui_modules/rendering/door_view.py")
 
 
 def _tree():
@@ -63,7 +64,23 @@ def test_shared_draw_grid_implementation_contract_survives_owner_move():
 
 def test_all_unrelated_prechange_grid_callers_are_preserved():
     current = tuple(sorted(n.name for n in _functions() if n.name != TARGET and _calls_self_method(n, "draw_grid")))
-    assert current == EXPECTED_OTHER_GRID_CALLERS
+    assert current == EXPECTED_ROOT_GRID_CALLERS
+
+    door_tree = ast.parse(DOOR_VIEW_PATH.read_text(encoding="utf-8"))
+    overview = [
+        n for n in ast.walk(door_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and n.name == "draw_door_layout_overview_preview"
+    ]
+    assert len(overview) == 1
+    assert any(
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr == "draw_grid"
+        and isinstance(call.func.value, ast.Name)
+        and call.func.value.id == "host"
+        for call in ast.walk(overview[0])
+        if isinstance(call, ast.Call)
+    )
 
 
 def test_corner_data_renderer_still_consumes_authoritative_drawing_scene():

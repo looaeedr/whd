@@ -4,10 +4,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
+SNAPSHOTS = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 
 
 def _function_source(name):
     text = BRIDGE.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return "\n".join(lines[node.lineno - 1: node.end_lineno])
+    raise AssertionError(f"missing function: {name}")
+
+
+def _module_function_source(path, name):
+    text = path.read_text(encoding="utf-8")
     tree = ast.parse(text)
     lines = text.splitlines()
     for node in tree.body:
@@ -139,16 +150,13 @@ def _class_method_source(path, class_name, method_name):
 
 
 def test_gui_3d_callback_does_not_construct_part_specs_directly():
-    gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "Phase6ApplicationHost", "_query_fold_designer_render_data")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    src = inspect.getsource(owner._query_fold_designer_render_data)
     assert "_fold_designer_part_spec_from_payload" in src
     assert "_authoritative_render_data" in src
-    for ctor in (
-        "DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(",
-        "BasePlatePartSpec(", "IndicatorBoxPartSpec(",
-    ):
+    for ctor in ("DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(", "BasePlatePartSpec(", "IndicatorBoxPartSpec("):
         assert ctor not in src
-
 
 def test_gui_authoritative_render_data_cache_reuses_exact_object(monkeypatch):
     import gui
@@ -217,17 +225,20 @@ def test_committed_and_fold_draft_door_use_identical_part_spec_mapping():
 
 def test_single_door_2d_draw_consumes_authoritative_final_scene_only():
     gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_door")
-    assert "_single_door_part_spec" in src
-    assert "_authoritative_render_data" in src
-    assert "render_drawing_scene" in src
+    draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_door")
+    snapshot_src = _module_function_source(SNAPSHOTS, "single_door_render_snapshot")
+    assert "_single_door_part_spec" in snapshot_src
+    assert "_authoritative_render_data" in snapshot_src
+    assert "_single_door_render_snapshot" in draw_src
+    assert "render_drawing_scene" in draw_src
+    combined = draw_src + "\n" + snapshot_src
     for forbidden in (
         "get_stretched_door_data",
         "render_structural_result",
         "render_secondary_scene",
         "render_surface_user_features",
     ):
-        assert forbidden not in src
+        assert forbidden not in combined
 
 
 def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
@@ -284,32 +295,33 @@ def test_2d_and_3d_equal_door_state_share_exact_render_data_object(monkeypatch):
 
 
 def test_fold_draft_adapter_reuses_canonical_part_spec_helpers():
-    gui_path = ROOT / "gui.py"
-    src = _class_method_source(gui_path, "Phase6ApplicationHost", "_fold_designer_part_spec_from_payload")
-    for ctor in (
-        "DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(",
-        "BasePlatePartSpec(", "IndicatorBoxPartSpec(",
-    ):
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    src = inspect.getsource(owner._fold_designer_part_spec_from_payload)
+    for ctor in ("DoorPartSpec(", "BoxBodyPartSpec(", "EndCapPartSpec(", "BasePlatePartSpec(", "IndicatorBoxPartSpec("):
         assert ctor not in src
     for helper in (
-        "_box_body_part_spec_from_values",
-        "_end_cap_part_spec_from_values",
-        "_door_part_spec_from_values",
-        "_base_plate_part_spec_from_values",
-        "_indicator_box_part_spec_from_values",
-        "_indicator_door_part_spec_from_values",
+        "_box_body_part_spec_from_values", "_end_cap_part_spec_from_values",
+        "_door_part_spec_from_values", "_base_plate_part_spec_from_values",
+        "_indicator_box_part_spec_from_values", "_indicator_door_part_spec_from_values",
     ):
         assert helper in src
 
-
 def test_all_primary_2d_part_previews_use_authoritative_render_data():
     gui_path = ROOT / "gui.py"
-    for method in (
-        "draw_box_body", "draw_end_cap", "draw_door", "draw_base_plate",
-        "draw_indicator_box", "draw_indicator_door",
-    ):
-        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
-        assert "_authoritative_render_data" in src, method
+    owners = {
+        "draw_box_body": ("_box_body_render_snapshot", "box_body_render_snapshot"),
+        "draw_end_cap": ("_end_cap_render_snapshot", "end_cap_render_snapshot"),
+        "draw_door": ("_single_door_render_snapshot", "single_door_render_snapshot"),
+        "draw_base_plate": ("_base_plate_render_snapshot", "base_plate_render_snapshot"),
+        "draw_indicator_box": ("_indicator_box_render_snapshot", "indicator_box_render_snapshot"),
+        "draw_indicator_door": ("_indicator_door_render_snapshot", "indicator_door_render_snapshot"),
+    }
+    for method, (host_snapshot, app_snapshot) in owners.items():
+        draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
+        snapshot_src = _module_function_source(SNAPSHOTS, app_snapshot)
+        assert host_snapshot in draw_src, method
+        assert "_authoritative_render_data" in snapshot_src, method
 
 
 def test_baseline_reload_invalidates_authoritative_render_cache():
@@ -492,12 +504,16 @@ def test_gui_export_reuses_cached_final_scene_without_second_manufacturing_build
 
 
 def test_all_gui_dxf_export_paths_serialize_authoritative_render_data_not_generate_again():
-    gui_path = ROOT / "gui.py"
-    for method in (
-        "export_selected_dxf",
-        "export_multi_door_layout_dxfs",
-        "export_multi_door_indicator_box_parts",
-    ):
-        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
+    import inspect
+    from gui_modules.project import export_actions as owner
+
+    selected = inspect.getsource(owner.export_selected_dxf)
+    helper = inspect.getsource(owner._export_selected_parts)
+    assert "manufacturing_api.generate_part" not in selected + helper
+    assert "_export_selected_parts" in selected
+    assert "_export_authoritative_part" in helper
+
+    for method in ("export_multi_door_layout_dxfs", "export_multi_door_indicator_box_parts"):
+        src = inspect.getsource(getattr(owner, method))
         assert "manufacturing_api.generate_part" not in src, method
         assert "_export_authoritative_part" in src, method

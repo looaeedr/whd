@@ -11,14 +11,9 @@ def test_all_major_panel_canvases_share_unified_hole_editor():
 
 
 def test_all_part_editors_pass_finished_reference_guide_without_replacing_surface():
-    from pathlib import Path
-    s = Path('gui.py').read_text(encoding='utf-8')
-    start = s.index('    def open_part_hole_editor(')
-    end = s.index('    def _open_unified_hole_editor(', start)
-    section = s[start:end]
-    assert 'build_finished_reference_guide' in section
-    assert 'reference_guide=reference_guide' in section
-    assert 'feature_surface_from_structural_result' in section
-    cap_start = s.index('    def open_hole_editor(')
-    cap = s[cap_start:]
-    assert 'reference_guide=' in cap
+    source = Path('gui_modules/editors/hole_editor.py').read_text(encoding='utf-8')
+    assert 'build_finished_reference_guide' in source
+    assert '"reference_guide": reference_guide' in source
+    assert 'feature_surface_from_structural_result' in source
+    assert 'host._open_unified_hole_editor(' in source
+    assert 'reference_guide=reference_guide' in source

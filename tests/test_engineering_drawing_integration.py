@@ -7,6 +7,8 @@ from types import SimpleNamespace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+RENDER_DOOR = ROOT / "gui_modules" / "rendering" / "door_view.py"
+RENDER_BOX_BODY = ROOT / "gui_modules" / "rendering" / "box_body_view.py"
 
 
 def _engineering_module():
@@ -122,20 +124,19 @@ def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
 
 
 def test_all_primary_2d_previews_consume_shared_finished_dimension_summary():
-    gui_path = ROOT / "gui.py"
-    methods = (
-        "draw_box_body",
-        "draw_end_cap",
-        "draw_door",
-        "draw_base_plate",
-        "draw_indicator_box",
-        "draw_indicator_door",
+    owners = (
+        ("draw_box_body", RENDER_BOX_BODY, "draw_box_body_aggregate_preview"),
+        ("draw_end_cap", RENDER_BOX_BODY, "draw_end_cap_preview"),
+        ("draw_door", RENDER_DOOR, "draw_single_door_preview"),
+        ("draw_base_plate", RENDER_DOOR, "draw_base_plate_preview"),
+        ("draw_indicator_box", RENDER_DOOR, "draw_indicator_box_preview"),
+        ("draw_indicator_door", RENDER_DOOR, "draw_indicator_door_preview"),
     )
     missing = []
-    for method in methods:
-        src = _class_method_source(gui_path, "Phase6ApplicationHost", method)
+    for label, path, function_name in owners:
+        src = _module_function_source(path, function_name)
         if "_draw_phase6_finished_dimension_summary" not in src:
-            missing.append(method)
+            missing.append(label)
     assert not missing, (
         "R2: primary 2D previews still bypass shared finished-dimension provider: "
         + ", ".join(missing)
