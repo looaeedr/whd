@@ -224,10 +224,13 @@ from gui_modules.rendering import (
     box_body_face_at_canvas_point as _box_body_face_at_canvas_point_impl,
     select_box_body_face as _select_box_body_face_impl,
     on_box_body_canvas_press as _on_box_body_canvas_press_impl,
+    draw_preview as _draw_preview_route_impl,
+    open_box_body_face_editor as _open_box_body_face_editor_impl,
     draw_box_body_piece_preview as _draw_box_body_piece_preview_impl,
     draw_box_body_aggregate_preview as _draw_box_body_aggregate_preview_impl,
     draw_end_cap_preview as _draw_end_cap_preview_impl,
     draw_end_cap_error as _draw_end_cap_error_impl,
+    box_body_baseline_faces as _box_body_baseline_faces_impl,
 )
 
 
@@ -4122,16 +4125,7 @@ class Phase6ApplicationHost:
 
 
     def draw_preview(self):
-        """Refresh only the visible authoritative Fold Designer corner-data View."""
-        designer = getattr(self, "fold_designer_app", None)
-        if designer is None:
-            return None
-        if str(getattr(designer, "_phase6_3d_display_mode", "") or "") != "corner_data":
-            return None
-        if getattr(designer, "corner_data_canvas", None) is None:
-            return None
-        refresh = getattr(designer, "_phase6_refresh_corner_data_unfold_view", None)
-        return refresh() if callable(refresh) else None
+        return _draw_preview_route_impl(self)
 
     draw_grid = _draw_grid_impl
 
@@ -4146,25 +4140,7 @@ class Phase6ApplicationHost:
         return _on_box_body_canvas_press_impl(self, event)
 
     def _box_body_baseline_faces(self, val):
-        model = self._baseline_source_model()
-        if not model or not ae.has_baseline_part(model, "箱身.dxf"):
-            return {"left": [], "back": [], "right": []}
-        head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
-        source_fp = ae.baseline_source_fingerprint(ae.baseline_expected_path(model, "箱身.dxf"))
-        cache_key = (
-            source_fp, model, val['w'], val['h'], val['d'], val['t'], val['fw'],
-            val['zl1'], val['zl2'], val['zr1'], val['zr2'], val['z_comp'],
-            head_policy, tail_policy,
-        )
-        if cache_key not in self._box_body_baseline_face_cache:
-            self._box_body_baseline_face_cache[cache_key] = ae.get_box_body_baseline_face_features(
-                model,
-                w=val['w'], h=val['h'], d=val['d'], t=val['t'], fw=val['fw'],
-                zl1=val['zl1'], zl2=val['zl2'], zr1=val['zr1'], zr2=val['zr2'],
-                z_comp=val['z_comp'],
-                head_corner_policy=head_policy, tail_corner_policy=tail_policy,
-            )
-        return self._box_body_baseline_face_cache[cache_key]
+        return _box_body_baseline_faces_impl(self, val, ae_module=ae)
 
     def _box_body_face_baseline_scene(self, face_key, val):
         resolved = self._box_body_baseline_faces(val).get(face_key, [])
@@ -4175,38 +4151,7 @@ class Phase6ApplicationHost:
         return scene
 
     def open_box_body_face_editor(self, face_key):
-        if face_key not in {"left", "back", "right"}:
-            messagebox.showerror("開孔失敗", f"未知箱身面: {face_key}")
-            return
-        try:
-            val = self.get_float_values()
-        except ValueError as exc:
-            messagebox.showerror("輸入錯誤", str(exc))
-            return
-        dims = box_body_face_dimensions(w=val['w'], h=val['h'], d=val['d'])
-        width, height = dims[face_key]
-        head_policy, tail_policy = self._box_body_corner_policies(val['fw'])
-        bottom_outer, top_outer = box_body_vertical_offsets(
-            val['t'], head_corner_policy=head_policy, tail_corner_policy=tail_policy
-        )
-        surface = feature_surface_from_rect(
-            f"box_body_{face_key}",
-            Vec2(val['t'], bottom_outer),
-            Vec2(width - val['t'], height - top_outer),
-        )
-        reference_guide = RectGuide(
-            Vec2(0.0, 0.0), Vec2(width, height), "enclosure_boundary"
-        )
-        title = {"left": "箱身左側", "back": "箱身背面", "right": "箱身右側"}[face_key]
-        self.box_body_face_selected_var.set(face_key)
-        self._open_unified_hole_editor(
-            f"box_body_{face_key}", title, surface, width, height,
-            reference_guide=reference_guide,
-            feature_list_override=self.box_body_face_features[face_key],
-            baseline_scene=self._box_body_face_baseline_scene(face_key, val),
-            baseline_status_text=ae.box_body_baseline_source_label(self.baseline_var.get()),
-            on_close=lambda: self.draw_box_body(self.get_float_values()),
-        )
+        return _open_box_body_face_editor_impl(self, face_key, messagebox_module=messagebox, face_dimensions_fn=box_body_face_dimensions, vertical_offsets_fn=box_body_vertical_offsets, surface_builder=feature_surface_from_rect, guide_type=RectGuide, vec2_type=Vec2, baseline_label_fn=ae.box_body_baseline_source_label)
 
     @staticmethod
     def _box_body_piece_label(part_key):
