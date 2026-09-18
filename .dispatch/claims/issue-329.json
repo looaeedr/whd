@@ -5,10 +5,10 @@
   "work_branch": "skill/issue329-ui-ux-pro-max-20260918",
   "claimed_at": "2026-09-18T00:56:30Z",
   "base_sha": "7de32d6c53864ae48b276d4817f4a00e3baaa846",
-  "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
+  "head_sha": "9bb235918801a5917959d7e4237076573bac3f8f",
   "phase": "RECOVERING",
   "state": "RUNNING",
-  "last_update": "2026-09-18T01:26:00Z",
+  "last_update": "2026-09-18T01:28:00Z",
   "remote_qa": {
     "run_id": 35293958723,
     "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
@@ -16,7 +16,7 @@
     "conclusion": "failure",
     "result": "Knowledge Governance Bootstrap rejected new verification doc: missing WHD_DOC_META_V1 YAML frontmatter"
   },
-  "next_action": "add the established verification-provenance WHD_DOC_META_V1 frontmatter to the evidence doc only, then monitor fresh PR check",
+  "next_action": "resolve fresh PR #330 governance run for head 9bb235918801a5917959d7e4237076573bac3f8f; lock exact run if created",
   "blocker": null,
   "checkpoint": "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md"
 }
