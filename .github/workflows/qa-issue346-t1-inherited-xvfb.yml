@@ -6,6 +6,7 @@ on:
       - refactor/issue346-manufacturing-characterization-20260918
     paths:
       - '.github/workflows/qa-issue346-t1-inherited-xvfb.yml'
+      - 'docs/superpowers/checkpoints/issue346-t1-inherited-xvfb-trigger.txt'
   workflow_dispatch:
 
 permissions:
