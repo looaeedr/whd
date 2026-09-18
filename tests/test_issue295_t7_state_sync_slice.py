@@ -79,8 +79,6 @@ def test_corner_selection_serialization_contract_is_preserved():
         "cross_mode": CrossCornerMode.RETAIN.value,
         "direction": CornerDirection.WIDTH.value,
         "amount_t": 1.25,
-        "secondary_retain_t": 0.5,
-        "secondary_depth_t": 2.0,
     }
 
 
