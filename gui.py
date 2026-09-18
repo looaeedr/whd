@@ -216,6 +216,11 @@ from gui_modules.rendering import (
     draw_door_layout_error as _draw_door_layout_error_impl,
     draw_door_layout_overview_preview as _draw_door_layout_overview_preview_impl,
     draw_door_layout_dividers_and_frames_preview as _draw_door_layout_dividers_and_frames_preview_impl,
+    door_layout_cell_at_canvas_point as _door_layout_cell_at_canvas_point_impl,
+    on_door_canvas_press as _on_door_canvas_press_impl,
+    on_door_canvas_drag as _on_door_canvas_drag_impl,
+    on_door_canvas_release as _on_door_canvas_release_impl,
+    on_door_canvas_double_click as _on_door_canvas_double_click_impl,
 )
 
 
@@ -3495,82 +3500,19 @@ class Phase6ApplicationHost:
         draw_hole_editor_hint(canvas, cw, endcap=False)
 
     def _door_layout_cell_at_canvas_point(self, x, y):
-        """Return (column_index, row_index) for any point inside a visible multi-door cell."""
-        for key, bounds in self.door_layout_cell_bounds.items():
-            x1, y1, x2, y2 = bounds
-            if x1 <= x <= x2 and y1 <= y <= y2:
-                column_index, row_index = (int(part) for part in key.split(":", 1))
-                return column_index, row_index
-        return None
+        return _door_layout_cell_at_canvas_point_impl(self.door_layout_cell_bounds, x, y)
 
     def on_door_canvas_press(self, event):
-        if self.multi_door_enabled_var.get():
-            hit = self._door_layout_cell_at_canvas_point(event.x, event.y)
-            if hit is None:
-                self._door_layout_last_click = None
-                return "break"
-
-            event_time = int(getattr(event, "time", 0) or 0)
-            if not event_time:
-                event_time = int(time.monotonic() * 1000)
-            last = self._door_layout_last_click
-            is_manual_double = False
-            if last is not None:
-                last_hit, last_time = last
-                delta = event_time - last_time if event_time and last_time else 999999
-                is_manual_double = (last_hit == hit and 0 <= delta <= 650)
-
-            if is_manual_double:
-                self._door_layout_last_click = None
-                self.open_door_layout_cell_editor(*hit)
-            else:
-                self._door_layout_last_click = (hit, event_time)
-                self.select_door_layout_cell(*hit)
-            return "break"
-        if not self.is_door_indicator_var.get() or not hasattr(self, 'last_door_draw_params'):
-            return
-        params = self.last_door_draw_params
-        transform = params.get('transform')
-        layout = params.get('indicator_layout')
-        if transform is None or layout is None:
-            return
-        world = transform.canvas_to_world(event.x, event.y)
-        if layout.hit_test(world, padding=15.0):
-            self.drag_active = True
-            self.drag_start_world = world
-            self.drag_start_offset_x = self.door_indicator_offset_x
-            self.drag_start_offset_y = self.door_indicator_offset_y
+        return _on_door_canvas_press_impl(self, event)
 
     def on_door_canvas_drag(self, event):
-        if not self.drag_active:
-            return
-        params = self.last_door_draw_params
-        transform = params.get('transform')
-        layout = params.get('indicator_layout')
-        if transform is None or layout is None:
-            return
-        world = transform.canvas_to_world(event.x, event.y)
-        delta = world - self.drag_start_world
-        desired = Vec2(
-            self.drag_start_offset_x + delta.x,
-            self.drag_start_offset_y + delta.y,
-        )
-        clamped = layout.clamp_offset(desired)
-        self.door_indicator_offset_x = clamped.x
-        self.door_indicator_offset_y = clamped.y
-        self.draw_preview()
+        return _on_door_canvas_drag_impl(self, event)
 
     def on_door_canvas_release(self, event):
-        self.drag_active = False
+        return _on_door_canvas_release_impl(self, event)
 
     def on_door_canvas_double_click(self, event):
-        if self.multi_door_enabled_var.get():
-            hit = self._door_layout_cell_at_canvas_point(event.x, event.y) if event is not None else None
-            if hit is not None:
-                self.open_door_layout_cell_editor(*hit)
-            return "break"
-        self.open_part_hole_editor("door")
-        return "break"
+        return _on_door_canvas_double_click_impl(self, event)
 
     def ask_xy_dialog(self, current_x, current_y):
         return _ask_xy_dialog_impl(self.root, current_x, current_y, color_bg=self.COLOR_BG, color_text=self.COLOR_TEXT,
