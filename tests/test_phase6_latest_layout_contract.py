@@ -121,7 +121,8 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
 def test_parameter_unlock_routes_to_assembly_diagnostics_then_part_settings(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        assert app._phase6_3d_display_mode == "assembly"\n        assert app.part_var.get() == "箱身"
+        assert app._phase6_3d_display_mode == "assembly"
+        assert app.part_var.get() == "箱身"
         assert bridge._phase6_toggle_parameter_panel(app) is True
         root.update_idletasks()
         assert app.assembly_diagnostics_frame.winfo_manager() == "pack"
@@ -201,7 +202,8 @@ def test_fullscreen_toggle_maximizes_and_restores_without_touching_geometry_stat
 def test_parameter_unlock_shows_assembly_diagnostics_while_assembly_is_selected(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        assert app._phase6_3d_display_mode == "assembly"\n        assert app.part_var.get() == "箱身"
+        assert app._phase6_3d_display_mode == "assembly"
+        assert app.part_var.get() == "箱身"
         assert bridge._phase6_toggle_parameter_panel(app) is True
         root.update_idletasks()
         assert app.assembly_diagnostics_frame.winfo_manager() == "pack"
@@ -236,7 +238,8 @@ def test_parameter_lock_button_invoke_makes_assembly_panel_actually_visible(monk
     app = bridge.Phase6FoldDesignerApp(win, _snapshot())
     try:
         root.update_idletasks(); root.update()
-        assert app._phase6_3d_display_mode == "assembly"\n        assert app.part_var.get() == "箱身"
+        assert app._phase6_3d_display_mode == "assembly"
+        assert app.part_var.get() == "箱身"
         assert app.assembly_diagnostics_frame.winfo_viewable() == 0
 
         app.parameter_lock_button.invoke()
