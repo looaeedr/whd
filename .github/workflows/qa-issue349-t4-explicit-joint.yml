@@ -32,3 +32,23 @@ jobs:
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
       - name: Run extraction contract
         run: python -m pytest -q tests/test_issue349_explicit_joint_relief_extraction.py
+
+
+  solver-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run explicit joint-relief regressions
+        run: |
+          python -m pytest -q             tests/test_resolved_manufacturing_bridge.py             tests/test_phase6_t09_multi_wrap.py             tests/test_joint_backprojection_and_topology.py             tests/test_assembly_collision_integration.py
