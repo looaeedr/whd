@@ -13,7 +13,7 @@ import matplotlib.projections as _matplotlib_projections  # noqa: F401
 
 from phase6_fold_profiles import _num
 from ae_engine.display_dimensions import folded_outside_envelope, resolve_operator_finished_dimensions
-from whd_theme import WHD_THEME, apply_mpl_dark_theme
+from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_mpl_dark_theme
 
 def _phase6_profile_base_index(profile):
     """Return the semantic finished-face/core segment used as the 3D base plane."""
@@ -801,18 +801,18 @@ class Phase6FinalSceneView:
         tick = span * 0.012
         wy = min(y0, y1) - off
         hx = min(x0, x1) - off
-        ax.plot([x0, x1], [wy, wy], [0.0, 0.0], linewidth=1.0)
-        ax.plot([x0, x0], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0)
-        ax.plot([x1, x1], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0)
-        ax.text((x0 + x1) / 2.0, wy, 0.0, f"W {self._number_text(width)} mm", ha="center", va="top")
-        ax.plot([hx, hx], [y0, y1], [0.0, 0.0], linewidth=1.0)
-        ax.plot([hx - tick, hx + tick], [y0, y0], [0.0, 0.0], linewidth=1.0)
-        ax.plot([hx - tick, hx + tick], [y1, y1], [0.0, 0.0], linewidth=1.0)
-        ax.text(hx, (y0 + y1) / 2.0, 0.0, f"H {self._number_text(height)} mm", ha="right", va="center")
+        ax.plot([x0, x1], [wy, wy], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.plot([x0, x0], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.plot([x1, x1], [wy - tick, wy + tick], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text((x0 + x1) / 2.0, wy, 0.0, f"W {self._number_text(width)} mm", ha="center", va="top", color=WHD_THEME["text"])
+        ax.plot([hx, hx], [y0, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.plot([hx - tick, hx + tick], [y0, y0], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.plot([hx - tick, hx + tick], [y1, y1], [0.0, 0.0], linewidth=1.0, color=WHD_THEME["muted_text"])
+        ax.text(hx, (y0 + y1) / 2.0, 0.0, f"H {self._number_text(height)} mm", ha="right", va="center", color=WHD_THEME["text"])
         info = format_operator_info_text(
             request, dimensions=dims, number_text=self._number_text
         )
-        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top")
+        ax.text2D(0.015, 0.985, info, transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"])
 
     def _draw_joint_diagnostic_overlays(self, render_data):
         diagnostics = tuple(getattr(render_data, "joint_diagnostics", ()) or ())
@@ -1136,7 +1136,7 @@ class Phase6FinalSceneView:
                     f"組合體 3D：W × H × D = {text} mm{warning_text}{collision_text}"
                     + (("\n" + "\n".join(box_body_piece_dimension_lines)) if box_body_piece_dimension_lines else "")
                     + (f"\n{request.unfolded_blank_text}" if request.unfolded_blank_text else ""),
-                    transform=ax.transAxes, ha="left", va="top",
+                    transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"],
                 )
             self.last_cutting_mesh = triangles
             self.last_cutting_material = tuple(materials)
@@ -1183,7 +1183,7 @@ class Phase6FinalSceneView:
                 ax.text2D(
                     0.015, 0.985,
                     f"折後包外：{text} mm{warning_text}{corner_text}" + (f"\n{piece_text}" if piece_text else ""),
-                    transform=ax.transAxes, ha="left", va="top"
+                    transform=ax.transAxes, ha="left", va="top", color=WHD_THEME["text"]
                 )
             self.last_cutting_mesh = triangles
             self.last_cutting_material = tuple(piece.render_data.material for piece in render_data.pieces)
@@ -1293,7 +1293,7 @@ class Phase6FinalSceneView:
                 try:
                     ax.text2D(
                         0.5, 0.5, f"3D Final Part Geometry 載入失敗\n{exc}",
-                        transform=ax.transAxes, ha="center", va="center",
+                        transform=ax.transAxes, ha="center", va="center", color=WHD_SEMANTIC_COLORS["error"],
                     )
                 except Exception:
                     pass

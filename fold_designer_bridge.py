@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 from typing import Mapping, MutableMapping, Sequence
-from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
+from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme, configure_tk_menu
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
@@ -3293,7 +3293,7 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
             original.ttk.Label(
                 self.box_body_piece_input_host,
                 text=f"逐片尺寸：無法解析（{exc}）",
-                foreground="#b45309",
+                foreground=WHD_SEMANTIC_COLORS["warning"],
             ).pack(fill=original.tk.X, pady=2)
 
     for projection in projections:
@@ -3382,7 +3382,7 @@ def _phase6_build_box_structure_settings(self, parent, start_row):
             original.ttk.Label(
                 frame,
                 text=f"⚠ 中央接合折邊 {seam:g} mm 已達 50 mm 以上，請確認尺寸是否合理。",
-                foreground="#b45309",
+                foreground=WHD_SEMANTIC_COLORS["warning"],
             ).grid(row=row, column=0, columnspan=4, sticky="w", pady=(2, 4))
             row += 1
         advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
@@ -5221,7 +5221,7 @@ def _phase6_open_relief_registry_form(self):
     self.relief_registry_save_candidate_button = next((w for w in actions.winfo_children() if str(w.cget("text"))=="儲存候選"), None)
     self.relief_registry_promote_button=original.ttk.Button(actions,text="認證新版次",command=lambda:_phase6_registry_promote_form(self),style="Primary.TButton")
     self.relief_registry_promote_button.pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Label(form,textvariable=self.relief_registry_status_var,foreground="#333").grid(row=row,column=0,columnspan=4,sticky="w",pady=(4,0))
+    original.ttk.Label(form,textvariable=self.relief_registry_status_var,foreground=WHD_THEME["text"]).grid(row=row,column=0,columnspan=4,sticky="w",pady=(4,0))
     for col in (1,3): form.columnconfigure(col,weight=1)
 
     # ----- Joint tab -----
@@ -8716,7 +8716,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         height=max(1, int(self.structure_tree_host.winfo_reqheight()))
     )
     self.root.after_idle(lambda: _phase6_refresh_sticky_structure_tree(self))
-    self.structure_tree.tag_configure("hidden", foreground="#777777")
+    self.structure_tree.tag_configure("hidden", foreground=WHD_THEME["muted_text"])
     self._phase6_structure_tree_guard = False
     self.structure_tree.bind(
         "<<TreeviewSelect>>", lambda event: _phase6_on_structure_tree_select(self, event)
@@ -9375,7 +9375,7 @@ def _phase6_prepare_corner_data_canvas(self):
         self.corner_data_info_label = info_label
     if not alive:
         canvas = original.tk.Canvas(
-            mpl_widget.master, bg="#000000", highlightthickness=0
+            mpl_widget.master, bg=WHD_THEME["corner_data_canvas"], highlightthickness=0
         )
         self.corner_data_canvas = canvas
         canvas._phase6_unfold_zoom = 1.0

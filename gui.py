@@ -22,7 +22,7 @@ from dataclasses import replace
 from tkinter import ttk
 from tkinter import messagebox
 from tkinter import filedialog
-from whd_theme import WHD_THEME, apply_ttk_dark_theme
+from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
 from ae_engine.engineering_drawing import build_engineering_drawing_projection
@@ -955,7 +955,7 @@ class Phase6ApplicationHost:
         else:
             text = "成形尺寸：" + " × ".join(text_values[:2]) + " mm"
         canvas.create_text(
-            25, float(y), anchor=tk.NW, text=text, fill="#30d158",
+            25, float(y), anchor=tk.NW, text=text, fill=WHD_SEMANTIC_COLORS["success"],
             font=('Microsoft JhengHei', 9, 'bold'),
             tags=("phase6_finished_dimensions",),
         )

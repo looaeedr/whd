@@ -16,7 +16,9 @@ WHD_THEME = MappingProxyType({
     "input": "#151518",
     "text": "#e0e0e6",
     "muted_text": "#8e8e93",
-    "action": "#0a84ff",
+    "action": "#0067c5",
+    "action_hover": "#0070d9",
+    "action_pressed": "#005bbf",
     "canvas": "#0d0d0f",
     "corner_data_canvas": "#000000",
 })
@@ -82,7 +84,7 @@ def apply_ttk_dark_theme(root, *, text_scale: float = 1.0, style=None):
     )
     style.map(
         "Primary.TButton",
-        background=[("disabled", colors["panel"]), ("pressed", "#0060df"), ("active", "#409cff")],
+        background=[("disabled", colors["panel"]), ("pressed", colors["action_pressed"]), ("active", colors["action_hover"])],
         foreground=[("disabled", colors["muted_text"]), ("pressed", "#ffffff"), ("active", "#ffffff")],
     )
     for widget_style in ("TCheckbutton", "TRadiobutton"):
