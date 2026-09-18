@@ -90,3 +90,98 @@ def draw_box_body_piece_preview(
             tuple(getattr(aggregate_render_data, "pieces", ()) or ())
         ),
     }
+
+
+
+def draw_box_body_aggregate_preview(
+    host,
+    snapshot,
+    canvas_width,
+    canvas_height,
+    *,
+    viewport,
+    scene_renderer,
+    annotation_drawer,
+    hint_drawer,
+):
+    canvas = host.canvas_z
+    render_data = snapshot["render_data"]
+    minx, miny, maxx, maxy = snapshot["bounds"]
+    z_len = maxx - minx
+    z_height = maxy - miny
+    contexts = snapshot["contexts"]
+    selected = snapshot["selected_face"]
+
+    transform, _offset_x, _offset_y, _scale, _material_top = viewport(
+        (minx, miny, maxx, maxy), canvas_width, canvas_height
+    )
+
+    if host.draw_stock_var.get():
+        sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
+        sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
+        canvas.create_rectangle(
+            sx0, sy0, sx1, sy1,
+            outline="#00d4d4", width=1.5, dash=(8, 4),
+        )
+
+    scene_renderer(
+        canvas,
+        render_data.scene,
+        transform,
+        skip_layers=("CHECK", "STOCK"),
+    )
+    warnings = tuple(getattr(render_data, "warnings", ()) or ())
+    warning_text = (
+        "\n⚠ " + "；".join(str(getattr(item, "message", item)) for item in warnings)
+        if warnings else ""
+    )
+
+    for face_key in ("left", "back", "right"):
+        ctx = contexts[face_key]
+        x1, y_bottom = transform.world_to_canvas(Vec2(ctx.unfolded_min_x, 0.0))
+        x2, y_top = transform.world_to_canvas(Vec2(ctx.unfolded_max_x, z_height))
+        bounds = (
+            min(x1, x2),
+            min(y_top, y_bottom),
+            max(x1, x2),
+            max(y_top, y_bottom),
+        )
+        host.box_body_face_bounds[face_key] = bounds
+        canvas.create_rectangle(
+            *bounds,
+            outline=host.COLOR_ACCENT if face_key == selected else "",
+            width=2 if face_key == selected else 1,
+            dash=(4, 3),
+            tags=("box_body_face_hit_zone", f"box_body_face_{face_key}"),
+        )
+
+    stock_hint = "  STOCK 母材外框: 青色虛線" if host.draw_stock_var.get() else ""
+    canvas.create_text(
+        25,
+        25,
+        anchor=tk.NW,
+        text=(
+            "箱身展開預覽 (Z-Body)\n"
+            f"{snapshot['baseline_status']}\n"
+            "外輪廓 (CUTTING): 綠色實線  折彎線 (BEND): 藍色虛線"
+            f"{stock_hint}\n"
+            f"雙擊左側/背面/右側完成面進入箱體定位編輯{warning_text}"
+        ),
+        fill=host.COLOR_TEXT_MUTED,
+        font=("Microsoft JhengHei", 9),
+        width=max(180, int(canvas_width * 0.48)),
+        tags=("phase6_preview_hint",),
+    )
+    annotation_drawer(canvas, render_data, transform, part_key="box_body")
+    host._draw_phase6_finished_dimension_summary(canvas, part_key="box_body")
+    hint_drawer(canvas, canvas_width, endcap=False)
+
+    host.last_box_body_face_overview = {
+        "mode": "unfolded_with_face_hit_zones",
+        "dimensions": snapshot["dimensions"],
+        "unfolded_size": (z_len, z_height),
+        "transform": transform,
+        "contexts": contexts,
+        "piece_keys": snapshot["piece_keys"],
+        "baseline_status": snapshot["baseline_status"],
+    }
