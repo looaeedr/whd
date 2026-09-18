@@ -11,7 +11,9 @@ from typing import Any
 from phase6_manufacturing_contracts import (
     ManufacturingPartInput,
     ManufacturingResolveRequest,
+    ManufacturingResolveResult,
     manufacturing_request_fingerprint,
+    thaw_manufacturing_value,
 )
 from phase6_part_navigation import is_box_body_physical_piece_key
 
@@ -185,4 +187,31 @@ def build_manufacturing_request(app: Any) -> ManufacturingResolveRequest:
     )
 
 
-__all__ = ["build_manufacturing_request"]
+def apply_manufacturing_result(app: Any, result: ManufacturingResolveResult) -> Any:
+    """Apply explicit Phase 2 result state to the legacy app facade.
+
+    T3 deliberately applies state only.  `ManufacturingEffects` remains an
+    explicit intent and no live publication/callback is executed here.
+    """
+    if not isinstance(result, ManufacturingResolveResult):
+        raise TypeError("result must be ManufacturingResolveResult")
+
+    diagnostics = result.diagnostics
+    app._phase6_last_interference_probe_parts = tuple(
+        diagnostics.interference_probe_parts
+    )
+    app._phase6_last_relief_errors = dict(diagnostics.relief_errors.items())
+    app._phase6_last_relief_solutions = dict(diagnostics.relief_solutions.items())
+    app._phase6_last_resolved_manufacturing_geometry = result.geometry
+    app._phase6_last_resolved_manufacturing_signature = result.cache.signature
+
+    current_snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    patch = thaw_manufacturing_value(result.mutations.snapshot_patch)
+    if not isinstance(patch, dict):
+        raise TypeError("snapshot patch must thaw to dict")
+    current_snapshot.update(patch)
+    app._phase6_input_snapshot = current_snapshot
+    return result.geometry
+
+
+__all__ = ["build_manufacturing_request", "apply_manufacturing_result"]
