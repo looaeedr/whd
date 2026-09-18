@@ -30,3 +30,5 @@ def test_issue348_joint_world_geometry_has_one_canonical_owner():
         elif isinstance(node, ast.ImportFrom) and node.module == "fold_designer_bridge":
             reverse.append(node.module)
     assert reverse == []
+
+# issue348 T3 regression trigger
