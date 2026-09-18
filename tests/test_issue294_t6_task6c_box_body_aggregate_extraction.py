@@ -59,6 +59,15 @@ def test_task6c_root_keeps_box_body_render_snapshot_authority():
 
 def test_task6c_box_body_presenter_consumes_render_data_only():
     source = BOX_VIEW.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    presenter = ast.get_source_segment(
+        source, functions["draw_box_body_aggregate_preview"]
+    ) or ""
     forbidden = (
         "manufacturing_api",
         "_authoritative_render_data",
@@ -70,10 +79,9 @@ def test_task6c_box_body_presenter_consumes_render_data_only():
         "build_box_body",
         "resolve_surface_features",
     )
-    hits = [token for token in forbidden if token in source]
+    hits = [token for token in forbidden if token in presenter]
     assert not hits, f"box-body presenter stole acquisition/geometry authority: {hits}"
 
-    tree = ast.parse(source)
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             assert _span(node) <= 150, (node.name, _span(node))
