@@ -187,4 +187,5 @@ def test_issue358_resolve_for_app_keeps_signature_first_cache_hit_before_request
 
 
 
-# issue358 focused rerun after stale-tail cleanup
+
+# issue358 expanded parity trigger
