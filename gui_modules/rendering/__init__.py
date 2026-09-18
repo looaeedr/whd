@@ -63,6 +63,8 @@ __all__ = [
     "on_box_body_canvas_press",
     "draw_box_body_piece_preview",
     "draw_box_body_aggregate_preview",
+    "draw_end_cap_preview",
+    "draw_end_cap_error",
 ]
 
 from .interaction import (
@@ -79,4 +81,6 @@ from .interaction import (
 from .box_body_view import (
     draw_box_body_piece_preview,
     draw_box_body_aggregate_preview,
+    draw_end_cap_preview,
+    draw_end_cap_error,
 )
