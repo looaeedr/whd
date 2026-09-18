@@ -1,0 +1,51 @@
+name: "#350 T5 manufacturing parity"
+
+on:
+  push:
+    branches:
+      - refactor/issue350-manufacturing-orchestration-20260918
+    paths:
+      - '.github/workflows/qa-issue350-t5-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+  MPLBACKEND: Agg
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run T1-equivalent Headless parity
+        run: |
+          python -m pytest -q             tests/test_resolved_manufacturing_bridge.py             tests/test_resolved_manufacturing_geometry.py             tests/test_resolved_manufacturing_export.py             tests/test_endcap_resolved_geometry_ownership.py             tests/test_dm3_divider_canonical_relief_contract.py             tests/test_receiving_bottom_wrap_registry.py             tests/test_phase6_t09_multi_wrap.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_2d_3d_round_trip.py             tests/test_assembly_collision_integration.py             tests/test_joint_backprojection_and_topology.py             tests/test_phase6_assembly_3d_view.py             tests/test_phase6_project_file.py             tests/test_phase6_derived_cache_owner.py             tests/test_phase6_baseline_source_cache.py
+
+  xvfb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run T1-equivalent Xvfb parity excluding exact inherited RED
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_resolved_manufacturing_bridge.py             tests/test_resolved_manufacturing_geometry.py             tests/test_resolved_manufacturing_export.py             tests/test_endcap_resolved_geometry_ownership.py             tests/test_dm3_divider_canonical_relief_contract.py             tests/test_receiving_bottom_wrap_registry.py             tests/test_phase6_t09_multi_wrap.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_2d_3d_round_trip.py             tests/test_assembly_collision_integration.py             tests/test_joint_backprojection_and_topology.py             tests/test_phase6_assembly_3d_view.py             tests/test_phase6_project_file.py             tests/test_phase6_derived_cache_owner.py             tests/test_phase6_baseline_source_cache.py             --deselect tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part             --deselect tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first
