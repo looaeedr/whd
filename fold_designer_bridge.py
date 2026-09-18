@@ -129,7 +129,6 @@ from phase6_final_scene_view import (
 
 
 from phase6_manufacturing_geometry import (
-    _phase6_bind_bridge_callbacks,
     _PHASE6_ASSEMBLY_PLACEMENTS,
     _phase6_door_part_assembly_placement,
     _phase6_assembly_placement_for_part,
@@ -151,9 +150,19 @@ from phase6_manufacturing_geometry import (
     _phase6_build_joint_world_geometry,
     _phase6_resolve_explicit_joint_reliefs,
     _phase6_resolve_family_divider_reliefs,
-    _phase6_resolve_manufacturing_geometry,
 )
 
+from phase6_manufacturing_adapter import resolve_manufacturing_for_app
+
+
+def _phase6_resolve_manufacturing_geometry(self):
+    """Phase 2 compatibility facade: UI inputs -> adapter -> domain result."""
+    return resolve_manufacturing_for_app(
+        self,
+        scene_payload_builder=lambda key: _phase6_scene_query_payload_for_part(self, key),
+        finished_dimensions_provider=lambda key=None: _phase6_operator_finished_dimensions(self, key),
+        publish_live_state=lambda force=False: _phase6_publish_live_state(self, force=force),
+    )
 
 
 @dataclass(frozen=True)
@@ -8985,16 +8994,7 @@ Phase6FoldDesignerApp.toggle_baseline_data = _phase6_settings_panel_toggle_basel
 Phase6FoldDesignerApp.save_settings_context_as_defaults = _phase6_save_settings_context_as_defaults
 Phase6FoldDesignerApp.save_current_settings_as_defaults = _phase6_save_current_settings_as_defaults
 Phase6FoldDesignerApp.flush_pending_settings = _phase6_flush_pending_settings
-Phase6FoldDesignerApp._phase6_mesh_profiles_for_part = _phase6_mesh_profiles_for_part
-Phase6FoldDesignerApp._phase6_operator_finished_dimensions = _phase6_operator_finished_dimensions
-Phase6FoldDesignerApp._phase6_scene_query_payload_for_part = _phase6_scene_query_payload_for_part
 Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
-_phase6_bind_bridge_callbacks(
-    _phase6_mesh_profiles_for_part=_phase6_mesh_profiles_for_part,
-    _phase6_operator_finished_dimensions=_phase6_operator_finished_dimensions,
-    _phase6_scene_query_payload_for_part=_phase6_scene_query_payload_for_part,
-    _phase6_publish_live_state=_phase6_publish_live_state,
-)
 Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
 Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
 Phase6FoldDesignerApp.apply_external_model = _phase6_apply_external_model
