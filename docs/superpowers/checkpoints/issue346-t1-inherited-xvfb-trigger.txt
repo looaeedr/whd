@@ -1,1 +1,0 @@
-trigger inherited-Xvfb predecessor classification for #346
