@@ -41,4 +41,16 @@ Do not create a competing `ui-ux-pro-max` CURRENT skill. Integrate it as capabil
 
 ## Verification
 
-Focused remote QA will execute the UI contract, Skill-authoring/governance guards, and changed-file Phase6 Knowledge Preflight against the exact QA head. The one-shot workflow is temporary and must be removed after terminal evidence; file write alone is not acceptance.
+- QA workflow: `.github/workflows/qa-issue329-uiux-skill.yml` (one-shot; removed in closing cleanup)
+- fresh RUN: `35293770834`
+- exact tested HEAD: `5db23727a0c55d45853fdbb9788b9a83db051eab`
+- job: `105441960672 / focused-contract`
+- terminal result: **SUCCESS**
+- focused UI + Skill governance contracts: **45 passed in 0.47s**
+- changed-file Phase6 Knowledge Preflight: **GREEN**
+  - required Skills: `寫技能`, `UI設計與去AI味`, `phase6-release-packaging`, `monitoring-remote-qa`, `long-log-context-safe-execution`, `executable-continuity-controller` all ✓
+  - required References: global pitfall ledger, AI08, release manifest, long-log pitfall, continuity-controller pitfall all ✓
+- exact-head identity step: SUCCESS
+- one-shot workflow cleanup: performed in the same closing commit that updates this evidence
+- tested-head → closing-head drift audit: pending until the closing commit SHA is known; acceptance requires only this evidence file update + one-shot workflow deletion outside the tested tree.
+
