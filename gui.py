@@ -208,6 +208,9 @@ from gui_modules.rendering import (
     draw_phase6_corner_dimension_overlay as _draw_phase6_corner_dimension_overlay_impl,
     YMirroredPreviewTransform as _YMirroredPreviewTransform,
     phase6_2d_material_viewport as _phase6_2d_material_viewport_impl,
+    draw_preview_error as _draw_preview_error_impl,
+    draw_indicator_box_preview as _draw_indicator_box_preview_impl,
+    draw_indicator_door_preview as _draw_indicator_door_preview_impl,
 )
 
 
@@ -2815,66 +2818,30 @@ class Phase6ApplicationHost:
 
 
 
+    def _indicator_box_render_snapshot(self, val):
+        count = max(1, int(self.indicator_l_var.get()))
+        layer_groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(count))
+        spec = self._indicator_box_part_spec(
+            val, layer_groups, features=self.surface_features["indicator_box"]
+        )
+        context = self._manufacturing_context(draw_stock=False)
+        render_data = self._authoritative_render_data(spec, context)
+        bounds = tuple(float(v) for v in render_data.material.bounds)
+        return {
+            "render_data": render_data,
+            "bounds": bounds,
+            "layer_groups": layer_groups,
+            "baseline_label": ae.indicator_shared_baseline_source_label("盒子.dxf"),
+        }
+
     def draw_indicator_box(self, val):
-        canvas = self.canvas_indicator_box
-        canvas.delete("all")
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
+        canvas = self.canvas_indicator_box; canvas.delete("all")
+        cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
         self.draw_grid(canvas, cw, ch)
-
-        try:
-            count = max(1, int(self.indicator_l_var.get()))
-            layer_groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(count))
-            spec = self._indicator_box_part_spec(
-                val, layer_groups, features=self.surface_features["indicator_box"]
-            )
-            render_data = self._authoritative_render_data(
-                spec, self._manufacturing_context(draw_stock=False)
-            )
-            minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-            blank_w = maxx - minx
-            blank_h = maxy - miny
-            box_baseline_label = ae.indicator_shared_baseline_source_label("盒子.dxf")
-        except Exception as exc:
-            canvas.create_text(
-                cw/2, ch/2, text=f"指示燈盒 Final Part Geometry 載入失敗:\n{exc}",
-                fill="#ff3333", font=('Microsoft JhengHei', 11, 'bold')
-            )
-            return
-
-        canvas_transform, left, bottom, scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), cw, ch
-        )
-
-        if self.draw_stock_var.get():
-            sx0, sy0 = canvas_transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = canvas_transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-
-        render_drawing_scene(
-            canvas, render_data.scene, canvas_transform,
-            skip_layers=("CHECK", "STOCK"),
-        )
-
-        stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=(
-                f"指示燈盒子展開預覽｜{box_baseline_label}｜Final Part Geometry\n"
-                f"CUTTING/截角/固定孔/使用者開孔：與 3D 完全同源\n"
-                f"折彎線 (BEND): 藍色虛線{stock_hint}\n"
-                f"排列 {list(layer_groups)}，共 {sum(layer_groups)} 顆指示燈"
-            ),
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_box")
-        self._draw_phase6_finished_dimension_summary(canvas, part_key="indicator_box")
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+        try: snapshot = self._indicator_box_render_snapshot(val)
+        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "指示燈盒", exc)
+        return _draw_indicator_box_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _normalize_door_indicator_state(self, state):
         raw = dict(state or {})
@@ -3897,63 +3864,29 @@ class Phase6ApplicationHost:
     def setup_tab_indicator_door_ui(self):
         return _setup_tab_indicator_door_ui_impl(self)
 
+    def _indicator_door_render_snapshot(self, val):
+        count = max(1, int(self.indicator_l_var.get()))
+        layer_groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(count))
+        spec, context = self._indicator_door_part_spec_from_values(
+            val, layer_groups, features=self.surface_features["indicator_door"]
+        )
+        render_data = self._authoritative_render_data(spec, context)
+        bounds = tuple(float(v) for v in render_data.material.bounds)
+        finished_size = manufacturing_api.door_finished_face_size(spec, context)
+        return {
+            "render_data": render_data,
+            "bounds": bounds,
+            "finished_size": tuple(float(v) for v in finished_size),
+        }
+
     def draw_indicator_door(self, val):
-        canvas = self.canvas_indicator_door
-        canvas.delete("all")
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
+        canvas = self.canvas_indicator_door; canvas.delete("all")
+        cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
         self.draw_grid(canvas, cw, ch)
-
-        try:
-            count = max(1, int(self.indicator_l_var.get()))
-            layer_groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(count))
-            spec, context = self._indicator_door_part_spec_from_values(
-                val, layer_groups, features=self.surface_features["indicator_door"]
-            )
-            render_data = self._authoritative_render_data(spec, context)
-            minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-            blank_w = maxx - minx
-            blank_h = maxy - miny
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(spec, context)
-        except Exception as exc:
-            canvas.create_text(
-                cw/2, ch/2, text=f"指示燈小門 Final Part Geometry 載入失敗:\n{exc}",
-                fill="#ff3333", font=('Microsoft JhengHei', 11, 'bold')
-            )
-            return
-
-        canvas_transform, left, bottom, scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), cw, ch
-        )
-
-        if self.draw_stock_var.get():
-            sx0, sy0 = canvas_transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = canvas_transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-
-        render_drawing_scene(
-            canvas, render_data.scene, canvas_transform,
-            skip_layers=("CHECK", "STOCK"),
-        )
-
-        stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=(
-                "指示燈小門展開預覽｜Final Part Geometry\n"
-                "CUTTING/截角/固定孔/使用者開孔：與 3D 完全同源\n"
-                f"成品 {finished_w:.2f} × {finished_h:.2f} mm{stock_hint}"
-            ),
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="indicator_door")
-        self._draw_phase6_finished_dimension_summary(canvas, part_key="indicator_door")
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+        try: snapshot = self._indicator_door_render_snapshot(val)
+        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "指示燈小門", exc)
+        return _draw_indicator_door_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _inherit_known_corner_state_into_custom(self):
         """把目前已知固定板件的實際截角狀態複製成自訂起點。"""
