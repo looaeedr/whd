@@ -137,3 +137,5 @@ def test_issue355_request_does_not_switch_canonical_resolver_path():
     assert "manufacturing_service.resolve" not in source
 
 # issue355 T1 RED trigger
+
+# issue355 clean RED trigger
