@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import gui
+from gui_modules.rendering import door_view
 
 
 class Var:
@@ -111,8 +112,16 @@ def test_task4c1_multidoor_overview_presentation_and_cell_payloads_are_stable(mo
     host._door_layout_cell_resolved_features = lambda actual_cell, actual_result, key: (
         events.append(("resolved", actual_cell, actual_result, key)) or ("FEATURE",)
     )
-    host._draw_layout_baseline_secondary = lambda *args: events.append(("draw-baseline",) + args)
-    host._draw_layout_resolved_features = lambda *args: events.append(("draw-resolved",) + args)
+    monkeypatch.setattr(
+        door_view,
+        "_draw_layout_baseline_secondary_impl",
+        lambda *args: events.append(("draw-baseline",) + args),
+    )
+    monkeypatch.setattr(
+        door_view,
+        "_draw_layout_resolved_features_impl",
+        lambda *args: events.append(("draw-resolved",) + args),
+    )
     host._baseline_source_model = lambda: "MODEL"
     host._draw_door_layout_dividers_and_frames = lambda *args: events.append(("dividers",) + args)
 
