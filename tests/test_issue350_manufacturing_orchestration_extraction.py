@@ -83,4 +83,3 @@ def test_issue350_owner_uses_canonical_part_navigation_name_not_bridge_wrapper()
     assert "_phase6_is_box_body_physical_piece_key" not in loaded
     assert "is_box_body_physical_piece_key" in loaded
 
-# issue350 T5 GREEN trigger
