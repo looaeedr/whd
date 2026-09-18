@@ -94,6 +94,4 @@ def test_issue347_pure_helper_behavior_is_preserved():
         SimpleNamespace(verified=False, rule_id=None, trust_level="")
     )
 
-# issue347 T2 workflow trigger
 
-# issue347 T2 parity matrix trigger
