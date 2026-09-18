@@ -41,13 +41,13 @@ def _reject_door_layout_dimension(host, var, previous_value, message):
     return False
 
 def refresh_door_layout_status(host):
-    if not hasattr(self, "door_layout_status_label"):
+    if not hasattr(host, "door_layout_status_label"):
         return
     if not host.multi_door_enabled_var.get():
         host.door_layout_status_label.config(text="單門模式：沿用左側 W / H", fg=host.COLOR_TEXT_MUTED)
         return
     try:
-        width_completion = getattr(self, "_door_layout_width_completion", None)
+        width_completion = getattr(host, "_door_layout_width_completion", None)
         if width_completion is not None and not width_completion.valid:
             host.door_layout_status_label.config(
                 text=f"配置待修正：寬度超出 {width_completion.excess:g} mm", fg="#ff9f0a"
@@ -68,7 +68,7 @@ def refresh_door_layout_status(host):
         host.door_layout_status_label.config(text=f"配置待修正：{exc}", fg="#ff9f0a")
 
 def rebuild_door_layout_ui(host):
-    if not hasattr(self, "door_layout_columns_frame"):
+    if not hasattr(host, "door_layout_columns_frame"):
         return
     for widget in host.door_layout_columns_frame.winfo_children():
         widget.destroy()
