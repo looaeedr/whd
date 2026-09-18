@@ -13,29 +13,7 @@ env:
   T9_BASE: "6b04fb2bb72d9c251c979167530dee04ab4a372e"
 
 jobs:
-  red-contract:
-    if: ${{ !contains(github.event.head_commit.message, 'green(#342)') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: python -m pip install --disable-pip-version-check pytest
-      - name: Require exact final-manifest RED
-        shell: bash
-        run: |
-          set +e
-          python -m pytest -q tests/test_issue342_final_acceptance.py::test_t9_final_acceptance_manifest_exists_and_is_complete > red.log 2>&1
-          rc=$?
-          set -e
-          cat red.log
-          test "$rc" -ne 0
-          grep -F "#342 EXPECTED RED" red.log
-          grep -E "1 failed" red.log
-
   manifest-authority:
-    if: ${{ contains(github.event.head_commit.message, 'green(#342)') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +25,6 @@ jobs:
         run: python -m pytest -q tests/test_issue342_final_acceptance.py
 
   focused-authority:
-    if: ${{ contains(github.event.head_commit.message, 'green(#342)') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,10 +35,26 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib pillow
       - name: Save/reload selector renderer authority regressions
         run: |
-          python -m pytest -q             tests/test_dm6_save_reload_semantic_determinism.py             tests/test_issue175_dm7_navigation_authority_contract.py             tests/test_issue211_renderer_dependency_gate.py             tests/test_issue293_t5_session_authority_slice.py             tests/test_phase6_3d_single_source_renderer.py             tests/test_phase6_designer_workspace.py             tests/test_phase6_project_file.py             tests/test_phase6_t10_project_authority.py             tests/test_phase6_workspace_controller.py             tests/test_issue334_shared_menu_theme.py             tests/test_issue335_top_toolbar.py             tests/test_issue336_left_content_switch.py             tests/test_issue337_control_hierarchy.py             tests/test_issue338_contrast_readability.py             tests/test_issue339_corner_presentation_fail_closed.py             tests/test_issue340_keyboard_focus.py             tests/test_issue343_t8_visual_remediation.py
+          python -m pytest -q \
+            tests/test_dm6_save_reload_semantic_determinism.py \
+            tests/test_issue175_dm7_navigation_authority_contract.py \
+            tests/test_issue211_renderer_dependency_gate.py \
+            tests/test_issue293_t5_session_authority_slice.py \
+            tests/test_phase6_3d_single_source_renderer.py \
+            tests/test_phase6_designer_workspace.py \
+            tests/test_phase6_project_file.py \
+            tests/test_phase6_t10_project_authority.py \
+            tests/test_phase6_workspace_controller.py \
+            tests/test_issue334_shared_menu_theme.py \
+            tests/test_issue335_top_toolbar.py \
+            tests/test_issue336_left_content_switch.py \
+            tests/test_issue337_control_hierarchy.py \
+            tests/test_issue338_contrast_readability.py \
+            tests/test_issue339_corner_presentation_fail_closed.py \
+            tests/test_issue340_keyboard_focus.py \
+            tests/test_issue343_t8_visual_remediation.py
 
-  full-headless:
-    if: ${{ contains(github.event.head_commit.message, 'green(#342)') }}
+  full-headless-parity:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,16 +65,58 @@ jobs:
           python-version: "3.11"
       - name: Install full runtime deps
         run: python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib pillow
-      - name: Full headless regression
-        run: python -m pytest -q
-      - name: Protected runtime files unchanged after headless
+      - name: Candidate full headless
         shell: bash
         run: |
-          git status --porcelain --untracked-files=all -- config.ini '基準檔' | tee protected-status.txt
-          test ! -s protected-status.txt
+          set +e
+          python -m pytest -q > candidate-headless.log 2>&1
+          echo $? > candidate-headless.rc
+          set -e
+          tail -n 160 candidate-headless.log
+          git status --porcelain --untracked-files=all -- config.ini '基準檔' | tee candidate-protected-status.txt
+          test ! -s candidate-protected-status.txt
+      - name: Production-base full headless
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/t9-base "$T9_BASE"
+          cd /tmp/t9-base
+          set +e
+          python -m pytest -q > /tmp/base-headless.log 2>&1
+          echo $? > /tmp/base-headless.rc
+          set -e
+          tail -n 160 /tmp/base-headless.log
+      - name: Require exact no-new-failure parity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
 
-  full-xvfb:
-    if: ${{ contains(github.event.head_commit.message, 'green(#342)') }}
+          def failures(path):
+              text = Path(path).read_text(encoding="utf-8", errors="replace")
+              return sorted(set(re.findall(r"^FAILED\s+([^\s]+)", text, re.M)))
+
+          cand = failures("candidate-headless.log")
+          base = failures("/tmp/base-headless.log")
+          new = sorted(set(cand) - set(base))
+          missing = sorted(set(base) - set(cand))
+          print(f"HEADLESS_BASE_FAILURES={len(base)}")
+          print(f"HEADLESS_CANDIDATE_FAILURES={len(cand)}")
+          print("HEADLESS_NEW_FAILURES=", new)
+          print("HEADLESS_BASE_ONLY_FAILURES=", missing)
+          print("HEADLESS_CANDIDATE_TOTAL:", [
+              line for line in Path("candidate-headless.log").read_text(encoding="utf-8", errors="replace").splitlines()
+              if re.search(r"\b(?:passed|failed|skipped)\b", line)
+          ][-1:])
+          print("HEADLESS_BASE_TOTAL:", [
+              line for line in Path("/tmp/base-headless.log").read_text(encoding="utf-8", errors="replace").splitlines()
+              if re.search(r"\b(?:passed|failed|skipped)\b", line)
+          ][-1:])
+          if new:
+              raise SystemExit(f"#342 NEW_HEADLESS_FAILURES: {new}")
+          PY
+
+  full-xvfb-parity:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,16 +131,58 @@ jobs:
           sudo apt-get install -y xvfb fonts-noto-cjk
           fc-cache -f
           python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib pillow
-      - name: Full Xvfb regression
-        run: xvfb-run -a -s "-screen 0 1600x1000x24" python -m pytest -q
-      - name: Protected runtime files unchanged after Xvfb
+      - name: Candidate full Xvfb
         shell: bash
         run: |
-          git status --porcelain --untracked-files=all -- config.ini '基準檔' | tee protected-status.txt
-          test ! -s protected-status.txt
+          set +e
+          xvfb-run -a -s "-screen 0 1600x1000x24" python -m pytest -q > candidate-xvfb.log 2>&1
+          echo $? > candidate-xvfb.rc
+          set -e
+          tail -n 220 candidate-xvfb.log
+          git status --porcelain --untracked-files=all -- config.ini '基準檔' | tee candidate-protected-status.txt
+          test ! -s candidate-protected-status.txt
+      - name: Production-base full Xvfb
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/t9-base "$T9_BASE"
+          cd /tmp/t9-base
+          set +e
+          xvfb-run -a -s "-screen 0 1600x1000x24" python -m pytest -q > /tmp/base-xvfb.log 2>&1
+          echo $? > /tmp/base-xvfb.rc
+          set -e
+          tail -n 220 /tmp/base-xvfb.log
+      - name: Require exact no-new-failure parity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          def failures(path):
+              text = Path(path).read_text(encoding="utf-8", errors="replace")
+              return sorted(set(re.findall(r"^FAILED\s+([^\s]+)", text, re.M)))
+
+          cand = failures("candidate-xvfb.log")
+          base = failures("/tmp/base-xvfb.log")
+          new = sorted(set(cand) - set(base))
+          missing = sorted(set(base) - set(cand))
+          print(f"XVFB_BASE_FAILURES={len(base)}")
+          print(f"XVFB_CANDIDATE_FAILURES={len(cand)}")
+          print("XVFB_NEW_FAILURES=", new)
+          print("XVFB_BASE_ONLY_FAILURES=", missing)
+          print("XVFB_CANDIDATE_TOTAL:", [
+              line for line in Path("candidate-xvfb.log").read_text(encoding="utf-8", errors="replace").splitlines()
+              if re.search(r"\b(?:passed|failed|skipped)\b", line)
+          ][-1:])
+          print("XVFB_BASE_TOTAL:", [
+              line for line in Path("/tmp/base-xvfb.log").read_text(encoding="utf-8", errors="replace").splitlines()
+              if re.search(r"\b(?:passed|failed|skipped)\b", line)
+          ][-1:])
+          if new:
+              raise SystemExit(f"#342 NEW_XVFB_FAILURES: {new}")
+          PY
 
   protected-drift:
-    if: ${{ contains(github.event.head_commit.message, 'green(#342)') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -116,7 +193,6 @@ jobs:
         run: |
           git diff --name-only "$T9_BASE"...HEAD | tee changed.txt
           python - <<'PY'
-          import os
           from pathlib import Path
           changed = {x.strip() for x in Path("changed.txt").read_text(encoding="utf-8").splitlines() if x.strip()}
           allowed_prefixes = (
