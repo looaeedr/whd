@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue290-t2-layout-design
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #290 T2 Main Layout / Toolbar / Workspace Extraction — Design
 
 ## Identity and authority

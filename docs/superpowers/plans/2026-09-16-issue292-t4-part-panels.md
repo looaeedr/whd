@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue292-t4-part-panels-plan
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #292 T4 — Physical-Part Panel Extraction Implementation Plan
 
 ## Identity

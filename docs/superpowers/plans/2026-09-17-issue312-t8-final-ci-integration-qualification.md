@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue312-t8-final-ci-integration-qualification-plan
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue 312 T8 Final CI Integration Qualification Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
