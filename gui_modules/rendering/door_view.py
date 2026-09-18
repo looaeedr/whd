@@ -8,6 +8,10 @@ derive assembly/manufacturing geometry.
 import tkinter as tk
 
 from ae_engine.sheetmetal_geometry import Vec2
+from gui_modules.render_2d import (
+    _draw_layout_baseline_secondary as _draw_layout_baseline_secondary_impl,
+    _draw_layout_resolved_features as _draw_layout_resolved_features_impl,
+)
 
 
 def draw_preview_error(
@@ -414,7 +418,7 @@ def _draw_door_layout_cell_payload(
 ):
     mode = payload.get("mode")
     if mode == "local":
-        host._draw_layout_baseline_secondary(
+        _draw_layout_baseline_secondary_impl(
             canvas,
             payload["scene"],
             payload["width"],
@@ -422,7 +426,7 @@ def _draw_door_layout_cell_payload(
             bounds,
             f"door_layout_baseline_{column_index}_{row_index}",
         )
-        host._draw_layout_resolved_features(
+        _draw_layout_resolved_features_impl(
             canvas,
             payload["resolved"],
             payload["width"],
@@ -431,7 +435,7 @@ def _draw_door_layout_cell_payload(
             f"door_layout_feature_{column_index}_{row_index}",
         )
     elif mode == "peer":
-        host._draw_layout_baseline_secondary(
+        _draw_layout_baseline_secondary_impl(
             canvas,
             payload["scene"],
             payload["width"],
