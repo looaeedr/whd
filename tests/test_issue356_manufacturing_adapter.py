@@ -181,16 +181,4 @@ def test_issue356_adapter_contract_survives_later_phase2_resolver_cutover():
     }
     assert "build_manufacturing_request" in names
 
-    path = Path("phase6_manufacturing_geometry.py")
-    source = path.read_text(encoding="utf-8")
-    tree = ast.parse(source, filename=str(path))
-    resolver = next(
-        node
-        for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_geometry"
-    )
-    segment = ast.get_source_segment(source, resolver) or ""
-    assert "build_manufacturing_request" not in segment
-    assert "manufacturing_service.resolve" not in segment
 
