@@ -53,4 +53,17 @@ __all__ = [
     "draw_door_layout_error",
     "draw_door_layout_overview_preview",
     "draw_door_layout_dividers_and_frames_preview",
+    "door_layout_cell_at_canvas_point",
+    "on_door_canvas_press",
+    "on_door_canvas_drag",
+    "on_door_canvas_release",
+    "on_door_canvas_double_click",
 ]
+
+from .interaction import (
+    door_layout_cell_at_canvas_point,
+    on_door_canvas_press,
+    on_door_canvas_drag,
+    on_door_canvas_release,
+    on_door_canvas_double_click,
+)
