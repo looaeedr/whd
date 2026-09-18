@@ -185,3 +185,75 @@ def draw_box_body_aggregate_preview(
         "piece_keys": snapshot["piece_keys"],
         "baseline_status": snapshot["baseline_status"],
     }
+
+
+
+def draw_end_cap_error(host, canvas, canvas_width, canvas_height, error, *, hint_drawer):
+    canvas.create_text(
+        canvas_width / 2,
+        canvas_height / 2,
+        text=f"封頭尾載入失敗: {error}",
+        fill="#ff3333",
+        font=("Microsoft JhengHei", 10, "bold"),
+    )
+    hint_drawer(canvas, canvas_width, endcap=True)
+
+
+def draw_end_cap_preview(
+    host,
+    snapshot,
+    canvas,
+    canvas_width,
+    canvas_height,
+    *,
+    viewport,
+    scene_renderer,
+    annotation_drawer,
+    hint_drawer,
+):
+    render_data = snapshot["render_data"]
+    minx, miny, maxx, maxy = snapshot["bounds"]
+    transform, _offset_x, _offset_y, _scale, _material_top = viewport(
+        (minx, miny, maxx, maxy), canvas_width, canvas_height
+    )
+
+    scene_renderer(
+        canvas,
+        render_data.scene,
+        transform,
+        skip_layers=("CHECK", "STOCK"),
+    )
+
+    if host.draw_stock_var.get():
+        sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
+        sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
+        canvas.create_rectangle(
+            sx0,
+            sy0,
+            sx1,
+            sy1,
+            outline="#00d4d4",
+            width=1.5,
+            dash=(8, 4),
+        )
+
+    stock_hint = "  STOCK: 青色虛線" if host.draw_stock_var.get() else ""
+    tail_hint = "  [封尾]" if snapshot["is_tail"] else "  [封頭]"
+    canvas.create_text(
+        25,
+        25,
+        anchor=tk.NW,
+        text=(
+            f"{snapshot['part_label']}展開預覽{snapshot['baseline_hint']}\n"
+            f"外輪廓: 綠色  折彎: 藍色  孔洞: 綠色{stock_hint}{tail_hint}"
+        ),
+        fill=host.COLOR_TEXT_MUTED,
+        font=("Microsoft JhengHei", 9),
+        width=max(180, int(canvas_width * 0.48)),
+        tags=("phase6_preview_hint",),
+    )
+
+    part_key = "tail" if snapshot["is_tail"] else "head"
+    annotation_drawer(canvas, render_data, transform, part_key=part_key)
+    host._draw_phase6_finished_dimension_summary(canvas, part_key=part_key)
+    hint_drawer(canvas, canvas_width, endcap=True)
