@@ -28,3 +28,5 @@ def test_issue349_explicit_joint_relief_solver_has_one_canonical_owner():
         elif isinstance(node, ast.ImportFrom) and node.module == "fold_designer_bridge":
             reverse.append(node.module)
     assert reverse == []
+
+# issue349 T4 RED trigger
