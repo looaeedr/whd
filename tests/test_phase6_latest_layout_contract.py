@@ -42,14 +42,15 @@ def _is_descendant(widget, ancestor):
     return False
 
 
-def test_first_3d_view_is_assembly_and_assembly_is_first_part_choice(monkeypatch):
+def test_first_3d_view_is_assembly_while_sheetmetal_selector_stays_on_real_part(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        assert app.part_choice_menu.entrycget(0, "label") == "組合體"
-        assert app.part_var.get() == "組合體"
+        assert app.part_choice_menu.entrycget(0, "label") == "箱身"
+        assert app.part_var.get() == "箱身"
         assert app._phase6_3d_display_mode == "assembly"
         assert app.fold_editor_host.winfo_manager() == ""
         assert app.settings_center.winfo_manager() == ""
+        assert app.assembly_content_button.winfo_manager() == "pack"
     finally:
         root.destroy()
 
@@ -85,8 +86,13 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
             )
         assert app.fullscreen_button.cget("text") == "全螢幕"
         assert not hasattr(app, "return_2d_button")
-        assert app.part_choice_menu.entrycget(0, "label") == "組合體"
-        assert app.part_choice_menu.entrycget(1, "label") == "截角資料"
+        menu_labels = [
+            app.part_choice_menu.entrycget(i, "label")
+            for i in range(app.part_choice_menu.index("end") + 1)
+        ]
+        assert "組合體" not in menu_labels
+        assert "截角資料" not in menu_labels
+        assert menu_labels[0] == "箱身"
         assert app.ui_text_size_combo.master is app.visual_controls
 
         # Global controls are now mounted under the right-side global host.

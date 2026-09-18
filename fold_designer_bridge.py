@@ -8674,7 +8674,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # 板件選擇／新增／刪除固定同一列，永不因切換板件消失。
     self.part_selector = original.ttk.Frame(self.left)
     self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
-    self.part_var = original.tk.StringVar(master=self.part_selector, value="組合體")
+    self.part_var = original.tk.StringVar(master=self.part_selector, value="箱身")
     self.part_buttons = {}
     # The compact sheet-metal menu and the Structure Tree are two presentation
     # projections of the same authoritative part_var / workspace callbacks.
@@ -8733,14 +8733,18 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         lambda event: _phase6_on_box_body_piece_tab_changed(self, event),
     )
 
-    self.add_part_button = original.ttk.Menubutton(self.part_selector, text="新增 ▼")
+    self.part_action_row = original.ttk.Frame(self.part_selector)
+    self.part_action_row.pack(fill=original.tk.X, pady=(0, 4))
+    self.add_part_button = original.ttk.Menubutton(self.part_action_row, text="新增 ▼")
     self.add_part_menu = configure_tk_menu(original.tk.Menu(self.add_part_button, tearoff=False))
     self.add_part_button.configure(menu=self.add_part_menu)
-    self.add_part_button.pack(side=original.tk.LEFT, padx=4)
+    self.add_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(0, 2))
     self.remove_part_button = original.ttk.Button(
-        self.part_selector, text="刪除", command=self.remove_selected_part, state="disabled"
+        self.part_action_row, text="刪除", command=self.remove_selected_part, state="disabled"
     )
-    self.remove_part_button.pack(side=original.tk.LEFT, padx=(4, 0))
+    self.remove_part_button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=(2, 0))
+
+    _phase6_build_content_switch(self)
 
     # 組合體內容直接使用左側剩餘空間；不再用帶標題/框線的 LabelFrame
     # 切出一塊獨立「組合圖」區域。
@@ -8807,6 +8811,78 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_initializing = False
     self._phase6_sync_ready = True
 
+
+
+def _phase6_clear_navigation_residue(self):
+    """Dismiss transient navigation popups before changing the visible content."""
+    for name in ("part_choice_menu", "add_part_menu", "project_file_menu"):
+        menu = getattr(self, name, None)
+        if menu is None:
+            continue
+        try:
+            menu.unpost()
+        except Exception:
+            pass
+
+
+def _phase6_refresh_content_switch(self):
+    """Project the existing display mode onto the three persistent buttons."""
+    mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
+    active = "assembly" if mode == "assembly" else "corner_data" if mode == "corner_data" else "input"
+    mapping = {
+        "input": getattr(self, "input_content_button", None),
+        "assembly": getattr(self, "assembly_content_button", None),
+        "corner_data": getattr(self, "corner_data_content_button", None),
+    }
+    for key, button in mapping.items():
+        if button is None:
+            continue
+        try:
+            button.state(["pressed"] if key == active else ["!pressed"])
+        except Exception:
+            pass
+    return active
+
+
+def _phase6_show_input_content(self):
+    """Return to the editor for the workspace's existing authoritative active part."""
+    _phase6_clear_navigation_residue(self)
+    workspace = _designer_workspace(self)
+    available = tuple(getattr(workspace, "available_parts", ()) or ())
+    key = str(getattr(workspace, "active_part", "") or "")
+    if key not in available:
+        key = "box_body" if "box_body" in available else (available[0] if available else "")
+    if not key:
+        return None
+    result = self.activate_part(key)
+    _phase6_refresh_content_switch(self)
+    return result
+
+
+def _phase6_build_content_switch(self):
+    """Build the fixed Input / Assembly / Corner Data presentation switch."""
+    self.content_switch_frame = original.ttk.Frame(self.left)
+    self.content_switch_frame.pack(fill=original.tk.X, pady=(0, 6))
+    self.input_content_button = original.ttk.Button(
+        self.content_switch_frame, text="輸入區",
+        command=lambda: _phase6_show_input_content(self),
+    )
+    self.assembly_content_button = original.ttk.Button(
+        self.content_switch_frame, text="組合體",
+        command=lambda: _phase6_show_assembly(self),
+    )
+    self.corner_data_content_button = original.ttk.Button(
+        self.content_switch_frame, text="截角資料",
+        command=lambda: _phase6_show_corner_data(self),
+    )
+    for button in (
+        self.input_content_button,
+        self.assembly_content_button,
+        self.corner_data_content_button,
+    ):
+        button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=1)
+    _phase6_refresh_content_switch(self)
+    return self.content_switch_frame
 
 
 def _phase6_structure_tree_visibility_var(self, key):
@@ -9032,18 +9108,6 @@ def _fix11_refresh_part_buttons(self):
     menu = getattr(self, "part_choice_menu", None)
     if menu is not None:
         menu.delete(0, original.tk.END)
-        menu.add_radiobutton(
-            label="組合體",
-            variable=self.part_var,
-            value="組合體",
-            command=lambda: _phase6_show_assembly(self),
-        )
-        menu.add_radiobutton(
-            label="截角資料",
-            variable=self.part_var,
-            value="截角資料",
-            command=lambda: _phase6_show_corner_data(self),
-        )
         for key in _phase6_operator_part_selector_keys(self.available_parts):
             label = _phase6_part_label(key, snapshot=snapshot)
             menu.add_radiobutton(
@@ -9052,14 +9116,9 @@ def _fix11_refresh_part_buttons(self):
                 value=label,
                 command=lambda k=key: _phase6_activate_operator_part(self, k),
             )
-    mode = str(getattr(self, "_phase6_3d_display_mode", "assembly") or "assembly")
     active = getattr(self, "active_part_key", None)
     if hasattr(self, "part_var"):
-        if mode == "assembly":
-            self.part_var.set("組合體")
-        elif mode == "corner_data":
-            self.part_var.set("截角資料")
-        elif _phase6_is_box_body_physical_piece_key(active):
+        if _phase6_is_box_body_physical_piece_key(active):
             self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
         elif active in self.available_parts:
             self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
@@ -9068,6 +9127,7 @@ def _fix11_refresh_part_buttons(self):
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
     _phase6_refresh_structure_tree(self)
+    _phase6_refresh_content_switch(self)
     _phase6_refresh_status_bar(self)
 
 
@@ -9367,9 +9427,8 @@ def _phase6_show_corner_data(self):
     manufacturing part, or alter workspace selection/state. T2 will populate
     the authoritative part projection inside the mode panel.
     """
+    _phase6_clear_navigation_residue(self)
     self._phase6_3d_display_mode = "corner_data"
-    if hasattr(self, "part_var"):
-        self.part_var.set("截角資料")
 
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
@@ -9401,10 +9460,12 @@ def _phase6_show_corner_data(self):
     refresh = getattr(self, "_refresh_part_button_states", None)
     if callable(refresh):
         refresh()
+    _phase6_refresh_content_switch(self)
 
 
 def _phase6_show_assembly(self, initial=False):
     """Show the structural cabinet assembly while retaining a real active part as geometry backing."""
+    _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
     if not initial and getattr(self, "_phase6_pending_settings", None):
         self.flush_pending_settings()
@@ -9424,8 +9485,6 @@ def _phase6_show_assembly(self, initial=False):
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and piece_selector.winfo_manager():
         piece_selector.pack_forget()
-    if hasattr(self, "part_var"):
-        self.part_var.set("組合體")
     if getattr(self, "fold_editor_host", None) is not None and self.fold_editor_host.winfo_manager():
         self.fold_editor_host.pack_forget()
     corner_data_panel = getattr(self, "corner_data_panel", None)
@@ -9467,6 +9526,7 @@ def _phase6_show_assembly(self, initial=False):
             submit(reason, commit=True)
         else:
             self.do_update()
+    _phase6_refresh_content_switch(self)
     return True
 
 
@@ -9898,6 +9958,7 @@ def _phase6_show_home(self):
 def _fix11_activate_part(self, key, initial=False):
     if key not in self.designer_workspace.available_parts:
         return
+    _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
     corner_data_panel = getattr(self, "corner_data_panel", None)
     if corner_data_panel is not None and corner_data_panel.winfo_manager():
@@ -9913,9 +9974,9 @@ def _fix11_activate_part(self, key, initial=False):
     # Assembly keeps a real part (normally box_body) as geometry backing.  A Tk
     # Menu radiobutton updates part_var before invoking this callback, so neither
     # active_part nor part_var can tell us that the user is leaving assembly.
-    # Capture the display mode first: assembly -> same backing part is still a
-    # real mode transition and must rebuild/show the single-part editor.
-    was_assembly = str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly"
+    # Capture the display mode first: assembly/corner-data -> same backing part
+    # is still a real view transition and must rebuild/show the input editor.
+    was_non_single = str(getattr(self, "_phase6_3d_display_mode", "single") or "single") != "single"
     if not initial:
         self._phase6_3d_display_mode = "single"
         diagnostics = getattr(self, "assembly_diagnostics_frame", None)
@@ -9923,7 +9984,7 @@ def _fix11_activate_part(self, key, initial=False):
             diagnostics.pack_forget()
     if not initial and getattr(self, "_phase6_pending_settings", None):
         self.flush_pending_settings()
-    if key == self.designer_workspace.active_part and not initial and not was_assembly:
+    if key == self.designer_workspace.active_part and not initial and not was_non_single:
         return
 
     # A delayed edit/preview update from the previous part must never run after
@@ -10112,6 +10173,7 @@ def _fix11_activate_part(self, key, initial=False):
         self.do_update()
     _phase6_refresh_persistent_structure_controls(self)
     _phase6_refresh_box_body_piece_selector(self)
+    _phase6_refresh_content_switch(self)
 
 
 def _fix11_add_part(self, key):
