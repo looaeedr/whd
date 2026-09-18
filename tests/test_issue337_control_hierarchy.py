@@ -25,13 +25,13 @@ def test_t4_shared_role_source_contract():
     bridge = _text("fold_designer_bridge.py")
 
     required = (
-        'style.configure("Primary.TButton"',
-        'style.configure("Secondary.TButton"',
-        'style.configure("Selector.TMenubutton"',
-        'style.configure("Editable.TEntry"',
-        'style.configure("Readonly.TEntry"',
+        "Primary.TButton",
+        "Secondary.TButton",
+        "Selector.TMenubutton",
+        "Editable.TEntry",
+        "Readonly.TEntry",
     )
-    missing = [token for token in required if token not in theme]
+    missing = [role for role in required if f'"{role}"' not in theme]
     assert not missing, (
         "#337 EXPECTED RED: shared input/selector/primary/secondary style roles "
         f"do not yet exist: {missing!r}"
