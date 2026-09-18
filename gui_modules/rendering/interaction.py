@@ -170,3 +170,77 @@ def on_box_body_canvas_press(host, event):
         host._box_body_face_last_click = (hit, event_time)
         host.select_box_body_face(hit)
     return "break"
+
+
+
+def draw_preview(host):
+    """Refresh only the visible authoritative Fold Designer corner-data view."""
+    designer = getattr(host, "fold_designer_app", None)
+    if designer is None:
+        return None
+    if str(getattr(designer, "_phase6_3d_display_mode", "") or "") != "corner_data":
+        return None
+    if getattr(designer, "corner_data_canvas", None) is None:
+        return None
+    refresh = getattr(designer, "_phase6_refresh_corner_data_unfold_view", None)
+    return refresh() if callable(refresh) else None
+
+
+def open_box_body_face_editor(
+    host,
+    face_key,
+    *,
+    messagebox_module,
+    face_dimensions_fn,
+    vertical_offsets_fn,
+    surface_builder,
+    guide_type,
+    vec2_type,
+    baseline_label_fn,
+):
+    if face_key not in {"left", "back", "right"}:
+        messagebox_module.showerror("開孔失敗", f"未知箱身面: {face_key}")
+        return None
+
+    try:
+        val = host.get_float_values()
+    except ValueError as exc:
+        messagebox_module.showerror("輸入錯誤", str(exc))
+        return None
+
+    dims = face_dimensions_fn(w=val["w"], h=val["h"], d=val["d"])
+    width, height = dims[face_key]
+    head_policy, tail_policy = host._box_body_corner_policies(val["fw"])
+    bottom_outer, top_outer = vertical_offsets_fn(
+        val["t"],
+        head_corner_policy=head_policy,
+        tail_corner_policy=tail_policy,
+    )
+    surface = surface_builder(
+        f"box_body_{face_key}",
+        vec2_type(val["t"], bottom_outer),
+        vec2_type(width - val["t"], height - top_outer),
+    )
+    reference_guide = guide_type(
+        vec2_type(0.0, 0.0),
+        vec2_type(width, height),
+        "enclosure_boundary",
+    )
+    title = {
+        "left": "箱身左側",
+        "back": "箱身背面",
+        "right": "箱身右側",
+    }[face_key]
+    host.box_body_face_selected_var.set(face_key)
+    return host._open_unified_hole_editor(
+        f"box_body_{face_key}",
+        title,
+        surface,
+        width,
+        height,
+        reference_guide=reference_guide,
+        feature_list_override=host.box_body_face_features[face_key],
+        baseline_scene=host._box_body_face_baseline_scene(face_key, val),
+        baseline_status_text=baseline_label_fn(host.baseline_var.get()),
+        on_close=lambda: host.draw_box_body(host.get_float_values()),
+    )
