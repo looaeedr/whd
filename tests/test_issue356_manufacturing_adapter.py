@@ -168,9 +168,18 @@ def test_issue356_adapter_has_no_solver_or_domain_loop_ownership():
     assert "fold_designer_bridge" not in source
 
 
-def test_issue356_t2_does_not_switch_canonical_resolver():
+def test_issue356_adapter_contract_survives_later_phase2_resolver_cutover():
     import ast
     from pathlib import Path
+
+    path = Path("phase6_manufacturing_adapter.py")
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names = {
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "build_manufacturing_request" in names
 
     path = Path("phase6_manufacturing_geometry.py")
     source = path.read_text(encoding="utf-8")
