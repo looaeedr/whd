@@ -4332,9 +4332,9 @@ def _phase6_apply_external_sync(self, envelope):
 
 
 def _phase6_left_workspace_width(value) -> int:
-    """Scale only the left workbench width enough to preserve readable controls."""
-    factor = ui_text_size_factor(value)
-    return int(round(338 + max(0.0, float(factor) - 1.0) * 230.0))
+    """Return the visual-review width floor for each supported UI text scale."""
+    key = normalize_ui_text_size(value)
+    return {"small": 338, "medium": 430, "large": 480}[key]
 
 
 def _phase6_update_left_workspace_width(self, key=None):
