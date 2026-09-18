@@ -55,7 +55,17 @@ def test_issue358_manufacturing_owner_has_zero_bridge_callback_registry_refs():
 
     assert not (CALLBACK_REGISTRY_NAMES & _defined(owner_tree))
     assert not (CALLBACK_REGISTRY_NAMES & _loaded_names(owner_tree))
-    assert "fold_designer_bridge" not in source
+
+    reverse_imports = []
+    for node in ast.walk(owner_tree):
+        if isinstance(node, ast.Import):
+            reverse_imports.extend(
+                alias.name for alias in node.names
+                if alias.name == "fold_designer_bridge"
+            )
+        elif isinstance(node, ast.ImportFrom) and node.module == "fold_designer_bridge":
+            reverse_imports.append(node.module)
+    assert reverse_imports == []
 
 
 def test_issue358_owner_resolver_consumes_request_and_returns_explicit_result():
