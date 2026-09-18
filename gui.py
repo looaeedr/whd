@@ -263,17 +263,12 @@ def _draw_phase6_corner_dimension_overlay(canvas, render_data, canvas_width):
     )
 
 
-def _phase6_2d_material_viewport(
-    bounds, canvas_width, canvas_height, *,
-    top_gutter=175.0, right_gutter=82.0,
-    bottom_gutter=48.0, left_gutter=48.0,
-):
-    return _phase6_2d_material_viewport_impl(
-        bounds, canvas_width, canvas_height,
-        top_gutter=top_gutter, right_gutter=right_gutter,
-        bottom_gutter=bottom_gutter, left_gutter=left_gutter,
-        transform_type=CanvasTransform,
-    )
+def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gutter=175.0,
+                             right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
+    kwargs = dict(top_gutter=top_gutter, right_gutter=right_gutter,
+                  bottom_gutter=bottom_gutter, left_gutter=left_gutter,
+                  transform_type=CanvasTransform)
+    return _phase6_2d_material_viewport_impl(bounds, canvas_width, canvas_height, **kwargs)
 
 
 from gui_modules.layout import (
