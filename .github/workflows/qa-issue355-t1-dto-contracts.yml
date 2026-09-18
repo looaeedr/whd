@@ -1,0 +1,32 @@
+name: "#355 T1 manufacturing DTO contracts"
+
+on:
+  push:
+    branches:
+      - refactor/issue355-manufacturing-dto-contracts-20260919
+    paths:
+      - 'tests/test_issue355_manufacturing_dto_contracts.py'
+      - 'phase6_manufacturing_contracts.py'
+      - '.github/workflows/qa-issue355-t1-dto-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run immutable manufacturing DTO contracts
+        run: python -m pytest -q tests/test_issue355_manufacturing_dto_contracts.py
