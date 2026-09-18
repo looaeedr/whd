@@ -46,14 +46,16 @@ def test_old_main_gui_no_longer_constructs_fold_advanced_panel_but_keeps_global_
 
 
 def test_box_body_tab_keeps_global_fw_t_but_removes_z_comp_input():
-    text = method_source("setup_tab_z_ui")
+    text = Path("gui_modules/parts/panels/box_body.py").read_text(encoding="utf-8")
+    assert "def setup_tab_z_ui" in text
     assert "self.fw_z_var" in text
     assert "self.t_var" in text
     assert "self.z_comp_var" not in text
 
 
 def test_base_plate_tab_has_no_duplicate_shrink_or_bend_entries():
-    text = method_source("setup_tab_base_plate_ui")
+    text = Path("gui_modules/parts/panels/base_plate.py").read_text(encoding="utf-8")
+    assert "def setup_tab_base_plate_ui" in text
     assert "self.canvas_base_plate" in text
     for token in (
         "self.base_plate_shrink_same_var",

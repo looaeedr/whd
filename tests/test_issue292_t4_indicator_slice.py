@@ -12,7 +12,7 @@ def _functions(path):
 
 
 def test_indicator_panel_owns_input_collection_not_render_or_geometry():
-    assert "collect_indicator_input" in _functions(PANEL)
+    assert "collect_indicator_box_input" in _functions(PANEL)
     text = PANEL.read_text(encoding="utf-8").lower()
     for forbidden in ("manufacturing_api", "dxf", "mesh", "render", "placement", "finished_dimension"):
         assert forbidden not in text
@@ -21,7 +21,7 @@ def test_indicator_panel_owns_input_collection_not_render_or_geometry():
 def test_indicator_input_collection_preserves_only_present_values():
     namespace = {}
     exec(compile(PANEL.read_text(encoding="utf-8"), str(PANEL), "exec"), namespace)
-    collect = namespace["collect_indicator_input"]
+    collect = namespace["collect_indicator_box_input"]
     payload = {
         "indicator_box_enabled": True,
         "indicator_box_width": "220",
@@ -33,7 +33,7 @@ def test_indicator_input_collection_preserves_only_present_values():
     assert collect({"model": "受電箱"}) == {"model": "受電箱"}
 
 
-def test_gui_routes_indicator_payload_collection_through_panel_boundary():
+def test_gui_imports_current_indicator_panel_collection_boundary():
     text = GUI.read_text(encoding="utf-8")
-    assert "from gui_modules.parts.panels.indicator_box import collect_indicator_input" in text
-    assert "collect_indicator_input(" in text
+    assert "from gui_modules.parts.panels.indicator_box import collect_indicator_box_input" in text
+    assert "collect_indicator_input" not in text
