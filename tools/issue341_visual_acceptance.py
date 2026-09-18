@@ -378,6 +378,70 @@ def capture_window_png(root, output_path):
     return output_path
 
 
+def _mapped_state_widgets(root):
+    """Return mapped readonly/disabled widgets for screenshot state evidence."""
+    readonly = []
+    disabled = []
+    stack = [root]
+    while stack:
+        widget = stack.pop()
+        try:
+            stack.extend(widget.winfo_children())
+        except Exception:
+            continue
+        try:
+            if not widget.winfo_ismapped():
+                continue
+        except Exception:
+            continue
+        try:
+            state = str(widget.cget("state") or "")
+        except Exception:
+            state = ""
+        if state == "readonly":
+            readonly.append(str(widget))
+        elif state == "disabled":
+            disabled.append(str(widget))
+        else:
+            try:
+                instate = getattr(widget, "instate", None)
+                if callable(instate) and instate(["disabled"]):
+                    disabled.append(str(widget))
+            except Exception:
+                pass
+    return {"readonly": sorted(set(readonly)), "disabled": sorted(set(disabled))}
+
+
+def capture_state_evidence(root, designer, scale, output_path):
+    """Capture selected/focus plus natural disabled/readonly UI states."""
+    _set_mode(root, designer, "input")
+    try:
+        designer.activate_part("box_body")
+    except Exception:
+        pass
+    _pump(root, 3)
+    designer.part_choice_button.focus_set()
+    _pump(root, 3)
+
+    focus = root.focus_get()
+    selection = tuple(designer.structure_tree.selection())
+    states = _mapped_state_widgets(root)
+    path = capture_window_png(root, output_path)
+    return {
+        "scale": scale,
+        "file": Path(path).name,
+        "focus_path": str(focus) if focus is not None else None,
+        "focus_expected_path": str(designer.part_choice_button),
+        "focus_ok": focus is designer.part_choice_button,
+        "tree_selection": list(selection),
+        "selected_ok": bool(selection),
+        "readonly_widgets": states["readonly"],
+        "disabled_widgets": states["disabled"],
+        "readonly_status": "PASS" if states["readonly"] else "N/A",
+        "disabled_status": "PASS" if states["disabled"] else "N/A",
+    }
+
+
 def inspect_pixels(path):
     """C-layer machine-readable pixel evidence; manual screenshot review follows."""
     image = Image.open(path).convert("RGB")
@@ -494,6 +558,7 @@ def main():
     geometry_rows = []
     style_rows = []
     pixel_rows = []
+    state_rows = []
 
     try:
         root.deiconify()
@@ -509,12 +574,21 @@ def main():
             _set_mode(root, designer, "input")
             screenshot = capture_window_png(root, output / f"ui-{scale}.png")
             pixel_rows.append(inspect_pixels(screenshot))
+            state_rows.append(
+                capture_state_evidence(
+                    root,
+                    designer,
+                    scale,
+                    output / f"ui-{scale}-states.png",
+                )
+            )
 
         checklist = build_visual_checklist(geometry_rows, style_rows, pixel_rows)
 
         _write_json(output / "geometry.json", geometry_rows)
         _write_json(output / "styles.json", style_rows)
         _write_json(output / "pixels.json", pixel_rows)
+        _write_json(output / "state-screenshots.json", state_rows)
         _write_checklist(output / "visual-checklist.md", checklist)
 
         summary = {
@@ -523,6 +597,13 @@ def main():
             "pixels_pass": all(row["pass"] for row in pixel_rows),
             "checklist_failures": [row for row in checklist if row["status"] == "FAIL"],
             "screenshots": [f"ui-{scale}.png" for scale in SCALES],
+            "state_screenshots": [f"ui-{scale}-states.png" for scale in SCALES],
+            "state_evidence_pass": all(
+                row["focus_ok"] and row["selected_ok"]
+                and row["readonly_status"] in {"PASS", "N/A"}
+                and row["disabled_status"] in {"PASS", "N/A"}
+                for row in state_rows
+            ),
         }
         _write_json(output / "summary.json", summary)
         print(json.dumps(summary, ensure_ascii=False, indent=2))
@@ -531,6 +612,7 @@ def main():
             summary["geometry_pass"]
             and summary["styles_pass"]
             and summary["pixels_pass"]
+            and summary["state_evidence_pass"]
             and not summary["checklist_failures"]
         ):
             raise SystemExit("#341 T8 acceptance has unresolved failures")
