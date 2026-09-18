@@ -226,6 +226,8 @@ from gui_modules.rendering import (
     on_box_body_canvas_press as _on_box_body_canvas_press_impl,
     draw_box_body_piece_preview as _draw_box_body_piece_preview_impl,
     draw_box_body_aggregate_preview as _draw_box_body_aggregate_preview_impl,
+    draw_end_cap_preview as _draw_end_cap_preview_impl,
+    draw_end_cap_error as _draw_end_cap_error_impl,
 )
 
 
@@ -4280,64 +4282,33 @@ class Phase6ApplicationHost:
         if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"])
         return _draw_box_body_aggregate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
-    def draw_end_cap(self, val, canvas, part_label='封頭/尾', is_tail=False):
-        """Render the exact normalized End Cap scene used by DXF output (WYSIWYG)."""
-        canvas.delete("all")
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
-        self.draw_grid(canvas, cw, ch)
-
+    def _end_cap_render_snapshot(self, val, *, part_label='封頭/尾', is_tail=False):
         baseline = self._baseline_source_model()
-        try:
-            spec = self._end_cap_part_spec(val, is_tail=is_tail)
-            render_data = self._authoritative_render_data(
-                spec, self._manufacturing_context(draw_stock=False)
-            )
-            scene = render_data.scene
-            minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-            y_w = maxx - minx
-            y_d = maxy - miny
-            if is_unknown_model(self.baseline_var.get()):
-                baseline_hint = " (自訂 / Final Part Geometry)"
-            elif baseline:
-                baseline_hint = f" ({baseline} Final Part Geometry)"
-            else:
-                baseline_hint = " (Y-Cap Final Part Geometry)"
-        except Exception as exc:
-            canvas.create_text(
-                cw / 2, ch / 2, text=f"封頭尾載入失敗: {exc}",
-                fill="#ff3333", font=('Microsoft JhengHei', 10, 'bold')
-            )
-            draw_hole_editor_hint(canvas, cw, endcap=True)
-            return
+        spec = self._end_cap_part_spec(val, is_tail=is_tail)
+        context = self._manufacturing_context(draw_stock=False)
+        render_data = self._authoritative_render_data(spec, context)
+        bounds = tuple(float(v) for v in render_data.material.bounds)
+        if is_unknown_model(self.baseline_var.get()):
+            baseline_hint = " (自訂 / Final Part Geometry)"
+        elif baseline:
+            baseline_hint = f" ({baseline} Final Part Geometry)"
+        else:
+            baseline_hint = " (Y-Cap Final Part Geometry)"
+        return {
+            "render_data": render_data,
+            "bounds": bounds,
+            "baseline_hint": baseline_hint,
+            "part_label": part_label,
+            "is_tail": bool(is_tail),
+        }
 
-        transform, offset_x, offset_y, scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), cw, ch
-        )
-
-        render_drawing_scene(canvas, scene, transform, skip_layers=("CHECK", "STOCK"))
-
-        if self.draw_stock_var.get():
-            sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-
-        stock_hint = "  STOCK: 青色虛線" if self.draw_stock_var.get() else ""
-
-        tail_hint = "  [封尾]" if is_tail else "  [封頭]"
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=f"{part_label}展開預覽{baseline_hint}\n外輪廓: 綠色  折彎: 藍色  孔洞: 綠色{stock_hint}{tail_hint}",
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(canvas, render_data, transform, part_key=("tail" if is_tail else "head"))
-        self._draw_phase6_finished_dimension_summary(canvas, part_key=("tail" if is_tail else "head"))
-        draw_hole_editor_hint(canvas, cw, endcap=True)
+    def draw_end_cap(self, val, canvas, part_label='封頭/尾', is_tail=False):
+        canvas.delete("all"); cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
+        self.draw_grid(canvas, cw, ch)
+        try: snapshot = self._end_cap_render_snapshot(val, part_label=part_label, is_tail=is_tail)
+        except Exception as exc: return _draw_end_cap_error_impl(self, canvas, cw, ch, exc, hint_drawer=draw_hole_editor_hint)
+        return _draw_end_cap_preview_impl(self, snapshot, canvas, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _manufacturing_context(self, *, draw_stock=False):
         """GUI-owned execution context for the headless manufacturing boundary."""
