@@ -71,14 +71,11 @@ def _receiving_profile_and_spec(*, structure=False):
 
 def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     gui_path = ROOT / "gui.py"
-
-    update_src = _class_method_source(gui_path, "Phase6ApplicationHost", "update_calculations")
+    calculation_owner = ROOT / "gui_modules" / "application" / "calculation_controller.py"
+    update_src = _function_source(calculation_owner, "update_calculations")
     assert "calculate_z_length(" not in update_src
-
     draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_box_body")
-    snapshot_route_src = _class_method_source(
-        gui_path, "Phase6ApplicationHost", "_box_body_render_snapshot"
-    )
+    snapshot_route_src = _class_method_source(gui_path, "Phase6ApplicationHost", "_box_body_render_snapshot")
     snapshot_owner_src = _function_source(RENDER_SNAPSHOTS, "box_body_render_snapshot")
     assert "build_box_body_result(" not in draw_src + snapshot_route_src + snapshot_owner_src
     assert "build_box_body_result_from_fold_profile(" not in draw_src + snapshot_route_src + snapshot_owner_src
@@ -86,7 +83,6 @@ def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     assert "_box_body_render_snapshot_impl(" in snapshot_route_src
     assert "_authoritative_render_data(" in snapshot_owner_src
     assert "box_body_face_contexts" in snapshot_owner_src
-
     editor_path = ROOT / "gui_modules" / "editors" / "hole_editor.py"
     hole_src = _function_source(editor_path, "open_part_hole_editor")
     early = hole_src.index('if part_key == "box_body":')
@@ -95,7 +91,6 @@ def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     assert early < early_route < early_return
     assert "build_box_body_result(" not in hole_src
     assert "build_box_body_result_from_fold_profile(" not in hole_src
-
 
 def test_t4_receiving_canonical_profile_and_multipart_blanks_are_single_source():
     from ae_engine import manufacturing_api

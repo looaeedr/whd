@@ -49,13 +49,11 @@ def test_door_input_collection_does_not_invent_missing_topology():
 
 
 def test_gui_routes_door_payload_collection_through_panel_boundary():
-    text = GUI.read_text(encoding="utf-8")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    owner_path = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+    text = owner_path.read_text(encoding="utf-8")
     tree = ast.parse(text)
-    imported = {
-        (node.module, alias.name)
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom)
-        for alias in node.names
-    }
+    imported = {(node.module, alias.name) for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) for alias in node.names}
     assert ("gui_modules.parts.panels.door", "collect_door_input") in imported
-    assert "collect_door_input(" in text
+    assert "collect_door_input(" in inspect.getsource(owner._query_fold_designer_render_data)

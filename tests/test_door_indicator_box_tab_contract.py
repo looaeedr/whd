@@ -42,11 +42,12 @@ def test_single_door_editor_uses_same_indicator_component_page_flow():
 
 
 def test_small_door_spec_delegates_to_values_adapter_that_uses_manufacturing_api_helper():
-    public_source = _source_of_method('_indicator_door_part_spec')
-    adapter_source = _source_of_method('_indicator_door_part_spec_from_values')
+    import inspect
+    from gui_modules.application import manufacturing_adapter as owner
+    public_source = inspect.getsource(owner._indicator_door_part_spec)
+    adapter_source = inspect.getsource(owner._indicator_door_part_spec_from_values)
     assert '_indicator_door_part_spec_from_values' in public_source
     assert 'manufacturing_api.indicator_small_door_spec' in adapter_source
-
 
 def test_active_indicator_component_reloads_formula_context_when_groups_change():
     source = VIEW.read_text(encoding='utf-8')

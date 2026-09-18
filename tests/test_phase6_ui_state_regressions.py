@@ -120,11 +120,11 @@ def test_has_any_indicator_box_ignores_direct_indicator_and_finds_box_cells():
 
 
 def test_indicator_aux_exports_default_off_and_export_path_is_box_gated():
-    source = Path(gui.__file__).read_text(encoding="utf-8")
-    assert "self.export_ib_var   = tk.BooleanVar(value=False)" in source
-    assert "self.export_ib_door_var = tk.BooleanVar(value=False)" in source
-    assert "self._has_any_indicator_box()" in source
-
+    state_source = Path("gui_modules/application/state_sync.py").read_text(encoding="utf-8")
+    export_source = Path("gui_modules/project/export_actions.py").read_text(encoding="utf-8")
+    assert "self.export_ib_var   = tk.BooleanVar(value=False)" in state_source
+    assert "self.export_ib_door_var = tk.BooleanVar(value=False)" in state_source
+    assert "self._has_any_indicator_box()" in export_source
 
 def test_fold_designer_part_existence_is_not_controlled_by_indicator_export_checkboxes():
     from phase6_workspace_controller import Phase6WorkspaceController
@@ -676,43 +676,29 @@ def test_overlay_endcap_editor_hides_x_axis_and_keeps_y_axis():
 
 
 def test_main_2d_overlay_builds_flat_x_profile_even_without_3d_workspace():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    profiles = gui._endcap_profiles_for_assembly(
-        values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    profiles = _endcap_profiles_for_assembly(values, None, bridge.CornerTypeId.OVERLAY, "head")
     assert [row.get("phase6_key") for row in profiles["X"]] == ["endcap_w_flat"]
     assert all("angle" not in row for row in profiles["X"])
     assert profiles["Y"]
 
-
 def test_main_2d_switching_from_overlay_to_wrap_overlay_restores_normal_x_without_corner_enum_projection():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     overlay_values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    overlay_profiles = gui._endcap_profiles_for_assembly(
-        overlay_values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    overlay_profiles = _endcap_profiles_for_assembly(overlay_values, None, bridge.CornerTypeId.OVERLAY, "head")
     wrap_values = _assembly_snapshot(bridge.CornerTypeId.INSERT)
     wrap_values["assembly_type"] = "WRAP_OVERLAY"
-    restored = gui._endcap_profiles_for_assembly(
-        wrap_values, overlay_profiles, "WRAP_OVERLAY", "head"
-    )
-    assert [row.get("phase6_key") for row in restored["X"]] == [
-        "yl1", "endcap_w_core", "yr1"
-    ]
-
+    restored = _endcap_profiles_for_assembly(wrap_values, overlay_profiles, "WRAP_OVERLAY", "head")
+    assert [row.get("phase6_key") for row in restored["X"]] == ["yl1", "endcap_w_core", "yr1"]
 
 def test_main_2d_switching_back_from_overlay_restores_normal_x_fold_topology():
+    from gui_modules.application.manufacturing_adapter import _endcap_profiles_for_assembly
     overlay_values = _assembly_snapshot(bridge.CornerTypeId.OVERLAY)
-    overlay_profiles = gui._endcap_profiles_for_assembly(
-        overlay_values, None, bridge.CornerTypeId.OVERLAY, "head"
-    )
+    overlay_profiles = _endcap_profiles_for_assembly(overlay_values, None, bridge.CornerTypeId.OVERLAY, "head")
     insert_values = _assembly_snapshot(bridge.CornerTypeId.INSERT)
-    restored = gui._endcap_profiles_for_assembly(
-        insert_values, overlay_profiles, bridge.CornerTypeId.INSERT, "head"
-    )
-    assert [row.get("phase6_key") for row in restored["X"]] == [
-        "yl1", "endcap_w_core", "yr1"
-    ]
-
+    restored = _endcap_profiles_for_assembly(insert_values, overlay_profiles, bridge.CornerTypeId.INSERT, "head")
+    assert [row.get("phase6_key") for row in restored["X"]] == ["yl1", "endcap_w_core", "yr1"]
 
 def test_overlay_final_scene_contains_no_x_axis_bend_lines():
     from ae_engine.contracts import EndCapPartSpec

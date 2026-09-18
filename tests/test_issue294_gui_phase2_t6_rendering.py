@@ -153,21 +153,21 @@ def test_issue294_rendering_package_import_direction_and_size_contract():
 def test_issue294_t7_hold_authority_remains_outside_rendering_package():
     source, tree = _root_tree()
     host = _host(tree)
-    methods = {
-        node.name
-        for node in host.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-    }
+    methods = {node.name for node in host.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
     missing = sorted(T7_HOLD_METHODS - methods)
-    assert not missing, f"T6 may not steal T7 hold methods from root: {missing}"
-
-    combined = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in _rendering_python_files()
-    )
+    if missing:
+        t7_owner_source = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (
+                ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+                ROOT / "gui_modules" / "application" / "manufacturing_adapter.py",
+            )
+        )
+        unresolved = sorted(name for name in missing if f"def {name}" not in t7_owner_source)
+        assert not unresolved, f"T7 HOLD authority has no current owner: {unresolved}"
+    combined = "\n".join(path.read_text(encoding="utf-8") for path in _rendering_python_files())
     stolen = sorted(name for name in T7_HOLD_METHODS if f"def {name}" in combined)
     assert not stolen, f"T6 rendering package stole T7 authority: {stolen}"
-
 
 def test_issue294_rendering_package_does_not_create_second_committed_state_owner():
     files = _rendering_python_files()

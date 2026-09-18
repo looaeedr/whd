@@ -57,9 +57,16 @@ def test_root_selector_methods_are_thin_delegates_and_size_gate_holds():
         "on_box_body_piece_double_click": 3,
     }
     for name, limit in max_lines.items():
-        node = _host_method(name)
+        try:
+            node = _host_method(name)
+        except StopIteration:
+            node = None
+        if node is None:
+            if name == "_phase6_refresh_presence_ui":
+                assert "_phase6_refresh_presence_ui = _phase6_visibility.phase6_refresh_presence_ui" in text
+                continue
+            raise AssertionError(f"missing selector route: {name}")
         assert node.end_lineno - node.lineno + 1 <= limit, name
-
 
 def test_box_body_physical_subtab_construction_is_not_inline_in_setup_tab_z():
     text = GUI.read_text(encoding="utf-8")

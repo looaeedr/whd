@@ -8,15 +8,17 @@ def method_source(name):
 
 
 def test_gui_owns_one_shared_settings_state_loaded_from_ae_and_snapshot_carries_it():
-    init = method_source("init_variables")
-    snap = method_source("_make_original_fold_designer_snapshot")
+    import inspect
+    from gui_modules.application import state_sync
+    from gui_modules.application import fold_designer_adapter as fold_adapter
+    init = inspect.getsource(state_sync.init_variables)
+    snap = inspect.getsource(fold_adapter._snapshot_base_state)
     source = application_source_bundle()
     assert "self.settings_service = SettingsService(ae)" in source
     assert "settings = self.settings_service.snapshot()" in init
     assert 'snapshot["settings"]' in snap
     assert 'snapshot["corner_state"]' in snap
     assert 'snapshot["corner_pair_same"]' in snap
-
 
 def test_open_designer_uses_transactional_settings_and_save_default_callback():
     text = method_source("open_original_fold_designer")
@@ -65,12 +67,18 @@ def test_base_plate_tab_has_no_duplicate_shrink_or_bend_entries():
 
 
 def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_explicit_only():
-    init = method_source("init_variables")
-    snap = method_source("_make_original_fold_designer_snapshot")
+    import inspect
+    from gui_modules.application import state_sync
+    from gui_modules.application import fold_designer_adapter as fold_adapter
+
+    init = inspect.getsource(state_sync.init_variables)
+    corner_init = inspect.getsource(state_sync._init_base_results_and_corner_state)
+    snap = inspect.getsource(fold_adapter._snapshot_base_state)
     open_text = method_source("open_original_fold_designer")
     save_text = method_source("_save_fold_designer_defaults")
     live_text = method_source("_apply_fold_designer_live_snapshot")
-    assert "load_corner_defaults_from_ini(ae)" in init
+    assert "load_corner_defaults_from_ini(ae)" in corner_init
+    assert "_init_base_results_and_corner_state" in init
     assert 'snapshot["corner_editable"]' in snap
     assert 'snapshot["baseline_models"]' in snap
     assert "on_corner_change=None" in open_text
@@ -84,7 +92,6 @@ def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_exp
     assert ".mark_dirty(" in live_text
     assert "self.update_calculations()" not in live_text
     assert "self.project_controller.capture_committed(" in live_text
-
 
 def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d_page():
     source = Path("gui.py").read_text(encoding="utf-8")

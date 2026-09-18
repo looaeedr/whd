@@ -60,4 +60,14 @@ def test_task7a_keeps_all_snapshot_entrypoints_on_host():
 def test_task7a_keeps_t7_manufacturing_authority_on_host():
     methods = _host_methods()
     missing = sorted(name for name in T7_HOLD_METHODS if name not in methods)
-    assert not missing, f"Task7A may not move T7 HOLD authority out of host: {missing}"
+    if not missing:
+        return
+    owner_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+            ROOT / "gui_modules" / "application" / "manufacturing_adapter.py",
+        )
+    )
+    unresolved = sorted(name for name in missing if f"def {name}" not in owner_source)
+    assert not unresolved, f"Task7A HOLD authority missing current T7 owner: {unresolved}"

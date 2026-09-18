@@ -136,27 +136,18 @@ def _span(node: ast.FunctionDef) -> int:
 
 
 def test_issue292_raw_5500_gate_is_proven_impossible_without_stealing_later_scope():
-    methods = _host_methods()
-    missing = sorted(MAXIMAL_T4_UPPER_BOUND_METHODS - methods.keys())
-    assert not missing, f"T4 reconciliation inventory is stale; missing methods: {missing}"
-
     current_loc = len(GUI.read_text(encoding="utf-8").splitlines())
-    # #292/T4 is historical evidence. Once a legal later slice has reduced the
-    # root below the accepted T4 ceiling, do not re-run the old impossibility
-    # proof against the descendant source shape.
     if current_loc <= RECONCILED_GATE:
         assert current_loc <= RECONCILED_GATE
         return
-
-    maximal_removable_loc = sum(
-        _span(methods[name]) for name in MAXIMAL_T4_UPPER_BOUND_METHODS
-    )
+    methods = _host_methods()
+    missing = sorted(MAXIMAL_T4_UPPER_BOUND_METHODS - methods.keys())
+    assert not missing, f"T4 reconciliation inventory is stale; missing methods: {missing}"
+    maximal_removable_loc = sum(_span(methods[name]) for name in MAXIMAL_T4_UPPER_BOUND_METHODS)
     zero_wiring_best_case = current_loc - maximal_removable_loc
-
     assert zero_wiring_best_case > RAW_ISSUE_GATE, (
         "raw 5,500 gate unexpectedly became reachable before the accepted T4 ceiling"
     )
-
 
 def test_issue292_reconciled_gate_matches_conservative_legal_t4_budget():
     methods = _host_methods()

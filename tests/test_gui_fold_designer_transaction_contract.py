@@ -19,10 +19,11 @@ def test_window_x_flushes_live_state_without_cancel_or_confirm_transaction():
 
 
 def test_main_snapshot_supplies_baseline_choices_to_3d():
-    block = phase6_host_method_source("_make_original_fold_designer_snapshot")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    block = inspect.getsource(owner._snapshot_base_state)
     assert 'snapshot["baseline_models"]' in block
     assert 'snapshot["baseline_unknown_value"]' in block
-
 
 def test_open_3d_uses_live_canonical_callback_and_never_creates_project_draft():
     block = _open_block()

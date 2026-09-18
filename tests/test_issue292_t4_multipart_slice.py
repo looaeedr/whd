@@ -39,6 +39,9 @@ def test_multipart_input_collection_does_not_invent_missing_children():
 
 
 def test_gui_routes_multipart_payload_collection_through_panel_boundary():
-    text = GUI.read_text(encoding="utf-8")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    owner_path = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
+    text = owner_path.read_text(encoding="utf-8")
     assert "from gui_modules.parts.panels.multipart import collect_multipart_input" in text
-    assert "collect_multipart_input(" in text
+    assert "collect_multipart_input(" in inspect.getsource(owner._query_fold_designer_render_data)

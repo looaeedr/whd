@@ -82,10 +82,10 @@ def test_live_snapshot_routes_final_recalculation_through_scheduler_not_direct_c
 
 
 def test_main_input_traces_never_call_full_recalculation_directly():
+    from gui_modules.application import state_sync
     bind_src = inspect.getsource(gui.BoxCalculatorGUI.bind_live_updates)
     total_src = inspect.getsource(gui.BoxCalculatorGUI._on_total_door_dimension_changed)
-    setting_src = inspect.getsource(gui.BoxCalculatorGUI._on_main_setting_var_changed)
-
+    setting_src = inspect.getsource(state_sync.on_main_setting_var_changed)
     assert 'trace_add("write", lambda *args: self.update_calculations())' not in bind_src
     assert 'self.update_calculations()' not in total_src
     assert '_phase6_update_scheduler' in setting_src

@@ -93,21 +93,11 @@ def test_divider_input_collection_uses_existing_fallbacks_and_fails_closed_witho
 
 
 def test_gui_routes_divider_payload_collection_through_panel_boundary():
-    text = GUI.read_text(encoding="utf-8")
+    import inspect
+    from gui_modules.application import fold_designer_adapter as owner
+    text = (ROOT / "gui_modules" / "application" / "fold_designer_adapter.py").read_text(encoding="utf-8")
     assert "from gui_modules.parts.panels.divider import collect_divider_input" in text
-    assert "collect_divider_input(" in text
-
-    tree = ast.parse(text)
-    host = next(
-        node for node in tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "Phase6ApplicationHost"
-    )
-    method = next(
-        node for node in host.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_query_fold_designer_render_data"
-    )
-    source = ast.get_source_segment(text, method) or ""
+    source = inspect.getsource(owner._query_fold_designer_render_data)
     assert "collect_divider_input(" in source
-    # Rendering/manufacturing remains outside the panel in this T4 slice.
     assert "derive_box_body_dividers" in source
     assert "build_box_body_divider_render_data" in source
