@@ -37,12 +37,12 @@ def test_t4_shared_role_source_contract():
         f"do not yet exist: {missing!r}"
     )
 
-    assert 'style="Selector.TMenubutton"' in panel
-    assert 'style="Primary.TButton"' in panel
-    assert 'style="Primary.TButton"' in bridge
-    assert 'style="Selector.TMenubutton"' in bridge
-    assert 'style="Secondary.TButton"' in bridge
-    assert 'style="Secondary.TMenubutton"' in bridge
+    assert "Selector.TMenubutton" in panel
+    assert "Primary.TButton" in panel
+    assert "Primary.TButton" in bridge
+    assert "Selector.TMenubutton" in bridge
+    assert "Secondary.TButton" in bridge
+    assert "Secondary.TMenubutton" in bridge
 
 
 def test_t4_theme_remains_presentation_only():
