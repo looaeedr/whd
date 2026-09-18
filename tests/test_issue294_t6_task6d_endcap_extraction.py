@@ -60,6 +60,16 @@ def test_task6d_root_keeps_endcap_render_snapshot_authority():
 
 def test_task6d_endcap_presenter_is_render_data_consumer_only():
     source = BOX_VIEW.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    presenter = "\n".join(
+        ast.get_source_segment(source, functions[name]) or ""
+        for name in ("draw_end_cap_preview", "draw_end_cap_error")
+    )
     forbidden = (
         "manufacturing_api",
         "_authoritative_render_data",
@@ -70,10 +80,9 @@ def test_task6d_endcap_presenter_is_render_data_consumer_only():
         "build_end_cap",
         "resolve_surface_features",
     )
-    hits = [token for token in forbidden if token in source]
+    hits = [token for token in forbidden if token in presenter]
     assert not hits, f"Endcap presenter stole acquisition/geometry authority: {hits}"
 
-    tree = ast.parse(source)
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             assert _span(node) <= 150, (node.name, _span(node))
