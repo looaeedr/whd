@@ -44,15 +44,18 @@ jobs:
       - name: Install real GUI / capture dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y xvfb x11-apps imagemagick fonts-noto-cjk\n          fc-cache -f
+          sudo apt-get install -y xvfb x11-apps imagemagick fonts-noto-cjk
+          fc-cache -f
           python -m pip install --disable-pip-version-check -r requirements.txt pytest matplotlib pillow
       - name: Source harness contract
         run: python -m pytest -q tests/test_issue341_visual_acceptance.py
+      - name: Re-verify T8 remediation under real Tk / CJK runtime
+        run: xvfb-run -a -s "-screen 0 1600x1000x24" python -m pytest -q tests/test_issue343_t8_visual_remediation.py
       - name: Run A/B/C acceptance on real Tk
         run: |
           rm -rf artifacts/issue341
           mkdir -p artifacts/issue341
-          xvfb-run -a -s "-screen 0 1600x1000x24"             python tools/issue341_visual_acceptance.py               --output artifacts/issue341               --geometry 1400x900
+          xvfb-run -a -s "-screen 0 1600x1000x24" python tools/issue341_visual_acceptance.py --output artifacts/issue341 --geometry 1400x900
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
