@@ -3912,7 +3912,7 @@ class Phase6ApplicationHost:
         return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection)
 
     def _box_body_render_snapshot(self, val):
-        return _box_body_render_snapshot_impl(self, val)
+        return _box_body_render_snapshot_impl(self, val, face_dimensions_fn=box_body_face_dimensions)
     def draw_box_body(self, val):
         canvas = self.canvas_z; canvas.delete("all"); self.box_body_face_bounds = {}
         cw = canvas.winfo_width(); ch = canvas.winfo_height()
