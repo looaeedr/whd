@@ -30,6 +30,35 @@ PHASE1_WIRING = (
     "_phase6_scene_query_payload_for_part",
     "_phase6_publish_live_state",
 )
+
+STATE_READ_OWNER = {
+    "_phase6_assembly_type": "request.assembly_intent",
+    "_phase6_box_whd": "request.box_dimensions",
+    "_phase6_corner_state": "request.corner_state",
+    "_phase6_endcap_bottom_wrap_state": "request.endcap_bottom_wrap",
+    "_phase6_endcap_fw_state": "request.endcap_fw",
+    "_phase6_input_snapshot": "request.input_snapshot",
+    "_phase6_last_resolved_manufacturing_geometry": "cache_service.cached_result",
+    "_phase6_last_resolved_manufacturing_signature": "cache_service.cached_key",
+    "_scene_query_callback": "adapter.render_data_provider",
+    "_settings_values": "request.settings",
+    "assembly_ignore_fixed_corner_var": "adapter.allow_3d_fallback_bool",
+    "assembly_relief_clearance_var": "request.relief_clearance",
+    "baseline_model_var": "request.cabinet_model",
+    "designer_workspace": "adapter.request_builder",
+}
+
+STATE_WRITE_OWNER = {
+    "_phase6_last_interference_probe_parts": "result.diagnostics.interference_probe_parts",
+    "_phase6_last_relief_errors": "result.diagnostics.relief_errors",
+    "_phase6_last_relief_solutions": "result.diagnostics.relief_solutions",
+    "_phase6_last_resolved_manufacturing_geometry": "cache_service.cached_result",
+    "_phase6_last_resolved_manufacturing_signature": "cache_service.cached_key",
+}
+
+DATA_UPDATE_RECEIVERS = {
+    "raw", "source", "result", "payload", "values", "snapshot",
+}
 CONFIRMED_PUMP_ATTRS = {
     "update_idletasks",
     "mainloop",
@@ -344,6 +373,88 @@ def wiring_inventory(bridge_tree: ast.Module) -> dict:
     return result
 
 
+
+def wiring_lifecycle(bridge_tree: ast.Module) -> dict:
+    result = {}
+    for name in PHASE1_WIRING:
+        class_bindings = []
+        binder_keywords = []
+        method_calls = []
+        free_calls = []
+        literal_getattrs = []
+
+        for node in ast.walk(bridge_tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if (
+                        isinstance(target, ast.Attribute)
+                        and isinstance(target.value, ast.Name)
+                        and target.value.id == "Phase6FoldDesignerApp"
+                        and target.attr == name
+                    ):
+                        class_bindings.append(node.lineno)
+
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id == "_phase6_bind_bridge_callbacks":
+                    for kw in node.keywords:
+                        if kw.arg == name:
+                            binder_keywords.append(node.lineno)
+                if isinstance(node.func, ast.Attribute) and node.func.attr == name:
+                    method_calls.append({
+                        "line": node.lineno,
+                        "owner": enclosing_top_function(bridge_tree, node.lineno),
+                        "call": attr_chain(node.func),
+                    })
+                if isinstance(node.func, ast.Name) and node.func.id == name:
+                    free_calls.append({
+                        "line": node.lineno,
+                        "owner": enclosing_top_function(bridge_tree, node.lineno),
+                    })
+                if (
+                    isinstance(node.func, ast.Name)
+                    and node.func.id == "getattr"
+                    and len(node.args) >= 2
+                    and isinstance(node.args[1], ast.Constant)
+                    and node.args[1].value == name
+                ):
+                    literal_getattrs.append(node.lineno)
+
+        if name == "_phase6_publish_live_state":
+            classification = "PREEXISTING_COMPAT_WIRING_PHASE3_REVIEW"
+        elif not method_calls and not literal_getattrs:
+            classification = "PHASE1_ONLY_SERVICE_WIRING_REMOVE_AFTER_T4"
+        else:
+            classification = "RETAIN_NON_SERVICE_CALLER"
+
+        result[name] = {
+            "class_binding_lines": sorted(set(class_bindings)),
+            "binder_lines": sorted(set(binder_keywords)),
+            "repo_method_calls": method_calls,
+            "repo_literal_getattr_lines": sorted(set(literal_getattrs)),
+            "free_function_callers": free_calls,
+            "classification": classification,
+        }
+    return result
+
+
+def classify_potential_pumps(graph: dict) -> dict:
+    data_updates = []
+    unclassified = []
+    for item in graph["potential_pumps"]:
+        call = str(item.get("call") or "")
+        receiver = call.rsplit(".", 1)[0].rsplit(".", 1)[-1] if "." in call else ""
+        if call.endswith(".update") and receiver in DATA_UPDATE_RECEIVERS:
+            classified = dict(item)
+            classified["classification"] = "DATA_MAPPING_UPDATE_NOT_TK"
+            data_updates.append(classified)
+        else:
+            unclassified.append(item)
+    return {
+        "data_mapping_updates": data_updates,
+        "unclassified_potential_pumps": unclassified,
+    }
+
+
 def cache_short_circuit(owner_tree: ast.Module) -> dict:
     resolver = next(
         node for node in owner_tree.body
@@ -424,8 +535,17 @@ def main() -> int:
     by_key, _, _ = build_index()
     state = owner_state_inventory(owner_tree)
     wiring = wiring_inventory(bridge_tree)
+    lifecycle = wiring_lifecycle(bridge_tree)
     cache = cache_short_circuit(owner_tree)
     graph = reachable_call_graph(by_key)
+    pump_classification = classify_potential_pumps(graph)
+
+    read_keys = set(state["self_reads"])
+    write_keys = set(state["self_writes"])
+    unclassified_reads = sorted(read_keys - set(STATE_READ_OWNER))
+    unclassified_writes = sorted(write_keys - set(STATE_WRITE_OWNER))
+    stale_read_contract = sorted(set(STATE_READ_OWNER) - read_keys)
+    stale_write_contract = sorted(set(STATE_WRITE_OWNER) - write_keys)
 
     direct_confirmed = [
         p for p in graph["confirmed_pumps"]
@@ -437,12 +557,22 @@ def main() -> int:
         "owner_lines": len(owner_source.splitlines()),
         "bridge_lines": len(bridge_source.splitlines()),
         "state_inventory": state,
+        "state_ownership": {
+            "read_owner": STATE_READ_OWNER,
+            "write_owner": STATE_WRITE_OWNER,
+            "unclassified_reads": unclassified_reads,
+            "unclassified_writes": unclassified_writes,
+            "stale_read_contract": stale_read_contract,
+            "stale_write_contract": stale_write_contract,
+        },
         "phase1_wiring_inventory": wiring,
+        "phase1_wiring_lifecycle": lifecycle,
         "cache_short_circuit": cache,
         "tk_event_loop": {
             "DIRECT_TK_PUMP_COUNT": len(direct_confirmed),
             "TRANSITIVE_TK_PUMP_PATHS": graph["confirmed_pumps"],
             "POTENTIAL_UPDATE_AFTER_CALLS": graph["potential_pumps"],
+            "POTENTIAL_CLASSIFICATION": pump_classification,
             "REACHABLE_FUNCTION_COUNT": graph["reachable_function_count"],
         },
     }
@@ -454,15 +584,33 @@ def main() -> int:
     assert cache["cache_hit_return_third"], "CACHE_HIT_NOT_EARLY_RETURN"
     assert cache["hit_precedes_expensive_payload"], "CACHE_HIT_DOES_NOT_PRECEDE_EXPENSIVE_PAYLOAD"
 
-    # Direct owner must not itself pump Tk. Transitive findings require manual
-    # classification and are intentionally surfaced rather than hidden.
+    assert not unclassified_reads, f"UNCLASSIFIED_SELF_READS={unclassified_reads}"
+    assert not unclassified_writes, f"UNCLASSIFIED_SELF_WRITES={unclassified_writes}"
+    assert not stale_read_contract, f"STALE_SELF_READ_CONTRACT={stale_read_contract}"
+    assert not stale_write_contract, f"STALE_SELF_WRITE_CONTRACT={stale_write_contract}"
+
+    # Tk-pump gate: confirmed reachable pumps must be zero, and every conservative
+    # update/after candidate must be classified.  At the accepted Phase 1 baseline
+    # all 11 candidates are mapping .update() calls, not event-loop pumps.
     assert len(direct_confirmed) == 0, f"DIRECT_TK_PUMPS={direct_confirmed}"
+    assert not graph["confirmed_pumps"], f"TRANSITIVE_TK_PUMPS={graph['confirmed_pumps']}"
+    assert not pump_classification["unclassified_potential_pumps"], (
+        f"UNCLASSIFIED_POTENTIAL_TK_PUMPS={pump_classification['unclassified_potential_pumps']}"
+    )
+
+    for name in PHASE1_WIRING:
+        assert lifecycle[name]["class_binding_lines"], f"MISSING_CLASS_WIRING={name}"
+        assert lifecycle[name]["binder_lines"], f"MISSING_BINDER_WIRING={name}"
 
     print(f"PASS SELF_READ_KEYS={len(state['self_reads'])}")
     print(f"PASS SELF_WRITE_KEYS={len(state['self_writes'])}")
     print(f"PASS DIRECT_TK_PUMP_COUNT={len(direct_confirmed)}")
-    print(f"INFO TRANSITIVE_TK_PUMP_PATH_COUNT={len(graph['confirmed_pumps'])}")
-    print(f"INFO POTENTIAL_UPDATE_AFTER_CALL_COUNT={len(graph['potential_pumps'])}")
+    print(f"PASS TRANSITIVE_TK_PUMP_PATH_COUNT={len(graph['confirmed_pumps'])}")
+    print(f"PASS DATA_MAPPING_UPDATE_NOT_TK_COUNT={len(pump_classification['data_mapping_updates'])}")
+    print("PASS UNCLASSIFIED_POTENTIAL_TK_PUMP_COUNT=0")
+    print("PASS SELF_STATE_OWNERSHIP_UNCLASSIFIED=0")
+    for name in PHASE1_WIRING:
+        print(f"INFO WIRING {name}={lifecycle[name]['classification']}")
     print("PASS CACHE_SIGNATURE_FIRST_SHORT_CIRCUIT=1")
     return 0
 
