@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-18T00:56:30Z",
   "base_sha": "7de32d6c53864ae48b276d4817f4a00e3baaa846",
   "head_sha": "9bb235918801a5917959d7e4237076573bac3f8f",
-  "phase": "CLOSING",
+  "phase": "FINALIZATION_GUARD",
   "state": "RUNNING",
-  "last_update": "2026-09-18T01:35:00Z",
+  "last_update": "2026-09-18T04:15:00Z",
   "remote_qa": {
     "run_id": 35294033817,
     "head_sha": "9bb235918801a5917959d7e4237076573bac3f8f",
@@ -16,9 +16,9 @@
     "conclusion": "success",
     "purpose": "PR #330 Knowledge Governance Bootstrap after metadata fix"
   },
-  "next_action": "issue closure only: create/verify valid owning continuity checkpoint + finalization proof before closing #329",
-  "blocker": "code integrated at cleanup/2d-3d-sync@84fee5f25b55c4bdd648aa3947a68357124ed685; existing claim checkpoint pointer is a Markdown verification file, not a valid continuity-controller checkpoint, so issue closure is fail-closed",
-  "checkpoint": "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md",
+  "next_action": "run owning finalization guard + proof verification for #329, close issue in the same guarded job, then remote readback",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-329.json",
   "production_target": "cleanup/2d-3d-sync",
   "production_head": "84fee5f25b55c4bdd648aa3947a68357124ed685",
   "pr": 330
