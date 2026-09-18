@@ -149,3 +149,5 @@ def test_issue355_request_does_not_switch_canonical_resolver_path():
 # issue355 clean RED trigger
 
 # issue355 isolated RED trigger
+
+# issue355 GREEN trigger
