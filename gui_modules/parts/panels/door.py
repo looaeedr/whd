@@ -290,3 +290,115 @@ def setup_tab_door_ui(host):
     host._attach_part_hole_entrypoint(host.canvas_door, "door", allow_double=True)
     # 覆寫通用雙擊：單門開 Door editor；多門由格子 tag 精準處理並阻止重複開窗。
     host.canvas_door.bind("<Double-Button-1>", host.on_door_canvas_double_click)
+
+
+
+def normalize_door_indicator_state(state):
+    raw = dict(state or {})
+    mode = raw.get("mode")
+    if mode not in {"none", "indicator", "indicator_box"}:
+        if raw.get("box_enabled"):
+            mode = "indicator_box"
+        elif raw.get("enabled"):
+            mode = "indicator"
+        else:
+            mode = "none"
+    try:
+        layers = max(1, min(6, int(raw.get("layers", 1))))
+    except (TypeError, ValueError):
+        layers = 1
+    groups = list(raw.get("groups", [2] * 6))
+    while len(groups) < 6:
+        groups.append(2)
+    normalized_groups = []
+    for value in groups[:6]:
+        try:
+            normalized_groups.append(max(1, int(value)))
+        except (TypeError, ValueError):
+            normalized_groups.append(2)
+    return {
+        "mode": mode,
+        "enabled": mode == "indicator",
+        "box_enabled": mode == "indicator_box",
+        "layers": layers,
+        "groups": normalized_groups,
+        "offset_x": float(raw.get("offset_x", 0.0) or 0.0),
+        "offset_y": float(raw.get("offset_y", 0.0) or 0.0),
+        "is_box_dist": bool(raw.get("is_box_dist", False)),
+    }
+
+
+def destroy_door_layout_entry_widgets(host):
+    for widget in list(host.door_layout_width_entries.values()) + list(host.door_layout_height_entries.values()):
+        try:
+            widget.destroy()
+        except tk.TclError:
+            pass
+    host.door_layout_width_entries = {}
+    host.door_layout_height_entries = {}
+    host.door_layout_entry_windows = []
+
+
+def door_layout_entry_menu(host, entry, *, column_index, row_index=None):
+    menu = tk.Menu(entry, tearoff=False)
+    if row_index is None:
+        column = host.door_layout_columns[column_index]
+        if not column.get("width_auto", False):
+            menu.add_command(
+                label="刪除此欄",
+                command=lambda: host.remove_door_layout_column(column_index),
+            )
+    else:
+        column = host.door_layout_columns[column_index]
+        if not column["height_auto"][row_index]:
+            menu.add_command(
+                label="刪除此層",
+                command=lambda: host.remove_door_layout_height(column_index, row_index),
+            )
+    if menu.index("end") is not None:
+        entry.bind(
+            "<Button-3>",
+            lambda e, m=menu: (m.tk_popup(e.x_root, e.y_root), "break")[1],
+        )
+
+
+def rebuild_door_layers_config_ui(host):
+    for widget in host.door_layers_config_frame.winfo_children():
+        widget.destroy()
+
+    try:
+        layers = int(host.door_indicator_l_var.get())
+    except ValueError:
+        layers = 1
+
+    for ly in range(layers):
+        ly_frame = tk.Frame(host.door_layers_config_frame, bg=host.COLOR_PANEL)
+        ly_frame.pack(side=tk.LEFT, padx=15, pady=4)
+
+        label_text = f"第 {ly+1} 層組數:"
+        if ly == 0:
+            label_text = "第 1 層 (底) 組數:"
+        elif ly == layers - 1 and layers > 1:
+            label_text = f"第 {ly+1} 層 (頂) 組數:"
+
+        tk.Label(
+            ly_frame,
+            text=label_text,
+            bg=host.COLOR_PANEL,
+            fg=host.COLOR_TEXT,
+            font=("Microsoft JhengHei", 9, "bold"),
+        ).pack(side=tk.LEFT, padx=2)
+
+        cb = ttk.Combobox(
+            ly_frame,
+            textvariable=host.door_indicator_layer_g_vars[ly],
+            values=["1", "2", "3", "4", "5", "6", "7", "8"],
+            width=4,
+            state="readonly",
+            style="TCombobox",
+        )
+        cb.pack(side=tk.LEFT, padx=2)
+        cb.bind(
+            "<<ComboboxSelected>>",
+            lambda e: host._request_phase6_update("geometry"),
+        )
