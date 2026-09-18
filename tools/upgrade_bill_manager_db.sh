@@ -292,13 +292,25 @@ return null;'''
         "type": "function",
         "z": "bills_flow_group",
         "name": "Atomic save result",
-        "func": 'let code = 0;\\n'
-                'if (typeof msg.payload === "number") code = msg.payload;\\n'
-                'else if (msg.payload && typeof msg.payload.code !== "undefined") code = Number(msg.payload.code);\\n'
-                'else if (msg.rc && typeof msg.rc.code !== "undefined") code = Number(msg.rc.code);\\n'
-                'if (code === 0) { msg.statusCode = 200; msg.payload = {ok:true}; }\\n'
-                'else { msg.statusCode = 500; msg.payload = {ok:false,error:"atomic save failed",code:code}; }\\n'
-                'return msg;',
+        "func": """let code = 0;
+
+if (typeof msg.payload === "number") {
+    code = msg.payload;
+} else if (msg.payload && typeof msg.payload.code !== "undefined") {
+    code = Number(msg.payload.code);
+} else if (msg.rc && typeof msg.rc.code !== "undefined") {
+    code = Number(msg.rc.code);
+}
+
+if (code === 0) {
+    msg.statusCode = 200;
+    msg.payload = {ok:true};
+} else {
+    msg.statusCode = 500;
+    msg.payload = {ok:false,error:"atomic save failed",code:code};
+}
+
+return msg;""",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -331,8 +343,8 @@ table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:9px;bord
 <div class="card">
 <h1>帳單管理系統</h1>
 <div class="auth">
-<label>帳號</label><input id="user" value="bills" autocomplete="username">
-<label>密碼</label><input id="pass" type="password" autocomplete="current-password">
+<label>帳號</label><input id="billWriteUser" name="username" value="bills" autocomplete="username">
+<label>密碼</label><input id="billWritePass" name="password" type="password" autocomplete="current-password">
 <span id="status"></span>
 </div>
 </div>
@@ -389,17 +401,48 @@ function esc(v){
 }
 function money(v){return "NT$"+Number(v||0).toLocaleString("zh-TW");}
 function auth(){
-  const u=$("user").value.trim(),p=$("pass").value;
-  if(!u||!p)throw new Error("請輸入 bills 帳號與密碼");
+  const ue=document.getElementById("billWriteUser");
+  const pe=document.getElementById("billWritePass");
+
+  if(!ue||!pe)throw new Error("帳密欄位不存在，請重新整理頁面");
+
+  let u=String(ue.value||"").trim();
+  let p=String(pe.value||"");
+
+  if(!u){
+    u="bills";
+    ue.value=u;
+  }
+
+  if(!p){
+    const entered=window.prompt("請輸入 bills 寫入密碼");
+    if(entered===null||entered==="")throw new Error("未取得 bills 寫入密碼");
+    p=entered;
+    pe.value=p;
+  }
+
   const bytes=new TextEncoder().encode(u+":"+p);
-  let s="";
-  for(const b of bytes)s+=String.fromCharCode(b);
-  return btoa(s);
+  let raw="";
+  for(const b of bytes)raw+=String.fromCharCode(b);
+
+  $("status").textContent="送出中："+u+" / 密碼 "+p.length+" 字元";
+  return btoa(raw);
 }
 async function writeBills(){
-  const r=await fetch(SAVE_URL,{method:"POST",mode:"cors",headers:{"Content-Type":"application/json","Authorization":"Basic "+auth()},body:JSON.stringify(bills)});
-  if(r.status===401)throw new Error("帳號或密碼錯誤");
-  if(!r.ok)throw new Error("HTTP "+r.status);
+  const r=await fetch(SAVE_URL,{
+    method:"POST",
+    mode:"cors",
+    credentials:"omit",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Basic "+auth()
+    },
+    body:JSON.stringify(bills)
+  });
+
+  if(r.status===401)throw new Error("Caddy 拒絕 bills 帳密（HTTP 401）");
+  if(r.status===403)throw new Error("Caddy 拒絕寫入權限（HTTP 403）");
+  if(!r.ok)throw new Error("寫入 API HTTP "+r.status);
 }
 async function load(){
   try{
@@ -488,7 +531,7 @@ function historyView(i){
   if(!b.history.length){alert(b.name+" 尚無繳費紀錄");return;}
   const text=b.history.map(function(h,n){
     return (n+1)+". "+h.due_day+"  "+money(h.amount)+"\\n繳費："+h.paid_at+"\\n方式："+(h.payment_methods||[]).join(" / ");
-  }).join("\\n\\n--------------------\\n\\n");
+  }).join("\n\n--------------------\n\n");
   alert(b.name+" 歷史紀錄\\n\\n"+text);
 }
 load();
@@ -508,6 +551,11 @@ load();
         raise RuntimeError("atomic save target wrong")
     if 'id="amount"' not in html or "markPaid" not in html or "Authorization" not in html:
         raise RuntimeError("HTML candidate validation failed")
+    if 'id="billWriteUser"' not in html or 'id="billWritePass"' not in html:
+        raise RuntimeError("HTML auth fields missing")
+    atomic_result = next((x for x in flows if x.get("id") == "bills_atomic_result"), None)
+    if atomic_result is None or "\\n" in atomic_result.get("func", ""):
+        raise RuntimeError("atomic result function contains literal backslash-n")
 
     print("=== STOP NODE-RED ===")
     stop_nodered()
