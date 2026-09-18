@@ -556,3 +556,107 @@ def draw_door_layout_overview_preview(host, snapshot, canvas):
         "scale": scale,
         "origin": (x0, y0),
     }
+
+
+
+def _door_layout_world_to_canvas(world_x, world_y, *, total_w, total_h, scale, x0, y0):
+    return (
+        x0 + (float(world_x) + float(total_w) / 2.0) * float(scale),
+        y0 + (float(total_h) / 2.0 - float(world_y)) * float(scale),
+    )
+
+
+def _draw_door_layout_divider_payload(canvas, payload, *, total_w, total_h, scale, x0, y0):
+    cx, cy, _cz = payload["world_offset"]
+    span = float(payload["span"])
+    axis = payload["axis"]
+    if axis == "HORIZONTAL":
+        x1, y = _door_layout_world_to_canvas(
+            cx - span / 2.0, cy,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        x2, _ = _door_layout_world_to_canvas(
+            cx + span / 2.0, cy,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        canvas.create_rectangle(
+            x1, y - 3, x2, y + 3,
+            fill="#00d4d4", outline="#00a3a3", width=1,
+            tags=("door_layout_divider",),
+        )
+        canvas.create_text(
+            (x1 + x2) / 2.0, y + 14,
+            text=(
+                f"中隔 W-2T={span:.1f} mm "
+                f"(成型深={float(payload['formed_core_depth']):.1f})"
+            ),
+            fill="#00d4d4", font=("Consolas", 9, "bold"),
+            tags=("door_layout_divider",),
+        )
+    elif axis == "VERTICAL":
+        x, y1 = _door_layout_world_to_canvas(
+            cx, cy + span / 2.0,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        _, y2 = _door_layout_world_to_canvas(
+            cx, cy - span / 2.0,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        canvas.create_rectangle(
+            x - 3, y1, x + 3, y2,
+            fill="#00d4d4", outline="#00a3a3", width=1,
+            tags=("door_layout_divider",),
+        )
+
+
+def _draw_door_layout_frame_payload(canvas, payload, *, total_w, total_h, scale, x0, y0):
+    side = payload["side"]
+    cx, cy, _cz = payload["world_offset"]
+    span = float(payload["span"])
+    if side == "top":
+        x1, y = _door_layout_world_to_canvas(
+            cx - span / 2.0, cy,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        x2, _ = _door_layout_world_to_canvas(
+            cx + span / 2.0, cy,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        canvas.create_line(
+            x1, y, x2, y, fill="#ff9f0a", width=2, dash=(6, 3),
+            tags=("door_layout_frame",),
+        )
+        canvas.create_text(
+            (x1 + x2) / 2.0, y + 14,
+            text=f"內門框 (頂/左/右內縮50mm, 寬={span:.1f})",
+            fill="#ff9f0a", font=("Microsoft JhengHei", 8, "bold"),
+            tags=("door_layout_frame",),
+        )
+    elif side in {"left", "right"}:
+        x, y1 = _door_layout_world_to_canvas(
+            cx, cy + span / 2.0,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        _, y2 = _door_layout_world_to_canvas(
+            cx, cy - span / 2.0,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+        canvas.create_line(
+            x, y1, x, y2, fill="#ff9f0a", width=2, dash=(6, 3),
+            tags=("door_layout_frame",),
+        )
+
+
+def draw_door_layout_dividers_and_frames_preview(canvas, snapshot, scale, x0, y0):
+    total_w = snapshot["total_w"]
+    total_h = snapshot["total_h"]
+    for payload in snapshot.get("dividers", ()):
+        _draw_door_layout_divider_payload(
+            canvas, payload,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
+    for payload in snapshot.get("frames", ()):
+        _draw_door_layout_frame_payload(
+            canvas, payload,
+            total_w=total_w, total_h=total_h, scale=scale, x0=x0, y0=y0,
+        )
