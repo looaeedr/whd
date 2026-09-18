@@ -221,6 +221,9 @@ from gui_modules.rendering import (
     on_door_canvas_drag as _on_door_canvas_drag_impl,
     on_door_canvas_release as _on_door_canvas_release_impl,
     on_door_canvas_double_click as _on_door_canvas_double_click_impl,
+    box_body_face_at_canvas_point as _box_body_face_at_canvas_point_impl,
+    select_box_body_face as _select_box_body_face_impl,
+    on_box_body_canvas_press as _on_box_body_canvas_press_impl,
 )
 
 
@@ -4130,55 +4133,13 @@ class Phase6ApplicationHost:
 
 
     def _box_body_face_at_canvas_point(self, x, y):
-        for face_key, bounds in self.box_body_face_bounds.items():
-            x1, y1, x2, y2 = bounds
-            if x1 <= x <= x2 and y1 <= y <= y2:
-                return face_key
-        return None
+        return _box_body_face_at_canvas_point_impl(self.box_body_face_bounds, x, y)
 
     def select_box_body_face(self, face_key):
-        if face_key not in {"left", "back", "right"}:
-            return
-        self.box_body_face_selected_var.set(face_key)
-        # Selection must stay lightweight so a rapid second click is not delayed
-        # by rebuilding the whole preview (same rule as Multi-Door).
-        for key in ("left", "back", "right"):
-            try:
-                self.canvas_z.itemconfigure(
-                    f"box_body_face_{key}",
-                    outline=(self.COLOR_ACCENT if key == face_key else "#30d158"),
-                    width=(3 if key == face_key else 2),
-                )
-            except tk.TclError:
-                pass
+        return _select_box_body_face_impl(self, face_key)
 
     def on_box_body_canvas_press(self, event):
-        piece_var = getattr(self, "box_body_piece_2d_selected_var", None)
-        piece_key = str(piece_var.get() if piece_var is not None else "")
-        face_key = self._box_body_piece_face_key(piece_key)
-        if face_key is not None:
-            self.box_body_face_selected_var.set(face_key)
-            return "break"
-        hit = self._box_body_face_at_canvas_point(event.x, event.y)
-        if hit is None:
-            self._box_body_face_last_click = None
-            return "break"
-        event_time = int(getattr(event, "time", 0) or 0)
-        if not event_time:
-            event_time = int(time.monotonic() * 1000)
-        last = self._box_body_face_last_click
-        is_manual_double = False
-        if last is not None:
-            last_face, last_time = last
-            delta = event_time - last_time if event_time and last_time else 999999
-            is_manual_double = last_face == hit and 0 <= delta <= 650
-        if is_manual_double:
-            self._box_body_face_last_click = None
-            self.open_box_body_face_editor(hit)
-        else:
-            self._box_body_face_last_click = (hit, event_time)
-            self.select_box_body_face(hit)
-        return "break"
+        return _on_box_body_canvas_press_impl(self, event)
 
     def _box_body_baseline_faces(self, val):
         model = self._baseline_source_model()
