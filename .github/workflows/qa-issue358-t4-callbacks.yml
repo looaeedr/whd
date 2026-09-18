@@ -1,0 +1,37 @@
+name: "#358 T4 remove manufacturing bridge callbacks"
+
+on:
+  push:
+    branches:
+      - refactor/issue358-remove-manufacturing-callbacks-20260919
+    paths:
+      - 'tests/test_issue358_remove_manufacturing_callbacks.py'
+      - 'phase6_manufacturing_geometry.py'
+      - 'phase6_manufacturing_adapter.py'
+      - 'phase6_manufacturing_contracts.py'
+      - 'fold_designer_bridge.py'
+      - '.github/workflows/qa-issue358-t4-callbacks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  callbacks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONPATH: .
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run T4 callback-removal contracts
+        run: |
+          python -m pytest -q             tests/test_issue358_remove_manufacturing_callbacks.py             tests/test_issue357_manufacturing_result_contracts.py             tests/test_issue356_manufacturing_adapter.py
