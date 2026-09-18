@@ -58,6 +58,9 @@ __all__ = [
     "on_door_canvas_drag",
     "on_door_canvas_release",
     "on_door_canvas_double_click",
+    "box_body_face_at_canvas_point",
+    "select_box_body_face",
+    "on_box_body_canvas_press",
 ]
 
 from .interaction import (
@@ -66,4 +69,7 @@ from .interaction import (
     on_door_canvas_drag,
     on_door_canvas_release,
     on_door_canvas_double_click,
+    box_body_face_at_canvas_point,
+    select_box_body_face,
+    on_box_body_canvas_press,
 )
