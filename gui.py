@@ -6,7 +6,13 @@
 import tkinter as tk
 from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
 from gui_modules.parts.panels.multipart import collect_multipart_input
-from gui_modules.parts.panels.door import collect_door_input
+from gui_modules.parts.panels.door import (
+    collect_door_input,
+    normalize_door_indicator_state as _normalize_door_indicator_state_impl,
+    destroy_door_layout_entry_widgets as _destroy_door_layout_entry_widgets_impl,
+    door_layout_entry_menu as _door_layout_entry_menu_impl,
+    rebuild_door_layers_config_ui as _rebuild_door_layers_config_ui_impl,
+)
 import time
 import sys
 from pathlib import Path
@@ -2861,39 +2867,7 @@ class Phase6ApplicationHost:
         return _draw_indicator_box_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _normalize_door_indicator_state(self, state):
-        raw = dict(state or {})
-        mode = raw.get("mode")
-        if mode not in {"none", "indicator", "indicator_box"}:
-            if raw.get("box_enabled"):
-                mode = "indicator_box"
-            elif raw.get("enabled"):
-                mode = "indicator"
-            else:
-                mode = "none"
-        try:
-            layers = max(1, min(6, int(raw.get("layers", 1))))
-        except (TypeError, ValueError):
-            layers = 1
-        groups = list(raw.get("groups", [2] * 6))
-        while len(groups) < 6:
-            groups.append(2)
-        normalized_groups = []
-        for value in groups[:6]:
-            try:
-                normalized_groups.append(max(1, int(value)))
-            except (TypeError, ValueError):
-                normalized_groups.append(2)
-        return {
-            "mode": mode,
-            "enabled": mode == "indicator",
-            "box_enabled": mode == "indicator_box",
-            "layers": layers,
-            "groups": normalized_groups,
-            "offset_x": float(raw.get("offset_x", 0.0) or 0.0),
-            "offset_y": float(raw.get("offset_y", 0.0) or 0.0),
-            "is_box_dist": bool(raw.get("is_box_dist", False)),
-        }
-
+        return _normalize_door_indicator_state_impl(state)
     def _door_layout_indicator_state_for_key(self, key):
         state = self.door_layout_indicator_states.get(key)
         normalized = self._normalize_door_indicator_state(state)
@@ -2906,34 +2880,9 @@ class Phase6ApplicationHost:
         return state
 
     def _destroy_door_layout_entry_widgets(self):
-        for widget in list(self.door_layout_width_entries.values()) + list(self.door_layout_height_entries.values()):
-            try:
-                widget.destroy()
-            except tk.TclError:
-                pass
-        self.door_layout_width_entries = {}
-        self.door_layout_height_entries = {}
-        self.door_layout_entry_windows = []
-
+        return _destroy_door_layout_entry_widgets_impl(self)
     def _door_layout_entry_menu(self, entry, *, column_index, row_index=None):
-        menu = tk.Menu(entry, tearoff=False)
-        if row_index is None:
-            column = self.door_layout_columns[column_index]
-            if not column.get("width_auto", False):
-                menu.add_command(label="刪除此欄", command=lambda: self.remove_door_layout_column(column_index))
-        else:
-            column = self.door_layout_columns[column_index]
-            if not column["height_auto"][row_index]:
-                menu.add_command(label="刪除此層", command=lambda: self.remove_door_layout_height(column_index, row_index))
-        if menu.index("end") is not None:
-            entry.bind("<Button-3>", lambda e, m=menu: (m.tk_popup(e.x_root, e.y_root), "break")[1])
-
-    _draw_layout_resolved_features = staticmethod(_draw_layout_resolved_features_impl)
-
-
-    _draw_layout_baseline_secondary = staticmethod(_draw_layout_baseline_secondary_impl)
-
-
+        return _door_layout_entry_menu_impl(self, entry, column_index=column_index, row_index=row_index)
     def _door_layout_cell_result(self, cell, val=None):
         val = val or self.get_float_values()
         return build_door_result(
@@ -3224,32 +3173,7 @@ class Phase6ApplicationHost:
         self._request_phase6_update("geometry")
 
     def rebuild_door_layers_config_ui(self):
-        # 清空先前的元件
-        for widget in self.door_layers_config_frame.winfo_children():
-            widget.destroy()
-            
-        try:
-            layers = int(self.door_indicator_l_var.get())
-        except ValueError:
-            layers = 1
-            
-        # 逐層建立橫向的組數選擇選單
-        for ly in range(layers):
-            ly_frame = tk.Frame(self.door_layers_config_frame, bg=self.COLOR_PANEL)
-            ly_frame.pack(side=tk.LEFT, padx=15, pady=4)
-            
-            label_text = f"第 {ly+1} 層組數:"
-            if ly == 0:
-                label_text = "第 1 層 (底) 組數:"
-            elif ly == layers - 1 and layers > 1:
-                label_text = f"第 {ly+1} 層 (頂) 組數:"
-                
-            tk.Label(ly_frame, text=label_text, bg=self.COLOR_PANEL, fg=self.COLOR_TEXT, font=('Microsoft JhengHei', 9, 'bold')).pack(side=tk.LEFT, padx=2)
-            
-            cb = ttk.Combobox(ly_frame, textvariable=self.door_indicator_layer_g_vars[ly], values=["1", "2", "3", "4", "5", "6", "7", "8"], width=4, state="readonly", style='TCombobox')
-            cb.pack(side=tk.LEFT, padx=2)
-            cb.bind("<<ComboboxSelected>>", lambda e: self._request_phase6_update("geometry"))
-
+        return _rebuild_door_layers_config_ui_impl(self)
     def reset_door_indicator_offset_x(self):
         self.door_indicator_offset_x = 0.0
         self.draw_preview()
