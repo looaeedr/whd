@@ -211,6 +211,8 @@ from gui_modules.rendering import (
     draw_preview_error as _draw_preview_error_impl,
     draw_indicator_box_preview as _draw_indicator_box_preview_impl,
     draw_indicator_door_preview as _draw_indicator_door_preview_impl,
+    draw_single_door_preview as _draw_single_door_preview_impl,
+    draw_base_plate_preview as _draw_base_plate_preview_impl,
 )
 
 
@@ -3372,43 +3374,21 @@ class Phase6ApplicationHost:
         except Exception:
             pass
 
-    def draw_door(self, val):
-        """Draw Door from the same final PartRenderData consumed by Phase6 3D."""
-        if self.multi_door_enabled_var.get():
-            self.draw_door_layout_overview()
-            return
-
-        canvas = self.canvas_door
-        canvas.delete("all")
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
-        self.draw_grid(canvas, cw, ch)
-
-        try:
-            door_val = {
-                'w': float(self.w_var.get()),
-                'h': float(self.h_var.get()),
-                't': float(self.t_var.get()),
-                'fw': float(self.fw_z_var.get()),
-                'door_gap_w': float(self.door_gap_w_var.get()),
-                'door_gap_h': float(self.door_gap_h_var.get()),
-                'door_fold_l': float(self.door_fold_l_var.get()),
-                'door_fold_r': float(self.door_fold_r_var.get()),
-                'door_fold_t': float(self.door_fold_t_var.get()),
-                'door_fold_b': float(self.door_fold_b_var.get()),
-            }
-        except ValueError:
-            canvas.create_text(
-                cw/2, ch/2,
-                text="請先填寫門板所需的尺寸 (W / H / T / FW / 折邊)",
-                fill="#ff9f0a", font=('Microsoft JhengHei', 11, 'bold')
-            )
-            return
+    def _single_door_render_snapshot(self):
+        door_val = {
+            'w': float(self.w_var.get()),
+            'h': float(self.h_var.get()),
+            't': float(self.t_var.get()),
+            'fw': float(self.fw_z_var.get()),
+            'door_gap_w': float(self.door_gap_w_var.get()),
+            'door_gap_h': float(self.door_gap_h_var.get()),
+            'door_fold_l': float(self.door_fold_l_var.get()),
+            'door_fold_r': float(self.door_fold_r_var.get()),
+            'door_fold_t': float(self.door_fold_t_var.get()),
+            'door_fold_b': float(self.door_fold_b_var.get()),
+        }
 
         indicator_hole = None
-        indicator_box_groups = ()
         if self.is_indicator_box_var.get():
             try:
                 count = max(1, int(self.indicator_l_var.get()))
@@ -3420,7 +3400,6 @@ class Phase6ApplicationHost:
                 )
             except Exception:
                 indicator_hole = None
-                indicator_box_groups = ()
 
         door_indicator = None
         if self.is_door_indicator_var.get():
@@ -3432,69 +3411,29 @@ class Phase6ApplicationHost:
             except Exception:
                 door_indicator = None
 
-        try:
-            spec = self._single_door_part_spec(
-                door_val, indicator_hole=indicator_hole, door_indicator=door_indicator
-            )
-            render_data = self._authoritative_render_data(
-                spec, self._manufacturing_context(draw_stock=False)
-            )
-            minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-            blank_w = maxx - minx
-            blank_h = maxy - miny
-            if blank_w <= 0 or blank_h <= 0:
-                raise ValueError("門板 Final Part Geometry 尺寸無效")
-            finished_w, finished_h = manufacturing_api.door_finished_face_size(
-                spec, self._manufacturing_context(draw_stock=False)
-            )
-        except Exception as exc:
-            canvas.create_text(
-                cw/2, ch/2, text=f"門板 Final Part Geometry 載入失敗:\n{exc}",
-                fill="#ff3333", font=('Microsoft JhengHei', 10, 'bold'),
-                width=max(200, cw-40),
-            )
-            return
-
-        canvas_transform, left, bottom, scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), cw, ch
+        spec = self._single_door_part_spec(
+            door_val, indicator_hole=indicator_hole, door_indicator=door_indicator
         )
+        render_context = self._manufacturing_context(draw_stock=False)
+        render_data = self._authoritative_render_data(spec, render_context)
+        bounds = tuple(float(v) for v in render_data.material.bounds)
+        minx, miny, maxx, maxy = bounds
+        if maxx - minx <= 0 or maxy - miny <= 0:
+            raise ValueError("門板 Final Part Geometry 尺寸無效")
 
-        if self.draw_stock_var.get():
-            sx0, sy0 = canvas_transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = canvas_transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-
-        # Manufacturing geometry is rendered exactly once from the final scene.
-        # Baseline handle holes, fixed holes, user holes and CornerType CUTTING
-        # therefore cannot diverge from the material consumed by 3D.
-        render_drawing_scene(
-            canvas, render_data.scene, canvas_transform,
-            skip_layers=("CHECK", "STOCK"),
-        )
-
-        stock_hint = "  STOCK: 青色虛線" if self.draw_stock_var.get() else ""
-        baseline_hint = f" ({spec.model_name} 最終製造幾何)" if spec.model_name else " (自訂最終製造幾何)"
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=(
-                f"門板展開預覽{baseline_hint}\n"
-                f"CUTTING/截角/固定孔/使用者開孔：同一份 Final Part Geometry\n"
-                f"折彎線 (BEND): 藍色虛線{stock_hint}\n"
-                f"成品寬 = {finished_w:.2f} mm / 成品高 = {finished_h:.2f} mm\n"
-                f"折邊: 左{door_val['door_fold_l']} 右{door_val['door_fold_r']} "
-                f"上{door_val['door_fold_t']} 下{door_val['door_fold_b']}"
-            ),
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
+        finished_context = self._manufacturing_context(draw_stock=False)
+        finished_size = tuple(
+            float(v) for v in manufacturing_api.door_finished_face_size(spec, finished_context)
         )
 
         indicator_context = None
         indicator_layout = None
+        x_guide = None
+        y_guide = None
         indicator_groups = tuple(door_indicator or ())
         if indicator_groups:
             try:
+                finished_w, finished_h = finished_size
                 indicator_context = DoorIndicatorContext(
                     finished_width=finished_w,
                     finished_height=finished_h,
@@ -3506,24 +3445,6 @@ class Phase6ApplicationHost:
                     indicator_groups,
                     Vec2(self.door_indicator_offset_x, self.door_indicator_offset_y),
                 )
-            except Exception:
-                indicator_context = None
-                indicator_layout = None
-
-        self.last_door_draw_params = {
-            'transform': canvas_transform,
-            'blank_w': blank_w,
-            'blank_h': blank_h,
-            'indicator_context': indicator_context,
-            'indicator_groups': indicator_groups,
-            'indicator_layout': indicator_layout,
-            'frame_edges': spec.frame_edges,
-            'layout_cell': None,
-            'render_data': render_data,
-        }
-
-        if indicator_layout is not None and indicator_context is not None:
-            try:
                 position = measure_door_indicator_position(
                     indicator_layout,
                     indicator_context,
@@ -3531,127 +3452,81 @@ class Phase6ApplicationHost:
                     thickness=door_val['t'],
                     use_box_distance=spec.use_box_distance,
                     frame_edges=spec.frame_edges,
-                    gap_w=door_val['door_gap_w'], gap_h=door_val['door_gap_h'],
+                    gap_w=door_val['door_gap_w'],
+                    gap_h=door_val['door_gap_h'],
                 )
                 x_guide, y_guide = resolve_door_indicator_dimension_guides(position)
-
-                p1_cx, p1_cy = canvas_transform.world_to_canvas(x_guide.start)
-                p2_cx, p2_cy = canvas_transform.world_to_canvas(x_guide.end)
-                p1_cy -= 20; p2_cy -= 20
-                canvas.create_line(
-                    p1_cx, p1_cy, p2_cx, p2_cy, fill="#ff9f0a",
-                    arrow=tk.BOTH, arrowshape=(6, 8, 3), width=1.2
-                )
-                canvas.create_text(
-                    (p1_cx + p2_cx)/2, p1_cy - 10,
-                    text=f"X={x_guide.value:.1f}", fill="#ff9f0a",
-                    font=('Consolas', 9, 'bold'), tags="dim_x"
-                )
-
-                p1_cx, p1_cy = canvas_transform.world_to_canvas(y_guide.start)
-                p2_cx, p2_cy = canvas_transform.world_to_canvas(y_guide.end)
-                p1_cx -= 20; p2_cx -= 20
-                canvas.create_line(
-                    p1_cx, p1_cy, p2_cx, p2_cy, fill="#ff9f0a",
-                    arrow=tk.BOTH, arrowshape=(6, 8, 3), width=1.2
-                )
-                canvas.create_text(
-                    p1_cx - 30, (p1_cy + p2_cy)/2,
-                    text=f"Y={y_guide.value:.1f}", fill="#ff9f0a",
-                    font=('Consolas', 9, 'bold'), tags="dim_y"
-                )
             except Exception:
-                pass
+                indicator_context = None
+                indicator_layout = None
+                x_guide = None
+                y_guide = None
 
-        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="door")
-        self._draw_phase6_finished_dimension_summary(canvas, part_key="door")
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+        return {
+            "render_data": render_data,
+            "bounds": bounds,
+            "finished_size": finished_size,
+            "door_val": door_val,
+            "model_name": spec.model_name,
+            "frame_edges": spec.frame_edges,
+            "indicator_context": indicator_context,
+            "indicator_groups": indicator_groups,
+            "indicator_layout": indicator_layout,
+            "x_guide": x_guide,
+            "y_guide": y_guide,
+        }
 
-    def draw_base_plate(self, val):
-        canvas = self.canvas_base_plate
-        canvas.delete("all")
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
+    def draw_door(self, val):
+        if self.multi_door_enabled_var.get(): return self.draw_door_layout_overview()
+        canvas = self.canvas_door; canvas.delete("all"); cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
         self.draw_grid(canvas, cw, ch)
+        try: snapshot = self._single_door_render_snapshot()
+        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "門板", exc, width=cw-40, font_size=10)
+        return _draw_single_door_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
-        try:
-            shrink_top = float(self.base_plate_shrink_top_var.get())
-            shrink_bottom = float(self.base_plate_shrink_bottom_var.get())
-            shrink_left = float(self.base_plate_shrink_left_var.get())
-            shrink_right = float(self.base_plate_shrink_right_var.get())
-            bend = float(self.base_plate_bend_var.get())
-            spec_val = dict(val)
-            spec_val.update({
-                'base_plate_shrink_top': shrink_top,
-                'base_plate_shrink_bottom': shrink_bottom,
-                'base_plate_shrink_left': shrink_left,
-                'base_plate_shrink_right': shrink_right,
-                'base_plate_bend': bend,
-            })
-            spec = self._base_plate_part_spec(spec_val)
-            render_data = self._authoritative_render_data(
-                spec, self._manufacturing_context(draw_stock=False)
-            )
-            minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-            total_width = maxx - minx
-            total_height = maxy - miny
-        except Exception as exc:
-            canvas.create_text(
-                cw/2, ch/2, text=f"底板 Final Part Geometry 載入失敗:\n{exc}",
-                fill="#ff3333", font=('Microsoft JhengHei', 10, 'bold')
-            )
-            return
-
+    def _base_plate_render_snapshot(self, val):
+        shrink_top = float(self.base_plate_shrink_top_var.get())
+        shrink_bottom = float(self.base_plate_shrink_bottom_var.get())
+        shrink_left = float(self.base_plate_shrink_left_var.get())
+        shrink_right = float(self.base_plate_shrink_right_var.get())
+        bend = float(self.base_plate_bend_var.get())
+        spec_val = dict(val)
+        spec_val.update({
+            'base_plate_shrink_top': shrink_top,
+            'base_plate_shrink_bottom': shrink_bottom,
+            'base_plate_shrink_left': shrink_left,
+            'base_plate_shrink_right': shrink_right,
+            'base_plate_bend': bend,
+        })
+        spec = self._base_plate_part_spec(spec_val)
+        context = self._manufacturing_context(draw_stock=False)
+        render_data = self._authoritative_render_data(spec, context)
+        bounds = tuple(float(v) for v in render_data.material.bounds)
+        minx, miny, maxx, maxy = bounds
         box_l = -(shrink_left - bend)
         box_b = -(shrink_bottom - bend)
-        world_min_x = min(minx, box_l)
-        world_max_x = max(maxx, box_l + val['w'])
-        world_min_y = min(miny, box_b)
-        world_max_y = max(maxy, box_b + val['h'])
-        canvas_transform, left, bottom, scale, _material_top = _phase6_2d_material_viewport(
-            (world_min_x, world_min_y, world_max_x, world_max_y), cw, ch
+        world_bounds = (
+            min(minx, box_l),
+            min(miny, box_b),
+            max(maxx, box_l + val['w']),
+            max(maxy, box_b + val['h']),
         )
+        return {
+            "render_data": render_data,
+            "bounds": bounds,
+            "world_bounds": tuple(float(v) for v in world_bounds),
+            "box_rect": (float(box_l), float(box_b), float(val['w']), float(val['h'])),
+            "bend": float(bend),
+        }
 
-        def to_canvas(rx, ry):
-            return canvas_transform.world_to_canvas(Vec2(rx, ry))
-
-        if self.draw_stock_var.get():
-            sx0, sy0 = to_canvas(minx, miny)
-            sx1, sy1 = to_canvas(maxx, maxy)
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-
-        render_drawing_scene(
-            canvas, render_data.scene, canvas_transform,
-            skip_layers=("CHECK", "STOCK"),
-        )
-
-        bx0, by0 = to_canvas(box_l, box_b)
-        bx1, by1 = to_canvas(box_l + val['w'], box_b + val['h'])
-        canvas.create_rectangle(
-            bx0, by0, bx1, by1, outline="#ff453a", width=1.2, dash=(4, 4)
-        )
-
-        stock_hint = " + [母材]" if self.draw_stock_var.get() else ""
-        hole_w = total_width - 2.0 * bend - 30.0
-        hole_h = total_height - 2.0 * bend - 30.0
-        canvas.create_text(
-            20, 20,
-            text=(
-                "底板展開預覽｜Final Part Geometry\n"
-                "CUTTING/截角/固定孔/使用者開孔：與 3D 完全同源\n"
-                "箱身外框對照線: 紅色虛線\n"
-                f"展開圖孔距 W:{hole_w:.1f} H:{hole_h:.1f}{stock_hint}"
-            ),
-            fill=self.COLOR_TEXT, font=('Microsoft JhengHei', 9, 'bold'), anchor=tk.NW,
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(canvas, render_data, canvas_transform, part_key="base_plate")
-        self._draw_phase6_finished_dimension_summary(canvas, part_key="base_plate")
-        draw_hole_editor_hint(canvas, cw, endcap=False)
+    def draw_base_plate(self, val):
+        canvas = self.canvas_base_plate; canvas.delete("all"); cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
+        self.draw_grid(canvas, cw, ch)
+        try: snapshot = self._base_plate_render_snapshot(val)
+        except Exception as exc: return _draw_preview_error_impl(canvas, cw, ch, "底板", exc, font_size=10)
+        return _draw_base_plate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def _disable_all_door_indicators(self):
         """Disable only the legacy single-Door direct-indicator mode.
