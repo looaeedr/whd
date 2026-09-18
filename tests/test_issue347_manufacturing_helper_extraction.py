@@ -93,3 +93,5 @@ def test_issue347_pure_helper_behavior_is_preserved():
     assert not owner._phase6_solution_is_committable(
         SimpleNamespace(verified=False, rule_id=None, trust_level="")
     )
+
+# issue347 T2 workflow trigger
