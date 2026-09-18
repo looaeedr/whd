@@ -214,6 +214,7 @@ class ManufacturingResolveRequest:
     assembly_graph: Any = None
     canonical_part_keys: Any = ()
     parts: Any = ()
+    operator_finished_dimensions: Any = None
     assembly_intent: str = ""
     allow_3d_fallback: bool = False
     relief_clearance: float = 0.0
@@ -250,6 +251,11 @@ class ManufacturingResolveRequest:
         if len(part_names) != len(set(part_names)):
             raise ValueError("duplicate ManufacturingPartInput.part_key")
         object.__setattr__(self, "parts", tuple(normalized_parts))
+        object.__setattr__(
+            self,
+            "operator_finished_dimensions",
+            freeze_manufacturing_value(self.operator_finished_dimensions),
+        )
 
         object.__setattr__(self, "assembly_intent", str(self.assembly_intent or ""))
         object.__setattr__(self, "allow_3d_fallback", bool(self.allow_3d_fallback))
@@ -269,6 +275,7 @@ class ManufacturingResolveRequest:
                 "assembly_graph": self.assembly_graph,
                 "canonical_part_keys": self.canonical_part_keys,
                 "parts": tuple(part.semantic_payload() for part in self.parts),
+                "operator_finished_dimensions": self.operator_finished_dimensions,
                 "assembly_intent": self.assembly_intent,
                 "allow_3d_fallback": self.allow_3d_fallback,
                 "relief_clearance": self.relief_clearance,
