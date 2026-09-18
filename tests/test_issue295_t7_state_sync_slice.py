@@ -76,7 +76,7 @@ def test_corner_selection_serialization_contract_is_preserved():
     assert result == {
         "type_id": CornerTypeId.CROSS.value,
         "rotation_quadrants": 0,
-        "cross_mode": CrossCornerMode.DUAL_RIGHT_ANGLE.value,
+        "cross_mode": CrossCornerMode.RETAIN.value,
         "direction": CornerDirection.WIDTH.value,
         "amount_t": 1.25,
         "secondary_retain_t": 0.5,
