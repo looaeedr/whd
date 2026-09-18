@@ -22,10 +22,13 @@ def _func(name: str) -> str:
     source = _source()
     tree = ast.parse(source)
     node = next(
-        n for n in tree.body
-        if isinstance(n, ast.FunctionDef) and n.name == name
+        (
+            n for n in tree.body
+            if isinstance(n, ast.FunctionDef) and n.name == name
+        ),
+        None,
     )
-    return ast.get_source_segment(source, node) or ""
+    return (ast.get_source_segment(source, node) or "") if node is not None else ""
 
 
 def test_t3_source_contract_separates_part_selector_from_content_modes():
@@ -33,13 +36,16 @@ def test_t3_source_contract_separates_part_selector_from_content_modes():
     builder = _func("_phase6_build_content_switch")
     input_switch = _func("_phase6_show_input_content")
 
-    assert 'label="組合體"' not in refresh, (
+    assert (
+        builder
+        and 'label="組合體"' not in refresh
+        and 'label="截角資料"' not in refresh
+        and all(f'text="{text}"' in builder for text in ("輸入區", "組合體", "截角資料"))
+    ), (
         "#336 EXPECTED RED: 組合體/截角資料 must stop being entries in the "
-        "sheet-metal part selector; they belong to the three-way content switch."
+        "sheet-metal part selector and the dedicated 輸入區/組合體/截角資料 "
+        "content switch must exist."
     )
-    assert 'label="截角資料"' not in refresh
-    for text in ("輸入區", "組合體", "截角資料"):
-        assert f'text="{text}"' in builder
     assert "StringVar" not in builder and "IntVar" not in builder, (
         "content switch must project the existing _phase6_3d_display_mode, not own a second mode state"
     )
