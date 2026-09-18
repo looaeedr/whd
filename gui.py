@@ -196,6 +196,85 @@ from gui_modules.drawing import (
     render_drawing_scene,
 )
 
+from gui_modules.rendering import (
+    _rects_overlap,
+    layout_reference_overlay_rects as _layout_reference_overlay_rects_impl,
+    render_structural_result as _render_structural_result_impl,
+    render_secondary_scene as _render_secondary_scene_impl,
+    render_resolved_features as _render_resolved_features_impl,
+    render_surface_user_features as _render_surface_user_features_impl,
+    feature_surface_from_drawing_scene as _feature_surface_from_drawing_scene_impl,
+    draw_phase6_annotation_projection as _draw_phase6_annotation_projection_impl,
+    draw_phase6_corner_dimension_overlay as _draw_phase6_corner_dimension_overlay_impl,
+    YMirroredPreviewTransform as _YMirroredPreviewTransform,
+    phase6_2d_material_viewport as _phase6_2d_material_viewport_impl,
+)
+
+
+def layout_reference_overlay_rects(*args, **kwargs):
+    kwargs.setdefault("overlap_fn", _rects_overlap)
+    return _layout_reference_overlay_rects_impl(*args, **kwargs)
+
+
+def render_structural_result(canvas, result, transform, tags=None):
+    return _render_structural_result_impl(canvas, result, transform, tags=tags)
+
+
+def render_secondary_scene(canvas, scene, transform):
+    return _render_secondary_scene_impl(
+        canvas, scene, transform, scene_renderer=render_drawing_scene
+    )
+
+
+def render_resolved_features(canvas, features, transform, *, color="#ff9f0a"):
+    return _render_resolved_features_impl(
+        canvas, features, transform, color=color
+    )
+
+
+def render_surface_user_features(canvas, surface, features, width, height, transform):
+    return _render_surface_user_features_impl(
+        canvas, surface, features, width, height, transform,
+        resolver=resolve_surface_features,
+        feature_renderer=render_resolved_features,
+    )
+
+
+def feature_surface_from_drawing_scene(surface_id, scene):
+    return _feature_surface_from_drawing_scene_impl(
+        surface_id, scene, ae_module=ae
+    )
+
+
+def _draw_phase6_annotation_projection(
+    canvas, render_data, transform, *, part_key="", strict=False,
+):
+    return _draw_phase6_annotation_projection_impl(
+        canvas, render_data, transform,
+        part_key=part_key, strict=strict,
+        projection_builder=build_engineering_drawing_projection,
+    )
+
+
+def _draw_phase6_corner_dimension_overlay(canvas, render_data, canvas_width):
+    return _draw_phase6_corner_dimension_overlay_impl(
+        canvas, render_data, canvas_width,
+        text_builder=render_data_corner_dimension_text,
+    )
+
+
+def _phase6_2d_material_viewport(
+    bounds, canvas_width, canvas_height, *,
+    top_gutter=175.0, right_gutter=82.0,
+    bottom_gutter=48.0, left_gutter=48.0,
+):
+    return _phase6_2d_material_viewport_impl(
+        bounds, canvas_width, canvas_height,
+        top_gutter=top_gutter, right_gutter=right_gutter,
+        bottom_gutter=bottom_gutter, left_gutter=left_gutter,
+        transform_type=CanvasTransform,
+    )
+
 
 from gui_modules.layout import (
     _project_toolbar_presentation,
@@ -375,281 +454,32 @@ _Phase6UpdateScheduler = _phase6_command_router._Phase6UpdateScheduler
 
 
 
-def _rects_overlap(a, b, gap=0.0):
-    return not (
-        a[2] + gap <= b[0] or b[2] + gap <= a[0]
-        or a[3] + gap <= b[1] or b[3] + gap <= a[1]
-    )
-
-
-def layout_reference_overlay_rects(canvas_w, canvas_h, *, crosshair, feature_rect, sizes, x_side, y_side, margin=8, gap=12):
-    """Lay out CAD reference controls on the crosshair without covering the hole.
-
-    X controls stay on the horizontal reference line; Y controls stay on the
-    vertical reference line.  Preferred placement follows the selected finished
-    boundary side, then falls back to the opposite side or a free perimeter slot.
-    Returned values are pixel rectangles (left, top, right, bottom).
-    """
-    cw, ch = float(canvas_w), float(canvas_h)
-    cx, cy = map(float, crosshair)
-    fl, ft, fr, fb = map(float, feature_rect)
-    occupied = [(fl-gap, ft-gap, fr+gap, fb+gap)]
-    result = {}
-
-    def rect_for(center, size):
-        x, y = center; w, h = size
-        return (x-w/2.0, y-h/2.0, x+w/2.0, y+h/2.0)
-
-    def fits(rect):
-        l,t,r,b = rect
-        if l < margin or t < margin or r > cw-margin or b > ch-margin:
-            return False
-        return all(not _rects_overlap(rect, other, gap=4) for other in occupied)
-
-    def choose(name, candidates):
-        size = sizes[name]
-        for center in candidates:
-            rect = rect_for(center, size)
-            if fits(rect):
-                result[name] = rect; occupied.append(rect); return
-        # Deterministic perimeter fallback: scan rows/columns outside the feature.
-        w,h = size
-        fallback = [
-            (margin+w/2, margin+h/2), (cw-margin-w/2, margin+h/2),
-            (margin+w/2, ch-margin-h/2), (cw-margin-w/2, ch-margin-h/2),
-            (cw/2, margin+h/2), (cw/2, ch-margin-h/2),
-            (margin+w/2, ch/2), (cw-margin-w/2, ch/2),
-        ]
-        for center in fallback:
-            rect = rect_for(center, size)
-            if fits(rect):
-                result[name] = rect; occupied.append(rect); return
-        # Very small screens: clamp to canvas; this remains deterministic.
-        x = min(max(cx, margin+w/2), cw-margin-w/2)
-        y = min(max(cy, margin+h/2), ch-margin-h/2)
-        rect = rect_for((x,y), size)
-        result[name] = rect; occupied.append(rect)
-
-    # Horizontal controls: centers stay on the horizontal reference line.
-    x_pref_left = x_side == 'left'
-    left_near = fl - gap - sizes['x_edge'][0]/2
-    right_near = fr + gap + sizes['x_edge'][0]/2
-    left_far = left_near - gap - sizes['x_neighbor'][0]
-    right_far = right_near + gap + sizes['x_neighbor'][0]
-    if x_pref_left:
-        choose('x_edge', [(left_near, cy), (right_near, cy)])
-        choose('x_neighbor', [(left_far, cy), (right_far, cy), (right_near, cy)])
-    else:
-        choose('x_edge', [(right_near, cy), (left_near, cy)])
-        choose('x_neighbor', [(right_far, cy), (left_far, cy), (left_near, cy)])
-
-    # Vertical controls: centers stay on the vertical reference line.
-    y_pref_top = y_side == 'top'
-    top_near = ft - gap - sizes['y_edge'][1]/2
-    bottom_near = fb + gap + sizes['y_edge'][1]/2
-    top_far = top_near - gap - sizes['y_neighbor'][1]
-    bottom_far = bottom_near + gap + sizes['y_neighbor'][1]
-    if y_pref_top:
-        choose('y_edge', [(cx, top_near), (cx, bottom_near)])
-        choose('y_neighbor', [(cx, top_far), (cx, bottom_far), (cx, bottom_near)])
-    else:
-        choose('y_edge', [(cx, bottom_near), (cx, top_near)])
-        choose('y_neighbor', [(cx, bottom_far), (cx, top_far), (cx, top_near)])
-
-    # Reference panel sits diagonally outside the hole and all four fields.
-    pw, ph = sizes['panel']
-    panel_candidates = [
-        (fr + gap + pw/2, fb + gap + ph/2),
-        (fl - gap - pw/2, fb + gap + ph/2),
-        (fr + gap + pw/2, ft - gap - ph/2),
-        (fl - gap - pw/2, ft - gap - ph/2),
-    ]
-    choose('panel', panel_candidates)
-    return result
 
 
 
 
 
-class _YMirroredPreviewTransform:
-    """Read-only preview transform that reflects world Y before normal Canvas mapping."""
-
-    def __init__(self, base_transform, height):
-        self._base = base_transform
-        self.height = float(height)
-        self.scale = base_transform.scale
-
-    def world_to_canvas(self, point):
-        return self._base.world_to_canvas(mirror_point_y(point, self.height))
 
 
-def render_structural_result(canvas, result, transform, tags=None):
-    polygon_coords = []
-    for point in result.outline:
-        cx, cy = transform.world_to_canvas(point)
-        polygon_coords.extend([cx, cy])
-    polygon_kwargs = {
-        "outline": "#30d158",
-        "fill": "",
-        "width": 2,
-    }
-    if tags is not None:
-        polygon_kwargs["tags"] = tags
-    if len(polygon_coords) >= 6:
-        canvas.create_polygon(*polygon_coords, **polygon_kwargs)
-
-    for bend in result.bends:
-        p1 = transform.world_to_canvas(bend.p1)
-        p2 = transform.world_to_canvas(bend.p2)
-        line_kwargs = {
-            "fill": "#0a84ff",
-            "width": 1.5,
-            "dash": (6, 4),
-        }
-        if tags is not None:
-            line_kwargs["tags"] = tags
-        canvas.create_line(*p1, *p2, **line_kwargs)
 
 
-def render_secondary_scene(canvas, scene, transform):
-    """Render baseline secondary geometry without redrawing the structural outline/BEND lines."""
-    secondary = DrawingScene()
-    skipped_primary_outline = False
-    for primitive in scene.primitives:
-        if primitive.layer == "BEND":
-            continue
-        if (
-            not skipped_primary_outline
-            and isinstance(primitive, PolylinePrimitive)
-            and primitive.layer == "CUTTING"
-        ):
-            skipped_primary_outline = True
-            continue
-        secondary.add(primitive)
-    render_drawing_scene(canvas, secondary, transform)
 
 
-def render_resolved_features(canvas, features, transform, *, color="#ff9f0a"):
-    """Render already-resolved world-space features; never derives manufacturing coordinates."""
-    for feature in features:
-        layer = getattr(feature, "layer", "CUTTING")
-        draw_color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(layer, color)
-        if isinstance(feature, ResolvedCircle):
-            cx, cy = transform.world_to_canvas(feature.center)
-            r_px = feature.radius * transform.scale
-            canvas.create_oval(cx-r_px, cy-r_px, cx+r_px, cy+r_px, outline=draw_color, width=2)
-            if feature.add_centerline:
-                canvas.create_line(cx-r_px, cy, cx+r_px, cy, fill="#bf5af2", width=1)
-        elif isinstance(feature, ResolvedProfile) and getattr(feature, "layered_profiles", ()):
-            for sub_layer, points, closed in feature.layered_profiles:
-                sub_color = {"MARKING":"#8e8e93", "BLIND_HOLE":"#ff453a", "DATUM":"#bf5af2"}.get(sub_layer, color)
-                coords = []
-                for point in points:
-                    coords.extend(transform.world_to_canvas(point))
-                if len(coords) >= 4:
-                    if closed and len(coords) >= 6:
-                        canvas.create_polygon(*coords, outline=sub_color, fill="", width=2)
-                    else:
-                        canvas.create_line(*coords, fill=sub_color, width=2)
-        elif isinstance(feature, (ResolvedRect, ResolvedProfile)):
-            coords = []
-            for point in feature.points:
-                coords.extend(transform.world_to_canvas(point))
-            if len(coords) >= 6:
-                canvas.create_polygon(*coords, outline=draw_color, fill="", width=2)
 
 
-def render_surface_user_features(canvas, surface, features, width, height, transform):
-    if not features:
-        return
-    resolved = resolve_surface_features(surface, features, width, height)
-    render_resolved_features(canvas, resolved, transform, color="#ff9f0a")
 
 
-def feature_surface_from_drawing_scene(surface_id, scene):
-    # Keep one authoritative CUTTING-outline resolver in AE so the GUI and
-    # manufacturing export accept the same closed-polyline / exploded-LINE data.
-    return ae.feature_surface_from_drawing_scene(surface_id, scene)
 
 
-def _draw_phase6_annotation_projection(canvas, render_data, transform, *, part_key="", strict=False):
-    """Render the shared annotation-only Engineering Drawing projection in 2D."""
-    projection = build_engineering_drawing_projection(
-        render_data, part_key=str(part_key or ""), strict=bool(strict)
-    )
-    dimensions_by_semantic_id = {
-        str(getattr(item, "semantic_id", "") or ""): str(item.axis).lower()
-        for item in tuple(getattr(projection.annotation_plan, "overall_dimensions", ()) or ())
-        if str(getattr(item, "semantic_id", "") or "")
-    }
-    for primitive in projection.primitives:
-        layer = str(getattr(primitive, "layer", "") or "").upper()
-        if isinstance(primitive, LinePrimitive):
-            p1 = transform.world_to_canvas(primitive.p1)
-            p2 = transform.world_to_canvas(primitive.p2)
-            canvas.create_line(
-                *p1, *p2, fill=("#30d158" if layer == "DIMENSION" else "#ffd60a"),
-                width=1.2, tags=("phase6_engineering_annotation", layer.lower()),
-            )
-        elif isinstance(primitive, TextPrimitive):
-            x, y = transform.world_to_canvas(primitive.insert)
-            semantic_id = str(getattr(primitive, "semantic_id", "") or "")
-            axis = dimensions_by_semantic_id.get(semantic_id)
-            angle = 90 if layer == "DIMENSION" and axis == "y" else 0
-            anchor_name = tk.CENTER if int(getattr(primitive, "attachment_point", 1)) == 5 else tk.SW
-            canvas.create_text(
-                x, y, text=str(primitive.text),
-                fill=("#30d158" if layer == "DIMENSION" else "#ffd60a"),
-                font=('Consolas', 9, 'bold'), anchor=anchor_name, angle=angle,
-                tags=("phase6_engineering_annotation", layer.lower()),
-            )
-    return projection
 
-def _draw_phase6_corner_dimension_overlay(canvas, render_data, canvas_width):
-    """Draw per-corner sizes measured from the same PartRenderData used by 3D."""
-    text = render_data_corner_dimension_text(render_data)
-    canvas.create_text(
-        max(25, float(canvas_width) - 25), 42, anchor=tk.NE,
-        text=text, fill="#ffd60a", justify=tk.RIGHT,
-        font=('Microsoft JhengHei', 9, 'bold'),
-        width=max(180, int(float(canvas_width) * 0.46)),
-        tags=("phase6_corner_dimensions",),
-    )
-    return text
+
+
 
 
 def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
     return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap)
 
 
-def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gutter=175.0, right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
-    """Fit material inside a dedicated viewport below operator annotations.
-
-    The top annotation band and right dimension channel are layout contracts,
-    not geometry. All six main 2D sheet-metal previews use this one helper so
-    labels cannot steal space from or overlap the manufacturing material.
-    """
-    minx, miny, maxx, maxy = (float(v) for v in bounds)
-    world_w = max(1.0, maxx - minx)
-    world_h = max(1.0, maxy - miny)
-    cw = max(1.0, float(canvas_width))
-    ch = max(1.0, float(canvas_height))
-    left = max(8.0, float(left_gutter))
-    top = min(max(8.0, float(top_gutter)), max(8.0, ch - 24.0))
-    right = max(8.0, float(right_gutter))
-    bottom_margin = max(8.0, float(bottom_gutter))
-    available_w = max(1.0, cw - left - right)
-    available_h = max(1.0, ch - top - bottom_margin)
-    scale = min(available_w / world_w, available_h / world_h)
-    material_left = left + (available_w - world_w * scale) / 2.0
-    material_top = top + (available_h - world_h * scale) / 2.0
-    material_bottom = material_top + world_h * scale
-    transform = CanvasTransform(
-        scale=scale,
-        origin_x=material_left - minx * scale,
-        origin_y=material_bottom + miny * scale,
-    )
-    return transform, material_left, material_bottom, scale, material_top
 
 
 
