@@ -19,10 +19,8 @@ from ae_engine.contracts import (
     ManufacturingContext,
 )
 from ae_engine.sheetmetal_geometry import CornerTypeId
-from ae_engine.sheetmetal_features import (
-    feature_surface_from_drawing_scene,
-    feature_surface_from_structural_result,
-)
+from ae_engine.sheetmetal_features import feature_surface_from_structural_result
+from gui_modules.rendering import feature_surface_from_drawing_scene
 from ae_engine.sheetmetal_part_adapters import (
     DoorFrameEdges,
     build_door_result,
