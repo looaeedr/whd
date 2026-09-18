@@ -184,3 +184,5 @@ def test_issue356_t2_does_not_switch_canonical_resolver():
     segment = ast.get_source_segment(source, resolver) or ""
     assert "build_manufacturing_request" not in segment
     assert "manufacturing_service.resolve" not in segment
+
+# issue356 T2 RED trigger
