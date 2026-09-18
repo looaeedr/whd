@@ -608,3 +608,142 @@ def _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_pa
         "pre_pair_count": pre_pairs, "post_pair_count": post_pairs,
         "evidence": deepcopy(getattr(solution, "shadow_validation", None)),
     }
+
+
+def _phase6_build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
+    """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
+
+    Multi-piece Box Body structures expose one world-space aggregate for preserve
+    checks plus one UV-aware entry per physical piece.  The aggregate intentionally
+    has no flat-material map: unrelated piece UV planes must never be forged into a
+    single backprojection coordinate system.
+    """
+    from ae_engine.assembly_geometry import (
+        folded_mesh_with_flat_uv_from_polygon,
+        world_skin_with_flat_uv, endcap_world_skin_with_flat_uv,
+        place_assembly_triangles, place_assembly_points,
+        place_box_body_structure_points, MappedSkinTriangle, _triangle_unit_normal,
+    )
+
+    by_key = {str(part.part_key): part for part in tuple(parts or ())}
+    flat_material_by_part = {}
+    mapped_skin_triangles_by_part = {}
+    world_triangles_by_part = {}
+    body_world_mid = ()
+
+    body = by_key.get("box_body")
+    if body is not None:
+        body_pieces = tuple(getattr(body.render_data, "pieces", ()) or ())
+        if body_pieces:
+            total_w = max(float(getattr(piece, "formed_w_end", 0.0)) for piece in body_pieces)
+            mapped_rows = []
+            structure_mid = []
+            piece_counts = []
+            for piece in body_pieces:
+                data = piece.render_data
+                _minx, miny, _maxx, maxy = map(float, data.material.bounds)
+                y_profile = ({"len": max(0.0, maxy - miny), "core": True},)
+                x_profile = tuple(getattr(piece, "fold_profile", ()) or ())
+                mapped = folded_mesh_with_flat_uv_from_polygon(
+                    data.material, x_profile, y_profile,
+                    fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+                )
+                piece_structure = []
+                for item in mapped:
+                    placed = place_box_body_structure_points(
+                        item.local, piece, total_w=total_w,
+                        thickness=sheet_thickness, x_profile=x_profile,
+                    )
+                    piece_structure.append(tuple(placed))
+                mapped_rows.append((piece, tuple(mapped), tuple(piece_structure)))
+                structure_mid.extend(piece_structure)
+                piece_counts.append(len(piece_structure))
+
+            structure_mid = tuple(structure_mid)
+            if structure_mid:
+                all_points = [point for tri in structure_mid for point in tri]
+                placed_points = place_assembly_points(
+                    all_points, structure_mid, body.placement,
+                    finished_dimensions, body.offset,
+                )
+                body_world_mid = tuple(
+                    tuple(placed_points[i:i + 3])
+                    for i in range(0, len(placed_points), 3)
+                )
+
+            half = max(0.0, float(sheet_thickness or 0.0)) / 2.0
+            cursor = 0
+            aggregate_skins = []
+            for piece, mapped, _piece_structure in mapped_rows:
+                count = len(mapped)
+                world_mid_piece = body_world_mid[cursor:cursor + count]
+                cursor += count
+                world_mid_piece = _phase6_expand_box_body_fw_world_mid(
+                    piece, mapped, world_mid_piece
+                )
+                world_mid_piece = _phase6_shift_multistage_terminal_fold_world_mid(
+                    piece, mapped, world_mid_piece
+                )
+                skins = []
+                for item, world_mid in zip(mapped, world_mid_piece):
+                    normal = _triangle_unit_normal(world_mid)
+                    if normal is None:
+                        continue
+                    for side in (-1, 1):
+                        delta = tuple(float(side) * half * value for value in normal)
+                        world = tuple(
+                            tuple(float(point[i]) + delta[i] for i in range(3))
+                            for point in world_mid
+                        )
+                        skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
+                piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip().lower()}"
+                flat_material_by_part[piece_key] = piece.render_data.material
+                mapped_skin_triangles_by_part[piece_key] = tuple(skins)
+                world_triangles_by_part[piece_key] = tuple(item.world for item in skins)
+                aggregate_skins.extend(item.world for item in skins)
+            world_triangles_by_part["box_body"] = tuple(aggregate_skins)
+        else:
+            mapped = folded_mesh_with_flat_uv_from_polygon(
+                body.render_data.material, tuple(body.x_profile or ()), tuple(body.y_profile or ()),
+                fold_guides=tuple(getattr(body.render_data, "fold_guides", ()) or ()),
+            )
+            body_world_mid = place_assembly_triangles(
+                tuple(item.local for item in mapped), body.placement, finished_dimensions, body.offset
+            )
+            skins = world_skin_with_flat_uv(
+                mapped, body.placement, finished_dimensions, offset=body.offset,
+                sheet_thickness=sheet_thickness,
+            )
+            flat_material_by_part["box_body"] = body.render_data.material
+            mapped_skin_triangles_by_part["box_body"] = tuple(skins)
+            world_triangles_by_part["box_body"] = tuple(item.world for item in skins)
+
+    for key, part in by_key.items():
+        if key == "box_body" or getattr(part.render_data, "pieces", None):
+            continue
+        mapped = folded_mesh_with_flat_uv_from_polygon(
+            part.render_data.material, tuple(part.x_profile or ()), tuple(part.y_profile or ()),
+            fold_guides=tuple(getattr(part.render_data, "fold_guides", ()) or ()),
+        )
+        placement = str(part.placement or "offset")
+        if placement in {"top", "head", "bottom", "tail"} and body_world_mid:
+            skins = endcap_world_skin_with_flat_uv(
+                mapped, placement, body_world_mid, offset=part.offset,
+                sheet_thickness=sheet_thickness,
+                reference_triangles=tuple(item.local for item in mapped),
+                preserve_core_origin=True,
+            )
+        else:
+            skins = world_skin_with_flat_uv(
+                mapped, placement, finished_dimensions, offset=part.offset,
+                sheet_thickness=sheet_thickness,
+            )
+        flat_material_by_part[key] = part.render_data.material
+        mapped_skin_triangles_by_part[key] = tuple(skins)
+        world_triangles_by_part[key] = tuple(item.world for item in skins)
+
+    return {
+        "flat_material_by_part": flat_material_by_part,
+        "mapped_skin_triangles_by_part": mapped_skin_triangles_by_part,
+        "world_triangles_by_part": world_triangles_by_part,
+    }
