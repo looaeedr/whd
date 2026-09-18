@@ -26,6 +26,8 @@ from .door_view import (
     draw_preview_error,
     draw_indicator_box_preview,
     draw_indicator_door_preview,
+    draw_single_door_preview,
+    draw_base_plate_preview,
 )
 
 __all__ = [
@@ -43,4 +45,6 @@ __all__ = [
     "draw_preview_error",
     "draw_indicator_box_preview",
     "draw_indicator_door_preview",
+    "draw_single_door_preview",
+    "draw_base_plate_preview",
 ]
