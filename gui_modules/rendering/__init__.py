@@ -61,6 +61,7 @@ __all__ = [
     "box_body_face_at_canvas_point",
     "select_box_body_face",
     "on_box_body_canvas_press",
+    "draw_box_body_piece_preview",
 ]
 
 from .interaction import (
@@ -72,4 +73,8 @@ from .interaction import (
     box_body_face_at_canvas_point,
     select_box_body_face,
     on_box_body_canvas_press,
+)
+
+from .box_body_view import (
+    draw_box_body_piece_preview,
 )
