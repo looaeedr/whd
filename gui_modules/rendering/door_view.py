@@ -317,3 +317,242 @@ def draw_base_plate_preview(
     annotation_drawer(canvas, render_data, transform, part_key="base_plate")
     host._draw_phase6_finished_dimension_summary(canvas, part_key="base_plate")
     hint_drawer(canvas, canvas_width, endcap=False)
+
+
+
+def draw_door_layout_error(host, canvas, error):
+    canvas.delete("all")
+    host.door_layout_cell_items = {}
+    host.door_layout_cell_bounds = {}
+    cw = canvas.winfo_width()
+    ch = canvas.winfo_height()
+    if cw <= 1 or ch <= 1:
+        return
+    host.draw_grid(canvas, cw, ch)
+    return canvas.create_text(
+        cw / 2,
+        ch / 2,
+        text=f"多門配置無效:\n{error}",
+        fill="#ff9f0a",
+        font=("Microsoft JhengHei", 11, "bold"),
+        width=max(240, cw - 80),
+    )
+
+
+def _door_layout_dimension_entry(host, canvas, column, column_index, x, y):
+    entry = tk.Entry(
+        canvas,
+        textvariable=column["width_var"],
+        width=9,
+        bg=host.COLOR_INPUT_BG,
+        fg="#30d158" if column.get("width_auto") else host.COLOR_TEXT,
+        insertbackground=host.COLOR_TEXT,
+        font=("Consolas", 13, "bold"),
+        justify=tk.CENTER,
+        bd=1,
+        relief=tk.SOLID,
+    )
+    entry.bind(
+        "<FocusOut>",
+        lambda e, c=column_index: host.commit_door_layout_width(c),
+    )
+    entry.bind(
+        "<Return>",
+        lambda e, c=column_index: host.commit_door_layout_width(c),
+    )
+    host._door_layout_entry_menu(entry, column_index=column_index)
+    win = canvas.create_window(
+        x,
+        y,
+        window=entry,
+        anchor=tk.CENTER,
+        tags=("door_layout_dimension", "door_layout_width_entry"),
+    )
+    host.door_layout_width_entries[column_index] = entry
+    host.door_layout_entry_windows.append(win)
+
+
+def _door_layout_height_entry(
+    host, canvas, column, column_index, row_index, x1, y1, y2,
+):
+    entry = tk.Entry(
+        canvas,
+        textvariable=column["height_vars"][row_index],
+        width=9,
+        bg=host.COLOR_INPUT_BG,
+        fg="#30d158" if column["height_auto"][row_index] else host.COLOR_TEXT,
+        insertbackground=host.COLOR_TEXT,
+        font=("Consolas", 13, "bold"),
+        justify=tk.CENTER,
+        bd=1,
+        relief=tk.SOLID,
+    )
+    entry.bind(
+        "<FocusOut>",
+        lambda e, c=column_index, r=row_index: host.commit_door_layout_height(c, r),
+    )
+    entry.bind(
+        "<Return>",
+        lambda e, c=column_index, r=row_index: host.commit_door_layout_height(c, r),
+    )
+    host._door_layout_entry_menu(
+        entry, column_index=column_index, row_index=row_index
+    )
+    win = canvas.create_window(
+        x1 + 4,
+        (y1 + y2) / 2.0,
+        window=entry,
+        anchor=tk.W,
+        tags=("door_layout_dimension", "door_layout_height_entry"),
+    )
+    host.door_layout_height_entries[(column_index, row_index)] = entry
+    host.door_layout_entry_windows.append(win)
+
+
+def _draw_door_layout_cell_payload(
+    host, canvas, payload, bounds, column_index, row_index,
+):
+    mode = payload.get("mode")
+    if mode == "local":
+        host._draw_layout_baseline_secondary(
+            canvas,
+            payload["scene"],
+            payload["width"],
+            payload["height"],
+            bounds,
+            f"door_layout_baseline_{column_index}_{row_index}",
+        )
+        host._draw_layout_resolved_features(
+            canvas,
+            payload["resolved"],
+            payload["width"],
+            payload["height"],
+            bounds,
+            f"door_layout_feature_{column_index}_{row_index}",
+        )
+    elif mode == "peer":
+        host._draw_layout_baseline_secondary(
+            canvas,
+            payload["scene"],
+            payload["width"],
+            payload["height"],
+            bounds,
+            f"corner_data_door_{column_index}_{row_index}",
+        )
+
+
+def draw_door_layout_overview_preview(host, snapshot, canvas):
+    canvas.delete("all")
+    host.door_layout_cell_items = {}
+    host.door_layout_cell_bounds = {}
+
+    cw = canvas.winfo_width()
+    ch = canvas.winfo_height()
+    if cw <= 1 or ch <= 1:
+        return
+    host.draw_grid(canvas, cw, ch)
+
+    total_w = snapshot["total_w"]
+    total_h = snapshot["total_h"]
+    columns = snapshot["columns"]
+    cells = snapshot["cells"]
+    val = snapshot["val"]
+    selected_key = snapshot["selected_key"]
+    cell_payloads = snapshot["cell_payloads"]
+
+    left_margin, right_margin = 58.0, 24.0
+    top_margin, bottom_margin = 48.0, 24.0
+    avail_w = max(1.0, cw - left_margin - right_margin)
+    avail_h = max(1.0, ch - top_margin - bottom_margin)
+    scale = min(avail_w / total_w, avail_h / total_h)
+    draw_w = total_w * scale
+    draw_h = total_h * scale
+    x0 = left_margin + (avail_w - draw_w) / 2.0
+    y0 = top_margin + (avail_h - draw_h) / 2.0
+
+    cell_map = {(cell.column_index, cell.row_index): cell for cell in cells}
+    x_cursor = x0
+    for column_index, (column_w, heights) in enumerate(columns):
+        col_px = column_w * scale
+        column = host.door_layout_columns[column_index]
+        _door_layout_dimension_entry(
+            host,
+            canvas,
+            column,
+            column_index,
+            x_cursor + col_px / 2.0,
+            y0 - 24,
+        )
+
+        y_cursor = y0
+        for row_index, segment_h in enumerate(heights):
+            row_px = segment_h * scale
+            x1, y1 = x_cursor, y_cursor
+            x2, y2 = x_cursor + col_px, y_cursor + row_px
+            key = f"{column_index}:{row_index}"
+            selected = key == selected_key
+            rect = canvas.create_rectangle(
+                x1,
+                y1,
+                x2,
+                y2,
+                outline=host.COLOR_ACCENT if selected else "#30d158",
+                width=3 if selected else 2,
+                tags=("door_layout_cell", f"door_layout_cell_{column_index}_{row_index}"),
+            )
+            host.door_layout_cell_items[key] = rect
+            bounds = (x1, y1, x2, y2)
+            host.door_layout_cell_bounds[key] = bounds
+
+            _door_layout_height_entry(
+                host,
+                canvas,
+                column,
+                column_index,
+                row_index,
+                x1,
+                y1,
+                y2,
+            )
+            _ = cell_map[(column_index, row_index)]
+            _draw_door_layout_cell_payload(
+                host,
+                canvas,
+                cell_payloads.get((column_index, row_index), {}),
+                bounds,
+                column_index,
+                row_index,
+            )
+            y_cursor = y2
+        x_cursor += col_px
+
+    baseline_status = snapshot["baseline_status"]
+    canvas.create_text(
+        10,
+        10,
+        anchor=tk.NW,
+        text=baseline_status,
+        fill="#64d2ff" if baseline_status.startswith("基準檔：") else "#ff9f0a",
+        font=("Microsoft JhengHei", 9, "bold"),
+        tags=("door_baseline_status",),
+    )
+    canvas.create_text(
+        10,
+        30,
+        anchor=tk.NW,
+        text="各欄獨立分層：修改該欄綠色『自動』高度即可新增下一層（例 2 / 3 / 2）",
+        fill=host.COLOR_TEXT_MUTED,
+        font=("Microsoft JhengHei", 9, "bold"),
+        tags=("door_layout_asymmetric_hint",),
+    )
+
+    host._draw_door_layout_dividers_and_frames(
+        canvas, scale, x0, y0, columns, cells, val
+    )
+    host.last_door_layout_overview = {
+        "columns": columns,
+        "cell_count": len(cells),
+        "selected": selected_key,
+        "scale": scale,
+        "origin": (x0, y0),
+    }
