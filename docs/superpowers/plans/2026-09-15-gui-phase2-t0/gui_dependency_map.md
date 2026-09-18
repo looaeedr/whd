@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: gui-phase2-t0-dependency-map
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #288 T0 — gui.py Dependency Map
 
 ## Evidence identity

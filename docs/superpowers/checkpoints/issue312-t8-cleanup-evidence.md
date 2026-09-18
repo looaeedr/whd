@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue312-t8-cleanup-evidence
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue 312 / T8 Cleanup Gate Evidence
 
 Date: 2026-09-17 (Asia/Taipei)
