@@ -284,12 +284,164 @@ def manufacturing_request_fingerprint(request: ManufacturingResolveRequest) -> s
     return manufacturing_fingerprint(request.semantic_payload())
 
 
+def thaw_manufacturing_value(value: Any) -> Any:
+    """Return a detached mutable JSON-like representation for legacy adapters."""
+    return _thaw_json_value(value)
+
+
+@dataclass(frozen=True)
+class FrozenObjectMapping(Mapping[str, Any]):
+    """Immutable mapping envelope for opaque existing domain objects.
+
+    Values are intentionally not serialized/frozen: existing geometry/solver
+    result objects may contain Shapely/render objects.  The mapping container is
+    immutable and copied at construction; ownership of the domain object itself
+    remains with the existing frozen/domain contract.
+    """
+
+    _items: tuple[tuple[str, Any], ...] = ()
+
+    def __post_init__(self) -> None:
+        normalized: list[tuple[str, Any]] = []
+        seen: set[str] = set()
+        for key, value in tuple(self._items):
+            skey = str(key)
+            if skey in seen:
+                raise ValueError(f"duplicate object-mapping key: {skey!r}")
+            seen.add(skey)
+            normalized.append((skey, value))
+        normalized.sort(key=lambda item: item[0])
+        object.__setattr__(self, "_items", tuple(normalized))
+
+    @classmethod
+    def from_mapping(cls, value: Any) -> "FrozenObjectMapping":
+        if isinstance(value, FrozenObjectMapping):
+            return value
+        if value is None:
+            return cls()
+        if not isinstance(value, Mapping):
+            raise TypeError("opaque result field must be mapping-like")
+        return cls(tuple((str(key), item) for key, item in value.items()))
+
+    def __getitem__(self, key: str) -> Any:
+        skey = str(key)
+        for item_key, value in self._items:
+            if item_key == skey:
+                return value
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return (key for key, _ in self._items)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def items(self):
+        return self._items
+
+
+@dataclass(frozen=True)
+class ManufacturingDiagnosticsResult:
+    relief_errors: Any = None
+    relief_solutions: Any = None
+    joint_diagnostics: Any = ()
+    rule_traces: Any = ()
+    interference_probe_parts: Any = ()
+    warnings: Any = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "relief_errors",
+            _as_frozen_mapping(self.relief_errors, field_name="relief_errors"),
+        )
+        object.__setattr__(
+            self,
+            "relief_solutions",
+            FrozenObjectMapping.from_mapping(self.relief_solutions),
+        )
+        object.__setattr__(self, "joint_diagnostics", tuple(self.joint_diagnostics or ()))
+        object.__setattr__(self, "rule_traces", tuple(self.rule_traces or ()))
+        object.__setattr__(
+            self,
+            "interference_probe_parts",
+            tuple(self.interference_probe_parts or ()),
+        )
+        object.__setattr__(
+            self,
+            "warnings",
+            tuple(str(item) for item in tuple(self.warnings or ())),
+        )
+
+
+@dataclass(frozen=True)
+class ManufacturingMutationResult:
+    snapshot_patch: Any = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "snapshot_patch",
+            _as_frozen_mapping(self.snapshot_patch, field_name="snapshot_patch"),
+        )
+
+
+@dataclass(frozen=True)
+class ManufacturingEffects:
+    publish_live_state: bool = False
+    force_live_publish: bool = False
+    reason: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "publish_live_state", bool(self.publish_live_state))
+        object.__setattr__(self, "force_live_publish", bool(self.force_live_publish))
+        object.__setattr__(self, "reason", str(self.reason or ""))
+
+
+@dataclass(frozen=True)
+class ManufacturingCacheReceipt:
+    signature: str = ""
+    hit: bool = False
+    stored: bool = False
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "signature", str(self.signature or ""))
+        object.__setattr__(self, "hit", bool(self.hit))
+        object.__setattr__(self, "stored", bool(self.stored))
+
+
+@dataclass(frozen=True)
+class ManufacturingResolveResult:
+    geometry: Any
+    diagnostics: ManufacturingDiagnosticsResult
+    mutations: ManufacturingMutationResult
+    effects: ManufacturingEffects
+    cache: ManufacturingCacheReceipt
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.diagnostics, ManufacturingDiagnosticsResult):
+            raise TypeError("diagnostics must be ManufacturingDiagnosticsResult")
+        if not isinstance(self.mutations, ManufacturingMutationResult):
+            raise TypeError("mutations must be ManufacturingMutationResult")
+        if not isinstance(self.effects, ManufacturingEffects):
+            raise TypeError("effects must be ManufacturingEffects")
+        if not isinstance(self.cache, ManufacturingCacheReceipt):
+            raise TypeError("cache must be ManufacturingCacheReceipt")
+
+
 __all__ = [
     "FrozenMapping",
+    "FrozenObjectMapping",
     "ManufacturingPartInput",
     "ManufacturingResolveRequest",
+    "ManufacturingDiagnosticsResult",
+    "ManufacturingMutationResult",
+    "ManufacturingEffects",
+    "ManufacturingCacheReceipt",
+    "ManufacturingResolveResult",
     "canonical_manufacturing_json",
     "freeze_manufacturing_value",
     "manufacturing_fingerprint",
     "manufacturing_request_fingerprint",
+    "thaw_manufacturing_value",
 ]
