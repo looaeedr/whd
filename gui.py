@@ -215,6 +215,7 @@ from gui_modules.rendering import (
     draw_base_plate_preview as _draw_base_plate_preview_impl,
     draw_door_layout_error as _draw_door_layout_error_impl,
     draw_door_layout_overview_preview as _draw_door_layout_overview_preview_impl,
+    draw_door_layout_dividers_and_frames_preview as _draw_door_layout_dividers_and_frames_preview_impl,
 )
 
 
@@ -3203,23 +3204,20 @@ class Phase6ApplicationHost:
         if snapshot.get("error") is not None: return _draw_door_layout_error_impl(self, canvas, snapshot["error"])
         return _draw_door_layout_overview_preview_impl(self, snapshot, canvas)
 
-    def _draw_door_layout_dividers_and_frames(self, canvas, scale, x0, y0, columns, cells, val):
-        """Render derived parts from the authoritative assembly placement owner."""
+    def _door_layout_divider_frame_snapshot(self, columns, val):
         t_val = float(val.get('t', 2.0))
-        snapshot = self._compose_phase6_project_snapshot_from_main_gui()
-        total_w = float(snapshot.get("w", val.get("w", 0.0)))
-        total_h = float(snapshot.get("h", val.get("h", 0.0)))
-
-        def world_to_canvas(world_x, world_y):
-            return (
-                x0 + (float(world_x) + total_w / 2.0) * scale,
-                y0 + (total_h / 2.0 - float(world_y)) * scale,
-            )
+        project_snapshot = self._compose_phase6_project_snapshot_from_main_gui()
+        total_w = float(project_snapshot.get("w", val.get("w", 0.0)))
+        total_h = float(project_snapshot.get("h", val.get("h", 0.0)))
+        divider_payloads = []
+        frame_payloads = []
 
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
             from ae_engine.door_dividers import derive_box_body_dividers
-            normalized = tuple((float(c[0]), tuple(float(h) for h in c[1])) for c in columns)
+            normalized = tuple(
+                (float(c[0]), tuple(float(h) for h in c[1])) for c in columns
+            )
             dividers = derive_box_body_dividers(
                 normalized,
                 depth=float(val.get('d', 350.0)),
@@ -3228,68 +3226,45 @@ class Phase6ApplicationHost:
                 handle_edges=getattr(self, "door_layout_handle_edges", {}),
             )
             for div in dividers:
-                placement = resolve_assembly_placement(snapshot, div.stable_id)
-                cx, cy, _cz = placement.world_offset
-                if div.axis == "HORIZONTAL":
-                    x1, y = world_to_canvas(cx - float(div.span) / 2.0, cy)
-                    x2, _ = world_to_canvas(cx + float(div.span) / 2.0, cy)
-                    canvas.create_rectangle(
-                        x1, y - 3, x2, y + 3,
-                        fill="#00d4d4", outline="#00a3a3", width=1,
-                        tags=("door_layout_divider",)
-                    )
-                    canvas.create_text(
-                        (x1 + x2) / 2.0, y + 14,
-                        text=f"中隔 W-2T={div.span:.1f} mm (成型深={div.formed_core_depth:.1f})",
-                        fill="#00d4d4", font=('Consolas', 9, 'bold'),
-                        tags=("door_layout_divider",)
-                    )
-                elif div.axis == "VERTICAL":
-                    x, y1 = world_to_canvas(cx, cy + float(div.span) / 2.0)
-                    _, y2 = world_to_canvas(cx, cy - float(div.span) / 2.0)
-                    canvas.create_rectangle(
-                        x - 3, y1, x + 3, y2,
-                        fill="#00d4d4", outline="#00a3a3", width=1,
-                        tags=("door_layout_divider",)
-                    )
+                placement = resolve_assembly_placement(project_snapshot, div.stable_id)
+                divider_payloads.append({
+                    "axis": str(div.axis),
+                    "span": float(div.span),
+                    "formed_core_depth": float(div.formed_core_depth),
+                    "world_offset": tuple(float(v) for v in placement.world_offset),
+                })
         except Exception:
             pass
 
         try:
             from ae_engine.assembly_placement import resolve_assembly_placement
             from ae_engine.inner_door_frames import inner_door_frame_stable_id
-            if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
-                frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+            if cabinet_family_policy.has_inner_door_frame_derivation(project_snapshot):
+                frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(project_snapshot)
                 for fset in frame_sets:
                     for side in tuple(fset.included_sides):
                         if side not in {"top", "left", "right"}:
                             continue
                         stable_id = inner_door_frame_stable_id(fset.inner_door_id, side)
-                        placement = resolve_assembly_placement(snapshot, stable_id)
-                        cx, cy, _cz = placement.world_offset
-                        span = float(fset.spans[side])
-                        if side == "top":
-                            x1, y = world_to_canvas(cx - span / 2.0, cy)
-                            x2, _ = world_to_canvas(cx + span / 2.0, cy)
-                            canvas.create_line(
-                                x1, y, x2, y, fill="#ff9f0a", width=2, dash=(6, 3),
-                                tags=("door_layout_frame",)
-                            )
-                            canvas.create_text(
-                                (x1 + x2) / 2.0, y + 14,
-                                text=f"內門框 (頂/左/右內縮50mm, 寬={span:.1f})",
-                                fill="#ff9f0a", font=('Microsoft JhengHei', 8, 'bold'),
-                                tags=("door_layout_frame",)
-                            )
-                        else:
-                            x, y1 = world_to_canvas(cx, cy + span / 2.0)
-                            _, y2 = world_to_canvas(cx, cy - span / 2.0)
-                            canvas.create_line(
-                                x, y1, x, y2, fill="#ff9f0a", width=2, dash=(6, 3),
-                                tags=("door_layout_frame",)
-                            )
+                        placement = resolve_assembly_placement(project_snapshot, stable_id)
+                        frame_payloads.append({
+                            "side": str(side),
+                            "span": float(fset.spans[side]),
+                            "world_offset": tuple(float(v) for v in placement.world_offset),
+                        })
         except Exception:
             pass
+
+        return {
+            "total_w": total_w,
+            "total_h": total_h,
+            "dividers": tuple(divider_payloads),
+            "frames": tuple(frame_payloads),
+        }
+
+    def _draw_door_layout_dividers_and_frames(self, canvas, scale, x0, y0, columns, cells, val):
+        snapshot = self._door_layout_divider_frame_snapshot(columns, val)
+        return _draw_door_layout_dividers_and_frames_preview_impl(canvas, snapshot, scale, x0, y0)
 
     def _single_door_render_snapshot(self):
         door_val = {
