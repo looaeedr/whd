@@ -225,6 +225,7 @@ from gui_modules.rendering import (
     select_box_body_face as _select_box_body_face_impl,
     on_box_body_canvas_press as _on_box_body_canvas_press_impl,
     draw_box_body_piece_preview as _draw_box_body_piece_preview_impl,
+    draw_box_body_aggregate_preview as _draw_box_body_aggregate_preview_impl,
 )
 
 
@@ -4225,20 +4226,7 @@ class Phase6ApplicationHost:
     def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
         return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection)
 
-    def draw_box_body(self, val):
-        """Render the authoritative unfolded Box Body; face editing is only an overlay/hit-zone."""
-        canvas = self.canvas_z
-        canvas.delete("all")
-        self.box_body_face_bounds = {}
-
-        cw = canvas.winfo_width()
-        ch = canvas.winfo_height()
-        if cw <= 1 or ch <= 1:
-            return
-        self.draw_grid(canvas, cw, ch)
-
-        # Main page consumes one Manufacturing-owned result.  It must not
-        # rebuild a parallel structural result just to recover face hit-zones.
+    def _box_body_render_snapshot(self, val):
         spec = self._box_body_part_spec(val)
         render_data = self._authoritative_render_data(
             spec, self._manufacturing_context(draw_stock=False)
@@ -4248,90 +4236,49 @@ class Phase6ApplicationHost:
             selected_role = selected_piece_key.split(":", 1)[1]
             selected_piece = next(
                 (
-                    piece for piece in tuple(getattr(render_data, "pieces", ()) or ())
+                    piece
+                    for piece in tuple(getattr(render_data, "pieces", ()) or ())
                     if str(getattr(piece, "role", "") or "") == selected_role
                 ),
                 None,
             )
             if selected_piece is not None:
-                self._draw_box_body_piece_preview(
-                    render_data, selected_piece, selected_piece_key
-                )
-                return
-        minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-        z_len = maxx - minx
-        z_height = maxy - miny
+                return {
+                    "mode": "piece",
+                    "render_data": render_data,
+                    "piece": selected_piece,
+                    "piece_key": selected_piece_key,
+                }
 
-        transform, offset_x, offset_y, scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), cw, ch
-        )
-
-        if self.draw_stock_var.get():
-            sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4))
-
-        # CUTTING/BEND/baseline fixed processing/user features all come from the
-        # same final DrawingScene that Phase6 3D consumes.
-        render_drawing_scene(
-            canvas, render_data.scene, transform, skip_layers=("CHECK", "STOCK")
-        )
-        warnings = tuple(getattr(render_data, "warnings", ()) or ())
-        warning_text = (
-            "\n⚠ " + "；".join(str(getattr(item, "message", item)) for item in warnings)
-            if warnings else ""
-        )
-
-        baseline = self._baseline_source_model()
-
-        # Face hit-zones are a projection of the exact topology that
-        # Manufacturing used for this render; GUI owns no Box Body topology.
+        bounds = tuple(float(v) for v in render_data.material.bounds)
         contexts = getattr(render_data, "box_body_face_contexts", None)
         if not contexts:
             raise ValueError("authoritative Box Body face contexts unavailable")
-        # Faces are only hit-zones projected onto the authoritative unfolded strip.
-        # They do not replace, resize, or remove any manufacturing geometry/BEND line.
-        selected = self.box_body_face_selected_var.get()
-        for face_key in ("left", "back", "right"):
-            ctx = contexts[face_key]
-            x1, y_bottom = transform.world_to_canvas(Vec2(ctx.unfolded_min_x, 0.0))
-            x2, y_top = transform.world_to_canvas(Vec2(ctx.unfolded_max_x, z_height))
-            bounds = (min(x1, x2), min(y_top, y_bottom), max(x1, x2), max(y_top, y_bottom))
-            self.box_body_face_bounds[face_key] = bounds
-            canvas.create_rectangle(
-                *bounds,
-                outline=(self.COLOR_ACCENT if face_key == selected else ""),
-                width=(2 if face_key == selected else 1),
-                dash=(4, 3),
-                tags=("box_body_face_hit_zone", f"box_body_face_{face_key}"),
-            )
-
-        baseline_status = ae.box_body_baseline_source_label(baseline)
-        hint_text = "箱身展開預覽 (Z-Body)"
-        stock_hint = "  STOCK 母材外框: 青色虛線" if self.draw_stock_var.get() else ""
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=f"{hint_text}\n{baseline_status}\n外輪廓 (CUTTING): 綠色實線  折彎線 (BEND): 藍色虛線{stock_hint}\n雙擊左側/背面/右側完成面進入箱體定位編輯{warning_text}",
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(cw * 0.48)), tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(canvas, render_data, transform, part_key="box_body")
-        self._draw_phase6_finished_dimension_summary(canvas, part_key="box_body")
-        draw_hole_editor_hint(canvas, cw, endcap=False)
-
-        physical_piece_keys = tuple(
-            f"box_body:{str(piece.role)}"
-            for piece in tuple(getattr(render_data, "pieces", ()) or ())
-        )
-        self.last_box_body_face_overview = {
-            "mode": "unfolded_with_face_hit_zones",
-            "dimensions": box_body_face_dimensions(w=val['w'], h=val['h'], d=val['d']),
-            "unfolded_size": (z_len, z_height),
-            "transform": transform,
+        baseline = self._baseline_source_model()
+        return {
+            "mode": "aggregate",
+            "render_data": render_data,
+            "bounds": bounds,
             "contexts": contexts,
-            "piece_keys": physical_piece_keys,
-            "baseline_status": baseline_status,
+            "selected_face": self.box_body_face_selected_var.get(),
+            "baseline_status": ae.box_body_baseline_source_label(baseline),
+            "dimensions": box_body_face_dimensions(
+                w=val['w'], h=val['h'], d=val['d']
+            ),
+            "piece_keys": tuple(
+                f"box_body:{str(piece.role)}"
+                for piece in tuple(getattr(render_data, "pieces", ()) or ())
+            ),
         }
+
+    def draw_box_body(self, val):
+        canvas = self.canvas_z; canvas.delete("all"); self.box_body_face_bounds = {}
+        cw = canvas.winfo_width(); ch = canvas.winfo_height()
+        if cw <= 1 or ch <= 1: return
+        self.draw_grid(canvas, cw, ch)
+        snapshot = self._box_body_render_snapshot(val)
+        if snapshot["mode"] == "piece": return self._draw_box_body_piece_preview(snapshot["render_data"], snapshot["piece"], snapshot["piece_key"])
+        return _draw_box_body_aggregate_preview_impl(self, snapshot, cw, ch, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection, hint_drawer=draw_hole_editor_hint)
 
     def draw_end_cap(self, val, canvas, part_label='封頭/尾', is_tail=False):
         """Render the exact normalized End Cap scene used by DXF output (WYSIWYG)."""
