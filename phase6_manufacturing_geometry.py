@@ -298,7 +298,7 @@ def _phase6_expand_box_body_fw_world_mid(piece, mapped, world_mid_piece, *, tole
     """Expand BoxBody FW physical face about its material segment center.
 
     Flat/material fold geometry and bend datums remain unchanged. A side-piece
-    FW segment may carry an authoritative \`formed_length\`; only its already
+    FW segment may carry an authoritative `formed_length`; only its already
     placed world mid-face triangles are expanded along cabinet W/X about the
     original segment center before sheet-thickness skins are built.
     """
