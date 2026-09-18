@@ -45,8 +45,13 @@ def _profile_inputs_for_part(app: Any, part_key: str) -> tuple[tuple, tuple]:
         vault = _mapping(getattr(state, "profiles_vault", {}) if state is not None else {})
         return tuple(vault.get("箱身", ()) or ()), ()
 
-    profiles_for = getattr(workspace, "profiles_for", None)
-    profiles = _mapping(profiles_for(key, {}) if callable(profiles_for) else {})
+    state = getattr(app, "state", None)
+    active = str(getattr(workspace, "active_part", "") or "")
+    if key == active and state is not None:
+        profiles = _mapping(getattr(state, "profiles", {}) or {})
+    else:
+        profiles_for = getattr(workspace, "profiles_for", None)
+        profiles = _mapping(profiles_for(key, {}) if callable(profiles_for) else {})
     return tuple(profiles.get("X", ()) or ()), tuple(profiles.get("Y", ()) or ())
 
 
@@ -70,8 +75,8 @@ def _box_body_structure(workspace: Any) -> Any:
         return {}
 
 
-def _scene_values_for_part(app: Any, part_key: str) -> Any:
-    builder = getattr(app, "_phase6_scene_query_payload_for_part", None)
+def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
+    builder = builder if callable(builder) else getattr(app, "_phase6_scene_query_payload_for_part", None)
     if not callable(builder):
         raise RuntimeError("manufacturing scene-input adapter is not connected")
     payload = builder(part_key)
@@ -80,12 +85,12 @@ def _scene_values_for_part(app: Any, part_key: str) -> Any:
     return payload
 
 
-def _finished_dimensions_for_part(app: Any, part_key: str) -> Any:
-    provider = getattr(app, "_phase6_operator_finished_dimensions", None)
+def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any:
+    provider = provider if callable(provider) else getattr(app, "_phase6_operator_finished_dimensions", None)
     if not callable(provider):
         return {}
     try:
-        return provider(part_key)
+        return provider(part_key) if str(part_key or "") else provider()
     except TypeError:
         # Preserve compatibility with older lightweight facade providers that
         # expose the no-argument form only.
@@ -130,7 +135,12 @@ def _cabinet_model(app: Any, snapshot: dict) -> str:
     return str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
 
 
-def build_manufacturing_request(app: Any) -> ManufacturingResolveRequest:
+def build_manufacturing_request(
+    app: Any,
+    *,
+    scene_payload_builder=None,
+    finished_dimensions_provider=None,
+) -> ManufacturingResolveRequest:
     """Build one immutable manufacturing request from current app/workspace state.
 
     This function is intentionally an adapter boundary: it may read app/workspace
@@ -151,10 +161,10 @@ def build_manufacturing_request(app: Any) -> ManufacturingResolveRequest:
         part_inputs.append(
             ManufacturingPartInput(
                 part_key=key,
-                scene_values=_scene_values_for_part(app, key),
+                scene_values=_scene_values_for_part(app, key, scene_payload_builder),
                 x_profile=x_profile,
                 y_profile=y_profile,
-                finished_dimensions=_finished_dimensions_for_part(app, key),
+                finished_dimensions=_finished_dimensions_for_part(app, key, finished_dimensions_provider),
                 features=_workspace_value(workspace, "features_for", key, ()),
                 face_features=_workspace_value(workspace, "face_features_for", key, {}),
                 box_body_structure=_box_body_structure(workspace),
@@ -173,6 +183,9 @@ def build_manufacturing_request(app: Any) -> ManufacturingResolveRequest:
         assembly_graph=_assembly_graph_inputs(snapshot),
         canonical_part_keys=_canonical_part_keys(app),
         parts=tuple(part_inputs),
+        operator_finished_dimensions=_finished_dimensions_for_part(
+            app, "", finished_dimensions_provider
+        ),
         assembly_intent=_assembly_intent(app),
         allow_3d_fallback=bool(
             _safe_var_get(getattr(app, "assembly_ignore_fixed_corner_var", None), False)
@@ -185,6 +198,44 @@ def build_manufacturing_request(app: Any) -> ManufacturingResolveRequest:
         request,
         source_fingerprint=manufacturing_request_fingerprint(request),
     )
+
+
+def _legacy_manufacturing_signature(app: Any) -> str:
+    """Phase 1 cheap cache signature retained until #359 extracts cache service."""
+    from phase6_manufacturing_geometry import _phase6_manufacturing_state_signature
+    return _phase6_manufacturing_state_signature(app)
+
+
+def resolve_manufacturing_for_app(
+    app: Any,
+    *,
+    scene_payload_builder=None,
+    finished_dimensions_provider=None,
+    publish_live_state=None,
+) -> Any:
+    """Compatibility entry preserving Phase 1 signature-first cache short-circuit."""
+    signature = _legacy_manufacturing_signature(app)
+    cached = getattr(app, "_phase6_last_resolved_manufacturing_geometry", None)
+    cached_signature = getattr(app, "_phase6_last_resolved_manufacturing_signature", None)
+    if cached is not None and signature == cached_signature:
+        return cached
+
+    request = build_manufacturing_request(
+        app,
+        scene_payload_builder=scene_payload_builder,
+        finished_dimensions_provider=finished_dimensions_provider,
+    )
+    from phase6_manufacturing_geometry import _phase6_resolve_manufacturing_result
+
+    result = _phase6_resolve_manufacturing_result(app, request, signature=signature)
+    geometry = apply_manufacturing_result(app, result)
+
+    if result.effects.publish_live_state and callable(publish_live_state):
+        publish_live_state(force=result.effects.force_live_publish)
+
+    # Phase 1 stores the post-publication/post-snapshot-mutation signature.
+    app._phase6_last_resolved_manufacturing_signature = _legacy_manufacturing_signature(app)
+    return geometry
 
 
 def apply_manufacturing_result(app: Any, result: ManufacturingResolveResult) -> Any:
@@ -214,4 +265,8 @@ def apply_manufacturing_result(app: Any, result: ManufacturingResolveResult) -> 
     return result.geometry
 
 
-__all__ = ["build_manufacturing_request", "apply_manufacturing_result"]
+__all__ = [
+    "build_manufacturing_request",
+    "apply_manufacturing_result",
+    "resolve_manufacturing_for_app",
+]
