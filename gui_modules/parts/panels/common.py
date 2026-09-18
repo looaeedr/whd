@@ -1,5 +1,8 @@
 """Truly shared, stateless physical-part panel presentation helpers."""
 
+import tkinter as tk
+from tkinter import ttk
+
 
 def logical_part_present(existing_parts, logical_key):
     """Project authoritative physical stable IDs into logical panel groups."""
@@ -41,6 +44,19 @@ def create_result_row(host, parent, label_text, var):
 def create_separator(host, parent):
         sep = tk.Frame(parent, height=1, bg="#2a2a30")
         sep.pack(fill=tk.X, pady=15)
+
+def _make_grid_input(host, parent, row, col, label_text, var):
+        f = tk.Frame(parent, bg=host.COLOR_PANEL)
+        f.grid(row=row, column=col, padx=4, pady=2)
+        lbl = tk.Label(f, text=label_text, bg=host.COLOR_PANEL, fg=host.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 8))
+        lbl.pack(side=tk.TOP)
+        entry = tk.Entry(
+            f, textvariable=var, width=5,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT, insertbackground=host.COLOR_TEXT,
+            bd=1, relief=tk.SOLID, font=('Microsoft JhengHei', 9), justify=tk.CENTER
+        )
+        entry.pack(side=tk.TOP)
+        return entry
 
 def create_advanced_inputs(host, parent):
         # 箱身參數
@@ -144,30 +160,17 @@ def create_advanced_inputs(host, parent):
         grid_frame = tk.Frame(parent, bg=host.COLOR_PANEL)
         grid_frame.pack(pady=4)
 
-        def make_grid_input(parent, row, col, label_text, var):
-            f = tk.Frame(parent, bg=host.COLOR_PANEL)
-            f.grid(row=row, column=col, padx=4, pady=2)
-            lbl = tk.Label(f, text=label_text, bg=host.COLOR_PANEL, fg=host.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 8))
-            lbl.pack(side=tk.TOP)
-            entry = tk.Entry(
-                f, textvariable=var, width=5,
-                bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT, insertbackground=host.COLOR_TEXT,
-                bd=1, relief=tk.SOLID, font=('Microsoft JhengHei', 9), justify=tk.CENTER
-            )
-            entry.pack(side=tk.TOP)
-            return entry
-
         # Row 0: 上
-        e_top = make_grid_input(grid_frame, 0, 1, "上縮", host.base_plate_shrink_top_var)
+        e_top = _make_grid_input(host, grid_frame, 0, 1, "上縮", host.base_plate_shrink_top_var)
         # Row 1: 左, 右
-        e_left = make_grid_input(grid_frame, 1, 0, "左縮", host.base_plate_shrink_left_var)
+        e_left = _make_grid_input(host, grid_frame, 1, 0, "左縮", host.base_plate_shrink_left_var)
 
         lbl_center = tk.Label(grid_frame, text="底板", bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, font=('Microsoft JhengHei', 9, 'bold'))
         lbl_center.grid(row=1, column=1, padx=6)
 
-        e_right = make_grid_input(grid_frame, 1, 2, "右縮", host.base_plate_shrink_right_var)
+        e_right = _make_grid_input(host, grid_frame, 1, 2, "右縮", host.base_plate_shrink_right_var)
         # Row 2: 下
-        e_bottom = make_grid_input(grid_frame, 2, 1, "下縮", host.base_plate_shrink_bottom_var)
+        e_bottom = _make_grid_input(host, grid_frame, 2, 1, "下縮", host.base_plate_shrink_bottom_var)
 
         host.base_plate_entries.extend([e_top, e_bottom, e_left, e_right])
 
