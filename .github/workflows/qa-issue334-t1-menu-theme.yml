@@ -1,0 +1,60 @@
+name: "QA #334 T1 Menu Theme"
+
+on:
+  push:
+    branches:
+      - ui/issue334-menu-theme-20260918
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-contract:
+    if: ${{ !contains(github.event.head_commit.message, 'green(#334)') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --disable-pip-version-check pytest
+      - name: Require exact shared-menu RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue334_shared_menu_theme.py::test_all_visible_menu_constructors_route_through_shared_adapter > red.log 2>&1
+          rc=$?
+          set -e
+          cat red.log
+          test "$rc" -ne 0
+          grep -F "#334 EXPECTED RED" red.log
+          grep -E "1 failed" red.log
+
+  green-focused:
+    if: ${{ contains(github.event.head_commit.message, 'green(#334)') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --disable-pip-version-check pytest
+      - name: Source focused GREEN
+        run: python -m pytest -q tests/test_issue334_shared_menu_theme.py -k "not real_tk and not postable"
+
+  green-xvfb:
+    if: ${{ contains(github.event.head_commit.message, 'green(#334)') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install runtime deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb
+          python -m pip install --disable-pip-version-check -r requirements.txt pytest
+      - name: Real Tk / Xvfb menu acceptance
+        run: xvfb-run -a python -m pytest -q tests/test_issue334_shared_menu_theme.py
