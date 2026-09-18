@@ -66,7 +66,7 @@ def test_corner_selection_serialization_contract_is_preserved():
     raw = CornerTypeSelection(
         CornerTypeId.CROSS,
         0,
-        cross_mode=CrossCornerMode.DUAL_RIGHT_ANGLE,
+        cross_mode=CrossCornerMode.RETAIN,
         direction=CornerDirection.WIDTH,
         amount_t=1.25,
         secondary_retain_t=0.5,
