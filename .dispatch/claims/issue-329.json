@@ -6,16 +6,17 @@
   "claimed_at": "2026-09-18T00:56:30Z",
   "base_sha": "7de32d6c53864ae48b276d4817f4a00e3baaa846",
   "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "state": "RUNNING",
-  "last_update": "2026-09-18T01:23:00Z",
+  "last_update": "2026-09-18T01:26:00Z",
   "remote_qa": {
     "run_id": 35293958723,
     "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
-    "status": "in_progress",
-    "purpose": "PR #330 Knowledge Governance Bootstrap"
+    "status": "completed",
+    "conclusion": "failure",
+    "result": "Knowledge Governance Bootstrap rejected new verification doc: missing WHD_DOC_META_V1 YAML frontmatter"
   },
-  "next_action": "poll PR #330 run 35293958723 at head d97ec091... to terminal; if success re-read mergeability then non-force merge",
+  "next_action": "add the established verification-provenance WHD_DOC_META_V1 frontmatter to the evidence doc only, then monitor fresh PR check",
   "blocker": null,
   "checkpoint": "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md"
 }
