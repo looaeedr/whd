@@ -5313,7 +5313,9 @@ def _phase6_hide_original_visual_controls(root_widget):
 
 
 def _phase6_build_visual_controls(self, parent):
-    self.visual_controls = original.ttk.LabelFrame(parent, text="3D 顯示", padding=5)
+    # T2 presentation only: keep the existing display controls/variables, but
+    # remove the decorative section title so the renderer gets the vertical space.
+    self.visual_controls = original.ttk.Frame(parent, padding=(4, 2))
     self.visual_controls.pack(side=original.tk.LEFT, fill=original.tk.X, padx=(0, 8))
 
     original.ttk.Label(self.visual_controls, text="文字大小").grid(row=0, column=0, sticky="w")
@@ -5488,13 +5490,11 @@ def _phase6_export_selected_dxf_from_3d(self):
     return callback()
 
 
-def _phase6_build_output_controls(self):
-    """Formal 3D Output surface; presentation only, with existing state owners."""
-    host = self.right_controls_host
-    self.output_controls_frame = original.ttk.LabelFrame(
-        host, text="輸出", padding=(8, 6)
-    )
-    self.output_controls_frame.pack(fill=original.tk.X, pady=(5, 0))
+def _phase6_build_output_controls(self, parent=None):
+    """Compact top-row Output projection using the existing state/callback owners."""
+    host = parent or self.top_command_row
+    self.output_controls_frame = original.ttk.Frame(host, padding=(4, 0))
+    self.output_controls_frame.pack(side=original.tk.RIGHT, fill=original.tk.X)
 
     draw_stock_var = getattr(self, "_phase6_external_draw_stock_var", None)
     if draw_stock_var is None:
@@ -5509,10 +5509,10 @@ def _phase6_build_output_controls(self):
         variable=self.output_draw_stock_var,
         command=lambda: _phase6_commit_output_draw_stock(self),
     )
-    self.output_draw_stock_check.pack(anchor=original.tk.W, pady=(0, 4))
+    self.output_draw_stock_check.pack(side=original.tk.LEFT, padx=(0, 6))
 
     parts_host = original.ttk.Frame(self.output_controls_frame)
-    parts_host.pack(fill=original.tk.X)
+    parts_host.pack(side=original.tk.LEFT)
     external_vars = dict(getattr(self, "_phase6_external_export_vars", {}) or {})
     labels = (
         ("box_body", "箱身"),
@@ -5538,10 +5538,7 @@ def _phase6_build_output_controls(self):
             )
         self.output_export_vars[key] = var
         check = original.ttk.Checkbutton(parts_host, text=label, variable=var)
-        check.grid(
-            row=index // 3, column=index % 3, sticky=original.tk.W,
-            padx=(0, 12), pady=1,
-        )
+        check.grid(row=0, column=index, sticky=original.tk.W, padx=(0, 6))
         self.output_export_checks[key] = check
 
     self.output_export_button = original.ttk.Button(
@@ -5549,7 +5546,7 @@ def _phase6_build_output_controls(self):
         text="輸出選取的 DXF 檔案",
         command=lambda: _phase6_export_selected_dxf_from_3d(self),
     )
-    self.output_export_button.pack(anchor=original.tk.W, pady=(5, 0))
+    self.output_export_button.pack(side=original.tk.LEFT, padx=(4, 0))
 
 
 def _phase6_build_persistent_top_area(self):
@@ -5585,11 +5582,12 @@ def _phase6_build_persistent_top_area(self):
     self.top_command_row = original.ttk.Frame(self.top_persistent_bar)
     self.top_command_row.pack(fill=original.tk.X)
     _phase6_build_project_toolbar(self, self.top_command_row)
+    _phase6_build_output_controls(self, self.top_command_row)
 
-    # All former top settings/actions live with the drawing workspace on the right.
-    self.right_controls_host = original.ttk.Frame(self.right, padding=(8, 6, 8, 4))
+    # Right-side controls are ordered for vertical economy: display/actions first,
+    # global settings immediately below, then the existing renderer viewport.
+    self.right_controls_host = original.ttk.Frame(self.right, padding=(8, 4, 8, 2))
     self.right_global_host = original.ttk.Frame(self.right_controls_host)
-    self.right_global_host.pack(fill=original.tk.X)
     panel = _phase6_ensure_settings_panel(self)
     panel.build_left_global_controls(
         self.right_global_host,
@@ -5612,7 +5610,7 @@ def _phase6_build_persistent_top_area(self):
         command=lambda: _phase6_toggle_fullscreen(self),
     )
     self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
-    _phase6_build_output_controls(self)
+    self.right_global_host.pack(fill=original.tk.X, pady=(4, 0))
     _phase6_pack_right_panel_above_canvas(self, self.right_controls_host)
 
     # The complete existing left workspace is one scroll owner. It keeps the same

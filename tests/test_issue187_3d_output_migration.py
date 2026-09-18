@@ -51,7 +51,7 @@ def _descendant_texts(widget):
     return rows
 
 
-def test_issue187_red_3d_has_formal_output_surface_in_right_workspace():
+def test_issue187_output_surface_remains_formal_after_top_toolbar_migration():
     root, _app, designer = _open_designer()
     try:
         assert hasattr(designer, "output_controls_frame"), (
@@ -60,8 +60,8 @@ def test_issue187_red_3d_has_formal_output_surface_in_right_workspace():
         frame = designer.output_controls_frame
         _pump(root)
         assert frame.winfo_ismapped(), "3D Output surface must be mapped"
-        assert frame.master is designer.right_controls_host, (
-            "Output belongs to the right formal control region, not the top command row"
+        assert frame.master is designer.top_command_row, (
+            "T2 moves Output into the one-row top command surface without changing its owners"
         )
         assert hasattr(designer, "output_draw_stock_check")
         assert hasattr(designer, "output_export_checks")
@@ -69,8 +69,8 @@ def test_issue187_red_3d_has_formal_output_surface_in_right_workspace():
         assert str(designer.output_export_button.cget("text")) == "輸出選取的 DXF 檔案"
 
         top_text = "\n".join(_descendant_texts(designer.top_command_row))
-        assert "輸出 STOCK" not in top_text
-        assert "輸出選取的 DXF 檔案" not in top_text
+        assert "輸出 STOCK" in top_text
+        assert "輸出選取的 DXF 檔案" in top_text
     finally:
         _close(root)
 
@@ -186,7 +186,7 @@ def test_issue187_output_surface_stays_mapped_and_reachable_at_all_text_scales(u
         assert button.winfo_ismapped(), f"DXF export action hidden at {ui_text_size}"
         assert frame.winfo_width() > 1 and frame.winfo_height() > 1
         assert button.winfo_width() > 1 and button.winfo_height() > 1
-        assert frame.winfo_rootx() >= designer.right_controls_host.winfo_rootx()
-        assert frame.winfo_rooty() >= designer.right_controls_host.winfo_rooty()
+        assert frame.winfo_rootx() >= designer.top_command_row.winfo_rootx()
+        assert frame.winfo_rooty() >= designer.top_command_row.winfo_rooty()
     finally:
         _close(root)
