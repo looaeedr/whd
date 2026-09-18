@@ -73,11 +73,18 @@ def test_shared_theme_owns_secondary_warning_and_hidden_text_colors():
 
 
 def test_future_token_changes_are_not_duplicated_in_t5_contract():
-    source = Path(__file__).read_text(encoding="utf-8")
-    # The contract may name the white foreground used on selected/primary action,
-    # but production palette truth must come from WHD_THEME/WHD_SEMANTIC_COLORS.
-    for forbidden in ("#8e8e93", "#1e1e24", "#151518", "#0067c5", "#0070d9", "#005bbf"):
-        assert forbidden not in source
+    source = Path(__file__).read_text(encoding="utf-8").lower()
+    # Resolve current palette values dynamically: the test must reference
+    # production token names, not carry a second copy of their literal hex truth.
+    for token in (
+        WHD_THEME["muted_text"],
+        WHD_THEME["panel"],
+        WHD_THEME["input"],
+        WHD_THEME["action"],
+        WHD_THEME["action_hover"],
+        WHD_THEME["action_pressed"],
+    ):
+        assert str(token).lower() not in source
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
