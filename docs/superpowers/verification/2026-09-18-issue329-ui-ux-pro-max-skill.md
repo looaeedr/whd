@@ -52,5 +52,7 @@ Do not create a competing `ui-ux-pro-max` CURRENT skill. Integrate it as capabil
   - required References: global pitfall ledger, AI08, release manifest, long-log pitfall, continuity-controller pitfall all ✓
 - exact-head identity step: SUCCESS
 - one-shot workflow cleanup: performed in the same closing commit that updates this evidence
-- tested-head → closing-head drift audit: pending until the closing commit SHA is known; acceptance requires only this evidence file update + one-shot workflow deletion outside the tested tree.
+- cleanup commit: `b0713c3a33485292980217d90f0885f89a6a4936`
+- tested-head → cleanup-head drift audit: **PASS** — only `.github/workflows/qa-issue329-uiux-skill.yml` removal + this verification evidence changed; canonical Skill / Registry / contract test / AI08 are byte-identical to tested HEAD.
+- base → cleanup-head diff: exactly five durable files remain; the one-shot workflow is absent.
 
