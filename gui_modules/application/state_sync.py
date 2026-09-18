@@ -137,7 +137,7 @@ def _init_primary_and_door_state(self, settings):
     # Indicator-Box assembly holes belong to the Door cell that owns the box.
     self.door_layout_indicator_box_features = {}
     self.door_layout_indicator_door_features = {}
-    self._derived_cache_owner = getattr(self, "_derived_cache_owner", None) or _Phase6DerivedCacheOwner()
+    self._derived_cache_owner = getattr(self, "_derived_cache_owner", None) or Phase6DerivedCacheOwner()
     self._door_layout_baseline_cache = self._derived_cache_owner.cache("door_layout")
     self.door_layout_width_entries = {}
     self.door_layout_height_entries = {}
