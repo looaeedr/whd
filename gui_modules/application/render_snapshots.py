@@ -7,11 +7,11 @@ consumed by gui_modules.rendering.
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.assembly_placement import resolve_assembly_placement
+import ae_engine.assembly_placement as assembly_placement
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.corner_type_ui import is_unknown_model
-from ae_engine.door_dividers import derive_box_body_dividers
-from ae_engine.inner_door_frames import inner_door_frame_stable_id
+import ae_engine.door_dividers as door_dividers
+import ae_engine.inner_door_frames as inner_door_frames
 from ae_engine.sheetmetal_features import (
     DoorIndicatorContext,
     box_body_face_dimensions,
@@ -127,7 +127,7 @@ def door_layout_divider_frame_snapshot(host, columns, val):
         normalized = tuple(
             (float(c[0]), tuple(float(h) for h in c[1])) for c in columns
         )
-        dividers = derive_box_body_dividers(
+        dividers = door_dividers.derive_box_body_dividers(
             normalized,
             depth=float(val.get("d", 350.0)),
             thickness=t_val,
@@ -135,7 +135,7 @@ def door_layout_divider_frame_snapshot(host, columns, val):
             handle_edges=getattr(host, "door_layout_handle_edges", {}),
         )
         for div in dividers:
-            placement = resolve_assembly_placement(project_snapshot, div.stable_id)
+            placement = assembly_placement.resolve_assembly_placement(project_snapshot, div.stable_id)
             divider_payloads.append({
                 "axis": str(div.axis),
                 "span": float(div.span),
@@ -152,8 +152,8 @@ def door_layout_divider_frame_snapshot(host, columns, val):
                 for side in tuple(fset.included_sides):
                     if side not in {"top", "left", "right"}:
                         continue
-                    stable_id = inner_door_frame_stable_id(fset.inner_door_id, side)
-                    placement = resolve_assembly_placement(project_snapshot, stable_id)
+                    stable_id = inner_door_frames.inner_door_frame_stable_id(fset.inner_door_id, side)
+                    placement = assembly_placement.resolve_assembly_placement(project_snapshot, stable_id)
                     frame_payloads.append({
                         "side": str(side),
                         "span": float(fset.spans[side]),
@@ -307,7 +307,7 @@ def base_plate_render_snapshot(host, val):
     }
 
 
-def box_body_render_snapshot(host, val):
+def box_body_render_snapshot(host, val, *, face_dimensions_fn=box_body_face_dimensions):
     spec = host._box_body_part_spec(val)
     render_data = host._authoritative_render_data(
         spec, host._manufacturing_context(draw_stock=False)
@@ -343,7 +343,7 @@ def box_body_render_snapshot(host, val):
         "contexts": contexts,
         "selected_face": host.box_body_face_selected_var.get(),
         "baseline_status": ae.box_body_baseline_source_label(baseline),
-        "dimensions": box_body_face_dimensions(
+        "dimensions": face_dimensions_fn(
             w=val["w"], h=val["h"], d=val["d"]
         ),
         "piece_keys": tuple(
