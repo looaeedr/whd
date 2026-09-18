@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "#329",
+  "branch": "skill/issue329-ui-ux-pro-max-20260918",
+  "head_sha": "9bb235918801a5917959d7e4237076573bac3f8f",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "evidence": [
+    "Focused QA run 35293770834 SUCCESS: 45 passed / 0 failed",
+    "Phase6 Knowledge Preflight GREEN on run 35293770834",
+    "PR governance run 35294033817 SUCCESS",
+    "PR #330 merged",
+    "production cleanup/2d-3d-sync@84fee5f25b55c4bdd648aa3947a68357124ed685",
+    "temporary issue329 QA workflow absent from production",
+    "production readback confirms five durable UI UX Pro Max integration files"
+  ]
+}
