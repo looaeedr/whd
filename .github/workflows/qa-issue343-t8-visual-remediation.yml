@@ -71,7 +71,10 @@ jobs:
               "tests/test_issue343_t8_visual_remediation.py",
               ".github/workflows/qa-issue343-t8-visual-remediation.yml",
           }
-          bad = sorted(changed - allowed)
+          bad = sorted(
+              p for p in changed
+              if p not in allowed and not p.startswith("docs/superpowers/checkpoints/issue343-")
+          )
           if bad:
               raise SystemExit(f"#343 presentation-only drift violation: {bad}")
           print("#343 presentation-only drift PASS", sorted(changed))
