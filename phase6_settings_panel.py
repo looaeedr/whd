@@ -233,7 +233,7 @@ class Phase6SettingsPanel:
         self.save_global_settings_button = None
 
     def build_left_global_controls(self, parent, *, baseline_models=(), initial_model=""):
-        self.left_global_controls = ttk.LabelFrame(parent, text="全域設定", padding=5)
+        self.left_global_controls = ttk.Frame(parent, padding=5)
         self.left_global_controls.pack(fill=tk.X, pady=(0, 6))
 
         ttk.Label(self.left_global_controls, text="基準型號：").grid(row=0, column=0, sticky="w", padx=2, pady=2)

@@ -69,11 +69,11 @@ def test_selecting_real_sheet_part_switches_to_single_part_editor(monkeypatch):
 def test_latest_top_and_global_layout_contract(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        # #163 is the current layout authority: top is intentionally tiny and
-        # contains only project File + Corner Data. Non-file controls live with
-        # the drawing workspace on the right; this test must not resurrect the
-        # superseded pre-#163 top-row ownership contract.
+        # #335 / UI v3 supersedes the old #163 top-only-file placement:
+        # File and Output share one top command row; display/global controls stay
+        # compact on the right without changing their state/callback owners.
         assert app.project_toolbar.master is app.top_command_row
+        assert app.output_controls_frame.master is app.top_command_row
         for name in (
             "visual_controls",
             "fullscreen_button",
