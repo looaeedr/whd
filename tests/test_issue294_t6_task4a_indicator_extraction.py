@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
+APP = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 DOOR_VIEW = ROOT / "gui_modules" / "rendering" / "door_view.py"
 
 
@@ -46,17 +47,16 @@ def test_task4a_indicator_entrypoints_are_thin_delegates():
     )
 
 
-def test_task4a_root_keeps_authority_snapshot_builders():
-    source, methods = _host_methods()
-    required = {
-        "_indicator_box_render_snapshot",
-        "_indicator_door_render_snapshot",
+def test_task4a_application_snapshot_helpers_call_host_authority():
+    source = APP.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-    missing = sorted(required - set(methods))
-    assert not missing, f"T6 TASK4A RED: authority snapshot builders missing: {missing}"
-
-    box_src = ast.get_source_segment(source, methods["_indicator_box_render_snapshot"]) or ""
-    door_src = ast.get_source_segment(source, methods["_indicator_door_render_snapshot"]) or ""
+    box_src = ast.get_source_segment(source, functions["indicator_box_render_snapshot"]) or ""
+    door_src = ast.get_source_segment(source, functions["indicator_door_render_snapshot"]) or ""
 
     assert "_indicator_box_part_spec" in box_src
     assert "_authoritative_render_data" in box_src
@@ -65,8 +65,6 @@ def test_task4a_root_keeps_authority_snapshot_builders():
     assert "_indicator_door_part_spec_from_values" in door_src
     assert "_authoritative_render_data" in door_src
     assert "door_finished_face_size" in door_src
-
-
 def test_task4a_renderer_is_presentation_only():
     if not DOOR_VIEW.is_file():
         return
