@@ -47,7 +47,7 @@ def test_behavior_draw_grid_preserves_current_canvas_contract():
 
 
 def test_behavior_resolved_feature_projection_preserves_current_primitives():
-    import gui
+    from gui_modules import render_2d
 
     circle = ResolvedCircle(
         center=Vec2(10.0, 5.0), radius=2.0, layer="CUTTING", add_centerline=True,
@@ -62,7 +62,7 @@ def test_behavior_resolved_feature_projection_preserves_current_primitives():
     )
     canvas = RecordingCanvas()
 
-    gui.Phase6ApplicationHost._draw_layout_resolved_features(
+    render_2d._draw_layout_resolved_features(
         canvas, (circle, rect, profile), 20.0, 10.0, (0.0, 0.0, 200.0, 100.0), "cell",
     )
 
@@ -76,7 +76,7 @@ def test_behavior_resolved_feature_projection_preserves_current_primitives():
 
 
 def test_behavior_baseline_secondary_skips_primary_outline_and_bend_layers():
-    import gui
+    from gui_modules import render_2d
 
     outline = _instance(
         PolylinePrimitive,
@@ -98,7 +98,7 @@ def test_behavior_baseline_secondary_skips_primary_outline_and_bend_layers():
     scene = SimpleNamespace(primitives=(outline, marking, bend, hole))
     canvas = RecordingCanvas()
 
-    gui.Phase6ApplicationHost._draw_layout_baseline_secondary(
+    render_2d._draw_layout_baseline_secondary(
         canvas, scene, 20.0, 10.0, (0.0, 0.0, 200.0, 100.0), "baseline",
     )
 
