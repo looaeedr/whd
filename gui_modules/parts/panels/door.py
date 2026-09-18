@@ -6,6 +6,7 @@ host/controller seam during T4.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from whd_theme import configure_tk_menu
 
 def collect_door_input(payload):
     """Copy door presentation/input values without deriving topology or geometry."""
@@ -340,7 +341,7 @@ def destroy_door_layout_entry_widgets(host):
 
 
 def door_layout_entry_menu(host, entry, *, column_index, row_index=None):
-    menu = tk.Menu(entry, tearoff=False)
+    menu = configure_tk_menu(tk.Menu(entry, tearoff=False))
     if row_index is None:
         column = host.door_layout_columns[column_index]
         if not column.get("width_auto", False):

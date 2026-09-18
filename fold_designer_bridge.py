@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 from typing import Mapping, MutableMapping, Sequence
-from whd_theme import WHD_THEME, apply_ttk_dark_theme
+from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
@@ -4625,7 +4625,7 @@ def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
 def _phase6_form_choice(parent, variable, choices, *, width=18):
     display_var = original.tk.StringVar(master=parent, value=_phase6_operator_label(variable.get()))
     button = original.ttk.Menubutton(parent, textvariable=display_var, width=width)
-    menu = original.tk.Menu(button, tearoff=False)
+    menu = configure_tk_menu(original.tk.Menu(button, tearoff=False))
 
     def choose(raw):
         variable.set(str(raw))
@@ -5270,7 +5270,7 @@ def _phase6_build_project_toolbar(self, parent=None):
     self.project_toolbar = original.ttk.Frame(parent)
     self.project_toolbar.pack(side=original.tk.LEFT, padx=(0, 8))
     self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼")
-    self.project_file_menu = original.tk.Menu(self.project_file_button, tearoff=False)
+    self.project_file_menu = configure_tk_menu(original.tk.Menu(self.project_file_button, tearoff=False))
     self.project_file_menu.add_command(label="開啟", command=self.load_project_file)
     self.project_file_menu.add_command(label="儲存", command=self.save_project_file)
     self.project_file_menu.add_command(label="另存新檔", command=self.save_project_file_as)
@@ -8682,7 +8682,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # projections of the same authoritative part_var / workspace callbacks.
     # Keep the existing menu visible; do not create a second state owner.
     self.part_choice_button = original.ttk.Menubutton(self.part_selector, textvariable=self.part_var)
-    self.part_choice_menu = original.tk.Menu(self.part_choice_button, tearoff=False)
+    self.part_choice_menu = configure_tk_menu(original.tk.Menu(self.part_choice_button, tearoff=False))
     self.part_choice_button.configure(menu=self.part_choice_menu)
     self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
 
@@ -8736,7 +8736,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     )
 
     self.add_part_button = original.ttk.Menubutton(self.part_selector, text="新增 ▼")
-    self.add_part_menu = original.tk.Menu(self.add_part_button, tearoff=False)
+    self.add_part_menu = configure_tk_menu(original.tk.Menu(self.add_part_button, tearoff=False))
     self.add_part_button.configure(menu=self.add_part_menu)
     self.add_part_button.pack(side=original.tk.LEFT, padx=4)
     self.remove_part_button = original.ttk.Button(

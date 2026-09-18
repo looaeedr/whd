@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from whd_theme import configure_tk_menu
+
 
 class HoleEditorCompositionDependencies:
     """Explicit adapter for authorities currently imported by the GUI host module."""
@@ -521,7 +523,7 @@ def _build_reference_selection_actions(s):
             "height": s.live_context.height,
         },
         select_feature=s.select_feature,
-        menu_factory=lambda: d.tk.Menu(s.editor, tearoff=0),
+        menu_factory=lambda: configure_tk_menu(d.tk.Menu(s.editor, tearoff=0)),
         reference_anchor_labels=d.REFERENCE_ANCHOR_LABELS,
         feature_reference_anchor=d.feature_reference_anchor,
         set_reference_anchor=s.set_reference_anchor,
