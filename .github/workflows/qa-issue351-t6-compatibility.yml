@@ -38,3 +38,5 @@ jobs:
       - name: Run runtime compatibility tests
         run: |
           python -m pytest -q             tests/test_issue351_t6_compatibility_gate.py             tests/test_issue350_manufacturing_orchestration_extraction.py             tests/test_issue347_manufacturing_helper_extraction.py
+
+# explicit #351 trigger
