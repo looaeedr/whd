@@ -75,10 +75,14 @@ def test_t4_active_box_body_consumers_have_no_legacy_scalar_fallback():
     assert "calculate_z_length(" not in update_src
 
     draw_src = _class_method_source(gui_path, "Phase6ApplicationHost", "draw_box_body")
-    assert "build_box_body_result(" not in draw_src
-    assert "build_box_body_result_from_fold_profile(" not in draw_src
-    assert "_authoritative_render_data(" in draw_src
-    assert "box_body_face_contexts" in draw_src
+    snapshot_src = _class_method_source(
+        gui_path, "Phase6ApplicationHost", "_box_body_render_snapshot"
+    )
+    assert "build_box_body_result(" not in draw_src + snapshot_src
+    assert "build_box_body_result_from_fold_profile(" not in draw_src + snapshot_src
+    assert "_box_body_render_snapshot(" in draw_src
+    assert "_authoritative_render_data(" in snapshot_src
+    assert "box_body_face_contexts" in snapshot_src
 
     editor_path = ROOT / "gui_modules" / "editors" / "hole_editor.py"
     hole_src = _function_source(editor_path, "open_part_hole_editor")
