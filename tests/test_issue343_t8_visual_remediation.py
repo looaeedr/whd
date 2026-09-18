@@ -17,9 +17,26 @@ def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+TARGET_LEFT_WIDTHS = {"small": 338, "medium": 430, "large": 480}
+
+
 def expected_left_width(scale: str) -> int:
-    factor = ui_text_size_factor(scale)
-    return int(round(338 + max(0.0, factor - 1.0) * 230.0))
+    return TARGET_LEFT_WIDTHS[str(scale)]
+
+
+def test_v2_width_floor_after_manual_screenshot_review():
+    import fold_designer_bridge as bridge
+
+    actual = {scale: bridge._phase6_left_workspace_width(scale) for scale in TARGET_LEFT_WIDTHS}
+    failures = {
+        scale: {"actual": actual[scale], "required": required}
+        for scale, required in TARGET_LEFT_WIDTHS.items()
+        if actual[scale] < required
+    }
+    assert not failures, (
+        "#343 V2 EXPECTED RED: fresh T8 screenshot review still clips medium/large "
+        f"left-pane controls; failures={failures!r}"
+    )
 
 
 def test_red_adaptive_left_workspace_and_cjk_theme_contract_exist():
