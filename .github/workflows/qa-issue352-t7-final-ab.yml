@@ -290,3 +290,5 @@ jobs:
           assert not new_xvfb, f'NEW_XVFB_FAILURES={new_xvfb}'
           print('FINAL_CLASSIFICATION=NO_NEW_FAILURES')
           PY
+
+# explicit valid-workflow trigger
