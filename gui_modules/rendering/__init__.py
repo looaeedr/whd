@@ -61,10 +61,13 @@ __all__ = [
     "box_body_face_at_canvas_point",
     "select_box_body_face",
     "on_box_body_canvas_press",
+    "draw_preview",
+    "open_box_body_face_editor",
     "draw_box_body_piece_preview",
     "draw_box_body_aggregate_preview",
     "draw_end_cap_preview",
     "draw_end_cap_error",
+    "box_body_baseline_faces",
 ]
 
 from .interaction import (
@@ -76,6 +79,8 @@ from .interaction import (
     box_body_face_at_canvas_point,
     select_box_body_face,
     on_box_body_canvas_press,
+    draw_preview,
+    open_box_body_face_editor,
 )
 
 from .box_body_view import (
@@ -83,4 +88,5 @@ from .box_body_view import (
     draw_box_body_aggregate_preview,
     draw_end_cap_preview,
     draw_end_cap_error,
+    box_body_baseline_faces,
 )
