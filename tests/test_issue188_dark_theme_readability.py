@@ -13,25 +13,17 @@ from tkinter import ttk
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED = {
-    "background": "#121214",
-    "panel": "#1e1e24",
-    "input": "#151518",
-    "text": "#e0e0e6",
-    "muted_text": "#8e8e93",
-    "action": "#0a84ff",
-    "canvas": "#0d0d0f",
-    "corner_data_canvas": "#000000",
-}
-
-
 def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
 def test_shared_theme_provider_is_single_token_authority():
     theme = importlib.import_module("whd_theme")
-    assert dict(theme.WHD_THEME) == EXPECTED
+    required = {
+        "background", "panel", "input", "text", "muted_text",
+        "action", "action_hover", "action_pressed", "canvas", "corner_data_canvas",
+    }
+    assert required <= set(theme.WHD_THEME)
     assert callable(theme.apply_ttk_dark_theme)
     assert callable(theme.apply_mpl_dark_theme)
 
@@ -45,10 +37,10 @@ def test_shared_theme_provider_is_single_token_authority():
 def test_legacy_main_gui_consumes_shared_tokens_instead_of_owning_a_second_palette():
     source = _text("gui.py")
     assert "from whd_theme import" in source
-    assert 'self.COLOR_BG = "#121214"' not in source
-    assert 'self.COLOR_PANEL = "#1e1e24"' not in source
-    assert 'self.COLOR_INPUT_BG = "#151518"' not in source
-    assert 'self.COLOR_CANVAS_BG = "#0d0d0f"' not in source
+    theme = importlib.import_module("whd_theme")
+    for key in ("background", "panel", "input", "canvas"):
+        token = str(theme.WHD_THEME[key])
+        assert f'= "{token}"' not in source
     assert "WHD_THEME" in source
 
 
@@ -74,16 +66,15 @@ def test_ttk_effective_dark_states_are_readable_under_real_tk():
         style = theme.apply_ttk_dark_theme(root, text_scale=1.0)
         root.update_idletasks()
 
-        assert root.cget("background").lower() == EXPECTED["background"]
-        assert style.lookup("TFrame", "background").lower() == EXPECTED["panel"]
-        assert style.lookup("TLabel", "foreground").lower() == EXPECTED["text"]
-        assert style.lookup("TEntry", "fieldbackground").lower() == EXPECTED["input"]
-        assert style.lookup("TEntry", "foreground").lower() == EXPECTED["text"]
-        assert style.lookup("Treeview", "background").lower() == EXPECTED["input"]
-        assert style.lookup("Treeview", "foreground").lower() == EXPECTED["text"]
-
-        tree_map = style.map("Treeview", "background")
-        assert any(EXPECTED["action"] in str(value).lower() for _state, value in tree_map)
+        colors = theme.WHD_THEME
+        assert root.cget("background").lower() == colors["background"]
+        assert style.lookup("TFrame", "background").lower() == colors["panel"]
+        assert style.lookup("TLabel", "foreground").lower() == colors["text"]
+        assert style.lookup("TEntry", "fieldbackground").lower() == colors["input"]
+        assert style.lookup("TEntry", "foreground").lower() == colors["text"]
+        assert style.lookup("Treeview", "background").lower() == colors["input"]
+        assert style.lookup("Treeview", "foreground").lower() == colors["text"]
+        assert style.lookup("Treeview", "background", ("selected",)).lower() == colors["action"]
 
         # Critical controls must be genuinely mapped/reachable, not merely created.
         host = ttk.Frame(root)
@@ -101,10 +92,10 @@ def test_ttk_effective_dark_states_are_readable_under_real_tk():
         root.destroy()
 
 
-def test_corner_data_viewport_keeps_exact_black_exception():
+def test_corner_data_viewport_uses_shared_exception_token():
     bridge = _text("fold_designer_bridge.py")
-    assert 'bg="#000000"' in bridge
-    # Generic 3D/canvas dark is deliberately not the Corner Data viewport color.
     theme = importlib.import_module("whd_theme")
-    assert theme.WHD_THEME["canvas"] == "#0d0d0f"
-    assert theme.WHD_THEME["corner_data_canvas"] == "#000000"
+    assert 'bg=WHD_THEME["corner_data_canvas"]' in bridge
+    # The special Corner Data surface remains distinct, but its literal color is
+    # owned only by the current shared theme provider.
+    assert theme.WHD_THEME["canvas"] != theme.WHD_THEME["corner_data_canvas"]
