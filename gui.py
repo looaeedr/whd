@@ -224,6 +224,7 @@ from gui_modules.rendering import (
     box_body_face_at_canvas_point as _box_body_face_at_canvas_point_impl,
     select_box_body_face as _select_box_body_face_impl,
     on_box_body_canvas_press as _on_box_body_canvas_press_impl,
+    draw_box_body_piece_preview as _draw_box_body_piece_preview_impl,
 )
 
 
@@ -4222,58 +4223,7 @@ class Phase6ApplicationHost:
         return _on_box_body_piece_double_click_impl(self, event)
 
     def _draw_box_body_piece_preview(self, aggregate_render_data, piece, part_key):
-        """Draw one manufacturing-owned BoxBody physical child in the main 2D view."""
-        canvas = self.canvas_z
-        render_data = piece.render_data
-        minx, miny, maxx, maxy = (float(v) for v in render_data.material.bounds)
-        transform, _offset_x, _offset_y, _scale, _material_top = _phase6_2d_material_viewport(
-            (minx, miny, maxx, maxy), canvas.winfo_width(), canvas.winfo_height()
-        )
-        if self.draw_stock_var.get():
-            sx0, sy0 = transform.world_to_canvas(Vec2(minx, miny))
-            sx1, sy1 = transform.world_to_canvas(Vec2(maxx, maxy))
-            canvas.create_rectangle(
-                sx0, sy0, sx1, sy1, outline="#00d4d4", width=1.5, dash=(8, 4)
-            )
-        render_drawing_scene(
-            canvas, render_data.scene, transform, skip_layers=("CHECK", "STOCK")
-        )
-        label = self._box_body_piece_label(part_key)
-        formed = tuple(float(v) for v in getattr(piece, "formed_outer_dimensions", (0.0, 0.0)))
-        blank = tuple(float(v) for v in getattr(piece, "material_dimensions", (0.0, 0.0)))
-        dimension_text = ""
-        if len(formed) >= 2 and len(blank) >= 2:
-            dimension_text = (
-                f"\n成形：{formed[0]:g} × {formed[1]:g} mm"
-                f"  展開：{blank[0]:g} × {blank[1]:g} mm"
-            )
-        warnings = tuple(getattr(render_data, "warnings", ()) or ())
-        warning_text = (
-            "\n⚠ " + "；".join(str(getattr(item, "message", item)) for item in warnings)
-            if warnings else ""
-        )
-        canvas.create_text(
-            25, 25, anchor=tk.NW,
-            text=(
-                f"{label}展開預覽（箱身子板件）{dimension_text}"
-                f"\n外輪廓 (CUTTING): 綠色實線  折彎線 (BEND): 藍色虛線"
-                f"\n雙擊畫布編輯此片開孔{warning_text}"
-            ),
-            fill=self.COLOR_TEXT_MUTED, font=('Microsoft JhengHei', 9),
-            width=max(180, int(canvas.winfo_width() * 0.56)),
-            tags=("phase6_preview_hint",),
-        )
-        _draw_phase6_annotation_projection(
-            canvas, render_data, transform, part_key=part_key
-        )
-        role = str(getattr(piece, "role", "") or "")
-        self.last_box_body_face_overview = {
-            "mode": "physical_piece",
-            "piece_key": part_key,
-            "role": role,
-            "material_bounds": (minx, miny, maxx, maxy),
-            "aggregate_piece_count": len(tuple(getattr(aggregate_render_data, "pieces", ()) or ())),
-        }
+        return _draw_box_body_piece_preview_impl(self, aggregate_render_data, piece, part_key, viewport=_phase6_2d_material_viewport, scene_renderer=render_drawing_scene, annotation_drawer=_draw_phase6_annotation_projection)
 
     def draw_box_body(self, val):
         """Render the authoritative unfolded Box Body; face editing is only an overlay/hit-zone."""
