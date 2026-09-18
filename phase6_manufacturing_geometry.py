@@ -12,6 +12,14 @@ from ae_engine.sheetmetal_part_adapters import derive_door_layout_cells, door_la
 from phase6_endcap_semantics import ENDCAP_FW_PARTS
 from phase6_final_scene_view import AssemblyScenePart
 from phase6_sync_envelope import stable_fingerprint
+from ae_engine.assembly_joint import (
+    AssemblyJoint,
+    ResolvedAssemblyGraph,
+    migrate_legacy_snapshot_joints,
+)
+from phase6_endcap_semantics import assembly_intent_value
+from phase6_fold_profiles import _num
+from phase6_part_navigation import is_box_body_physical_piece_key
 
 
 _PHASE6_ASSEMBLY_PLACEMENTS = {
@@ -1242,3 +1250,374 @@ def _phase6_resolve_explicit_joint_reliefs(
 
     ordered = tuple(current[str(part.part_key)] for part in tuple(parts or ()))
     return ordered, tuple(diagnostics), new_state
+
+def _phase6_resolve_family_divider_reliefs(
+    parts, *, finished_dimensions, sheet_thickness, clearance=0.0
+):
+    """Delegate Divider physical solve to manufacturing domain."""
+    from ae_engine.assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
+    from ae_engine.contracts import ResolvedJointDiagnostic
+    from ae_engine.divider_manufacturing import resolve_divider_final_geometry
+    current = {str(part.part_key): part for part in tuple(parts or ())}
+    divider_keys = sorted(key for key in current if key.startswith("box_body:divider:"))
+    if not divider_keys or "box_body" not in current:
+        return tuple(current.values()), (), ()
+    diagnostics, family_joints = [], []
+    for divider_key in divider_keys:
+        divider = current[divider_key]
+        joint = AssemblyJoint(
+            joint_id=f"{divider_key}:box_body:family-relief", subject_part=divider_key, target_part="box_body",
+            subject_region="front_fold_relief", target_region="divider_mating_zone",
+            relation=AssemblyJointRelation.INSERT, source=AssemblyJointSource.FAMILY_GEOMETRY,
+            solver_constraints={"relief_mode": "FRONT_FOLD_DOMAIN"},
+        )
+        family_joints.append(joint)
+        world = _phase6_build_joint_world_geometry(tuple(current.values()), finished_dimensions, sheet_thickness)
+        source_keys = tuple(key for key in ("box_body:left_side", "box_body:right_side") if key in world["world_triangles_by_part"])
+        if not source_keys:
+            diagnostics.append(ResolvedJointDiagnostic(
+                joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+                source=joint.source.value, registry_status="MISS", trust_level="PROVISIONAL_3D",
+                preserve_part="box_body", relief_part=divider_key, candidate_status="MISSING_SIDE_PIECE_GEOMETRY",
+                legal_contact=False, illegal_penetration=True,
+                evidence={"reason": "Receiving Divider relief requires left/right physical Box Body pieces"},
+            ))
+            continue
+        def refold_world(solved_divider):
+            return _phase6_build_joint_world_geometry(
+                tuple(solved_divider if key == divider_key else part for key, part in current.items()),
+                finished_dimensions, sheet_thickness,
+            )
+        result = resolve_divider_final_geometry(
+            divider=divider, box_body=current["box_body"], joint=joint, world=world,
+            source_geometry_keys=source_keys, refold_world=refold_world,
+            clearance=float(clearance), sheet_thickness=float(sheet_thickness),
+        )
+        placement = result.placement_evidence.as_dict()
+        relief = result.relief_evidence
+        evidence = {**dict(relief.source_evidence or {}), "placement": placement}
+        if relief.post_evidence is not None:
+            evidence["post"] = dict(relief.post_evidence)
+        if result.verified:
+            current[divider_key] = result.solved_part
+        status = str(relief.candidate_status)
+        certified_hit = status.startswith("CERTIFIED_REGISTRY_")
+        diagnostics.append(ResolvedJointDiagnostic(
+            joint_id=joint.joint_id, subject_part=divider_key, target_part="box_body", relation=joint.relation.value,
+            source=joint.source.value,
+            registry_status=("HIT" if certified_hit else "MISS"),
+            trust_level=("CERTIFIED" if certified_hit else "PROVISIONAL_3D"),
+            preserve_part="box_body", relief_part=divider_key, candidate_status=status,
+            legal_contact=(
+                bool(relief.retained_contact_segments)
+                if status in {"PROVISIONAL_3D_VERIFIED", "CERTIFIED_REGISTRY_VERIFIED"}
+                else status == "NO_FRONT_FOLD_PENETRATION"
+            ),
+            illegal_penetration=bool(result.illegal_penetration), pre_pair_count=int(relief.pre_pair_count),
+            post_pair_count=int(relief.post_pair_count), evidence=evidence,
+        ))
+    return tuple(current.values()), tuple(diagnostics), tuple(family_joints)
+
+def _phase6_resolve_manufacturing_geometry(self):
+    """Resolve one canonical manufacturing result consumed by every downstream view/export."""
+    signature = _phase6_manufacturing_state_signature(self)
+    cached = getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
+    if cached is not None and signature == getattr(self, "_phase6_last_resolved_manufacturing_signature", None):
+        return cached
+    callback = getattr(self, "_scene_query_callback", None)
+    if callback is None:
+        raise RuntimeError("3D final-scene provider is not connected")
+
+    fallback_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
+    fallback_enabled = bool(fallback_var.get()) if fallback_var is not None else False
+    # Physical BoxBody child identities are operator/single-part contexts.  The
+    # assembly solve still owns one aggregate box_body whose render_data.pieces
+    # contain those children; adding them again here would duplicate geometry.
+    available = {
+        key for key in set(self.designer_workspace.available_parts)
+        if not is_box_body_physical_piece_key(key)
+    }
+    snapshot_for_joints = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
+    joints = tuple(
+        raw if isinstance(raw, AssemblyJoint) else AssemblyJoint.from_dict(raw)
+        for raw in tuple(snapshot_for_joints.get("assembly_joints", ()) or ())
+        if str(getattr(raw, "subject_part", raw.get("subject_part", "") if isinstance(raw, dict) else "")) in available
+        and str(getattr(raw, "target_part", raw.get("target_part", "") if isinstance(raw, dict) else "")) in available
+    )
+    resolved_joint_graph = ResolvedAssemblyGraph(tuple(sorted(available)), joints)
+    parts = []
+    for key in self.designer_workspace.available_parts:
+        if key not in available:
+            continue
+        payload = self._phase6_scene_query_payload_for_part(key)
+        # Solver base must be pre-dynamic-relief material. If solving is off,
+        # display the current canonical committed relief directly.
+        payload["_use_committed_relief"] = False
+        render_data = callback(key, payload)
+        if render_data is None:
+            raise ValueError(f"manufacturing render data unavailable: {key}")
+        if getattr(render_data, "pieces", None):
+            x_profile, y_profile = (), ()
+        else:
+            if getattr(render_data, "scene", None) is None or getattr(render_data, "material", None) is None:
+                raise TypeError("manufacturing render provider must return scene + material or physical pieces")
+            x_profile, y_profile = self._phase6_mesh_profiles_for_part(key, render_data.material)
+        placement, offset = _phase6_assembly_placement_for_part(
+            getattr(self, "_phase6_input_snapshot", {}) or {}, key
+        )
+        parts.append(AssemblyScenePart(
+            part_key=key, render_data=render_data,
+            x_profile=tuple(dict(seg) for seg in x_profile),
+            y_profile=tuple(dict(seg) for seg in y_profile),
+            placement=placement, offset=offset,
+        ))
+    if not parts:
+        raise ValueError("no parts available for assembly 3D display")
+
+    # Preserve the pre-dynamic-relief EndCap geometry for the collision overlay.
+    # Visible parts may be replaced by solved canonical geometry below.
+    pre_solve_probe_parts = tuple(
+        part for part in parts if part.part_key in {"head", "tail"}
+    )
+
+    solutions = {}
+    errors = {}
+    required = [key for key in ("head", "tail") if key in available]
+    if required:
+        body_part = next((part for part in parts if part.part_key == "box_body"), None)
+        if body_part is not None:
+            from ae_engine.assembly_collision import solve_world_backprojected_endcap_relief
+            dims = self._phase6_operator_finished_dimensions()
+            snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+            settings = getattr(self, "_settings_values", {}) or {}
+            thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+            clearance = _phase6_assembly_relief_clearance(self)
+            by_key = {part.part_key: part for part in parts}
+            for key in required:
+                part = by_key[key]
+                try:
+                    solution = solve_world_backprojected_endcap_relief(
+                        box_body_render_data=body_part.render_data,
+                        endcap_render_data=part.render_data,
+                        box_body_x_profile=body_part.x_profile,
+                        endcap_x_profile=part.x_profile,
+                        endcap_y_profile=part.y_profile,
+                        finished_dimensions=dims,
+                        endcap_placement=part.placement,
+                        sheet_thickness=thickness,
+                        clearance=clearance,
+                        assembly_intent=assembly_intent_value(getattr(self, "_phase6_assembly_type", None)),
+                        assembly_graph=resolved_joint_graph,
+                        endcap_part=key,
+                        cabinet_family=_phase6_current_cabinet_family(self),
+                        allow_3d_fallback=fallback_enabled,
+                        # Extra USER_ADDED joints are resolved by Solver v2 after
+                        # the standard EndCap intent geometry is canonical.  Do
+                        # not feed WRAP into the legacy EndCap-only solver: WRAP
+                        # owns relief on its target and that solver can only cut
+                        # the EndCap subject.
+                        assembly_joint=None,
+                    )
+                    solutions[key] = solution
+                    if not bool(getattr(solution, "verified", False)):
+                        if _phase6_solution_is_committable(solution):
+                            errors[key] = "已認證公式與立體影子驗證衝突；正式結果仍採已認證公式"
+                        else:
+                            reason = dict(getattr(solution, "shadow_validation", {}) or {}).get("reason")
+                            errors[key] = str(reason or "3D 回折驗證仍有材料穿透")
+                except Exception as exc:
+                    errors[key] = str(exc)
+
+            atomic_committable = all(
+                key in solutions and _phase6_solution_is_committable(solutions[key])
+                for key in required
+            )
+            self._phase6_last_relief_solutions = solutions
+            self._phase6_last_relief_errors = errors
+
+            if atomic_committable:
+                # Publish both cuts as one canonical state update before any
+                # solved geometry is displayed.
+                self._phase6_publish_live_state(force=True)
+                solved_parts = []
+                for part in parts:
+                    if part.part_key not in required:
+                        solved_parts.append(part)
+                        continue
+                    solution = solutions[part.part_key]
+                    replay_payload = self._phase6_scene_query_payload_for_part(part.part_key)
+                    replay_payload["_use_committed_relief"] = False
+                    replay_payload["resolved_assembly_relief_cuts"] = tuple(
+                        tuple((float(x), float(y)) for x, y in polygon)
+                        for polygon in _phase6_relief_polygon_coords(
+                            getattr(solution, "cut_polygon_2d", None)
+                        )
+                    )
+                    canonical_render = callback(part.part_key, replay_payload)
+                    if canonical_render is None or getattr(canonical_render, "material", None) is None:
+                        raise ValueError(f"authoritative relief replay unavailable: {part.part_key}")
+                    solver_material = getattr(getattr(solution, "solved_render_data", None), "material", None)
+                    if solver_material is not None:
+                        mismatch = float(canonical_render.material.symmetric_difference(solver_material).area)
+                        if mismatch > 1e-5:
+                            raise ValueError(
+                                f"2D/3D relief replay mismatch: {part.part_key} area={mismatch:.6f}"
+                            )
+                    solved_parts.append(AssemblyScenePart(
+                        part_key=part.part_key, render_data=canonical_render,
+                        x_profile=part.x_profile, y_profile=part.y_profile,
+                        placement=part.placement, offset=part.offset,
+                    ))
+                parts = solved_parts
+            else:
+                # Atomic rollback: display current canonical 2D geometry for
+                # BOTH EndCaps. Never show a verified Head with an old Tail.
+                canonical_parts = []
+                for part in parts:
+                    if part.part_key not in required:
+                        canonical_parts.append(part)
+                        continue
+                    payload = self._phase6_scene_query_payload_for_part(part.part_key)
+                    payload["_use_committed_relief"] = True
+                    canonical_render = callback(part.part_key, payload)
+                    canonical_parts.append(AssemblyScenePart(
+                        part_key=part.part_key, render_data=canonical_render,
+                        x_profile=part.x_profile, y_profile=part.y_profile,
+                        placement=part.placement, offset=part.offset,
+                    ))
+                parts = canonical_parts
+    else:
+        self._phase6_last_relief_solutions = {}
+        self._phase6_last_relief_errors = {}
+
+    # Receiving Divider family geometry is assembly-dependent too. Resolve its
+    # true-thickness INSERT relief before USER_ADDED joints so 2D/3D/DXF all
+    # consume the same final material.
+    divider_joint_diagnostics = ()
+    family_divider_joints = ()
+    if any(str(part.part_key).startswith("box_body:divider:") for part in parts):
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        settings = dict(getattr(self, "_settings_values", {}) or {})
+        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        parts, divider_joint_diagnostics, family_divider_joints = _phase6_resolve_family_divider_reliefs(
+            tuple(parts),
+            finished_dimensions=self._phase6_operator_finished_dimensions(),
+            sheet_thickness=thickness,
+            clearance=_phase6_assembly_relief_clearance(self),
+        )
+
+    # Resolve extra USER_ADDED joints (including WRAP) only after the high-level
+    # EndCap intent has produced canonical parts.  This generalized path can
+    # relief either endpoint according to Joint semantics and persists only
+    # replay-verified provisional cuts.
+    explicit_joint_diagnostics = ()
+    explicit_joint_state = {"schema_version": 1, "items": {}}
+    if any(
+        str(getattr(getattr(joint, "source", None), "value", getattr(joint, "source", ""))) == "USER_ADDED"
+        for joint in joints
+    ):
+        snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+        settings = dict(getattr(self, "_settings_values", {}) or {})
+        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        parts, explicit_joint_diagnostics, explicit_joint_state = _phase6_resolve_explicit_joint_reliefs(
+            tuple(parts), joints,
+            finished_dimensions=self._phase6_operator_finished_dimensions(),
+            sheet_thickness=thickness,
+            clearance=_phase6_assembly_relief_clearance(self),
+            committed_state=snapshot.get("joint_relief_state"),
+        )
+        # Runtime state is versioned and serializable; export/save starts from
+        # this snapshot, so verified provisional cuts survive reload.
+        self._phase6_input_snapshot["joint_relief_state"] = deepcopy(explicit_joint_state)
+
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart, ResolvedReliefRuleTrace,
+    )
+    resolved_parts = tuple(
+        ResolvedManufacturingPart(
+            part_key=part.part_key,
+            render_data=part.render_data,
+            x_profile=tuple(dict(seg) for seg in tuple(part.x_profile or ())),
+            y_profile=tuple(dict(seg) for seg in tuple(part.y_profile or ())),
+            placement=part.placement,
+            offset=tuple(part.offset),
+        )
+        for part in parts
+    )
+    traces = []
+    solution_by_part = dict(solutions or {})
+    for part_key, solution in solution_by_part.items():
+        trust = str(getattr(solution, "trust_level", "") or "")
+        rule_id = getattr(solution, "rule_id", None)
+        revision = getattr(solution, "rule_revision", None)
+        for relief in tuple(getattr(solution, "corner_reliefs", ()) or ()):
+            shadow = dict(getattr(solution, "shadow_validation", {}) or {})
+            traces.append(ResolvedReliefRuleTrace(
+                part_key=str(part_key),
+                corner_name=str(getattr(relief, "corner_name", "") or ""),
+                rule_id=rule_id,
+                revision=revision,
+                trust_level=trust,
+                signature=str(getattr(relief, "signature", "") or ""),
+                geometry_inputs=tuple(str(v) for v in shadow.get("geometry_inputs", ()) or ()),
+                geometry_evidence=deepcopy(shadow.get("geometry_evidence")),
+            ))
+
+    # Family-specific BOTTOM certified traces live on the canonical FinalScene
+    # metadata because they are resolved while building the EndCap PartSpec.
+    for resolved_part in resolved_parts:
+        metadata = dict(getattr(resolved_part.render_data, "metadata", {}) or {})
+        bottom_trace = dict(metadata.get("receiving_bottom_relief_rule") or {})
+        if not bottom_trace:
+            continue
+        evidence = deepcopy(bottom_trace.get("geometry_evidence") or {})
+        corners = tuple(dict(evidence.get("projection_by_corner") or {}).keys()) or ("bottom",)
+        for corner_name in corners:
+            traces.append(ResolvedReliefRuleTrace(
+                part_key=str(resolved_part.part_key), corner_name=str(corner_name),
+                rule_id=bottom_trace.get("rule_id"), revision=bottom_trace.get("revision"),
+                trust_level=str(bottom_trace.get("trust_level") or ""),
+                signature="BOTTOM:WRAP",
+                geometry_inputs=tuple(str(v) for v in tuple(evidence.get("geometry_inputs", ()) or ())),
+                geometry_evidence=evidence,
+            ))
+
+    from ae_engine.contracts import ResolvedJointDiagnostic
+    from ae_engine.assembly_collision import joint_relief_ownership
+    diagnostics = []
+    for joint in joints:
+        if str(getattr(getattr(joint, "source", None), "value", getattr(joint, "source", ""))) == "USER_ADDED":
+            continue
+        ownership = joint_relief_ownership(joint)
+        render_by_part = {str(part.part_key): part.render_data for part in resolved_parts}
+        info = _phase6_joint_registry_diagnostic_info(joint, render_by_part, solution_by_part)
+        diagnostics.append(ResolvedJointDiagnostic(
+            joint_id=str(joint.joint_id),
+            subject_part=str(joint.subject_part),
+            target_part=str(joint.target_part),
+            relation=str(getattr(joint.relation, "value", joint.relation)),
+            source=str(getattr(joint.source, "value", joint.source)),
+            registry_status=info["registry_status"],
+            rule_id=info["rule_id"], revision=info["revision"], trust_level=info["trust_level"],
+            preserve_part=str(ownership.preserve_part), relief_part=str(ownership.relief_part),
+            candidate_status=info["candidate_status"],
+            legal_contact=bool(info["verified"] and int(info["post_pair_count"]) > 0),
+            illegal_penetration=bool(not info["verified"]),
+            pre_pair_count=int(info["pre_pair_count"]), post_pair_count=int(info["post_pair_count"]),
+            evidence=deepcopy(info["evidence"]),
+        ))
+    diagnostics.extend(tuple(divider_joint_diagnostics or ()))
+    diagnostics.extend(tuple(explicit_joint_diagnostics or ()))
+    resolved = ResolvedManufacturingGeometry(
+        parts=resolved_parts,
+        joints=tuple(joints) + tuple(family_divider_joints or ()),
+        relief_rules=tuple(traces),
+        diagnostics=tuple(diagnostics),
+    )
+    self._phase6_last_interference_probe_parts = tuple(pre_solve_probe_parts)
+    self._phase6_last_resolved_manufacturing_geometry = resolved
+    # Publishing certified/provisional relief may update assembly_relief metadata;
+    # store the post-publish signature so subsequent readers reuse this exact result.
+    self._phase6_last_resolved_manufacturing_signature = _phase6_manufacturing_state_signature(self)
+    return resolved
+
