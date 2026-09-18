@@ -18,6 +18,7 @@ from phase6_sync_envelope import mapping_delta, stable_fingerprint
 from datetime import datetime
 from pathlib import Path
 import re
+import logging
 from typing import Mapping, MutableMapping, Sequence
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme, configure_tk_menu
 
@@ -4499,6 +4500,54 @@ def _phase6_operator_text(value):
     return text
 
 
+_PHASE6_PRESENTATION_FALLBACK = "未定義項目（代碼已記錄）"
+_PHASE6_PRESENTATION_EMPTY = "未定義項目"
+_PHASE6_PRESENTATION_LOG = logging.getLogger("whd.corner_presentation")
+
+
+def _phase6_fail_closed_visible_text(
+    candidate,
+    *,
+    raw_value,
+    presentation_field,
+    source_adapter,
+):
+    """Return Chinese/numeric presentation text or a diagnostic fail-closed fallback."""
+    visible = str(candidate or "").strip()
+    raw = str(raw_value or "")
+    if not visible:
+        return _PHASE6_PRESENTATION_EMPTY
+    if re.search(r"[A-Za-z]", visible):
+        _PHASE6_PRESENTATION_LOG.warning(
+            "corner_presentation_fallback presentation_field=%s raw_value=%s source_adapter=%s",
+            str(presentation_field or "unknown"),
+            raw,
+            str(source_adapter or "unknown"),
+        )
+        return _PHASE6_PRESENTATION_FALLBACK
+    return visible
+
+
+def _phase6_registry_present_token(
+    value,
+    *,
+    presentation_field="value",
+    source_adapter="registry_token",
+    snapshot=None,
+):
+    """Strict presentation adapter; never expose an unmapped raw English enum/key."""
+    raw = str(value or "")
+    if not raw.strip():
+        return _PHASE6_PRESENTATION_EMPTY
+    candidate = _phase6_operator_label(raw, snapshot=snapshot)
+    return _phase6_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter=source_adapter,
+    )
+
+
 _PHASE6_FORMULA_DISPLAY_TOKENS = {
     "effective_mating_width": "有效接合寬",
     "mating_width": "成型接合寬",
@@ -4530,9 +4579,27 @@ def _phase6_formula_raw(value):
     return text
 
 
+def _phase6_registry_formula_display(value, *, presentation_field="formula"):
+    raw = str(value or "")
+    candidate = _phase6_formula_display(raw)
+    return _phase6_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter="registry_formula",
+    )
+
+
 def _phase6_preconditions_display(value):
     tokens = [token.strip() for token in str(value or "").split(",") if token.strip()]
-    return "、".join(_phase6_operator_label(token) for token in tokens)
+    return "、".join(
+        _phase6_registry_present_token(
+            token,
+            presentation_field="precondition",
+            source_adapter="registry_preconditions",
+        )
+        for token in tokens
+    )
 
 
 def _phase6_preconditions_raw(value):
@@ -4597,6 +4664,17 @@ def _phase6_source_raw(value):
     return _phase6_formula_raw(text)
 
 
+def _phase6_registry_source_display(value, *, presentation_field="source"):
+    raw = str(value or "")
+    candidate = _phase6_source_display(raw)
+    return _phase6_fail_closed_visible_text(
+        candidate,
+        raw_value=raw,
+        presentation_field=presentation_field,
+        source_adapter="registry_source",
+    )
+
+
 def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
     busy = {"value": False}
     def raw_changed(*_args):
@@ -4622,27 +4700,50 @@ def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
     return display_var
 
 
-def _phase6_form_choice(parent, variable, choices, *, width=18):
-    display_var = original.tk.StringVar(master=parent, value=_phase6_operator_label(variable.get()))
+def _phase6_form_choice(parent, variable, choices, *, width=18, presentation_field="choice"):
+    display_var = original.tk.StringVar(
+        master=parent,
+        value=_phase6_registry_present_token(
+            variable.get(),
+            presentation_field=presentation_field,
+            source_adapter="registry_choice",
+        ),
+    )
     button = original.ttk.Menubutton(parent, textvariable=display_var, width=width, style="Selector.TMenubutton")
     menu = configure_tk_menu(original.tk.Menu(button, tearoff=False))
 
     def choose(raw):
         variable.set(str(raw))
-        display_var.set(_phase6_operator_label(raw))
+        display_var.set(_phase6_registry_present_token(
+            raw,
+            presentation_field=presentation_field,
+            source_adapter="registry_choice",
+        ))
 
     for choice in choices:
-        menu.add_command(label=_phase6_operator_label(choice), command=lambda v=str(choice): choose(v))
+        menu.add_command(
+            label=_phase6_registry_present_token(
+                choice,
+                presentation_field=presentation_field,
+                source_adapter="registry_choice",
+            ),
+            command=lambda v=str(choice): choose(v),
+        )
     button.configure(menu=menu)
 
     def sync_display(*_args):
-        value = _phase6_operator_label(variable.get())
+        value = _phase6_registry_present_token(
+            variable.get(),
+            presentation_field=presentation_field,
+            source_adapter="registry_choice",
+        )
         if display_var.get() != value:
             display_var.set(value)
 
     variable.trace_add("write", sync_display)
     button._phase6_display_var = display_var
     button._phase6_raw_var = variable
+    button._phase6_presentation_field = presentation_field
     return button
 
 
@@ -4941,8 +5042,17 @@ def _phase6_registry_refresh_rule_tree(self):
     active_rows = [row for row in rows if bool(row.get("active", True))]
     for row in active_rows:
         tree.insert("", "end", iid=f"{row['rule_id']}@{row['revision']}", values=(
-            _phase6_operator_label(row["rule_id"]), row["revision"], _phase6_operator_label(row.get("trust_level", "")),
-            _phase6_operator_label(row.get("assembly_intent", "")), row.get("topology_levels", ""),
+            _phase6_registry_present_token(
+                row["rule_id"], presentation_field="rule_id", source_adapter="registry_rule_tree"
+            ),
+            row["revision"],
+            _phase6_registry_present_token(
+                row.get("trust_level", ""), presentation_field="trust_level", source_adapter="registry_rule_tree"
+            ),
+            _phase6_registry_present_token(
+                row.get("assembly_intent", ""), presentation_field="assembly_intent", source_adapter="registry_rule_tree"
+            ),
+            row.get("topology_levels", ""),
         ))
     self._phase6_registry_rule_records = {f"{row['rule_id']}@{row['revision']}": row for row in rows}
     return rows
@@ -4957,7 +5067,11 @@ def _phase6_registry_rule_selected(self, *_args):
     if not raw:
         return
     formula = dict(raw.get("formula", {}) or {})
-    self.relief_registry_rule_name_var.set(_phase6_operator_label(raw.get("rule_id", "")))
+    self.relief_registry_rule_name_var.set(_phase6_registry_present_token(
+        raw.get("rule_id", ""),
+        presentation_field="rule_id",
+        source_adapter="registry_rule_selection",
+    ))
     setters = (
         (self.relief_registry_rule_id_var, raw.get("rule_id", "")),
         (self.relief_registry_family_var, raw.get("cabinet_family", "ANY")),
@@ -4990,9 +5104,12 @@ def _phase6_joint_form_refresh(self):
         tree.delete(item)
     for row in rows:
         tree.insert("", "end", iid=str(row["joint_id"]), values=(
-            _phase6_operator_label(row.get("subject_part", "")), _phase6_operator_label(row.get("target_part", "")),
-            _phase6_operator_label(row.get("relation", "")), _phase6_operator_label(row.get("source", "")),
-            _phase6_operator_label(row.get("subject_region", "")), _phase6_operator_label(row.get("target_region", "")),
+            _phase6_registry_present_token(row.get("subject_part", ""), presentation_field="subject_part", source_adapter="joint_tree"),
+            _phase6_registry_present_token(row.get("target_part", ""), presentation_field="target_part", source_adapter="joint_tree"),
+            _phase6_registry_present_token(row.get("relation", ""), presentation_field="relation", source_adapter="joint_tree"),
+            _phase6_registry_present_token(row.get("source", ""), presentation_field="source", source_adapter="joint_tree"),
+            _phase6_registry_present_token(row.get("subject_region", ""), presentation_field="subject_region", source_adapter="joint_tree"),
+            _phase6_registry_present_token(row.get("target_region", ""), presentation_field="target_region", source_adapter="joint_tree"),
         ))
     return rows
 
@@ -5168,7 +5285,14 @@ def _phase6_open_relief_registry_form(self):
     for raw_name in ("primary_u", "primary_v", "secondary_u", "secondary_depth"):
         raw_var = getattr(self, f"relief_registry_{raw_name}_var")
         display_var = original.tk.StringVar(master=form)
-        _phase6_bind_translated_var(raw_var, display_var, _phase6_formula_display, _phase6_formula_raw)
+        _phase6_bind_translated_var(
+            raw_var,
+            display_var,
+            lambda value, field=raw_name: _phase6_registry_formula_display(
+                value, presentation_field=field
+            ),
+            _phase6_formula_raw,
+        )
         setattr(self, f"relief_registry_{raw_name}_display_var", display_var)
     self.relief_registry_preconditions_display_var = original.tk.StringVar(master=form)
     _phase6_bind_translated_var(
@@ -5183,7 +5307,8 @@ def _phase6_open_relief_registry_form(self):
     self.relief_registry_source_display_var = original.tk.StringVar(master=form)
     _phase6_bind_translated_var(
         self.relief_registry_source_var, self.relief_registry_source_display_var,
-        _phase6_source_display, _phase6_source_raw,
+        lambda value: _phase6_registry_source_display(value, presentation_field="source"),
+        _phase6_source_raw,
     )
     entry("公式來源／備註", self.relief_registry_source_display_var)
 
@@ -7381,7 +7506,7 @@ def _phase6_resolve_manufacturing_geometry(self):
                     solutions[key] = solution
                     if not bool(getattr(solution, "verified", False)):
                         if _phase6_solution_is_committable(solution):
-                            errors[key] = "已認證公式與3D影子驗證衝突；正式結果仍採CERTIFIED公式"
+                            errors[key] = "已認證公式與立體影子驗證衝突；正式結果仍採已認證公式"
                         else:
                             reason = dict(getattr(solution, "shadow_validation", {}) or {}).get("reason")
                             errors[key] = str(reason or "3D 回折驗證仍有材料穿透")
@@ -8110,7 +8235,7 @@ def _phase6_create_relief_promotion_candidates(self):
                 + "（僅建立候選，不修改正式資料庫）"
             )
         else:
-            status_var.set("認證候選：目前沒有 verified PROVISIONAL_3D 結果")
+            status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
     return candidates
 
 
@@ -8136,12 +8261,13 @@ def _phase6_refresh_joint_diagnostic_menu(self, resolved=None):
     if current not in ids:
         current = ids[0] if ids else ""
         var.set(current)
+    labels = {joint_id: f"接合 {index + 1}" for index, joint_id in enumerate(ids)}
     for joint_id in ids:
         menu.add_radiobutton(
-            label=joint_id, value=joint_id, variable=var,
+            label=labels[joint_id], value=joint_id, variable=var,
             command=lambda: _phase6_on_assembly_diagnostic_changed(self),
         )
-    button.configure(text=(current or "Joint"))
+    button.configure(text=labels.get(current, "接合"))
     return tuple(ids)
 
 
@@ -8212,7 +8338,7 @@ def _phase6_update_assembly_diagnostic_status(self):
     if not fallback_enabled and not solutions:
         if size_var is not None:
             size_var.set("實際截角尺寸：等待資料庫查詢")
-        status_var.set("截角來源：CERTIFIED優先；未知組合3D fallback已停用")
+        status_var.set("截角來源：已認證規則優先；未知組合的立體備援已停用")
         return
 
     errors = dict(getattr(self, "_phase6_last_relief_errors", {}) or {})
