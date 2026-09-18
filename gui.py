@@ -465,6 +465,7 @@ from gui_modules.application import calculation_controller as _phase6_calculatio
 from gui_modules.application import fold_designer_adapter as _phase6_fold_adapter
 from gui_modules.application import manufacturing_adapter as _phase6_manufacturing_adapter
 from gui_modules.project import export_actions as _phase6_project_export
+from gui_modules.visibility import controller as _phase6_visibility
 _Phase6UpdateScheduler = _phase6_command_router._Phase6UpdateScheduler
 _Phase6DerivedCacheOwner = _phase6_state_sync.Phase6DerivedCacheOwner
 
@@ -1168,26 +1169,10 @@ class Phase6ApplicationHost:
     def create_result_row(self, parent, label_text, var):
         return _create_result_row_impl(self, parent, label_text, var)
 
-    def _phase6_current_existing_parts(self):
-        """Return physical presence from the single Workspace Controller."""
-        indicator_var = getattr(self, "is_indicator_box_var", None)
-        indicator_enabled = bool(indicator_var.get()) if indicator_var is not None else False
-        return self.workspace_controller.current_existing_parts(
-            indicator_box_enabled=indicator_enabled
-        )
+    _phase6_current_existing_parts = _phase6_visibility.phase6_current_existing_parts
+    _phase6_set_part_presence = _phase6_visibility.phase6_set_part_presence
+    _phase6_refresh_presence_ui = _phase6_visibility.phase6_refresh_presence_ui
 
-    def _phase6_set_part_presence(self, key, present):
-        """Mutate physical presence through the single Workspace Controller."""
-        existing = self.workspace_controller.set_part_presence(str(key), bool(present))
-        self._phase6_refresh_presence_ui(existing)
-        owner = getattr(self, "_derived_cache_owner", None)
-        if owner is not None:
-            owner.invalidate("geometry")
-        return existing
-
-    def _phase6_refresh_presence_ui(self, existing_parts=None):
-        return _refresh_presence_ui_impl(self, existing_parts)
-        
     def create_separator(self, parent):
         return _create_separator_impl(self, parent)
         
