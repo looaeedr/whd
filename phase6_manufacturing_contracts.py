@@ -1,0 +1,295 @@
+"""Immutable Phase 2 manufacturing request contracts.
+
+Task #355 intentionally introduces data contracts only.  The canonical
+manufacturing resolver is not switched to these DTOs until later Phase 2 tasks.
+"""
+from __future__ import annotations
+
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass, fields, is_dataclass
+from enum import Enum
+import hashlib
+import json
+from numbers import Real
+from typing import Any
+
+
+@dataclass(frozen=True)
+class FrozenMapping(Mapping[str, Any]):
+    """Small immutable, hashable, order-canonical mapping."""
+
+    _items: tuple[tuple[str, Any], ...] = ()
+
+    def __post_init__(self) -> None:
+        seen: set[str] = set()
+        normalized: list[tuple[str, Any]] = []
+        for key, value in tuple(self._items):
+            skey = str(key)
+            if skey in seen:
+                raise ValueError(f"duplicate frozen mapping key after normalization: {skey!r}")
+            seen.add(skey)
+            normalized.append((skey, value))
+        normalized.sort(key=lambda item: item[0])
+        object.__setattr__(self, "_items", tuple(normalized))
+
+    def __getitem__(self, key: str) -> Any:
+        skey = str(key)
+        for item_key, value in self._items:
+            if item_key == skey:
+                return value
+        raise KeyError(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return (key for key, _ in self._items)
+
+    def __len__(self) -> int:
+        return len(self._items)
+
+    def items(self):
+        return self._items
+
+
+def _freeze_dataclass(value: Any) -> FrozenMapping:
+    payload = {
+        "__dataclass_type__": f"{value.__class__.__module__}.{value.__class__.__qualname__}",
+    }
+    for field in fields(value):
+        payload[field.name] = getattr(value, field.name)
+    frozen = freeze_manufacturing_value(payload)
+    assert isinstance(frozen, FrozenMapping)
+    return frozen
+
+
+def freeze_manufacturing_value(value: Any) -> Any:
+    """Defensively freeze supported manufacturing data.
+
+    Unsupported arbitrary objects and callbacks fail closed instead of leaking
+    Tk/UI/runtime identity into the request graph.
+    """
+    if isinstance(value, FrozenMapping):
+        return value
+    if value is None or isinstance(value, (bool, str)):
+        return value
+    if isinstance(value, Enum):
+        return freeze_manufacturing_value(value.value)
+    if isinstance(value, Real):
+        return round(float(value), 12)
+    if callable(value):
+        raise TypeError(f"callable is not valid manufacturing DTO data: {value!r}")
+    if isinstance(value, Mapping):
+        frozen_items = []
+        seen: set[str] = set()
+        for key, item in value.items():
+            skey = str(key)
+            if skey in seen:
+                raise ValueError(f"duplicate mapping key after string normalization: {skey!r}")
+            seen.add(skey)
+            frozen_items.append((skey, freeze_manufacturing_value(item)))
+        return FrozenMapping(tuple(frozen_items))
+    if isinstance(value, (list, tuple)):
+        return tuple(freeze_manufacturing_value(item) for item in value)
+    if isinstance(value, (set, frozenset)):
+        frozen = [freeze_manufacturing_value(item) for item in value]
+        return tuple(sorted(frozen, key=repr))
+    if is_dataclass(value):
+        return _freeze_dataclass(value)
+
+    module = str(getattr(value.__class__, "__module__", "") or "")
+    if module == "tkinter" or module.startswith("tkinter."):
+        raise TypeError(f"Tk object is not valid manufacturing DTO data: {value.__class__.__name__}")
+    raise TypeError(
+        "unsupported manufacturing DTO value "
+        f"{value.__class__.__module__}.{value.__class__.__qualname__}"
+    )
+
+
+def _thaw_json_value(value: Any) -> Any:
+    if isinstance(value, FrozenMapping):
+        return {key: _thaw_json_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_json_value(item) for item in value]
+    if value is None or isinstance(value, (bool, str, int, float)):
+        return value
+    if is_dataclass(value):
+        return _thaw_json_value(_freeze_dataclass(value))
+    raise TypeError(f"value is not canonical JSON-safe manufacturing data: {value!r}")
+
+
+def canonical_manufacturing_json(value: Any) -> str:
+    """Return deterministic canonical JSON for supported manufacturing data."""
+    frozen = freeze_manufacturing_value(value)
+    return json.dumps(
+        _thaw_json_value(frozen),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+
+
+def manufacturing_fingerprint(value: Any) -> str:
+    payload = canonical_manufacturing_json(value).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _as_frozen_mapping(value: Any, *, field_name: str) -> FrozenMapping:
+    frozen = freeze_manufacturing_value({} if value is None else value)
+    if not isinstance(frozen, FrozenMapping):
+        raise TypeError(f"{field_name} must be mapping-like")
+    return frozen
+
+
+def _as_frozen_sequence(value: Any) -> tuple[Any, ...]:
+    frozen = freeze_manufacturing_value(() if value is None else value)
+    if not isinstance(frozen, tuple):
+        raise TypeError("manufacturing sequence field must be list/tuple/set-like")
+    return frozen
+
+
+@dataclass(frozen=True)
+class ManufacturingPartInput:
+    part_key: str
+    scene_values: Any = None
+    x_profile: Any = ()
+    y_profile: Any = ()
+    finished_dimensions: Any = None
+    features: Any = ()
+    face_features: Any = None
+    box_body_structure: Any = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "part_key", str(self.part_key or ""))
+        if not self.part_key:
+            raise ValueError("ManufacturingPartInput.part_key must be non-empty")
+        object.__setattr__(
+            self,
+            "scene_values",
+            _as_frozen_mapping(self.scene_values, field_name="scene_values"),
+        )
+        object.__setattr__(self, "x_profile", _as_frozen_sequence(self.x_profile))
+        object.__setattr__(self, "y_profile", _as_frozen_sequence(self.y_profile))
+        object.__setattr__(
+            self,
+            "finished_dimensions",
+            freeze_manufacturing_value(self.finished_dimensions),
+        )
+        object.__setattr__(self, "features", _as_frozen_sequence(self.features))
+        object.__setattr__(
+            self,
+            "face_features",
+            freeze_manufacturing_value({} if self.face_features is None else self.face_features),
+        )
+        object.__setattr__(
+            self,
+            "box_body_structure",
+            freeze_manufacturing_value({} if self.box_body_structure is None else self.box_body_structure),
+        )
+
+    def semantic_payload(self) -> FrozenMapping:
+        return _as_frozen_mapping(
+            {
+                "part_key": self.part_key,
+                "scene_values": self.scene_values,
+                "x_profile": self.x_profile,
+                "y_profile": self.y_profile,
+                "finished_dimensions": self.finished_dimensions,
+                "features": self.features,
+                "face_features": self.face_features,
+                "box_body_structure": self.box_body_structure,
+            },
+            field_name="part semantic payload",
+        )
+
+
+@dataclass(frozen=True)
+class ManufacturingResolveRequest:
+    source_revision: str = ""
+    source_fingerprint: str = ""
+    input_snapshot: Any = None
+    settings: Any = None
+    box_dimensions: Any = None
+    corner_state: Any = None
+    endcap_fw: Any = None
+    endcap_bottom_wrap: Any = None
+    assembly_graph: Any = None
+    canonical_part_keys: Any = ()
+    parts: Any = ()
+    assembly_intent: str = ""
+    allow_3d_fallback: bool = False
+    relief_clearance: float = 0.0
+    cabinet_model: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "source_revision", str(self.source_revision or ""))
+        object.__setattr__(self, "source_fingerprint", str(self.source_fingerprint or ""))
+        for name in (
+            "input_snapshot",
+            "settings",
+            "box_dimensions",
+            "corner_state",
+            "endcap_fw",
+            "endcap_bottom_wrap",
+            "assembly_graph",
+        ):
+            object.__setattr__(
+                self,
+                name,
+                _as_frozen_mapping(getattr(self, name), field_name=name),
+            )
+
+        part_keys = tuple(sorted({str(key) for key in tuple(self.canonical_part_keys or ()) if str(key)}))
+        object.__setattr__(self, "canonical_part_keys", part_keys)
+
+        normalized_parts: list[ManufacturingPartInput] = []
+        for item in tuple(self.parts or ()):
+            if not isinstance(item, ManufacturingPartInput):
+                raise TypeError("parts must contain ManufacturingPartInput values")
+            normalized_parts.append(item)
+        normalized_parts.sort(key=lambda item: item.part_key)
+        part_names = [item.part_key for item in normalized_parts]
+        if len(part_names) != len(set(part_names)):
+            raise ValueError("duplicate ManufacturingPartInput.part_key")
+        object.__setattr__(self, "parts", tuple(normalized_parts))
+
+        object.__setattr__(self, "assembly_intent", str(self.assembly_intent or ""))
+        object.__setattr__(self, "allow_3d_fallback", bool(self.allow_3d_fallback))
+        object.__setattr__(self, "relief_clearance", round(float(self.relief_clearance or 0.0), 12))
+        object.__setattr__(self, "cabinet_model", str(self.cabinet_model or ""))
+
+    def semantic_payload(self) -> FrozenMapping:
+        """Manufacturing semantics only; revision/transport fingerprints excluded."""
+        return _as_frozen_mapping(
+            {
+                "input_snapshot": self.input_snapshot,
+                "settings": self.settings,
+                "box_dimensions": self.box_dimensions,
+                "corner_state": self.corner_state,
+                "endcap_fw": self.endcap_fw,
+                "endcap_bottom_wrap": self.endcap_bottom_wrap,
+                "assembly_graph": self.assembly_graph,
+                "canonical_part_keys": self.canonical_part_keys,
+                "parts": tuple(part.semantic_payload() for part in self.parts),
+                "assembly_intent": self.assembly_intent,
+                "allow_3d_fallback": self.allow_3d_fallback,
+                "relief_clearance": self.relief_clearance,
+                "cabinet_model": self.cabinet_model,
+            },
+            field_name="request semantic payload",
+        )
+
+
+def manufacturing_request_fingerprint(request: ManufacturingResolveRequest) -> str:
+    if not isinstance(request, ManufacturingResolveRequest):
+        raise TypeError("request must be ManufacturingResolveRequest")
+    return manufacturing_fingerprint(request.semantic_payload())
+
+
+__all__ = [
+    "FrozenMapping",
+    "ManufacturingPartInput",
+    "ManufacturingResolveRequest",
+    "canonical_manufacturing_json",
+    "freeze_manufacturing_value",
+    "manufacturing_fingerprint",
+    "manufacturing_request_fingerprint",
+]
