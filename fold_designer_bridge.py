@@ -54,7 +54,7 @@ from phase6_box_body_structure import (
 
 from phase6_settings_center import (
     GLOBAL_CONTEXT, settings_for_context, UI_TEXT_SIZE_LABELS,
-    normalize_ui_text_size, ui_text_size_label,
+    normalize_ui_text_size, ui_text_size_label, ui_text_size_factor,
 )
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
@@ -4331,6 +4331,26 @@ def _phase6_apply_external_sync(self, envelope):
 
 
 
+def _phase6_left_workspace_width(value) -> int:
+    """Scale only the left workbench width enough to preserve readable controls."""
+    factor = ui_text_size_factor(value)
+    return int(round(338 + max(0.0, float(factor) - 1.0) * 230.0))
+
+
+def _phase6_update_left_workspace_width(self, key=None):
+    canvas = getattr(self, "left_scroll_canvas", None)
+    if canvas is None:
+        return None
+    value = key if key is not None else self._settings_values.get("ui_text_size", "small")
+    target = _phase6_left_workspace_width(value)
+    canvas.configure(width=target)
+    try:
+        canvas.update_idletasks()
+    except Exception:
+        pass
+    return target
+
+
 def _phase6_apply_ui_text_size(self, key):
     if getattr(self, "_phase6_settings_guard", False):
         return
@@ -4339,6 +4359,7 @@ def _phase6_apply_ui_text_size(self, key):
     self._phase6_input_snapshot["ui_text_size"] = key
     self._ui_text_controller.apply(key)
     self.state.ui_text_scale = self._ui_text_controller.factor
+    _phase6_update_left_workspace_width(self, key)
     callback = getattr(self, "_ui_text_size_change_callback", None)
     if callback is not None and not getattr(self, "_phase6_external_apply_guard", False):
         callback(key)
@@ -5802,7 +5823,11 @@ def _phase6_build_persistent_top_area(self):
     # The complete existing left workspace is one scroll owner. It keeps the same
     # selector/editor/state callbacks; this canvas changes presentation only.
     self.left_scroll_canvas = original.tk.Canvas(
-        self.root, width=338, highlightthickness=0, borderwidth=0, takefocus=False
+        self.root,
+        width=_phase6_left_workspace_width(self._settings_values.get("ui_text_size", "small")),
+        highlightthickness=0,
+        borderwidth=0,
+        takefocus=False,
     )
     def _left_scroll_command(*args):
         self.left_scroll_canvas.yview(*args)

@@ -34,6 +34,17 @@ WHD_SEMANTIC_COLORS = MappingProxyType({
 })
 
 
+MPL_CJK_FONT_FAMILIES = (
+    "Microsoft JhengHei",
+    "Noto Sans CJK TC",
+    "Noto Sans CJK SC",
+    "PingFang TC",
+    "Arial Unicode MS",
+    "DejaVu Sans",
+    "sans-serif",
+)
+
+
 def _scaled_px(value: int, text_scale: float) -> int:
     try:
         factor = max(1.0, float(text_scale))
@@ -246,6 +257,13 @@ def configure_tk_menu(menu):
 def apply_mpl_dark_theme(figure, axes):
     """Apply dark canvas/readability styling after Matplotlib axes are cleared."""
     colors = WHD_THEME
+    try:
+        import matplotlib
+        matplotlib.rcParams["font.family"] = "sans-serif"
+        matplotlib.rcParams["font.sans-serif"] = list(MPL_CJK_FONT_FAMILIES[:-1])
+        matplotlib.rcParams["axes.unicode_minus"] = False
+    except Exception:
+        pass
     if figure is not None and getattr(figure, "patch", None) is not None:
         figure.patch.set_facecolor(colors["canvas"])
 
