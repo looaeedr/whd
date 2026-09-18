@@ -22,6 +22,11 @@ from .transforms import (
     YMirroredPreviewTransform,
     phase6_2d_material_viewport,
 )
+from .door_view import (
+    draw_preview_error,
+    draw_indicator_box_preview,
+    draw_indicator_door_preview,
+)
 
 __all__ = [
     "_rects_overlap",
@@ -35,4 +40,7 @@ __all__ = [
     "draw_phase6_corner_dimension_overlay",
     "YMirroredPreviewTransform",
     "phase6_2d_material_viewport",
+    "draw_preview_error",
+    "draw_indicator_box_preview",
+    "draw_indicator_door_preview",
 ]
