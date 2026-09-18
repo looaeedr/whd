@@ -13,7 +13,6 @@ import tkinter as tk
 
 import pytest
 
-import fold_designer_bridge as bridge
 
 
 ROOT = Path(__file__).resolve().parents[1]
