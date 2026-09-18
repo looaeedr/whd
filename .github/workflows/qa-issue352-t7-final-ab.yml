@@ -93,7 +93,8 @@ jobs:
           echo "$rc" > pytest.rc
           exit 0
       - name: Summarize
-        run: python - <<'PY'
+        run: |
+          python - <<'PY'
           import json, re
           from pathlib import Path
           log=Path('pytest.log').read_text(errors='replace')
@@ -136,7 +137,8 @@ jobs:
           echo "$rc" > pytest.rc
           exit 0
       - name: Summarize
-        run: python - <<'PY'
+        run: |
+          python - <<'PY'
           import json, re
           from pathlib import Path
           log=Path('pytest.log').read_text(errors='replace')
@@ -181,7 +183,8 @@ jobs:
           echo "$rc" > pytest.rc
           exit 0
       - name: Summarize
-        run: python - <<'PY'
+        run: |
+          python - <<'PY'
           import json, re
           from pathlib import Path
           log=Path('pytest.log').read_text(errors='replace')
@@ -226,7 +229,8 @@ jobs:
           echo "$rc" > pytest.rc
           exit 0
       - name: Summarize
-        run: python - <<'PY'
+        run: |
+          python - <<'PY'
           import json, re
           from pathlib import Path
           log=Path('pytest.log').read_text(errors='replace')
@@ -253,7 +257,8 @@ jobs:
         with:
           path: artifacts
       - name: Classify A-B
-        run: python - <<'PY'
+        run: |
+          python - <<'PY'
           import json
           from pathlib import Path
 
