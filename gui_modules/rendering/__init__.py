@@ -30,6 +30,7 @@ from .door_view import (
     draw_base_plate_preview,
     draw_door_layout_error,
     draw_door_layout_overview_preview,
+    draw_door_layout_dividers_and_frames_preview,
 )
 
 __all__ = [
@@ -51,4 +52,5 @@ __all__ = [
     "draw_base_plate_preview",
     "draw_door_layout_error",
     "draw_door_layout_overview_preview",
+    "draw_door_layout_dividers_and_frames_preview",
 ]
