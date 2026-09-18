@@ -6,17 +6,16 @@
   "claimed_at": "2026-09-18T00:56:30Z",
   "base_sha": "7de32d6c53864ae48b276d4817f4a00e3baaa846",
   "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
-  "phase": "CLOSING",
+  "phase": "REMOTE_QA",
   "state": "RUNNING",
-  "last_update": "2026-09-18T01:21:00Z",
+  "last_update": "2026-09-18T01:23:00Z",
   "remote_qa": {
-    "run_id": 35293770834,
-    "head_sha": "5db23727a0c55d45853fdbb9788b9a83db051eab",
-    "status": "completed",
-    "conclusion": "success",
-    "result": "45 passed in 0.47s; changed-file Knowledge Preflight GREEN"
+    "run_id": 35293958723,
+    "head_sha": "d97ec0915b3ef952446385bd171a40a66cb9f145",
+    "status": "in_progress",
+    "purpose": "PR #330 Knowledge Governance Bootstrap"
   },
-  "next_action": "create integration PR from d97ec0915... to unchanged cleanup/2d-3d-sync@7de32d6..., monitor PR checks, then non-force merge if green",
+  "next_action": "poll PR #330 run 35293958723 at head d97ec091... to terminal; if success re-read mergeability then non-force merge",
   "blocker": null,
   "checkpoint": "docs/superpowers/verification/2026-09-18-issue329-ui-ux-pro-max-skill.md"
 }
