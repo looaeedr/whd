@@ -128,13 +128,21 @@ def test_issue355_canonical_serialization_is_order_stable_and_json_safe():
 
 
 def test_issue355_request_does_not_switch_canonical_resolver_path():
-    import inspect
+    import ast
+    from pathlib import Path
 
-    import phase6_manufacturing_geometry
-
-    source = inspect.getsource(phase6_manufacturing_geometry._phase6_resolve_manufacturing_geometry)
-    assert "ManufacturingResolveRequest" not in source
-    assert "manufacturing_service.resolve" not in source
+    path = Path("phase6_manufacturing_geometry.py")
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(path))
+    resolver = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_phase6_resolve_manufacturing_geometry"
+    )
+    resolver_source = ast.get_source_segment(source, resolver) or ""
+    assert "ManufacturingResolveRequest" not in resolver_source
+    assert "manufacturing_service.resolve" not in resolver_source
 
 # issue355 T1 RED trigger
 
