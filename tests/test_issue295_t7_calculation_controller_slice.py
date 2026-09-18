@@ -42,9 +42,12 @@ def _update_method():
         if isinstance(node, ast.ClassDef) and node.name == "Phase6ApplicationHost"
     )
     return next(
-        node for node in host.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name == "update_calculations"
+        (
+            node for node in host.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == "update_calculations"
+        ),
+        None,
     )
 
 
@@ -53,7 +56,10 @@ def test_calculation_controller_owner_exists_and_root_is_thin():
     text = OWNER.read_text(encoding="utf-8")
     assert "def update_calculations(" in text
     node = _update_method()
-    assert node.end_lineno - node.lineno + 1 <= 5
+    if node is not None:
+        assert node.end_lineno - node.lineno + 1 <= 5
+    else:
+        assert "update_calculations = _phase6_calculation_controller.update_calculations" in GUI.read_text(encoding="utf-8")
 
 
 def test_incomplete_numeric_input_clears_all_result_values_without_escape():
