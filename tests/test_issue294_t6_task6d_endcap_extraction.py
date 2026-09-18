@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GUI = ROOT / "gui.py"
+APP = ROOT / "gui_modules" / "application" / "render_snapshots.py"
 BOX_VIEW = ROOT / "gui_modules" / "rendering" / "box_body_view.py"
 
 
@@ -43,11 +44,17 @@ def test_task6d_root_draw_end_cap_is_thin_delegate():
     assert span <= 8, f"T6 TASK6D RED: draw_end_cap span={span} > 8"
 
 
-def test_task6d_root_keeps_endcap_render_snapshot_authority():
-    source, methods = _host_methods()
-    name = "_end_cap_render_snapshot"
-    assert name in methods, "T6 TASK6D RED: Endcap render snapshot builder missing"
-    body = ast.get_source_segment(source, methods[name]) or ""
+def test_task6d_application_keeps_endcap_snapshot_orchestration():
+    source = APP.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    body = ast.get_source_segment(
+        source, functions["end_cap_render_snapshot"]
+    ) or ""
     for token in (
         "_end_cap_part_spec",
         "_authoritative_render_data",
@@ -56,8 +63,6 @@ def test_task6d_root_keeps_endcap_render_snapshot_authority():
         "is_unknown_model",
     ):
         assert token in body, f"Endcap snapshot missing authority token: {token}"
-
-
 def test_task6d_endcap_presenter_is_render_data_consumer_only():
     source = BOX_VIEW.read_text(encoding="utf-8")
     tree = ast.parse(source)
