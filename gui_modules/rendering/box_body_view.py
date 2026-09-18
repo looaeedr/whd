@@ -257,3 +257,50 @@ def draw_end_cap_preview(
     annotation_drawer(canvas, render_data, transform, part_key=part_key)
     host._draw_phase6_finished_dimension_summary(canvas, part_key=part_key)
     hint_drawer(canvas, canvas_width, endcap=True)
+
+
+
+def box_body_baseline_faces(host, val, *, ae_module):
+    model = host._baseline_source_model()
+    if not model or not ae_module.has_baseline_part(model, "箱身.dxf"):
+        return {"left": [], "back": [], "right": []}
+
+    head_policy, tail_policy = host._box_body_corner_policies(val["fw"])
+    source_fp = ae_module.baseline_source_fingerprint(
+        ae_module.baseline_expected_path(model, "箱身.dxf")
+    )
+    cache_key = (
+        source_fp,
+        model,
+        val["w"],
+        val["h"],
+        val["d"],
+        val["t"],
+        val["fw"],
+        val["zl1"],
+        val["zl2"],
+        val["zr1"],
+        val["zr2"],
+        val["z_comp"],
+        head_policy,
+        tail_policy,
+    )
+    if cache_key not in host._box_body_baseline_face_cache:
+        host._box_body_baseline_face_cache[cache_key] = (
+            ae_module.get_box_body_baseline_face_features(
+                model,
+                w=val["w"],
+                h=val["h"],
+                d=val["d"],
+                t=val["t"],
+                fw=val["fw"],
+                zl1=val["zl1"],
+                zl2=val["zl2"],
+                zr1=val["zr1"],
+                zr2=val["zr2"],
+                z_comp=val["z_comp"],
+                head_corner_policy=head_policy,
+                tail_corner_policy=tail_policy,
+            )
+        )
+    return host._box_body_baseline_face_cache[cache_key]
