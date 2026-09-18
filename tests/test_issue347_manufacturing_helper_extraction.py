@@ -95,3 +95,5 @@ def test_issue347_pure_helper_behavior_is_preserved():
     )
 
 # issue347 T2 workflow trigger
+
+# issue347 T2 parity matrix trigger
