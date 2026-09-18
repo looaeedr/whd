@@ -28,7 +28,7 @@ def _func(path: Path, name: str) -> str:
     source = _text(path)
     tree = ast.parse(source)
     node = next(
-        n for n in tree.body
+        n for n in ast.walk(tree)
         if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name
     )
     return ast.get_source_segment(source, node) or ""
