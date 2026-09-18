@@ -129,6 +129,7 @@ from phase6_final_scene_view import (
 
 
 from phase6_manufacturing_geometry import (
+    _phase6_bind_bridge_callbacks,
     _PHASE6_ASSEMBLY_PLACEMENTS,
     _phase6_door_part_assembly_placement,
     _phase6_assembly_placement_for_part,
@@ -8988,6 +8989,12 @@ Phase6FoldDesignerApp._phase6_mesh_profiles_for_part = _phase6_mesh_profiles_for
 Phase6FoldDesignerApp._phase6_operator_finished_dimensions = _phase6_operator_finished_dimensions
 Phase6FoldDesignerApp._phase6_scene_query_payload_for_part = _phase6_scene_query_payload_for_part
 Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
+_phase6_bind_bridge_callbacks(
+    _phase6_mesh_profiles_for_part=_phase6_mesh_profiles_for_part,
+    _phase6_operator_finished_dimensions=_phase6_operator_finished_dimensions,
+    _phase6_scene_query_payload_for_part=_phase6_scene_query_payload_for_part,
+    _phase6_publish_live_state=_phase6_publish_live_state,
+)
 Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
 Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
 Phase6FoldDesignerApp.apply_external_model = _phase6_apply_external_model
