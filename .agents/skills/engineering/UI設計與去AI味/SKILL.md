@@ -26,8 +26,35 @@ Authority 依序是：
 
 - `anthropics/skills@34040c9c568585f6929bedeaad110ad08f079624` 的 `skills/frontend-design/SKILL.md`：吸收 subject-specific、intentional typography/layout、anti-template defaults、self-critique。
 - `funboy322/avoid-ai-design@8337060636a8cf12e32e883eb367becd702aa526` 的 `SKILL.md`：吸收 Audit / Rewrite、severity、render-if-available、preserve behavior、re-audit。
+- `nextlevelbuilder/ui-ux-pro-max-skill@15de38fb70bc80ae9276fa7703b48ae861a672e6` 的 `.claude/skills/ui-ux-pro-max/SKILL.md`：吸收 searchable design intelligence、design-system/domain query contract、accessibility / interaction / typography / layout prioritization 與 desktop-aware guidance。
 
-兩者**只作輸入**，WHD 不建立第二套 canonical `frontend-design` / `avoid-ai-design` Skill；Web-specific class、framework、hero、mobile-first 假設不能覆蓋 Tkinter/ttk 與 WHD 工程操作需求。
+以上外部來源**只作輸入**，WHD 不建立第二套 canonical `frontend-design` / `avoid-ai-design` / `ui-ux-pro-max` Skill；Web-specific class、framework、hero、mobile-first 假設不能覆蓋 Tkinter/ttk 與 WHD 工程操作需求。
+
+
+### 1.1 UI UX Pro Max capability route
+
+`UI UX Pro Max` / `ui-ux-pro-max` 是本 Skill 的**外部設計 intelligence 輸入**，不是新的 WHD CURRENT owner。canonical upstream 固定記錄為 `nextlevelbuilder/ui-ux-pro-max-skill@15de38fb70bc80ae9276fa7703b48ae861a672e6`；更新 upstream revision 必須另走 Skill 修改、contract 與 review，不可默默追 latest。
+
+每次 UI/UX 任務先做 **runtime capability check**：
+
+1. 若目前 runtime 真的已安裝且可呼叫 UI UX Pro Max，先依任務使用最小查詢：New Design / 系統級方向用 `--design-system`；單一 UI 問題用明確 `--domain`；stack guidance 只在專案真的偵測到 upstream 支援的 stack 時使用。
+2. WHD 是 Tkinter/ttk desktop app，而 upstream 目前沒有 Tkinter stack；**不得假造 `--stack tkinter`**，也不得硬套 React / Tailwind / mobile-first / touch / GSAP / Web performance 建議。優先吸收與 WHD 相容的 accessibility、keyboard/focus、layout、spacing、typography、information density、forms/feedback 與 interaction hierarchy。
+3. 查詢結果只作 recommendation。先由本 Skill 與 WHD product/domain contract 過濾再施工；不得把外部搜尋結果、palette、spacing、font、fixture 或 design-system 輸出升格成 WHD product / geometry / manufacturing / persistence authority。
+4. 預設不使用 upstream `--persist` 建立第二套 design-system Source of Truth；只有使用者／WHD 明確要求且 branch-first scope 已納入時才可落盤，並標為 reference/input。
+5. 若 runtime 沒有 UI UX Pro Max、search script 或相依能力，使用本 Skill 已固化規則做 **inline fallback**，並明確標記 `UI UX Pro Max runtime unavailable`；**不得假裝**已執行 upstream query、不得等待不存在的工具。
+6. 不把 private project data、未公開檔案內容或機密值塞進外部 query。
+
+固定執行順序：
+
+```text
+WHD functional/domain contract
+→ UI UX Pro Max design intelligence (if runtime available)
+→ UI設計與去AI味 filtering
+→ TDD / implementation
+→ Tk/Xvfb functional + layout regression
+→ visual acceptance（只有真 GUI / screenshot / Xvfb evidence 才可宣告）
+```
+
 
 ## 2. 責任邊界
 
