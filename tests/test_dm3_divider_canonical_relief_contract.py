@@ -28,9 +28,9 @@ def test_dm3_manufacturing_domain_owns_divider_relief_result_contract():
 
 
 def test_dm3_bridge_must_delegate_divider_relief_to_manufacturing_domain():
-    import fold_designer_bridge
+    import phase6_manufacturing_geometry
 
-    source = inspect.getsource(fold_designer_bridge)
+    source = inspect.getsource(phase6_manufacturing_geometry)
     assert "resolve_divider_final_geometry(" in source
     assert "build_divider_front_fold_relief_candidate(" not in source
     assert "_phase6_divider_fw_placement_evidence(" not in source
