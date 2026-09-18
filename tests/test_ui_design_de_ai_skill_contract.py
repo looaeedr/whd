@@ -110,6 +110,7 @@ def test_r4_registry_route_is_intent_scoped_and_readme_discovers_skill():
     required_keywords = {
         "UI設計", "UI", "UX", "去AI味", "AI味", "AI slop", "不像AI", "介面設計",
         "介面重整", "視覺層級", "layout", "typography", "UI audit", "frontend design",
+        "UI UX Pro Max", "UI/UX Pro Max", "ui ux pro max", "ui-ux-pro-max", "UUPM",
     }
     assert required_keywords.issubset(set(route.get("keywords", []))), "R4: route keywords incomplete"
     assert route.get("required_skills") == ["UI設計與去AI味"]
@@ -140,9 +141,33 @@ def test_r6_release_manifest_requires_skill_and_contract():
     assert "tests/test_ui_design_de_ai_skill_contract.py" in mandatory, "R6: UI contract missing from release manifest"
 
 
+
+def test_r1_ui_ux_pro_max_external_route_is_pinned_and_capability_safe():
+    text = _text()
+    for marker in [
+        "UI UX Pro Max",
+        "nextlevelbuilder/ui-ux-pro-max-skill@15de38fb70bc80ae9276fa7703b48ae861a672e6",
+        "runtime capability check",
+        "inline fallback",
+        "--design-system",
+        "--domain",
+        "UI UX Pro Max runtime unavailable",
+    ]:
+        assert marker in text, f"R1: UI UX Pro Max integration missing {marker}"
+    assert "不得假造 `--stack tkinter`" in text
+    assert "不得假裝" in text
+    assert "WHD functional/domain contract" in text
+    assert "UI設計與去AI味 filtering" in text
+    assert "Tk/Xvfb functional + layout regression" in text
+    assert not (ROOT / ".agents" / "skills" / "engineering" / "ui-ux-pro-max").exists(), (
+        "R1: UI UX Pro Max must not become a competing canonical WHD UI Skill"
+    )
+
+
 CHECKS = [
     test_r1_canonical_identity_and_three_modes,
     test_r1_external_sources_are_input_not_canonical_authority,
+    test_r1_ui_ux_pro_max_external_route_is_pinned_and_capability_safe,
     test_r2_audit_is_read_only_and_rewrite_is_incremental,
     test_r2_preserves_behavior_contract_and_domain_authority,
     test_r2_requires_component_level_verify_loop,

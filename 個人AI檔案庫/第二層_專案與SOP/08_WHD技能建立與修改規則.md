@@ -184,6 +184,11 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 
 - `UI設計與去AI味` 是 WHD 的 UI visual design / information hierarchy / existing-UI de-AI audit 與安全 rewrite authority；它**不取代** product、geometry、manufacturing、Save→Reload、2D/3D、DXF 或 domain semantics authority。
 - WHD 是 **Python Tkinter / ttk engineering desktop app**。外部 `frontend-design` 與 `avoid-ai-design` **只作 input / 輸入參考**，不得把 React / Tailwind / shadcn、Web hero 或 mobile-first 假設變成 WHD hard dependency，也不建立第二套 canonical UI Skill。
+
+- `UI UX Pro Max` 納入同一 canonical `UI設計與去AI味` 的外部 design-intelligence route；來源固定記錄 `nextlevelbuilder/ui-ux-pro-max-skill@15de38fb70bc80ae9276fa7703b48ae861a672e6`，**不建立第二顆 CURRENT UI Skill**。
+- UI UX Pro Max 必須先做 runtime capability check：可用時 New Design 可先查 `--design-system`、局部問題查明確 `--domain`；WHD 為 Tkinter/ttk 且 upstream 沒有 Tkinter stack，禁止假造 `--stack tkinter` 或硬套 Web/mobile stack。不可用時走 canonical Skill 的 **inline fallback**，標示 `UI UX Pro Max runtime unavailable`，不得假裝 query 已執行。
+- 固定順序：`WHD functional/domain contract → UI UX Pro Max design intelligence (if available) → UI設計與去AI味 filtering → TDD / implementation → Tk/Xvfb functional + layout regression → real visual acceptance`。外部 palette / spacing / typography / design-system output 只屬 recommendation/input，不得覆蓋 WHD product、geometry、manufacturing、Save→Reload、2D/3D 或 DXF authority；預設也不得用 `--persist` 另建第二套設計 SoT。
+
 - 核心順序是 **functionality > aesthetics**。`visual simplification` 不得變成 `semantic simplification`；callback、selection/project state、editable/readonly、Save→Reload、2D/3D、manufacturing、geometry authority、keyboard/accessibility/scroll 都必須保留。
 - 正式 Rewrite 禁止暴力**全域** style / presentation Search/Replace；採**逐元件**施工，最小施工單位是可獨立驗證的 widget / panel / dialog / toolbar / sidebar / workspace region，固定走「讀元件 → 功能 contract → 修改單一區域 → render/inspect（若有）→ functional check → layout regression → 才進下一區域」。
 - 去 AI 味不是灰階化。既有有語意的 Brand / **Action Color**、selection、active、warning、error、success、focus 必須保留其角色，不能因 anti-AI cleanup 全部拔色。
