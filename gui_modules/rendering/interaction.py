@@ -1,0 +1,112 @@
+"""Presentation-only canvas interaction routing for Door views.
+
+The host remains the state owner.  This module only performs hit-testing,
+event normalization, transient drag routing, and callback dispatch.
+"""
+
+import time
+
+from ae_engine.sheetmetal_geometry import Vec2
+
+
+def door_layout_cell_at_canvas_point(bounds_by_key, x, y):
+    """Return (column_index, row_index) for a point inside one visible cell."""
+    for key, bounds in dict(bounds_by_key or {}).items():
+        x1, y1, x2, y2 = bounds
+        if x1 <= x <= x2 and y1 <= y <= y2:
+            column_index, row_index = (int(part) for part in str(key).split(":", 1))
+            return column_index, row_index
+    return None
+
+
+def on_door_canvas_press(host, event):
+    if host.multi_door_enabled_var.get():
+        hit = door_layout_cell_at_canvas_point(
+            host.door_layout_cell_bounds, event.x, event.y
+        )
+        if hit is None:
+            host._door_layout_last_click = None
+            return "break"
+
+        event_time = int(getattr(event, "time", 0) or 0)
+        if not event_time:
+            event_time = int(time.monotonic() * 1000)
+        last = host._door_layout_last_click
+        is_manual_double = False
+        if last is not None:
+            last_hit, last_time = last
+            delta = event_time - last_time if event_time and last_time else 999999
+            is_manual_double = last_hit == hit and 0 <= delta <= 650
+
+        if is_manual_double:
+            host._door_layout_last_click = None
+            host.open_door_layout_cell_editor(*hit)
+        else:
+            host._door_layout_last_click = (hit, event_time)
+            host.select_door_layout_cell(*hit)
+        return "break"
+
+    if (
+        not host.is_door_indicator_var.get()
+        or not hasattr(host, "last_door_draw_params")
+    ):
+        return None
+
+    params = host.last_door_draw_params
+    transform = params.get("transform")
+    layout = params.get("indicator_layout")
+    if transform is None or layout is None:
+        return None
+
+    world = transform.canvas_to_world(event.x, event.y)
+    if layout.hit_test(world, padding=15.0):
+        host.drag_active = True
+        host.drag_start_world = world
+        host.drag_start_offset_x = host.door_indicator_offset_x
+        host.drag_start_offset_y = host.door_indicator_offset_y
+    return None
+
+
+def on_door_canvas_drag(host, event):
+    if not host.drag_active:
+        return None
+
+    params = host.last_door_draw_params
+    transform = params.get("transform")
+    layout = params.get("indicator_layout")
+    if transform is None or layout is None:
+        return None
+
+    world = transform.canvas_to_world(event.x, event.y)
+    delta = world - host.drag_start_world
+    desired = Vec2(
+        host.drag_start_offset_x + delta.x,
+        host.drag_start_offset_y + delta.y,
+    )
+    clamped = layout.clamp_offset(desired)
+    host.door_indicator_offset_x = clamped.x
+    host.door_indicator_offset_y = clamped.y
+    host.draw_preview()
+    return None
+
+
+def on_door_canvas_release(host, event):
+    host.drag_active = False
+    return None
+
+
+def on_door_canvas_double_click(host, event):
+    if host.multi_door_enabled_var.get():
+        hit = (
+            door_layout_cell_at_canvas_point(
+                host.door_layout_cell_bounds, event.x, event.y
+            )
+            if event is not None
+            else None
+        )
+        if hit is not None:
+            host.open_door_layout_cell_editor(*hit)
+        return "break"
+
+    host.open_part_hole_editor("door")
+    return "break"
