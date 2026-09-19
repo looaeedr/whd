@@ -230,6 +230,12 @@ def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     return {"version": CHECKPOINT_VERSION, **data}
 
 
+def checkpoint_to_payload(checkpoint: Checkpoint) -> dict[str, object]:
+    """Public canonical JSON payload for file or GitHub-backed durable storage."""
+
+    return _to_payload(checkpoint)
+
+
 def _checkpoint_fingerprint(checkpoint: Checkpoint) -> str:
     canonical = json.dumps(
         _to_payload(checkpoint),
@@ -282,14 +288,8 @@ def save_checkpoint(path: Path, checkpoint: Checkpoint) -> None:
     _atomic_write_text(Path(path), payload)
 
 
-def load_checkpoint(path: Path) -> Checkpoint:
-    path = Path(path)
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise CheckpointError(f"checkpoint file not found: {path}") from exc
-    except (OSError, json.JSONDecodeError) as exc:
-        raise CheckpointError(f"invalid checkpoint JSON: {path}") from exc
+def checkpoint_from_payload(payload: object) -> Checkpoint:
+    """Validate one canonical checkpoint payload from any durable transport."""
 
     if not isinstance(payload, dict):
         raise CheckpointError("checkpoint payload must be a JSON object")
@@ -340,6 +340,17 @@ def load_checkpoint(path: Path) -> Checkpoint:
         raise CheckpointError(f"missing checkpoint field: {exc.args[0]}") from exc
     except (TypeError, ValueError) as exc:
         raise CheckpointError("checkpoint contains invalid field values") from exc
+
+
+def load_checkpoint(path: Path) -> Checkpoint:
+    path = Path(path)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise CheckpointError(f"checkpoint file not found: {path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise CheckpointError(f"invalid checkpoint JSON: {path}") from exc
+    return checkpoint_from_payload(payload)
 
 
 def transition_checkpoint(
