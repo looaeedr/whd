@@ -2,12 +2,6 @@ name: "QA #367 T3 project persistence RED"
 # explicit trigger after YAML repair
 
 on:
-  push:
-    branches:
-      - refactor/issue367-phase3-project-persistence-20260919
-    paths:
-      - 'tests/test_issue367_t3_project_persistence_owner.py'
-      - '.github/workflows/qa-issue367-t3-red.yml'
   workflow_dispatch:
 
 permissions:
