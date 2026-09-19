@@ -110,6 +110,7 @@ def test_issue393_bridge_builds_explicit_typed_dependencies():
     assert "FinalSceneDependencies(" in source
     assert "Phase6FinalSceneViewAdapter(" in source
     assert "services={" not in source
+    assert ".services" not in source
 
     tree = ast.parse(source, filename=str(BRIDGE))
     imports = _imports(BRIDGE)
