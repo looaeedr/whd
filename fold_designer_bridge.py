@@ -459,6 +459,9 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
     box_whd = getattr(self, "_phase6_box_whd", {})
     pending = getattr(self, "_phase6_pending_settings", {})
     debounce_job = getattr(self, "_phase6_settings_debounce_job", None)
+    workspace = getattr(self, "designer_workspace", None)
+    endcap_fw_state = getattr(self, "_phase6_endcap_fw_state", {})
+    bottom_wrap_state = getattr(self, "_phase6_endcap_bottom_wrap_state", {})
     controller = getattr(self, "_phase6_settings_transaction_controller", None)
     if controller is None:
         controller = Phase6SettingsTransactionController(
@@ -467,6 +470,9 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
             box_whd=box_whd,
             pending_settings=pending,
             debounce_job=debounce_job,
+            workspace=workspace,
+            endcap_fw_state=endcap_fw_state,
+            endcap_bottom_wrap_state=bottom_wrap_state,
         )
         self._phase6_settings_transaction_controller = controller
     else:
@@ -476,6 +482,9 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
             box_whd=box_whd,
             pending_settings=pending,
             debounce_job=debounce_job,
+            workspace=workspace,
+            endcap_fw_state=endcap_fw_state,
+            endcap_bottom_wrap_state=bottom_wrap_state,
         )
     return controller
 
