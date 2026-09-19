@@ -232,7 +232,7 @@ jobs:
             label="$1"; ref="$2"
             git checkout --detach "$ref"
             git reset --hard "$ref"
-            python /tmp/issue371_event_probe.py "$ROOT/$label.json"
+            PYTHONPATH="$GITHUB_WORKSPACE" python /tmp/issue371_event_probe.py "$ROOT/$label.json"
           }
 
           run_one baseline "$BASELINE_SHA"
