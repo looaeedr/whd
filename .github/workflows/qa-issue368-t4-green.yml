@@ -1,14 +1,6 @@
 name: "QA #368 T4 registry diagnostics GREEN"
 
 on:
-  push:
-    branches:
-      - refactor/issue368-phase3-registry-diagnostics-20260919
-    paths:
-      - 'fold_designer_bridge.py'
-      - 'phase6_registry_diagnostics_controller.py'
-      - 'tests/test_issue368_t4_registry_diagnostics_owner.py'
-      - '.github/workflows/qa-issue368-t4-green.yml'
   workflow_dispatch:
 
 permissions:
