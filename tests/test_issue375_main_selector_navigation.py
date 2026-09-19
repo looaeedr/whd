@@ -79,10 +79,16 @@ def test_main_selector_mode_entries_delegate_to_existing_mode_callbacks(monkeypa
     )
 
     bridge._fix11_refresh_part_buttons(owner)
-    entries = owner.part_choice_menu.entries
+    entries = {
+        str(row.get("value", "")): row
+        for row in owner.part_choice_menu.entries
+    }
 
-    entries[0]["command"]()
-    entries[-1]["command"]()
+    assert "組合體" in entries
+    assert "截角資料" in entries
+
+    entries["組合體"]["command"]()
+    entries["截角資料"]["command"]()
 
     assert calls == ["assembly", "corner_data"]
 
