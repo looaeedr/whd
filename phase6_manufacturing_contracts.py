@@ -150,6 +150,10 @@ def _as_frozen_sequence(value: Any) -> tuple[Any, ...]:
 class ManufacturingPartInput:
     part_key: str
     scene_values: Any = None
+    render_data: Any = None
+    committed_render_data: Any = None
+    part_spec: Any = None
+    manufacturing_context: Any = None
     x_profile: Any = ()
     y_profile: Any = ()
     finished_dimensions: Any = None
@@ -205,6 +209,7 @@ class ManufacturingPartInput:
 class ManufacturingResolveRequest:
     source_revision: str = ""
     source_fingerprint: str = ""
+    cache_key_fingerprint: str = ""
     input_snapshot: Any = None
     settings: Any = None
     box_dimensions: Any = None
@@ -223,6 +228,7 @@ class ManufacturingResolveRequest:
     def __post_init__(self) -> None:
         object.__setattr__(self, "source_revision", str(self.source_revision or ""))
         object.__setattr__(self, "source_fingerprint", str(self.source_fingerprint or ""))
+        object.__setattr__(self, "cache_key_fingerprint", str(self.cache_key_fingerprint or ""))
         for name in (
             "input_snapshot",
             "settings",
