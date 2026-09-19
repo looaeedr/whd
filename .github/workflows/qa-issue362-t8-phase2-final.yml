@@ -1,0 +1,282 @@
+name: "#362 T8 Phase2 Final A-B Acceptance"
+
+on:
+  push:
+    branches:
+      - refactor/issue362-phase2-final-acceptance-20260919
+    paths:
+      - 'tools/issue362_phase2_final_acceptance.py'
+      - '.github/workflows/qa-issue362-t8-phase2-final.yml'
+      - 'docs/superpowers/checkpoints/issue362-t8-phase2-final.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  BASELINE_SHA: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
+  CANDIDATE_SHA: 15630860b96fbd3045c6895c02fb6155c7d42e76
+
+jobs:
+  candidate-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify fixed production baseline and ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
+          test "$prod" = "$BASELINE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          echo "PRODUCTION_BASELINE=$prod"
+          echo "CANDIDATE=$CANDIDATE_SHA"
+      - name: Install focused dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run Phase2 focused contracts
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue355_manufacturing_dto_contracts.py             tests/test_issue356_manufacturing_adapter.py             tests/test_issue357_manufacturing_result_contracts.py             tests/test_issue358_remove_manufacturing_callbacks.py             tests/test_issue359_manufacturing_cache_service.py             tests/test_issue360_pure_manufacturing_service.py             tests/test_issue361_one_line_manufacturing_facade.py             tests/test_resolved_manufacturing_bridge.py             tests/test_resolved_manufacturing_export.py             tests/test_resolved_manufacturing_geometry.py
+          python tools/issue359_cache_performance_gate.py
+      - name: Enforce final static architecture gates
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          service_path = Path("phase6_manufacturing_service.py")
+          service_src = service_path.read_text(encoding="utf-8")
+          service = ast.parse(service_src, filename=str(service_path))
+
+          imports = []
+          for node in ast.walk(service):
+              if isinstance(node, ast.Import):
+                  imports.extend(a.name for a in node.names)
+              elif isinstance(node, ast.ImportFrom) and node.module:
+                  imports.append(node.module)
+          roots = {name.split(".", 1)[0] for name in imports}
+          forbidden_roots = {"fold_designer_bridge", "tkinter", "gui", "gui_modules"}
+          assert not (roots & forbidden_roots), roots & forbidden_roots
+
+          loaded = {n.id for n in ast.walk(service) if isinstance(n, ast.Name)}
+          attrs = {n.attr for n in ast.walk(service) if isinstance(n, ast.Attribute)}
+          assert "self" not in loaded
+          forbidden = {
+              "designer_workspace", "_scene_query_callback",
+              "_PHASE6_BRIDGE_CALLBACKS", "_phase6_bind_bridge_callbacks",
+              "_phase6_call_bridge",
+          }
+          assert not (forbidden & (loaded | attrs))
+          assert "designer_workspace" not in service_src
+
+          resolver_count = sum(
+              1 for n in service.body
+              if isinstance(n, ast.FunctionDef) and n.name == "resolve"
+          )
+          assert resolver_count == 1, resolver_count
+
+          bridge_path = Path("fold_designer_bridge.py")
+          bridge_src = bridge_path.read_text(encoding="utf-8")
+          bridge = ast.parse(bridge_src, filename=str(bridge_path))
+          facade = next(
+              n for n in bridge.body
+              if isinstance(n, ast.FunctionDef)
+              and n.name == "_phase6_resolve_manufacturing_geometry"
+          )
+          seg = ast.get_source_segment(bridge_src, facade) or ""
+          assert "resolve_for_app(self)" in seg
+          forbidden_solver_tokens = (
+              "joint_relief", "solve_world_backprojected", "collision",
+              "USER_ADDED", "WRAP", "Divider",
+          )
+          assert not any(tok in seg for tok in forbidden_solver_tokens), seg
+
+          print("SERVICE_SELF_READS=0")
+          print("SERVICE_SELF_WRITES=0")
+          print("SERVICE_BRIDGE_IMPORTS=0")
+          print("SERVICE_TK_IMPORTS=0")
+          print("SERVICE_DESIGNER_WORKSPACE_REFS=0")
+          print("SERVICE_CALLBACK_REGISTRY_REFS=0")
+          print("CANONICAL_RESOLVER_OWNER_COUNT=1")
+          print("BRIDGE_FACADE_SOLVER_LOGIC=0")
+          PY
+      - name: Verify Phase2 protected-source scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASELINE_SHA" "$CANDIDATE_SHA" | sort | tee /tmp/phase2-files.txt
+          if grep -Ei '\.(dxf)$|(^|/)config\.ini$' /tmp/phase2-files.txt; then
+            echo "PHASE2_PROTECTED_SOURCE_DRIFT"
+            exit 1
+          fi
+          echo "PHASE2_DXF_CONFIG_SOURCE_DRIFT=0"
+
+  full-ab:
+    needs: candidate-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: baseline-headless
+            sha: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
+            mode: headless
+          - label: candidate-headless
+            sha: 15630860b96fbd3045c6895c02fb6155c7d42e76
+            mode: headless
+          - label: baseline-xvfb
+            sha: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
+            mode: xvfb
+          - label: candidate-xvfb
+            sha: 15630860b96fbd3045c6895c02fb6155c7d42e76
+            mode: xvfb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.mode }}" = "xvfb" ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq xvfb
+          fi
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest pytest-json-report matplotlib ezdxf
+      - name: Capture protected digests before
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue362
+          git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > .scratch/issue362/tracked-before.sha256
+          find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}' > .scratch/issue362/config-dxf-before.sha256
+      - name: Run full ${{ matrix.mode }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p .scratch/issue362
+          start="$(date +%s)"
+          set +e
+          if [ "${{ matrix.mode }}" = "xvfb" ]; then
+            xvfb-run -a python -m pytest -q -ra --tb=short               --json-report --json-report-file=.scratch/issue362/report.json tests               2>&1 | tee .scratch/issue362/pytest.log
+            rc=${PIPESTATUS[0]}
+          else
+            python -m pytest -q -ra --tb=short               --json-report --json-report-file=.scratch/issue362/report.json tests               2>&1 | tee .scratch/issue362/pytest.log
+            rc=${PIPESTATUS[0]}
+          fi
+          set -e
+          end="$(date +%s)"
+          echo "$rc" > .scratch/issue362/pytest.rc
+          echo "$((end-start))" > .scratch/issue362/elapsed.seconds
+          exit 0
+      - name: Normalize A-B evidence
+        if: always()
+        shell: bash
+        env:
+          LABEL: ${{ matrix.label }}
+          EXPECTED_SHA: ${{ matrix.sha }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          tracked_after="$(git ls-files -z | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+          config_after="$(find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+          printf '%s\n' "$tracked_after" > .scratch/issue362/tracked-after.sha256
+          printf '%s\n' "$config_after" > .scratch/issue362/config-dxf-after.sha256
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          root = Path(".scratch/issue362")
+          label = os.environ["LABEL"]
+          sha = os.environ["EXPECTED_SHA"]
+          mode = os.environ["MODE"]
+          rc = int((root / "pytest.rc").read_text().strip()) if (root / "pytest.rc").exists() else 999
+          elapsed = int((root / "elapsed.seconds").read_text().strip()) if (root / "elapsed.seconds").exists() else -1
+          protected = (
+              (root / "tracked-before.sha256").read_text() != (root / "tracked-after.sha256").read_text()
+              or (root / "config-dxf-before.sha256").read_text() != (root / "config-dxf-after.sha256").read_text()
+          )
+
+          report_path = root / "report.json"
+          failed, errors, skipped = [], [], []
+          collected = 0
+          harness_error = None
+          if report_path.exists():
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              tests = report.get("tests", [])
+              collected = int(report.get("summary", {}).get("total", len(tests)) or len(tests))
+              for item in tests:
+                  nodeid = item.get("nodeid", "")
+                  outcome = item.get("outcome")
+                  if outcome == "failed":
+                      failed.append(nodeid)
+                  elif outcome == "skipped":
+                      skipped.append(nodeid)
+              collectors = report.get("collectors", [])
+              for item in collectors:
+                  if item.get("outcome") == "failed":
+                      errors.append(item.get("nodeid") or item.get("longrepr") or "<collection-error>")
+          else:
+              harness_error = "JSON_REPORT_MISSING"
+          if rc not in (0, 1):
+              harness_error = f"PYTEST_RC_{rc}"
+
+          payload = {
+              "label": label,
+              "sha": sha,
+              "mode": mode,
+              "exit_code": rc,
+              "elapsed_seconds": elapsed,
+              "collected": collected,
+              "failed_nodes": sorted(set(failed)),
+              "error_nodes": sorted(set(errors)),
+              "skipped_nodes": sorted(set(skipped)),
+              "protected_drift": protected,
+              "harness_error": harness_error,
+          }
+          (root / "result.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(payload, indent=2, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue362-${{ matrix.label }}
+          path: .scratch/issue362
+          if-no-files-found: error
+
+  classify-ab:
+    needs: [candidate-preflight, full-ab]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: issue362-*
+          path: .scratch/issue362-artifacts
+      - name: Classify fixed-baseline A-B
+        run: |
+          set -euo pipefail
+          python tools/issue362_phase2_final_acceptance.py             .scratch/issue362-artifacts             .scratch/issue362-ab-summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue362-ab-summary
+          path: .scratch/issue362-ab-summary.json
+          if-no-files-found: error
