@@ -1,0 +1,183 @@
+name: "QA #393 T4 GREEN typed Final Scene contracts"
+
+on:
+  push:
+    branches:
+      - "refactor/issue393-phase4-t4-final-scene-contracts-20260920"
+    paths:
+      - "phase6_final_scene_contracts.py"
+      - "phase6_final_scene_view.py"
+      - "fold_designer_bridge.py"
+      - "tests/test_issue393_final_scene_contracts.py"
+      - "tools/issue393_t4_projection_renderer_fingerprint.py"
+      - ".github/workflows/qa-issue393-t4-green.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=393"
+          echo "PREDECESSOR=70c4a0a470647322e7aa4a685b74b27520019652"
+          echo "HEAD=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor 70c4a0a470647322e7aa4a685b74b27520019652 HEAD
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Compile T4 sources
+        run: |
+          python -m py_compile             phase6_final_scene_contracts.py             phase6_final_scene_view.py             fold_designer_bridge.py             tools/issue393_t4_projection_renderer_fingerprint.py
+
+      - name: T4 typed-contract GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue393_final_scene_contracts.py --tb=short
+          echo "ISSUE393_T4_CONTRACT_GREEN=1"
+
+      - name: Existing Final Scene focused regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue370_t6_final_scene_view_owner.py             tests/test_phase6_final_scene_view_ownership.py             tests/test_phase6_3d_cutting_mesh.py             tests/test_phase6_assembly_3d_view.py             --tb=short
+          echo "ISSUE393_T4_EXISTING_3D_GREEN=1"
+
+      - name: Projection-renderer predecessor A-B fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=70c4a0a470647322e7aa4a685b74b27520019652
+          rm -rf /tmp/issue393-base
+          git worktree add --detach /tmp/issue393-base "$base"
+          python tools/issue393_t4_projection_renderer_fingerprint.py             --source /tmp/issue393-base/phase6_final_scene_view.py             > /tmp/issue393-baseline.json
+          python tools/issue393_t4_projection_renderer_fingerprint.py             --source phase6_final_scene_view.py             > /tmp/issue393-candidate.json
+          python - <<'PY'
+          import json
+          b=json.load(open("/tmp/issue393-baseline.json",encoding="utf-8"))
+          c=json.load(open("/tmp/issue393-candidate.json",encoding="utf-8"))
+          assert b["definition_count"] == c["definition_count"], (b,c)
+          assert b["hashes"] == c["hashes"], {
+              k:(b["hashes"].get(k),c["hashes"].get(k))
+              for k in sorted(set(b["hashes"]) | set(c["hashes"]))
+              if b["hashes"].get(k) != c["hashes"].get(k)
+          }
+          assert b["aggregate"] == c["aggregate"], (b["aggregate"],c["aggregate"])
+          print("ISSUE393_T4_PROJECTION_RENDERER_AB_DELTA=0")
+          print("ISSUE393_T4_FINGERPRINTED_DEFINITIONS="+str(c["definition_count"]))
+          PY
+
+      - name: Typed dependency direction gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          contracts=Path("phase6_final_scene_contracts.py")
+          ctree=ast.parse(contracts.read_text(encoding="utf-8"),filename=str(contracts))
+          imports=set()
+          for n in ast.walk(ctree):
+              if isinstance(n,ast.Import):
+                  imports.update(a.name for a in n.names)
+              elif isinstance(n,ast.ImportFrom) and n.module:
+                  imports.add(n.module)
+          bad=sorted(
+              x for x in imports
+              if x=="tkinter" or x.startswith("tkinter.")
+              or x=="fold_designer_bridge"
+              or x.startswith("gui")
+              or x.startswith("matplotlib")
+          )
+          assert not bad,bad
+
+          view=Path("phase6_final_scene_view.py").read_text(encoding="utf-8")
+          bridge=Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          assert "def _service(" not in view
+          assert "self.services" not in view
+          assert "services.get(" not in view
+          assert "services={" not in bridge
+          assert "FinalSceneDependencies(" in bridge
+          print("FINAL_SCENE_DYNAMIC_SERVICE_LOOKUP=0")
+          print("FINAL_SCENE_GENERIC_SERVICE_BAG=0")
+          print("FINAL_SCENE_CONTRACT_REVERSE_IMPORTS=0")
+          PY
+
+      - name: Scope and protected drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=70c4a0a470647322e7aa4a685b74b27520019652
+          git diff --name-only "$base"...HEAD | sort | tee /tmp/issue393-changed
+          python - <<'PY'
+          from pathlib import Path
+          changed=set(Path("/tmp/issue393-changed").read_text().splitlines())
+          allowed={
+            "phase6_final_scene_contracts.py",
+            "phase6_final_scene_view.py",
+            "fold_designer_bridge.py",
+            "tests/test_issue393_final_scene_contracts.py",
+            "tools/issue393_t4_projection_renderer_fingerprint.py",
+            ".github/workflows/qa-issue393-t4-red.yml",
+            ".github/workflows/qa-issue393-t4-green.yml",
+          }
+          unexpected=sorted(changed-allowed)
+          assert not unexpected,unexpected
+          print("ISSUE393_T4_SCOPE_GREEN=1")
+          PY
+          protected=(
+            phase6_settings_contracts.py
+            phase6_settings_transitions.py
+            phase6_settings_service.py
+            phase6_settings_transaction_controller.py
+            phase6_settings_panel.py
+            phase6_workspace_navigation_controller.py
+            phase6_project_controller.py
+            phase6_registry_diagnostics_controller.py
+            phase6_corner_data_view_adapter.py
+            phase6_manufacturing_cache.py
+            phase6_manufacturing_contracts.py
+            phase6_manufacturing_geometry.py
+            phase6_manufacturing_service.py
+            phase6_manufacturing_adapter.py
+            config.ini
+            ae_engine/cabinet_types/policy.py
+            ae_engine/cabinet_types/receiving.py
+            ae_engine/cabinet_types/vault.py
+          )
+          git diff --exit-code "$base"...HEAD -- "${protected[@]}"
+          echo "ISSUE393_T4_PROTECTED_DRIFT=0"
+
+  xvfb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Final Scene Xvfb regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q             tests/test_phase6_3d_view_regressions.py             tests/test_phase6_3d_operator_view.py             tests/test_separate_3d_entry_contract.py             --tb=short
+          echo "ISSUE393_T4_XVFB_GREEN=1"
