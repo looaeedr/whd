@@ -45,8 +45,8 @@ def _is_descendant(widget, ancestor):
 def test_first_3d_view_is_assembly_while_sheetmetal_selector_stays_on_real_part(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        assert app.part_choice_menu.entrycget(0, "label") == "箱身"
-        assert app.part_var.get() == "箱身"
+        assert app.part_choice_menu.entrycget(0, "label") == "組合體"
+        assert app.part_var.get() == "組合體"
         assert app._phase6_3d_display_mode == "assembly"
         assert app.fold_editor_host.winfo_manager() == ""
         assert app.settings_center.winfo_manager() == ""
@@ -60,7 +60,7 @@ def test_selecting_real_sheet_part_switches_to_single_part_editor(monkeypatch):
     try:
         app.activate_part("box_body")
         root.update_idletasks()
-        assert app.part_var.get() == "箱身"
+        assert app.part_var.get() == "組合體"
         assert app._phase6_3d_display_mode == "single"
         assert app.fold_editor_host.winfo_manager() == "pack"
     finally:
@@ -90,7 +90,8 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
             app.part_choice_menu.entrycget(i, "label")
             for i in range(app.part_choice_menu.index("end") + 1)
         ]
-        assert "組合體" not in menu_labels
+        assert menu_labels[0] == "組合體"
+        assert menu_labels[-1] == "截角資料"
         assert "截角資料" not in menu_labels
         assert menu_labels[0] == "箱身"
         assert app.ui_text_size_combo.master is app.visual_controls
@@ -122,7 +123,7 @@ def test_parameter_unlock_routes_to_assembly_diagnostics_then_part_settings(monk
     root, win, app = _make_app(monkeypatch)
     try:
         assert app._phase6_3d_display_mode == "assembly"
-        assert app.part_var.get() == "箱身"
+        assert app.part_var.get() == "組合體"
         assert bridge._phase6_toggle_parameter_panel(app) is True
         root.update_idletasks()
         assert app.assembly_diagnostics_frame.winfo_manager() == "pack"
@@ -203,7 +204,7 @@ def test_parameter_unlock_shows_assembly_diagnostics_while_assembly_is_selected(
     root, win, app = _make_app(monkeypatch)
     try:
         assert app._phase6_3d_display_mode == "assembly"
-        assert app.part_var.get() == "箱身"
+        assert app.part_var.get() == "組合體"
         assert bridge._phase6_toggle_parameter_panel(app) is True
         root.update_idletasks()
         assert app.assembly_diagnostics_frame.winfo_manager() == "pack"
@@ -239,7 +240,7 @@ def test_parameter_lock_button_invoke_makes_assembly_panel_actually_visible(monk
     try:
         root.update_idletasks(); root.update()
         assert app._phase6_3d_display_mode == "assembly"
-        assert app.part_var.get() == "箱身"
+        assert app.part_var.get() == "組合體"
         assert app.assembly_diagnostics_frame.winfo_viewable() == 0
 
         app.parameter_lock_button.invoke()
