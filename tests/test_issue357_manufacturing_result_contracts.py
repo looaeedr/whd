@@ -103,10 +103,12 @@ def test_issue357_adapter_apply_reproduces_phase1_legacy_state_without_executing
         _phase6_input_snapshot={"keep": 1},
         _live_sync_callback=lambda payload: calls.append(payload),
     )
+    snapshot_owner = app._phase6_input_snapshot
 
     returned = apply_manufacturing_result(app, result)
 
     assert returned is geometry
+    assert app._phase6_input_snapshot is snapshot_owner
     assert app._phase6_last_interference_probe_parts == ("head", "tail")
     assert app._phase6_last_relief_errors == {"tail": "shadow mismatch"}
     assert app._phase6_last_relief_solutions == {"head": solution}
