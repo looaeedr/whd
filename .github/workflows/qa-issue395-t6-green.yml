@@ -1,0 +1,207 @@
+name: "QA #395 T6 GREEN Final Scene renderer/runtime"
+
+on:
+  push:
+    branches:
+      - "refactor/issue395-phase4-t6-final-scene-renderer-20260920"
+    paths:
+      - "phase6_final_scene_renderer.py"
+      - "phase6_final_scene_view.py"
+      - "phase6_final_scene_contracts.py"
+      - "fold_designer_bridge.py"
+      - "tests/test_issue393_final_scene_contracts.py"
+      - "tests/test_issue395_final_scene_renderer.py"
+      - "tools/issue395_t6_renderer_fingerprint.py"
+      - ".github/workflows/qa-issue395-t6-green.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=395"
+          echo "PREDECESSOR=b24625cbc9a75223c02eb16a6128923323c573f5"
+          echo "HEAD=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor b24625cbc9a75223c02eb16a6128923323c573f5 HEAD
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Compile T6 sources
+        run: |
+          python -m py_compile             phase6_final_scene_renderer.py             phase6_final_scene_view.py             phase6_final_scene_contracts.py             fold_designer_bridge.py             tools/issue395_t6_renderer_fingerprint.py
+
+      - name: T6 renderer ownership GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue395_final_scene_renderer.py             tests/test_issue393_final_scene_contracts.py             --tb=short
+          echo "ISSUE395_T6_OWNERSHIP_GREEN=1"
+
+      - name: Renderer predecessor A-B fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=b24625cbc9a75223c02eb16a6128923323c573f5
+          rm -rf /tmp/issue395-base
+          git worktree add --detach /tmp/issue395-base "$base"
+          python tools/issue395_t6_renderer_fingerprint.py             --source /tmp/issue395-base/phase6_final_scene_view.py             --class-name Phase6FinalSceneView             > /tmp/issue395-baseline.json
+          python tools/issue395_t6_renderer_fingerprint.py             --source phase6_final_scene_renderer.py             --class-name Phase6FinalSceneRenderer             > /tmp/issue395-candidate.json
+          python - <<'PY'
+          import json
+          b=json.load(open("/tmp/issue395-baseline.json",encoding="utf-8"))
+          c=json.load(open("/tmp/issue395-candidate.json",encoding="utf-8"))
+          assert b["method_count"] == c["method_count"], (b["method_count"],c["method_count"])
+          assert b["method_hashes"] == c["method_hashes"], {
+              k:(b["method_hashes"].get(k),c["method_hashes"].get(k))
+              for k in sorted(set(b["method_hashes"]) | set(c["method_hashes"]))
+              if b["method_hashes"].get(k) != c["method_hashes"].get(k)
+          }
+          assert b["helper_hashes"] == c["helper_hashes"]
+          assert b["aggregate"] == c["aggregate"]
+          print("UNEXPLAINED_3D_RENDER_DELTA=0")
+          print("ISSUE395_T6_RENDERER_METHODS="+str(c["method_count"]))
+          PY
+
+      - name: Final Scene focused regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue394_final_scene_projection.py             tests/test_issue370_t6_final_scene_view_owner.py             tests/test_phase6_final_scene_view_ownership.py             tests/test_phase6_3d_cutting_mesh.py             tests/test_phase6_assembly_3d_view.py             tests/test_joint_diagnostics_contract.py             --tb=short
+          echo "ISSUE395_T6_FOCUSED_GREEN=1"
+
+      - name: Structural hard gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast,re
+          from pathlib import Path
+
+          view=Path("phase6_final_scene_view.py")
+          vsource=view.read_text(encoding="utf-8")
+          vtree=ast.parse(vsource,filename=str(view))
+          attrs=re.findall(r"\bself\.([A-Za-z_][A-Za-z0-9_]*)",vsource)
+          assert len(vsource.splitlines()) <= 750, len(vsource.splitlines())
+          assert len(attrs) <= 48, len(attrs)
+          assert len(set(attrs)) <= 12, sorted(set(attrs))
+
+          cls=next(
+              n for n in vtree.body
+              if isinstance(n,ast.ClassDef)
+              and n.name=="Phase6FinalSceneViewAdapter"
+          )
+          csource=ast.unparse(cls)
+          assert "self.owner" not in csource
+          init=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=="__init__")
+          init_args=[a.arg for a in init.args.args+init.args.kwonlyargs]
+          assert "owner" not in init_args, init_args
+
+          renderer=Path("phase6_final_scene_renderer.py")
+          rsource=renderer.read_text(encoding="utf-8")
+          rtree=ast.parse(rsource,filename=str(renderer))
+          imports=set()
+          for n in ast.walk(rtree):
+              if isinstance(n,ast.Import):
+                  imports.update(a.name for a in n.names)
+              elif isinstance(n,ast.ImportFrom) and n.module:
+                  imports.add(n.module)
+          bad=sorted(x for x in imports if x=="fold_designer_bridge" or x.startswith("gui"))
+          assert not bad,bad
+          assert "self.owner" not in rsource
+          assert "Phase6FoldDesignerApp" not in rsource
+
+          contracts=Path("phase6_final_scene_contracts.py").read_text(encoding="utf-8")
+          bridge=Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          assert "mirror_view_state" not in contracts
+          assert "_phase6_sync_final_scene_view_compatibility_mirrors" not in bridge
+          assert "def _service(" not in vsource
+          assert "self.services" not in vsource
+          print("FINAL_SCENE_OWNER_DEREF=0")
+          print("FINAL_SCENE_DYNAMIC_SERVICE_LOOKUP=0")
+          print("FINAL_SCENE_BRIDGE_MIRROR=0")
+          print("FINAL_SCENE_FACADE_LINES_OVER_LIMIT=0")
+          print("FINAL_SCENE_FACADE_SELF_REFS_OVER_LIMIT=0")
+          print("FINAL_SCENE_FACADE_UNIQUE_ATTRS_OVER_LIMIT=0")
+          PY
+
+      - name: Scope and protected drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=b24625cbc9a75223c02eb16a6128923323c573f5
+          git diff --name-only "$base"...HEAD | sort | tee /tmp/issue395-changed
+          python - <<'PY'
+          from pathlib import Path
+          changed=set(Path("/tmp/issue395-changed").read_text().splitlines())
+          allowed={
+            "phase6_final_scene_renderer.py",
+            "phase6_final_scene_view.py",
+            "phase6_final_scene_contracts.py",
+            "fold_designer_bridge.py",
+            "tests/test_issue393_final_scene_contracts.py",
+            "tests/test_issue395_final_scene_renderer.py",
+            "tools/issue395_t6_renderer_fingerprint.py",
+            ".github/workflows/qa-issue395-t6-red.yml",
+            ".github/workflows/qa-issue395-t6-green.yml",
+          }
+          unexpected=sorted(changed-allowed)
+          assert not unexpected,unexpected
+          print("ISSUE395_T6_SCOPE_GREEN=1")
+          PY
+          protected=(
+            phase6_final_scene_projection.py
+            phase6_settings_contracts.py
+            phase6_settings_transitions.py
+            phase6_settings_service.py
+            phase6_settings_transaction_controller.py
+            phase6_settings_panel.py
+            phase6_workspace_navigation_controller.py
+            phase6_project_controller.py
+            phase6_registry_diagnostics_controller.py
+            phase6_corner_data_view_adapter.py
+            phase6_manufacturing_cache.py
+            phase6_manufacturing_contracts.py
+            phase6_manufacturing_geometry.py
+            phase6_manufacturing_service.py
+            phase6_manufacturing_adapter.py
+            config.ini
+            ae_engine/cabinet_types/policy.py
+            ae_engine/cabinet_types/receiving.py
+            ae_engine/cabinet_types/vault.py
+          )
+          git diff --exit-code "$base"...HEAD -- "${protected[@]}"
+          echo "ISSUE395_T6_PROTECTED_DRIFT=0"
+
+  xvfb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Real Tk / Matplotlib regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q             tests/test_phase6_3d_view_regressions.py             tests/test_phase6_3d_operator_view.py             tests/test_phase6_assembly_3d_view.py             tests/test_separate_3d_entry_contract.py             --tb=short
+          echo "ISSUE395_T6_XVFB_GREEN=1"
