@@ -7491,33 +7491,16 @@ def _phase6_show_input_content(self):
 
 
 def _phase6_build_content_switch(self):
-    """Build the fixed Input / Assembly / Corner Data presentation switch."""
+    """Retain compatibility handles without a second visible navigation strip.
+
+    The main part selector now owns Input/Assembly/Corner-Data navigation.  Keep
+    the legacy attributes so older internal callers can remain tolerant, but do
+    not expose duplicate wrapper labels or buttons in the operator layout.
+    """
     self.content_switch_frame = original.ttk.Frame(self.left)
-    self.content_switch_frame.pack(fill=original.tk.X, pady=(0, 6))
-    self.input_content_button = original.ttk.Button(
-        self.content_switch_frame, text="輸入區",
-        command=lambda: _phase6_show_input_content(self),
-        style="Secondary.TButton",
-        takefocus=True,
-    )
-    self.assembly_content_button = original.ttk.Button(
-        self.content_switch_frame, text="組合體",
-        command=lambda: _phase6_show_assembly(self),
-        style="Secondary.TButton",
-        takefocus=True,
-    )
-    self.corner_data_content_button = original.ttk.Button(
-        self.content_switch_frame, text="截角資料",
-        command=lambda: _phase6_show_corner_data(self),
-        style="Secondary.TButton",
-        takefocus=True,
-    )
-    for button in (
-        self.input_content_button,
-        self.assembly_content_button,
-        self.corner_data_content_button,
-    ):
-        button.pack(side=original.tk.LEFT, fill=original.tk.X, expand=True, padx=1)
+    self.input_content_button = None
+    self.assembly_content_button = None
+    self.corner_data_content_button = None
     _phase6_refresh_content_switch(self)
     return self.content_switch_frame
 
