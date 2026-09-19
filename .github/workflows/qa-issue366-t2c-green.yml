@@ -1,5 +1,5 @@
 name: "QA #366 T2C corner external GREEN"
-# explicit trigger after workflow creation
+# explicit trigger after selector-constant restoration
 
 on:
   push:
