@@ -72,7 +72,10 @@ def test_issue392_bridge_has_no_rebinding_or_scalar_mirror_writes():
 
     factory = ast.unparse(funcs["_phase6_settings_transactions"])
     assert "bind_state" not in factory
-    assert "_phase6_settings_service" in factory
+    assert (
+        "_phase6_settings_service" in factory
+        or "_phase6_composition" in factory
+    )
 
 
 def test_issue392_command_router_no_longer_requires_sync_mirrors_callback():
@@ -128,3 +131,23 @@ def test_issue392_bridge_runtime_maps_keep_stable_identity_after_controller_crea
     )
     for token in forbidden_runtime_replacements:
         assert token not in source
+
+
+def test_issue392_t7_composition_preserves_single_settings_service_injection():
+    composition = Path("gui_modules/application/fold_designer_adapter.py")
+    assert composition.is_file()
+    source = composition.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(composition))
+    cls = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
+    )
+    methods = {
+        node.name: ast.unparse(node)
+        for node in cls.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "Phase6SettingsTransactionService(" in methods["settings_service"]
+    assert "Phase6SettingsTransactionController(" in methods["settings_transactions"]
+    assert "orchestration=self.settings_service()" in methods["settings_transactions"]
