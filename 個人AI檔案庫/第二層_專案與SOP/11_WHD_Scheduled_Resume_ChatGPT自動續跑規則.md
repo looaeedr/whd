@@ -108,3 +108,14 @@ Canonical executable owner：`.agents/skills/engineering/executable-continuity-c
 - 有收尾時，回報後仍繼續 cleanup / invariant / writeback / closure；立即回報不是停工。
 - failure 可修復時，回報後立刻進 recovery。
 - 這是 heartbeat/visibility 優先序，不建立第二套 execution state machine。
+
+## Polling is observation-only
+
+**輪詢只能看進度，不能產生進度。** Scheduled Resume 只有在 real progress producer 已存在時才能維持 WAITING_REMOTE。
+
+- real progress producer 例：exact GitHub Actions run、已提交的 remote job、其他已啟動 executor。
+- no executor / no active run / no producer：立即離開 waiting，回 RUNNING 或 RECOVERING 執行 prerequisite / trigger / repair。
+- RUN_NOT_CREATED 不是等待狀態；它要求建立或修正真正的 producer。
+- terminal run 只代表觀測到結果；下一步仍必須由 executor 執行。
+- 反覆 poll 同一靜止狀態不算 progress。
+- 使用者不是 scheduler，不應靠「輪／繼續」來製造進度。
