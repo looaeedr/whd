@@ -741,14 +741,7 @@ def test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_c
         settings_context="box_body",
         do_update=lambda: None,
     )
-    sync_calls = []
     legacy_apply_calls = []
-
-    monkeypatch.setattr(
-        bridge,
-        "_phase6_sync_joint_state_for_intent",
-        lambda self, type_id: sync_calls.append(type_id) or (),
-    )
     monkeypatch.setattr(
         bridge,
         "apply_box_assembly_type_to_raw_state",
@@ -759,9 +752,9 @@ def test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_c
 
     bridge._phase6_on_assembly_type_selected(holder)
 
-    assert sync_calls == [bridge.CornerTypeId.OVERLAY]
     assert legacy_apply_calls == []
     assert holder._phase6_input_snapshot["assembly_type"] == bridge.CornerTypeId.OVERLAY.value
+    assert holder._phase6_input_snapshot["assembly_joints"]
     assert holder._phase6_corner_state is original_corner_state
     assert workspace.dirty is True
 
