@@ -45,10 +45,16 @@ def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
     apply_settings = ast.unparse(funcs["_phase6_apply_setting_updates"])
     baseline = ast.unparse(funcs["_phase6_on_baseline_model_changed"])
 
-    assert "commit_reconciled_width_structure" in apply_settings
-    assert "reconcile_box_body_structure_for_total_w_change" not in apply_settings
+    assert "commit_reconciled_width_structure" in apply_settings, (
+        "RED: bridge still owns T2D width/structure transaction semantics"
+    )
+    assert "reconcile_box_body_structure_for_total_w_change" not in apply_settings, (
+        "RED: bridge still owns T2D width/structure transaction semantics"
+    )
 
-    assert "commit_family_model_transition" in baseline
+    assert "commit_family_model_transition" in baseline, (
+        "RED: bridge still owns T2D family/model transaction semantics"
+    )
 
     forbidden_tokens = (
         "cabinet_family_policy.apply_fresh_family_defaults",
