@@ -20,7 +20,10 @@ jobs:
           python -m pip install pytest matplotlib -r requirements.txt
       - name: T3 service ownership regressions
         run: |
-          python -m pytest -q tests/test_issue397_phase4_runtime_remediation.py --tb=short
+          python -m pytest -q \
+            tests/test_issue397_phase4_runtime_remediation.py \
+            tests/test_issue392_settings_service.py::test_issue392_bridge_runtime_maps_keep_stable_identity_after_controller_creation \
+            --tb=short
       - name: T8 candidate-only headless remediation cohort
         run: |
           python -m pytest -q \
