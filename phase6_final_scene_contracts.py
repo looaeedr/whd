@@ -101,7 +101,23 @@ class FinalSceneDependencies:
     assembly_render_provider: Callable[[], object] | None = None
     request_provider: Callable[[], FinalSceneViewRequest | None] | None = None
     after_render: Callable[[], object] | None = None
-    mirror_view_state: Callable[[object], object] | None = None
+
+    # T6 explicit application/view ports. These replace the generic app-owner
+    # reference that the adapter used to retain.
+    active_part: Callable[[], str] | None = None
+    scene_query: Callable[[str, object], object] | None = None
+    input_snapshot: Callable[[], Mapping[str, object]] | None = None
+    settings_values: Callable[[], Mapping[str, object]] | None = None
+    alpha_bend: Callable[[], float] | None = None
+    display_mode: Callable[[], str] | None = None
+    assembly_corner_text_sink: Callable[[Mapping[str, str]], object] | None = None
+    assembly_part_text_sink: Callable[[str, str, str], object] | None = None
+    assembly_visibility: Callable[[tuple[AssemblyScenePart, ...]], object] | None = None
+    interference_probe_parts: Callable[[], object] | None = None
+    show_interference: Callable[[], bool] | None = None
+    render_committed: Callable[[], object] | None = None
+    set_preview_enabled: Callable[[bool], object] | None = None
+    refresh_preview: Callable[[], object] | None = None
 
     def __post_init__(self) -> None:
         required = (
@@ -118,6 +134,20 @@ class FinalSceneDependencies:
             "cabinet_family",
             "assembly_blank_text",
             "active_mesh_profiles",
+            "active_part",
+            "scene_query",
+            "input_snapshot",
+            "settings_values",
+            "alpha_bend",
+            "display_mode",
+            "assembly_corner_text_sink",
+            "assembly_part_text_sink",
+            "assembly_visibility",
+            "interference_probe_parts",
+            "show_interference",
+            "render_committed",
+            "set_preview_enabled",
+            "refresh_preview",
         )
         missing = [
             name for name in required
@@ -135,7 +165,6 @@ class FinalSceneDependencies:
             "assembly_render_provider",
             "request_provider",
             "after_render",
-            "mirror_view_state",
         ):
             value = getattr(self, name)
             if value is not None and not callable(value):
