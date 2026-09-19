@@ -129,9 +129,14 @@ from phase6_diagnostics import (
     write_diagnostic_json as _phase6_write_diagnostic_json,
 )
 
+from phase6_final_scene_contracts import (
+    AssemblyScenePart,
+    AssemblySceneRenderData,
+    FinalSceneDependencies,
+    FinalSceneViewRequest,
+)
 from phase6_final_scene_view import (
-    AssemblyScenePart, AssemblySceneRenderData,
-    FinalSceneViewRequest, Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
+    Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
     _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
     _phase6_profile_base_index, _phase6_profile_geometry,
     _phase6_fold_mask_for_cross_coordinate, _phase6_profile_map_with_guides,
@@ -595,59 +600,72 @@ def _phase6_final_scene_adapter(self):
     if adapter is None or getattr(adapter, "owner", None) is not self:
         adapter = Phase6FinalSceneViewAdapter(
             self,
-            services={
-                "number_text": _setting_number_text,
-                "is_physical_piece_key": _phase6_is_box_body_physical_piece_key,
-                "physical_piece_render_data": lambda key: _phase6_box_body_piece_render_data(self, key),
-                "user_joint_parts": lambda: {
+            dependencies=FinalSceneDependencies(
+                number_text=_setting_number_text,
+                is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
+                physical_piece_render_data=lambda key: _phase6_box_body_piece_render_data(
+                    self, key
+                ),
+                user_joint_parts=lambda: {
                     str(raw.get(field) or "")
                     for raw in tuple(
                         migrate_legacy_snapshot_joints(
                             dict(getattr(self, "_phase6_input_snapshot", {}) or {})
                         ).get("assembly_joints", ()) or ()
                     )
-                    if str(raw.get("source") or "") == AssemblyJointSource.USER_ADDED.value
+                    if str(raw.get("source") or "")
+                    == AssemblyJointSource.USER_ADDED.value
                     for field in ("subject_part", "target_part")
                 },
-                "resolve_geometry": lambda: _phase6_resolve_manufacturing_geometry(self),
-                "scene_payload_for_part": lambda key: _phase6_scene_query_payload_for_part(self, key),
-                "publish_live_state": lambda **kwargs: _phase6_publish_live_state(self, **kwargs),
-                "corner_dimension_text": _phase6_render_data_corner_dimension_text,
-                "formed_size_text": lambda render_data, **kwargs: _phase6_format_formed_size_text(
+                resolve_geometry=lambda: _phase6_resolve_manufacturing_geometry(
+                    self
+                ),
+                scene_payload_for_part=lambda key: _phase6_scene_query_payload_for_part(
+                    self, key
+                ),
+                publish_live_state=lambda **kwargs: _phase6_publish_live_state(
+                    self, **kwargs
+                ),
+                corner_dimension_text=_phase6_render_data_corner_dimension_text,
+                formed_size_text=lambda render_data, **kwargs: _phase6_format_formed_size_text(
                     render_data, **kwargs
                 ),
-                "blank_text": lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
+                blank_text=lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
                     render_data, part_key=part_key
                 ),
-                "refresh_box_body_piece_info": lambda render_data: _phase6_refresh_box_body_piece_info_rows(
+                refresh_box_body_piece_info=lambda render_data: _phase6_refresh_box_body_piece_info_rows(
                     self, render_data
                 ),
-                "operator_dimensions": lambda part_key=None: (
+                operator_dimensions=lambda part_key=None: (
                     _phase6_operator_finished_dimensions(self)
                     if part_key is None
                     else _phase6_operator_finished_dimensions(self, part_key)
                 ),
-                "cabinet_family": lambda: _phase6_current_cabinet_family(self),
-                "assembly_blank_text": lambda render_data: _phase6_assembly_unfolded_blank_text(
+                cabinet_family=lambda: _phase6_current_cabinet_family(self),
+                assembly_blank_text=lambda render_data: _phase6_assembly_unfolded_blank_text(
                     render_data,
                     snapshot=getattr(self, "_phase6_input_snapshot", {}),
                 ),
-                "active_mesh_profiles": lambda material: _phase6_active_mesh_profiles(
+                active_mesh_profiles=lambda material: _phase6_active_mesh_profiles(
                     self, material
                 ),
-                "assembly_render_data_cls": lambda: AssemblySceneRenderData,
-                "assembly_part_cls": AssemblyScenePart,
-                "final_render_provider": lambda: _phase6_query_final_render_data(self),
-                "assembly_render_provider": lambda: _phase6_query_assembly_render_data(self),
-                "request_provider": lambda: _phase6_final_scene_view_request(self),
-                "after_render": lambda: (
+                assembly_render_data_cls=AssemblySceneRenderData,
+                assembly_part_cls=AssemblyScenePart,
+                final_render_provider=lambda: _phase6_query_final_render_data(
+                    self
+                ),
+                assembly_render_provider=lambda: _phase6_query_assembly_render_data(
+                    self
+                ),
+                request_provider=lambda: _phase6_final_scene_view_request(self),
+                after_render=lambda: (
                     _phase6_update_unfolded_size_label(self),
                     _phase6_update_assembly_diagnostic_status(self),
                 ),
-                "mirror_view_state": lambda view: _phase6_sync_final_scene_view_compatibility_mirrors(
+                mirror_view_state=lambda view: _phase6_sync_final_scene_view_compatibility_mirrors(
                     self, view
                 ),
-            },
+            ),
         )
         self._phase6_final_scene_view_adapter = adapter
     return adapter
