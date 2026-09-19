@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y python3-tk
-          python -m pip install pytest ezdxf
+          python -m pip install pytest -r requirements.txt
 
       - name: T1 contract GREEN
         shell: bash
