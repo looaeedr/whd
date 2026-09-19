@@ -438,7 +438,7 @@ def _materialize_committed_endcap_inputs(
         if part.part_key not in {"head", "tail"}:
             result.append(part)
             continue
-        committed_payload = dict(part.scene_values or {})
+        committed_payload = thaw_manufacturing_value(part.scene_values)
         committed_payload["_use_committed_relief"] = True
         committed = render_data_provider(part.part_key, committed_payload)
         result.append(replace(part, committed_render_data=committed))
