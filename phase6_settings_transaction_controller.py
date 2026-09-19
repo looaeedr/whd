@@ -48,19 +48,11 @@ from phase6_endcap_semantics import (
 from phase6_settings_center import normalize_ui_text_size
 from phase6_fold_profiles import _num, _ui_len
 import phase6_settings_transitions as settings_transitions
-
-
-@dataclass(frozen=True)
-class SettingsStagePlan:
-    changed: bool
-    cancel_job: object | None
-    schedule_after_ms: int | None
-
-
-@dataclass(frozen=True)
-class SettingsFlushPlan:
-    cancel_job: object | None
-    pending: dict[str, object]
+from phase6_settings_service import (
+    Phase6SettingsTransactionService,
+    SettingsFlushPlan,
+    SettingsStagePlan,
+)
 
 
 @dataclass(frozen=True)
@@ -112,13 +104,19 @@ class Phase6SettingsTransactionController:
         last_external_revision: int = 0,
         last_external_transaction_id: str = "",
         active_transaction_id: str = "",
+        orchestration: Phase6SettingsTransactionService | None = None,
     ) -> None:
         self._settings_values = settings_values
         self._input_snapshot = input_snapshot
         self._box_whd = box_whd
-        self._pending = pending_settings if pending_settings is not None else {}
-        self._debounce_job: object | None = debounce_job
         self._workspace = workspace
+        self._orchestration = orchestration or Phase6SettingsTransactionService(
+            pending_settings=pending_settings,
+            debounce_job=debounce_job,
+            last_external_revision=last_external_revision,
+            last_external_transaction_id=last_external_transaction_id,
+            active_transaction_id=active_transaction_id,
+        )
         self._endcap_fw_state = endcap_fw_state if endcap_fw_state is not None else {}
         self._endcap_bottom_wrap_state = (
             endcap_bottom_wrap_state if endcap_bottom_wrap_state is not None else {}
@@ -135,57 +133,16 @@ class Phase6SettingsTransactionController:
         self._assembly_type = settings_transitions.normalize_assembly_type(
             raw_assembly
         )
-        self._last_external_revision = int(last_external_revision or 0)
-        self._last_external_transaction_id = str(last_external_transaction_id or "")
-        self._active_transaction_id = str(active_transaction_id or "")
-
-    def bind_state(
-        self,
-        *,
-        settings_values: MutableMapping[str, object],
-        input_snapshot: MutableMapping[str, object],
-        box_whd: MutableMapping[str, object],
-        pending_settings: MutableMapping[str, object] | None = None,
-        debounce_job: object | None = None,
-        workspace=None,
-        endcap_fw_state: MutableMapping[str, object] | None = None,
-        endcap_bottom_wrap_state: MutableMapping[str, object] | None = None,
-        corner_state: MutableMapping[str, object] | None = None,
-        corner_pair_same: MutableMapping[str, object] | None = None,
-    ) -> None:
-        """Rebind mutable compatibility mirrors after legacy snapshot replacement."""
-        self._settings_values = settings_values
-        self._input_snapshot = input_snapshot
-        self._box_whd = box_whd
-        self._workspace = workspace
-        if endcap_fw_state is not None:
-            self._endcap_fw_state = endcap_fw_state
-        if endcap_bottom_wrap_state is not None:
-            self._endcap_bottom_wrap_state = endcap_bottom_wrap_state
-        if corner_state is not None:
-            self._corner_state = corner_state
-        if corner_pair_same is not None:
-            self._corner_pair_same = corner_pair_same
-        if pending_settings is not None and pending_settings is not self._pending:
-            if self._pending and not pending_settings:
-                pending_settings.update(self._pending)
-            self._pending = pending_settings
-        self._debounce_job = debounce_job
-
     @property
     def pending(self) -> dict[str, object]:
-        return dict(self._pending)
-
+        return self._orchestration.pending
     @property
     def debounce_job(self):
-        return self._debounce_job
-
+        return self._orchestration.debounce_job
     def install_debounce_job(self, job) -> None:
-        self._debounce_job = job
-
+        self._orchestration.install_debounce_job(job)
     def clear_debounce_job(self) -> None:
-        self._debounce_job = None
-
+        self._orchestration.clear_debounce_job()
     def stage_setting_update(
         self,
         key: str,
@@ -193,28 +150,18 @@ class Phase6SettingsTransactionController:
         *,
         destroying: bool = False,
     ) -> SettingsStagePlan:
-        if destroying:
-            return SettingsStagePlan(False, None, None)
-        key = str(key)
-        if self._settings_values.get(key) == value:
-            return SettingsStagePlan(False, None, None)
-
-        self._settings_values[key] = value
-        self._input_snapshot[key] = value
-        self._pending[key] = value
-        return SettingsStagePlan(
-            True,
-            self._debounce_job,
-            self.DEBOUNCE_MS,
+        plan = self._orchestration.stage_setting_update(
+            self._settings_values.get(str(key)),
+            key,
+            value,
+            destroying=destroying,
         )
-
+        if plan.changed:
+            self._settings_values[plan.key] = plan.value
+            self._input_snapshot[plan.key] = plan.value
+        return plan
     def drain_pending(self) -> SettingsFlushPlan:
-        job = self._debounce_job
-        self._debounce_job = None
-        pending = dict(self._pending)
-        self._pending.clear()
-        return SettingsFlushPlan(cancel_job=job, pending=pending)
-
+        return self._orchestration.drain_pending()
     def normalize_updates(
         self,
         updates: Mapping[str, object] | None,
@@ -370,16 +317,13 @@ class Phase6SettingsTransactionController:
 
     @property
     def active_transaction_id(self) -> str:
-        return self._active_transaction_id
-
+        return self._orchestration.active_transaction_id
     @property
     def last_external_revision(self) -> int:
-        return self._last_external_revision
-
+        return self._orchestration.last_external_revision
     @property
     def last_external_transaction_id(self) -> str:
-        return self._last_external_transaction_id
-
+        return self._orchestration.last_external_transaction_id
     def ensure_corner_part(
         self, part_key: str
     ) -> tuple[dict, dict]:
@@ -531,13 +475,7 @@ class Phase6SettingsTransactionController:
     def plan_external_sync(
         self, envelope: Mapping[str, object] | None
     ) -> ExternalSyncPlan:
-        plan = settings_transitions.plan_external_sync(
-            envelope,
-            last_external_revision=self._last_external_revision,
-        )
-        if plan.accepted:
-            self._last_external_revision = plan.revision
-            self._last_external_transaction_id = plan.transaction_id
+        plan = self._orchestration.plan_external_sync(envelope)
         return ExternalSyncPlan(
             plan.accepted,
             plan.revision,
@@ -545,14 +483,14 @@ class Phase6SettingsTransactionController:
             dict(plan.settings),
             plan.reason,
         )
-    def push_active_transaction(self, transaction_id: str | None) -> str:
-        previous = self._active_transaction_id
-        self._active_transaction_id = str(transaction_id or previous or "")
-        return previous
-
-    def restore_active_transaction(self, previous: str | None) -> None:
-        self._active_transaction_id = str(previous or "")
-
+    def push_active_transaction(
+        self, transaction_id: str | None
+    ) -> str:
+        return self._orchestration.push_active_transaction(transaction_id)
+    def restore_active_transaction(
+        self, previous: str | None
+    ) -> None:
+        self._orchestration.restore_active_transaction(previous)
     def commit_symmetry(self, state, value: bool) -> bool:
         committed = settings_transitions.normalize_symmetry(value)
         setattr(state, "symmetric", committed)
