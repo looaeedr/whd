@@ -486,6 +486,9 @@ def _phase6_settings_service(self) -> Phase6SettingsTransactionService:
     service = getattr(self, "_phase6_settings_transaction_service", None)
     if service is None:
         service = Phase6SettingsTransactionService(
+            settings_values=getattr(self, "_settings_values", {}),
+            input_snapshot=getattr(self, "_phase6_input_snapshot", {}),
+            box_whd=getattr(self, "_phase6_box_whd", {}),
             pending_settings=getattr(self, "_phase6_pending_settings", {}),
         )
         self._phase6_settings_transaction_service = service
@@ -2048,15 +2051,12 @@ def _phase6_flush_pending_settings(self):
 def _phase6_stage_setting_update(self, key, value):
     service = _phase6_settings_service(self)
     plan = service.stage_setting_update(
-        getattr(self, "_settings_values", {}).get(str(key)),
         key,
         value,
         destroying=bool(getattr(self, "_phase6_destroying", False)),
     )
     if not plan.changed:
         return
-    self._settings_values[plan.key] = plan.value
-    self._phase6_input_snapshot[plan.key] = plan.value
     if plan.cancel_job is not None:
         try:
             self.root.after_cancel(plan.cancel_job)
