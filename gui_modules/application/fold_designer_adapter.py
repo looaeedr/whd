@@ -5,6 +5,7 @@ APIs. It does not own project schema, workspace identity, committed settings, or
 manufacturing geometry.
 """
 from copy import deepcopy
+from collections.abc import MutableMapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
@@ -778,6 +779,41 @@ def install_fold_designer_bridge_facade(app_cls, bindings):
     for name, value in dict(bindings or {}).items():
         setattr(app_cls, str(name), value)
     return app_cls
+
+
+class Phase6StableMappingAppFacade:
+    """Delegate legacy app access while preserving Phase 4 mapping identities.
+
+    Older accepted adapters may assign a whole mapping back to the app facade.
+    Deep Settings owners keep references to these mappings, so the composition
+    boundary absorbs those legacy assignments as in-place mutations instead of
+    allowing the authoritative container identity to be replaced.
+    """
+
+    _STABLE_MAPPING_NAMES = frozenset({
+        "_settings_values",
+        "_phase6_input_snapshot",
+        "_phase6_box_whd",
+        "_phase6_pending_settings",
+    })
+
+    def __init__(self, app):
+        object.__setattr__(self, "_app", app)
+
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_app"), name)
+
+    def __setattr__(self, name, value):
+        app = object.__getattribute__(self, "_app")
+        if name in self._STABLE_MAPPING_NAMES:
+            current = getattr(app, name, None)
+            if isinstance(current, MutableMapping):
+                if value is current:
+                    return
+                current.clear()
+                current.update(dict(value or {}))
+                return
+        setattr(app, name, value)
 
 
 @dataclass(frozen=True)
