@@ -111,6 +111,10 @@ def _dims(key=None):
     return (800.0, 1800.0, 400.0)
 
 
+def _render_provider(app):
+    return lambda key, payload: app._scene_query_callback(key, payload)
+
+
 def _sample_ns(fn, *, loops=400, rounds=7):
     samples = []
     for _ in range(rounds):
@@ -157,6 +161,7 @@ def collect_metrics():
     request = build_manufacturing_request(
         app,
         scene_payload_builder=_scene_payload,
+        render_data_provider=_render_provider(app),
         finished_dimensions_provider=_dims,
     )
 
@@ -176,6 +181,7 @@ def collect_metrics():
             app,
             cache_service=service,
             scene_payload_builder=_scene_payload,
+            render_data_provider=_render_provider(app),
             finished_dimensions_provider=_dims,
         )
 
@@ -197,6 +203,7 @@ def collect_metrics():
             lambda: build_manufacturing_request(
                 app,
                 scene_payload_builder=_scene_payload,
+                render_data_provider=_render_provider(app),
                 finished_dimensions_provider=_dims,
             ),
             loops=80,
