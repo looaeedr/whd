@@ -1780,9 +1780,7 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
             "w", getattr(getattr(self, "state", None), "w", clean["w"])
         ))
         try:
-            structure = reconcile_box_body_structure_for_total_w_change(
-                self.designer_workspace.box_body_structure_state(), clean["w"]
-            )
+            transactions.commit_reconciled_width_structure(clean["w"])
         except Exception as exc:
             clean.pop("w", None)
             transactions.restore_setting("w", previous_w)
@@ -1799,7 +1797,7 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
             if not clean:
                 return {}
         else:
-            transactions.commit_box_structure_state(structure)
+            pass
 
     self._phase6_applying_settings = True
     try:
@@ -2159,87 +2157,65 @@ def _phase6_on_baseline_model_changed(self, *_args):
     self._phase6_corner_param_unlocked = {}
     new_model = str(self.baseline_model_var.get() or "").strip()
     old_model = str(getattr(self, "_phase6_baseline_last_model", "") or "").strip()
-    if _phase6_is_unknown_baseline(self, old_model):
+    old_editable = _phase6_is_unknown_baseline(self, old_model)
+    if old_editable:
         self._corner_transaction_unknown_state = deepcopy(self._phase6_corner_state)
         self._corner_transaction_unknown_pairs = deepcopy(self._phase6_corner_pair_same)
 
     editable = _phase6_is_unknown_baseline(self, new_model)
-    if not editable and new_model and new_model != old_model:
-        fixed = _phase6_known_model_corner_state(self)
-        self._phase6_corner_guard = True
-        try:
-            for part_key, corners in fixed.items():
-                state = self._phase6_corner_state.setdefault(part_key, {})
-                for corner_key, selection in corners.items():
-                    state[corner_key] = _phase6_selection_to_raw(selection)
-                pairs = self._phase6_corner_pair_same.setdefault(part_key, {})
-                pairs["top"] = True
-                pairs["bottom"] = True
-        finally:
-            self._phase6_corner_guard = False
-    if editable and old_model and not _phase6_is_unknown_baseline(self, old_model):
-        # 「自訂」不是另一套預設；它從目前已知固定板件的實際截角規則開始。
-        fixed = _phase6_known_model_corner_state(self)
-        self._phase6_corner_guard = True
-        try:
-            for part_key, corners in fixed.items():
-                state = self._phase6_corner_state.setdefault(part_key, {})
-                for corner_key, selection in corners.items():
-                    state[corner_key] = _phase6_selection_to_raw(selection)
-                pairs = self._phase6_corner_pair_same.setdefault(part_key, {})
-                pairs["top"] = True
-                pairs["bottom"] = True
-            self._corner_transaction_unknown_state = deepcopy(self._phase6_corner_state)
-            self._corner_transaction_unknown_pairs = deepcopy(self._phase6_corner_pair_same)
-        finally:
-            self._phase6_corner_guard = False
-    self._corner_editable = editable
+    needs_fixed_corner_preset = bool(
+        (not editable and new_model and new_model != old_model)
+        or (editable and old_model and not old_editable)
+    )
+    fixed_corner_state = (
+        _phase6_known_model_corner_state(self)
+        if needs_fixed_corner_preset else {}
+    )
 
-    # The baseline/model selector is the one Cabinet Family Source of Truth.
-    # Apply the family topology before refreshing the permanent structure row;
-    # otherwise switching 金庫型 -> 受電箱 inside the open 3D designer leaves
-    # the visible row and workspace on stale integral state.
-    old_snapshot_model = str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or old_model or "").strip()
-    self._phase6_input_snapshot["model"] = new_model
+    transactions = _phase6_settings_transactions(self)
+    previous_non_receiving_structure = getattr(
+        self, "_phase6_non_receiving_structure_state", None
+    )
+    plan = None
     try:
-        if not editable and new_model and new_model != old_snapshot_model:
-            # Every known model switch is a preset transaction.  Use the
-            # immutable factory/startup snapshot supplied by Main GUI as the
-            # base, then let the selected family overlay its own defaults.
-            # ``自訂`` deliberately skips this block and keeps current values.
-            runtime_presets = dict(self._phase6_input_snapshot.get("_runtime_family_presets") or {})
-            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
-            preset_base = dict(preset_runtime.get("settings") or {})
-            if not preset_base:
-                preset_base = dict(self._phase6_input_snapshot.get("factory_defaults") or {})
-            if not preset_base:
-                preset_base = {
-                    key: value for key, value in self._phase6_input_snapshot.items()
-                    if key in getattr(self, "_settings_values", {})
-                }
-            defaults = cabinet_family_policy.apply_fresh_family_defaults(preset_base, new_model)
-            self._phase6_input_snapshot.update(defaults)
+        plan = transactions.commit_family_model_transition(
+            new_model,
+            old_model,
+            new_editable=editable,
+            old_editable=old_editable,
+            fixed_corner_state=fixed_corner_state,
+            available_parts=tuple(
+                getattr(self.designer_workspace, "available_parts", ()) or ()
+            ),
+            previous_non_receiving_structure=previous_non_receiving_structure,
+        )
+    except Exception:
+        # Preserve the baseline fail-closed behavior: rendering/validation will
+        # surface the real family/structure error; do not invent a fallback.
+        plan = None
 
-            # Known-family runtime fields (structure, multi-door topology, etc.)
-            # belong to the target preset too.  Restore only explicit captured
-            # fields; Receiving then overlays its own fresh-family defaults.
-            if preset_runtime:
-                runtime_field_map = {
-                    "multi_door_enabled": "multi_door_enabled",
-                    "door_layout_columns": "door_layout_columns",
-                    "door_layout_scope": "door_layout_scope",
-                    "door_handle_edges": "door_handle_edges",
-                    "receiving_inner_doors": "inner_doors",
-                    "door_nameplate_center_datum_top": "door_nameplate_center_datum_top",
-                }
-                for source_key, target_key in runtime_field_map.items():
-                    if source_key in preset_runtime:
-                        self._phase6_input_snapshot[target_key] = deepcopy(preset_runtime[source_key])
-            family_values = {
-                key: value for key, value in defaults.items()
-                if key in getattr(self, "_settings_values", {})
-            }
-            _phase6_store_editor_values(self, family_values, notify=True)
+    if plan is not None:
+        _phase6_sync_settings_transaction_compatibility_mirrors(
+            self, transactions
+        )
+        if plan.remember_non_receiving_structure is not None:
+            self._phase6_non_receiving_structure_state = deepcopy(
+                plan.remember_non_receiving_structure
+            )
+
+        if editable and old_model and not old_editable:
+            self._corner_transaction_unknown_state = deepcopy(
+                self._phase6_corner_state
+            )
+            self._corner_transaction_unknown_pairs = deepcopy(
+                self._phase6_corner_pair_same
+            )
+
+        if plan.family_values:
+            _phase6_store_editor_values(
+                self, plan.family_values, notify=True
+            )
+            defaults = dict(plan.defaults or {})
             self.state.w = original.get_int(defaults["w"])
             self.state.h = original.get_int(defaults["h"])
             self.state.d = original.get_int(defaults["d"])
@@ -2248,43 +2224,15 @@ def _phase6_on_baseline_model_changed(self, *_args):
             self.v_d.set(str(self.state.d))
             self._phase6_last_w = self.state.w
             self._phase6_last_d = self.state.d
-            _phase6_refresh_profiles_from_settings(self, reset_box_profile=True)
+            _phase6_refresh_profiles_from_settings(
+                self, reset_box_profile=True
+            )
 
-            fresh_intent = cabinet_family_policy.fresh_assembly_intent(new_model)
-            self._phase6_assembly_type = fresh_intent
-            self._phase6_input_snapshot["assembly_type"] = fresh_intent
-            _phase6_sync_joint_state_for_intent(self, fresh_intent)
             assembly_var = getattr(self, "assembly_type_var", None)
             if assembly_var is not None:
-                assembly_var.set(ASSEMBLY_TYPE_LABELS[fresh_intent])
-            self._phase6_endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(
-                {"model": new_model}
-            )
-            self._phase6_input_snapshot["endcap_bottom_wrap"] = deepcopy(
-                self._phase6_endcap_bottom_wrap_state
-            )
+                assembly_var.set(ASSEMBLY_TYPE_LABELS[plan.assembly_type])
 
-        if new_model == "受電箱":
-            if old_snapshot_model != "受電箱":
-                self._phase6_non_receiving_structure_state = self.designer_workspace.box_body_structure_state()
-            structure = cabinet_family_policy.resolve_box_body_structure_state(
-                new_model, self.designer_workspace.box_body_structure_state()
-            )
-            self.designer_workspace.set_box_body_structure_state(structure)
-            self._phase6_input_snapshot["box_body_structure"] = deepcopy(structure)
-        elif old_snapshot_model == "受電箱":
-            runtime_presets = dict(self._phase6_input_snapshot.get("_runtime_family_presets") or {})
-            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
-            previous = preset_runtime.get("box_body_structure")
-            if previous is None:
-                previous = getattr(self, "_phase6_non_receiving_structure_state", None)
-            if previous:
-                self.designer_workspace.set_box_body_structure_state(previous)
-                self._phase6_input_snapshot["box_body_structure"] = deepcopy(previous)
-    except Exception:
-        # Rendering/validation will surface a real structure error; do not invent
-        # a second fallback structure here.
-        pass
+    self._corner_editable = editable
     self._phase6_baseline_last_model = new_model
     _phase6_apply_box_symmetry_policy(self)
     if hasattr(self, "bend_ui"):
@@ -2297,12 +2245,13 @@ def _phase6_on_baseline_model_changed(self, *_args):
         _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
     _phase6_refresh_persistent_structure_controls(self)
 
-    # 快取頁面依 _corner_editable 決定是否建立可編輯截角控制項。
-    # Baseline changes are explicit user actions, so rebuilding those pages here
-    # is correct; ordinary part switching still reuses the cache.
+    # Cached pages depend on whether the family is editable. Baseline changes
+    # are explicit user actions, so rebuilding here preserves the old UI order.
     _phase6_invalidate_corner_pages(self)
     if hasattr(self, "settings_center") and getattr(self, "active_part_key", None) is not None:
-        _phase6_render_settings_context(self, getattr(self, "settings_context", self.active_part_key))
+        _phase6_render_settings_context(
+            self, getattr(self, "settings_context", self.active_part_key)
+        )
     if hasattr(self, "settings_status_var"):
         self.settings_status_var.set(
             "自訂：沿用目前資料並即時同步主畫面"
@@ -2323,7 +2272,6 @@ def _phase6_on_baseline_model_changed(self, *_args):
         _phase6_refresh_corner_data_parts_panel(self)
         if getattr(self, "corner_data_canvas", None) is not None:
             _phase6_refresh_corner_data_unfold_view(self)
-
 
 def _phase6_collect_workspace_state(self):
     active = self.designer_workspace.active_part
