@@ -253,14 +253,23 @@ def install_fold_designer_keyboard_shortcuts(
 
 
 def _request_phase6_update(self, reason="geometry", *, immediate=False, debounce_ms=None):
-    """Route a GUI mutation through the one authoritative update scheduler."""
+    """Route a GUI mutation through the one authoritative update scheduler.
+
+    Keep the pre-T7 duck-typed scheduler surface for lightweight/project tests:
+    external schedulers only need mark_dirty/flush_now/request_flush, while the
+    canonical scheduler may still implement submit internally.
+    """
     owner = getattr(self, "_derived_cache_owner", None)
     if owner is not None:
         owner.invalidate(reason)
     scheduler = getattr(self, "_phase6_update_scheduler", None)
     if scheduler is None:
         scheduler = self._phase6_update_scheduler = _Phase6UpdateScheduler(self)
-    scheduler.submit(reason, immediate=bool(immediate), debounce_ms=debounce_ms)
+    scheduler.mark_dirty(reason)
+    if immediate:
+        return scheduler.flush_now()
+    if debounce_ms is not None:
+        scheduler.request_flush(debounce_ms=debounce_ms)
     return True
 
 
