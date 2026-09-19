@@ -462,6 +462,8 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
     workspace = getattr(self, "designer_workspace", None)
     endcap_fw_state = getattr(self, "_phase6_endcap_fw_state", {})
     bottom_wrap_state = getattr(self, "_phase6_endcap_bottom_wrap_state", {})
+    corner_state = getattr(self, "_phase6_corner_state", {})
+    corner_pair_same = getattr(self, "_phase6_corner_pair_same", {})
     controller = getattr(self, "_phase6_settings_transaction_controller", None)
     if controller is None:
         controller = Phase6SettingsTransactionController(
@@ -473,6 +475,17 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
             workspace=workspace,
             endcap_fw_state=endcap_fw_state,
             endcap_bottom_wrap_state=bottom_wrap_state,
+            corner_state=corner_state,
+            corner_pair_same=corner_pair_same,
+            assembly_type=getattr(
+                self, "_phase6_assembly_type",
+                input_snapshot.get("assembly_type", CornerTypeId.INSERT_OVERLAY),
+            ),
+            last_external_revision=getattr(self, "_phase6_last_external_revision", 0),
+            last_external_transaction_id=getattr(
+                self, "_phase6_last_external_transaction_id", ""
+            ),
+            active_transaction_id=getattr(self, "_phase6_active_transaction_id", ""),
         )
         self._phase6_settings_transaction_controller = controller
     else:
@@ -485,9 +498,24 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
             workspace=workspace,
             endcap_fw_state=endcap_fw_state,
             endcap_bottom_wrap_state=bottom_wrap_state,
+            corner_state=corner_state,
+            corner_pair_same=corner_pair_same,
         )
     return controller
 
+
+def _phase6_sync_settings_transaction_compatibility_mirrors(
+    self, controller=None
+):
+    """Mirror controller-owned scalar transaction state for legacy readers only."""
+    controller = controller or _phase6_settings_transactions(self)
+    self._phase6_assembly_type = controller.assembly_type
+    self._phase6_last_external_revision = controller.last_external_revision
+    self._phase6_last_external_transaction_id = (
+        controller.last_external_transaction_id
+    )
+    self._phase6_active_transaction_id = controller.active_transaction_id
+    return controller
 
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
@@ -1920,13 +1948,7 @@ _FIXED_CORNER_SUMMARIES = {
 
 
 def _phase6_ensure_corner_part(self, part_key):
-    state = self._phase6_corner_state.setdefault(str(part_key), {})
-    for corner_key in _CORNER_KEYS:
-        state[corner_key] = _phase6_selection_to_raw(_phase6_selection_from_raw(state.get(corner_key)))
-    pairs = self._phase6_corner_pair_same.setdefault(str(part_key), {})
-    pairs.setdefault("top", True); pairs.setdefault("bottom", True)
-    return state, pairs
-
+    return _phase6_settings_transactions(self).ensure_corner_part(part_key)
 
 def _phase6_notify_corner_change(self):
     """Corner edits are production edits: publish them to canonical state now."""
@@ -1982,16 +2004,12 @@ def _phase6_corner_pair_var_changed(self, part_key, pair_key, var):
         return
     if not _phase6_corner_parameters_editable(self, part_key):
         return
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
-    enabled = bool(var.get())
-    pairs[pair_key] = enabled
-    if enabled:
-        left_key, right_key = _CORNER_PAIR_KEYS[pair_key]
-        state[right_key] = dict(state[left_key])
+    _phase6_settings_transactions(self).commit_corner_pair(
+        part_key, pair_key, bool(var.get())
+    )
     _phase6_notify_corner_change(self)
     _phase6_invalidate_settings_page(self, part_key)
     _phase6_render_settings_context(self, part_key)
-
 
 def _phase6_corner_targets(pairs, target_key):
     return _CORNER_PAIR_KEYS[target_key] if target_key in _CORNER_PAIR_KEYS else (target_key,)
@@ -2002,88 +2020,84 @@ def _phase6_corner_type_selected(self, part_key, target_key):
         return
     if not _phase6_corner_type_editable(self, part_key):
         return
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
     var = self.corner_type_vars.get(target_key)
     if var is None:
         return
     type_id = _CORNER_TYPE_BY_LABEL.get(str(var.get()).strip())
     if type_id is None:
         return
-    current_key = _CORNER_PAIR_KEYS[target_key][0] if target_key in _CORNER_PAIR_KEYS else target_key
-    current = _phase6_selection_from_raw(state[current_key])
-    selection = current if current.type_id.value == type_id else CornerTypeSelection(CornerTypeId(type_id))
-    raw = _phase6_selection_to_raw(selection)
-    for corner_key in _phase6_corner_targets(pairs, target_key):
-        state[corner_key] = dict(raw)
+    _phase6_settings_transactions(self).commit_corner_type(
+        part_key, target_key, type_id
+    )
     _phase6_notify_corner_change(self)
     _phase6_invalidate_settings_page(self, part_key)
     _phase6_render_settings_context(self, part_key)
-
 
 def _phase6_corner_mode_selected(self, part_key, target_key):
     if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
         return
     if not _phase6_corner_parameters_editable(self, part_key):
         return
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
-    current_key = _CORNER_PAIR_KEYS[target_key][0] if target_key in _CORNER_PAIR_KEYS else target_key
-    current = _phase6_selection_from_raw(state[current_key])
+    transactions = _phase6_settings_transactions(self)
+    current = transactions.corner_selection(part_key, target_key)
     if current.type_id is not CornerTypeId.CROSS:
         return
     var = self.corner_mode_vars.get(target_key)
     mode = _CORNER_MODE_BY_LABEL.get(str(var.get()).strip()) if var is not None else None
     if mode is None:
         return
-    selection = CornerTypeSelection(CornerTypeId.CROSS, cross_mode=mode)
-    raw = _phase6_selection_to_raw(selection)
-    for corner_key in _phase6_corner_targets(pairs, target_key):
-        state[corner_key] = dict(raw)
+    transactions.commit_corner_mode(part_key, target_key, mode)
     _phase6_notify_corner_change(self)
     _phase6_invalidate_settings_page(self, part_key)
     _phase6_render_settings_context(self, part_key)
 
-
 def _phase6_corner_target_var_changed(self, part_key, target_key):
-    """Commit semantic parameter widgets without exposing legacy X/Y rotation."""
+    """Commit semantic parameter widgets through the T2 transaction owner."""
     if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
         return
     if not _phase6_corner_parameters_editable(self, part_key):
         return
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
-    current_key = _CORNER_PAIR_KEYS[target_key][0] if target_key in _CORNER_PAIR_KEYS else target_key
-    current = _phase6_selection_from_raw(state[current_key])
+    transactions = _phase6_settings_transactions(self)
+    current = transactions.corner_selection(part_key, target_key)
     try:
         amount_var = self.corner_amount_vars.get(target_key)
         amount = float(amount_var.get()) if amount_var is not None else current.amount_t
-        if current.type_id is CornerTypeId.CROSS:
-            mode_var = self.corner_mode_vars.get(target_key)
-            mode = _CORNER_MODE_BY_LABEL.get(str(mode_var.get()).strip(), current.cross_mode) if mode_var is not None else current.cross_mode
-            if mode is CrossCornerMode.STANDARD:
-                selection = CornerTypeSelection(CornerTypeId.CROSS, cross_mode=mode)
-            else:
-                direction_var = self.corner_direction_vars.get(target_key)
-                direction = _CORNER_DIRECTION_BY_LABEL.get(str(direction_var.get()).strip()) if direction_var is not None else current.direction
-                selection = CornerTypeSelection(CornerTypeId.CROSS, cross_mode=mode, direction=direction, amount_t=amount)
-        elif current.type_id is CornerTypeId.OVERLAY:
-            selection = CornerTypeSelection(CornerTypeId.OVERLAY, amount_t=amount)
-        elif current.type_id is CornerTypeId.INSERT:
-            selection = CornerTypeSelection(CornerTypeId.INSERT, amount_t=amount)
-        else:
-            retain_var = self.corner_secondary_retain_vars.get(target_key)
-            depth_var = self.corner_secondary_depth_vars.get(target_key)
-            selection = CornerTypeSelection(
-                CornerTypeId.INSERT_OVERLAY,
-                amount_t=amount,
-                secondary_retain_t=float(retain_var.get()),
-                secondary_depth_t=float(depth_var.get()),
+        mode_var = self.corner_mode_vars.get(target_key)
+        mode = (
+            _CORNER_MODE_BY_LABEL.get(str(mode_var.get()).strip(), current.cross_mode)
+            if mode_var is not None else current.cross_mode
+        )
+        direction_var = self.corner_direction_vars.get(target_key)
+        direction = (
+            _CORNER_DIRECTION_BY_LABEL.get(
+                str(direction_var.get()).strip(), current.direction
             )
+            if direction_var is not None else current.direction
+        )
+        retain_var = self.corner_secondary_retain_vars.get(target_key)
+        depth_var = self.corner_secondary_depth_vars.get(target_key)
+        retain = (
+            float(retain_var.get())
+            if retain_var is not None
+            else current.secondary_retain_t
+        )
+        depth = (
+            float(depth_var.get())
+            if depth_var is not None
+            else current.secondary_depth_t
+        )
+        transactions.commit_corner_parameters(
+            part_key,
+            target_key,
+            amount_t=amount,
+            cross_mode=mode,
+            direction=direction,
+            secondary_retain_t=retain,
+            secondary_depth_t=depth,
+        )
     except (TypeError, ValueError, original.tk.TclError):
         return
-    raw = _phase6_selection_to_raw(selection)
-    for corner_key in _phase6_corner_targets(pairs, target_key):
-        state[corner_key] = dict(raw)
     _phase6_notify_corner_change(self)
-
 
 def _phase6_is_unknown_baseline(self, value):
     text = str(value or "").strip()
@@ -3425,17 +3439,18 @@ def _phase6_on_assembly_type_selected(self, *_args):
     type_id = ASSEMBLY_LABEL_TO_TYPE.get(str(var.get()).strip()) if var is not None else None
     if type_id is None:
         return
-    self._phase6_assembly_type = type_id
-    self._phase6_input_snapshot["assembly_type"] = assembly_intent_value(type_id)
-    _phase6_sync_joint_state_for_intent(self, type_id)
-    # Normal preset selection updates Intent + Joint Graph only. CornerState is
-    # a legacy/manual projection and must not be rewritten by this UI action.
-    self.designer_workspace.mark_dirty()
+    transactions = _phase6_settings_transactions(self)
+    transactions.commit_assembly_intent(
+        type_id,
+        available_parts=tuple(getattr(self.designer_workspace, "available_parts", ()) or ()),
+        project_legacy_corner=False,
+        mark_dirty=True,
+    )
+    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
     # The box-body page owns the live assembly Combobox that fired this event.
     # Destroying/rebuilding that page from inside <<ComboboxSelected>> destroys
-    # the widget while Tk is still dispatching its event (visible as the whole
-    # selector/page disappearing on Windows).  Only dependent EndCap pages need
-    # rebuilding because their top CornerType controls changed.
+    # the widget while Tk is still dispatching its event. Only dependent EndCap
+    # pages need rebuilding.
     for context in ("head", "tail"):
         _phase6_invalidate_settings_page(self, context)
     _phase6_rebuild_linked_endcaps(self)
@@ -3444,26 +3459,6 @@ def _phase6_on_assembly_type_selected(self, *_args):
         self.do_update()
     except Exception:
         pass
-
-
-_ENDCAP_EDGE_LABELS = {
-    "TOP": "上", "BOTTOM": "下", "LEFT": "左", "RIGHT": "右",
-}
-_ENDCAP_RELATION_LABELS = {
-    AssemblyJointRelation.INSERT: "嵌入",
-    AssemblyJointRelation.OVERLAY: "貼外",
-    AssemblyJointRelation.INSERT_OVERLAY: "嵌入貼外",
-    AssemblyJointRelation.WRAP: "包覆",
-}
-_ENDCAP_LABEL_TO_RELATION = {label: relation for relation, label in _ENDCAP_RELATION_LABELS.items()}
-
-_BASE_PLATE_EDGE_SETTING_KEYS = {
-    "TOP": "base_plate_shrink_top",
-    "BOTTOM": "base_plate_shrink_bottom",
-    "LEFT": "base_plate_shrink_left",
-    "RIGHT": "base_plate_shrink_right",
-}
-
 
 def _phase6_endcap_joint_policy_rows(self, part_key):
     part_key = str(part_key)
@@ -3689,18 +3684,20 @@ def _phase6_on_box_symmetry_changed(self):
     var = getattr(self, "v_sy", None)
     if var is None:
         return
+    transactions = _phase6_settings_transactions(self)
     if not _phase6_box_symmetry_allowed(self):
         _phase6_apply_box_symmetry_policy(self)
+        target = bool(getattr(self.state, "symmetric", False))
         if hasattr(self, "bend_ui"):
             self.bend_ui._phase6_refresh_symmetry_bar()
     else:
         try:
-            self.state.symmetric = bool(var.get())
+            target = bool(var.get())
         except Exception:
             return
-    _phase6_settings_transactions(self).mark_workspace_dirty()
+    transactions.commit_symmetry(self.state, target)
 
-    # v_sy already owns an original trace to queue_update().  When this command
+    # v_sy already owns an original trace to queue_update(). When this command
     # callback is invoked by the restored checkbox, cancel that queued duplicate
     # redraw and perform the update once with the new authoritative state.
     pending = getattr(self, "_job", None)
@@ -3715,7 +3712,6 @@ def _phase6_on_box_symmetry_changed(self):
         self.do_update()
     except Exception:
         pass
-
 
 def _phase6_build_box_symmetry_settings(self, parent, start_row):
     box = original.ttk.LabelFrame(parent, text="箱身折彎", padding=4)
@@ -3961,51 +3957,36 @@ def _phase6_build_corner_settings(self, parent, part_key, start_row):
     return start_row + 1
 
 def _phase6_apply_external_assembly_type(self, type_id):
+    transactions = _phase6_settings_transactions(self)
     stable = assembly_intent_value(type_id)
-    self._phase6_assembly_type = (
-        stable if stable == "WRAP_OVERLAY" else CornerTypeId(stable)
-    )
-    self._phase6_input_snapshot["assembly_type"] = stable
-    _phase6_sync_joint_state_for_intent(self, self._phase6_assembly_type)
-    legacy_projection = legacy_corner_projection_for_intent(stable)
-    apply_box_assembly_type_to_raw_state(
-        self._phase6_corner_state, self._phase6_corner_pair_same, legacy_projection,
+    committed = transactions.commit_assembly_intent(
+        type_id,
+        available_parts=tuple(getattr(self.designer_workspace, "available_parts", ()) or ()),
+        project_legacy_corner=True,
         reset_bottom_defaults=(stable == CornerTypeId.OVERLAY.value),
+        mark_dirty=False,
     )
+    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
     for context in ("box_body", "head", "tail"):
         _phase6_invalidate_settings_page(self, context)
     if getattr(self, "active_part_key", None) is not None:
-        _phase6_render_settings_context(self, getattr(self, "settings_context", self.active_part_key))
+        _phase6_render_settings_context(
+            self, getattr(self, "settings_context", self.active_part_key)
+        )
     self.do_update()
-    return self._phase6_assembly_type
-
+    return committed
 
 def _phase6_apply_external_corner_state(self, corner_state, corner_pair_same):
+    transactions = _phase6_settings_transactions(self)
     self._phase6_corner_guard = True
     try:
-        self._phase6_corner_state = deepcopy(corner_state or {})
-        self._phase6_corner_pair_same = deepcopy(corner_pair_same or {})
+        transactions.replace_corner_state(corner_state, corner_pair_same)
     finally:
         self._phase6_corner_guard = False
     context = getattr(self, "settings_context", GLOBAL_CONTEXT)
     if context != GLOBAL_CONTEXT:
         _phase6_invalidate_settings_page(self, context)
         _phase6_render_settings_context(self, context)
-
-
-
-_SETTINGS_EXTENSION_MAP_ATTRS = (
-    "corner_pair_vars",
-    "corner_pair_checkbuttons",
-    "corner_type_vars",
-    "corner_mode_vars",
-    "corner_direction_vars",
-    "corner_amount_vars",
-    "corner_secondary_retain_vars",
-    "corner_secondary_depth_vars",
-    "corner_detail_frames",
-)
-
 
 def _phase6_render_settings_panel_extensions(self, parent, context, start_row):
     old = {name: getattr(self, name, None) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
@@ -4195,11 +4176,8 @@ def _phase6_apply_external_settings(self, updates):
 
 def _phase6_apply_external_model(self, model):
     """Apply Main-GUI family selection through the existing Designer authority."""
-    new_model = str(model or "").strip()
-    if not new_model:
-        return False
-    current_model = str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip()
-    if current_model == new_model:
+    plan = _phase6_settings_transactions(self).plan_external_model_change(model)
+    if not plan.changed:
         return False
 
     self._phase6_external_apply_guard = True
@@ -4207,48 +4185,31 @@ def _phase6_apply_external_model(self, model):
         model_var = getattr(self, "baseline_model_var", None)
         if model_var is None:
             return False
-        if str(model_var.get() or "").strip() != new_model:
-            model_var.set(new_model)
+        if str(model_var.get() or "").strip() != plan.target_model:
+            model_var.set(plan.target_model)
         # Some UI bindings invoke the handler from the selector event rather
-        # than the StringVar write.  Call the existing authority only when the
+        # than the StringVar write. Call the existing authority only when the
         # snapshot has not already reconciled itself.
-        if str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() != new_model:
+        if str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() != plan.target_model:
             _phase6_on_baseline_model_changed(self)
     finally:
         self._phase6_external_apply_guard = False
-    return str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() == new_model
-
+    return str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() == plan.target_model
 
 def _phase6_apply_external_sync(self, envelope):
-    """Ingest one Main-GUI revision without echoing it back to the host."""
-    envelope = dict(envelope or {})
-    if str(envelope.get("origin") or "") != "main_gui":
+    """Ingest one Main-GUI revision through the T2 transaction owner."""
+    transactions = _phase6_settings_transactions(self)
+    plan = transactions.plan_external_sync(envelope)
+    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
+    if not plan.accepted or not plan.settings:
         return {}
-    try:
-        revision = int(envelope.get("revision", 0) or 0)
-    except (TypeError, ValueError):
-        return {}
-    last_revision = int(getattr(self, "_phase6_last_external_revision", 0) or 0)
-    if revision <= last_revision:
-        return {}
-    self._phase6_last_external_revision = revision
-    self._phase6_last_external_transaction_id = str(envelope.get("transaction_id") or "")
-    delta = dict(envelope.get("delta") or {})
-    settings = dict(delta.get("settings") or {})
-    if not settings:
-        return {}
-    result = _phase6_apply_external_settings(self, settings)
+    result = _phase6_apply_external_settings(self, plan.settings)
     if (
         str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
         and getattr(self, "corner_data_canvas", None) is not None
     ):
         _phase6_refresh_corner_data_unfold_view(self)
     return result
-
-
-
-
-
 
 def _phase6_left_workspace_width(value) -> int:
     """Return the visual-review width floor for each supported UI text scale."""
@@ -5911,13 +5872,9 @@ def _phase6_save_settings_context_as_defaults(self, context):
         if hasattr(self, "settings_status_var"):
             self.settings_status_var.set("未連接預設值儲存器")
         return False
+    payload = _phase6_settings_transactions(self).settings_defaults_payload(context)
     try:
-        self._save_defaults_callback(
-            context,
-            dict(self._settings_values),
-            deepcopy(getattr(self, "_phase6_corner_state", {})),
-            deepcopy(getattr(self, "_phase6_corner_pair_same", {})),
-        )
+        self._save_defaults_callback(*payload)
     except Exception as exc:
         if hasattr(self, "settings_status_var"):
             self.settings_status_var.set(f"儲存失敗：{exc}")
@@ -5925,36 +5882,6 @@ def _phase6_save_settings_context_as_defaults(self, context):
     if hasattr(self, "settings_status_var"):
         self.settings_status_var.set("已儲存到 config.ini")
     return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def _phase6_scene_from_structural_result(result, features, surface_id):
     from ae_engine.sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
@@ -9115,12 +9042,14 @@ def _phase6_submit_update_intent(self, reason, *, commit=False):
     return None
 
 def _phase6_apply_settings_delta(self, delta, transaction_id):
-    previous = str(getattr(self, "_phase6_active_transaction_id", "") or "")
-    self._phase6_active_transaction_id = str(transaction_id or previous or "")
+    transactions = _phase6_settings_transactions(self)
+    previous = transactions.push_active_transaction(transaction_id)
+    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
     try:
         return _phase6_apply_setting_updates(self, dict(delta or {}), notify=True)
     finally:
-        self._phase6_active_transaction_id = previous
+        transactions.restore_active_transaction(previous)
+        _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
 
 def _phase6_switch_active_part(self, part_key, *, commit=True):
     # ``activate_part`` owns the legacy editor wiring; its final action now
