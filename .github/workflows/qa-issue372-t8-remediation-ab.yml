@@ -13,7 +13,7 @@ permissions:
 
 env:
   BASELINE_SHA: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
-  TESTED_SHA: d535627cd5e809a154c324a16f76c8cef0ced6ec
+  TESTED_SHA: 487b4c8bd2107c5a7e726b33c35ad976d7e2cead
 
 jobs:
   headless-ab:
