@@ -429,7 +429,10 @@ def test_selecting_assembly_type_rebuilds_current_box_body_settings_page(monkeyp
 
     assert invalidated == ["head", "tail"]
     assert rendered == []
-    assert holder._phase6_assembly_type is bridge.CornerTypeId.OVERLAY
+    assert (
+        bridge._phase6_settings_transactions(holder).assembly_type
+        is bridge.CornerTypeId.OVERLAY
+    )
 
 
 def test_symmetric_box_body_fw_mirrors_by_semantic_key_after_asymmetric_extra_fold_history():
@@ -556,7 +559,10 @@ def test_selecting_assembly_type_keeps_current_box_page_alive_and_invalidates_on
 
     assert invalidated == ["head", "tail"]
     assert rendered == []
-    assert holder._phase6_assembly_type is bridge.CornerTypeId.OVERLAY
+    assert (
+        bridge._phase6_settings_transactions(holder).assembly_type
+        is bridge.CornerTypeId.OVERLAY
+    )
 
 
 def test_baseline_only_setting_groups_are_not_duplicated_into_advanced_settings():
