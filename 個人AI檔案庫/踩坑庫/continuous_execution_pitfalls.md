@@ -160,3 +160,18 @@ RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行�
 - immediate report 只是一個 observation；回報後若仍有可自主 next action，仍必須繼續。
 - 只有 live terminal evidence 可觸發；不得猜測或提前宣告結果。
 - Canonical authority：executable-continuity-controller::IMMEDIATE_TERMINAL_PROGRESS_REPORT。
+
+## POLLING_WITHOUT_PROGRESS_PRODUCER_PITFALL
+
+### 事故模式
+
+系統反覆輪詢某個狀態，但實際上沒有任何 executor / runner / workflow 在推進。結果看起來一直「有在看」，實際上沒有產生任何進度，最後還要靠使用者再輸入「輪／繼續」。
+
+### 永久規則
+
+- 輪詢只能觀測進度，不能產生進度。
+- WAITING_REMOTE 前必須先確認 real progress producer 已存在且 active。
+- no producer / no active run / RUN_NOT_CREATED 時，立即停止假等，去執行 prerequisite / trigger / repair。
+- terminal producer 立即離開 waiting，接下一個真正執行動作。
+- status-only loop 是 continuity regression。
+- Canonical authority：executable-continuity-controller::POLLING_OBSERVATION_ONLY。
