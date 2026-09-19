@@ -45,5 +45,5 @@ jobs:
           set -e
           test "$rc" -ne 0
           grep -q "RED: missing T2D controller methods" /tmp/t2d-red.log
-          grep -q "RED: bridge still owns T2D family/model transaction semantics" /tmp/t2d-red.log
+          grep -q "RED: bridge still owns T2D width/family transaction semantics" /tmp/t2d-red.log
           echo "PASS EXPECTED_T2D_RED=1"
