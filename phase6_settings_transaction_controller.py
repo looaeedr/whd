@@ -175,7 +175,7 @@ class Phase6SettingsTransactionController:
         key = str(key)
         self._settings_values[key] = value
         self._input_snapshot[key] = value
-        self._pending.pop(key, None)
+        self.pending.pop(key, None)
 
     def commit_settings(
         self, values: Mapping[str, object] | None
