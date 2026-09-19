@@ -8877,11 +8877,11 @@ def _fix11_do_update(self):
         # editor state here can race Tk notebook callbacks and makes the custom
         # X-only profile get indexed by "箱身" (KeyError).
         result = _FIX10_DO_UPDATE(self)
-        self._phase6_box_whd = {
+        _phase6_replace_mapping(self, "_phase6_box_whd", {
             "w": original.get_int(self.v_w.get()),
             "h": original.get_int(self.v_h.get()),
             "d": original.get_int(self.v_d.get()),
-        }
+        })
         self._phase6_input_snapshot.update(self._phase6_box_whd)
         _propagate_endcap_derived_cores(self, self._phase6_box_whd["w"], self._phase6_box_whd["d"])
         # The inherited MainApp constructor briefly owns an unannotated legacy
