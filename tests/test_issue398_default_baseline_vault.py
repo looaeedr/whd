@@ -43,3 +43,23 @@ def test_fresh_application_defaults_baseline_model_to_vault_everywhere():
         except Exception:
             pass
         root.destroy()
+
+
+def test_primary_python_gui_launch_defaults_baseline_model_to_vault():
+    root = tk.Tk()
+    root.geometry("1200x800+0+0")
+    app = gui.Phase6PrimaryApplication(root)
+    try:
+        _pump(root)
+
+        assert app.baseline_var.get() == "金庫型"
+        assert app._active_cabinet_type == "金庫型"
+
+        snapshot = app._make_original_fold_designer_snapshot()
+        assert snapshot["model"] == "金庫型"
+
+        designer = app.fold_designer_app
+        assert designer.baseline_model_var.get() == "金庫型"
+        assert designer._phase6_input_snapshot["model"] == "金庫型"
+    finally:
+        root.destroy()
