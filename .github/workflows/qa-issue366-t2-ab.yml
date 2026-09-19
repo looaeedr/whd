@@ -1,4 +1,5 @@
 name: "QA #366 T2 task-scoped A-B acceptance"
+# explicit trigger after workflow creation
 
 on:
   push:
