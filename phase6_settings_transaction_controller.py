@@ -132,9 +132,8 @@ class Phase6SettingsTransactionController:
             if assembly_type is not None
             else self._input_snapshot.get("assembly_type", CornerTypeId.INSERT_OVERLAY)
         )
-        stable = assembly_intent_value(raw_assembly)
-        self._assembly_type = (
-            stable if stable == "WRAP_OVERLAY" else CornerTypeId(stable)
+        self._assembly_type = settings_transitions.normalize_assembly_type(
+            raw_assembly
         )
         self._last_external_revision = int(last_external_revision or 0)
         self._last_external_transaction_id = str(last_external_transaction_id or "")
@@ -361,6 +360,10 @@ class Phase6SettingsTransactionController:
         })
         self.mark_workspace_dirty()
         return snapshot
+
+    CORNER_KEYS = settings_transitions.CORNER_KEYS
+    CORNER_PAIR_KEYS = settings_transitions.CORNER_PAIR_KEYS
+
     @property
     def assembly_type(self):
         return self._assembly_type
