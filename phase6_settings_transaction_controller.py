@@ -111,6 +111,9 @@ class Phase6SettingsTransactionController:
         self._box_whd = box_whd
         self._workspace = workspace
         self._orchestration = orchestration or Phase6SettingsTransactionService(
+            settings_values=self._settings_values,
+            input_snapshot=self._input_snapshot,
+            box_whd=self._box_whd,
             pending_settings=pending_settings,
             debounce_job=debounce_job,
             last_external_revision=last_external_revision,
@@ -150,16 +153,11 @@ class Phase6SettingsTransactionController:
         *,
         destroying: bool = False,
     ) -> SettingsStagePlan:
-        plan = self._orchestration.stage_setting_update(
-            self._settings_values.get(str(key)),
+        return self._orchestration.stage_setting_update(
             key,
             value,
             destroying=destroying,
         )
-        if plan.changed:
-            self._settings_values[plan.key] = plan.value
-            self._input_snapshot[plan.key] = plan.value
-        return plan
     def drain_pending(self) -> SettingsFlushPlan:
         return self._orchestration.drain_pending()
     def normalize_updates(
