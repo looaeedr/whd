@@ -197,7 +197,10 @@ def _init_base_results_and_corner_state(self, settings):
     self.export_base_plate_var = tk.BooleanVar(value=True)
     self.export_ib_var   = tk.BooleanVar(value=False)
     self.export_ib_door_var = tk.BooleanVar(value=False)
-    self.baseline_var    = tk.StringVar(master=self.root, value="")
+    # Canonical fresh-start model. The primary direct-3D launch has no legacy
+    # baseline Combobox to choose the first model later, so startup state itself
+    # must already agree with the active cabinet family.
+    self.baseline_var    = tk.StringVar(master=self.root, value="金庫型")
     self._active_cabinet_type = "金庫型"
     # Known-model switches always re-apply the target preset.  This map
     # stores immutable startup presets only; it must never become a
