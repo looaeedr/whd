@@ -7,6 +7,7 @@ axes/canvas, own Tk/UI state, import the bridge, or invoke application owners.
 from __future__ import annotations
 
 from ae_engine.display_dimensions import folded_outside_envelope
+from phase6_final_scene_contracts import AssemblySceneRenderData
 from phase6_fold_profiles import _num, engine_segment_length_to_ui
 
 
@@ -430,6 +431,74 @@ def _phase6_place_assembly_triangles(triangles, placement, dimensions, offset):
     return place_assembly_triangles(triangles, placement, dimensions, offset)
 
 
+def make_assembly_scene_render_data(
+    *,
+    assembly_parts,
+    visible_part_keys=None,
+    visible_box_body_piece_keys=None,
+    show_interference=False,
+    ignore_fixed_corner_relief=False,
+    interference_probe_parts=(),
+    joint_diagnostics=(),
+    selected_joint_id=None,
+    preserve_endcap_core_origin=False,
+    render_data_cls=None,
+):
+    """Construct the UI-only assembly bundle across old/new view contracts."""
+    from inspect import Parameter, signature
+
+    cls = render_data_cls or AssemblySceneRenderData
+    values = {
+        "assembly_parts": tuple(assembly_parts),
+        "visible_part_keys": (
+            None
+            if visible_part_keys is None
+            else tuple(str(key) for key in visible_part_keys)
+        ),
+        "visible_box_body_piece_keys": (
+            None
+            if visible_box_body_piece_keys is None
+            else tuple(str(key) for key in visible_box_body_piece_keys)
+        ),
+        "show_interference": bool(show_interference),
+        "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
+        "interference_probe_parts": tuple(interference_probe_parts or ()),
+        "joint_diagnostics": tuple(joint_diagnostics or ()),
+        "selected_joint_id": (
+            None if selected_joint_id is None else str(selected_joint_id)
+        ),
+        "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
+    }
+    try:
+        params = signature(cls).parameters
+    except (TypeError, ValueError):
+        params = {}
+    accepts_kwargs = any(
+        parameter.kind is Parameter.VAR_KEYWORD
+        for parameter in params.values()
+    )
+    if accepts_kwargs:
+        kwargs = values
+    else:
+        if (
+            "visible_part_keys" not in params
+            and values["visible_part_keys"] is not None
+        ):
+            visible = set(values["visible_part_keys"])
+            values["assembly_parts"] = tuple(
+                part
+                for part in values["assembly_parts"]
+                if str(getattr(part, "part_key", "")) in visible
+            )
+        kwargs = {
+            key: value
+            for key, value in values.items()
+            if key in params
+        }
+        kwargs.setdefault("assembly_parts", values["assembly_parts"])
+    return cls(**kwargs)
+
+
 __all__ = [
     '_phase6_profile_base_index',
     '_phase6_profile_geometry',
@@ -452,5 +521,6 @@ __all__ = [
     '_phase6_box_body_structure_meshes',
     'format_operator_info_text',
     '_phase6_triangle_bounds',
-    '_phase6_place_assembly_triangles'
+    '_phase6_place_assembly_triangles',
+    'make_assembly_scene_render_data'
 ]
