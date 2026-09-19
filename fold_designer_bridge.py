@@ -118,7 +118,7 @@ from phase6_diagnostics import (
 
 from phase6_final_scene_view import (
     AssemblyScenePart, AssemblySceneRenderData,
-    FinalSceneViewRequest, Phase6FinalSceneView,
+    FinalSceneViewRequest, Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
     _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
     _phase6_profile_base_index, _phase6_profile_geometry,
     _phase6_fold_mask_for_cross_coordinate, _phase6_profile_map_with_guides,
@@ -572,6 +572,87 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
     """Mirror adapter-owned selection for legacy readers/tests only."""
     adapter = adapter or _phase6_corner_data_view(self)
     self._phase6_corner_data_selected_part_key = adapter.selected_part_key
+    return adapter
+
+
+def _phase6_sync_final_scene_view_compatibility_mirrors(self, view):
+    """Mirror deep-view state for legacy non-app test doubles only."""
+    for owner_name, view_name in (
+        ("_phase6_last_cutting_mesh", "last_cutting_mesh"),
+        ("_phase6_last_cutting_material", "last_cutting_material"),
+        ("_phase6_cutting_mesh_error", "cutting_mesh_error"),
+        ("_phase6_zoom_scale", "zoom_scale"),
+        ("_phase6_view_initialized", "view_initialized"),
+        ("_phase6_base_renderer_render", "base_renderer_render"),
+        ("_phase6_scroll_cid", "scroll_cid"),
+    ):
+        try:
+            setattr(self, owner_name, getattr(view, view_name))
+        except Exception:
+            pass
+    return view
+
+
+def _phase6_final_scene_adapter(self):
+    adapter = getattr(self, "_phase6_final_scene_view_adapter", None)
+    if adapter is None or getattr(adapter, "owner", None) is not self:
+        adapter = Phase6FinalSceneViewAdapter(
+            self,
+            services={
+                "number_text": _setting_number_text,
+                "is_physical_piece_key": _phase6_is_box_body_physical_piece_key,
+                "physical_piece_render_data": lambda key: _phase6_box_body_piece_render_data(self, key),
+                "user_joint_parts": lambda: {
+                    str(raw.get(field) or "")
+                    for raw in tuple(
+                        migrate_legacy_snapshot_joints(
+                            dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+                        ).get("assembly_joints", ()) or ()
+                    )
+                    if str(raw.get("source") or "") == AssemblyJointSource.USER_ADDED.value
+                    for field in ("subject_part", "target_part")
+                },
+                "resolve_geometry": lambda: _phase6_resolve_manufacturing_geometry(self),
+                "scene_payload_for_part": lambda key: _phase6_scene_query_payload_for_part(self, key),
+                "publish_live_state": lambda **kwargs: _phase6_publish_live_state(self, **kwargs),
+                "corner_dimension_text": _phase6_render_data_corner_dimension_text,
+                "formed_size_text": lambda render_data, **kwargs: _phase6_format_formed_size_text(
+                    render_data, **kwargs
+                ),
+                "blank_text": lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
+                    render_data, part_key=part_key
+                ),
+                "refresh_box_body_piece_info": lambda render_data: _phase6_refresh_box_body_piece_info_rows(
+                    self, render_data
+                ),
+                "operator_dimensions": lambda part_key=None: (
+                    _phase6_operator_finished_dimensions(self)
+                    if part_key is None
+                    else _phase6_operator_finished_dimensions(self, part_key)
+                ),
+                "cabinet_family": lambda: _phase6_current_cabinet_family(self),
+                "assembly_blank_text": lambda render_data: _phase6_assembly_unfolded_blank_text(
+                    render_data,
+                    snapshot=getattr(self, "_phase6_input_snapshot", {}),
+                ),
+                "active_mesh_profiles": lambda material: _phase6_active_mesh_profiles(
+                    self, material
+                ),
+                "assembly_render_data_cls": lambda: AssemblySceneRenderData,
+                "assembly_part_cls": AssemblyScenePart,
+                "final_render_provider": lambda: _phase6_query_final_render_data(self),
+                "assembly_render_provider": lambda: _phase6_query_assembly_render_data(self),
+                "request_provider": lambda: _phase6_final_scene_view_request(self),
+                "after_render": lambda: (
+                    _phase6_update_unfolded_size_label(self),
+                    _phase6_update_assembly_diagnostic_status(self),
+                ),
+                "mirror_view_state": lambda view: _phase6_sync_final_scene_view_compatibility_mirrors(
+                    self, view
+                ),
+            },
+        )
+        self._phase6_final_scene_view_adapter = adapter
     return adapter
 
 
@@ -5993,52 +6074,10 @@ def _phase6_scene_query_payload(self):
     return _phase6_scene_query_payload_for_part(self, self.designer_workspace.active_part)
 
 
+
 def _phase6_query_final_render_data(self):
-    """Return authoritative render data for the active sheet.
-
-    Box Body / EndCaps and any sheet participating in a USER_ADDED Joint must
-    read the resolved assembly result so single-part 3D cannot drift from the
-    combined view.  Unrelated sheets (Door/Base Plate/etc.) have no assembly
-    relief dependency and should query their own manufacturing FinalScene
-    directly instead of forcing a whole-cabinet solve.
-    """
-    key = str(self.designer_workspace.active_part or "")
-    if not key:
-        raise ValueError("no active part")
-    if _phase6_is_box_body_physical_piece_key(key):
-        return _phase6_box_body_piece_render_data(self, key)
-
-    snapshot = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    user_joint_parts = {
-        str(raw.get(field) or "")
-        for raw in tuple(snapshot.get("assembly_joints", ()) or ())
-        if str(raw.get("source") or "") == AssemblyJointSource.USER_ADDED.value
-        for field in ("subject_part", "target_part")
-    }
-    if (
-        key in {"box_body", "head", "tail"}
-        or key.startswith("box_body:divider:")
-        or key in user_joint_parts
-    ):
-        resolved = _phase6_resolve_manufacturing_geometry(self)
-        return resolved.part(key).render_data
-
-    callback = getattr(self, "_scene_query_callback", None)
-    if callback is None:
-        raise RuntimeError("3D final-scene provider is not connected")
-    render_data = callback(key, _phase6_scene_query_payload_for_part(self, key))
-    if render_data is None:
-        raise ValueError(f"manufacturing render data unavailable: {key}")
-    if getattr(render_data, "pieces", None):
-        return render_data
-    if getattr(render_data, "scene", None) is None or getattr(render_data, "material", None) is None:
-        raise TypeError("manufacturing render provider must return scene + material or physical pieces")
-    return render_data
-
-
-
-
-
+    """Compatibility delegate to the T6 final-scene view adapter."""
+    return _phase6_final_scene_adapter(self).query_final_render_data()
 
 def _phase6_active_mesh_profiles(self, material):
     return _phase6_mesh_profiles_for_part(self, self.designer_workspace.active_part, material)
@@ -6065,6 +6104,7 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
     return x_prof, y_prof
 
 
+
 def _phase6_make_assembly_scene_render_data(
     *,
     assembly_parts,
@@ -6077,53 +6117,19 @@ def _phase6_make_assembly_scene_render_data(
     selected_joint_id=None,
     preserve_endcap_core_origin=False,
 ):
-    """Construct the assembly bundle across old/new scene-view contracts.
-
-    UPDATE packages may be applied over an older Phase6 tree.  Older
-    ``AssemblySceneRenderData`` constructors only accepted ``assembly_parts``
-    (and sometimes ``warnings``).  Filter optional keyword arguments against
-    the live constructor signature so a mixed-version install can still open
-    the assembly view instead of failing with ``unexpected keyword``.
-    """
-    from inspect import Parameter, signature
-
-    values = {
-        "assembly_parts": tuple(assembly_parts),
-        "visible_part_keys": (
-            None if visible_part_keys is None
-            else tuple(str(key) for key in visible_part_keys)
-        ),
-        "visible_box_body_piece_keys": (
-            None if visible_box_body_piece_keys is None
-            else tuple(str(key) for key in visible_box_body_piece_keys)
-        ),
-        "show_interference": bool(show_interference),
-        "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
-        "interference_probe_parts": tuple(interference_probe_parts or ()),
-        "joint_diagnostics": tuple(joint_diagnostics or ()),
-        "selected_joint_id": None if selected_joint_id is None else str(selected_joint_id),
-        "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
-    }
-    try:
-        params = signature(AssemblySceneRenderData).parameters
-    except (TypeError, ValueError):
-        params = {}
-    accepts_kwargs = any(
-        p.kind is Parameter.VAR_KEYWORD for p in params.values()
+    """Compatibility delegate for assembly-scene bundle construction."""
+    return Phase6FinalSceneViewAdapter(None).make_assembly_scene_render_data(
+        assembly_parts=assembly_parts,
+        visible_part_keys=visible_part_keys,
+        visible_box_body_piece_keys=visible_box_body_piece_keys,
+        show_interference=show_interference,
+        ignore_fixed_corner_relief=ignore_fixed_corner_relief,
+        interference_probe_parts=interference_probe_parts,
+        joint_diagnostics=joint_diagnostics,
+        selected_joint_id=selected_joint_id,
+        preserve_endcap_core_origin=preserve_endcap_core_origin,
+        render_data_cls=AssemblySceneRenderData,
     )
-    if accepts_kwargs:
-        kwargs = values
-    else:
-        if "visible_part_keys" not in params and values["visible_part_keys"] is not None:
-            visible = set(values["visible_part_keys"])
-            values["assembly_parts"] = tuple(
-                part for part in values["assembly_parts"]
-                if str(getattr(part, "part_key", "")) in visible
-            )
-        kwargs = {key: value for key, value in values.items() if key in params}
-        kwargs.setdefault("assembly_parts", values["assembly_parts"])
-    return AssemblySceneRenderData(**kwargs)
-
 
 def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
     """Render resolved BoxBody children nested under the single logical 箱身 row."""
@@ -6236,111 +6242,10 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         if logical_blank is not None: logical_blank.set("展開料：見下方各片")
         if logical_corner is not None: logical_corner.set("截角尺寸：見下方各片")
 
+
 def _phase6_query_assembly_render_data(self):
-    """UI adapter: read the already-resolved canonical manufacturing geometry."""
-    resolved = _phase6_resolve_manufacturing_geometry(self)
-    # The initial assembly render may solve certified relief while live-sync is
-    # intentionally disabled.  Once READY, make sure the host snapshot receives
-    # that exact canonical relief even when this query reuses the cached solve.
-    # Equivalent host state remains a strict no-op inside publish_live_state.
-    _phase6_publish_live_state(self, force=True)
-    parts = [
-        AssemblyScenePart(
-            part_key=part.part_key,
-            render_data=part.render_data,
-            x_profile=tuple(dict(seg) for seg in tuple(part.x_profile or ())),
-            y_profile=tuple(dict(seg) for seg in tuple(part.y_profile or ())),
-            placement=part.placement,
-            offset=part.offset,
-        )
-        for part in resolved.parts
-    ]
-    self._phase6_last_assembly_corner_dimension_texts = {
-        part.part_key: _phase6_render_data_corner_dimension_text(part.render_data)
-        for part in parts
-    }
-    for key, text in self._phase6_last_assembly_corner_dimension_texts.items():
-        var = (getattr(self, "assembly_part_corner_vars", {}) or {}).get(key)
-        if var is not None and callable(getattr(var, "set", None)):
-            var.set(text)
-    thickness = _num(
-        (getattr(self, "_settings_values", {}) or {}).get(
-            "t", (getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0)
-        ), 2.0
-    )
-    for part in parts:
-        formed_var = (getattr(self, "assembly_part_formed_vars", {}) or {}).get(part.part_key)
-        if formed_var is not None and callable(getattr(formed_var, "set", None)):
-            formed_var.set(_phase6_format_formed_size_text(
-                part.render_data,
-                part_key=part.part_key,
-                x_profile=part.x_profile,
-                y_profile=part.y_profile,
-                thickness=thickness,
-                finished_dimensions=_phase6_operator_finished_dimensions(
-                    self, part.part_key
-                ),
-            ))
-        var = (getattr(self, "assembly_part_blank_vars", {}) or {}).get(part.part_key)
-        if var is not None and callable(getattr(var, "set", None)):
-            var.set(_phase6_format_unfolded_blank_text(part.render_data, part_key=part.part_key))
-        if part.part_key == "box_body":
-            _phase6_refresh_box_body_piece_info_rows(self, part.render_data)
-
-    visible_vars = getattr(self, "assembly_part_visible_vars", {}) or {}
-    visible_parts = [
-        part for part in parts
-        if bool(getattr(visible_vars.get(part.part_key), "get", lambda: True)())
-    ]
-    if not visible_parts and parts:
-        fallback = next((part for part in parts if part.part_key == "box_body"), parts[0])
-        visible_parts = [fallback]
-        var = visible_vars.get(fallback.part_key)
-        if var is not None and callable(getattr(var, "set", None)):
-            var.set(True)
-
-    visible_keys = {part.part_key for part in visible_parts}
-    box_part = next((part for part in parts if part.part_key == "box_body"), None)
-    box_piece_keys = tuple(
-        f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
-        for piece in tuple(getattr(getattr(box_part, "render_data", None), "pieces", ()) or ())
-        if str(getattr(piece, "role", "") or "").strip()
-    )
-    visible_box_body_piece_keys = None
-    if box_piece_keys:
-        piece_vars = dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {})
-        if "box_body" not in visible_keys:
-            visible_box_body_piece_keys = ()
-        else:
-            visible_box_body_piece_keys = tuple(
-                key for key in box_piece_keys
-                if bool(getattr(piece_vars.get(key), "get", lambda: True)())
-            )
-            if not visible_box_body_piece_keys and visible_keys == {"box_body"}:
-                first = box_piece_keys[0]
-                var = piece_vars.get(first)
-                if var is not None and callable(getattr(var, "set", None)):
-                    var.set(True)
-                visible_box_body_piece_keys = (first,)
-    visible_probe_parts = tuple(
-        part for part in tuple(getattr(self, "_phase6_last_interference_probe_parts", ()) or ())
-        if part.part_key in visible_keys
-    )
-    return _phase6_make_assembly_scene_render_data(
-        assembly_parts=tuple(parts),
-        visible_part_keys=tuple(part.part_key for part in visible_parts),
-        visible_box_body_piece_keys=visible_box_body_piece_keys,
-        show_interference=bool(getattr(self, "assembly_show_interference_var", None).get())
-            if getattr(self, "assembly_show_interference_var", None) is not None else True,
-        ignore_fixed_corner_relief=False,
-        interference_probe_parts=visible_probe_parts,
-        # Joint Registry diagnostics remain available on ResolvedManufacturingGeometry
-        # for dedicated debug/registry tools, but are not operator assembly drawing
-        # layers.  Keep the production combined view free of solver overlays.
-        joint_diagnostics=(),
-        selected_joint_id=None,
-        preserve_endcap_core_origin=(_phase6_current_cabinet_family(self) == "受電箱"),
-    )
+    """Compatibility delegate to authoritative T6 assembly projection."""
+    return _phase6_final_scene_adapter(self).query_assembly_render_data()
 
 def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
     rows = []
@@ -6352,99 +6257,27 @@ def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
     return "展開尺寸：\n" + "\n".join(rows) if rows else "展開尺寸：-"
 
 
+
 def _phase6_final_scene_view_request(self):
-    """Adapt current designer draft state into the FinalScene View interface."""
-    if not self.designer_workspace.active_part:
-        return None
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(self, "_settings_values", {}) or {}
-    view_mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    if view_mode == "assembly":
-        assembly_render_data = _phase6_query_assembly_render_data(self)
-        return FinalSceneViewRequest(
-            render_data=assembly_render_data,
-            x_profile=(),
-            y_profile=(),
-            part_key="assembly",
-            alpha_bend=float(getattr(self.state, "alpha_bend", 0.85)),
-            finished_dimensions=_phase6_operator_finished_dimensions(self),
-            thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-            unfolded_blank_text=_phase6_assembly_unfolded_blank_text(
-                assembly_render_data, snapshot=getattr(self, "_phase6_input_snapshot", {})
-            ),
-        )
-    render_data = _phase6_query_final_render_data(self)
-    if getattr(render_data, "pieces", None):
-        x_profile, y_profile = (), ()
-    else:
-        x_profile, y_profile = _phase6_active_mesh_profiles(self, render_data.material)
-    return FinalSceneViewRequest(
-        render_data=render_data,
-        x_profile=tuple(dict(seg) for seg in x_profile),
-        y_profile=tuple(dict(seg) for seg in y_profile),
-        part_key=str(self.designer_workspace.active_part),
-        alpha_bend=float(getattr(self.state, "alpha_bend", 0.85)),
-        finished_dimensions=_phase6_operator_finished_dimensions(self),
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-        corner_dimension_text=_phase6_render_data_corner_dimension_text(render_data),
-        unfolded_blank_text=_phase6_format_unfolded_blank_text(
-            render_data, part_key=str(self.designer_workspace.active_part)
-        ),
+    """Compatibility delegate for final-scene request construction."""
+    adapter = _phase6_final_scene_adapter(self)
+    adapter.services["final_render_provider"] = (
+        lambda: _phase6_query_final_render_data(self)
     )
+    return adapter.build_request()
 
 
 def _phase6_render_true_cutting_mesh(self):
-    """Compatibility adapter; production rendering is owned by FinalSceneView."""
-    view = getattr(self, "final_scene_view", None)
-    if view is None:
-        view = Phase6FinalSceneView(self.renderer, number_text=_setting_number_text)
-        self.final_scene_view = view
-    triangles = view.render(_phase6_final_scene_view_request(self))
-    if not isinstance(self, Phase6FoldDesignerApp):
-        self._phase6_last_cutting_mesh = view.last_cutting_mesh
-        self._phase6_last_cutting_material = view.last_cutting_material
-        self._phase6_cutting_mesh_error = view.cutting_mesh_error
-    return triangles
+    """Compatibility delegate; deep rendering remains Phase6FinalSceneView-owned."""
+    return _phase6_final_scene_adapter(self).render_cutting_mesh()
 
 
 def _phase6_on_3d_scroll(self, event):
-    view = getattr(self, "final_scene_view", None)
-    if view is not None:
-        return view.on_scroll(event)
-    return None
+    return _phase6_final_scene_adapter(self).on_scroll(event)
 
 
 def _phase6_install_renderer_view(self):
-    view = Phase6FinalSceneView(self.renderer, number_text=_setting_number_text)
-    self.final_scene_view = view
-    try:
-        self.renderer.canvas.get_tk_widget().configure(takefocus=False)
-    except Exception:
-        pass
-    view.install(
-        lambda: _phase6_final_scene_view_request(self),
-        after_render=lambda: (
-            _phase6_update_unfolded_size_label(self),
-            _phase6_update_assembly_diagnostic_status(self),
-        ),
-    )
-    return view
-
-
-
-
-
-
-
-
-
-
-
-
-_PHASE6_ZOOM_MIN = 0.35
-_PHASE6_ZOOM_MAX = 3.0
-_PHASE6_ZOOM_STEP = 0.85
-
+    return _phase6_final_scene_adapter(self).install_renderer()
 
 def _phase6_profile_material_total(profile):
     return float(sum(abs(_num(seg.get("len", 0.0))) for seg in (profile or ())))
@@ -9125,19 +8958,9 @@ _PHASE6_ORCHESTRATION_DEBOUNCE_MS = 75
 def _phase6_publish_if_changed(self):
     return _phase6_publish_live_state(self)
 
+
 def _phase6_render_committed_view(self):
-    if not getattr(self, "preview_3d_enabled", True):
-        return None
-    canvas = self.renderer.canvas
-    draw = getattr(canvas, "draw", None)
-    draw_idle = getattr(canvas, "draw_idle", None)
-    if callable(draw) and callable(draw_idle) and not getattr(self, "_phase6_force_sync_preview", False):
-        canvas.draw = draw_idle
-        try:
-            return self.renderer.render()
-        finally:
-            canvas.draw = draw
-    return self.renderer.render()
+    return _phase6_final_scene_adapter(self).render_committed()
 
 def _phase6_execute_update_intents(self, reasons):
     reasons = {str(reason or "geometry") for reason in set(reasons or ())}
@@ -9228,30 +9051,13 @@ def _phase6_preview_aware_do_update(self):
     """Legacy compatibility wrapper: submit intent, never execute update/render."""
     return self.submit_update_intent("geometry", commit=True)
 
+
 def _phase6_set_3d_preview_enabled(self, enabled):
-    enabled = bool(enabled)
-    self.preview_3d_enabled = enabled
-    var = getattr(self, "preview_3d_var", None)
-    if var is not None and bool(var.get()) != enabled:
-        var.set(enabled)
-    widget = self.renderer.canvas.get_tk_widget()
-    if enabled:
-        if not widget.winfo_manager():
-            widget.pack(fill=original.tk.BOTH, expand=True)
-        self.submit_update_intent("display", commit=True)
-    else:
-        if widget.winfo_manager() == "pack":
-            widget.pack_forget()
+    return _phase6_final_scene_adapter(self).set_preview_enabled(enabled)
+
 
 def _phase6_refresh_3d_preview(self):
-    if not getattr(self, "preview_3d_enabled", True):
-        self.set_3d_preview_enabled(True)
-        return
-    self._phase6_force_sync_preview = True
-    try:
-        return self.submit_update_intent("display", commit=True)
-    finally:
-        self._phase6_force_sync_preview = False
+    return _phase6_final_scene_adapter(self).refresh_preview()
 
 def _phase6_queue_update(self, *args):
     if getattr(self, "_phase6_destroying", False) or getattr(self, "_phase6_switching_part", False):
