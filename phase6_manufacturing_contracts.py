@@ -244,18 +244,24 @@ class ManufacturingResolveRequest:
                 _as_frozen_mapping(getattr(self, name), field_name=name),
             )
 
-        part_keys = tuple(sorted({str(key) for key in tuple(self.canonical_part_keys or ()) if str(key)}))
-        object.__setattr__(self, "canonical_part_keys", part_keys)
+        part_keys: list[str] = []
+        seen_part_keys: set[str] = set()
+        for raw_key in tuple(self.canonical_part_keys or ()):
+            key = str(raw_key or "")
+            if key and key not in seen_part_keys:
+                part_keys.append(key)
+                seen_part_keys.add(key)
+        object.__setattr__(self, "canonical_part_keys", tuple(part_keys))
 
         normalized_parts: list[ManufacturingPartInput] = []
+        part_names: list[str] = []
         for item in tuple(self.parts or ()):
             if not isinstance(item, ManufacturingPartInput):
                 raise TypeError("parts must contain ManufacturingPartInput values")
+            if item.part_key in part_names:
+                raise ValueError("duplicate ManufacturingPartInput.part_key")
+            part_names.append(item.part_key)
             normalized_parts.append(item)
-        normalized_parts.sort(key=lambda item: item.part_key)
-        part_names = [item.part_key for item in normalized_parts]
-        if len(part_names) != len(set(part_names)):
-            raise ValueError("duplicate ManufacturingPartInput.part_key")
         object.__setattr__(self, "parts", tuple(normalized_parts))
         object.__setattr__(
             self,
@@ -279,8 +285,13 @@ class ManufacturingResolveRequest:
                 "endcap_fw": self.endcap_fw,
                 "endcap_bottom_wrap": self.endcap_bottom_wrap,
                 "assembly_graph": self.assembly_graph,
-                "canonical_part_keys": self.canonical_part_keys,
-                "parts": tuple(part.semantic_payload() for part in self.parts),
+                # Runtime assembly/render order is intentionally preserved on
+                # the request object, while cache identity remains order-stable.
+                "canonical_part_keys": tuple(sorted(self.canonical_part_keys)),
+                "parts": tuple(
+                    part.semantic_payload()
+                    for part in sorted(self.parts, key=lambda item: item.part_key)
+                ),
                 "operator_finished_dimensions": self.operator_finished_dimensions,
                 "assembly_intent": self.assembly_intent,
                 "allow_3d_fallback": self.allow_3d_fallback,
