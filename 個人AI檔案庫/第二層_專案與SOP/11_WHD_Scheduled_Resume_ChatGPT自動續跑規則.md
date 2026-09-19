@@ -98,4 +98,3 @@ Validation 只判定 implementation 是否符合 authority，不得反過來成�
 - heartbeat 不是 execution cadence：目前 Runtime 還能繼續時，回報後仍繼續做；live remote-QA 約 30 秒 cadence 仍由 monitoring-remote-qa 負責。
 
 Canonical executable owner：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
-
