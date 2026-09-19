@@ -17,6 +17,8 @@ permissions:
 env:
   BASELINE_SHA: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
   CANDIDATE_SHA: 15630860b96fbd3045c6895c02fb6155c7d42e76
+  PYTHONPATH: .
+  MPLBACKEND: Agg
 
 jobs:
   candidate-preflight:
