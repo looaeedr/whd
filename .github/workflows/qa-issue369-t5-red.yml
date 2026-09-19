@@ -1,0 +1,50 @@
+name: "QA #369 T5 2D corner view RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue369-phase3-2d-corner-view-20260919
+    paths:
+      - 'tests/test_issue369_t5_corner_data_view_owner.py'
+      - '.github/workflows/qa-issue369-t5-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t5-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 4137b62887c3dc20c6ee5bbd4d753f485dcaf23b HEAD
+          echo "T5_BASELINE=4137b62887c3dc20c6ee5bbd4d753f485dcaf23b"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T5 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue369_t5_corner_data_view_owner.py --tb=short | tee /tmp/issue369-t5-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T5 corner-data view adapter" /tmp/issue369-t5-red.log
+          grep -q "RED: bridge still owns T5 authoritative 2D projection/view state" /tmp/issue369-t5-red.log
+          grep -q "RED: view layer still reconstructs formed geometry" /tmp/issue369-t5-red.log
+          echo "PASS EXPECTED_T5_RED=1"
