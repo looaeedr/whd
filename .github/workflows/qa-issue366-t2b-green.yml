@@ -54,7 +54,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          NODE="tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry"
           xvfb-run -a python -m pytest -q \
             tests/test_phase6_t02_endcap_edge_controls.py \
             tests/test_phase6_settings_center_bridge.py \
-            tests/test_issue124_structure_tree.py
+            tests/test_issue124_structure_tree.py \
+            --deselect "$NODE"
+
+      - name: Require exact inherited edge-control RED on baseline and candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASELINE="bb8c3d0272756629654127fbd86e9d7013d797e4"
+          CANDIDATE="$GITHUB_SHA"
+          NODE="tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry"
+
+          run_one() {
+            label="$1"
+            ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$NODE" --tb=short 2>&1 | tee "/tmp/$label-edge.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            test "$rc" -ne 0
+            grep -q "1 failed" "/tmp/$label-edge.log"
+            grep -q "assert set() ==" "/tmp/$label-edge.log"
+          }
+
+          run_one baseline "$BASELINE"
+          run_one candidate "$CANDIDATE"
+          echo "PASS INHERITED_EDGE_CONTROL_RED=EXACT_BASELINE_PARITY"
