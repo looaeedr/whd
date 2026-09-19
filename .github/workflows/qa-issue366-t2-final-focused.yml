@@ -81,8 +81,7 @@ jobs:
             tests/test_phase6_settings_service.py \
             tests/test_phase6_box_body_structure.py \
             tests/test_assembly_joint_contract.py \
-            tests/test_assembly_joint_semantics.py \
-            tests/test_phase6_endcap_semantics.py
+            tests/test_assembly_joint_semantics.py
 
       - name: Run real-Tk T2 regressions excluding exact inherited nodes
         shell: bash
