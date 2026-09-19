@@ -1368,6 +1368,8 @@
   "source_drift": {
     "changed_paths": [
       ".github/workflows/qa-issue389-phase4-t0.yml",
+      ".scratch/phase4-t0-census.json",
+      "docs/superpowers/checkpoints/phase4-t0-deep-owner-census.md",
       "tools/phase4_owner_census.py"
     ],
     "count": 0,
