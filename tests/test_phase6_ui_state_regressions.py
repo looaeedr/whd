@@ -741,27 +741,17 @@ def test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_c
         settings_context="box_body",
         do_update=lambda: None,
     )
-    sync_calls = []
-    legacy_apply_calls = []
 
-    monkeypatch.setattr(
-        bridge,
-        "_phase6_sync_joint_state_for_intent",
-        lambda self, type_id: sync_calls.append(type_id) or (),
-    )
-    monkeypatch.setattr(
-        bridge,
-        "apply_box_assembly_type_to_raw_state",
-        lambda *args, **kwargs: legacy_apply_calls.append((args, kwargs)),
-    )
     monkeypatch.setattr(bridge, "_phase6_invalidate_settings_page", lambda *_a: None)
     monkeypatch.setattr(bridge, "_phase6_rebuild_linked_endcaps", lambda *_a: None)
+    monkeypatch.setattr(bridge, "_phase6_render_active_drawing_edge_controls", lambda *_a: None)
 
     bridge._phase6_on_assembly_type_selected(holder)
 
-    assert sync_calls == [bridge.CornerTypeId.OVERLAY]
-    assert legacy_apply_calls == []
+    # T2 owns intent->joint synchronization.  Assert the public/canonical
+    # result instead of monkeypatching the retired bridge helper.
     assert holder._phase6_input_snapshot["assembly_type"] == bridge.CornerTypeId.OVERLAY.value
+    assert holder._phase6_input_snapshot["assembly_joints"]
     assert holder._phase6_corner_state is original_corner_state
     assert workspace.dirty is True
 
