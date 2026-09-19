@@ -146,4 +146,3 @@ Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對�
 - heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
 
 Canonical authority：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
-
