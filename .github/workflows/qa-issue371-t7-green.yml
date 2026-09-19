@@ -12,6 +12,8 @@ on:
       - 'gui_modules/application/lifecycle.py'
       - 'tests/test_issue371_t7_lifecycle_facade_owner.py'
       - 'tests/test_issue371_t7_update_runtime_behavior.py'
+      - 'tests/test_issue358_remove_manufacturing_callbacks.py'
+      - 'tests/test_issue361_one_line_manufacturing_facade.py'
       - '.github/workflows/qa-issue371-t7-green.yml'
   workflow_dispatch:
 
