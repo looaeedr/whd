@@ -766,3 +766,10 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
         raise ValueError(f"未知 3D 板件: {key}")
     return spec, context
 
+
+
+def install_fold_designer_bridge_facade(app_cls, bindings):
+    """Install compatibility/composition aliases without owning their behavior."""
+    for name, value in dict(bindings or {}).items():
+        setattr(app_cls, str(name), value)
+    return app_cls
