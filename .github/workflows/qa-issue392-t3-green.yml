@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y python3-tk xvfb
-          python -m pip install pytest -r requirements.txt
+          python -m pip install pytest matplotlib -r requirements.txt
 
       - name: Compile T3 sources
         run: |
@@ -138,6 +138,7 @@ jobs:
             "fold_designer_bridge.py",
             "gui_modules/application/command_router.py",
             "tests/test_issue392_settings_service.py",
+            "tests/test_issue391_settings_transitions.py",
             ".github/workflows/qa-issue392-t3-red.yml",
             ".github/workflows/qa-issue392-t3-green.yml",
           }
@@ -174,7 +175,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y python3-tk xvfb
-          python -m pip install pytest -r requirements.txt
+          python -m pip install pytest matplotlib -r requirements.txt
 
       - name: Settings UI/runtime regressions
         shell: bash
