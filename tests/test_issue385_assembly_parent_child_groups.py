@@ -113,10 +113,10 @@ def test_group_parent_toggle_is_presentation_only_and_child_visibility_survives(
 
         button = designer.assembly_presentation_group_detail_buttons["door"]
         details = designer.assembly_presentation_group_detail_frames["door"]
-        assert details.winfo_manager() != ""
+        assert details.winfo_manager() == ""
         button.invoke()
         root.update_idletasks(); root.update()
-        assert details.winfo_manager() == ""
+        assert details.winfo_manager() != ""
 
         after = {key: bool(designer.assembly_part_visible_vars[key].get()) for key in door_keys}
         assert after == before
