@@ -25,6 +25,7 @@ from phase6_box_body_structure import (
 from phase6_endcap_semantics import (
     commit_endcap_bottom_wrap,
     commit_endcap_fw,
+    normalize_endcap_bottom_wrap_state,
     resolve_endcap_bottom_wrap,
     set_endcap_fw_follow,
 )
@@ -285,6 +286,12 @@ class Phase6SettingsTransactionController:
         reserve_u: float,
         reserve_v: float,
     ) -> dict:
+        if not isinstance(self._endcap_bottom_wrap_state, dict):
+            self._endcap_bottom_wrap_state = {}
+        if not self._endcap_bottom_wrap_state:
+            self._endcap_bottom_wrap_state.update(
+                normalize_endcap_bottom_wrap_state(self._input_snapshot)
+            )
         commit_endcap_bottom_wrap(
             self._endcap_bottom_wrap_state,
             str(part_key),
