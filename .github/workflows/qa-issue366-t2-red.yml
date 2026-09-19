@@ -1,9 +1,6 @@
 name: "QA #366 T2 RED settings transactions"
 
 on:
-  push:
-    branches:
-      - refactor/issue366-phase3-settings-transactions-20260919
   workflow_dispatch:
 
 permissions:
