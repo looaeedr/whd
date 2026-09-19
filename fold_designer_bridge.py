@@ -1771,8 +1771,7 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
             if not clean:
                 return {}
         else:
-            structure = self.designer_workspace.set_box_body_structure_state(structure)
-            transactions.commit_settings({"box_body_structure": deepcopy(structure)})
+            transactions.commit_box_structure_state(structure)
 
     self._phase6_applying_settings = True
     try:
@@ -2956,8 +2955,7 @@ def _phase6_refresh_active_endcap_from_linked(self, linked):
 
 
 def _phase6_commit_endcap_fw_state(self):
-    self._phase6_input_snapshot["endcap_fw"] = deepcopy(self._phase6_endcap_fw_state)
-    self.designer_workspace.mark_dirty()
+    """View/effect refresh after transaction owner committed EndCap FW state."""
     linked = _phase6_rebuild_linked_endcaps(self)
     _phase6_refresh_active_endcap_from_linked(self, linked)
     try:
@@ -2968,20 +2966,15 @@ def _phase6_commit_endcap_fw_state(self):
 
 
 def _phase6_set_endcap_fw_follow(self, part_key, follow_box):
-    part_key = str(part_key)
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    box_fw = _num(snapshot.get("fw", 25), 25)
-    set_endcap_fw_follow(self._phase6_endcap_fw_state, part_key, bool(follow_box), box_fw=box_fw)
+    _phase6_settings_transactions(self).commit_endcap_fw_follow(
+        str(part_key), bool(follow_box)
+    )
     return _phase6_commit_endcap_fw_state(self)
 
 
 def _phase6_set_endcap_fw_override(self, part_key, value):
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    commit_endcap_fw(
-        self._phase6_endcap_fw_state, str(part_key), _num(value),
-        box_fw=_num(snapshot.get("fw", 25), 25),
+    _phase6_settings_transactions(self).commit_endcap_fw_override(
+        str(part_key), value
     )
     return _phase6_commit_endcap_fw_state(self)
 
@@ -3052,14 +3045,12 @@ def _phase6_box_structure_state(self):
     return normalize_box_body_structure_state(self.designer_workspace.box_body_structure_state())
 
 
-def _phase6_commit_box_structure_state(self, state, *, rebuild=False):
-    state = self.designer_workspace.set_box_body_structure_state(state)
-    self._phase6_input_snapshot["box_body_structure"] = deepcopy(state)
+def _phase6_after_box_structure_commit(self, state, *, rebuild=False):
+    """Bridge-only cache/view effects after canonical structure commit."""
     # 結構型態/尺寸是 manufacturing geometry signature 的一部分。切換後不可
     # 繼續重用上一型態的 resolved geometry，否則 3D 會停在舊結構。
     self._phase6_last_resolved_manufacturing_geometry = None
     self._phase6_last_resolved_manufacturing_signature = None
-    self.designer_workspace.mark_dirty()
     if rebuild:
         def refresh():
             try:
@@ -3079,6 +3070,11 @@ def _phase6_commit_box_structure_state(self, state, *, rebuild=False):
     return state
 
 
+def _phase6_commit_box_structure_state(self, state, *, rebuild=False):
+    committed = _phase6_settings_transactions(self).commit_box_structure_state(state)
+    return _phase6_after_box_structure_commit(self, committed, rebuild=rebuild)
+
+
 def _phase6_box_structure_error(self, exc):
     var = getattr(self, "settings_status_var", None)
     if var is not None:
@@ -3087,7 +3083,8 @@ def _phase6_box_structure_error(self, exc):
 
 def _phase6_toggle_box_structure_lock(self):
     state = _phase6_box_structure_state(self)
-    _phase6_commit_box_structure_state(self, set_structure_locked(state, not bool(state.get("locked", True))), rebuild=True)
+    committed = _phase6_settings_transactions(self).toggle_box_structure_lock(state)
+    _phase6_after_box_structure_commit(self, committed, rebuild=True)
 
 
 def _phase6_select_box_structure_type(self, var):
@@ -3105,13 +3102,13 @@ def _phase6_select_box_structure_type(self, var):
             pass
         return
     try:
-        next_state = activate_structure_with_defaults(
+        next_state = _phase6_settings_transactions(self).activate_box_structure(
             state, type_id, _phase6_box_structure_w(self)
         )
     except Exception as exc:
         _phase6_box_structure_error(self, exc)
         return
-    _phase6_commit_box_structure_state(self, next_state, rebuild=True)
+    _phase6_after_box_structure_commit(self, next_state, rebuild=True)
     _phase6_refresh_persistent_structure_controls(self)
 
 
@@ -3141,33 +3138,21 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
     try:
         raw = str(var.get()).strip()
         value = float(raw)
-        total_w = _phase6_box_structure_w(self)
-        if type_id is BoxBodyStructureType.TWO_PIECE_W_SPLIT and field in {"left", "right"}:
-            state = set_two_piece_width(state, total_w, field, value)
-        elif type_id is BoxBodyStructureType.THREE_PIECE_W_SPLIT and field in {"left", "middle", "right"}:
-            state = set_three_piece_width(state, total_w, field, value)
-        elif field == "seam_bend":
-            state = set_join_seam_bend(state, type_id, value)
-        elif type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT and field == "side_rear_bend":
-            outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+        committed = _phase6_settings_transactions(self).apply_box_structure_numeric(
+            state,
+            type_id,
+            field,
+            value,
+            total_w=_phase6_box_structure_w(self),
+            outside_family=cabinet_family_policy.box_body_profile_uses_outside_dimensions(
                 getattr(self, "_phase6_input_snapshot", {}) or {}
-            )
-            state = set_side_back_geometry(
-                state,
-                side_rear_bend=value,
-                side_rear_bend_dimension_space=("OUTSIDE" if outside_family else None),
-            )
-        elif type_id is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT and field == "back_width_comp_t":
-            state = set_side_back_geometry(state, back_width_comp_t=value)
-        else:
-            if field in {"endcap_extra_relief", "endcap_single_side_meat_t", "baseplate_relief_length", "baseplate_single_side_meat_t"} and value < 0:
-                raise ValueError("截角／避讓參數不得小於 0")
-            state = update_structure_config(state, type_id, {field: value})
-        _phase6_commit_box_structure_state(self, state, rebuild=True)
+            ),
+        )
+        _phase6_after_box_structure_commit(self, committed, rebuild=True)
     except Exception as exc:
         _phase6_box_structure_error(self, exc)
-        # Recreate from canonical state so an invalid typed value never becomes UI truth.
-        _phase6_commit_box_structure_state(self, state, rebuild=True)
+        # Recreate the UI from canonical state; invalid text never becomes truth.
+        _phase6_after_box_structure_commit(self, state, rebuild=True)
 
 
 def _phase6_structure_entry(box, row, label, value, callback, *, suffix="mm"):
@@ -3515,18 +3500,9 @@ def _phase6_on_endcap_edge_relation_selected(self, part_key, edge):
     relation = _ENDCAP_LABEL_TO_RELATION.get(str(var.get()).strip())
     if relation is None:
         return None
-    snapshot = set_part_edge_relation(
-        dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
-        part_key, edge, relation,
+    _phase6_settings_transactions(self).commit_endcap_edge_relation(
+        part_key, edge, relation
     )
-    self._phase6_input_snapshot.update({
-        "assembly_joint_schema_version": snapshot["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(snapshot["assembly_joints"]),
-        "assembly_type": snapshot.get("assembly_type", self._phase6_input_snapshot.get("assembly_type")),
-    })
-    workspace = getattr(self, "designer_workspace", None)
-    if workspace is not None:
-        workspace.mark_dirty()
     try:
         self.do_update()
     except Exception:
@@ -3722,7 +3698,7 @@ def _phase6_on_box_symmetry_changed(self):
             self.state.symmetric = bool(var.get())
         except Exception:
             return
-    self.designer_workspace.mark_dirty()
+    _phase6_settings_transactions(self).mark_workspace_dirty()
 
     # v_sy already owns an original trace to queue_update().  When this command
     # callback is invoked by the restored checkbox, cancel that queued duplicate
@@ -3776,21 +3752,15 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
         reserve_v = max(0.0, float(reserve_v_var.get()))
     except (TypeError, ValueError, original.tk.TclError):
         return None
-    state = getattr(self, "_phase6_endcap_bottom_wrap_state", None)
-    if not isinstance(state, dict):
-        state = normalize_endcap_bottom_wrap_state(snapshot)
-        self._phase6_endcap_bottom_wrap_state = state
-    commit_endcap_bottom_wrap(
-        state, str(part_key), reserve_u=reserve_u, reserve_v=reserve_v,
+    committed = _phase6_settings_transactions(self).commit_bottom_wrap(
+        str(part_key), reserve_u=reserve_u, reserve_v=reserve_v
     )
-    self._phase6_input_snapshot["endcap_bottom_wrap"] = deepcopy(state)
     self._phase6_last_resolved_manufacturing_geometry = None
     self._phase6_last_resolved_manufacturing_signature = None
     for key in ENDCAP_FW_PARTS:
         _phase6_invalidate_settings_page(self, key)
-    self.designer_workspace.mark_dirty()
     self.do_update()
-    return resolve_endcap_bottom_wrap(self._phase6_input_snapshot, str(part_key), state=state)
+    return committed
 
 
 def _phase6_build_receiving_bottom_wrap_settings(self, parent, part_key, start_row):
