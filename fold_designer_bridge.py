@@ -66,6 +66,7 @@ from gui_modules.application.command_router import (
     submit_fold_designer_update_intent,
     flush_fold_designer_update_intents,
     queue_fold_designer_update,
+    cancel_fold_designer_update_intents,
     apply_fold_designer_settings_delta,
     install_fold_designer_keyboard_shortcuts,
 )
@@ -1533,13 +1534,14 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.load_phase6_snapshot(snapshot)
 
     def _phase6_cancel_owned_tk_jobs(self):
-        job = getattr(self, "_job", None)
-        if job is not None:
-            try:
-                self.root.after_cancel(job)
-            except Exception:
-                pass
-        self._job = None
+        for attr in ("_job", "_phase6_settings_debounce_job"):
+            job = getattr(self, attr, None)
+            if job is not None:
+                try:
+                    self.root.after_cancel(job)
+                except Exception:
+                    pass
+            setattr(self, attr, None)
 
         transactions = getattr(self, "_phase6_settings_transaction_controller", None)
         if transactions is not None:
@@ -1550,6 +1552,9 @@ class Phase6FoldDesignerApp(original.MainApp):
                 except Exception:
                     pass
             transactions.clear_debounce_job()
+
+        cancel_fold_designer_update_intents(self)
+
         if hasattr(self, "_phase6_pending_settings"):
             self._phase6_pending_settings = {}
 
