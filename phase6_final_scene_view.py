@@ -150,8 +150,9 @@ class Phase6FinalSceneViewAdapter:
         )
 
     def query_assembly_render_data(self):
+        deps = self.dependencies
         resolved = deps.resolve_geometry()
-        self.dependencies.publish_live_state(force=True)
+        deps.publish_live_state(force=True)
 
         part_cls = deps.assembly_part_cls
         parts = tuple(
