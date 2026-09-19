@@ -167,7 +167,6 @@ from ae_engine.hole_catalog import (
     custom_circle_definition,
     custom_rectangle_definition,
 )
-from fold_designer_bridge import Phase6FoldDesignerApp
 from phase6_corner_dimension_display import render_data_corner_dimension_text
 from phase6_fold_profiles import (
     profile_to_fold_segments, build_box_body_profile, build_endcap_xy_profiles, build_linked_endcap_xy_profiles,
@@ -980,7 +979,10 @@ def open_original_fold_designer(self, *, target_window=None):
         if path:
             self.project_controller.set_project_path(path)
 
-    designer = Phase6FoldDesignerApp(
+    designer_factory = getattr(self, "_fold_designer_factory", None)
+    if designer_factory is None:
+        raise RuntimeError("Fold Designer factory is not connected")
+    designer = designer_factory(
         window, designer_snapshot,
         on_settings_change=None,
         on_save_defaults=self._save_fold_designer_defaults,
