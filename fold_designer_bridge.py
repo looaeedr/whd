@@ -3460,6 +3460,28 @@ def _phase6_on_assembly_type_selected(self, *_args):
     except Exception:
         pass
 
+
+_ENDCAP_EDGE_LABELS = {
+    "TOP": "上", "BOTTOM": "下", "LEFT": "左", "RIGHT": "右",
+}
+_ENDCAP_RELATION_LABELS = {
+    AssemblyJointRelation.INSERT: "嵌入",
+    AssemblyJointRelation.OVERLAY: "貼外",
+    AssemblyJointRelation.INSERT_OVERLAY: "嵌入貼外",
+    AssemblyJointRelation.WRAP: "包覆",
+}
+_ENDCAP_LABEL_TO_RELATION = {
+    label: relation for relation, label in _ENDCAP_RELATION_LABELS.items()
+}
+
+_BASE_PLATE_EDGE_SETTING_KEYS = {
+    "TOP": "base_plate_shrink_top",
+    "BOTTOM": "base_plate_shrink_bottom",
+    "LEFT": "base_plate_shrink_left",
+    "RIGHT": "base_plate_shrink_right",
+}
+
+
 def _phase6_endcap_joint_policy_rows(self, part_key):
     part_key = str(part_key)
     if part_key not in ENDCAP_FW_PARTS:
