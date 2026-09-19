@@ -93,7 +93,6 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
         ]
         assert menu_labels[0] == "組合體"
         assert menu_labels[-1] == "截角資料"
-        assert menu_labels[0] == "箱身"
         assert app.ui_text_size_combo.master is app.visual_controls
 
         # Global controls are now mounted under the right-side global host.
