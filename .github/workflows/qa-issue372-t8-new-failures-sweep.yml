@@ -71,6 +71,7 @@ jobs:
             tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks \
             tests/test_phase6_gui_performance_contract.py::test_external_designer_apply_has_explicit_anti_echo_guard_contract \
             tests/test_phase6_latest_layout_contract.py::test_first_3d_view_is_assembly_while_sheetmetal_selector_stays_on_real_part \
+            tests/test_phase6_latest_layout_contract.py::test_selecting_real_sheet_part_switches_to_single_part_editor \
             tests/test_phase6_latest_layout_contract.py::test_latest_top_and_global_layout_contract \
             tests/test_phase6_latest_layout_contract.py::test_parameter_lock_button_invoke_makes_assembly_panel_actually_visible \
             tests/test_phase6_latest_layout_contract.py::test_parameter_unlock_routes_to_assembly_diagnostics_then_part_settings \
