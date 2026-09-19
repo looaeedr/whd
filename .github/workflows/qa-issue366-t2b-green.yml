@@ -2,9 +2,6 @@ name: "QA #366 T2B structure endcap GREEN"
 # trigger after inherited-RED classifier correction
 
 on:
-  push:
-    branches:
-      - refactor/issue366-phase3-settings-transactions-20260919
   workflow_dispatch:
 
 permissions:
