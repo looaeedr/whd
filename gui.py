@@ -502,6 +502,7 @@ def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
 
 
 class Phase6ApplicationHost:
+    _fold_designer_factory = Phase6FoldDesignerApp
     # #289/T1 application lifecycle delegation; implementations live in focused modules.
     __init__ = _phase6_lifecycle.phase6_application_host_init
     _current_cabinet_type_name = _phase6_lifecycle._current_cabinet_type_name
