@@ -135,6 +135,9 @@ from phase6_final_scene_contracts import (
     FinalSceneDependencies,
     FinalSceneViewRequest,
 )
+from phase6_final_scene_projection import (
+    make_assembly_scene_render_data as _project_assembly_scene_render_data,
+)
 from phase6_final_scene_view import (
     Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
     _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
@@ -6150,7 +6153,7 @@ def _phase6_make_assembly_scene_render_data(
     preserve_endcap_core_origin=False,
 ):
     """Compatibility delegate for assembly-scene bundle construction."""
-    return Phase6FinalSceneViewAdapter(None).make_assembly_scene_render_data(
+    return _project_assembly_scene_render_data(
         assembly_parts=assembly_parts,
         visible_part_keys=visible_part_keys,
         visible_box_body_piece_keys=visible_box_body_piece_keys,
