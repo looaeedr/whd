@@ -1,14 +1,6 @@
 name: "QA #366 T2D family width GREEN"
 
 on:
-  push:
-    branches:
-      - refactor/issue366-phase3-settings-transactions-20260919
-    paths:
-      - 'fold_designer_bridge.py'
-      - 'phase6_settings_transaction_controller.py'
-      - 'tests/test_issue366_t2d_family_width_controller.py'
-      - '.github/workflows/qa-issue366-t2d-green.yml'
   workflow_dispatch:
 
 permissions:
