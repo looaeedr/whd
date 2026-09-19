@@ -199,3 +199,12 @@ Remote QA monitoring is **active polling**, not event notification.
 - terminal / missing / stale / owner mismatch → 退出 WAITING_REMOTE，進 RECOVERING 並保留 exact remote evidence；
 - scheduled wake 的 hourly cadence **不取代** live Runtime 內本 Skill 約 30 秒 polling；
 - GitHub cron/watchdog 可以輔助觀測 remote state，但不是 ChatGPT executor。
+
+## SCHEDULED_RESUME_PROGRESS_HEARTBEAT_BRIDGE
+
+Scheduled re-entry 的 user-visible heartbeat authority 在 `executable-continuity-controller::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`；本 Skill 只提供 `WAITING_REMOTE` 的 remote evidence，不建立第二套 heartbeat/state machine。
+
+當 scheduled heartbeat 投影為 `WAITING_REMOTE` 時，必須從目前 canonical lock 提供 exact `run_id + head_sha`、目前 step / status、最後一次 remote updated evidence，以及「正常等待既有 RUN」或 stale/recovery 判斷。Active/non-stale run 仍鎖同一 run，禁止另建 replacement RUN；疑似 stale 時沿本 Skill 的既有 stale policy 轉 recovery。
+
+這個 scheduled heartbeat 不取代 live Runtime 約 30 秒一次的 polling/回報；而任何 progress update 都不是停工點，回報後 remote lock 還 active 就繼續 poll。
+
