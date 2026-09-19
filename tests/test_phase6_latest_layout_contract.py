@@ -61,7 +61,7 @@ def test_selecting_real_sheet_part_switches_to_single_part_editor(monkeypatch):
     try:
         app.activate_part("box_body")
         root.update_idletasks()
-        assert app.part_var.get() == "組合體"
+        assert app.part_var.get() == "箱身"
         assert app._phase6_3d_display_mode == "single"
         assert app.fold_editor_host.winfo_manager() == "pack"
     finally:
