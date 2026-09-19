@@ -21,10 +21,51 @@ def test_restore_setting_clears_service_owned_pending_entry():
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
-def test_real_designer_composition_keeps_settings_maps_and_family_transition_live():
+def test_real_designer_composition_keeps_settings_maps_and_family_transition_live(monkeypatch):
     import tkinter as tk
     import gui
     import fold_designer_bridge as bridge
+    from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
+
+    events = []
+    target_names = {
+        "_settings_values",
+        "_phase6_input_snapshot",
+        "_phase6_box_whd",
+        "_phase6_pending_settings",
+    }
+    original_setattr = bridge.Phase6FoldDesignerApp.__setattr__
+    def traced_setattr(owner, name, value):
+        if name in target_names:
+            events.append(("assign", name, id(value), type(value).__name__))
+        return original_setattr(owner, name, value)
+    monkeypatch.setattr(
+        bridge.Phase6FoldDesignerApp, "__setattr__", traced_setattr, raising=False
+    )
+
+    original_settings_service = Phase6FoldDesignerComposition.settings_service
+    def traced_settings_service(composition):
+        before = composition._settings_service
+        result = original_settings_service(composition)
+        if before is None:
+            owner = composition.app
+            events.append((
+                "service-create",
+                id(getattr(owner, "_settings_values", None)),
+                id(getattr(owner, "_phase6_input_snapshot", None)),
+                id(getattr(owner, "_phase6_box_whd", None)),
+                id(getattr(owner, "_phase6_pending_settings", None)),
+                id(result._settings_values),
+                id(result._input_snapshot),
+                id(result._box_whd),
+                id(result._pending),
+            ))
+        return result
+    monkeypatch.setattr(
+        Phase6FoldDesignerComposition,
+        "settings_service",
+        traced_settings_service,
+    )
 
     root = tk.Tk()
     root.withdraw()
@@ -38,7 +79,7 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
         service = bridge._phase6_settings_service(designer)
         transactions = bridge._phase6_settings_transactions(designer)
 
-        assert service._input_snapshot is designer._phase6_input_snapshot
+        assert service._input_snapshot is designer._phase6_input_snapshot, events
         assert transactions._input_snapshot is designer._phase6_input_snapshot
         assert service._settings_values is designer._settings_values
         assert transactions._settings_values is designer._settings_values
