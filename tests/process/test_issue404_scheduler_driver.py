@@ -204,3 +204,41 @@ def test_terminal_checkpoint_requests_closing_agent_handoff():
     assert result.disposition is ScheduledWakeDisposition.CLOSING_HANDOFF
     assert result.requires_agent is True
     assert "issue-closure-gate" in result.agent_prompt
+
+
+def test_github_reader_fresh_reads_encoded_branch_and_exact_actions_run():
+    import json
+    from tools.scheduled_resume_driver import GitHubScheduledResumeReader
+
+    calls = []
+
+    class Result:
+        def __init__(self, payload, returncode=0, stderr=""):
+            self.returncode = returncode
+            self.stdout = json.dumps(payload)
+            self.stderr = stderr
+
+    def runner(args, **kwargs):
+        calls.append(args)
+        endpoint = args[-1]
+        if "/git/ref/heads/" in endpoint:
+            return Result({"object": {"sha": HEAD}})
+        if "/actions/runs/9001" in endpoint:
+            return Result({
+                "id": 9001,
+                "head_sha": HEAD,
+                "status": "in_progress",
+                "conclusion": None,
+                "updated_at": "2026-09-20T11:30:00Z",
+            })
+        raise AssertionError(endpoint)
+
+    reader = GitHubScheduledResumeReader("looaeedr/whd", runner=runner)
+    assert reader.branch_head(BRANCH) == HEAD
+    obs = reader.remote_run(9001)
+    assert obs.run_id == 9001
+    assert obs.head_sha == HEAD
+    assert obs.status == "in_progress"
+    assert obs.updated_at == datetime(2026, 9, 20, 11, 30, tzinfo=UTC)
+    assert "%2F" in calls[0][-1]
+    assert calls[1][-1] == "repos/looaeedr/whd/actions/runs/9001"
