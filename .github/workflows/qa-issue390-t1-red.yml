@@ -28,8 +28,12 @@ jobs:
           echo "HEAD=$(git rev-parse HEAD)"
           git merge-base --is-ancestor d3f37e251816af974d940e7f2c1738dbb38edb3e HEAD
 
-      - name: Install pytest
-        run: python -m pip install pytest
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest
 
       - name: Require intended RED
         shell: bash
