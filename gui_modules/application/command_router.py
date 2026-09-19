@@ -137,6 +137,28 @@ class _Phase6UpdateScheduler:
         return dict(self._metrics)
 
 
+def cancel_application_update_scheduler(owner):
+    scheduler = getattr(owner, "_phase6_update_scheduler", None)
+    cancel = getattr(scheduler, "cancel_pending", None)
+    if callable(cancel):
+        return cancel()
+    return False
+
+
+def install_application_update_scheduler_lifecycle(owner):
+    root = getattr(owner, "root", None)
+    if root is None or bool(getattr(owner, "_phase6_update_scheduler_lifecycle_installed", False)):
+        return False
+
+    def _on_destroy(event):
+        if getattr(event, "widget", None) is root:
+            cancel_application_update_scheduler(owner)
+
+    root.bind("<Destroy>", _on_destroy, add="+")
+    owner._phase6_update_scheduler_lifecycle_installed = True
+    return True
+
+
 def execute_fold_designer_update_reasons(
     owner,
     reasons,
