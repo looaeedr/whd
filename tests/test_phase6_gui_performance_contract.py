@@ -63,14 +63,17 @@ def test_live_settings_only_sets_tk_vars_that_actually_change():
 
 
 def test_external_designer_apply_has_explicit_anti_echo_guard_contract():
+    from gui_modules.application import command_router
+
     apply_src = inspect.getsource(bridge._phase6_apply_external_settings)
-    execute_src = inspect.getsource(bridge._phase6_execute_update_intents)
+    execute_src = inspect.getsource(command_router.execute_fold_designer_update_reasons)
+    bridge_execute_src = inspect.getsource(bridge._phase6_execute_update_intents)
     wrapper_src = inspect.getsource(bridge._phase6_preview_aware_do_update)
     assert "_phase6_external_apply_guard" in apply_src
-    # T06 centralizes publish/anti-echo ownership in the orchestration executor;
-    # compatibility wrappers must delegate instead of duplicating the guard.
+    # T7 owns publish/anti-echo ordering in the application command router.
     assert "_phase6_external_apply_guard" in execute_src
-    assert "not getattr(self, \"_phase6_external_apply_guard\"" in execute_src
+    assert 'not getattr(owner, "_phase6_external_apply_guard"' in execute_src
+    assert "execute_fold_designer_update_reasons" in bridge_execute_src
     assert "submit_update_intent" in wrapper_src
 
 
