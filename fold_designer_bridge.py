@@ -152,33 +152,16 @@ from phase6_manufacturing_geometry import (
     _phase6_resolve_family_divider_reliefs,
 )
 
-from phase6_manufacturing_adapter import resolve_manufacturing_for_app
+from phase6_manufacturing_adapter import (
+    build_scene_payload_for_app,
+    operator_finished_dimensions_for_app,
+    resolve_for_app,
+)
 
 
 def _phase6_resolve_manufacturing_geometry(self):
-    """Phase 2 compatibility facade: UI inputs -> adapter -> domain result."""
-
-    def _finished_dimensions_provider(key=None):
-        try:
-            if key is None or str(key or "") == "":
-                return _phase6_operator_finished_dimensions(self)
-            return _phase6_operator_finished_dimensions(self, key)
-        except TypeError:
-            # Legacy tests/callers may monkeypatch the Phase 1 one-argument
-            # adapter. Preserve that compatibility while T4 routes through the
-            # explicit request boundary.
-            return _phase6_operator_finished_dimensions(self)
-
-    render_provider = getattr(self, "_scene_query_callback", None)
-    part_spec_provider = getattr(self, "_part_spec_query_callback", None)
-    return resolve_manufacturing_for_app(
-        self,
-        scene_payload_builder=lambda key: _phase6_scene_query_payload_for_part(self, key),
-        render_data_provider=render_provider,
-        part_spec_provider=part_spec_provider,
-        finished_dimensions_provider=_finished_dimensions_provider,
-        publish_live_state=lambda force=False: _phase6_publish_live_state(self, force=force),
-    )
+    """Compatibility-only manufacturing entry."""
+    return resolve_for_app(self)
 
 
 @dataclass(frozen=True)
@@ -6017,93 +6000,8 @@ def _phase6_scene_from_structural_result(result, features, surface_id):
 
 
 def _phase6_scene_query_payload_for_part(self, part_key):
-    """Build draft PartSpec inputs for any saved Phase6 part without switching UI."""
-    key = str(part_key or "")
-    if not key:
-        return {}
-    values = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    values.update(dict(getattr(self, "_settings_values", {}) or {}))
-    values.update(dict(getattr(self, "_phase6_box_whd", {}) or {}))
-    try:
-        if key == "box_body":
-            profile = list((getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ())
-            values.update(read_box_body_profile(profile, values))
-            values["fold_profile"] = clone_profile(profile)
-        else:
-            if key == self.designer_workspace.active_part:
-                profiles = getattr(self.state, "profiles", {}) or {}
-            else:
-                profiles = self.designer_workspace.profiles_for(key, {}) or {}
-            if key in {"head", "tail"}:
-                values.update(read_endcap_xy_profiles(profiles, values))
-                values["box_body_profile"] = clone_profile(
-                    (getattr(self.state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
-                )
-                values["fold_profiles"] = {
-                    "X": clone_profile(profiles.get("X", ())),
-                    "Y": clone_profile(profiles.get("Y", ())),
-                }
-            else:
-                values.update(read_standard_part_profiles(key, profiles, values))
-    except Exception:
-        # An in-progress row can be incomplete. Keep the last valid snapshot
-        # values rather than inventing geometry.
-        pass
-    model_var = getattr(self, "baseline_model_var", None)
-    values["model"] = str(
-        model_var.get() if model_var is not None
-        else getattr(self, "_phase6_baseline_initial_model", "") or ""
-    ).strip()
-    values["endcap_fw"] = deepcopy(getattr(self, "_phase6_endcap_fw_state", normalize_endcap_fw_state(values)))
-    values["endcap_bottom_wrap"] = deepcopy(
-        getattr(self, "_phase6_endcap_bottom_wrap_state", normalize_endcap_bottom_wrap_state(values))
-    )
-    if key in ENDCAP_FW_PARTS:
-        values["fw"] = resolve_endcap_fw(values, key, state=values["endcap_fw"])
-    values["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}) or {})
-    # Normal single-part 3D must replay the same already-committed dynamic
-    # relief that 2D/DXF use. Assembly probing explicitly disables this flag so
-    # it can restore/probe the physical corner before deriving a new cut.
-    values["_use_committed_relief"] = True
-    values["features"] = self.designer_workspace.features_for(key)
-    values["face_features"] = self.designer_workspace.face_features_for(key)
-    values["box_body_structure"] = self.designer_workspace.box_body_structure_state()
-    source_graph = migrate_legacy_snapshot_joints(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    values["assembly_joint_schema_version"] = source_graph.get("assembly_joint_schema_version")
-    values["assembly_joints"] = deepcopy(source_graph.get("assembly_joints", ()))
-    if key in ENDCAP_FW_PARTS and cabinet_family_policy.supports_bottom_wrap_controls(values):
-        try:
-            item = resolve_endcap_bottom_wrap(
-                values, key, state=values["endcap_bottom_wrap"]
-            )
-            # Relation is graph-owned. Family state contributes only
-            # adjustable geometric reserves to the certified formula.
-            structure = cabinet_family_policy.set_bottom_relief_reserves(
-                values,
-                values["box_body_structure"],
-                reserve_u=item["reserve_u"],
-                reserve_v=item["reserve_v"],
-            )
-            values["box_body_structure"] = structure
-        except Exception:
-            pass
-    if key == "box_body":
-        for part_key, target in (("head", "head_ybottom1"), ("tail", "tail_ybottom1")):
-            profiles = self.designer_workspace.profiles_for(part_key, {}) or {}
-            for row in list(dict(profiles).get("Y", ()) or ()):
-                if str(row.get("phase6_key") or "") == "ybottom1":
-                    values[target] = float(engine_segment_length_to_ui(row))
-                    break
-    source = getattr(self, "_phase6_input_snapshot", {}) or {}
-    for name in (
-        "indicator_layer_groups", "door_indicator_groups",
-        "door_indicator_offset", "door_indicator_box_enabled",
-    ):
-        if name not in values and name in source:
-            values[name] = deepcopy(source[name])
-    return values
-
-
+    """Compatibility wrapper for the manufacturing adapter-owned payload builder."""
+    return build_scene_payload_for_app(self, part_key)
 def _phase6_scene_query_payload(self):
     """Return only current draft PartSpec inputs; no geometry is built here."""
     return _phase6_scene_query_payload_for_part(self, self.designer_workspace.active_part)
@@ -6715,24 +6613,12 @@ def _phase6_prepare_text_scale_controller(root, value, *, controller=None):
 
 
 def _phase6_operator_finished_dimensions(self, part_key=None, *, triangles=None):
-    """Compatibility adapter to the shared 2D/3D finished-dimension provider."""
-    key = str(part_key or getattr(self, "active_part_key", "") or "")
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(self, "_settings_values", {}) or {}
-    head_policy = tail_policy = None
-    if key == "box_body":
-        head_policy = _phase6_corner_policy_for(self, "head")
-        tail_policy = _phase6_corner_policy_for(self, "tail")
-    return resolve_operator_finished_dimensions(
-        key,
-        snapshot=snapshot,
-        settings=settings,
+    """Compatibility wrapper for adapter-owned finished dimensions."""
+    return operator_finished_dimensions_for_app(
+        self,
+        part_key,
         triangles=triangles,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-        head_corner_policy=head_policy,
-        tail_corner_policy=tail_policy,
     )
-
 def _phase6_on_assembly_diagnostic_changed(self):
     if str(getattr(self, "_phase6_3d_display_mode", "single") or "single") == "assembly":
         self.do_update()
@@ -9012,6 +8898,7 @@ Phase6FoldDesignerApp.save_settings_context_as_defaults = _phase6_save_settings_
 Phase6FoldDesignerApp.save_current_settings_as_defaults = _phase6_save_current_settings_as_defaults
 Phase6FoldDesignerApp.flush_pending_settings = _phase6_flush_pending_settings
 Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
+Phase6FoldDesignerApp._phase6_resolve_manufacturing_geometry = _phase6_resolve_manufacturing_geometry
 Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
 Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
 Phase6FoldDesignerApp.apply_external_model = _phase6_apply_external_model
