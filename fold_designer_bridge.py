@@ -3988,6 +3988,20 @@ def _phase6_apply_external_corner_state(self, corner_state, corner_pair_same):
         _phase6_invalidate_settings_page(self, context)
         _phase6_render_settings_context(self, context)
 
+
+_SETTINGS_EXTENSION_MAP_ATTRS = (
+    "corner_pair_vars",
+    "corner_pair_checkbuttons",
+    "corner_type_vars",
+    "corner_mode_vars",
+    "corner_direction_vars",
+    "corner_amount_vars",
+    "corner_secondary_retain_vars",
+    "corner_secondary_depth_vars",
+    "corner_detail_frames",
+)
+
+
 def _phase6_render_settings_panel_extensions(self, parent, context, start_row):
     old = {name: getattr(self, name, None) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
     old_summary = getattr(self, "fixed_corner_summary_var", None)
