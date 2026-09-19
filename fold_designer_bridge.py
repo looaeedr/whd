@@ -6205,7 +6205,7 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
             )
             check.pack(side=original.tk.LEFT, anchor=original.tk.W, fill=original.tk.X, expand=True)
             details = original.ttk.Frame(sub)
-            details_open = previous_open.get(projection.part_key, True)
+            details_open = previous_open.get(projection.part_key, False)
             detail_button = original.ttk.Button(
                 header,
                 text=("▾" if details_open else "▸"),
@@ -7030,7 +7030,7 @@ def _phase6_refresh_assembly_parts_panel(self):
             expand=True,
         )
         details = original.ttk.Frame(row)
-        details_open = old_open.get(key, True)
+        details_open = old_open.get(key, False)
         detail_button = original.ttk.Button(
             header,
             text=("▾" if details_open else "▸"),
@@ -7087,7 +7087,7 @@ def _phase6_refresh_assembly_parts_panel(self):
             expand=True,
         )
         details = original.ttk.Frame(group)
-        group_open = old_group_open.get(group_key, True)
+        group_open = old_group_open.get(group_key, False)
         button = original.ttk.Button(
             header,
             text=("▾" if group_open else "▸"),
