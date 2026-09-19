@@ -83,4 +83,3 @@ whd_schema: WHD_DOC_META_V1
 - Development execution bridge: `.agents/skills/engineering/執行開發任務/SKILL.md`
 - Primary wake/executor: hourly ChatGPT scheduled re-entry
 - GitHub Actions schedule role: watchdog / lease / remote-state safety net only
-
