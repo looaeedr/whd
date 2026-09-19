@@ -20,6 +20,38 @@ def test_restore_setting_clears_service_owned_pending_entry():
     assert controller.pending == {"h": 700.0}
 
 
+def test_assembly_intent_keeps_available_parts_projection_only():
+    from phase6_settings_transitions import assembly_intent
+
+    source = {
+        "model": "金庫型",
+        "assembly_type": "INSERT_OVERLAY",
+        "existing_parts": ["box_body", "head", "tail", "door", "base_plate"],
+    }
+    plan = assembly_intent(
+        source,
+        {},
+        {},
+        "INSERT_OVERLAY",
+        available_parts=(
+            "box_body",
+            "head",
+            "tail",
+            "door_c1_r1",
+            "door_c1_r2",
+            "base_plate_c1_r1",
+            "base_plate_c1_r2",
+        ),
+    )
+
+    assert plan.input_snapshot["existing_parts"] == source["existing_parts"]
+    joint_parts = {
+        str(row.get("part_key") or row.get("part") or "")
+        for row in plan.input_snapshot.get("assembly_joints", ())
+    }
+    assert "door_c1_r1" in joint_parts or "door_c1_r2" in joint_parts
+
+
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
 def test_real_designer_composition_keeps_settings_maps_and_family_transition_live(monkeypatch):
     import tkinter as tk
