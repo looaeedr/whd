@@ -1,0 +1,51 @@
+name: "QA #371 T7 lifecycle facade RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue371-phase3-lifecycle-facade-20260919
+    paths:
+      - 'tests/test_issue371_t7_lifecycle_facade_owner.py'
+      - '.github/workflows/qa-issue371-t7-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t7-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 81dbd6f140b6bac8c9ba44f947919d341997ba56 HEAD
+          echo "T7_BASELINE=81dbd6f140b6bac8c9ba44f947919d341997ba56"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T7 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue371_t7_lifecycle_facade_owner.py --tb=short | tee /tmp/issue371-t7-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: command_router lacks Fold Designer update/lifecycle routing" /tmp/issue371-t7-red.log
+          grep -q "RED: bridge still owns T7 update/keyboard orchestration" /tmp/issue371-t7-red.log
+          grep -q "RED: missing application-owned Fold Designer facade installer" /tmp/issue371-t7-red.log
+          grep -q "RED: application lifecycle still reverse-imports fold_designer_bridge" /tmp/issue371-t7-red.log
+          echo "PASS EXPECTED_T7_RED=1"
