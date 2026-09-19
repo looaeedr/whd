@@ -643,12 +643,14 @@ def plan_external_model_change(
 
 
 def apply_corner_preset(
-    corner_state: dict[str, object],
-    corner_pair_same: dict[str, object],
+    corner_state: Mapping[str, object] | None,
+    corner_pair_same: Mapping[str, object] | None,
     fixed_corner_state: Mapping[str, object] | None,
-) -> None:
+) -> CornerStateTransition:
+    next_state = deepcopy(dict(corner_state or {}))
+    next_pairs = deepcopy(dict(corner_pair_same or {}))
     for part_key, corners in dict(fixed_corner_state or {}).items():
-        state = corner_state.setdefault(str(part_key), {})
+        state = next_state.setdefault(str(part_key), {})
         for corner_key, raw in dict(corners or {}).items():
             if isinstance(raw, Mapping):
                 state[str(corner_key)] = selection_to_raw(
@@ -656,9 +658,10 @@ def apply_corner_preset(
                 )
             else:
                 state[str(corner_key)] = selection_to_raw(raw)
-        pairs = corner_pair_same.setdefault(str(part_key), {})
+        pairs = next_pairs.setdefault(str(part_key), {})
         pairs["top"] = True
         pairs["bottom"] = True
+    return CornerStateTransition(next_state, next_pairs, None)
 
 
 def family_model_transition(
@@ -693,7 +696,9 @@ def family_model_transition(
         (not new_editable and target_model and target_model != previous_model)
         or (new_editable and previous_model and not old_editable)
     ):
-        apply_corner_preset(corners, pairs, fixed_corner_state)
+        preset = apply_corner_preset(corners, pairs, fixed_corner_state)
+        corners = preset.corner_state
+        pairs = preset.corner_pair_same
 
     snapshot["model"] = target_model
     defaults: dict[str, object] = {}
