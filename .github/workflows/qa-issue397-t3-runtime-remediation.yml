@@ -1,0 +1,51 @@
+name: "QA #397 T3 runtime remediation"
+
+on:
+  push:
+    branches:
+      - "fix/issue397-t3-settings-runtime-20260920"
+
+permissions:
+  contents: read
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+      - name: T3 service ownership regression
+        run: |
+          python -m pytest -q tests/test_issue397_phase4_runtime_remediation.py::test_restore_setting_clears_service_owned_pending_entry --tb=short
+
+  xvfb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+      - name: Composition identity and family transition
+        run: |
+          xvfb-run -a python -m pytest -q tests/test_issue397_phase4_runtime_remediation.py::test_real_designer_composition_keeps_settings_maps_and_family_transition_live --tb=short
+      - name: Candidate-only Settings/Receiving cohort
+        if: always()
+        run: |
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue101_baseline_piece_tab_guard.py::test_fold_designer_known_family_switch_keeps_target_defaults_through_delayed_piece_tab_event \
+            tests/test_phase6_box_body_structure.py::test_real_global_w_edit_reconciles_two_piece_at_commit_without_weakening_resolver \
+            tests/test_phase6_gui_3d_integrity_20260830.py::test_dynamic_switch_to_receiving_updates_visible_structure_and_family_state \
+            tests/test_phase6_receiving_followup_20260830.py::test_live_switch_to_receiving_applies_whd_without_standalone_wrap_toggle \
+            tests/test_phase6_receiving_projection_regression.py \
+            tests/test_phase6_t05_multi_door_flow.py::test_receiving_assembly_resolved_parts_place_upper_and_lower_doors_separately \
+            tests/test_phase6_t06_receiving_fresh_family.py::test_fold_designer_fresh_receiving_switch_materializes_wrap_overlay_graph \
+            tests/test_phase6_t11_family_preset_switching.py::test_fold_designer_receiving_to_vault_restores_vault_structure_preset_even_when_opened_from_receiving \
+            tests/test_phase6_t21_live_switch_selector.py \
+            tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch \
+            --tb=short
