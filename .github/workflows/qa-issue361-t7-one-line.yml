@@ -40,3 +40,5 @@ jobs:
             tests/test_resolved_manufacturing_bridge.py
       - name: Preserve cache-hit performance gate
         run: python tools/issue359_cache_performance_gate.py
+
+# fresh T7 trigger after stale-contract cleanup
