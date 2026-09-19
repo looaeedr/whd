@@ -45,16 +45,14 @@ def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
     apply_settings = ast.unparse(funcs["_phase6_apply_setting_updates"])
     baseline = ast.unparse(funcs["_phase6_on_baseline_model_changed"])
 
-    assert "commit_reconciled_width_structure" in apply_settings, (
-        "RED: bridge still owns T2D width/structure transaction semantics"
-    )
-    assert "reconcile_box_body_structure_for_total_w_change" not in apply_settings, (
-        "RED: bridge still owns T2D width/structure transaction semantics"
-    )
+    violations = []
+    if "commit_reconciled_width_structure" not in apply_settings:
+        violations.append("MISSING_WIDTH_DELEGATE")
+    if "reconcile_box_body_structure_for_total_w_change" in apply_settings:
+        violations.append("WIDTH_RECONCILE_IN_BRIDGE")
 
-    assert "commit_family_model_transition" in baseline, (
-        "RED: bridge still owns T2D family/model transaction semantics"
-    )
+    if "commit_family_model_transition" not in baseline:
+        violations.append("MISSING_FAMILY_DELEGATE")
 
     forbidden_tokens = (
         "cabinet_family_policy.apply_fresh_family_defaults",
@@ -65,10 +63,10 @@ def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
         "_phase6_selection_to_raw",
         "designer_workspace.set_box_body_structure_state",
     )
-    leaked = [token for token in forbidden_tokens if token in baseline]
-    assert leaked == [], (
-        "RED: bridge still owns T2D family/model transaction semantics: "
-        f"{leaked}"
+    violations.extend(
+        f"FAMILY_SEMANTIC:{token}"
+        for token in forbidden_tokens
+        if token in baseline
     )
 
     forbidden_attrs = {
@@ -77,7 +75,6 @@ def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
         "_phase6_corner_pair_same",
         "_phase6_endcap_bottom_wrap_state",
     }
-    writes = []
     for node in ast.walk(funcs["_phase6_on_baseline_model_changed"]):
         if (
             isinstance(node, ast.Attribute)
@@ -86,9 +83,12 @@ def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
             and node.value.id == "self"
             and node.attr in forbidden_attrs
         ):
-            writes.append((node.attr, node.lineno))
-    assert writes == [], f"RED: bridge still directly writes T2D canonical attrs: {writes}"
+            violations.append(f"DIRECT_ATTR_WRITE:{node.attr}@{node.lineno}")
 
+    assert violations == [], (
+        "RED: bridge still owns T2D width/family transaction semantics: "
+        f"{violations}"
+    )
 
 def test_t2d_controller_behavior_when_methods_exist():
     methods = _controller_methods()
