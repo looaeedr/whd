@@ -263,3 +263,12 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 只要 scheduled re-entry 偵測到 active work，就必須讓使用者能分辨正常工作、等待、復原、真 blocker 或完成，並以 `WORKING / WAITING_REMOTE / RECOVERING / BLOCKED / COMPLETE` 之一回報 owning issue、branch、HEAD、必要 run_id 與 exact next_action。另一 runtime 持有有效 lease 時也要以 `WORKING` 說明 safe no-op，而不是靜默到看起來像卡死。
 
 這個 progress update 只能觀測執行狀態，**不得成為停工點**。若回報後仍存在可自主執行的 next action，必須在同一 Runtime 繼續執行；scheduled heartbeat 不覆蓋本 Skill 的 `NONTERMINAL_NEXT_ACTION_GATE`、checkpoint、QA、acceptance 或 closure 規則。
+
+### IMMEDIATE_TERMINAL_PROGRESS_REPORT_BRIDGE
+
+長流程一旦取得 evidence-backed PASS / FAIL / COMPLETE terminal evidence，必須 bridge executable-continuity-controller::IMMEDIATE_TERMINAL_PROGRESS_REPORT，先**立即回報**使用者，再做 secondary readback / cleanup / invariant / writeback / closure。
+
+- PASS：只回報已證實 PASS；若仍有 next action，回報後**繼續**收尾，不得直接 COMPLETE。
+- FAIL：先回報 exact failure evidence，再進 RECOVERING；可自行修復時不得停。
+- COMPLETE：只有 acceptance/cleanup/closure 真的完成才可使用。
+- immediate report 是 progress update；不改 durable state，不繞過 NONTERMINAL_NEXT_ACTION_GATE，也不是 turn-exit 授權。
