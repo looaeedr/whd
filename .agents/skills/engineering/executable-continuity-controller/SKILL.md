@@ -21,6 +21,17 @@ On every scheduled wake-up, first restore and live-verify the owning issue/check
 - RED is not an exit reason; inspect exact failure evidence, classify it, apply the smallest valid TDD repair, and revalidate.
 - A progress/status report is observation only: `status update != exit`.
 - Schedule cadence is wake-up cadence, not execution cadence. Once awake, continue execution/polling inside the available turn.
+
+### WATCHDOG_FALLBACK_ONLY_CONTRACT
+
+Scheduled automation/watchdog is a resilience layer, not a substitute executor.
+
+- `watchdog/schedule presence != permission to stop`.
+- 當前 Runtime 仍可執行時，必須繼續目前施工／polling／recovery；「已有下一次排程」不是 `assert_turn_exitable` 的新理由，也不能把 non-terminal checkpoint 視為可退出。
+- `watchdog wake-up → restore owner → continue exact next action`。每次喚醒都先載入 durable checkpoint、驗 issue/branch/HEAD/run identity，再執行保存的 next action；禁止 `status-only watchdog response` 後退出。
+- Watchdog frequency only bounds interruption-recovery latency. It does not throttle or replace active execution inside a live Runtime.
+- Watchdog shutdown is owned by the same chain: `owning chain COMPLETE/closed + final acceptance/cleanup finished`。在此之前 watchdog 保留作為 fallback；條件成立後必須 **disable the watchdog**，避免 chain 結束後仍持續輪詢。
+- Child-task completion、單一 terminal RUN、GREEN、checkpoint 或 progress report 都不是 watchdog shutdown condition。
 - If the platform/tool forces the turn to end, persist `checkpoint before forced turn end`: owning issue, branch, HEAD, RUN identity/status, last accepted gate, next exact action, and prohibitions. The next wake-up resumes from that checkpoint.
 - Project-specific automation prompts may add owner/scope/prohibition data but must reference this contract rather than define a second continuity authority.
 
