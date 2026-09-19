@@ -189,3 +189,14 @@ Remote QA monitoring is **active polling**, not event notification.
 `REMOTE_QA_ACTIVE_LOCK` 只擁有 remote run 非終態期間的 polling lock；它在 run terminal 時解除，**不代表 assistant turn 因此可結束**。Terminal success 若還有 counts/invariants/cleanup/drift/writeback/closure，先把 durable checkpoint 轉成 `RUNNING(next_acceptance_action)`，再由 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1` 接手。
 
 因此 `remote success → RUNNING(cleanup)` 必須讓 `assert_turn_exitable` fail closed；任何「RUN PASS」進度回報之後直接停止，都屬 closing-lock-gap regression。
+
+## CHATGPT_SCHEDULED_REENTRY_REMOTE_QA_BRIDGE
+
+當 primary ChatGPT scheduled re-entry 喚醒後遇到 remote QA：
+
+- fresh-read checkpoint 的 exact `run_id + head_sha`，再讀 live run/jobs/steps；
+- active 且未超過 scheduled stale threshold（default 2h）→ 保持同一 remote lock、safe no-op/續 poll，不建立 replacement run；
+- terminal / missing / stale / owner mismatch → 退出 WAITING_REMOTE，進 RECOVERING 並保留 exact remote evidence；
+- scheduled wake 的 hourly cadence **不取代** live Runtime 內本 Skill 約 30 秒 polling；
+- GitHub cron/watchdog 可以輔助觀測 remote state，但不是 ChatGPT executor。
+
