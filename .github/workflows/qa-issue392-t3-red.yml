@@ -1,0 +1,50 @@
+name: "QA #392 T3 RED Settings service"
+
+on:
+  push:
+    branches:
+      - "refactor/issue392-phase4-t3-settings-service-20260920"
+    paths:
+      - "tests/test_issue392_settings_service.py"
+      - ".github/workflows/qa-issue392-t3-red.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  intended-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=392"
+          echo "PREDECESSOR=080385b15e82e0efb8ac13430e3fb999d5589de9"
+          git merge-base --is-ancestor 080385b15e82e0efb8ac13430e3fb999d5589de9 HEAD
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest -r requirements.txt
+
+      - name: Require intended RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue392_settings_service.py --tb=short | tee /tmp/issue392-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "PYTEST_RC=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo "UNEXPECTED_GREEN"
+            exit 1
+          fi
+          grep -Eq "T3 requires phase6_settings_service.py|scalar mirror writes remain|No module named 'phase6_settings_service'|sync_mirrors|bind_state" /tmp/issue392-red.log
+          echo "ISSUE392_T3_EXPECTED_RED=1"
