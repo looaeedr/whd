@@ -370,7 +370,7 @@ def corner_selection(
     return selection_from_raw(part_state[current_key])
 
 
-def _corner_targets(
+def corner_targets(
     pairs: Mapping[str, object],
     target_key: str,
 ) -> tuple[str, ...]:
@@ -427,7 +427,7 @@ def commit_corner_type(
         current if current.type_id is wanted else CornerTypeSelection(wanted)
     )
     raw = selection_to_raw(selection)
-    for corner_key in _corner_targets(pairs, target_key):
+    for corner_key in corner_targets(pairs, target_key):
         state[corner_key] = deepcopy(raw)
     return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
@@ -455,7 +455,7 @@ def commit_corner_mode(
         cross_mode=CrossCornerMode(mode),
     )
     raw = selection_to_raw(selection)
-    for corner_key in _corner_targets(pairs, target_key):
+    for corner_key in corner_targets(pairs, target_key):
         state[corner_key] = deepcopy(raw)
     return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
@@ -532,7 +532,7 @@ def commit_corner_parameters(
         )
 
     raw = selection_to_raw(selection)
-    for corner_key in _corner_targets(pairs, target_key):
+    for corner_key in corner_targets(pairs, target_key):
         state[corner_key] = deepcopy(raw)
     return CornerStateTransition(all_state, all_pairs, deepcopy(raw))
 
@@ -642,7 +642,7 @@ def plan_external_model_change(
     return ExternalModelPlan(bool(target and target != current), target)
 
 
-def _apply_corner_preset(
+def apply_corner_preset(
     corner_state: dict[str, object],
     corner_pair_same: dict[str, object],
     fixed_corner_state: Mapping[str, object] | None,
@@ -693,7 +693,7 @@ def family_model_transition(
         (not new_editable and target_model and target_model != previous_model)
         or (new_editable and previous_model and not old_editable)
     ):
-        _apply_corner_preset(corners, pairs, fixed_corner_state)
+        apply_corner_preset(corners, pairs, fixed_corner_state)
 
     snapshot["model"] = target_model
     defaults: dict[str, object] = {}
@@ -836,11 +836,13 @@ __all__ = [
     "commit_corner_type",
     "commit_settings",
     "corner_selection",
+    "corner_targets",
     "endcap_edge_relation",
     "endcap_fw_follow",
     "endcap_fw_override",
     "ensure_corner_part",
     "family_model_transition",
+    "apply_corner_preset",
     "normalize_assembly_type",
     "normalize_symmetry",
     "normalize_updates",
