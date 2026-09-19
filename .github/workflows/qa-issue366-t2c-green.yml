@@ -2,14 +2,6 @@ name: "QA #366 T2C corner external GREEN"
 # explicit trigger after selector-constant restoration
 
 on:
-  push:
-    branches:
-      - refactor/issue366-phase3-settings-transactions-20260919
-    paths:
-      - 'fold_designer_bridge.py'
-      - 'phase6_settings_transaction_controller.py'
-      - 'tests/test_issue366_t2c_corner_external_controller.py'
-      - '.github/workflows/qa-issue366-t2c-green.yml'
   workflow_dispatch:
 
 permissions:
