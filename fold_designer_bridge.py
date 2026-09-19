@@ -599,12 +599,16 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
 
 def _phase6_final_scene_renderer(self):
     view = getattr(self, "final_scene_view", None)
-    if not isinstance(view, Phase6FinalSceneRenderer):
-        view = Phase6FinalSceneRenderer(
-            self.renderer,
-            number_text=_setting_number_text,
-        )
-        self.final_scene_view = view
+    if isinstance(view, Phase6FinalSceneRenderer):
+        return view
+    raw_renderer = getattr(self, "renderer", None)
+    if raw_renderer is None:
+        return None
+    view = Phase6FinalSceneRenderer(
+        raw_renderer,
+        number_text=_setting_number_text,
+    )
+    self.final_scene_view = view
     return view
 
 
