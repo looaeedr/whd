@@ -1,4 +1,5 @@
 name: "QA #406 Scheduled heartbeat GREEN"
+# FINAL_TRIGGER_ISSUE406
 
 on:
   push:
