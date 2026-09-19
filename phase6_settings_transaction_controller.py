@@ -38,12 +38,14 @@ class Phase6SettingsTransactionController:
         settings_values: MutableMapping[str, object],
         input_snapshot: MutableMapping[str, object],
         box_whd: MutableMapping[str, object],
+        pending_settings: MutableMapping[str, object] | None = None,
+        debounce_job: object | None = None,
     ) -> None:
         self._settings_values = settings_values
         self._input_snapshot = input_snapshot
         self._box_whd = box_whd
-        self._pending: dict[str, object] = {}
-        self._debounce_job: object | None = None
+        self._pending = pending_settings if pending_settings is not None else {}
+        self._debounce_job: object | None = debounce_job
 
     def bind_state(
         self,
@@ -51,11 +53,18 @@ class Phase6SettingsTransactionController:
         settings_values: MutableMapping[str, object],
         input_snapshot: MutableMapping[str, object],
         box_whd: MutableMapping[str, object],
+        pending_settings: MutableMapping[str, object] | None = None,
+        debounce_job: object | None = None,
     ) -> None:
         """Rebind compatibility mirrors after legacy snapshot replacement."""
         self._settings_values = settings_values
         self._input_snapshot = input_snapshot
         self._box_whd = box_whd
+        if pending_settings is not None and pending_settings is not self._pending:
+            if self._pending and not pending_settings:
+                pending_settings.update(self._pending)
+            self._pending = pending_settings
+        self._debounce_job = debounce_job
 
     @property
     def pending(self) -> dict[str, object]:
