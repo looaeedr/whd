@@ -57,6 +57,7 @@ from phase6_settings_center import (
     GLOBAL_CONTEXT, settings_for_context, UI_TEXT_SIZE_LABELS,
     normalize_ui_text_size, ui_text_size_label, ui_text_size_factor,
 )
+from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
     setting_number_text as _setting_number_text,
@@ -449,6 +450,33 @@ def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
             remembered_box_body_child=legacy_memory,
         )
         self._phase6_workspace_navigation_controller = controller
+    return controller
+
+
+def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
+    settings_values = getattr(self, "_settings_values", {})
+    input_snapshot = getattr(self, "_phase6_input_snapshot", {})
+    box_whd = getattr(self, "_phase6_box_whd", {})
+    pending = getattr(self, "_phase6_pending_settings", {})
+    debounce_job = getattr(self, "_phase6_settings_debounce_job", None)
+    controller = getattr(self, "_phase6_settings_transaction_controller", None)
+    if controller is None:
+        controller = Phase6SettingsTransactionController(
+            settings_values=settings_values,
+            input_snapshot=input_snapshot,
+            box_whd=box_whd,
+            pending_settings=pending,
+            debounce_job=debounce_job,
+        )
+        self._phase6_settings_transaction_controller = controller
+    else:
+        controller.bind_state(
+            settings_values=settings_values,
+            input_snapshot=input_snapshot,
+            box_whd=box_whd,
+            pending_settings=pending,
+            debounce_job=debounce_job,
+        )
     return controller
 
 
@@ -1698,21 +1726,11 @@ def _phase6_refresh_profiles_from_settings(self, *, reset_box_profile=False):
 
 
 def _phase6_apply_setting_updates(self, updates, *, notify=True):
-    clean = {}
-    for key, raw in dict(updates or {}).items():
-        if key not in self._settings_values:
-            continue
-        if key == "ui_text_size":
-            clean[key] = normalize_ui_text_size(raw)
-        elif isinstance(self._settings_values.get(key), bool):
-            clean[key] = bool(raw)
-        else:
-            try:
-                clean[key] = float(raw)
-            except (TypeError, ValueError):
-                continue
-    if getattr(self, "_phase6_external_apply_guard", False):
-        clean = {key: value for key, value in clean.items() if self._settings_values.get(key) != value}
+    transactions = _phase6_settings_transactions(self)
+    clean = transactions.normalize_updates(
+        updates,
+        external_apply_guard=bool(getattr(self, "_phase6_external_apply_guard", False)),
+    )
     if not clean:
         return {}
 
@@ -1730,8 +1748,7 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
             )
         except Exception as exc:
             clean.pop("w", None)
-            self._settings_values["w"] = previous_w
-            self._phase6_input_snapshot["w"] = previous_w
+            transactions.restore_setting("w", previous_w)
             _phase6_box_structure_error(self, exc)
             self._phase6_settings_guard = True
             try:
@@ -1746,7 +1763,7 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
                 return {}
         else:
             structure = self.designer_workspace.set_box_body_structure_state(structure)
-            self._phase6_input_snapshot["box_body_structure"] = deepcopy(structure)
+            transactions.commit_settings({"box_body_structure": deepcopy(structure)})
 
     self._phase6_applying_settings = True
     try:
@@ -1756,23 +1773,17 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
             pass
     finally:
         self._phase6_applying_settings = False
-    self._settings_values.update(clean)
-    self._phase6_input_snapshot.update(clean)
+    clean = transactions.commit_settings(clean)
     if "t" in clean:
         self.state.phase6_thickness = float(clean["t"])
     if "ui_text_size" in clean:
-        key = normalize_ui_text_size(clean["ui_text_size"])
-        self._settings_values["ui_text_size"] = key
-        self._phase6_input_snapshot["ui_text_size"] = key
+        key = clean["ui_text_size"]
         if hasattr(self, "_ui_text_controller"):
             self._ui_text_controller.apply(key)
         self.state.ui_text_scale = getattr(self, "_ui_text_controller", None).factor if hasattr(self, "_ui_text_controller") else 1.0
         var = getattr(self, "ui_text_size_var", None)
         if var is not None and var.get() != ui_text_size_label(key):
             var.set(ui_text_size_label(key))
-    self._phase6_box_whd.update({
-        key: _ui_len(clean[key]) for key in ("w", "h", "d") if key in clean
-    })
     self._phase6_settings_guard = True
     try:
         if "w" in clean: self.v_w.set(_setting_number_text(clean["w"]))
@@ -1819,38 +1830,36 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
 
 
 def _phase6_flush_pending_settings(self):
-    job = getattr(self, "_phase6_settings_debounce_job", None)
-    if job is not None:
+    transactions = _phase6_settings_transactions(self)
+    plan = transactions.drain_pending()
+    if plan.cancel_job is not None:
         try:
-            self.root.after_cancel(job)
+            self.root.after_cancel(plan.cancel_job)
         except Exception:
             pass
-        self._phase6_settings_debounce_job = None
-    pending = dict(getattr(self, "_phase6_pending_settings", {}) or {})
-    self._phase6_pending_settings = {}
-    if not pending:
+    self._phase6_settings_debounce_job = None
+    if not plan.pending:
         return {}
-    return _phase6_apply_setting_updates(self, pending, notify=True)
+    return _phase6_apply_setting_updates(self, plan.pending, notify=True)
 
 
 def _phase6_stage_setting_update(self, key, value):
-    # Equivalent values are not writes: no pending job, no revision, no echo.
-    if getattr(self, "_phase6_destroying", False):
+    transactions = _phase6_settings_transactions(self)
+    plan = transactions.stage_setting_update(
+        key,
+        value,
+        destroying=bool(getattr(self, "_phase6_destroying", False)),
+    )
+    if not plan.changed:
         return
-    if self._settings_values.get(key) == value:
-        return
-    # State changes immediately; expensive profile rebuild + 3D/main-GUI redraw
-    # is coalesced until the operator pauses typing.
-    self._settings_values[key] = value
-    self._phase6_input_snapshot[key] = value
-    self._phase6_pending_settings[key] = value
-    job = getattr(self, "_phase6_settings_debounce_job", None)
-    if job is not None:
+    if plan.cancel_job is not None:
         try:
-            self.root.after_cancel(job)
+            self.root.after_cancel(plan.cancel_job)
         except Exception:
             pass
-    self._phase6_settings_debounce_job = self.root.after(150, self.flush_pending_settings)
+    job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
+    transactions.install_debounce_job(job)
+    self._phase6_settings_debounce_job = job
 
 
 def _phase6_on_setting_var_changed(self, key, var, spec):
