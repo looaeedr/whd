@@ -85,43 +85,49 @@ def test_t3_controls_are_reachable_and_modes_are_exclusive(ui_text_size):
             designer.part_choice_button,
             designer.add_part_button,
             designer.remove_part_button,
-            designer.input_content_button,
-            designer.assembly_content_button,
-            designer.corner_data_content_button,
         ):
             assert widget.winfo_ismapped()
             assert widget.winfo_width() > 1 and widget.winfo_height() > 1
+        assert designer.input_content_button is None
+        assert designer.assembly_content_button is None
+        assert designer.corner_data_content_button is None
 
         labels = []
+        label_to_index = {}
         end = designer.part_choice_menu.index("end")
         if end is not None:
             for index in range(end + 1):
                 try:
-                    labels.append(str(designer.part_choice_menu.entrycget(index, "label")))
+                    label = str(designer.part_choice_menu.entrycget(index, "label"))
                 except tk.TclError:
-                    pass
-        assert "組合體" not in labels
-        assert "截角資料" not in labels
-        assert labels, "sheet-metal selector must still contain real part choices"
+                    continue
+                labels.append(label)
+                label_to_index[label] = index
+        assert "組合體" in labels
+        assert "截角資料" in labels
+        real_labels = [label for label in labels if label not in {"組合體", "截角資料"}]
+        assert real_labels, "main selector must still contain real sheet-metal choices"
 
         active_before = designer.designer_workspace.active_part
 
-        designer.assembly_content_button.invoke()
+        designer.part_choice_menu.invoke(label_to_index["組合體"])
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "assembly"
+        assert designer.part_var.get() == "組合體"
         assert designer.assembly_parts_panel.winfo_manager() == "pack"
         assert designer.fold_editor_host.winfo_manager() == ""
         assert designer.designer_workspace.active_part == active_before
 
-        designer.corner_data_content_button.invoke()
+        designer.part_choice_menu.invoke(label_to_index["截角資料"])
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "corner_data"
+        assert designer.part_var.get() == "截角資料"
         assert designer.corner_data_panel.winfo_manager() == "pack"
         assert designer.assembly_parts_panel.winfo_manager() == ""
         assert designer.fold_editor_host.winfo_manager() == ""
         assert designer.designer_workspace.active_part == active_before
 
-        designer.input_content_button.invoke()
+        designer.part_choice_menu.invoke(label_to_index[real_labels[0]])
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "single"
         assert designer.fold_editor_host.winfo_manager() == "pack"
@@ -151,8 +157,14 @@ def test_t3_switch_clears_posted_navigation_menu_residue():
         root.update_idletasks(); root.update()
         assert designer.part_choice_menu.winfo_ismapped() == 1
 
-        designer.assembly_content_button.invoke()
+        end = designer.part_choice_menu.index("end")
+        assembly_index = next(
+            i for i in range(end + 1)
+            if str(designer.part_choice_menu.entrycget(i, "label")) == "組合體"
+        )
+        designer.part_choice_menu.invoke(assembly_index)
         root.update_idletasks(); root.update()
         assert designer.part_choice_menu.winfo_ismapped() == 0
+        assert designer._phase6_3d_display_mode == "assembly"
     finally:
         root.destroy()
