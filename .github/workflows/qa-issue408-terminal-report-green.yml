@@ -1,0 +1,45 @@
+name: "QA #408 Immediate terminal report GREEN"
+
+on:
+  push:
+    branches:
+      - continuity/issue408-immediate-terminal-report-20260920
+    paths:
+      - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
+      - '.agents/skills/engineering/monitoring-remote-qa/SKILL.md'
+      - '.agents/skills/engineering/執行開發任務/SKILL.md'
+      - '個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md'
+      - '個人AI檔案庫/踩坑庫/continuous_execution_pitfalls.md'
+      - 'tests/process/test_issue408_immediate_terminal_report_contract.py'
+      - '.github/workflows/qa-issue408-terminal-report-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Immediate terminal report contract
+        run: python -m pytest -q tests/process/test_issue408_immediate_terminal_report_contract.py --tb=short
+      - name: Heartbeat regression
+        run: python -m pytest -q tests/process/test_issue406_scheduled_progress_heartbeat_contract.py --tb=short
+      - name: Continuity regressions
+        run: |
+          python -m pytest -q tests/process/test_continuity_controller.py tests/process/test_continuous_execution_durable_contract.py --tb=short
+      - name: Scope
+        run: |
+          set -euo pipefail
+          git diff --check b4208670deb90e391de2d0a08fc2b73ca2f994d7...HEAD
+          git diff --name-only b4208670deb90e391de2d0a08fc2b73ca2f994d7...HEAD | tee /tmp/files.txt
+          test "$(grep -Ec '^(gui.py|fold_designer_bridge.py|gui_modules/|ae_engine/|config.ini|基準檔/)' /tmp/files.txt || true)" -eq 0
+          echo "PASS IMMEDIATE_TERMINAL_REPORT=1"
+          echo "PASS PROTECTED_DRIFT=0"
