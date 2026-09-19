@@ -16,6 +16,10 @@ from phase6_manufacturing_contracts import (
     thaw_manufacturing_value,
 )
 from phase6_part_navigation import is_box_body_physical_piece_key
+from phase6_manufacturing_cache import (
+    ManufacturingCacheKey,
+    ManufacturingCacheService,
+)
 
 
 def _safe_var_get(value: Any, default: Any = None) -> Any:
@@ -201,9 +205,23 @@ def build_manufacturing_request(
 
 
 def _legacy_manufacturing_signature(app: Any) -> str:
-    """Phase 1 cheap cache signature retained until #359 extracts cache service."""
+    """Phase 1 cheap semantic signature retained as the T5 pre-scan key source."""
     from phase6_manufacturing_geometry import _phase6_manufacturing_state_signature
     return _phase6_manufacturing_state_signature(app)
+
+
+def build_manufacturing_cache_key(app: Any) -> ManufacturingCacheKey:
+    """Build the lightweight semantic cache key before full DTO construction."""
+    return ManufacturingCacheKey(_legacy_manufacturing_signature(app))
+
+
+def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
+    service = getattr(app, "_phase6_manufacturing_cache_service", None)
+    if isinstance(service, ManufacturingCacheService):
+        return service
+    service = ManufacturingCacheService()
+    setattr(app, "_phase6_manufacturing_cache_service", service)
+    return service
 
 
 def resolve_manufacturing_for_app(
@@ -212,13 +230,21 @@ def resolve_manufacturing_for_app(
     scene_payload_builder=None,
     finished_dimensions_provider=None,
     publish_live_state=None,
+    cache_service=None,
 ) -> Any:
-    """Compatibility entry preserving Phase 1 signature-first cache short-circuit."""
-    signature = _legacy_manufacturing_signature(app)
-    cached = getattr(app, "_phase6_last_resolved_manufacturing_geometry", None)
-    cached_signature = getattr(app, "_phase6_last_resolved_manufacturing_signature", None)
-    if cached is not None and signature == cached_signature:
-        return cached
+    """Resolve through explicit cache ownership with signature-first hit parity."""
+    service = (
+        cache_service
+        if isinstance(cache_service, ManufacturingCacheService)
+        else _cache_service_for_app(app)
+    )
+    key = build_manufacturing_cache_key(app)
+    lookup = service.lookup(key)
+    if lookup.result is not None:
+        # Legacy mirrors remain readers only; they are never cache authority.
+        app._phase6_last_resolved_manufacturing_geometry = lookup.result.geometry
+        app._phase6_last_resolved_manufacturing_signature = key.fingerprint
+        return lookup.result.geometry
 
     request = build_manufacturing_request(
         app,
@@ -227,14 +253,20 @@ def resolve_manufacturing_for_app(
     )
     from phase6_manufacturing_geometry import _phase6_resolve_manufacturing_result
 
-    result = _phase6_resolve_manufacturing_result(app, request, signature=signature)
+    result = _phase6_resolve_manufacturing_result(
+        app,
+        request,
+        signature=key.fingerprint,
+    )
     geometry = apply_manufacturing_result(app, result)
 
     if result.effects.publish_live_state and callable(publish_live_state):
         publish_live_state(force=result.effects.force_live_publish)
 
-    # Phase 1 stores the post-publication/post-snapshot-mutation signature.
-    app._phase6_last_resolved_manufacturing_signature = _legacy_manufacturing_signature(app)
+    # Publication or snapshot mutation may change the semantic signature.
+    post_key = build_manufacturing_cache_key(app)
+    stored_receipt = service.store(post_key, result)
+    app._phase6_last_resolved_manufacturing_signature = stored_receipt.signature
     return geometry
 
 
@@ -269,4 +301,5 @@ __all__ = [
     "build_manufacturing_request",
     "apply_manufacturing_result",
     "resolve_manufacturing_for_app",
+    "build_manufacturing_cache_key",
 ]
