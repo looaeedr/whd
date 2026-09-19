@@ -629,6 +629,32 @@ def _phase6_final_scene_corner_text_sink(self, values):
             var.set(value)
 
 
+def _phase6_final_scene_operator_dimensions(self, part_key=None):
+    """Call the operator-dimension provider across legacy/new callable shapes."""
+    provider = _phase6_operator_finished_dimensions
+    try:
+        import inspect
+        parameters = tuple(inspect.signature(provider).parameters.values())
+        positional = tuple(
+            p for p in parameters
+            if p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        )
+        accepts_varargs = any(
+            p.kind is inspect.Parameter.VAR_POSITIONAL
+            for p in parameters
+        )
+    except (TypeError, ValueError):
+        positional = ()
+        accepts_varargs = True
+
+    if part_key is None or (not accepts_varargs and len(positional) <= 1):
+        return provider(self)
+    return provider(self, part_key)
+
+
 def _phase6_final_scene_part_text_sink(self, kind, part_key, value):
     mapping_name = (
         "assembly_part_formed_vars"
@@ -801,10 +827,8 @@ def _phase6_final_scene_adapter(self):
                 refresh_box_body_piece_info=lambda render_data: _phase6_refresh_box_body_piece_info_rows(
                     self, render_data
                 ),
-                operator_dimensions=lambda part_key=None: (
-                    _phase6_operator_finished_dimensions(self)
-                    if part_key is None
-                    else _phase6_operator_finished_dimensions(self, part_key)
+                operator_dimensions=lambda part_key=None: _phase6_final_scene_operator_dimensions(
+                    self, part_key
                 ),
                 cabinet_family=lambda: _phase6_current_cabinet_family(self),
                 assembly_blank_text=lambda render_data: _phase6_assembly_unfolded_blank_text(
