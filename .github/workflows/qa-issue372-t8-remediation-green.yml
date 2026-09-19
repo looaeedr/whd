@@ -6,6 +6,16 @@ on:
       - fix/issue372-t8-phase3-compat-remediation-20260919
     paths:
       - '.github/workflows/qa-issue372-t8-remediation-green.yml'
+      - 'fold_designer_bridge.py'
+      - 'gui_modules/application/command_router.py'
+      - 'tests/test_issue335_top_toolbar.py'
+      - 'tests/test_issue336_left_content_switch.py'
+      - 'tests/test_issue340_keyboard_focus.py'
+      - 'tests/test_issue350_manufacturing_orchestration_extraction.py'
+      - 'tests/test_issue366_t2c_corner_external_controller.py'
+      - 'tests/test_phase6_gui_performance_contract.py'
+      - 'tests/test_phase6_ui_state_regressions.py'
+      - 'tools/issue351_t6_compatibility_gate.py'
   workflow_dispatch:
 
 permissions:
