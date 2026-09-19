@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 3283922c9070fa4b1b50e919d8085720562b3c57
+          ref: dc47d016372f8b6867954f049c66dce5f401cceb
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -42,4 +42,10 @@ jobs:
             tests/test_issue358_remove_manufacturing_callbacks.py \
             tests/test_issue359_manufacturing_cache_service.py \
             tests/test_issue360_pure_manufacturing_service.py \
-            tests/test_issue361_one_line_manufacturing_facade.py
+            tests/test_issue361_one_line_manufacturing_facade.py \
+            tests/architecture/test_box_body_single_source.py::test_corner_data_box_body_consumes_authoritative_render_without_caller_structural_rebuild \
+            tests/architecture/test_box_body_single_source.py::test_receiving_corner_data_box_body_uses_same_authoritative_context_projection \
+            tests/test_endcap_head_mirror.py::test_head_corner_data_projection_uses_authoritative_material_without_render_time_mirror \
+            tests/test_issue43_receiving_divider_t1.py::test_r2_gui_final_divider_uses_four_segment_collision_relief \
+            tests/test_overlay_fw_width_invariant.py::test_vault_overlay_fw_width_invariant_2d_single3d_assembly_and_reload \
+            tests/test_phase6_t16_receiving_placement.py::test_receiving_3d_and_collision_scene_consume_resolver_offsets_and_frame_orientation
