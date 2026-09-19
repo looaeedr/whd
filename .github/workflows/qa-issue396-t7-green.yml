@@ -9,6 +9,7 @@ on:
       - "fold_designer_bridge.py"
       - "tests/test_issue396_phase4_composition_root.py"
       - "tests/test_issue392_settings_service.py"
+      - "tests/test_issue393_final_scene_contracts.py"
       - ".github/workflows/qa-issue396-t7-green.yml"
 
 permissions:
@@ -162,6 +163,7 @@ jobs:
             "fold_designer_bridge.py",
             "tests/test_issue396_phase4_composition_root.py",
             "tests/test_issue392_settings_service.py",
+            "tests/test_issue393_final_scene_contracts.py",
             ".github/workflows/qa-issue396-t7-red.yml",
             ".github/workflows/qa-issue396-t7-green.yml",
           }
