@@ -169,9 +169,13 @@ def _phase6_resolve_manufacturing_geometry(self):
             # explicit request boundary.
             return _phase6_operator_finished_dimensions(self)
 
+    render_provider = getattr(self, "_scene_query_callback", None)
+    part_spec_provider = getattr(self, "_part_spec_query_callback", None)
     return resolve_manufacturing_for_app(
         self,
         scene_payload_builder=lambda key: _phase6_scene_query_payload_for_part(self, key),
+        render_data_provider=render_provider,
+        part_spec_provider=part_spec_provider,
         finished_dimensions_provider=_finished_dimensions_provider,
         publish_live_state=lambda force=False: _phase6_publish_live_state(self, force=force),
     )
@@ -7161,7 +7165,7 @@ _FIX10_INIT = Phase6FoldDesignerApp.__init__
 _FIX10_EXPORT = Phase6FoldDesignerApp.export_phase6_snapshot
 
 
-def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
+def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
     # Atomic lifecycle: inherited Tk construction may invoke traced callbacks and
     # legacy do_update() methods, but none of those bootstrap intermediates are
     # authoritative live-sync state. Publish is disabled until the final Phase6
@@ -7211,6 +7215,7 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._transaction_cancel_callback = on_transaction_cancel
     self._baseline_data_query_callback = on_baseline_data_query
     self._scene_query_callback = on_scene_query
+    self._part_spec_query_callback = on_part_spec_query
     self._ui_text_size_change_callback = on_ui_text_size_change
     self._project_load_callback = on_project_load
     self._project_path_change_callback = on_project_path_change
