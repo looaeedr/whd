@@ -1,5 +1,5 @@
 name: "QA #366 T2B structure endcap GREEN"
-# trigger after contract correction
+# trigger after inherited-RED classifier correction
 
 on:
   push:
