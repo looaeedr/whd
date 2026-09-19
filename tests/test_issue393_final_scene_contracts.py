@@ -106,14 +106,28 @@ def test_issue393_adapter_has_no_generic_service_bag_or_string_dispatch():
 
 def test_issue393_bridge_builds_explicit_typed_dependencies():
     source = BRIDGE.read_text(encoding="utf-8")
-    assert "FinalSceneDependencies(" in source
-    assert "Phase6FinalSceneViewAdapter(" in source
+    composition = Path("gui_modules/application/fold_designer_adapter.py")
+    composition_source = composition.read_text(encoding="utf-8")
+
     assert "services={" not in source
     assert ".services" not in source
+    assert (
+        "FinalSceneDependencies(" in source
+        or "Phase6FoldDesignerComposition" in source
+    )
+
+    if "Phase6FoldDesignerComposition" in source:
+        assert "FinalSceneDependencies(" in composition_source
+        assert "Phase6FinalSceneViewAdapter(" in composition_source
+    else:
+        assert "Phase6FinalSceneViewAdapter(" in source
 
     tree = ast.parse(source, filename=str(BRIDGE))
     imports = _imports(BRIDGE)
-    assert "phase6_final_scene_contracts" in imports
+    assert (
+        "phase6_final_scene_contracts" in imports
+        or "gui_modules.application.fold_designer_adapter" in imports
+    )
 
 
 def test_issue393_contracts_are_ui_and_bridge_independent():
