@@ -21,6 +21,28 @@ from phase6_final_scene_contracts import (
     FinalSceneViewRequest,
 )
 from phase6_final_scene_projection import (
+    _phase6_profile_base_index,
+    _phase6_profile_geometry,
+    _phase6_fold_mask_for_cross_coordinate,
+    _phase6_profile_map_with_guides,
+    _phase6_profile_map,
+    _phase6_profile_flat_map,
+    _phase6_folded_mesh_from_polygon,
+    _phase6_mesh_feature_segments,
+    _phase6_fitted_limits_from_vertices,
+    _phase6_scene_fold_boundaries,
+    _phase6_profile_to_scene_boundaries,
+    _phase6_fold_ownership_exemptions,
+    _default_number_text,
+    _phase6_folded_outside_envelope,
+    _phase6_profile_operator_fold_values,
+    _phase6_contract_profile_rows,
+    _phase6_box_body_piece_world_mapper,
+    _phase6_box_body_piece_dimension_lines,
+    _phase6_box_body_structure_meshes,
+    format_operator_info_text,
+    _phase6_triangle_bounds,
+    _phase6_place_assembly_triangles,
     make_assembly_scene_render_data as _project_assembly_scene_render_data,
 )
 
