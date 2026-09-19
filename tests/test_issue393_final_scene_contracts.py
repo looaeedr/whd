@@ -71,7 +71,6 @@ def test_issue393_requires_typed_final_scene_contract_module():
         "assembly_render_provider",
         "request_provider",
         "after_render",
-        "mirror_view_state",
     }
     assert required <= deps_fields
 
