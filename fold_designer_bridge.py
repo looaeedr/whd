@@ -72,6 +72,8 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from gui_modules.application.fold_designer_adapter import (
+    FinalSceneCompositionPorts,
+    Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
 import phase6_project_file as _phase6_project_file
@@ -507,41 +509,19 @@ def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
     return controller
 
 
-def _phase6_settings_service(self) -> Phase6SettingsTransactionService:
-    service = getattr(self, "_phase6_settings_transaction_service", None)
-    if service is None:
-        service = Phase6SettingsTransactionService(
-            settings_values=getattr(self, "_settings_values", {}),
-            input_snapshot=getattr(self, "_phase6_input_snapshot", {}),
-            box_whd=getattr(self, "_phase6_box_whd", {}),
-            pending_settings=getattr(self, "_phase6_pending_settings", {}),
-        )
-        self._phase6_settings_transaction_service = service
-    return service
+def _phase6_composition(self) -> Phase6FoldDesignerComposition:
+    composition = getattr(self, "_phase6_composition_owner", None)
+    if composition is None:
+        composition = Phase6FoldDesignerComposition(self)
+        self._phase6_composition_owner = composition
+    return composition
 
 
-def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
-    controller = getattr(self, "_phase6_settings_transaction_controller", None)
-    if controller is None:
-        input_snapshot = getattr(self, "_phase6_input_snapshot", {})
-        controller = Phase6SettingsTransactionController(
-            settings_values=getattr(self, "_settings_values", {}),
-            input_snapshot=input_snapshot,
-            box_whd=getattr(self, "_phase6_box_whd", {}),
-            workspace=getattr(self, "designer_workspace", None),
-            endcap_fw_state=getattr(self, "_phase6_endcap_fw_state", {}),
-            endcap_bottom_wrap_state=getattr(
-                self, "_phase6_endcap_bottom_wrap_state", {}
-            ),
-            corner_state=getattr(self, "_phase6_corner_state", {}),
-            corner_pair_same=getattr(self, "_phase6_corner_pair_same", {}),
-            assembly_type=input_snapshot.get(
-                "assembly_type", CornerTypeId.INSERT_OVERLAY
-            ),
-            orchestration=_phase6_settings_service(self),
-        )
-        self._phase6_settings_transaction_controller = controller
-    return controller
+def _phase6_settings_service(self):
+    return _phase6_composition(self).settings_service()
+
+def _phase6_settings_transactions(self):
+    return _phase6_composition(self).settings_transactions()
 
 def _phase6_registry_diagnostics(self):
     controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
@@ -598,19 +578,9 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
 
 
 def _phase6_final_scene_renderer(self):
-    view = getattr(self, "final_scene_view", None)
-    if isinstance(view, Phase6FinalSceneRenderer):
-        return view
-    raw_renderer = getattr(self, "renderer", None)
-    if raw_renderer is None:
-        return None
-    view = Phase6FinalSceneRenderer(
-        raw_renderer,
-        number_text=_setting_number_text,
+    return _phase6_composition(self).final_scene_renderer(
+        number_text=_setting_number_text
     )
-    self.final_scene_view = view
-    return view
-
 
 def _phase6_final_scene_scene_query(self, key, payload):
     callback = getattr(self, "_scene_query_callback", None)
@@ -788,10 +758,8 @@ def _phase6_final_scene_refresh_preview(self):
 
 
 def _phase6_final_scene_adapter(self):
-    adapter = getattr(self, "_phase6_final_scene_view_adapter", None)
-    if adapter is None:
-        adapter = Phase6FinalSceneViewAdapter(
-            dependencies=FinalSceneDependencies(
+    return _phase6_composition(self).final_scene_adapter(
+        FinalSceneCompositionPorts(
                 number_text=_setting_number_text,
                 is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
                 physical_piece_render_data=lambda key: _phase6_box_body_piece_render_data(
@@ -904,11 +872,9 @@ def _phase6_final_scene_adapter(self):
                 refresh_preview=lambda: _phase6_final_scene_refresh_preview(
                     self
                 ),
-            ),
-            renderer=_phase6_final_scene_renderer(self),
+
         )
-        self._phase6_final_scene_view_adapter = adapter
-    return adapter
+    )
 
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
@@ -1176,26 +1142,29 @@ def _legacy_box_body_active_piece_set(self, value):
 
 
 def _legacy_settings_assembly_type_get(self):
-    controller = getattr(self, "_phase6_settings_transaction_controller", None)
-    if controller is not None:
-        return controller.assembly_type
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    return resolve_box_assembly_type(snapshot)
-
+    return _phase6_composition(self).assembly_type
 
 def _legacy_settings_last_external_revision_get(self):
-    service = getattr(self, "_phase6_settings_transaction_service", None)
-    return service.last_external_revision if service is not None else 0
-
+    return _phase6_composition(self).last_external_revision
 
 def _legacy_settings_last_external_transaction_id_get(self):
-    service = getattr(self, "_phase6_settings_transaction_service", None)
-    return service.last_external_transaction_id if service is not None else ""
-
+    return _phase6_composition(self).last_external_transaction_id
 
 def _legacy_settings_active_transaction_id_get(self):
-    service = getattr(self, "_phase6_settings_transaction_service", None)
-    return service.active_transaction_id if service is not None else ""
+    return _phase6_composition(self).active_transaction_id
+
+def _phase6_legacy_getattr(self, name):
+    readers = {
+        "_phase6_assembly_type": _legacy_settings_assembly_type_get,
+        "_phase6_last_external_revision": _legacy_settings_last_external_revision_get,
+        "_phase6_last_external_transaction_id": _legacy_settings_last_external_transaction_id_get,
+        "_phase6_active_transaction_id": _legacy_settings_active_transaction_id_get,
+    }
+    reader = readers.get(str(name))
+    if reader is not None:
+        return reader(self)
+    raise AttributeError(str(name))
+
 
 def project_features_to_original_holes(features, width, height):
     """Project supported Phase6 features into the original Renderer's hole DTO.
@@ -7332,6 +7301,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # construct UI state only and render nothing until a Phase6 part is selected.
     self.preview_3d_enabled = False
     self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
+    self.queue_update = _phase6_queue_update.__get__(self, type(self))
+    self.do_update = _phase6_preview_aware_do_update.__get__(self, type(self))
     _FIX10_INIT(self, root, snapshot)
     _phase6_settings_transactions(self)
     # FIX10 marks itself ready as soon as its legacy snapshot is loaded. Phase6
@@ -9235,10 +9206,7 @@ def _phase6_queue_update(self, *args):
 install_fold_designer_bridge_facade(
     Phase6FoldDesignerApp,
     {
-        "_phase6_assembly_type": property(_legacy_settings_assembly_type_get),
-        "_phase6_last_external_revision": property(_legacy_settings_last_external_revision_get),
-        "_phase6_last_external_transaction_id": property(_legacy_settings_last_external_transaction_id_get),
-        "_phase6_active_transaction_id": property(_legacy_settings_active_transaction_id_get),
+        "__getattr__": _phase6_legacy_getattr,
         "_phase6_last_cutting_mesh": _phase6_view_property("last_cutting_mesh", []),
         "_phase6_last_cutting_material": _phase6_view_property("last_cutting_material", None),
         "_phase6_cutting_mesh_error": _phase6_view_property("cutting_mesh_error", None),
@@ -9305,9 +9273,7 @@ install_fold_designer_bridge_facade(
         "switch_active_part": _phase6_switch_active_part,
         "publish_if_changed": _phase6_publish_if_changed,
         "_phase6_flush_update_intents": _phase6_flush_update_intents,
-        "do_update": _phase6_preview_aware_do_update,
         "set_3d_preview_enabled": _phase6_set_3d_preview_enabled,
         "refresh_3d_preview": _phase6_refresh_3d_preview,
-        "queue_update": _phase6_queue_update,
     },
 )
