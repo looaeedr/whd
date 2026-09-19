@@ -31,6 +31,7 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_part_key,
 )
 from phase6_designer_workspace import Phase6DesignerWorkspace
+from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_part_navigation import (
     NavigationIntent,
     NavigationMemory,
@@ -431,6 +432,15 @@ def _designer_workspace(self) -> Phase6DesignerWorkspace:
     return self.designer_workspace
 
 
+def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
+    workspace = _designer_workspace(self)
+    controller = getattr(self, "_phase6_workspace_navigation_controller", None)
+    if controller is None or getattr(controller, "workspace", None) is not workspace:
+        controller = Phase6WorkspaceNavigationController(workspace)
+        self._phase6_workspace_navigation_controller = controller
+    return controller
+
+
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
 
@@ -441,8 +451,8 @@ def _phase6_sync_authoritative_derived_parts(self):
     """
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     workspace = _designer_workspace(self)
-    sync_derived_parts = getattr(workspace, "sync_derived_parts", None)
-    if not callable(sync_derived_parts):
+    navigation = _phase6_workspace_navigation(self)
+    if not navigation.supports_derived_sync:
         # Baseline-change and migration adapters may supply a lightweight
         # workspace facade that predates topology-derived physical parts.
         # Derived synchronization is additive capability; it must not make
@@ -477,20 +487,20 @@ def _phase6_sync_authoritative_derived_parts(self):
     legacy_active = workspace.active_part == "door"
     legacy_selected = workspace.selected_part == "door"
     if door_rows and "door" in workspace.available_parts:
-        workspace.remove_part("door")
-    sync_derived_parts(namespace="door_c", part_profiles=door_profiles)
+        navigation.remove_part("door")
+    navigation.sync_derived_parts(namespace="door_c", part_profiles=door_profiles)
     for row in door_rows:
         if row.part_key not in known_feature_keys and row.part_key in source_part_features:
-            workspace.stash_features(row.part_key, source_part_features[row.part_key])
+            navigation.stash_features(row.part_key, source_part_features[row.part_key])
     if door_rows:
         if legacy_active:
-            workspace.active_part = door_rows[0].part_key
+            navigation.set_active_part(door_rows[0].part_key)
         if legacy_selected:
-            workspace.selected_part = door_rows[0].part_key
+            navigation.set_selected_part(door_rows[0].part_key)
     else:
         source_parts = tuple(snapshot.get("existing_parts") or ())
         if "door" in source_parts and "door" not in workspace.available_parts:
-            workspace.add_part(
+            navigation.add_part(
                 "door",
                 default_profiles=build_standard_part_profiles(snapshot, "door"),
             )
@@ -525,21 +535,21 @@ def _phase6_sync_authoritative_derived_parts(self):
     legacy_base_active = workspace.active_part == "base_plate"
     legacy_base_selected = workspace.selected_part == "base_plate"
     if door_rows and "base_plate" in workspace.available_parts:
-        workspace.remove_part("base_plate")
-    sync_derived_parts(
+        navigation.remove_part("base_plate")
+    navigation.sync_derived_parts(
         namespace="base_plate_c",
         part_profiles=base_plate_profiles,
     )
     if door_rows:
         first_base = str(door_rows[0].part_key).replace("door_", "base_plate_", 1)
         if legacy_base_active:
-            workspace.active_part = first_base
+            navigation.set_active_part(first_base)
         if legacy_base_selected:
-            workspace.selected_part = first_base
+            navigation.set_selected_part(first_base)
     else:
         source_parts = tuple(snapshot.get("existing_parts") or ())
         if "base_plate" in source_parts and "base_plate" not in workspace.available_parts:
-            workspace.add_part(
+            navigation.add_part(
                 "base_plate",
                 default_profiles=build_standard_part_profiles(snapshot, "base_plate"),
             )
@@ -559,12 +569,12 @@ def _phase6_sync_authoritative_derived_parts(self):
             if _phase6_is_box_body_physical_piece_key(key)
         }
         for key in tuple(current_piece_keys - desired_piece_keys):
-            workspace.remove_part(key)
+            navigation.remove_part(key)
         for key, profiles in box_piece_profiles.items():
             if key in workspace.available_parts:
-                workspace.stash_profiles(key, profiles)
+                navigation.stash_profiles(key, profiles)
             else:
-                workspace.add_part(key, default_profiles=profiles)
+                navigation.add_part(key, default_profiles=profiles)
 
     divider_profiles = {}
     columns = list(snapshot.get("door_layout_columns") or ())
@@ -585,7 +595,7 @@ def _phase6_sync_authoritative_derived_parts(self):
             frame_width=float(snapshot.get("fw", 0.0)),
         )
         divider_profiles = divider_part_profiles(dividers)
-    sync_derived_parts(
+    navigation.sync_derived_parts(
         namespace="box_body:divider:",
         part_profiles=divider_profiles,
     )
@@ -622,7 +632,7 @@ def _phase6_sync_authoritative_derived_parts(self):
     panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
     inner_profiles = inner_door_frame_part_profiles(frames)
     inner_profiles.update(inner_door_panel_part_profiles(panels))
-    sync_derived_parts(
+    navigation.sync_derived_parts(
         namespace="inner_door:",
         part_profiles=inner_profiles,
     )
@@ -686,6 +696,14 @@ def _legacy_switching_part_get(self):
 
 def _legacy_switching_part_set(self, value):
     _designer_workspace(self).switching = value
+
+
+def _legacy_box_body_active_piece_get(self):
+    return _phase6_workspace_navigation(self).remembered_box_body_child
+
+
+def _legacy_box_body_active_piece_set(self, value):
+    _phase6_workspace_navigation(self).remembered_box_body_child = value
 
 def project_features_to_original_holes(features, width, height):
     """Project supported Phase6 features into the original Renderer's hole DTO.
@@ -7602,14 +7620,7 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
 
 def _phase6_resolve_operator_part_key(self, key):
     """Resolve one explicit identity through the pure DM7 navigation owner."""
-    workspace = _designer_workspace(self)
-    projection = _dm7_resolve_navigation(
-        getattr(workspace, "available_parts", ()) or (),
-        NavigationRequest(str(key or "") or None, NavigationIntent.EXPLICIT_SELECT),
-        NavigationMemory(getattr(self, "_phase6_box_body_active_piece_key", None)),
-    )
-    self._phase6_box_body_active_piece_key = projection.memory.remembered_box_body_child
-    return projection.resolved_key
+    return _phase6_workspace_navigation(self).resolve_operator_part(key)
 
 
 def _phase6_activate_operator_part(self, key):
@@ -8001,7 +8012,7 @@ def _phase6_show_assembly(self, initial=False):
             self._save_current_part()
         except Exception:
             pass
-    self.designer_workspace.selected_part = None
+    _phase6_workspace_navigation(self).clear_selection()
     self._phase6_3d_display_mode = "assembly"
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and piece_selector.winfo_manager():
@@ -8053,10 +8064,9 @@ def _phase6_show_assembly(self, initial=False):
 
 def _fix11_select_part(self, key):
     key = str(key or "")
-    if not self.designer_workspace.select_part(key):
+    navigation = _phase6_workspace_navigation(self)
+    if not navigation.select_part(key):
         return False
-    if _phase6_is_box_body_physical_piece_key(key):
-        self._phase6_box_body_active_piece_key = key
     if hasattr(self, "part_var"):
         self.part_var.set(
                 _phase6_part_label("box_body")
@@ -8111,6 +8121,7 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
         getattr(self, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot))
     )
     _phase6_recalculate_part_dimensions(self)
+    navigation = _phase6_workspace_navigation(self)
     active = self.designer_workspace.active_part
 
     if active != "box_body" and "box_body" in self.designer_workspace.available_parts:
@@ -8131,13 +8142,13 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
             x_merged = _merge_keyed_profiles(
                 {"X": existing.get("X", ())}, {"X": defaults.get("X", ())}
             ).get("X", clone_profile(defaults.get("X", ())))
-            self.designer_workspace.stash_profiles(key, {
+            navigation.stash_profiles(key, {
                 "X": x_merged,
                 "Y": clone_profile(defaults.get("Y", ())),
             })
         else:
             defaults = build_standard_part_profiles(snapshot, key)
-            self.designer_workspace.stash_profiles(key, _merge_keyed_profiles(existing, defaults))
+            navigation.stash_profiles(key, _merge_keyed_profiles(existing, defaults))
 
 
 def _phase6_store_editor_values(self, values, *, notify=True):
@@ -8477,7 +8488,8 @@ def _phase6_show_home(self):
 
 
 def _fix11_activate_part(self, key, initial=False):
-    if key not in self.designer_workspace.available_parts:
+    navigation = _phase6_workspace_navigation(self)
+    if not navigation.has_part(key):
         return
     _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
@@ -8498,6 +8510,11 @@ def _fix11_activate_part(self, key, initial=False):
     # Capture the display mode first: assembly/corner-data -> same backing part
     # is still a real view transition and must rebuild/show the input editor.
     was_non_single = str(getattr(self, "_phase6_3d_display_mode", "single") or "single") != "single"
+    plan = navigation.plan_activation(
+        key,
+        initial=initial,
+        leaving_non_single_view=was_non_single,
+    )
     if not initial:
         self._phase6_3d_display_mode = "single"
         diagnostics = getattr(self, "assembly_diagnostics_frame", None)
@@ -8505,7 +8522,7 @@ def _fix11_activate_part(self, key, initial=False):
             diagnostics.pack_forget()
     if not initial and getattr(self, "_phase6_pending_settings", None):
         self.flush_pending_settings()
-    if key == self.designer_workspace.active_part and not initial and not was_non_single:
+    if plan.noop:
         return
 
     # A delayed edit/preview update from the previous part must never run after
@@ -8518,7 +8535,7 @@ def _fix11_activate_part(self, key, initial=False):
             pass
         self._job = None
 
-    if not initial and self.designer_workspace.active_part is not None:
+    if plan.save_outgoing:
         self._save_current_part()
         # Saving head/tail can normalize W/D through traced Tk variables.  That
         # work belongs to the outgoing part and may enqueue a delayed update;
@@ -8541,7 +8558,7 @@ def _fix11_activate_part(self, key, initial=False):
     # right settings page first so Tk settles on one final viewport size before
     # the first visible model render.
 
-    self.designer_workspace.begin_switch(key)
+    navigation.begin_activation(plan)
     try:
         if hasattr(self, "part_var"):
             self.part_var.set(
@@ -8577,7 +8594,7 @@ def _fix11_activate_part(self, key, initial=False):
             profiles = self.designer_workspace.profiles_for(key)
             if profiles is None:
                 profiles = default_profiles
-                self.designer_workspace.stash_profiles(key, profiles)
+                navigation.stash_profiles(key, profiles)
             self.state.profiles["X"] = clone_profile(profiles.get("X", []))
             self.state.profiles["Y"] = clone_profile(profiles.get("Y", []))
             self.state.phase6_fold_ui_tabs = _phase6_fold_tabs_for_part(
@@ -8627,7 +8644,7 @@ def _fix11_activate_part(self, key, initial=False):
                 var.set(text)
         self._load_part_holes(key)
     finally:
-        self.designer_workspace.finish_switch()
+        navigation.finish_activation()
 
     # Finish the variable-height settings page before making the canvas visible;
     # otherwise Tk/Matplotlib renders once at the tall pre-settings size and once
@@ -8701,7 +8718,8 @@ def _fix11_add_part(self, key):
     key = str(key)
     if key not in PART_LABELS:
         raise ValueError(f"不支援的板件: {key}")
-    if key not in self.designer_workspace.available_parts:
+    navigation = _phase6_workspace_navigation(self)
+    if not navigation.has_part(key):
         if key in {"head", "tail"}:
             linked = build_linked_endcap_xy_profiles(
                 self._phase6_input_snapshot, self.state.profiles_vault.get("箱身", [])
@@ -8711,7 +8729,7 @@ def _fix11_add_part(self, key):
             defaults = build_standard_part_profiles(self._phase6_input_snapshot, key)
         else:
             defaults = None
-        self.designer_workspace.add_part(
+        navigation.add_part(
             key,
             default_profiles=defaults,
             default_features=(),
@@ -8723,13 +8741,13 @@ def _fix11_add_part(self, key):
 
 def _fix11_remove_part(self, key):
     key = str(key or "")
-    was_active = self.designer_workspace.active_part == key
-    result = self.designer_workspace.remove_part(key)
-    if not result:
+    navigation = _phase6_workspace_navigation(self)
+    mutation = navigation.remove_part(key)
+    if not mutation.changed:
         return False
-    if was_active:
+    if mutation.fallback_key:
         try:
-            self.activate_part("box_body")
+            self.activate_part(mutation.fallback_key)
         except Exception:
             pass
     self._refresh_part_buttons()
@@ -8744,8 +8762,9 @@ def _fix11_export(self):
     # designer can close.
     self._save_current_part(notify=False)
     current = self.designer_workspace.active_part
+    navigation = _phase6_workspace_navigation(self)
     if current not in {"box_body", "head", "tail"}:
-        self.designer_workspace.switching = True
+        navigation.set_switching(True)
         try:
             self.state.struct_mode = "vault"
             self.v_mode.set("vault")
@@ -8758,7 +8777,7 @@ def _fix11_export(self):
             self.v_d.set(str(self._phase6_box_whd["d"]))
             self.bend_ui.rebuild_tabs()
         finally:
-            self.designer_workspace.switching = False
+            navigation.set_switching(False)
 
     # FIX10 仍透過舊箱身／金庫型 adapter 匯出；為了相容保留它，
     # 但不可讓其中過期的箱身 profile 覆蓋新值
@@ -8850,6 +8869,7 @@ Phase6FoldDesignerApp._phase6_part_features = property(_legacy_part_features_get
 Phase6FoldDesignerApp._phase6_part_face_features = property(_legacy_part_face_features_get, _legacy_part_face_features_set)
 Phase6FoldDesignerApp._phase6_workspace_dirty = property(_legacy_workspace_dirty_get, _legacy_workspace_dirty_set)
 Phase6FoldDesignerApp._phase6_switching_part = property(_legacy_switching_part_get, _legacy_switching_part_set)
+Phase6FoldDesignerApp._phase6_box_body_active_piece_key = property(_legacy_box_body_active_piece_get, _legacy_box_body_active_piece_set)
 Phase6FoldDesignerApp.apply_external_assembly_type = _phase6_apply_external_assembly_type
 Phase6FoldDesignerApp.export_phase6_snapshot = _fix11_export
 Phase6FoldDesignerApp.show_global_settings = _phase6_show_global_settings
