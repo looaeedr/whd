@@ -12,7 +12,11 @@ from typing import Callable
 
 from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_mpl_dark_theme
-from phase6_final_scene_contracts import FinalSceneViewRequest
+from phase6_final_scene_contracts import (
+    AssemblyScenePart,
+    AssemblySceneRenderData,
+    FinalSceneViewRequest,
+)
 from phase6_final_scene_projection import (
     _phase6_profile_base_index,
     _phase6_profile_geometry,
@@ -919,6 +923,8 @@ Phase6FinalSceneView = Phase6FinalSceneRenderer
 __all__ = [
     "Phase6FinalSceneRenderer",
     "Phase6FinalSceneView",
+    "AssemblyScenePart",
+    "AssemblySceneRenderData",
     "_PHASE6_DEFAULT_VIEW",
     "_PHASE6_ZOOM_MIN",
     "_PHASE6_ZOOM_MAX",
