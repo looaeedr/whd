@@ -129,3 +129,21 @@ Remote QA 在 `queued / in_progress` 時有 `REMOTE_QA_ACTIVE_LOCK`，所以 30 
 - Remote terminal 後若還有收尾，必須 `WAITING_REMOTE → RUNNING(next_acceptance_action)`，由 global turn-exit gate 無縫接手 remote lock。
 - progress / CHECKPOINT / PASS / integrated / process-incomplete 都只是 observation；只要 machine checkpoint 還有可自主 next action，使用者就不是續跑 scheduler。
 - Behavior authority：`tests/process/test_continuity_controller.py` 的 remote-success → closing-RUNNING regression。入口文字 marker 只作 routing compatibility guard。
+
+## SILENT_ACTIVE_WORK_PITFALL
+
+### 事故模式
+
+Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對使用者而言，「正常背景執行」「正在等既有 RUN」「Runtime 卡死」外觀完全一樣，導致使用者必須再次輸入「輪／繼續」才能確認系統是不是還活著。
+
+### 永久規則
+
+- active scheduled work 不得用完全靜默作正常 UX；必須 bridge `SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+- 回報狀態只投影 canonical execution truth：`WORKING / WAITING_REMOTE / RECOVERING / BLOCKED / COMPLETE`，不能建立另一套 state machine。
+- WAITING_REMOTE 要帶 exact run identity 與 current step/status；長時間無 remote 變化要明示疑似卡住並進 stale 判定。
+- shared lease 被另一 Runtime 合法持有時，要說明 safe no-op，而不是沉默。
+- 沒有 active work 才可靜默。
+- heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
+
+Canonical authority：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+
