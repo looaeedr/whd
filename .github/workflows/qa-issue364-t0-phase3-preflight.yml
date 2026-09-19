@@ -1,5 +1,5 @@
 name: "QA #364 T0 Phase 3 preflight"
-# refresh after full line-count metric fix
+# refresh after event-loop classifier refinement
 
 on:
   push:
