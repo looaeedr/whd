@@ -1,0 +1,45 @@
+name: "QA #404 T4 scheduler driver GREEN"
+
+on:
+  push:
+    branches:
+      - continuity/issue404-scheduled-resume-runtime-20260920
+    paths:
+      - 'tools/scheduled_resume_driver.py'
+      - 'tools/scheduled_resume_issue_state.py'
+      - 'tools/scheduled_resume_executor.py'
+      - 'tools/scheduled_resume_lease.py'
+      - 'tools/scheduled_resume_runtime.py'
+      - 'tools/continuity_controller.py'
+      - 'tests/process/test_issue404_scheduler_driver.py'
+      - '.github/workflows/qa-issue404-t4-driver-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Driver focused
+        run: python -m pytest -q tests/process/test_issue404_scheduler_driver.py --tb=short
+      - name: Full scheduled-resume process regressions
+        run: |
+          python -m pytest -q             tests/process/test_issue401_scheduled_resume_dispatcher.py             tests/process/test_issue402_scheduled_resume_idempotency.py             tests/process/test_issue402_durable_github_lease.py             tests/process/test_issue403_runtime_recovery_policy.py             tests/process/test_issue404_scheduler_runtime.py             tests/process/test_continuity_controller.py             --tb=short
+      - name: Scope
+        run: |
+          set -euo pipefail
+          git diff --check bdb55dda3fa7fbeac47f36177a8923eea605fb7d...HEAD
+          echo "PASS DRIVER_SHARED_LEASE=1"
+          echo "PASS DRIVER_FRESH_GITHUB_READBACK=1"
+          echo "PASS DRIVER_AGENT_GATING=1"
