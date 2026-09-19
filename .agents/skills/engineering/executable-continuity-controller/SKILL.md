@@ -300,3 +300,30 @@ ChatGPT Automation wake
 - 目前 Runtime 還可執行時，**已有下一次排程絕不是停工理由**。Schedule 只保證 hard-cut 後重入，不節流 live Runtime。
 - 使用者不是 scheduler；不得要求使用者再輸入「繼續／輪／GO」來推進已知 next action。
 
+## SCHEDULED_RESUME_PROGRESS_HEARTBEAT
+
+Scheduled Resume 的 **heartbeat 是 user-visible visibility projection，不是第二套 state machine**。Durable execution state 仍只由本 Skill + `tools/continuity_controller.py` 的 canonical checkpoint 決定；heartbeat 不得自行創造、改寫或取代 `RUNNING / WAITING_REMOTE / RECOVERING / BLOCKED / TERMINAL_*`。
+
+每次 ChatGPT scheduled re-entry 結束前，只要偵測到 **active work**，就**不得靜默**。必須主動送出一則精簡 heartbeat，第一行固定投影為下列其中一種：
+
+- `WORKING`：canonical `RUNNING`，正常工作中。
+- `WAITING_REMOTE`：已有 exact locked remote run，正常等待既有 RUN。
+- `RECOVERING`：正在 evidence → root cause → minimal fix → validation → retry。
+- `BLOCKED`：genuine blocker，依 durable blocked_count/backoff 管理。
+- `COMPLETE`：只有 evidence-backed terminal + applicable closure/cleanup 完成後才可使用。
+
+Heartbeat 至少包含：
+- owning issue / work order；
+- branch；
+- HEAD（可短 SHA）；
+- `run_id`（若有）；
+- durable exact `next_action`；
+- 一句人類可判讀結論：`正常工作中`、`正常等待既有 RUN`、`正在復原`、`真 blocker`、`已完成`。
+
+特殊情境：
+- 另一個 scheduled/manual runtime 持有有效 shared GitHub TTL lease：本 runtime safe no-op，但仍回報 `WORKING — 另一 runtime 持有有效 lease`，避免使用者把健康 mutual exclusion 誤判成卡死。
+- `WAITING_REMOTE`：heartbeat 必須帶 exact `run_id + head_sha` 與目前 step/status；長時間無 step/updated_at 變化時標示 `疑似卡住`，並依 canonical stale policy 進 recovery，不能只沉默。
+- 完全沒有 active work：允許保持安靜，不製造空洞狀態訊息。
+
+Heartbeat 是 observation，不是 turn boundary。只要目前 Runtime 仍可自主執行 next action，送出 heartbeat 後仍必須繼續；不得因「已回報進度」停止。Live Runtime 的 remote QA 約 30 秒回報 cadence 仍由 `monitoring-remote-qa` 負責，scheduled heartbeat 不節流也不取代該 loop。
+
