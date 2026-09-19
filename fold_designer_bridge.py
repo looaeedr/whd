@@ -7600,6 +7600,12 @@ def _fix11_refresh_part_buttons(self):
     menu = getattr(self, "part_choice_menu", None)
     if menu is not None:
         menu.delete(0, original.tk.END)
+        menu.add_radiobutton(
+            label="組合體",
+            variable=self.part_var,
+            value="組合體",
+            command=lambda: _phase6_show_assembly(self),
+        )
         for key in _phase6_operator_part_selector_keys(self.available_parts):
             label = _phase6_part_label(key, snapshot=snapshot)
             menu.add_radiobutton(
@@ -7608,9 +7614,22 @@ def _fix11_refresh_part_buttons(self):
                 value=label,
                 command=lambda k=key: _phase6_activate_operator_part(self, k),
             )
+        menu.add_radiobutton(
+            label="截角資料",
+            variable=self.part_var,
+            value="截角資料",
+            command=lambda: _phase6_show_corner_data(self),
+        )
     active = getattr(self, "active_part_key", None)
     if hasattr(self, "part_var"):
-        if _phase6_is_box_body_physical_piece_key(active):
+        display_mode = str(
+            getattr(self, "_phase6_3d_display_mode", "single") or "single"
+        )
+        if display_mode == "assembly":
+            self.part_var.set("組合體")
+        elif display_mode == "corner_data":
+            self.part_var.set("截角資料")
+        elif _phase6_is_box_body_physical_piece_key(active):
             self.part_var.set(_phase6_part_label("box_body", snapshot=snapshot))
         elif active in self.available_parts:
             self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
@@ -7922,6 +7941,8 @@ def _phase6_show_corner_data(self):
     """
     _phase6_clear_navigation_residue(self)
     self._phase6_3d_display_mode = "corner_data"
+    if hasattr(self, "part_var"):
+        self.part_var.set("截角資料")
 
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and hasattr(piece_selector, "pack_forget"):
@@ -7975,6 +7996,8 @@ def _phase6_show_assembly(self, initial=False):
             pass
     _phase6_workspace_navigation(self).clear_selection()
     self._phase6_3d_display_mode = "assembly"
+    if hasattr(self, "part_var"):
+        self.part_var.set("組合體")
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and piece_selector.winfo_manager():
         piece_selector.pack_forget()
