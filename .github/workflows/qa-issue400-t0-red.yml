@@ -25,8 +25,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git merge-base HEAD 57d06c793df66982238e25641fa9f84f20cf970e)" = "57d06c793df66982238e25641fa9f84f20cf970e"
-      - name: Install pytest
-        run: python -m pip install pytest
+      - name: Install test harness
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
       - name: Confirm exact T0 RED
         shell: bash
         run: |
