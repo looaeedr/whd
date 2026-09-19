@@ -1,4 +1,5 @@
 name: "QA #365 T1 RED workspace navigation"
+# explicit trigger after workflow creation
 
 on:
   push:
