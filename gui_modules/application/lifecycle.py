@@ -988,6 +988,7 @@ def open_original_fold_designer(self, *, target_window=None):
         on_live_sync=lambda payload: self._apply_fold_designer_live_snapshot(deepcopy(payload)),
         on_baseline_data_query=self._query_fold_designer_baseline_data,
         on_scene_query=self._query_fold_designer_render_data,
+        on_part_spec_query=self._fold_designer_part_spec_from_payload,
         on_ui_text_size_change=lambda value: self._apply_ui_text_size_preference(
             value, persist=True, notify_designer=False
         ),
