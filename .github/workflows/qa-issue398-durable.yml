@@ -1,0 +1,41 @@
+name: "QA #398 durable writeback"
+
+on:
+  push:
+    branches:
+      - fix/issue398-default-baseline-vault-20260919
+    paths:
+      - '.agents/skills/engineering/執行開發任務/SKILL.md'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - '個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md'
+      - 'docs/superpowers/checkpoints/issue398-default-baseline-vault.md'
+      - '.github/workflows/qa-issue398-durable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4)" = "fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4"
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Durable authority guards
+        run: |
+          python -m pytest -q             tests/knowledge/test_issue231_authority_map_normalization.py             tests/knowledge/test_knowledge_authority_contract.py             tests/knowledge/test_issue233_strict_metadata_migration.py             --tb=short
+      - name: Scope integrity
+        run: |
+          set -euo pipefail
+          git diff --check fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4...HEAD
+          test -f '個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md'
+          grep -q 'contract=phase6-startup-baseline-model role=CURRENT'             '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+          echo "PASS DURABLE_WRITEBACK=1"
