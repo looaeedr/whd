@@ -137,21 +137,38 @@ from phase6_final_scene_contracts import (
 )
 from phase6_final_scene_projection import (
     make_assembly_scene_render_data as _project_assembly_scene_render_data,
+    _phase6_profile_base_index,
+    _phase6_profile_geometry,
+    _phase6_fold_mask_for_cross_coordinate,
+    _phase6_profile_map_with_guides,
+    _phase6_profile_map,
+    _phase6_profile_flat_map,
+    _phase6_folded_mesh_from_polygon,
+    _phase6_fitted_limits_from_vertices,
+    _phase6_scene_fold_boundaries,
+    _phase6_profile_to_scene_boundaries,
+    _phase6_fold_ownership_exemptions,
+    _phase6_folded_outside_envelope,
+    _phase6_profile_operator_fold_values,
+    format_operator_info_text,
+)
+from phase6_final_scene_renderer import (
+    Phase6FinalSceneRenderer,
+    Phase6FinalSceneView,
+    _PHASE6_DEFAULT_VIEW,
+    _PHASE6_ZOOM_MIN,
+    _PHASE6_ZOOM_MAX,
+    _PHASE6_ZOOM_STEP,
 )
 from phase6_final_scene_view import (
-    Phase6FinalSceneRenderer, Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
-    _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
-    _phase6_profile_base_index, _phase6_profile_geometry,
-    _phase6_fold_mask_for_cross_coordinate, _phase6_profile_map_with_guides,
-    _phase6_profile_map, _phase6_profile_flat_map,
-    _phase6_folded_mesh_from_polygon, _phase6_fitted_limits_from_vertices,
-    _phase6_scene_fold_boundaries, _phase6_profile_to_scene_boundaries,
-    _phase6_fold_ownership_exemptions, _phase6_folded_outside_envelope,
-    _phase6_profile_operator_fold_values,
-    _phase6_remove_original_bend_surfaces, _phase6_add_mesh_boundary_lines,
-    _phase6_draw_scene_bends, _phase6_draw_scene_markings,
-    _phase6_configure_3d_only_figure, _phase6_scale_current_3d_limits,
-    _phase6_adjust_zoom_scale, format_operator_info_text,
+    Phase6FinalSceneViewAdapter,
+    _phase6_remove_original_bend_surfaces,
+    _phase6_add_mesh_boundary_lines,
+    _phase6_draw_scene_bends,
+    _phase6_draw_scene_markings,
+    _phase6_configure_3d_only_figure,
+    _phase6_scale_current_3d_limits,
+    _phase6_adjust_zoom_scale,
 )
 
 
