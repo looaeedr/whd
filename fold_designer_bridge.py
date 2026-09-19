@@ -6882,8 +6882,14 @@ def _phase6_scroll_assembly_parts(self, event):
     canvas = getattr(self, "assembly_parts_canvas", None)
     if canvas is None:
         return "break"
-    delta = int(getattr(event, "delta", 0) or 0)
-    number = int(getattr(event, "num", 0) or 0)
+    def _event_int(value):
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    delta = _event_int(getattr(event, "delta", 0))
+    number = _event_int(getattr(event, "num", 0))
     if number == 4:
         steps = -1
     elif number == 5:
