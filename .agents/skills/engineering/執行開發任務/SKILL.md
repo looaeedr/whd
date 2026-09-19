@@ -255,3 +255,12 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 4. 無 drift 直接續工；有 drift 只重驗受影響範圍；
 5. 已 accepted phase 不因 runtime 重建而重跑；
 6. 目前 Runtime 可繼續時不得因「排程稍後會再醒」而停止。
+
+### SCHEDULED_RESUME_PROGRESS_HEARTBEAT_BRIDGE
+
+跨 Runtime 自動續跑時，user-visible heartbeat 的 canonical 規則由 `executable-continuity-controller::SCHEDULED_RESUME_PROGRESS_HEARTBEAT` 負責；本 Skill 必須 bridge 該規則，不自行發明狀態。
+
+只要 scheduled re-entry 偵測到 active work，就必須讓使用者能分辨正常工作、等待、復原、真 blocker 或完成，並以 `WORKING / WAITING_REMOTE / RECOVERING / BLOCKED / COMPLETE` 之一回報 owning issue、branch、HEAD、必要 run_id 與 exact next_action。另一 runtime 持有有效 lease 時也要以 `WORKING` 說明 safe no-op，而不是靜默到看起來像卡死。
+
+這個 progress update 只能觀測執行狀態，**不得成為停工點**。若回報後仍存在可自主執行的 next action，必須在同一 Runtime 繼續執行；scheduled heartbeat 不覆蓋本 Skill 的 `NONTERMINAL_NEXT_ACTION_GATE`、checkpoint、QA、acceptance 或 closure 規則。
+
