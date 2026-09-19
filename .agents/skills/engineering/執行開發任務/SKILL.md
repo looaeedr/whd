@@ -227,3 +227,18 @@ Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，
 - `BLOCKED` 才能因真正外部 authority/capability wait 把控制權交回使用者；但它仍不能通過 `assert_finalizable`。
 - Remote QA terminal 後若轉成 `RUNNING(cleanup / invariant / drift / closure)`，remote lock 雖解除，global turn-exit lock 立即接手；PASS 回報不是停工點。
 - `USER_VISIBLE_CHECKPOINT_GATE` 只負責呈現/恢復面，不取代 executable turn-exit gate。
+
+
+### STARTUP_DEFAULT_AUTHORITY_CONTRACT
+
+當同一產品同時存在 production direct-primary 路徑與 legacy/compatibility UI 路徑時，**啟動預設值必須由 canonical application state owner 建立，不得依賴某個可選 UI widget 的 `.current()`、`.set()` 或 constructor side effect 才成立**。
+
+執行 startup-default 類修正時至少驗證：
+
+1. 真正 production entrypoint 的 fresh startup state；
+2. legacy/compatibility entrypoint（若仍存在）；
+3. downstream snapshot / adapter projection；
+4. project/load 的 explicit saved value 仍可覆蓋 fresh-start default；
+5. 不把 presentation side effect 升格成 domain state owner。
+
+WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-baseline-model` 擁有；本 Skill 只保存通用執行方法，不複製產品值。
