@@ -1747,6 +1747,24 @@ def _phase6_snapshot_with_settings_fallback(snapshot: Mapping[str, object]) -> d
 class Phase6FoldDesignerApp(original.MainApp):
     """Original MainApp loaded with Phase6 data; Renderer is untouched."""
 
+    _PHASE6_STABLE_MAPPING_NAMES = frozenset({
+        "_settings_values",
+        "_phase6_input_snapshot",
+        "_phase6_box_whd",
+        "_phase6_pending_settings",
+    })
+
+    def __setattr__(self, name, value):
+        if name in self._PHASE6_STABLE_MAPPING_NAMES:
+            current = self.__dict__.get(name)
+            if isinstance(current, MutableMapping):
+                if value is current:
+                    return
+                current.clear()
+                current.update(dict(value or {}))
+                return
+        super().__setattr__(name, value)
+
     def __init__(self, root, snapshot: Mapping[str, object]):
         _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
         self._phase6_sync_ready = False
