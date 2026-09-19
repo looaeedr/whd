@@ -1,0 +1,193 @@
+name: "QA #369 T5 task-scoped A-B acceptance"
+
+on:
+  push:
+    branches:
+      - refactor/issue369-phase3-2d-corner-view-20260919
+    paths:
+      - '.github/workflows/qa-issue369-t5-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 4137b62887c3dc20c6ee5bbd4d753f485dcaf23b
+  TESTED_SHA: 823e1dc6ac186d27d814aac0226d4a243273ecee
+
+jobs:
+  headless-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Headless dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Run baseline and tested Headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue369/headless"
+          mkdir -p "$ROOT"
+
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_issue95_corner_data_authoritative_parts.py \
+              tests/test_issue96_corner_data_selection_lifecycle.py \
+              tests/test_issue97_authoritative_unfold_view_adapter.py \
+              tests/test_issue101_multidoor_corner_data_parity.py \
+              tests/test_issue109_corner_data_boxbody_tree.py \
+              tests/test_issue110_shared_info_projection.py \
+              tests/test_canonical_unfolded_blank_info.py \
+              tests/test_issue111_corner_data_grid_isolation.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+
+      - name: Upload Headless evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue369-t5-headless-ab
+          path: .scratch/issue369/headless
+          if-no-files-found: error
+
+  xvfb-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Xvfb dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Run baseline and tested Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue369/xvfb"
+          mkdir -p "$ROOT"
+
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            xvfb-run -a python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_issue94_corner_data_navigation_mode.py \
+              tests/test_issue119_corner_data_transition_ui.py \
+              tests/test_issue162_unfold_viewport.py \
+              tests/test_issue163_unfold_workspace_layout.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+
+      - name: Upload Xvfb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue369-t5-xvfb-ab
+          path: .scratch/issue369/xvfb
+          if-no-files-found: error
+
+  classify:
+    if: always() && needs.headless-ab.result == 'success' && needs.xvfb-ab.result == 'success'
+    needs: [headless-ab, xvfb-ab]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue369-t5-headless-ab
+          path: .scratch/issue369/headless
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue369-t5-xvfb-ab
+          path: .scratch/issue369/xvfb
+
+      - name: Classify exact T5 A-B parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/issue369_t5_ab_compare.py \
+            --baseline-headless .scratch/issue369/headless/baseline/report.json \
+            --candidate-headless .scratch/issue369/headless/candidate/report.json \
+            --baseline-xvfb .scratch/issue369/xvfb/baseline/report.json \
+            --candidate-xvfb .scratch/issue369/xvfb/candidate/report.json \
+            --baseline-headless-protected-before .scratch/issue369/headless/baseline/protected-before.digest \
+            --baseline-headless-protected-after .scratch/issue369/headless/baseline/protected-after.digest \
+            --candidate-headless-protected-before .scratch/issue369/headless/candidate/protected-before.digest \
+            --candidate-headless-protected-after .scratch/issue369/headless/candidate/protected-after.digest \
+            --baseline-xvfb-protected-before .scratch/issue369/xvfb/baseline/protected-before.digest \
+            --baseline-xvfb-protected-after .scratch/issue369/xvfb/baseline/protected-after.digest \
+            --candidate-xvfb-protected-before .scratch/issue369/xvfb/candidate/protected-before.digest \
+            --candidate-xvfb-protected-after .scratch/issue369/xvfb/candidate/protected-after.digest \
+            --output .scratch/issue369/qualification.json
+
+      - name: Upload T5 qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue369-t5-ab-qualification
+          path: .scratch/issue369/qualification.json
+          if-no-files-found: error
