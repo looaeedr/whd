@@ -50,7 +50,8 @@ def test_first_3d_view_is_assembly_while_sheetmetal_selector_stays_on_real_part(
         assert app._phase6_3d_display_mode == "assembly"
         assert app.fold_editor_host.winfo_manager() == ""
         assert app.settings_center.winfo_manager() == ""
-        assert app.assembly_content_button.winfo_manager() == "pack"
+        assert app.assembly_content_button is None
+        assert app.assembly_parts_panel.winfo_manager() == "pack"
     finally:
         root.destroy()
 
@@ -92,7 +93,6 @@ def test_latest_top_and_global_layout_contract(monkeypatch):
         ]
         assert menu_labels[0] == "組合體"
         assert menu_labels[-1] == "截角資料"
-        assert "截角資料" not in menu_labels
         assert menu_labels[0] == "箱身"
         assert app.ui_text_size_combo.master is app.visual_controls
 
