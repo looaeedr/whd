@@ -61,6 +61,17 @@ from phase6_settings_transaction_controller import Phase6SettingsTransactionCont
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
+from gui_modules.application.command_router import (
+    execute_fold_designer_update_reasons,
+    submit_fold_designer_update_intent,
+    flush_fold_designer_update_intents,
+    queue_fold_designer_update,
+    apply_fold_designer_settings_delta,
+    install_fold_designer_keyboard_shortcuts,
+)
+from gui_modules.application.fold_designer_adapter import (
+    install_fold_designer_bridge_facade,
+)
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
@@ -5497,18 +5508,15 @@ def _phase6_keyboard_fullscreen(self, _event=None):
     return "break"
 
 
-def _phase6_install_keyboard_shortcuts(self):
-    """Install one Fold Designer shortcut layer without creating action/state owners."""
-    if bool(getattr(self, "_phase6_keyboard_shortcuts_installed", False)):
-        return False
-    for sequence in ("<Control-s>", "<Control-S>"):
-        self.root.bind(sequence, lambda event: _phase6_keyboard_save(self, event), add="+")
-    for sequence in ("<Control-o>", "<Control-O>"):
-        self.root.bind(sequence, lambda event: _phase6_keyboard_open(self, event), add="+")
-    self.root.bind("<F11>", lambda event: _phase6_keyboard_fullscreen(self, event), add="+")
-    self._phase6_keyboard_shortcuts_installed = True
-    return True
 
+def _phase6_install_keyboard_shortcuts(self):
+    """Compatibility view-binding facade; command_router owns the binding loop."""
+    return install_fold_designer_keyboard_shortcuts(
+        self,
+        on_save=lambda event: _phase6_keyboard_save(self, event),
+        on_open=lambda event: _phase6_keyboard_open(self, event),
+        on_fullscreen=lambda event: _phase6_keyboard_fullscreen(self, event),
+    )
 
 def _phase6_build_project_toolbar(self, parent=None):
     """永久置頂的「檔案」選單。"""
@@ -8771,69 +8779,8 @@ def _phase6_view_property(name, default=None):
     return property(getter, setter)
 
 
-Phase6FoldDesignerApp._phase6_last_cutting_mesh = _phase6_view_property("last_cutting_mesh", [])
-Phase6FoldDesignerApp._phase6_last_cutting_material = _phase6_view_property("last_cutting_material", None)
-Phase6FoldDesignerApp._phase6_cutting_mesh_error = _phase6_view_property("cutting_mesh_error", None)
-Phase6FoldDesignerApp._phase6_zoom_scale = _phase6_view_property("zoom_scale", 1.0)
-Phase6FoldDesignerApp._phase6_view_initialized = _phase6_view_property("view_initialized", False)
-Phase6FoldDesignerApp._phase6_base_renderer_render = _phase6_view_property("base_renderer_render", None)
-Phase6FoldDesignerApp._phase6_scroll_cid = _phase6_view_property("scroll_cid", None)
 
 
-Phase6FoldDesignerApp.__init__ = _fix11_init
-Phase6FoldDesignerApp._refresh_part_buttons = _fix11_refresh_part_buttons
-Phase6FoldDesignerApp._refresh_part_button_states = _fix11_refresh_part_button_states
-Phase6FoldDesignerApp._refresh_add_part_menu = _fix11_refresh_add_part_menu
-Phase6FoldDesignerApp._save_current_part = _fix11_save_current_part
-Phase6FoldDesignerApp._load_part_holes = _fix11_load_part_holes
-Phase6FoldDesignerApp.activate_part = _fix11_activate_part
-Phase6FoldDesignerApp.show_home = _phase6_show_home
-Phase6FoldDesignerApp.on_3d_scroll = _phase6_on_3d_scroll
-Phase6FoldDesignerApp.add_part = _fix11_add_part
-Phase6FoldDesignerApp.select_part = _fix11_select_part
-Phase6FoldDesignerApp.activate_selected_part = _fix11_activate_selected_part
-Phase6FoldDesignerApp.remove_selected_part = _fix11_remove_selected_part
-Phase6FoldDesignerApp.remove_part = _fix11_remove_part
-Phase6FoldDesignerApp.available_parts = property(_legacy_available_parts_get, _legacy_available_parts_set)
-Phase6FoldDesignerApp.active_part_key = property(_legacy_active_part_get, _legacy_active_part_set)
-Phase6FoldDesignerApp.selected_part_key = property(_legacy_selected_part_get, _legacy_selected_part_set)
-Phase6FoldDesignerApp._phase6_part_profiles = property(_legacy_part_profiles_get, _legacy_part_profiles_set)
-Phase6FoldDesignerApp._phase6_part_features = property(_legacy_part_features_get, _legacy_part_features_set)
-Phase6FoldDesignerApp._phase6_part_face_features = property(_legacy_part_face_features_get, _legacy_part_face_features_set)
-Phase6FoldDesignerApp._phase6_workspace_dirty = property(_legacy_workspace_dirty_get, _legacy_workspace_dirty_set)
-Phase6FoldDesignerApp._phase6_switching_part = property(_legacy_switching_part_get, _legacy_switching_part_set)
-Phase6FoldDesignerApp._phase6_box_body_active_piece_key = property(_legacy_box_body_active_piece_get, _legacy_box_body_active_piece_set)
-Phase6FoldDesignerApp.apply_external_assembly_type = _phase6_apply_external_assembly_type
-Phase6FoldDesignerApp.export_phase6_snapshot = _fix11_export
-Phase6FoldDesignerApp.show_global_settings = _phase6_show_global_settings
-Phase6FoldDesignerApp.toggle_baseline_data = _phase6_settings_panel_toggle_baseline
-Phase6FoldDesignerApp.save_settings_context_as_defaults = _phase6_save_settings_context_as_defaults
-Phase6FoldDesignerApp.save_current_settings_as_defaults = _phase6_save_current_settings_as_defaults
-Phase6FoldDesignerApp.flush_pending_settings = _phase6_flush_pending_settings
-Phase6FoldDesignerApp._phase6_publish_live_state = _phase6_publish_live_state
-Phase6FoldDesignerApp._phase6_resolve_manufacturing_geometry = _phase6_resolve_manufacturing_geometry
-Phase6FoldDesignerApp.toggle_advanced_settings = _phase6_settings_panel_toggle_advanced
-Phase6FoldDesignerApp.apply_external_settings = _phase6_apply_external_settings
-Phase6FoldDesignerApp.apply_external_model = _phase6_apply_external_model
-Phase6FoldDesignerApp.apply_external_sync = _phase6_apply_external_sync
-Phase6FoldDesignerApp._phase6_refresh_corner_data_unfold_view = _phase6_refresh_corner_data_unfold_view
-Phase6FoldDesignerApp.on_ui_text_size_changed = _phase6_on_ui_text_size_changed
-Phase6FoldDesignerApp.apply_external_corner_state = _phase6_apply_external_corner_state
-Phase6FoldDesignerApp._phase6_corner_parameters_unlocked = _phase6_corner_parameters_unlocked
-Phase6FoldDesignerApp.toggle_corner_parameter_lock = _phase6_toggle_corner_parameter_lock
-Phase6FoldDesignerApp._render_settings_context = _phase6_render_settings_context
-Phase6FoldDesignerApp.on_baseline_model_changed = _phase6_on_baseline_model_changed
-Phase6FoldDesignerApp.confirm_corner_transaction = _phase6_confirm_corner_transaction
-Phase6FoldDesignerApp.cancel_corner_transaction = _phase6_cancel_corner_transaction
-Phase6FoldDesignerApp.reset_initial_values = _phase6_reset_initial_values
-Phase6FoldDesignerApp.export_workspace_state_if_dirty = _phase6_export_workspace_state_if_dirty
-Phase6FoldDesignerApp.save_diagnostic_file = _phase6_save_diagnostic_file
-Phase6FoldDesignerApp.save_project_file = _phase6_save_project_file
-Phase6FoldDesignerApp.save_project_file_as = _phase6_save_project_file_as
-Phase6FoldDesignerApp.load_project_file = _phase6_load_project_file
-Phase6FoldDesignerApp._phase6_on_endcap_edge_relation_selected = _phase6_on_endcap_edge_relation_selected
-Phase6FoldDesignerApp._phase6_render_endcap_edge_controls = _phase6_render_endcap_edge_controls
-Phase6FoldDesignerApp._phase6_commit_base_plate_edge_shrink = _phase6_commit_base_plate_edge_shrink
 
 
 
@@ -8947,9 +8894,8 @@ def _fix11_do_update(self):
     self._phase6_input_snapshot.update(self._phase6_box_whd)
     return original.MainApp.do_update(self)
 
-Phase6FoldDesignerApp.do_update = _fix11_do_update
 
-_PHASE6_RENDERING_DO_UPDATE = Phase6FoldDesignerApp.do_update
+_PHASE6_RENDERING_DO_UPDATE = _fix11_do_update
 
 _PHASE6_FULL_UPDATE_REASONS = frozenset({"geometry", "assembly", "baseline"})
 _PHASE6_DISPLAY_UPDATE_REASONS = frozenset({"display", "annotation", "camera"})
@@ -8962,85 +8908,46 @@ def _phase6_publish_if_changed(self):
 def _phase6_render_committed_view(self):
     return _phase6_final_scene_adapter(self).render_committed()
 
+
 def _phase6_execute_update_intents(self, reasons):
-    reasons = {str(reason or "geometry") for reason in set(reasons or ())}
-    if not reasons:
-        return None
-    if (getattr(self, "_phase6_sync_ready", False)
-            and not getattr(self, "_phase6_initializing", False)
-            and not getattr(self, "_phase6_external_apply_guard", False)
-            and callable(getattr(self, "_live_sync_callback", None))):
-        self.publish_if_changed()
+    return execute_fold_designer_update_reasons(
+        self,
+        reasons,
+        full_update=lambda: _PHASE6_RENDERING_DO_UPDATE(self),
+        render_committed=lambda: _phase6_render_committed_view(self),
+        publish_if_changed=lambda: _phase6_publish_live_state(self),
+    )
 
-    if reasons.intersection(_PHASE6_FULL_UPDATE_REASONS):
-        if getattr(self, "preview_3d_enabled", True):
-            canvas = self.renderer.canvas
-            draw = getattr(canvas, "draw", None)
-            draw_idle = getattr(canvas, "draw_idle", None)
-            if callable(draw) and callable(draw_idle) and not getattr(self, "_phase6_force_sync_preview", False):
-                canvas.draw = draw_idle
-                try:
-                    return _PHASE6_RENDERING_DO_UPDATE(self)
-                finally:
-                    canvas.draw = draw
-            return _PHASE6_RENDERING_DO_UPDATE(self)
-        render = self.renderer.render
-        self.renderer.render = lambda: None
-        try:
-            return _PHASE6_RENDERING_DO_UPDATE(self)
-        finally:
-            self.renderer.render = render
-
-    # View-only intents never call the legacy calculation/update chain. They
-    # consume already-committed manufacturing state through FinalSceneView; a
-    # cache hit is allowed, a new manufacturing solve is not owned here.
-    return _phase6_render_committed_view(self)
 
 def _phase6_flush_update_intents(self):
-    job = getattr(self, "_phase6_orchestration_job", None)
-    if job is not None:
-        try:
-            self.root.after_cancel(job)
-        except Exception:
-            pass
-        self._phase6_orchestration_job = None
-    reasons = set(getattr(self, "_phase6_pending_update_reasons", set()) or ())
-    self._phase6_pending_update_reasons = set()
-    return _phase6_execute_update_intents(self, reasons)
+    return flush_fold_designer_update_intents(
+        self,
+        executor=lambda reasons: _phase6_execute_update_intents(self, reasons),
+    )
+
 
 def _phase6_submit_update_intent(self, reason, *, commit=False):
-    if getattr(self, "_phase6_destroying", False):
-        return None
-    reason = str(reason or "geometry")
-    if reason not in _PHASE6_FULL_UPDATE_REASONS and reason not in _PHASE6_DISPLAY_UPDATE_REASONS:
-        reason = "geometry"  # fail closed for unknown mutation ownership
-    pending = getattr(self, "_phase6_pending_update_reasons", None)
-    if pending is None:
-        pending = set()
-        self._phase6_pending_update_reasons = pending
-    pending.add(reason)
-    if commit or not hasattr(getattr(self, "root", None), "after"):
-        return _phase6_flush_update_intents(self)
-    job = getattr(self, "_phase6_orchestration_job", None)
-    if job is not None:
-        try:
-            self.root.after_cancel(job)
-        except Exception:
-            pass
-    self._phase6_orchestration_job = self.root.after(
-        _PHASE6_ORCHESTRATION_DEBOUNCE_MS, self._phase6_flush_update_intents
+    return submit_fold_designer_update_intent(
+        self,
+        reason,
+        commit=commit,
+        executor=lambda reasons: _phase6_execute_update_intents(self, reasons),
     )
-    return None
+
 
 def _phase6_apply_settings_delta(self, delta, transaction_id):
     transactions = _phase6_settings_transactions(self)
-    previous = transactions.push_active_transaction(transaction_id)
-    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
-    try:
-        return _phase6_apply_setting_updates(self, dict(delta or {}), notify=True)
-    finally:
-        transactions.restore_active_transaction(previous)
-        _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
+    return apply_fold_designer_settings_delta(
+        delta,
+        transaction_id,
+        transactions=transactions,
+        sync_mirrors=lambda controller: _phase6_sync_settings_transaction_compatibility_mirrors(
+            self, controller
+        ),
+        apply_updates=lambda updates: _phase6_apply_setting_updates(
+            self, updates, notify=True
+        ),
+    )
 
 def _phase6_switch_active_part(self, part_key, *, commit=True):
     # ``activate_part`` owns the legacy editor wiring; its final action now
@@ -9059,17 +8966,77 @@ def _phase6_set_3d_preview_enabled(self, enabled):
 def _phase6_refresh_3d_preview(self):
     return _phase6_final_scene_adapter(self).refresh_preview()
 
-def _phase6_queue_update(self, *args):
-    if getattr(self, "_phase6_destroying", False) or getattr(self, "_phase6_switching_part", False):
-        return
-    return self.submit_update_intent("geometry", commit=False)
 
-Phase6FoldDesignerApp.submit_update_intent = _phase6_submit_update_intent
-Phase6FoldDesignerApp.apply_settings_delta = _phase6_apply_settings_delta
-Phase6FoldDesignerApp.switch_active_part = _phase6_switch_active_part
-Phase6FoldDesignerApp.publish_if_changed = _phase6_publish_if_changed
-Phase6FoldDesignerApp._phase6_flush_update_intents = _phase6_flush_update_intents
-Phase6FoldDesignerApp.do_update = _phase6_preview_aware_do_update
-Phase6FoldDesignerApp.set_3d_preview_enabled = _phase6_set_3d_preview_enabled
-Phase6FoldDesignerApp.refresh_3d_preview = _phase6_refresh_3d_preview
-Phase6FoldDesignerApp.queue_update = _phase6_queue_update
+def _phase6_queue_update(self, *args):
+    return queue_fold_designer_update(
+        self,
+        executor=lambda reasons: _phase6_execute_update_intents(self, reasons),
+    )
+
+install_fold_designer_bridge_facade(
+    Phase6FoldDesignerApp,
+    {
+        "_phase6_last_cutting_mesh": _phase6_view_property("last_cutting_mesh", []),
+        "_phase6_last_cutting_material": _phase6_view_property("last_cutting_material", None),
+        "_phase6_cutting_mesh_error": _phase6_view_property("cutting_mesh_error", None),
+        "_phase6_zoom_scale": _phase6_view_property("zoom_scale", 1.0),
+        "_phase6_view_initialized": _phase6_view_property("view_initialized", False),
+        "_phase6_base_renderer_render": _phase6_view_property("base_renderer_render", None),
+        "_phase6_scroll_cid": _phase6_view_property("scroll_cid", None),
+        "__init__": _fix11_init,
+        "_refresh_part_buttons": _fix11_refresh_part_buttons,
+        "_refresh_part_button_states": _fix11_refresh_part_button_states,
+        "_refresh_add_part_menu": _fix11_refresh_add_part_menu,
+        "_save_current_part": _fix11_save_current_part,
+        "_load_part_holes": _fix11_load_part_holes,
+        "activate_part": _fix11_activate_part,
+        "show_home": _phase6_show_home,
+        "on_3d_scroll": _phase6_on_3d_scroll,
+        "add_part": _fix11_add_part,
+        "select_part": _fix11_select_part,
+        "activate_selected_part": _fix11_activate_selected_part,
+        "remove_selected_part": _fix11_remove_selected_part,
+        "remove_part": _fix11_remove_part,
+        "available_parts": property(_legacy_available_parts_get, _legacy_available_parts_set),
+        "active_part_key": property(_legacy_active_part_get, _legacy_active_part_set),
+        "selected_part_key": property(_legacy_selected_part_get, _legacy_selected_part_set),
+        "_phase6_part_profiles": property(_legacy_part_profiles_get, _legacy_part_profiles_set),
+        "_phase6_part_features": property(_legacy_part_features_get, _legacy_part_features_set),
+        "_phase6_part_face_features": property(_legacy_part_face_features_get, _legacy_part_face_features_set),
+        "_phase6_workspace_dirty": property(_legacy_workspace_dirty_get, _legacy_workspace_dirty_set),
+        "_phase6_switching_part": property(_legacy_switching_part_get, _legacy_switching_part_set),
+        "_phase6_box_body_active_piece_key": property(_legacy_box_body_active_piece_get, _legacy_box_body_active_piece_set),
+        "apply_external_assembly_type": _phase6_apply_external_assembly_type,
+        "export_phase6_snapshot": _fix11_export,
+        "show_global_settings": _phase6_show_global_settings,
+        "toggle_baseline_data": _phase6_settings_panel_toggle_baseline,
+        "save_settings_context_as_defaults": _phase6_save_settings_context_as_defaults,
+        "save_current_settings_as_defaults": _phase6_save_current_settings_as_defaults,
+        "flush_pending_settings": _phase6_flush_pending_settings,
+        "_phase6_publish_live_state": _phase6_publish_live_state,
+        "_phase6_resolve_manufacturing_geometry": _phase6_resolve_manufacturing_geometry,
+        "toggle_advanced_settings": _phase6_settings_panel_toggle_advanced,
+        "apply_external_settings": _phase6_apply_external_settings,
+        "apply_external_model": _phase6_apply_external_model,
+        "apply_external_sync": _phase6_apply_external_sync,
+        "_phase6_refresh_corner_data_unfold_view": _phase6_refresh_corner_data_unfold_view,
+        "on_ui_text_size_changed": _phase6_on_ui_text_size_changed,
+        "apply_external_corner_state": _phase6_apply_external_corner_state,
+        "_phase6_corner_parameters_unlocked": _phase6_corner_parameters_unlocked,
+        "toggle_corner_parameter_lock": _phase6_toggle_corner_parameter_lock,
+        "_render_settings_context": _phase6_render_settings_context,
+        "on_baseline_model_changed": _phase6_on_baseline_model_changed,
+        "confirm_corner_transaction": _phase6_confirm_corner_transaction,
+        "cancel_corner_transaction": _phase6_cancel_corner_transaction,
+        "reset_initial_values": _phase6_reset_initial_values,
+        "export_workspace_state_if_dirty": _phase6_export_workspace_state_if_dirty,
+        "save_diagnostic_file": _phase6_save_diagnostic_file,
+        "save_project_file": _phase6_save_project_file,
+        "save_project_file_as": _phase6_save_project_file_as,
+        "load_project_file": _phase6_load_project_file,
+        "_phase6_on_endcap_edge_relation_selected": _phase6_on_endcap_edge_relation_selected,
+        "_phase6_render_endcap_edge_controls": _phase6_render_endcap_edge_controls,
+        "_phase6_commit_base_plate_edge_shrink": _phase6_commit_base_plate_edge_shrink,
+        "do_update": _fix11_do_update,
+    },
+)
