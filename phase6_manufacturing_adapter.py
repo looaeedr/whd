@@ -645,6 +645,11 @@ def resolve_manufacturing_for_app(
         app._phase6_last_resolved_manufacturing_signature = key.fingerprint
         return lookup.result.geometry
 
+    if not callable(render_data_provider):
+        # Preserve the accepted Phase 1 fail-closed boundary after the
+        # signature-first cache short-circuit.
+        raise RuntimeError("3D final-scene provider is not connected")
+
     request = build_manufacturing_request(
         app,
         scene_payload_builder=scene_payload_builder,
