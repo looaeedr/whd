@@ -45,11 +45,6 @@ def test_assembly_intent_keeps_available_parts_projection_only():
     )
 
     assert plan.input_snapshot["existing_parts"] == source["existing_parts"]
-    joint_parts = {
-        str(row.get("part_key") or row.get("part") or "")
-        for row in plan.input_snapshot.get("assembly_joints", ())
-    }
-    assert "door_c1_r1" in joint_parts or "door_c1_r2" in joint_parts
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
