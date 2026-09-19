@@ -59,7 +59,7 @@ def test_shared_theme_standard_text_contrast_meets_4_5():
 def test_shared_theme_owns_secondary_warning_and_hidden_text_colors():
     bridge = _text("fold_designer_bridge.py")
     gui = _text("gui.py")
-    final_scene = _text("phase6_final_scene_view.py")
+    final_scene = _text("phase6_final_scene_renderer.py")
 
     assert "#777777" not in bridge
     assert 'foreground="#333"' not in bridge
