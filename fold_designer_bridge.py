@@ -523,8 +523,33 @@ def _phase6_sync_settings_transaction_compatibility_mirrors(
 def _phase6_registry_diagnostics(self):
     controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
     if controller is None:
-        controller = Phase6RegistryDiagnosticsController()
+        controller = Phase6RegistryDiagnosticsController(
+            candidate_id=getattr(self, "_phase6_registry_candidate_id", ""),
+            candidate_record=getattr(self, "_phase6_registry_candidate_record", {}),
+            regression_evidence=getattr(
+                self, "_phase6_registry_regression_evidence", {}
+            ),
+            rule_records=getattr(self, "_phase6_registry_rule_records", {}),
+            promotion_candidates=getattr(
+                self, "_phase6_last_relief_promotion_candidates", {}
+            ),
+        )
         self._phase6_registry_diagnostics_controller = controller
+    return controller
+
+
+def _phase6_sync_registry_diagnostics_compatibility_mirrors(
+    self, controller=None
+):
+    """Mirror controller-owned registry state for legacy readers/tests only."""
+    controller = controller or _phase6_registry_diagnostics(self)
+    self._phase6_registry_candidate_id = controller.candidate_id
+    self._phase6_registry_candidate_record = controller.candidate_record
+    self._phase6_registry_regression_evidence = controller.regression_evidence
+    self._phase6_registry_rule_records = controller.rule_records
+    self._phase6_last_relief_promotion_candidates = (
+        controller.promotion_candidates
+    )
     return controller
 
 
@@ -4784,9 +4809,13 @@ def _phase6_registry_save_candidate_form(self):
         return None
     try:
         record = _phase6_registry_collect_rule_form(self)
-        item = _phase6_registry_diagnostics(self).save_candidate(
+        controller = _phase6_registry_diagnostics(self)
+        item = controller.save_candidate(
             record,
             saver=save_relief_rule_candidate,
+        )
+        _phase6_sync_registry_diagnostics_compatibility_mirrors(
+            self, controller
         )
         self.relief_registry_status_var.set("候選已儲存（尚未認證）")
         return item
@@ -4800,11 +4829,15 @@ def _phase6_registry_run_formula_matrix(self):
         _validate_editable_rule_record,
     )
     try:
-        evidence = _phase6_registry_diagnostics(self).run_formula_matrix(
+        controller = _phase6_registry_diagnostics(self)
+        evidence = controller.run_formula_matrix(
             _phase6_registry_collect_rule_form(self),
             _phase6_registry_sample_variables(self),
             validator=_validate_editable_rule_record,
             evaluator=evaluate_relief_formula_record,
+        )
+        _phase6_sync_registry_diagnostics_compatibility_mirrors(
+            self, controller
         )
         self.relief_registry_status_var.set(
             f"公式矩陣通過：{evidence['cases']} 組；立體零穿透="
@@ -4912,6 +4945,9 @@ def _phase6_registry_preview_assembly_3d(self):
             self, record, candidate_id=candidate_id
         )
         evidence = controller.merge_3d_evidence(evidence3d)
+        _phase6_sync_registry_diagnostics_compatibility_mirrors(
+            self, controller
+        )
         zero = bool(evidence.get("zero_penetration"))
         self.relief_registry_status_var.set(
             "候選專屬立體組合驗證："
@@ -4953,8 +4989,12 @@ def _phase6_registry_refresh_rule_tree(self):
         return ()
     for item in tree.get_children():
         tree.delete(item)
-    rows = _phase6_registry_diagnostics(self).load_rule_records(
+    controller = _phase6_registry_diagnostics(self)
+    rows = controller.load_rule_records(
         loader=load_external_relief_rule_records
+    )
+    _phase6_sync_registry_diagnostics_compatibility_mirrors(
+        self, controller
     )
     active_rows = [row for row in rows if bool(row.get("active", True))]
     for row in active_rows:
@@ -6564,7 +6604,8 @@ def _phase6_create_relief_promotion_candidates(self):
     """Build non-mutating manifests for verified PROVISIONAL_3D solutions."""
     from ae_engine.certified_relief_registry import build_relief_promotion_candidate
 
-    candidates = _phase6_registry_diagnostics(self).build_promotion_candidates(
+    controller = _phase6_registry_diagnostics(self)
+    candidates = controller.build_promotion_candidates(
         solutions=dict(getattr(self, "_phase6_last_relief_solutions", {}) or {}),
         snapshot=dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
         assembly_intent=getattr(
@@ -6572,6 +6613,9 @@ def _phase6_create_relief_promotion_candidates(self):
         ),
         cabinet_family=_phase6_current_cabinet_family(self),
         builder=build_relief_promotion_candidate,
+    )
+    _phase6_sync_registry_diagnostics_compatibility_mirrors(
+        self, controller
     )
     status_var = getattr(self, "assembly_collision_status_var", None)
     if status_var is not None and callable(getattr(status_var, "set", None)):
