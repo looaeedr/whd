@@ -69,23 +69,23 @@ def test_issue358_manufacturing_owner_has_zero_bridge_callback_registry_refs():
 
 
 def test_issue358_owner_resolver_consumes_request_and_returns_explicit_result():
-    owner_tree = _tree("phase6_manufacturing_geometry.py")
+    service_tree = _tree("phase6_manufacturing_service.py")
     resolver = next(
         node
-        for node in owner_tree.body
+        for node in service_tree.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_result"
+        and node.name == "resolve"
     )
-    arg_names = [arg.arg for arg in resolver.args.args]
-    assert arg_names[:2] == ["self", "request"]
+    assert [arg.arg for arg in resolver.args.args] == ["request"]
 
     segment = ast.get_source_segment(
-        Path("phase6_manufacturing_geometry.py").read_text(encoding="utf-8"),
+        Path("phase6_manufacturing_service.py").read_text(encoding="utf-8"),
         resolver,
     ) or ""
     assert "ManufacturingResolveResult" in segment
     assert "_phase6_call_bridge" not in segment
     assert "_phase6_publish_live_state" not in segment
+    assert "self" not in {node.id for node in ast.walk(resolver) if isinstance(node, ast.Name)}
 
 
 def test_issue358_phase1_only_class_wiring_is_removed_but_publish_wiring_remains():
