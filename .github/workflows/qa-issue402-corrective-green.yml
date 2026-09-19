@@ -1,0 +1,50 @@
+name: "QA #402 corrective durable lease GREEN"
+
+on:
+  push:
+    branches:
+      - continuity/issue402-durable-github-lease-corrective-20260920
+    paths:
+      - 'tools/scheduled_resume_lease.py'
+      - 'tools/scheduled_resume_bridge.py'
+      - 'tools/continuity_controller.py'
+      - 'tests/process/test_issue402_durable_github_lease.py'
+      - 'tests/process/test_issue402_scheduled_resume_idempotency.py'
+      - '.github/workflows/qa-issue402-corrective-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD 3838e7b6698c4b4e01e3f9a86821a492a7b281af)" = "3838e7b6698c4b4e01e3f9a86821a492a7b281af"
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Corrective shared lease focused
+        run: |
+          python -m pytest -q             tests/process/test_issue402_durable_github_lease.py             tests/process/test_issue402_scheduled_resume_idempotency.py             --tb=short
+      - name: Continuity regressions
+        run: |
+          python -m pytest -q             tests/process/test_issue401_scheduled_resume_dispatcher.py             tests/process/test_continuity_controller.py             tests/process/test_finalization_owner_guard.py             --tb=short
+      - name: Scope
+        run: |
+          set -euo pipefail
+          git diff --check 3838e7b6698c4b4e01e3f9a86821a492a7b281af...HEAD
+          git diff --name-only 3838e7b6698c4b4e01e3f9a86821a492a7b281af...HEAD | tee /tmp/files.txt
+          test "$(grep -Ec '^(gui.py|fold_designer_bridge.py|gui_modules/|ae_engine/|config.ini|基準檔/)' /tmp/files.txt || true)" -eq 0
+          echo "PASS SHARED_DURABLE_LEASE=1"
+          echo "PASS RUNNER_LOCAL_RECEIPT_IS_AUTHORITY=0"
+          echo "PASS PROTECTED_DRIFT=0"
