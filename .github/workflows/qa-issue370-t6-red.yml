@@ -1,0 +1,47 @@
+name: "QA #370 T6 final-scene view RED"
+
+on:
+  push:
+    branches:
+      - refactor/issue370-phase3-final-scene-20260919
+    paths:
+      - 'tests/test_issue370_t6_final_scene_view_owner.py'
+      - '.github/workflows/qa-issue370-t6-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t6-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor c79ff3e3e0f863a10869f8b1f40416e8686cc711 HEAD
+          echo "T6_BASELINE=c79ff3e3e0f863a10869f8b1f40416e8686cc711"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pytest
+
+      - name: Run intended T6 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue370_t6_final_scene_view_owner.py --tb=short | tee /tmp/issue370-t6-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing T6 final-scene view adapter" /tmp/issue370-t6-red.log
+          grep -q "RED: bridge still owns T6 3D render orchestration" /tmp/issue370-t6-red.log
+          echo "PASS EXPECTED_T6_RED=1"
