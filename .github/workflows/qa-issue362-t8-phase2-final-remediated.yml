@@ -15,7 +15,7 @@ permissions:
 
 env:
   BASELINE_SHA: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
-  CANDIDATE_SHA: 3283922c9070fa4b1b50e919d8085720562b3c57
+  CANDIDATE_SHA: dc47d016372f8b6867954f049c66dce5f401cceb
   PYTHONPATH: .
   MPLBACKEND: Agg
 
@@ -136,13 +136,13 @@ jobs:
             sha: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
             mode: headless
           - label: candidate-headless
-            sha: 3283922c9070fa4b1b50e919d8085720562b3c57
+            sha: dc47d016372f8b6867954f049c66dce5f401cceb
             mode: headless
           - label: baseline-xvfb
             sha: 7a8b87f8cbb50a34c5038aa196fa137b301702a4
             mode: xvfb
           - label: candidate-xvfb
-            sha: 3283922c9070fa4b1b50e919d8085720562b3c57
+            sha: dc47d016372f8b6867954f049c66dce5f401cceb
             mode: xvfb
     steps:
       - uses: actions/checkout@v4
@@ -281,7 +281,7 @@ jobs:
           from pathlib import Path
 
           BASELINE = "7a8b87f8cbb50a34c5038aa196fa137b301702a4"
-          CANDIDATE = "3283922c9070fa4b1b50e919d8085720562b3c57"
+          CANDIDATE = "dc47d016372f8b6867954f049c66dce5f401cceb"
           expected = {
               "baseline-headless", "candidate-headless",
               "baseline-xvfb", "candidate-xvfb",
