@@ -37,7 +37,7 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
     original_setattr = bridge.Phase6FoldDesignerApp.__setattr__
     def traced_setattr(owner, name, value):
         if name in target_names:
-            events.append(("assign", name, id(value), type(value).__name__))
+            events.append(("assign", id(owner), name, id(value), type(value).__name__))
         return original_setattr(owner, name, value)
     monkeypatch.setattr(
         bridge.Phase6FoldDesignerApp, "__setattr__", traced_setattr, raising=False
@@ -51,6 +51,7 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
             owner = composition.app
             events.append((
                 "service-create",
+                id(owner),
                 id(getattr(owner, "_settings_values", None)),
                 id(getattr(owner, "_phase6_input_snapshot", None)),
                 id(getattr(owner, "_phase6_box_whd", None)),
@@ -83,6 +84,7 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
             print("LIFETIME_EVENT", repr(event))
         print(
             "LIFETIME_FINAL",
+            id(designer),
             id(service._input_snapshot),
             id(designer._phase6_input_snapshot),
         )
