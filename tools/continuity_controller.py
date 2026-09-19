@@ -14,6 +14,7 @@ import json
 import os
 import tempfile
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Iterable
@@ -41,6 +42,7 @@ class ScheduledResumeAction(str, Enum):
     POLL_LOCKED_RUN = "POLL_LOCKED_RUN"
     CONTINUE_RECOVERY = "CONTINUE_RECOVERY"
     REPORT_BLOCKER = "REPORT_BLOCKER"
+    CLOSING_HANDOFF = "CLOSING_HANDOFF"
     NO_OP = "NO_OP"
 
 
@@ -97,6 +99,29 @@ def _validate_positive_int(name: str, value: int | None) -> None:
         raise CheckpointError(f"{name} must be a positive integer when present")
 
 
+def _validate_nonnegative_int(name: str, value: int) -> None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise CheckpointError(f"{name} must be a non-negative integer")
+
+
+def _normalize_optional_utc_timestamp(value: str | None) -> str | None:
+    value = _normalize_optional_text(value)
+    if value is None:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise CheckpointError("blocked_last_notified_at must be ISO-8601") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise CheckpointError("blocked_last_notified_at must be timezone-aware")
+    return (
+        parsed.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 @dataclass(frozen=True)
 class Checkpoint:
     issue: str
@@ -107,6 +132,8 @@ class Checkpoint:
     run_id: int | None = None
     job_id: int | None = None
     log_cursor: str | None = None
+    blocked_count: int = 0
+    blocked_last_notified_at: str | None = None
     evidence: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -121,8 +148,19 @@ class Checkpoint:
 
         next_action = _normalize_optional_text(self.next_action)
         log_cursor = _normalize_optional_text(self.log_cursor)
+        blocked_last_notified_at = _normalize_optional_utc_timestamp(
+            self.blocked_last_notified_at
+        )
         _validate_positive_int("run_id", self.run_id)
         _validate_positive_int("job_id", self.job_id)
+        _validate_nonnegative_int("blocked_count", self.blocked_count)
+
+        if state is not ContinuityState.BLOCKED and (
+            self.blocked_count != 0 or blocked_last_notified_at is not None
+        ):
+            raise CheckpointError(
+                "blocked metadata is only valid while state is BLOCKED"
+            )
 
         if state in NONTERMINAL_STATES and next_action is None:
             raise CheckpointError(f"next_action is required for non-terminal state {state.value}")
@@ -143,6 +181,7 @@ class Checkpoint:
         object.__setattr__(self, "state", state)
         object.__setattr__(self, "next_action", next_action)
         object.__setattr__(self, "log_cursor", log_cursor)
+        object.__setattr__(self, "blocked_last_notified_at", blocked_last_notified_at)
         object.__setattr__(self, "evidence", tuple(normalized_evidence))
 
     @property
@@ -162,8 +201,8 @@ def scheduled_resume_action(checkpoint: Checkpoint) -> ScheduledResumeAction:
         ContinuityState.WAITING_REMOTE: ScheduledResumeAction.POLL_LOCKED_RUN,
         ContinuityState.RECOVERING: ScheduledResumeAction.CONTINUE_RECOVERY,
         ContinuityState.BLOCKED: ScheduledResumeAction.REPORT_BLOCKER,
-        ContinuityState.TERMINAL_SUCCESS: ScheduledResumeAction.NO_OP,
-        ContinuityState.TERMINAL_FAILURE: ScheduledResumeAction.NO_OP,
+        ContinuityState.TERMINAL_SUCCESS: ScheduledResumeAction.CLOSING_HANDOFF,
+        ContinuityState.TERMINAL_FAILURE: ScheduledResumeAction.CLOSING_HANDOFF,
     }
     return mapping[checkpoint.state]
 
@@ -270,6 +309,8 @@ def load_checkpoint(path: Path) -> Checkpoint:
         "run_id",
         "job_id",
         "log_cursor",
+        "blocked_count",
+        "blocked_last_notified_at",
         "evidence",
     }
     unknown = set(payload) - allowed
@@ -291,6 +332,8 @@ def load_checkpoint(path: Path) -> Checkpoint:
             run_id=payload.get("run_id"),
             job_id=payload.get("job_id"),
             log_cursor=payload.get("log_cursor"),
+            blocked_count=payload.get("blocked_count", 0),
+            blocked_last_notified_at=payload.get("blocked_last_notified_at"),
             evidence=tuple(evidence),
         )
     except KeyError as exc:
@@ -308,6 +351,8 @@ def transition_checkpoint(
     job_id: int | None | object = _UNSET,
     head_sha: str | None | object = _UNSET,
     log_cursor: str | None | object = _UNSET,
+    blocked_count: int | object = _UNSET,
+    blocked_last_notified_at: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
 ) -> Checkpoint:
     """Return a validated next checkpoint without reusing stale remote ownership."""
@@ -345,6 +390,19 @@ def transition_checkpoint(
         next_head_sha = checkpoint.head_sha if head_sha is _UNSET else head_sha
         next_log_cursor = checkpoint.log_cursor if log_cursor is _UNSET else log_cursor
 
+    if state is ContinuityState.BLOCKED:
+        next_blocked_count = (
+            checkpoint.blocked_count if blocked_count is _UNSET else blocked_count
+        )
+        next_blocked_last_notified_at = (
+            checkpoint.blocked_last_notified_at
+            if blocked_last_notified_at is _UNSET
+            else blocked_last_notified_at
+        )
+    else:
+        next_blocked_count = 0
+        next_blocked_last_notified_at = None
+
     merged_evidence = checkpoint.evidence + (() if evidence is None else tuple(evidence))
     return replace(
         checkpoint,
@@ -354,6 +412,8 @@ def transition_checkpoint(
         job_id=next_job_id,
         head_sha=next_head_sha,
         log_cursor=next_log_cursor,
+        blocked_count=next_blocked_count,
+        blocked_last_notified_at=next_blocked_last_notified_at,
         evidence=merged_evidence,
     )
 
