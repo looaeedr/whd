@@ -361,9 +361,12 @@ def test_receiving_box_body_children_are_nested_under_box_body_but_independently
             "box_body:left_side", "box_body:back", "box_body:right_side",
         )
         assert all(
-            designer.assembly_box_body_piece_checkbuttons[key].winfo_parent()
-            == designer.assembly_box_body_piece_sections[key]._w
+            designer.assembly_box_body_piece_checkbuttons[key].master.master
+            is designer.assembly_box_body_piece_sections[key]
             for key in designer.assembly_box_body_piece_visible_vars
+        )
+        assert set(designer.assembly_box_body_piece_detail_frames) == set(
+            designer.assembly_box_body_piece_visible_vars
         )
 
         designer.assembly_box_body_piece_visible_vars["box_body:back"].set(False)
