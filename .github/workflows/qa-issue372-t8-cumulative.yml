@@ -14,7 +14,7 @@ permissions:
 
 env:
   ROOT_BASELINE_SHA: 0dd6561f3253d0a17714af316d5e9da90e24058f
-  CANDIDATE_SHA: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+  CANDIDATE_SHA: fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
   PYTHONPATH: .
   MPLBACKEND: Agg
 
@@ -190,7 +190,7 @@ jobs:
 
           payload = {
               "schema": "WHD_ISSUE372_T8_ARCH_V1",
-              "candidate": "94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c",
+              "candidate": "fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4",
               "bridge_lines": len(bridge_source.splitlines()),
               "bridge_top_level_functions": len(top_functions),
               "direct_phase6_class_wiring": len(direct_class_wiring),
@@ -231,13 +231,13 @@ jobs:
             sha: 0dd6561f3253d0a17714af316d5e9da90e24058f
             mode: headless
           - label: candidate-headless
-            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            sha: fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
             mode: headless
           - label: baseline-xvfb
             sha: 0dd6561f3253d0a17714af316d5e9da90e24058f
             mode: xvfb
           - label: candidate-xvfb
-            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            sha: fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
             mode: xvfb
     steps:
       - uses: actions/checkout@v4
@@ -358,7 +358,7 @@ jobs:
           - label: baseline
             sha: 0dd6561f3253d0a17714af316d5e9da90e24058f
           - label: candidate
-            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            sha: fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -445,7 +445,7 @@ jobs:
           - label: baseline
             sha: 0dd6561f3253d0a17714af316d5e9da90e24058f
           - label: candidate
-            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            sha: fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -534,7 +534,7 @@ jobs:
           from pathlib import Path
 
           ROOT_BASELINE="0dd6561f3253d0a17714af316d5e9da90e24058f"
-          CANDIDATE="94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c"
+          CANDIDATE="fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4"
           root=Path(".scratch/issue372-artifacts")
 
           def load_under(fragment):
