@@ -127,7 +127,7 @@ def test_issue355_canonical_serialization_is_order_stable_and_json_safe():
     assert json.loads(ltext) == {"a": [1, 2.0], "b": [1.0, 3.0]}
 
 
-def test_issue355_request_does_not_switch_canonical_resolver_path():
+def test_issue355_request_contract_is_consumed_after_phase2_cutover():
     import ast
     from pathlib import Path
 
@@ -138,11 +138,11 @@ def test_issue355_request_does_not_switch_canonical_resolver_path():
         node
         for node in tree.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_geometry"
+        and node.name == "_phase6_resolve_manufacturing_result"
     )
     resolver_source = ast.get_source_segment(source, resolver) or ""
-    assert "ManufacturingResolveRequest" not in resolver_source
-    assert "manufacturing_service.resolve" not in resolver_source
+    assert "ManufacturingResolveRequest" in resolver_source
+    assert "_phase6_call_bridge" not in resolver_source
 
 
 
