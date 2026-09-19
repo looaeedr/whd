@@ -6,6 +6,7 @@ not own solver/orchestration logic and does not switch the canonical resolver.
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import MutableMapping
 from dataclasses import replace
 from typing import Any
 import re
@@ -694,12 +695,16 @@ def apply_manufacturing_result(app: Any, result: ManufacturingResolveResult) -> 
     app._phase6_last_resolved_manufacturing_geometry = result.geometry
     app._phase6_last_resolved_manufacturing_signature = result.cache.signature
 
-    current_snapshot = _mapping(getattr(app, "_phase6_input_snapshot", {}) or {})
+    current_snapshot = getattr(app, "_phase6_input_snapshot", None)
     patch = thaw_manufacturing_value(result.mutations.snapshot_patch)
     if not isinstance(patch, dict):
         raise TypeError("snapshot patch must thaw to dict")
-    current_snapshot.update(patch)
-    app._phase6_input_snapshot = current_snapshot
+    if isinstance(current_snapshot, MutableMapping):
+        current_snapshot.update(patch)
+    else:
+        replacement = _mapping(current_snapshot or {})
+        replacement.update(patch)
+        app._phase6_input_snapshot = replacement
     return result.geometry
 
 
