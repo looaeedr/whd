@@ -643,8 +643,8 @@ def main() -> int:
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
-    assert len(source.splitlines()) == EXPECTED_BRIDGE_LINES, (
-        f"BRIDGE_LINE_DRIFT={len(source.splitlines())} expected={EXPECTED_BRIDGE_LINES}"
+    assert len(source.split("\n")) == EXPECTED_BRIDGE_LINES, (
+        f"BRIDGE_LINE_DRIFT={len(source.split("\n"))} expected={EXPECTED_BRIDGE_LINES}"
     )
     assert len(inventory) == EXPECTED_TOP_LEVEL_FUNCTIONS, (
         f"TOP_LEVEL_FUNCTION_DRIFT={len(inventory)} expected={EXPECTED_TOP_LEVEL_FUNCTIONS}"
@@ -664,7 +664,7 @@ def main() -> int:
     assert all(cb.get("classification") for cb in callbacks), "UNKNOWN_CALLBACKS"
     assert all(row["responsibility"] for row in writes), "UNKNOWN_STATE_WRITES"
 
-    print(f"PASS BRIDGE_LINES={len(source.splitlines())}")
+    print(f"PASS BRIDGE_LINES={len(source.split("\n"))}")
     print(f"PASS TOP_LEVEL_FUNCTIONS={len(inventory)}")
     print("PASS UNKNOWN_FUNCTIONS=0")
     print("PASS UNKNOWN_CALLBACKS=0")
