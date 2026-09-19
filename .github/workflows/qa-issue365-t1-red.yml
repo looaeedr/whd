@@ -1,5 +1,6 @@
 name: "QA #365 T1 RED workspace navigation"
 # explicit trigger after workflow creation
+# harness-ready trigger
 
 on:
   push:
