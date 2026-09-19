@@ -122,3 +122,32 @@ def test_issue361_phase6_app_keeps_legacy_method_entry():
             ):
                 wired.add(target.attr)
     assert "_phase6_resolve_manufacturing_geometry" in wired
+
+def test_issue362_facade_preserves_provider_missing_fail_closed_after_cache_miss():
+    from types import SimpleNamespace
+
+    import pytest
+
+    from phase6_manufacturing_adapter import resolve_manufacturing_for_app
+    from phase6_manufacturing_cache import ManufacturingCacheService
+
+    app = SimpleNamespace(
+        _phase6_input_snapshot={},
+        _settings_values={},
+        _phase6_box_whd={},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
+        _phase6_endcap_bottom_wrap_state={},
+        _phase6_assembly_type="",
+        _phase6_sync_revision="",
+        designer_workspace=SimpleNamespace(available_parts=()),
+    )
+
+    with pytest.raises(RuntimeError, match="3D final-scene provider is not connected"):
+        resolve_manufacturing_for_app(
+            app,
+            scene_payload_builder=lambda key: {},
+            render_data_provider=None,
+            cache_service=ManufacturingCacheService(),
+        )
+
