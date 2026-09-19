@@ -7199,10 +7199,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # during construction. Establish the authoritative mapping identities before
     # any such callback can ask the composition root for Settings owners. From
     # here onward these mappings are mutated in place; they are never rebound.
-    self._settings_values = {}
-    self._phase6_input_snapshot = {}
-    self._phase6_box_whd = {}
-    self._phase6_pending_settings = {}
+    _phase6_replace_mapping(self, "_settings_values", {})
+    _phase6_replace_mapping(self, "_phase6_input_snapshot", {})
+    _phase6_replace_mapping(self, "_phase6_box_whd", {})
+    _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     snapshot = _phase6_snapshot_with_settings_fallback(
         migrate_legacy_snapshot_joints(dict(snapshot or {}))
     )
