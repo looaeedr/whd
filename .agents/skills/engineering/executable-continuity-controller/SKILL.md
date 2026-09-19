@@ -338,3 +338,17 @@ Heartbeat 是 observation，不是 turn boundary。只要目前 Runtime 仍可�
 - 若 terminal failure 可修復，先立即回報 exact failure，再轉 RECOVERING 繼續 evidence → root cause → minimal fix → validation → retry。
 - 若 terminal success 仍有 acceptance 收尾，先立即回報 PASS，再轉 RUNNING(next_acceptance_action)；不得把 PASS 當 COMPLETE。
 - 本規則只管可見性優先序，不改 checkpoint state machine、finalization gate 或 closure authority。
+
+## POLLING_OBSERVATION_ONLY
+
+**輪詢只能看進度，不能產生進度。** Polling is observation-only; it is never a progress producer.
+
+WAITING_REMOTE 只有在存在一個可獨立於目前 ChatGPT Runtime 持續推進工作的 **real progress producer** 時才合法，例如 exact GitHub Actions run、已提交且仍執行中的 remote job、或其他已具體啟動的 executor。
+
+硬規則：
+- concrete external progress producer 存在且 active：可以 WAITING_REMOTE，鎖 exact run_id + head_sha 並輪詢。
+- no executor / no active run / no producer：不得維持 WAITING_REMOTE。立即回 RUNNING 或 RECOVERING，執行會真正產生下一個 state change 的 prerequisite / trigger / implementation / repair。
+- RUN_NOT_CREATED 代表要去建立/修正 run producer，不是等。
+- exact run terminal 立即離開 WAITING_REMOTE；輪詢 terminal 狀態本身不會產生下一步。
+- status-only loop、反覆 refresh 同一靜止狀態、等待使用者再輸入「輪／繼續」都屬 continuity regression。
+- 使用者不是 scheduler，也不是 progress producer。
