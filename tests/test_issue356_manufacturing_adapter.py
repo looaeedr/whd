@@ -181,4 +181,47 @@ def test_issue356_adapter_contract_survives_later_phase2_resolver_cutover():
     }
     assert "build_manufacturing_request" in names
 
+def test_issue362_committed_endcap_second_pass_thaws_nested_scene_payload():
+    from phase6_manufacturing_adapter import build_manufacturing_request
+
+    app = _fake_app()
+    app.designer_workspace.available_parts = ["box_body", "head", "tail"]
+    calls = []
+
+    def scene_payload(key):
+        return {
+            "part_key": key,
+            "nested": {
+                "profile": [
+                    {"len": 10, "angle": 90},
+                    {"len": 20},
+                ],
+            },
+        }
+
+    def render_provider(key, payload):
+        calls.append((key, payload["_use_committed_relief"]))
+        profile = payload["nested"]["profile"]
+        if payload["_use_committed_relief"]:
+            # Legacy render providers are allowed to annotate their detached
+            # compatibility payload. The immutable DTO must not leak here.
+            profile[0]["ui_len_add"] = 2.0
+        return {"profile": profile}
+
+    request = build_manufacturing_request(
+        app,
+        scene_payload_builder=scene_payload,
+        render_data_provider=render_provider,
+    )
+
+    assert calls == [
+        ("box_body", False),
+        ("head", False),
+        ("tail", False),
+        ("head", True),
+        ("tail", True),
+    ]
+    head = next(part for part in request.parts if part.part_key == "head")
+    assert head.committed_render_data["profile"][0]["ui_len_add"] == 2.0
+    assert "ui_len_add" not in head.scene_values["nested"]["profile"][0]
 
