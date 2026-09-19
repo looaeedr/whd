@@ -70,15 +70,34 @@ def imported_from_owner(mod: ast.Module) -> set[str]:
 def class_wiring(mod: ast.Module) -> dict[str, int]:
     out: dict[str, int] = {}
     for node in mod.body:
-        if not isinstance(node, ast.Assign):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "Phase6FoldDesignerApp"
+                ):
+                    out[target.attr] = node.lineno
             continue
-        for target in node.targets:
-            if (
-                isinstance(target, ast.Attribute)
-                and isinstance(target.value, ast.Name)
-                and target.value.id == "Phase6FoldDesignerApp"
-            ):
-                out[target.attr] = node.lineno
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        if not (
+            isinstance(call.func, ast.Name)
+            and call.func.id == "install_fold_designer_bridge_facade"
+        ):
+            continue
+        bindings = call.args[1] if len(call.args) >= 2 else None
+        if bindings is None:
+            for keyword in call.keywords:
+                if keyword.arg == "bindings":
+                    bindings = keyword.value
+                    break
+        if not isinstance(bindings, ast.Dict):
+            continue
+        for key in bindings.keys:
+            if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                out[key.value] = node.lineno
     return out
 
 
