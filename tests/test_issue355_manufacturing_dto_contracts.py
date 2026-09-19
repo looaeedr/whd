@@ -145,6 +145,29 @@ def test_issue355_request_contract_is_consumed_after_phase2_cutover():
     assert "_phase6_call_bridge" not in resolver_source
     assert "self" not in {node.id for node in ast.walk(resolver) if isinstance(node, ast.Name)}
 
+def test_issue362_request_preserves_runtime_part_order_but_fingerprint_is_order_stable():
+    from phase6_manufacturing_contracts import (
+        ManufacturingPartInput,
+        ManufacturingResolveRequest,
+        manufacturing_request_fingerprint,
+    )
 
+    body = ManufacturingPartInput(part_key="box_body")
+    head = ManufacturingPartInput(part_key="head")
+    tail = ManufacturingPartInput(part_key="tail")
 
+    runtime = ManufacturingResolveRequest(
+        canonical_part_keys=("box_body", "head", "tail"),
+        parts=(body, head, tail),
+    )
+    reordered = ManufacturingResolveRequest(
+        canonical_part_keys=("tail", "box_body", "head"),
+        parts=(tail, body, head),
+    )
+
+    assert runtime.canonical_part_keys == ("box_body", "head", "tail")
+    assert tuple(item.part_key for item in runtime.parts) == ("box_body", "head", "tail")
+    assert reordered.canonical_part_keys == ("tail", "box_body", "head")
+    assert tuple(item.part_key for item in reordered.parts) == ("tail", "box_body", "head")
+    assert manufacturing_request_fingerprint(runtime) == manufacturing_request_fingerprint(reordered)
 
