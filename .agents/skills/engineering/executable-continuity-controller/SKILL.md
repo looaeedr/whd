@@ -274,3 +274,29 @@ checkpoint 在 guard 後只要被改寫，先前 proof 立即失效。`BLOCKED` 
 - successful guard invocation 產生 bound proof；
 - checkpoint 改寫後 proof stale 並 fail closed。
 
+## CHATGPT_SCHEDULED_REENTRY_V1
+
+WHD 的 primary autonomous resume executor 是 **ChatGPT scheduled re-entry**。Hourly ChatGPT Automation 只負責重新喚醒新的 ChatGPT Runtime；被喚醒後仍必須回到本 Skill 與 `tools/continuity_controller.py` 的 canonical durable state。
+
+固定流程：
+
+```text
+ChatGPT Automation wake
+→ fresh GitHub issue / branch / HEAD / run_id readback
+→ shared GitHub TTL lease
+→ canonical checkpoint load
+→ exact state routing / next_action
+```
+
+硬規則：
+
+- ChatGPT Automation 是 primary wake/executor；GitHub Actions `schedule:` 僅可作 watchdog / lease / remote-state safety net，不能拿第三方 agent 的執行當成「ChatGPT 已續跑」證據。
+- 每次 scheduled re-entry 都是 fresh runtime；不得用聊天記憶補 owner。必須 fresh-read issue / branch / HEAD / run_id / checkpoint。
+- scheduled/manual actor 共用同一個 GitHub-backed TTL lease。有效 lease 存在時另一 actor 必須 safe no-op；過期才能重新取得。
+- `RUNNING → execute exact next_action`；`WAITING_REMOTE → 保持 exact run_id + head_sha lock`；`RECOVERING → evidence → root cause → minimal fix → validation → retry`。
+- scheduler 對 `WAITING_REMOTE` 使用小時級 stale 判斷；canonical default 為 2 小時。這與 active Runtime 內約 30 秒 polling 不同。
+- `BLOCKED` durable metadata 使用 `blocked_count` 與 notification backoff；canonical default 為第 3 次才通知、之後至少 6 小時再提醒。離開 BLOCKED 時 metadata 歸零。
+- Terminal checkpoint 進 issue-closure-gate handoff，不是永久 NO_OP；完成 cleanup/closure 後才移除 scheduled-resume eligibility。
+- 目前 Runtime 還可執行時，**已有下一次排程絕不是停工理由**。Schedule 只保證 hard-cut 後重入，不節流 live Runtime。
+- 使用者不是 scheduler；不得要求使用者再輸入「繼續／輪／GO」來推進已知 next action。
+
