@@ -3,9 +3,6 @@ name: "QA #365 T1 RED workspace navigation"
 # harness-ready trigger
 
 on:
-  push:
-    branches:
-      - refactor/issue365-phase3-workspace-navigation-20260919
   workflow_dispatch:
 
 permissions:
