@@ -31,23 +31,28 @@ def _func(name: str) -> str:
     return (ast.get_source_segment(source, node) or "") if node is not None else ""
 
 
-def test_t3_source_contract_separates_part_selector_from_content_modes():
+def test_t3_source_contract_uses_one_main_selector_without_duplicate_content_strip():
     refresh = _func("_fix11_refresh_part_buttons")
     builder = _func("_phase6_build_content_switch")
     input_switch = _func("_phase6_show_input_content")
 
-    assert (
-        builder
-        and 'label="組合體"' not in refresh
-        and 'label="截角資料"' not in refresh
-        and all(f'text="{text}"' in builder for text in ("輸入區", "組合體", "截角資料"))
-    ), (
-        "#336 EXPECTED RED: 組合體/截角資料 must stop being entries in the "
-        "sheet-metal part selector and the dedicated 輸入區/組合體/截角資料 "
-        "content switch must exist."
-    )
+    # Accepted operator layout: one main selector owns 組合體 / 鈑件 / 截角資料.
+    # The old three-button content switch survives only as hidden compatibility
+    # handles so there is no second navigation strip or second mode state.
+    assert 'label="組合體"' in refresh
+    assert 'label="截角資料"' in refresh
+    assert "_phase6_show_assembly" in refresh
+    assert "_phase6_show_corner_data" in refresh
+
+    assert builder
+    assert "input_content_button = None" in builder
+    assert "assembly_content_button = None" in builder
+    assert "corner_data_content_button = None" in builder
+    assert 'text="輸入區"' not in builder
+    assert 'text="組合體"' not in builder
+    assert 'text="截角資料"' not in builder
     assert "StringVar" not in builder and "IntVar" not in builder, (
-        "content switch must project the existing _phase6_3d_display_mode, not own a second mode state"
+        "compatibility content-switch shell must not own a second navigation state"
     )
     assert "designer_workspace" in input_switch or "_designer_workspace" in input_switch
 
