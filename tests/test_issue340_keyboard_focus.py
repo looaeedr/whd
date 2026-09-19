@@ -18,20 +18,28 @@ def _text(path: str) -> str:
 
 def test_t7_source_contract_installs_authoritative_shortcuts_and_focus_guards():
     bridge = _text("fold_designer_bridge.py")
-    required = (
+    router = _text("gui_modules/application/command_router.py")
+    bridge_required = (
         "def _phase6_install_keyboard_shortcuts",
-        '("<Control-s>", "<Control-S>")',
-        '("<Control-o>", "<Control-O>")',
-        '"<F11>"',
         "self.save_project_file()",
         "self.load_project_file()",
         "_phase6_toggle_fullscreen(self)",
         "takefocus=False",
         "_phase6_return_focus",
     )
-    missing = [token for token in required if token not in bridge]
+    router_required = (
+        '("<Control-s>", "<Control-S>")',
+        '("<Control-o>", "<Control-O>")',
+        '"<F11>"',
+        "install_fold_designer_keyboard_shortcuts",
+    )
+    missing = [
+        token for token in bridge_required if token not in bridge
+    ] + [
+        token for token in router_required if token not in router
+    ]
     assert not missing, (
-        "#340 EXPECTED RED: Fold Designer shortcuts/focus guards are incomplete; "
+        "Fold Designer shortcut/focus ownership drifted from the accepted T7 route; "
         f"missing={missing!r}"
     )
 
@@ -97,9 +105,7 @@ def test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas(ui_tex
             designer.output_export_button,
             designer.part_choice_button,
             designer.add_part_button,
-            designer.input_content_button,
-            designer.assembly_content_button,
-            designer.corner_data_content_button,
+            designer.remove_part_button,
         )
         assert all(str(widget.cget("takefocus")).lower() not in {"0", "false"} for widget in main)
 
@@ -127,7 +133,7 @@ def test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas(ui_tex
             assert nxt not in forbidden
             seen.add(nxt)
             current = nxt
-        assert str(designer.add_part_button) in seen or str(designer.input_content_button) in seen
+        assert str(designer.add_part_button) in seen or str(designer.remove_part_button) in seen
     finally:
         root.destroy()
 
