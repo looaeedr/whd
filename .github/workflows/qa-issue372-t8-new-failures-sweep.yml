@@ -6,6 +6,7 @@ on:
       - fix/issue372-t8-t7-runtime-remediation-20260919
     paths:
       - '.github/workflows/qa-issue372-t8-new-failures-sweep.yml'
+      - 'tests/test_phase6_latest_layout_contract.py'
   workflow_dispatch:
 
 permissions:
