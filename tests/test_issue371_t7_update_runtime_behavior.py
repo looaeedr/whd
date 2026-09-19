@@ -182,3 +182,33 @@ def test_issue371_keyboard_binding_install_is_idempotent():
         "<Control-O>",
         "<F11>",
     ]
+
+
+def test_issue372_main_root_destroy_cancels_pending_scheduler_job():
+    events = []
+    owner = _owner(events)
+    scheduler = command_router._Phase6UpdateScheduler(
+        owner,
+        executor=lambda reasons: events.append(frozenset(reasons)),
+    )
+    owner._phase6_update_scheduler = scheduler
+
+    installed = command_router.install_application_update_scheduler_lifecycle(owner)
+    assert installed is True
+
+    scheduler.submit("geometry")
+    assert owner.root.jobs
+    assert scheduler.dirty == {"geometry"}
+
+    destroy_callbacks = [
+        callback
+        for sequence, callback, add in owner.root.bindings
+        if sequence == "<Destroy>"
+    ]
+    assert len(destroy_callbacks) == 1
+    destroy_callbacks[0](SimpleNamespace(widget=owner.root))
+
+    assert owner.root.jobs == {}
+    assert scheduler.dirty == set()
+    assert scheduler._after_job is None
+    assert events == []
