@@ -106,19 +106,27 @@ def test_issue360_adapter_routes_domain_inputs_before_service(monkeypatch):
     )
     captured = []
 
+    from phase6_manufacturing_contracts import (
+        ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult,
+        ManufacturingEffects,
+        ManufacturingMutationResult,
+        ManufacturingResolveResult,
+    )
+
     monkeypatch.setattr(
         service,
         "resolve",
-        lambda request: captured.append(request) or SimpleNamespace(
+        lambda request: captured.append(request) or ManufacturingResolveResult(
             geometry=object(),
-            diagnostics=SimpleNamespace(
-                interference_probe_parts=(),
-                relief_errors={},
-                relief_solutions={},
+            diagnostics=ManufacturingDiagnosticsResult(),
+            mutations=ManufacturingMutationResult(),
+            effects=ManufacturingEffects(),
+            cache=ManufacturingCacheReceipt(
+                signature=request.cache_key_fingerprint,
+                hit=False,
+                stored=False,
             ),
-            mutations=SimpleNamespace(snapshot_patch={}),
-            effects=SimpleNamespace(publish_live_state=False, force_live_publish=False),
-            cache=SimpleNamespace(signature=request.cache_key_fingerprint),
         ),
     )
     monkeypatch.setattr(
