@@ -7194,6 +7194,14 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # authoritative live-sync state. Publish is disabled until the final Phase6
     # workspace has ingested the current application snapshot and reached READY.
     self._phase6_initializing = True
+    # Phase 4 composition services may be reached by inherited Tk callbacks
+    # during construction. Establish the authoritative mapping identities before
+    # any such callback can ask the composition root for Settings owners. From
+    # here onward these mappings are mutated in place; they are never rebound.
+    self._settings_values = {}
+    self._phase6_input_snapshot = {}
+    self._phase6_box_whd = {}
+    self._phase6_pending_settings = {}
     snapshot = _phase6_snapshot_with_settings_fallback(
         migrate_legacy_snapshot_joints(dict(snapshot or {}))
     )
@@ -7262,7 +7270,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.corner_pair_checkbuttons = {}
     _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     self._phase6_settings_rendering = False
-    self._settings_values = dict(snapshot.get("settings") or {})
+    _phase6_replace_mapping(
+        self, "_settings_values", dict(snapshot.get("settings") or {})
+    )
     for key, value in snapshot.items():
         if key not in self._settings_values and any(spec.key == key for spec in settings_for_context(GLOBAL_CONTEXT) + sum((settings_for_context(p) for p in KNOWN_PARTS), ())):
             self._settings_values[key] = value
