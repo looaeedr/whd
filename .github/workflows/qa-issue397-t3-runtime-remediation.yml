@@ -18,9 +18,25 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y python3-tk xvfb
           python -m pip install pytest matplotlib -r requirements.txt
-      - name: T3 service ownership regression
+      - name: T3 service ownership regressions
         run: |
-          python -m pytest -q tests/test_issue397_phase4_runtime_remediation.py::test_restore_setting_clears_service_owned_pending_entry --tb=short
+          python -m pytest -q tests/test_issue397_phase4_runtime_remediation.py --tb=short
+      - name: T8 candidate-only headless remediation cohort
+        run: |
+          python -m pytest -q \
+            tests/architecture/test_renderer_ownership.py::test_structure_existing_3d_deep_module_remains_the_only_new_3d_owner \
+            tests/test_engineering_drawing_integration.py::test_shared_finished_dimension_provider_is_the_2d_3d_authority \
+            tests/test_issue188_dark_theme_readability.py::test_3d_shell_settings_and_final_scene_consume_shared_theme_contract \
+            tests/test_issue211_renderer_dependency_gate.py::test_structure_existing_3d_deep_module_remains_the_only_new_3d_owner \
+            tests/test_issue338_contrast_readability.py::test_shared_theme_owns_secondary_warning_and_hidden_text_colors \
+            tests/test_issue371_t7_update_runtime_behavior.py::test_issue371_settings_delta_preserves_push_apply_restore_order \
+            tests/test_issue99_dual_view_parity_persistence.py::test_replayed_external_revision_is_noop_and_cannot_refresh_view \
+            tests/test_issue99_dual_view_parity_persistence.py::test_repeated_authoritative_revisions_refresh_visible_view_once_per_commit \
+            tests/test_phase6_3d_retain_and_baseline.py::test_true_mesh_renderer_uses_exact_final_scene_without_baseline_merge \
+            tests/test_phase6_3d_single_source_renderer.py::test_3d_render_path_consumes_scene_callback_only \
+            tests/test_phase6_ui_state_regressions.py::test_selecting_assembly_type_rebuilds_current_box_body_settings_page \
+            tests/test_phase6_ui_state_regressions.py::test_selecting_assembly_type_keeps_current_box_page_alive_and_invalidates_only_endcaps \
+            --tb=short
 
   xvfb:
     runs-on: ubuntu-latest
