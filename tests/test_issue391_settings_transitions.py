@@ -108,7 +108,7 @@ def test_issue391_controller_delegates_semantics_to_transition_kernel():
         "commit_corner_mode": "settings_transitions.commit_corner_mode",
         "commit_corner_parameters": "settings_transitions.commit_corner_parameters",
         "commit_assembly_intent": "settings_transitions.assembly_intent",
-        "plan_external_sync": "settings_transitions.plan_external_sync",
+        "plan_external_sync": "_orchestration.plan_external_sync",
         "commit_symmetry": "settings_transitions.normalize_symmetry",
         "commit_reconciled_width_structure": "settings_transitions.reconcile_width_structure",
         "commit_family_model_transition": "settings_transitions.family_model_transition",
@@ -169,3 +169,21 @@ def test_issue391_pure_transition_smoke_contracts():
     assert plan.accepted is True
     assert plan.settings == {"w": 810}
     assert CornerTypeId.INSERT_OVERLAY.value == "INSERT_OVERLAY"
+
+
+def test_issue391_t3_service_keeps_external_sync_semantics_in_pure_kernel():
+    service = Path("phase6_settings_service.py")
+    assert service.is_file()
+    source = service.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(service))
+    cls = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6SettingsTransactionService"
+    )
+    methods = {
+        node.name: ast.unparse(node)
+        for node in cls.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert "settings_transitions.plan_external_sync" in methods["plan_external_sync"]
