@@ -1,4 +1,5 @@
 name: "QA #366 T2B structure endcap GREEN"
+# trigger after contract correction
 
 on:
   push:
