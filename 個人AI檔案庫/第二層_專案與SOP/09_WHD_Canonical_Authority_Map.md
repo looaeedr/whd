@@ -73,3 +73,14 @@ whd_schema: WHD_DOC_META_V1
 4. 只在必要時更新直接相關 Skill / router / AI Library navigation。
 5. 跑永久 authority uniqueness、mirror pointer、metadata 與 routing guards。
 6. 驗證只能判斷 authority 是否一致，不得反過來創造 domain truth。
+
+### whd-chatgpt-scheduled-resume
+
+- AI Library CURRENT owner: `個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md`
+- Executable state owner: `tools/continuity_controller.py`
+- Operational Skill owner: `.agents/skills/engineering/executable-continuity-controller/SKILL.md`
+- Remote QA bridge: `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`
+- Development execution bridge: `.agents/skills/engineering/執行開發任務/SKILL.md`
+- Primary wake/executor: hourly ChatGPT scheduled re-entry
+- GitHub Actions schedule role: watchdog / lease / remote-state safety net only
+
