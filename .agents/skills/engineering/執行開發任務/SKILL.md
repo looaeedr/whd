@@ -242,3 +242,17 @@ Remote QA 的 polling cadence、run lock 與 final gate 不在此重複定義，
 5. 不把 presentation side effect 升格成 domain state owner。
 
 WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-baseline-model` 擁有；本 Skill 只保存通用執行方法，不複製產品值。
+
+## CHATGPT_SCHEDULED_REENTRY_EXECUTION_BRIDGE
+
+長任務若因平台 hard-cut 中斷，WHD 採用 hourly ChatGPT scheduled re-entry 自動恢復，不要求使用者當 scheduler。
+
+每次重入固定：
+
+1. fresh-read production target、owning issue、work branch/HEAD、checkpoint、必要時 exact remote run；
+2. 取得或尊重 shared GitHub TTL lease；
+3. 由 canonical continuity state 決定唯一 next action；
+4. 無 drift 直接續工；有 drift 只重驗受影響範圍；
+5. 已 accepted phase 不因 runtime 重建而重跑；
+6. 目前 Runtime 可繼續時不得因「排程稍後會再醒」而停止。
+
