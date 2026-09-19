@@ -12,12 +12,23 @@ from typing import Mapping
 
 
 class Phase6RegistryDiagnosticsController:
-    def __init__(self) -> None:
-        self._candidate_id = ""
-        self._candidate_record: dict = {}
-        self._regression_evidence: dict = {}
-        self._rule_records: dict[str, dict] = {}
-        self._promotion_candidates: dict[str, dict] = {}
+    def __init__(
+        self,
+        *,
+        candidate_id="",
+        candidate_record=None,
+        regression_evidence=None,
+        rule_records=None,
+        promotion_candidates=None,
+    ) -> None:
+        self._candidate_id = str(candidate_id or "")
+        self._candidate_record = deepcopy(dict(candidate_record or {}))
+        self._regression_evidence = deepcopy(dict(regression_evidence or {}))
+        self._rule_records = {
+            str(key): deepcopy(dict(value or {}))
+            for key, value in dict(rule_records or {}).items()
+        }
+        self._promotion_candidates = deepcopy(dict(promotion_candidates or {}))
 
     @property
     def candidate_id(self) -> str:
@@ -30,6 +41,10 @@ class Phase6RegistryDiagnosticsController:
     @property
     def regression_evidence(self) -> dict:
         return deepcopy(self._regression_evidence)
+
+    @property
+    def rule_records(self) -> dict:
+        return deepcopy(self._rule_records)
 
     @property
     def promotion_candidates(self) -> dict:
