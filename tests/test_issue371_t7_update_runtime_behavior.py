@@ -143,17 +143,14 @@ def test_issue371_settings_delta_preserves_push_apply_restore_order():
         {"w": 901},
         "tx-7",
         transactions=transactions,
-        sync_mirrors=lambda controller: events.append(("mirror", controller is transactions)),
         apply_updates=lambda updates: events.append(("apply", updates)) or "ok",
     )
 
     assert result == "ok"
     assert events == [
         ("push", "tx-7"),
-        ("mirror", True),
         ("apply", {"w": 901}),
         ("restore", "previous"),
-        ("mirror", True),
     ]
 
 
