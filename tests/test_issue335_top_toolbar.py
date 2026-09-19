@@ -54,7 +54,8 @@ def test_output_authority_routes_are_unchanged():
     stock_source = _function_source("_phase6_commit_output_draw_stock")
     assert "_phase6_export_selected_dxf_callback" in export_source
     assert "Phase6ProjectController.route_selected_dxf_export" in export_source
-    assert '_phase6_stage_setting_update(self, "draw_stock", value)' in stock_source
+    assert "Phase6ProjectController.commit_output_stock" in stock_source
+    assert "_phase6_stage_setting_update(self, key, value)" in stock_source
 
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
