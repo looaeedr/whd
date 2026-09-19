@@ -1,0 +1,32 @@
+name: "QA #406 Scheduled heartbeat RED"
+
+on:
+  push:
+    branches:
+      - continuity/issue406-scheduled-heartbeat-writeback-20260920
+    paths:
+      - 'tests/process/test_issue406_scheduled_progress_heartbeat_contract.py'
+      - '.github/workflows/qa-issue406-heartbeat-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Confirm intended RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/process/test_issue406_scheduled_progress_heartbeat_contract.py --tb=short | tee /tmp/red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -Eq "SCHEDULED_RESUME_PROGRESS_HEARTBEAT|Scheduled progress heartbeat|SILENT_ACTIVE_WORK_PITFALL" /tmp/red.log
+          echo "PASS EXPECTED_HEARTBEAT_RED=1"
