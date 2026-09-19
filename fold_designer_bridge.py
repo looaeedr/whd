@@ -139,7 +139,7 @@ from phase6_final_scene_projection import (
     make_assembly_scene_render_data as _project_assembly_scene_render_data,
 )
 from phase6_final_scene_view import (
-    Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
+    Phase6FinalSceneRenderer, Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
     _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
     _phase6_profile_base_index, _phase6_profile_geometry,
     _phase6_fold_mask_for_cross_coordinate, _phase6_profile_map_with_guides,
@@ -580,29 +580,170 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
     return adapter
 
 
-def _phase6_sync_final_scene_view_compatibility_mirrors(self, view):
-    """Mirror deep-view state for legacy non-app test doubles only."""
-    for owner_name, view_name in (
-        ("_phase6_last_cutting_mesh", "last_cutting_mesh"),
-        ("_phase6_last_cutting_material", "last_cutting_material"),
-        ("_phase6_cutting_mesh_error", "cutting_mesh_error"),
-        ("_phase6_zoom_scale", "zoom_scale"),
-        ("_phase6_view_initialized", "view_initialized"),
-        ("_phase6_base_renderer_render", "base_renderer_render"),
-        ("_phase6_scroll_cid", "scroll_cid"),
-    ):
-        try:
-            setattr(self, owner_name, getattr(view, view_name))
-        except Exception:
-            pass
+def _phase6_final_scene_renderer(self):
+    view = getattr(self, "final_scene_view", None)
+    if not isinstance(view, Phase6FinalSceneRenderer):
+        view = Phase6FinalSceneRenderer(
+            self.renderer,
+            number_text=_setting_number_text,
+        )
+        self.final_scene_view = view
     return view
+
+
+def _phase6_final_scene_scene_query(self, key, payload):
+    callback = getattr(self, "_scene_query_callback", None)
+    if callback is None:
+        raise RuntimeError("3D final-scene provider is not connected")
+    return callback(key, payload)
+
+
+def _phase6_final_scene_corner_text_sink(self, values):
+    values = {str(key): str(value) for key, value in dict(values or {}).items()}
+    self._phase6_last_assembly_corner_dimension_texts = dict(values)
+    vars_by_part = getattr(self, "assembly_part_corner_vars", {}) or {}
+    for key, value in values.items():
+        var = vars_by_part.get(key)
+        if var is not None and callable(getattr(var, "set", None)):
+            var.set(value)
+
+
+def _phase6_final_scene_part_text_sink(self, kind, part_key, value):
+    mapping_name = (
+        "assembly_part_formed_vars"
+        if str(kind) == "formed"
+        else "assembly_part_blank_vars"
+    )
+    var = (getattr(self, mapping_name, {}) or {}).get(str(part_key))
+    if var is not None and callable(getattr(var, "set", None)):
+        var.set(value)
+
+
+def _phase6_final_scene_visibility(self, parts):
+    parts = tuple(parts or ())
+    visible_vars = getattr(self, "assembly_part_visible_vars", {}) or {}
+    visible_parts = [
+        part
+        for part in parts
+        if bool(
+            getattr(
+                visible_vars.get(part.part_key),
+                "get",
+                lambda: True,
+            )()
+        )
+    ]
+    if not visible_parts and parts:
+        fallback = next(
+            (part for part in parts if part.part_key == "box_body"),
+            parts[0],
+        )
+        visible_parts = [fallback]
+        var = visible_vars.get(fallback.part_key)
+        if var is not None and callable(getattr(var, "set", None)):
+            var.set(True)
+
+    visible_keys = {part.part_key for part in visible_parts}
+    box_part = next(
+        (part for part in parts if part.part_key == "box_body"),
+        None,
+    )
+    box_piece_keys = tuple(
+        f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+        for piece in tuple(
+            getattr(
+                getattr(box_part, "render_data", None),
+                "pieces",
+                (),
+            )
+            or ()
+        )
+        if str(getattr(piece, "role", "") or "").strip()
+    )
+    visible_box_body_piece_keys = None
+    if box_piece_keys:
+        piece_vars = dict(
+            getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}
+        )
+        if "box_body" not in visible_keys:
+            visible_box_body_piece_keys = ()
+        else:
+            visible_box_body_piece_keys = tuple(
+                key
+                for key in box_piece_keys
+                if bool(
+                    getattr(
+                        piece_vars.get(key),
+                        "get",
+                        lambda: True,
+                    )()
+                )
+            )
+            if (
+                not visible_box_body_piece_keys
+                and visible_keys == {"box_body"}
+            ):
+                first = box_piece_keys[0]
+                var = piece_vars.get(first)
+                if var is not None and callable(getattr(var, "set", None)):
+                    var.set(True)
+                visible_box_body_piece_keys = (first,)
+
+    return (
+        tuple(part.part_key for part in visible_parts),
+        visible_box_body_piece_keys,
+    )
+
+
+def _phase6_final_scene_render_committed(self):
+    if not getattr(self, "preview_3d_enabled", True):
+        return None
+    canvas = self.renderer.canvas
+    draw = getattr(canvas, "draw", None)
+    draw_idle = getattr(canvas, "draw_idle", None)
+    if (
+        callable(draw)
+        and callable(draw_idle)
+        and not getattr(self, "_phase6_force_sync_preview", False)
+    ):
+        canvas.draw = draw_idle
+        try:
+            return self.renderer.render()
+        finally:
+            canvas.draw = draw
+    return self.renderer.render()
+
+
+def _phase6_final_scene_set_preview_enabled(self, enabled):
+    enabled = bool(enabled)
+    self.preview_3d_enabled = enabled
+    var = getattr(self, "preview_3d_var", None)
+    if var is not None and bool(var.get()) != enabled:
+        var.set(enabled)
+    widget = self.renderer.canvas.get_tk_widget()
+    if enabled:
+        if not widget.winfo_manager():
+            widget.pack(fill="both", expand=True)
+        self.submit_update_intent("display", commit=True)
+    elif widget.winfo_manager() == "pack":
+        widget.pack_forget()
+    return enabled
+
+
+def _phase6_final_scene_refresh_preview(self):
+    if not getattr(self, "preview_3d_enabled", True):
+        return _phase6_final_scene_set_preview_enabled(self, True)
+    self._phase6_force_sync_preview = True
+    try:
+        return self.submit_update_intent("display", commit=True)
+    finally:
+        self._phase6_force_sync_preview = False
 
 
 def _phase6_final_scene_adapter(self):
     adapter = getattr(self, "_phase6_final_scene_view_adapter", None)
-    if adapter is None or getattr(adapter, "owner", None) is not self:
+    if adapter is None:
         adapter = Phase6FinalSceneViewAdapter(
-            self,
             dependencies=FinalSceneDependencies(
                 number_text=_setting_number_text,
                 is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
@@ -665,14 +806,64 @@ def _phase6_final_scene_adapter(self):
                     _phase6_update_unfolded_size_label(self),
                     _phase6_update_assembly_diagnostic_status(self),
                 ),
-                mirror_view_state=lambda view: _phase6_sync_final_scene_view_compatibility_mirrors(
-                    self, view
+                active_part=lambda: str(
+                    getattr(
+                        getattr(self, "designer_workspace", None),
+                        "active_part",
+                        "",
+                    )
+                    or ""
+                ),
+                scene_query=lambda key, payload: _phase6_final_scene_scene_query(
+                    self, key, payload
+                ),
+                input_snapshot=lambda: dict(
+                    getattr(self, "_phase6_input_snapshot", {}) or {}
+                ),
+                settings_values=lambda: dict(
+                    getattr(self, "_settings_values", {}) or {}
+                ),
+                alpha_bend=lambda: float(
+                    getattr(getattr(self, "state", None), "alpha_bend", 0.85)
+                ),
+                display_mode=lambda: str(
+                    getattr(self, "_phase6_3d_display_mode", "single")
+                    or "single"
+                ),
+                assembly_corner_text_sink=lambda values: _phase6_final_scene_corner_text_sink(
+                    self, values
+                ),
+                assembly_part_text_sink=lambda kind, key, value: _phase6_final_scene_part_text_sink(
+                    self, kind, key, value
+                ),
+                assembly_visibility=lambda parts: _phase6_final_scene_visibility(
+                    self, parts
+                ),
+                interference_probe_parts=lambda: tuple(
+                    getattr(self, "_phase6_last_interference_probe_parts", ())
+                    or ()
+                ),
+                show_interference=lambda: bool(
+                    getattr(
+                        getattr(self, "assembly_show_interference_var", None),
+                        "get",
+                        lambda: True,
+                    )()
+                ),
+                render_committed=lambda: _phase6_final_scene_render_committed(
+                    self
+                ),
+                set_preview_enabled=lambda enabled: _phase6_final_scene_set_preview_enabled(
+                    self, enabled
+                ),
+                refresh_preview=lambda: _phase6_final_scene_refresh_preview(
+                    self
                 ),
             ),
+            renderer=_phase6_final_scene_renderer(self),
         )
         self._phase6_final_scene_view_adapter = adapter
     return adapter
-
 
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
