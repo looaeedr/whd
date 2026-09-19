@@ -32,6 +32,8 @@ jobs:
             tests/test_issue188_dark_theme_readability.py::test_3d_shell_settings_and_final_scene_consume_shared_theme_contract \
             tests/test_issue211_renderer_dependency_gate.py::test_structure_existing_3d_deep_module_remains_the_only_new_3d_owner \
             tests/test_issue338_contrast_readability.py::test_shared_theme_owns_secondary_warning_and_hidden_text_colors \
+            tests/test_issue357_manufacturing_result_contracts.py::test_issue357_adapter_apply_reproduces_phase1_legacy_state_without_executing_effect \
+            tests/test_issue361_one_line_manufacturing_facade.py::test_issue361_bridge_manufacturing_facade_is_one_line_adapter_call \
             tests/test_issue371_t7_update_runtime_behavior.py::test_issue371_settings_delta_preserves_push_apply_restore_order \
             tests/test_issue99_dual_view_parity_persistence.py::test_replayed_external_revision_is_noop_and_cannot_refresh_view \
             tests/test_issue99_dual_view_parity_persistence.py::test_repeated_authoritative_revisions_refresh_visible_view_once_per_commit \
