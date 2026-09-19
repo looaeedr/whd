@@ -1,0 +1,56 @@
+name: "QA #385 T2 assembly parent-child GREEN"
+
+on:
+  push:
+    branches:
+      - ui/issue385-assembly-parent-child-groups-20260919
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'tests/test_issue385_assembly_parent_child_groups.py'
+      - '.github/workflows/qa-issue385-t2-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD 92ef5a18f9f1fd095ee16f8e065c56311af88e81)" = "92ef5a18f9f1fd095ee16f8e065c56311af88e81"
+      - name: Install GUI harness
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib -r requirements.txt
+      - name: Capture invariants
+        run: |
+          sha256sum config.ini > /tmp/config.before
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/base.before
+      - name: T2 focused
+        run: xvfb-run -a python -m pytest -q tests/test_issue385_assembly_parent_child_groups.py --tb=short
+      - name: Assembly identity and topology regressions
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_phase6_receiving_multipart_integration.py::test_opening_receiving_designer_preserves_formal_door_features_and_authoritative_rows             tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_materializes_exactly_one_base_plate_per_door_cell             tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_dynamic_base_plates_are_real_topology_owned_workspace_parts             tests/test_issue124_structure_tree.py::test_receiving_box_body_projects_one_parent_with_authoritative_children             --tb=short
+      - name: Existing assembly UI regressions
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_issue376_assembly_collapsible_data.py             tests/test_issue378_assembly_mousewheel.py             --tb=short
+      - name: Protected invariants and scope
+        run: |
+          set -euo pipefail
+          sha256sum config.ini > /tmp/config.after
+          find '基準檔' -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/base.after
+          cmp /tmp/config.before /tmp/config.after
+          cmp /tmp/base.before /tmp/base.after
+          git diff --check 92ef5a18f9f1fd095ee16f8e065c56311af88e81...HEAD
+          git diff --name-only 92ef5a18f9f1fd095ee16f8e065c56311af88e81...HEAD | tee /tmp/issue385-files.txt
+          test "$(grep -Ec '^(config.ini$|基準檔/|ae_engine/|phase6_part_navigation.py$|gui_modules/application/)' /tmp/issue385-files.txt || true)" -eq 0
+          echo "PASS PROTECTED_DRIFT=0"
