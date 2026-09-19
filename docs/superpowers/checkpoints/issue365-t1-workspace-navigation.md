@@ -15,7 +15,7 @@ whd_schema: WHD_DOC_META_V1
 - Branch: `refactor/issue365-phase3-workspace-navigation-20260919`
 - A/B validated source SHA: `3c7480cbaa30bf9d8286ff8f7eb239055ee92410`
 - Production branch: `cleanup/2d-3d-sync`
-- Status: **ACCEPTED — durable writeback pending final docs-only readback**
+- Status: **ACCEPTED**
 
 ## Characterization RED
 
@@ -138,11 +138,11 @@ ahead = 0
 behind = 0
 ```
 
-This checkpoint is an evidence-only writeback after the validated source integration. Before final T1 closure, production must fast-forward once more to the checkpoint-containing branch HEAD and prove:
+This checkpoint is an evidence-only writeback after the validated source integration. Final T1 closure must fast-forward production once more to the checkpoint-containing branch HEAD and prove:
 
 ```text
 behavior-source diff from 3c7480c... = 0
 production readback = identical
 ```
 
-The resulting production SHA is the immutable T2 baseline.
+The exact resulting production SHA is recorded in the #365 closure comment and frozen as the concrete #366 / T2 baseline. This avoids a self-referential checkpoint-SHA writeback loop.
