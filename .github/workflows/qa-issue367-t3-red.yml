@@ -1,4 +1,5 @@
 name: "QA #367 T3 project persistence RED"
+# explicit trigger after YAML repair
 
 on:
   push:
