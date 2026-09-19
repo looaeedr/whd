@@ -32,7 +32,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y python3-tk
-          python -m pip install pytest -r requirements.txt
+          python -m pip install pytest matplotlib numpy -r requirements.txt
 
       - name: Compile changed Python
         run: |
