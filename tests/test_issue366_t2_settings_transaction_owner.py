@@ -191,7 +191,27 @@ def test_issue366_baseline_debounce_and_event_order_is_characterized():
     assert len(after_calls) == 1
     call = after_calls[0]
     assert len(call.args) >= 2
-    assert isinstance(call.args[0], ast.Constant) and call.args[0].value == 150
+    assert isinstance(call.args[0], ast.Attribute)
+    assert call.args[0].attr == "schedule_after_ms"
+
+    controller_tree = _tree(CONTROLLER)
+    controller_classes = [
+        node for node in controller_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6SettingsTransactionController"
+    ]
+    assert len(controller_classes) == 1
+    debounce_assigns = [
+        node for node in controller_classes[0].body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "DEBOUNCE_MS"
+            for target in node.targets
+        )
+    ]
+    assert len(debounce_assigns) == 1
+    assert isinstance(debounce_assigns[0].value, ast.Constant)
+    assert debounce_assigns[0].value.value == 150
 
     flush = funcs["_phase6_flush_pending_settings"]
     cancel_lines = []
