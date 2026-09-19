@@ -83,3 +83,19 @@ Validation 只判定 implementation 是否符合 authority，不得反過來成�
 - continuity controller remains canonical；
 - third-party agent not required；
 - no user message required to wake.
+
+## Scheduled progress heartbeat
+
+使用者必須能區分「ChatGPT 正常靜默工作」與「Runtime/remote work 已卡住」。因此 Scheduled Resume 的長期可見性規則是：
+
+- 只要本輪偵測到 active work，scheduled ChatGPT invocation 結束前就必須主動回報，不可完全靜默。
+- 第一行狀態固定投影為 `WORKING / WAITING_REMOTE / RECOVERING / BLOCKED / COMPLETE` 之一。
+- 至少帶 owning issue、branch、HEAD、必要的 run_id、exact next_action，以及 `正常工作中 / 正常等待既有 RUN / 正在復原 / 真 blocker / 已完成` 判斷。
+- `WAITING_REMOTE` 必須帶 exact run identity 與 current step/status；長時間無 remote 更新要明示 `疑似卡住` 並服從既有 stale-recovery policy。
+- shared lease 被另一個合法 Runtime 持有時，safe no-op 仍要回報 `WORKING — 另一 runtime 持有有效 lease`，讓使用者知道 mutual exclusion 正常運作。
+- **沒有 active work** 時才允許保持安靜。
+- heartbeat 只做 visibility projection，不建立第二套 state machine，也不取代 durable checkpoint。
+- heartbeat 不是 execution cadence：目前 Runtime 還能繼續時，回報後仍繼續做；live remote-QA 約 30 秒 cadence 仍由 monitoring-remote-qa 負責。
+
+Canonical executable owner：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+
