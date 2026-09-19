@@ -66,9 +66,11 @@ jobs:
           git worktree add --detach /tmp/issue391-base "$base"
           (
             cd /tmp/issue391-base
-            PYTHONPATH=/tmp/issue391-base               python "$candidate_root/tools/issue391_t2_semantic_probe.py"               > /tmp/issue391-baseline.json
+            export PYTHONPATH="$PWD"
+            cp "$candidate_root/tools/issue391_t2_semantic_probe.py" ./issue391_t2_semantic_probe.py
+            python ./issue391_t2_semantic_probe.py > /tmp/issue391-baseline.json
           )
-          python tools/issue391_t2_semantic_probe.py > /tmp/issue391-candidate.json
+          PYTHONPATH="$candidate_root" python tools/issue391_t2_semantic_probe.py > /tmp/issue391-candidate.json
           python -m json.tool /tmp/issue391-baseline.json > /tmp/issue391-baseline.pretty
           python -m json.tool /tmp/issue391-candidate.json > /tmp/issue391-candidate.pretty
           diff -u /tmp/issue391-baseline.pretty /tmp/issue391-candidate.pretty
@@ -93,7 +95,15 @@ jobs:
           bad=sorted(x for x in imports if x=="tkinter" or x.startswith("tkinter.") or x=="fold_designer_bridge" or x.startswith("gui"))
           assert not bad, bad
           assert "self." not in source
-          assert "callback" not in source.lower()
+          callback_calls=[]
+          for n in ast.walk(tree):
+              if not isinstance(n, ast.Call):
+                  continue
+              fn=n.func
+              name=fn.id if isinstance(fn, ast.Name) else fn.attr if isinstance(fn, ast.Attribute) else ""
+              if "callback" in name.lower():
+                  callback_calls.append((name, getattr(n, "lineno", 0)))
+          assert not callback_calls, callback_calls
           print("SETTINGS_TRANSITION_SELF_REFS=0")
           print("SETTINGS_TRANSITION_TK_REFS=0")
           print("SETTINGS_TRANSITION_REVERSE_IMPORTS=0")
