@@ -1,0 +1,174 @@
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+
+BRIDGE = Path("fold_designer_bridge.py")
+CONTROLLER = Path("phase6_settings_transaction_controller.py")
+
+
+def _tree(path: Path) -> ast.Module:
+    return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+
+
+def _functions(tree: ast.Module):
+    return {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def _controller_methods():
+    tree = _tree(CONTROLLER)
+    return {
+        node.name
+        for cls in tree.body
+        if isinstance(cls, ast.ClassDef) and cls.name == "Phase6SettingsTransactionController"
+        for node in cls.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
+def test_t2d_requires_width_and_family_transaction_controller_methods():
+    required = {
+        "commit_reconciled_width_structure",
+        "commit_family_model_transition",
+    }
+    missing = sorted(required - _controller_methods())
+    assert missing == [], f"RED: missing T2D controller methods: {missing}"
+
+
+def test_t2d_bridge_no_longer_owns_width_or_family_semantic_commits():
+    funcs = _functions(_tree(BRIDGE))
+    apply_settings = ast.unparse(funcs["_phase6_apply_setting_updates"])
+    baseline = ast.unparse(funcs["_phase6_on_baseline_model_changed"])
+
+    assert "commit_reconciled_width_structure" in apply_settings
+    assert "reconcile_box_body_structure_for_total_w_change" not in apply_settings
+
+    assert "commit_family_model_transition" in baseline
+
+    forbidden_tokens = (
+        "cabinet_family_policy.apply_fresh_family_defaults",
+        "cabinet_family_policy.fresh_assembly_intent",
+        "cabinet_family_policy.resolve_box_body_structure_state",
+        "normalize_endcap_bottom_wrap_state",
+        "_phase6_sync_joint_state_for_intent",
+        "_phase6_selection_to_raw",
+        "designer_workspace.set_box_body_structure_state",
+    )
+    leaked = [token for token in forbidden_tokens if token in baseline]
+    assert leaked == [], (
+        "RED: bridge still owns T2D family/model transaction semantics: "
+        f"{leaked}"
+    )
+
+    forbidden_attrs = {
+        "_phase6_assembly_type",
+        "_phase6_corner_state",
+        "_phase6_corner_pair_same",
+        "_phase6_endcap_bottom_wrap_state",
+    }
+    writes = []
+    for node in ast.walk(funcs["_phase6_on_baseline_model_changed"]):
+        if (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.ctx, (ast.Store, ast.Del))
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "self"
+            and node.attr in forbidden_attrs
+        ):
+            writes.append((node.attr, node.lineno))
+    assert writes == [], f"RED: bridge still directly writes T2D canonical attrs: {writes}"
+
+
+def test_t2d_controller_behavior_when_methods_exist():
+    methods = _controller_methods()
+    if not {
+        "commit_reconciled_width_structure",
+        "commit_family_model_transition",
+    } <= methods:
+        return
+
+    from phase6_box_body_structure import (
+        BoxBodyStructureType,
+        default_box_body_structure_state,
+    )
+    from phase6_designer_workspace import Phase6DesignerWorkspace
+    from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+
+    workspace = Phase6DesignerWorkspace.from_snapshot({
+        "existing_parts": ["box_body", "head", "tail"],
+        "active_part": "box_body",
+        "part_profiles": {},
+        "box_body_structure": default_box_body_structure_state(),
+    })
+    workspace.set_box_body_structure_state(
+        {
+            **default_box_body_structure_state(),
+            "active_type": BoxBodyStructureType.TWO_PIECE_W_SPLIT.value,
+            "locked": False,
+            "configs": {
+                **default_box_body_structure_state()["configs"],
+                BoxBodyStructureType.TWO_PIECE_W_SPLIT.value: {
+                    **default_box_body_structure_state()["configs"][
+                        BoxBodyStructureType.TWO_PIECE_W_SPLIT.value
+                    ],
+                    "left_w": 300.0,
+                    "right_w": 500.0,
+                    "last_driver": "left",
+                },
+            },
+        }
+    )
+    settings = {"w": 800.0, "h": 1600.0, "d": 300.0, "fw": 25.0}
+    snapshot = {
+        "model": "金庫型",
+        "w": 800.0,
+        "h": 1600.0,
+        "d": 300.0,
+        "fw": 25.0,
+        "existing_parts": ["box_body", "head", "tail"],
+        "factory_defaults": dict(settings),
+    }
+    corner_state = {}
+    corner_pairs = {}
+    owner = Phase6SettingsTransactionController(
+        settings_values=settings,
+        input_snapshot=snapshot,
+        box_whd={"w": 800.0, "h": 1600.0, "d": 300.0},
+        workspace=workspace,
+        corner_state=corner_state,
+        corner_pair_same=corner_pairs,
+    )
+
+    reconciled = owner.commit_reconciled_width_structure(900.0)
+    cfg = reconciled["configs"][BoxBodyStructureType.TWO_PIECE_W_SPLIT.value]
+    assert cfg["left_w"] == 300.0
+    assert cfg["right_w"] == 600.0
+
+    fixed = {
+        "head": {
+            "top_left": {"type_id": "OVERLAY", "rotation_quadrants": 0},
+            "top_right": {"type_id": "OVERLAY", "rotation_quadrants": 0},
+            "bottom_left": {"type_id": "INSERT", "rotation_quadrants": 0},
+            "bottom_right": {"type_id": "INSERT", "rotation_quadrants": 0},
+        }
+    }
+    plan = owner.commit_family_model_transition(
+        "受電箱",
+        "金庫型",
+        new_editable=False,
+        old_editable=False,
+        fixed_corner_state=fixed,
+        available_parts=("box_body", "head", "tail"),
+        previous_non_receiving_structure=workspace.box_body_structure_state(),
+    )
+    assert plan.new_model == "受電箱"
+    assert plan.editable is False
+    assert snapshot["model"] == "受電箱"
+    assert snapshot["assembly_type"]
+    assert snapshot["box_body_structure"]
+    assert corner_state["head"]["top_left"]["type_id"] == "OVERLAY"
