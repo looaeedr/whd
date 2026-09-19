@@ -1,0 +1,193 @@
+name: "QA #372 T8 compatibility remediation A-B"
+
+on:
+  push:
+    branches:
+      - fix/issue372-t8-phase3-compat-remediation-20260919
+    paths:
+      - '.github/workflows/qa-issue372-t8-remediation-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+  CANDIDATE_SHA: b377b47c613e718c308a2761fe64bec5daf798a0
+  PYTHONPATH: .
+  MPLBACKEND: Agg
+
+jobs:
+  candidate-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$CANDIDATE_SHA"
+          prod="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
+          test "$prod" = "$BASELINE_SHA"
+          echo "REMEDIATION_BASELINE=$BASELINE_SHA"
+          echo "REMEDIATION_CANDIDATE=$CANDIDATE_SHA"
+      - name: Install
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest matplotlib numpy shapely -r requirements.txt
+      - name: Recheck candidate-only updated contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue335_top_toolbar.py::test_output_authority_routes_are_unchanged             tests/test_issue336_left_content_switch.py::test_t3_source_contract_uses_one_main_selector_without_duplicate_content_strip             tests/test_issue340_keyboard_focus.py::test_t7_source_contract_installs_authoritative_shortcuts_and_focus_guards             tests/test_issue350_manufacturing_orchestration_extraction.py::test_issue350_phase1_only_service_wiring_is_retired_after_t4             tests/test_issue351_t6_compatibility_gate.py::test_issue351_compatibility_gate             tests/test_issue366_t2c_corner_external_controller.py::test_issue366_t2c_bridge_delegates_transaction_semantics_and_keeps_only_effects             tests/test_phase6_gui_performance_contract.py::test_external_designer_apply_has_explicit_anti_echo_guard_contract             tests/test_phase6_ui_state_regressions.py::test_box_assembly_combobox_selection_updates_joint_graph_without_rewriting_corner_state
+          xvfb-run -a python -m pytest -q             tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks             tests/test_issue340_keyboard_focus.py::test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas
+
+  ab:
+    needs: candidate-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: baseline-headless
+            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            mode: headless
+          - label: candidate-headless
+            sha: b377b47c613e718c308a2761fe64bec5daf798a0
+            mode: headless
+          - label: baseline-xvfb
+            sha: 94ef0fe00cc0d2d9b6fe6681d75843b282d5a62c
+            mode: xvfb
+          - label: candidate-xvfb
+            sha: b377b47c613e718c308a2761fe64bec5daf798a0
+            mode: xvfb
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+      - name: Install
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Protected before
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue372-remediation
+          find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'             > .scratch/issue372-remediation/protected-before.sha256
+      - name: Run stable ${{ matrix.mode }} behavior suite
+        shell: bash
+        run: |
+          set -uo pipefail
+          root=.scratch/issue372-remediation
+          set +e
+          if [ "${{ matrix.mode }}" = "xvfb" ]; then
+            xvfb-run -a python -m pytest -q -ra --tb=short               --json-report --json-report-file="$root/report.json"               tests/test_phase6_designer_workspace.py               tests/test_phase6_2d_3d_round_trip.py               tests/test_original_fold_designer_bridge.py               tests/test_gui_fold_designer_transaction_contract.py               tests/test_phase6_3d_view_regressions.py               tests/test_phase6_assembly_3d_view.py               tests/test_issue375_main_selector_navigation.py               tests/test_issue376_assembly_collapsible_data.py               tests/test_issue377_remove_wrapper_labels.py               tests/test_issue378_assembly_mousewheel.py               2>&1 | tee "$root/pytest.log"
+            rc=${PIPESTATUS[0]}
+          else
+            python -m pytest -q -ra --tb=short               --json-report --json-report-file="$root/report.json"               tests/test_phase6_bridge_domain_ownership.py               tests/test_phase6_update_executor_conformance.py               tests/test_issue366_t2_settings_transaction_owner.py               tests/test_issue367_t3_project_persistence_owner.py               tests/test_issue371_t7_lifecycle_facade_owner.py               tests/test_issue371_t7_update_runtime_behavior.py               tests/test_issue358_remove_manufacturing_callbacks.py               tests/test_issue361_one_line_manufacturing_facade.py               tests/test_resolved_manufacturing_bridge.py               2>&1 | tee "$root/pytest.log"
+            rc=${PIPESTATUS[0]}
+          fi
+          set -e
+          echo "$rc" > "$root/pytest.rc"
+          exit 0
+      - name: Normalize
+        if: always()
+        shell: bash
+        env:
+          LABEL: ${{ matrix.label }}
+          SHA: ${{ matrix.sha }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          set -euo pipefail
+          root=.scratch/issue372-remediation
+          find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'             > "$root/protected-after.sha256"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(".scratch/issue372-remediation")
+          report=json.loads((root/"report.json").read_text(encoding="utf-8"))
+          outcomes={}
+          errors=[]
+          for item in report.get("tests") or []:
+              node=str(item.get("nodeid") or "")
+              outcomes[node]=str(item.get("outcome") or "unknown")
+              if (item.get("setup") or {}).get("outcome")=="failed" or (item.get("teardown") or {}).get("outcome")=="failed":
+                  errors.append(node)
+          for item in report.get("collectors") or []:
+              if str(item.get("outcome") or "")=="failed":
+                  errors.append("COLLECT::"+str(item.get("nodeid") or "<collection>"))
+          payload={
+              "label":os.environ["LABEL"],
+              "sha":os.environ["SHA"],
+              "mode":os.environ["MODE"],
+              "rc":int((root/"pytest.rc").read_text().strip()),
+              "outcomes":outcomes,
+              "errors":sorted(set(errors)),
+              "protected_drift":(root/"protected-before.sha256").read_text() != (root/"protected-after.sha256").read_text(),
+          }
+          (root/"result.json").write_text(json.dumps(payload,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+          print(json.dumps({k:v for k,v in payload.items() if k!="outcomes"},indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue372-remediation-${{ matrix.label }}
+          path: .scratch/issue372-remediation
+          if-no-files-found: error
+
+  classify:
+    if: always() && needs.candidate-preflight.result == 'success' && needs.ab.result == 'success'
+    needs: [candidate-preflight, ab]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: issue372-remediation-*
+          path: .scratch/issue372-remediation-results
+      - name: Require exact stable behavior parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path(".scratch/issue372-remediation-results")
+          found={}
+          for path in root.rglob("result.json"):
+              p=json.loads(path.read_text(encoding="utf-8"))
+              found[p["label"]]=p
+          expected={"baseline-headless","candidate-headless","baseline-xvfb","candidate-xvfb"}
+          assert set(found)==expected,(found.keys(),expected)
+          for p in found.values():
+              assert not p["protected_drift"],p
+              assert not p["errors"],p
+              assert p["rc"] in (0,1),p
+          for mode in ("headless","xvfb"):
+              base=found[f"baseline-{mode}"]["outcomes"]
+              cand=found[f"candidate-{mode}"]["outcomes"]
+              assert base==cand, {
+                  "mode":mode,
+                  "missing":sorted(set(base)-set(cand)),
+                  "extra":sorted(set(cand)-set(base)),
+                  "changed":sorted(n for n in set(base)&set(cand) if base[n]!=cand[n]),
+              }
+          print("REMEDIATION_HEADLESS_EXACT_PARITY=1")
+          print("REMEDIATION_XVFB_EXACT_PARITY=1")
+          print("PROTECTED_DRIFT=0")
+          print("ISSUE372_REMEDIATION_AB_DECISION=GREEN")
+          PY
