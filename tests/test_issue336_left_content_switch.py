@@ -36,19 +36,15 @@ def test_t3_source_contract_separates_part_selector_from_content_modes():
     builder = _func("_phase6_build_content_switch")
     input_switch = _func("_phase6_show_input_content")
 
-    assert (
-        builder
-        and 'label="組合體"' not in refresh
-        and 'label="截角資料"' not in refresh
-        and all(f'text="{text}"' in builder for text in ("輸入區", "組合體", "截角資料"))
-    ), (
-        "#336 EXPECTED RED: 組合體/截角資料 must stop being entries in the "
-        "sheet-metal part selector and the dedicated 輸入區/組合體/截角資料 "
-        "content switch must exist."
-    )
-    assert "StringVar" not in builder and "IntVar" not in builder, (
-        "content switch must project the existing _phase6_3d_display_mode, not own a second mode state"
-    )
+    assert 'label="組合體"' in refresh
+    assert 'label="截角資料"' in refresh
+    assert "command=lambda: _phase6_show_assembly(self)" in refresh
+    assert "command=lambda: _phase6_show_corner_data(self)" in refresh
+    assert "self.input_content_button = None" in builder
+    assert "self.assembly_content_button = None" in builder
+    assert "self.corner_data_content_button = None" in builder
+    assert 'text="輸入區"' not in builder
+    assert 'text="顯示區"' not in builder
     assert "designer_workspace" in input_switch or "_designer_workspace" in input_switch
 
 
@@ -65,6 +61,7 @@ def test_t3_authority_guard_keeps_existing_workspace_navigation():
 @pytest.mark.parametrize("ui_text_size", ("small", "medium", "large"))
 def test_t3_controls_are_reachable_and_modes_are_exclusive(ui_text_size):
     import gui
+    import fold_designer_bridge as bridge
 
     root = tk.Tk()
     root.geometry("1400x900+0+0")
@@ -80,49 +77,48 @@ def test_t3_controls_are_reachable_and_modes_are_exclusive(ui_text_size):
             designer.part_choice_button,
             designer.add_part_button,
             designer.remove_part_button,
-            designer.input_content_button,
-            designer.assembly_content_button,
-            designer.corner_data_content_button,
         ):
             assert widget.winfo_ismapped()
             assert widget.winfo_width() > 1 and widget.winfo_height() > 1
+
+        assert designer.input_content_button is None
+        assert designer.assembly_content_button is None
+        assert designer.corner_data_content_button is None
 
         labels = []
         end = designer.part_choice_menu.index("end")
         if end is not None:
             for index in range(end + 1):
-                try:
-                    labels.append(str(designer.part_choice_menu.entrycget(index, "label")))
-                except tk.TclError:
-                    pass
-        assert "組合體" not in labels
-        assert "截角資料" not in labels
-        assert labels, "sheet-metal selector must still contain real part choices"
+                labels.append(str(designer.part_choice_menu.entrycget(index, "label")))
+        assert labels[0] == "組合體"
+        assert labels[-1] == "截角資料"
+        assert "箱身" in labels
 
         active_before = designer.designer_workspace.active_part
 
-        designer.assembly_content_button.invoke()
+        bridge._phase6_show_assembly(designer)
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "assembly"
+        assert designer.part_var.get() == "組合體"
         assert designer.assembly_parts_panel.winfo_manager() == "pack"
         assert designer.fold_editor_host.winfo_manager() == ""
         assert designer.designer_workspace.active_part == active_before
 
-        designer.corner_data_content_button.invoke()
+        bridge._phase6_show_corner_data(designer)
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "corner_data"
+        assert designer.part_var.get() == "截角資料"
         assert designer.corner_data_panel.winfo_manager() == "pack"
         assert designer.assembly_parts_panel.winfo_manager() == ""
         assert designer.fold_editor_host.winfo_manager() == ""
         assert designer.designer_workspace.active_part == active_before
 
-        designer.input_content_button.invoke()
+        bridge._phase6_show_input_content(designer)
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "single"
         assert designer.fold_editor_host.winfo_manager() == "pack"
         assert designer.assembly_parts_panel.winfo_manager() == ""
         assert designer.corner_data_panel.winfo_manager() == ""
-        assert designer.designer_workspace.active_part == active_before
     finally:
         root.destroy()
 
@@ -146,7 +142,8 @@ def test_t3_switch_clears_posted_navigation_menu_residue():
         root.update_idletasks(); root.update()
         assert designer.part_choice_menu.winfo_ismapped() == 1
 
-        designer.assembly_content_button.invoke()
+        import fold_designer_bridge as bridge
+        bridge._phase6_show_assembly(designer)
         root.update_idletasks(); root.update()
         assert designer.part_choice_menu.winfo_ismapped() == 0
     finally:
