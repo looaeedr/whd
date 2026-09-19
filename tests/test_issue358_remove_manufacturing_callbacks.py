@@ -104,10 +104,10 @@ def test_issue358_bridge_facade_routes_ui_inputs_through_adapter():
     import fold_designer_bridge
 
     source = inspect.getsource(fold_designer_bridge._phase6_resolve_manufacturing_geometry)
-    assert "resolve_manufacturing_for_app" in source
-    assert "_phase6_scene_query_payload_for_part" in source
-    assert "_phase6_operator_finished_dimensions" in source
-    assert "_phase6_publish_live_state" in source
+    assert "resolve_for_app" in source
+    assert "_phase6_call_bridge" not in source
+    assert "_phase6_scene_query_payload_for_part" not in source
+    assert "_phase6_operator_finished_dimensions" not in source
 
 
 def test_issue358_adapter_preserves_active_unsaved_profiles():
