@@ -150,11 +150,11 @@ class Phase6FinalSceneViewAdapter:
         )
 
     def query_assembly_render_data(self):
-        deps = self.dependencies
-        resolved = deps.resolve_geometry()
-        deps.publish_live_state(force=True)
+        dependencies = self.dependencies
+        resolved = dependencies.resolve_geometry()
+        dependencies.publish_live_state(force=True)
 
-        part_cls = deps.assembly_part_cls
+        part_cls = dependencies.assembly_part_cls
         parts = tuple(
             part_cls(
                 part_key=part.part_key,
@@ -173,22 +173,22 @@ class Phase6FinalSceneViewAdapter:
             for part in resolved.parts
         )
 
-        corner_text = deps.corner_dimension_text
+        corner_text = dependencies.corner_dimension_text
         corner_texts = {
             part.part_key: corner_text(part.render_data)
             for part in parts
         }
-        deps.assembly_corner_text_sink(corner_texts)
+        dependencies.assembly_corner_text_sink(corner_texts)
 
-        snapshot = dict(deps.input_snapshot() or {})
-        settings = dict(deps.settings_values() or {})
+        snapshot = dict(dependencies.input_snapshot() or {})
+        settings = dict(dependencies.settings_values() or {})
         thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-        formed_text = deps.formed_size_text
-        blank_text = deps.blank_text
-        dimensions = deps.operator_dimensions
-        refresh_box_body = deps.refresh_box_body_piece_info
+        formed_text = dependencies.formed_size_text
+        blank_text = dependencies.blank_text
+        dimensions = dependencies.operator_dimensions
+        refresh_box_body = dependencies.refresh_box_body_piece_info
         for part in parts:
-            deps.assembly_part_text_sink(
+            dependencies.assembly_part_text_sink(
                 "formed",
                 part.part_key,
                 formed_text(
@@ -200,7 +200,7 @@ class Phase6FinalSceneViewAdapter:
                     finished_dimensions=dimensions(part.part_key),
                 ),
             )
-            deps.assembly_part_text_sink(
+            dependencies.assembly_part_text_sink(
                 "blank",
                 part.part_key,
                 blank_text(part.render_data, part_key=part.part_key),
@@ -208,44 +208,44 @@ class Phase6FinalSceneViewAdapter:
             if part.part_key == "box_body" and callable(refresh_box_body):
                 refresh_box_body(part.render_data)
 
-        visibility = deps.assembly_visibility(parts)
+        visibility = dependencies.assembly_visibility(parts)
         visible_part_keys = tuple(visibility[0] or ())
         visible_box_body_piece_keys = visibility[1]
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
-            for part in tuple(deps.interference_probe_parts() or ())
+            for part in tuple(dependencies.interference_probe_parts() or ())
             if str(getattr(part, "part_key", "")) in visible_set
         )
-        cabinet_family = deps.cabinet_family()
+        cabinet_family = dependencies.cabinet_family()
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
             visible_box_body_piece_keys=visible_box_body_piece_keys,
-            show_interference=bool(deps.show_interference()),
+            show_interference=bool(dependencies.show_interference()),
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),
             selected_joint_id=None,
             preserve_endcap_core_origin=(cabinet_family == "受電箱"),
-            render_data_cls=deps.assembly_render_data_cls,
+            render_data_cls=dependencies.assembly_render_data_cls,
         )
 
     def build_request(self):
-        deps = self.dependencies
-        active_part = str(deps.active_part() or "")
+        dependencies = self.dependencies
+        active_part = str(dependencies.active_part() or "")
         if not active_part:
             return None
 
-        snapshot = dict(deps.input_snapshot() or {})
-        settings = dict(deps.settings_values() or {})
+        snapshot = dict(dependencies.input_snapshot() or {})
+        settings = dict(dependencies.settings_values() or {})
         thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-        alpha_bend = float(deps.alpha_bend())
-        dimensions = deps.operator_dimensions
-        view_mode = str(deps.display_mode() or "single")
+        alpha_bend = float(dependencies.alpha_bend())
+        dimensions = dependencies.operator_dimensions
+        view_mode = str(dependencies.display_mode() or "single")
 
         if view_mode == "assembly":
-            provider = deps.assembly_render_provider
+            provider = dependencies.assembly_render_provider
             assembly_render_data = (
                 provider()
                 if callable(provider)
@@ -259,12 +259,12 @@ class Phase6FinalSceneViewAdapter:
                 alpha_bend=alpha_bend,
                 finished_dimensions=dimensions(None),
                 thickness=thickness,
-                unfolded_blank_text=deps.assembly_blank_text(
+                unfolded_blank_text=dependencies.assembly_blank_text(
                     assembly_render_data
                 ),
             )
 
-        provider = deps.final_render_provider
+        provider = dependencies.final_render_provider
         render_data = (
             provider()
             if callable(provider)
@@ -273,7 +273,7 @@ class Phase6FinalSceneViewAdapter:
         if getattr(render_data, "pieces", None):
             x_profile, y_profile = (), ()
         else:
-            x_profile, y_profile = deps.active_mesh_profiles(
+            x_profile, y_profile = dependencies.active_mesh_profiles(
                 render_data.material
             )
         return FinalSceneViewRequest(
@@ -284,10 +284,10 @@ class Phase6FinalSceneViewAdapter:
             alpha_bend=alpha_bend,
             finished_dimensions=dimensions(None),
             thickness=thickness,
-            corner_dimension_text=deps.corner_dimension_text(
+            corner_dimension_text=dependencies.corner_dimension_text(
                 render_data
             ),
-            unfolded_blank_text=deps.blank_text(
+            unfolded_blank_text=dependencies.blank_text(
                 render_data,
                 part_key=active_part,
             ),
