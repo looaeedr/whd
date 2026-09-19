@@ -272,3 +272,11 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 - FAIL：先回報 exact failure evidence，再進 RECOVERING；可自行修復時不得停。
 - COMPLETE：只有 acceptance/cleanup/closure 真的完成才可使用。
 - immediate report 是 progress update；不改 durable state，不繞過 NONTERMINAL_NEXT_ACTION_GATE，也不是 turn-exit 授權。
+
+### POLLING_OBSERVATION_ONLY_BRIDGE
+
+本 Skill 必須 bridge executable-continuity-controller::POLLING_OBSERVATION_ONLY。
+
+若沒有獨立 progress producer 正在推進，禁止把「輪詢」當工作本身。此時必須回 RUNNING / RECOVERING，直接執行能產生下一個 state change 的實作、trigger、修復或驗證 prerequisite。
+
+使用者不是 scheduler，也不是 executor；不得靠使用者反覆輸入「輪／繼續」才讓工作往前。
