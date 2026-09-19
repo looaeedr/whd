@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#351 compatibility gate, evolved by #358 for Phase 2 callback retirement."""
+"""#351 durable compatibility gate, evolved through #360 pure-service cutover."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import ast
 from pathlib import Path
 
 OWNER = Path("phase6_manufacturing_geometry.py")
+SERVICE = Path("phase6_manufacturing_service.py")
 BRIDGE = Path("fold_designer_bridge.py")
 
 SHARED_REEXPORTS = {
@@ -32,7 +33,6 @@ SHARED_REEXPORTS = {
     "_phase6_resolve_explicit_joint_reliefs",
     "_phase6_resolve_family_divider_reliefs",
 }
-OWNER_ONLY = {"_phase6_resolve_manufacturing_result"}
 BRIDGE_FACADE = "_phase6_resolve_manufacturing_geometry"
 RETIRED_SERVICE_WIRING = {
     "_phase6_mesh_profiles_for_part",
@@ -126,11 +126,35 @@ def instance_shadowing(mod: ast.Module) -> list[tuple[int, str]]:
     return hits
 
 
+def service_purity(mod: ast.Module) -> None:
+    imports = []
+    for node in ast.walk(mod):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imports.append(node.module)
+    roots = {name.split(".", 1)[0] for name in imports}
+    forbidden_roots = {"fold_designer_bridge", "tkinter", "gui", "gui_modules"}
+    assert not (roots & forbidden_roots), f"SERVICE_FORBIDDEN_IMPORTS={sorted(roots & forbidden_roots)}"
+
+    names = {node.id for node in ast.walk(mod) if isinstance(node, ast.Name)}
+    attrs = {node.attr for node in ast.walk(mod) if isinstance(node, ast.Attribute)}
+    forbidden = {
+        "self", "designer_workspace", "_scene_query_callback",
+        "_PHASE6_BRIDGE_CALLBACKS", "_phase6_bind_bridge_callbacks", "_phase6_call_bridge",
+    }
+    assert not (forbidden & (names | attrs)), (
+        f"SERVICE_FORBIDDEN_REFS={sorted(forbidden & (names | attrs))}"
+    )
+
+
 def main() -> int:
     owner = tree(OWNER)
+    service = tree(SERVICE)
     bridge = tree(BRIDGE)
 
     owner_names = defined_names(owner)
+    service_names = defined_names(service)
     bridge_names = defined_names(bridge)
     imported = imported_from_owner(bridge)
 
@@ -144,15 +168,17 @@ def main() -> int:
         f"BRIDGE_REEXPORT_MISSING={sorted(SHARED_REEXPORTS-imported)}"
     )
 
-    assert OWNER_ONLY <= owner_names, f"OWNER_ONLY_MISSING={sorted(OWNER_ONLY-owner_names)}"
-    assert not (OWNER_ONLY & bridge_names), f"OWNER_ONLY_BRIDGE_DUPLICATE={sorted(OWNER_ONLY & bridge_names)}"
-    assert not (OWNER_ONLY & imported), f"OWNER_ONLY_REEXPORTED={sorted(OWNER_ONLY & imported)}"
+    assert "resolve" in service_names, "PURE_SERVICE_RESOLVE_MISSING"
+    assert "_phase6_resolve_manufacturing_result" not in owner_names, (
+        "LEGACY_ORCHESTRATION_STILL_IN_GEOMETRY_OWNER"
+    )
 
     assert BRIDGE_FACADE in bridge_names, "BRIDGE_FACADE_MISSING"
     assert BRIDGE_FACADE not in owner_names, "BRIDGE_FACADE_DUPLICATED_IN_OWNER"
 
-    reverse = reverse_bridge_imports(owner)
-    assert reverse == [], f"REVERSE_BRIDGE_IMPORT_LINES={reverse}"
+    assert reverse_bridge_imports(owner) == [], "OWNER_REVERSE_BRIDGE_IMPORT"
+    assert reverse_bridge_imports(service) == [], "SERVICE_REVERSE_BRIDGE_IMPORT"
+    service_purity(service)
 
     wired = class_wiring(bridge)
     assert not (RETIRED_SERVICE_WIRING & set(wired)), (
@@ -167,24 +193,20 @@ def main() -> int:
     assert not shadows, f"INSTANCE_SHADOWING={shadows}"
 
     resolver = next(
-        node for node in owner.body
-        if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_result"
+        node for node in service.body
+        if isinstance(node, ast.FunctionDef) and node.name == "resolve"
     )
-    loaded = {
-        node.id for node in ast.walk(resolver)
-        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
-    }
-    assert "_phase6_call_bridge" not in loaded
-    assert "_phase6_bind_bridge_callbacks" not in loaded
-    assert "_PHASE6_BRIDGE_CALLBACKS" not in loaded
+    assert [arg.arg for arg in resolver.args.args] == ["request"]
 
     print(f"PASS shared_reexports={len(SHARED_REEXPORTS)}")
-    print(f"PASS owner_only={len(OWNER_ONLY)}")
-    print("PASS reverse_bridge_imports=0")
+    print("PASS pure_service_resolve=1")
+    print("PASS service_self_refs=0")
+    print("PASS service_bridge_imports=0")
+    print("PASS service_tk_imports=0")
+    print("PASS service_designer_workspace_refs=0")
+    print("PASS service_callback_registry_refs=0")
     print("PASS retired_service_wiring=0")
     print(f"PASS retained_compat_wiring={len(RETAINED_COMPAT_WIRING)}")
-    print("PASS phase1_binder_calls=0")
     print("PASS bridge_facade=1")
     return 0
 
