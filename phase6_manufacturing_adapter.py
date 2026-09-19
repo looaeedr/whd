@@ -8,6 +8,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from typing import Any
+import re
 
 from phase6_manufacturing_contracts import (
     ManufacturingPartInput,
@@ -36,7 +37,6 @@ from phase6_fold_profiles import (
     engine_segment_length_to_ui,
     read_box_body_profile,
     read_endcap_xy_profiles,
-    read_standard_part_profiles,
 )
 from phase6_manufacturing_cache import (
     ManufacturingCacheKey,
@@ -45,6 +45,67 @@ from phase6_manufacturing_cache import (
 
 
 _CORNER_KEYS = ("bottom_left", "bottom_right", "top_left", "top_right")
+
+
+def _is_door_part_key(value) -> bool:
+    key = str(value or "")
+    return key == "door" or re.fullmatch(r"door_c\d+_r\d+", key) is not None
+
+
+def _is_base_plate_part_key(value) -> bool:
+    key = str(value or "")
+    return key == "base_plate" or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
+
+
+def _profile_value(profile, key, default=0):
+    for seg in profile or ():
+        if seg.get("phase6_key") == key:
+            return float(seg.get("len") or 0)
+    return float(default or 0)
+
+
+def read_standard_part_profiles(part_key, profiles, original_snapshot):
+    """Canonical reverse mapping for standard saved-part fold profiles."""
+    x = list((profiles or {}).get("X", ()))
+    y = list((profiles or {}).get("Y", ()))
+    if _is_door_part_key(part_key):
+        return {
+            "door_fold_l": _profile_value(x, "door_fold_l", original_snapshot.get("door_fold_l", 20)),
+            "door_fold_r": _profile_value(x, "door_fold_r", original_snapshot.get("door_fold_r", 20)),
+            "door_fold_b": _profile_value(y, "door_fold_b", original_snapshot.get("door_fold_b", 20)),
+            "door_fold_t": _profile_value(y, "door_fold_t", original_snapshot.get("door_fold_t", 20)),
+        }
+    if _is_base_plate_part_key(part_key):
+        vals = [
+            _profile_value(x, "base_bend_l", original_snapshot.get("base_plate_bend", 20)),
+            _profile_value(x, "base_bend_r", original_snapshot.get("base_plate_bend", 20)),
+            _profile_value(y, "base_bend_b", original_snapshot.get("base_plate_bend", 20)),
+            _profile_value(y, "base_bend_t", original_snapshot.get("base_plate_bend", 20)),
+        ]
+        if len(set(vals)) != 1:
+            raise ValueError("底板四邊折彎目前由 Phase6 共用一個 bend 值，四邊必須相同")
+        return {"base_plate_bend": vals[0]}
+    if part_key == "indicator_box":
+        vals = [
+            _profile_value(x, "ib_fold_l", original_snapshot.get("indicator_box_fold", 49)),
+            _profile_value(x, "ib_fold_r", original_snapshot.get("indicator_box_fold", 49)),
+            _profile_value(y, "ib_fold_b", original_snapshot.get("indicator_box_fold", 49)),
+            _profile_value(y, "ib_fold_t", original_snapshot.get("indicator_box_fold", 49)),
+        ]
+        if len(set(vals)) != 1:
+            raise ValueError("指示燈盒四邊折彎必須相同")
+        return {"indicator_box_fold": vals[0]}
+    if part_key == "indicator_door":
+        vals = [
+            _profile_value(x, "id_fold_l", original_snapshot.get("indicator_door_fold", 19)),
+            _profile_value(x, "id_fold_r", original_snapshot.get("indicator_door_fold", 19)),
+            _profile_value(y, "id_fold_b", original_snapshot.get("indicator_door_fold", 19)),
+            _profile_value(y, "id_fold_t", original_snapshot.get("indicator_door_fold", 19)),
+        ]
+        if len(set(vals)) != 1:
+            raise ValueError("指示燈小門四邊折彎必須相同")
+        return {"indicator_door_fold": vals[0]}
+    return {}
 
 
 def _corner_policy_for_app(app: Any, part_key: str):
@@ -614,5 +675,6 @@ __all__ = [
     "resolve_for_app",
     "build_scene_payload_for_app",
     "operator_finished_dimensions_for_app",
+    "read_standard_part_profiles",
     "build_manufacturing_cache_key",
 ]
