@@ -128,6 +128,17 @@ def _phase6_profile_flat_map(position, boundaries, *, profile=None):
 
 def _phase6_folded_mesh_from_polygon(
     material, x_profile, y_profile, *, fold_exemptions=(), fold_guides=()
+):
+    """Compatibility wrapper around shared manufacturing-space folding."""
+    from ae_engine.assembly_geometry import folded_mesh_from_polygon
+
+    return list(folded_mesh_from_polygon(
+        material,
+        x_profile,
+        y_profile,
+        fold_exemptions=fold_exemptions,
+        fold_guides=fold_guides,
+    ))
 
 
 def _phase6_mesh_feature_segments(triangles, *, tolerance=1e-6):
