@@ -207,4 +207,3 @@ Scheduled re-entry 的 user-visible heartbeat authority 在 `executable-continui
 當 scheduled heartbeat 投影為 `WAITING_REMOTE` 時，必須從目前 canonical lock 提供 exact `run_id + head_sha`、目前 step / status、最後一次 remote updated evidence，以及「正常等待既有 RUN」或 stale/recovery 判斷。Active/non-stale run 仍鎖同一 run，禁止另建 replacement RUN；疑似 stale 時沿本 Skill 的既有 stale policy 轉 recovery。
 
 這個 scheduled heartbeat 不取代 live Runtime 約 30 秒一次的 polling/回報；而任何 progress update 都不是停工點，回報後 remote lock 還 active 就繼續 poll。
-
