@@ -120,6 +120,19 @@ class _Phase6UpdateScheduler:
             self._flushing = False
         return bool(reasons)
 
+    def cancel_pending(self):
+        if self._after_job is not None:
+            root = getattr(self.owner, "root", None)
+            try:
+                if root is not None:
+                    root.after_cancel(self._after_job)
+            except Exception:
+                pass
+            self._after_job = None
+        self.dirty.clear()
+        self.depth = 0
+        return True
+
     def metrics_snapshot(self):
         return dict(self._metrics)
 
@@ -201,6 +214,14 @@ def flush_fold_designer_update_intents(owner, *, executor):
     return scheduler.flush_now()
 
 
+def cancel_fold_designer_update_intents(owner):
+    scheduler = getattr(owner, "_phase6_update_scheduler", None)
+    cancel = getattr(scheduler, "cancel_pending", None)
+    if callable(cancel):
+        return cancel()
+    return False
+
+
 def queue_fold_designer_update(owner, *, executor):
     if (
         getattr(owner, "_phase6_destroying", False)
@@ -260,7 +281,25 @@ def _request_phase6_update(self, reason="geometry", *, immediate=False, debounce
     scheduler = getattr(self, "_phase6_update_scheduler", None)
     if scheduler is None:
         scheduler = self._phase6_update_scheduler = _Phase6UpdateScheduler(self)
-    scheduler.submit(reason, immediate=bool(immediate), debounce_ms=debounce_ms)
+
+    submit = getattr(scheduler, "submit", None)
+    if callable(submit):
+        submit(reason, immediate=bool(immediate), debounce_ms=debounce_ms)
+        return True
+
+    # Compatibility seam for legacy/test schedulers that implement the
+    # pre-T7 mark_dirty/flush_now/request_flush protocol.
+    mark_dirty = getattr(scheduler, "mark_dirty", None)
+    if not callable(mark_dirty):
+        raise AttributeError("update scheduler provides neither submit nor mark_dirty")
+    mark_dirty(reason)
+    if immediate:
+        flush_now = getattr(scheduler, "flush_now", None)
+        return flush_now() if callable(flush_now) else True
+    if debounce_ms is not None:
+        request_flush = getattr(scheduler, "request_flush", None)
+        if callable(request_flush):
+            request_flush(debounce_ms=debounce_ms)
     return True
 
 
