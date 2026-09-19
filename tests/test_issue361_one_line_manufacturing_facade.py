@@ -149,5 +149,6 @@ def test_issue362_facade_preserves_provider_missing_fail_closed_after_cache_miss
             scene_payload_builder=lambda key: {},
             render_data_provider=None,
             cache_service=ManufacturingCacheService(),
+            require_render_provider=True,
         )
 
