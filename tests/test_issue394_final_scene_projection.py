@@ -30,6 +30,7 @@ REQUIRED_PROJECTION_FUNCTIONS = {
     "format_operator_info_text",
     "_phase6_triangle_bounds",
     "_phase6_place_assembly_triangles",
+    "make_assembly_scene_render_data",
 }
 
 
@@ -124,3 +125,32 @@ def test_issue394_projection_smoke_keeps_profile_mapping_contract():
     )
     assert isinstance(flat, float)
     assert z == 0.0
+
+
+def test_issue394_adapter_and_bridge_delegate_assembly_dto_projection():
+    bridge = Path("fold_designer_bridge.py")
+    view_tree = _tree(VIEW)
+    bridge_tree = _tree(bridge)
+
+    cls = next(
+        node for node in view_tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FinalSceneViewAdapter"
+    )
+    method = next(
+        node for node in cls.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "make_assembly_scene_render_data"
+    )
+    assert "_project_assembly_scene_render_data" in ast.unparse(method)
+
+    bridge_funcs = {
+        node.name: node
+        for node in bridge_tree.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    helper = ast.unparse(
+        bridge_funcs["_phase6_make_assembly_scene_render_data"]
+    )
+    assert "_project_assembly_scene_render_data" in helper
+    assert "Phase6FinalSceneViewAdapter(" not in helper
