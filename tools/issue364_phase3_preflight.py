@@ -594,7 +594,7 @@ def main() -> int:
         "baseline_sha": BASELINE_SHA,
         "baseline_failure_evidence_run": BASELINE_RUN,
         "bridge": {
-            "lines": len(source.splitlines()),
+            "lines": len(source.split("\n")),
             "top_level_functions": len(inventory),
             "classifications": dict(sorted(counts.items())),
             "responsibility_groups": dict(sorted(groups.items())),
