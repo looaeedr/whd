@@ -1,0 +1,35 @@
+name: "QA #404 T4 scheduler driver RED"
+
+on:
+  push:
+    branches:
+      - continuity/issue404-scheduled-resume-runtime-20260920
+    paths:
+      - 'tests/process/test_issue404_scheduler_driver.py'
+      - '.github/workflows/qa-issue404-t4-driver-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Confirm intended driver RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/process/test_issue404_scheduler_driver.py --tb=short | tee /tmp/red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "ModuleNotFoundError: No module named 'tools.scheduled_resume_driver'" /tmp/red.log
+          echo "PASS EXPECTED_T4_DRIVER_RED=1"
