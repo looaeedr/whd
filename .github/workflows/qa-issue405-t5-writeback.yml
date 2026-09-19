@@ -1,0 +1,46 @@
+name: "QA #405 T5 durable writeback"
+
+on:
+  push:
+    branches:
+      - continuity/issue405-final-acceptance-20260920
+    paths:
+      - '.agents/skills/engineering/executable-continuity-controller/SKILL.md'
+      - '.agents/skills/engineering/monitoring-remote-qa/SKILL.md'
+      - '.agents/skills/engineering/執行開發任務/SKILL.md'
+      - '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+      - '個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md'
+      - '.github/workflows/qa-issue405-t5-writeback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  writeback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Durable contract markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^## CHATGPT_SCHEDULED_REENTRY_V1$' .agents/skills/engineering/executable-continuity-controller/SKILL.md
+          grep -q '^## CHATGPT_SCHEDULED_REENTRY_REMOTE_QA_BRIDGE$' .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+          grep -q '^## CHATGPT_SCHEDULED_REENTRY_EXECUTION_BRIDGE$' .agents/skills/engineering/執行開發任務/SKILL.md
+          grep -q '^### whd-chatgpt-scheduled-resume$' 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+          grep -q '^whd_doc_role: CURRENT$' 個人AI檔案庫/第二層_專案與SOP/11_WHD_Scheduled_Resume_ChatGPT自動續跑規則.md
+          grep -q 'Primary wake/executor: hourly ChatGPT scheduled re-entry' 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+          grep -q 'GitHub Actions schedule role: watchdog / lease / remote-state safety net only' 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+          echo "PASS DURABLE_WRITEBACK=1"
+      - name: Scope and formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check 6c41f982e27ab4bdfab39bd990c3643e9429e397...HEAD
+          git diff --name-only 6c41f982e27ab4bdfab39bd990c3643e9429e397...HEAD | tee /tmp/files.txt
+          test "$(grep -Ec '^(gui.py|fold_designer_bridge.py|gui_modules/|ae_engine/|config.ini|基準檔/)' /tmp/files.txt || true)" -eq 0
+          echo "PASS WRITEBACK_PROTECTED_DRIFT=0"
