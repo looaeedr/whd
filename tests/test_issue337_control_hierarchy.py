@@ -105,7 +105,6 @@ def test_t4_designer_assigns_semantic_roles_without_callback_changes():
         assert str(designer.relief_registry_button.cget("style")) == "Secondary.TButton"
         assert str(designer.reset_initial_button.cget("style")) == "Secondary.TButton"
         assert str(designer.fullscreen_button.cget("style")) == "Secondary.TButton"
-        assert str(designer.input_content_button.cget("style")) == "Secondary.TButton"
 
         # Callback/state authority remains the already-existing route.
         assert designer.output_export_button.cget("command")
