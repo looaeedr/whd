@@ -89,6 +89,42 @@ def _scene_values_for_part(app: Any, part_key: str, builder=None) -> Any:
     return payload
 
 
+def _domain_inputs_for_part(
+    app: Any,
+    part_key: str,
+    scene_values: Any,
+    *,
+    render_data_provider=None,
+    part_spec_provider=None,
+):
+    """Materialize UI/application-derived domain inputs before pure service entry."""
+    key = str(part_key or "")
+    render_data = committed_render_data = None
+    part_spec = manufacturing_context = None
+
+    if callable(render_data_provider):
+        base_payload = dict(scene_values or {})
+        base_payload["_use_committed_relief"] = False
+        render_data = render_data_provider(key, base_payload)
+        if key in {"head", "tail"}:
+            committed_payload = dict(scene_values or {})
+            committed_payload["_use_committed_relief"] = True
+            committed_render_data = render_data_provider(key, committed_payload)
+        else:
+            committed_render_data = render_data
+
+    if callable(part_spec_provider) and key in {"head", "tail"}:
+        spec_payload = dict(scene_values or {})
+        spec_payload["_use_committed_relief"] = False
+        resolved = part_spec_provider(key, spec_payload)
+        if isinstance(resolved, tuple) and len(resolved) == 2:
+            part_spec, manufacturing_context = resolved
+        elif resolved is not None:
+            raise TypeError("part_spec_provider must return (spec, context)")
+
+    return render_data, committed_render_data, part_spec, manufacturing_context
+
+
 def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any:
     provider = provider if callable(provider) else getattr(app, "_phase6_operator_finished_dimensions", None)
     if not callable(provider):
@@ -143,7 +179,10 @@ def build_manufacturing_request(
     app: Any,
     *,
     scene_payload_builder=None,
+    render_data_provider=None,
+    part_spec_provider=None,
     finished_dimensions_provider=None,
+    cache_key_fingerprint="",
 ) -> ManufacturingResolveRequest:
     """Build one immutable manufacturing request from current app/workspace state.
 
@@ -162,10 +201,24 @@ def build_manufacturing_request(
     part_inputs: list[ManufacturingPartInput] = []
     for key in _canonical_part_keys(app):
         x_profile, y_profile = _profile_inputs_for_part(app, key)
+        scene_values = _scene_values_for_part(app, key, scene_payload_builder)
+        render_data, committed_render_data, part_spec, manufacturing_context = (
+            _domain_inputs_for_part(
+                app,
+                key,
+                scene_values,
+                render_data_provider=render_data_provider,
+                part_spec_provider=part_spec_provider,
+            )
+        )
         part_inputs.append(
             ManufacturingPartInput(
                 part_key=key,
-                scene_values=_scene_values_for_part(app, key, scene_payload_builder),
+                scene_values=scene_values,
+                render_data=render_data,
+                committed_render_data=committed_render_data,
+                part_spec=part_spec,
+                manufacturing_context=manufacturing_context,
                 x_profile=x_profile,
                 y_profile=y_profile,
                 finished_dimensions=_finished_dimensions_for_part(app, key, finished_dimensions_provider),
@@ -178,6 +231,7 @@ def build_manufacturing_request(
     request = ManufacturingResolveRequest(
         source_revision=str(getattr(app, "_phase6_sync_revision", "") or ""),
         source_fingerprint="",
+        cache_key_fingerprint=str(cache_key_fingerprint or ""),
         input_snapshot=snapshot,
         settings=settings,
         box_dimensions=box_dimensions,
@@ -228,6 +282,8 @@ def resolve_manufacturing_for_app(
     app: Any,
     *,
     scene_payload_builder=None,
+    render_data_provider=None,
+    part_spec_provider=None,
     finished_dimensions_provider=None,
     publish_live_state=None,
     cache_service=None,
@@ -249,15 +305,14 @@ def resolve_manufacturing_for_app(
     request = build_manufacturing_request(
         app,
         scene_payload_builder=scene_payload_builder,
+        render_data_provider=render_data_provider,
+        part_spec_provider=part_spec_provider,
         finished_dimensions_provider=finished_dimensions_provider,
+        cache_key_fingerprint=key.fingerprint,
     )
-    from phase6_manufacturing_geometry import _phase6_resolve_manufacturing_result
+    import phase6_manufacturing_service as service
 
-    result = _phase6_resolve_manufacturing_result(
-        app,
-        request,
-        signature=key.fingerprint,
-    )
+    result = service.resolve(request)
     geometry = apply_manufacturing_result(app, result)
 
     if result.effects.publish_live_state and callable(publish_live_state):
