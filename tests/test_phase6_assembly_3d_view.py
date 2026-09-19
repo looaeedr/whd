@@ -650,10 +650,12 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
     assert [part.part_key for part in bundle.assembly_parts] == ["box_body"]
 
 
-def test_bridge_verified_relief_requeries_authoritative_render_provider_with_solver_cuts(monkeypatch):
-    """Assembly 3D must display the same Manufacturing PartRenderData that 2D/DXF replay uses."""
+def test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts(monkeypatch):
+    """Assembly 3D must replay the same canonical PartSpec path used by 2D/DXF."""
     import ae_engine.assembly_collision as collision
+    import phase6_manufacturing_service as manufacturing_service
     import fold_designer_bridge as bridge
+    from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -666,12 +668,28 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         "tail": SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 92, 72), fold_guides=()),
     }
     callback_calls = []
+    replay_specs = []
 
     def callback(part_key, payload):
         callback_calls.append((part_key, dict(payload)))
-        if part_key in canonical and payload.get("resolved_assembly_relief_cuts"):
-            return canonical[part_key]
         return raw[part_key]
+
+    def part_spec_callback(part_key, payload):
+        return (
+            EndCapPartSpec(
+                width=100.0,
+                depth=80.0,
+                thickness=2.0,
+                frame_width=25.0,
+                height=40.0,
+                is_tail=part_key == "tail",
+            ),
+            ManufacturingContext(),
+        )
+
+    def fake_build_part_render_data(spec, context):
+        replay_specs.append(spec)
+        return canonical["tail" if spec.is_tail else "head"]
 
     def fake_solver(**kwargs):
         placement = kwargs["endcap_placement"]
@@ -680,7 +698,8 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
             corner_name="bottom_left" if placement == "top" else "top_left",
             primary_u=7.0, primary_v=9.0, secondary_u=None, secondary_depth=None, clearance_a=0.0,
         )
-        # Same geometry, different object: final display must still come from the provider.
+        # Same geometry, different object: final display must still come from
+        # the canonical PartSpec replay, not solver-private render data.
         solver_private = SimpleNamespace(
             scene=DrawingScene(),
             material=(canonical["head"].material if placement == "top" else canonical["tail"].material),
@@ -693,6 +712,7 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         )
 
     monkeypatch.setattr(collision, "solve_world_backprojected_endcap_relief", fake_solver)
+    monkeypatch.setattr(manufacturing_service, "build_part_render_data", fake_build_part_render_data)
     flat_x = [{"len": 100.0, "core": True}]
     flat_y = [{"len": 80.0, "core": True}]
     app = SimpleNamespace(
@@ -705,9 +725,13 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
         }),
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
         _scene_query_callback=callback,
-        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]}, _phase6_assembly_type="INSERT", _settings_values={"t": 2.0},
+        _part_spec_query_callback=part_spec_callback,
+        _phase6_input_snapshot={"t": 2.0, "assembly_type": "INSERT", "existing_parts": ["box_body", "head", "tail"]},
+        _phase6_assembly_type="INSERT",
+        _settings_values={"t": 2.0},
         _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
-        _phase6_corner_state={}, _phase6_endcap_fw_state={},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
         assembly_ignore_fixed_corner_var=SimpleNamespace(get=lambda: True),
         assembly_show_interference_var=SimpleNamespace(get=lambda: True),
         assembly_relief_clearance_var=SimpleNamespace(get=lambda: "0"),
@@ -719,10 +743,15 @@ def test_bridge_verified_relief_requeries_authoritative_render_provider_with_sol
 
     assert by_key["head"].render_data is canonical["head"]
     assert by_key["tail"].render_data is canonical["tail"]
-    replay_calls = [payload for key, payload in callback_calls if key in {"head", "tail"} and payload.get("resolved_assembly_relief_cuts")]
-    assert len(replay_calls) == 2
-    assert all(len(payload["resolved_assembly_relief_cuts"]) == 1 for payload in replay_calls)
-
+    assert len(replay_specs) == 2
+    assert all(len(spec.resolved_assembly_relief_cuts) == 1 for spec in replay_specs)
+    # Pure service no longer reaches back into the UI render provider after the
+    # solve; replay is canonical manufacturing-api work from immutable PartSpec.
+    assert not any(
+        payload.get("resolved_assembly_relief_cuts")
+        for key, payload in callback_calls
+        if key in {"head", "tail"}
+    )
 
 def test_assembly_relief_is_atomic_when_one_endcap_fails_verification(monkeypatch):
     """Never display half-new/half-old EndCaps; both must verify before either is applied."""
