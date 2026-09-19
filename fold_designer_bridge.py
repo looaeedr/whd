@@ -59,6 +59,7 @@ from phase6_settings_center import (
 )
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_project_controller import Phase6ProjectController
+from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
@@ -518,6 +519,14 @@ def _phase6_sync_settings_transaction_compatibility_mirrors(
     )
     self._phase6_active_transaction_id = controller.active_transaction_id
     return controller
+
+def _phase6_registry_diagnostics(self):
+    controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
+    if controller is None:
+        controller = Phase6RegistryDiagnosticsController()
+        self._phase6_registry_diagnostics_controller = controller
+    return controller
+
 
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
@@ -4711,13 +4720,24 @@ def _phase6_registry_sample_variables(self):
 
 
 def _phase6_registry_validate_formula_form(self):
-    from ae_engine.certified_relief_registry import evaluate_relief_formula_record, _validate_editable_rule_record
+    from ae_engine.certified_relief_registry import (
+        evaluate_relief_formula_record,
+        _validate_editable_rule_record,
+    )
+    controller = _phase6_registry_diagnostics(self)
     try:
-        record = _validate_editable_rule_record(_phase6_registry_collect_rule_form(self))
-        result = evaluate_relief_formula_record(record, _phase6_registry_sample_variables(self))
+        result = controller.validate_formula(
+            _phase6_registry_collect_rule_form(self),
+            _phase6_registry_sample_variables(self),
+            validator=_validate_editable_rule_record,
+            evaluator=evaluate_relief_formula_record,
+        )
         text = f"公式有效：{result['primary_u']:.3f}×{result['primary_v']:.3f}"
         if result.get("secondary_u") is not None:
-            text += f" + {result['secondary_u']:.3f}×{result['secondary_depth']:.3f}"
+            text += (
+                f" + {result['secondary_u']:.3f}"
+                f"×{result['secondary_depth']:.3f}"
+            )
         self.relief_registry_status_var.set(text)
         self._phase6_last_rule_form_result = result
         return result
@@ -4725,7 +4745,6 @@ def _phase6_registry_validate_formula_form(self):
         self.relief_registry_status_var.set(f"公式錯誤：{exc}")
         self._phase6_last_rule_form_result = None
         return None
-
 
 def _phase6_registry_preview_2d(self):
     result = _phase6_registry_validate_formula_form(self)
@@ -4747,24 +4766,16 @@ def _phase6_registry_preview_2d(self):
 
 
 def _phase6_registry_candidate_form_is_current(self):
-    saved = getattr(self, "_phase6_registry_candidate_record", None)
-    if not isinstance(saved, Mapping):
-        return False
     try:
         current = _phase6_registry_collect_rule_form(self)
     except Exception:
         return False
-    return deepcopy(dict(current)) == deepcopy(dict(saved))
-
+    return _phase6_registry_diagnostics(self).candidate_is_current(current)
 
 def _phase6_registry_require_current_candidate(self):
-    candidate_id = str(getattr(self, "_phase6_registry_candidate_id", "") or "")
-    if not candidate_id:
-        raise ValueError("請先儲存候選")
-    if not _phase6_registry_candidate_form_is_current(self):
-        raise ValueError("表單已變更；請重新儲存候選後再驗證")
-    return candidate_id
-
+    return _phase6_registry_diagnostics(self).require_current_candidate(
+        _phase6_registry_collect_rule_form(self)
+    )
 
 def _phase6_registry_save_candidate_form(self):
     from ae_engine.certified_relief_registry import save_relief_rule_candidate
@@ -4773,40 +4784,36 @@ def _phase6_registry_save_candidate_form(self):
         return None
     try:
         record = _phase6_registry_collect_rule_form(self)
-        item = save_relief_rule_candidate(record)
-        self._phase6_registry_candidate_id = item["candidate_id"]
-        self._phase6_registry_candidate_record = deepcopy(dict(record))
-        self._phase6_registry_regression_evidence = {"candidate_id": item["candidate_id"]}
+        item = _phase6_registry_diagnostics(self).save_candidate(
+            record,
+            saver=save_relief_rule_candidate,
+        )
         self.relief_registry_status_var.set("候選已儲存（尚未認證）")
         return item
     except Exception as exc:
         self.relief_registry_status_var.set(f"候選儲存失敗：{exc}")
         return None
 
-
 def _phase6_registry_run_formula_matrix(self):
-    from ae_engine.certified_relief_registry import evaluate_relief_formula_record, _validate_editable_rule_record
+    from ae_engine.certified_relief_registry import (
+        evaluate_relief_formula_record,
+        _validate_editable_rule_record,
+    )
     try:
-        candidate_id = _phase6_registry_require_current_candidate(self)
-        record = _validate_editable_rule_record(_phase6_registry_collect_rule_form(self))
-        base = _phase6_registry_sample_variables(self)
-        samples = []
-        for t in (max(0.5, base["T"] * 0.75), base["T"], base["T"] * 1.25):
-            for fw in (max(t * 2, base["FW"] * 0.8), base["FW"], base["FW"] * 1.2):
-                variables = dict(base, T=t, FW=fw)
-                evaluate_relief_formula_record(record, variables)
-                samples.append(variables)
-        evidence = dict(getattr(self, "_phase6_registry_regression_evidence", {}) or {})
-        evidence.update({"matrix_passed": True, "cases": len(samples), "candidate_id": candidate_id})
-        self._phase6_registry_regression_evidence = evidence
+        evidence = _phase6_registry_diagnostics(self).run_formula_matrix(
+            _phase6_registry_collect_rule_form(self),
+            _phase6_registry_sample_variables(self),
+            validator=_validate_editable_rule_record,
+            evaluator=evaluate_relief_formula_record,
+        )
         self.relief_registry_status_var.set(
-            f"公式矩陣通過：{len(samples)} 組；立體零穿透=" + ("是" if evidence.get("zero_penetration") else "尚未")
+            f"公式矩陣通過：{evidence['cases']} 組；立體零穿透="
+            + ("是" if evidence.get("zero_penetration") else "尚未")
         )
         return evidence
     except Exception as exc:
         self.relief_registry_status_var.set(f"回歸失敗：{exc}")
         return None
-
 
 def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
     """Shadow-validate exactly one editable candidate without mutating the registry."""
@@ -4895,42 +4902,49 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
 
 
 def _phase6_registry_preview_assembly_3d(self):
+    controller = _phase6_registry_diagnostics(self)
     try:
-        candidate_id = _phase6_registry_require_current_candidate(self)
-        record = deepcopy(dict(getattr(self, "_phase6_registry_candidate_record", {}) or {}))
+        candidate_id = controller.require_current_candidate(
+            _phase6_registry_collect_rule_form(self)
+        )
+        record = controller.candidate_record
         evidence3d = _phase6_registry_validate_candidate_3d(
             self, record, candidate_id=candidate_id
         )
-        evidence = dict(getattr(self, "_phase6_registry_regression_evidence", {}) or {})
-        evidence.update(dict(evidence3d or {}))
-        self._phase6_registry_regression_evidence = evidence
+        evidence = controller.merge_3d_evidence(evidence3d)
         zero = bool(evidence.get("zero_penetration"))
         self.relief_registry_status_var.set(
-            "候選專屬立體組合驗證：" + ("零非法穿透" if zero else "仍有非法穿透")
+            "候選專屬立體組合驗證："
+            + ("零非法穿透" if zero else "仍有非法穿透")
         )
         return zero
     except Exception as exc:
         self.relief_registry_status_var.set(f"立體組合驗證失敗：{exc}")
         return False
 
-
 def _phase6_registry_promote_form(self):
     from ae_engine.certified_relief_registry import promote_relief_rule_candidate
+    controller = _phase6_registry_diagnostics(self)
     try:
-        candidate_id = _phase6_registry_require_current_candidate(self)
-    except Exception as exc:
-        self.relief_registry_status_var.set(str(exc))
-        return None
-    evidence = dict(getattr(self, "_phase6_registry_regression_evidence", {}) or {})
-    try:
-        promoted = promote_relief_rule_candidate(candidate_id, regression_evidence=evidence)
-        self.relief_registry_status_var.set(f"已認證新版次：{promoted['revision']}")
+        promoted = controller.promote_candidate(
+            _phase6_registry_collect_rule_form(self),
+            promoter=promote_relief_rule_candidate,
+        )
+        self.relief_registry_status_var.set(
+            f"已認證新版次：{promoted['revision']}"
+        )
         _phase6_registry_refresh_rule_tree(self)
         return promoted
     except Exception as exc:
-        self.relief_registry_status_var.set(f"不可認證：{exc}")
+        message = str(exc)
+        if message in {
+            "請先儲存候選",
+            "表單已變更；請重新儲存候選後再驗證",
+        }:
+            self.relief_registry_status_var.set(message)
+        else:
+            self.relief_registry_status_var.set(f"不可認證：{exc}")
         return None
-
 
 def _phase6_registry_refresh_rule_tree(self):
     from ae_engine.certified_relief_registry import load_external_relief_rule_records
@@ -4939,32 +4953,38 @@ def _phase6_registry_refresh_rule_tree(self):
         return ()
     for item in tree.get_children():
         tree.delete(item)
-    rows = load_external_relief_rule_records()
+    rows = _phase6_registry_diagnostics(self).load_rule_records(
+        loader=load_external_relief_rule_records
+    )
     active_rows = [row for row in rows if bool(row.get("active", True))]
     for row in active_rows:
         tree.insert("", "end", iid=f"{row['rule_id']}@{row['revision']}", values=(
             _phase6_registry_present_token(
-                row["rule_id"], presentation_field="rule_id", source_adapter="registry_rule_tree"
+                row["rule_id"],
+                presentation_field="rule_id",
+                source_adapter="registry_rule_tree",
             ),
             row["revision"],
             _phase6_registry_present_token(
-                row.get("trust_level", ""), presentation_field="trust_level", source_adapter="registry_rule_tree"
+                row.get("trust_level", ""),
+                presentation_field="trust_level",
+                source_adapter="registry_rule_tree",
             ),
             _phase6_registry_present_token(
-                row.get("assembly_intent", ""), presentation_field="assembly_intent", source_adapter="registry_rule_tree"
+                row.get("assembly_intent", ""),
+                presentation_field="assembly_intent",
+                source_adapter="registry_rule_tree",
             ),
             row.get("topology_levels", ""),
         ))
-    self._phase6_registry_rule_records = {f"{row['rule_id']}@{row['revision']}": row for row in rows}
     return rows
-
 
 def _phase6_registry_rule_selected(self, *_args):
     tree = getattr(self, "relief_registry_rule_tree", None)
     if tree is None or not tree.selection():
         return
     key = tree.selection()[0]
-    raw = dict(getattr(self, "_phase6_registry_rule_records", {}).get(key) or {})
+    raw = _phase6_registry_diagnostics(self).rule_record(key)
     if not raw:
         return
     formula = dict(raw.get("formula", {}) or {})
@@ -4984,7 +5004,10 @@ def _phase6_registry_rule_selected(self, *_args):
         (self.relief_registry_primary_v_var, formula.get("primary_v", "")),
         (self.relief_registry_secondary_u_var, formula.get("secondary_u", "")),
         (self.relief_registry_secondary_depth_var, formula.get("secondary_depth", "")),
-        (self.relief_registry_preconditions_var, ",".join(str(v) for v in (raw.get("preconditions", ()) or ()))),
+        (
+            self.relief_registry_preconditions_var,
+            ",".join(str(v) for v in (raw.get("preconditions", ()) or ())),
+        ),
         (self.relief_registry_source_var, str(raw.get("source", ""))),
     )
     for var, value in setters:
@@ -4993,8 +5016,9 @@ def _phase6_registry_rule_selected(self, *_args):
     extra = sig[1].get("relation") if len(sig) > 1 else "NONE"
     self.relief_registry_extra_joint_var.set(str(extra))
     if len(sig) > 1:
-        self.relief_registry_extra_target_role_var.set(str(sig[1].get("target_role", "REAR_PANEL")))
-
+        self.relief_registry_extra_target_role_var.set(
+            str(sig[1].get("target_role", "REAR_PANEL"))
+        )
 
 def _phase6_joint_form_refresh(self):
     tree = getattr(self, "relief_joint_tree", None)
@@ -5016,26 +5040,33 @@ def _phase6_joint_form_refresh(self):
 
 
 def _phase6_joint_form_add(self):
+    controller = _phase6_registry_diagnostics(self)
     try:
-        row = _phase6_add_user_joint(
-            self,
+        row = controller.route_joint_add(
+            lambda **kwargs: _phase6_add_user_joint(self, **kwargs),
             subject_part=self.relief_joint_subject_var.get(),
             target_part=self.relief_joint_target_var.get(),
             relation=self.relief_joint_relation_var.get(),
             subject_region=self.relief_joint_subject_region_var.get(),
             target_region=self.relief_joint_target_region_var.get(),
             clearance_policy=self.relief_joint_clearance_var.get(),
-            solver_constraints={"topology_levels": int(self.relief_joint_topology_var.get())},
+            solver_constraints={
+                "topology_levels": int(self.relief_joint_topology_var.get())
+            },
         )
         self.relief_joint_status_var.set(
-            ("外側包覆：主動板件包覆接合板件；" if row["relation"] == "WRAP" else "") + "已新增接合規則"
+            (
+                "外側包覆：主動板件包覆接合板件；"
+                if row["relation"] == "WRAP"
+                else ""
+            )
+            + "已新增接合規則"
         )
         _phase6_joint_form_refresh(self)
         return row
     except Exception as exc:
         self.relief_joint_status_var.set(f"新增失敗：{exc}")
         return None
-
 
 def _phase6_joint_form_delete(self):
     tree = getattr(self, "relief_joint_tree", None)
@@ -5044,14 +5075,18 @@ def _phase6_joint_form_delete(self):
         return False
     joint_id = tree.selection()[0]
     try:
-        result = _phase6_delete_user_joint(self, joint_id)
-        self.relief_joint_status_var.set("已刪除" if result else "找不到接合規則")
+        result = _phase6_registry_diagnostics(self).route_joint_delete(
+            lambda value: _phase6_delete_user_joint(self, value),
+            joint_id,
+        )
+        self.relief_joint_status_var.set(
+            "已刪除" if result else "找不到接合規則"
+        )
         _phase6_joint_form_refresh(self)
         return result
     except Exception as exc:
         self.relief_joint_status_var.set(f"不可刪除：{exc}")
         return False
-
 
 def _phase6_configure_floating_surface(window, owner, *, modal=False):
     """Apply shared foreground/focus behavior without owning domain state."""
@@ -6529,47 +6564,39 @@ def _phase6_create_relief_promotion_candidates(self):
     """Build non-mutating manifests for verified PROVISIONAL_3D solutions."""
     from ae_engine.certified_relief_registry import build_relief_promotion_candidate
 
-    solutions = dict(getattr(self, "_phase6_last_relief_solutions", {}) or {})
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    intent = getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
-    family = _phase6_current_cabinet_family(self)
-    candidates = {}
-    for part_key in ("head", "tail"):
-        solution = solutions.get(part_key)
-        if solution is None:
-            continue
-        if not bool(getattr(solution, "verified", False)):
-            continue
-        if str(getattr(solution, "trust_level", "") or "") != "PROVISIONAL_3D":
-            continue
-        candidates[part_key] = build_relief_promotion_candidate(
-            solution,
-            cabinet_family=family,
-            part_role=part_key,
-            joint_face="TOP",
-            assembly_intent=intent,
-            source_signature=snapshot,
-        )
-    self._phase6_last_relief_promotion_candidates = candidates
+    candidates = _phase6_registry_diagnostics(self).build_promotion_candidates(
+        solutions=dict(getattr(self, "_phase6_last_relief_solutions", {}) or {}),
+        snapshot=dict(getattr(self, "_phase6_input_snapshot", {}) or {}),
+        assembly_intent=getattr(
+            self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY
+        ),
+        cabinet_family=_phase6_current_cabinet_family(self),
+        builder=build_relief_promotion_candidate,
+    )
     status_var = getattr(self, "assembly_collision_status_var", None)
     if status_var is not None and callable(getattr(status_var, "set", None)):
         if candidates:
             status_var.set(
-                "認證候選：" + " / ".join("封頭" if key == "head" else "封尾" for key in candidates)
+                "認證候選："
+                + " / ".join(
+                    "封頭" if key == "head" else "封尾"
+                    for key in candidates
+                )
                 + "（僅建立候選，不修改正式資料庫）"
             )
         else:
             status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
     return candidates
 
-
 def _phase6_refresh_joint_diagnostic_menu(self, resolved=None):
     var = getattr(self, "assembly_joint_diag_var", None)
     button = getattr(self, "assembly_joint_diag_button", None)
     if var is None or button is None:
         return ()
-    resolved = resolved or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-    diagnostics = tuple(getattr(resolved, "diagnostics", ()) or ()) if resolved is not None else ()
+    resolved = (
+        resolved
+        or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
+    )
     menu = getattr(self, "assembly_joint_diag_menu", None)
     if menu is None:
         menu_name = str(button.cget("menu") or "")
@@ -6580,33 +6607,40 @@ def _phase6_refresh_joint_diagnostic_menu(self, resolved=None):
         except Exception:
             return ()
     menu.delete(0, "end")
-    ids = [str(getattr(item, "joint_id", "")) for item in diagnostics if str(getattr(item, "joint_id", ""))]
+    ids = list(_phase6_registry_diagnostics(self).diagnostic_ids(resolved))
     current = str(var.get() or "")
     if current not in ids:
         current = ids[0] if ids else ""
         var.set(current)
-    labels = {joint_id: f"接合 {index + 1}" for index, joint_id in enumerate(ids)}
+    labels = {
+        joint_id: f"接合 {index + 1}"
+        for index, joint_id in enumerate(ids)
+    }
     for joint_id in ids:
         menu.add_radiobutton(
-            label=labels[joint_id], value=joint_id, variable=var,
+            label=labels[joint_id],
+            value=joint_id,
+            variable=var,
             command=lambda: _phase6_on_assembly_diagnostic_changed(self),
         )
     button.configure(text=labels.get(current, "接合"))
     return tuple(ids)
 
-
 def _phase6_selected_joint_diagnostic(self):
-    resolved = getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-    if resolved is None:
-        return None
-    joint_id = str(getattr(getattr(self, "assembly_joint_diag_var", None), "get", lambda: "")() or "")
-    if not joint_id:
-        return None
-    try:
-        return resolved.joint_diagnostic(joint_id)
-    except Exception:
-        return None
-
+    resolved = getattr(
+        self, "_phase6_last_resolved_manufacturing_geometry", None
+    )
+    joint_id = str(
+        getattr(
+            getattr(self, "assembly_joint_diag_var", None),
+            "get",
+            lambda: "",
+        )()
+        or ""
+    )
+    return _phase6_registry_diagnostics(self).selected_diagnostic(
+        resolved, joint_id
+    )
 
 def _phase6_build_assembly_diagnostics(self):
     frame = original.ttk.LabelFrame(self.right, text="組合體診斷", padding=6)
@@ -6656,59 +6690,15 @@ def _phase6_update_assembly_diagnostic_status(self):
 
     enabled_var = getattr(self, "assembly_ignore_fixed_corner_var", None)
     fallback_enabled = bool(enabled_var.get()) if enabled_var is not None else True
-    # Main operator status stays manufacturing-focused. Joint registry/debug
-    # metadata is queried from the dedicated diagnostics tooling, not appended here.
-    solutions = dict(getattr(self, "_phase6_last_relief_solutions", {}) or {})
-    if not fallback_enabled and not solutions:
-        if size_var is not None:
-            size_var.set("實際截角尺寸：等待資料庫查詢")
-        status_var.set("截角來源：已認證規則優先；未知組合的立體備援已停用")
-        return
-
-    errors = dict(getattr(self, "_phase6_last_relief_errors", {}) or {})
-    labels = {"head": "封頭", "tail": "封尾"}
-    if solutions:
-        size_parts = []
-        verify_parts = []
-        for key in ("head", "tail"):
-            solution = solutions.get(key)
-            if solution is None:
-                continue
-            measurements = [
-                getattr(item, "measurement", None)
-                for item in tuple(getattr(solution, "corner_reliefs", ()) or ())
-            ]
-            measurements = [item for item in measurements if item is not None]
-            texts = []
-            for measurement in measurements:
-                text = _phase6_relief_measurement_text(measurement)
-                if text not in texts:
-                    texts.append(text)
-            if texts:
-                size_parts.append(f"{labels.get(key, key)}：{' / '.join(texts)}")
-            verify_parts.append(f"{labels.get(key, key)}{'✓' if bool(getattr(solution, 'verified', False)) else '✗'}")
-        if size_var is not None:
-            size_var.set("實際截角尺寸：" + ("；".join(size_parts) if size_parts else "無需截角"))
-        if errors:
-            detail = "；".join(f"{labels.get(k, k)}：{v}" for k, v in errors.items())
-            status_var.set("3D驗證：" + " ".join(verify_parts) + f"（{detail}）")
-        elif verify_parts and all(bool(getattr(solutions[k], "verified", False)) for k in solutions):
-            status_var.set("3D驗證：" + " ".join(verify_parts) + "（零材料穿透）")
-        else:
-            status_var.set("3D驗證：" + " ".join(verify_parts))
-        return
-
-    if errors:
-        if size_var is not None:
-            size_var.set("實際截角尺寸：求解失敗")
-        detail = "；".join(f"{labels.get(k, k)}：{v}" for k, v in errors.items())
-        status_var.set(f"3D驗證：{detail}")
-        return
-
+    size_text, status_text = _phase6_registry_diagnostics(self).diagnostic_status(
+        fallback_enabled=fallback_enabled,
+        solutions=dict(getattr(self, "_phase6_last_relief_solutions", {}) or {}),
+        errors=dict(getattr(self, "_phase6_last_relief_errors", {}) or {}),
+        measurement_text=_phase6_relief_measurement_text,
+    )
     if size_var is not None:
-        size_var.set("實際截角尺寸：等待計算")
-    status_var.set("3D驗證：等待計算")
-
+        size_var.set(size_text)
+    status_var.set(status_text)
 
 def _phase6_build_settings_center(self):
     renderer_widget = self.renderer.canvas.get_tk_widget()
