@@ -201,6 +201,12 @@ def _checkpoint_fingerprint(checkpoint: Checkpoint) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def checkpoint_fingerprint(checkpoint: Checkpoint) -> str:
+    """Public stable digest for receipts bound to canonical checkpoint content."""
+
+    return _checkpoint_fingerprint(checkpoint)
+
+
 def _atomic_write_text(path: Path, payload: str) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
