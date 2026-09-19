@@ -5705,32 +5705,34 @@ def _phase6_build_global_persistent_controls(self):
 
 
 def _phase6_refresh_sticky_structure_tree(self):
-    """Keep the one #124 Structure Tree on-screen while lower left inputs scroll.
+    """Keep the retired Structure Tree compatibility object out of operator layout.
 
-    This is presentation-only.  The existing Treeview remains the single
-    navigation surface and continues to consume DM7 stable identities/callbacks.
-    A spacer owns its normal layout slot; ``place`` only offsets that same widget
-    against the left Canvas viewport.
+    #382 makes the assembly part/data list the only user-visible 板件/功能
+    presentation.  The legacy Treeview may still be refreshed by compatibility
+    callbacks during this migration, but it must not reserve or overlay pixels in
+    the shared input/display content area.
     """
-    canvas = getattr(self, "left_scroll_canvas", None)
     host = getattr(self, "structure_tree_host", None)
     spacer = getattr(self, "structure_tree_spacer", None)
-    if canvas is None or host is None or spacer is None:
-        return
     try:
-        requested_height = max(1, int(host.winfo_reqheight()))
-        current_height = int(float(spacer.cget("height") or 0))
-        if current_height != requested_height:
-            spacer.configure(height=requested_height)
-        base_y = float(spacer.winfo_y())
-        scroll_y = float(canvas.canvasy(0))
-        host.place_configure(
-            x=0, y=int(round(max(base_y, scroll_y))),
-            relwidth=1.0, height=requested_height,
-        )
-        host.lift()
+        if host is not None:
+            manager = str(host.winfo_manager() or "")
+            if manager == "place":
+                host.place_forget()
+            elif manager == "pack":
+                host.pack_forget()
+            elif manager == "grid":
+                host.grid_remove()
+        if spacer is not None:
+            manager = str(spacer.winfo_manager() or "")
+            if manager == "pack":
+                spacer.pack_forget()
+            elif manager == "grid":
+                spacer.grid_remove()
+            elif manager == "place":
+                spacer.place_forget()
     except Exception:
-        # Presentation refresh must never block manufacturing/navigation state.
+        # Presentation retirement must never block manufacturing/navigation state.
         return
 
 
@@ -7151,15 +7153,12 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.part_choice_button.configure(menu=self.part_choice_menu)
     self.part_choice_button.pack(fill=original.tk.X, pady=(0, 4))
 
-    # One CAD-style Structure Tree is now the visible part/mode navigator. Its
-    # rows are rebuilt from designer_workspace.available_parts and own no state.
-    # #186: reserve the Tree's normal flow slot, but render that same single
-    # Structure Tree as a sticky navigation surface.  Only lower inputs scroll.
+    # #382: keep the legacy Structure Tree object only as a compatibility/state
+    # projection.  It no longer owns operator layout pixels.  Normal part input
+    # and assembly content share the same left content region.
     self.structure_tree_spacer = original.ttk.Frame(self.left, height=1)
-    self.structure_tree_spacer.pack(fill=original.tk.X, pady=(0, 6))
     self.structure_tree_spacer.pack_propagate(False)
     self.structure_tree_host = original.ttk.Frame(self.left)
-    self.structure_tree_host.place(x=0, y=0, relwidth=1.0)
     self.structure_tree = original.ttk.Treeview(
         self.structure_tree_host, columns=("visibility",),
         show="tree headings", selectmode="browse", height=9, takefocus=True,
@@ -7176,10 +7175,6 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.structure_tree.configure(yscrollcommand=self.structure_tree_scrollbar.set)
     self.structure_tree_scrollbar.pack(side=original.tk.RIGHT, fill=original.tk.Y)
     self.structure_tree.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
-    self.structure_tree_spacer.configure(
-        height=max(1, int(self.structure_tree_host.winfo_reqheight()))
-    )
-    self.root.after_idle(lambda: _phase6_refresh_sticky_structure_tree(self))
     self.structure_tree.tag_configure("hidden", foreground=WHD_THEME["muted_text"])
     self._phase6_structure_tree_guard = False
     self.structure_tree.bind(
