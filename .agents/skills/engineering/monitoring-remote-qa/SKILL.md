@@ -216,3 +216,13 @@ terminal report 後仍沿既有 contract：
 - success → counts / invariant / cleanup / acceptance / closure；
 - failure → failed-job evidence → classification → recovery；
 - 回報只是一個 observation，**不是** remote-QA 或整體工作的停工點。
+
+## REAL_PROGRESS_PRODUCER_GATE
+
+Remote QA 的 polling 只能觀測已經存在的 progress producer，不能替它工作。
+
+- 有 exact active run / executor：保留 WAITING_REMOTE，鎖 run_id + head_sha 輪詢。
+- no executor、沒有 active run、RUN 尚未真正建立、或 producer 已 terminal：禁止繼續假等。
+- RUN_NOT_CREATED 時立即執行 trigger/prerequisite/fix，讓真正的 producer 出現；不得靠 polling 製造假進度。
+- producer terminal 時立即退出 waiting，success 進下一 acceptance action，failure 進 RECOVERING。
+- 如果目前工作本來就必須由 ChatGPT 自己推，則不得把自己放進 WAITING_REMOTE 再一直 poll。
