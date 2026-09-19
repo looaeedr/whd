@@ -79,6 +79,13 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
         service = bridge._phase6_settings_service(designer)
         transactions = bridge._phase6_settings_transactions(designer)
 
+        for event in events:
+            print("LIFETIME_EVENT", repr(event))
+        print(
+            "LIFETIME_FINAL",
+            id(service._input_snapshot),
+            id(designer._phase6_input_snapshot),
+        )
         assert service._input_snapshot is designer._phase6_input_snapshot, events
         assert transactions._input_snapshot is designer._phase6_input_snapshot
         assert service._settings_values is designer._settings_values
