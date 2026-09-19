@@ -484,6 +484,7 @@ jobs:
                   _live_sync_callback=lambda payload=None: None,
                   _phase6_force_sync_preview=False,
                   preview_3d_enabled=True,
+                  publish_if_changed=lambda: events.append("publish"),
                   renderer=SimpleNamespace(
                       canvas=Canvas(),
                       render=lambda: events.append("renderer.render"),
