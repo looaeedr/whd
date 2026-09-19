@@ -1,0 +1,169 @@
+name: "QA #370 T6 task-scoped A-B acceptance"
+
+on:
+  push:
+    branches:
+      - refactor/issue370-phase3-final-scene-20260919
+    paths:
+      - '.github/workflows/qa-issue370-t6-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: c79ff3e3e0f863a10869f8b1f40416e8686cc711
+  TESTED_SHA: c2b9cb07e719ecc5942daf13aa527ddb1dadce5a
+
+jobs:
+  headless-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Headless dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Run baseline and tested Headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue370/headless"
+          mkdir -p "$ROOT"
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_phase6_final_scene_view_ownership.py \
+              tests/test_phase6_3d_single_source_renderer.py \
+              tests/test_phase6_3d_cutting_mesh.py \
+              tests/test_phase6_shared_assembly_and_dimensions.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+      - name: Upload Headless evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue370-t6-headless-ab
+          path: .scratch/issue370/headless
+          if-no-files-found: error
+
+  xvfb-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Xvfb dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Run baseline and tested Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue370/xvfb"
+          mkdir -p "$ROOT"
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            xvfb-run -a python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_phase6_3d_view_regressions.py \
+              tests/test_phase6_assembly_3d_view.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+      - name: Upload Xvfb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue370-t6-xvfb-ab
+          path: .scratch/issue370/xvfb
+          if-no-files-found: error
+
+  classify:
+    if: always() && needs.headless-ab.result == 'success' && needs.xvfb-ab.result == 'success'
+    needs: [headless-ab, xvfb-ab]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue370-t6-headless-ab
+          path: .scratch/issue370/headless
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue370-t6-xvfb-ab
+          path: .scratch/issue370/xvfb
+      - name: Classify exact T6 A-B parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/issue370_t6_ab_compare.py \
+            --baseline-headless .scratch/issue370/headless/baseline/report.json \
+            --candidate-headless .scratch/issue370/headless/candidate/report.json \
+            --baseline-xvfb .scratch/issue370/xvfb/baseline/report.json \
+            --candidate-xvfb .scratch/issue370/xvfb/candidate/report.json \
+            --baseline-headless-protected-before .scratch/issue370/headless/baseline/protected-before.digest \
+            --baseline-headless-protected-after .scratch/issue370/headless/baseline/protected-after.digest \
+            --candidate-headless-protected-before .scratch/issue370/headless/candidate/protected-before.digest \
+            --candidate-headless-protected-after .scratch/issue370/headless/candidate/protected-after.digest \
+            --baseline-xvfb-protected-before .scratch/issue370/xvfb/baseline/protected-before.digest \
+            --baseline-xvfb-protected-after .scratch/issue370/xvfb/baseline/protected-after.digest \
+            --candidate-xvfb-protected-before .scratch/issue370/xvfb/candidate/protected-before.digest \
+            --candidate-xvfb-protected-after .scratch/issue370/xvfb/candidate/protected-after.digest \
+            --output .scratch/issue370/qualification.json
+      - name: Upload T6 qualification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue370-t6-ab-qualification
+          path: .scratch/issue370/qualification.json
+          if-no-files-found: error
