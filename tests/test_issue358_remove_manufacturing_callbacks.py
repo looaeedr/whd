@@ -162,18 +162,37 @@ def test_issue358_adapter_preserves_active_unsaved_profiles():
 
 def test_issue358_resolve_for_app_keeps_signature_first_cache_hit_before_request_build(monkeypatch):
     from types import SimpleNamespace
-    import phase6_manufacturing_adapter as adapter
 
+    import phase6_manufacturing_adapter as adapter
+    from phase6_manufacturing_cache import ManufacturingCacheService
+    from phase6_manufacturing_contracts import (
+        ManufacturingCacheReceipt,
+        ManufacturingDiagnosticsResult,
+        ManufacturingEffects,
+        ManufacturingMutationResult,
+        ManufacturingResolveResult,
+    )
+
+    app = SimpleNamespace()
     cached = object()
-    app = SimpleNamespace(
-        _phase6_last_resolved_manufacturing_geometry=cached,
-        _phase6_last_resolved_manufacturing_signature="sig",
+    key = adapter.build_manufacturing_cache_key
+    fingerprint = "a" * 64
+    service = ManufacturingCacheService()
+    service.store(
+        adapter.ManufacturingCacheKey(fingerprint),
+        ManufacturingResolveResult(
+            geometry=cached,
+            diagnostics=ManufacturingDiagnosticsResult(),
+            mutations=ManufacturingMutationResult(),
+            effects=ManufacturingEffects(),
+            cache=ManufacturingCacheReceipt(signature=fingerprint, hit=False, stored=True),
+        ),
     )
 
     monkeypatch.setattr(
         adapter,
         "_legacy_manufacturing_signature",
-        lambda _app: "sig",
+        lambda _app: fingerprint,
     )
     monkeypatch.setattr(
         adapter,
@@ -183,7 +202,7 @@ def test_issue358_resolve_for_app_keeps_signature_first_cache_hit_before_request
         ),
     )
 
-    assert adapter.resolve_manufacturing_for_app(app) is cached
+    assert adapter.resolve_manufacturing_for_app(app, cache_service=service) is cached
 
 
 
