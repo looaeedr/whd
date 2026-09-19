@@ -7,6 +7,7 @@ on:
     paths:
       - "phase6_final_scene_projection.py"
       - "phase6_final_scene_view.py"
+      - "fold_designer_bridge.py"
       - "tests/test_issue394_final_scene_projection.py"
       - "tools/issue394_t5_projection_fingerprint.py"
       - ".github/workflows/qa-issue394-t5-green.yml"
@@ -147,6 +148,7 @@ jobs:
           allowed={
             "phase6_final_scene_projection.py",
             "phase6_final_scene_view.py",
+            "fold_designer_bridge.py",
             "tests/test_issue394_final_scene_projection.py",
             "tools/issue394_t5_projection_fingerprint.py",
             ".github/workflows/qa-issue394-t5-red.yml",
@@ -157,7 +159,6 @@ jobs:
           print("ISSUE394_T5_SCOPE_GREEN=1")
           PY
           protected=(
-            fold_designer_bridge.py
             phase6_final_scene_contracts.py
             phase6_settings_contracts.py
             phase6_settings_transitions.py
