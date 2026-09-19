@@ -406,3 +406,18 @@ Rewrite 後重新檢查：
 - 中文化只能發生在 presentation adapter；不得為了 UI 驗收改寫 registry 原始資料、幾何 authority 或持久化契約。
 - 公式、前置條件、來源備註、選單值、Treeview、Canvas 文字與視窗標題都屬 presentation boundary。
 - 驗收必須逐筆選取資料庫中的全部規則並掃描實際 rendered text；只驗初始畫面或第一筆規則不算通過。
+
+
+## #382：shared content area 與 presentation-only hierarchy（2026-09-20）
+
+<!-- ISSUE382_SHARED_CONTENT_PRESENTATION_CONTRACT -->
+
+- 同一操作區若依 mode 顯示不同內容，優先使用 **shared content area** 切換 presentation；不得因為舊 navigation widget 還存在，就讓 retired compatibility surface 持續 reserve / overlay operator pixels。
+- UI 分組父項若只為閱讀層級存在，必須保持 **presentation-only**。不得為了顯示「門／底板」父層就發明 workspace part、project identity、manufacturing part 或第二份 visibility owner。
+- 真實 physical child 的 `part_key`、visibility、read-only data、callback 與 domain owner 必須在 re-parent / regroup 前後完全相同。
+- collapse/expand 與 show/hide 是不同狀態。收合不能改 visibility；visibility 不能刪除或遮斷資料；panel rebuild 只能延續 presentation stash，不得把 collapse state 寫成 domain/project truth。
+- 若產品要求 default collapsed，驗收必須覆蓋 logical row、presentation parent、真實 multipart child；不能只改最外層 container。
+- 「沒有新增編輯能力」要做 machine guard：組合體 read-only presentation 不得因 layout rewrite 偷加 `Entry / Combobox / Spinbox`。
+- 跨平台 Tk MouseWheel event 欄位不能假設可直接轉整數；Windows `event.num` 可能為 `"??"`。scroll normalization 必須 fail-safe 且不改既有 delta 方向/速度。
+- 較新的 product contract 取代永久可見舊 Structure Tree 時，舊測試若仍硬鎖 mapped/sticky surface，屬 superseded presentation contract；保留 state/identity/callback assertions，更新 stale layout assertion，禁止把舊 UI 搬回來討好測試。
+- WHD 此產品規則的 canonical CURRENT owner 是 AI Library contract `phase6-assembly-shared-content-presentation`；本 Skill 保存可重用 UI engineering method，不複製 geometry/manufacturing authority。
