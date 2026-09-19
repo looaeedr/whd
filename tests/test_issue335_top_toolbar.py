@@ -53,7 +53,7 @@ def test_output_authority_routes_are_unchanged():
     export_source = _function_source("_phase6_export_selected_dxf_from_3d")
     stock_source = _function_source("_phase6_commit_output_draw_stock")
     assert "_phase6_export_selected_dxf_callback" in export_source
-    assert "return callback()" in export_source
+    assert "Phase6ProjectController.route_selected_dxf_export" in export_source
     assert '_phase6_stage_setting_update(self, "draw_stock", value)' in stock_source
 
 
