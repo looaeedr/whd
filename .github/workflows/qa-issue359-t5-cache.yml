@@ -1,0 +1,39 @@
+name: "#359 T5 manufacturing cache service"
+
+on:
+  push:
+    branches:
+      - refactor/issue359-manufacturing-cache-service-20260919
+    paths:
+      - 'tests/test_issue359_manufacturing_cache_service.py'
+      - 'phase6_manufacturing_cache.py'
+      - 'phase6_manufacturing_adapter.py'
+      - 'phase6_manufacturing_contracts.py'
+      - 'tools/issue359_cache_performance_gate.py'
+      - '.github/workflows/qa-issue359-t5-cache.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: .
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run cache contracts
+        run: |
+          python -m pytest -q             tests/test_issue359_manufacturing_cache_service.py             tests/test_issue358_remove_manufacturing_callbacks.py             tests/test_resolved_manufacturing_bridge.py
+      - name: Run cache performance A/B
+        run: python tools/issue359_cache_performance_gate.py
