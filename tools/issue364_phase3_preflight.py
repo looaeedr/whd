@@ -44,6 +44,17 @@ EVENT_ATTRS = {
 MAPPING_UPDATE_RECEIVERS = {
     "raw", "source", "result", "payload", "values", "snapshot", "data",
     "config", "mapping", "merged", "state", "record", "item",
+    "settings", "evidence", "inner_profiles", "cfg", "row", "target",
+    "current_snapshot", "ephemeral", "promoted",
+}
+MAPPING_SELF_UPDATE_RECEIVERS = {
+    "self._phase6_input_snapshot",
+    "self._settings_values",
+    "self._phase6_box_whd",
+}
+MAPPING_UPDATE_LOCATIONS = {
+    ("phase6_box_body_structure.py", 115),
+    ("phase6_box_body_structure.py", 173),
 }
 WIDGET_METHODS = {
     "pack", "pack_forget", "grid", "grid_remove", "grid_forget", "place",
@@ -299,7 +310,7 @@ def self_access(node: ast.AST) -> tuple[set[str], set[str]]:
     return reads, writes
 
 
-def event_calls(node: ast.AST) -> list[dict]:
+def event_calls(node: ast.AST, path: str | None = None) -> list[dict]:
     result: list[dict] = []
     for sub in ast.walk(node):
         if not isinstance(sub, ast.Call) or not isinstance(sub.func, ast.Attribute):
@@ -307,8 +318,17 @@ def event_calls(node: ast.AST) -> list[dict]:
         if sub.func.attr not in EVENT_ATTRS:
             continue
         chain = attr_chain(sub.func)
-        receiver = chain.rsplit(".", 1)[0].rsplit(".", 1)[-1] if "." in chain else ""
-        if sub.func.attr == "update" and receiver in MAPPING_UPDATE_RECEIVERS:
+        receiver_full = chain.rsplit(".", 1)[0] if "." in chain else ""
+        receiver = receiver_full.rsplit(".", 1)[-1] if receiver_full else ""
+        explicit_mapping_location = (path or "", sub.lineno) in MAPPING_UPDATE_LOCATIONS
+        if (
+            sub.func.attr == "update"
+            and (
+                receiver in MAPPING_UPDATE_RECEIVERS
+                or receiver_full in MAPPING_SELF_UPDATE_RECEIVERS
+                or explicit_mapping_location
+            )
+        ):
             classification = "DATA_MAPPING_UPDATE_NOT_TK"
         elif sub.func.attr in {"bind", "trace_add", "event_generate"}:
             classification = "EVENT_CALLBACK_OR_DISPATCH"
@@ -530,7 +550,7 @@ def transitive_graph(index: dict[str, FuncInfo], bridge_names: set[str]) -> dict
             continue
         seen.add(key)
         info = index[key]
-        for event in event_calls(info.node):
+        for event in event_calls(info.node, str(info.path)):
             events.append({
                 **event,
                 "function": key,
