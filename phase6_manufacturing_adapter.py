@@ -395,20 +395,22 @@ def _domain_inputs_for_part(
     render_data_provider=None,
     part_spec_provider=None,
 ):
-    """Materialize UI/application-derived domain inputs before pure service entry."""
+    """Materialize the raw domain input for one part before pure service entry.
+
+    Committed Head/Tail render data is intentionally materialized in a second
+    pass after every raw part. This preserves the accepted Phase 1 provider
+    ordering: all raw parts first, then committed Head/Tail fallbacks.
+    """
     key = str(part_key or "")
-    render_data = committed_render_data = None
+    render_data = None
+    committed_render_data = None
     part_spec = manufacturing_context = None
 
     if callable(render_data_provider):
         base_payload = dict(scene_values or {})
         base_payload["_use_committed_relief"] = False
         render_data = render_data_provider(key, base_payload)
-        if key in {"head", "tail"}:
-            committed_payload = dict(scene_values or {})
-            committed_payload["_use_committed_relief"] = True
-            committed_render_data = render_data_provider(key, committed_payload)
-        else:
+        if key not in {"head", "tail"}:
             committed_render_data = render_data
 
     if callable(part_spec_provider) and key in {"head", "tail"}:
@@ -421,6 +423,26 @@ def _domain_inputs_for_part(
             raise TypeError("part_spec_provider must return (spec, context)")
 
     return render_data, committed_render_data, part_spec, manufacturing_context
+
+
+def _materialize_committed_endcap_inputs(
+    parts: list[ManufacturingPartInput],
+    *,
+    render_data_provider=None,
+) -> list[ManufacturingPartInput]:
+    """Attach committed Head/Tail fallbacks after all raw providers have run."""
+    if not callable(render_data_provider):
+        return parts
+    result: list[ManufacturingPartInput] = []
+    for part in parts:
+        if part.part_key not in {"head", "tail"}:
+            result.append(part)
+            continue
+        committed_payload = dict(part.scene_values or {})
+        committed_payload["_use_committed_relief"] = True
+        committed = render_data_provider(part.part_key, committed_payload)
+        result.append(replace(part, committed_render_data=committed))
+    return result
 
 
 def _finished_dimensions_for_part(app: Any, part_key: str, provider=None) -> Any:
@@ -525,6 +547,11 @@ def build_manufacturing_request(
                 box_body_structure=_box_body_structure(workspace),
             )
         )
+
+    part_inputs = _materialize_committed_endcap_inputs(
+        part_inputs,
+        render_data_provider=render_data_provider,
+    )
 
     request = ManufacturingResolveRequest(
         source_revision=str(getattr(app, "_phase6_sync_revision", "") or ""),
