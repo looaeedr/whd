@@ -40,6 +40,7 @@ jobs:
           allowed_exact={
             'fold_designer_bridge.py',
             'phase6_settings_transaction_controller.py',
+            'tools/issue366_t2_ab_compare.py',
           }
           prefixes=(
             'tests/test_issue366_',
