@@ -131,18 +131,19 @@ def test_issue355_request_contract_is_consumed_after_phase2_cutover():
     import ast
     from pathlib import Path
 
-    path = Path("phase6_manufacturing_geometry.py")
+    path = Path("phase6_manufacturing_service.py")
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
     resolver = next(
         node
         for node in tree.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_result"
+        and node.name == "resolve"
     )
     resolver_source = ast.get_source_segment(source, resolver) or ""
     assert "ManufacturingResolveRequest" in resolver_source
     assert "_phase6_call_bridge" not in resolver_source
+    assert "self" not in {node.id for node in ast.walk(resolver) if isinstance(node, ast.Name)}
 
 
 
