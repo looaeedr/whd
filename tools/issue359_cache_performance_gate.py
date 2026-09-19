@@ -225,6 +225,7 @@ def collect_metrics():
             app,
             cache_service=miss_service,
             scene_payload_builder=_scene_payload,
+            render_data_provider=_render_provider(app),
             finished_dimensions_provider=_dims,
         )
 
