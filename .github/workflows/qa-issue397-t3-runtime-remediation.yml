@@ -1,9 +1,9 @@
-name: "QA #397 T3 runtime remediation"
+name: "QA #397 T3+T7 runtime remediation"
 
 on:
   push:
     branches:
-      - "fix/issue397-t3-settings-runtime-20260920"
+      - "fix/issue397-t7-composition-runtime-20260920"
 
 permissions:
   contents: read
