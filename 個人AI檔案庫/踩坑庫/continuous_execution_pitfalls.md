@@ -146,3 +146,17 @@ Scheduled Resume 已能自行工作，但 active work 期間完全靜默。對�
 - heartbeat 只是 visibility observation；**進度回報不是停工點**，回報後有自主 next action 就繼續。
 
 Canonical authority：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+
+## TERMINAL_EVIDENCE_DELAYED_REPORT_PITFALL
+
+### 事故模式
+
+RUN / task 已經拿到 terminal PASS、FAIL 或 COMPLETE evidence，但執行者繼續做額外 readback、cleanup 或證據整理，直到數分鐘後才回報。對使用者而言，這段空白時間與「卡住」沒有差別。
+
+### 永久規則
+
+- 一旦有 evidence-backed terminal 事實，先**立即回報**，再繼續 secondary verification / cleanup。
+- 不得為了讓最終報告更完整而延後已經成立的 PASS / FAIL / COMPLETE 事實。
+- immediate report 只是一個 observation；回報後若仍有可自主 next action，仍必須繼續。
+- 只有 live terminal evidence 可觸發；不得猜測或提前宣告結果。
+- Canonical authority：executable-continuity-controller::IMMEDIATE_TERMINAL_PROGRESS_REPORT。
