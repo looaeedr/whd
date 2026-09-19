@@ -28,15 +28,28 @@ def _defined(tree):
 def _class_wiring_targets(tree):
     out = set()
     for node in tree.body:
-        if not isinstance(node, ast.Assign):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "Phase6FoldDesignerApp"
+                ):
+                    out.add(target.attr)
             continue
-        for target in node.targets:
-            if (
-                isinstance(target, ast.Attribute)
-                and isinstance(target.value, ast.Name)
-                and target.value.id == "Phase6FoldDesignerApp"
-            ):
-                out.add(target.attr)
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        if not (
+            isinstance(call.func, ast.Name)
+            and call.func.id == "install_fold_designer_bridge_facade"
+        ):
+            continue
+        bindings = call.args[1] if len(call.args) >= 2 else None
+        if isinstance(bindings, ast.Dict):
+            for key in bindings.keys:
+                if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                    out.add(key.value)
     return out
 
 
