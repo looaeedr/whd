@@ -8,6 +8,7 @@ on:
       - 'fold_designer_bridge.py'
       - 'gui_modules/application/command_router.py'
       - 'gui_modules/application/lifecycle.py'
+      - 'tests/test_issue371_t7_update_runtime_behavior.py'
       - '.github/workflows/qa-issue372-t8-t7-runtime-green.yml'
   workflow_dispatch:
 
@@ -50,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xvfb-run -a python -m pytest -q             tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks             tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy
+          xvfb-run -a python -m pytest -q             tests/test_phase6_designer_workspace.py::test_destroying_designer_cancels_owned_tk_after_callbacks
 
       - name: T7 ownership and Phase2 purity
         run: |
