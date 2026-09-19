@@ -6130,6 +6130,16 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         **dict(getattr(self, "_phase6_box_body_piece_visibility_stash", {}) or {}),
         **previous_visible,
     }
+    previous_open = dict(
+        getattr(self, "_phase6_box_body_piece_detail_open_stash", {}) or {}
+    )
+    previous_open.update({
+        key: bool(frame.winfo_manager())
+        for key, frame in dict(
+            getattr(self, "assembly_box_body_piece_detail_frames", {}) or {}
+        ).items()
+    })
+    self._phase6_box_body_piece_detail_open_stash = previous_open
     if current != wanted:
         for child in host.winfo_children():
             child.destroy()
@@ -6137,6 +6147,8 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
         self.assembly_box_body_piece_sections = {}
         self.assembly_box_body_piece_visible_vars = {}
         self.assembly_box_body_piece_checkbuttons = {}
+        self.assembly_box_body_piece_detail_frames = {}
+        self.assembly_box_body_piece_detail_buttons = {}
         self.assembly_box_body_piece_formed_vars = {}
         self.assembly_box_body_piece_blank_vars = {}
         self.assembly_box_body_piece_corner_vars = {}
@@ -6153,19 +6165,35 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
             visible = original.tk.BooleanVar(
                 master=sub, value=previous_visible.get(projection.part_key, True)
             )
+            header = original.ttk.Frame(sub)
+            header.pack(fill=original.tk.X)
             check = original.ttk.Checkbutton(
-                sub, text=projection.label, variable=visible,
+                header, text=projection.label, variable=visible,
                 command=lambda: _phase6_on_assembly_part_visibility_changed(self),
             )
-            check.pack(anchor=original.tk.W)
+            check.pack(side=original.tk.LEFT, anchor=original.tk.W, fill=original.tk.X, expand=True)
+            details = original.ttk.Frame(sub)
+            details_open = previous_open.get(projection.part_key, True)
+            detail_button = original.ttk.Button(
+                header,
+                text=("▾" if details_open else "▸"),
+                width=2,
+                command=lambda k=projection.part_key: _phase6_toggle_box_body_piece_details(self, k),
+                takefocus=True,
+            )
+            detail_button.pack(side=original.tk.RIGHT)
             formed = original.tk.StringVar(master=sub)
             blank = original.tk.StringVar(master=sub)
             corner = original.tk.StringVar(master=sub)
-            original.ttk.Label(sub, textvariable=formed, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
-            original.ttk.Label(sub, textvariable=blank, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
-            original.ttk.Label(sub, textvariable=corner, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            original.ttk.Label(details, textvariable=formed, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            original.ttk.Label(details, textvariable=blank, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            original.ttk.Label(details, textvariable=corner, justify=original.tk.LEFT, wraplength=280).pack(fill=original.tk.X, padx=(18, 0))
+            if details_open:
+                details.pack(fill=original.tk.X)
             self.assembly_box_body_piece_visible_vars[projection.part_key] = visible
             self.assembly_box_body_piece_checkbuttons[projection.part_key] = check
+            self.assembly_box_body_piece_detail_frames[projection.part_key] = details
+            self.assembly_box_body_piece_detail_buttons[projection.part_key] = detail_button
             self.assembly_box_body_piece_formed_vars[projection.part_key] = formed
             self.assembly_box_body_piece_blank_vars[projection.part_key] = blank
             self.assembly_box_body_piece_corner_vars[projection.part_key] = corner
@@ -6901,6 +6929,96 @@ def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
     return True
 
 
+def _phase6_set_assembly_part_details_open(self, key, is_open):
+    """Show/hide one assembly row's read-only data without changing visibility."""
+    key = str(key)
+    details = dict(getattr(self, "assembly_part_detail_frames", {}) or {}).get(key)
+    button = dict(getattr(self, "assembly_part_detail_buttons", {}) or {}).get(key)
+    if details is None:
+        return False
+    is_open = bool(is_open)
+    if is_open:
+        if not details.winfo_manager():
+            details.pack(fill=original.tk.X)
+    else:
+        if details.winfo_manager():
+            details.pack_forget()
+    if button is not None:
+        try:
+            button.configure(text=("▾" if is_open else "▸"))
+        except Exception:
+            pass
+    stash = dict(getattr(self, "_phase6_assembly_part_detail_open_stash", {}) or {})
+    stash[key] = is_open
+    self._phase6_assembly_part_detail_open_stash = stash
+    canvas = getattr(self, "assembly_parts_canvas", None)
+    if canvas is not None:
+        try:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        except Exception:
+            pass
+    return is_open
+
+
+def _phase6_toggle_assembly_part_details(self, key):
+    key = str(key)
+    details = dict(getattr(self, "assembly_part_detail_frames", {}) or {}).get(key)
+    if details is None:
+        return False
+    return _phase6_set_assembly_part_details_open(
+        self, key, not bool(details.winfo_manager())
+    )
+
+
+def _phase6_set_box_body_piece_details_open(self, key, is_open):
+    """Show/hide one BoxBody physical-piece data block only."""
+    key = str(key)
+    details = dict(
+        getattr(self, "assembly_box_body_piece_detail_frames", {}) or {}
+    ).get(key)
+    button = dict(
+        getattr(self, "assembly_box_body_piece_detail_buttons", {}) or {}
+    ).get(key)
+    if details is None:
+        return False
+    is_open = bool(is_open)
+    if is_open:
+        if not details.winfo_manager():
+            details.pack(fill=original.tk.X)
+    else:
+        if details.winfo_manager():
+            details.pack_forget()
+    if button is not None:
+        try:
+            button.configure(text=("▾" if is_open else "▸"))
+        except Exception:
+            pass
+    stash = dict(
+        getattr(self, "_phase6_box_body_piece_detail_open_stash", {}) or {}
+    )
+    stash[key] = is_open
+    self._phase6_box_body_piece_detail_open_stash = stash
+    canvas = getattr(self, "assembly_parts_canvas", None)
+    if canvas is not None:
+        try:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        except Exception:
+            pass
+    return is_open
+
+
+def _phase6_toggle_box_body_piece_details(self, key):
+    key = str(key)
+    details = dict(
+        getattr(self, "assembly_box_body_piece_detail_frames", {}) or {}
+    ).get(key)
+    if details is None:
+        return False
+    return _phase6_set_box_body_piece_details_open(
+        self, key, not bool(details.winfo_manager())
+    )
+
+
 def _phase6_refresh_assembly_parts_panel(self):
     panel = getattr(self, "assembly_parts_content", None) or getattr(self, "assembly_parts_panel", None)
     if panel is None:
@@ -6917,6 +7035,12 @@ def _phase6_refresh_assembly_parts_panel(self):
     old_blank = {
         key: str(var.get()) for key, var in dict(getattr(self, "assembly_part_blank_vars", {}) or {}).items()
     }
+    old_open = dict(getattr(self, "_phase6_assembly_part_detail_open_stash", {}) or {})
+    old_open.update({
+        key: bool(frame.winfo_manager())
+        for key, frame in dict(getattr(self, "assembly_part_detail_frames", {}) or {}).items()
+    })
+    self._phase6_assembly_part_detail_open_stash = old_open
     old_piece_visible = {
         key: bool(var.get())
         for key, var in dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).items()
@@ -6933,11 +7057,15 @@ def _phase6_refresh_assembly_parts_panel(self):
     self.assembly_part_formed_vars = {}
     self.assembly_part_blank_vars = {}
     self.assembly_part_checkbuttons = {}
+    self.assembly_part_detail_frames = {}
+    self.assembly_part_detail_buttons = {}
     self.assembly_box_body_piece_host = None
     self.assembly_box_body_piece_labels = {}
     self.assembly_box_body_piece_sections = {}
     self.assembly_box_body_piece_visible_vars = {}
     self.assembly_box_body_piece_checkbuttons = {}
+    self.assembly_box_body_piece_detail_frames = {}
+    self.assembly_box_body_piece_detail_buttons = {}
     self.assembly_box_body_piece_formed_vars = {}
     self.assembly_box_body_piece_blank_vars = {}
     self.assembly_box_body_piece_corner_vars = {}
@@ -6948,28 +7076,44 @@ def _phase6_refresh_assembly_parts_panel(self):
         size_text = original.tk.StringVar(value=old_text.get(key, "截角尺寸：等待3D"))
         formed_text = original.tk.StringVar(value=old_formed.get(key, "成形尺寸：等待3D"))
         blank_text = original.tk.StringVar(value=old_blank.get(key, "展開料：等待3D"))
+        header = original.ttk.Frame(row)
+        header.pack(fill=original.tk.X)
         check = original.ttk.Checkbutton(
-            row, text=_phase6_part_label(key, snapshot=getattr(self, "_phase6_input_snapshot", {})), variable=visible,
+            header, text=_phase6_part_label(key, snapshot=getattr(self, "_phase6_input_snapshot", {})), variable=visible,
             command=lambda: _phase6_on_assembly_part_visibility_changed(self),
         )
-        check.pack(anchor=original.tk.W)
+        check.pack(side=original.tk.LEFT, anchor=original.tk.W, fill=original.tk.X, expand=True)
+        details = original.ttk.Frame(row)
+        details_open = old_open.get(key, True)
+        detail_button = original.ttk.Button(
+            header,
+            text=("▾" if details_open else "▸"),
+            width=2,
+            command=lambda k=key: _phase6_toggle_assembly_part_details(self, k),
+            takefocus=True,
+        )
+        detail_button.pack(side=original.tk.RIGHT)
         original.ttk.Label(
-            row, textvariable=formed_text, justify=original.tk.LEFT, wraplength=300,
+            details, textvariable=formed_text, justify=original.tk.LEFT, wraplength=300,
         ).pack(fill=original.tk.X, padx=(20, 0))
         original.ttk.Label(
-            row, textvariable=blank_text, justify=original.tk.LEFT, wraplength=300,
+            details, textvariable=blank_text, justify=original.tk.LEFT, wraplength=300,
         ).pack(fill=original.tk.X, padx=(20, 0))
         original.ttk.Label(
-            row, textvariable=size_text, justify=original.tk.LEFT, wraplength=300,
+            details, textvariable=size_text, justify=original.tk.LEFT, wraplength=300,
         ).pack(fill=original.tk.X, padx=(20, 0))
         if key == "box_body":
-            self.assembly_box_body_piece_host = original.ttk.Frame(row)
+            self.assembly_box_body_piece_host = original.ttk.Frame(details)
             self.assembly_box_body_piece_host.pack(fill=original.tk.X)
+        if details_open:
+            details.pack(fill=original.tk.X)
         self.assembly_part_visible_vars[key] = visible
         self.assembly_part_corner_vars[key] = size_text
         self.assembly_part_formed_vars[key] = formed_text
         self.assembly_part_blank_vars[key] = blank_text
         self.assembly_part_checkbuttons[key] = check
+        self.assembly_part_detail_frames[key] = details
+        self.assembly_part_detail_buttons[key] = detail_button
         _phase6_bind_assembly_scroll(row, self)
     _phase6_bind_assembly_scroll(panel, self)
     canvas = getattr(self, "assembly_parts_canvas", None)
