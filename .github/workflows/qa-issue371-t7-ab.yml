@@ -1,0 +1,295 @@
+name: "QA #371 T7 task-scoped A-B acceptance"
+
+on:
+  push:
+    branches:
+      - refactor/issue371-phase3-lifecycle-facade-20260919
+    paths:
+      - '.github/workflows/qa-issue371-t7-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 81dbd6f140b6bac8c9ba44f947919d341997ba56
+  TESTED_SHA: 773d527e54da0e5f6924279299d54ffc5cf3e4e3
+
+jobs:
+  headless-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Headless dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Run baseline and candidate Headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue371/headless"
+          mkdir -p "$ROOT"
+
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_phase6_bridge_domain_ownership.py \
+              tests/test_phase6_update_executor_conformance.py \
+              tests/test_issue289_gui_phase2_t1_lifecycle.py \
+              tests/test_issue358_remove_manufacturing_callbacks.py \
+              tests/test_issue361_one_line_manufacturing_facade.py \
+              tests/test_issue365_t1_workspace_navigation_controller.py \
+              tests/test_issue366_t2_settings_transaction_owner.py \
+              tests/test_issue367_t3_project_persistence_owner.py \
+              tests/test_issue368_t4_registry_diagnostics_owner.py \
+              tests/test_issue369_t5_corner_data_view_owner.py \
+              tests/test_issue370_t6_final_scene_view_owner.py \
+              tests/test_issue355_manufacturing_dto_contracts.py \
+              tests/test_issue356_manufacturing_adapter.py \
+              tests/test_issue357_manufacturing_result_contracts.py \
+              tests/test_issue359_manufacturing_cache_service.py \
+              tests/test_issue360_pure_manufacturing_service.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue371-t7-headless-ab
+          path: .scratch/issue371/headless
+          if-no-files-found: error
+
+  xvfb-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Xvfb dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Run baseline and candidate Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue371/xvfb"
+          mkdir -p "$ROOT"
+
+          protected_digest() {
+            find . -type f \( -name config.ini -o -iname '*.dxf' \) \
+              -not -path './.git/*' -not -path './.scratch/*' \
+              -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+          }
+
+          run_one() {
+            label="$1"; ref="$2"; out="$ROOT/$label"
+            mkdir -p "$out"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            protected_digest > "$out/protected-before.digest"
+            set +e
+            xvfb-run -a python -m pytest -q -ra --tb=short \
+              --json-report --json-report-file="$out/report.json" \
+              tests/test_original_fold_designer_bridge.py \
+              tests/test_gui_fold_designer_transaction_contract.py \
+              tests/test_phase6_3d_view_regressions.py \
+              tests/test_phase6_assembly_3d_view.py \
+              tests/test_issue375_main_selector_navigation.py \
+              tests/test_issue376_assembly_collapsible_data.py \
+              tests/test_issue377_remove_wrapper_labels.py \
+              tests/test_issue378_assembly_mousewheel.py \
+              2>&1 | tee "$out/pytest.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "$out/pytest.rc"
+            protected_digest > "$out/protected-after.digest"
+            test -s "$out/report.json"
+            cmp -s "$out/protected-before.digest" "$out/protected-after.digest"
+          }
+
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue371-t7-xvfb-ab
+          path: .scratch/issue371/xvfb
+          if-no-files-found: error
+
+  event-order:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install probe dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install matplotlib numpy shapely -r requirements.txt
+
+      - name: Compare public update-event ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$GITHUB_WORKSPACE/.scratch/issue371/event-order"
+          mkdir -p "$ROOT"
+          cat > /tmp/issue371_event_probe.py <<'PY'
+          import json
+          import sys
+          from types import SimpleNamespace
+
+          import fold_designer_bridge as bridge
+
+          output = sys.argv[1]
+
+          class Canvas:
+              def __init__(self):
+                  self.draw = lambda: None
+                  self.draw_idle = lambda: None
+
+          def run(reasons):
+              events = []
+              owner = SimpleNamespace(
+                  _phase6_sync_ready=True,
+                  _phase6_initializing=False,
+                  _phase6_external_apply_guard=False,
+                  _live_sync_callback=lambda payload=None: None,
+                  _phase6_force_sync_preview=False,
+                  preview_3d_enabled=True,
+                  renderer=SimpleNamespace(
+                      canvas=Canvas(),
+                      render=lambda: events.append("renderer.render"),
+                  ),
+              )
+              owner.publish_if_changed = lambda: events.append("publish")
+              bridge._phase6_publish_live_state = (
+                  lambda self, *args, **kwargs: events.append("publish")
+              )
+              bridge._PHASE6_RENDERING_DO_UPDATE = (
+                  lambda self: events.append("full")
+              )
+              bridge._phase6_render_committed_view = (
+                  lambda self: events.append("committed")
+              )
+              bridge._phase6_execute_update_intents(owner, set(reasons))
+              return events
+
+          payload = {
+              "geometry": run({"geometry"}),
+              "display_camera": run({"display", "camera"}),
+          }
+          with open(output, "w", encoding="utf-8") as handle:
+              json.dump(payload, handle, ensure_ascii=False, sort_keys=True)
+          print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+          PY
+
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref"
+            git reset --hard "$ref"
+            python /tmp/issue371_event_probe.py "$ROOT/$label.json"
+          }
+
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue371-t7-event-order
+          path: .scratch/issue371/event-order
+          if-no-files-found: error
+
+  classify:
+    if: always() && needs.headless-ab.result == 'success' && needs.xvfb-ab.result == 'success' && needs.event-order.result == 'success'
+    needs: [headless-ab, xvfb-ab, event-order]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue371-t7-headless-ab
+          path: .scratch/issue371/headless
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue371-t7-xvfb-ab
+          path: .scratch/issue371/xvfb
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: issue371-t7-event-order
+          path: .scratch/issue371/event-order
+
+      - name: Classify exact T7 A-B parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/issue371_t7_ab_compare.py \
+            --baseline-headless .scratch/issue371/headless/baseline/report.json \
+            --candidate-headless .scratch/issue371/headless/candidate/report.json \
+            --baseline-xvfb .scratch/issue371/xvfb/baseline/report.json \
+            --candidate-xvfb .scratch/issue371/xvfb/candidate/report.json \
+            --baseline-headless-protected-before .scratch/issue371/headless/baseline/protected-before.digest \
+            --baseline-headless-protected-after .scratch/issue371/headless/baseline/protected-after.digest \
+            --candidate-headless-protected-before .scratch/issue371/headless/candidate/protected-before.digest \
+            --candidate-headless-protected-after .scratch/issue371/headless/candidate/protected-after.digest \
+            --baseline-xvfb-protected-before .scratch/issue371/xvfb/baseline/protected-before.digest \
+            --baseline-xvfb-protected-after .scratch/issue371/xvfb/baseline/protected-after.digest \
+            --candidate-xvfb-protected-before .scratch/issue371/xvfb/candidate/protected-before.digest \
+            --candidate-xvfb-protected-after .scratch/issue371/xvfb/candidate/protected-after.digest \
+            --baseline-event-order .scratch/issue371/event-order/baseline.json \
+            --candidate-event-order .scratch/issue371/event-order/candidate.json \
+            --output .scratch/issue371/qualification.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue371-t7-ab-qualification
+          path: .scratch/issue371/qualification.json
+          if-no-files-found: error
