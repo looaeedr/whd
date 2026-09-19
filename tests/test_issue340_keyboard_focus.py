@@ -105,11 +105,11 @@ def test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas(ui_tex
             designer.output_export_button,
             designer.part_choice_button,
             designer.add_part_button,
-            designer.input_content_button,
-            designer.assembly_content_button,
-            designer.corner_data_content_button,
         )
         assert all(str(widget.cget("takefocus")).lower() not in {"0", "false"} for widget in main)
+        assert designer.input_content_button is None
+        assert designer.assembly_content_button is None
+        assert designer.corner_data_content_button is None
 
         forbidden = {
             str(designer.box_body_piece_selector),
@@ -135,7 +135,7 @@ def test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas(ui_tex
             assert nxt not in forbidden
             seen.add(nxt)
             current = nxt
-        assert str(designer.add_part_button) in seen or str(designer.input_content_button) in seen
+        assert str(designer.add_part_button) in seen
     finally:
         root.destroy()
 
