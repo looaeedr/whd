@@ -436,7 +436,18 @@ def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
     workspace = _designer_workspace(self)
     controller = getattr(self, "_phase6_workspace_navigation_controller", None)
     if controller is None or getattr(controller, "workspace", None) is not workspace:
-        controller = Phase6WorkspaceNavigationController(workspace)
+        # Seed only from a real instance field.  Phase6FoldDesignerApp exposes
+        # _phase6_box_body_active_piece_key as a property backed by this
+        # controller, so getattr(self, ...) here would recurse through the
+        # descriptor.  Lightweight compatibility/test owners may still carry
+        # the legacy value directly in __dict__.
+        legacy_memory = getattr(self, "__dict__", {}).get(
+            "_phase6_box_body_active_piece_key"
+        )
+        controller = Phase6WorkspaceNavigationController(
+            workspace,
+            remembered_box_body_child=legacy_memory,
+        )
         self._phase6_workspace_navigation_controller = controller
     return controller
 
@@ -7620,7 +7631,13 @@ def _phase6_on_box_body_piece_tab_changed(self, _event=None):
 
 def _phase6_resolve_operator_part_key(self, key):
     """Resolve one explicit identity through the pure DM7 navigation owner."""
-    return _phase6_workspace_navigation(self).resolve_operator_part(key)
+    navigation = _phase6_workspace_navigation(self)
+    resolved = navigation.resolve_operator_part(key)
+    # Keep the legacy compatibility surface coherent for lightweight owners
+    # that do not install Phase6FoldDesignerApp's property descriptor.  On the
+    # real app this assignment delegates straight back to the same controller.
+    self._phase6_box_body_active_piece_key = navigation.remembered_box_body_child
+    return resolved
 
 
 def _phase6_activate_operator_part(self, key):
