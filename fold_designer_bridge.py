@@ -931,6 +931,19 @@ def _legacy_box_body_active_piece_get(self):
 def _legacy_box_body_active_piece_set(self, value):
     _phase6_workspace_navigation(self).remembered_box_body_child = value
 
+def _legacy_settings_debounce_job_get(self):
+    controller = getattr(self, "_phase6_settings_transaction_controller", None)
+    return None if controller is None else controller.debounce_job
+
+
+def _legacy_settings_debounce_job_set(self, value):
+    controller = _phase6_settings_transactions(self)
+    if value is None:
+        controller.clear_debounce_job()
+    else:
+        controller.install_debounce_job(value)
+
+
 def project_features_to_original_holes(features, width, height):
     """Project supported Phase6 features into the original Renderer's hole DTO.
 
@@ -9006,6 +9019,7 @@ install_fold_designer_bridge_facade(
         "_phase6_workspace_dirty": property(_legacy_workspace_dirty_get, _legacy_workspace_dirty_set),
         "_phase6_switching_part": property(_legacy_switching_part_get, _legacy_switching_part_set),
         "_phase6_box_body_active_piece_key": property(_legacy_box_body_active_piece_get, _legacy_box_body_active_piece_set),
+        "_phase6_settings_debounce_job": property(_legacy_settings_debounce_job_get, _legacy_settings_debounce_job_set),
         "apply_external_assembly_type": _phase6_apply_external_assembly_type,
         "export_phase6_snapshot": _fix11_export,
         "show_global_settings": _phase6_show_global_settings,
