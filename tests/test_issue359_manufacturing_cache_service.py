@@ -210,4 +210,5 @@ def test_issue359_performance_gate_reports_required_end_to_end_phases():
         "phase2_hit_end_to_end_ns",
     } <= set(REQUIRED_METRICS)
 
-# issue359 T5 RED trigger
+
+# issue359 T5 GREEN + performance trigger
