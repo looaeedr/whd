@@ -298,9 +298,17 @@ def _phase6_fold_ownership_exemptions(material, xb, yb):
     return out
 
 
-from dataclasses import dataclass
 from typing import Callable, Mapping
 
+from phase6_final_scene_contracts import (
+    AssemblyScenePart,
+    AssemblySceneRenderData,
+    FinalSceneDependencies,
+    FinalSceneEffects,
+    FinalSceneRenderResult,
+    FinalSceneRuntimeState,
+    FinalSceneViewRequest,
+)
 from phase6_fold_profiles import engine_segment_length_to_ui
 
 
@@ -428,41 +436,6 @@ def format_operator_info_text(request, *, dimensions=None, number_text=None):
     return "\n".join(lines)
 
 
-@dataclass(frozen=True)
-class AssemblyScenePart:
-    """One authoritative part scene placed into the UI-only assembly view."""
-
-    part_key: str
-    render_data: object
-    x_profile: tuple[Mapping[str, object], ...]
-    y_profile: tuple[Mapping[str, object], ...]
-    placement: str = "offset"
-    offset: tuple[float, float, float] = (0.0, 0.0, 0.0)
-
-
-@dataclass(frozen=True)
-class AssemblySceneRenderData:
-    """UI-only bundle of already-built part render data for combined 3D display.
-
-    ``assembly_parts`` always retains the authoritative assembly geometry so
-    placement/mating references survive render-only visibility changes.
-    ``visible_part_keys`` controls only which already-placed parts are drawn.
-    ``interference_probe_parts`` keeps the pre-solve EndCap geometry used only
-    for collision diagnostics.
-    """
-
-    assembly_parts: tuple[AssemblyScenePart, ...]
-    visible_part_keys: tuple[str, ...] | None = None
-    visible_box_body_piece_keys: tuple[str, ...] | None = None
-    warnings: tuple[object, ...] = ()
-    show_interference: bool = False
-    ignore_fixed_corner_relief: bool = False
-    interference_probe_parts: tuple[AssemblyScenePart, ...] = ()
-    joint_diagnostics: tuple[object, ...] = ()
-    selected_joint_id: str | None = None
-    preserve_endcap_core_origin: bool = False
-
-
 def _phase6_triangle_bounds(triangles):
     from ae_engine.assembly_geometry import triangle_bounds
 
@@ -474,21 +447,6 @@ def _phase6_place_assembly_triangles(triangles, placement, dimensions, offset):
     from ae_engine.assembly_geometry import place_assembly_triangles
 
     return place_assembly_triangles(triangles, placement, dimensions, offset)
-
-
-@dataclass(frozen=True)
-class FinalSceneViewRequest:
-    """Already-resolved inputs required to display one FinalScene."""
-
-    render_data: object
-    x_profile: tuple[Mapping[str, object], ...]
-    y_profile: tuple[Mapping[str, object], ...]
-    part_key: str
-    alpha_bend: float = 0.85
-    finished_dimensions: tuple[float, ...] | None = None
-    thickness: float = 2.0
-    corner_dimension_text: str | None = None
-    unfolded_blank_text: str | None = None
 
 
 class Phase6FinalSceneView:
@@ -1322,17 +1280,16 @@ class Phase6FinalSceneView:
 class Phase6FinalSceneViewAdapter:
     """Own 3D view orchestration while consuming authoritative injected providers only."""
 
-    def __init__(self, owner, *, services=None):
+    def __init__(
+        self,
+        owner,
+        *,
+        dependencies: FinalSceneDependencies,
+    ):
+        if not isinstance(dependencies, FinalSceneDependencies):
+            raise TypeError("dependencies must be FinalSceneDependencies")
         self.owner = owner
-        self.services = dict(services or {})
-
-    def _service(self, name, *, required=True):
-        value = self.services.get(name)
-        if callable(value):
-            return value
-        if required:
-            raise RuntimeError(f"3D view service is not connected: {name}")
-        return None
+        self.dependencies = dependencies
 
     def query_final_render_data(self):
         owner = self.owner
@@ -1340,12 +1297,12 @@ class Phase6FinalSceneViewAdapter:
         if not key:
             raise ValueError("no active part")
 
-        if self._service("is_physical_piece_key")(key):
-            return self._service("physical_piece_render_data")(key)
+        if self.dependencies.is_physical_piece_key(key):
+            return self.dependencies.physical_piece_render_data(key)
 
         user_joint_parts = {
             str(value or "")
-            for value in tuple(self._service("user_joint_parts")() or ())
+            for value in tuple(self.dependencies.user_joint_parts() or ())
             if str(value or "")
         }
         if (
@@ -1353,7 +1310,7 @@ class Phase6FinalSceneViewAdapter:
             or key.startswith("box_body:divider:")
             or key in user_joint_parts
         ):
-            resolved = self._service("resolve_geometry")()
+            resolved = self.dependencies.resolve_geometry()
             return resolved.part(key).render_data
 
         callback = getattr(owner, "_scene_query_callback", None)
@@ -1361,7 +1318,7 @@ class Phase6FinalSceneViewAdapter:
             raise RuntimeError("3D final-scene provider is not connected")
         render_data = callback(
             key,
-            self._service("scene_payload_for_part")(key),
+            self.dependencies.scene_payload_for_part(key),
         )
         if render_data is None:
             raise ValueError(f"manufacturing render data unavailable: {key}")
@@ -1446,10 +1403,10 @@ class Phase6FinalSceneViewAdapter:
 
     def query_assembly_render_data(self):
         owner = self.owner
-        resolved = self._service("resolve_geometry")()
-        self._service("publish_live_state")(force=True)
+        resolved = self.dependencies.resolve_geometry()
+        self.dependencies.publish_live_state(force=True)
 
-        part_cls = self.services.get("assembly_part_cls") or AssemblyScenePart
+        part_cls = self.dependencies.assembly_part_cls
         parts = [
             part_cls(
                 part_key=part.part_key,
@@ -1468,7 +1425,7 @@ class Phase6FinalSceneViewAdapter:
             for part in resolved.parts
         ]
 
-        corner_text = self._service("corner_dimension_text")
+        corner_text = self.dependencies.corner_dimension_text
         owner._phase6_last_assembly_corner_dimension_texts = {
             part.part_key: corner_text(part.render_data)
             for part in parts
@@ -1481,12 +1438,10 @@ class Phase6FinalSceneViewAdapter:
         snapshot = getattr(owner, "_phase6_input_snapshot", {}) or {}
         settings = getattr(owner, "_settings_values", {}) or {}
         thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
-        formed_text = self._service("formed_size_text")
-        blank_text = self._service("blank_text")
-        dimensions = self._service("operator_dimensions")
-        refresh_box_body = self._service(
-            "refresh_box_body_piece_info", required=False
-        )
+        formed_text = self.dependencies.formed_size_text
+        blank_text = self.dependencies.blank_text
+        dimensions = self.dependencies.operator_dimensions
+        refresh_box_body = self.dependencies.refresh_box_body_piece_info
         for part in parts:
             formed_var = (
                 getattr(owner, "assembly_part_formed_vars", {}) or {}
@@ -1595,15 +1550,8 @@ class Phase6FinalSceneViewAdapter:
         show_interference = (
             bool(show_var.get()) if show_var is not None else True
         )
-        cabinet_family = self._service("cabinet_family")()
-        render_data_cls_provider = self._service(
-            "assembly_render_data_cls", required=False
-        )
-        render_data_cls = (
-            render_data_cls_provider()
-            if callable(render_data_cls_provider)
-            else AssemblySceneRenderData
-        )
+        cabinet_family = self.dependencies.cabinet_family()
+        render_data_cls = self.dependencies.assembly_render_data_cls
         return self.make_assembly_scene_render_data(
             assembly_parts=tuple(parts),
             visible_part_keys=tuple(
@@ -1632,15 +1580,13 @@ class Phase6FinalSceneViewAdapter:
         alpha_bend = float(
             getattr(getattr(owner, "state", None), "alpha_bend", 0.85)
         )
-        dimensions = self._service("operator_dimensions")
+        dimensions = self.dependencies.operator_dimensions
         view_mode = str(
             getattr(owner, "_phase6_3d_display_mode", "single") or "single"
         )
 
         if view_mode == "assembly":
-            provider = self._service(
-                "assembly_render_provider", required=False
-            )
+            provider = self.dependencies.assembly_render_provider
             assembly_render_data = (
                 provider()
                 if callable(provider)
@@ -1654,12 +1600,12 @@ class Phase6FinalSceneViewAdapter:
                 alpha_bend=alpha_bend,
                 finished_dimensions=dimensions(None),
                 thickness=thickness,
-                unfolded_blank_text=self._service(
-                    "assembly_blank_text"
-                )(assembly_render_data),
+                unfolded_blank_text=self.dependencies.assembly_blank_text(
+                    assembly_render_data
+                ),
             )
 
-        provider = self._service("final_render_provider", required=False)
+        provider = self.dependencies.final_render_provider
         render_data = (
             provider()
             if callable(provider)
@@ -1668,9 +1614,9 @@ class Phase6FinalSceneViewAdapter:
         if getattr(render_data, "pieces", None):
             x_profile, y_profile = (), ()
         else:
-            x_profile, y_profile = self._service(
-                "active_mesh_profiles"
-            )(render_data.material)
+            x_profile, y_profile = self.dependencies.active_mesh_profiles(
+                render_data.material
+            )
         key = str(active_part)
         return FinalSceneViewRequest(
             render_data=render_data,
@@ -1680,10 +1626,10 @@ class Phase6FinalSceneViewAdapter:
             alpha_bend=alpha_bend,
             finished_dimensions=dimensions(None),
             thickness=thickness,
-            corner_dimension_text=self._service(
-                "corner_dimension_text"
-            )(render_data),
-            unfolded_blank_text=self._service("blank_text")(
+            corner_dimension_text=self.dependencies.corner_dimension_text(
+                render_data
+            ),
+            unfolded_blank_text=self.dependencies.blank_text(
                 render_data,
                 part_key=key,
             ),
@@ -1695,19 +1641,17 @@ class Phase6FinalSceneViewAdapter:
         if view is None:
             view = Phase6FinalSceneView(
                 owner.renderer,
-                number_text=self.services.get("number_text"),
+                number_text=self.dependencies.number_text,
             )
             owner.final_scene_view = view
-        request_provider = self._service(
-            "request_provider", required=False
-        )
+        request_provider = self.dependencies.request_provider
         request = (
             request_provider()
             if callable(request_provider)
             else self.build_request()
         )
         triangles = view.render(request)
-        mirror = self._service("mirror_view_state", required=False)
+        mirror = self.dependencies.mirror_view_state
         if callable(mirror):
             mirror(view)
         return triangles
@@ -1722,19 +1666,17 @@ class Phase6FinalSceneViewAdapter:
         owner = self.owner
         view = Phase6FinalSceneView(
             owner.renderer,
-            number_text=self.services.get("number_text"),
+            number_text=self.dependencies.number_text,
         )
         owner.final_scene_view = view
         try:
             owner.renderer.canvas.get_tk_widget().configure(takefocus=False)
         except Exception:
             pass
-        request_provider = self._service(
-            "request_provider", required=False
-        )
+        request_provider = self.dependencies.request_provider
         view.install(
             request_provider if callable(request_provider) else self.build_request,
-            after_render=self._service("after_render", required=False),
+            after_render=self.dependencies.after_render,
         )
         return view
 
