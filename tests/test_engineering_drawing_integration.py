@@ -113,13 +113,21 @@ def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
     bridge_src = _module_function_source(
         ROOT / "fold_designer_bridge.py", "_phase6_operator_finished_dimensions"
     )
+    adapter_src = _module_function_source(
+        ROOT / "phase6_manufacturing_adapter.py",
+        "operator_finished_dimensions_for_app",
+    )
     view_src = _class_method_source(
         ROOT / "phase6_final_scene_view.py",
         "Phase6FinalSceneView",
         "_resolved_finished_dimensions",
     )
-    assert "resolve_operator_finished_dimensions" in bridge_src
-    assert "box_body_height_from_corner_policies" not in bridge_src
+    # Phase 2 moved the app/Tk adapter out of the bridge.  The bridge remains
+    # compatibility-only, while both adapter and 3D view consume the same AE
+    # finished-dimension authority.
+    assert "operator_finished_dimensions_for_app" in bridge_src
+    assert "resolve_operator_finished_dimensions" in adapter_src
+    assert "box_body_height_from_corner_policies" not in adapter_src
     assert "resolve_operator_finished_dimensions" in view_src
 
 
