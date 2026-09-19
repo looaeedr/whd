@@ -157,10 +157,22 @@ from phase6_manufacturing_adapter import resolve_manufacturing_for_app
 
 def _phase6_resolve_manufacturing_geometry(self):
     """Phase 2 compatibility facade: UI inputs -> adapter -> domain result."""
+
+    def _finished_dimensions_provider(key=None):
+        try:
+            if key is None or str(key or "") == "":
+                return _phase6_operator_finished_dimensions(self)
+            return _phase6_operator_finished_dimensions(self, key)
+        except TypeError:
+            # Legacy tests/callers may monkeypatch the Phase 1 one-argument
+            # adapter. Preserve that compatibility while T4 routes through the
+            # explicit request boundary.
+            return _phase6_operator_finished_dimensions(self)
+
     return resolve_manufacturing_for_app(
         self,
         scene_payload_builder=lambda key: _phase6_scene_query_payload_for_part(self, key),
-        finished_dimensions_provider=lambda key=None: _phase6_operator_finished_dimensions(self, key),
+        finished_dimensions_provider=_finished_dimensions_provider,
         publish_live_state=lambda force=False: _phase6_publish_live_state(self, force=force),
     )
 
