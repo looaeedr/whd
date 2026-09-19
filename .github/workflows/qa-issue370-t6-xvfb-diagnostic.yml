@@ -1,0 +1,71 @@
+name: "QA #370 T6 Xvfb exact diagnostic"
+
+on:
+  push:
+    branches:
+      - refactor/issue370-phase3-final-scene-20260919
+    paths:
+      - '.github/workflows/qa-issue370-t6-xvfb-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: c79ff3e3e0f863a10869f8b1f40416e8686cc711
+  TESTED_SHA: 7b3fc7bdd8b5b667abcbc761de6df1b75e7d1073
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Compare exact nodes
+        shell: bash
+        run: |
+          set -euo pipefail
+          N1="tests/test_phase6_assembly_3d_view.py::test_bridge_assembly_display_request_includes_all_available_sheet_parts"
+          N2="tests/test_phase6_assembly_3d_view.py::test_real_tk_part_selector_starts_in_assembly_and_switches_to_single_part"
+          N3="tests/test_phase6_assembly_3d_view.py::test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets_label_first"
+          ROOT=/tmp/t6diag
+          mkdir -p "$ROOT"
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$N1" "$N2" "$N3" --tb=short \
+              --json-report --json-report-file="$ROOT/$label.json" \
+              >"$ROOT/$label.log" 2>&1
+            rc=$?
+            set -e
+            echo "$rc" >"$ROOT/$label.rc"
+            test -s "$ROOT/$label.json"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          def load(label):
+              data=json.loads(Path(f"/tmp/t6diag/{label}.json").read_text())
+              return {row["nodeid"]: row.get("outcome") for row in data.get("tests", [])}
+          b=load("baseline"); c=load("candidate")
+          print("BASELINE", b)
+          print("CANDIDATE", c)
+          print("NEW_OR_CHANGED", {
+              node: (b.get(node), c.get(node))
+              for node in sorted(set(b) | set(c))
+              if b.get(node) != c.get(node)
+          })
+          PY
