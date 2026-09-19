@@ -162,3 +162,33 @@ def test_manual_and_scheduled_actors_share_one_lock_namespace():
     assert scheduled.acquired is True
     assert manual.acquired is False
     assert manual.owner == "scheduled-bridge-run-204"
+
+
+def test_github_issue_body_store_uses_issue_api_for_shared_state(monkeypatch):
+    calls = []
+
+    class Result:
+        def __init__(self, returncode=0, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def runner(args, **kwargs):
+        calls.append((args, kwargs))
+        if "--method" in args:
+            return Result(stdout="{}")
+        return Result(stdout="checkpoint body\n")
+
+    from tools.scheduled_resume_lease import GitHubIssueBodyStore
+
+    store = GitHubIssueBodyStore("looaeedr/whd", 402, runner=runner)
+    assert store.read_body() == "checkpoint body"
+    store.write_body("updated body")
+
+    assert calls[0][0] == [
+        "gh", "api", "repos/looaeedr/whd/issues/402", "--jq", ".body // \"\""
+    ]
+    assert calls[1][0] == [
+        "gh", "api", "--method", "PATCH", "repos/looaeedr/whd/issues/402", "--input", "-"
+    ]
+    assert '"body": "updated body"' in calls[1][1]["input"]
