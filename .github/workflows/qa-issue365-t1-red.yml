@@ -28,7 +28,11 @@ jobs:
           git merge-base --is-ancestor 0dd6561f3253d0a17714af316d5e9da90e24058f HEAD
 
       - name: Install focused dependencies
-        run: python -m pip install pytest
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest
 
       - name: Run intended RED
         shell: bash
