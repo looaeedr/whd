@@ -2,15 +2,14 @@ import ast
 from pathlib import Path
 
 
-MOVED = {
+OWNER_FUNCTIONS = {
     "_phase6_resolve_family_divider_reliefs",
-    "_phase6_resolve_manufacturing_geometry",
+    "_phase6_resolve_manufacturing_result",
 }
-REQUIRED_BOUND = {
+PHASE1_ONLY_CLASS_WIRING = {
     "_phase6_mesh_profiles_for_part",
     "_phase6_operator_finished_dimensions",
     "_phase6_scene_query_payload_for_part",
-    "_phase6_publish_live_state",
 }
 
 
@@ -41,17 +40,14 @@ def _class_wiring_targets(tree):
     return out
 
 
-def test_issue350_manufacturing_orchestration_has_one_owner_and_zero_reverse_import():
-    import phase6_manufacturing_geometry as owner
-    import fold_designer_bridge as bridge
-
+def test_issue350_manufacturing_orchestration_owner_survives_phase2_cutover():
     owner_tree = _tree("phase6_manufacturing_geometry.py")
     bridge_tree = _tree("fold_designer_bridge.py")
-    assert MOVED <= _defined(owner_tree)
-    assert not (MOVED & _defined(bridge_tree))
 
-    for name in MOVED:
-        assert getattr(bridge, name) is getattr(owner, name)
+    assert OWNER_FUNCTIONS <= _defined(owner_tree)
+    assert not (OWNER_FUNCTIONS & _defined(bridge_tree))
+    assert "_phase6_resolve_manufacturing_geometry" in _defined(bridge_tree)
+    assert "_phase6_resolve_manufacturing_geometry" not in _defined(owner_tree)
 
     reverse = []
     for node in ast.walk(owner_tree):
@@ -62,10 +58,11 @@ def test_issue350_manufacturing_orchestration_has_one_owner_and_zero_reverse_imp
     assert reverse == []
 
 
-def test_issue350_self_bound_dependencies_are_wired_before_runtime_use():
+def test_issue350_phase1_only_service_wiring_is_retired_after_t4():
     bridge_tree = _tree("fold_designer_bridge.py")
     wired = _class_wiring_targets(bridge_tree)
-    assert REQUIRED_BOUND <= wired
+    assert not (PHASE1_ONLY_CLASS_WIRING & wired)
+    assert "_phase6_publish_live_state" in wired
 
 
 def test_issue350_owner_uses_canonical_part_navigation_name_not_bridge_wrapper():
@@ -73,7 +70,7 @@ def test_issue350_owner_uses_canonical_part_navigation_name_not_bridge_wrapper()
     resolver = next(
         node for node in owner_tree.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_geometry"
+        and node.name == "_phase6_resolve_manufacturing_result"
     )
     loaded = {
         node.id
@@ -81,5 +78,3 @@ def test_issue350_owner_uses_canonical_part_navigation_name_not_bridge_wrapper()
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
     }
     assert "_phase6_is_box_body_physical_piece_key" not in loaded
-    assert "is_box_body_physical_piece_key" in loaded
-
