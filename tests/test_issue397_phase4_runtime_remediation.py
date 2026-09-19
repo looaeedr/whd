@@ -24,6 +24,7 @@ def test_restore_setting_clears_service_owned_pending_entry():
 def test_real_designer_composition_keeps_settings_maps_and_family_transition_live(monkeypatch):
     import tkinter as tk
     import gui
+    import traceback
     import fold_designer_bridge as bridge
     from gui_modules.application.fold_designer_adapter import Phase6FoldDesignerComposition
 
@@ -35,9 +36,16 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
         "_phase6_pending_settings",
     }
     original_setattr = bridge.Phase6FoldDesignerApp.__setattr__
+    service_created = [False]
     def traced_setattr(owner, name, value):
         if name in target_names:
-            events.append(("assign", id(owner), name, id(value), type(value).__name__))
+            stack = ()
+            if service_created[0]:
+                stack = tuple(
+                    (frame.name, frame.lineno)
+                    for frame in traceback.extract_stack(limit=10)[:-1]
+                )
+            events.append(("assign", id(owner), name, id(value), type(value).__name__, stack))
         return original_setattr(owner, name, value)
     monkeypatch.setattr(
         bridge.Phase6FoldDesignerApp, "__setattr__", traced_setattr, raising=False
@@ -48,6 +56,7 @@ def test_real_designer_composition_keeps_settings_maps_and_family_transition_liv
         before = composition._settings_service
         result = original_settings_service(composition)
         if before is None:
+            service_created[0] = True
             owner = composition.app
             events.append((
                 "service-create",
