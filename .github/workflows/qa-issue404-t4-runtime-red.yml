@@ -1,0 +1,41 @@
+name: "QA #404 T4 runtime adapter RED"
+
+on:
+  push:
+    branches:
+      - continuity/issue404-scheduled-resume-runtime-20260920
+    paths:
+      - 'tests/process/test_issue404_scheduler_runtime.py'
+      - '.github/workflows/qa-issue404-t4-runtime-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD bdb55dda3fa7fbeac47f36177a8923eea605fb7d)" = "bdb55dda3fa7fbeac47f36177a8923eea605fb7d"
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Confirm intended T4 runtime RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/process/test_issue404_scheduler_runtime.py --tb=short | tee /tmp/red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -Eq "ModuleNotFoundError: No module named 'tools.scheduled_resume_(issue_state|executor)'" /tmp/red.log
+          echo "PASS EXPECTED_T4_RUNTIME_RED=1"
