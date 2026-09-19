@@ -458,7 +458,7 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
     input_snapshot = getattr(self, "_phase6_input_snapshot", {})
     box_whd = getattr(self, "_phase6_box_whd", {})
     pending = getattr(self, "_phase6_pending_settings", {})
-    debounce_job = getattr(self, "_phase6_settings_debounce_job", None)
+    debounce_job = None
     workspace = getattr(self, "designer_workspace", None)
     endcap_fw_state = getattr(self, "_phase6_endcap_fw_state", {})
     bottom_wrap_state = getattr(self, "_phase6_endcap_bottom_wrap_state", {})
@@ -471,7 +471,7 @@ def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
             input_snapshot=input_snapshot,
             box_whd=box_whd,
             pending_settings=pending,
-            debounce_job=debounce_job,
+            debounce_job=controller.debounce_job,
             workspace=workspace,
             endcap_fw_state=endcap_fw_state,
             endcap_bottom_wrap_state=bottom_wrap_state,
@@ -1383,14 +1383,23 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.load_phase6_snapshot(snapshot)
 
     def _phase6_cancel_owned_tk_jobs(self):
-        for attr in ("_job", "_phase6_settings_debounce_job"):
-            job = getattr(self, attr, None)
-            if job is not None:
+        job = getattr(self, "_job", None)
+        if job is not None:
+            try:
+                self.root.after_cancel(job)
+            except Exception:
+                pass
+        self._job = None
+
+        transactions = getattr(self, "_phase6_settings_transaction_controller", None)
+        if transactions is not None:
+            settings_job = transactions.debounce_job
+            if settings_job is not None:
                 try:
-                    self.root.after_cancel(job)
+                    self.root.after_cancel(settings_job)
                 except Exception:
                     pass
-            setattr(self, attr, None)
+            transactions.clear_debounce_job()
         if hasattr(self, "_phase6_pending_settings"):
             self._phase6_pending_settings = {}
 
@@ -1871,7 +1880,6 @@ def _phase6_flush_pending_settings(self):
             self.root.after_cancel(plan.cancel_job)
         except Exception:
             pass
-    self._phase6_settings_debounce_job = None
     if not plan.pending:
         return {}
     return _phase6_apply_setting_updates(self, plan.pending, notify=True)
@@ -1893,7 +1901,6 @@ def _phase6_stage_setting_update(self, key, value):
             pass
     job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
     transactions.install_debounce_job(job)
-    self._phase6_settings_debounce_job = job
 
 
 def _phase6_on_setting_var_changed(self, key, var, spec):
@@ -7015,7 +7022,6 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_corner_param_unlocked = {}
     self.corner_pair_checkbuttons = {}
     self._phase6_pending_settings = {}
-    self._phase6_settings_debounce_job = None
     self._phase6_settings_rendering = False
     self._settings_values = dict(snapshot.get("settings") or {})
     for key, value in snapshot.items():
