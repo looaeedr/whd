@@ -60,6 +60,7 @@ from phase6_settings_center import (
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
@@ -551,6 +552,27 @@ def _phase6_sync_registry_diagnostics_compatibility_mirrors(
         controller.promotion_candidates
     )
     return controller
+
+
+def _phase6_corner_data_view(self):
+    adapter = getattr(self, "_phase6_corner_data_view_adapter", None)
+    if adapter is None:
+        adapter = Phase6CornerDataViewAdapter(
+            selected_part_key=getattr(
+                self, "_phase6_corner_data_selected_part_key", None
+            )
+        )
+        self._phase6_corner_data_view_adapter = adapter
+    return adapter
+
+
+def _phase6_sync_corner_data_view_compatibility_mirrors(
+    self, adapter=None
+):
+    """Mirror adapter-owned selection for legacy readers/tests only."""
+    adapter = adapter or _phase6_corner_data_view(self)
+    self._phase6_corner_data_selected_part_key = adapter.selected_part_key
+    return adapter
 
 
 def _phase6_sync_authoritative_derived_parts(self):
@@ -3559,15 +3581,9 @@ def _phase6_clear_drawing_edge_controls(self):
             pass
 
 def _phase6_place_drawing_edge_host(host, edge):
-    edge = str(edge).upper()
-    if edge == "TOP":
-        host.place(relx=0.5, y=8, anchor="n")
-    elif edge == "BOTTOM":
-        host.place(relx=0.5, rely=1.0, y=-8, anchor="s")
-    elif edge == "LEFT":
-        host.place(x=8, rely=0.5, anchor="w")
-    elif edge == "RIGHT":
-        host.place(relx=1.0, x=-8, rely=0.5, anchor="e")
+    plan = Phase6CornerDataViewAdapter.edge_host_placement(edge)
+    if plan:
+        host.place(**plan)
 
 def _phase6_render_endcap_edge_controls(self, *, part_key):
     rows = _phase6_endcap_joint_policy_rows(self, part_key)
@@ -4776,19 +4792,14 @@ def _phase6_registry_preview_2d(self):
     canvas = getattr(self, "relief_registry_preview_canvas", None)
     if canvas is None:
         return result
+    geometry = _phase6_corner_data_view(self).registry_preview_geometry(result)
     canvas.delete("all")
-    canvas.create_rectangle(15, 15, 225, 145, outline="#777")
+    canvas.create_rectangle(*geometry["outer"], outline="#777")
     if not result:
         return None
-    pu, pv = float(result["primary_u"]), float(result["primary_v"])
-    scale = min(180.0 / max(pu, 1.0), 95.0 / max(pv + float(result.get("secondary_depth") or 0), 1.0))
-    x0, y0 = 20.0, 140.0
-    canvas.create_rectangle(x0, y0 - pv * scale, x0 + pu * scale, y0, outline="#222", width=2)
-    if result.get("secondary_u") is not None:
-        su, sd = float(result["secondary_u"]), float(result["secondary_depth"])
-        canvas.create_rectangle(x0, y0 - (pv + sd) * scale, x0 + su * scale, y0 - pv * scale, outline="#222", width=2)
+    for rect in geometry["cuts"]:
+        canvas.create_rectangle(*rect, outline="#222", width=2)
     return result
-
 
 def _phase6_registry_candidate_form_is_current(self):
     try:
@@ -6233,8 +6244,14 @@ def _phase6_query_assembly_render_data(self):
         formed_var = (getattr(self, "assembly_part_formed_vars", {}) or {}).get(part.part_key)
         if formed_var is not None and callable(getattr(formed_var, "set", None)):
             formed_var.set(_phase6_format_formed_size_text(
-                part.render_data, part_key=part.part_key,
-                x_profile=part.x_profile, y_profile=part.y_profile, thickness=thickness,
+                part.render_data,
+                part_key=part.part_key,
+                x_profile=part.x_profile,
+                y_profile=part.y_profile,
+                thickness=thickness,
+                finished_dimensions=_phase6_operator_finished_dimensions(
+                    self, part.part_key
+                ),
             ))
         var = (getattr(self, "assembly_part_blank_vars", {}) or {}).get(part.part_key)
         if var is not None and callable(getattr(var, "set", None)):
@@ -6477,79 +6494,46 @@ def _phase6_render_data_for_blank(self, part_key=None):
 
 
 def _phase6_format_formed_size_text(
-    render_data, *, part_key: str = "", x_profile=(), y_profile=(), thickness: float = 0.0
+    render_data,
+    *,
+    part_key: str = "",
+    x_profile=(),
+    y_profile=(),
+    thickness: float = 0.0,
+    finished_dimensions=(),
 ) -> str:
-    """Format formed dimensions from the already-resolved folded geometry only."""
-    if render_data is None or tuple(getattr(render_data, "pieces", ()) or ()):
-        return "成形尺寸：-"
-    material = getattr(render_data, "material", None)
-    if material is None or getattr(material, "is_empty", True) or not x_profile or not y_profile:
-        return "成形尺寸：-"
-    try:
-        xb, _ = _phase6_profile_geometry(x_profile)
-        yb, _ = _phase6_profile_geometry(y_profile)
-        exemptions = _phase6_fold_ownership_exemptions(material, xb, yb)
-        triangles = _phase6_folded_mesh_from_polygon(
-            material, x_profile, y_profile,
-            fold_exemptions=exemptions,
-            fold_guides=tuple(getattr(render_data, "fold_guides", ()) or ()),
+    """Format already-authoritative formed dimensions; never reconstruct geometry."""
+    dimensions = tuple(finished_dimensions or ())
+    if not dimensions:
+        dimensions = tuple(
+            getattr(render_data, "formed_outer_dimensions", ()) or ()
         )
-        envelope = _phase6_folded_outside_envelope(triangles, thickness)
-    except Exception:
-        envelope = None
-    if envelope is None:
-        return "成形尺寸：-"
-    dims, _bounds = envelope
-    primary = sorted((float(v) for v in dims if float(v) > 1e-7), reverse=True)[:2]
-    if len(primary) < 2:
-        return "成形尺寸：-"
-    return f"成形尺寸：{_setting_number_text(primary[0])} × {_setting_number_text(primary[1])} mm"
-
+    return Phase6CornerDataViewAdapter.formed_size_text(
+        dimensions,
+        number_text=_setting_number_text,
+    )
 
 def _phase6_format_unfolded_blank_text(render_data, *, part_key=""):
     from ae_engine.manufacturing_api import measure_unfolded_blanks
 
-    if render_data is None:
-        return "展開料：-"
-    try:
-        blanks = measure_unfolded_blanks(render_data, part_key=str(part_key or "part"))
-    except Exception:
-        return "展開料：-"
-    if not blanks:
-        return "展開料：-"
-
-    piece_labels = {
-        "left_side": "左側板", "back": "後面板", "right_side": "右側板",
-        "box_body_left_side": "左側板", "box_body_back": "後面板", "box_body_right_side": "右側板",
-        "left": "左箱身", "middle": "中箱身", "right": "右箱身",
-    }
-    rows = []
-    multi = len(blanks) > 1
-    for blank in blanks:
-        label = ""
-        if multi:
-            suffix = str(blank.part_key).rsplit(":", 1)[-1]
-            label = f"{piece_labels.get(suffix, suffix)} "
-        rows.append(
-            f"{label}{_setting_number_text(blank.width)} × {_setting_number_text(blank.height)} mm"
-        )
-    return "展開料：" + ("；".join(rows))
-
+    return Phase6CornerDataViewAdapter.unfolded_blank_text(
+        render_data,
+        part_key=part_key,
+        measurer=measure_unfolded_blanks,
+        number_text=_setting_number_text,
+    )
 
 def _phase6_current_unfolded_size(self, part_key=None):
-    """Compatibility tuple measured from canonical final material only."""
+    """Compatibility tuple measured only from canonical final material."""
     from ae_engine.manufacturing_api import measure_unfolded_blanks
 
     key = str(part_key or self.designer_workspace.active_part or "")
     render_data = _phase6_render_data_for_blank(self, key)
-    if render_data is None:
-        return None
-    blanks = measure_unfolded_blanks(render_data, part_key=key)
-    if not blanks:
-        return None
-    blank = blanks[0]
-    return float(blank.width), float(blank.height)
-
+    return _phase6_corner_data_view(self).current_unfolded_size(
+        render_data,
+        part_key=key,
+        measurer=measure_unfolded_blanks,
+    )
 
 def _phase6_update_unfolded_size_label(self):
     var = getattr(self, "unfolded_size_var", None)
@@ -7635,36 +7619,31 @@ def _fix11_refresh_part_button_states(self):
 
 
 def _phase6_corner_data_part_keys(self) -> tuple[str, ...]:
-    """Project current authoritative workspace part identities for corner data.
-
-    This deliberately reads ``designer_workspace.available_parts`` directly.
-    It does not consume the UI mirror, PART_LABELS, KNOWN_PARTS, or any fixed
-    2D/corner-data list, so dynamic physical identities stay authoritative.
-    """
-    workspace = _designer_workspace(self)
-    return tuple(str(key) for key in tuple(getattr(workspace, "available_parts", ()) or ()))
-
-
-def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
-    """Project Corner Data rows from the same DM7 hierarchy owner."""
-    return tuple(
-        (row.part_key, row.depth)
-        for row in _dm7_project_hierarchy(_phase6_corner_data_part_keys(self))
+    """Project authoritative workspace identities into the 2D View."""
+    return _phase6_corner_data_view(self).part_keys(
+        _designer_workspace(self)
     )
 
+def _phase6_corner_data_navigation_rows(self) -> tuple[tuple[str, int], ...]:
+    """Project Corner Data rows from the canonical DM7 hierarchy."""
+    return _phase6_corner_data_view(self).navigation_rows(
+        _phase6_corner_data_part_keys(self),
+        hierarchy_projector=_dm7_project_hierarchy,
+    )
 
 def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
-    """Store a current stable corner-data identity without mutating manufacturing state."""
+    """Resolve one stable view identity without activating manufacturing state."""
+    adapter = _phase6_corner_data_view(self)
+    previous = adapter.selected_part_key
     keys = _phase6_corner_data_part_keys(self)
-    previous = getattr(self, "_phase6_corner_data_selected_part_key", None)
-    requested = str(key or "")
-    # All stable identities use the same pure navigation projection.
-    # Corner Data remains view-only because resolution does not activate the
-    # manufacturing workspace.
-    resolved = _phase6_resolve_operator_part_key(self, requested)
-    if resolved not in keys:
-        resolved = None
-    self._phase6_corner_data_selected_part_key = resolved
+    resolved = adapter.resolve_selection(
+        keys,
+        key,
+        resolver=lambda requested: _phase6_resolve_operator_part_key(
+            self, requested
+        ),
+    )
+    _phase6_sync_corner_data_view_compatibility_mirrors(self, adapter)
     if previous != resolved:
         canvas = getattr(self, "corner_data_canvas", None)
         if canvas is not None:
@@ -7674,36 +7653,37 @@ def _phase6_select_corner_data_part(self, key, *, refresh_view=True):
                 pass
     if (
         refresh_view
-        and str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+        and str(getattr(self, "_phase6_3d_display_mode", "") or "")
+        == "corner_data"
         and getattr(self, "corner_data_canvas", None) is not None
     ):
         _phase6_refresh_corner_data_unfold_view(self)
     _phase6_refresh_status_bar(self)
     return resolved
 
-
 def _phase6_corner_data_info_request_for_key(self, part_key, render_data):
-    """Build a display-only info request for one selected stable identity."""
-    key = str(part_key or "")
+    """Build a display-only request from authoritative render/dimension sinks."""
     snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
     settings = getattr(self, "_settings_values", {}) or {}
-    if getattr(render_data, "pieces", None):
-        x_profile, y_profile = (), ()
-    else:
-        material = getattr(render_data, "material", None)
-        x_profile, y_profile = ((), ()) if material is None else _phase6_mesh_profiles_for_part(self, key, material)
-    return FinalSceneViewRequest(
+    return _phase6_corner_data_view(self).info_request(
+        part_key=part_key,
         render_data=render_data,
-        x_profile=tuple(dict(seg) for seg in (x_profile or ())),
-        y_profile=tuple(dict(seg) for seg in (y_profile or ())),
-        part_key=key,
-        alpha_bend=float(getattr(getattr(self, "state", None), "alpha_bend", 0.85)),
-        finished_dimensions=_phase6_operator_finished_dimensions(self, key),
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-        corner_dimension_text=_phase6_render_data_corner_dimension_text(render_data),
-        unfolded_blank_text=_phase6_format_unfolded_blank_text(render_data, part_key=key),
+        request_factory=FinalSceneViewRequest,
+        profile_provider=lambda key, material: _phase6_mesh_profiles_for_part(
+            self, key, material
+        ),
+        dimensions_provider=lambda key: _phase6_operator_finished_dimensions(
+            self, key
+        ),
+        corner_text_provider=_phase6_render_data_corner_dimension_text,
+        blank_text_provider=_phase6_format_unfolded_blank_text,
+        alpha_bend=float(
+            getattr(getattr(self, "state", None), "alpha_bend", 0.85)
+        ),
+        thickness=_num(
+            settings.get("t", snapshot.get("t", 2.0)), 2.0
+        ),
     )
-
 
 def _phase6_corner_data_info_text_for_key(self, part_key, render_data):
     request = _phase6_corner_data_info_request_for_key(self, part_key, render_data)
@@ -7713,61 +7693,60 @@ def _phase6_corner_data_info_text_for_key(self, part_key, render_data):
 
 
 def _phase6_corner_data_unfold_projection_for_key(self, part_key):
-    """Pair one real stable identity with its existing authoritative render-data sink."""
-    keys = _phase6_corner_data_part_keys(self)
-    selected = str(part_key or "")
-    if not selected or selected not in keys:
-        return None
+    """Pair one stable identity with its authoritative render-data sink."""
+    def render_provider(selected):
+        if _phase6_is_box_body_physical_piece_key(selected):
+            return _phase6_box_body_piece_render_data(self, selected)
+        return _phase6_render_data_for_blank(self, selected)
 
-
-    if _phase6_is_box_body_physical_piece_key(selected):
-        render_data = _phase6_box_body_piece_render_data(self, selected)
-    else:
-        render_data = _phase6_render_data_for_blank(self, selected)
-    if render_data is None:
-        return None
-    return Phase6CornerDataUnfoldProjection(
-        part_key=selected,
-        render_data=render_data,
+    return _phase6_corner_data_view(self).unfold_projection(
+        part_key,
+        available_parts=_phase6_corner_data_part_keys(self),
+        render_provider=render_provider,
+        projection_factory=Phase6CornerDataUnfoldProjection,
     )
 
-
 def _phase6_corner_data_unfold_projections(self, part_keys):
-    """View-only batch adapter over the same T4 per-part authoritative sink."""
-    projections = []
-    for part_key in tuple(part_keys or ()):
-        projection = _phase6_corner_data_unfold_projection_for_key(self, part_key)
-        if projection is not None:
-            projections.append(projection)
-    return tuple(projections)
-
+    """Batch view adapter over authoritative per-part projections."""
+    return _phase6_corner_data_view(self).unfold_projections(
+        part_keys,
+        projection_provider=lambda key: _phase6_corner_data_unfold_projection_for_key(
+            self, key
+        ),
+    )
 
 def _phase6_corner_data_unfold_projection(self):
-    """Return the selected authoritative render-data sink for the unfold View."""
-    selected = str(getattr(self, "_phase6_corner_data_selected_part_key", "") or "")
-    return _phase6_corner_data_unfold_projection_for_key(self, selected)
-
+    """Return selected authoritative unfold projection."""
+    return _phase6_corner_data_view(self).selected_projection(
+        projection_provider=lambda key: _phase6_corner_data_unfold_projection_for_key(
+            self, key
+        )
+    )
 
 def _phase6_refresh_corner_data_unfold_view(self):
-    """Forward the current T4 authoritative projection into the installed 2D View."""
+    """Render one adapter-projected authoritative 2D payload."""
     canvas = getattr(self, "corner_data_canvas", None)
     projection = _phase6_corner_data_unfold_projection(self)
-    if projection is None:
+    payload = _phase6_corner_data_view(self).view_payload(
+        projection,
+        info_provider=lambda part_key, render_data: _phase6_corner_data_info_text_for_key(
+            self, part_key, render_data
+        ),
+    )
+    if payload is None:
         if canvas is not None and hasattr(canvas, "delete"):
             canvas.delete("all")
         return None
-    info_text = _phase6_corner_data_info_text_for_key(
-        self, projection.part_key, projection.render_data
-    )
+    info_text = payload["info_text"]
     info_var = getattr(self, "corner_data_info_var", None)
     if info_var is not None and hasattr(info_var, "set"):
         info_var.set(info_text)
     self.corner_data_info_text = info_text
     callback = getattr(self, "_corner_data_view_render_callback", None)
+    projection = payload["projection"]
     if callback is not None and canvas is not None:
         callback(canvas, projection.part_key, projection.render_data)
     return projection
-
 
 def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
     """Refresh the corner-data list as a pure View projection of workspace parts."""
@@ -7803,35 +7782,24 @@ def _phase6_refresh_corner_data_parts_panel(self) -> tuple[str, ...]:
 
 
 def _phase6_on_corner_data_mousewheel(self, event):
-    """Adjust only the Corner Data viewport scale; manufacturing geometry stays untouched."""
+    """Apply viewport zoom only; authoritative manufacturing geometry is untouched."""
     canvas = getattr(self, "corner_data_canvas", None)
     if canvas is None:
         return None
-    def _event_int(value):
-        try:
-            return int(value or 0)
-        except (TypeError, ValueError):
-            return 0
-    delta = _event_int(getattr(event, "delta", 0))
-    button = _event_int(getattr(event, "num", 0))
-    direction = 1 if (delta > 0 or button == 4) else -1 if (delta < 0 or button == 5) else 0
-    if direction == 0:
+    updated = _phase6_corner_data_view(self).zoom_from_event(
+        getattr(canvas, "_phase6_unfold_zoom", 1.0),
+        delta=getattr(event, "delta", 0),
+        button=getattr(event, "num", 0),
+    )
+    if updated is None:
         return None
-    try:
-        current = float(getattr(canvas, "_phase6_unfold_zoom", 1.0) or 1.0)
-    except Exception:
-        current = 1.0
-    step = 1.12
-    updated = current * step if direction > 0 else current / step
-    updated = max(0.50, min(3.00, updated))
     canvas._phase6_unfold_zoom = updated
     if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data":
         _phase6_refresh_corner_data_unfold_view(self)
     return "break"
 
-
 def _phase6_prepare_corner_data_canvas(self):
-    """Install the 2D canvas when a real renderer viewport exists; otherwise fail closed."""
+    """Install the 2D canvas as a View effect using adapter visibility policy."""
     renderer = getattr(self, "renderer", None)
     mpl_canvas = getattr(renderer, "canvas", None)
     get_widget = getattr(mpl_canvas, "get_tk_widget", None)
@@ -7854,14 +7822,19 @@ def _phase6_prepare_corner_data_canvas(self):
         info_alive = info_label is not None
     if not info_alive:
         info_label = original.ttk.Label(
-            mpl_widget.master, textvariable=self.corner_data_info_var,
-            justify=original.tk.LEFT, anchor=original.tk.W, wraplength=1100,
+            mpl_widget.master,
+            textvariable=self.corner_data_info_var,
+            justify=original.tk.LEFT,
+            anchor=original.tk.W,
+            wraplength=1100,
             font=("Microsoft JhengHei", 11, "bold"),
         )
         self.corner_data_info_label = info_label
     if not alive:
         canvas = original.tk.Canvas(
-            mpl_widget.master, bg=WHD_THEME["corner_data_canvas"], highlightthickness=0,
+            mpl_widget.master,
+            bg=WHD_THEME["corner_data_canvas"],
+            highlightthickness=0,
             takefocus=False,
         )
         self.corner_data_canvas = canvas
@@ -7870,33 +7843,44 @@ def _phase6_prepare_corner_data_canvas(self):
             "<Configure>",
             lambda _event: (
                 _phase6_refresh_corner_data_unfold_view(self)
-                if str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
+                if str(getattr(self, "_phase6_3d_display_mode", "") or "")
+                == "corner_data"
                 else None
             ),
         )
-        canvas.bind("<MouseWheel>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
-        canvas.bind("<Button-4>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
-        canvas.bind("<Button-5>", lambda event: _phase6_on_corner_data_mousewheel(self, event))
-    if mpl_widget.winfo_manager():
+        canvas.bind(
+            "<MouseWheel>",
+            lambda event: _phase6_on_corner_data_mousewheel(self, event),
+        )
+        canvas.bind(
+            "<Button-4>",
+            lambda event: _phase6_on_corner_data_mousewheel(self, event),
+        )
+        canvas.bind(
+            "<Button-5>",
+            lambda event: _phase6_on_corner_data_mousewheel(self, event),
+        )
+    plan = _phase6_corner_data_view(self).canvas_visibility_plan(True)
+    if not plan["mpl_canvas"] and mpl_widget.winfo_manager():
         mpl_widget.pack_forget()
-    if not info_label.winfo_manager():
+    if plan["info_label"] and not info_label.winfo_manager():
         info_label.pack(fill=original.tk.X, padx=8, pady=(6, 2))
-    if not canvas.winfo_manager():
+    if plan["corner_canvas"] and not canvas.winfo_manager():
         canvas.pack(fill=original.tk.BOTH, expand=True)
     return canvas
 
-
 def _phase6_hide_corner_data_canvas(self):
-    """Restore Matplotlib when present; incomplete/view-only owners are a no-op."""
+    """Restore Matplotlib according to pure View visibility policy."""
+    plan = _phase6_corner_data_view(self).canvas_visibility_plan(False)
     info_label = getattr(self, "corner_data_info_label", None)
-    if info_label is not None:
+    if info_label is not None and not plan["info_label"]:
         try:
             if info_label.winfo_manager():
                 info_label.pack_forget()
         except Exception:
             pass
     canvas = getattr(self, "corner_data_canvas", None)
-    if canvas is not None:
+    if canvas is not None and not plan["corner_canvas"]:
         try:
             if canvas.winfo_manager():
                 canvas.pack_forget()
@@ -7908,10 +7892,9 @@ def _phase6_hide_corner_data_canvas(self):
     if not callable(get_widget):
         return None
     mpl_widget = get_widget()
-    if not mpl_widget.winfo_manager():
+    if plan["mpl_canvas"] and not mpl_widget.winfo_manager():
         mpl_widget.pack(fill=original.tk.BOTH, expand=True)
     return mpl_widget
-
 
 def _phase6_show_corner_data(self):
     """Switch Fold Designer to the view-only corner-data navigation mode.
