@@ -34,7 +34,7 @@ EXPECTED_BRIDGE_DELEGATES = {
     "_phase6_apply_external_assembly_type": "commit_assembly_intent",
     "_phase6_apply_external_corner_state": "replace_corner_state",
     "_phase6_apply_external_sync": "plan_external_sync",
-    "_phase6_apply_settings_delta": "push_active_transaction",
+    "_phase6_apply_settings_delta": "apply_fold_designer_settings_delta",
     "_phase6_on_box_symmetry_changed": "commit_symmetry",
     "_phase6_save_settings_context_as_defaults": "settings_defaults_payload",
     "_phase6_apply_external_model": "plan_external_model_change",
@@ -122,6 +122,15 @@ def test_issue366_t2c_bridge_delegates_transaction_semantics_and_keeps_only_effe
         "RED: bridge still owns T2C corner/assembly/external transaction semantics: "
         f"{violations}"
     )
+
+
+    # T7 moved transaction push/restore effects to the application command router;
+    # the bridge facade must delegate there while the T2 controller remains the
+    # canonical transaction-state owner.
+    router = Path("gui_modules/application/command_router.py").read_text(encoding="utf-8")
+    assert "def apply_fold_designer_settings_delta" in router
+    assert "push_active_transaction" in router
+    assert "restore_active_transaction" in router
 
 
 def test_issue366_t2c_controller_semantics_when_api_present():
