@@ -5,7 +5,7 @@ the application owner and its existing controllers/services.
 """
 
 class _Phase6UpdateScheduler:
-    """Coalesce GUI work behind the single calculation-executor seam."""
+    """Coalesce GUI work behind one authoritative update-executor seam."""
 
     DEFAULT_DEBOUNCE_MS = 75
     MIN_DEBOUNCE_MS = 50
@@ -13,8 +13,9 @@ class _Phase6UpdateScheduler:
     _DISPLAY_ONLY_REASONS = frozenset({"display", "annotation", "camera"})
     _FULL_REASONS = frozenset({"geometry", "assembly", "baseline"})
 
-    def __init__(self, owner):
+    def __init__(self, owner, *, executor=None):
         self.owner = owner
+        self.executor = executor
         self.depth = 0
         self.dirty = set()
         self._flushing = False
@@ -36,10 +37,16 @@ class _Phase6UpdateScheduler:
         if self.depth == 0:
             self.request_flush()
 
-    def mark_dirty(self, reason="geometry"):
+    def submit(self, reason="geometry", *, immediate=False, debounce_ms=None):
         self.dirty.add(str(reason or "geometry"))
+        if immediate:
+            return self.flush_now()
         if self.depth == 0:
-            self.request_flush()
+            self.request_flush(debounce_ms=debounce_ms)
+        return True
+
+    def mark_dirty(self, reason="geometry"):
+        return self.submit(reason)
 
     @classmethod
     def _normalize_debounce_ms(cls, debounce_ms):
@@ -94,11 +101,18 @@ class _Phase6UpdateScheduler:
         self._flushing = True
         try:
             self._metrics["flushes"] += 1
-            if self._requires_calculation(reasons):
-                self._metrics["calculation_flushes"] += 1
+            requires_calculation = self._requires_calculation(reasons)
+            metric_key = (
+                "calculation_flushes"
+                if requires_calculation
+                else "display_flushes"
+            )
+            self._metrics[metric_key] += 1
+            if callable(self.executor):
+                self.executor(reasons)
+            elif requires_calculation:
                 self.owner.update_calculations()
             else:
-                self._metrics["display_flushes"] += 1
                 render = getattr(self.owner, "draw_preview", None)
                 if callable(render):
                     render()
@@ -109,6 +123,135 @@ class _Phase6UpdateScheduler:
     def metrics_snapshot(self):
         return dict(self._metrics)
 
+
+def execute_fold_designer_update_reasons(
+    owner,
+    reasons,
+    *,
+    full_update,
+    render_committed,
+    publish_if_changed,
+):
+    """Preserve Fold Designer mutation→publish→full/display render sequencing."""
+    reasons = {str(reason or "geometry") for reason in set(reasons or ())}
+    if not reasons:
+        return None
+
+    if (
+        getattr(owner, "_phase6_sync_ready", False)
+        and not getattr(owner, "_phase6_initializing", False)
+        and not getattr(owner, "_phase6_external_apply_guard", False)
+        and callable(getattr(owner, "_live_sync_callback", None))
+    ):
+        publish_if_changed()
+
+    if _Phase6UpdateScheduler._requires_calculation(reasons):
+        if getattr(owner, "preview_3d_enabled", True):
+            canvas = owner.renderer.canvas
+            draw = getattr(canvas, "draw", None)
+            draw_idle = getattr(canvas, "draw_idle", None)
+            if (
+                callable(draw)
+                and callable(draw_idle)
+                and not getattr(owner, "_phase6_force_sync_preview", False)
+            ):
+                canvas.draw = draw_idle
+                try:
+                    return full_update()
+                finally:
+                    canvas.draw = draw
+            return full_update()
+
+        render = owner.renderer.render
+        owner.renderer.render = lambda: None
+        try:
+            return full_update()
+        finally:
+            owner.renderer.render = render
+
+    return render_committed()
+
+
+def _fold_designer_scheduler(owner, *, executor):
+    scheduler = getattr(owner, "_phase6_update_scheduler", None)
+    if not isinstance(scheduler, _Phase6UpdateScheduler):
+        scheduler = _Phase6UpdateScheduler(owner, executor=executor)
+        owner._phase6_update_scheduler = scheduler
+    else:
+        scheduler.executor = executor
+    return scheduler
+
+
+def submit_fold_designer_update_intent(
+    owner,
+    reason,
+    *,
+    commit=False,
+    executor,
+):
+    if getattr(owner, "_phase6_destroying", False):
+        return None
+    return _fold_designer_scheduler(
+        owner, executor=executor
+    ).submit(reason, immediate=bool(commit))
+
+
+def flush_fold_designer_update_intents(owner, *, executor):
+    scheduler = _fold_designer_scheduler(owner, executor=executor)
+    return scheduler.flush_now()
+
+
+def queue_fold_designer_update(owner, *, executor):
+    if (
+        getattr(owner, "_phase6_destroying", False)
+        or getattr(owner, "_phase6_switching_part", False)
+    ):
+        return None
+    return submit_fold_designer_update_intent(
+        owner,
+        "geometry",
+        commit=False,
+        executor=executor,
+    )
+
+
+def apply_fold_designer_settings_delta(
+    delta,
+    transaction_id,
+    *,
+    transactions,
+    sync_mirrors,
+    apply_updates,
+):
+    previous = transactions.push_active_transaction(transaction_id)
+    sync_mirrors(transactions)
+    try:
+        return apply_updates(dict(delta or {}))
+    finally:
+        transactions.restore_active_transaction(previous)
+        sync_mirrors(transactions)
+
+
+def install_fold_designer_keyboard_shortcuts(
+    owner,
+    *,
+    on_save,
+    on_open,
+    on_fullscreen,
+):
+    """Install one Fold Designer shortcut layer without creating action owners."""
+    if bool(getattr(owner, "_phase6_keyboard_shortcuts_installed", False)):
+        return False
+    root = owner.root
+    for sequence in ("<Control-s>", "<Control-S>"):
+        root.bind(sequence, on_save, add="+")
+    for sequence in ("<Control-o>", "<Control-O>"):
+        root.bind(sequence, on_open, add="+")
+    root.bind("<F11>", on_fullscreen, add="+")
+    owner._phase6_keyboard_shortcuts_installed = True
+    return True
+
+
 def _request_phase6_update(self, reason="geometry", *, immediate=False, debounce_ms=None):
     """Route a GUI mutation through the one authoritative update scheduler."""
     owner = getattr(self, "_derived_cache_owner", None)
@@ -117,12 +260,9 @@ def _request_phase6_update(self, reason="geometry", *, immediate=False, debounce
     scheduler = getattr(self, "_phase6_update_scheduler", None)
     if scheduler is None:
         scheduler = self._phase6_update_scheduler = _Phase6UpdateScheduler(self)
-    scheduler.mark_dirty(reason)
-    if immediate:
-        return scheduler.flush_now()
-    if debounce_ms is not None:
-        scheduler.request_flush(debounce_ms=debounce_ms)
+    scheduler.submit(reason, immediate=bool(immediate), debounce_ms=debounce_ms)
     return True
+
 
 def _flush_phase6_authoritative_state(self):
     """Commit pending GUI mutations before persistence/manufacturing boundaries."""
@@ -130,6 +270,7 @@ def _flush_phase6_authoritative_state(self):
     if scheduler is None:
         return False
     return scheduler.flush_now()
+
 
 def bind_live_updates(self):
     # W/H 同時是 Door layout 的總尺寸；變更時要重算自動餘數。
@@ -147,4 +288,3 @@ def bind_live_updates(self):
             "write",
             lambda *_args: self._on_main_geometry_var_changed("legacy_input"),
         )
-
