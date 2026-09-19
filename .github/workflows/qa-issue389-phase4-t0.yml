@@ -1,0 +1,65 @@
+name: "QA #389 Phase4 T0 canonical census"
+
+on:
+  push:
+    branches:
+      - "refactor/issue389-phase4-t0-preflight-20260920"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=389"
+          echo "ROOT=fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4"
+          echo "HEAD=$(git rev-parse HEAD)"
+          git cat-file -e fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4^{commit}
+          git merge-base --is-ancestor fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4 HEAD
+
+      - name: Run canonical census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase4_owner_census.py             --json .scratch/phase4-t0-census.json             --markdown docs/superpowers/checkpoints/phase4-t0-deep-owner-census.md             | tee /tmp/phase4-t0-census.log
+          grep -q "PHASE4_T0_DECISION=GREEN" /tmp/phase4-t0-census.log
+          echo "=== MACHINE JSON ==="
+          cat .scratch/phase4-t0-census.json
+          echo "=== CHECKPOINT MD ==="
+          cat docs/superpowers/checkpoints/phase4-t0-deep-owner-census.md
+
+      - name: T0 protected/source drift gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          p=json.load(open(".scratch/phase4-t0-census.json",encoding="utf-8"))
+          c=p["classifier"]
+          assert c["ROOT_SHA_EXACT"] == 1, c
+          assert c["UNKNOWN_SETTINGS_OWNERS"] == 0, c
+          assert c["UNKNOWN_FINAL_SCENE_OWNERS"] == 0, c
+          assert c["UNKNOWN_BRIDGE_SEAM"] == 0, c
+          assert c["PROTECTED_MANIFEST_MISSING"] == 0, c
+          assert c["PRODUCTION_SOURCE_DRIFT"] == 0, c
+          assert c["SETTINGS_PANEL_CORE_REVERSE_IMPORTS"] == 0, c
+          assert p["decision"] == "GREEN", p["decision"]
+          print("ISSUE389_T0_ACCEPTANCE=GREEN")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue389-phase4-t0-census
+          path: |
+            .scratch/phase4-t0-census.json
+            docs/superpowers/checkpoints/phase4-t0-deep-owner-census.md
