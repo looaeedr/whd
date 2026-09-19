@@ -33,9 +33,39 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq python3-tk
           python -m pip install pytest
-      - name: Durable authority guards
+      - name: Durable authority focused guards
         run: |
-          python -m pytest -q             tests/knowledge/test_issue231_authority_map_normalization.py             tests/knowledge/test_knowledge_authority_contract.py             tests/knowledge/test_issue233_strict_metadata_migration.py             --tb=short
+          python -m pytest -q tests/knowledge/test_issue231_authority_map_normalization.py tests/knowledge/test_knowledge_authority_contract.py tests/knowledge/test_issue233_strict_metadata_migration.py -k "not all_governed_markdown_has_valid_whd_doc_meta_v1 and not strict_validator_accepts_the_repository_after_migration" --tb=short
+
+      - name: Strict metadata A-B classifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/issue398-base fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4
+          python - <<'PY'
+          import importlib.util
+          import json
+          from pathlib import Path
+
+          def errors(root):
+              tool = root / "tools/knowledge_governance.py"
+              spec = importlib.util.spec_from_file_location("kg_" + root.name, tool)
+              module = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(module)
+              return sorted(module.validate_strict(root))
+
+          base = errors(Path("/tmp/issue398-base"))
+          candidate = errors(Path(".").resolve())
+          print("BASE_STRICT_DEBT", len(base))
+          print("CANDIDATE_STRICT_DEBT", len(candidate))
+          if base != candidate:
+              print("ADDED", json.dumps(sorted(set(candidate) - set(base)), ensure_ascii=False, indent=2))
+              print("REMOVED", json.dumps(sorted(set(base) - set(candidate)), ensure_ascii=False, indent=2))
+              raise SystemExit(1)
+          assert not any("issue398" in item for item in candidate)
+          print("PASS STRICT_METADATA_NEW_DEBT=0")
+          PY
+
       - name: Scope integrity
         run: |
           set -euo pipefail
