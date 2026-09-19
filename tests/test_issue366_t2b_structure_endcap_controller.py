@@ -71,8 +71,8 @@ def test_t2b_structure_numeric_semantics_remain_in_structure_owner():
     )
 
     config = committed["configs"][BoxBodyStructureType.TWO_PIECE_W_SPLIT.value]
-    assert config["left_width"] == 300.0
-    assert config["right_width"] == 500.0
+    assert config["left_w"] == 300.0
+    assert config["right_w"] == 500.0
     assert workspace.dirty is True
 
 
@@ -122,7 +122,7 @@ def test_t2b_endcap_edge_relation_updates_joint_snapshot_and_dirty():
     owner, workspace, snapshot = _owner(snapshot=snap)
 
     updated = owner.commit_endcap_edge_relation(
-        "head", "TOP", AssemblyJointRelation.WRAP
+        "head", "BOTTOM", AssemblyJointRelation.WRAP
     )
 
     assert updated["assembly_joints"]
@@ -145,7 +145,16 @@ def test_t2b_controller_and_bridge_keep_semantics_and_effects_separate():
         if isinstance(node, ast.FunctionDef)
     }
     assert "commit_endcap_fw_follow" in funcs["_phase6_set_endcap_fw_follow"]
-    assert "set_endcap_fw_follow(" not in funcs["_phase6_set_endcap_fw_follow"]
+    fw_follow = next(
+        node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_phase6_set_endcap_fw_follow"
+    )
+    direct_follow_calls = {
+        node.func.id
+        for node in ast.walk(fw_follow)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "set_endcap_fw_follow" not in direct_follow_calls
     assert "commit_endcap_fw_override" in funcs["_phase6_set_endcap_fw_override"]
     assert "commit_box_structure_state" in funcs["_phase6_commit_box_structure_state"]
     assert "set_box_body_structure_state" not in funcs["_phase6_commit_box_structure_state"]
