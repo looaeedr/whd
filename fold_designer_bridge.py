@@ -625,8 +625,10 @@ def _phase6_final_scene_adapter(self):
                 "refresh_box_body_piece_info": lambda render_data: _phase6_refresh_box_body_piece_info_rows(
                     self, render_data
                 ),
-                "operator_dimensions": lambda part_key=None: _phase6_operator_finished_dimensions(
-                    self, part_key
+                "operator_dimensions": lambda part_key=None: (
+                    _phase6_operator_finished_dimensions(self)
+                    if part_key is None
+                    else _phase6_operator_finished_dimensions(self, part_key)
                 ),
                 "cabinet_family": lambda: _phase6_current_cabinet_family(self),
                 "assembly_blank_text": lambda render_data: _phase6_assembly_unfolded_blank_text(
