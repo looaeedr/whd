@@ -1,0 +1,85 @@
+name: "QA #366 T2D Tk A-B diagnostic"
+
+on:
+  push:
+    branches:
+      - refactor/issue366-phase3-settings-transactions-20260919
+    paths:
+      - '.github/workflows/qa-issue366-t2d-tk-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2d-tk-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest pytest-json-report matplotlib numpy -r requirements.txt
+
+      - name: Run exact baseline and candidate nodes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASELINE="bb8c3d0272756629654127fbd86e9d7013d797e4"
+          CANDIDATE="$GITHUB_SHA"
+          N1="tests/test_receiving_cabinet_type.py::test_switching_3d_baseline_model_to_receiving_applies_receiving_family_policy"
+          N2="tests/test_receiving_side_panel_outside_defaults.py::test_receiving_designer_controls_show_exact_outside_defaults_for_each_physical_side"
+          mkdir -p /tmp/t2d-ab
+          run_one() {
+            label="$1"; ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            set +e
+            xvfb-run -a python -m pytest -q "$N1" "$N2" --tb=short \
+              --json-report --json-report-file="/tmp/t2d-ab/$label.json" \
+              2>&1 | tee "/tmp/t2d-ab/$label.log"
+            rc=${PIPESTATUS[0]}
+            set -e
+            echo "$rc" > "/tmp/t2d-ab/$label.rc"
+            test -s "/tmp/t2d-ab/$label.json"
+          }
+          run_one baseline "$BASELINE"
+          run_one candidate "$CANDIDATE"
+
+      - name: Compare exact node outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def outcomes(label):
+              data=json.loads(Path(f"/tmp/t2d-ab/{label}.json").read_text())
+              result={}
+              for row in data.get("tests", []):
+                  result[row["nodeid"]]=row.get("outcome")
+              return result
+
+          b=outcomes("baseline")
+          c=outcomes("candidate")
+          print("BASELINE="+json.dumps(b,sort_keys=True))
+          print("CANDIDATE="+json.dumps(c,sort_keys=True))
+          assert b == c, (b,c)
+          print("PASS T2D_TK_AB_EXACT_OUTCOME_PARITY=1")
+          PY
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue366-t2d-tk-ab
+          path: /tmp/t2d-ab
+          if-no-files-found: error
