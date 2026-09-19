@@ -25,6 +25,9 @@ jobs:
           test "$(git merge-base HEAD f2910e4da945808844862e269a727b5a8ef1e7a8)" = "f2910e4da945808844862e269a727b5a8ef1e7a8"
       - name: Install harness
         run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
           python -m pip install pytest matplotlib -r requirements.txt
       - name: Confirm exact intended RED
         shell: bash
