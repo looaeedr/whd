@@ -199,4 +199,3 @@ Remote QA monitoring is **active polling**, not event notification.
 - terminal / missing / stale / owner mismatch → 退出 WAITING_REMOTE，進 RECOVERING 並保留 exact remote evidence；
 - scheduled wake 的 hourly cadence **不取代** live Runtime 內本 Skill 約 30 秒 polling；
 - GitHub cron/watchdog 可以輔助觀測 remote state，但不是 ChatGPT executor。
-
