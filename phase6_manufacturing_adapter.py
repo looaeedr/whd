@@ -5,6 +5,7 @@ not own solver/orchestration logic and does not switch the canonical resolver.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import replace
 from typing import Any
 
@@ -16,10 +17,246 @@ from phase6_manufacturing_contracts import (
     thaw_manufacturing_value,
 )
 from phase6_part_navigation import is_box_body_physical_piece_key
+from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
+from ae_engine.cabinet_types import policy as cabinet_family_policy
+from ae_engine.corner_type_ui import policy_from_corner_state
+from ae_engine.display_dimensions import resolve_operator_finished_dimensions
+from ae_engine.sheetmetal_geometry import FourCornerTypePolicy
+from phase6_endcap_semantics import (
+    ENDCAP_FW_PARTS,
+    normalize_endcap_bottom_wrap_state,
+    normalize_endcap_fw_state,
+    resolve_endcap_bottom_wrap,
+    resolve_endcap_fw,
+    selection_from_raw,
+)
+from phase6_fold_profiles import (
+    _num,
+    clone_profile,
+    engine_segment_length_to_ui,
+    read_box_body_profile,
+    read_endcap_xy_profiles,
+    read_standard_part_profiles,
+)
 from phase6_manufacturing_cache import (
     ManufacturingCacheKey,
     ManufacturingCacheService,
 )
+
+
+_CORNER_KEYS = ("bottom_left", "bottom_right", "top_left", "top_right")
+
+
+def _corner_policy_for_app(app: Any, part_key: str):
+    raw_state = dict(
+        (getattr(app, "_phase6_corner_state", {}) or {}).get(part_key, {}) or {}
+    )
+    if not all(key in raw_state for key in _CORNER_KEYS):
+        return None
+    selections = {
+        key: selection_from_raw(raw_state[key])
+        for key in _CORNER_KEYS
+    }
+    snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+    snapshot["endcap_fw"] = deepcopy(
+        getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot))
+    )
+    fw = (
+        resolve_endcap_fw(snapshot, part_key)
+        if str(part_key) in ENDCAP_FW_PARTS
+        else _num(snapshot.get("fw", 25), 25)
+    )
+    try:
+        if (
+            cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
+            and str(part_key) in ENDCAP_FW_PARTS
+        ):
+            thickness = _num(snapshot.get("t", 2.0), 2.0)
+            return FourCornerTypePolicy(
+                bottom_left=selections["bottom_left"],
+                bottom_right=selections["bottom_right"],
+                top_left=selections["top_left"],
+                top_right=selections["top_right"],
+                fw=float(fw),
+                bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
+                    snapshot,
+                    snapshot.get("box_body_structure"),
+                    thickness=thickness,
+                    default_fw=float(fw),
+                ),
+            )
+    except Exception:
+        pass
+    return policy_from_corner_state(selections, fw=fw)
+
+
+def operator_finished_dimensions_for_app(
+    app: Any,
+    part_key=None,
+    *,
+    triangles=None,
+):
+    """Tk/app adapter to the shared finished-dimension provider."""
+    key = str(part_key or getattr(app, "active_part_key", "") or "")
+    snapshot = getattr(app, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(app, "_settings_values", {}) or {}
+    head_policy = tail_policy = None
+    if key == "box_body":
+        head_policy = _corner_policy_for_app(app, "head")
+        tail_policy = _corner_policy_for_app(app, "tail")
+    return resolve_operator_finished_dimensions(
+        key,
+        snapshot=snapshot,
+        settings=settings,
+        triangles=triangles,
+        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        head_corner_policy=head_policy,
+        tail_corner_policy=tail_policy,
+    )
+
+
+def build_scene_payload_for_app(app: Any, part_key: str) -> dict:
+    """Build immutable-request scene values without importing the bridge."""
+    key = str(part_key or "")
+    if not key:
+        return {}
+
+    values = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    values.update(dict(getattr(app, "_settings_values", {}) or {}))
+    values.update(dict(getattr(app, "_phase6_box_whd", {}) or {}))
+    workspace = getattr(app, "designer_workspace", None)
+    state = getattr(app, "state", None)
+
+    try:
+        if key == "box_body":
+            profile = list(
+                (getattr(state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
+            )
+            values.update(read_box_body_profile(profile, values))
+            values["fold_profile"] = clone_profile(profile)
+        else:
+            active = str(getattr(workspace, "active_part", "") or "")
+            if key == active:
+                profiles = getattr(state, "profiles", {}) or {}
+            else:
+                profiles_for = getattr(workspace, "profiles_for", None)
+                profiles = (
+                    profiles_for(key, {}) or {}
+                    if callable(profiles_for)
+                    else {}
+                )
+            if key in {"head", "tail"}:
+                values.update(read_endcap_xy_profiles(profiles, values))
+                values["box_body_profile"] = clone_profile(
+                    (getattr(state, "profiles_vault", {}) or {}).get("箱身", ()) or ()
+                )
+                values["fold_profiles"] = {
+                    "X": clone_profile(dict(profiles).get("X", ())),
+                    "Y": clone_profile(dict(profiles).get("Y", ())),
+                }
+            else:
+                values.update(read_standard_part_profiles(key, profiles, values))
+    except Exception:
+        pass
+
+    model_var = getattr(app, "baseline_model_var", None)
+    values["model"] = str(
+        _safe_var_get(
+            model_var,
+            getattr(app, "_phase6_baseline_initial_model", "") or "",
+        )
+        or ""
+    ).strip()
+    values["endcap_fw"] = deepcopy(
+        getattr(app, "_phase6_endcap_fw_state", normalize_endcap_fw_state(values))
+    )
+    values["endcap_bottom_wrap"] = deepcopy(
+        getattr(
+            app,
+            "_phase6_endcap_bottom_wrap_state",
+            normalize_endcap_bottom_wrap_state(values),
+        )
+    )
+    if key in ENDCAP_FW_PARTS:
+        values["fw"] = resolve_endcap_fw(
+            values,
+            key,
+            state=values["endcap_fw"],
+        )
+    values["corner_state"] = deepcopy(
+        getattr(app, "_phase6_corner_state", {}) or {}
+    )
+    values["_use_committed_relief"] = True
+
+    features_for = getattr(workspace, "features_for", None)
+    face_features_for = getattr(workspace, "face_features_for", None)
+    structure_state = getattr(workspace, "box_body_structure_state", None)
+    values["features"] = features_for(key) if callable(features_for) else ()
+    values["face_features"] = (
+        face_features_for(key) if callable(face_features_for) else {}
+    )
+    values["box_body_structure"] = (
+        structure_state() if callable(structure_state) else {}
+    )
+
+    source_graph = migrate_legacy_snapshot_joints(
+        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    )
+    values["assembly_joint_schema_version"] = source_graph.get(
+        "assembly_joint_schema_version"
+    )
+    values["assembly_joints"] = deepcopy(
+        source_graph.get("assembly_joints", ())
+    )
+
+    if (
+        key in ENDCAP_FW_PARTS
+        and cabinet_family_policy.supports_bottom_wrap_controls(values)
+    ):
+        try:
+            item = resolve_endcap_bottom_wrap(
+                values,
+                key,
+                state=values["endcap_bottom_wrap"],
+            )
+            values["box_body_structure"] = (
+                cabinet_family_policy.set_bottom_relief_reserves(
+                    values,
+                    values["box_body_structure"],
+                    reserve_u=item["reserve_u"],
+                    reserve_v=item["reserve_v"],
+                )
+            )
+        except Exception:
+            pass
+
+    if key == "box_body":
+        profiles_for = getattr(workspace, "profiles_for", None)
+        for child_key, target in (
+            ("head", "head_ybottom1"),
+            ("tail", "tail_ybottom1"),
+        ):
+            profiles = (
+                profiles_for(child_key, {}) or {}
+                if callable(profiles_for)
+                else {}
+            )
+            for row in list(dict(profiles).get("Y", ()) or ()):
+                if str(row.get("phase6_key") or "") == "ybottom1":
+                    values[target] = float(engine_segment_length_to_ui(row))
+                    break
+
+    source = getattr(app, "_phase6_input_snapshot", {}) or {}
+    for name in (
+        "indicator_layer_groups",
+        "door_indicator_groups",
+        "door_indicator_offset",
+        "door_indicator_box_enabled",
+    ):
+        if name not in values and name in source:
+            values[name] = deepcopy(source[name])
+    return values
 
 
 def _safe_var_get(value: Any, default: Any = None) -> Any:
@@ -278,6 +515,24 @@ def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
     return service
 
 
+def resolve_for_app(app: Any) -> Any:
+    """Single compatibility entry from app/Tk world into manufacturing."""
+    render_provider = getattr(app, "_scene_query_callback", None)
+    part_spec_provider = getattr(app, "_part_spec_query_callback", None)
+    publish_live_state = getattr(app, "_phase6_publish_live_state", None)
+    return resolve_manufacturing_for_app(
+        app,
+        scene_payload_builder=lambda key: build_scene_payload_for_app(app, key),
+        render_data_provider=render_provider,
+        part_spec_provider=part_spec_provider,
+        finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(
+            app,
+            key,
+        ),
+        publish_live_state=publish_live_state,
+    )
+
+
 def resolve_manufacturing_for_app(
     app: Any,
     *,
@@ -356,5 +611,8 @@ __all__ = [
     "build_manufacturing_request",
     "apply_manufacturing_result",
     "resolve_manufacturing_for_app",
+    "resolve_for_app",
+    "build_scene_payload_for_app",
+    "operator_finished_dimensions_for_app",
     "build_manufacturing_cache_key",
 ]
