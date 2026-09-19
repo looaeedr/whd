@@ -255,4 +255,3 @@ WHD 的具體產品規則由 AI Library canonical contract `phase6-startup-basel
 4. 無 drift 直接續工；有 drift 只重驗受影響範圍；
 5. 已 accepted phase 不因 runtime 重建而重跑；
 6. 目前 Runtime 可繼續時不得因「排程稍後會再醒」而停止。
-
