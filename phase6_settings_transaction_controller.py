@@ -11,6 +11,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Mapping, MutableMapping
 
+from ae_engine.cabinet_types import policy as cabinet_family_policy
 from ae_engine.assembly_joint import (
     set_part_edge_relation,
     sync_snapshot_intent_joints,
@@ -23,6 +24,7 @@ from ae_engine.sheetmetal_geometry import (
 )
 from phase6_box_body_structure import (
     BoxBodyStructureType,
+    reconcile_box_body_structure_for_total_w_change,
     activate_structure_with_defaults,
     set_join_seam_bend,
     set_side_back_geometry,
@@ -73,6 +75,18 @@ class ExternalSyncPlan:
 class ExternalModelPlan:
     changed: bool
     target_model: str
+
+
+@dataclass(frozen=True)
+class FamilyModelTransition:
+    new_model: str
+    old_model: str
+    editable: bool
+    defaults: dict[str, object]
+    family_values: dict[str, object]
+    assembly_type: object
+    structure_state: dict[str, object] | None
+    remember_non_receiving_structure: dict[str, object] | None
 
 
 class Phase6SettingsTransactionController:
@@ -623,6 +637,160 @@ class Phase6SettingsTransactionController:
             dict(self._settings_values),
             deepcopy(self._corner_state),
             deepcopy(self._corner_pair_same),
+        )
+
+    def commit_reconciled_width_structure(self, new_w: float) -> dict:
+        getter = getattr(self._workspace, "box_body_structure_state", None)
+        if not callable(getter):
+            raise RuntimeError("workspace box-body structure owner is not connected")
+        next_state = reconcile_box_body_structure_for_total_w_change(
+            getter(), float(new_w)
+        )
+        return self.commit_box_structure_state(next_state)
+
+    def _apply_corner_preset(
+        self, fixed_corner_state: Mapping[str, object] | None
+    ) -> None:
+        for part_key, corners in dict(fixed_corner_state or {}).items():
+            state = self._corner_state.setdefault(str(part_key), {})
+            for corner_key, raw in dict(corners or {}).items():
+                if isinstance(raw, Mapping):
+                    state[str(corner_key)] = selection_to_raw(
+                        selection_from_raw(raw)
+                    )
+                else:
+                    state[str(corner_key)] = selection_to_raw(raw)
+            pairs = self._corner_pair_same.setdefault(str(part_key), {})
+            pairs["top"] = True
+            pairs["bottom"] = True
+
+    def commit_family_model_transition(
+        self,
+        new_model,
+        old_model,
+        *,
+        new_editable: bool,
+        old_editable: bool,
+        fixed_corner_state: Mapping[str, object] | None = None,
+        available_parts=(),
+        previous_non_receiving_structure=None,
+    ) -> FamilyModelTransition:
+        new_model = str(new_model or "").strip()
+        old_model = str(old_model or "").strip()
+        old_snapshot_model = str(
+            self._input_snapshot.get("model") or old_model or ""
+        ).strip()
+
+        if (
+            (not new_editable and new_model and new_model != old_model)
+            or (new_editable and old_model and not old_editable)
+        ):
+            self._apply_corner_preset(fixed_corner_state)
+
+        self._input_snapshot["model"] = new_model
+        defaults: dict[str, object] = {}
+        family_values: dict[str, object] = {}
+
+        if not new_editable and new_model and new_model != old_snapshot_model:
+            runtime_presets = dict(
+                self._input_snapshot.get("_runtime_family_presets") or {}
+            )
+            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
+            preset_base = dict(preset_runtime.get("settings") or {})
+            if not preset_base:
+                preset_base = dict(
+                    self._input_snapshot.get("factory_defaults") or {}
+                )
+            if not preset_base:
+                preset_base = {
+                    key: value
+                    for key, value in self._input_snapshot.items()
+                    if key in self._settings_values
+                }
+
+            defaults = dict(
+                cabinet_family_policy.apply_fresh_family_defaults(
+                    preset_base, new_model
+                )
+            )
+            self._input_snapshot.update(defaults)
+
+            runtime_field_map = {
+                "multi_door_enabled": "multi_door_enabled",
+                "door_layout_columns": "door_layout_columns",
+                "door_layout_scope": "door_layout_scope",
+                "door_handle_edges": "door_handle_edges",
+                "receiving_inner_doors": "inner_doors",
+                "door_nameplate_center_datum_top": "door_nameplate_center_datum_top",
+            }
+            for source_key, target_key in runtime_field_map.items():
+                if source_key in preset_runtime:
+                    self._input_snapshot[target_key] = deepcopy(
+                        preset_runtime[source_key]
+                    )
+
+            family_values = {
+                key: value
+                for key, value in defaults.items()
+                if key in self._settings_values
+            }
+
+            fresh_intent = cabinet_family_policy.fresh_assembly_intent(new_model)
+            self.commit_assembly_intent(
+                fresh_intent,
+                available_parts=available_parts,
+                project_legacy_corner=False,
+                mark_dirty=False,
+            )
+
+            normalized_wrap = normalize_endcap_bottom_wrap_state(
+                {"model": new_model}
+            )
+            self._endcap_bottom_wrap_state.clear()
+            self._endcap_bottom_wrap_state.update(normalized_wrap)
+            self._input_snapshot["endcap_bottom_wrap"] = deepcopy(
+                self._endcap_bottom_wrap_state
+            )
+
+        remember_structure = None
+        committed_structure = None
+        current_structure = None
+        getter = getattr(self._workspace, "box_body_structure_state", None)
+        if callable(getter):
+            current_structure = getter()
+
+        if new_model == "受電箱" and current_structure is not None:
+            if old_snapshot_model != "受電箱":
+                remember_structure = deepcopy(current_structure)
+            committed_structure = self.commit_box_structure_state(
+                cabinet_family_policy.resolve_box_body_structure_state(
+                    new_model, current_structure
+                )
+            )
+        elif old_snapshot_model == "受電箱":
+            runtime_presets = dict(
+                self._input_snapshot.get("_runtime_family_presets") or {}
+            )
+            preset_runtime = deepcopy(dict(runtime_presets.get(new_model) or {}))
+            previous = preset_runtime.get("box_body_structure")
+            if previous is None:
+                previous = previous_non_receiving_structure
+            if previous:
+                committed_structure = self.commit_box_structure_state(previous)
+
+        self.mark_workspace_dirty()
+        return FamilyModelTransition(
+            new_model=new_model,
+            old_model=old_model,
+            editable=bool(new_editable),
+            defaults=deepcopy(defaults),
+            family_values=deepcopy(family_values),
+            assembly_type=self._assembly_type,
+            structure_state=(
+                None if committed_structure is None
+                else deepcopy(committed_structure)
+            ),
+            remember_non_receiving_structure=remember_structure,
         )
 
     def plan_external_model_change(self, model) -> ExternalModelPlan:
