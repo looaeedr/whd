@@ -34,7 +34,7 @@ EXPECTED_BRIDGE_DELEGATES = {
     "_phase6_apply_external_assembly_type": "commit_assembly_intent",
     "_phase6_apply_external_corner_state": "replace_corner_state",
     "_phase6_apply_external_sync": "plan_external_sync",
-    "_phase6_apply_settings_delta": "push_active_transaction",
+    "_phase6_apply_settings_delta": "apply_fold_designer_settings_delta",
     "_phase6_on_box_symmetry_changed": "commit_symmetry",
     "_phase6_save_settings_context_as_defaults": "settings_defaults_payload",
     "_phase6_apply_external_model": "plan_external_model_change",
@@ -236,3 +236,15 @@ def test_issue366_t2c_controller_semantics_when_api_present():
     model_plan = owner.plan_external_model_change("受電箱")
     assert model_plan.changed is True
     assert model_plan.target_model == "受電箱"
+
+
+def test_issue366_t2c_application_router_preserves_transaction_push_restore():
+    from gui_modules.application import command_router
+
+    source = Path(command_router.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(command_router.__file__))
+    funcs = _functions(tree)
+    node = funcs["apply_fold_designer_settings_delta"]
+    rendered = ast.unparse(node)
+    assert "push_active_transaction" in rendered
+    assert "restore_active_transaction" in rendered
