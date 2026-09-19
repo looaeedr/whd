@@ -23,8 +23,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor f983f40c6d65a82b0e58d094a363acb16b7fac84 HEAD
-          echo "T4_BASELINE=f983f40c6d65a82b0e58d094a363acb16b7fac84"
+          git merge-base --is-ancestor 05e7820e319421cbfbd83e5b243d05cdc7596410 HEAD
+          echo "T4_BASELINE=05e7820e319421cbfbd83e5b243d05cdc7596410"
           echo "CANDIDATE=$(git rev-parse HEAD)"
       - name: Install harness
         shell: bash
