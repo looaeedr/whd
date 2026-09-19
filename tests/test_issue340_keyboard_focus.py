@@ -18,20 +18,28 @@ def _text(path: str) -> str:
 
 def test_t7_source_contract_installs_authoritative_shortcuts_and_focus_guards():
     bridge = _text("fold_designer_bridge.py")
-    required = (
+    router = _text("gui_modules/application/command_router.py")
+
+    bridge_required = (
         "def _phase6_install_keyboard_shortcuts",
-        '("<Control-s>", "<Control-S>")',
-        '("<Control-o>", "<Control-O>")',
-        '"<F11>"',
         "self.save_project_file()",
         "self.load_project_file()",
         "_phase6_toggle_fullscreen(self)",
         "takefocus=False",
         "_phase6_return_focus",
     )
-    missing = [token for token in required if token not in bridge]
+    router_required = (
+        "def install_fold_designer_keyboard_shortcuts",
+        '("<Control-s>", "<Control-S>")',
+        '("<Control-o>", "<Control-O>")',
+        '"<F11>"',
+    )
+    missing = [
+        *(f"bridge:{token}" for token in bridge_required if token not in bridge),
+        *(f"router:{token}" for token in router_required if token not in router),
+    ]
     assert not missing, (
-        "#340 EXPECTED RED: Fold Designer shortcuts/focus guards are incomplete; "
+        "Fold Designer shortcut/focus ownership is incomplete after T7 extraction; "
         f"missing={missing!r}"
     )
 
