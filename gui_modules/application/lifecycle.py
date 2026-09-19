@@ -215,7 +215,10 @@ from ae_engine.sheetmetal_drawing import (
     resolved_features_to_primitives,
     mirror_point_y,
 )
-from gui_modules.application.command_router import _Phase6UpdateScheduler
+from gui_modules.application.command_router import (
+    _Phase6UpdateScheduler,
+    install_application_update_scheduler_lifecycle,
+)
 
 def phase6_application_host_init(self, root):
     self.root = root
@@ -245,6 +248,7 @@ def phase6_application_host_init(self, root):
     self.settings_service = SettingsService(ae)
     self._settings_sync_guard = False
     self._phase6_update_scheduler = _Phase6UpdateScheduler(self)
+    install_application_update_scheduler_lifecycle(self)
     self._phase6_main_sync_revision = 0
     self._phase6_main_sync_fingerprint = None
     self._phase6_last_fold_designer_revision = 0
