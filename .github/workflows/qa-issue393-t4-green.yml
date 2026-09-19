@@ -112,6 +112,7 @@ jobs:
           assert "self.services" not in view
           assert "services.get(" not in view
           assert "services={" not in bridge
+          assert ".services" not in bridge
           assert "FinalSceneDependencies(" in bridge
           print("FINAL_SCENE_DYNAMIC_SERVICE_LOOKUP=0")
           print("FINAL_SCENE_GENERIC_SERVICE_BAG=0")
