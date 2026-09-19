@@ -133,15 +133,14 @@ def test_issue357_result_contract_survives_later_phase2_resolver_cutover():
     import ast
     from pathlib import Path
 
-    path = Path("phase6_manufacturing_geometry.py")
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    names = {
-        node.name
+    path = Path("phase6_manufacturing_service.py")
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(path))
+    resolver = next(
+        node
         for node in tree.body
-        if isinstance(node, ast.FunctionDef)
-    }
-    assert (
-        "_phase6_resolve_manufacturing_geometry" in names
-        or "_phase6_resolve_manufacturing_result" in names
+        if isinstance(node, ast.FunctionDef) and node.name == "resolve"
     )
+    segment = ast.get_source_segment(source, resolver) or ""
+    assert "ManufacturingResolveResult" in segment
 
