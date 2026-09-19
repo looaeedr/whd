@@ -1,0 +1,65 @@
+name: "QA #366 T2D family width GREEN"
+
+on:
+  push:
+    branches:
+      - refactor/issue366-phase3-settings-transactions-20260919
+    paths:
+      - 'fold_designer_bridge.py'
+      - 'phase6_settings_transaction_controller.py'
+      - 'tests/test_issue366_t2d_family_width_controller.py'
+      - '.github/workflows/qa-issue366-t2d-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2d-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor bb8c3d0272756629654127fbd86e9d7013d797e4 HEAD
+          echo "BASELINE=bb8c3d0272756629654127fbd86e9d7013d797e4"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install pytest matplotlib numpy -r requirements.txt
+
+      - name: Compile T2D owners
+        run: python -m py_compile phase6_settings_transaction_controller.py fold_designer_bridge.py
+
+      - name: Run T2D ownership contracts
+        run: python -m pytest -q tests/test_issue366_t2d_family_width_controller.py
+
+      - name: Run pure width and structure regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_phase6_box_body_structure.py \
+            tests/test_phase6_settings_service.py
+
+      - name: Run real-Tk family model regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_receiving_cabinet_type.py \
+            tests/test_phase6_corner_transaction.py \
+            tests/test_phase6_live_canonical_sync.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_receiving_side_panel_outside_defaults.py
