@@ -1,0 +1,51 @@
+name: "QA #395 T6 RED Final Scene renderer/runtime"
+
+on:
+  push:
+    branches:
+      - "refactor/issue395-phase4-t6-final-scene-renderer-20260920"
+    paths:
+      - "tests/test_issue395_final_scene_renderer.py"
+      - ".github/workflows/qa-issue395-t6-red.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  intended-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=395"
+          echo "PREDECESSOR=b24625cbc9a75223c02eb16a6128923323c573f5"
+          echo "HEAD=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor b24625cbc9a75223c02eb16a6128923323c573f5 HEAD
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Require intended RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue395_final_scene_renderer.py --tb=short | tee /tmp/issue395-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "PYTEST_RC=$rc"
+          if [ "$rc" -eq 0 ]; then
+            echo "UNEXPECTED_GREEN"
+            exit 1
+          fi
+          grep -Eq "T6 requires phase6_final_scene_renderer.py|adapter still stores renderer/runtime state|final scene view lines=|final scene view self refs=|mirror_view_state|_phase6_sync_final_scene_view_compatibility_mirrors|renderer owner missing" /tmp/issue395-red.log
+          echo "ISSUE395_T6_EXPECTED_RED=1"
