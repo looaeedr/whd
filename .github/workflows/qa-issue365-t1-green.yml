@@ -1,4 +1,5 @@
 name: "QA #365 T1 GREEN workspace navigation"
+# canonical-deps trigger
 
 on:
   push:
