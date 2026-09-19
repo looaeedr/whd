@@ -1318,6 +1318,471 @@ class Phase6FinalSceneView:
         self.scroll_cid = self.renderer.canvas.mpl_connect("scroll_event", self.on_scroll)
         return self
 
+
+class Phase6FinalSceneViewAdapter:
+    """Own 3D view orchestration while consuming authoritative injected providers only."""
+
+    def __init__(self, owner, *, services=None):
+        self.owner = owner
+        self.services = dict(services or {})
+
+    def _service(self, name, *, required=True):
+        value = self.services.get(name)
+        if callable(value):
+            return value
+        if required:
+            raise RuntimeError(f"3D view service is not connected: {name}")
+        return None
+
+    def query_final_render_data(self):
+        owner = self.owner
+        key = str(getattr(getattr(owner, "designer_workspace", None), "active_part", "") or "")
+        if not key:
+            raise ValueError("no active part")
+
+        if self._service("is_physical_piece_key")(key):
+            return self._service("physical_piece_render_data")(key)
+
+        user_joint_parts = {
+            str(value or "")
+            for value in tuple(self._service("user_joint_parts")() or ())
+            if str(value or "")
+        }
+        if (
+            key in {"box_body", "head", "tail"}
+            or key.startswith("box_body:divider:")
+            or key in user_joint_parts
+        ):
+            resolved = self._service("resolve_geometry")()
+            return resolved.part(key).render_data
+
+        callback = getattr(owner, "_scene_query_callback", None)
+        if callback is None:
+            raise RuntimeError("3D final-scene provider is not connected")
+        render_data = callback(
+            key,
+            self._service("scene_payload_for_part")(key),
+        )
+        if render_data is None:
+            raise ValueError(f"manufacturing render data unavailable: {key}")
+        if getattr(render_data, "pieces", None):
+            return render_data
+        if (
+            getattr(render_data, "scene", None) is None
+            or getattr(render_data, "material", None) is None
+        ):
+            raise TypeError(
+                "manufacturing render provider must return scene + material or physical pieces"
+            )
+        return render_data
+
+    def make_assembly_scene_render_data(
+        self,
+        *,
+        assembly_parts,
+        visible_part_keys=None,
+        visible_box_body_piece_keys=None,
+        show_interference=False,
+        ignore_fixed_corner_relief=False,
+        interference_probe_parts=(),
+        joint_diagnostics=(),
+        selected_joint_id=None,
+        preserve_endcap_core_origin=False,
+        render_data_cls=None,
+    ):
+        """Construct the UI-only assembly bundle across old/new view contracts."""
+        from inspect import Parameter, signature
+
+        cls = render_data_cls or AssemblySceneRenderData
+        values = {
+            "assembly_parts": tuple(assembly_parts),
+            "visible_part_keys": (
+                None
+                if visible_part_keys is None
+                else tuple(str(key) for key in visible_part_keys)
+            ),
+            "visible_box_body_piece_keys": (
+                None
+                if visible_box_body_piece_keys is None
+                else tuple(str(key) for key in visible_box_body_piece_keys)
+            ),
+            "show_interference": bool(show_interference),
+            "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
+            "interference_probe_parts": tuple(interference_probe_parts or ()),
+            "joint_diagnostics": tuple(joint_diagnostics or ()),
+            "selected_joint_id": (
+                None if selected_joint_id is None else str(selected_joint_id)
+            ),
+            "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
+        }
+        try:
+            params = signature(cls).parameters
+        except (TypeError, ValueError):
+            params = {}
+        accepts_kwargs = any(
+            parameter.kind is Parameter.VAR_KEYWORD
+            for parameter in params.values()
+        )
+        if accepts_kwargs:
+            kwargs = values
+        else:
+            if (
+                "visible_part_keys" not in params
+                and values["visible_part_keys"] is not None
+            ):
+                visible = set(values["visible_part_keys"])
+                values["assembly_parts"] = tuple(
+                    part
+                    for part in values["assembly_parts"]
+                    if str(getattr(part, "part_key", "")) in visible
+                )
+            kwargs = {
+                key: value
+                for key, value in values.items()
+                if key in params
+            }
+            kwargs.setdefault("assembly_parts", values["assembly_parts"])
+        return cls(**kwargs)
+
+    def query_assembly_render_data(self):
+        owner = self.owner
+        resolved = self._service("resolve_geometry")()
+        self._service("publish_live_state")(force=True)
+
+        part_cls = self.services.get("assembly_part_cls") or AssemblyScenePart
+        parts = [
+            part_cls(
+                part_key=part.part_key,
+                render_data=part.render_data,
+                x_profile=tuple(
+                    dict(segment)
+                    for segment in tuple(part.x_profile or ())
+                ),
+                y_profile=tuple(
+                    dict(segment)
+                    for segment in tuple(part.y_profile or ())
+                ),
+                placement=part.placement,
+                offset=part.offset,
+            )
+            for part in resolved.parts
+        ]
+
+        corner_text = self._service("corner_dimension_text")
+        owner._phase6_last_assembly_corner_dimension_texts = {
+            part.part_key: corner_text(part.render_data)
+            for part in parts
+        }
+        for key, text in owner._phase6_last_assembly_corner_dimension_texts.items():
+            var = (getattr(owner, "assembly_part_corner_vars", {}) or {}).get(key)
+            if var is not None and callable(getattr(var, "set", None)):
+                var.set(text)
+
+        snapshot = getattr(owner, "_phase6_input_snapshot", {}) or {}
+        settings = getattr(owner, "_settings_values", {}) or {}
+        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        formed_text = self._service("formed_size_text")
+        blank_text = self._service("blank_text")
+        dimensions = self._service("operator_dimensions")
+        refresh_box_body = self._service(
+            "refresh_box_body_piece_info", required=False
+        )
+        for part in parts:
+            formed_var = (
+                getattr(owner, "assembly_part_formed_vars", {}) or {}
+            ).get(part.part_key)
+            if formed_var is not None and callable(getattr(formed_var, "set", None)):
+                formed_var.set(
+                    formed_text(
+                        part.render_data,
+                        part_key=part.part_key,
+                        x_profile=part.x_profile,
+                        y_profile=part.y_profile,
+                        thickness=thickness,
+                        finished_dimensions=dimensions(part.part_key),
+                    )
+                )
+            blank_var = (
+                getattr(owner, "assembly_part_blank_vars", {}) or {}
+            ).get(part.part_key)
+            if blank_var is not None and callable(getattr(blank_var, "set", None)):
+                blank_var.set(
+                    blank_text(part.render_data, part_key=part.part_key)
+                )
+            if (
+                part.part_key == "box_body"
+                and callable(refresh_box_body)
+            ):
+                refresh_box_body(part.render_data)
+
+        visible_vars = getattr(owner, "assembly_part_visible_vars", {}) or {}
+        visible_parts = [
+            part
+            for part in parts
+            if bool(
+                getattr(
+                    visible_vars.get(part.part_key),
+                    "get",
+                    lambda: True,
+                )()
+            )
+        ]
+        if not visible_parts and parts:
+            fallback = next(
+                (part for part in parts if part.part_key == "box_body"),
+                parts[0],
+            )
+            visible_parts = [fallback]
+            var = visible_vars.get(fallback.part_key)
+            if var is not None and callable(getattr(var, "set", None)):
+                var.set(True)
+
+        visible_keys = {part.part_key for part in visible_parts}
+        box_part = next(
+            (part for part in parts if part.part_key == "box_body"),
+            None,
+        )
+        box_piece_keys = tuple(
+            f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+            for piece in tuple(
+                getattr(
+                    getattr(box_part, "render_data", None),
+                    "pieces",
+                    (),
+                )
+                or ()
+            )
+            if str(getattr(piece, "role", "") or "").strip()
+        )
+        visible_box_body_piece_keys = None
+        if box_piece_keys:
+            piece_vars = dict(
+                getattr(owner, "assembly_box_body_piece_visible_vars", {}) or {}
+            )
+            if "box_body" not in visible_keys:
+                visible_box_body_piece_keys = ()
+            else:
+                visible_box_body_piece_keys = tuple(
+                    key
+                    for key in box_piece_keys
+                    if bool(
+                        getattr(
+                            piece_vars.get(key),
+                            "get",
+                            lambda: True,
+                        )()
+                    )
+                )
+                if (
+                    not visible_box_body_piece_keys
+                    and visible_keys == {"box_body"}
+                ):
+                    first = box_piece_keys[0]
+                    var = piece_vars.get(first)
+                    if var is not None and callable(getattr(var, "set", None)):
+                        var.set(True)
+                    visible_box_body_piece_keys = (first,)
+
+        visible_probe_parts = tuple(
+            part
+            for part in tuple(
+                getattr(owner, "_phase6_last_interference_probe_parts", ())
+                or ()
+            )
+            if part.part_key in visible_keys
+        )
+        show_var = getattr(owner, "assembly_show_interference_var", None)
+        show_interference = (
+            bool(show_var.get()) if show_var is not None else True
+        )
+        cabinet_family = self._service("cabinet_family")()
+        render_data_cls_provider = self._service(
+            "assembly_render_data_cls", required=False
+        )
+        render_data_cls = (
+            render_data_cls_provider()
+            if callable(render_data_cls_provider)
+            else AssemblySceneRenderData
+        )
+        return self.make_assembly_scene_render_data(
+            assembly_parts=tuple(parts),
+            visible_part_keys=tuple(
+                part.part_key for part in visible_parts
+            ),
+            visible_box_body_piece_keys=visible_box_body_piece_keys,
+            show_interference=show_interference,
+            ignore_fixed_corner_relief=False,
+            interference_probe_parts=visible_probe_parts,
+            joint_diagnostics=(),
+            selected_joint_id=None,
+            preserve_endcap_core_origin=(cabinet_family == "受電箱"),
+            render_data_cls=render_data_cls,
+        )
+
+    def build_request(self):
+        owner = self.owner
+        workspace = getattr(owner, "designer_workspace", None)
+        active_part = getattr(workspace, "active_part", None)
+        if not active_part:
+            return None
+
+        snapshot = getattr(owner, "_phase6_input_snapshot", {}) or {}
+        settings = getattr(owner, "_settings_values", {}) or {}
+        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        alpha_bend = float(
+            getattr(getattr(owner, "state", None), "alpha_bend", 0.85)
+        )
+        dimensions = self._service("operator_dimensions")
+        view_mode = str(
+            getattr(owner, "_phase6_3d_display_mode", "single") or "single"
+        )
+
+        if view_mode == "assembly":
+            provider = self._service(
+                "assembly_render_provider", required=False
+            )
+            assembly_render_data = (
+                provider()
+                if callable(provider)
+                else self.query_assembly_render_data()
+            )
+            return FinalSceneViewRequest(
+                render_data=assembly_render_data,
+                x_profile=(),
+                y_profile=(),
+                part_key="assembly",
+                alpha_bend=alpha_bend,
+                finished_dimensions=dimensions(None),
+                thickness=thickness,
+                unfolded_blank_text=self._service(
+                    "assembly_blank_text"
+                )(assembly_render_data),
+            )
+
+        provider = self._service("final_render_provider", required=False)
+        render_data = (
+            provider()
+            if callable(provider)
+            else self.query_final_render_data()
+        )
+        if getattr(render_data, "pieces", None):
+            x_profile, y_profile = (), ()
+        else:
+            x_profile, y_profile = self._service(
+                "active_mesh_profiles"
+            )(render_data.material)
+        key = str(active_part)
+        return FinalSceneViewRequest(
+            render_data=render_data,
+            x_profile=tuple(dict(segment) for segment in x_profile),
+            y_profile=tuple(dict(segment) for segment in y_profile),
+            part_key=key,
+            alpha_bend=alpha_bend,
+            finished_dimensions=dimensions(None),
+            thickness=thickness,
+            corner_dimension_text=self._service(
+                "corner_dimension_text"
+            )(render_data),
+            unfolded_blank_text=self._service("blank_text")(
+                render_data,
+                part_key=key,
+            ),
+        )
+
+    def render_cutting_mesh(self):
+        owner = self.owner
+        view = getattr(owner, "final_scene_view", None)
+        if view is None:
+            view = Phase6FinalSceneView(
+                owner.renderer,
+                number_text=self.services.get("number_text"),
+            )
+            owner.final_scene_view = view
+        request_provider = self._service(
+            "request_provider", required=False
+        )
+        request = (
+            request_provider()
+            if callable(request_provider)
+            else self.build_request()
+        )
+        triangles = view.render(request)
+        mirror = self._service("mirror_view_state", required=False)
+        if callable(mirror):
+            mirror(view)
+        return triangles
+
+    def on_scroll(self, event):
+        view = getattr(self.owner, "final_scene_view", None)
+        if view is not None:
+            return view.on_scroll(event)
+        return None
+
+    def install_renderer(self):
+        owner = self.owner
+        view = Phase6FinalSceneView(
+            owner.renderer,
+            number_text=self.services.get("number_text"),
+        )
+        owner.final_scene_view = view
+        try:
+            owner.renderer.canvas.get_tk_widget().configure(takefocus=False)
+        except Exception:
+            pass
+        request_provider = self._service(
+            "request_provider", required=False
+        )
+        view.install(
+            request_provider if callable(request_provider) else self.build_request,
+            after_render=self._service("after_render", required=False),
+        )
+        return view
+
+    def render_committed(self):
+        owner = self.owner
+        if not getattr(owner, "preview_3d_enabled", True):
+            return None
+        canvas = owner.renderer.canvas
+        draw = getattr(canvas, "draw", None)
+        draw_idle = getattr(canvas, "draw_idle", None)
+        if (
+            callable(draw)
+            and callable(draw_idle)
+            and not getattr(owner, "_phase6_force_sync_preview", False)
+        ):
+            canvas.draw = draw_idle
+            try:
+                return owner.renderer.render()
+            finally:
+                canvas.draw = draw
+        return owner.renderer.render()
+
+    def set_preview_enabled(self, enabled):
+        owner = self.owner
+        enabled = bool(enabled)
+        owner.preview_3d_enabled = enabled
+        var = getattr(owner, "preview_3d_var", None)
+        if var is not None and bool(var.get()) != enabled:
+            var.set(enabled)
+        widget = owner.renderer.canvas.get_tk_widget()
+        if enabled:
+            if not widget.winfo_manager():
+                widget.pack(fill="both", expand=True)
+            owner.submit_update_intent("display", commit=True)
+        elif widget.winfo_manager() == "pack":
+            widget.pack_forget()
+
+    def refresh_preview(self):
+        owner = self.owner
+        if not getattr(owner, "preview_3d_enabled", True):
+            self.set_preview_enabled(True)
+            return None
+        owner._phase6_force_sync_preview = True
+        try:
+            return owner.submit_update_intent("display", commit=True)
+        finally:
+            owner._phase6_force_sync_preview = False
+
 _PHASE6_DEFAULT_VIEW = (50.0, -90.0)
 _PHASE6_ZOOM_MIN = 0.35
 _PHASE6_ZOOM_MAX = 3.0
