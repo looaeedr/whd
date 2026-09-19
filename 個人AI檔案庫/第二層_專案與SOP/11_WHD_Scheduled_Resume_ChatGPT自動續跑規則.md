@@ -98,3 +98,13 @@ Validation 只判定 implementation 是否符合 authority，不得反過來成�
 - heartbeat 不是 execution cadence：目前 Runtime 還能繼續時，回報後仍繼續做；live remote-QA 約 30 秒 cadence 仍由 monitoring-remote-qa 負責。
 
 Canonical executable owner：`.agents/skills/engineering/executable-continuity-controller/SKILL.md::SCHEDULED_RESUME_PROGRESS_HEARTBEAT`。
+
+## Immediate terminal progress report
+
+當 Scheduled Resume 或 live Runtime 已取得 evidence-backed PASS / FAIL / COMPLETE terminal evidence，必須**立即**讓使用者看到結果；不得先做 secondary readback、額外 evidence collection、cleanup 或其他非必要核對，導致使用者誤以為 Runtime 卡住。
+
+- 只接受 live terminal evidence，不允許預測式成功／失敗宣告。
+- 先報 owning issue / branch / HEAD / run_id / terminal result / next action。
+- 有收尾時，回報後仍繼續 cleanup / invariant / writeback / closure；立即回報不是停工。
+- failure 可修復時，回報後立刻進 recovery。
+- 這是 heartbeat/visibility 優先序，不建立第二套 execution state machine。
