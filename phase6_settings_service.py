@@ -43,12 +43,22 @@ class Phase6SettingsTransactionService:
     def __init__(
         self,
         *,
+        settings_values: dict[str, object] | None = None,
+        input_snapshot: dict[str, object] | None = None,
+        box_whd: dict[str, object] | None = None,
         pending_settings: dict[str, object] | None = None,
         debounce_job: object | None = None,
         last_external_revision: int = 0,
         last_external_transaction_id: str = "",
         active_transaction_id: str = "",
     ) -> None:
+        self._settings_values = (
+            settings_values if settings_values is not None else {}
+        )
+        self._input_snapshot = (
+            input_snapshot if input_snapshot is not None else {}
+        )
+        self._box_whd = box_whd if box_whd is not None else {}
         self._pending = (
             pending_settings if pending_settings is not None else {}
         )
@@ -87,7 +97,6 @@ class Phase6SettingsTransactionService:
 
     def stage_setting_update(
         self,
-        current_value: object,
         key: str,
         value: object,
         *,
@@ -96,8 +105,10 @@ class Phase6SettingsTransactionService:
         if destroying:
             return SettingsStagePlan(False, None, None)
         key = str(key)
-        if current_value == value:
+        if self._settings_values.get(key) == value:
             return SettingsStagePlan(False, None, None)
+        self._settings_values[key] = value
+        self._input_snapshot[key] = value
         self._pending[key] = value
         return SettingsStagePlan(
             True,
