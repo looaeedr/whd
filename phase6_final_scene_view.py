@@ -66,14 +66,22 @@ class Phase6FinalSceneViewAdapter:
         self,
         *,
         dependencies: FinalSceneDependencies,
-        renderer: Phase6FinalSceneRenderer,
+        renderer: Phase6FinalSceneRenderer | None = None,
     ):
         if not isinstance(dependencies, FinalSceneDependencies):
             raise TypeError("dependencies must be FinalSceneDependencies")
-        if not isinstance(renderer, Phase6FinalSceneRenderer):
-            raise TypeError("renderer must be Phase6FinalSceneRenderer")
+        if renderer is not None and not isinstance(
+            renderer, Phase6FinalSceneRenderer
+        ):
+            raise TypeError("renderer must be Phase6FinalSceneRenderer or None")
         self.dependencies = dependencies
         self.renderer = renderer
+
+    def _require_renderer(self) -> Phase6FinalSceneRenderer:
+        renderer = self.renderer
+        if renderer is None:
+            raise RuntimeError("Final Scene renderer is not connected")
+        return renderer
 
     def query_final_render_data(self):
         deps = self.dependencies
@@ -291,18 +299,19 @@ class Phase6FinalSceneViewAdapter:
             if callable(request_provider)
             else self.build_request()
         )
-        return self.renderer.render(request)
+        return self._require_renderer().render(request)
 
     def on_scroll(self, event):
-        return self.renderer.on_scroll(event)
+        return self._require_renderer().on_scroll(event)
 
     def install_renderer(self):
         request_provider = self.dependencies.request_provider
-        self.renderer.install(
+        renderer = self._require_renderer()
+        renderer.install(
             request_provider if callable(request_provider) else self.build_request,
             after_render=self.dependencies.after_render,
         )
-        return self.renderer
+        return renderer
 
     def render_committed(self):
         return self.dependencies.render_committed()
