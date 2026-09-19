@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""#351 T6: fail-closed compatibility and zero-reverse-import gate."""
+"""#351 compatibility gate, evolved by #358 for Phase 2 callback retirement."""
 
 from __future__ import annotations
 
 import ast
-import builtins
 from pathlib import Path
 
 OWNER = Path("phase6_manufacturing_geometry.py")
 BRIDGE = Path("fold_designer_bridge.py")
 
-MOVED = {
+SHARED_REEXPORTS = {
     "_PHASE6_ASSEMBLY_PLACEMENTS",
     "_phase6_door_part_assembly_placement",
     "_phase6_assembly_placement_for_part",
@@ -32,14 +31,15 @@ MOVED = {
     "_phase6_build_joint_world_geometry",
     "_phase6_resolve_explicit_joint_reliefs",
     "_phase6_resolve_family_divider_reliefs",
-    "_phase6_resolve_manufacturing_geometry",
 }
-BOUND = {
+OWNER_ONLY = {"_phase6_resolve_manufacturing_result"}
+BRIDGE_FACADE = "_phase6_resolve_manufacturing_geometry"
+RETIRED_SERVICE_WIRING = {
     "_phase6_mesh_profiles_for_part",
     "_phase6_operator_finished_dimensions",
     "_phase6_scene_query_payload_for_part",
-    "_phase6_publish_live_state",
 }
+RETAINED_COMPAT_WIRING = {"_phase6_publish_live_state"}
 
 
 def tree(path: Path) -> ast.Module:
@@ -82,23 +82,14 @@ def class_wiring(mod: ast.Module) -> dict[str, int]:
     return out
 
 
-def helper_def_lines(mod: ast.Module) -> dict[str, int]:
-    return {
-        node.name: node.lineno
-        for node in mod.body
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.name in BOUND
-    }
-
-
 def binder_calls(mod: ast.Module) -> list[ast.Call]:
     calls = []
-    for node in mod.body:
-        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+    for node in ast.walk(mod):
+        if not isinstance(node, ast.Call):
             continue
-        func = node.value.func
+        func = node.func
         if isinstance(func, ast.Name) and func.id == "_phase6_bind_bridge_callbacks":
-            calls.append(node.value)
+            calls.append(node)
     return calls
 
 
@@ -114,6 +105,7 @@ def reverse_bridge_imports(mod: ast.Module) -> list[int]:
 
 
 def instance_shadowing(mod: ast.Module) -> list[tuple[int, str]]:
+    names = RETIRED_SERVICE_WIRING | RETAINED_COMPAT_WIRING
     hits = []
     for node in ast.walk(mod):
         targets = []
@@ -126,7 +118,7 @@ def instance_shadowing(mod: ast.Module) -> list[tuple[int, str]]:
         for target in targets:
             if (
                 isinstance(target, ast.Attribute)
-                and target.attr in BOUND
+                and target.attr in names
                 and isinstance(target.value, ast.Name)
                 and target.value.id == "self"
             ):
@@ -140,29 +132,36 @@ def main() -> int:
 
     owner_names = defined_names(owner)
     bridge_names = defined_names(bridge)
-
-    assert MOVED <= owner_names, f"OWNER_MISSING={sorted(MOVED-owner_names)}"
-    assert not (MOVED & bridge_names), f"BRIDGE_DUPLICATES={sorted(MOVED & bridge_names)}"
-
     imported = imported_from_owner(bridge)
-    assert MOVED <= imported, f"BRIDGE_REEXPORT_MISSING={sorted(MOVED-imported)}"
+
+    assert SHARED_REEXPORTS <= owner_names, (
+        f"OWNER_SHARED_MISSING={sorted(SHARED_REEXPORTS-owner_names)}"
+    )
+    assert not (SHARED_REEXPORTS & bridge_names), (
+        f"BRIDGE_SHARED_DUPLICATES={sorted(SHARED_REEXPORTS & bridge_names)}"
+    )
+    assert SHARED_REEXPORTS <= imported, (
+        f"BRIDGE_REEXPORT_MISSING={sorted(SHARED_REEXPORTS-imported)}"
+    )
+
+    assert OWNER_ONLY <= owner_names, f"OWNER_ONLY_MISSING={sorted(OWNER_ONLY-owner_names)}"
+    assert not (OWNER_ONLY & bridge_names), f"OWNER_ONLY_BRIDGE_DUPLICATE={sorted(OWNER_ONLY & bridge_names)}"
+    assert not (OWNER_ONLY & imported), f"OWNER_ONLY_REEXPORTED={sorted(OWNER_ONLY & imported)}"
+
+    assert BRIDGE_FACADE in bridge_names, "BRIDGE_FACADE_MISSING"
+    assert BRIDGE_FACADE not in owner_names, "BRIDGE_FACADE_DUPLICATED_IN_OWNER"
 
     reverse = reverse_bridge_imports(owner)
     assert reverse == [], f"REVERSE_BRIDGE_IMPORT_LINES={reverse}"
 
     wired = class_wiring(bridge)
-    assert BOUND <= set(wired), f"BOUND_WIRING_MISSING={sorted(BOUND-set(wired))}"
-
-    defs = helper_def_lines(bridge)
-    assert BOUND <= set(defs), f"BOUND_HELPER_DEF_MISSING={sorted(BOUND-set(defs))}"
-
-    calls = binder_calls(bridge)
-    assert len(calls) == 1, f"BINDER_CALL_COUNT={len(calls)}"
-    call = calls[0]
-    kw = {item.arg for item in call.keywords if item.arg}
-    assert BOUND <= kw, f"BINDER_CALLBACK_MISSING={sorted(BOUND-kw)}"
-    assert call.lineno > max(defs.values()), "BINDER_CALLED_BEFORE_HELPERS_DEFINED"
-    assert call.lineno >= max(wired[name] for name in BOUND), "BINDER_CALLED_BEFORE_CLASS_WIRING"
+    assert not (RETIRED_SERVICE_WIRING & set(wired)), (
+        f"RETIRED_SERVICE_WIRING_PRESENT={sorted(RETIRED_SERVICE_WIRING & set(wired))}"
+    )
+    assert RETAINED_COMPAT_WIRING <= set(wired), (
+        f"RETAINED_COMPAT_WIRING_MISSING={sorted(RETAINED_COMPAT_WIRING-set(wired))}"
+    )
+    assert binder_calls(bridge) == [], "PHASE1_BINDER_CALL_STILL_PRESENT"
 
     shadows = instance_shadowing(bridge)
     assert not shadows, f"INSTANCE_SHADOWING={shadows}"
@@ -170,20 +169,23 @@ def main() -> int:
     resolver = next(
         node for node in owner.body
         if isinstance(node, ast.FunctionDef)
-        and node.name == "_phase6_resolve_manufacturing_geometry"
+        and node.name == "_phase6_resolve_manufacturing_result"
     )
     loaded = {
         node.id for node in ast.walk(resolver)
         if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
     }
-    assert "_phase6_is_box_body_physical_piece_key" not in loaded
-    assert "is_box_body_physical_piece_key" in loaded
+    assert "_phase6_call_bridge" not in loaded
+    assert "_phase6_bind_bridge_callbacks" not in loaded
+    assert "_PHASE6_BRIDGE_CALLBACKS" not in loaded
 
-    print(f"PASS moved_owner_count={len(MOVED)}")
+    print(f"PASS shared_reexports={len(SHARED_REEXPORTS)}")
+    print(f"PASS owner_only={len(OWNER_ONLY)}")
     print("PASS reverse_bridge_imports=0")
-    print(f"PASS class_wiring={len(BOUND)} binder_callbacks={len(BOUND)}")
-    print("PASS instance_shadowing=0")
-    print("PASS canonical_part_navigation_name=1")
+    print("PASS retired_service_wiring=0")
+    print(f"PASS retained_compat_wiring={len(RETAINED_COMPAT_WIRING)}")
+    print("PASS phase1_binder_calls=0")
+    print("PASS bridge_facade=1")
     return 0
 
 
