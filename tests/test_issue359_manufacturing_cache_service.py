@@ -171,11 +171,11 @@ def test_issue359_legacy_last_result_fields_are_not_cache_authority(monkeypatch)
         lambda app, result: result.geometry,
     )
 
-    import phase6_manufacturing_geometry as owner
+    import phase6_manufacturing_service as service_module
     monkeypatch.setattr(
-        owner,
-        "_phase6_resolve_manufacturing_result",
-        lambda app, request, signature=None: _result(new_geometry),
+        service_module,
+        "resolve",
+        lambda request: _result(new_geometry),
     )
 
     got = adapter.resolve_manufacturing_for_app(app, cache_service=service)
