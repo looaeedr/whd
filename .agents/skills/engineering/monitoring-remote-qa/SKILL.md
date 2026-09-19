@@ -15,6 +15,20 @@ Scheduled wake-up execution is owned by `.agents/skills/engineering/executable-c
 
 On wake-up, restore the exact owning checkpoint/branch and concrete `run_id + head_sha` before polling. If the owning plan requires a run but no concrete RUN exists, classify `RUN_NOT_CREATED` and immediately execute/fix the prerequisite or trigger instead of waiting. While a locked run is queued/in-progress, retain this Skill's existing polling contract. Terminal status releases only the remote lock; unfinished acceptance returns to the continuity owner as `RUNNING(next_action)` and continues.
 
+### WATCHDOG_FALLBACK_ONLY_CONTRACT
+
+A watchdog / automation / schedule is **only interruption insurance**. It never becomes the execution owner and never weakens the active-loop duties of this Skill.
+
+Canonical rules:
+
+- `watchdog/schedule presence != permission to stop`.
+- 當前 Runtime 仍可執行時，必須繼續目前施工／polling；不得因「已掛 watchdog／排程稍後會再檢查」而結束目前 turn、停止修復、停止 acceptance、或把使用者當 scheduler。
+- Schedule/watchdog cadence 只決定「被平台切斷後多久再喚醒」，**不決定當前 execution cadence**。目前 Runtime 還活著時，active polling 仍依本 Skill 的約 30 秒 loop。
+- `watchdog wake-up → restore owner → continue exact next action`。喚醒後必須先反讀 owning issue/checkpoint/branch/run identity，再直接續工；禁止只發 `status-only watchdog response` 後再次退出。
+- watchdog 可在長鏈執行前／中建立作為 fallback，但它不能把 `RUNNING / WAITING_REMOTE / RECOVERING` 轉成可退出狀態，也不能取代 `REMOTE_QA_ACTIVE_LOCK` 或 global turn-exit gate。
+- 終止條件固定為：`owning chain COMPLETE/closed + final acceptance/cleanup finished`。只有這個條件成立後才 **disable the watchdog**；不得因單一 child issue、單一 RUN、focused GREEN 或 partial acceptance 就提前關閉。
+- watchdog 若在 owning chain 已完成後被喚醒，先驗證 master/closure evidence，通知完成狀態後立即 **disable the watchdog**，不得留下 orphan recurring monitor。
+
 ## LONG_LOG_CONTEXT_SAFE_EXECUTION_V1 bridge
 
 Remote QA 的 polling 狀態機仍由本 Skill 擁有；**長 Log 的讀取方式一律委派** `.agents/skills/engineering/long-log-context-safe-execution/SKILL.md`。正常 poll 只讀 run/jobs/steps + bounded tail/new chunk；完整 raw log 落檔／artifact。FAIL 先定位 failed step/error marker 再讀有限上下文，禁止每輪把整份 job log 灌進 context。
