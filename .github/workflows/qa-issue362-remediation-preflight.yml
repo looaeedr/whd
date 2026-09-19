@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dc47d016372f8b6867954f049c66dce5f401cceb
+          ref: 19c53013204aa6d87c506ac38a43ed25abe4d10c
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,4 +48,5 @@ jobs:
             tests/test_endcap_head_mirror.py::test_head_corner_data_projection_uses_authoritative_material_without_render_time_mirror \
             tests/test_issue43_receiving_divider_t1.py::test_r2_gui_final_divider_uses_four_segment_collision_relief \
             tests/test_overlay_fw_width_invariant.py::test_vault_overlay_fw_width_invariant_2d_single3d_assembly_and_reload \
-            tests/test_phase6_t16_receiving_placement.py::test_receiving_3d_and_collision_scene_consume_resolver_offsets_and_frame_orientation
+            tests/test_phase6_t16_receiving_placement.py::test_receiving_3d_and_collision_scene_consume_resolver_offsets_and_frame_orientation \
+            tests/test_original_fold_designer_bridge.py::test_head_preview_never_falls_back_to_legacy_renderer_without_final_scene_provider
