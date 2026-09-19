@@ -1,4 +1,5 @@
 name: "QA #366 T2 final focused acceptance"
+# trigger after A-B classifier allowlist correction
 
 on:
   push:
