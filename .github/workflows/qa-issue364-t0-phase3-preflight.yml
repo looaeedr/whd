@@ -1,0 +1,56 @@
+name: "QA #364 T0 Phase 3 preflight"
+
+on:
+  push:
+    branches:
+      - refactor/issue364-phase3-preflight-20260919
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase3-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=364"
+          echo "MASTER=363"
+          echo "BASELINE=0dd6561f3253d0a17714af316d5e9da90e24058f"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+          git merge-base --is-ancestor 0dd6561f3253d0a17714af316d5e9da90e24058f HEAD
+          echo "PASS BASELINE_ANCESTRY=1"
+
+      - name: Compile T0 gate
+        run: python -m py_compile tools/issue364_phase3_preflight.py
+
+      - name: Run bridge-wide preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue364
+          python tools/issue364_phase3_preflight.py \
+            | tee .scratch/issue364/preflight.json.log
+
+      - name: Extract machine summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -E '^(PASS|INFO) ' .scratch/issue364/preflight.json.log || true
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue364-phase3-preflight
+          path: .scratch/issue364/preflight.json.log
+          if-no-files-found: error
