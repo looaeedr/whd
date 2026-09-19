@@ -1,7 +1,7 @@
 ---
 whd_doc_role: REFERENCE
 whd_contract: issue398-default-baseline-vault
-whd_canonical: 個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md
+whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
