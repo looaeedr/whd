@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 4305e9bc5ed14f1649b81c7dfccd19f3e5b33b1a
+          ref: 3283922c9070fa4b1b50e919d8085720562b3c57
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -29,8 +29,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf
-      - name: Diagnose remaining ordering parity
+      - name: Run T8 remediation contracts
         run: |
-          python -m pytest -vv --tb=long \
+          python -m pytest -q \
+            tests/test_engineering_drawing_integration.py::test_shared_finished_dimension_provider_is_the_2d_3d_authority \
             tests/test_phase6_assembly_3d_view.py::test_bridge_assembly_display_request_includes_all_available_sheet_parts \
-            tests/test_phase6_corner_dimension_controls.py::test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_visibility
+            tests/test_phase6_assembly_3d_view.py::test_bridge_verified_relief_replays_authoritative_part_spec_with_solver_cuts \
+            tests/test_phase6_corner_dimension_controls.py::test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_visibility \
+            tests/test_issue355_manufacturing_dto_contracts.py \
+            tests/test_issue356_manufacturing_adapter.py \
+            tests/test_issue357_manufacturing_result_contracts.py \
+            tests/test_issue358_remove_manufacturing_callbacks.py \
+            tests/test_issue359_manufacturing_cache_service.py \
+            tests/test_issue360_pure_manufacturing_service.py \
+            tests/test_issue361_one_line_manufacturing_facade.py
