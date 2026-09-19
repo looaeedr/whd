@@ -310,9 +310,9 @@ def resolve_manufacturing_for_app(
         finished_dimensions_provider=finished_dimensions_provider,
         cache_key_fingerprint=key.fingerprint,
     )
-    import phase6_manufacturing_service as service
+    import phase6_manufacturing_service as manufacturing_service
 
-    result = service.resolve(request)
+    result = manufacturing_service.resolve(request)
     geometry = apply_manufacturing_result(app, result)
 
     if result.effects.publish_live_state and callable(publish_live_state):
