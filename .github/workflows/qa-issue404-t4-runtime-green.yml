@@ -1,0 +1,46 @@
+name: "QA #404 T4 scheduler runtime GREEN"
+
+on:
+  push:
+    branches:
+      - continuity/issue404-scheduled-resume-runtime-20260920
+    paths:
+      - 'tools/continuity_controller.py'
+      - 'tools/scheduled_resume_issue_state.py'
+      - 'tools/scheduled_resume_executor.py'
+      - 'tests/process/test_issue404_scheduler_runtime.py'
+      - '.github/workflows/qa-issue404-t4-runtime-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Identity
+        run: |
+          set -euo pipefail
+          test "$(git merge-base HEAD bdb55dda3fa7fbeac47f36177a8923eea605fb7d)" = "bdb55dda3fa7fbeac47f36177a8923eea605fb7d"
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: T4 runtime focused
+        run: python -m pytest -q tests/process/test_issue404_scheduler_runtime.py --tb=short
+      - name: Continuity bridge regressions
+        run: |
+          python -m pytest -q             tests/process/test_issue401_scheduled_resume_dispatcher.py             tests/process/test_issue402_durable_github_lease.py             tests/process/test_issue403_runtime_recovery_policy.py             tests/process/test_continuity_controller.py             --tb=short
+      - name: Scope
+        run: |
+          set -euo pipefail
+          git diff --check bdb55dda3fa7fbeac47f36177a8923eea605fb7d...HEAD
+          echo "PASS ISSUE_CHECKPOINT_TRANSPORT=1"
+          echo "PASS HEADLESS_PROMPT_EXACT_OWNER=1"
+          echo "PASS NON_MUTATING_STATE_AGENT_CALLS=0"
