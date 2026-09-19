@@ -15,6 +15,40 @@ def _function(tree, name):
     )
 
 
+def _class_wiring(tree):
+    out = set()
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Attribute)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "Phase6FoldDesignerApp"
+                ):
+                    out.add(target.attr)
+            continue
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        if not (
+            isinstance(call.func, ast.Name)
+            and call.func.id == "install_fold_designer_bridge_facade"
+        ):
+            continue
+        bindings = call.args[1] if len(call.args) >= 2 else None
+        if bindings is None:
+            for keyword in call.keywords:
+                if keyword.arg == "bindings":
+                    bindings = keyword.value
+                    break
+        if not isinstance(bindings, ast.Dict):
+            continue
+        for key in bindings.keys:
+            if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                out.add(key.value)
+    return out
+
+
 def test_issue361_bridge_manufacturing_facade_is_one_line_adapter_call():
     tree = _tree("fold_designer_bridge.py")
     fn = _function(tree, "_phase6_resolve_manufacturing_geometry")
@@ -110,17 +144,7 @@ def test_issue361_adapter_contains_no_solver_ownership():
 
 def test_issue361_phase6_app_keeps_legacy_method_entry():
     tree = _tree("fold_designer_bridge.py")
-    wired = set()
-    for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if (
-                isinstance(target, ast.Attribute)
-                and isinstance(target.value, ast.Name)
-                and target.value.id == "Phase6FoldDesignerApp"
-            ):
-                wired.add(target.attr)
+    wired = _class_wiring(tree)
     assert "_phase6_resolve_manufacturing_geometry" in wired
 
 def test_issue362_facade_preserves_provider_missing_fail_closed_after_cache_miss():
