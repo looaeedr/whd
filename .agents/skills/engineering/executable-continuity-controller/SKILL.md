@@ -327,3 +327,14 @@ Heartbeat 至少包含：
 
 Heartbeat 是 observation，不是 turn boundary。只要目前 Runtime 仍可自主執行 next action，送出 heartbeat 後仍必須繼續；不得因「已回報進度」停止。Live Runtime 的 remote QA 約 30 秒回報 cadence 仍由 `monitoring-remote-qa` 負責，scheduled heartbeat 不節流也不取代該 loop。
 
+## IMMEDIATE_TERMINAL_PROGRESS_REPORT
+
+一旦取得 **evidence-backed** 的 terminal PASS / FAIL / COMPLETE 事實，必須**立即回報**使用者，不得先埋頭做 secondary readback、cleanup、額外 evidence collection 或其他非必要核對，讓已經有終態證據的工作看起來像卡住。
+
+規則：
+- 只有已被 live source 證實的 terminal evidence 才能觸發；不得猜測或提前宣告成功／失敗。
+- terminal evidence 一出現，先送出簡短 user-visible observation，至少包含 owning issue、branch/HEAD、run_id（若有）、terminal status/conclusion 與目前 next action。
+- 若 terminal 後仍有 cleanup / invariant / writeback / closure，回報後必須**繼續**執行；immediate report != exit。
+- 若 terminal failure 可修復，先立即回報 exact failure，再轉 RECOVERING 繼續 evidence → root cause → minimal fix → validation → retry。
+- 若 terminal success 仍有 acceptance 收尾，先立即回報 PASS，再轉 RUNNING(next_acceptance_action)；不得把 PASS 當 COMPLETE。
+- 本規則只管可見性優先序，不改 checkpoint state machine、finalization gate 或 closure authority。
