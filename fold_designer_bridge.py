@@ -74,6 +74,7 @@ from gui_modules.application.command_router import (
 from gui_modules.application.fold_designer_adapter import (
     FinalSceneCompositionPorts,
     Phase6FoldDesignerComposition,
+    Phase6StableMappingAppFacade,
     install_fold_designer_bridge_facade,
 )
 import phase6_project_file as _phase6_project_file
@@ -207,8 +208,8 @@ from phase6_manufacturing_adapter import (
 
 
 def _phase6_resolve_manufacturing_geometry(self):
-    """Compatibility-only manufacturing entry."""
-    return resolve_for_app(self)
+    """Compatibility-only manufacturing entry with stable Phase 4 mappings."""
+    return resolve_for_app(Phase6StableMappingAppFacade(self))
 
 
 @dataclass(frozen=True)
