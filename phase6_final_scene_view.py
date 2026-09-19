@@ -49,6 +49,7 @@ from phase6_final_scene_projection import (
     format_operator_info_text,
     _phase6_triangle_bounds,
     _phase6_place_assembly_triangles,
+    make_assembly_scene_render_data as _project_assembly_scene_render_data,
 )
 
 
@@ -950,59 +951,18 @@ class Phase6FinalSceneViewAdapter:
         preserve_endcap_core_origin=False,
         render_data_cls=None,
     ):
-        """Construct the UI-only assembly bundle across old/new view contracts."""
-        from inspect import Parameter, signature
-
-        cls = render_data_cls or AssemblySceneRenderData
-        values = {
-            "assembly_parts": tuple(assembly_parts),
-            "visible_part_keys": (
-                None
-                if visible_part_keys is None
-                else tuple(str(key) for key in visible_part_keys)
-            ),
-            "visible_box_body_piece_keys": (
-                None
-                if visible_box_body_piece_keys is None
-                else tuple(str(key) for key in visible_box_body_piece_keys)
-            ),
-            "show_interference": bool(show_interference),
-            "ignore_fixed_corner_relief": bool(ignore_fixed_corner_relief),
-            "interference_probe_parts": tuple(interference_probe_parts or ()),
-            "joint_diagnostics": tuple(joint_diagnostics or ()),
-            "selected_joint_id": (
-                None if selected_joint_id is None else str(selected_joint_id)
-            ),
-            "preserve_endcap_core_origin": bool(preserve_endcap_core_origin),
-        }
-        try:
-            params = signature(cls).parameters
-        except (TypeError, ValueError):
-            params = {}
-        accepts_kwargs = any(
-            parameter.kind is Parameter.VAR_KEYWORD
-            for parameter in params.values()
+        return _project_assembly_scene_render_data(
+            assembly_parts=assembly_parts,
+            visible_part_keys=visible_part_keys,
+            visible_box_body_piece_keys=visible_box_body_piece_keys,
+            show_interference=show_interference,
+            ignore_fixed_corner_relief=ignore_fixed_corner_relief,
+            interference_probe_parts=interference_probe_parts,
+            joint_diagnostics=joint_diagnostics,
+            selected_joint_id=selected_joint_id,
+            preserve_endcap_core_origin=preserve_endcap_core_origin,
+            render_data_cls=render_data_cls,
         )
-        if accepts_kwargs:
-            kwargs = values
-        else:
-            if (
-                "visible_part_keys" not in params
-                and values["visible_part_keys"] is not None
-            ):
-                visible = set(values["visible_part_keys"])
-                values["assembly_parts"] = tuple(
-                    part
-                    for part in values["assembly_parts"]
-                    if str(getattr(part, "part_key", "")) in visible
-                )
-            kwargs = {
-                key: value
-                for key, value in values.items()
-                if key in params
-            }
-            kwargs.setdefault("assembly_parts", values["assembly_parts"])
-        return cls(**kwargs)
 
     def query_assembly_render_data(self):
         owner = self.owner
