@@ -128,6 +128,9 @@ class Phase6SettingsTransactionService:
     def clear_pending(self) -> None:
         self._pending.clear()
 
+    def discard_pending(self, key: str) -> None:
+        self._pending.pop(str(key), None)
+
     def plan_external_sync(
         self, envelope: Mapping[str, object] | None
     ) -> settings_transitions.ExternalSyncPlan:
