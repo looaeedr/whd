@@ -38,6 +38,13 @@ jobs:
           echo "=== CHECKPOINT MD ==="
           cat docs/superpowers/checkpoints/phase4-t0-deep-owner-census.md
 
+      - name: Committed machine evidence must reproduce exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- .scratch/phase4-t0-census.json
+          echo "ISSUE389_T0_MACHINE_EVIDENCE_MATCH=1"
+
       - name: T0 protected/source drift gate
         shell: bash
         run: |
