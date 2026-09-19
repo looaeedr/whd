@@ -8,6 +8,7 @@ on:
       - "gui_modules/application/fold_designer_adapter.py"
       - "fold_designer_bridge.py"
       - "tests/test_issue396_phase4_composition_root.py"
+      - "tests/test_issue392_settings_service.py"
       - ".github/workflows/qa-issue396-t7-green.yml"
 
 permissions:
@@ -160,6 +161,7 @@ jobs:
             "gui_modules/application/fold_designer_adapter.py",
             "fold_designer_bridge.py",
             "tests/test_issue396_phase4_composition_root.py",
+            "tests/test_issue392_settings_service.py",
             ".github/workflows/qa-issue396-t7-red.yml",
             ".github/workflows/qa-issue396-t7-green.yml",
           }
