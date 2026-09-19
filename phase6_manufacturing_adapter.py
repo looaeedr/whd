@@ -618,6 +618,7 @@ def resolve_for_app(app: Any) -> Any:
             key,
         ),
         publish_live_state=publish_live_state,
+        require_render_provider=True,
     )
 
 
@@ -630,6 +631,7 @@ def resolve_manufacturing_for_app(
     finished_dimensions_provider=None,
     publish_live_state=None,
     cache_service=None,
+    require_render_provider=False,
 ) -> Any:
     """Resolve through explicit cache ownership with signature-first hit parity."""
     service = (
@@ -645,9 +647,10 @@ def resolve_manufacturing_for_app(
         app._phase6_last_resolved_manufacturing_signature = key.fingerprint
         return lookup.result.geometry
 
-    if not callable(render_data_provider):
-        # Preserve the accepted Phase 1 fail-closed boundary after the
-        # signature-first cache short-circuit.
+    if require_render_provider and not callable(render_data_provider):
+        # Preserve the accepted Phase 1 GUI fail-closed boundary after the
+        # signature-first cache short-circuit, while keeping this lower-level
+        # adapter seam injectable for focused service/cache tests.
         raise RuntimeError("3D final-scene provider is not connected")
 
     request = build_manufacturing_request(
