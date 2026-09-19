@@ -56,8 +56,8 @@ def test_each_assembly_part_keeps_existing_visibility_and_data_in_collapsible_de
         for key in keys:
             details = app.assembly_part_detail_frames[key]
             button = app.assembly_part_detail_buttons[key]
-            assert details.winfo_manager() == "pack"
-            assert str(button.cget("text")) == "▾"
+            assert details.winfo_manager() == ""
+            assert str(button.cget("text")) == "▸"
             _assert_read_only_tree(details)
 
         target = "head" if "head" in keys else keys[0]
@@ -71,7 +71,7 @@ def test_each_assembly_part_keeps_existing_visibility_and_data_in_collapsible_de
 
         app.assembly_part_detail_buttons[target].invoke()
         _pump(root)
-        assert app.assembly_part_detail_frames[target].winfo_manager() == ""
+        assert app.assembly_part_detail_frames[target].winfo_manager() == "pack"
         assert bool(visible.get()) is visible_before
         assert (formed.get(), blank.get(), corner.get()) == text_before
 
@@ -79,7 +79,7 @@ def test_each_assembly_part_keeps_existing_visibility_and_data_in_collapsible_de
         visible.set(False)
         app.assembly_part_detail_buttons[target].invoke()
         _pump(root)
-        assert app.assembly_part_detail_frames[target].winfo_manager() == "pack"
+        assert app.assembly_part_detail_frames[target].winfo_manager() == ""
         assert bool(visible.get()) is False
         assert (formed.get(), blank.get(), corner.get()) == text_before
     finally:
@@ -95,7 +95,7 @@ def test_collapsed_state_survives_topology_panel_rebuild_without_hiding_or_delet
             app.assembly_part_blank_vars[target].get(),
             app.assembly_part_corner_vars[target].get(),
         )
-        app.assembly_part_detail_buttons[target].invoke()
+        bridge._phase6_set_assembly_part_details_open(app, target, False)
         _pump(root)
         assert app.assembly_part_detail_frames[target].winfo_manager() == ""
 
@@ -136,9 +136,10 @@ def test_box_body_physical_piece_rows_are_also_collapsible_when_present():
         )
         visible_before = bool(visible.get())
 
+        assert app.assembly_box_body_piece_detail_frames[key].winfo_manager() == ""
         app.assembly_box_body_piece_detail_buttons[key].invoke()
         _pump(root)
-        assert app.assembly_box_body_piece_detail_frames[key].winfo_manager() == ""
+        assert app.assembly_box_body_piece_detail_frames[key].winfo_manager() == "pack"
         assert bool(visible.get()) is visible_before
         assert (
             app.assembly_box_body_piece_formed_vars[key].get(),
