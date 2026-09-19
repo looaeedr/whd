@@ -38,8 +38,8 @@ def cp(state, *, next_action="do exact thing", run_id=None):
         (ContinuityState.WAITING_REMOTE, ScheduledResumeAction.POLL_LOCKED_RUN),
         (ContinuityState.RECOVERING, ScheduledResumeAction.CONTINUE_RECOVERY),
         (ContinuityState.BLOCKED, ScheduledResumeAction.REPORT_BLOCKER),
-        (ContinuityState.TERMINAL_SUCCESS, ScheduledResumeAction.NO_OP),
-        (ContinuityState.TERMINAL_FAILURE, ScheduledResumeAction.NO_OP),
+        (ContinuityState.TERMINAL_SUCCESS, ScheduledResumeAction.CLOSING_HANDOFF),
+        (ContinuityState.TERMINAL_FAILURE, ScheduledResumeAction.CLOSING_HANDOFF),
     ],
 )
 def test_canonical_controller_owns_scheduled_resume_mapping(state, expected):
