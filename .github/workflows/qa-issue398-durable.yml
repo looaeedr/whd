@@ -27,8 +27,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git merge-base HEAD fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4)" = "fdcc9b0a08f7ed19f5c17984f2793c16d6f49be4"
-      - name: Install pytest
-        run: python -m pip install pytest
+      - name: Install harness
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
       - name: Durable authority guards
         run: |
           python -m pytest -q             tests/knowledge/test_issue231_authority_map_normalization.py             tests/knowledge/test_knowledge_authority_contract.py             tests/knowledge/test_issue233_strict_metadata_migration.py             --tb=short
