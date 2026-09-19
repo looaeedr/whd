@@ -6230,7 +6230,11 @@ def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
 
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
-    return _phase6_final_scene_adapter(self).build_request()
+    adapter = _phase6_final_scene_adapter(self)
+    adapter.services["final_render_provider"] = (
+        lambda: _phase6_query_final_render_data(self)
+    )
+    return adapter.build_request()
 
 
 def _phase6_render_true_cutting_mesh(self):
