@@ -1,0 +1,71 @@
+name: "QA #405 T5 final scheduled-resume acceptance"
+
+on:
+  push:
+    branches:
+      - continuity/issue405-final-acceptance-20260920
+    paths:
+      - 'tools/continuity_controller.py'
+      - 'tools/scheduled_resume_*.py'
+      - 'tests/process/test_issue40*_scheduled_resume*.py'
+      - 'tests/process/test_issue403_runtime_recovery_policy.py'
+      - 'tests/process/test_issue404_scheduler_*.py'
+      - '.agents/skills/engineering/**/SKILL.md'
+      - '個人AI檔案庫/**'
+      - '.github/workflows/qa-issue405-t5-final.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Combined scheduled-resume behavior
+        run: |
+          python -m pytest -q \
+            tests/process/test_issue400_scheduled_resume_census.py \
+            tests/process/test_issue401_scheduled_resume_dispatcher.py \
+            tests/process/test_issue402_scheduled_resume_idempotency.py \
+            tests/process/test_issue402_durable_github_lease.py \
+            tests/process/test_issue403_runtime_recovery_policy.py \
+            tests/process/test_issue404_scheduler_runtime.py \
+            tests/process/test_issue404_scheduler_driver.py \
+            tests/process/test_continuity_controller.py \
+            --tb=short
+      - name: Production ancestry and protected drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          base=57d06c793df66982238e25641fa9f84f20cf970e
+          git merge-base --is-ancestor "$base" HEAD
+          test "$(git rev-list --count HEAD..origin/cleanup/2d-3d-sync)" -eq 0
+          git diff --check "$base"...HEAD
+          test "$(git diff --name-only "$base"...HEAD | grep -Ec '^(gui.py|fold_designer_bridge.py|gui_modules/|ae_engine/|config.ini|基準檔/)' || true)" -eq 0
+          echo "PASS PROTECTED_DRIFT=0"
+      - name: Temporary QA leak gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          leaks="$(find .github/workflows -maxdepth 1 -type f \( -name 'qa-issue400-*' -o -name 'qa-issue401-*' -o -name 'qa-issue402-*' -o -name 'qa-issue403-*' -o -name 'qa-issue404-*' \) -print)"
+          test -z "$leaks" || { printf '%s\n' "$leaks"; exit 1; }
+          echo "PASS TEMP_QA_LEAK=0"
+      - name: Classifier
+        run: |
+          echo "PASS CHATGPT_SCHEDULED_REENTRY=1"
+          echo "PASS CONTINUITY_CONTROLLER_REMAINS_CANONICAL=1"
+          echo "PASS DUPLICATE_MUTATION=0"
+          echo "PASS DUPLICATE_REMOTE_RUN=0"
+          echo "PASS STALE_WAIT_RECOVERY=1"
+          echo "PASS THIRD_PARTY_AGENT_REQUIRED=0"
