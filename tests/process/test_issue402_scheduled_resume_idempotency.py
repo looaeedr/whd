@@ -94,11 +94,11 @@ def test_owner_drift_still_fails_before_claim(tmp_path):
         )
 
 
-def test_terminal_repeat_is_noop_and_never_requires_mutation_claim(tmp_path):
+def test_terminal_repeat_is_closing_handoff_and_deterministic(tmp_path):
     path = tmp_path / "checkpoint.json"
     _write(path, state=ContinuityState.TERMINAL_SUCCESS)
     first = _dispatch(path)
     second = _dispatch(path)
-    assert first.action is ScheduledResumeAction.NO_OP
-    assert second.action is ScheduledResumeAction.NO_OP
+    assert first.action is ScheduledResumeAction.CLOSING_HANDOFF
+    assert second.action is ScheduledResumeAction.CLOSING_HANDOFF
     assert first.wake_key == second.wake_key
