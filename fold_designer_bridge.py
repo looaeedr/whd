@@ -58,6 +58,8 @@ from phase6_settings_center import (
     normalize_ui_text_size, ui_text_size_label, ui_text_size_factor,
 )
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+from phase6_project_controller import Phase6ProjectController
+import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
     Phase6SettingsPanel, SettingsPanelExtensionResult,
     setting_number_text as _setting_number_text,
@@ -2653,7 +2655,8 @@ def _phase6_build_diagnostic_snapshot(self):
     settings = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     settings.update(dict(getattr(self, "_settings_values", {}) or {}))
     settings.update(dict(getattr(self, "_phase6_box_whd", {}) or {}))
-    context = DiagnosticSnapshotContext(
+    provider = (lambda: _phase6_query_final_render_data(self)) if active_part else None
+    return Phase6ProjectController.build_diagnostic_payload(
         model=model,
         active_part=active_part,
         settings=settings,
@@ -2661,15 +2664,13 @@ def _phase6_build_diagnostic_snapshot(self):
         corner_pair_same=getattr(self, "_phase6_corner_pair_same", {}) or {},
         workspace=_phase6_collect_workspace_state(self),
         active_part_payload=payload,
+        final_geometry_provider=provider,
+        context_factory=DiagnosticSnapshotContext,
+        builder=build_active_diagnostic_snapshot,
     )
-    provider = (lambda: _phase6_query_final_render_data(self)) if active_part else None
-    return build_active_diagnostic_snapshot(context, provider)
-
 
 def _phase6_build_project_snapshot(self):
     """Capture one complete, reloadable Phase6 workspace plus all-part diagnostics."""
-    from phase6_project_file import PROJECT_SCHEMA
-
     try:
         self._save_current_part(notify=False)
     except Exception:
@@ -2681,42 +2682,37 @@ def _phase6_build_project_snapshot(self):
     ).strip()
     owner_workspace = self.designer_workspace.snapshot()
     workspace = _phase6_collect_workspace_state(self)
-    snapshot = deepcopy(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    snapshot.update(dict(getattr(self, "_phase6_box_whd", {}) or {}))
-    snapshot.update({
-        "model": model,
-        "assembly_type": assembly_intent_value(getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)),
-        "endcap_fw": deepcopy(getattr(self, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot))),
-        "settings": deepcopy(getattr(self, "_settings_values", {}) or {}),
-        "corner_state": deepcopy(getattr(self, "_phase6_corner_state", {}) or {}),
-        "corner_pair_same": deepcopy(getattr(self, "_phase6_corner_pair_same", {}) or {}),
-        "existing_parts": list(owner_workspace["existing_parts"]),
-        "active_part": owner_workspace["active_part"],
-        "workspace": workspace,
-        "box_body_profile": clone_profile(workspace.get("box_body_profile", [])),
-        "part_profiles": deepcopy(workspace.get("part_profiles", {})),
-        "part_features": deepcopy(owner_workspace["part_features"]),
-        "part_face_features": deepcopy(owner_workspace["part_face_features"]),
-        "assembly_placements": deepcopy(owner_workspace.get("assembly_placements", {})),
-        "assembly_relief": _phase6_serialize_assembly_relief_state(self),
-    })
-
+    base_snapshot = deepcopy(getattr(self, "_phase6_input_snapshot", {}) or {})
     callback = getattr(self, "_scene_query_callback", None)
     final_geometry = collect_final_geometry_diagnostics(
-        list(owner_workspace["existing_parts"]),
+        list(owner_workspace.get("existing_parts") or ()),
         lambda key: _phase6_scene_query_payload_for_part(self, key),
         callback if callable(callback) else None,
     )
-
-    return {
-        "schema": PROJECT_SCHEMA,
-        "saved_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "model": model,
-        "snapshot": snapshot,
-        "final_geometry": final_geometry,
-    }
-
+    return Phase6ProjectController.build_designer_payload(
+        schema=_phase6_project_file.PROJECT_SCHEMA,
+        model=model,
+        base_snapshot=base_snapshot,
+        settings=getattr(self, "_settings_values", {}) or {},
+        box_whd=getattr(self, "_phase6_box_whd", {}) or {},
+        assembly_type=assembly_intent_value(
+            getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
+        ),
+        endcap_fw=deepcopy(
+            getattr(
+                self,
+                "_phase6_endcap_fw_state",
+                normalize_endcap_fw_state(base_snapshot),
+            )
+        ),
+        corner_state=getattr(self, "_phase6_corner_state", {}) or {},
+        corner_pair_same=getattr(self, "_phase6_corner_pair_same", {}) or {},
+        owner_workspace=owner_workspace,
+        workspace=workspace,
+        box_body_profile=clone_profile(workspace.get("box_body_profile", [])),
+        assembly_relief=_phase6_serialize_assembly_relief_state(self),
+        final_geometry=final_geometry,
+    )
 
 def _phase6_save_diagnostic_file(self):
     """儲存 staged 折彎診斷工作區，但不提交 main GUI transaction。"""
@@ -2747,47 +2743,62 @@ def _phase6_save_diagnostic_file(self):
     if not path:
         return None
     try:
-        target = _phase6_write_diagnostic_json(path, _phase6_build_diagnostic_snapshot(self))
+        target = Phase6ProjectController.write_diagnostic(
+            path,
+            _phase6_build_diagnostic_snapshot(self),
+            _phase6_write_diagnostic_json,
+        )
         if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"已存檔：{target.name}（未提交主畫面）")
-        return str(target)
+            self.settings_status_var.set(
+                f"已存檔：{Path(target).name}（未提交主畫面）"
+            )
+        return target
     except Exception as exc:
-        messagebox.showerror("存檔失敗", f"無法儲存折彎診斷檔：\n{exc}", parent=self.root)
+        messagebox.showerror(
+            "存檔失敗", f"無法儲存折彎診斷檔：\n{exc}", parent=self.root
+        )
         return None
-
 
 def _phase6_load_project_file(self):
     """透過 parent GUI 載入 .p6fold，並建立新的 3D 工作區。"""
     from tkinter import filedialog, messagebox
-    from phase6_project_file import PROJECT_EXTENSION, read_project
 
     path = filedialog.askopenfilename(
         parent=self.root,
         title="讀檔：Phase6 折彎專案",
-        filetypes=[("Phase6 折彎專案", f"*{PROJECT_EXTENSION}"), ("所有檔案", "*.*")],
+        filetypes=[
+            ("Phase6 折彎專案", f"*{_phase6_project_file.PROJECT_EXTENSION}"),
+            ("所有檔案", "*.*"),
+        ],
     )
     if not path:
         return None
 
     callback = getattr(self, "_project_load_callback", None)
     if not callable(callback):
-        messagebox.showerror("讀檔失敗", "目前工作區沒有可用的專案讀檔入口。", parent=self.root)
+        messagebox.showerror(
+            "讀檔失敗",
+            "目前工作區沒有可用的專案讀檔入口。",
+            parent=self.root,
+        )
         return None
 
     try:
-        # 在目前交易式 3D 視窗被替換前先驗證檔案。
-        # authoritative restore 由 parent callback 執行，確保主 GUI、2D、
-        # 板件存在狀態、3D 與輸出鏈都從同一來源重新載入。
-        read_project(path)
+        Phase6ProjectController.validate_project_load(
+            path, _phase6_project_file.read_project
+        )
         callback(str(path))
         return str(path)
     except Exception as exc:
         try:
-            messagebox.showerror("讀檔失敗", f"無法讀取 Phase6 專案：\n{exc}", parent=self.root)
+            messagebox.showerror(
+                "讀檔失敗",
+                f"無法讀取 Phase6 專案：\n{exc}",
+                parent=self.root,
+            )
         except Exception:
             pass
         return None
-
 
 def _phase6_save_project_file(self, *, save_as=False):
     """儲存 Phase6 專案；連接 main GUI 時一律委派 committed ownership。"""
@@ -2799,7 +2810,6 @@ def _phase6_save_project_file(self, *, save_as=False):
         )
 
     from tkinter import filedialog, messagebox
-    from phase6_project_file import PROJECT_EXTENSION, write_project
 
     if getattr(self, "_phase6_pending_settings", None):
         try:
@@ -2813,12 +2823,13 @@ def _phase6_save_project_file(self, *, save_as=False):
         model_var = getattr(self, "baseline_model_var", None)
         model = str(model_var.get() if model_var is not None else "").strip() or "自訂"
         safe_model = "".join(ch if ch not in '\\/:*?"<>|' else "_" for ch in model)
-        initial = Path(current).name if current else f"{safe_model}{PROJECT_EXTENSION}"
+        extension = _phase6_project_file.PROJECT_EXTENSION
+        initial = Path(current).name if current else f"{safe_model}{extension}"
         path = filedialog.asksaveasfilename(
             parent=self.root,
             title="另存新檔：Phase6 專案" if save_as else "儲存專案：Phase6",
-            defaultextension=PROJECT_EXTENSION,
-            filetypes=[("Phase6 折彎專案", f"*{PROJECT_EXTENSION}"), ("所有檔案", "*.*")],
+            defaultextension=extension,
+            filetypes=[("Phase6 折彎專案", f"*{extension}"), ("所有檔案", "*.*")],
             initialfile=initial,
         )
         if not path:
@@ -2826,20 +2837,24 @@ def _phase6_save_project_file(self, *, save_as=False):
 
     try:
         payload = _phase6_build_project_snapshot(self)
-        # Runtime-only host path must never become mechanical project data.
         payload.get("snapshot", {}).pop("_runtime_project_path", None)
-        target = write_project(path, payload)
+        target = Phase6ProjectController.write_designer_project(
+            path, payload, _phase6_project_file.write_project
+        )
         self._phase6_current_project_path = str(target)
-        callback = getattr(self, "_project_path_change_callback", None)
-        if callable(callback):
-            callback(str(target))
+        path_callback = getattr(self, "_project_path_change_callback", None)
+        if callable(path_callback):
+            path_callback(str(target))
         if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"已存專案：{target.name}（全部板件）")
+            self.settings_status_var.set(
+                f"已存專案：{Path(target).name}（全部板件）"
+            )
         return str(target)
     except Exception as exc:
-        messagebox.showerror("存檔失敗", f"無法儲存 Phase6 專案：\n{exc}", parent=self.root)
+        messagebox.showerror(
+            "存檔失敗", f"無法儲存 Phase6 專案：\n{exc}", parent=self.root
+        )
         return None
-
 
 def _phase6_save_project_file_as(self):
     return _phase6_save_project_file(self, save_as=True)
@@ -2880,12 +2895,7 @@ def _phase6_cancel_corner_transaction(self):
 
 
 def _phase6_export_workspace_state_if_dirty(self):
-    """只在折彎工作區結構真的改變時保存結構。
-
-    一般數值設定本來就會即時同步；這個輕量快照只負責讓自訂段落拓撲與
-    新增板件在關閉 3D 視窗後仍保留。它不包含也不提交基準檔／截角交易資料，
-    也不執行舊版完整匯出 adapter。
-    """
+    """只在折彎工作區結構真的改變時保存結構。"""
     if not bool(getattr(self, "_phase6_workspace_dirty", False)):
         return None
     pending = getattr(self, "_job", None)
@@ -2897,16 +2907,15 @@ def _phase6_export_workspace_state_if_dirty(self):
         self._job = None
     self._save_current_part(notify=False)
     owner = self.designer_workspace.snapshot()
-    result = {
-        "box_body_profile": clone_profile(self.state.profiles_vault.get("箱身", [])),
-        "existing_parts": list(owner["existing_parts"]),
-        "active_part": owner["active_part"],
-        "part_profiles": deepcopy(owner["part_profiles"]),
-        "box_body_structure": deepcopy(owner.get("box_body_structure") or self.designer_workspace.box_body_structure_state()),
-    }
+    result = Phase6ProjectController.build_workspace_export(
+        owner_workspace=owner,
+        box_body_profile=clone_profile(
+            self.state.profiles_vault.get("箱身", [])
+        ),
+        structure_state=self.designer_workspace.box_body_structure_state(),
+    )
     self.designer_workspace.mark_clean()
     return result
-
 
 def _phase6_refresh_active_endcap_from_linked(self, linked):
     key = str(self.designer_workspace.active_part or "")
@@ -5098,22 +5107,19 @@ def _phase6_status_projection(self):
     """Project existing cabinet/part/view owners into one low-noise status line."""
     family = _phase6_current_cabinet_family(self) or "-"
     mode = str(getattr(self, "_phase6_3d_display_mode", "single") or "single")
-    if mode == "assembly":
-        part_text = "-"
-        view_text = "組合體"
-    elif mode == "corner_data":
+    if mode == "corner_data":
         part_key = (
             getattr(self, "_phase6_corner_data_selected_part_key", None)
             or getattr(self, "active_part_key", None)
         )
-        part_text = _phase6_part_label(part_key) if part_key else "-"
-        view_text = "截角資料"
     else:
         part_key = getattr(self, "active_part_key", None)
-        part_text = _phase6_part_label(part_key) if part_key else "-"
-        view_text = "單件 3D"
-    return f"箱型：{family}  ｜  板件：{part_text}  ｜  視圖：{view_text}"
-
+    part_text = _phase6_part_label(part_key) if part_key else "-"
+    return Phase6ProjectController.project_status_projection(
+        family=family,
+        mode=mode,
+        part_text=part_text,
+    )
 
 def _phase6_refresh_status_bar(self):
     """Refresh the projection sink only; never write selection/domain state."""
@@ -5549,20 +5555,18 @@ def _phase6_refresh_sticky_structure_tree(self):
 
 
 def _phase6_commit_output_draw_stock(self):
-    """Commit the 3D STOCK toggle through the existing draw_stock setting."""
-    value = bool(self.output_draw_stock_var.get())
-    _phase6_stage_setting_update(self, "draw_stock", value)
-    return value
-
+    """Commit the 3D STOCK toggle through the project command owner."""
+    return Phase6ProjectController.commit_output_stock(
+        bool(self.output_draw_stock_var.get()),
+        lambda key, value: _phase6_stage_setting_update(self, key, value),
+    )
 
 def _phase6_export_selected_dxf_from_3d(self):
-    """Delegate the 3D action to the existing authoritative batch exporter."""
-    self.flush_pending_settings()
-    callback = getattr(self, "_phase6_export_selected_dxf_callback", None)
-    if callback is None:
-        return None
-    return callback()
-
+    """Delegate the 3D action through the project command owner."""
+    return Phase6ProjectController.route_selected_dxf_export(
+        getattr(self, "_phase6_export_selected_dxf_callback", None),
+        self.flush_pending_settings,
+    )
 
 def _phase6_build_output_controls(self, parent=None):
     """Compact top-row Output projection using the existing state/callback owners."""
@@ -5859,13 +5863,14 @@ def _phase6_reset_initial_values(self):
 
 def _phase6_save_settings_context_as_defaults(self, context):
     self.flush_pending_settings()
-    if self._save_defaults_callback is None:
+    callback = self._save_defaults_callback
+    if callback is None:
         if hasattr(self, "settings_status_var"):
             self.settings_status_var.set("未連接預設值儲存器")
         return False
     payload = _phase6_settings_transactions(self).settings_defaults_payload(context)
     try:
-        self._save_defaults_callback(*payload)
+        Phase6ProjectController.route_settings_defaults(callback, payload)
     except Exception as exc:
         if hasattr(self, "settings_status_var"):
             self.settings_status_var.set(f"儲存失敗：{exc}")
