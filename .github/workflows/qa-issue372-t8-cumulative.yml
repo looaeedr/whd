@@ -489,6 +489,7 @@ jobs:
                       render=lambda: events.append("renderer.render"),
                   ),
               )
+              owner.publish_if_changed=lambda: events.append("publish")
               bridge._phase6_publish_live_state=lambda self,*args,**kwargs: events.append("publish")
               bridge._PHASE6_RENDERING_DO_UPDATE=lambda self: events.append("full")
               bridge._phase6_render_committed_view=lambda self: events.append("committed")
