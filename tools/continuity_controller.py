@@ -34,6 +34,16 @@ class ContinuityState(str, Enum):
     TERMINAL_FAILURE = "TERMINAL_FAILURE"
 
 
+class ScheduledResumeAction(str, Enum):
+    """Wake-routing decisions derived from canonical continuity state."""
+
+    EXECUTE_NEXT_ACTION = "EXECUTE_NEXT_ACTION"
+    POLL_LOCKED_RUN = "POLL_LOCKED_RUN"
+    CONTINUE_RECOVERY = "CONTINUE_RECOVERY"
+    REPORT_BLOCKER = "REPORT_BLOCKER"
+    NO_OP = "NO_OP"
+
+
 NONTERMINAL_STATES = frozenset(
     {
         ContinuityState.RUNNING,
@@ -138,6 +148,24 @@ class Checkpoint:
     @property
     def is_terminal(self) -> bool:
         return self.state in TERMINAL_STATES
+
+
+def scheduled_resume_action(checkpoint: Checkpoint) -> ScheduledResumeAction:
+    """Map canonical checkpoint state to one scheduler wake action.
+
+    This is intentionally a pure routing function. It does not mutate or persist
+    the checkpoint and therefore cannot become a second workflow state machine.
+    """
+
+    mapping = {
+        ContinuityState.RUNNING: ScheduledResumeAction.EXECUTE_NEXT_ACTION,
+        ContinuityState.WAITING_REMOTE: ScheduledResumeAction.POLL_LOCKED_RUN,
+        ContinuityState.RECOVERING: ScheduledResumeAction.CONTINUE_RECOVERY,
+        ContinuityState.BLOCKED: ScheduledResumeAction.REPORT_BLOCKER,
+        ContinuityState.TERMINAL_SUCCESS: ScheduledResumeAction.NO_OP,
+        ContinuityState.TERMINAL_FAILURE: ScheduledResumeAction.NO_OP,
+    }
+    return mapping[checkpoint.state]
 
 
 @dataclass(frozen=True)
@@ -536,6 +564,23 @@ def _assert_checkpoint_owner(
             f"expected issue={expected[0]!r} branch={expected[1]!r} head_sha={expected[2]!r}; "
             f"got issue={actual[0]!r} branch={actual[1]!r} head_sha={actual[2]!r}"
         )
+
+
+def assert_checkpoint_owner(
+    checkpoint: Checkpoint,
+    *,
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+) -> None:
+    """Public exact-owner guard for non-mutating resume/wake entrypoints."""
+
+    _assert_checkpoint_owner(
+        checkpoint,
+        expected_issue=expected_issue,
+        expected_branch=expected_branch,
+        expected_head_sha=expected_head_sha,
+    )
 
 
 def _turn_exit_proof_payload(
