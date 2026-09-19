@@ -424,6 +424,30 @@ def bridge_inventory(tree: ast.Module) -> tuple[list[dict], dict[str, tuple[str,
     return inventory, classifications
 
 
+def _classify_wiring_rhs(
+    value: ast.AST,
+    classifications: dict[str, tuple[str, str]],
+) -> tuple[str, tuple[str, str] | None]:
+    if isinstance(value, ast.Name):
+        return value.id, classifications.get(value.id)
+
+    if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+        callee = value.func.id
+        rendered = ast.unparse(value)
+        if callee in classifications:
+            return rendered, classifications[callee]
+        if callee == "property":
+            refs = [
+                arg.id
+                for arg in value.args
+                if isinstance(arg, ast.Name)
+            ]
+            if refs and all(ref in classifications for ref in refs):
+                return rendered, ("compatibility", "COMPATIBILITY_FACADE")
+
+    return ast.unparse(value), None
+
+
 def class_wiring(tree: ast.Module, classifications: dict[str, tuple[str, str]]) -> tuple[list[dict], list[dict]]:
     rows: list[dict] = []
     unknown: list[dict] = []
@@ -435,30 +459,30 @@ def class_wiring(tree: ast.Module, classifications: dict[str, tuple[str, str]]) 
                     and isinstance(target.value, ast.Name)
                     and target.value.id == "Phase6FoldDesignerApp"
                 ):
-                    rhs = node.value.id if isinstance(node.value, ast.Name) else ast.unparse(node.value)
+                    rhs, rhs_classification = _classify_wiring_rhs(node.value, classifications)
                     row = {
                         "line": node.lineno,
                         "attribute": target.attr,
                         "rhs": rhs,
-                        "rhs_classification": classifications.get(rhs),
+                        "rhs_classification": rhs_classification,
                     }
                     rows.append(row)
-                    if rhs not in classifications:
+                    if rhs_classification is None:
                         unknown.append(row)
         elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
             call = node.value
             if isinstance(call.func, ast.Name) and call.func.id == "setattr":
                 if len(call.args) >= 3 and isinstance(call.args[0], ast.Name) and call.args[0].id == "Phase6FoldDesignerApp":
                     attr = call.args[1].value if isinstance(call.args[1], ast.Constant) else ast.unparse(call.args[1])
-                    rhs = call.args[2].id if isinstance(call.args[2], ast.Name) else ast.unparse(call.args[2])
+                    rhs, rhs_classification = _classify_wiring_rhs(call.args[2], classifications)
                     row = {
                         "line": node.lineno,
                         "attribute": attr,
                         "rhs": rhs,
-                        "rhs_classification": classifications.get(rhs),
+                        "rhs_classification": rhs_classification,
                     }
                     rows.append(row)
-                    if rhs not in classifications:
+                    if rhs_classification is None:
                         unknown.append(row)
     return rows, unknown
 
