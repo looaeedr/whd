@@ -553,9 +553,18 @@ def assembly_intent(
     corners = deepcopy(dict(corner_state or {}))
     pairs = deepcopy(dict(corner_pair_same or {}))
     parts = tuple(str(key) for key in tuple(available_parts or ()) if str(key))
+    had_existing_parts = "existing_parts" in snapshot
+    authoritative_existing_parts = deepcopy(snapshot.get("existing_parts"))
     if parts:
+        # available_parts is an execution context for joint projection only.
+        # The predecessor controller never promoted this temporary live
+        # workspace list into authoritative project topology.
         snapshot["existing_parts"] = list(parts)
     snapshot = sync_snapshot_intent_joints(snapshot, canonical)
+    if had_existing_parts:
+        snapshot["existing_parts"] = authoritative_existing_parts
+    else:
+        snapshot.pop("existing_parts", None)
     if project_legacy_corner:
         apply_box_assembly_type_to_raw_state(
             corners,
