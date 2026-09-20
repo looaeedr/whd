@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue434-t4-corner-data-shared-host-20260920",
   "claimed_at": "2026-09-20T07:58:00Z",
   "base_sha": "bbd499786cbebc1b5e68ff032f2591cc308060cd",
-  "head_sha": "9e6ad347dd99a52e657a02f5107bd64f11852063",
-  "phase": "GREEN",
+  "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:00:00Z",
   "remote_qa": {
-    "run_id": 35498592796,
-    "head_sha": "9e6ad347dd99a52e657a02f5107bd64f11852063",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T4_ALREADY_GREEN_AFTER_T1_23_PASS_0_FAIL_0_SKIP"
+    "run_id": null,
+    "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T4_AB_QUALIFICATION"
   },
-  "next_action": "Run T4 no-op production A/B: bridge + corner-data adapter exact predecessor, inherited #94/#95/#96/#119 exact outcome parity, candidate T4 4-pass gates.",
+  "next_action": "Discover and poll T4 A/B run. Require exact predecessor production blobs, inherited Corner Data 19/19 exact parity, candidate T4 gates GREEN, and accepted job GREEN.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_exact_predecessor": true,
@@ -37,5 +37,6 @@
     "result": "23_PASS_0_FAIL_0_SKIP",
     "production_runtime_edit": 0,
     "already_green_after_t1": true
-  }
+  },
+  "orchestration_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e"
 }
