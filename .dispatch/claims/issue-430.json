@@ -5,18 +5,18 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "d8296fef1d55645123875c742dd074f4fbc0b9d6",
-  "phase": "RED",
+  "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:38:25Z",
+  "last_update": "2026-09-20T06:46:17Z",
   "remote_qa": {
-    "run_id": 35494744058,
-    "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE"
+    "run_id": 35495093718,
+    "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
+    "status": "queued",
+    "conclusion": null,
+    "classification": "ACTIVE_KNOWLEDGE_PREFLIGHT"
   },
-  "next_action": "Update qa-issue430-t0-preflight.yml to consume committed issue430-t0-preflight-evidence.txt, then dispatch/monitor the exact-head preflight rerun to terminal.",
+  "next_action": "Poll GitHub Actions run 35495093718 at exact head c3cff0b93497a9ad86d0e1488f5988861c5b033b to terminal; on success require Knowledge preflight passed / RC=0, otherwise classify only the failed job.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
