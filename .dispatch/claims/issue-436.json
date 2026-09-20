@@ -5,18 +5,18 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "a274d3c8c08aac1e86424de5a391d7961720d9e1",
+  "head_sha": "8ac75658e067b69233945d0bc1e52cee8441cb2b",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": 35505517389,
-    "head_sha": "a274d3c8c08aac1e86424de5a391d7961720d9e1",
-    "status": "in_progress",
+    "run_id": null,
+    "head_sha": "8ac75658e067b69233945d0bc1e52cee8441cb2b",
+    "status": "awaiting_run_discovery",
     "conclusion": null,
-    "classification": "ACTIVE_T6_REMEDIATION_FINALIZER_V2"
+    "classification": "T6_VISUAL_FINAL"
   },
-  "next_action": "Poll run 35505517389 to terminal; prior remediation run 35505467119 is superseded and must not authorize integration.",
+  "next_action": "Discover and poll T6 visual-final from exact head 8ac75658e067b69233945d0bc1e52cee8441cb2b.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
