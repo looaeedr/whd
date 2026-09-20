@@ -5,17 +5,15 @@
   "work_branch": "refactor/issue444-t2-bending-ui-owner-20260920",
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-  "head_sha": "0c2133fe7e9af8a8b14da67d4cfea84b18e3aee7",
-  "phase": "IMPLEMENTING",
+  "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:21:00+08:00",
+  "last_update": "2026-09-21T07:22:00+08:00",
   "remote_qa": {
-    "run_id": 35543952177,
-    "status": "completed/failure",
-    "head_sha": "0c2133fe7e9af8a8b14da67d4cfea84b18e3aee7",
-    "failed_job_id": 106166447391,
-    "classification": "workflow-capability-missing-matplotlib"
+    "run_id": null,
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c"
   },
-  "next_action": "Install matplotlib into the focused QA venv, push one workflow-only fix commit, then lock the replacement run to terminal.",
+  "next_action": "Lock the replacement QA run for head b34c20a4 and poll it through terminal.",
   "blocker": null
 }
