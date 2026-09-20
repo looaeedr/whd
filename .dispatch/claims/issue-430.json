@@ -5,18 +5,18 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
-  "phase": "IMPLEMENTING",
+  "head_sha": "f618a373f4fd8199991c04f1c817f78220df3a46",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:47:34Z",
+  "last_update": "2026-09-20T06:49:00Z",
   "remote_qa": {
-    "run_id": 35495142279,
-    "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "KNOWLEDGE_PREFLIGHT_GREEN"
+    "run_id": null,
+    "head_sha": "f618a373f4fd8199991c04f1c817f78220df3a46",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "CHANGED_FILE_KNOWLEDGE_PREFLIGHT"
   },
-  "next_action": "Run read-only #430 T0 source census on exact head ccb1c9b5389039bcac5d6160125c79af49ab5f74; identify physical host identities, mode authority, mount/unmount call sites, and candidate duplicate-region seam before adding characterization tests.",
+  "next_action": "Discover the push-triggered #430 T0 changed-file Knowledge Preflight run for exact head f618a373f4fd8199991c04f1c817f78220df3a46 and monitor it to terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
