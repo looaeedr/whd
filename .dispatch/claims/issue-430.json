@@ -5,7 +5,7 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
+  "head_sha": "d8296fef1d55645123875c742dd074f4fbc0b9d6",
   "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-20T06:38:25Z",
@@ -16,6 +16,8 @@
     "conclusion": "failure",
     "classification": "EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE"
   },
-  "next_action": "Persist completed Knowledge Preflight evidence for all required Skills/references, update the T0 preflight carrier to read that committed evidence, then rerun preflight on the exact work-branch HEAD.",
-  "blocker": null
+  "next_action": "Update qa-issue430-t0-preflight.yml to consume committed issue430-t0-preflight-evidence.txt, then dispatch/monitor the exact-head preflight rerun to terminal.",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
+  "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
 }
