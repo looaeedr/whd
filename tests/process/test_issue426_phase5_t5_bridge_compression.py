@@ -150,19 +150,21 @@ def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths(
     assert "_phase6_refresh_assembly_parts_panel(self)" in init
 
 
-def test_t5_mount_unmount_transition_sources_match_t0_behavior():
+def test_t5_mount_unmount_transition_sources_match_shared_host_owner():
     show = _function_source("_phase6_show_assembly")
     corner = _function_source("_phase6_show_corner_data")
     activate = _function_source("_fix11_activate_part")
 
-    assert 'getattr(self, "assembly_parts_panel", None)' in show
-    assert "assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))" in show
+    # #429/#431 moved presentation mount ownership into the one shared-content
+    # controller.  Bridge entrypoints select a mode; they must no longer pack
+    # or forget the Assembly panel directly.
+    assert '_phase6_mount_shared_content(self, "assembly")' in show
+    assert '_phase6_mount_shared_content(self, "corner_data")' in corner
+    assert '_phase6_mount_shared_content(self, "single")' in activate
 
-    assert 'getattr(self, "assembly_parts_panel", None)' in corner
-    assert "assembly_panel.pack_forget()" in corner
-
-    assert 'getattr(self, "assembly_parts_panel", None)' in activate
-    assert "assembly_panel.pack_forget()" in activate
+    for source in (show, corner, activate):
+        assert "assembly_panel.pack(" not in source
+        assert "assembly_panel.pack_forget()" not in source
 
 
 def test_t5_repeated_bridge_refresh_preserves_alias_identity_and_ui_state(tk_root):
