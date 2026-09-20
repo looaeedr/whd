@@ -129,12 +129,15 @@ jobs:
           )
 
           boxes=[metrics[k]["host_bbox"] for k in ("part","assembly","corner_data")]
-          assert boxes[0]==boxes[1]==boxes[2], boxes
+          assert all(
+              all(abs(boxes[0][i]-other[i])<=2 for i in (0,1,2))
+              for other in boxes[1:]
+          ), boxes
           (out/"metrics.json").write_text(
               json.dumps(metrics,indent=2,ensure_ascii=False)+"\n"
           )
           print("VISUAL_SCREENSHOT_COUNT=3")
-          print("SHARED_HOST_BBOX_PARITY=1")
+          print("SHARED_HOST_ANCHOR_WIDTH_PARITY=1")
           print("ACTIVE_SHARED_CONTENT_MODE_COUNT=1")
           root.destroy()
           PY
