@@ -9,6 +9,7 @@ import ae_engine.assembly_collision as collision
 import fold_designer_bridge as bridge
 from ae_engine.sheetmetal_drawing import DrawingScene
 from phase6_designer_workspace import Phase6DesignerWorkspace
+from phase6_assembly_panel import Phase6AssemblyPanel
 
 
 class Var:
@@ -83,6 +84,23 @@ def test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_
         calls.append(part_key)
         return raw[part_key]
 
+    visible_vars = {
+        "box_body": Var(True),
+        "head": Var(True),
+        "tail": Var(True),
+        "door": Var(False),
+        "base_plate": Var(True),
+    }
+    panel_owner = SimpleNamespace(
+        visible_vars=visible_vars,
+        box_piece_visible_vars={},
+        resolve_visibility=lambda parts: Phase6AssemblyPanel._resolve_visibility_with_vars(
+            parts, visible_vars, {}
+        ),
+        set_corner_texts=lambda _values: None,
+        set_part_text=lambda _kind, _key, _value: None,
+        refresh_box_body_piece_info=lambda _render_data, **_kwargs: (),
+    )
     app = SimpleNamespace(
         designer_workspace=workspace,
         state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
@@ -94,14 +112,10 @@ def test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_
         _phase6_endcap_fw_state={},
         assembly_ignore_fixed_corner_var=Var(False),
         assembly_show_interference_var=Var(False),
-        assembly_part_visible_vars={
-            "box_body": Var(True),
-            "head": Var(True),
-            "tail": Var(True),
-            "door": Var(False),
-            "base_plate": Var(True),
-        },
+        _phase6_assembly_panel_owner=panel_owner,
+        assembly_part_visible_vars=visible_vars,
     )
+    assert app.assembly_part_visible_vars is app._phase6_assembly_panel_owner.visible_vars
     monkeypatch.setattr(bridge, "_phase6_operator_finished_dimensions", lambda self: (100.0, 80.0, 40.0))
 
     bundle = bridge._phase6_query_assembly_render_data(app)
