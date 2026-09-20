@@ -97,7 +97,7 @@ def changed_paths(baseline: str, candidate: str) -> tuple[str, ...]:
 def function_source(text: str, name: str) -> str | None:
     tree = ast.parse(text)
     lines = text.splitlines()
-    for node in tree.body:
+    for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
             return "\n".join(lines[node.lineno - 1 : node.end_lineno])
     return None
