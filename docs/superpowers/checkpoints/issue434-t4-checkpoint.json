@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issue": "434",
+  "branch": "refactor/issue434-t4-corner-data-shared-host-20260920",
+  "base_sha": "bbd499786cbebc1b5e68ff032f2591cc308060cd",
+  "head_sha": "fb891cd30859d74094f427d7a9cbd5ebae1dd4c4",
+  "state": "CHARACTERIZATION_PENDING",
+  "next_action": "Commit T4 tests/workflow/docs only. Require bridge + Corner Data adapter exact predecessor equality and all T4 host/mount/behavior/state-authority gates.",
+  "preflight_run_id": 35498340890,
+  "evidence": [
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}
