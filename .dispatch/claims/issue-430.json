@@ -5,10 +5,10 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+  "head_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:57:15Z",
+  "last_update": "2026-09-20T06:58:00Z",
   "remote_qa": {
     "run_id": 35495541940,
     "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
@@ -16,8 +16,20 @@
     "conclusion": "success",
     "classification": "T0_CHARACTERIZATION_ACCEPTED_4_PASS_1_INTENDED_RED"
   },
-  "next_action": "Write accepted T0 checkpoint/journal at exact tested head, close #430 completed, then create #431 branch from the accepted closing head.",
+  "next_action": "Record accepted evidence on #430 and close completed. Then release this claim and acquire #431 from closing SHA 95ab91c900e9a531ce0fec25a698123116392cc2.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
-  "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
+  "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md",
+  "drift_audit": {
+    "tested_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+    "closing_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
+    "allowed_only": true,
+    "files": [
+      ".github/workflows/qa-issue430-t0-census.yml (removed)",
+      ".github/workflows/qa-issue430-t0-preflight.yml (removed)",
+      "docs/superpowers/checkpoints/issue430-t0-census.md",
+      "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
+      "docs/superpowers/checkpoints/issue430-t0-journal.md"
+    ]
+  }
 }
