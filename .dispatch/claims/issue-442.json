@@ -6,18 +6,15 @@
   "claimed_at": "2026-09-20T13:00:39Z",
   "base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "head_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-  "phase": "CLOSING",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:12:00Z",
+  "last_update": "2026-09-20T13:13:54Z",
   "remote_qa": {
-    "run_id": 35512607311,
-    "head_sha": "0cc896769a1ad10ed5426c7a241660e22e387e52",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106083034450,
-    "artifact_id": 10606107863,
-    "artifact_digest": "sha256:052025755dd614a78f532e2dc8dc04318e8cf27be288e342a8aad83c9c3bb511"
+    "run_id": 35512888565,
+    "head_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
+    "status": "queued",
+    "conclusion": null
   },
-  "next_action": "Advance the guarded work-order branch to cf14e2e6..., lock the resulting closing QA run, and require canonical finalization proof before issue closure.",
+  "next_action": "Poll exact run 35512888565 for head cf14e2e6b7ba9d28109d94cd1010867a29e8c157 to terminal; no unrelated repository writes under REMOTE_QA_ACTIVE_LOCK.",
   "blocker": null
 }
