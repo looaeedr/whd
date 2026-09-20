@@ -56,7 +56,7 @@ def _show_mode(app, root, mode):
     if mode == "single":
         target = "head" if "head" in app.designer_workspace.available_parts else "box_body"
         app.activate_part(target)
-        surface = app.fold_editor_host
+        surface = app.input_content_host
     elif mode == "assembly":
         bridge._phase6_show_assembly(app)
         surface = app.assembly_parts_panel
@@ -77,7 +77,7 @@ def _mode_surfaces(app, root):
 
 def _surface_identity(app):
     return (
-        id(app.fold_editor_host),
+        id(app.input_content_host),
         id(app.assembly_parts_panel),
         id(app.corner_data_panel),
     )
@@ -85,7 +85,7 @@ def _surface_identity(app):
 
 def _mapped_mode_surface_count(app):
     widgets = (
-        getattr(app, "fold_editor_host", None),
+        getattr(app, "input_content_host", None),
         getattr(app, "assembly_parts_panel", None),
         getattr(app, "corner_data_panel", None),
     )
