@@ -8,6 +8,7 @@ on:
       - 'fold_designer_bridge.py'
       - 'tests/test_issue443_t1_dead_glue.py'
       - 'docs/superpowers/checkpoints/issue443-t1-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue443-t1-review.md'
       - '.github/workflows/qa-issue443-t1-dead-glue.yml'
   workflow_dispatch:
 
@@ -40,6 +41,7 @@ jobs:
             --changed-file fold_designer_bridge.py \
             --changed-file tests/test_issue443_t1_dead_glue.py \
             --changed-file docs/superpowers/checkpoints/issue443-t1-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue443-t1-review.md \
             --changed-file .github/workflows/qa-issue443-t1-dead-glue.yml \
             --evidence docs/superpowers/checkpoints/issue443-t1-preflight-evidence.txt
 
@@ -53,7 +55,7 @@ jobs:
           printf 'CHANGED=%s\n' "${changed[*]}"
           for p in "${changed[@]}"; do
             case "$p" in
-              fold_designer_bridge.py|tests/test_issue443_t1_dead_glue.py|docs/superpowers/checkpoints/issue443-t1-preflight-evidence.txt|.github/workflows/qa-issue443-t1-dead-glue.yml) ;;
+              fold_designer_bridge.py|tests/test_issue443_t1_dead_glue.py|docs/superpowers/checkpoints/issue443-t1-preflight-evidence.txt|docs/superpowers/checkpoints/issue443-t1-review.md|.github/workflows/qa-issue443-t1-dead-glue.yml) ;;
               *) echo "UNEXPECTED_DIFF=$p"; exit 1 ;;
             esac
           done
@@ -161,3 +163,34 @@ jobs:
           PY
           git diff --exit-code "$BASE_SHA"...HEAD -- 'phase6_*.py' 'ae_engine/**' config.ini '*.dxf'
           echo 'PROTECTED_DRIFT=0'
+
+
+      - name: Canonical finalization guard
+        if: env.T1_MODE == 'GREEN'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-443.json > /tmp/issue443-terminal-checkpoint.json
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue443-terminal-checkpoint.json \
+            --issue 443 \
+            --branch "$GITHUB_REF_NAME" \
+            --head-sha "$GITHUB_SHA" \
+            --proof-out /tmp/issue443-finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue443-terminal-checkpoint.json \
+            /tmp/issue443-finalization-proof.json \
+            --issue 443 \
+            --branch "$GITHUB_REF_NAME" \
+            --head-sha "$GITHUB_SHA"
+
+      - name: Upload T1 closing evidence
+        if: env.T1_MODE == 'GREEN'
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue443-t1-closing
+          path: |
+            docs/superpowers/checkpoints/issue443-t1-review.md
+            /tmp/issue443-terminal-checkpoint.json
+            /tmp/issue443-finalization-proof.json
