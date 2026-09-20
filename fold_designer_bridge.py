@@ -3985,12 +3985,6 @@ def _phase6_build_endcap_joint_settings(self, parent, part_key, start_row):
     return start_row
 
 
-def _phase6_build_assembly_settings(self, parent, start_row):
-    # 組合方式已移到右側 3D 常駐控制列。保留函式只為舊 caller 相容，
-    # 不再在可鎖定的參數面板重複建立第二份 UI。
-    return start_row
-
-
 def _phase6_on_box_symmetry_changed(self):
     """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
     var = getattr(self, "v_sy", None)
@@ -4024,21 +4018,6 @@ def _phase6_on_box_symmetry_changed(self):
         self.do_update()
     except Exception:
         pass
-
-def _phase6_build_box_symmetry_settings(self, parent, start_row):
-    box = original.ttk.LabelFrame(parent, text="箱身折彎", padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    if not hasattr(self, "v_sy"):
-        self.v_sy = original.tk.BooleanVar(value=bool(getattr(self.state, "symmetric", True)))
-    original.ttk.Checkbutton(
-        box,
-        text="對稱折彎",
-        variable=self.v_sy,
-        command=lambda: _phase6_on_box_symmetry_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 8))
-    original.ttk.Label(box, text="開啟時，箱身兩側對應折彎同步修改").pack(side=original.tk.LEFT)
-    return start_row + 1
-
 
 def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var, reserve_v_var):
     """Commit receiving WRAP reserve values without owning the Joint relation."""
