@@ -48,7 +48,8 @@ def test_first_3d_view_is_assembly_while_sheetmetal_selector_stays_on_real_part(
         assert app.part_choice_menu.entrycget(0, "label") == "組合體"
         assert app.part_var.get() == "組合體"
         assert app._phase6_3d_display_mode == "assembly"
-        assert app.fold_editor_host.winfo_manager() == ""
+        assert app.fold_editor_host.winfo_manager() == "pack"
+        assert app.input_content_host.winfo_manager() == ""
         assert app.settings_center.winfo_manager() == ""
         assert app.assembly_content_button is None
         assert app.assembly_parts_panel.winfo_manager() == "pack"
@@ -64,6 +65,7 @@ def test_selecting_real_sheet_part_switches_to_single_part_editor(monkeypatch):
         assert app.part_var.get() == "箱身"
         assert app._phase6_3d_display_mode == "single"
         assert app.fold_editor_host.winfo_manager() == "pack"
+        assert app.input_content_host.winfo_manager() == "pack"
     finally:
         root.destroy()
 
