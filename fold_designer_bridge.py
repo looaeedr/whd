@@ -42,7 +42,10 @@ from phase6_part_navigation import (
     project_hierarchy as _dm7_project_hierarchy,
     resolve_navigation as _dm7_resolve_navigation,
 )
-from phase6_assembly_presentation import build_assembly_presentation_model
+from phase6_assembly_presentation import (
+    build_assembly_presentation_model,
+    legacy_assembly_presentation_groups,
+)
 from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
     BoxBodyStructureType, normalize_box_body_structure_state, set_active_structure,
@@ -6835,20 +6838,8 @@ def _phase6_bind_assembly_scroll(widget, self):
 
 
 def _phase6_assembly_presentation_groups(values) -> tuple[tuple[str, tuple[str, ...]], ...]:
-    """Compatibility projection over the Phase 5 pure presentation model."""
-    model = build_assembly_presentation_model(values, label_for=str)
-    rows = []
-    for entry in model.entries:
-        children = tuple(
-            str(child.part_key)
-            for child in tuple(getattr(entry, "children", ()) or ())
-        )
-        if children:
-            rows.append((str(entry.presentation_key), children))
-        else:
-            rows.append((str(entry.part_key), ()))
-    return tuple(rows)
-
+    """Compatibility delegate to the pure Phase 5 presentation owner."""
+    return legacy_assembly_presentation_groups(values)
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
     """Return the part-key topology currently represented by assembly rows."""
