@@ -5,22 +5,42 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427",
-  "phase": "REMOTE_QA",
+  "head_sha": "ead7b11f45b05eb50d5c5a6f176bf3b7b33d7d4e",
+  "phase": "REMEDIATING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
     "run_id": 35504038682,
     "head_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427",
-    "status": "queued",
-    "conclusion": null,
-    "classification": "ACTIVE_T6_CUMULATIVE_AB_VISUAL_ACCEPTANCE"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "T6_FULL_AB_COMPLETE_VISUAL_HARNESS_RED_PLUS_ONE_STALE_PHASE5_SOURCE_CONTRACT"
   },
-  "next_action": "Poll run 35504038682 to terminal. No integration until accepted classifier GREEN.",
+  "next_action": "Run T6 finalizer: reuse full artifacts from 35504038682; prove migrated Phase5 source contract headless+xvfb; rerun corrected visual plus structural/protected/target gates; emit final GREEN only with production exact e3438fab and normalized NEW_* empty.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
     "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb"
   },
-  "orchestration_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427"
+  "orchestration_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427",
+  "cumulative_run": {
+    "run_id": 35504038682,
+    "baseline_sha": "50e14c7054916cb0b9597c61194725939c5de323",
+    "candidate_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+    "headless": {
+      "baseline": "2630_pass_11_fail_460_skip_0_error",
+      "candidate": "2633_pass_8_fail_485_skip_0_error"
+    },
+    "xvfb": {
+      "baseline": "3052_pass_48_fail_1_skip_0_error",
+      "candidate": "3079_pass_46_fail_1_skip_0_error"
+    },
+    "target_drift": "GREEN",
+    "structural": "GREEN",
+    "protected_ab": "GREEN",
+    "visual": "HARNESS_FAILURE_STARTUP_NOT_PUMPED",
+    "classifier": "ONE_STALE_PHASE5_SOURCE_CONTRACT",
+    "stale_node": "tests/process/test_issue426_phase5_t5_bridge_compression.py::test_t5_mount_unmount_transition_sources_match_t0_behavior"
+  },
+  "remediation_test_sha": "ead7b11f45b05eb50d5c5a6f176bf3b7b33d7d4e"
 }
