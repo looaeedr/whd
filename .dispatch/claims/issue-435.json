@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35499647553,
     "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T5_CHARACTERIZATION_RED_RETRY_2"
+    "classification": "ACTIVE_T5_CHARACTERIZATION_RED_RETRY_2"
   },
-  "next_action": "Discover and poll push-triggered T5 characterization at exact head a29fe6313f6c17e74db5c54ee71eee6b58e83e21; require exactly four stale #378 failures.",
+  "next_action": "Poll run 35499647553 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
