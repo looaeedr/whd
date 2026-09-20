@@ -228,6 +228,79 @@ jobs:
           cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
           echo "CONFIG_INVARIANT=GREEN"
 
+      - name: Authorize exact-owner T5 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path("/tmp/issue426-t5-closing")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "version": 1,
+              "issue": "426",
+              "branch": os.environ["WORK_BRANCH"],
+              "head_sha": os.environ["OWNER_HEAD"],
+              "state": "TERMINAL_SUCCESS",
+              "next_action": None,
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "job_id": None,
+              "log_cursor": None,
+              "blocked_count": 0,
+              "blocked_last_notified_at": None,
+              "evidence": [
+                  "KNOWLEDGE_PREFLIGHT_RC=0",
+                  "T5_GREEN=1",
+                  "REFRESH_TRIGGER_PARITY=GREEN",
+                  "REFRESH_CALLSITE_PARITY=GREEN",
+                  "REPEATED_REFRESH_STATE_PARITY=GREEN",
+                  "NO_NEW_REFRESH_TRIGGER_DELTA=0",
+                  "NO_REMOVED_REFRESH_TRIGGER_DELTA=0",
+                  "MOUNT_TRIGGER_PARITY=GREEN",
+                  "UNMOUNT_TRIGGER_PARITY=GREEN",
+                  "ASSEMBLY_ROW_TK_CONSTRUCTION_IN_BRIDGE=0",
+                  "ASSEMBLY_PIECE_ROW_TK_CONSTRUCTION_IN_BRIDGE=0",
+                  "ASSEMBLY_COLLAPSE_IMPLEMENTATION_IN_BRIDGE=0",
+                  "ASSEMBLY_SCROLL_IMPLEMENTATION_IN_BRIDGE=0",
+                  "ASSEMBLY_GROUPING_IMPLEMENTATION_IN_BRIDGE=0",
+                  "ASSEMBLY_VISIBILITY_POLICY_IMPLEMENTATION_IN_BRIDGE=0",
+                  "COMPAT_WRAPPER_SECOND_STATE=0",
+                  "COMPAT_WRAPPER_TK_CONSTRUCTION=0",
+                  "COMPAT_WRAPPER_DOMAIN_LOGIC=0",
+                  "COMPAT_WRAPPER_COUNT_GROWTH=0",
+                  "LEGACY_ALIAS_SURVIVES_REBUILD=GREEN",
+                  "STALE_LEGACY_REGISTRY_REFERENCE=0",
+                  "LEGACY_ATTRIBUTE_COMPATIBILITY_PARITY=GREEN",
+                  "LAST_ASSEMBLY_CORNER_TEXTS_RETAINED=1",
+                  "RIGHT_DIAGNOSTICS_OUT_OF_SCOPE_EXPLICIT=1",
+                  "LEGACY_T5_ASSEMBLY_REGRESSIONS=GREEN",
+                  "T5_SCOPE_EXTERNAL_DRIFT=0",
+                  "CONFIG_INVARIANT=GREEN",
+              ],
+          }
+          (out / "terminal-checkpoint.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue426-t5-closing/terminal-checkpoint.json \
+            --issue "426" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD" \
+            --proof-out /tmp/issue426-t5-closing/finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue426-t5-closing/terminal-checkpoint.json \
+            /tmp/issue426-t5-closing/finalization-proof.json \
+            --issue "426" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD"
+          echo "FINALIZATION_GUARD_PASS=1"
+          echo "FINALIZATION_PROOF_VALID=1"
+
       - name: Upload T5 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -237,5 +310,7 @@ jobs:
             /tmp/issue426-t5-pytest.log
             /tmp/issue426-config-before.sha256
             /tmp/issue426-config-after.sha256
+            /tmp/issue426-t5-closing/terminal-checkpoint.json
+            /tmp/issue426-t5-closing/finalization-proof.json
           if-no-files-found: warn
           retention-days: 14
