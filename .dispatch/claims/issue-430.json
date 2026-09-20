@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T06:53:30Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35495470300,
     "head_sha": "d7cd62508bb7641052d0c019cf93111e2d398c5b",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T0_CHARACTERIZATION_CENSUS"
+    "classification": "ACTIVE_T0_CHARACTERIZATION_CENSUS"
   },
-  "next_action": "Discover the push-triggered qa-issue430-t0-census run for exact head d7cd62508bb7641052d0c019cf93111e2d398c5b and monitor it to terminal. Required outcome: 4 PASS + exactly one intended duplicate-region RED.",
+  "next_action": "Poll run 35495470300 on exact head d7cd62508bb7641052d0c019cf93111e2d398c5b to terminal; no other tool work while REMOTE_QA active lock is held.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
