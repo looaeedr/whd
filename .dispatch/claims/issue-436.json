@@ -1,0 +1,15 @@
+{
+  "issue": 436,
+  "issue_url": "https://github.com/looaeedr/whd/issues/436",
+  "worker": "chatgpt",
+  "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
+  "claimed_at": "2026-09-20T08:38:00Z",
+  "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+  "head_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+  "phase": "CLAIMED",
+  "delegated_branches": [],
+  "last_update": "2026-09-20T08:38:00Z",
+  "remote_qa": null,
+  "next_action": "Create fresh T6 branch, verify fixed T0 baseline 50e14c7054916cb0b9597c61194725939c5de323 and current production target, run Knowledge Preflight, then cumulative A/B + visual acceptance before any integration.",
+  "blocker": null
+}
