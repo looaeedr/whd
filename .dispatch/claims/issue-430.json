@@ -5,11 +5,17 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "phase": "CLAIMED",
+  "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
+  "phase": "RECOVERING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:29:00Z",
-  "remote_qa": null,
-  "next_action": "Run Phase6 Knowledge Preflight for #430 T0, read all required skills/references, then create T0 checkpoint/journal and characterization evidence only.",
+  "last_update": "2026-09-20T06:38:25Z",
+  "remote_qa": {
+    "run_id": 35494744058,
+    "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE"
+  },
+  "next_action": "Persist completed Knowledge Preflight evidence for all required Skills/references, update the T0 preflight carrier to read that committed evidence, then rerun preflight on the exact work-branch HEAD.",
   "blocker": null
 }
