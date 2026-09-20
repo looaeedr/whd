@@ -1,0 +1,37 @@
+name: "QA #434 T4 Knowledge Preflight"
+
+on:
+  push:
+    branches:
+      - refactor/issue434-t4-corner-data-shared-host-20260920
+    paths:
+      - '.github/workflows/qa-issue434-t4-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue434-t4-preflight-evidence.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run T4 planned-change Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #434 T4 Corner Data mounted into the same shared-content host. Preserve existing Corner Data content, selection, adapter state, authoritative data/render source, callbacks, same Fold Designer drawing area, and legacy-2D retirement boundary. Characterize active/inactive widget-tree count, host ownership, behavior parity, and state-authority uniqueness. GitHub Actions remote QA." \
+            --changed-file fold_designer_bridge.py \
+            --changed-file phase6_corner_data_view_adapter.py \
+            --changed-file tests/test_issue434_corner_data_shared_host.py \
+            --changed-file .github/workflows/qa-issue434-t4.yml \
+            --changed-file docs/superpowers/checkpoints/issue434-t4-journal.md \
+            --changed-file docs/superpowers/checkpoints/issue434-t4-checkpoint.json \
+            --evidence docs/superpowers/checkpoints/issue434-t4-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
