@@ -4,12 +4,16 @@ import fold_designer_bridge as bridge
 
 
 def _owner(*, mode="corner_data", revision=0):
-    return SimpleNamespace(
+    owner = SimpleNamespace(
         _phase6_3d_display_mode=mode,
         corner_data_canvas=object(),
-        _phase6_last_external_revision=revision,
-        _phase6_last_external_transaction_id="",
     )
+    composition = bridge.Phase6FoldDesignerComposition(owner)
+    composition._settings_service = bridge.Phase6SettingsTransactionService(
+        last_external_revision=revision,
+    )
+    owner._phase6_composition_owner = composition
+    return owner
 
 
 def _envelope(revision, *, value=900.0):
@@ -83,7 +87,7 @@ def test_replayed_external_revision_is_noop_and_cannot_refresh_view(monkeypatch)
 
     assert bridge._phase6_apply_external_sync(owner, _envelope(3)) == {}
     assert calls == []
-    assert owner._phase6_last_external_revision == 3
+    assert bridge._phase6_settings_service(owner).last_external_revision == 3
 
 
 def test_repeated_authoritative_revisions_refresh_visible_view_once_per_commit(monkeypatch):
@@ -98,7 +102,10 @@ def test_repeated_authoritative_revisions_refresh_visible_view_once_per_commit(m
     monkeypatch.setattr(
         bridge,
         "_phase6_refresh_corner_data_unfold_view",
-        lambda target: calls.append(("refresh", target._phase6_last_external_revision)),
+        lambda target: calls.append((
+            "refresh",
+            bridge._phase6_settings_service(target).last_external_revision,
+        )),
     )
 
     bridge._phase6_apply_external_sync(owner, _envelope(1, value=900.0))

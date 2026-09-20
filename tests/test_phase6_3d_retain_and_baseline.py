@@ -119,8 +119,9 @@ def test_true_mesh_renderer_uses_exact_final_scene_without_baseline_merge(monkey
 
     bridge._phase6_render_true_cutting_mesh(app)
 
-    assert app._phase6_last_cutting_material is not None
-    assert not app._phase6_last_cutting_material.contains(Point(50, 30))
+    renderer = bridge._phase6_final_scene_renderer(app)
+    assert renderer.last_cutting_material is not None
+    assert not renderer.last_cutting_material.contains(Point(50, 30))
 
 
 def test_removed_second_engine_helpers_stay_absent():
