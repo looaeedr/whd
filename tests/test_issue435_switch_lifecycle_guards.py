@@ -83,8 +83,9 @@ def test_t5_repeated_three_mode_cycles_keep_one_host_and_one_surface_tree():
         for _ in range(6):
             _cycle_modes(app, root)
             assert app.shared_content_host is host
+            assert app.shared_content_host is app.left
             assert app.fold_editor_host is fold
-            assert app.shared_content_host is app.fold_editor_host
+            assert app.fold_editor_host is app.input_content_host
             assert app.input_content_host is input_surface
             assert app.assembly_parts_panel is assembly
             assert app.corner_data_panel is corner
