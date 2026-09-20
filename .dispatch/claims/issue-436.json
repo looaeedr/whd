@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35505607114,
     "head_sha": "8ac75658e067b69233945d0bc1e52cee8441cb2b",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T6_VISUAL_FINAL"
+    "classification": "ACTIVE_T6_VISUAL_FINAL"
   },
-  "next_action": "Discover and poll T6 visual-final from exact head 8ac75658e067b69233945d0bc1e52cee8441cb2b.",
+  "next_action": "Poll run 35505607114 to terminal; integration remains blocked until accepted GREEN.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
