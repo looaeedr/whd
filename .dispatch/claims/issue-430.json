@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
   "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
-  "phase": "RECOVERING",
+  "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-20T06:38:25Z",
   "remote_qa": {
