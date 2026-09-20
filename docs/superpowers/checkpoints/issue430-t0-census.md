@@ -2,7 +2,9 @@
 
 Baseline: `cleanup/2d-3d-sync @ 50e14c7054916cb0b9597c61194725939c5de323`
 
-Work branch characterization head before RED tests: `f618a373f4fd8199991c04f1c817f78220df3a46`
+Accepted characterization head: `a3a3a8ec67b1ece5cc27b8392298737ed2c53772`
+
+Accepted remote QA: RUN `35495541940`, artifact `10599994493`.
 
 ## Result
 
@@ -16,9 +18,14 @@ Current direct mode surfaces under `self.left`:
 | assembly | `assembly_parts_panel` | `Phase6AssemblyPanel(self.left)`; owner creates `ttk.Frame(parent)` | `assembly_parts_panel` |
 | corner data | `corner_data_panel` | lazy `ttk.Frame(self.left, padding=6)` | `corner_data_panel` |
 
-Therefore the current direct host identity count is **3**, while #429 requires **1**.
+Remote Tk evidence resolved them to three distinct direct-left identities:
+```text
+('.!frame.!frame6', '.!frame.!frame5', '.!frame.!frame7')
+DIRECT_HOST_COUNT=3
+TARGET_SHARED_HOST_COUNT=1
+```
 
-`self.left` is the whole left workspace, not a dedicated shared-content host: it also owns the part selector/actions and compatibility widgets. Treating `self.left` itself as the shared host would hide the duplicate-region problem rather than solve it.
+`self.left` is the whole left workspace, not a dedicated shared-content host: it also owns selector/actions and compatibility widgets. Treating `self.left` itself as the target host would hide the defect.
 
 ## Mode authority census
 
@@ -28,13 +35,13 @@ Existing authority remains intentionally unchanged in T0:
 - `designer_workspace.active_part`: real active manufacturing/navigation part.
 - assembly/corner-data mode switches do not create a second active-part authority.
 - Corner Data selected row is view-only adapter state (`Phase6CornerDataViewAdapter.selected_part_key`) and does not replace workspace active-part authority.
-- legacy `content_switch_frame` is compatibility-only; the three old content buttons are `None` and are not a visible second navigation strip.
-- retired Structure Tree compatibility objects remain intentionally unmapped.
+- legacy `content_switch_frame` is compatibility-only; old buttons are `None`.
+- retired Structure Tree compatibility objects remain unmapped.
 
 ## Mount / unmount census
 
 ### Normal part
-- show: `_fix11_activate_part()` packs `fold_editor_host` when returning from a non-single mode.
+- show: `_fix11_activate_part()` packs `fold_editor_host`.
 - hide for assembly: `_phase6_show_assembly()` calls `fold_editor_host.pack_forget()`.
 - hide for Corner Data: `_phase6_show_corner_data()` calls `fold_editor_host.pack_forget()`.
 
@@ -45,28 +52,35 @@ Existing authority remains intentionally unchanged in T0:
 
 ### Corner Data
 - lazy create: `_phase6_show_corner_data()` creates `corner_data_panel = ttk.Frame(self.left, padding=6)` once.
-- show: the same function packs `corner_data_panel`.
+- show: same function packs `corner_data_panel`.
 - hide for normal part: `_fix11_activate_part()` calls `corner_data_panel.pack_forget()`.
 - hide for assembly: `_phase6_show_assembly()` calls `corner_data_panel.pack_forget()`.
 
-## Lifecycle census
+## Lifecycle characterization
 
-Repeated switching reuses the same three mode-surface objects; current code does not create a new host on every switch.
+Repeated switching reuses the same three mode-surface objects.
 
-`_fix11_refresh_part_buttons()` refreshes selector/presentation data and assembly rows but does not replace these three host objects.
+`_fix11_refresh_part_buttons()` and assembly refresh do not replace them.
 
-`_fix11_add_part()` / `_fix11_remove_part()` mutate workspace topology and refresh selectors; characterization verifies that those operations do not accumulate additional mode-surface objects.
+`_fix11_add_part()` / `_fix11_remove_part()` mutate workspace topology and do not accumulate new mode surfaces.
 
-Project load is delegated through `_phase6_load_project_file()` to the parent callback after validation. The designer-side lifecycle is therefore a fresh workspace instance rather than an in-place fourth content host; T0 separately checks that fresh reopen does not reuse stale widget objects across instances.
+A fresh designer workspace creates a fresh Tk tree and does not reuse stale widget objects from a prior instance.
+
+At any instant only one of the three current mode surfaces is managed. This proves mutual exclusivity exists today, but does **not** satisfy the single-host requirement.
 
 ## Intended RED seam
 
-The behavior test does not compare the three mode surface widgets themselves. It walks each surface's `master` chain upward and records the first widget whose master is `self.left`.
+The test walks each visible mode surface upward to the first widget whose master is `self.left`.
 
-- current architecture: three different direct hosts → RED;
-- target architecture: mode content may remain distinct child trees, but all three must ascend through one dedicated shared-content host → GREEN.
+- current architecture: three identities → intended RED;
+- target architecture: all three presentations pass through one dedicated shared-content host → GREEN.
 
-This avoids turning a test observation into a runtime design formula.
+Accepted result:
+```text
+4 PASS
+1 intended FAIL
+0 SKIP
+```
 
 ## Gates
 
@@ -78,12 +92,4 @@ MODE_AUTHORITY_CENSUS_COMPLETE=1
 MOUNT_UNMOUNT_CENSUS_COMPLETE=1
 DUPLICATE_REGION_RED_INTENDED=1
 PRODUCTION_RUNTIME_EDIT=0
-```
-
-Expected focused outcome before T1:
-
-```text
-4 PASS
-1 intended FAIL:
-tests/test_issue430_single_host_red.py::test_t0_intended_red_all_three_modes_require_one_direct_shared_content_host
 ```
