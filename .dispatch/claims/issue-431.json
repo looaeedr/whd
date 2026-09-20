@@ -6,24 +6,26 @@
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:20:00Z",
   "remote_qa": {
     "run_id": 35496772616,
     "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T1_FOCUSED_REVALIDATION"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T1_FOCUSED_REVALIDATION_GREEN_11_PASS_0_FAIL_0_SKIP"
   },
-  "next_action": "Poll run 35496772616 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Update A/B orchestration only. Keep TESTED_SHA=20e10d7cbcf7d6066bb357701f2f156789fc9277; classify exact inherited UI failures by baseline/candidate outcome parity instead of requiring baseline rc=0.",
   "blocker": null,
   "focused_green": {
-    "run_id": 35496205827,
-    "job_id": 106039501750,
-    "artifact_id": 10600549174,
-    "artifact_sha256": "1f8478ee588d33340ac4b38225a55c391f2a4897acccc63566aa91487b3a95b8",
-    "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
+    "run_id": 35496772616,
+    "job_id": 106041072775,
+    "artifact_id": 10601600599,
+    "artifact_sha256": "3fcc2efbce1bc36ea888e9d16c7f97e6c38f62ea576779110d45f2b550e83ed0",
+    "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
+    "result": "11_PASS_0_FAIL_0_SKIP",
+    "production_blob_unchanged_since": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
   },
   "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
   "orchestration_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
