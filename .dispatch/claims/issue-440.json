@@ -5,17 +5,18 @@
   "work_branch": "fix/issue440-dark-canvas-background-20260920",
   "claimed_at": "2026-09-20T12:36:00Z",
   "base_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "head_sha": "8dd6483c4a0e6bb3daf5ae3a88375224cbc50da5",
-  "phase": "REMOTE_QA",
+  "head_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T12:38:00Z",
   "remote_qa": {
-    "run_id": 35511486306,
-    "head_sha": "8dd6483c4a0e6bb3daf5ae3a88375224cbc50da5",
-    "status": "queued",
-    "conclusion": null,
-    "classification": "ACTIVE_ISSUE440_FINAL_ACCEPTANCE"
+    "run_id": 35511690588,
+    "head_sha": "04e2b8bbf20f9ca5d3a799c38e417d7ae9301a13",
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "ISSUE440_FINAL_ACCEPTANCE_GREEN"
   },
-  "next_action": "Poll run 35511486306 to terminal. Require protected GREEN, direct-slot visual GREEN with natural mode-specific heights, and production target drift GREEN before integration.",
-  "blocker": null
+  "next_action": "Non-force fast-forward cleanup/2d-3d-sync from exact baseline 3be16a4d6e9bde6ad4ad74365f718f2b0385db36 to closing SHA 2b9aeccee2c91446ca02cbfe9fdcefee587ba29e; then exact production readback and post-merge smoke.",
+  "blocker": null,
+  "closing_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e"
 }
