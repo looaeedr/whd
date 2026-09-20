@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "head_sha": "9277c681acfc52dc1a2d15eb144830543a245256",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
     "run_id": 35497204537,
     "head_sha": "9277c681acfc52dc1a2d15eb144830543a245256",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T2_KNOWLEDGE_PREFLIGHT_RETRY"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T2_KNOWLEDGE_PREFLIGHT_GREEN"
   },
-  "next_action": "Poll run 35497204537 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Add T2 characterization tests/workflow/docs only. Assert fold_designer_bridge.py is byte-identical to #431 closing SHA; if all T2 gates are already GREEN, classify T2 as no-op production.",
   "blocker": null
 }
