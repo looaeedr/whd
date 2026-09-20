@@ -85,7 +85,7 @@ def _refresh(panel, render_data):
 def _function_source(path: str, name: str) -> str:
     text = Path(path).read_text(encoding="utf-8")
     tree = ast.parse(text)
-    for node in tree.body:
+    for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
             lines = text.splitlines()
             return "\n".join(lines[node.lineno - 1:node.end_lineno])
