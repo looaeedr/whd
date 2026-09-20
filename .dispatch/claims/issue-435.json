@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35499869073,
     "head_sha": "e25f397d2b681ae52e20d30c3363b279cee8c340",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T5_AB_QUALIFICATION"
+    "classification": "ACTIVE_T5_AB_QUALIFICATION"
   },
-  "next_action": "Discover and poll T5 final A/B. Require production exact predecessor, lifecycle common-contract exact parity, persistence exact parity, config invariant, accepted job GREEN.",
+  "next_action": "Poll run 35499869073 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
