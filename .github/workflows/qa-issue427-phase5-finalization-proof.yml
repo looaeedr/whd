@@ -6,6 +6,7 @@ on:
       - cleanup/2d-3d-sync
     paths:
       - .github/workflows/qa-issue427-phase5-finalization-proof.yml
+      - docs/superpowers/checkpoints/issue427-phase5-t6-journal.md
   workflow_dispatch:
 
 permissions:
