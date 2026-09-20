@@ -6,8 +6,8 @@
   "claimed_at": "2026-09-20T22:50:21Z",
   "base_sha": "43d1e2b7108f58ffa5c8cb0236b05ac76efe3d84",
   "head_sha": "d246a9a0476818179a4eaaf1cb2cad90d09f4dae",
-  "phase": "CLOSING",
-  "last_update": "2026-09-20T23:05:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-20T23:00:00Z",
   "remote_qa": {
     "run_id": 35543228771,
     "status": "completed/success",
@@ -22,6 +22,9 @@
       }
     ]
   },
-  "next_action": "Merge PR #454 at exact head d246a9a0..., verify X contains the metadata fix, close Issue #452, then release the shared claim.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "released_at": "2026-09-20T23:00:00Z",
+  "integration_sha": "e8329ca2cca84c8c9aa85c9feddc1ee7c8692dbc",
+  "issue_state": "closed/completed"
 }
