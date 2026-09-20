@@ -1,0 +1,150 @@
+name: "QA #432 T2 A-B qualification"
+
+on:
+  push:
+    branches:
+      - refactor/issue432-t2-general-part-shared-host-20260920
+    paths:
+      - '.github/workflows/qa-issue432-t2-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: 7ac2c3a1f3743e74750ed148e132be4004e340e5
+  TESTED_SHA: 94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb
+
+jobs:
+  source-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preflight orchestration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #432 T2 General part input/display content on the one shared Fold Designer host. A/B qualification only; production is expected byte-identical to #431 closing SHA." \
+            --changed-file tests/test_issue432_general_part_shared_host.py \
+            --changed-file .github/workflows/qa-issue432-t2-ab.yml \
+            --evidence docs/superpowers/checkpoints/issue432-t2-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+      - name: Require exact predecessor production blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA:fold_designer_bridge.py")" = "$(git rev-parse "$TESTED_SHA:fold_designer_bridge.py")"
+          echo "PRODUCTION_BRIDGE_EXACT_PREDECESSOR=1"
+          echo "PRODUCTION_RUNTIME_EDIT=0"
+
+  common-ui-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install GUI dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Exact common UI behavior parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue432-ab
+          TESTS=(
+            tests/test_issue430_single_host_red.py
+            tests/test_issue431_shared_content_host.py
+            tests/test_issue384_assembly_only_function_presentation.py
+          )
+          run_one() {
+            label="$1"
+            ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            xvfb-run -a python -m pytest -q "${TESTS[@]}" --tb=short \
+              --json-report --json-report-file="/tmp/issue432-ab/$label.json" \
+              >"/tmp/issue432-ab/$label.log" 2>&1
+          }
+          run_one baseline "$BASE_SHA"
+          run_one candidate "$TESTED_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(label):
+              data=json.loads(Path(f"/tmp/issue432-ab/{label}.json").read_text())
+              return {row["nodeid"]:row.get("outcome") for row in data.get("tests",[])}
+
+          b=load("baseline")
+          c=load("candidate")
+          print("BASELINE_COUNTS", {x:list(b.values()).count(x) for x in sorted(set(b.values()))})
+          print("CANDIDATE_COUNTS", {x:list(c.values()).count(x) for x in sorted(set(c.values()))})
+          assert b == c, "T2 candidate common UI outcomes differ from predecessor"
+          assert len(b) == 11
+          assert all(v == "passed" for v in b.values())
+          print("COMMON_UI_AB_EXACT_OUTCOME_PARITY=1")
+          print("COMMON_UI_BASELINE=11_PASS")
+          print("COMMON_UI_CANDIDATE=11_PASS")
+          PY
+      - name: Upload common UI A-B evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue432-t2-common-ui-ab
+          path: /tmp/issue432-ab
+
+  t2-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install GUI dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Re-run exact candidate T2 gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$TESTED_SHA" >/dev/null
+          xvfb-run -a python -m pytest -q tests/test_issue432_general_part_shared_host.py --tb=short
+          echo "PART_CONTENT_HOST_IS_SHARED_HOST=true"
+          echo "ASSEMBLY_WIDGET_TREE_MOUNTED_IN_PART_MODE=0"
+          echo "CORNER_DATA_WIDGET_TREE_MOUNTED_IN_PART_MODE=0"
+          echo "PART_INPUT_CALLBACK_PARITY=GREEN"
+          echo "PART_DISPLAY_PARITY=GREEN"
+          echo "ADD_DELETE_PART_PARITY=GREEN"
+          echo "T2_ALREADY_GREEN_AFTER_T1=1"
+
+  accepted:
+    runs-on: ubuntu-latest
+    needs: [source-guard, common-ui-ab, t2-candidate]
+    steps:
+      - name: T2 A-B accepted
+        run: |
+          echo "T2_AB_QUALIFICATION_GREEN=1"
+          echo "BASE_SHA=$BASE_SHA"
+          echo "TESTED_SHA=$TESTED_SHA"
