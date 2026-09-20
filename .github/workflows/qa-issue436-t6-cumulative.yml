@@ -213,8 +213,7 @@ jobs:
           outp = Path(".scratch/issue436/classifier")
           outp.mkdir(parents=True, exist_ok=True)
           (outp / "full-ab-classification.json").write_text(
-              json.dumps(out, indent=2, sort_keys=True) + "
-"
+              json.dumps(out, indent=2, sort_keys=True) + "\n"
           )
           print("NEW_HEADLESS=[]")
           print("NEW_HEADLESS_ERRORS=[]")
