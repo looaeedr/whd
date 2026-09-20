@@ -10,6 +10,11 @@ BASE/CLOSING_SHA=7ac2c3a1f3743e74750ed148e132be4004e340e5
 WORK BRANCH:
 refactor/issue432-t2-general-part-shared-host-20260920
 
+FIRST FAIL-CLOSED PREFLIGHT:
+RUN_ID=35497154030
+HEAD_SHA=45fce9a6287bae636ca37d2222736fd87cd7518b
+CLASSIFICATION=EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_DM7_ENTRY_CONVERGENCE_EVIDENCE
+
 READ_SKILL: UI設計與去AI味
 READ_SKILL: phase6-corner-3d-model-integrity
 READ_SKILL: monitoring-remote-qa
@@ -20,11 +25,14 @@ READ_SKILL: diagnosing-bugs
 READ_SKILL: tdd
 READ_SKILL: 驗證板件與DXF
 READ_SKILL: 程式碼庫設計
+READ_SKILL: 截角資料入口收斂
 
 READ_REFERENCE: CONTEXT.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
