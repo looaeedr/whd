@@ -69,3 +69,42 @@ jobs:
             tests/test_phase6_t21_live_switch_selector.py \
             tests/test_phase6_t25_combined_receiving_acceptance.py::test_combined_receiving_operator_path_from_live_family_switch \
             --tb=short
+
+      - name: Remaining T8 Xvfb parity cohort
+        run: |
+          xvfb-run -a python - <<'PY'
+          import tkinter as tk
+          import gui
+
+          root = tk.Tk()
+          root.geometry("1400x900+0+0")
+          root.update_idletasks()
+          app = gui.Phase6PrimaryApplication(root)
+          designer = app.fold_designer_app
+          try:
+              designer.apply_external_settings({"ui_text_size": "small"})
+              for _ in range(4):
+                  root.update_idletasks()
+                  root.update()
+              widgets = (
+                  ("box_body_piece_selector", designer.box_body_piece_selector),
+                  ("left_scroll_canvas", designer.left_scroll_canvas),
+                  ("assembly_parts_canvas", designer.assembly_parts_canvas),
+                  ("renderer_canvas", designer.renderer.canvas.get_tk_widget()),
+              )
+              for name, widget in widgets:
+                  print("FOCUS_DIAGNOSTIC", name, str(widget), repr(widget.cget("takefocus")))
+          finally:
+              try:
+                  designer.root.destroy()
+              except Exception:
+                  pass
+              try:
+                  root.destroy()
+              except Exception:
+                  pass
+          PY
+          xvfb-run -a python -m pytest -q \
+            tests/test_corner_type_phase6_integration.py::test_unknown_gui_defaults_to_top_bottom_pair_edit_and_splits_only_on_request \
+            tests/test_issue340_keyboard_focus.py::test_t7_focus_traversal_reaches_main_controls_and_skips_compat_canvas \
+            --tb=short
