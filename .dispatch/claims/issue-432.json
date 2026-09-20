@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35497419539,
     "head_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T2_CHARACTERIZATION_RETRY"
+    "classification": "ACTIVE_T2_CHARACTERIZATION_RETRY"
   },
-  "next_action": "Discover and poll the push-triggered T2 characterization retry at exact head 94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb.",
+  "next_action": "Poll run 35497419539 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_bridge_exact_predecessor": true,
