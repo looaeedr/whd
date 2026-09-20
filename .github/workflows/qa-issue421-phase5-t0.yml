@@ -1,0 +1,136 @@
+name: QA Issue421 Phase5 T0
+
+on:
+  push:
+    branches:
+      - refactor/issue413-phase5-assembly-presentation-20260920
+    paths:
+      - tools/phase5_t0_assembly_presentation_census.py
+      - .github/workflows/qa-issue421-phase5-t0.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase5-t0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ACCEPTED_ROOT: 396bfd96524a44a178c29bbefaf1b7c0437c119f
+      WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
+      EVIDENCE: docs/superpowers/checkpoints/issue421-phase5-t0-journal.md
+      OUT_DIR: /tmp/issue421-phase5-t0
+    steps:
+      - name: Checkout exact work-order head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify frozen-root lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git cat-file -e "$ACCEPTED_ROOT^{commit}"
+          git merge-base --is-ancestor "$ACCEPTED_ROOT" HEAD
+          echo "ROOT_SHA_EXACT=1"
+          echo "WORK_ORDER_HEAD=$GITHUB_SHA"
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工執行 Phase 5 accepted specification T0 #421: exact baseline/ownership/reader census for Assembly Parts presentation, DM7, FinalScene, Structure Tree visibility, GitHub Actions remote QA, durable checkpoint and task chain; no runtime implementation' \
+            --changed-file tools/phase5_t0_assembly_presentation_census.py \
+            --changed-file .github/workflows/qa-issue421-phase5-t0.yml \
+            --changed-file docs/superpowers/checkpoints/issue421-phase5-t0-checkpoint.json \
+            --changed-file docs/superpowers/checkpoints/issue421-phase5-t0-journal.md \
+            --evidence "$EVIDENCE"
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Capture protected config hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          sha256sum config.ini | awk '{print $1}' > "$OUT_DIR/config.before.sha256"
+
+      - name: Run exact-root T0 census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase5_t0_assembly_presentation_census.py \
+            --baseline-sha "$ACCEPTED_ROOT" \
+            --output-json "$OUT_DIR/census.json" \
+            --output-md "$OUT_DIR/census.md"
+
+      - name: Require T0 evidence-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              "tools/phase5_t0_assembly_presentation_census.py",
+              ".github/workflows/qa-issue421-phase5-t0.yml",
+              "docs/superpowers/checkpoints/issue421-phase5-t0-checkpoint.json",
+              "docs/superpowers/checkpoints/issue421-phase5-t0-journal.md",
+          }
+          root = "396bfd96524a44a178c29bbefaf1b7c0437c119f"
+          changed = {
+              line.strip()
+              for line in subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{root}...HEAD"],
+                  text=True,
+              ).splitlines()
+              if line.strip()
+          }
+          extra = sorted(changed - allowed)
+          missing = sorted(allowed - changed)
+          print("T0_CHANGED_FILES=", sorted(changed))
+          print("T0_SCOPE_EXTERNAL_FILES=", extra)
+          if extra:
+              raise SystemExit("T0 scope drift: " + repr(extra))
+          if missing:
+              raise SystemExit("T0 expected evidence/tool files missing: " + repr(missing))
+          print("T0_RUNTIME_IMPLEMENTATION_CHANGED=0")
+          PY
+
+      - name: Verify protected config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$OUT_DIR/config.after.sha256"
+          cmp "$OUT_DIR/config.before.sha256" "$OUT_DIR/config.after.sha256"
+          echo "CONFIG_INVARIANT=GREEN"
+
+      - name: Validate census decision
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          p = "/tmp/issue421-phase5-t0/census.json"
+          data = json.load(open(p, encoding="utf-8"))
+          assert data["T0_CENSUS_DECISION"] == "GREEN", data.get("failures")
+          assert data["ROOT_SHA_EXACT"] == 1
+          assert data["PROTECTED_OWNER_MANIFEST_COMPLETE"] == 1
+          assert data["RIGHT_DIAGNOSTICS_OUT_OF_SCOPE_EXPLICIT"] == 1
+          assert data["PRE_SPEC_EVIDENCE_ACCEPTED_AS_TASK_EVIDENCE"] == 0
+          print("T0_CENSUS_DECISION=GREEN")
+          PY
+
+      - name: Upload T0 census artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue421-phase5-t0-census
+          path: |
+            /tmp/issue421-phase5-t0/census.json
+            /tmp/issue421-phase5-t0/census.md
+            /tmp/issue421-phase5-t0/config.before.sha256
+            /tmp/issue421-phase5-t0/config.after.sha256
+          if-no-files-found: warn
+          retention-days: 14
