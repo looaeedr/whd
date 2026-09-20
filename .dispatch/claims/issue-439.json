@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
   "head_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "phase": "CLOSING",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
@@ -16,7 +16,14 @@
     "conclusion": "success",
     "classification": "ISSUE439_FINAL_ACCEPTANCE_GREEN"
   },
-  "next_action": "Non-force fast-forward cleanup/2d-3d-sync from exact baseline 719f4509371376f9d01fca97553b5199963de4c6 to closing SHA 3be16a4d6e9bde6ad4ad74365f718f2b0385db36; then exact production readback and post-merge smoke.",
+  "next_action": "Run post-merge smoke from exact production SHA 3be16a4d6e9bde6ad4ad74365f718f2b0385db36. Require #439 physical-host tests plus predecessor shared-host/lifecycle/layout/persistence/DXF focused set GREEN and config invariant.",
   "blocker": null,
-  "closing_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36"
+  "closing_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
+  "integration": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "preintegration_sha": "719f4509371376f9d01fca97553b5199963de4c6",
+    "integrated_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
+    "force": false,
+    "readback_exact": true
+  }
 }
