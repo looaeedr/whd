@@ -95,6 +95,8 @@ jobs:
           run_one() {
             label="$1"
             ref="$2"
+            git reset --hard >/dev/null
+            git clean -fd >/dev/null
             git checkout --detach "$ref" >/dev/null
             git reset --hard "$ref" >/dev/null
             cp /tmp/issue435-contract/test_issue435_switch_lifecycle_guards.py tests/test_issue435_switch_lifecycle_guards.py
