@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
-  "phase": "GREEN",
+  "head_sha": "3eb9351e7de8b1ea90064fd207e8bb38a65b84a4",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:20:00Z",
   "remote_qa": {
-    "run_id": 35496772616,
-    "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T1_FOCUSED_REVALIDATION_GREEN_11_PASS_0_FAIL_0_SKIP"
+    "run_id": null,
+    "head_sha": "3eb9351e7de8b1ea90064fd207e8bb38a65b84a4",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T1_AB_REQUALIFICATION"
   },
-  "next_action": "Update A/B orchestration only. Keep TESTED_SHA=20e10d7cbcf7d6066bb357701f2f156789fc9277; classify exact inherited UI failures by baseline/candidate outcome parity instead of requiring baseline rc=0.",
+  "next_action": "Discover the push-triggered A/B run from orchestration SHA 3eb9351e7de8b1ea90064fd207e8bb38a65b84a4; require zero candidate-only UI outcome drift, exact inherited 6 FAIL + 1 SKIP parity, manufacturing/DXF/persistence parity, and source guard GREEN.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496772616,
@@ -28,7 +28,7 @@
     "production_blob_unchanged_since": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
   },
   "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
-  "orchestration_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
+  "orchestration_sha": "3eb9351e7de8b1ea90064fd207e8bb38a65b84a4",
   "ab_diagnostic": {
     "ui_baseline": {
       "passed": 37,
