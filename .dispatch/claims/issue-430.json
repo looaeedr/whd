@@ -5,18 +5,18 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "d7cd62508bb7641052d0c019cf93111e2d398c5b",
-  "phase": "RED",
+  "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:55:44Z",
+  "last_update": "2026-09-20T06:56:30Z",
   "remote_qa": {
-    "run_id": 35495470300,
-    "head_sha": "d7cd62508bb7641052d0c019cf93111e2d398c5b",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "HARNESS_ONLY_EXTRA_RED_TK_PATHNAME_REUSE_PLUS_VALID_INTENDED_DUPLICATE_REGION_RED"
+    "run_id": null,
+    "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T0_CHARACTERIZATION_CENSUS_RETRY"
   },
-  "next_action": "Fix only the cross-instance characterization guard to compare Python widget object identity instead of Tk pathname strings; keep the intended single-host RED unchanged, then rerun the same T0 workflow.",
+  "next_action": "Discover the push-triggered qa-issue430-t0-census run for exact head a3a3a8ec67b1ece5cc27b8392298737ed2c53772 and monitor to terminal. Required outcome remains 4 PASS + exactly one intended duplicate-region RED.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
