@@ -6,14 +6,16 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:23:00+08:00",
+  "last_update": "2026-09-21T07:26:00+08:00",
   "remote_qa": {
     "run_id": 35544032196,
-    "status": "in_progress",
-    "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c"
+    "status": "completed/failure",
+    "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c",
+    "failed_job_id": 106166667068,
+    "classification": "focused-test-seam-called-fix11-instead-of-fix10"
   },
-  "next_action": "Poll exact RUN 35544032196 at head b34c20a4 through terminal; do not switch to sibling runs.",
+  "next_action": "Repair only tests/test_issue444_bending_ui_owner.py so the two monkey-patch restore tests invoke bridge._FIX10_INIT, the actual temporary-BendingUI seam, then trigger replacement focused QA.",
   "blocker": null
 }
