@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "issue": 440,
+  "remediation": "assembly-content-height-after-no-wrapper",
+  "state": "ACCEPTED_PENDING_INTEGRATION",
+  "production_baseline_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
+  "tested_sha": "4b54df93444ac87f0dff663655fd4dc9cd422a65",
+  "final_acceptance_carrier_sha": "163612d3810fab34d9b3f35daaddf24750d548e2",
+  "focused_run_id": 35512254763,
+  "focused_pass": 39,
+  "final_acceptance_run_id": 35512341955,
+  "visual_artifact_id": 10605323623,
+  "visual_artifact_sha256": "904c22cb6689b72758399fdbb32ac1f8c96096815270f26039a5f36c02cf821b",
+  "measurements": {
+    "assembly_content_reqheight": 170,
+    "assembly_canvas_reqheight": 170,
+    "assembly_surface_height": 182,
+    "assembly_surface_collapsed_44": false
+  },
+  "gates": {
+    "assembly_surface_follows_content_height": true,
+    "extra_content_wrapper_frame_count": 0,
+    "fixed_outer_content_extent": 0,
+    "active_mode_surface_count": 1,
+    "same_layout_slot": true,
+    "geometry_drift": 0,
+    "persistence_drift": 0,
+    "callback_semantic_drift": 0,
+    "config_invariant": true,
+    "target_drift": 0,
+    "force_push": 0
+  }
+}
