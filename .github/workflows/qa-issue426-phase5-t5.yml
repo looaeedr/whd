@@ -8,6 +8,7 @@ on:
       - phase6_assembly_presentation.py
       - fold_designer_bridge.py
       - tests/process/test_issue426_phase5_t5_bridge_compression.py
+      - tests/test_phase6_corner_dimension_controls.py
       - .github/workflows/qa-issue426-phase5-t5.yml
       - docs/superpowers/checkpoints/issue426-phase5-t5-journal.md
   pull_request:
@@ -17,6 +18,7 @@ on:
       - phase6_assembly_presentation.py
       - fold_designer_bridge.py
       - tests/process/test_issue426_phase5_t5_bridge_compression.py
+      - tests/test_phase6_corner_dimension_controls.py
       - .github/workflows/qa-issue426-phase5-t5.yml
       - docs/superpowers/checkpoints/issue426-phase5-t5-journal.md
   workflow_dispatch:
@@ -76,6 +78,7 @@ jobs:
             --changed-file phase6_assembly_presentation.py \
             --changed-file fold_designer_bridge.py \
             --changed-file tests/process/test_issue426_phase5_t5_bridge_compression.py \
+            --changed-file tests/test_phase6_corner_dimension_controls.py \
             --changed-file .github/workflows/qa-issue426-phase5-t5.yml \
             --changed-file docs/superpowers/checkpoints/issue426-phase5-t5-journal.md \
             --evidence "$EVIDENCE"
@@ -92,6 +95,7 @@ jobs:
               "phase6_assembly_presentation.py",
               "fold_designer_bridge.py",
               "tests/process/test_issue426_phase5_t5_bridge_compression.py",
+              "tests/test_phase6_corner_dimension_controls.py",
               ".github/workflows/qa-issue426-phase5-t5.yml",
               "docs/superpowers/checkpoints/issue426-phase5-t5-journal.md",
           }
