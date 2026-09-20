@@ -16,7 +16,7 @@ permissions:
 
 env:
   T1_BASE_SHA: 95ab91c900e9a531ce0fec25a698123116392cc2
-  EXPECTED_PHASE: RED
+  EXPECTED_PHASE: GREEN
 
 jobs:
   t1:

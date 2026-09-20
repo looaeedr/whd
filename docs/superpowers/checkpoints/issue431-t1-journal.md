@@ -3,52 +3,48 @@
 ## Authority
 - Parent: #429
 - Predecessor: #430 CLOSED/completed
-- Predecessor tested SHA: `a3a3a8ec67b1ece5cc27b8392298737ed2c53772`
-- Exact T1 base / #430 closing SHA: `95ab91c900e9a531ce0fec25a698123116392cc2`
+- T1 base / #430 closing SHA: `95ab91c900e9a531ce0fec25a698123116392cc2`
 - Work branch: `refactor/issue431-t1-shared-content-host-20260920`
 
 ## Knowledge Preflight
-- preflight HEAD: `22bb3a35b80858c121ff0e38eabe31c0c5039b30`
-- RUN: `35495987364`
-- JOB: `106038887410`
+- RUN `35495987364` / JOB `106038887410`
+- HEAD `22bb3a35b80858c121ff0e38eabe31c0c5039b30`
 - result: SUCCESS / `KNOWLEDGE_PREFLIGHT_RC=0`
 
-Required owners verified by the machine preflight:
-- UI設計與去AI味
-- phase6-corner-3d-model-integrity
-- diagnosing-bugs
-- tdd
-- monitoring-remote-qa
-- long-log-context-safe-execution
-- executable-continuity-controller
-- 驗證板件與DXF
+## Intended RED
+- RUN `35496092853`
+- JOB `106039190087`
+- RED HEAD `7d4c569c5936924120ec0b520f7afd61bbd07fb2`
+- artifact `issue431-t1` / ID `10600184890`
+- artifact SHA256 `71517025f6d79d8734d880555aaf50d12ad3587b1b386552b780637099e1811d`
 
-## Pre-agreed behavior seam
-The T0 accepted RED is the primary public Tk/layout seam:
-`tests/test_issue430_single_host_red.py::test_t0_intended_red_all_three_modes_require_one_direct_shared_content_host`
-
-T1 adds two behavior-level requirements:
-1. one dedicated shared host owns all three existing content trees;
-2. the controller maps exactly one of those existing trees at a time.
-
-A third guard verifies that `designer_workspace.active_part` and `_phase6_3d_display_mode` remain the existing authority sources; T1 must not invent a replacement state authority.
-
-## RED phase
-This commit is tests/docs/workflow only. `fold_designer_bridge.py` must remain byte-identical to T1 base.
-
-Expected RED run:
+Exact result:
 ```text
 5 PASS
 3 intended FAIL
 0 SKIP
 ```
 
-Expected failures:
-- inherited #430 direct-host count RED
-- T1 shared-host ownership RED
-- T1 shared-content controller RED
+Exact REDs:
+1. inherited #430: three direct-left content hosts instead of one;
+2. #431: dedicated shared-content host missing;
+3. #431: shared-content mount controller missing.
 
-## T1 target
+## Minimal GREEN change
+Only `fold_designer_bridge.py` production ownership is changed:
+
+- add one `shared_content_host` directly under `self.left`;
+- construct existing Assembly panel under that host;
+- construct existing Fold editor under that host;
+- lazily construct existing Corner Data panel under that host;
+- centralize content `pack / pack_forget` in `_phase6_mount_shared_content()`;
+- callers still own the existing `_phase6_3d_display_mode` transitions;
+- `designer_workspace.active_part`, visibility vars, Corner Data adapter state, geometry, persistence and callbacks remain unchanged.
+
+No internal Assembly/part/Corner Data content behavior is rewritten.
+
+## GREEN pending
+Required focused gates:
 ```text
 SHARED_CONTENT_HOST_COUNT=1
 ACTIVE_SHARED_CONTENT_MODE_COUNT=1
@@ -59,6 +55,6 @@ MODE_SWITCH_CREATES_STATE_AUTHORITY=0
 
 ## State
 ```text
-STATE=RED_PENDING
-NEXT_ACTION=Run exact T1 RED remotely. Do not edit production until exact intended failure set is confirmed.
+STATE=GREEN_PENDING
+NEXT_ACTION=Run the same 8-node behavior matrix on the production-change HEAD and require 8 PASS / 0 FAIL / 0 SKIP.
 ```

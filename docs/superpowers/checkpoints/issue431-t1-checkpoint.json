@@ -3,16 +3,19 @@
   "issue": "431",
   "branch": "refactor/issue431-t1-shared-content-host-20260920",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "22bb3a35b80858c121ff0e38eabe31c0c5039b30",
-  "state": "RED_PENDING",
-  "next_action": "Commit T1 tests/workflow/journal only and run exact remote RED. Required outcome is 5 PASS + exactly 3 intended FAIL + 0 SKIP before any production edit.",
-  "run_id": null,
-  "job_id": null,
+  "red_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
+  "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
+  "state": "GREEN_PENDING",
+  "next_action": "Run the same T1 matrix after the minimal bridge host/mount ownership change. Require 8 PASS / 0 FAIL / 0 SKIP and all five T1 gates.",
+  "red_run_id": 35496092853,
+  "red_job_id": 106039190087,
+  "red_artifact_id": 10600184890,
   "evidence": [
-    "PREDECESSOR_430_CLOSED=1",
-    "T1_BASE_EXACT=95ab91c900e9a531ce0fec25a698123116392cc2",
     "KNOWLEDGE_PREFLIGHT_RUN=35495987364",
     "KNOWLEDGE_PREFLIGHT_RC=0",
-    "PRODUCTION_RUNTIME_EDIT_BEFORE_RED=0"
+    "T1_INTENDED_RED=1",
+    "T1_RED_RESULT=5_PASS_3_INTENDED_FAIL_0_SKIP",
+    "RED_PRODUCTION_RUNTIME_EDIT=0",
+    "MODE_SWITCH_CREATES_STATE_AUTHORITY=0"
   ]
 }

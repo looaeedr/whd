@@ -7169,11 +7169,17 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_build_content_switch(self)
 
+    # #431: one physical left content host owns every mutually-exclusive mode
+    # presentation.  This frame is presentation-only; existing workspace,
+    # display-mode, visibility and Corner Data state remain authoritative.
+    self.shared_content_host = original.ttk.Frame(self.left)
+    self.shared_content_host.pack(fill=original.tk.BOTH, expand=True)
+
     # Phase 5 T2: the left Assembly Parts surface is owned by one focused Tk
     # panel. Bridge keeps compatibility aliases only; panel registries retain
     # identity across rebuilds so legacy readers never hold stale dict objects.
     self._phase6_assembly_panel_owner = Phase6AssemblyPanel(
-        self.left,
+        self.shared_content_host,
         actions=AssemblyPanelActions(
             on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self)
         ),
@@ -7190,9 +7196,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         pass
 
     # 左側輸入區永久存在；右側只有參數面板受鎖定控制。
-    self.fold_editor_host = original.ttk.Frame(self.left)
+    self.fold_editor_host = original.ttk.Frame(self.shared_content_host)
     self.bend_ui = Phase6BendingUI(self.fold_editor_host, self.state, self.queue_update)
-    self.fold_editor_host.pack(fill=original.tk.BOTH, expand=True, pady=(0, 10))
+    _phase6_mount_shared_content(self, "single")
     _phase6_build_settings_center(self)
     _phase6_install_renderer_view(self)
     self.settings_center.pack_forget()
@@ -7271,6 +7277,51 @@ def _phase6_build_content_switch(self):
     self.corner_data_content_button = None
     _phase6_refresh_content_switch(self)
     return self.content_switch_frame
+
+
+def _phase6_mount_shared_content(self, mode):
+    """Mount exactly one existing content tree inside the dedicated shared host.
+
+    This helper owns presentation lifecycle only.  It deliberately does not own
+    active-part, display-mode, visibility, Corner Data selection, geometry, or
+    persistence state.
+    """
+    host = getattr(self, "shared_content_host", None)
+    if host is None:
+        return None
+
+    selected_mode = (
+        "assembly"
+        if str(mode or "") == "assembly"
+        else "corner_data"
+        if str(mode or "") == "corner_data"
+        else "single"
+    )
+    surfaces = {
+        "single": getattr(self, "fold_editor_host", None),
+        "assembly": getattr(self, "assembly_parts_panel", None),
+        "corner_data": getattr(self, "corner_data_panel", None),
+    }
+    selected = surfaces.get(selected_mode)
+    if selected is None:
+        return None
+
+    if not host.winfo_manager():
+        host.pack(fill=original.tk.BOTH, expand=True)
+
+    for key, widget in surfaces.items():
+        if widget is None:
+            continue
+        if key == selected_mode:
+            if not widget.winfo_manager():
+                widget.pack(
+                    fill=original.tk.BOTH,
+                    expand=True,
+                    pady=((0, 10) if key == "single" else (0, 8)),
+                )
+        elif widget.winfo_manager():
+            widget.pack_forget()
+    return selected
 
 
 def _phase6_structure_tree_visibility_var(self, key):
@@ -7851,20 +7902,14 @@ def _phase6_show_corner_data(self):
         except Exception:
             pass
 
-    fold_host = getattr(self, "fold_editor_host", None)
-    if fold_host is not None and hasattr(fold_host, "pack_forget"):
-        fold_host.pack_forget()
-
-    assembly_panel = getattr(self, "assembly_parts_panel", None)
-    if assembly_panel is not None and hasattr(assembly_panel, "pack_forget"):
-        assembly_panel.pack_forget()
-
     panel = getattr(self, "corner_data_panel", None)
-    if panel is None and getattr(self, "left", None) is not None:
-        panel = original.ttk.Frame(self.left, padding=6)
+    if panel is None:
+        shared_host = getattr(self, "shared_content_host", None)
+        if shared_host is None:
+            return None
+        panel = original.ttk.Frame(shared_host, padding=6)
         self.corner_data_panel = panel
-    if panel is not None and hasattr(panel, "pack"):
-        panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+    _phase6_mount_shared_content(self, "corner_data")
 
     corner_canvas = _phase6_prepare_corner_data_canvas(self)
     _phase6_refresh_corner_data_parts_panel(self)
@@ -7901,14 +7946,7 @@ def _phase6_show_assembly(self, initial=False):
     piece_selector = getattr(self, "box_body_piece_selector", None)
     if piece_selector is not None and piece_selector.winfo_manager():
         piece_selector.pack_forget()
-    if getattr(self, "fold_editor_host", None) is not None and self.fold_editor_host.winfo_manager():
-        self.fold_editor_host.pack_forget()
-    corner_data_panel = getattr(self, "corner_data_panel", None)
-    if corner_data_panel is not None and hasattr(corner_data_panel, "pack_forget"):
-        corner_data_panel.pack_forget()
-    assembly_panel = getattr(self, "assembly_parts_panel", None)
-    if assembly_panel is not None and not assembly_panel.winfo_manager():
-        assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))
+    _phase6_mount_shared_content(self, "assembly")
     center = getattr(self, "settings_center", None)
     if center is not None and center.winfo_manager():
         center.pack_forget()
@@ -8377,9 +8415,6 @@ def _fix11_activate_part(self, key, initial=False):
         return
     _phase6_clear_navigation_residue(self)
     _phase6_hide_corner_data_canvas(self)
-    corner_data_panel = getattr(self, "corner_data_panel", None)
-    if corner_data_panel is not None and corner_data_panel.winfo_manager():
-        corner_data_panel.pack_forget()
     if _phase6_is_box_body_physical_piece_key(key):
         self._phase6_box_body_active_piece_key = str(key)
     before_signature = None
@@ -8432,11 +8467,7 @@ def _fix11_activate_part(self, key, initial=False):
                 pass
             self._job = None
 
-    assembly_panel = getattr(self, "assembly_parts_panel", None)
-    if assembly_panel is not None and assembly_panel.winfo_manager():
-        assembly_panel.pack_forget()
-    if getattr(self, "fold_editor_host", None) is not None and not self.fold_editor_host.winfo_manager():
-        self.fold_editor_host.pack(fill=original.tk.BOTH, expand=True, pady=(0, 10))
+    _phase6_mount_shared_content(self, "single")
     canvas_widget = self.renderer.canvas.get_tk_widget()
     # Do not expose the Matplotlib canvas yet. Build/select the editor and the
     # right settings page first so Tk settles on one final viewport size before
