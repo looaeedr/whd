@@ -5,7 +5,7 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "3eb9351e7de8b1ea90064fd207e8bb38a65b84a4",
+  "head_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:20:00Z",
@@ -16,7 +16,7 @@
     "conclusion": "success",
     "classification": "T1_AB_QUALIFICATION_GREEN"
   },
-  "next_action": "Write accepted #431 checkpoint/journal and remove temporary #431 workflows only. Then audit TESTED_SHA 20e10d7cbcf7d6066bb357701f2f156789fc9277 to closing HEAD; no production/test-contract drift is allowed.",
+  "next_action": "Close #431 completed with accepted evidence, release claim, and acquire #432 from exact closing SHA 7ac2c3a1f3743e74750ed148e132be4004e340e5.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496772616,
@@ -75,5 +75,20 @@
       "artifact_id": 10600579226,
       "artifact_sha256": "b4210b697eaade116b29a8d51c1635f87820edd4796fae6fd33f96d3f433d28c"
     }
+  },
+  "closing_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
+  "drift_audit": {
+    "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
+    "closing_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
+    "ahead_by": 3,
+    "behind_by": 0,
+    "allowed_only": true,
+    "files": [
+      ".github/workflows/qa-issue431-t1-ab.yml (removed)",
+      ".github/workflows/qa-issue431-t1-preflight.yml (removed)",
+      ".github/workflows/qa-issue431-t1.yml (removed)",
+      "docs/superpowers/checkpoints/issue431-t1-checkpoint.json",
+      "docs/superpowers/checkpoints/issue431-t1-journal.md"
+    ]
   }
 }
