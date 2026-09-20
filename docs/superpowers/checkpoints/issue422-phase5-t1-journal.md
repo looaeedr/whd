@@ -50,3 +50,56 @@ RUN_STATUS=PREFLIGHT_HARNESS_FAILURE
 EVIDENCE=Knowledge Preflight stopped before pytest because Python測試實務 evidence was missing; this run is NOT requirement RED evidence.
 NEXT_ACTION=Retry focused assertion RED after complete 7-Skill preflight; module must be missing without collection/import/harness errors.
 ```
+
+
+## RED / GREEN Evidence
+
+### Harness classification
+
+- RUN `35486741374`: `PREFLIGHT_HARNESS_FAILURE`; changed-file Preflight correctly required `Python測試實務`. Pytest did not run. Not requirement RED evidence.
+- RUN `35486838972`: `PYTEST_DEPENDENCY_HARNESS_FAILURE`; Preflight and RED scope passed, runner lacked pytest (`No module named pytest`). Not requirement RED evidence.
+
+### Valid requirement RED
+
+- RUN `35486892445` @ `424ee6d712520acf557a10182d3f09944d459004`: SUCCESS
+- `KNOWLEDGE_PREFLIGHT_RC=0`
+- `T1_RED_PRODUCTION_IMPLEMENTATION_CHANGED=0`
+- pytest: `7 failed in 0.20s`
+- `T1_RED_INTENDED=1`
+- `T1_RED_PYTEST_RC=1`
+- no collection/import/syntax harness error
+- production module absent as required
+
+Dual-mode harness readback:
+- RUN `35486945834` @ `9ef14d9de11ae28c435d0a4f27dad36fa126ce25`: SUCCESS
+- RED branch remained valid before production module creation
+- `CONFIG_INVARIANT=GREEN`
+
+### Minimal GREEN
+
+- Production module commit: `fb1baabed4931ec7831a48801708e4d25c1649c6`
+- RUN `35486990874` @ exact HEAD `fb1baabed4931ec7831a48801708e4d25c1649c6`: SUCCESS
+- focused pytest: `7 passed in 0.16s`
+- `T1_GREEN=1`
+- `TOP_LEVEL_PRESENTATION_ORDER_PARITY=GREEN`
+- `SYNTHETIC_GROUP_PARITY=GREEN`
+- `BOX_PIECE_SOURCE_PARITY=GREEN`
+- `BOX_PIECE_ORDER_PARITY=GREEN`
+- `BOX_PIECE_DIMENSION_SOURCE_PARITY=GREEN`
+- `TK_REFS=0`
+- `BRIDGE_IMPORTS=0`
+- `APP_OWNER_REFS=0`
+- `WORKSPACE_MUTATION=0`
+- `MANUFACTURING_SOLVE=0`
+- `PROJECT_MUTATION=0`
+- `T1_SCOPE_EXTERNAL_DRIFT=0`
+- `CONFIG_INVARIANT=GREEN`
+
+## Acceptance State
+
+```text
+STATE=GREEN
+TESTED_HEAD=fb1baabed4931ec7831a48801708e4d25c1649c6
+RUN_ID=35486990874
+NEXT_ACTION=Run exact-head T1 closing qualification/finalization proof with no further production changes.
+```
