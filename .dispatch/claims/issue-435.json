@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
   "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
     "run_id": 35499647553,
     "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T5_CHARACTERIZATION_RED_RETRY_2"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T5_INTENDED_RED_CONFIRMED_30_PASS_4_STALE_ISSUE378_FAIL_1_ALLOWED_SKIP"
   },
-  "next_action": "Poll run 35499647553 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Migrate tests/test_issue378_assembly_mousewheel.py test-only to the accepted Phase6AssemblyPanel owner seam and switch T5 workflow to GREEN. Keep all production files byte-identical to base.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
@@ -25,5 +25,15 @@
     "intended_stale_issue378_failures": 4,
     "harness_overreach": "tests/test_issue435_switch_lifecycle_guards.py::test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets",
     "finding": "export_phase6_snapshot is legacy fold/profile export and does not promise active_part; canonical project snapshot does preserve active_part. Runtime owner-path mousewheel test is already GREEN."
+  },
+  "red": {
+    "run_id": 35499647553,
+    "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
+    "passed": 30,
+    "failed": 4,
+    "skipped": 1,
+    "stale_issue378_count": 4,
+    "mousewheel_runtime_owner_path_green": true,
+    "persistence_green": true
   }
 }
