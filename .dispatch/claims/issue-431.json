@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
+  "head_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T07:18:00Z",
+  "last_update": "2026-09-20T07:20:00Z",
   "remote_qa": {
     "run_id": 35496316468,
     "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
@@ -16,7 +16,7 @@
     "conclusion": "failure",
     "classification": "AB_UI_ONE_CANDIDATE_ONLY_STALE_ISSUE384_CONTRACT"
   },
-  "next_action": "Update only the stale #384 owner assertion to the accepted #429/#431 shared-host contract; keep production unchanged. Then rerun focused T1 on the new test-inclusive SHA and rerun A/B with baseline debt classified instead of requiring baseline rc=0.",
+  "next_action": "Create focused QA orchestration that checks out TESTED_SHA 20e10d7cbcf7d6066bb357701f2f156789fc9277 and runs #430 + #431 + #384 shared-content behavior. Require 11 PASS / 0 FAIL / 0 SKIP.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496205827,
@@ -25,7 +25,7 @@
     "artifact_sha256": "1f8478ee588d33340ac4b38225a55c391f2a4897acccc63566aa91487b3a95b8",
     "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
   },
-  "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
+  "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
   "orchestration_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
   "ab_diagnostic": {
     "ui_baseline": {
@@ -45,5 +45,11 @@
     "manufacturing_ab": "GREEN",
     "source_guard": "GREEN",
     "finding": "issue384 asserts direct master is app.left; #429/#431 supersede this with one dedicated shared_content_host under app.left"
+  },
+  "test_contract_update": {
+    "stale_test": "tests/test_issue384_assembly_only_function_presentation.py::test_normal_and_assembly_content_share_same_left_content_owner",
+    "old_contract": "mode surfaces are direct children of app.left",
+    "new_contract": "mode surfaces share app.shared_content_host; shared_content_host is direct child of app.left",
+    "production_blob_changed": false
   }
 }
