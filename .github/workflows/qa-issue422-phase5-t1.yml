@@ -39,6 +39,18 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.OWNER_HEAD }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest --version
+
       - name: Verify T1 lineage
         shell: bash
         run: |
