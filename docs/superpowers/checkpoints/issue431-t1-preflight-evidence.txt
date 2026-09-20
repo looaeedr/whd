@@ -1,0 +1,51 @@
+Issue #431 / T1 — Phase6 Knowledge Preflight Evidence
+
+TASK:
+Issue #431 T1 Shared-content host and mutually-exclusive mode controller UI change. Create exactly one dedicated Fold Designer left shared-content host for normal part, assembly, and corner-data presentations. Preserve existing active-part, display-mode, visibility, corner-data, geometry, persistence, and callback authorities. Use inherited characterization RED, minimal GREEN, focused regression, GitHub Actions remote QA.
+
+PREDECESSOR:
+#430 CLOSED/completed
+T0 tested SHA=a3a3a8ec67b1ece5cc27b8392298737ed2c53772
+T0 closing/base SHA=95ab91c900e9a531ce0fec25a698123116392cc2
+T0 accepted RUN=35495541940
+
+WORK BRANCH:
+refactor/issue431-t1-shared-content-host-20260920
+
+READ_SKILL: UI設計與去AI味
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: Python測試實務
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PRE_AGREED_TDD_SEAM:
+tests/test_issue430_single_host_red.py::test_t0_intended_red_all_three_modes_require_one_direct_shared_content_host
+The seam is user/master-contract approved through #429/#430: all three presentations must ascend through one dedicated shared-content host.
+
+PLANNED_CHANGED_FILES:
+fold_designer_bridge.py
+tests/test_issue431_shared_content_host.py
+.github/workflows/qa-issue431-t1.yml
+docs/superpowers/checkpoints/issue431-t1-journal.md
+docs/superpowers/checkpoints/issue431-t1-checkpoint.json
+
+AUTHORITY_BOUNDARY:
+MODE_SWITCH_CREATES_STATE_AUTHORITY=0
+GEOMETRY_AUTHORITY_CHANGED=0
+PERSISTENCE_AUTHORITY_CHANGED=0
+VALIDATION_IS_JUDGE_ONLY=1
