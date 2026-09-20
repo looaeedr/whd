@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:18:00Z",
   "remote_qa": {
     "run_id": 35496316468,
     "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T1_AB_QUALIFICATION"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "AB_UI_ONE_CANDIDATE_ONLY_STALE_ISSUE384_CONTRACT"
   },
-  "next_action": "Poll run 35496316468 to terminal. Only run/jobs/steps polling is allowed while active.",
+  "next_action": "Update only the stale #384 owner assertion to the accepted #429/#431 shared-host contract; keep production unchanged. Then rerun focused T1 on the new test-inclusive SHA and rerun A/B with baseline debt classified instead of requiring baseline rc=0.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496205827,
@@ -26,5 +26,24 @@
     "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
   },
   "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
-  "orchestration_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4"
+  "orchestration_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
+  "ab_diagnostic": {
+    "ui_baseline": {
+      "passed": 37,
+      "failed": 6,
+      "skipped": 1
+    },
+    "ui_candidate": {
+      "passed": 36,
+      "failed": 7,
+      "skipped": 1
+    },
+    "candidate_only": [
+      "tests/test_issue384_assembly_only_function_presentation.py::test_normal_and_assembly_content_share_same_left_content_owner"
+    ],
+    "inherited_baseline_failures": 6,
+    "manufacturing_ab": "GREEN",
+    "source_guard": "GREEN",
+    "finding": "issue384 asserts direct master is app.left; #429/#431 supersede this with one dedicated shared_content_host under app.left"
+  }
 }
