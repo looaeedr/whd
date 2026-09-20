@@ -5,17 +5,15 @@
   "work_branch": "refactor/issue444-t2-bending-ui-owner-20260920",
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-  "head_sha": "720ed173ed3c57614aec846b7d53951246c3a3e2",
-  "phase": "RECOVERING",
+  "head_sha": "277e680e37dbcafa695600a17afac7caa48e9cdd",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-21T07:16:00+08:00",
   "remote_qa": {
-    "run_id": 35543833385,
-    "status": "completed/failure",
-    "head_sha": "6a466726a5e1b376de182545d3c0d15ea7fb2526",
-    "failed_job_id": 106166139614,
-    "classification": "workflow-capability-missing-tkinter"
+    "run_id": null,
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "277e680e37dbcafa695600a17afac7caa48e9cdd"
   },
-  "next_action": "Repair the focused QA workflow capability at current canonical head 720ed173: install python3-tk/python3-venv and run pytest inside a system-Python venv, then lock the replacement PR-triggered RUN to terminal.",
+  "next_action": "Find the push-triggered replacement QA run for head 277e680e and lock that exact run_id + head_sha through terminal.",
   "blocker": null
 }
