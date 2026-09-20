@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
-  "phase": "RECOVERING",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:18:30Z",
+  "last_update": "2026-09-20T13:18:31Z",
   "remote_qa": {
     "run_id": 35513104125,
     "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
@@ -16,6 +16,6 @@
     "conclusion": "failure",
     "classification": "ENVIRONMENT_HARNESS_MISSING_PYTEST"
   },
-  "next_action": "Install pytest in the T1 QA workflow only, rerun the same intended RED assertions, and classify exact retry.",
+  "next_action": "Repair missing pytest dependency in QA harness only; rerun unchanged intended RED assertions.",
   "blocker": null
 }
