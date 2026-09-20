@@ -10,12 +10,12 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T07:46:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35497736450,
     "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T3_KNOWLEDGE_PREFLIGHT"
+    "classification": "ACTIVE_T3_KNOWLEDGE_PREFLIGHT"
   },
-  "next_action": "Discover and poll the push-triggered #433 T3 Knowledge Preflight run at exact head 68d37d99de9b3b53e7e706e8d58c170d426f9b12.",
+  "next_action": "Poll run 35497736450 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null
 }
