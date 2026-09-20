@@ -5,21 +5,22 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb",
-  "phase": "IMPLEMENTING",
+  "head_sha": "13567be99548e2cf4199afb315ddcb948ae822fe",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": 35500313918,
-    "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T6_KNOWLEDGE_PREFLIGHT_GREEN"
+    "run_id": null,
+    "head_sha": "13567be99548e2cf4199afb315ddcb948ae822fe",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T6_CUMULATIVE_AB_VISUAL_ACCEPTANCE"
   },
-  "next_action": "Add cumulative T6 acceptance workflow only. Run exact BASELINE_SHA=50e14c7054916cb0b9597c61194725939c5de323 vs CANDIDATE_SHA=e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea across full Headless/Xvfb, protected A/B, structural lifecycle, screenshots, and target-drift lanes.",
+  "next_action": "Discover and poll cumulative T6 run from orchestration SHA 13567be99548e2cf4199afb315ddcb948ae822fe. No integration until accepted classifier GREEN.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
     "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb"
-  }
+  },
+  "orchestration_sha": "13567be99548e2cf4199afb315ddcb948ae822fe"
 }
