@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
   "head_sha": "719f4509371376f9d01fca97553b5199963de4c6",
-  "phase": "CLOSING",
+  "phase": "POST_MERGE_SMOKE",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
@@ -16,7 +16,7 @@
     "conclusion": "success",
     "classification": "T6_FINAL_ACCEPTANCE_GREEN"
   },
-  "next_action": "Fast-forward cleanup/2d-3d-sync from exact preintegration SHA to closing SHA 719f4509371376f9d01fca97553b5199963de4c6 with force=false; then read back production and run post-merge smoke.",
+  "next_action": "Create fresh post-merge smoke branch from exact production SHA 719f4509371376f9d01fca97553b5199963de4c6; require focused shared-host/lifecycle + migrated contracts + persistence/DXF GREEN before closing #436/#429.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
@@ -52,5 +52,12 @@
     "visual_artifact_sha256": "c6a470600465617de736413eee35de7ece8eb2a45ec98009cea91a3ba940e093",
     "decision": "GREEN"
   },
-  "target_preintegration_sha": "50e14c7054916cb0b9597c61194725939c5de323"
+  "target_preintegration_sha": "50e14c7054916cb0b9597c61194725939c5de323",
+  "integration": {
+    "target_branch": "cleanup/2d-3d-sync",
+    "preintegration_sha": "50e14c7054916cb0b9597c61194725939c5de323",
+    "integrated_sha": "719f4509371376f9d01fca97553b5199963de4c6",
+    "force": false,
+    "readback_exact": true
+  }
 }
