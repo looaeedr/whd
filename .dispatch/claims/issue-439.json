@@ -5,11 +5,17 @@
   "work_branch": "fix/issue439-single-physical-content-host-20260920",
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
-  "head_sha": "719f4509371376f9d01fca97553b5199963de4c6",
-  "phase": "CLAIMED",
+  "head_sha": "8ce7de3092e0517d9304e0f734b53d53ed192d7e",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
-  "remote_qa": null,
-  "next_action": "Create fresh branch from exact production; add RED contract proving extra shared_content_host Frame exists and outer bbox changes across modes; no runtime edit before RED.",
+  "remote_qa": {
+    "run_id": 35508090177,
+    "head_sha": "8ce7de3092e0517d9304e0f734b53d53ed192d7e",
+    "status": "in_progress",
+    "conclusion": null,
+    "classification": "ACTIVE_ISSUE439_INTENDED_RED"
+  },
+  "next_action": "Poll run 35508090177 to terminal; require exactly two intended REDs and no production runtime edit.",
   "blocker": null
 }
