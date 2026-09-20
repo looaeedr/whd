@@ -15,7 +15,7 @@ permissions:
 
 env:
   BASE_SHA: 07a5fe36880d1548c9f42f2f6d071f46a9ac062f
-  EXPECTED_PHASE: RED
+  EXPECTED_PHASE: GREEN
 
 jobs:
   ui-lifecycle:
@@ -48,6 +48,7 @@ jobs:
             --changed-file phase6_corner_data_view_adapter.py \
             --changed-file phase6_project_controller.py \
             --changed-file tests/test_issue435_switch_lifecycle_guards.py \
+            --changed-file tests/test_issue378_assembly_mousewheel.py \
             --changed-file .github/workflows/qa-issue435-t5.yml \
             --changed-file docs/superpowers/checkpoints/issue435-t5-journal.md \
             --changed-file docs/superpowers/checkpoints/issue435-t5-checkpoint.json \
@@ -123,6 +124,7 @@ jobs:
               print("STALE_WIDGET_REFERENCE=0")
               print("STATE_PRESERVATION_PARITY=GREEN")
               print("MOUSEWHEEL_EXCEPTION=0")
+              print(f"T5_GREEN_RESULT={sum(o == 'passed' for o in outcomes.values())}_PASS_0_FAIL_{len(skipped)}_SKIP")
           PY
 
           if [ "$EXPECTED_PHASE" = RED ]; then

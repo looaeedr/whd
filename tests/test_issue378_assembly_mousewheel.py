@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import fold_designer_bridge as bridge
+from phase6_assembly_panel import Phase6AssemblyPanel
 
 
 class _FakeCanvas:
@@ -14,12 +15,17 @@ class _FakeCanvas:
 
 
 def _run(delta=0, num=0):
-    app = SimpleNamespace(assembly_parts_canvas=_FakeCanvas())
+    # #435 migration: the Phase 5 panel is the sole Assembly scroll owner.
+    # Build the owner without Tk so the bridge delegate and real owner.scroll()
+    # logic are exercised together without inventing a second scroll authority.
+    owner = Phase6AssemblyPanel.__new__(Phase6AssemblyPanel)
+    owner.canvas = _FakeCanvas()
+    app = SimpleNamespace(_phase6_assembly_panel_owner=owner)
     result = bridge._phase6_scroll_assembly_parts(
         app,
         SimpleNamespace(delta=delta, num=num),
     )
-    return result, app.assembly_parts_canvas.calls
+    return result, owner.canvas.calls
 
 
 def test_windows_mousewheel_positive_delta_accepts_nonnumeric_num():
