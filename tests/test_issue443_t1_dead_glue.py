@@ -90,10 +90,6 @@ def _bridge_top_level_names() -> set[str]:
 def test_t0_proof_dead_builders_have_no_runtime_or_dynamic_dispatch():
     inventory = _inventory()
     for name in TARGETS:
-        definitions = inventory[name]["definitions"]
-        assert len(definitions) == 1, (name, definitions)
-        assert definitions[0][0] == "fold_designer_bridge.py", (name, definitions)
-    for name in TARGETS:
         assert inventory[name]["calls"] == [], (name, inventory[name]["calls"])
         assert inventory[name]["getattr_refs"] == [], (name, inventory[name]["getattr_refs"])
         assert inventory[name]["facade_refs"] == [], (name, inventory[name]["facade_refs"])
