@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue443-t1-dead-glue-20260920",
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-  "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
-  "phase": "RED",
+  "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:18:31Z",
+  "last_update": "2026-09-20T13:20:08Z",
   "remote_qa": {
-    "run_id": 35513104125,
-    "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "ENVIRONMENT_HARNESS_MISSING_PYTEST"
+    "run_id": 35513193296,
+    "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
+    "status": "queued",
+    "conclusion": null,
+    "retry_of": 35513104125
   },
-  "next_action": "Repair missing pytest dependency in QA harness only; rerun unchanged intended RED assertions.",
+  "next_action": "Poll exact T1 RED retry run 35513193296 to terminal; require characterization pass plus one intended deletion RED.",
   "blocker": null
 }
