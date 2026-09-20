@@ -13,7 +13,7 @@
 
 ## Knowledge Preflight
 
-Changed-file preflight on accepted predecessor:
+Changed-file preflight on accepted predecessor. Remote changed-file preflight later expanded the route to include `截角資料入口收斂` plus its 2D-entry and DM7 references; those authorities were fresh-read before retrying RED:
 
 ```text
 REQUIRED_SKILLS=9
@@ -22,6 +22,7 @@ KNOWLEDGE_PREFLIGHT_RC=0
 ```
 
 READ_SKILL: Python測試實務
+READ_SKILL: 截角資料入口收斂
 READ_SKILL: UI設計與去AI味
 READ_SKILL: 派工
 READ_SKILL: issue-closure-gate
@@ -33,6 +34,8 @@ READ_SKILL: 驗證板件與DXF
 
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
 READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
@@ -84,7 +87,9 @@ Bridge remains a thin compatibility/action seam only. Final Scene callback timin
 
 ```text
 STATE=RED
-HEAD=b3d798c1a1d8ec3ad690948bee833d7c174df122
-RUN_ID=RUN_NOT_CREATED
-NEXT_ACTION=Add focused T3 requirement RED proving late BoxBody piece rows/text/stash/wheel are not yet panel-owned.
+HEAD=e6465a6d17600a92a98ec613744ce53065f7db05
+RUN_ID=35488144492
+RUN_STATUS=PREFLIGHT_HARNESS_FAILURE
+EVIDENCE=Remote Preflight stopped before pytest because 截角資料入口收斂 and two required references were not yet recorded; this run is NOT requirement RED evidence.
+NEXT_ACTION=Retry focused T3 requirement RED after complete Preflight evidence; require assertion RED with no collection/import/syntax error.
 ```
