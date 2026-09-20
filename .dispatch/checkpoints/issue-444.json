@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "#444",
+  "branch": "refactor/issue444-t2-bending-ui-owner-20260920",
+  "head_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35544127302,
+  "job_id": 106166915891,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "accepted predecessor #443=76661e3908894d29c2e2704e646e68ea5ac638e0",
+    "focused QA RUN 35544127302 SUCCESS at tested head a992b2d637dfef58ec2a94c99e65b433aef12916",
+    "pytest 8 passed in 1.88s",
+    "tested->cleaned drift workflow-delete-only",
+    "facade bindings 69->69",
+    "invariant weakening=0",
+    "durable review docs/superpowers/checkpoints/issue444-t2-review.md",
+    "validation PR #455 closed without merge"
+  ]
+}
