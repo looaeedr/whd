@@ -170,7 +170,7 @@ jobs:
               encoding="utf-8",
           )
           PY
-          python -m tools.continuity_controller authorize-finalization             "$OUT_DIR/terminal-checkpoint.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$GITHUB_SHA"             --proof-out "$OUT_DIR/finalization-proof.json"
+          python -m tools.continuity_controller authorize-finalization             "$OUT_DIR/terminal-checkpoint.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$OWNER_HEAD"             --proof-out "$OUT_DIR/finalization-proof.json"
           python -m tools.continuity_controller verify-finalization-proof             "$OUT_DIR/terminal-checkpoint.json"             "$OUT_DIR/finalization-proof.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$OWNER_HEAD"
           echo "FINALIZATION_GUARD_PASS=1"
           echo "FINALIZATION_PROOF_VALID=1"
