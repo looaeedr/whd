@@ -141,7 +141,7 @@ def test_assembly_left_panel_lists_all_sheet_parts_with_view_only_checkboxes(mon
     root, win, app = _make_app(monkeypatch)
     try:
         root.update_idletasks()
-        assert app.assembly_parts_panel.master is app.left
+        assert app.assembly_parts_panel.master is app.shared_content_host
         assert app.assembly_parts_panel.winfo_manager() == "pack"
         assert set(app.assembly_part_visible_vars) == set(app.available_parts)
         assert set(app.assembly_part_corner_vars) == set(app.available_parts)
