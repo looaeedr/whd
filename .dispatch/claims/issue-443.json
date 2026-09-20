@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue443-t1-dead-glue-20260920",
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-  "head_sha": "f4f46dded899669d506cc9362944194d7e9c5b36",
-  "phase": "IMPLEMENTING",
+  "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:33:43Z",
+  "last_update": "2026-09-20T13:34:44Z",
   "remote_qa": {
-    "run_id": 35513805189,
-    "head_sha": "f4f46dded899669d506cc9362944194d7e9c5b36",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "ONE_GUI_REGRESSION_NEEDS_BASELINE_AB"
+    "run_id": 35513915340,
+    "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
+    "status": "queued",
+    "conclusion": null,
+    "mode": "BASELINE_AB"
   },
-  "next_action": "Run exact failing nodeid on accepted predecessor cf14e2e6... and candidate f4f46dde... in fresh Xvfb processes; classify candidate-only vs inherited before any code change.",
+  "next_action": "Poll exact A/B run 35513915340 to terminal; compare the one failing GUI nodeid on accepted predecessor and candidate.",
   "blocker": null
 }
