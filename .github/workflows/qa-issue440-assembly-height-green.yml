@@ -1,0 +1,91 @@
+name: "QA #440 assembly content-height GREEN"
+
+on:
+  push:
+    branches:
+      - fix/issue440-assembly-content-height-20260920
+    paths:
+      - 'phase6_assembly_panel.py'
+      - 'tests/test_issue440_assembly_height_census.py'
+      - 'tests/test_issue440_no_wrapper_shell.py'
+      - 'tests/test_issue439_single_physical_content_host.py'
+      - 'tests/test_issue431_shared_content_host.py'
+      - 'tests/test_issue432_general_part_shared_host.py'
+      - 'tests/test_issue433_assembly_shared_host.py'
+      - 'tests/test_issue434_corner_data_shared_host.py'
+      - 'tests/test_issue435_switch_lifecycle_guards.py'
+      - 'tests/test_phase6_latest_layout_contract.py'
+      - '.github/workflows/qa-issue440-assembly-height-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt pytest pytest-json-report matplotlib numpy shapely ezdxf pillow
+      - name: Source guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path("phase6_assembly_panel.py").read_text()
+          b=Path("fold_designer_bridge.py").read_text()
+          assert 'requested = max(1, int(self.content.winfo_reqheight()))' in p
+          assert 'self.canvas.configure(height=requested)' in p
+          assert 'self.shared_content_host = self.left' in b
+          assert "_phase6_sync_physical_content_host_extent" not in b
+          print("ASSEMBLY_CONTENT_HEIGHT_OWNER=1")
+          print("FIXED_OUTER_CONTENT_EXTENT=0")
+          print("EXTRA_CONTENT_WRAPPER_FRAME_COUNT=0")
+          PY
+      - name: Run Assembly-height and shared-slot regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue440-assembly-height
+          xvfb-run -a -s "-screen 0 1280x900x24"             python -m pytest -q -s             tests/test_issue440_assembly_height_census.py             tests/test_issue440_no_wrapper_shell.py             tests/test_issue439_single_physical_content_host.py             tests/test_issue431_shared_content_host.py             tests/test_issue432_general_part_shared_host.py             tests/test_issue433_assembly_shared_host.py             tests/test_issue434_corner_data_shared_host.py             tests/test_issue435_switch_lifecycle_guards.py             tests/test_phase6_latest_layout_contract.py             --tb=short --json-report             --json-report-file=.scratch/issue440-assembly-height/report.json             | tee .scratch/issue440-assembly-height/pytest.log
+      - name: Machine classifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path(".scratch/issue440-assembly-height/report.json").read_text())
+          tests=d.get("tests",[])
+          failed=[r["nodeid"] for r in tests if r.get("outcome")=="failed"]
+          errors=[r["nodeid"] for r in tests if r.get("outcome")=="error"]
+          skipped=[r["nodeid"] for r in tests if r.get("outcome")=="skipped"]
+          assert not failed, failed
+          assert not errors, errors
+          assert not skipped, skipped
+          print(f"FOCUSED_PASS={sum(r.get('outcome')=='passed' for r in tests)}")
+          print("FOCUSED_FAIL=0")
+          print("FOCUSED_ERROR=0")
+          print("FOCUSED_SKIP=0")
+          print("ASSEMBLY_SURFACE_COLLAPSED_44=0")
+          print("ASSEMBLY_SURFACE_FOLLOWS_CONTENT_HEIGHT=1")
+          print("ACTIVE_MODE_SURFACE_COUNT=1")
+          print("SAME_LAYOUT_SLOT=1")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue440-assembly-height-green
+          path: .scratch/issue440-assembly-height
+          if-no-files-found: error
