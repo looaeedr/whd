@@ -6059,6 +6059,7 @@ def _phase6_build_persistent_top_area(self):
     self.left_scroll_canvas = original.tk.Canvas(
         self.root,
         width=_phase6_left_workspace_width(self._settings_values.get("ui_text_size", "small")),
+        background=WHD_THEME["panel"],
         highlightthickness=0,
         borderwidth=0,
         takefocus=False,
@@ -7169,24 +7170,21 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_build_content_switch(self)
 
-    # #439 correction: the original input region itself is the only physical
-    # content host. Do not add a second shared-content Frame beneath self.left.
-    self.fold_editor_host = original.ttk.Frame(self.left)
-    self.fold_editor_host.pack(fill=original.tk.BOTH, expand=True)
-    # Compatibility alias only. Identity equality is the contract.
-    self.shared_content_host = self.fold_editor_host
-
-    # Normal-part inputs are one inner content tree inside the permanent outer
-    # input region. Assembly and Corner Data are sibling inner trees.
-    self.input_content_host = original.ttk.Frame(self.fold_editor_host)
+    # #440 correction: no fixed outer wrapper around mode content.
+    # The three mode surfaces are direct siblings under self.left and exactly
+    # one is mapped at a time in the same layout slot.  Compatibility aliases
+    # do not create any additional Frame.
+    self.input_content_host = original.ttk.Frame(self.left)
+    self.fold_editor_host = self.input_content_host
+    self.shared_content_host = self.left
     self.bend_ui = Phase6BendingUI(
         self.input_content_host, self.state, self.queue_update
     )
 
-    # Phase 5 T2: retain the same Assembly owner/state; only its presentation
-    # parent changes to the original physical input region.
+    # Phase 5 T2: retain the same Assembly owner/state; presentation now mounts
+    # directly in the same left-side slot as normal input and Corner Data.
     self._phase6_assembly_panel_owner = Phase6AssemblyPanel(
-        self.fold_editor_host,
+        self.left,
         actions=AssemblyPanelActions(
             on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self)
         ),
@@ -7283,29 +7281,14 @@ def _phase6_build_content_switch(self):
     return self.content_switch_frame
 
 
-def _phase6_sync_physical_content_host_extent(self):
-    """Keep the permanent outer content region at the normal-input extent."""
-    host = getattr(self, "fold_editor_host", None)
-    input_host = getattr(self, "input_content_host", None)
-    if host is None or input_host is None:
-        return None
-    try:
-        self.root.update_idletasks()
-    except Exception:
-        pass
-    try:
-        requested = max(1, int(input_host.winfo_reqheight()) + 10)
-        host.configure(height=requested)
-        host.pack_propagate(False)
-        self._phase6_physical_content_height = requested
-        return requested
-    except Exception:
-        return None
-
-
 def _phase6_mount_shared_content(self, mode):
-    """Swap one inner content tree inside the original physical input region."""
-    host = getattr(self, "fold_editor_host", None)
+    """Swap one direct mode surface into the single left-side layout slot.
+
+    There is deliberately no permanent outer content Frame.  Active content
+    owns its natural height; switching modes replaces the mapped sibling rather
+    than preserving an empty fixed-height shell.
+    """
+    host = getattr(self, "left", None)
     if host is None:
         return None
 
@@ -7325,24 +7308,14 @@ def _phase6_mount_shared_content(self, mode):
     if selected is None:
         return None
 
-    if not host.winfo_manager():
-        host.pack(fill=original.tk.BOTH, expand=True)
-
     for key, widget in surfaces.items():
         if widget is None:
             continue
         if key == selected_mode:
             if not widget.winfo_manager():
-                widget.pack(
-                    fill=original.tk.BOTH,
-                    expand=True,
-                    pady=((0, 10) if key == "single" else (0, 8)),
-                )
+                widget.pack(fill=original.tk.BOTH, expand=False, pady=(0, 8))
         elif widget.winfo_manager():
             widget.pack_forget()
-
-    if selected_mode == "single":
-        _phase6_sync_physical_content_host_extent(self)
     return selected
 
 def _phase6_structure_tree_visibility_var(self, key):
@@ -7925,7 +7898,7 @@ def _phase6_show_corner_data(self):
 
     panel = getattr(self, "corner_data_panel", None)
     if panel is None:
-        shared_host = getattr(self, "shared_content_host", None)
+        shared_host = getattr(self, "left", None)
         if shared_host is None:
             return None
         panel = original.ttk.Frame(shared_host, padding=6)
