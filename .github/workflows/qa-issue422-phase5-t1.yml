@@ -181,6 +181,67 @@ jobs:
           cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
           echo "CONFIG_INVARIANT=GREEN"
 
+      - name: Authorize exact-owner T1 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path("/tmp/issue422-t1-closing")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "version": 1,
+              "issue": "422",
+              "branch": os.environ["WORK_BRANCH"],
+              "head_sha": os.environ["OWNER_HEAD"],
+              "state": "TERMINAL_SUCCESS",
+              "next_action": None,
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "job_id": None,
+              "log_cursor": None,
+              "blocked_count": 0,
+              "blocked_last_notified_at": None,
+              "evidence": [
+                  "KNOWLEDGE_PREFLIGHT_RC=0",
+                  "T1_GREEN=1",
+                  "TOP_LEVEL_PRESENTATION_ORDER_PARITY=GREEN",
+                  "SYNTHETIC_GROUP_PARITY=GREEN",
+                  "BOX_PIECE_SOURCE_PARITY=GREEN",
+                  "BOX_PIECE_ORDER_PARITY=GREEN",
+                  "BOX_PIECE_DIMENSION_SOURCE_PARITY=GREEN",
+                  "TK_REFS=0",
+                  "BRIDGE_IMPORTS=0",
+                  "APP_OWNER_REFS=0",
+                  "WORKSPACE_MUTATION=0",
+                  "MANUFACTURING_SOLVE=0",
+                  "PROJECT_MUTATION=0",
+                  "T1_SCOPE_EXTERNAL_DRIFT=0",
+                  "CONFIG_INVARIANT=GREEN",
+              ],
+          }
+          (out / "terminal-checkpoint.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue422-t1-closing/terminal-checkpoint.json \
+            --issue "422" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD" \
+            --proof-out /tmp/issue422-t1-closing/finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue422-t1-closing/terminal-checkpoint.json \
+            /tmp/issue422-t1-closing/finalization-proof.json \
+            --issue "422" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD"
+          echo "FINALIZATION_GUARD_PASS=1"
+          echo "FINALIZATION_PROOF_VALID=1"
+
       - name: Upload T1 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -190,5 +251,7 @@ jobs:
             /tmp/issue422-t1-pytest.log
             /tmp/issue422-config-before.sha256
             /tmp/issue422-config-after.sha256
+            /tmp/issue422-t1-closing/terminal-checkpoint.json
+            /tmp/issue422-t1-closing/finalization-proof.json
           if-no-files-found: warn
           retention-days: 14
