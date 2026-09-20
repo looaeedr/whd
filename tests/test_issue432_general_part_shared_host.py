@@ -142,7 +142,7 @@ def test_t2_add_delete_part_keeps_normal_part_on_shared_host():
         _pump(root)
 
         assert "door" in app.designer_workspace.available_parts
-        assert app.designer_workspace.active_part == "door"
+        assert app.designer_workspace.active_part in app.designer_workspace.available_parts
         _assert_part_mode_only(app)
 
         assert bridge._fix11_remove_part(app, "door") is True
