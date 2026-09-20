@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issue": "435",
+  "branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
+  "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
+  "head_sha": "7f178b8c1ae6a4597a9bfc16e01546503af14b56",
+  "state": "CHARACTERIZATION_RED_PENDING",
+  "next_action": "Commit T5 tests/workflow/docs only and run characterization with legacy #378 unchanged. Production must remain exact predecessor. Expected RED is limited to four stale #378 bridge-wrapper assertions if current owner path is healthy.",
+  "preflight_run_id": 35498891860,
+  "evidence": [
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}
