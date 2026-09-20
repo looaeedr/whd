@@ -103,6 +103,13 @@ class Phase6AssemblyPanel:
     def _on_content_configure(self, _event=None) -> None:
         try:
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            # #440 remediation: this panel no longer sits inside a fixed-height
+            # outer wrapper. Let the Assembly surface itself request the height
+            # its current content actually needs; the existing left workspace
+            # scroll owner handles any overflow at the page level.
+            requested = max(1, int(self.content.winfo_reqheight()))
+            if int(float(self.canvas.cget("height"))) != requested:
+                self.canvas.configure(height=requested)
         except Exception:
             pass
 
