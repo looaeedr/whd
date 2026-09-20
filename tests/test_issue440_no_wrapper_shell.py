@@ -98,11 +98,10 @@ def test_440_same_slot_mutual_exclusion_without_fixed_height_shell():
 def test_440_native_canvases_do_not_leak_system_default_background():
     root, app = _open()
     try:
-        expected = WHD_THEME["panel"].lower()
-        assert app.left_scroll_canvas.cget("background").lower() == expected, (
-            "INTENDED_RED_LEFT_SCROLL_CANVAS_DEFAULT_BG"
+        assert app.left_scroll_canvas.cget("background").lower() == WHD_THEME["background"].lower(), (
+            "INTENDED_RED_LEFT_SCROLL_CANVAS_SHELL_BG"
         )
-        assert app._phase6_assembly_panel_owner.canvas.cget("background").lower() == expected, (
+        assert app._phase6_assembly_panel_owner.canvas.cget("background").lower() == WHD_THEME["panel"].lower(), (
             "INTENDED_RED_ASSEMBLY_CANVAS_DEFAULT_BG"
         )
     finally:
