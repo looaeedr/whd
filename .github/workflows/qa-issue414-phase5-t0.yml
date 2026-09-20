@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - refactor/issue414-phase5-t0-bridge-census-20260920
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
   workflow_dispatch:
 
 permissions:
