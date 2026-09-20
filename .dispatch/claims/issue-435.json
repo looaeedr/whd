@@ -6,16 +6,24 @@
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
   "head_sha": "25ac8474e6c9c568831a1333c5f3c4028201d9e6",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
     "run_id": 35499063545,
     "head_sha": "25ac8474e6c9c568831a1333c5f3c4028201d9e6",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T5_CHARACTERIZATION_RED"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "T5_RED_PLUS_ONE_HARNESS_OVERREACH"
   },
-  "next_action": "Poll run 35499063545 to terminal; no other work while REMOTE_QA active lock is held.",
-  "blocker": null
+  "next_action": "Update T5 reopen test to use canonical _phase6_build_project_snapshot()['snapshot']; keep production unchanged. Rerun RED and require exact 4 stale #378 failures only.",
+  "blocker": null,
+  "characterization_diagnostic": {
+    "passed": 29,
+    "failed": 5,
+    "skipped": 1,
+    "intended_stale_issue378_failures": 4,
+    "harness_overreach": "tests/test_issue435_switch_lifecycle_guards.py::test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets",
+    "finding": "export_phase6_snapshot is legacy fold/profile export and does not promise active_part; canonical project snapshot does preserve active_part. Runtime owner-path mousewheel test is already GREEN."
+  }
 }
