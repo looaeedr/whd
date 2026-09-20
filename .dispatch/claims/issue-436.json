@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35505467119,
     "head_sha": "7851a0dfb1e4ee41263fdf7f9464fe91130edb90",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T6_REMEDIATION_FINALIZER"
+    "classification": "ACTIVE_T6_REMEDIATION_FINALIZER"
   },
-  "next_action": "Discover and poll T6 remediation finalizer from exact head 7851a0dfb1e4ee41263fdf7f9464fe91130edb90.",
+  "next_action": "Poll run 35505467119 to terminal; no integration before accepted GREEN.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
