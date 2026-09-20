@@ -1,0 +1,198 @@
+name: QA Issue423 Phase5 T2
+
+on:
+  push:
+    branches:
+      - refactor/issue413-phase5-assembly-presentation-20260920
+    paths:
+      - phase6_assembly_panel.py
+      - fold_designer_bridge.py
+      - tests/process/test_issue423_phase5_t2_assembly_panel.py
+      - .github/workflows/qa-issue423-phase5-t2.yml
+      - docs/superpowers/checkpoints/issue423-phase5-t2-journal.md
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - phase6_assembly_panel.py
+      - fold_designer_bridge.py
+      - tests/process/test_issue423_phase5_t2_assembly_panel.py
+      - .github/workflows/qa-issue423-phase5-t2.yml
+      - docs/superpowers/checkpoints/issue423-phase5-t2-journal.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase5-t2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OWNER_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
+      ACCEPTED_PREDECESSOR: cb7ae0d906e52d286e740e5c8fb984c40728be83
+      EVIDENCE: docs/superpowers/checkpoints/issue423-phase5-t2-journal.md
+      TEST_LOG: /tmp/issue423-t2-pytest.log
+      CONFIG_BEFORE: /tmp/issue423-config-before.sha256
+      CONFIG_AFTER: /tmp/issue423-config-after.sha256
+    steps:
+      - name: Checkout exact work-order head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.OWNER_HEAD }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest --version
+          command -v xvfb-run
+
+      - name: Verify T2 lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$OWNER_HEAD"
+          git cat-file -e "$ACCEPTED_PREDECESSOR^{commit}"
+          git merge-base --is-ancestor "$ACCEPTED_PREDECESSOR" "$OWNER_HEAD"
+          echo "T2_PARENT_ANCESTOR=1"
+          echo "WORK_ORDER_HEAD=$OWNER_HEAD"
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工執行 Phase 5 accepted specification T2 #423: Assembly Tk panel core, row builders, Tk-backed visibility state rehost, synthetic Door/BasePlate groups, collapse/detail registries, recursive MouseWheel binding, rebuild-safe legacy aliases, Xvfb UI parity, no BoxBody late-piece migration, no FinalScene rewiring, no manufacturing/project authority changes, remote QA and durable closure' \
+            --changed-file phase6_assembly_panel.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/process/test_issue423_phase5_t2_assembly_panel.py \
+            --changed-file .github/workflows/qa-issue423-phase5-t2.yml \
+            --changed-file docs/superpowers/checkpoints/issue423-phase5-t2-journal.md \
+            --evidence "$EVIDENCE"
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Require T2 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          predecessor = "cb7ae0d906e52d286e740e5c8fb984c40728be83"
+          allowed = {
+              "phase6_assembly_panel.py",
+              "fold_designer_bridge.py",
+              "tests/process/test_issue423_phase5_t2_assembly_panel.py",
+              ".github/workflows/qa-issue423-phase5-t2.yml",
+              "docs/superpowers/checkpoints/issue423-phase5-t2-journal.md",
+          }
+          changed = {
+              x.strip()
+              for x in subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{predecessor}...HEAD"],
+                  text=True,
+              ).splitlines()
+              if x.strip()
+          }
+          extra = sorted(changed - allowed)
+          print("T2_CHANGED_FILES=", sorted(changed))
+          print("T2_SCOPE_EXTERNAL_FILES=", extra)
+          if extra:
+              raise SystemExit("T2 scope drift: " + repr(extra))
+          print("T2_SCOPE_EXTERNAL_DRIFT=0")
+          print("T2_PANEL_MODULE_PRESENT=", int("phase6_assembly_panel.py" in changed))
+          PY
+
+      - name: Capture protected config hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_BEFORE"
+
+      - name: Run T2 RED or GREEN under Xvfb
+        shell: bash
+        run: |
+          set -uo pipefail
+          if [ -f phase6_assembly_panel.py ]; then
+            set -e
+            xvfb-run -a python -m pytest -q \
+              tests/process/test_issue423_phase5_t2_assembly_panel.py \
+              | tee "$TEST_LOG"
+            echo "T2_GREEN=1"
+            echo "LEGACY_ALIAS_STRATEGY_ASSIGNED=1"
+            echo "LEGACY_ALIAS_SURVIVES_REBUILD=GREEN"
+            echo "STALE_LEGACY_REGISTRY_REFERENCE=0"
+            echo "UNGROUPED_ROW_UI_PARITY=GREEN"
+            echo "SYNTHETIC_GROUP_UI_PARITY=GREEN"
+            echo "WHEEL_BASE_ROW_COVERAGE=GREEN"
+          else
+            set +e
+            xvfb-run -a python -m pytest -q \
+              tests/process/test_issue423_phase5_t2_assembly_panel.py \
+              >"$TEST_LOG" 2>&1
+            rc=$?
+            set -e
+            cat "$TEST_LOG"
+            if [ "$rc" -eq 0 ]; then
+              echo "T2_RED_INVALID=pytest unexpectedly passed"
+              exit 1
+            fi
+            if grep -Eq 'ERROR collecting|ImportError|ModuleNotFoundError|SyntaxError' "$TEST_LOG"; then
+              echo "T2_RED_INVALID=harness_or_collection_error"
+              exit 1
+            fi
+            grep -Fq 'T2 requirement RED: phase6_assembly_panel.py does not exist yet' "$TEST_LOG"
+            grep -Eq '[1-9][0-9]* failed' "$TEST_LOG"
+            echo "T2_RED_INTENDED=1"
+            echo "T2_RED_PYTEST_RC=$rc"
+          fi
+
+      - name: Verify T2 panel architecture
+        if: ${{ hashFiles('phase6_assembly_panel.py') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path("phase6_assembly_panel.py").read_text(encoding="utf-8")
+          checks = {
+              "PANEL_BRIDGE_IMPORTS": int("fold_designer_bridge" in text),
+              "PANEL_APP_SERVICE_BAG": int("designer_workspace" in text or "self.app" in text or "app." in text),
+              "PANEL_DISPLAY_MODE_REFS": int("display_mode" in text or "_phase6_3d_display_mode" in text),
+              "PANEL_MANUFACTURING_SOLVE": int("resolve_geometry(" in text or "manufacturing_api" in text),
+              "PANEL_PROJECT_MUTATION": int("project_controller" in text),
+              "PANEL_BOX_PIECE_MIGRATION": int("assembly_box_body_piece_visible_vars" in text or "project_box_body_piece_rows" in text),
+          }
+          for key, value in checks.items():
+              print(f"{key}={value}")
+          if any(checks.values()):
+              raise SystemExit("T2 panel architecture violation")
+          PY
+
+      - name: Verify protected config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_AFTER"
+          cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
+          echo "CONFIG_INVARIANT=GREEN"
+
+      - name: Upload T2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue423-phase5-t2
+          path: |
+            /tmp/issue423-t2-pytest.log
+            /tmp/issue423-config-before.sha256
+            /tmp/issue423-config-after.sha256
+          if-no-files-found: warn
+          retention-days: 14
