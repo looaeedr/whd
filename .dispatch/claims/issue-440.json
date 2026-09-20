@@ -5,11 +5,17 @@
   "work_branch": "fix/issue440-dark-canvas-background-20260920",
   "claimed_at": "2026-09-20T12:36:00Z",
   "base_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "head_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "phase": "CLAIMED",
+  "head_sha": "2f097c9137299c4290c78eddaff5f58d0d5eb649",
+  "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-20T12:38:00Z",
-  "remote_qa": null,
-  "next_action": "RED must prove current production has fixed outer content shell (pack_propagate(False), fixed extent) and native Canvas theme leaks. Then remove wrapper-shell behavior: make input/assembly/corner mode surfaces direct self.left siblings sharing one pack slot, one mapped at a time; keep natural active-content height.",
+  "remote_qa": {
+    "run_id": 35511172826,
+    "head_sha": "2f097c9137299c4290c78eddaff5f58d0d5eb649",
+    "status": "in_progress",
+    "conclusion": null,
+    "classification": "ACTIVE_ISSUE440_RED"
+  },
+  "next_action": "Poll RED run 35511172826 to terminal. Require exact intended wrapper-shell/native-Canvas failures before any production runtime edit.",
   "blocker": null
 }
