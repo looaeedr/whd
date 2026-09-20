@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "442",
+  "branch": "refactor/issue441-bridge-ownership-v3-20260920",
+  "head_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "frozen_base=2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
+    "first_remote_qa_run=35512607311",
+    "first_tested_head=0cc896769a1ad10ed5426c7a241660e22e387e52",
+    "first_remote_qa=SUCCESS",
+    "artifact_id=10606107863",
+    "standards_review=PASS",
+    "spec_review=PASS",
+    "production_runtime_edit=0",
+    "closing_head_self_verifies_via_qa_workflow_before_proof"
+  ]
+}
