@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "430",
+  "branch": "qa/issue430-t0-single-host-census-20260920",
+  "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
+  "state": "RUNNING",
+  "next_action": "Commit durable completed-reading evidence, then update the preflight carrier to consume it and require KNOWLEDGE_PREFLIGHT_RC=0 before T0 host/mount analysis.",
+  "run_id": 35494744058,
+  "job_id": 106035622523,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "POST_PHASE5_BASELINE=50e14c7054916cb0b9597c61194725939c5de323",
+    "FIRST_PREFLIGHT_RUN=35494744058",
+    "FIRST_PREFLIGHT_CLASSIFICATION=EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE",
+    "REQUIRED_SKILLS_READ=5",
+    "REQUIRED_REFERENCES_READ=7",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}
