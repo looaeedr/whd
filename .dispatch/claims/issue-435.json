@@ -5,11 +5,17 @@
   "work_branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "head_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "phase": "CLAIMED",
+  "head_sha": "7f178b8c1ae6a4597a9bfc16e01546503af14b56",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T08:11:00Z",
-  "remote_qa": null,
-  "next_action": "Create fresh #435 branch from exact #434 closing SHA, run T5 Knowledge Preflight, then characterize repeated mode-switch lifecycle, duplicate-tree/binding/callback accumulation, stale-widget references, state preservation, project load/save/reload, refresh, dynamic add/delete, BoxBody late-piece refresh, and mousewheel safety.",
+  "last_update": "2026-09-20T08:13:00Z",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "7f178b8c1ae6a4597a9bfc16e01546503af14b56",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T5_KNOWLEDGE_PREFLIGHT"
+  },
+  "next_action": "Discover and poll the push-triggered #435 T5 Knowledge Preflight run at exact head 7f178b8c1ae6a4597a9bfc16e01546503af14b56.",
   "blocker": null
 }
