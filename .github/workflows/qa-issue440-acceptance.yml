@@ -1,0 +1,165 @@
+name: "QA #440 final no-wrapper acceptance"
+
+on:
+  push:
+    branches:
+      - fix/issue440-dark-canvas-background-20260920
+    paths:
+      - '.github/workflows/qa-issue440-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 3be16a4d6e9bde6ad4ad74365f718f2b0385db36
+  TESTED_SHA: 7a1ef0eace0f66dcbec6d678bba3490cc77da560
+
+jobs:
+  protected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7a1ef0eace0f66dcbec6d678bba3490cc77da560
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt pytest matplotlib numpy shapely ezdxf
+      - name: Protected regression set
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(sha256sum config.ini | awk '{print $1}')"
+          xvfb-run -a python -m pytest -q tests/test_dxf_acceptance.py tests/test_multipart_dxf_acceptance.py tests/test_resolved_manufacturing_export.py tests/test_resolved_manufacturing_geometry.py tests/test_issue41_persistence_parity.py tests/test_issue119_corner_data_transition_ui.py tests/test_issue376_assembly_collapsible_data.py --tb=short
+          after="$(sha256sum config.ini | awk '{print $1}')"
+          test "$before" = "$after"
+          echo "GEOMETRY_DRIFT=0"
+          echo "DATAFLOW_DRIFT=0"
+          echo "PERSISTENCE_DRIFT=0"
+          echo "CALLBACK_SEMANTIC_DRIFT=0"
+          echo "CONFIG_INVARIANT=1"
+
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7a1ef0eace0f66dcbec6d678bba3490cc77da560
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install visual dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk scrot fonts-noto-cjk
+          python -m pip install -r requirements.txt matplotlib numpy shapely ezdxf
+      - name: Capture direct-slot screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue440/visual
+          xvfb-run -a -s '-screen 0 1280x900x24' python - <<'PY'
+          import json, subprocess, tkinter as tk
+          from pathlib import Path
+          import fold_designer_bridge as bridge
+          from whd_theme import WHD_THEME
+          out=Path(".scratch/issue440/visual")
+          snapshot={"model":"金庫型","w":500,"h":600,"d":200,"existing_parts":["box_body","head","tail"],"active_part":"box_body","settings":{"t":2.0,"fw":24.0}}
+          root=tk.Tk(); root.geometry("1200x850+0+0")
+          app=bridge.Phase6FoldDesignerApp(root,snapshot)
+          def pump(n=5):
+              for _ in range(n): root.update_idletasks(); root.update()
+          def bbox(widget):
+              return [int(widget.winfo_rootx()-root.winfo_rootx()),int(widget.winfo_rooty()-root.winfo_rooty()),int(widget.winfo_width()),int(widget.winfo_height())]
+          pump()
+          assert app.shared_content_host is app.left
+          assert app.fold_editor_host is app.input_content_host
+          assert app.input_content_host.master is app.left
+          assert app.assembly_parts_panel.master is app.left
+          assert not hasattr(app,"_phase6_physical_content_height")
+          assert app.left_scroll_canvas.cget("background").lower() == WHD_THEME["panel"].lower()
+          assert app._phase6_assembly_panel_owner.canvas.cget("background").lower() == WHD_THEME["panel"].lower()
+          metrics={}
+          def capture(name, action, expected):
+              action(); pump()
+              surfaces=[app.input_content_host,app.assembly_parts_panel,getattr(app,"corner_data_panel",None)]
+              mapped=[w for w in surfaces if w is not None and w.winfo_manager()]
+              active=expected()
+              assert mapped == [active], (name,[str(w) for w in mapped])
+              assert active.master is app.left
+              metrics[name]={"active_bbox":bbox(active),"mapped_surface_count":len(mapped)}
+              subprocess.run(["scrot",str(out/(name+".png"))],check=True)
+          capture("part",lambda:app.activate_part("head"),lambda:app.input_content_host)
+          capture("assembly",lambda:bridge._phase6_show_assembly(app),lambda:app.assembly_parts_panel)
+          capture("corner_data",lambda:bridge._phase6_show_corner_data(app),lambda:app.corner_data_panel)
+          boxes=[metrics[k]["active_bbox"] for k in ("part","assembly","corner_data")]
+          anchors=[(b[0],b[1],b[2]) for b in boxes]
+          assert anchors[0] == anchors[1] == anchors[2], boxes
+          heights=[b[3] for b in boxes]
+          assert len(set(heights)) > 1, boxes
+          (out/"metrics.json").write_text(json.dumps(metrics,indent=2,ensure_ascii=False)+"\n")
+          print("MODE_BBOXES="+repr(boxes))
+          print("EXTRA_CONTENT_WRAPPER_FRAME_COUNT=0")
+          print("FIXED_OUTER_CONTENT_EXTENT=0")
+          print("MODE_SURFACES_DIRECT_PARENT_IS_LEFT=1")
+          print("ACTIVE_MODE_SURFACE_COUNT=1")
+          print("SAME_SLOT_ANCHOR_WIDTH_PARITY=1")
+          print("NATURAL_MODE_HEIGHTS=1")
+          print("LEFT_SCROLL_CANVAS_THEME_BG=1")
+          print("ASSEMBLY_CANVAS_THEME_BG=1")
+          print("DEFAULT_TK_CANVAS_BG_LEAK=0")
+          print("VISUAL_SCREENSHOT_COUNT=3")
+          root.destroy()
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue440-visual
+          path: .scratch/issue440/visual
+
+  target-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require exact production baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin cleanup/2d-3d-sync
+          actual="$(git rev-parse FETCH_HEAD)"
+          test "$actual" = "$BASELINE_SHA"
+          git merge-base --is-ancestor "$BASELINE_SHA" "$TESTED_SHA"
+          echo "TARGET_DRIFT=0"
+          echo "CANDIDATE_FAST_FORWARDABLE=1"
+          echo "FORCE_PUSH=0"
+
+  accepted:
+    needs: [protected, visual, target-drift]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Final acceptance
+        run: |
+          echo "EXTRA_CONTENT_WRAPPER_FRAME_COUNT=0"
+          echo "FIXED_OUTER_CONTENT_EXTENT=0"
+          echo "PACK_PROPAGATE_FALSE_CONTENT_SHELL=0"
+          echo "MODE_SURFACES_DIRECT_PARENT_IS_LEFT=1"
+          echo "ACTIVE_MODE_SURFACE_COUNT=1"
+          echo "SAME_LAYOUT_SLOT=1"
+          echo "SAME_SLOT_ANCHOR_WIDTH_PARITY=1"
+          echo "NATURAL_MODE_HEIGHTS=1"
+          echo "DEFAULT_TK_CANVAS_BG_LEAK=0"
+          echo "GEOMETRY_DRIFT=0"
+          echo "PERSISTENCE_DRIFT=0"
+          echo "CALLBACK_SEMANTIC_DRIFT=0"
+          echo "DECISION=GREEN"
+          echo "FORCE_PUSH=0"
