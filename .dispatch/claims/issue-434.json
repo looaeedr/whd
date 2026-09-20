@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T07:58:00Z",
   "base_sha": "bbd499786cbebc1b5e68ff032f2591cc308060cd",
   "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:00:00Z",
   "remote_qa": {
     "run_id": 35498676434,
     "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T4_AB_QUALIFICATION"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T4_AB_QUALIFICATION_GREEN_NOOP_PRODUCTION"
   },
-  "next_action": "Poll run 35498676434 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Write accepted #434 checkpoint/journal and remove temporary #434 workflows only. Audit TESTED_SHA 9e6ad347dd99a52e657a02f5107bd64f11852063 to closing HEAD; no production/test-contract drift allowed.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_exact_predecessor": true,
@@ -38,5 +38,26 @@
     "production_runtime_edit": 0,
     "already_green_after_t1": true
   },
-  "orchestration_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e"
+  "orchestration_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
+  "final_ab": {
+    "run_id": 35498676434,
+    "orchestration_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
+    "tested_sha": "9e6ad347dd99a52e657a02f5107bd64f11852063",
+    "production_bridge_exact_predecessor": true,
+    "corner_data_adapter_exact_predecessor": true,
+    "production_runtime_edit": 0,
+    "inherited_corner_data": {
+      "baseline_passed": 19,
+      "candidate_passed": 19,
+      "exact_outcome_parity": true,
+      "candidate_only_failures": 0,
+      "artifact_id": 10601062871,
+      "artifact_sha256": "357687c67fd114b6d9cbb178af5c3ff18ad6267d1002eb0a0d3e7d96355d0322"
+    },
+    "t4_candidate": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
 }
