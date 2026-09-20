@@ -180,7 +180,40 @@ These are allowed composition/mount/event/compatibility seams, not presentation 
 
 ```text
 STATE=RED
-HEAD=5581b091cd891bd725577dfc60376cf35bc13e63
-RUN_ID=RUN_NOT_CREATED
-NEXT_ACTION=Add focused T5 requirement RED for pure grouping projection + exact T0 refresh/mount/legacy compatibility gates.
+HEAD=4c5555121e84de6c86e5b7893f8f1fbe467cc260
+RUN_ID=35489797602
+RUN_STATUS=PRE_T5_SCOPE_DRIFT_GATE_FAILURE
+NEXT_ACTION=Retry focused T5 requirement RED from cleaned lineage; require scope GREEN then intended grouping-owner assertion RED.
 ```
+
+
+## Pre-T5 Drift Gate Recovery
+
+Before valid T5 RED, RUN `35489797602` @ `9e492295f4e087ce7915183efdab4d90de480b63` failed **before pytest** in `Require T5 scope`:
+
+```text
+T5_SCOPE_EXTERNAL_FILES=['phase6_assembly_panel.py']
+```
+
+Root cause:
+- after #425/T4 had already closed at accepted HEAD `5581b091cd891bd725577dfc60376cf35bc13e63`,
+- an accidental post-closure commit `36e4df12b8cd8e787acd85cfa01ad8f047a6539b` added a duplicate copy of the T4 panel methods;
+- Python class lookup would use the later duplicate definitions, including a different `visibility_var` keyword name, so this drift could not be accepted silently into T5.
+
+Corrective action:
+- no force push;
+- no hand-edited partial revert;
+- `phase6_assembly_panel.py` was restored byte-for-byte from accepted #425 HEAD `5581b091...`;
+- corrective commit: `4c5555121e84de6c86e5b7893f8f1fbe467cc260`;
+- accepted panel blob restored exactly: `3ffea0709dd0c692816c59c2232f06710f2be885`;
+- predecessor→current compare no longer contains `phase6_assembly_panel.py`;
+- duplicate method counts are all exactly 1:
+  - `set_corner_texts`
+  - `set_part_text`
+  - `resolve_visibility`
+  - `visibility_var`
+  - `notify_visibility_changed`
+
+RUN `35489797602` is therefore classified as **PRE_T5_SCOPE_DRIFT_GATE_FAILURE** and is NOT requirement RED evidence.
+
+T5 may proceed only from the cleaned lineage after this corrective restore.
