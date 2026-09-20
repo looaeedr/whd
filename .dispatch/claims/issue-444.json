@@ -6,16 +6,14 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:29:00+08:00",
+  "last_update": "2026-09-21T07:30:00+08:00",
   "remote_qa": {
-    "run_id": 35544032196,
-    "status": "completed/failure",
-    "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c",
-    "failed_job_id": 106166667068,
-    "classification": "focused-test-seam-called-fix11-instead-of-fix10"
+    "run_id": 35544127302,
+    "status": "in_progress",
+    "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916"
   },
-  "next_action": "Acquire the replacement push-triggered focused QA run for head a992b2d6; once run_id exists, lock it through terminal.",
+  "next_action": "Poll exact RUN 35544127302 at head a992b2d6 through terminal; do not switch to sibling runs.",
   "blocker": null
 }
