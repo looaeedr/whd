@@ -7,6 +7,7 @@ on:
     paths:
       - 'tools/phase6_bridge_refactor_t0_census.py'
       - 'docs/superpowers/checkpoints/issue442-t0-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue442-t0-review.md'
       - '.github/workflows/qa-issue442-t0-census.yml'
   workflow_dispatch:
 
@@ -34,6 +35,7 @@ jobs:
             --task "派工 #442 T0：為 fold_designer_bridge.py ownership boundary 執行掃描深模組的 reproducible census、caller/source-test inventory、Git-object DXF/config baseline，並以 GitHub Actions remote QA 驗證；只建立 evidence，不修改 production runtime behavior。" \
             --changed-file tools/phase6_bridge_refactor_t0_census.py \
             --changed-file docs/superpowers/checkpoints/issue442-t0-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue442-t0-review.md \
             --changed-file .github/workflows/qa-issue442-t0-census.yml \
             --evidence docs/superpowers/checkpoints/issue442-t0-preflight-evidence.txt
 
@@ -47,7 +49,7 @@ jobs:
           printf 'CHANGED=%s\n' "${changed[*]}"
           for p in "${changed[@]}"; do
             case "$p" in
-              tools/phase6_bridge_refactor_t0_census.py|docs/superpowers/checkpoints/issue442-t0-preflight-evidence.txt|.github/workflows/qa-issue442-t0-census.yml) ;;
+              tools/phase6_bridge_refactor_t0_census.py|docs/superpowers/checkpoints/issue442-t0-preflight-evidence.txt|docs/superpowers/checkpoints/issue442-t0-review.md|.github/workflows/qa-issue442-t0-census.yml) ;;
               *) echo "UNEXPECTED_RUNTIME_DIFF=$p"; exit 1 ;;
             esac
           done
@@ -85,6 +87,8 @@ jobs:
           assert p['source_tests']['test_py_path_count'] > 0
           assert p['dxf_git_object_manifest']['path_count'] > 0
           assert p['config_git_object']['exists'] is True
+          assert len(p['reverse_imports']['bridge_reverse_import_violations']) == 0
+          assert p['bridge']['facade_binding_count'] <= 70
           assert set(p['symbols']) == {
               '_phase6_resolve_profile_key',
               '_phase6_box_symmetry_allowed',
@@ -99,6 +103,7 @@ jobs:
           print('CALLER_INVENTORY_COMPLETE=1')
           print('DXF_GIT_OBJECT_BASELINE_RECORDED=1')
           print('CONFIG_GIT_OBJECT_BASELINE_RECORDED=1')
+          print('PHASE6_REVERSE_IMPORT_BRIDGE_COUNT=0')
           print('PRODUCTION_RUNTIME_EDIT=0')
           PY
 
@@ -106,39 +111,32 @@ jobs:
         shell: bash
         run: cat /tmp/issue442-t0-census.md
 
-      - name: Runtime checkpoint
+      - name: Canonical finalization guard
         shell: bash
-        env:
-          BASE_SHA: 2b9aeccee2c91446ca02cbfe9fdcefee587ba29e
         run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          cp={
-            'issue': 442,
-            'task': 'T0',
-            'role': 'T0 implementer / remote QA',
-            'branch': os.environ['GITHUB_REF_NAME'],
-            'head_sha': os.environ['GITHUB_SHA'],
-            'production_target': 'cleanup/2d-3d-sync',
-            'frozen_x_base_sha': os.environ['BASE_SHA'],
-            'state': 'WAITING_REMOTE',
-            'run_id': int(os.environ['GITHUB_RUN_ID']),
-            'run_head_sha': os.environ['GITHUB_SHA'],
-            'completed': ['preflight','protected-diff','census','machine-acceptance'],
-            'pending': ['terminal-readback','code-review','claim-progress','issue-evidence'],
-            'failed': [],
-            'blocked': [],
-            'next_action': 'Poll this exact run to terminal, then perform review and write issue evidence.',
-          }
-          Path('/tmp/issue442-t0-checkpoint.json').write_text(json.dumps(cp,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-          PY
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-442.json > /tmp/issue442-terminal-checkpoint.json
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue442-terminal-checkpoint.json \
+            --issue 442 \
+            --branch "$GITHUB_REF_NAME" \
+            --head-sha "$GITHUB_SHA" \
+            --proof-out /tmp/issue442-finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue442-terminal-checkpoint.json \
+            /tmp/issue442-finalization-proof.json \
+            --issue 442 \
+            --branch "$GITHUB_REF_NAME" \
+            --head-sha "$GITHUB_SHA"
 
-      - name: Upload T0 evidence
+      - name: Upload T0 closing evidence
         uses: actions/upload-artifact@v4
         with:
-          name: issue442-t0-census
+          name: issue442-t0-closing
           path: |
             /tmp/issue442-t0-census.json
             /tmp/issue442-t0-census.md
-            /tmp/issue442-t0-checkpoint.json
+            /tmp/issue442-terminal-checkpoint.json
+            /tmp/issue442-finalization-proof.json
+            docs/superpowers/checkpoints/issue442-t0-review.md
