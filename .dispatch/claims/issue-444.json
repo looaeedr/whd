@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:38:00+08:00",
+  "last_update": "2026-09-21T07:40:00+08:00",
   "remote_qa": {
     "run_id": 35544127302,
     "status": "completed/success",
@@ -16,6 +16,14 @@
     "job_id": 106166915891,
     "result": "8 passed in 1.88s"
   },
-  "next_action": "Close validation PR #455 without merge, write terminal #444 acceptance evidence, close #444 completed, then release the shared claim after remote readback.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "released_at": "2026-09-21T07:40:00+08:00",
+  "accepted_head": "29b47853e21582a8533cda79a1a381a04a5571f3",
+  "issue_state": "closed/completed",
+  "validation_pr": {
+    "number": 455,
+    "state": "closed",
+    "merged": false
+  }
 }
