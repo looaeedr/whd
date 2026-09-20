@@ -1,0 +1,111 @@
+name: QA Issue427 Phase5 Postmerge Smoke
+
+on:
+  push:
+    branches:
+      - refactor/issue413-phase5-assembly-presentation-20260920
+    paths:
+      - .github/workflows/qa-issue427-phase5-postmerge-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postmerge-assembly-xvfb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PRODUCTION_BRANCH: cleanup/2d-3d-sync
+      PRODUCTION_SHA: 246578f815f4edfe273d1d5b6b443254ccfd6fa3
+      EVIDENCE: docs/superpowers/checkpoints/issue427-phase5-t6-journal.md
+      CONFIG_BEFORE: /tmp/issue427-postmerge-config-before.sha256
+      CONFIG_AFTER: /tmp/issue427-postmerge-config-after.sha256
+
+    steps:
+      - name: Checkout smoke harness
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工執行 Phase 5 T6 #427 post-merge focused Assembly Xvfb smoke against exact integrated production SHA, protected config invariant, remote QA and durable closure' \
+            --changed-file .github/workflows/qa-issue427-phase5-postmerge-smoke.yml \
+            --changed-file docs/superpowers/checkpoints/issue427-phase5-t6-journal.md \
+            --evidence "$EVIDENCE"
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Verify exact production ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCTION_BRANCH"
+          test "$(git rev-parse "origin/$PRODUCTION_BRANCH")" = "$PRODUCTION_SHA"
+          git cat-file -e "$PRODUCTION_SHA^{commit}"
+          echo "POST_MERGE_PRODUCTION_SHA_EXACT=1"
+          echo "POST_MERGE_PRODUCTION_SHA=$PRODUCTION_SHA"
+
+      - name: Checkout exact production SHA
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.PRODUCTION_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest -r requirements.txt matplotlib
+          command -v xvfb-run
+
+      - name: Capture protected config hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_BEFORE"
+
+      - name: Run post-merge Assembly Xvfb smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/process/test_issue422_phase5_t1_assembly_presentation.py \
+            tests/process/test_issue423_phase5_t2_assembly_panel.py \
+            tests/process/test_issue424_phase5_t3_box_piece_panel.py \
+            tests/process/test_issue425_phase5_t4_final_scene_visibility.py \
+            tests/process/test_issue426_phase5_t5_bridge_compression.py \
+            tests/test_issue376_assembly_collapsible_data.py \
+            tests/test_issue385_assembly_parent_child_groups.py \
+            tests/test_issue386_default_assembly_collapsed.py \
+            tests/test_phase6_latest_layout_contract.py \
+            tests/test_phase6_corner_dimension_controls.py \
+            -k 'not test_t2_module_has_no_bridge_app_display_mode_or_manufacturing_authority'
+          echo "POST_MERGE_ASSEMBLY_XVFB_SMOKE=GREEN"
+
+      - name: Verify config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_AFTER"
+          cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
+          echo "CONFIG_INVARIANT=GREEN"
+
+      - name: Upload post-merge smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue427-phase5-postmerge-smoke
+          path: |
+            /tmp/issue427-postmerge-config-before.sha256
+            /tmp/issue427-postmerge-config-after.sha256
+          if-no-files-found: warn
+          retention-days: 14
