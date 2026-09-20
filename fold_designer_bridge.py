@@ -42,6 +42,8 @@ from phase6_part_navigation import (
     project_hierarchy as _dm7_project_hierarchy,
     resolve_navigation as _dm7_resolve_navigation,
 )
+from phase6_assembly_presentation import build_assembly_presentation_model
+from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
     BoxBodyStructureType, normalize_box_body_structure_state, set_active_structure,
     activate_structure_with_defaults,
@@ -6956,73 +6958,55 @@ def _phase6_on_assembly_part_visibility_changed(self):
         self.do_update()
 
 
-def _phase6_scroll_assembly_parts(self, event):
-    canvas = getattr(self, "assembly_parts_canvas", None)
-    if canvas is None:
-        return "break"
-    def _event_int(value):
-        try:
-            return int(value or 0)
-        except (TypeError, ValueError):
-            return 0
+def _phase6_install_assembly_panel_aliases(self, owner):
+    """Expose rebuild-safe legacy handles for existing callers/tests."""
+    self.assembly_parts_panel = owner.host
+    self.assembly_parts_canvas = owner.canvas
+    self.assembly_parts_scrollbar = owner.scrollbar
+    self.assembly_parts_content = owner.content
+    self._assembly_parts_window = owner.window_id
 
-    delta = _event_int(getattr(event, "delta", 0))
-    number = _event_int(getattr(event, "num", 0))
-    if number == 4:
-        steps = -1
-    elif number == 5:
-        steps = 1
-    elif delta:
-        steps = -1 if delta > 0 else 1
-    else:
-        return "break"
-    try:
-        canvas.yview_scroll(steps, "units")
-    except Exception:
-        pass
-    return "break"
+    self.assembly_part_visible_vars = owner.visible_vars
+    self.assembly_part_corner_vars = owner.corner_vars
+    self.assembly_part_formed_vars = owner.formed_vars
+    self.assembly_part_blank_vars = owner.blank_vars
+    self.assembly_part_checkbuttons = owner.checkbuttons
+    self.assembly_part_sections = owner.sections
+    self.assembly_part_detail_frames = owner.detail_frames
+    self.assembly_part_detail_buttons = owner.detail_buttons
+    self.assembly_presentation_group_sections = owner.group_sections
+    self.assembly_presentation_group_detail_frames = owner.group_detail_frames
+    self.assembly_presentation_group_detail_buttons = owner.group_detail_buttons
+    self._phase6_assembly_part_detail_open_stash = owner.detail_open_stash
+    self._phase6_assembly_presentation_group_open_stash = owner.group_open_stash
+
+
+def _phase6_scroll_assembly_parts(self, event):
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.scroll(event) if owner is not None else "break"
 
 
 def _phase6_bind_assembly_scroll(widget, self):
-    try:
-        widget.bind("<MouseWheel>", lambda e: _phase6_scroll_assembly_parts(self, e))
-        widget.bind("<Button-4>", lambda e: _phase6_scroll_assembly_parts(self, e))
-        widget.bind("<Button-5>", lambda e: _phase6_scroll_assembly_parts(self, e))
-    except Exception:
-        pass
-    for child in tuple(getattr(widget, "winfo_children", lambda: ())()):
-        _phase6_bind_assembly_scroll(child, self)
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        owner.bind_scroll(widget)
 
 
 def _phase6_assembly_presentation_groups(values) -> tuple[tuple[str, tuple[str, ...]], ...]:
-    """Group multipart physical identities for assembly presentation only.
+    """Compatibility projection over the Phase 5 pure presentation model."""
+    model = build_assembly_presentation_model(values, label_for=str)
+    rows = []
+    for entry in model.entries:
+        children = tuple(
+            str(child.part_key)
+            for child in tuple(getattr(entry, "children", ()) or ())
+        )
+        if children:
+            rows.append((str(entry.presentation_key), children))
+        else:
+            rows.append((str(entry.part_key), ()))
+    return tuple(rows)
 
-    The returned parent key may be a presentation-only label such as door or
-    base_plate. It is never inserted into the workspace and owns no
-    visibility/manufacturing state. Real child identities remain authoritative.
-    """
-    keys = tuple(str(value) for value in tuple(values or ()) if str(value or ""))
-    door_children = tuple(
-        key for key in keys if re.fullmatch(r"door_c\d+_r\d+", key)
-    )
-    base_children = tuple(
-        key for key in keys if re.fullmatch(r"base_plate_c\d+_r\d+", key)
-    )
-    groups = []
-    emitted = set()
-    for key in keys:
-        if key in door_children:
-            if "door" not in emitted:
-                groups.append(("door", door_children))
-                emitted.add("door")
-            continue
-        if key in base_children:
-            if "base_plate" not in emitted:
-                groups.append(("base_plate", base_children))
-                emitted.add("base_plate")
-            continue
-        groups.append((key, ()))
-    return tuple(groups)
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
     """Return the part-key topology currently represented by assembly rows."""
@@ -7044,93 +7028,24 @@ def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
 
 
 def _phase6_set_assembly_part_details_open(self, key, is_open):
-    """Show/hide one assembly row's read-only data without changing visibility."""
-    key = str(key)
-    details = dict(getattr(self, "assembly_part_detail_frames", {}) or {}).get(key)
-    button = dict(getattr(self, "assembly_part_detail_buttons", {}) or {}).get(key)
-    if details is None:
-        return False
-    is_open = bool(is_open)
-    if is_open:
-        if not details.winfo_manager():
-            details.pack(fill=original.tk.X)
-    else:
-        if details.winfo_manager():
-            details.pack_forget()
-    if button is not None:
-        try:
-            button.configure(text=("▾" if is_open else "▸"))
-        except Exception:
-            pass
-    stash = dict(getattr(self, "_phase6_assembly_part_detail_open_stash", {}) or {})
-    stash[key] = is_open
-    self._phase6_assembly_part_detail_open_stash = stash
-    canvas = getattr(self, "assembly_parts_canvas", None)
-    if canvas is not None:
-        try:
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        except Exception:
-            pass
-    return is_open
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.set_part_details_open(key, is_open) if owner is not None else False
 
 
 def _phase6_toggle_assembly_part_details(self, key):
-    key = str(key)
-    details = dict(getattr(self, "assembly_part_detail_frames", {}) or {}).get(key)
-    if details is None:
-        return False
-    return _phase6_set_assembly_part_details_open(
-        self, key, not bool(details.winfo_manager())
-    )
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.toggle_part_details(key) if owner is not None else False
 
 
 def _phase6_set_assembly_presentation_group_open(self, key, is_open):
-    """Show/hide one synthetic assembly presentation group without domain effects."""
-    key = str(key)
-    details = dict(
-        getattr(self, "assembly_presentation_group_detail_frames", {}) or {}
-    ).get(key)
-    button = dict(
-        getattr(self, "assembly_presentation_group_detail_buttons", {}) or {}
-    ).get(key)
-    if details is None:
-        return False
-    is_open = bool(is_open)
-    if is_open:
-        if not details.winfo_manager():
-            details.pack(fill=original.tk.X)
-    else:
-        if details.winfo_manager():
-            details.pack_forget()
-    if button is not None:
-        try:
-            button.configure(text=("▾" if is_open else "▸"))
-        except Exception:
-            pass
-    stash = dict(
-        getattr(self, "_phase6_assembly_presentation_group_open_stash", {}) or {}
-    )
-    stash[key] = is_open
-    self._phase6_assembly_presentation_group_open_stash = stash
-    canvas = getattr(self, "assembly_parts_canvas", None)
-    if canvas is not None:
-        try:
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        except Exception:
-            pass
-    return is_open
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.set_group_open(key, is_open) if owner is not None else False
 
 
 def _phase6_toggle_assembly_presentation_group(self, key):
-    key = str(key)
-    details = dict(
-        getattr(self, "assembly_presentation_group_detail_frames", {}) or {}
-    ).get(key)
-    if details is None:
-        return False
-    return _phase6_set_assembly_presentation_group_open(
-        self, key, not bool(details.winfo_manager())
-    )
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    return owner.toggle_group(key) if owner is not None else False
+
 
 def _phase6_set_box_body_piece_details_open(self, key, is_open):
     """Show/hide one BoxBody physical-piece data block only."""
@@ -7182,62 +7097,35 @@ def _phase6_toggle_box_body_piece_details(self, key):
 
 
 def _phase6_refresh_assembly_parts_panel(self):
-    panel = getattr(self, "assembly_parts_content", None) or getattr(self, "assembly_parts_panel", None)
-    if panel is None:
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is None:
         return
-    old_visible = {
-        key: bool(var.get()) for key, var in dict(getattr(self, "assembly_part_visible_vars", {}) or {}).items()
-    }
-    old_text = {
-        key: str(var.get()) for key, var in dict(getattr(self, "assembly_part_corner_vars", {}) or {}).items()
-    }
-    old_formed = {
-        key: str(var.get()) for key, var in dict(getattr(self, "assembly_part_formed_vars", {}) or {}).items()
-    }
-    old_blank = {
-        key: str(var.get()) for key, var in dict(getattr(self, "assembly_part_blank_vars", {}) or {}).items()
-    }
-    old_open = dict(getattr(self, "_phase6_assembly_part_detail_open_stash", {}) or {})
-    old_open.update({
-        key: bool(frame.winfo_manager())
-        for key, frame in dict(getattr(self, "assembly_part_detail_frames", {}) or {}).items()
-    })
-    self._phase6_assembly_part_detail_open_stash = old_open
-    old_group_open = dict(
-        getattr(self, "_phase6_assembly_presentation_group_open_stash", {}) or {}
-    )
-    old_group_open.update({
-        key: bool(frame.winfo_manager())
-        for key, frame in dict(
-            getattr(self, "assembly_presentation_group_detail_frames", {}) or {}
-        ).items()
-    })
-    self._phase6_assembly_presentation_group_open_stash = old_group_open
+
+    # BoxBody late-piece widgets remain Bridge-owned until their later Phase 5
+    # slice. Preserve their visibility seed before the panel rebuild destroys
+    # the old logical BoxBody details host.
     old_piece_visible = {
         key: bool(var.get())
-        for key, var in dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).items()
+        for key, var in dict(
+            getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}
+        ).items()
     }
-    old_piece_visible = {
+    self._phase6_box_body_piece_visibility_stash = {
         **dict(getattr(self, "_phase6_box_body_piece_visibility_stash", {}) or {}),
         **old_piece_visible,
     }
-    self._phase6_box_body_piece_visibility_stash = old_piece_visible
 
-    for child in panel.winfo_children():
-        child.destroy()
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    model = build_assembly_presentation_model(
+        getattr(_designer_workspace(self), "available_parts", ()) or (),
+        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
+    )
+    owner.render(model)
 
-    self.assembly_part_visible_vars = {}
-    self.assembly_part_corner_vars = {}
-    self.assembly_part_formed_vars = {}
-    self.assembly_part_blank_vars = {}
-    self.assembly_part_checkbuttons = {}
-    self.assembly_part_sections = {}
-    self.assembly_part_detail_frames = {}
-    self.assembly_part_detail_buttons = {}
-    self.assembly_presentation_group_sections = {}
-    self.assembly_presentation_group_detail_frames = {}
-    self.assembly_presentation_group_detail_buttons = {}
-    self.assembly_box_body_piece_host = None
+    # Widget handle changes on rebuild; all dict aliases above retain identity.
+    self.assembly_box_body_piece_host = owner.box_body_piece_host
+
+    # T2 deliberately does not migrate render-time BoxBody physical children.
     self.assembly_box_body_piece_labels = {}
     self.assembly_box_body_piece_sections = {}
     self.assembly_box_body_piece_visible_vars = {}
@@ -7248,117 +7136,6 @@ def _phase6_refresh_assembly_parts_panel(self):
     self.assembly_box_body_piece_blank_vars = {}
     self.assembly_box_body_piece_corner_vars = {}
 
-    snapshot = getattr(self, "_phase6_input_snapshot", {})
-
-    def build_part_row(parent, key, *, nested=False):
-        row = original.ttk.Frame(parent)
-        row.pack(
-            fill=original.tk.X,
-            padx=((18, 0) if nested else (0, 0)),
-            pady=(0, 4),
-        )
-        visible = original.tk.BooleanVar(value=old_visible.get(key, True))
-        size_text = original.tk.StringVar(value=old_text.get(key, "截角尺寸：等待3D"))
-        formed_text = original.tk.StringVar(value=old_formed.get(key, "成形尺寸：等待3D"))
-        blank_text = original.tk.StringVar(value=old_blank.get(key, "展開料：等待3D"))
-        header = original.ttk.Frame(row)
-        header.pack(fill=original.tk.X)
-        check = original.ttk.Checkbutton(
-            header,
-            text=_phase6_part_label(key, snapshot=snapshot),
-            variable=visible,
-            command=lambda: _phase6_on_assembly_part_visibility_changed(self),
-        )
-        check.pack(
-            side=original.tk.LEFT,
-            anchor=original.tk.W,
-            fill=original.tk.X,
-            expand=True,
-        )
-        details = original.ttk.Frame(row)
-        details_open = old_open.get(key, False)
-        detail_button = original.ttk.Button(
-            header,
-            text=("▾" if details_open else "▸"),
-            width=2,
-            command=lambda k=key: _phase6_toggle_assembly_part_details(self, k),
-            takefocus=True,
-        )
-        detail_button.pack(side=original.tk.RIGHT)
-        original.ttk.Label(
-            details, textvariable=formed_text, justify=original.tk.LEFT, wraplength=300,
-        ).pack(fill=original.tk.X, padx=(20, 0))
-        original.ttk.Label(
-            details, textvariable=blank_text, justify=original.tk.LEFT, wraplength=300,
-        ).pack(fill=original.tk.X, padx=(20, 0))
-        original.ttk.Label(
-            details, textvariable=size_text, justify=original.tk.LEFT, wraplength=300,
-        ).pack(fill=original.tk.X, padx=(20, 0))
-        if key == "box_body":
-            self.assembly_box_body_piece_host = original.ttk.Frame(details)
-            self.assembly_box_body_piece_host.pack(fill=original.tk.X)
-        if details_open:
-            details.pack(fill=original.tk.X)
-
-        self.assembly_part_visible_vars[key] = visible
-        self.assembly_part_corner_vars[key] = size_text
-        self.assembly_part_formed_vars[key] = formed_text
-        self.assembly_part_blank_vars[key] = blank_text
-        self.assembly_part_checkbuttons[key] = check
-        self.assembly_part_sections[key] = row
-        self.assembly_part_detail_frames[key] = details
-        self.assembly_part_detail_buttons[key] = detail_button
-        _phase6_bind_assembly_scroll(row, self)
-
-    part_keys = _phase6_operator_part_selector_keys(
-        self.designer_workspace.available_parts
-    )
-    for group_key, children in _phase6_assembly_presentation_groups(part_keys):
-        if not children:
-            build_part_row(panel, group_key)
-            continue
-
-        group = original.ttk.Frame(panel)
-        group.pack(fill=original.tk.X, pady=(0, 4))
-        header = original.ttk.Frame(group)
-        header.pack(fill=original.tk.X)
-        original.ttk.Label(
-            header,
-            text=_phase6_part_label(group_key, snapshot=snapshot),
-            anchor=original.tk.W,
-        ).pack(
-            side=original.tk.LEFT,
-            anchor=original.tk.W,
-            fill=original.tk.X,
-            expand=True,
-        )
-        details = original.ttk.Frame(group)
-        group_open = old_group_open.get(group_key, False)
-        button = original.ttk.Button(
-            header,
-            text=("▾" if group_open else "▸"),
-            width=2,
-            command=lambda k=group_key: _phase6_toggle_assembly_presentation_group(self, k),
-            takefocus=True,
-        )
-        button.pack(side=original.tk.RIGHT)
-        if group_open:
-            details.pack(fill=original.tk.X)
-
-        self.assembly_presentation_group_sections[group_key] = group
-        self.assembly_presentation_group_detail_frames[group_key] = details
-        self.assembly_presentation_group_detail_buttons[group_key] = button
-        for child_key in children:
-            build_part_row(details, child_key, nested=True)
-        _phase6_bind_assembly_scroll(group, self)
-
-    _phase6_bind_assembly_scroll(panel, self)
-    canvas = getattr(self, "assembly_parts_canvas", None)
-    if canvas is not None:
-        try:
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        except Exception:
-            pass
 
 # Patch methods onto the FIX10 class instead of touching the user's original file.
 _FIX10_INIT = Phase6FoldDesignerApp.__init__
@@ -7622,39 +7399,18 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_build_content_switch(self)
 
-    # 組合體內容直接使用左側剩餘空間；不再用帶標題/框線的 LabelFrame
-    # 切出一塊獨立「組合圖」區域。
-    self.assembly_parts_panel = original.ttk.Frame(self.left, padding=6)
-    assembly_scroll_host = original.ttk.Frame(self.assembly_parts_panel)
-    assembly_scroll_host.pack(fill=original.tk.BOTH, expand=True)
-    self.assembly_parts_canvas = original.tk.Canvas(
-        assembly_scroll_host, height=1, highlightthickness=0, borderwidth=0, takefocus=False
+    # Phase 5 T2: the left Assembly Parts surface is owned by one focused Tk
+    # panel. Bridge keeps compatibility aliases only; panel registries retain
+    # identity across rebuilds so legacy readers never hold stale dict objects.
+    self._phase6_assembly_panel_owner = Phase6AssemblyPanel(
+        self.left,
+        actions=AssemblyPanelActions(
+            on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self)
+        ),
     )
-    self.assembly_parts_scrollbar = original.ttk.Scrollbar(
-        assembly_scroll_host, orient=original.tk.VERTICAL, command=self.assembly_parts_canvas.yview
-    )
-    self.assembly_parts_canvas.configure(yscrollcommand=self.assembly_parts_scrollbar.set)
-    self.assembly_parts_scrollbar.pack(side=original.tk.RIGHT, fill=original.tk.Y)
-    self.assembly_parts_canvas.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
-    self.assembly_parts_content = original.ttk.Frame(self.assembly_parts_canvas)
-    self._assembly_parts_window = self.assembly_parts_canvas.create_window(
-        (0, 0), window=self.assembly_parts_content, anchor="nw"
-    )
-    self.assembly_parts_content.bind(
-        "<Configure>",
-        lambda _e: self.assembly_parts_canvas.configure(scrollregion=self.assembly_parts_canvas.bbox("all")),
-    )
-    self.assembly_parts_canvas.bind(
-        "<Configure>",
-        lambda e: self.assembly_parts_canvas.itemconfigure(self._assembly_parts_window, width=max(1, e.width)),
-    )
-    _phase6_bind_assembly_scroll(self.assembly_parts_canvas, self)
-    _phase6_bind_assembly_scroll(self.assembly_parts_content, self)
-    self.assembly_part_visible_vars = {}
-    self.assembly_part_corner_vars = {}
-    self.assembly_part_formed_vars = {}
-    self.assembly_part_blank_vars = {}
-    self.assembly_part_checkbuttons = {}
+    _phase6_install_assembly_panel_aliases(self, self._phase6_assembly_panel_owner)
+
+    # Render-time BoxBody physical children remain Bridge-owned in T2.
     self.assembly_box_body_piece_visible_vars = {}
     self.assembly_box_body_piece_checkbuttons = {}
     _phase6_refresh_assembly_parts_panel(self)
