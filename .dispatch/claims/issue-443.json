@@ -5,20 +5,17 @@
   "work_branch": "refactor/issue443-t1-dead-glue-20260920",
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-  "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
-  "phase": "IMPLEMENTING",
+  "head_sha": "9786a04911552cda257b6d2da31107711f93c22c",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:35:31Z",
+  "last_update": "2026-09-20T13:36:43Z",
   "remote_qa": {
-    "run_id": 35513915340,
-    "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "INHERITED_BASELINE_DEBT",
-    "candidate_only_failure": 0,
-    "baseline_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-    "candidate_sha": "f4f46dded899669d506cc9362944194d7e9c5b36"
+    "run_id": 35514014820,
+    "head_sha": "9786a04911552cda257b6d2da31107711f93c22c",
+    "status": "queued",
+    "conclusion": null,
+    "mode": "GREEN_FINAL"
   },
-  "next_action": "Remove temporary A/B workflow, teach T1 main QA to allow only the proven inherited nodeid while failing on any candidate-only regression, then rerun full T1 GREEN including manufacturing/DXF and Git-object invariants.",
+  "next_action": "Poll exact GREEN run 35514014820 to terminal; require focused GREEN, candidate-only regression=0, manufacturing/DXF GREEN, and Git-object invariants GREEN.",
   "blocker": null
 }
