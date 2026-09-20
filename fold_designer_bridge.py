@@ -6059,7 +6059,7 @@ def _phase6_build_persistent_top_area(self):
     self.left_scroll_canvas = original.tk.Canvas(
         self.root,
         width=_phase6_left_workspace_width(self._settings_values.get("ui_text_size", "small")),
-        background=WHD_THEME["panel"],
+        background=WHD_THEME["background"],
         highlightthickness=0,
         borderwidth=0,
         takefocus=False,
