@@ -5,17 +5,28 @@
   "work_branch": "refactor/issue433-t3-assembly-shared-host-20260920",
   "claimed_at": "2026-09-20T07:44:00Z",
   "base_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
-  "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
-  "phase": "IMPLEMENTING",
+  "head_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
+  "phase": "GREEN",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:46:00Z",
   "remote_qa": {
-    "run_id": 35497736450,
-    "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
+    "run_id": 35497815978,
+    "head_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
     "status": "completed",
     "conclusion": "success",
-    "classification": "T3_KNOWLEDGE_PREFLIGHT_GREEN"
+    "classification": "T3_ALREADY_GREEN_AFTER_T1_6_PASS_1_ALLOWED_SKIP_0_FAIL"
   },
-  "next_action": "Read current Phase6AssemblyPanel owner and existing visibility/collapse regression seams, then add characterization tests/workflow/docs only. Production stays unchanged unless a real T3 RED appears.",
-  "blocker": null
+  "next_action": "Run T3 no-op production A/B: production bridge + phase6_assembly_panel exact predecessor; exact inherited Assembly shared-host/collapse outcome parity on base/candidate; candidate T3 nodes GREEN.",
+  "blocker": null,
+  "tested_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
+  "characterization": {
+    "run_id": 35497815978,
+    "job_id": 106044731970,
+    "artifact_id": 10600702286,
+    "artifact_sha256": "cba3e7861d17392b10990d477c2faf74edbcdca20da4c59ad16484b0aa69c3e8",
+    "result": "6_PASS_1_ALLOWED_SKIP_0_FAIL",
+    "allowed_skip": "tests/test_issue376_assembly_collapsible_data.py::test_box_body_physical_piece_rows_are_also_collapsible_when_present",
+    "production_runtime_edit": 0,
+    "already_green_after_t1": true
+  }
 }
