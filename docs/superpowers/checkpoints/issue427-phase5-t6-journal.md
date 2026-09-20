@@ -180,3 +180,100 @@ Correction:
 - no candidate production file changed.
 
 RUN `35491085695` is therefore classified as **STATIC_CLASSIFIER_HARNESS_FALSE_POSITIVE**, not Phase 5 product drift.
+
+
+## Final T6 GREEN / Cleanup Evidence
+
+Final normalized common-test A/B:
+- harness HEAD: `08ee15e13642f861a58e78e8bff60c9721a103c1`
+- RUN: `35491897110` — **SUCCESS**
+- BASELINE: `396bfd96524a44a178c29bbefaf1b7c0437c119f`
+- CANDIDATE: `06f23d44ad29d5e2fe9a0a82d71ec48ce1416980`
+
+Headless:
+```text
+baseline: 5 failed / 2615 passed / 427 skipped
+candidate: 5 failed / 2615 passed / 427 skipped
+NEW_HEADLESS=[]
+NEW_HEADLESS_ERRORS=[]
+```
+
+Xvfb:
+```text
+baseline: 42 failed / 3004 passed / 1 skipped
+candidate: 42 failed / 3004 passed / 1 skipped
+NEW_XVFB=[]
+NEW_XVFB_ERRORS=[]
+```
+
+Final classifier:
+```text
+CANDIDATE_ONLY_FAILURES=0
+CANDIDATE_ONLY_ERRORS=0
+PHASE5_DECISION=GREEN
+```
+
+Cumulative static/focused:
+- `BOUNDARY_CENSUS_REPRODUCIBLE=1`
+- `MOUNT_UNMOUNT_CENSUS_COMPLETE=1`
+- `LEGACY_ATTRIBUTE_READER_CENSUS_COMPLETE=1`
+- `PROTECTED_OWNER_MANIFEST_COMPLETE=1`
+- `NEW_NON_TK_VISIBILITY_STORE=0`
+- `VISIBILITY_STATE_DUPLICATION=0`
+- `BOX_PIECE_ROW_SOURCE_RENDER_DATA_PIECES=True`
+- `BOX_PIECE_KEY_SET_FORCED_EQUALIZATION=0`
+- `VISIBILITY_CHANGE_RENDER_ONLY_IN_ASSEMBLY_MODE=True`
+- `PANEL_READS_DISPLAY_MODE=0`
+- `VISIBILITY_RENDER_MODE_GATE_OWNED_BY_ACTION_TARGET=True`
+- `FINAL_SCENE_ASSEMBLY_QUERY_ORDER_PARITY=GREEN`
+- `VISIBLE_BOX_BODY_PIECE_TRISTATE_PARITY=GREEN`
+- Structure Tree empty/repopulated parity GREEN
+- refresh/mount/unmount parity GREEN
+- legacy alias parity GREEN; stale reference count 0
+- `GEOMETRY_DRIFT=0`
+- `DXF_DRIFT=0`
+- `PROJECT_SCHEMA_DRIFT=0`
+- `PROTECTED_DRIFT=0`
+- `RIGHT_DIAGNOSTICS_PARITY=GREEN`
+- focused cumulative contracts: `65 passed / 1 deselected`
+
+Evidence artifacts:
+- final classifier artifact `10599367255`, digest `sha256:9aee8aaf78e6b5e4cccd4ae424ac3f2cb3e72e9cf9af12f0d37dc540e57d5be9`
+- Headless baseline `10599073759`, digest `sha256:c36a346d57fc28d6070244d12fdb64deca9883a7d5774d648c7fbd3f044373b2`
+- Headless candidate `10599282219`, digest `sha256:e7c5c1716850e59ca122ba1c1128eeff81db82f4d11cf50b9f375bbe0f925548`
+- Xvfb baseline `10599866267`, digest `sha256:59ce48542b7ded30e66f9dac3b315c83dde77f27cbc1f300585936fcc328e216`
+- Xvfb candidate `10599119775`, digest `sha256:d716c519242b404309b069784e8a7d3dd2ab0f7af8b42a47db42dc63bc030db0`
+
+### Temporary QA cleanup
+
+After classifier GREEN, T6 removed only temporary Phase 5 QA harness/probes:
+- `.github/workflows/qa-issue421-phase5-t0.yml`
+- `.github/workflows/qa-issue422-phase5-t1.yml`
+- `.github/workflows/qa-issue423-phase5-t2.yml`
+- `.github/workflows/qa-issue424-phase5-t3.yml`
+- `.github/workflows/qa-issue425-phase5-t4.yml`
+- `.github/workflows/qa-issue426-phase5-t5.yml`
+- `.github/workflows/qa-issue427-phase5-t6.yml`
+- `tools/phase5_t0_assembly_presentation_census.py`
+- `tools/phase5_t6_classifier.py`
+
+Permanent regressions under `tests/**`, all T0–T6 journals/checkpoints, and production files are retained.
+
+Cleanup changed-file Preflight route:
+```text
+REQUIRED_SKILLS=8
+REQUIRED_REFERENCES=7
+KNOWLEDGE_PREFLIGHT_RC=0
+```
+
+### Integration state
+
+```text
+STATE=CLEANUP_COMPLETE_PENDING_INTEGRATION
+BASELINE=396bfd96524a44a178c29bbefaf1b7c0437c119f
+CANDIDATE=06f23d44ad29d5e2fe9a0a82d71ec48ce1416980
+T6_HARNESS_HEAD=08ee15e13642f861a58e78e8bff60c9721a103c1
+RUN_ID=35491897110
+PHASE5_DECISION=GREEN
+NEXT_ACTION=Prove cleanup-head production blobs equal tested candidate, fresh-read production target, then non-force integrate.
+```
