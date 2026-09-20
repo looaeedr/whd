@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issue": "433",
+  "branch": "refactor/issue433-t3-assembly-shared-host-20260920",
+  "base_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
+  "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
+  "state": "CHARACTERIZATION_PENDING",
+  "next_action": "Commit T3 tests/workflow/docs only. Require production bridge + assembly panel exact predecessor equality and all T3 host/visibility/collapse gates.",
+  "preflight_run_id": 35497736450,
+  "evidence": [
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}

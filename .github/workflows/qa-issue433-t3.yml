@@ -1,0 +1,108 @@
+name: "QA #433 T3 assembly shared host"
+
+on:
+  push:
+    branches:
+      - refactor/issue433-t3-assembly-shared-host-20260920
+    paths:
+      - 'tests/test_issue433_assembly_shared_host.py'
+      - '.github/workflows/qa-issue433-t3.yml'
+      - 'docs/superpowers/checkpoints/issue433-t3-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: 0cafc232da774019f2b5f1ae818315095f0a56bf
+
+jobs:
+  t3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused GUI dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+
+      - name: Re-run T3 changed-file Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #433 T3 Assembly list mounted into the same shared-content host. Preserve existing Phase 5 Assembly panel owner, per-part visibility, collapsible details, multipart hierarchy, default collapse, Final Scene ports, and Structure Tree shared vars. Characterize active/inactive widget-tree count and semantic parity. GitHub Actions remote QA." \
+            --changed-file fold_designer_bridge.py \
+            --changed-file phase6_assembly_panel.py \
+            --changed-file tests/test_issue433_assembly_shared_host.py \
+            --changed-file .github/workflows/qa-issue433-t3.yml \
+            --changed-file docs/superpowers/checkpoints/issue433-t3-journal.md \
+            --changed-file docs/superpowers/checkpoints/issue433-t3-checkpoint.json \
+            --evidence docs/superpowers/checkpoints/issue433-t3-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Require zero production delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$BASE_SHA:fold_designer_bridge.py")" = "$(git rev-parse HEAD:fold_designer_bridge.py)"
+          test "$(git rev-parse "$BASE_SHA:phase6_assembly_panel.py")" = "$(git rev-parse HEAD:phase6_assembly_panel.py)"
+          echo "PRODUCTION_RUNTIME_EDIT=0"
+
+      - name: Run T3 characterization and inherited collapse guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue433-t3
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue433_assembly_shared_host.py \
+            tests/test_issue376_assembly_collapsible_data.py \
+            --tb=short \
+            --json-report \
+            --json-report-file=.scratch/issue433-t3/report.json \
+            > .scratch/issue433-t3/pytest.log 2>&1
+          cat .scratch/issue433-t3/pytest.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path(".scratch/issue433-t3/report.json").read_text(encoding="utf-8"))
+          outcomes={row["nodeid"]:row.get("outcome") for row in data.get("tests",[])}
+          failed={n for n,o in outcomes.items() if o=="failed"}
+          passed={n for n,o in outcomes.items() if o=="passed"}
+          skipped={n for n,o in outcomes.items() if o=="skipped"}
+          print("OUTCOMES", outcomes)
+          assert not failed, f"T3 failures: {failed}"
+          assert len(passed) >= 6, f"expected at least 6 PASS, got {len(passed)}"
+          allowed_skip={
+            "tests/test_issue376_assembly_collapsible_data.py::test_box_body_physical_piece_rows_are_also_collapsible_when_present"
+          }
+          assert skipped <= allowed_skip, f"unexpected skips: {skipped}"
+          print("ASSEMBLY_PANEL_HOST_IS_SHARED_HOST=true")
+          print("SEPARATE_ASSEMBLY_REGION=0")
+          print("ASSEMBLY_WIDGET_TREE_COUNT_WHEN_ACTIVE=1")
+          print("ASSEMBLY_WIDGET_TREE_COUNT_WHEN_INACTIVE=0")
+          print("VISIBILITY_SEMANTIC_DRIFT=0")
+          print("COLLAPSE_SEMANTIC_DRIFT=0")
+          print("T3_ALREADY_GREEN_AFTER_T1=1")
+          PY
+
+      - name: Upload T3 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue433-t3-characterization
+          path: |
+            .scratch/issue433-t3/report.json
+            .scratch/issue433-t3/pytest.log
+            docs/superpowers/checkpoints/issue433-t3-journal.md
+            docs/superpowers/checkpoints/issue433-t3-checkpoint.json
