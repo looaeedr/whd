@@ -177,8 +177,14 @@ def static_report(baseline: str, candidate: str, t0_json: Path) -> dict[str, obj
     if not config_equal:
         failures.append("config.ini drift")
 
-    baseline_ref = git("ls-tree", "-r", "--name-only", baseline, "基準檔").splitlines()
-    candidate_ref = git("ls-tree", "-r", "--name-only", candidate, "基準檔").splitlines()
+    baseline_ref = git(
+        "-c", "core.quotePath=false",
+        "ls-tree", "-r", "--name-only", baseline, "基準檔",
+    ).splitlines()
+    candidate_ref = git(
+        "-c", "core.quotePath=false",
+        "ls-tree", "-r", "--name-only", candidate, "基準檔",
+    ).splitlines()
     reference_tree_paths = sorted(set(baseline_ref) | set(candidate_ref))
     ref_drift = [
         path for path in reference_tree_paths
