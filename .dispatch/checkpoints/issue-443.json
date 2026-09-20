@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "443",
+  "branch": "refactor/issue443-t1-dead-glue-20260920",
+  "head_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "accepted_predecessor=cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
+    "intended_red_run=35513330235",
+    "baseline_ab_run=35513915340",
+    "green_run=35514014820",
+    "focused_green=3_passed",
+    "candidate_only_regression=0",
+    "manufacturing_dxf=12_passed",
+    "dxf_git_object_invariant=1",
+    "config_git_object_invariant=1",
+    "protected_drift=0",
+    "standards_review=PASS",
+    "spec_review=PASS"
+  ]
+}
