@@ -10,12 +10,12 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T07:12:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35496092853,
     "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T1_INTENDED_RED"
+    "classification": "ACTIVE_T1_INTENDED_RED"
   },
-  "next_action": "Discover and poll the push-triggered #431 T1 RED run for exact head 7d4c569c5936924120ec0b520f7afd61bbd07fb2. Require 5 PASS + exactly 3 intended FAIL + 0 SKIP.",
+  "next_action": "Poll run 35496092853 on exact head 7d4c569c5936924120ec0b520f7afd61bbd07fb2 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null
 }
