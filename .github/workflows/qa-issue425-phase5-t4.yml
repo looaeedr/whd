@@ -1,0 +1,225 @@
+name: QA Issue425 Phase5 T4
+
+on:
+  push:
+    branches:
+      - refactor/issue413-phase5-assembly-presentation-20260920
+    paths:
+      - phase6_assembly_panel.py
+      - fold_designer_bridge.py
+      - tests/process/test_issue425_phase5_t4_final_scene_visibility.py
+      - .github/workflows/qa-issue425-phase5-t4.yml
+      - docs/superpowers/checkpoints/issue425-phase5-t4-journal.md
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - phase6_assembly_panel.py
+      - fold_designer_bridge.py
+      - tests/process/test_issue425_phase5_t4_final_scene_visibility.py
+      - .github/workflows/qa-issue425-phase5-t4.yml
+      - docs/superpowers/checkpoints/issue425-phase5-t4-journal.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase5-t4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OWNER_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
+      ACCEPTED_PREDECESSOR: 35641caa9abe5927766135ee5e5621bfce1cf775
+      EVIDENCE: docs/superpowers/checkpoints/issue425-phase5-t4-journal.md
+      TEST_LOG: /tmp/issue425-t4-pytest.log
+      CONFIG_BEFORE: /tmp/issue425-config-before.sha256
+      CONFIG_AFTER: /tmp/issue425-config-after.sha256
+
+    steps:
+      - name: Checkout exact work-order head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.OWNER_HEAD }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused test dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest --version
+          command -v xvfb-run
+
+      - name: Verify T4 lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$OWNER_HEAD"
+          git cat-file -e "$ACCEPTED_PREDECESSOR^{commit}"
+          git merge-base --is-ancestor "$ACCEPTED_PREDECESSOR" "$OWNER_HEAD"
+          echo "T4_PARENT_ANCESTOR=1"
+          echo "WORK_ORDER_HEAD=$OWNER_HEAD"
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task '派工執行 Phase 5 accepted specification T4 #425: rewire FinalScene assembly presentation ports, visibility tri-state and fallback writeback, DM7 Structure Tree compatibility to panel-owned Tk vars; preserve render order, lossy formed/blank text sink, corner separate sink, registry-empty no-op behavior, UI parity, remote QA and durable closure' \
+            --changed-file phase6_assembly_panel.py \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/process/test_issue425_phase5_t4_final_scene_visibility.py \
+            --changed-file .github/workflows/qa-issue425-phase5-t4.yml \
+            --changed-file docs/superpowers/checkpoints/issue425-phase5-t4-journal.md \
+            --evidence "$EVIDENCE"
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Require T4 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          predecessor = "35641caa9abe5927766135ee5e5621bfce1cf775"
+          allowed = {
+              "phase6_assembly_panel.py",
+              "fold_designer_bridge.py",
+              "tests/process/test_issue425_phase5_t4_final_scene_visibility.py",
+              ".github/workflows/qa-issue425-phase5-t4.yml",
+              "docs/superpowers/checkpoints/issue425-phase5-t4-journal.md",
+          }
+          changed = {
+              x.strip()
+              for x in subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{predecessor}...HEAD"],
+                  text=True,
+              ).splitlines()
+              if x.strip()
+          }
+          extra = sorted(changed - allowed)
+          print("T4_CHANGED_FILES=", sorted(changed))
+          print("T4_SCOPE_EXTERNAL_FILES=", extra)
+          if extra:
+              raise SystemExit("T4 scope drift: " + repr(extra))
+          print("T4_SCOPE_EXTERNAL_DRIFT=0")
+          PY
+
+      - name: Capture protected config hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_BEFORE"
+
+      - name: Run T4 RED or GREEN under Xvfb
+        shell: bash
+        run: |
+          set -uo pipefail
+          if grep -Eq '^[[:space:]]+def set_corner_texts\(' phase6_assembly_panel.py; then
+            set -e
+            xvfb-run -a python -m pytest -q \
+              tests/process/test_issue425_phase5_t4_final_scene_visibility.py \
+              | tee "$TEST_LOG"
+            echo "T4_GREEN=1"
+            echo "FINAL_SCENE_ASSEMBLY_QUERY_ORDER_PARITY=GREEN"
+            echo "FINAL_SCENE_TEXT_SINK_PARITY=GREEN"
+            echo "UNKNOWN_TEXT_KIND_PRODUCED=0"
+            echo "TOP_LEVEL_VISIBILITY_PARITY=GREEN"
+            echo "BOX_PIECE_VISIBILITY_PARITY=GREEN"
+            echo "VISIBLE_BOX_BODY_PIECE_TRISTATE_PARITY=GREEN"
+            echo "TOP_LEVEL_FALLBACK_WRITEBACK_PARITY=GREEN"
+            echo "BOX_PIECE_FALLBACK_WRITEBACK_PARITY=GREEN"
+            echo "VISIBILITY_CHANGE_RENDER_ONLY_IN_ASSEMBLY_MODE=true"
+            echo "PANEL_READS_DISPLAY_MODE=0"
+            echo "VISIBILITY_RENDER_MODE_GATE_OWNED_BY_ACTION_TARGET=true"
+            echo "STRUCTURE_TREE_VISIBILITY_STATE_DUPLICATION=0"
+            echo "STRUCTURE_TREE_VISIBILITY_PARITY=GREEN"
+            echo "STRUCTURE_TREE_REGISTRY_EMPTY_PIECE_DISPLAY_PARITY=GREEN"
+            echo "STRUCTURE_TREE_REGISTRY_EMPTY_PIECE_CLICK_NOOP_PARITY=GREEN"
+            echo "STRUCTURE_TREE_REGISTRY_REPOPULATED_PIECE_TOGGLE_PARITY=GREEN"
+          else
+            set +e
+            xvfb-run -a python -m pytest -q \
+              tests/process/test_issue425_phase5_t4_final_scene_visibility.py \
+              >"$TEST_LOG" 2>&1
+            rc=$?
+            set -e
+            cat "$TEST_LOG"
+            if [ "$rc" -eq 0 ]; then
+              echo "T4_RED_INVALID=pytest unexpectedly passed"
+              exit 1
+            fi
+            if grep -Eq 'ERROR collecting|ImportError|ModuleNotFoundError|SyntaxError' "$TEST_LOG"; then
+              echo "T4_RED_INVALID=harness_or_collection_error"
+              exit 1
+            fi
+            grep -Fq 'T4 requirement RED: Phase6AssemblyPanel Final Scene/visibility ports are missing' "$TEST_LOG"
+            grep -Eq '[1-9][0-9]* failed' "$TEST_LOG"
+            echo "T4_RED_INTENDED=1"
+            echo "T4_RED_PYTEST_RC=$rc"
+          fi
+
+      - name: Verify T4 panel architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path("phase6_assembly_panel.py").read_text(encoding="utf-8")
+          checks = {
+              "PANEL_BRIDGE_IMPORTS": int("fold_designer_bridge" in text),
+              "PANEL_DM7_IMPORTS": int("phase6_part_navigation" in text),
+              "PANEL_SETTINGS_IMPORTS": int("phase6_settings_panel" in text),
+              "PANEL_DISPLAY_MODE_REFS": int("display_mode" in text or "_phase6_3d_display_mode" in text),
+              "PANEL_MANUFACTURING_SOLVE": int("resolve_geometry(" in text or "manufacturing_api" in text),
+              "PANEL_PROJECT_MUTATION": int("project_controller" in text),
+              "PANEL_SECOND_VISIBILITY_STORE": int("visibility_state" in text or "visibility_by_part" in text),
+          }
+          for key, value in checks.items():
+              print(f"{key}={value}")
+          if any(checks.values()):
+              raise SystemExit("T4 panel architecture violation")
+          PY
+
+      - name: Install legacy regression dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r requirements.txt matplotlib
+
+      - name: Run legacy Assembly and BoxBody regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue376_assembly_collapsible_data.py \
+            tests/test_issue385_assembly_parent_child_groups.py \
+            tests/test_issue386_default_assembly_collapsed.py \
+            tests/test_phase6_latest_layout_contract.py
+          echo "LEGACY_T4_ASSEMBLY_REGRESSIONS=GREEN"
+
+      - name: Verify protected config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_AFTER"
+          cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
+          echo "CONFIG_INVARIANT=GREEN"
+
+      - name: Upload T4 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue425-phase5-t4
+          path: |
+            /tmp/issue425-t4-pytest.log
+            /tmp/issue425-config-before.sha256
+            /tmp/issue425-config-after.sha256
+          if-no-files-found: warn
+          retention-days: 14
