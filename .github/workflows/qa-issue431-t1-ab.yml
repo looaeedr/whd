@@ -1,0 +1,238 @@
+name: "QA #431 T1 A-B qualification"
+
+on:
+  push:
+    branches:
+      - refactor/issue431-t1-shared-content-host-20260920
+    paths:
+      - '.github/workflows/qa-issue431-t1-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASELINE_SHA: 95ab91c900e9a531ce0fec25a698123116392cc2
+  TESTED_SHA: 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a
+
+jobs:
+  source-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preflight orchestration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #431 T1 Shared-content host and mutually-exclusive mode controller UI A/B qualification. Preserve existing active-part, display-mode, visibility, corner-data, geometry, persistence, and callback authorities. GitHub Actions remote QA and part/DXF acceptance." \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue431_shared_content_host.py \
+            --changed-file .github/workflows/qa-issue431-t1-ab.yml \
+            --evidence docs/superpowers/checkpoints/issue431-t1-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+      - name: Source ownership guard on tested production
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$TESTED_SHA" >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          assert source.count('self.shared_content_host = original.ttk.Frame(self.left)') == 1
+          assert source.count('def _phase6_mount_shared_content(self, mode):') == 1
+          assert 'Phase6AssemblyPanel(\n        self.shared_content_host,' in source
+          assert 'self.fold_editor_host = original.ttk.Frame(self.shared_content_host)' in source
+          assert 'panel = original.ttk.Frame(shared_host, padding=6)' in source
+
+          forbidden = (
+              'self.fold_editor_host.pack(',
+              'self.fold_editor_host.pack_forget(',
+              'self.assembly_parts_panel.pack(',
+              'self.assembly_parts_panel.pack_forget(',
+              'self.corner_data_panel.pack(',
+              'self.corner_data_panel.pack_forget(',
+              'shared_content_active_part',
+              'shared_content_mode_var',
+          )
+          leaked = [token for token in forbidden if token in source]
+          assert not leaked, f"duplicate mount/state authority leaked outside controller: {leaked}"
+          print("SHARED_CONTENT_HOST_COUNT=1")
+          print("SEPARATE_ASSEMBLY_REGION=0")
+          print("SEPARATE_CORNER_DATA_REGION=0")
+          print("MODE_SWITCH_CREATES_STATE_AUTHORITY=0")
+          PY
+
+  ui-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install UI regression dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely -r requirements.txt
+      - name: Baseline/candidate exact UI outcome parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue431-ui
+          TESTS=(
+            tests/test_issue336_left_content_switch.py
+            tests/test_issue383_content_ownership_red.py
+            tests/test_issue384_assembly_only_function_presentation.py
+            tests/test_issue376_assembly_collapsible_data.py
+            tests/test_issue378_assembly_mousewheel.py
+            tests/test_issue119_corner_data_transition_ui.py
+            tests/test_issue94_corner_data_navigation_mode.py
+            tests/test_issue95_corner_data_authoritative_parts.py
+            tests/test_issue96_corner_data_selection_lifecycle.py
+            tests/test_issue186_sheetmetal_selector_visibility.py
+          )
+          run_one() {
+            label="$1"
+            ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            before="$(sha256sum config.ini | awk '{print $1}')"
+            set +e
+            xvfb-run -a python -m pytest -q "${TESTS[@]}" --tb=short \
+              --json-report --json-report-file="/tmp/issue431-ui/$label.json" \
+              >"/tmp/issue431-ui/$label.log" 2>&1
+            rc=$?
+            set -e
+            after="$(sha256sum config.ini | awk '{print $1}')"
+            echo "$rc" >"/tmp/issue431-ui/$label.rc"
+            test "$before" = "$after"
+            test -s "/tmp/issue431-ui/$label.json"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(label):
+              data=json.loads(Path(f"/tmp/issue431-ui/{label}.json").read_text())
+              outcomes={row["nodeid"]:row.get("outcome") for row in data.get("tests",[])}
+              rc=int(Path(f"/tmp/issue431-ui/{label}.rc").read_text())
+              return outcomes, rc
+
+          b, brc=load("baseline")
+          c, crc=load("candidate")
+          print("UI_BASELINE_COUNTS", {x:list(b.values()).count(x) for x in sorted(set(b.values()))})
+          print("UI_CANDIDATE_COUNTS", {x:list(c.values()).count(x) for x in sorted(set(c.values()))})
+          assert brc == 0, f"baseline UI regression suite is not green: rc={brc}"
+          assert crc == 0, f"candidate UI regression suite is not green: rc={crc}"
+          assert b == c, "candidate UI outcomes differ from exact predecessor baseline"
+          assert all(v in {"passed","skipped"} for v in c.values())
+          print("UI_AB_EXACT_OUTCOME_PARITY=1")
+          PY
+      - name: Upload UI A-B evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue431-t1-ui-ab
+          path: /tmp/issue431-ui
+
+  manufacturing-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install manufacturing acceptance dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+      - name: Baseline/candidate part-DXF-persistence parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue431-mfg
+          TESTS=(
+            tests/test_dxf_acceptance.py
+            tests/test_multipart_dxf_acceptance.py
+            tests/test_resolved_manufacturing_export.py
+            tests/test_resolved_manufacturing_geometry.py
+            tests/test_issue41_persistence_parity.py
+            tests/test_issue45_dynamic_parts_2d_roundtrip.py
+          )
+          run_one() {
+            label="$1"
+            ref="$2"
+            git checkout --detach "$ref" >/dev/null
+            git reset --hard "$ref" >/dev/null
+            before="$(sha256sum config.ini | awk '{print $1}')"
+            set +e
+            xvfb-run -a python -m pytest -q "${TESTS[@]}" --tb=short \
+              --json-report --json-report-file="/tmp/issue431-mfg/$label.json" \
+              >"/tmp/issue431-mfg/$label.log" 2>&1
+            rc=$?
+            set -e
+            after="$(sha256sum config.ini | awk '{print $1}')"
+            echo "$rc" >"/tmp/issue431-mfg/$label.rc"
+            test "$before" = "$after"
+            test -s "/tmp/issue431-mfg/$label.json"
+          }
+          run_one baseline "$BASELINE_SHA"
+          run_one candidate "$TESTED_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(label):
+              data=json.loads(Path(f"/tmp/issue431-mfg/{label}.json").read_text())
+              outcomes={row["nodeid"]:row.get("outcome") for row in data.get("tests",[])}
+              rc=int(Path(f"/tmp/issue431-mfg/{label}.rc").read_text())
+              return outcomes, rc
+
+          b, brc=load("baseline")
+          c, crc=load("candidate")
+          print("MFG_BASELINE_COUNTS", {x:list(b.values()).count(x) for x in sorted(set(b.values()))})
+          print("MFG_CANDIDATE_COUNTS", {x:list(c.values()).count(x) for x in sorted(set(c.values()))})
+          assert brc == 0, f"baseline manufacturing acceptance is not green: rc={brc}"
+          assert crc == 0, f"candidate manufacturing acceptance is not green: rc={crc}"
+          assert b == c, "candidate manufacturing/DXF/persistence outcomes differ from exact predecessor baseline"
+          assert all(v in {"passed","skipped"} for v in c.values())
+          print("PART_DXF_PERSISTENCE_AB_EXACT_OUTCOME_PARITY=1")
+          print("CONFIG_INVARIANT=1")
+          PY
+      - name: Upload manufacturing A-B evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue431-t1-manufacturing-ab
+          path: /tmp/issue431-mfg
+
+  accepted:
+    runs-on: ubuntu-latest
+    needs: [source-guard, ui-ab, manufacturing-ab]
+    steps:
+      - name: T1 A-B accepted
+        run: |
+          echo "T1_AB_QUALIFICATION_GREEN=1"
+          echo "TESTED_SHA=$TESTED_SHA"
+          echo "BASELINE_SHA=$BASELINE_SHA"
