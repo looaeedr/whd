@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "head_sha": "e25f397d2b681ae52e20d30c3363b279cee8c340",
-  "phase": "IMPLEMENTING",
+  "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": 35499869073,
-    "head_sha": "e25f397d2b681ae52e20d30c3363b279cee8c340",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "T5_AB_HARNESS_ONLY_DIRTY_COMMON_TEST_OVERLAY_BLOCKED_SECOND_CHECKOUT"
+    "run_id": null,
+    "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T5_AB_QUALIFICATION_RETRY"
   },
-  "next_action": "Fix qa-issue435-t5-ab.yml runner only: reset/clean worktree before each ref checkout while retaining common contract under /tmp. Rerun same A/B.",
+  "next_action": "Discover and poll T5 A/B retry. Require production exact predecessor, lifecycle common-contract parity, persistence parity, config invariant, accepted GREEN.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
@@ -45,7 +45,7 @@
     "result": "34_PASS_0_FAIL_1_ALLOWED_SKIP",
     "production_runtime_edit": 0
   },
-  "orchestration_sha": "e25f397d2b681ae52e20d30c3363b279cee8c340",
+  "orchestration_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
   "ab_diagnostic": {
     "source_guard": "GREEN",
     "persistence_ab": "GREEN",
