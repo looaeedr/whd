@@ -8,8 +8,8 @@
   "head_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
   "phase": "CLAIMED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T12:36:00Z",
+  "last_update": "2026-09-20T12:38:00Z",
   "remote_qa": null,
-  "next_action": "Add focused RED proving native Tk Canvas background leaks system default; then minimal theme-background fix and Xvfb visual acceptance.",
+  "next_action": "RED must prove current production has fixed outer content shell (pack_propagate(False), fixed extent) and native Canvas theme leaks. Then remove wrapper-shell behavior: make input/assembly/corner mode surfaces direct self.left siblings sharing one pack slot, one mapped at a time; keep natural active-content height.",
   "blocker": null
 }
