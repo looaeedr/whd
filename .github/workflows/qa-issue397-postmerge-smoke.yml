@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - qa/issue397-postmerge-smoke-20260920
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
   workflow_dispatch:
 
 permissions:
