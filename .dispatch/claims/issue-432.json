@@ -6,16 +6,23 @@
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "head_sha": "ae88f3c5c0b2d2698ec4cf082fd91fa11f3452ea",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
     "run_id": 35497321811,
     "head_sha": "ae88f3c5c0b2d2698ec4cf082fd91fa11f3452ea",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T2_CHARACTERIZATION"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "TEST_HARNESS_OVERREACH_ADD_PART_ACTIVE_IDENTITY_NOT_IN_T2_CONTRACT"
   },
-  "next_action": "Poll run 35497321811 to terminal; no other work while REMOTE_QA active lock is held.",
-  "blocker": null
+  "next_action": "Relax only the over-specified add/delete test assertion. Keep topology presence/removal, valid active identity, and shared-host presentation assertions. Rerun characterization; production remains unchanged.",
+  "blocker": null,
+  "characterization_diagnostic": {
+    "production_bridge_exact_predecessor": true,
+    "passed": 3,
+    "failed": 1,
+    "failed_node": "tests/test_issue432_general_part_shared_host.py::test_t2_add_delete_part_keeps_normal_part_on_shared_host",
+    "finding": "test incorrectly required add_part('door') to make workspace.active_part exactly 'door'; T2 requires add/delete parity and valid part-mode presentation, not this stronger behavior"
+  }
 }
