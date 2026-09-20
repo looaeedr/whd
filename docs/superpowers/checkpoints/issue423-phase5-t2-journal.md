@@ -85,3 +85,66 @@ HEAD=cb7ae0d906e52d286e740e5c8fb984c40728be83
 RUN_ID=RUN_NOT_CREATED
 NEXT_ACTION=Add T2 requirement RED tests and focused Xvfb workflow; production panel module must still be absent.
 ```
+
+
+## RED / GREEN Evidence
+
+### Valid requirement RED
+
+- RUN `35487634133` @ `e0c631a96e08795c55fd7dd1d74cd09564a0a4cd`: SUCCESS
+- `KNOWLEDGE_PREFLIGHT_RC=0`
+- `T2_SCOPE_EXTERNAL_DRIFT=0`
+- pytest/Xvfb: `16 failed in 0.92s`
+- `T2_RED_INTENDED=1`
+- `T2_RED_PYTEST_RC=1`
+- no collection/import/syntax harness error
+- `CONFIG_INVARIANT=GREEN`
+
+### Focused GREEN
+
+- panel owner commit: `7c9089a948eaac895075e308f741236dfe401a2c`
+- Bridge ownership rehost commit: `30150738839424fbd4376eade6b15cc7d8409cd5`
+- RUN `35487745374` @ `30150738839424fbd4376eade6b15cc7d8409cd5`: SUCCESS
+- focused Xvfb: `16 passed in 0.93s`
+- `T2_GREEN=1`
+- `LEGACY_ALIAS_STRATEGY_ASSIGNED=1`
+- `LEGACY_ALIAS_SURVIVES_REBUILD=GREEN`
+- `STALE_LEGACY_REGISTRY_REFERENCE=0`
+- `UNGROUPED_ROW_UI_PARITY=GREEN`
+- `SYNTHETIC_GROUP_UI_PARITY=GREEN`
+- `WHEEL_BASE_ROW_COVERAGE=GREEN`
+- `PANEL_BRIDGE_IMPORTS=0`
+- `PANEL_APP_SERVICE_BAG=0`
+- `PANEL_DISPLAY_MODE_REFS=0`
+- `PANEL_MANUFACTURING_SOLVE=0`
+- `PANEL_PROJECT_MUTATION=0`
+- `PANEL_BOX_PIECE_MIGRATION=0`
+- `CONFIG_INVARIANT=GREEN`
+
+### Legacy Assembly regression GREEN
+
+- closing qualification precursor RUN `35487820074` @ `8e0fa207a1aef624e0d0e12240801fedc24a79fb`: SUCCESS
+- focused T2 Xvfb: `16 passed in 0.86s`
+- legacy #376/#385/#386/layout: `21 passed / 1 skipped`
+- `LEGACY_ASSEMBLY_REGRESSIONS=GREEN`
+- `CONFIG_INVARIANT=GREEN`
+- the single skip is retained as an explicit pytest SKIP, not counted as PASS.
+
+## Accepted T2 Ownership
+
+- `phase6_assembly_panel.py` owns Assembly Parts host/canvas/scrollbar/content, top-level/synthetic row widgets, visibility/text Tk vars, collapse/detail registries and recursive wheel binding.
+- Bridge legacy registry attributes alias the panel's long-lived dict objects.
+- rebuild mutates registry dicts in place; no one-time alias + dict replacement.
+- Bridge remains the action seam for display-mode-aware visibility updates.
+- render-time BoxBody physical-piece rows/registries remain Bridge-owned for later Phase 5 scope.
+- Final Scene/manufacturing/project authorities are unchanged.
+
+## Acceptance State
+
+```text
+STATE=GREEN
+TESTED_IMPLEMENTATION_HEAD=30150738839424fbd4376eade6b15cc7d8409cd5
+LEGACY_REGRESSION_HEAD=8e0fa207a1aef624e0d0e12240801fedc24a79fb
+RUN_ID=35487820074
+NEXT_ACTION=Run exact-head closing qualification/finalization proof; no further production changes.
+```
