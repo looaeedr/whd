@@ -489,7 +489,16 @@
         "nonterminal",
         "non-terminal",
         "finalization gate",
-        "使用者不是 scheduler"
+        "使用者不是 scheduler",
+        "accepted spec",
+        "accepted specification",
+        "specification required",
+        "新 Phase",
+        "新階段",
+        "ownership boundary",
+        "task chain",
+        "繼續拆",
+        "implement spec"
       ],
       "file_globs": [
         "tools/continuity_controller.py",
