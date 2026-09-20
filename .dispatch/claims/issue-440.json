@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T12:36:00Z",
   "base_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
   "head_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
-  "phase": "REMOTE_QA",
+  "phase": "RELEASED",
   "delegated_branches": [],
   "last_update": "2026-09-20T12:38:00Z",
   "remote_qa": {
-    "run_id": 35511690588,
-    "head_sha": "04e2b8bbf20f9ca5d3a799c38e417d7ae9301a13",
+    "run_id": 35511907357,
+    "head_sha": "471de5ccf8768867812d0083d1cd6e4fa29e3a99",
     "status": "completed",
     "conclusion": "success",
-    "classification": "ISSUE440_FINAL_ACCEPTANCE_GREEN"
+    "classification": "ISSUE440_POSTMERGE_PRODUCTION_SMOKE_GREEN"
   },
-  "next_action": "Run post-merge smoke from exact production SHA 2b9aeccee2c91446ca02cbfe9fdcefee587ba29e. Require no-wrapper/direct-slot/theme focused set GREEN, config invariant, and exact production readback.",
+  "next_action": "Terminal. Issue #440 may be closed completed.",
   "blocker": null,
   "closing_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "integration": {
@@ -25,5 +25,22 @@
     "integrated_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
     "force": false,
     "readback_exact": true
+  },
+  "postmerge": {
+    "run_id": 35511907357,
+    "production_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
+    "pass": 49,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "config_invariant": true,
+    "extra_content_wrapper_frame_count": 0,
+    "fixed_outer_content_extent": 0,
+    "mode_surfaces_direct_parent_is_left": true,
+    "active_mode_surface_count": 1,
+    "same_layout_slot": true,
+    "default_tk_canvas_bg_leak": 0,
+    "artifact_id": 10605617720,
+    "artifact_sha256": "09248f1a50ad7c1ddf66a3b03d52f370b26738805e89eee151d7b0311fa0e955"
   }
 }
