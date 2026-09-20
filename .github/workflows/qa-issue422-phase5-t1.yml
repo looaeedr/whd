@@ -1,4 +1,4 @@
-name: QA Issue422 Phase5 T1 RED
+name: QA Issue422 Phase5 T1
 
 on:
   push:
@@ -31,7 +31,9 @@ jobs:
       WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
       ACCEPTED_PREDECESSOR: b31409e7c1736df31bd554afe4ac779d49b30aaa
       EVIDENCE: docs/superpowers/checkpoints/issue422-phase5-t1-journal.md
-      RED_LOG: /tmp/issue422-t1-red.log
+      TEST_LOG: /tmp/issue422-t1-pytest.log
+      CONFIG_BEFORE: /tmp/issue422-config-before.sha256
+      CONFIG_AFTER: /tmp/issue422-config-after.sha256
     steps:
       - name: Checkout exact work-order head
         uses: actions/checkout@v4
@@ -65,10 +67,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/phase6_skill_preflight.py             --task '派工執行 Phase 5 accepted specification T1 #422: pure Assembly presentation contracts and projections; RED-first tests; no Tk, bridge import, app owner, workspace/project mutation, manufacturing solve; preserve DM7 top-level projection, render-time BoxBody pieces, #382 hierarchy, remote QA and durable closure'             --changed-file phase6_assembly_presentation.py             --changed-file tests/process/test_issue422_phase5_t1_assembly_presentation.py             --changed-file .github/workflows/qa-issue422-phase5-t1.yml             --changed-file docs/superpowers/checkpoints/issue422-phase5-t1-journal.md             --evidence "$EVIDENCE"
+          python tools/phase6_skill_preflight.py \
+            --task '派工執行 Phase 5 accepted specification T1 #422: pure Assembly presentation contracts and projections; RED-first tests; no Tk, bridge import, app owner, workspace/project mutation, manufacturing solve; preserve DM7 top-level projection, render-time BoxBody pieces, #382 hierarchy, remote QA and durable closure' \
+            --changed-file phase6_assembly_presentation.py \
+            --changed-file tests/process/test_issue422_phase5_t1_assembly_presentation.py \
+            --changed-file .github/workflows/qa-issue422-phase5-t1.yml \
+            --changed-file docs/superpowers/checkpoints/issue422-phase5-t1-journal.md \
+            --evidence "$EVIDENCE"
           echo "KNOWLEDGE_PREFLIGHT_RC=0"
 
-      - name: Require T1 RED-only scope
+      - name: Require T1 scope
         shell: bash
         run: |
           set -euo pipefail
@@ -76,6 +84,7 @@ jobs:
           import subprocess
           predecessor = "b31409e7c1736df31bd554afe4ac779d49b30aaa"
           allowed = {
+              "phase6_assembly_presentation.py",
               "tests/process/test_issue422_phase5_t1_assembly_presentation.py",
               ".github/workflows/qa-issue422-phase5-t1.yml",
               "docs/superpowers/checkpoints/issue422-phase5-t1-journal.md",
@@ -89,42 +98,97 @@ jobs:
               if x.strip()
           }
           extra = sorted(changed - allowed)
-          print("T1_RED_CHANGED_FILES=", sorted(changed))
-          print("T1_RED_SCOPE_EXTERNAL_FILES=", extra)
+          print("T1_CHANGED_FILES=", sorted(changed))
+          print("T1_SCOPE_EXTERNAL_FILES=", extra)
           if extra:
-              raise SystemExit("T1 RED scope drift: " + repr(extra))
-          if "phase6_assembly_presentation.py" in changed:
-              raise SystemExit("T1 RED invalid: production module already exists")
-          print("T1_RED_PRODUCTION_IMPLEMENTATION_CHANGED=0")
+              raise SystemExit("T1 scope drift: " + repr(extra))
+          print("T1_SCOPE_EXTERNAL_DRIFT=0")
+          print("T1_PRODUCTION_MODULE_PRESENT=", int("phase6_assembly_presentation.py" in changed))
           PY
 
-      - name: Run intended requirement RED
+      - name: Capture protected config hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_BEFORE"
+
+      - name: Run T1 RED or GREEN
         shell: bash
         run: |
           set -uo pipefail
-          set +e
-          python -m pytest -q             tests/process/test_issue422_phase5_t1_assembly_presentation.py             >"$RED_LOG" 2>&1
-          rc=$?
-          set -e
-          cat "$RED_LOG"
-          if [ "$rc" -eq 0 ]; then
-            echo "T1_RED_INVALID=pytest unexpectedly passed"
-            exit 1
+          if [ -f phase6_assembly_presentation.py ]; then
+            set -e
+            python -m pytest -q \
+              tests/process/test_issue422_phase5_t1_assembly_presentation.py \
+              | tee "$TEST_LOG"
+            echo "T1_GREEN=1"
+            echo "TOP_LEVEL_PRESENTATION_ORDER_PARITY=GREEN"
+            echo "SYNTHETIC_GROUP_PARITY=GREEN"
+            echo "BOX_PIECE_SOURCE_PARITY=GREEN"
+            echo "BOX_PIECE_ORDER_PARITY=GREEN"
+            echo "BOX_PIECE_DIMENSION_SOURCE_PARITY=GREEN"
+          else
+            set +e
+            python -m pytest -q \
+              tests/process/test_issue422_phase5_t1_assembly_presentation.py \
+              >"$TEST_LOG" 2>&1
+            rc=$?
+            set -e
+            cat "$TEST_LOG"
+            if [ "$rc" -eq 0 ]; then
+              echo "T1_RED_INVALID=pytest unexpectedly passed"
+              exit 1
+            fi
+            if grep -Eq 'ERROR collecting|ImportError|ModuleNotFoundError|SyntaxError' "$TEST_LOG"; then
+              echo "T1_RED_INVALID=harness_or_collection_error"
+              exit 1
+            fi
+            grep -Fq 'T1 requirement RED: phase6_assembly_presentation.py does not exist yet' "$TEST_LOG"
+            grep -Eq '[1-9][0-9]* failed' "$TEST_LOG"
+            echo "T1_RED_INTENDED=1"
+            echo "T1_RED_PYTEST_RC=$rc"
           fi
-          if grep -Eq 'ERROR collecting|ImportError|ModuleNotFoundError|SyntaxError' "$RED_LOG"; then
-            echo "T1_RED_INVALID=harness_or_collection_error"
-            exit 1
-          fi
-          grep -Fq 'T1 requirement RED: phase6_assembly_presentation.py does not exist yet' "$RED_LOG"
-          grep -Eq '[1-9][0-9]* failed' "$RED_LOG"
-          echo "T1_RED_INTENDED=1"
-          echo "T1_RED_PYTEST_RC=$rc"
 
-      - name: Upload RED evidence
+      - name: Verify pure-module architecture
+        if: ${{ hashFiles('phase6_assembly_presentation.py') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("phase6_assembly_presentation.py")
+          text = p.read_text(encoding="utf-8")
+          lower = text.lower()
+          checks = {
+              "TK_REFS": int("tkinter" in lower),
+              "BRIDGE_IMPORTS": int("fold_designer_bridge" in text),
+              "APP_OWNER_REFS": int("designer_workspace" in text),
+              "WORKSPACE_MUTATION": int("workspace." in text),
+              "MANUFACTURING_SOLVE": int("resolve_geometry(" in text or "manufacturing_api" in text),
+              "PROJECT_MUTATION": int("project_controller" in text),
+          }
+          for key, value in checks.items():
+              print(f"{key}={value}")
+          if any(checks.values()):
+              raise SystemExit("T1 pure-module architecture violation")
+          PY
+
+      - name: Verify protected config invariant
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum config.ini | awk '{print $1}' > "$CONFIG_AFTER"
+          cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
+          echo "CONFIG_INVARIANT=GREEN"
+
+      - name: Upload T1 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue422-phase5-t1-red
-          path: /tmp/issue422-t1-red.log
+          name: issue422-phase5-t1
+          path: |
+            /tmp/issue422-t1-pytest.log
+            /tmp/issue422-config-before.sha256
+            /tmp/issue422-config-after.sha256
           if-no-files-found: warn
           retention-days: 14
