@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
   "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:56:30Z",
+  "last_update": "2026-09-20T06:57:15Z",
   "remote_qa": {
     "run_id": 35495541940,
     "head_sha": "a3a3a8ec67b1ece5cc27b8392298737ed2c53772",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T0_CHARACTERIZATION_CENSUS_RETRY"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T0_CHARACTERIZATION_ACCEPTED_4_PASS_1_INTENDED_RED"
   },
-  "next_action": "Poll run 35495541940 on exact head a3a3a8ec67b1ece5cc27b8392298737ed2c53772 to terminal; no other tool work while REMOTE_QA active lock is held.",
+  "next_action": "Write accepted T0 checkpoint/journal at exact tested head, close #430 completed, then create #431 branch from the accepted closing head.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
