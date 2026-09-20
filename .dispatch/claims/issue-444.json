@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "0c2133fe7e9af8a8b14da67d4cfea84b18e3aee7",
-  "phase": "RECOVERING",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:20:00+08:00",
+  "last_update": "2026-09-21T07:21:00+08:00",
   "remote_qa": {
-    "run_id": 35543937898,
+    "run_id": 35543952177,
     "status": "completed/failure",
-    "head_sha": "277e680e37dbcafa695600a17afac7caa48e9cdd",
-    "failed_job_id": 106166414203,
+    "head_sha": "0c2133fe7e9af8a8b14da67d4cfea84b18e3aee7",
+    "failed_job_id": 106166447391,
     "classification": "workflow-capability-missing-matplotlib"
   },
-  "next_action": "Repair the one-shot focused QA workflow at work-branch head 0c2133fe by installing matplotlib into the system-Python venv, then push one fix and lock the replacement PR-triggered RUN to terminal.",
+  "next_action": "Install matplotlib into the focused QA venv, push one workflow-only fix commit, then lock the replacement run to terminal.",
   "blocker": null
 }
