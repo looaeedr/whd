@@ -5,7 +5,7 @@
   "work_branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
+  "head_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
   "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
@@ -16,7 +16,7 @@
     "conclusion": "success",
     "classification": "T5_AB_QUALIFICATION_GREEN_NO_PRODUCTION_EDIT"
   },
-  "next_action": "Write accepted #435 checkpoint/journal, remove temporary T5 workflows only, then audit TESTED_SHA 94fe9251... to closing HEAD. Preserve migrated #378 and T5 lifecycle tests.",
+  "next_action": "Close #435 completed, release claim, then acquire #436 from exact closing SHA e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
@@ -78,5 +78,20 @@
       "artifact_id": 10601064286,
       "artifact_sha256": "8e32457905406919d1e34075d9db4d9c70a957b7ce605e6edf2d6cc3429e3898"
     }
+  },
+  "closing_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+  "drift_audit": {
+    "tested_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
+    "closing_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
+    "ahead_by": 3,
+    "behind_by": 0,
+    "allowed_only": true,
+    "files": [
+      ".github/workflows/qa-issue435-t5-preflight.yml (removed)",
+      ".github/workflows/qa-issue435-t5.yml (removed)",
+      "docs/superpowers/checkpoints/issue435-t5-checkpoint.json",
+      "docs/superpowers/checkpoints/issue435-t5-journal.md"
+    ],
+    "note": "qa-issue435-t5-ab.yml was created after TESTED_SHA and deleted in closing, so it has no net diff from TESTED_SHA"
   }
 }
