@@ -77,9 +77,9 @@ def _mode_surfaces(app, root):
 
 def _surface_identity(app):
     return (
-        str(app.fold_editor_host),
-        str(app.assembly_parts_panel),
-        str(app.corner_data_panel),
+        id(app.fold_editor_host),
+        id(app.assembly_parts_panel),
+        id(app.corner_data_panel),
     )
 
 
