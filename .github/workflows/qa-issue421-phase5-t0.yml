@@ -7,6 +7,14 @@ on:
     paths:
       - tools/phase5_t0_assembly_presentation_census.py
       - .github/workflows/qa-issue421-phase5-t0.yml
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - tools/phase5_t0_assembly_presentation_census.py
+      - .github/workflows/qa-issue421-phase5-t0.yml
+      - docs/superpowers/checkpoints/issue421-phase5-t0-checkpoint.json
+      - docs/superpowers/checkpoints/issue421-phase5-t0-journal.md
   workflow_dispatch:
 
 permissions:
