@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-20T07:58:00Z",
   "base_sha": "bbd499786cbebc1b5e68ff032f2591cc308060cd",
   "head_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T08:00:00Z",
+  "last_update": "2026-09-20T08:10:00Z",
   "remote_qa": {
     "run_id": 35498676434,
     "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
@@ -16,7 +16,7 @@
     "conclusion": "success",
     "classification": "T4_AB_QUALIFICATION_GREEN_NOOP_PRODUCTION"
   },
-  "next_action": "Close #434 completed, release claim, then acquire #435 from exact closing SHA 07a5fe36880d1548c9f42f2f6d071f46a9ac062f.",
+  "next_action": "Terminal. Successor #435 must acquire its own claim from closing SHA 07a5fe36880d1548c9f42f2f6d071f46a9ac062f.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_exact_predecessor": true,
