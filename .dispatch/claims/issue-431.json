@@ -10,12 +10,12 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T07:08:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35495987364,
     "head_sha": "22bb3a35b80858c121ff0e38eabe31c0c5039b30",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T1_KNOWLEDGE_PREFLIGHT"
+    "classification": "ACTIVE_T1_KNOWLEDGE_PREFLIGHT"
   },
-  "next_action": "Discover the push-triggered #431 T1 Knowledge Preflight run for exact head 22bb3a35b80858c121ff0e38eabe31c0c5039b30 and poll it to terminal.",
+  "next_action": "Poll run 35495987364 on exact head 22bb3a35b80858c121ff0e38eabe31c0c5039b30 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null
 }
