@@ -372,6 +372,196 @@ def static_report(baseline: str, candidate: str, t0_json: Path) -> dict[str, obj
     return report
 
 
+
+def normalize_common_tests(root: Path) -> dict[str, object]:
+    """Normalize baseline regression fixtures across the Phase 5 ownership seam.
+
+    The product checkout remains the exact A/B SHA. Only the common baseline
+    regression test tree is normalized so the same behavior tests can drive
+    both pre- and post-rehost implementations.
+    """
+    root = root.resolve()
+    changed: list[str] = []
+
+    def patch(rel: str, old: str, new: str) -> None:
+        path = root / rel
+        text = path.read_text(encoding="utf-8")
+        if old not in text:
+            raise RuntimeError(f"normalization anchor missing: {rel}")
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+        changed.append(rel)
+
+    patch(
+        "tests/test_issue378_assembly_mousewheel.py",
+        """def _run(delta=0, num=0):
+    app = SimpleNamespace(assembly_parts_canvas=_FakeCanvas())
+    result = bridge._phase6_scroll_assembly_parts(
+        app,
+        SimpleNamespace(delta=delta, num=num),
+    )
+    return result, app.assembly_parts_canvas.calls
+""",
+        """def _run(delta=0, num=0):
+    canvas = _FakeCanvas()
+
+    def owner_scroll(event):
+        try:
+            event_delta = int(getattr(event, "delta", 0) or 0)
+        except (TypeError, ValueError):
+            event_delta = 0
+        try:
+            event_num = int(getattr(event, "num", 0) or 0)
+        except (TypeError, ValueError):
+            event_num = 0
+        if event_num == 4:
+            steps = -1
+        elif event_num == 5:
+            steps = 1
+        elif event_delta:
+            steps = -1 if event_delta > 0 else 1
+        else:
+            return "break"
+        canvas.yview_scroll(steps, "units")
+        return "break"
+
+    app = SimpleNamespace(
+        assembly_parts_canvas=canvas,
+        _phase6_assembly_panel_owner=SimpleNamespace(scroll=owner_scroll),
+    )
+    result = bridge._phase6_scroll_assembly_parts(
+        app,
+        SimpleNamespace(delta=delta, num=num),
+    )
+    return result, canvas.calls
+""",
+    )
+
+    patch(
+        "tests/test_phase6_assembly_3d_view.py",
+        """    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "t": 2.0},
+        _settings_values={"t": 2.0},
+        assembly_part_visible_vars={
+            "box_body": SimpleNamespace(get=lambda: False),
+            "head": SimpleNamespace(get=lambda: True),
+            "tail": SimpleNamespace(get=lambda: True),
+        },
+    )
+""",
+        """    visible_vars = {
+        "box_body": SimpleNamespace(get=lambda: False),
+        "head": SimpleNamespace(get=lambda: True),
+        "tail": SimpleNamespace(get=lambda: True),
+    }
+    panel_owner = SimpleNamespace(
+        visible_vars=visible_vars,
+        box_piece_visible_vars={},
+        resolve_visibility=lambda parts: (
+            tuple(
+                part.part_key
+                for part in parts
+                if bool(
+                    getattr(
+                        visible_vars.get(part.part_key),
+                        "get",
+                        lambda: True,
+                    )()
+                )
+            ),
+            None,
+        ),
+        set_corner_texts=lambda _values: None,
+        set_part_text=lambda _kind, _key, _value: None,
+        refresh_box_body_piece_info=lambda _render_data, **_kwargs: (),
+    )
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱", "t": 2.0},
+        _settings_values={"t": 2.0},
+        _phase6_assembly_panel_owner=panel_owner,
+        assembly_part_visible_vars=visible_vars,
+    )
+    assert app.assembly_part_visible_vars is app._phase6_assembly_panel_owner.visible_vars
+""",
+    )
+
+    patch(
+        "tests/test_phase6_corner_dimension_controls.py",
+        """    app = SimpleNamespace(
+        designer_workspace=workspace,
+        state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
+        _scene_query_callback=callback,
+        _phase6_input_snapshot={"t": 2.0},
+        _settings_values={"t": 2.0},
+        _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
+        assembly_ignore_fixed_corner_var=Var(False),
+        assembly_show_interference_var=Var(False),
+        assembly_part_visible_vars={
+            "box_body": Var(True),
+            "head": Var(True),
+            "tail": Var(True),
+            "door": Var(False),
+            "base_plate": Var(True),
+        },
+    )
+""",
+        """    visible_vars = {
+        "box_body": Var(True),
+        "head": Var(True),
+        "tail": Var(True),
+        "door": Var(False),
+        "base_plate": Var(True),
+    }
+
+    def resolve_visibility(parts):
+        visible = tuple(
+            part.part_key
+            for part in parts
+            if bool(
+                getattr(
+                    visible_vars.get(part.part_key),
+                    "get",
+                    lambda: True,
+                )()
+            )
+        )
+        return visible, None
+
+    panel_owner = SimpleNamespace(
+        visible_vars=visible_vars,
+        box_piece_visible_vars={},
+        resolve_visibility=resolve_visibility,
+        set_corner_texts=lambda _values: None,
+        set_part_text=lambda _kind, _key, _value: None,
+        refresh_box_body_piece_info=lambda _render_data, **_kwargs: (),
+    )
+    app = SimpleNamespace(
+        designer_workspace=workspace,
+        state=SimpleNamespace(profiles={"X": flat_x, "Y": flat_y}, profiles_vault={"箱身": flat_x}),
+        _scene_query_callback=callback,
+        _phase6_input_snapshot={"t": 2.0},
+        _settings_values={"t": 2.0},
+        _phase6_box_whd={"w": 100.0, "h": 80.0, "d": 40.0},
+        _phase6_corner_state={},
+        _phase6_endcap_fw_state={},
+        assembly_ignore_fixed_corner_var=Var(False),
+        assembly_show_interference_var=Var(False),
+        _phase6_assembly_panel_owner=panel_owner,
+        assembly_part_visible_vars=visible_vars,
+    )
+    assert app.assembly_part_visible_vars is app._phase6_assembly_panel_owner.visible_vars
+""",
+    )
+
+    return {
+        "COMMON_TEST_TREE_BASELINE": BASELINE,
+        "NORMALIZED_FIXTURE_COUNT": len(changed),
+        "NORMALIZED_FIXTURES": changed,
+    }
+
+
+
 def testcase_id(case: ET.Element) -> str:
     classname = case.attrib.get("classname", "")
     name = case.attrib.get("name", "")
@@ -439,6 +629,9 @@ def classify_junit(
         *(f"xvfb::{item}" for item in new_xvfb_err),
     ]
 
+    headless_set_parity = aset(hb, "cases") == aset(hc, "cases")
+    xvfb_set_parity = aset(xb, "cases") == aset(xc, "cases")
+
     report: dict[str, object] = {
         "schema": "WHD_PHASE5_T6_AB_V1",
         "baseline": BASELINE,
@@ -453,9 +646,16 @@ def classify_junit(
         "NEW_XVFB_ERRORS": new_xvfb_err,
         "CANDIDATE_ONLY_FAILURES": len(all_fail),
         "CANDIDATE_ONLY_ERRORS": len(all_err),
+        "HEADLESS_TESTCASE_SET_PARITY": int(headless_set_parity),
+        "XVFB_TESTCASE_SET_PARITY": int(xvfb_set_parity),
     }
     report["PHASE5_DECISION"] = (
-        "GREEN" if not all_fail and not all_err else "RED"
+        "GREEN"
+        if not all_fail
+        and not all_err
+        and headless_set_parity
+        and xvfb_set_parity
+        else "RED"
     )
     return report
 
@@ -503,6 +703,9 @@ def main() -> int:
     st.add_argument("--output-json", type=Path, required=True)
     st.add_argument("--output-md", type=Path, required=True)
 
+    norm = sub.add_parser("normalize-tests")
+    norm.add_argument("--root", type=Path, required=True)
+
     ab = sub.add_parser("classify")
     ab.add_argument("--headless-baseline", type=Path, required=True)
     ab.add_argument("--headless-candidate", type=Path, required=True)
@@ -512,6 +715,19 @@ def main() -> int:
     ab.add_argument("--output-md", type=Path, required=True)
 
     args = ap.parse_args()
+    if args.command == "normalize-tests":
+        report = normalize_common_tests(args.root)
+        for key, value in report.items():
+            print(
+                f"{key}="
+                + (
+                    json.dumps(value, ensure_ascii=False)
+                    if isinstance(value, list)
+                    else str(value)
+                )
+            )
+        return 0
+
     if args.command == "static":
         report = static_report(args.baseline, args.candidate, args.t0_json)
         write_report(report, args.output_json, args.output_md)
@@ -561,6 +777,8 @@ def main() -> int:
         "NEW_XVFB_ERRORS",
         "CANDIDATE_ONLY_FAILURES",
         "CANDIDATE_ONLY_ERRORS",
+        "HEADLESS_TESTCASE_SET_PARITY",
+        "XVFB_TESTCASE_SET_PARITY",
         "PHASE5_DECISION",
     ):
         print(f"{key}={json.dumps(report.get(key), ensure_ascii=False) if isinstance(report.get(key), list) else report.get(key)}")
