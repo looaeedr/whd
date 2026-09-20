@@ -43,7 +43,7 @@ def _open(snapshot=None):
 
 def _surfaces(app):
     return (
-        app.fold_editor_host,
+        app.input_content_host,
         app.assembly_parts_panel,
         getattr(app, "corner_data_panel", None),
     )
@@ -74,6 +74,7 @@ def test_t5_repeated_three_mode_cycles_keep_one_host_and_one_surface_tree():
         _pump(root)
         host = app.shared_content_host
         fold = app.fold_editor_host
+        input_surface = app.input_content_host
         assembly = app.assembly_parts_panel
         corner = app.corner_data_panel
         assembly_owner = app._phase6_assembly_panel_owner
@@ -83,6 +84,8 @@ def test_t5_repeated_three_mode_cycles_keep_one_host_and_one_surface_tree():
             _cycle_modes(app, root)
             assert app.shared_content_host is host
             assert app.fold_editor_host is fold
+            assert app.shared_content_host is app.fold_editor_host
+            assert app.input_content_host is input_surface
             assert app.assembly_parts_panel is assembly
             assert app.corner_data_panel is corner
             assert app._phase6_assembly_panel_owner is assembly_owner
@@ -90,7 +93,7 @@ def test_t5_repeated_three_mode_cycles_keep_one_host_and_one_surface_tree():
             assert _mapped_surface_count(app) == 1
 
         owned = tuple(host.winfo_children())
-        assert owned.count(fold) == 1
+        assert owned.count(input_surface) == 1
         assert owned.count(assembly) == 1
         assert owned.count(corner) == 1
     finally:
@@ -185,8 +188,8 @@ def test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets(
         exported = bridge._phase6_build_project_snapshot(app1)["snapshot"]
 
         first_widgets = {
-            id(app1.shared_content_host),
             id(app1.fold_editor_host),
+            id(app1.input_content_host),
             id(app1.assembly_parts_panel),
         }
 
@@ -209,8 +212,8 @@ def test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets(
         assert _mapped_surface_count(app2) == 1
 
         second_widgets = {
-            id(app2.shared_content_host),
             id(app2.fold_editor_host),
+            id(app2.input_content_host),
             id(app2.assembly_parts_panel),
             id(app2.corner_data_panel),
         }
