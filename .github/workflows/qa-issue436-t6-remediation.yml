@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/qa-issue436-t6-remediation.yml'
       - 'tests/process/test_issue426_phase5_t5_bridge_compression.py'
+      - 'tests/test_phase6_latest_layout_contract.py'
   workflow_dispatch:
 
 permissions:
@@ -36,6 +37,7 @@ jobs:
           changed=set(Path("/tmp/scope.txt").read_text().splitlines())
           allowed={
               "tests/process/test_issue426_phase5_t5_bridge_compression.py",
+              "tests/test_phase6_latest_layout_contract.py",
               ".github/workflows/qa-issue436-t6-preflight.yml",
               ".github/workflows/qa-issue436-t6-cumulative.yml",
               ".github/workflows/qa-issue436-t6-remediation.yml",
@@ -44,6 +46,7 @@ jobs:
           unexpected=sorted(changed-allowed)
           assert not unexpected, unexpected
           assert "tests/process/test_issue426_phase5_t5_bridge_compression.py" in changed
+          assert "tests/test_phase6_latest_layout_contract.py" in changed
           print("PRODUCTION_RUNTIME_EDIT=0")
           print("T6_REMEDIATION_SCOPE=TEST_QA_ONLY")
           PY
@@ -68,6 +71,7 @@ jobs:
           NODE='tests/process/test_issue426_phase5_t5_bridge_compression.py::test_t5_mount_unmount_transition_sources_match_shared_host_owner'
           python -m pytest -q "$NODE" --tb=short
           xvfb-run -a python -m pytest -q tests/process/test_issue426_phase5_t5_bridge_compression.py --tb=short
+          xvfb-run -a python -m pytest -q tests/test_phase6_latest_layout_contract.py::test_assembly_left_panel_lists_all_sheet_parts_with_view_only_checkboxes --tb=short
           echo "STALE_PHASE5_SOURCE_CONTRACT_MIGRATED=1"
           echo "MIGRATED_CONTRACT_HEADLESS=GREEN"
           echo "MIGRATED_CONTRACT_XVFB=GREEN"
@@ -97,7 +101,10 @@ jobs:
               summaries[s["label"]]=s
           required={"baseline-headless","candidate-headless","baseline-xvfb","candidate-xvfb"}
           assert set(summaries)==required, set(summaries)
-          stale={"tests/process/test_issue426_phase5_t5_bridge_compression.py::test_t5_mount_unmount_transition_sources_match_t0_behavior"}
+          stale={
+              "tests/process/test_issue426_phase5_t5_bridge_compression.py::test_t5_mount_unmount_transition_sources_match_t0_behavior",
+              "tests/test_phase6_latest_layout_contract.py::test_assembly_left_panel_lists_all_sheet_parts_with_view_only_checkboxes",
+          }
           def delta(mode):
               b=summaries[f"baseline-{mode}"]; c=summaries[f"candidate-{mode}"]
               return b,c,set(c["failed"])-set(b["failed"]),set(c["errors"])-set(b["errors"])
@@ -123,7 +130,7 @@ jobs:
           }
           p=Path(".scratch/issue436/reused-classifier/full-ab-classification.json")
           p.write_text(json.dumps(out,indent=2,sort_keys=True)+"\n")
-          print("RAW_STALE_PHASE5_SOURCE_CONTRACT_COUNT=1")
+          print("RAW_STALE_LAYOUT_CONTRACT_COUNT=2")
           print("NEW_HEADLESS=[]")
           print("NEW_XVFB=[]")
           print("NEW_HEADLESS_ERRORS=[]")
