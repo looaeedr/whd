@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue433-t3-assembly-shared-host-20260920",
   "claimed_at": "2026-09-20T07:44:00Z",
   "base_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
-  "head_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
-  "phase": "GREEN",
+  "head_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:46:00Z",
   "remote_qa": {
-    "run_id": 35497815978,
-    "head_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T3_ALREADY_GREEN_AFTER_T1_6_PASS_1_ALLOWED_SKIP_0_FAIL"
+    "run_id": null,
+    "head_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T3_AB_QUALIFICATION"
   },
-  "next_action": "Run T3 no-op production A/B: production bridge + phase6_assembly_panel exact predecessor; exact inherited Assembly shared-host/collapse outcome parity on base/candidate; candidate T3 nodes GREEN.",
+  "next_action": "Discover and poll T3 A/B run. Require exact predecessor production blobs, inherited Assembly exact outcome parity, candidate T3 gates GREEN, and accepted job GREEN.",
   "blocker": null,
   "tested_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
   "characterization": {
@@ -28,5 +28,6 @@
     "allowed_skip": "tests/test_issue376_assembly_collapsible_data.py::test_box_body_physical_piece_rows_are_also_collapsible_when_present",
     "production_runtime_edit": 0,
     "already_green_after_t1": true
-  }
+  },
+  "orchestration_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c"
 }
