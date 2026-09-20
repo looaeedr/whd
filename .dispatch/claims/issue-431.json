@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "head_sha": "22bb3a35b80858c121ff0e38eabe31c0c5039b30",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:08:00Z",
   "remote_qa": {
     "run_id": 35495987364,
     "head_sha": "22bb3a35b80858c121ff0e38eabe31c0c5039b30",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T1_KNOWLEDGE_PREFLIGHT"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T1_KNOWLEDGE_PREFLIGHT_GREEN"
   },
-  "next_action": "Poll run 35495987364 on exact head 22bb3a35b80858c121ff0e38eabe31c0c5039b30 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Add T1 behavior tests and qa-issue431-t1 workflow without production changes; run inherited #430 RED plus T1 host/controller contracts and require exact intended RED set before editing fold_designer_bridge.py.",
   "blocker": null
 }
