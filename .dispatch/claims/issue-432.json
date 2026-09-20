@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue432-t2-general-part-shared-host-20260920",
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
-  "head_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
-  "phase": "GREEN",
+  "head_sha": "2183e07d70499c4efd28233a482699a170097f28",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
-    "run_id": 35497419539,
-    "head_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T2_ALREADY_GREEN_AFTER_T1_4_PASS_0_FAIL_0_SKIP"
+    "run_id": null,
+    "head_sha": "2183e07d70499c4efd28233a482699a170097f28",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T2_AB_QUALIFICATION"
   },
-  "next_action": "Run T2 A/B qualification: assert production bridge exact predecessor equality; run common #430/#431/#384 UI contracts on base and candidate with exact 11-pass parity; rerun candidate T2 4-pass characterization.",
+  "next_action": "Discover and poll T2 A/B run. Require production exact predecessor, common UI 11/11 exact parity, candidate T2 4/4, and accepted job GREEN.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_bridge_exact_predecessor": true,
@@ -34,5 +34,6 @@
     "result": "4_PASS_0_FAIL_0_SKIP",
     "production_runtime_edit": 0,
     "already_green_after_t1": true
-  }
+  },
+  "orchestration_sha": "2183e07d70499c4efd28233a482699a170097f28"
 }
