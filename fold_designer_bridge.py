@@ -6531,7 +6531,12 @@ def _phase6_on_3d_scroll(self, event):
 
 
 def _phase6_install_renderer_view(self):
-    return _phase6_final_scene_adapter(self).install_renderer()
+    result = _phase6_final_scene_adapter(self).install_renderer()
+    try:
+        self.renderer.canvas.get_tk_widget().configure(takefocus=False)
+    except Exception:
+        pass
+    return result
 
 def _phase6_profile_material_total(profile):
     return float(sum(abs(_num(seg.get("len", 0.0))) for seg in (profile or ())))
