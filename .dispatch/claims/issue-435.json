@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35499954029,
     "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T5_AB_QUALIFICATION_RETRY"
+    "classification": "ACTIVE_T5_AB_QUALIFICATION_RETRY"
   },
-  "next_action": "Discover and poll T5 A/B retry. Require production exact predecessor, lifecycle common-contract parity, persistence parity, config invariant, accepted GREEN.",
+  "next_action": "Poll run 35499954029 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
