@@ -168,3 +168,15 @@ HEAD=35641caa9abe5927766135ee5e5621bfce1cf775
 RUN_ID=RUN_NOT_CREATED
 NEXT_ACTION=Add focused T4 requirement RED for panel-owned sinks/visibility/shared Structure Tree vars and exact Final Scene order.
 ```
+
+
+## RED Harness Classification
+
+- RUN `35489209046` @ `ba34e051677256fb0df77fe55439be3f22f725ec`
+- Preflight: GREEN
+- Scope: GREEN
+- Focused pytest did not reach requirement assertions.
+- Collection failed because workflow installed only pytest before importing `fold_designer_bridge.py`; repository dependency `ezdxf` was missing.
+- Marker: `T4_RED_INVALID=harness_or_collection_error`
+- This run is **NOT** requirement RED evidence.
+- Fix is workflow-only dependency installation; no production file changed.
