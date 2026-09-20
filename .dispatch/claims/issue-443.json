@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "762f55f10464f08ff8c31c1b428736aaff2950bf",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:31:10Z",
+  "last_update": "2026-09-20T13:31:23Z",
   "remote_qa": {
     "run_id": 35513741202,
     "head_sha": "762f55f10464f08ff8c31c1b428736aaff2950bf",
-    "status": "in_progress",
-    "conclusion": null,
-    "mode": "GREEN"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "GREEN_TEST_HARNESS_STALE_EXPECTS_DEFINITION"
   },
-  "next_action": "Poll exact GREEN run 35513741202 to terminal; classify focused ownership, bridge regressions, manufacturing/DXF acceptance, and Git-object invariants.",
+  "next_action": "Fix characterization so zero-dispatch assertions remain invariant while definition count is handled only by deletion RED/GREEN assertion; rerun GREEN on unchanged production deletion.",
   "blocker": null
 }
