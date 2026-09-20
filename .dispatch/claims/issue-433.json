@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T07:44:00Z",
   "base_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
   "head_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:46:00Z",
   "remote_qa": {
     "run_id": 35498132637,
     "head_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T3_AB_QUALIFICATION"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T3_AB_QUALIFICATION_GREEN_NOOP_PRODUCTION"
   },
-  "next_action": "Poll run 35498132637 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Write accepted #433 checkpoint/journal and remove temporary #433 workflows only. Audit TESTED_SHA 4bea390c5c9130abd07f58666a997605ce4da646 to closing HEAD; no production/test-contract drift allowed.",
   "blocker": null,
   "tested_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
   "characterization": {
@@ -29,5 +29,28 @@
     "production_runtime_edit": 0,
     "already_green_after_t1": true
   },
-  "orchestration_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c"
+  "orchestration_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
+  "final_ab": {
+    "run_id": 35498132637,
+    "orchestration_sha": "dda6fd486de77e0f5571d4d23e3df64214f1cb8c",
+    "tested_sha": "4bea390c5c9130abd07f58666a997605ce4da646",
+    "production_bridge_exact_predecessor": true,
+    "assembly_panel_module_exact_predecessor": true,
+    "production_runtime_edit": 0,
+    "inherited_assembly": {
+      "baseline_passed": 5,
+      "baseline_skipped": 1,
+      "candidate_passed": 5,
+      "candidate_skipped": 1,
+      "exact_outcome_parity": true,
+      "candidate_only_failures": 0,
+      "artifact_id": 10601022298,
+      "artifact_sha256": "eb6e5b217d5d25d7f32774ed6394d33069537bfde9dc85426bac36af7644ded1"
+    },
+    "t3_candidate": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
 }
