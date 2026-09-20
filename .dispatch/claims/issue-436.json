@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": 35505738075,
-    "head_sha": "3fd041736d81194182ea568f2173da3cc6484aa1",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T6_FINAL_ACCEPTANCE_GREEN"
+    "run_id": 35506911466,
+    "head_sha": "fb6b05b63bcbbe66d44bd0e76030d98619573d30",
+    "status": "in_progress",
+    "conclusion": null,
+    "classification": "ACTIVE_T6_POSTMERGE_PRODUCTION_SMOKE"
   },
-  "next_action": "Create fresh post-merge smoke branch from exact production SHA 719f4509371376f9d01fca97553b5199963de4c6; require focused shared-host/lifecycle + migrated contracts + persistence/DXF GREEN before closing #436/#429.",
+  "next_action": "Poll run 35506911466 to terminal; close #436 and #429 only after exact-production post-merge smoke GREEN.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
