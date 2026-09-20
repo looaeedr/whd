@@ -182,7 +182,7 @@ def test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets(
 
         before_parts = tuple(app1.designer_workspace.available_parts)
         before_active = app1.designer_workspace.active_part
-        exported = app1.export_phase6_snapshot()
+        exported = bridge._phase6_build_project_snapshot(app1)["snapshot"]
 
         first_widgets = {
             id(app1.shared_content_host),
