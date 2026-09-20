@@ -106,7 +106,12 @@ def test_t4_corner_data_adapter_is_single_state_owner_and_selection_is_view_only
             tuple(app.designer_workspace.available_parts),
         )
 
-        resolved = bridge._phase6_select_corner_data_part(app, "head")
+        # This test validates navigation/state ownership only. A directly
+        # constructed Fold Designer intentionally has no main-GUI final-scene
+        # provider, so do not ask the selection helper to render an unfold.
+        resolved = bridge._phase6_select_corner_data_part(
+            app, "head", refresh_view=False
+        )
         _pump(root)
 
         assert resolved == "head"
@@ -119,11 +124,19 @@ def test_t4_corner_data_adapter_is_single_state_owner_and_selection_is_view_only
             tuple(app.designer_workspace.available_parts),
         ) == before_workspace
 
-        bridge._phase6_show_assembly(app)
+        # Presentation mount roundtrip must not create or replace selection
+        # authority. Use the mount seam directly so this ownership test remains
+        # independent of the final-scene provider.
+        app._phase6_3d_display_mode = "assembly"
+        bridge._phase6_mount_shared_content(app, "assembly")
         _pump(root)
-        bridge._phase6_show_corner_data(app)
+        assert _corner_mounted_count(app) == 0
+
+        app._phase6_3d_display_mode = "corner_data"
+        bridge._phase6_mount_shared_content(app, "corner_data")
         _pump(root)
 
+        assert _corner_mounted_count(app) == 1
         assert bridge._phase6_corner_data_view(app) is adapter
         assert adapter.selected_part_key == "head"
         assert app._phase6_corner_data_selected_part_key == "head"
@@ -140,6 +153,14 @@ def test_t4_corner_data_refresh_reuses_panel_and_adapter_without_second_authorit
         adapter = bridge._phase6_corner_data_view(app)
 
         bridge._phase6_select_corner_data_part(app, "tail", refresh_view=False)
+
+        # Panel-list refresh is a view projection and is legal while the
+        # Corner Data surface is unmounted. This avoids coupling the ownership
+        # test to a final-scene provider while still exercising repeated rebuild.
+        app._phase6_3d_display_mode = "assembly"
+        bridge._phase6_mount_shared_content(app, "assembly")
+        _pump(root)
+
         first_keys = tuple(bridge._phase6_refresh_corner_data_parts_panel(app))
         _pump(root)
         second_keys = tuple(bridge._phase6_refresh_corner_data_parts_panel(app))
@@ -151,6 +172,13 @@ def test_t4_corner_data_refresh_reuses_panel_and_adapter_without_second_authorit
         assert first_keys == second_keys == tuple(app.designer_workspace.available_parts)
         assert adapter.selected_part_key == "tail"
         assert app._phase6_corner_data_selected_part_key == "tail"
+        assert _corner_mounted_count(app) == 0
+
+        app._phase6_3d_display_mode = "corner_data"
+        bridge._phase6_mount_shared_content(app, "corner_data")
+        _pump(root)
         assert _corner_mounted_count(app) == 1
+        assert bridge._phase6_corner_data_view(app) is adapter
+        assert adapter.selected_part_key == "tail"
     finally:
         root.destroy()
