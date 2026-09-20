@@ -6,13 +6,13 @@
   "claimed_at": "2026-09-20T22:50:21Z",
   "base_sha": "43d1e2b7108f58ffa5c8cb0236b05ac76efe3d84",
   "head_sha": "435eee0ce9e15991447d34d985256049df3ba256",
-  "phase": "WAITING_REMOTE",
-  "last_update": "2026-09-20T22:58:00Z",
+  "phase": "RUNNING",
+  "last_update": "2026-09-20T22:59:00Z",
   "remote_qa": {
     "run_id": 35543059611,
-    "status": "in_progress",
+    "status": "completed/success",
     "head_sha": "435eee0ce9e15991447d34d985256049df3ba256"
   },
-  "next_action": "Poll GitHub Actions RUN 35543059611 locked to head 435eee0ce9e15991447d34d985256049df3ba256 until terminal; then read exact job/test evidence and continue cleanup.",
+  "next_action": "Delete temporary qa-issue452-skill-registry.yml from the owning branch, then verify no new active run and perform closing drift/diff review.",
   "blocker": null
 }
