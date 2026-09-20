@@ -260,3 +260,67 @@ Therefore:
 - RUN `35489860269` is accepted as **valid requirement RED evidence**;
 - its overall job failure is classified as **STALE_LEGACY_FIXTURE_BLOCKER**, now remediated test-only;
 - next RUN must show focused RED still intended and legacy lane GREEN before minimal GREEN implementation.
+
+
+## Accepted T5 GREEN
+
+Minimal implementation:
+- pure compatibility grouping helper commit: `f4d007b15b58814eb05bf36248b80665f6b962a2`
+- Bridge thin grouping delegate commit: `52507202ab6d2ff87fe38efc2e5cad8e285a27cd`
+- stale legacy visibility fixture alignment was test-only: `2aec42e7aa22c14792ab0151f25c371df9d924f0`
+
+Accepted GREEN RUN:
+- RUN `35490072828` @ `52507202ab6d2ff87fe38efc2e5cad8e285a27cd`: SUCCESS
+- focused T5: `11 passed`
+- legacy Assembly/mount/compatibility: `41 passed / 1 skipped`
+- retained skip remains explicit SKIP and is not counted as PASS
+
+Exact gates:
+```text
+T5_GREEN=1
+REFRESH_TRIGGER_PARITY=GREEN
+REFRESH_CALLSITE_PARITY=GREEN
+REPEATED_REFRESH_STATE_PARITY=GREEN
+NO_NEW_REFRESH_TRIGGER_DELTA=0
+NO_REMOVED_REFRESH_TRIGGER_DELTA=0
+MOUNT_TRIGGER_PARITY=GREEN
+UNMOUNT_TRIGGER_PARITY=GREEN
+ASSEMBLY_ROW_TK_CONSTRUCTION_IN_BRIDGE=0
+ASSEMBLY_PIECE_ROW_TK_CONSTRUCTION_IN_BRIDGE=0
+ASSEMBLY_COLLAPSE_IMPLEMENTATION_IN_BRIDGE=0
+ASSEMBLY_SCROLL_IMPLEMENTATION_IN_BRIDGE=0
+ASSEMBLY_GROUPING_IMPLEMENTATION_IN_BRIDGE=0
+ASSEMBLY_VISIBILITY_POLICY_IMPLEMENTATION_IN_BRIDGE=0
+COMPAT_WRAPPER_SECOND_STATE=0
+COMPAT_WRAPPER_TK_CONSTRUCTION=0
+COMPAT_WRAPPER_DOMAIN_LOGIC=0
+COMPAT_WRAPPER_COUNT_GROWTH=0
+LEGACY_ALIAS_SURVIVES_REBUILD=GREEN
+STALE_LEGACY_REGISTRY_REFERENCE=0
+LEGACY_ATTRIBUTE_COMPATIBILITY_PARITY=GREEN
+LAST_ASSEMBLY_CORNER_TEXTS_RETAINED=1
+RIGHT_DIAGNOSTICS_OUT_OF_SCOPE_EXPLICIT=1
+T5_SCOPE_EXTERNAL_DRIFT=0
+CONFIG_INVARIANT=GREEN
+```
+
+## Accepted T5 Ownership Result
+
+- pure `phase6_assembly_presentation.py` owns the legacy grouping compatibility projection;
+- Bridge grouping wrapper is thin delegation only;
+- all five T0 refresh call sites remain unchanged;
+- mount/unmount transitions remain unchanged;
+- panel-owned long-lived registry aliases remain rebuild-safe;
+- `_phase6_last_assembly_corner_dimension_texts` remains because its proven test reader still exists;
+- no right-side diagnostics ownership moved;
+- no refresh optimization was introduced;
+- no manufacturing/project authority changed.
+
+## Acceptance State
+
+```text
+STATE=GREEN
+TESTED_IMPLEMENTATION_HEAD=52507202ab6d2ff87fe38efc2e5cad8e285a27cd
+RUN_ID=35490072828
+NEXT_ACTION=Run exact-head closing qualification/finalization proof with no further production changes.
+```
