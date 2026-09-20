@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
   "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
     "run_id": 35499954029,
     "head_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T5_AB_QUALIFICATION_RETRY"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T5_AB_QUALIFICATION_GREEN_NO_PRODUCTION_EDIT"
   },
-  "next_action": "Poll run 35499954029 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Write accepted #435 checkpoint/journal, remove temporary T5 workflows only, then audit TESTED_SHA 94fe9251... to closing HEAD. Preserve migrated #378 and T5 lifecycle tests.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
@@ -51,5 +51,32 @@
     "persistence_ab": "GREEN",
     "lifecycle_ab": "HARNESS_FAILURE",
     "finding": "common candidate tests copied into baseline worktree remained modified/untracked and blocked checkout to TESTED_SHA; no product assertion failed"
+  },
+  "final_ab": {
+    "run_id": 35499954029,
+    "orchestration_sha": "6008cb850266e696ca28c412d8955bde8c2d1e35",
+    "tested_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
+    "source_guard": {
+      "production_exact_predecessor": true,
+      "production_runtime_edit": 0
+    },
+    "lifecycle": {
+      "baseline_passed": 34,
+      "baseline_skipped": 1,
+      "candidate_passed": 34,
+      "candidate_skipped": 1,
+      "exact_outcome_parity": true,
+      "candidate_only_failures": 0,
+      "config_invariant": true,
+      "artifact_id": 10601966140,
+      "artifact_sha256": "193104d45012d8cb04b8dd0b89ed2202ec4af589b29ad424e628220fa02e628a"
+    },
+    "persistence": {
+      "baseline_passed": 4,
+      "candidate_passed": 4,
+      "exact_outcome_parity": true,
+      "artifact_id": 10601064286,
+      "artifact_sha256": "8e32457905406919d1e34075d9db4d9c70a957b7ce605e6edf2d6cc3429e3898"
+    }
   }
 }
