@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:00:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35498676434,
     "head_sha": "733f472b5f58f2c6af6f2a9a9527c8d6573c4a3e",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T4_AB_QUALIFICATION"
+    "classification": "ACTIVE_T4_AB_QUALIFICATION"
   },
-  "next_action": "Discover and poll T4 A/B run. Require exact predecessor production blobs, inherited Corner Data 19/19 exact parity, candidate T4 gates GREEN, and accepted job GREEN.",
+  "next_action": "Poll run 35498676434 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_exact_predecessor": true,
