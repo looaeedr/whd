@@ -5,11 +5,17 @@
   "work_branch": "refactor/issue432-t2-general-part-shared-host-20260920",
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
-  "head_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
-  "phase": "CLAIMED",
+  "head_sha": "45fce9a6287bae636ca37d2222736fd87cd7518b",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T07:32:00Z",
-  "remote_qa": null,
-  "next_action": "Create fresh #432 branch from exact #431 closing SHA, then run T2 Knowledge Preflight and characterize normal-part presentation on the shared host before any production edit.",
+  "last_update": "2026-09-20T07:34:00Z",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "45fce9a6287bae636ca37d2222736fd87cd7518b",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T2_KNOWLEDGE_PREFLIGHT"
+  },
+  "next_action": "Discover and poll the push-triggered #432 T2 Knowledge Preflight run at exact head 45fce9a6287bae636ca37d2222736fd87cd7518b.",
   "blocker": null
 }
