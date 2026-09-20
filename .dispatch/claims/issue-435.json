@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
-  "head_sha": "6ded2f252f6c45e5ea2047a26ea156c75b4bfcba",
+  "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": 35499553617,
-    "head_sha": "6ded2f252f6c45e5ea2047a26ea156c75b4bfcba",
-    "status": "queued",
+    "run_id": null,
+    "head_sha": "a29fe6313f6c17e74db5c54ee71eee6b58e83e21",
+    "status": "awaiting_run_discovery",
     "conclusion": null,
-    "classification": "ACTIVE_T5_CHARACTERIZATION_RED_RETRY"
+    "classification": "T5_CHARACTERIZATION_RED_RETRY_2"
   },
-  "next_action": "Poll run 35499553617 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Discover and poll push-triggered T5 characterization at exact head a29fe6313f6c17e74db5c54ee71eee6b58e83e21; require exactly four stale #378 failures.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
