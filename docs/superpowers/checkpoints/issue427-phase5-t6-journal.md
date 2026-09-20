@@ -277,3 +277,67 @@ RUN_ID=35491897110
 PHASE5_DECISION=GREEN
 NEXT_ACTION=Prove cleanup-head production blobs equal tested candidate, fresh-read production target, then non-force integrate.
 ```
+
+
+## Production Integration / Post-Merge Smoke
+
+### Non-force integration
+
+Production target `cleanup/2d-3d-sync` was fresh-read immediately before integration and remained exactly:
+`396bfd96524a44a178c29bbefaf1b7c0437c119f`.
+
+Cleanup head before integration:
+`246578f815f4edfe273d1d5b6b443254ccfd6fa3`.
+
+Production-code blob parity against tested T5 candidate `06f23d44...`:
+- `fold_designer_bridge.py`: `fdc0b6053575257d3ee60f86aed5ea2340205bd2` — unchanged
+- `phase6_assembly_panel.py`: `3ffea0709dd0c692816c59c2232f06710f2be885` — unchanged
+- `phase6_assembly_presentation.py`: `b460bbbb819d4d6639f438fe63e866e21f71789e` — unchanged
+
+Integration:
+```text
+FORCE_PUSH=0
+BASELINE_SUBSTITUTION=0
+UNTESTED_CONFLICT_RESOLUTION=0
+TARGET_X=cleanup/2d-3d-sync
+INTEGRATION_SHA=246578f815f4edfe273d1d5b6b443254ccfd6fa3
+NON_FORCE_FAST_FORWARD=1
+```
+
+Exact production readback after integration:
+- target SHA == `246578f815f4edfe273d1d5b6b443254ccfd6fa3`
+- ahead/behind vs integration SHA = `0/0`
+- tested candidate `06f23d44...` is an ancestor of production.
+
+PR #428 was consequently reported by GitHub as merged/closed at the exact fast-forward integration SHA.
+
+### Post-merge focused Assembly/Xvfb smoke
+
+A one-shot **non-merge** smoke carrier PR #437 was used only to obtain observable remote-QA execution. Its workflow explicitly checked out and tested exact production SHA:
+`246578f815f4edfe273d1d5b6b443254ccfd6fa3`.
+
+RUN `35493064085` / job `106031202384`: **SUCCESS**
+
+```text
+POST_MERGE_PRODUCTION_SHA_EXACT=1
+POST_MERGE_PRODUCTION_SHA=246578f815f4edfe273d1d5b6b443254ccfd6fa3
+POST_MERGE_ASSEMBLY_XVFB_SMOKE=GREEN
+CONFIG_INVARIANT=GREEN
+86 passed / 1 skipped / 1 deselected
+```
+
+Smoke artifact:
+- artifact `10600330315`
+- digest `sha256:ecec143168437235fe21ae25d6280e0495ae50f558a37f8e453a7febcdab8303`
+
+The one-shot smoke workflow was then deleted from the work-order branch and PR #437 was closed **without merge**. Production never contained that smoke workflow.
+
+### Closing state
+
+```text
+STATE=POSTMERGE_SMOKE_GREEN_PENDING_FINALIZATION
+PHASE5_DECISION=GREEN
+INTEGRATION_SHA=246578f815f4edfe273d1d5b6b443254ccfd6fa3
+POST_MERGE_RUN_ID=35493064085
+NEXT_ACTION=Fast-forward journal-only closing writeback, verify protected-owner drift zero, then produce exact-head finalization proof and close #427/#413.
+```
