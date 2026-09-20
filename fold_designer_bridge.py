@@ -593,12 +593,11 @@ def _phase6_final_scene_scene_query(self, key, payload):
 
 def _phase6_final_scene_corner_text_sink(self, values):
     values = {str(key): str(value) for key, value in dict(values or {}).items()}
+    # Retain the fixed-root compatibility snapshot; Tk mutation is panel-owned.
     self._phase6_last_assembly_corner_dimension_texts = dict(values)
-    vars_by_part = getattr(self, "assembly_part_corner_vars", {}) or {}
-    for key, value in values.items():
-        var = vars_by_part.get(key)
-        if var is not None and callable(getattr(var, "set", None)):
-            var.set(value)
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        owner.set_corner_texts(values)
 
 
 def _phase6_final_scene_operator_dimensions(self, part_key=None):
@@ -628,90 +627,18 @@ def _phase6_final_scene_operator_dimensions(self, part_key=None):
 
 
 def _phase6_final_scene_part_text_sink(self, kind, part_key, value):
-    mapping_name = (
-        "assembly_part_formed_vars"
-        if str(kind) == "formed"
-        else "assembly_part_blank_vars"
-    )
-    var = (getattr(self, mapping_name, {}) or {}).get(str(part_key))
-    if var is not None and callable(getattr(var, "set", None)):
-        var.set(value)
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        owner.set_part_text(kind, part_key, value)
 
 
 def _phase6_final_scene_visibility(self, parts):
-    parts = tuple(parts or ())
-    visible_vars = getattr(self, "assembly_part_visible_vars", {}) or {}
-    visible_parts = [
-        part
-        for part in parts
-        if bool(
-            getattr(
-                visible_vars.get(part.part_key),
-                "get",
-                lambda: True,
-            )()
-        )
-    ]
-    if not visible_parts and parts:
-        fallback = next(
-            (part for part in parts if part.part_key == "box_body"),
-            parts[0],
-        )
-        visible_parts = [fallback]
-        var = visible_vars.get(fallback.part_key)
-        if var is not None and callable(getattr(var, "set", None)):
-            var.set(True)
-
-    visible_keys = {part.part_key for part in visible_parts}
-    box_part = next(
-        (part for part in parts if part.part_key == "box_body"),
-        None,
-    )
-    box_piece_keys = tuple(
-        f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
-        for piece in tuple(
-            getattr(
-                getattr(box_part, "render_data", None),
-                "pieces",
-                (),
-            )
-            or ()
-        )
-        if str(getattr(piece, "role", "") or "").strip()
-    )
-    visible_box_body_piece_keys = None
-    if box_piece_keys:
-        piece_vars = dict(
-            getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}
-        )
-        if "box_body" not in visible_keys:
-            visible_box_body_piece_keys = ()
-        else:
-            visible_box_body_piece_keys = tuple(
-                key
-                for key in box_piece_keys
-                if bool(
-                    getattr(
-                        piece_vars.get(key),
-                        "get",
-                        lambda: True,
-                    )()
-                )
-            )
-            if (
-                not visible_box_body_piece_keys
-                and visible_keys == {"box_body"}
-            ):
-                first = box_piece_keys[0]
-                var = piece_vars.get(first)
-                if var is not None and callable(getattr(var, "set", None)):
-                    var.set(True)
-                visible_box_body_piece_keys = (first,)
-
-    return (
-        tuple(part.part_key for part in visible_parts),
-        visible_box_body_piece_keys,
-    )
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        return owner.resolve_visibility(parts)
+    # Construction-time fail-safe: preserve fixed-root missing-var defaults
+    # without creating a second visibility store in Bridge.
+    return Phase6AssemblyPanel._resolve_visibility_with_vars(parts, {}, {})
 
 
 def _phase6_final_scene_render_committed(self):
@@ -7356,11 +7283,15 @@ def _phase6_build_content_switch(self):
 
 
 def _phase6_structure_tree_visibility_var(self, key):
-    """Return the existing assembly view-state owner for one physical identity."""
+    """Return the exact panel-owned visibility var for one physical identity."""
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is None:
+        return None
     key = str(key or "")
-    if _phase6_is_box_body_physical_piece_key(key):
-        return dict(getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}).get(key)
-    return dict(getattr(self, "assembly_part_visible_vars", {}) or {}).get(key)
+    return owner.visibility_var(
+        key,
+        is_box_piece=_phase6_is_box_body_physical_piece_key(key),
+    )
 
 
 def _phase6_refresh_structure_tree(self):
@@ -7437,13 +7368,15 @@ def _phase6_on_structure_tree_select(self, _event=None):
 
 
 def _phase6_set_structure_tree_visibility(self, key, visible):
-    """Delegate hide/show to the existing drawing-sink visibility state only."""
+    """Mutate the shared panel Tk var and emit the panel visibility action."""
     key = str(key or "")
     visible_var = _phase6_structure_tree_visibility_var(self, key)
     if visible_var is None:
         return False
     visible_var.set(bool(visible))
-    _phase6_on_assembly_part_visibility_changed(self)
+    owner = getattr(self, "_phase6_assembly_panel_owner", None)
+    if owner is not None:
+        owner.notify_visibility_changed()
     _phase6_refresh_structure_tree(self)
     return True
 
