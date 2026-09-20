@@ -262,7 +262,8 @@ jobs:
           def capture(name, action, expected):
               action(); pump(4)
               host=app.shared_content_host
-              surfaces=[app.fold_editor_host,app.assembly_parts_panel,app.corner_data_panel]
+              surfaces=[app.fold_editor_host,app.assembly_parts_panel,getattr(app,"corner_data_panel",None)]
+              surfaces=[w for w in surfaces if w is not None]
               mapped=[w for w in surfaces if w.winfo_manager()]
               assert len(mapped)==1, (name,[str(w) for w in mapped])
               active=expected()
