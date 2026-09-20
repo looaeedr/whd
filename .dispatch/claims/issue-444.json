@@ -6,14 +6,16 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:30:00+08:00",
+  "last_update": "2026-09-21T07:33:00+08:00",
   "remote_qa": {
     "run_id": 35544127302,
-    "status": "in_progress",
-    "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916"
+    "status": "completed/success",
+    "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
+    "job_id": 106166915891,
+    "summary": "8 passed in 1.88s"
   },
-  "next_action": "Poll exact RUN 35544127302 at head a992b2d6 through terminal; do not switch to sibling runs.",
+  "next_action": "Delete the one-shot focused QA workflow from the canonical #444 branch, then perform tested-head to cleaned-head drift/acceptance audit and durable Issue writeback.",
   "blocker": null
 }
