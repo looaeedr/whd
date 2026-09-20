@@ -5,17 +5,17 @@
   "work_branch": "fix/issue440-dark-canvas-background-20260920",
   "claimed_at": "2026-09-20T12:36:00Z",
   "base_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "head_sha": "2f097c9137299c4290c78eddaff5f58d0d5eb649",
-  "phase": "RED",
+  "head_sha": "8dd6483c4a0e6bb3daf5ae3a88375224cbc50da5",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T12:38:00Z",
   "remote_qa": {
-    "run_id": 35511172826,
-    "head_sha": "2f097c9137299c4290c78eddaff5f58d0d5eb649",
-    "status": "in_progress",
+    "run_id": 35511486306,
+    "head_sha": "8dd6483c4a0e6bb3daf5ae3a88375224cbc50da5",
+    "status": "queued",
     "conclusion": null,
-    "classification": "ACTIVE_ISSUE440_RED"
+    "classification": "ACTIVE_ISSUE440_FINAL_ACCEPTANCE"
   },
-  "next_action": "Poll RED run 35511172826 to terminal. Require exact intended wrapper-shell/native-Canvas failures before any production runtime edit.",
+  "next_action": "Poll run 35511486306 to terminal. Require protected GREEN, direct-slot visual GREEN with natural mode-specific heights, and production target drift GREEN before integration.",
   "blocker": null
 }
