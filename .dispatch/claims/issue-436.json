@@ -5,18 +5,18 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "3fd041736d81194182ea568f2173da3cc6484aa1",
+  "head_sha": "d2d1c1f6777d826ea725ed0666500048b8d90bb3",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": 35505738075,
-    "head_sha": "3fd041736d81194182ea568f2173da3cc6484aa1",
-    "status": "in_progress",
+    "run_id": 35506636827,
+    "head_sha": "d2d1c1f6777d826ea725ed0666500048b8d90bb3",
+    "status": "queued",
     "conclusion": null,
-    "classification": "ACTIVE_T6_VISUAL_FINAL_ANCHOR_WIDTH_CONTRACT"
+    "classification": "ACTIVE_T6_REMEDIATION_FINALIZER_V3"
   },
-  "next_action": "Poll run 35505738075 to terminal; if GREEN, inspect screenshots and integrate non-force.",
+  "next_action": "Poll run 35506636827 to terminal; earlier finalizer runs are superseded and cannot authorize integration.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
