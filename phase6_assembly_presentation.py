@@ -138,6 +138,22 @@ def build_assembly_presentation_model(
     return AssemblyPresentationModel(entries=tuple(entries))
 
 
+def legacy_assembly_presentation_groups(
+    values: Iterable[object] | None,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Project legacy Bridge grouping tuples from the pure presentation model."""
+    model = build_assembly_presentation_model(values, label_for=str)
+    return tuple(
+        (
+            str(entry.presentation_key),
+            tuple(str(child.part_key) for child in entry.children),
+        )
+        if isinstance(entry, AssemblySyntheticGroup)
+        else (str(entry.part_key), ())
+        for entry in model.entries
+    )
+
+
 def project_box_body_piece_rows(
     render_data: object,
     *,
