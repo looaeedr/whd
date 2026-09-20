@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue444-t2-bending-ui-owner-20260920",
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-  "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
-  "phase": "CLEANUP",
+  "head_sha": "d266b3b13a2d530badb789ea0d9d99fae3caf890",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:32:00+08:00",
+  "last_update": "2026-09-21T07:35:00+08:00",
   "remote_qa": {
     "run_id": 35544127302,
     "status": "completed/success",
@@ -16,6 +16,6 @@
     "job_id": 106166915891,
     "result": "8 passed in 1.88s"
   },
-  "next_action": "Delete the one-shot qa-issue444-t2-focused-20260921.yml workflow, then verify tested-head a992b2d6 -> cleaned-head drift is workflow-only.",
+  "next_action": "Verify #444 acceptance/source ownership and facade ratchet at cleaned head d266b3b1; tested-head drift is workflow-only. Then write durable Issue acceptance/closure evidence if all gates are GREEN.",
   "blocker": null
 }
