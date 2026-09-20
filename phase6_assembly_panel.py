@@ -575,6 +575,117 @@ class Phase6AssemblyPanel:
         self._on_content_configure()
         return projections
 
+    def set_corner_texts(self, values) -> None:
+        """Apply Final Scene corner presentation text to existing logical rows."""
+        normalized = {
+            str(key): str(value)
+            for key, value in dict(values or {}).items()
+        }
+        for key, value in normalized.items():
+            var = self.corner_vars.get(key)
+            if var is not None and callable(getattr(var, "set", None)):
+                var.set(value)
+
+    def set_part_text(self, kind, part_key, value) -> None:
+        """Apply one lossy Final Scene formed/blank text sink update."""
+        mapping = self.formed_vars if str(kind) == "formed" else self.blank_vars
+        var = mapping.get(str(part_key))
+        if var is not None and callable(getattr(var, "set", None)):
+            var.set(value)
+
+    @staticmethod
+    def _resolve_visibility_with_vars(parts, visible_vars, piece_vars):
+        """Resolve fixed-root Assembly visibility from Tk-var-like mappings."""
+        parts = tuple(parts or ())
+        visible_parts = [
+            part
+            for part in parts
+            if bool(
+                getattr(
+                    visible_vars.get(part.part_key),
+                    "get",
+                    lambda: True,
+                )()
+            )
+        ]
+        if not visible_parts and parts:
+            fallback = next(
+                (part for part in parts if part.part_key == "box_body"),
+                parts[0],
+            )
+            visible_parts = [fallback]
+            var = visible_vars.get(fallback.part_key)
+            if var is not None and callable(getattr(var, "set", None)):
+                var.set(True)
+
+        visible_keys = {part.part_key for part in visible_parts}
+        box_part = next(
+            (part for part in parts if part.part_key == "box_body"),
+            None,
+        )
+        box_piece_keys = tuple(
+            f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+            for piece in tuple(
+                getattr(
+                    getattr(box_part, "render_data", None),
+                    "pieces",
+                    (),
+                )
+                or ()
+            )
+            if str(getattr(piece, "role", "") or "").strip()
+        )
+
+        visible_box_body_piece_keys = None
+        if box_piece_keys:
+            if "box_body" not in visible_keys:
+                visible_box_body_piece_keys = ()
+            else:
+                visible_box_body_piece_keys = tuple(
+                    key
+                    for key in box_piece_keys
+                    if bool(
+                        getattr(
+                            piece_vars.get(key),
+                            "get",
+                            lambda: True,
+                        )()
+                    )
+                )
+                if (
+                    not visible_box_body_piece_keys
+                    and visible_keys == {"box_body"}
+                ):
+                    first = box_piece_keys[0]
+                    var = piece_vars.get(first)
+                    if var is not None and callable(getattr(var, "set", None)):
+                        var.set(True)
+                    visible_box_body_piece_keys = (first,)
+
+        return (
+            tuple(part.part_key for part in visible_parts),
+            visible_box_body_piece_keys,
+        )
+
+    def resolve_visibility(self, parts):
+        """Resolve Final Scene visibility from the panel-owned Tk vars."""
+        return self._resolve_visibility_with_vars(
+            parts,
+            self.visible_vars,
+            self.box_piece_visible_vars,
+        )
+
+    def visibility_var(self, key, *, is_box_piece=False):
+        """Return the exact panel Tk visibility var for Structure Tree use."""
+        key = str(key or "")
+        if bool(is_box_piece):
+            return self.box_piece_visible_vars.get(key)
+        return self.visible_vars.get(key)
+
+    def notify_visibility_changed(self) -> None:
+        """Emit the sole panel action; the target owns render-mode policy."""
+        self.actions.on_visibility_changed()
+
     def set_part_details_open(self, key, is_open):
         key = str(key)
         details = self.detail_frames.get(key)
