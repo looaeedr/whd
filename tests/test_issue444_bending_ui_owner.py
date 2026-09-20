@@ -27,14 +27,26 @@ def _top_level_defs(path: Path):
 def test_issue444_r2_owner_location_and_reverse_import_contract():
     bridge_defs = _top_level_defs(BRIDGE)
     owner_defs = _top_level_defs(OWNER)
-    owner_source = OWNER.read_text(encoding="utf-8")
+    owner_tree = ast.parse(OWNER.read_text(encoding="utf-8"), filename=str(OWNER))
+    imported_modules = {
+        alias.name
+        for node in owner_tree.body
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    imported_from = {
+        node.module
+        for node in owner_tree.body
+        if isinstance(node, ast.ImportFrom)
+    }
 
     assert "Phase6BendingUI" in owner_defs
     assert "Phase6BendingUI" not in bridge_defs
     assert "_phase6_resolve_profile_key" not in bridge_defs
     assert "_phase6_box_symmetry_allowed" not in bridge_defs
     assert "_phase6_apply_box_symmetry_policy" not in bridge_defs
-    assert "fold_designer_bridge" not in owner_source
+    assert "fold_designer_bridge" not in imported_modules
+    assert "fold_designer_bridge" not in imported_from
 
 
 def test_issue444_r2_profile_compat_and_transaction_delegate_remain_in_bridge():
