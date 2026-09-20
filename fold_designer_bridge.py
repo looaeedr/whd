@@ -7169,17 +7169,24 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_build_content_switch(self)
 
-    # #431: one physical left content host owns every mutually-exclusive mode
-    # presentation.  This frame is presentation-only; existing workspace,
-    # display-mode, visibility and Corner Data state remain authoritative.
-    self.shared_content_host = original.ttk.Frame(self.left)
-    self.shared_content_host.pack(fill=original.tk.BOTH, expand=True)
+    # #439 correction: the original input region itself is the only physical
+    # content host. Do not add a second shared-content Frame beneath self.left.
+    self.fold_editor_host = original.ttk.Frame(self.left)
+    self.fold_editor_host.pack(fill=original.tk.BOTH, expand=True)
+    # Compatibility alias only. Identity equality is the contract.
+    self.shared_content_host = self.fold_editor_host
 
-    # Phase 5 T2: the left Assembly Parts surface is owned by one focused Tk
-    # panel. Bridge keeps compatibility aliases only; panel registries retain
-    # identity across rebuilds so legacy readers never hold stale dict objects.
+    # Normal-part inputs are one inner content tree inside the permanent outer
+    # input region. Assembly and Corner Data are sibling inner trees.
+    self.input_content_host = original.ttk.Frame(self.fold_editor_host)
+    self.bend_ui = Phase6BendingUI(
+        self.input_content_host, self.state, self.queue_update
+    )
+
+    # Phase 5 T2: retain the same Assembly owner/state; only its presentation
+    # parent changes to the original physical input region.
     self._phase6_assembly_panel_owner = Phase6AssemblyPanel(
-        self.shared_content_host,
+        self.fold_editor_host,
         actions=AssemblyPanelActions(
             on_visibility_changed=lambda: _phase6_on_assembly_part_visibility_changed(self)
         ),
@@ -7195,9 +7202,6 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     except Exception:
         pass
 
-    # 左側輸入區永久存在；右側只有參數面板受鎖定控制。
-    self.fold_editor_host = original.ttk.Frame(self.shared_content_host)
-    self.bend_ui = Phase6BendingUI(self.fold_editor_host, self.state, self.queue_update)
     _phase6_mount_shared_content(self, "single")
     _phase6_build_settings_center(self)
     _phase6_install_renderer_view(self)
@@ -7279,14 +7283,29 @@ def _phase6_build_content_switch(self):
     return self.content_switch_frame
 
 
-def _phase6_mount_shared_content(self, mode):
-    """Mount exactly one existing content tree inside the dedicated shared host.
+def _phase6_sync_physical_content_host_extent(self):
+    """Keep the permanent outer content region at the normal-input extent."""
+    host = getattr(self, "fold_editor_host", None)
+    input_host = getattr(self, "input_content_host", None)
+    if host is None or input_host is None:
+        return None
+    try:
+        self.root.update_idletasks()
+    except Exception:
+        pass
+    try:
+        requested = max(1, int(input_host.winfo_reqheight()) + 10)
+        host.configure(height=requested)
+        host.pack_propagate(False)
+        self._phase6_physical_content_height = requested
+        return requested
+    except Exception:
+        return None
 
-    This helper owns presentation lifecycle only.  It deliberately does not own
-    active-part, display-mode, visibility, Corner Data selection, geometry, or
-    persistence state.
-    """
-    host = getattr(self, "shared_content_host", None)
+
+def _phase6_mount_shared_content(self, mode):
+    """Swap one inner content tree inside the original physical input region."""
+    host = getattr(self, "fold_editor_host", None)
     if host is None:
         return None
 
@@ -7298,7 +7317,7 @@ def _phase6_mount_shared_content(self, mode):
         else "single"
     )
     surfaces = {
-        "single": getattr(self, "fold_editor_host", None),
+        "single": getattr(self, "input_content_host", None),
         "assembly": getattr(self, "assembly_parts_panel", None),
         "corner_data": getattr(self, "corner_data_panel", None),
     }
@@ -7321,8 +7340,10 @@ def _phase6_mount_shared_content(self, mode):
                 )
         elif widget.winfo_manager():
             widget.pack_forget()
-    return selected
 
+    if selected_mode == "single":
+        _phase6_sync_physical_content_host_extent(self)
+    return selected
 
 def _phase6_structure_tree_visibility_var(self, key):
     """Return the exact panel-owned visibility var for one physical identity."""
