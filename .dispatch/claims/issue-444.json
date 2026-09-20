@@ -8,12 +8,12 @@
   "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:22:00+08:00",
+  "last_update": "2026-09-21T07:23:00+08:00",
   "remote_qa": {
-    "run_id": null,
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35544032196,
+    "status": "in_progress",
     "head_sha": "b34c20a4f54d1aee6177285fa4c39f15f8d51a5c"
   },
-  "next_action": "Lock the replacement QA run for head b34c20a4 and poll it through terminal.",
+  "next_action": "Poll exact RUN 35544032196 at head b34c20a4 through terminal; do not switch to sibling runs.",
   "blocker": null
 }
