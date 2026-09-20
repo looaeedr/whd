@@ -9,6 +9,67 @@ whd_schema: WHD_DOC_META_V1
 
 # Executable Continuity Controller
 
+## EXECUTION_SCOPE_AUTHORITY_GATE_V1
+
+Continuity is allowed to continue **only inside an already-authorized execution scope**. It must never create authority for a new phase, architecture, ownership boundary, or task chain.
+
+### Authorized execution scope
+
+Autonomous implementation may proceed only when all applicable authority exists and is fresh-read from durable project sources:
+
+- an **accepted specification** or other explicitly approved implementation contract;
+- the concrete owning issue/task/work order;
+- the approved task boundary and predecessor/base;
+- required protected scope / invariants / acceptance gates;
+- for resumed work, a valid owning checkpoint with an exact `next_action`.
+
+When these exist, user commands such as `繼續`, `GO`, or `輪` mean: **continue the current authorized scope**. They do not expand scope.
+
+### Specification-required boundary
+
+The following are specification-authority changes and MUST fail closed into specification/planning work when no accepted spec already authorizes them:
+
+- starting a new Phase / milestone / architecture program;
+- inventing or changing an ownership boundary;
+- inventing a new task chain or predecessor chain;
+- choosing a new extraction/decomposition strategy after the prior accepted chain is complete;
+- changing protected surfaces, acceptance gates, or cumulative baseline rules;
+- converting exploratory analysis into production implementation.
+
+In this state, the assistant MAY:
+
+- inspect/read current production;
+- perform non-mutating census/analysis;
+- draft or revise a specification;
+- identify candidate task boundaries and risks for review.
+
+Until the spec is accepted, the assistant MUST NOT:
+
+- create implementation issues/tickets as if approved;
+- create implementation branches/worktrees;
+- add RED/GREEN implementation tests for the proposed new scope;
+- modify product/runtime code;
+- merge any proposed implementation or QA bootstrap into production;
+- treat exploratory GREEN evidence as accepted task evidence.
+
+### Continuity precedence
+
+`continuity != authority expansion`.
+
+The "do not stop", turn-exit, polling, scheduled re-entry, and exact-next-action rules apply **after** execution authority is established. They cannot be used to bypass this gate.
+
+If the current authorized chain reaches completion and the apparent next action would begin a new, unspecified phase, the exact next action becomes:
+
+```text
+SPECIFICATION_REQUIRED
+→ inspect current state
+→ draft/revise spec
+→ obtain accepted spec/task graph
+→ only then enter implementation continuity
+```
+
+Do not ask the user to repeatedly say `繼續` to advance already-authorized work. Conversely, do not interpret `繼續` as approval of a new architecture or phase that has not been specified.
+
 ## SCHEDULED_WAKEUP_CONTINUITY_CONTRACT
 
 This Skill is the unique operations/semantic CURRENT authority for scheduled wake-up continuity. An automation or schedule is only a wake-up trigger; it never becomes the execution owner. Canonical shorthand: `wake-up trigger != execution owner`.
