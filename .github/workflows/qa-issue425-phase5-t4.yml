@@ -212,6 +212,80 @@ jobs:
           cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
           echo "CONFIG_INVARIANT=GREEN"
 
+      - name: Authorize exact-owner T4 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path("/tmp/issue425-t4-closing")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "version": 1,
+              "issue": "425",
+              "branch": os.environ["WORK_BRANCH"],
+              "head_sha": os.environ["OWNER_HEAD"],
+              "state": "TERMINAL_SUCCESS",
+              "next_action": None,
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "job_id": None,
+              "log_cursor": None,
+              "blocked_count": 0,
+              "blocked_last_notified_at": None,
+              "evidence": [
+                  "KNOWLEDGE_PREFLIGHT_RC=0",
+                  "T4_GREEN=1",
+                  "FINAL_SCENE_ASSEMBLY_QUERY_ORDER_PARITY=GREEN",
+                  "FINAL_SCENE_TEXT_SINK_PARITY=GREEN",
+                  "UNKNOWN_TEXT_KIND_PRODUCED=0",
+                  "TOP_LEVEL_VISIBILITY_PARITY=GREEN",
+                  "BOX_PIECE_VISIBILITY_PARITY=GREEN",
+                  "VISIBLE_BOX_BODY_PIECE_TRISTATE_PARITY=GREEN",
+                  "TOP_LEVEL_FALLBACK_WRITEBACK_PARITY=GREEN",
+                  "BOX_PIECE_FALLBACK_WRITEBACK_PARITY=GREEN",
+                  "VISIBILITY_CHANGE_RENDER_ONLY_IN_ASSEMBLY_MODE=true",
+                  "PANEL_READS_DISPLAY_MODE=0",
+                  "VISIBILITY_RENDER_MODE_GATE_OWNED_BY_ACTION_TARGET=true",
+                  "STRUCTURE_TREE_VISIBILITY_STATE_DUPLICATION=0",
+                  "STRUCTURE_TREE_VISIBILITY_PARITY=GREEN",
+                  "STRUCTURE_TREE_REGISTRY_EMPTY_PIECE_DISPLAY_PARITY=GREEN",
+                  "STRUCTURE_TREE_REGISTRY_EMPTY_PIECE_CLICK_NOOP_PARITY=GREEN",
+                  "STRUCTURE_TREE_REGISTRY_REPOPULATED_PIECE_TOGGLE_PARITY=GREEN",
+                  "LEGACY_T4_ASSEMBLY_REGRESSIONS=GREEN",
+                  "PANEL_BRIDGE_IMPORTS=0",
+                  "PANEL_DM7_IMPORTS=0",
+                  "PANEL_SETTINGS_IMPORTS=0",
+                  "PANEL_DISPLAY_MODE_REFS=0",
+                  "PANEL_MANUFACTURING_SOLVE=0",
+                  "PANEL_PROJECT_MUTATION=0",
+                  "PANEL_SECOND_VISIBILITY_STORE=0",
+                  "T4_SCOPE_EXTERNAL_DRIFT=0",
+                  "CONFIG_INVARIANT=GREEN",
+              ],
+          }
+          (out / "terminal-checkpoint.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue425-t4-closing/terminal-checkpoint.json \
+            --issue "425" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD" \
+            --proof-out /tmp/issue425-t4-closing/finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue425-t4-closing/terminal-checkpoint.json \
+            /tmp/issue425-t4-closing/finalization-proof.json \
+            --issue "425" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD"
+          echo "FINALIZATION_GUARD_PASS=1"
+          echo "FINALIZATION_PROOF_VALID=1"
+
       - name: Upload T4 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -221,5 +295,7 @@ jobs:
             /tmp/issue425-t4-pytest.log
             /tmp/issue425-config-before.sha256
             /tmp/issue425-config-after.sha256
+            /tmp/issue425-t4-closing/terminal-checkpoint.json
+            /tmp/issue425-t4-closing/finalization-proof.json
           if-no-files-found: warn
           retention-days: 14
