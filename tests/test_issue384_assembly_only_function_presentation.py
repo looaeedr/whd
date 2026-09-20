@@ -68,7 +68,9 @@ def test_assembly_uses_single_assembly_content_without_structure_tree_overlay():
 def test_normal_and_assembly_content_share_same_left_content_owner():
     root, app = _open()
     try:
-        assert app.fold_editor_host.master is app.left
-        assert app.assembly_parts_panel.master is app.left
+        shared = app.shared_content_host
+        assert shared.master is app.left
+        assert app.fold_editor_host.master is shared
+        assert app.assembly_parts_panel.master is shared
     finally:
         root.destroy()
