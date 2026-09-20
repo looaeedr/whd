@@ -6,16 +6,26 @@
   "claimed_at": "2026-09-20T07:58:00Z",
   "base_sha": "bbd499786cbebc1b5e68ff032f2591cc308060cd",
   "head_sha": "7550fe3195e42eda3a20334063be25484ee50281",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:00:00Z",
   "remote_qa": {
     "run_id": 35498495529,
     "head_sha": "7550fe3195e42eda3a20334063be25484ee50281",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T4_CHARACTERIZATION"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "TEST_HARNESS_OVERREACH_UNCONNECTED_FINAL_SCENE_PROVIDER"
   },
-  "next_action": "Poll run 35498495529 to terminal; no other work while REMOTE_QA active lock is held.",
-  "blocker": null
+  "next_action": "Fix test harness only: use refresh_view=False for selection-owner assertions and exercise panel refresh/mount without invoking unfold render. Keep production byte-identical. Rerun characterization.",
+  "blocker": null,
+  "characterization_diagnostic": {
+    "production_exact_predecessor": true,
+    "inherited_corner_data_passed": 21,
+    "failed": 2,
+    "failed_nodes": [
+      "tests/test_issue434_corner_data_shared_host.py::test_t4_corner_data_adapter_is_single_state_owner_and_selection_is_view_only",
+      "tests/test_issue434_corner_data_shared_host.py::test_t4_corner_data_refresh_reuses_panel_and_adapter_without_second_authority"
+    ],
+    "finding": "new tests invoked Corner Data unfold refresh on a directly-constructed Fold Designer without a connected final-scene provider; existing #94/#95/#96/#119 behavior all passed"
+  }
 }
