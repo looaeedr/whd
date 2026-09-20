@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T07:18:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35496316468,
     "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T1_AB_QUALIFICATION"
+    "classification": "ACTIVE_T1_AB_QUALIFICATION"
   },
-  "next_action": "Discover and poll #431 T1 A/B qualification. TESTED_SHA remains 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a; orchestration SHA is 5e18d66ad3642c1a9b27da7f25c511626d1a90c4.",
+  "next_action": "Poll run 35496316468 to terminal. Only run/jobs/steps polling is allowed while active.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496205827,
