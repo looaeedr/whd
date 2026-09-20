@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
   "head_sha": "2e46510d4c2bf4556abe93f6c1ff09613c16f470",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
     "run_id": 35508161224,
     "head_sha": "2e46510d4c2bf4556abe93f6c1ff09613c16f470",
-    "status": "queued",
-    "conclusion": null,
-    "classification": "ACTIVE_ISSUE439_INTENDED_RED_RETRY"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "ISSUE439_INTENDED_RED_CONFIRMED_2_FAIL"
   },
-  "next_action": "Poll run 35508161224 to terminal; require exactly two intended REDs and no production runtime edit.",
+  "next_action": "Apply minimal GREEN: fold_editor_host becomes the only physical outer content host; shared_content_host becomes an alias; input_content_host becomes the single-mode inner surface; assembly/corner become sibling inner surfaces; outer host never unmounts and keeps input-area height.",
   "blocker": null
 }
