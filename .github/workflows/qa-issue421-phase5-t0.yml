@@ -29,21 +29,23 @@ jobs:
       WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
       EVIDENCE: docs/superpowers/checkpoints/issue421-phase5-t0-journal.md
       OUT_DIR: /tmp/issue421-phase5-t0
+      OWNER_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Checkout exact work-order head
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ env.OWNER_HEAD }}
 
       - name: Verify frozen-root lineage
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$OWNER_HEAD"
           git cat-file -e "$ACCEPTED_ROOT^{commit}"
-          git merge-base --is-ancestor "$ACCEPTED_ROOT" HEAD
+          git merge-base --is-ancestor "$ACCEPTED_ROOT" "$OWNER_HEAD"
           echo "ROOT_SHA_EXACT=1"
-          echo "WORK_ORDER_HEAD=$GITHUB_SHA"
+          echo "WORK_ORDER_HEAD=$OWNER_HEAD"
 
       - name: Knowledge Preflight
         shell: bash
@@ -144,7 +146,7 @@ jobs:
               "version": 1,
               "issue": "421",
               "branch": os.environ["WORK_BRANCH"],
-              "head_sha": os.environ["GITHUB_SHA"],
+              "head_sha": os.environ["OWNER_HEAD"],
               "state": "TERMINAL_SUCCESS",
               "next_action": None,
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
@@ -169,7 +171,7 @@ jobs:
           )
           PY
           python -m tools.continuity_controller authorize-finalization             "$OUT_DIR/terminal-checkpoint.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$GITHUB_SHA"             --proof-out "$OUT_DIR/finalization-proof.json"
-          python -m tools.continuity_controller verify-finalization-proof             "$OUT_DIR/terminal-checkpoint.json"             "$OUT_DIR/finalization-proof.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$GITHUB_SHA"
+          python -m tools.continuity_controller verify-finalization-proof             "$OUT_DIR/terminal-checkpoint.json"             "$OUT_DIR/finalization-proof.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$OWNER_HEAD"
           echo "FINALIZATION_GUARD_PASS=1"
           echo "FINALIZATION_PROOF_VALID=1"
 
