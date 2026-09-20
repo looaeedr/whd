@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
   "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:46:17Z",
+  "last_update": "2026-09-20T06:46:27Z",
   "remote_qa": {
     "run_id": 35495093718,
     "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
-    "status": "queued",
-    "conclusion": null,
-    "classification": "ACTIVE_KNOWLEDGE_PREFLIGHT"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "HARNESS_ONLY_FALSE_RED_CANONICAL_PREFLIGHT_ALL_REQUIREMENTS_GREEN_EXTRA_GREP_FAILED"
   },
-  "next_action": "Poll GitHub Actions run 35495093718 at exact head c3cff0b93497a9ad86d0e1488f5988861c5b033b to terminal; on success require Knowledge preflight passed / RC=0, otherwise classify only the failed job.",
+  "next_action": "Remove the noncanonical success-string grep from qa-issue430-t0-preflight.yml; rely on phase6_skill_preflight.py exit code, then rerun exact-head preflight.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
