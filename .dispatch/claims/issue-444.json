@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-20T13:41:00Z",
   "base_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
   "head_sha": "6a466726a5e1b376de182545d3c0d15ea7fb2526",
-  "phase": "RECOVERING",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:12:00+08:00",
+  "last_update": "2026-09-21T07:14:00+08:00",
   "remote_qa": {
     "run_id": 35543833385,
     "status": "completed/failure",
@@ -16,6 +16,6 @@
     "failed_job_id": 106166139614,
     "classification": "workflow-capability-missing-tkinter"
   },
-  "next_action": "Repair .github/workflows/qa-issue444-t2-focused-20260921.yml to provision Tkinter with system Python venv, push exactly one fix commit, then lock the replacement push-triggered RUN through terminal.",
+  "next_action": "Repair the focused QA workflow capability: install python3-tk/python3-venv, run pytest under a system-Python venv, then lock the replacement push-triggered RUN through terminal.",
   "blocker": null
 }
