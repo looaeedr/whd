@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:20:08Z",
+  "last_update": "2026-09-20T13:20:20Z",
   "remote_qa": {
     "run_id": 35513193296,
     "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
-    "status": "queued",
-    "conclusion": null,
-    "retry_of": 35513104125
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "TEST_HARNESS_STALE_DEFINITION_LINE_NUMBERS"
   },
-  "next_action": "Poll exact T1 RED retry run 35513193296 to terminal; require characterization pass plus one intended deletion RED.",
+  "next_action": "Remove stale absolute line-number assumptions from zero-dispatch characterization; retain exact path/count plus zero calls/getattr/facade guards; rerun RED.",
   "blocker": null
 }
