@@ -60,7 +60,7 @@ def _ensure_all_surfaces(app, root):
     bridge._phase6_show_corner_data(app)
     _pump(root)
     return (
-        app.fold_editor_host,
+        app.input_content_host,
         app.assembly_parts_panel,
         app.corner_data_panel,
     )
@@ -124,13 +124,13 @@ def test_t1_mode_controller_mounts_exactly_one_existing_content_tree():
         assert shared is not None, "INTENDED_RED_SHARED_CONTENT_CONTROLLER_MISSING"
 
         sequence = (
-            ("single", lambda: app.activate_part("head"), app.fold_editor_host),
+            ("single", lambda: app.activate_part("head"), app.input_content_host),
             ("assembly", lambda: bridge._phase6_show_assembly(app), app.assembly_parts_panel),
             ("corner_data", lambda: bridge._phase6_show_corner_data(app), app.corner_data_panel),
-            ("single", lambda: bridge._phase6_show_input_content(app), app.fold_editor_host),
+            ("single", lambda: bridge._phase6_show_input_content(app), app.input_content_host),
         )
         surfaces = (
-            app.fold_editor_host,
+            app.input_content_host,
             app.assembly_parts_panel,
             app.corner_data_panel,
         )
