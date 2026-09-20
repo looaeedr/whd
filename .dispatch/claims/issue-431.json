@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
-  "phase": "IMPLEMENTING",
+  "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:20:00Z",
   "remote_qa": {
-    "run_id": 35496316468,
-    "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "AB_UI_ONE_CANDIDATE_ONLY_STALE_ISSUE384_CONTRACT"
+    "run_id": null,
+    "head_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T1_FOCUSED_REVALIDATION_TESTED_SHA_20e10d7c"
   },
-  "next_action": "Create focused QA orchestration that checks out TESTED_SHA 20e10d7cbcf7d6066bb357701f2f156789fc9277 and runs #430 + #431 + #384 shared-content behavior. Require 11 PASS / 0 FAIL / 0 SKIP.",
+  "next_action": "Discover push-triggered focused run from orchestration SHA f59cf30e53f2cc621804b95be992976ec874e9c9; it must checkout TESTED_SHA 20e10d7cbcf7d6066bb357701f2f156789fc9277 and return 11 PASS / 0 FAIL / 0 SKIP.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496205827,
@@ -26,7 +26,7 @@
     "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
   },
   "tested_sha": "20e10d7cbcf7d6066bb357701f2f156789fc9277",
-  "orchestration_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
+  "orchestration_sha": "f59cf30e53f2cc621804b95be992976ec874e9c9",
   "ab_diagnostic": {
     "ui_baseline": {
       "passed": 37,
