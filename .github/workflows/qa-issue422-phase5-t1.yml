@@ -1,0 +1,118 @@
+name: QA Issue422 Phase5 T1 RED
+
+on:
+  push:
+    branches:
+      - refactor/issue413-phase5-assembly-presentation-20260920
+    paths:
+      - tests/process/test_issue422_phase5_t1_assembly_presentation.py
+      - .github/workflows/qa-issue422-phase5-t1.yml
+      - docs/superpowers/checkpoints/issue422-phase5-t1-journal.md
+      - phase6_assembly_presentation.py
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - tests/process/test_issue422_phase5_t1_assembly_presentation.py
+      - .github/workflows/qa-issue422-phase5-t1.yml
+      - docs/superpowers/checkpoints/issue422-phase5-t1-journal.md
+      - phase6_assembly_presentation.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase5-t1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OWNER_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      WORK_BRANCH: refactor/issue413-phase5-assembly-presentation-20260920
+      ACCEPTED_PREDECESSOR: b31409e7c1736df31bd554afe4ac779d49b30aaa
+      EVIDENCE: docs/superpowers/checkpoints/issue422-phase5-t1-journal.md
+      RED_LOG: /tmp/issue422-t1-red.log
+    steps:
+      - name: Checkout exact work-order head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ env.OWNER_HEAD }}
+
+      - name: Verify T1 lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$OWNER_HEAD"
+          git cat-file -e "$ACCEPTED_PREDECESSOR^{commit}"
+          git merge-base --is-ancestor "$ACCEPTED_PREDECESSOR" "$OWNER_HEAD"
+          echo "T1_PARENT_ANCESTOR=1"
+          echo "WORK_ORDER_HEAD=$OWNER_HEAD"
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py             --task '派工執行 Phase 5 accepted specification T1 #422: pure Assembly presentation contracts and projections; RED-first tests; no Tk, bridge import, app owner, workspace/project mutation, manufacturing solve; preserve DM7 top-level projection, render-time BoxBody pieces, #382 hierarchy, remote QA and durable closure'             --changed-file phase6_assembly_presentation.py             --changed-file tests/process/test_issue422_phase5_t1_assembly_presentation.py             --changed-file .github/workflows/qa-issue422-phase5-t1.yml             --changed-file docs/superpowers/checkpoints/issue422-phase5-t1-journal.md             --evidence "$EVIDENCE"
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+
+      - name: Require T1 RED-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess
+          predecessor = "b31409e7c1736df31bd554afe4ac779d49b30aaa"
+          allowed = {
+              "tests/process/test_issue422_phase5_t1_assembly_presentation.py",
+              ".github/workflows/qa-issue422-phase5-t1.yml",
+              "docs/superpowers/checkpoints/issue422-phase5-t1-journal.md",
+          }
+          changed = {
+              x.strip()
+              for x in subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{predecessor}...HEAD"],
+                  text=True,
+              ).splitlines()
+              if x.strip()
+          }
+          extra = sorted(changed - allowed)
+          print("T1_RED_CHANGED_FILES=", sorted(changed))
+          print("T1_RED_SCOPE_EXTERNAL_FILES=", extra)
+          if extra:
+              raise SystemExit("T1 RED scope drift: " + repr(extra))
+          if "phase6_assembly_presentation.py" in changed:
+              raise SystemExit("T1 RED invalid: production module already exists")
+          print("T1_RED_PRODUCTION_IMPLEMENTATION_CHANGED=0")
+          PY
+
+      - name: Run intended requirement RED
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          python -m pytest -q             tests/process/test_issue422_phase5_t1_assembly_presentation.py             >"$RED_LOG" 2>&1
+          rc=$?
+          set -e
+          cat "$RED_LOG"
+          if [ "$rc" -eq 0 ]; then
+            echo "T1_RED_INVALID=pytest unexpectedly passed"
+            exit 1
+          fi
+          if grep -Eq 'ERROR collecting|ImportError|ModuleNotFoundError|SyntaxError' "$RED_LOG"; then
+            echo "T1_RED_INVALID=harness_or_collection_error"
+            exit 1
+          fi
+          grep -Fq 'T1 requirement RED: phase6_assembly_presentation.py does not exist yet' "$RED_LOG"
+          grep -Eq '[1-9][0-9]* failed' "$RED_LOG"
+          echo "T1_RED_INTENDED=1"
+          echo "T1_RED_PYTEST_RC=$rc"
+
+      - name: Upload RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue422-phase5-t1-red
+          path: /tmp/issue422-t1-red.log
+          if-no-files-found: warn
+          retention-days: 14
