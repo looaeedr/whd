@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
   "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:47:25Z",
+  "last_update": "2026-09-20T06:47:34Z",
   "remote_qa": {
     "run_id": 35495142279,
     "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
-    "status": "queued",
-    "conclusion": null,
-    "classification": "ACTIVE_KNOWLEDGE_PREFLIGHT"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "KNOWLEDGE_PREFLIGHT_GREEN"
   },
-  "next_action": "Poll exact run 35495142279 at head ccb1c9b5389039bcac5d6160125c79af49ab5f74 to terminal; require canonical preflight exit 0.",
+  "next_action": "Run read-only #430 T0 source census on exact head ccb1c9b5389039bcac5d6160125c79af49ab5f74; identify physical host identities, mode authority, mount/unmount call sites, and candidate duplicate-region seam before adding characterization tests.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
