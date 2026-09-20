@@ -8,14 +8,14 @@
   "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
   "phase": "CLEANUP",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:33:00+08:00",
+  "last_update": "2026-09-21T07:32:00+08:00",
   "remote_qa": {
     "run_id": 35544127302,
     "status": "completed/success",
     "head_sha": "a992b2d637dfef58ec2a94c99e65b433aef12916",
     "job_id": 106166915891,
-    "summary": "8 passed in 1.88s"
+    "result": "8 passed in 1.88s"
   },
-  "next_action": "Delete the one-shot focused QA workflow from the canonical #444 branch, then perform tested-head to cleaned-head drift/acceptance audit and durable Issue writeback.",
+  "next_action": "Delete the one-shot qa-issue444-t2-focused-20260921.yml workflow, then verify tested-head a992b2d6 -> cleaned-head drift is workflow-only.",
   "blocker": null
 }
