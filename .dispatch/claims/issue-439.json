@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
-    "run_id": 35508601402,
-    "head_sha": "7827404b0f47aaa15f4b06ccb22b164062f16f95",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "ISSUE439_FINAL_ACCEPTANCE_GREEN"
+    "run_id": 35509571262,
+    "head_sha": "c851cf305b4f99c2473ddfb8d7ceb8d78fadcb29",
+    "status": "in_progress",
+    "conclusion": null,
+    "classification": "ACTIVE_ISSUE439_POSTMERGE_PRODUCTION_SMOKE"
   },
-  "next_action": "Run post-merge smoke from exact production SHA 3be16a4d6e9bde6ad4ad74365f718f2b0385db36. Require #439 physical-host tests plus predecessor shared-host/lifecycle/layout/persistence/DXF focused set GREEN and config invariant.",
+  "next_action": "Poll run 35509571262 to terminal; do not close #439 until exact production SHA 3be16a4d6e9bde6ad4ad74365f718f2b0385db36 smoke is GREEN.",
   "blocker": null,
   "closing_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
   "integration": {
