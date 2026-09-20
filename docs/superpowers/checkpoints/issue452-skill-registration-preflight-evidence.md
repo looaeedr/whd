@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue452-skill-registration-checkpoint
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue 452 — Skill Registry / Scheduled Dispatch checkpoint
 
 - issue: #452
