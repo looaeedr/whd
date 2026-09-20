@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "16d1b6c04b63237aa04c5999f48dea4278df0987",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:21:28Z",
+  "last_update": "2026-09-20T13:21:43Z",
   "remote_qa": {
     "run_id": 35513259075,
     "head_sha": "16d1b6c04b63237aa04c5999f48dea4278df0987",
-    "status": "queued",
-    "conclusion": null,
-    "retry_of": 35513193296
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "HARNESS_SCANNED_HISTORICAL_BACKUP_AS_RUNTIME"
   },
-  "next_action": "Poll exact T1 RED run 35513259075 to terminal; require zero-dispatch characterization PASS and exactly one intended deletion RED.",
+  "next_action": "Exclude BACKUP/** from runtime caller/definition census while retaining current tests/tools/production scan; rerun unchanged deletion RED.",
   "blocker": null
 }
