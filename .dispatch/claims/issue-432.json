@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "head_sha": "45fce9a6287bae636ca37d2222736fd87cd7518b",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35497154030,
     "head_sha": "45fce9a6287bae636ca37d2222736fd87cd7518b",
-    "status": "awaiting_run_discovery",
-    "conclusion": null,
-    "classification": "T2_KNOWLEDGE_PREFLIGHT"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_DM7_ENTRY_CONVERGENCE_EVIDENCE"
   },
-  "next_action": "Discover and poll the push-triggered #432 T2 Knowledge Preflight run at exact head 45fce9a6287bae636ca37d2222736fd87cd7518b.",
+  "next_action": "Persist READ_SKILL/READ_REFERENCE evidence for 截角資料入口收斂, 08_WHD截角資料與2D入口收斂規則.md, and dm7_part_navigation_pitfalls.md, then rerun exact changed-file preflight.",
   "blocker": null
 }
