@@ -5,17 +5,17 @@
   "work_branch": "fix/issue439-single-physical-content-host-20260920",
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
-  "head_sha": "55a8c18d47d63e04622bc14460048ef1fed0bd95",
+  "head_sha": "da0fb055362b69625b504d0469b89b426f0e25f9",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
-    "run_id": 35508412793,
-    "head_sha": "55a8c18d47d63e04622bc14460048ef1fed0bd95",
+    "run_id": 35508499312,
+    "head_sha": "da0fb055362b69625b504d0469b89b426f0e25f9",
     "status": "in_progress",
     "conclusion": null,
-    "classification": "ACTIVE_ISSUE439_FOCUSED_GREEN"
+    "classification": "ACTIVE_ISSUE439_FOCUSED_GREEN_RETRY"
   },
-  "next_action": "Poll run 35508412793 to terminal; require zero failures/skips and full outer-host identity/bbox gates.",
+  "next_action": "Poll run 35508499312 to terminal; require all focused shared-host/layout tests GREEN.",
   "blocker": null
 }
