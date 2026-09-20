@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T08:11:00Z",
   "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
   "head_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
     "run_id": 35499762496,
     "head_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T5_FOCUSED_GREEN"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T5_FOCUSED_GREEN_34_PASS_0_FAIL_1_ALLOWED_SKIP"
   },
-  "next_action": "Poll run 35499762496 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Run T5 final A/B with one common candidate test contract over baseline 07a5fe... and TESTED_SHA 94fe9251...; require exact lifecycle outcome parity, persistence parity, config invariant, and production exact predecessor.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
@@ -35,5 +35,14 @@
     "stale_issue378_count": 4,
     "mousewheel_runtime_owner_path_green": true,
     "persistence_green": true
+  },
+  "tested_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
+  "focused_green": {
+    "run_id": 35499762496,
+    "job_id": 106049305078,
+    "artifact_id": 10600739417,
+    "artifact_sha256": "fc105b9204aac712a2397a2944f474e084636556b66dacc0e8949a55781647b2",
+    "result": "34_PASS_0_FAIL_1_ALLOWED_SKIP",
+    "production_runtime_edit": 0
   }
 }
