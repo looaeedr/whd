@@ -5,18 +5,18 @@
   "work_branch": "qa/issue430-t0-single-host-census-20260920",
   "claimed_at": "2026-09-20T06:29:00Z",
   "base_sha": "50e14c7054916cb0b9597c61194725939c5de323",
-  "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
-  "phase": "RED",
+  "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T06:46:27Z",
+  "last_update": "2026-09-20T06:47:25Z",
   "remote_qa": {
-    "run_id": 35495093718,
-    "head_sha": "c3cff0b93497a9ad86d0e1488f5988861c5b033b",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "HARNESS_ONLY_FALSE_RED_CANONICAL_PREFLIGHT_ALL_REQUIREMENTS_GREEN_EXTRA_GREP_FAILED"
+    "run_id": 35495142279,
+    "head_sha": "ccb1c9b5389039bcac5d6160125c79af49ab5f74",
+    "status": "queued",
+    "conclusion": null,
+    "classification": "ACTIVE_KNOWLEDGE_PREFLIGHT"
   },
-  "next_action": "Remove the noncanonical success-string grep from qa-issue430-t0-preflight.yml; rely on phase6_skill_preflight.py exit code, then rerun exact-head preflight.",
+  "next_action": "Poll exact run 35495142279 at head ccb1c9b5389039bcac5d6160125c79af49ab5f74 to terminal; require canonical preflight exit 0.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue430-t0-checkpoint.json",
   "journal": "docs/superpowers/checkpoints/issue430-t0-journal.md"
