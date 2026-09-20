@@ -5,11 +5,12 @@
   "work_branch": "refactor/issue445-t3-settings-owner-20260921",
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "head_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "phase": "CLAIMED",
+  "head_sha": "94f3240c69037d49906690291b14f55dbc4b6251",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T07:41:00+08:00",
+  "last_update": "2026-09-21T07:44:00+08:00",
   "remote_qa": null,
-  "next_action": "Create the canonical #445 T3 branch from exact #444 accepted HEAD 29b47853, then run/freeze the live Settings presentation caller/Tk ownership census before any production write.",
-  "blocker": null
+  "next_action": "Add RED ownership contracts for the frozen Settings presentation cluster: bridge builder implementations must disappear from fold_designer_bridge.py while Phase6SettingsPanel gains the presentation owner, with reverse-import/mutation/facade invariants locked.",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md"
 }
