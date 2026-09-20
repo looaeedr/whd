@@ -12,6 +12,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable
 
+from whd_theme import WHD_THEME
+
 from phase6_assembly_presentation import (
     AssemblyPresentationModel,
     AssemblyPresentationRow,
@@ -40,6 +42,7 @@ class Phase6AssemblyPanel:
         self.canvas = tk.Canvas(
             scroll_host,
             height=1,
+            background=WHD_THEME["panel"],
             highlightthickness=0,
             borderwidth=0,
             takefocus=False,
