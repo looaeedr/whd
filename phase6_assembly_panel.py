@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tk owner for the Phase 5 Assembly Parts presentation panel.
 
-The panel owns widgets and ephemeral presentation state only.  Physical topology,
+The panel owns widgets and ephemeral presentation state only. Physical topology,
 live manufacturing visibility authority, geometry solving, persistence, and
 Final Scene orchestration remain outside this module.
 """
@@ -16,6 +16,7 @@ from phase6_assembly_presentation import (
     AssemblyPresentationModel,
     AssemblyPresentationRow,
     AssemblySyntheticGroup,
+    project_box_body_piece_rows,
 )
 
 
@@ -61,9 +62,9 @@ class Phase6AssemblyPanel:
         self.content.bind("<Configure>", self._on_content_configure)
         self.canvas.bind("<Configure>", self._on_canvas_configure)
 
-        # These dict objects are intentionally long-lived.  Legacy Bridge aliases
-        # point at them, so render() mutates them in place instead of replacing
-        # their identity.
+        # These dict objects are intentionally long-lived. Legacy Bridge aliases
+        # point at them, so render/refresh mutate them in place instead of
+        # replacing their identity.
         self.visible_vars: dict[str, tk.BooleanVar] = {}
         self.corner_vars: dict[str, tk.StringVar] = {}
         self.formed_vars: dict[str, tk.StringVar] = {}
@@ -79,7 +80,19 @@ class Phase6AssemblyPanel:
 
         self.detail_open_stash: dict[str, bool] = {}
         self.group_open_stash: dict[str, bool] = {}
+
         self.box_body_piece_host: ttk.Frame | None = None
+        self.box_piece_labels: dict[str, str] = {}
+        self.box_piece_sections: dict[str, ttk.Frame] = {}
+        self.box_piece_visible_vars: dict[str, tk.BooleanVar] = {}
+        self.box_piece_checkbuttons: dict[str, ttk.Checkbutton] = {}
+        self.box_piece_detail_frames: dict[str, ttk.Frame] = {}
+        self.box_piece_detail_buttons: dict[str, ttk.Button] = {}
+        self.box_piece_formed_vars: dict[str, tk.StringVar] = {}
+        self.box_piece_blank_vars: dict[str, tk.StringVar] = {}
+        self.box_piece_corner_vars: dict[str, tk.StringVar] = {}
+        self.box_piece_visibility_stash: dict[str, bool] = {}
+        self.box_piece_detail_open_stash: dict[str, bool] = {}
 
         self.bind_scroll(self.canvas)
         self.bind_scroll(self.content)
@@ -135,29 +148,14 @@ class Phase6AssemblyPanel:
         return str(value) if value is not None else fallback
 
     def _snapshot_state(self):
-        visible = {
-            key: bool(var.get())
-            for key, var in self.visible_vars.items()
-        }
-        corner = {
-            key: str(var.get())
-            for key, var in self.corner_vars.items()
-        }
-        formed = {
-            key: str(var.get())
-            for key, var in self.formed_vars.items()
-        }
-        blank = {
-            key: str(var.get())
-            for key, var in self.blank_vars.items()
-        }
+        visible = {key: bool(var.get()) for key, var in self.visible_vars.items()}
+        corner = {key: str(var.get()) for key, var in self.corner_vars.items()}
+        formed = {key: str(var.get()) for key, var in self.formed_vars.items()}
+        blank = {key: str(var.get()) for key, var in self.blank_vars.items()}
 
         detail_open = dict(self.detail_open_stash)
         detail_open.update(
-            {
-                key: bool(frame.winfo_manager())
-                for key, frame in self.detail_frames.items()
-            }
+            {key: bool(frame.winfo_manager()) for key, frame in self.detail_frames.items()}
         )
         group_open = dict(self.group_open_stash)
         group_open.update(
@@ -167,6 +165,34 @@ class Phase6AssemblyPanel:
             }
         )
         return visible, corner, formed, blank, detail_open, group_open
+
+    def _snapshot_box_piece_state(self) -> None:
+        self.box_piece_visibility_stash.update(
+            {
+                key: bool(var.get())
+                for key, var in self.box_piece_visible_vars.items()
+            }
+        )
+        self.box_piece_detail_open_stash.update(
+            {
+                key: bool(frame.winfo_manager())
+                for key, frame in self.box_piece_detail_frames.items()
+            }
+        )
+
+    def _clear_box_piece_registries(self) -> None:
+        for registry in (
+            self.box_piece_labels,
+            self.box_piece_sections,
+            self.box_piece_visible_vars,
+            self.box_piece_checkbuttons,
+            self.box_piece_detail_frames,
+            self.box_piece_detail_buttons,
+            self.box_piece_formed_vars,
+            self.box_piece_blank_vars,
+            self.box_piece_corner_vars,
+        ):
+            registry.clear()
 
     def _clear_widget_registries(self) -> None:
         for child in tuple(self.content.winfo_children()):
@@ -185,6 +211,7 @@ class Phase6AssemblyPanel:
             self.group_detail_buttons,
         ):
             registry.clear()
+        self._clear_box_piece_registries()
         self.box_body_piece_host = None
 
     def _build_part_row(
@@ -354,7 +381,7 @@ class Phase6AssemblyPanel:
             old_open,
             old_group_open,
         ) = self._snapshot_state()
-
+        self._snapshot_box_piece_state()
         self._clear_widget_registries()
 
         live_part_keys: list[str] = []
@@ -396,6 +423,157 @@ class Phase6AssemblyPanel:
 
         self.bind_scroll(self.content)
         self._on_content_configure()
+
+    def refresh_box_body_piece_info(
+        self,
+        render_data,
+        *,
+        label_for: Callable[[str], str],
+        number_text: Callable[[object], str],
+        corner_text_for_render_data: Callable[[object], str],
+    ):
+        """Refresh render-time BoxBody piece rows without changing source timing."""
+        host = self.box_body_piece_host
+        if host is None:
+            return ()
+
+        projections = project_box_body_piece_rows(render_data, label_for=label_for)
+        wanted = tuple(row.part_key for row in projections)
+        current = tuple(self.box_piece_formed_vars)
+
+        self._snapshot_box_piece_state()
+        previous_visible = dict(self.box_piece_visibility_stash)
+        previous_open = dict(self.box_piece_detail_open_stash)
+
+        if current != wanted:
+            for child in tuple(host.winfo_children()):
+                child.destroy()
+            self._clear_box_piece_registries()
+
+            for projection in projections:
+                key = str(projection.part_key)
+                sub = ttk.Frame(host, padding=4)
+                sub._phase6_part_key = key
+                sub.pack(fill=tk.X, padx=(18, 0), pady=(2, 4))
+
+                visible = tk.BooleanVar(
+                    master=sub,
+                    value=previous_visible.get(key, True),
+                )
+                header = ttk.Frame(sub)
+                header.pack(fill=tk.X)
+                check = ttk.Checkbutton(
+                    header,
+                    text=str(projection.label),
+                    variable=visible,
+                    command=self.actions.on_visibility_changed,
+                )
+                check.pack(
+                    side=tk.LEFT,
+                    anchor=tk.W,
+                    fill=tk.X,
+                    expand=True,
+                )
+
+                details = ttk.Frame(sub)
+                details_open = bool(previous_open.get(key, False))
+                button = ttk.Button(
+                    header,
+                    text=("▾" if details_open else "▸"),
+                    width=2,
+                    command=lambda k=key: self.toggle_box_piece_details(k),
+                    takefocus=True,
+                )
+                button.pack(side=tk.RIGHT)
+
+                formed = tk.StringVar(master=sub)
+                blank = tk.StringVar(master=sub)
+                corner = tk.StringVar(master=sub)
+                ttk.Label(
+                    details,
+                    textvariable=formed,
+                    justify=tk.LEFT,
+                    wraplength=280,
+                ).pack(fill=tk.X, padx=(18, 0))
+                ttk.Label(
+                    details,
+                    textvariable=blank,
+                    justify=tk.LEFT,
+                    wraplength=280,
+                ).pack(fill=tk.X, padx=(18, 0))
+                ttk.Label(
+                    details,
+                    textvariable=corner,
+                    justify=tk.LEFT,
+                    wraplength=280,
+                ).pack(fill=tk.X, padx=(18, 0))
+                if details_open:
+                    details.pack(fill=tk.X)
+
+                self.box_piece_labels[key] = str(projection.label)
+                self.box_piece_sections[key] = sub
+                self.box_piece_visible_vars[key] = visible
+                self.box_piece_checkbuttons[key] = check
+                self.box_piece_detail_frames[key] = details
+                self.box_piece_detail_buttons[key] = button
+                self.box_piece_formed_vars[key] = formed
+                self.box_piece_blank_vars[key] = blank
+                self.box_piece_corner_vars[key] = corner
+                self.bind_scroll(sub)
+
+        piece_by_role = {
+            str(getattr(piece, "role", "") or ""): piece
+            for piece in tuple(getattr(render_data, "pieces", ()) or ())
+        }
+        for projection in projections:
+            key = str(projection.part_key)
+            self.box_piece_formed_vars[key].set(
+                "成形尺寸："
+                f"{number_text(projection.formed_width)} × "
+                f"{number_text(projection.formed_height)} mm"
+            )
+            self.box_piece_blank_vars[key].set(
+                "展開料："
+                f"{number_text(projection.blank_width)} × "
+                f"{number_text(projection.blank_height)} mm"
+            )
+            role = key.split(":", 1)[-1]
+            piece = piece_by_role.get(role)
+            corner_text = (
+                corner_text_for_render_data(piece.render_data)
+                if piece is not None
+                else "截角尺寸：無"
+            )
+            self.box_piece_corner_vars[key].set(corner_text)
+
+        self.box_piece_visibility_stash.clear()
+        self.box_piece_visibility_stash.update(
+            {
+                key: bool(var.get())
+                for key, var in self.box_piece_visible_vars.items()
+            }
+        )
+        self.box_piece_detail_open_stash.clear()
+        self.box_piece_detail_open_stash.update(
+            {
+                key: bool(frame.winfo_manager())
+                for key, frame in self.box_piece_detail_frames.items()
+            }
+        )
+
+        if projections:
+            logical_formed = self.formed_vars.get("box_body")
+            logical_blank = self.blank_vars.get("box_body")
+            logical_corner = self.corner_vars.get("box_body")
+            if logical_formed is not None:
+                logical_formed.set("成形尺寸：見下方各片")
+            if logical_blank is not None:
+                logical_blank.set("展開料：見下方各片")
+            if logical_corner is not None:
+                logical_corner.set("截角尺寸：見下方各片")
+
+        self._on_content_configure()
+        return projections
 
     def set_part_details_open(self, key, is_open):
         key = str(key)
@@ -452,3 +630,34 @@ class Phase6AssemblyPanel:
         if details is None:
             return False
         return self.set_group_open(key, not bool(details.winfo_manager()))
+
+    def set_box_piece_details_open(self, key, is_open):
+        key = str(key)
+        details = self.box_piece_detail_frames.get(key)
+        button = self.box_piece_detail_buttons.get(key)
+        if details is None:
+            return False
+        is_open = bool(is_open)
+        if is_open:
+            if not details.winfo_manager():
+                details.pack(fill=tk.X)
+        elif details.winfo_manager():
+            details.pack_forget()
+        if button is not None:
+            try:
+                button.configure(text=("▾" if is_open else "▸"))
+            except Exception:
+                pass
+        self.box_piece_detail_open_stash[key] = is_open
+        self._on_content_configure()
+        return is_open
+
+    def toggle_box_piece_details(self, key):
+        key = str(key)
+        details = self.box_piece_detail_frames.get(key)
+        if details is None:
+            return False
+        return self.set_box_piece_details_open(
+            key,
+            not bool(details.winfo_manager()),
+        )
