@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "431",
+  "branch": "refactor/issue431-t1-shared-content-host-20260920",
+  "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
+  "head_sha": "22bb3a35b80858c121ff0e38eabe31c0c5039b30",
+  "state": "RED_PENDING",
+  "next_action": "Commit T1 tests/workflow/journal only and run exact remote RED. Required outcome is 5 PASS + exactly 3 intended FAIL + 0 SKIP before any production edit.",
+  "run_id": null,
+  "job_id": null,
+  "evidence": [
+    "PREDECESSOR_430_CLOSED=1",
+    "T1_BASE_EXACT=95ab91c900e9a531ce0fec25a698123116392cc2",
+    "KNOWLEDGE_PREFLIGHT_RUN=35495987364",
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "PRODUCTION_RUNTIME_EDIT_BEFORE_RED=0"
+  ]
+}
