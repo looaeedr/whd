@@ -1,0 +1,67 @@
+name: "QA #443 T1 Baseline A-B"
+
+on:
+  push:
+    branches:
+      - refactor/issue443-t1-dead-glue-20260920
+    paths:
+      - '.github/workflows/qa-issue443-t1-baseline-ab.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline-ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused GUI dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install -r requirements.txt matplotlib pytest
+
+      - name: Exact nodeid A-B classifier
+        shell: bash
+        env:
+          BASE_SHA: cf14e2e6b7ba9d28109d94cd1010867a29e8c157
+          CANDIDATE_SHA: f4f46dded899669d506cc9362944194d7e9c5b36
+          NODEID: tests/test_phase6_ui_state_regressions.py::test_real_tk_part_selector_menu_opens_part_and_delete_shares_selector_row
+        run: |
+          set -euo pipefail
+
+          git checkout --detach "$CANDIDATE_SHA"
+          set +e
+          xvfb-run -a python -m pytest -q "$NODEID" --tb=short | tee /tmp/candidate.log
+          candidate_rc=${PIPESTATUS[0]}
+          set -e
+
+          git checkout --detach "$BASE_SHA"
+          set +e
+          xvfb-run -a python -m pytest -q "$NODEID" --tb=short | tee /tmp/baseline.log
+          baseline_rc=${PIPESTATUS[0]}
+          set -e
+
+          echo "CANDIDATE_RC=$candidate_rc"
+          echo "BASELINE_RC=$baseline_rc"
+
+          test "$candidate_rc" -eq "$baseline_rc"
+          if [ "$candidate_rc" -eq 0 ]; then
+            echo "AB_CLASSIFICATION=BOTH_GREEN"
+          else
+            grep -Fq 'assert 1 == 2' /tmp/candidate.log
+            grep -Fq 'assert 1 == 2' /tmp/baseline.log
+            echo "AB_CLASSIFICATION=INHERITED_BASELINE_DEBT"
+            echo "CANDIDATE_ONLY_FAILURE=0"
+          fi
