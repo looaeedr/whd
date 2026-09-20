@@ -6,16 +6,17 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-  "phase": "REMOTE_QA",
+  "phase": "RELEASED",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:39:32Z",
+  "last_update": "2026-09-20T13:40:35Z",
   "remote_qa": {
     "run_id": 35514150050,
     "head_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-    "status": "in_progress",
-    "conclusion": null,
-    "mode": "CLOSING"
+    "status": "completed",
+    "conclusion": "success",
+    "artifact_id": 10606351238,
+    "artifact_digest": "sha256:159eac84778e4d17e2176e0a840fd9b195ac2cff61ab6314af051a6ad9064c1c"
   },
-  "next_action": "Poll exact closing run 35514150050 to terminal; require full T1 GREEN plus canonical finalization proof.",
+  "next_action": "Issue #443 is CLOSED/completed. Master #441 may dispatch #444 from accepted HEAD 76661e3908894d29c2e2704e646e68ea5ac638e0.",
   "blocker": null
 }
