@@ -866,12 +866,6 @@ class Phase6FinalSceneRenderer:
             return None
 
         self.renderer.render = render_3d_only
-        get_widget = getattr(self.renderer.canvas, "get_tk_widget", None)
-        if callable(get_widget):
-            try:
-                get_widget().configure(takefocus=False)
-            except Exception:
-                pass
         self.scroll_cid = self.renderer.canvas.mpl_connect("scroll_event", self.on_scroll)
         return self
 
