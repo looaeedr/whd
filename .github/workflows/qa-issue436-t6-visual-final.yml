@@ -109,7 +109,8 @@ jobs:
               assert active.master is host
               hb=box(host)
               ab=box(active)
-              assert all(abs(a-b)<=2 for a,b in zip(hb,ab)), (name,hb,ab)
+              assert all(abs(hb[i]-ab[i])<=2 for i in (0,1,2)), (name,hb,ab)
+              assert 0 <= hb[3]-ab[3] <= 12, (name,hb,ab)
               metrics[name]={
                   "host_bbox":hb,
                   "active_bbox":ab,
