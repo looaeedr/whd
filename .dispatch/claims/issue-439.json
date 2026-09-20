@@ -5,17 +5,17 @@
   "work_branch": "fix/issue439-single-physical-content-host-20260920",
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
-  "head_sha": "da0fb055362b69625b504d0469b89b426f0e25f9",
+  "head_sha": "7827404b0f47aaa15f4b06ccb22b164062f16f95",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
-    "run_id": 35508499312,
-    "head_sha": "da0fb055362b69625b504d0469b89b426f0e25f9",
+    "run_id": 35508601402,
+    "head_sha": "7827404b0f47aaa15f4b06ccb22b164062f16f95",
     "status": "in_progress",
     "conclusion": null,
-    "classification": "ACTIVE_ISSUE439_FOCUSED_GREEN_RETRY"
+    "classification": "ACTIVE_ISSUE439_FINAL_ACCEPTANCE"
   },
-  "next_action": "Poll run 35508499312 to terminal; require all focused shared-host/layout tests GREEN.",
+  "next_action": "Poll run 35508601402 to terminal; require protected A/B GREEN, exact outer bbox parity visual GREEN, and target drift GREEN before integration.",
   "blocker": null
 }
