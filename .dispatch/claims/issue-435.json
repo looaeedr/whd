@@ -1,0 +1,15 @@
+{
+  "issue": 435,
+  "issue_url": "https://github.com/looaeedr/whd/issues/435",
+  "worker": "chatgpt",
+  "work_branch": "refactor/issue435-t5-switch-lifecycle-guards-20260920",
+  "claimed_at": "2026-09-20T08:11:00Z",
+  "base_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
+  "head_sha": "07a5fe36880d1548c9f42f2f6d071f46a9ac062f",
+  "phase": "CLAIMED",
+  "delegated_branches": [],
+  "last_update": "2026-09-20T08:11:00Z",
+  "remote_qa": null,
+  "next_action": "Create fresh #435 branch from exact #434 closing SHA, run T5 Knowledge Preflight, then characterize repeated mode-switch lifecycle, duplicate-tree/binding/callback accumulation, stale-widget references, state preservation, project load/save/reload, refresh, dynamic add/delete, BoxBody late-piece refresh, and mousewheel safety.",
+  "blocker": null
+}
