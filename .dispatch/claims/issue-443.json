@@ -6,16 +6,23 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "9786a04911552cda257b6d2da31107711f93c22c",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:36:43Z",
+  "last_update": "2026-09-20T13:37:47Z",
   "remote_qa": {
     "run_id": 35514014820,
     "head_sha": "9786a04911552cda257b6d2da31107711f93c22c",
-    "status": "queued",
-    "conclusion": null,
-    "mode": "GREEN_FINAL"
+    "status": "completed",
+    "conclusion": "success",
+    "focused": "3 passed",
+    "bridge_regression": "INHERITED_BASELINE_DEBT",
+    "baseline_ab_run": 35513915340,
+    "candidate_only_failure": 0,
+    "manufacturing_dxf": "12 passed",
+    "dxf_git_object_invariant": 1,
+    "config_git_object_invariant": 1,
+    "protected_drift": 0
   },
-  "next_action": "Poll exact GREEN run 35514014820 to terminal; require focused GREEN, candidate-only regression=0, manufacturing/DXF GREEN, and Git-object invariants GREEN.",
+  "next_action": "Write two-axis T1 review, add canonical finalization guard bound to a future closing head, rerun closing QA, then close/readback #443.",
   "blocker": null
 }
