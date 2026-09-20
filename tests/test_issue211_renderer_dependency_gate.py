@@ -148,8 +148,19 @@ def test_structure_phase6_host_no_longer_defines_safe_helper_bodies():
 
 
 def test_structure_existing_3d_deep_module_remains_the_only_new_3d_owner():
-    source = Path("phase6_final_scene_view.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    assert any(isinstance(node, ast.ClassDef) and node.name == "Phase6FinalSceneView" for node in tree.body)
-    assert "must not build PartSpec" in source or "不得建立 PartSpec" in source
+    view_source = Path("phase6_final_scene_view.py").read_text(encoding="utf-8")
+    renderer_source = Path("phase6_final_scene_renderer.py").read_text(encoding="utf-8")
+    view_tree = ast.parse(view_source)
+    renderer_tree = ast.parse(renderer_source)
+    assert any(
+        isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FinalSceneViewAdapter"
+        for node in view_tree.body
+    )
+    assert any(
+        isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FinalSceneRenderer"
+        for node in renderer_tree.body
+    )
+    assert "must not build PartSpec" in view_source or "不得建立 PartSpec" in view_source
     assert not Path("gui_modules/render_3d.py").exists()

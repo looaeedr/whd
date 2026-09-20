@@ -39,7 +39,7 @@ class Axis:
 
 
 def test_final_scene_view_can_render_multiple_authoritative_parts_as_one_assembly():
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     door_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -135,7 +135,7 @@ def test_bridge_assembly_display_request_includes_all_available_sheet_parts(monk
 
 def test_phase6_assembly_placement_delegates_to_shared_engine(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
 
     calls = []
 
@@ -232,7 +232,7 @@ def test_real_tk_menu_can_switch_from_assembly_to_boxbody_after_radiobutton_sets
 
 def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -288,7 +288,7 @@ def test_final_scene_assembly_uses_box_body_world_mesh_as_head_tail_mating_datum
 
 def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_midplane(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -343,7 +343,7 @@ def test_assembly_view_renders_head_tail_as_physical_sheet_and_offsets_mating_mi
 def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole_endcap(monkeypatch):
     import pytest
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -397,7 +397,7 @@ def test_assembly_fixed_relief_diagnostic_collides_only_restored_delta_not_whole
 
 def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_lines(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -439,7 +439,7 @@ def test_interference_overlay_renders_local_target_zone_fill_and_solid_crossing_
 
 def test_fixed_relief_diagnostic_does_not_treat_normal_full_sheet_mating_as_collision_when_restore_is_off(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
     from shapely.geometry import box
 
@@ -920,7 +920,7 @@ def test_bridge_keeps_pre_solve_endcap_probe_for_interference_overlay(monkeypatc
 
 def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_solved_endcap(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -969,7 +969,7 @@ def test_final_scene_interference_overlay_uses_pre_solve_probe_while_rendering_s
 
 def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -1023,7 +1023,7 @@ def test_hidden_box_body_still_anchors_visible_head_tail_placement(monkeypatch):
 
 def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch):
     import fold_designer_bridge as bridge
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     body_data = SimpleNamespace(scene=DrawingScene(), material=box(0, 0, 100, 80), fold_guides=())
@@ -1077,7 +1077,7 @@ def test_operator_part_selector_collapses_box_body_physical_children_under_box_b
 
 def test_final_scene_can_hide_one_box_body_piece_without_changing_endcap_mating_datum(monkeypatch):
     import ae_engine.assembly_geometry as assembly_geometry
-    import phase6_final_scene_view as view
+    import phase6_final_scene_renderer as view
     from ae_engine.sheetmetal_drawing import DrawingScene
 
     def part_data():

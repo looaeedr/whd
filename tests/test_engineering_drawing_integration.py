@@ -117,18 +117,18 @@ def test_shared_finished_dimension_provider_is_the_2d_3d_authority():
         ROOT / "phase6_manufacturing_adapter.py",
         "operator_finished_dimensions_for_app",
     )
-    view_src = _class_method_source(
-        ROOT / "phase6_final_scene_view.py",
-        "Phase6FinalSceneView",
+    renderer_src = _class_method_source(
+        ROOT / "phase6_final_scene_renderer.py",
+        "Phase6FinalSceneRenderer",
         "_resolved_finished_dimensions",
     )
-    # Phase 2 moved the app/Tk adapter out of the bridge.  The bridge remains
-    # compatibility-only, while both adapter and 3D view consume the same AE
-    # finished-dimension authority.
+    # Phase 4 split orchestration from mutable Matplotlib rendering. The bridge
+    # remains compatibility-only, while both manufacturing adapter and renderer
+    # consume the same AE finished-dimension authority.
     assert "operator_finished_dimensions_for_app" in bridge_src
     assert "resolve_operator_finished_dimensions" in adapter_src
     assert "box_body_height_from_corner_policies" not in adapter_src
-    assert "resolve_operator_finished_dimensions" in view_src
+    assert "resolve_operator_finished_dimensions" in renderer_src
 
 
 def test_all_primary_2d_previews_consume_shared_finished_dimension_summary():

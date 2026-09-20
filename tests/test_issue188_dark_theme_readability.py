@@ -47,7 +47,7 @@ def test_legacy_main_gui_consumes_shared_tokens_instead_of_owning_a_second_palet
 def test_3d_shell_settings_and_final_scene_consume_shared_theme_contract():
     bridge = _text("fold_designer_bridge.py")
     panel = _text("phase6_settings_panel.py")
-    scene = _text("phase6_final_scene_view.py")
+    scene = _text("phase6_final_scene_renderer.py")
     original = _text("fold_designer_original.py")
 
     assert "whd_theme" in bridge

@@ -28,7 +28,8 @@ def _module_function_source(path, name):
 
 
 def test_3d_render_path_consumes_scene_callback_only():
-    src = _function_source("_phase6_final_scene_view_request")
+    src = _function_source("_phase6_final_scene_adapter")
+    assert "final_render_provider" in src
     assert "_phase6_query_final_render_data" in src
     forbidden = (
         "_phase6_cutting_polygon_from_scene",

@@ -5,7 +5,7 @@ APIs. It does not own project schema, workspace identity, committed settings, or
 manufacturing geometry.
 """
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
 
@@ -37,6 +37,11 @@ from phase6_fold_profiles import formed_box_body_fw_widths
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
+from phase6_settings_service import Phase6SettingsTransactionService
+from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+from phase6_final_scene_contracts import FinalSceneDependencies
+from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.parts.panels.divider import collect_divider_input
 from gui_modules.parts.panels.door import collect_door_input
@@ -773,3 +778,177 @@ def install_fold_designer_bridge_facade(app_cls, bindings):
     for name, value in dict(bindings or {}).items():
         setattr(app_cls, str(name), value)
     return app_cls
+
+
+@dataclass(frozen=True)
+class FinalSceneCompositionPorts:
+    number_text: object
+    is_physical_piece_key: object
+    physical_piece_render_data: object
+    user_joint_parts: object
+    resolve_geometry: object
+    scene_payload_for_part: object
+    publish_live_state: object
+    corner_dimension_text: object
+    formed_size_text: object
+    blank_text: object
+    refresh_box_body_piece_info: object
+    operator_dimensions: object
+    cabinet_family: object
+    assembly_blank_text: object
+    active_mesh_profiles: object
+    assembly_render_data_cls: type
+    assembly_part_cls: type
+    final_render_provider: object
+    assembly_render_provider: object
+    request_provider: object
+    after_render: object
+    active_part: object
+    scene_query: object
+    input_snapshot: object
+    settings_values: object
+    alpha_bend: object
+    display_mode: object
+    assembly_corner_text_sink: object
+    assembly_part_text_sink: object
+    assembly_visibility: object
+    interference_probe_parts: object
+    show_interference: object
+    render_committed: object
+    set_preview_enabled: object
+    refresh_preview: object
+
+    def dependencies(self):
+        return FinalSceneDependencies(
+            number_text=self.number_text,
+            is_physical_piece_key=self.is_physical_piece_key,
+            physical_piece_render_data=self.physical_piece_render_data,
+            user_joint_parts=self.user_joint_parts,
+            resolve_geometry=self.resolve_geometry,
+            scene_payload_for_part=self.scene_payload_for_part,
+            publish_live_state=self.publish_live_state,
+            corner_dimension_text=self.corner_dimension_text,
+            formed_size_text=self.formed_size_text,
+            blank_text=self.blank_text,
+            refresh_box_body_piece_info=self.refresh_box_body_piece_info,
+            operator_dimensions=self.operator_dimensions,
+            cabinet_family=self.cabinet_family,
+            assembly_blank_text=self.assembly_blank_text,
+            active_mesh_profiles=self.active_mesh_profiles,
+            assembly_render_data_cls=self.assembly_render_data_cls,
+            assembly_part_cls=self.assembly_part_cls,
+            final_render_provider=self.final_render_provider,
+            assembly_render_provider=self.assembly_render_provider,
+            request_provider=self.request_provider,
+            after_render=self.after_render,
+            active_part=self.active_part,
+            scene_query=self.scene_query,
+            input_snapshot=self.input_snapshot,
+            settings_values=self.settings_values,
+            alpha_bend=self.alpha_bend,
+            display_mode=self.display_mode,
+            assembly_corner_text_sink=self.assembly_corner_text_sink,
+            assembly_part_text_sink=self.assembly_part_text_sink,
+            assembly_visibility=self.assembly_visibility,
+            interference_probe_parts=self.interference_probe_parts,
+            show_interference=self.show_interference,
+            render_committed=self.render_committed,
+            set_preview_enabled=self.set_preview_enabled,
+            refresh_preview=self.refresh_preview,
+        )
+
+
+class Phase6FoldDesignerComposition:
+    """Single application composition owner for Phase 4 deep services."""
+
+    def __init__(self, app):
+        self.app = app
+        self._settings_service = None
+        self._settings_transactions = None
+        self._final_scene_renderer = None
+        self._final_scene_adapter = None
+
+    def settings_service(self):
+        if self._settings_service is None:
+            app = self.app
+            self._settings_service = Phase6SettingsTransactionService(
+                settings_values=getattr(app, "_settings_values", {}),
+                input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
+                box_whd=getattr(app, "_phase6_box_whd", {}),
+                pending_settings=getattr(app, "_phase6_pending_settings", {}),
+            )
+        return self._settings_service
+
+    def settings_transactions(self):
+        if self._settings_transactions is None:
+            app = self.app
+            input_snapshot = getattr(app, "_phase6_input_snapshot", {})
+            self._settings_transactions = Phase6SettingsTransactionController(
+                settings_values=getattr(app, "_settings_values", {}),
+                input_snapshot=input_snapshot,
+                box_whd=getattr(app, "_phase6_box_whd", {}),
+                workspace=getattr(app, "designer_workspace", None),
+                endcap_fw_state=getattr(app, "_phase6_endcap_fw_state", {}),
+                endcap_bottom_wrap_state=getattr(
+                    app, "_phase6_endcap_bottom_wrap_state", {}
+                ),
+                corner_state=getattr(app, "_phase6_corner_state", {}),
+                corner_pair_same=getattr(app, "_phase6_corner_pair_same", {}),
+                assembly_type=input_snapshot.get(
+                    "assembly_type", CornerTypeId.INSERT_OVERLAY
+                ),
+                orchestration=self.settings_service(),
+            )
+        return self._settings_transactions
+
+    def final_scene_renderer(self, *, number_text):
+        if self._final_scene_renderer is None:
+            app = self.app
+            current = getattr(app, "final_scene_view", None)
+            if isinstance(current, Phase6FinalSceneRenderer):
+                self._final_scene_renderer = current
+            else:
+                raw_renderer = getattr(app, "renderer", None)
+                if raw_renderer is None:
+                    return None
+                self._final_scene_renderer = Phase6FinalSceneRenderer(
+                    raw_renderer,
+                    number_text=number_text,
+                )
+                app.final_scene_view = self._final_scene_renderer
+        return self._final_scene_renderer
+
+    def final_scene_adapter(self, ports: FinalSceneCompositionPorts):
+        if self._final_scene_adapter is None:
+            self._final_scene_adapter = Phase6FinalSceneViewAdapter(
+                dependencies=ports.dependencies(),
+                renderer=self.final_scene_renderer(
+                    number_text=ports.number_text
+                ),
+            )
+        return self._final_scene_adapter
+
+    @property
+    def assembly_type(self):
+        transactions = self._settings_transactions
+        if transactions is not None:
+            return transactions.assembly_type
+        snapshot = dict(
+            getattr(self.app, "_phase6_input_snapshot", {}) or {}
+        )
+        return snapshot.get("assembly_type", CornerTypeId.INSERT_OVERLAY)
+
+    @property
+    def last_external_revision(self):
+        service = self._settings_service
+        return service.last_external_revision if service is not None else 0
+
+    @property
+    def last_external_transaction_id(self):
+        service = self._settings_service
+        return service.last_external_transaction_id if service is not None else ""
+
+    @property
+    def active_transaction_id(self):
+        service = self._settings_service
+        return service.active_transaction_id if service is not None else ""

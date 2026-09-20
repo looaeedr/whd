@@ -263,16 +263,13 @@ def apply_fold_designer_settings_delta(
     transaction_id,
     *,
     transactions,
-    sync_mirrors,
     apply_updates,
 ):
     previous = transactions.push_active_transaction(transaction_id)
-    sync_mirrors(transactions)
     try:
         return apply_updates(dict(delta or {}))
     finally:
         transactions.restore_active_transaction(previous)
-        sync_mirrors(transactions)
 
 
 def install_fold_designer_keyboard_shortcuts(

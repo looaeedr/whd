@@ -58,6 +58,7 @@ from phase6_settings_center import (
     normalize_ui_text_size, ui_text_size_label, ui_text_size_factor,
 )
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
@@ -71,6 +72,8 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from gui_modules.application.fold_designer_adapter import (
+    FinalSceneCompositionPorts,
+    Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
 import phase6_project_file as _phase6_project_file
@@ -128,21 +131,46 @@ from phase6_diagnostics import (
     write_diagnostic_json as _phase6_write_diagnostic_json,
 )
 
-from phase6_final_scene_view import (
-    AssemblyScenePart, AssemblySceneRenderData,
-    FinalSceneViewRequest, Phase6FinalSceneView, Phase6FinalSceneViewAdapter,
-    _PHASE6_DEFAULT_VIEW, _PHASE6_ZOOM_MIN, _PHASE6_ZOOM_MAX, _PHASE6_ZOOM_STEP,
-    _phase6_profile_base_index, _phase6_profile_geometry,
-    _phase6_fold_mask_for_cross_coordinate, _phase6_profile_map_with_guides,
-    _phase6_profile_map, _phase6_profile_flat_map,
-    _phase6_folded_mesh_from_polygon, _phase6_fitted_limits_from_vertices,
-    _phase6_scene_fold_boundaries, _phase6_profile_to_scene_boundaries,
-    _phase6_fold_ownership_exemptions, _phase6_folded_outside_envelope,
+from phase6_final_scene_contracts import (
+    AssemblyScenePart,
+    AssemblySceneRenderData,
+    FinalSceneDependencies,
+    FinalSceneViewRequest,
+)
+from phase6_final_scene_projection import (
+    make_assembly_scene_render_data as _project_assembly_scene_render_data,
+    _phase6_profile_base_index,
+    _phase6_profile_geometry,
+    _phase6_fold_mask_for_cross_coordinate,
+    _phase6_profile_map_with_guides,
+    _phase6_profile_map,
+    _phase6_profile_flat_map,
+    _phase6_folded_mesh_from_polygon,
+    _phase6_fitted_limits_from_vertices,
+    _phase6_scene_fold_boundaries,
+    _phase6_profile_to_scene_boundaries,
+    _phase6_fold_ownership_exemptions,
+    _phase6_folded_outside_envelope,
     _phase6_profile_operator_fold_values,
-    _phase6_remove_original_bend_surfaces, _phase6_add_mesh_boundary_lines,
-    _phase6_draw_scene_bends, _phase6_draw_scene_markings,
-    _phase6_configure_3d_only_figure, _phase6_scale_current_3d_limits,
-    _phase6_adjust_zoom_scale, format_operator_info_text,
+    format_operator_info_text,
+)
+from phase6_final_scene_renderer import (
+    Phase6FinalSceneRenderer,
+    Phase6FinalSceneView,
+    _PHASE6_DEFAULT_VIEW,
+    _PHASE6_ZOOM_MIN,
+    _PHASE6_ZOOM_MAX,
+    _PHASE6_ZOOM_STEP,
+)
+from phase6_final_scene_view import (
+    Phase6FinalSceneViewAdapter,
+    _phase6_remove_original_bend_surfaces,
+    _phase6_add_mesh_boundary_lines,
+    _phase6_draw_scene_bends,
+    _phase6_draw_scene_markings,
+    _phase6_configure_3d_only_figure,
+    _phase6_scale_current_3d_limits,
+    _phase6_adjust_zoom_scale,
 )
 
 
@@ -445,6 +473,18 @@ def normalize_part_selection(part_keys, active_part=None):
 
 
 
+def _phase6_replace_mapping(self, attr_name, values):
+    """Preserve one mutable mapping identity across legacy snapshot refreshes."""
+    current = getattr(self, attr_name, None)
+    if isinstance(current, MutableMapping):
+        current.clear()
+        current.update(dict(values or {}))
+        return current
+    replacement = dict(values or {})
+    setattr(self, attr_name, replacement)
+    return replacement
+
+
 def _designer_workspace(self) -> Phase6DesignerWorkspace:
     return self.designer_workspace
 
@@ -469,69 +509,19 @@ def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
     return controller
 
 
-def _phase6_settings_transactions(self) -> Phase6SettingsTransactionController:
-    settings_values = getattr(self, "_settings_values", {})
-    input_snapshot = getattr(self, "_phase6_input_snapshot", {})
-    box_whd = getattr(self, "_phase6_box_whd", {})
-    pending = getattr(self, "_phase6_pending_settings", {})
-    debounce_job = None
-    workspace = getattr(self, "designer_workspace", None)
-    endcap_fw_state = getattr(self, "_phase6_endcap_fw_state", {})
-    bottom_wrap_state = getattr(self, "_phase6_endcap_bottom_wrap_state", {})
-    corner_state = getattr(self, "_phase6_corner_state", {})
-    corner_pair_same = getattr(self, "_phase6_corner_pair_same", {})
-    controller = getattr(self, "_phase6_settings_transaction_controller", None)
-    if controller is None:
-        controller = Phase6SettingsTransactionController(
-            settings_values=settings_values,
-            input_snapshot=input_snapshot,
-            box_whd=box_whd,
-            pending_settings=pending,
-            debounce_job=debounce_job,
-            workspace=workspace,
-            endcap_fw_state=endcap_fw_state,
-            endcap_bottom_wrap_state=bottom_wrap_state,
-            corner_state=corner_state,
-            corner_pair_same=corner_pair_same,
-            assembly_type=getattr(
-                self, "_phase6_assembly_type",
-                input_snapshot.get("assembly_type", CornerTypeId.INSERT_OVERLAY),
-            ),
-            last_external_revision=getattr(self, "_phase6_last_external_revision", 0),
-            last_external_transaction_id=getattr(
-                self, "_phase6_last_external_transaction_id", ""
-            ),
-            active_transaction_id=getattr(self, "_phase6_active_transaction_id", ""),
-        )
-        self._phase6_settings_transaction_controller = controller
-    else:
-        controller.bind_state(
-            settings_values=settings_values,
-            input_snapshot=input_snapshot,
-            box_whd=box_whd,
-            pending_settings=pending,
-            debounce_job=controller.debounce_job,
-            workspace=workspace,
-            endcap_fw_state=endcap_fw_state,
-            endcap_bottom_wrap_state=bottom_wrap_state,
-            corner_state=corner_state,
-            corner_pair_same=corner_pair_same,
-        )
-    return controller
+def _phase6_composition(self) -> Phase6FoldDesignerComposition:
+    composition = getattr(self, "_phase6_composition_owner", None)
+    if composition is None:
+        composition = Phase6FoldDesignerComposition(self)
+        self._phase6_composition_owner = composition
+    return composition
 
 
-def _phase6_sync_settings_transaction_compatibility_mirrors(
-    self, controller=None
-):
-    """Mirror controller-owned scalar transaction state for legacy readers only."""
-    controller = controller or _phase6_settings_transactions(self)
-    self._phase6_assembly_type = controller.assembly_type
-    self._phase6_last_external_revision = controller.last_external_revision
-    self._phase6_last_external_transaction_id = (
-        controller.last_external_transaction_id
-    )
-    self._phase6_active_transaction_id = controller.active_transaction_id
-    return controller
+def _phase6_settings_service(self):
+    return _phase6_composition(self).settings_service()
+
+def _phase6_settings_transactions(self):
+    return _phase6_composition(self).settings_transactions()
 
 def _phase6_registry_diagnostics(self):
     controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
@@ -587,86 +577,304 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
     return adapter
 
 
-def _phase6_sync_final_scene_view_compatibility_mirrors(self, view):
-    """Mirror deep-view state for legacy non-app test doubles only."""
-    for owner_name, view_name in (
-        ("_phase6_last_cutting_mesh", "last_cutting_mesh"),
-        ("_phase6_last_cutting_material", "last_cutting_material"),
-        ("_phase6_cutting_mesh_error", "cutting_mesh_error"),
-        ("_phase6_zoom_scale", "zoom_scale"),
-        ("_phase6_view_initialized", "view_initialized"),
-        ("_phase6_base_renderer_render", "base_renderer_render"),
-        ("_phase6_scroll_cid", "scroll_cid"),
+def _phase6_final_scene_renderer(self):
+    return _phase6_composition(self).final_scene_renderer(
+        number_text=_setting_number_text
+    )
+
+def _phase6_final_scene_scene_query(self, key, payload):
+    callback = getattr(self, "_scene_query_callback", None)
+    if callback is None:
+        raise RuntimeError("3D final-scene provider is not connected")
+    return callback(key, payload)
+
+
+def _phase6_final_scene_corner_text_sink(self, values):
+    values = {str(key): str(value) for key, value in dict(values or {}).items()}
+    self._phase6_last_assembly_corner_dimension_texts = dict(values)
+    vars_by_part = getattr(self, "assembly_part_corner_vars", {}) or {}
+    for key, value in values.items():
+        var = vars_by_part.get(key)
+        if var is not None and callable(getattr(var, "set", None)):
+            var.set(value)
+
+
+def _phase6_final_scene_operator_dimensions(self, part_key=None):
+    """Call the operator-dimension provider across legacy/new callable shapes."""
+    provider = _phase6_operator_finished_dimensions
+    try:
+        import inspect
+        parameters = tuple(inspect.signature(provider).parameters.values())
+        positional = tuple(
+            p for p in parameters
+            if p.kind in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+        )
+        accepts_varargs = any(
+            p.kind is inspect.Parameter.VAR_POSITIONAL
+            for p in parameters
+        )
+    except (TypeError, ValueError):
+        positional = ()
+        accepts_varargs = True
+
+    if part_key is None or (not accepts_varargs and len(positional) <= 1):
+        return provider(self)
+    return provider(self, part_key)
+
+
+def _phase6_final_scene_part_text_sink(self, kind, part_key, value):
+    mapping_name = (
+        "assembly_part_formed_vars"
+        if str(kind) == "formed"
+        else "assembly_part_blank_vars"
+    )
+    var = (getattr(self, mapping_name, {}) or {}).get(str(part_key))
+    if var is not None and callable(getattr(var, "set", None)):
+        var.set(value)
+
+
+def _phase6_final_scene_visibility(self, parts):
+    parts = tuple(parts or ())
+    visible_vars = getattr(self, "assembly_part_visible_vars", {}) or {}
+    visible_parts = [
+        part
+        for part in parts
+        if bool(
+            getattr(
+                visible_vars.get(part.part_key),
+                "get",
+                lambda: True,
+            )()
+        )
+    ]
+    if not visible_parts and parts:
+        fallback = next(
+            (part for part in parts if part.part_key == "box_body"),
+            parts[0],
+        )
+        visible_parts = [fallback]
+        var = visible_vars.get(fallback.part_key)
+        if var is not None and callable(getattr(var, "set", None)):
+            var.set(True)
+
+    visible_keys = {part.part_key for part in visible_parts}
+    box_part = next(
+        (part for part in parts if part.part_key == "box_body"),
+        None,
+    )
+    box_piece_keys = tuple(
+        f"box_body:{str(getattr(piece, 'role', '') or '').strip()}"
+        for piece in tuple(
+            getattr(
+                getattr(box_part, "render_data", None),
+                "pieces",
+                (),
+            )
+            or ()
+        )
+        if str(getattr(piece, "role", "") or "").strip()
+    )
+    visible_box_body_piece_keys = None
+    if box_piece_keys:
+        piece_vars = dict(
+            getattr(self, "assembly_box_body_piece_visible_vars", {}) or {}
+        )
+        if "box_body" not in visible_keys:
+            visible_box_body_piece_keys = ()
+        else:
+            visible_box_body_piece_keys = tuple(
+                key
+                for key in box_piece_keys
+                if bool(
+                    getattr(
+                        piece_vars.get(key),
+                        "get",
+                        lambda: True,
+                    )()
+                )
+            )
+            if (
+                not visible_box_body_piece_keys
+                and visible_keys == {"box_body"}
+            ):
+                first = box_piece_keys[0]
+                var = piece_vars.get(first)
+                if var is not None and callable(getattr(var, "set", None)):
+                    var.set(True)
+                visible_box_body_piece_keys = (first,)
+
+    return (
+        tuple(part.part_key for part in visible_parts),
+        visible_box_body_piece_keys,
+    )
+
+
+def _phase6_final_scene_render_committed(self):
+    if not getattr(self, "preview_3d_enabled", True):
+        return None
+    canvas = self.renderer.canvas
+    draw = getattr(canvas, "draw", None)
+    draw_idle = getattr(canvas, "draw_idle", None)
+    if (
+        callable(draw)
+        and callable(draw_idle)
+        and not getattr(self, "_phase6_force_sync_preview", False)
     ):
+        canvas.draw = draw_idle
         try:
-            setattr(self, owner_name, getattr(view, view_name))
-        except Exception:
-            pass
-    return view
+            return self.renderer.render()
+        finally:
+            canvas.draw = draw
+    return self.renderer.render()
+
+
+def _phase6_final_scene_set_preview_enabled(self, enabled):
+    enabled = bool(enabled)
+    self.preview_3d_enabled = enabled
+    var = getattr(self, "preview_3d_var", None)
+    if var is not None and bool(var.get()) != enabled:
+        var.set(enabled)
+    widget = self.renderer.canvas.get_tk_widget()
+    if enabled:
+        if not widget.winfo_manager():
+            widget.pack(fill="both", expand=True)
+        self.submit_update_intent("display", commit=True)
+    elif widget.winfo_manager() == "pack":
+        widget.pack_forget()
+    return enabled
+
+
+def _phase6_final_scene_refresh_preview(self):
+    if not getattr(self, "preview_3d_enabled", True):
+        return _phase6_final_scene_set_preview_enabled(self, True)
+    self._phase6_force_sync_preview = True
+    try:
+        return self.submit_update_intent("display", commit=True)
+    finally:
+        self._phase6_force_sync_preview = False
 
 
 def _phase6_final_scene_adapter(self):
-    adapter = getattr(self, "_phase6_final_scene_view_adapter", None)
-    if adapter is None or getattr(adapter, "owner", None) is not self:
-        adapter = Phase6FinalSceneViewAdapter(
-            self,
-            services={
-                "number_text": _setting_number_text,
-                "is_physical_piece_key": _phase6_is_box_body_physical_piece_key,
-                "physical_piece_render_data": lambda key: _phase6_box_body_piece_render_data(self, key),
-                "user_joint_parts": lambda: {
+    return _phase6_composition(self).final_scene_adapter(
+        FinalSceneCompositionPorts(
+                number_text=_setting_number_text,
+                is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
+                physical_piece_render_data=lambda key: _phase6_box_body_piece_render_data(
+                    self, key
+                ),
+                user_joint_parts=lambda: {
                     str(raw.get(field) or "")
                     for raw in tuple(
                         migrate_legacy_snapshot_joints(
                             dict(getattr(self, "_phase6_input_snapshot", {}) or {})
                         ).get("assembly_joints", ()) or ()
                     )
-                    if str(raw.get("source") or "") == AssemblyJointSource.USER_ADDED.value
+                    if str(raw.get("source") or "")
+                    == AssemblyJointSource.USER_ADDED.value
                     for field in ("subject_part", "target_part")
                 },
-                "resolve_geometry": lambda: _phase6_resolve_manufacturing_geometry(self),
-                "scene_payload_for_part": lambda key: _phase6_scene_query_payload_for_part(self, key),
-                "publish_live_state": lambda **kwargs: _phase6_publish_live_state(self, **kwargs),
-                "corner_dimension_text": _phase6_render_data_corner_dimension_text,
-                "formed_size_text": lambda render_data, **kwargs: _phase6_format_formed_size_text(
+                resolve_geometry=lambda: _phase6_resolve_manufacturing_geometry(
+                    self
+                ),
+                scene_payload_for_part=lambda key: _phase6_scene_query_payload_for_part(
+                    self, key
+                ),
+                publish_live_state=lambda **kwargs: _phase6_publish_live_state(
+                    self, **kwargs
+                ),
+                corner_dimension_text=_phase6_render_data_corner_dimension_text,
+                formed_size_text=lambda render_data, **kwargs: _phase6_format_formed_size_text(
                     render_data, **kwargs
                 ),
-                "blank_text": lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
+                blank_text=lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
                     render_data, part_key=part_key
                 ),
-                "refresh_box_body_piece_info": lambda render_data: _phase6_refresh_box_body_piece_info_rows(
+                refresh_box_body_piece_info=lambda render_data: _phase6_refresh_box_body_piece_info_rows(
                     self, render_data
                 ),
-                "operator_dimensions": lambda part_key=None: (
-                    _phase6_operator_finished_dimensions(self)
-                    if part_key is None
-                    else _phase6_operator_finished_dimensions(self, part_key)
+                operator_dimensions=lambda part_key=None: _phase6_final_scene_operator_dimensions(
+                    self, part_key
                 ),
-                "cabinet_family": lambda: _phase6_current_cabinet_family(self),
-                "assembly_blank_text": lambda render_data: _phase6_assembly_unfolded_blank_text(
+                cabinet_family=lambda: _phase6_current_cabinet_family(self),
+                assembly_blank_text=lambda render_data: _phase6_assembly_unfolded_blank_text(
                     render_data,
                     snapshot=getattr(self, "_phase6_input_snapshot", {}),
                 ),
-                "active_mesh_profiles": lambda material: _phase6_active_mesh_profiles(
+                active_mesh_profiles=lambda material: _phase6_active_mesh_profiles(
                     self, material
                 ),
-                "assembly_render_data_cls": lambda: AssemblySceneRenderData,
-                "assembly_part_cls": AssemblyScenePart,
-                "final_render_provider": lambda: _phase6_query_final_render_data(self),
-                "assembly_render_provider": lambda: _phase6_query_assembly_render_data(self),
-                "request_provider": lambda: _phase6_final_scene_view_request(self),
-                "after_render": lambda: (
+                assembly_render_data_cls=AssemblySceneRenderData,
+                assembly_part_cls=AssemblyScenePart,
+                final_render_provider=lambda: _phase6_query_final_render_data(
+                    self
+                ),
+                assembly_render_provider=lambda: _phase6_query_assembly_render_data(
+                    self
+                ),
+                request_provider=lambda: _phase6_final_scene_view_request(self),
+                after_render=lambda: (
                     _phase6_update_unfolded_size_label(self),
                     _phase6_update_assembly_diagnostic_status(self),
                 ),
-                "mirror_view_state": lambda view: _phase6_sync_final_scene_view_compatibility_mirrors(
-                    self, view
+                active_part=lambda: str(
+                    getattr(
+                        getattr(self, "designer_workspace", None),
+                        "active_part",
+                        "",
+                    )
+                    or ""
                 ),
-            },
-        )
-        self._phase6_final_scene_view_adapter = adapter
-    return adapter
+                scene_query=lambda key, payload: _phase6_final_scene_scene_query(
+                    self, key, payload
+                ),
+                input_snapshot=lambda: dict(
+                    getattr(self, "_phase6_input_snapshot", {}) or {}
+                ),
+                settings_values=lambda: dict(
+                    getattr(self, "_settings_values", {}) or {}
+                ),
+                alpha_bend=lambda: float(
+                    getattr(getattr(self, "state", None), "alpha_bend", 0.85)
+                ),
+                display_mode=lambda: str(
+                    getattr(self, "_phase6_3d_display_mode", "single")
+                    or "single"
+                ),
+                assembly_corner_text_sink=lambda values: _phase6_final_scene_corner_text_sink(
+                    self, values
+                ),
+                assembly_part_text_sink=lambda kind, key, value: _phase6_final_scene_part_text_sink(
+                    self, kind, key, value
+                ),
+                assembly_visibility=lambda parts: _phase6_final_scene_visibility(
+                    self, parts
+                ),
+                interference_probe_parts=lambda: tuple(
+                    getattr(self, "_phase6_last_interference_probe_parts", ())
+                    or ()
+                ),
+                show_interference=lambda: bool(
+                    getattr(
+                        getattr(self, "assembly_show_interference_var", None),
+                        "get",
+                        lambda: True,
+                    )()
+                ),
+                render_committed=lambda: _phase6_final_scene_render_committed(
+                    self
+                ),
+                set_preview_enabled=lambda enabled: _phase6_final_scene_set_preview_enabled(
+                    self, enabled
+                ),
+                refresh_preview=lambda: _phase6_final_scene_refresh_preview(
+                    self
+                ),
 
+        )
+    )
 
 def _phase6_sync_authoritative_derived_parts(self):
     """Sync topology-derived physical parts into the persistent workspace.
@@ -931,6 +1139,32 @@ def _legacy_box_body_active_piece_get(self):
 
 def _legacy_box_body_active_piece_set(self, value):
     _phase6_workspace_navigation(self).remembered_box_body_child = value
+
+
+def _legacy_settings_assembly_type_get(self):
+    return _phase6_composition(self).assembly_type
+
+def _legacy_settings_last_external_revision_get(self):
+    return _phase6_composition(self).last_external_revision
+
+def _legacy_settings_last_external_transaction_id_get(self):
+    return _phase6_composition(self).last_external_transaction_id
+
+def _legacy_settings_active_transaction_id_get(self):
+    return _phase6_composition(self).active_transaction_id
+
+def _phase6_legacy_getattr(self, name):
+    readers = {
+        "_phase6_assembly_type": _legacy_settings_assembly_type_get,
+        "_phase6_last_external_revision": _legacy_settings_last_external_revision_get,
+        "_phase6_last_external_transaction_id": _legacy_settings_last_external_transaction_id_get,
+        "_phase6_active_transaction_id": _legacy_settings_active_transaction_id_get,
+    }
+    reader = readers.get(str(name))
+    if reader is not None:
+        return reader(self)
+    raise AttributeError(str(name))
+
 
 def project_features_to_original_holes(features, width, height):
     """Project supported Phase6 features into the original Renderer's hole DTO.
@@ -1513,8 +1747,26 @@ def _phase6_snapshot_with_settings_fallback(snapshot: Mapping[str, object]) -> d
 class Phase6FoldDesignerApp(original.MainApp):
     """Original MainApp loaded with Phase6 data; Renderer is untouched."""
 
+    _PHASE6_STABLE_MAPPING_NAMES = frozenset({
+        "_settings_values",
+        "_phase6_input_snapshot",
+        "_phase6_box_whd",
+        "_phase6_pending_settings",
+    })
+
+    def __setattr__(self, name, value):
+        if name in self._PHASE6_STABLE_MAPPING_NAMES:
+            current = self.__dict__.get(name)
+            if isinstance(current, MutableMapping):
+                if value is current:
+                    return
+                current.clear()
+                current.update(dict(value or {}))
+                return
+        super().__setattr__(name, value)
+
     def __init__(self, root, snapshot: Mapping[str, object]):
-        self._phase6_input_snapshot = dict(snapshot)
+        _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
         self._phase6_sync_ready = False
         self._phase6_last_w = None
         self._phase6_last_d = None
@@ -1543,20 +1795,21 @@ class Phase6FoldDesignerApp(original.MainApp):
                     pass
             setattr(self, attr, None)
 
-        transactions = getattr(self, "_phase6_settings_transaction_controller", None)
-        if transactions is not None:
-            settings_job = transactions.debounce_job
+        service = getattr(self, "_phase6_settings_transaction_service", None)
+        if service is not None:
+            settings_job = service.debounce_job
             if settings_job is not None:
                 try:
                     self.root.after_cancel(settings_job)
                 except Exception:
                     pass
-            transactions.clear_debounce_job()
+            service.clear_debounce_job()
+            service.clear_pending()
 
         cancel_fold_designer_update_intents(self)
 
         if hasattr(self, "_phase6_pending_settings"):
-            self._phase6_pending_settings = {}
+            _phase6_replace_mapping(self, "_phase6_pending_settings", {})
 
     def _phase6_on_root_destroy(self, event):
         if getattr(event, "widget", None) is not self.root:
@@ -1566,7 +1819,7 @@ class Phase6FoldDesignerApp(original.MainApp):
 
     def load_phase6_snapshot(self, snapshot: Mapping[str, object]):
         snapshot = _phase6_snapshot_with_settings_fallback(snapshot)
-        self._phase6_input_snapshot = dict(snapshot)
+        _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
         stored = snapshot.get("box_body_profile")
         if stored:
             self.state.profiles_vault["箱身"] = merge_box_body_profile(stored, snapshot)
@@ -2028,8 +2281,8 @@ def _phase6_apply_setting_updates(self, updates, *, notify=True):
 
 
 def _phase6_flush_pending_settings(self):
-    transactions = _phase6_settings_transactions(self)
-    plan = transactions.drain_pending()
+    service = _phase6_settings_service(self)
+    plan = service.drain_pending()
     if plan.cancel_job is not None:
         try:
             self.root.after_cancel(plan.cancel_job)
@@ -2039,10 +2292,9 @@ def _phase6_flush_pending_settings(self):
         return {}
     return _phase6_apply_setting_updates(self, plan.pending, notify=True)
 
-
 def _phase6_stage_setting_update(self, key, value):
-    transactions = _phase6_settings_transactions(self)
-    plan = transactions.stage_setting_update(
+    service = _phase6_settings_service(self)
+    plan = service.stage_setting_update(
         key,
         value,
         destroying=bool(getattr(self, "_phase6_destroying", False)),
@@ -2055,8 +2307,7 @@ def _phase6_stage_setting_update(self, key, value):
         except Exception:
             pass
     job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
-    transactions.install_debounce_job(job)
-
+    service.install_debounce_job(job)
 
 def _phase6_on_setting_var_changed(self, key, var, spec):
     if getattr(self, "_phase6_settings_guard", False) or getattr(self, "_phase6_settings_rendering", False):
@@ -2357,9 +2608,6 @@ def _phase6_on_baseline_model_changed(self, *_args):
         plan = None
 
     if plan is not None:
-        _phase6_sync_settings_transaction_compatibility_mirrors(
-            self, transactions
-        )
         if plan.remember_non_receiving_structure is not None:
             self._phase6_non_receiving_structure_state = deepcopy(
                 plan.remember_non_receiving_structure
@@ -3563,7 +3811,6 @@ def _phase6_on_assembly_type_selected(self, *_args):
         project_legacy_corner=False,
         mark_dirty=True,
     )
-    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
     # The box-body page owns the live assembly Combobox that fired this event.
     # Destroying/rebuilding that page from inside <<ComboboxSelected>> destroys
     # the widget while Tk is still dispatching its event. Only dependent EndCap
@@ -4099,7 +4346,6 @@ def _phase6_apply_external_assembly_type(self, type_id):
         reset_bottom_defaults=(stable == CornerTypeId.OVERLAY.value),
         mark_dirty=False,
     )
-    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
     for context in ("box_body", "head", "tail"):
         _phase6_invalidate_settings_page(self, context)
     if getattr(self, "active_part_key", None) is not None:
@@ -4344,10 +4590,9 @@ def _phase6_apply_external_model(self, model):
     return str((getattr(self, "_phase6_input_snapshot", {}) or {}).get("model") or "").strip() == plan.target_model
 
 def _phase6_apply_external_sync(self, envelope):
-    """Ingest one Main-GUI revision through the T2 transaction owner."""
-    transactions = _phase6_settings_transactions(self)
-    plan = transactions.plan_external_sync(envelope)
-    _phase6_sync_settings_transaction_compatibility_mirrors(self, transactions)
+    """Ingest one Main-GUI revision through the T3 orchestration service."""
+    service = _phase6_settings_service(self)
+    plan = service.plan_external_sync(envelope)
     if not plan.accepted or not plan.settings:
         return {}
     result = _phase6_apply_external_settings(self, plan.settings)
@@ -5967,7 +6212,7 @@ def _phase6_reset_initial_values(self):
     if not clean:
         return False
 
-    self._phase6_pending_settings = {}
+    _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     self._settings_values.update(clean)
     self._phase6_input_snapshot.update(clean)
     if "t" in clean:
@@ -6133,7 +6378,7 @@ def _phase6_make_assembly_scene_render_data(
     preserve_endcap_core_origin=False,
 ):
     """Compatibility delegate for assembly-scene bundle construction."""
-    return Phase6FinalSceneViewAdapter(None).make_assembly_scene_render_data(
+    return _project_assembly_scene_render_data(
         assembly_parts=assembly_parts,
         visible_part_keys=visible_part_keys,
         visible_box_body_piece_keys=visible_box_body_piece_keys,
@@ -6275,11 +6520,7 @@ def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
 
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
-    adapter = _phase6_final_scene_adapter(self)
-    adapter.services["final_render_provider"] = (
-        lambda: _phase6_query_final_render_data(self)
-    )
-    return adapter.build_request()
+    return _phase6_final_scene_adapter(self).build_request()
 
 
 def _phase6_render_true_cutting_mesh(self):
@@ -6292,7 +6533,12 @@ def _phase6_on_3d_scroll(self, event):
 
 
 def _phase6_install_renderer_view(self):
-    return _phase6_final_scene_adapter(self).install_renderer()
+    result = _phase6_final_scene_adapter(self).install_renderer()
+    try:
+        self.renderer.canvas.get_tk_widget().configure(takefocus=False)
+    except Exception:
+        pass
+    return result
 
 def _phase6_profile_material_total(profile):
     return float(sum(abs(_num(seg.get("len", 0.0))) for seg in (profile or ())))
@@ -7125,6 +7371,14 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # authoritative live-sync state. Publish is disabled until the final Phase6
     # workspace has ingested the current application snapshot and reached READY.
     self._phase6_initializing = True
+    # Phase 4 composition services may be reached by inherited Tk callbacks
+    # during construction. Establish the authoritative mapping identities before
+    # any such callback can ask the composition root for Settings owners. From
+    # here onward these mappings are mutated in place; they are never rebound.
+    _phase6_replace_mapping(self, "_settings_values", {})
+    _phase6_replace_mapping(self, "_phase6_input_snapshot", {})
+    _phase6_replace_mapping(self, "_phase6_box_whd", {})
+    _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     snapshot = _phase6_snapshot_with_settings_fallback(
         migrate_legacy_snapshot_joints(dict(snapshot or {}))
     )
@@ -7145,11 +7399,11 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         dict(snapshot.get("assembly_placements") or (snapshot.get("workspace") or {}).get("assembly_placements") or {})
     )
     self.designer_workspace = Phase6DesignerWorkspace.from_snapshot(workspace_snapshot)
-    self._phase6_box_whd = {
+    _phase6_replace_mapping(self, "_phase6_box_whd", {
         "w": _ui_len(snapshot.get("w", 500)),
         "h": _ui_len(snapshot.get("h", 600)),
         "d": _ui_len(snapshot.get("d", 200)),
-    }
+    })
     self._settings_change_callback = on_settings_change
     self._phase6_transactional_mode = on_transaction_confirm is not None and on_live_sync is None
     self._live_sync_callback = on_live_sync
@@ -7158,9 +7412,6 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_last_live_state = None
     self._phase6_last_live_fingerprint = None
     self._phase6_sync_revision = 0
-    self._phase6_last_external_revision = 0
-    self._phase6_last_external_transaction_id = ""
-    self._phase6_active_transaction_id = ""
     self._save_defaults_callback = on_save_defaults
     # Kept only for backwards constructor compatibility. Corner edits are now
     # 這些資料採交易式提交，因此絕不能觸發這個舊版即時 callback。
@@ -7194,9 +7445,11 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # UI-only fine-parameter locks. Never serialize into .p6fold.
     self._phase6_corner_param_unlocked = {}
     self.corner_pair_checkbuttons = {}
-    self._phase6_pending_settings = {}
+    _phase6_replace_mapping(self, "_phase6_pending_settings", {})
     self._phase6_settings_rendering = False
-    self._settings_values = dict(snapshot.get("settings") or {})
+    _phase6_replace_mapping(
+        self, "_settings_values", dict(snapshot.get("settings") or {})
+    )
     for key, value in snapshot.items():
         if key not in self._settings_values and any(spec.key == key for spec in settings_for_context(GLOBAL_CONTEXT) + sum((settings_for_context(p) for p in KNOWN_PARTS), ())):
             self._settings_values[key] = value
@@ -7208,10 +7461,16 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
             self._settings_values[key] = snapshot[key]
     self._phase6_corner_state = deepcopy(snapshot.get("corner_state") or {})
     self._phase6_corner_pair_same = deepcopy(snapshot.get("corner_pair_same") or {})
-    self._phase6_assembly_type = resolve_box_assembly_type(snapshot)
-    self._phase6_input_snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or snapshot)
+    initial_assembly_type = resolve_box_assembly_type(snapshot)
+    _phase6_replace_mapping(
+        self,
+        "_phase6_input_snapshot",
+        dict(getattr(self, "_phase6_input_snapshot", {}) or snapshot),
+    )
     self._phase6_input_snapshot.pop("_runtime_project_path", None)
-    self._phase6_input_snapshot["assembly_type"] = assembly_intent_value(self._phase6_assembly_type)
+    self._phase6_input_snapshot["assembly_type"] = assembly_intent_value(
+        initial_assembly_type
+    )
     self._phase6_endcap_fw_state = normalize_endcap_fw_state(snapshot)
     self._phase6_input_snapshot["endcap_fw"] = deepcopy(self._phase6_endcap_fw_state)
     self._phase6_endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(snapshot)
@@ -7229,7 +7488,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     # construct UI state only and render nothing until a Phase6 part is selected.
     self.preview_3d_enabled = False
     self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
+    self.queue_update = _phase6_queue_update.__get__(self, type(self))
+    self.do_update = _phase6_preview_aware_do_update.__get__(self, type(self))
     _FIX10_INIT(self, root, snapshot)
+    _phase6_settings_transactions(self)
     # FIX10 marks itself ready as soon as its legacy snapshot is loaded. Phase6
     # still has to build the persistent controls/workspace, so keep the public
     # lifecycle in INITIALIZING until the complete view state is settled.
@@ -8422,11 +8684,11 @@ def _fix11_save_current_part(self, notify=True):
     except Exception:
         return
 
-    self._phase6_box_whd = {
+    _phase6_replace_mapping(self, "_phase6_box_whd", {
         "w": original.get_int(self.v_w.get()),
         "h": original.get_int(self.v_h.get()),
         "d": original.get_int(self.v_d.get()),
-    }
+    })
     if _phase6_is_box_body_physical_piece_key(key):
         profiles = {
             "X": clone_profile(self.state.profiles.get("X", [])),
@@ -9019,11 +9281,11 @@ def _fix11_do_update(self):
         # editor state here can race Tk notebook callbacks and makes the custom
         # X-only profile get indexed by "箱身" (KeyError).
         result = _FIX10_DO_UPDATE(self)
-        self._phase6_box_whd = {
+        _phase6_replace_mapping(self, "_phase6_box_whd", {
             "w": original.get_int(self.v_w.get()),
             "h": original.get_int(self.v_h.get()),
             "d": original.get_int(self.v_d.get()),
-        }
+        })
         self._phase6_input_snapshot.update(self._phase6_box_whd)
         _propagate_endcap_derived_cores(self, self._phase6_box_whd["w"], self._phase6_box_whd["d"])
         # The inherited MainApp constructor briefly owns an unannotated legacy
@@ -9038,11 +9300,11 @@ def _fix11_do_update(self):
 
     # All other parts keep their local fold profiles, but W/H/D at the top are
     # always the cabinet-global values.
-    self._phase6_box_whd = {
+    _phase6_replace_mapping(self, "_phase6_box_whd", {
         "w": original.get_int(self.v_w.get()),
         "h": original.get_int(self.v_h.get()),
         "d": original.get_int(self.v_d.get()),
-    }
+    })
     self._phase6_input_snapshot.update(self._phase6_box_whd)
     return original.MainApp.do_update(self)
 
@@ -9088,14 +9350,10 @@ def _phase6_submit_update_intent(self, reason, *, commit=False):
 
 
 def _phase6_apply_settings_delta(self, delta, transaction_id):
-    transactions = _phase6_settings_transactions(self)
     return apply_fold_designer_settings_delta(
         delta,
         transaction_id,
-        transactions=transactions,
-        sync_mirrors=lambda controller: _phase6_sync_settings_transaction_compatibility_mirrors(
-            self, controller
-        ),
+        transactions=_phase6_settings_service(self),
         apply_updates=lambda updates: _phase6_apply_setting_updates(
             self, updates, notify=True
         ),
@@ -9128,6 +9386,7 @@ def _phase6_queue_update(self, *args):
 install_fold_designer_bridge_facade(
     Phase6FoldDesignerApp,
     {
+        "__getattr__": _phase6_legacy_getattr,
         "_phase6_last_cutting_mesh": _phase6_view_property("last_cutting_mesh", []),
         "_phase6_last_cutting_material": _phase6_view_property("last_cutting_material", None),
         "_phase6_cutting_mesh_error": _phase6_view_property("cutting_mesh_error", None),
@@ -9194,9 +9453,7 @@ install_fold_designer_bridge_facade(
         "switch_active_part": _phase6_switch_active_part,
         "publish_if_changed": _phase6_publish_if_changed,
         "_phase6_flush_update_intents": _phase6_flush_update_intents,
-        "do_update": _phase6_preview_aware_do_update,
         "set_3d_preview_enabled": _phase6_set_3d_preview_enabled,
         "refresh_3d_preview": _phase6_refresh_3d_preview,
-        "queue_update": _phase6_queue_update,
     },
 )
