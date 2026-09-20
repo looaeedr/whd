@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "head_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
     "run_id": 35497419539,
     "head_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T2_CHARACTERIZATION_RETRY"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T2_ALREADY_GREEN_AFTER_T1_4_PASS_0_FAIL_0_SKIP"
   },
-  "next_action": "Poll run 35497419539 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Run T2 A/B qualification: assert production bridge exact predecessor equality; run common #430/#431/#384 UI contracts on base and candidate with exact 11-pass parity; rerun candidate T2 4-pass characterization.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_bridge_exact_predecessor": true,
@@ -24,5 +24,15 @@
     "failed": 1,
     "failed_node": "tests/test_issue432_general_part_shared_host.py::test_t2_add_delete_part_keeps_normal_part_on_shared_host",
     "finding": "test incorrectly required add_part('door') to make workspace.active_part exactly 'door'; T2 requires add/delete parity and valid part-mode presentation, not this stronger behavior"
+  },
+  "tested_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
+  "characterization": {
+    "run_id": 35497419539,
+    "job_id": 106042871380,
+    "artifact_id": 10600691899,
+    "artifact_sha256": "7c89216761e1dbb27984e7f36c9cbd3f039410164d8d4d5b2b4464798a0553ab",
+    "result": "4_PASS_0_FAIL_0_SKIP",
+    "production_runtime_edit": 0,
+    "already_green_after_t1": true
   }
 }
