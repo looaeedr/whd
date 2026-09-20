@@ -41,6 +41,7 @@ jobs:
               ".github/workflows/qa-issue436-t6-preflight.yml",
               ".github/workflows/qa-issue436-t6-cumulative.yml",
               ".github/workflows/qa-issue436-t6-remediation.yml",
+              ".github/workflows/qa-issue436-t6-visual-final.yml",
               "docs/superpowers/checkpoints/issue436-t6-preflight-evidence.txt",
           }
           unexpected=sorted(changed-allowed)
