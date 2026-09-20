@@ -5,22 +5,22 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "165a1371aa251e2edf3f1c14b20c3b8a1be09043",
+  "head_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T08:40:00Z",
   "remote_qa": {
-    "run_id": null,
-    "head_sha": "165a1371aa251e2edf3f1c14b20c3b8a1be09043",
-    "status": "awaiting_run_discovery",
+    "run_id": 35504038682,
+    "head_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427",
+    "status": "queued",
     "conclusion": null,
-    "classification": "T6_CUMULATIVE_AB_VISUAL_ACCEPTANCE_RETRY"
+    "classification": "ACTIVE_T6_CUMULATIVE_AB_VISUAL_ACCEPTANCE"
   },
-  "next_action": "Discover the push-triggered cumulative T6 run from fixed workflow head 165a1371aa251e2edf3f1c14b20c3b8a1be09043; no integration until accepted classifier GREEN.",
+  "next_action": "Poll run 35504038682 to terminal. No integration until accepted classifier GREEN.",
   "blocker": null,
   "preflight": {
     "run_id": 35500313918,
     "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb"
   },
-  "orchestration_sha": "165a1371aa251e2edf3f1c14b20c3b8a1be09043"
+  "orchestration_sha": "bf60bd3bd29c9972c3ac2db1b84ced09aa7c2427"
 }
