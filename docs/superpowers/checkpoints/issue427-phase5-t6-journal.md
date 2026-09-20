@@ -147,3 +147,36 @@ CANDIDATE=06f23d44ad29d5e2fe9a0a82d71ec48ce1416980
 RUN_ID=RUN_NOT_CREATED
 NEXT_ACTION=Create cumulative static/JUnit classifier and four-lane fixed-root A/B workflow.
 ```
+
+
+## T6 Static Classifier Harness Recovery
+
+First T6 RUN `35491085695` @ harness HEAD `f1ea8904f0a0a5149da3c472f7fc8a764b05a217` reached:
+- fixed production target readback GREEN;
+- Knowledge Preflight GREEN;
+- exact T0 census GREEN;
+- all static Phase 5 gates GREEN except `PROTECTED_DRIFT=1`.
+
+Artifact `issue427-phase5-t6-cumulative` proved the sole static failure was a harness-only Unicode path bug:
+- `git ls-tree` quoted `基準檔/**` paths as octal escapes;
+- classifier then passed those quoted literal strings back to `git show`;
+- every reference-tree file was therefore falsely reported as drift.
+
+Independent markers from the same static report already showed:
+```text
+PROTECTED_OWNER_BLOB_PARITY=1
+CONFIG_BLOB_PARITY=1
+DXF_DRIFT=0
+GEOMETRY_DRIFT=0
+PROJECT_SCHEMA_DRIFT=0
+RIGHT_DIAGNOSTICS_PARITY=GREEN
+```
+
+Correction:
+- classifier now uses `git -c core.quotePath=false ls-tree ...` for Unicode reference-tree paths;
+- fix commit: `e228abeb453e662c40f0822db812c4f2788a9ec2`;
+- BASELINE remains `396bfd96524a44a178c29bbefaf1b7c0437c119f`;
+- CANDIDATE remains `06f23d44ad29d5e2fe9a0a82d71ec48ce1416980`;
+- no candidate production file changed.
+
+RUN `35491085695` is therefore classified as **STATIC_CLASSIFIER_HARNESS_FALSE_POSITIVE**, not Phase 5 product drift.
