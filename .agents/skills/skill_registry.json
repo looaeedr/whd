@@ -606,6 +606,279 @@
         "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
         "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md"
       ]
+    },
+    {
+      "id": "explicit-skill-拆解任務工單",
+      "keywords": [
+        "拆解任務工單"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/拆解任務工單/**"
+      ],
+      "required_skills": [
+        "拆解任務工單"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-拷問邊建立文件",
+      "keywords": [
+        "拷問邊建立文件"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/拷問邊建立文件/**"
+      ],
+      "required_skills": [
+        "拷問邊建立文件"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-執行開發任務",
+      "keywords": [
+        "執行開發任務"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/執行開發任務/**"
+      ],
+      "required_skills": [
+        "執行開發任務"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-深度質詢",
+      "keywords": [
+        "深度質詢"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/深度質詢/**"
+      ],
+      "required_skills": [
+        "深度質詢"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-程式碼庫設計",
+      "keywords": [
+        "程式碼庫設計"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/程式碼庫設計/**"
+      ],
+      "required_skills": [
+        "程式碼庫設計"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-領域建模",
+      "keywords": [
+        "領域建模"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/領域建模/**"
+      ],
+      "required_skills": [
+        "領域建模"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-寫成規格書",
+      "keywords": [
+        "寫成規格書"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫成規格書/**"
+      ],
+      "required_skills": [
+        "寫成規格書"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-ask-matt",
+      "keywords": [
+        "ask-matt"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/ask-matt/**"
+      ],
+      "required_skills": [
+        "ask-matt"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-code-review",
+      "keywords": [
+        "code-review"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/code-review/**"
+      ],
+      "required_skills": [
+        "code-review"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-handoff",
+      "keywords": [
+        "handoff"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/handoff/**"
+      ],
+      "required_skills": [
+        "handoff"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-phase6-assembly-view-boundaries",
+      "keywords": [
+        "phase6-assembly-view-boundaries"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/phase6-assembly-view-boundaries/**"
+      ],
+      "required_skills": [
+        "phase6-assembly-view-boundaries"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-prototype",
+      "keywords": [
+        "prototype"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/prototype/**"
+      ],
+      "required_skills": [
+        "prototype"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-research",
+      "keywords": [
+        "research"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/research/**"
+      ],
+      "required_skills": [
+        "research"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-resolving-merge-conflicts",
+      "keywords": [
+        "resolving-merge-conflicts"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/resolving-merge-conflicts/**"
+      ],
+      "required_skills": [
+        "resolving-merge-conflicts"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-teach",
+      "keywords": [
+        "teach"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/teach/**"
+      ],
+      "required_skills": [
+        "teach"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-to-questionnaire",
+      "keywords": [
+        "to-questionnaire"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/to-questionnaire/**"
+      ],
+      "required_skills": [
+        "to-questionnaire"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-triage",
+      "keywords": [
+        "triage"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/triage/**"
+      ],
+      "required_skills": [
+        "triage"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wait-what",
+      "keywords": [
+        "wait-what"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/wait-what/**"
+      ],
+      "required_skills": [
+        "wait-what"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wayfinder",
+      "keywords": [
+        "wayfinder"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/wayfinder/**"
+      ],
+      "required_skills": [
+        "wayfinder"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-wizard",
+      "keywords": [
+        "wizard"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/wizard/**"
+      ],
+      "required_skills": [
+        "wizard"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "explicit-skill-writing-for-agents",
+      "keywords": [
+        "writing-for-agents"
+      ],
+      "file_globs": [
+        ".agents/skills/productivity/writing-for-agents/**"
+      ],
+      "required_skills": [
+        "writing-for-agents"
+      ],
+      "required_references": []
     }
   ]
 }
