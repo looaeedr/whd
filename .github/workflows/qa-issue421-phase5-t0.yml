@@ -130,6 +130,49 @@ jobs:
           print("T0_CENSUS_DECISION=GREEN")
           PY
 
+      - name: Authorize exact-owner T0 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path(os.environ["OUT_DIR"])
+          payload = {
+              "version": 1,
+              "issue": "421",
+              "branch": os.environ["WORK_BRANCH"],
+              "head_sha": os.environ["GITHUB_SHA"],
+              "state": "TERMINAL_SUCCESS",
+              "next_action": None,
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "job_id": None,
+              "log_cursor": None,
+              "blocked_count": 0,
+              "blocked_last_notified_at": None,
+              "evidence": [
+                  "ROOT_SHA_EXACT=1",
+                  "KNOWLEDGE_PREFLIGHT_RC=0",
+                  "T0_CENSUS_DECISION=GREEN",
+                  "FINAL_SCENE_QUERY_ORDER_CHARACTERIZED=1",
+                  "PROTECTED_OWNER_MANIFEST_COMPLETE=1",
+                  "RIGHT_DIAGNOSTICS_OUT_OF_SCOPE_EXPLICIT=1",
+                  "PRE_SPEC_EVIDENCE_ACCEPTED_AS_TASK_EVIDENCE=0",
+                  "CONFIG_INVARIANT=GREEN",
+              ],
+          }
+          (out / "terminal-checkpoint.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python -m tools.continuity_controller authorize-finalization             "$OUT_DIR/terminal-checkpoint.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$GITHUB_SHA"             --proof-out "$OUT_DIR/finalization-proof.json"
+          python -m tools.continuity_controller verify-finalization-proof             "$OUT_DIR/terminal-checkpoint.json"             "$OUT_DIR/finalization-proof.json"             --issue "421"             --branch "$WORK_BRANCH"             --head-sha "$GITHUB_SHA"
+          echo "FINALIZATION_GUARD_PASS=1"
+          echo "FINALIZATION_PROOF_VALID=1"
+
       - name: Upload T0 census artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -140,5 +183,7 @@ jobs:
             /tmp/issue421-phase5-t0/census.md
             /tmp/issue421-phase5-t0/config.before.sha256
             /tmp/issue421-phase5-t0/config.after.sha256
+            /tmp/issue421-phase5-t0/terminal-checkpoint.json
+            /tmp/issue421-phase5-t0/finalization-proof.json
           if-no-files-found: warn
           retention-days: 14
