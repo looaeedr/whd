@@ -5,14 +5,14 @@
   "work_branch": "chore/issue452-register-skills-scheduled-dispatch-20260921",
   "claimed_at": "2026-09-20T22:50:21Z",
   "base_sha": "43d1e2b7108f58ffa5c8cb0236b05ac76efe3d84",
-  "head_sha": "43d1e2b7108f58ffa5c8cb0236b05ac76efe3d84",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-20T22:50:21Z",
+  "head_sha": "b1f50aded170d0a64a4efc662d230e572b833f9a",
+  "phase": "RED_WRITTEN",
+  "last_update": "2026-09-20T22:53:00Z",
   "remote_qa": {
     "run_id": null,
     "status": "NOT_CREATED",
     "head_sha": null
   },
-  "next_action": "Create the issue-452 work branch from frozen X base, add registry coverage contract, then register every active canonical Skill.",
+  "next_action": "Register the 21 missing active canonical Skills in skill_registry.json, preserving all existing domain routes and references.",
   "blocker": null
 }
