@@ -6407,6 +6407,11 @@ def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
     )
 
 
+def _phase6_query_assembly_render_data(self):
+    """Compatibility delegate to authoritative T6 assembly projection."""
+    return _phase6_final_scene_adapter(self).query_assembly_render_data()
+
+
 def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
     rows = []
     for part in tuple(getattr(render_data, "assembly_parts", ()) or ()):
