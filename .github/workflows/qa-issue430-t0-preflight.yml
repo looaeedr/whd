@@ -6,6 +6,7 @@ on:
       - qa/issue430-t0-single-host-census-20260920
     paths:
       - '.github/workflows/qa-issue430-t0-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt'
   workflow_dispatch:
 
 permissions:
@@ -27,9 +28,10 @@ jobs:
           mkdir -p .scratch/issue430-t0
           python tools/phase6_skill_preflight.py \
             --task "Issue #430 T0 single shared-content host baseline census and duplicate-region characterization for Fold Designer left UI. Inventory normal-part, assembly, and corner-data host identity, mode authority, mount/unmount call sites, repeated-switch widget trees, project load/refresh/part add-delete behavior. Evidence/tests only; no production runtime edit. GitHub Actions remote QA and dispatch workflow." \
-            --evidence .scratch/issue430-t0/preflight-evidence.txt \
+            --evidence docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt \
             > .scratch/issue430-t0/preflight-output.txt
           cat .scratch/issue430-t0/preflight-output.txt
+          grep -F "Knowledge preflight passed" .scratch/issue430-t0/preflight-output.txt
       - name: Upload preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,4 +39,4 @@ jobs:
           name: issue430-t0-preflight
           path: |
             .scratch/issue430-t0/preflight-output.txt
-            .scratch/issue430-t0/preflight-evidence.txt
+            docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt
