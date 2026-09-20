@@ -102,15 +102,9 @@ def test_t1_one_dedicated_shared_host_owns_all_three_existing_mode_surfaces():
     try:
         surfaces = _ensure_all_surfaces(app, root)
         shared = getattr(app, "shared_content_host", None)
-        assert shared is not None, "INTENDED_RED_SHARED_CONTENT_HOST_MISSING"
-        assert shared.master is app.left
-
-        direct_hosts = tuple(
-            _first_direct_child_under(surface, app.left) for surface in surfaces
-        )
-        assert all(host is shared for host in direct_hosts), (
-            "INTENDED_RED_SEPARATE_MODE_REGIONS: all three existing content trees "
-            "must ascend through one dedicated shared-content host"
+        assert shared is app.left, "shared mount parent must be the left workspace itself"
+        assert all(surface.master is shared for surface in surfaces), (
+            "all three mode surfaces must be direct siblings in one left-side slot"
         )
     finally:
         root.destroy()
