@@ -6,16 +6,23 @@
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:15:00Z",
   "remote_qa": {
     "run_id": 35496205827,
     "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T1_FOCUSED_GREEN"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T1_FOCUSED_GREEN_8_PASS_0_FAIL_0_SKIP"
   },
-  "next_action": "Poll run 35496205827 on exact head 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a to terminal; no other work while REMOTE_QA active lock is held.",
-  "blocker": null
+  "next_action": "Run T1 A/B qualification from baseline 95ab91c900e9a531ce0fec25a698123116392cc2 vs tested candidate 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a: existing UI/Xvfb regressions plus part/DXF/persistence acceptance. Keep TESTED_SHA distinct from orchestration SHA.",
+  "blocker": null,
+  "focused_green": {
+    "run_id": 35496205827,
+    "job_id": 106039501750,
+    "artifact_id": 10600549174,
+    "artifact_sha256": "1f8478ee588d33340ac4b38225a55c391f2a4897acccc63566aa91487b3a95b8",
+    "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
+  }
 }
