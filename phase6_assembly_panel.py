@@ -1,0 +1,454 @@
+# -*- coding: utf-8 -*-
+"""Tk owner for the Phase 5 Assembly Parts presentation panel.
+
+The panel owns widgets and ephemeral presentation state only.  Physical topology,
+live manufacturing visibility authority, geometry solving, persistence, and
+Final Scene orchestration remain outside this module.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import tkinter as tk
+from tkinter import ttk
+from typing import Callable
+
+from phase6_assembly_presentation import (
+    AssemblyPresentationModel,
+    AssemblyPresentationRow,
+    AssemblySyntheticGroup,
+)
+
+
+@dataclass(frozen=True)
+class AssemblyPanelActions:
+    on_visibility_changed: Callable[[], None]
+
+
+class Phase6AssemblyPanel:
+    """Own Assembly Parts widgets and rebuild-safe Tk registries."""
+
+    def __init__(self, parent, *, actions: AssemblyPanelActions):
+        if not isinstance(actions, AssemblyPanelActions):
+            raise TypeError("actions must be AssemblyPanelActions")
+        self.actions = actions
+
+        self.host = ttk.Frame(parent, padding=6)
+        scroll_host = ttk.Frame(self.host)
+        scroll_host.pack(fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(
+            scroll_host,
+            height=1,
+            highlightthickness=0,
+            borderwidth=0,
+            takefocus=False,
+        )
+        self.scrollbar = ttk.Scrollbar(
+            scroll_host,
+            orient=tk.VERTICAL,
+            command=self.canvas.yview,
+        )
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.content = ttk.Frame(self.canvas)
+        self.window_id = self.canvas.create_window(
+            (0, 0),
+            window=self.content,
+            anchor="nw",
+        )
+        self.content.bind("<Configure>", self._on_content_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # These dict objects are intentionally long-lived.  Legacy Bridge aliases
+        # point at them, so render() mutates them in place instead of replacing
+        # their identity.
+        self.visible_vars: dict[str, tk.BooleanVar] = {}
+        self.corner_vars: dict[str, tk.StringVar] = {}
+        self.formed_vars: dict[str, tk.StringVar] = {}
+        self.blank_vars: dict[str, tk.StringVar] = {}
+        self.checkbuttons: dict[str, ttk.Checkbutton] = {}
+        self.sections: dict[str, ttk.Frame] = {}
+        self.detail_frames: dict[str, ttk.Frame] = {}
+        self.detail_buttons: dict[str, ttk.Button] = {}
+
+        self.group_sections: dict[str, ttk.Frame] = {}
+        self.group_detail_frames: dict[str, ttk.Frame] = {}
+        self.group_detail_buttons: dict[str, ttk.Button] = {}
+
+        self.detail_open_stash: dict[str, bool] = {}
+        self.group_open_stash: dict[str, bool] = {}
+        self.box_body_piece_host: ttk.Frame | None = None
+
+        self.bind_scroll(self.canvas)
+        self.bind_scroll(self.content)
+
+    def _on_content_configure(self, _event=None) -> None:
+        try:
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        except Exception:
+            pass
+
+    def _on_canvas_configure(self, event) -> None:
+        try:
+            self.canvas.itemconfigure(self.window_id, width=max(1, int(event.width)))
+        except Exception:
+            pass
+
+    @staticmethod
+    def _event_int(value) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    def scroll(self, event):
+        delta = self._event_int(getattr(event, "delta", 0))
+        number = self._event_int(getattr(event, "num", 0))
+        if number == 4:
+            steps = -1
+        elif number == 5:
+            steps = 1
+        elif delta:
+            steps = -1 if delta > 0 else 1
+        else:
+            return "break"
+        try:
+            self.canvas.yview_scroll(steps, "units")
+        except Exception:
+            pass
+        return "break"
+
+    def bind_scroll(self, widget) -> None:
+        try:
+            widget.bind("<MouseWheel>", self.scroll)
+            widget.bind("<Button-4>", self.scroll)
+            widget.bind("<Button-5>", self.scroll)
+        except Exception:
+            pass
+        for child in tuple(getattr(widget, "winfo_children", lambda: ())()):
+            self.bind_scroll(child)
+
+    @staticmethod
+    def _text_seed(value: str | None, fallback: str) -> str:
+        return str(value) if value is not None else fallback
+
+    def _snapshot_state(self):
+        visible = {
+            key: bool(var.get())
+            for key, var in self.visible_vars.items()
+        }
+        corner = {
+            key: str(var.get())
+            for key, var in self.corner_vars.items()
+        }
+        formed = {
+            key: str(var.get())
+            for key, var in self.formed_vars.items()
+        }
+        blank = {
+            key: str(var.get())
+            for key, var in self.blank_vars.items()
+        }
+
+        detail_open = dict(self.detail_open_stash)
+        detail_open.update(
+            {
+                key: bool(frame.winfo_manager())
+                for key, frame in self.detail_frames.items()
+            }
+        )
+        group_open = dict(self.group_open_stash)
+        group_open.update(
+            {
+                key: bool(frame.winfo_manager())
+                for key, frame in self.group_detail_frames.items()
+            }
+        )
+        return visible, corner, formed, blank, detail_open, group_open
+
+    def _clear_widget_registries(self) -> None:
+        for child in tuple(self.content.winfo_children()):
+            child.destroy()
+        for registry in (
+            self.visible_vars,
+            self.corner_vars,
+            self.formed_vars,
+            self.blank_vars,
+            self.checkbuttons,
+            self.sections,
+            self.detail_frames,
+            self.detail_buttons,
+            self.group_sections,
+            self.group_detail_frames,
+            self.group_detail_buttons,
+        ):
+            registry.clear()
+        self.box_body_piece_host = None
+
+    def _build_part_row(
+        self,
+        parent,
+        row_data: AssemblyPresentationRow,
+        *,
+        nested: bool,
+        old_visible: dict[str, bool],
+        old_corner: dict[str, str],
+        old_formed: dict[str, str],
+        old_blank: dict[str, str],
+        old_open: dict[str, bool],
+    ) -> None:
+        key = str(row_data.part_key)
+        row = ttk.Frame(parent)
+        row.pack(
+            fill=tk.X,
+            padx=((18, 0) if nested else (0, 0)),
+            pady=(0, 4),
+        )
+
+        visible = tk.BooleanVar(
+            master=row,
+            value=old_visible.get(key, bool(row_data.visible_seed)),
+        )
+        formed = tk.StringVar(
+            master=row,
+            value=old_formed.get(
+                key,
+                self._text_seed(row_data.formed_text_seed, "成形尺寸：等待3D"),
+            ),
+        )
+        blank = tk.StringVar(
+            master=row,
+            value=old_blank.get(
+                key,
+                self._text_seed(row_data.blank_text_seed, "展開料：等待3D"),
+            ),
+        )
+        corner = tk.StringVar(
+            master=row,
+            value=old_corner.get(
+                key,
+                self._text_seed(row_data.corner_text_seed, "截角尺寸：等待3D"),
+            ),
+        )
+
+        header = ttk.Frame(row)
+        header.pack(fill=tk.X)
+        check = ttk.Checkbutton(
+            header,
+            text=str(row_data.label),
+            variable=visible,
+            command=self.actions.on_visibility_changed,
+        )
+        check.pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
+
+        details = ttk.Frame(row)
+        details_open = bool(old_open.get(key, False))
+        button = ttk.Button(
+            header,
+            text=("▾" if details_open else "▸"),
+            width=2,
+            command=lambda k=key: self.toggle_part_details(k),
+            takefocus=True,
+        )
+        button.pack(side=tk.RIGHT)
+
+        ttk.Label(
+            details,
+            textvariable=formed,
+            justify=tk.LEFT,
+            wraplength=300,
+        ).pack(fill=tk.X, padx=(20, 0))
+        ttk.Label(
+            details,
+            textvariable=blank,
+            justify=tk.LEFT,
+            wraplength=300,
+        ).pack(fill=tk.X, padx=(20, 0))
+        ttk.Label(
+            details,
+            textvariable=corner,
+            justify=tk.LEFT,
+            wraplength=300,
+        ).pack(fill=tk.X, padx=(20, 0))
+
+        if row_data.has_piece_host:
+            self.box_body_piece_host = ttk.Frame(details)
+            self.box_body_piece_host.pack(fill=tk.X)
+
+        if details_open:
+            details.pack(fill=tk.X)
+
+        self.visible_vars[key] = visible
+        self.corner_vars[key] = corner
+        self.formed_vars[key] = formed
+        self.blank_vars[key] = blank
+        self.checkbuttons[key] = check
+        self.sections[key] = row
+        self.detail_frames[key] = details
+        self.detail_buttons[key] = button
+        self.bind_scroll(row)
+
+    def _build_group(
+        self,
+        group_data: AssemblySyntheticGroup,
+        *,
+        old_visible: dict[str, bool],
+        old_corner: dict[str, str],
+        old_formed: dict[str, str],
+        old_blank: dict[str, str],
+        old_open: dict[str, bool],
+        old_group_open: dict[str, bool],
+    ) -> None:
+        key = str(group_data.presentation_key)
+        group = ttk.Frame(self.content)
+        group.pack(fill=tk.X, pady=(0, 4))
+        header = ttk.Frame(group)
+        header.pack(fill=tk.X)
+        ttk.Label(
+            header,
+            text=str(group_data.label),
+            anchor=tk.W,
+        ).pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
+
+        details = ttk.Frame(group)
+        is_open = bool(old_group_open.get(key, False))
+        button = ttk.Button(
+            header,
+            text=("▾" if is_open else "▸"),
+            width=2,
+            command=lambda k=key: self.toggle_group(k),
+            takefocus=True,
+        )
+        button.pack(side=tk.RIGHT)
+        if is_open:
+            details.pack(fill=tk.X)
+
+        self.group_sections[key] = group
+        self.group_detail_frames[key] = details
+        self.group_detail_buttons[key] = button
+
+        for child in group_data.children:
+            self._build_part_row(
+                details,
+                child,
+                nested=True,
+                old_visible=old_visible,
+                old_corner=old_corner,
+                old_formed=old_formed,
+                old_blank=old_blank,
+                old_open=old_open,
+            )
+        self.bind_scroll(group)
+
+    def render(self, model: AssemblyPresentationModel) -> None:
+        if not isinstance(model, AssemblyPresentationModel):
+            raise TypeError("model must be AssemblyPresentationModel")
+
+        (
+            old_visible,
+            old_corner,
+            old_formed,
+            old_blank,
+            old_open,
+            old_group_open,
+        ) = self._snapshot_state()
+
+        self._clear_widget_registries()
+
+        live_part_keys: list[str] = []
+        live_group_keys: list[str] = []
+        for entry in model.entries:
+            if isinstance(entry, AssemblySyntheticGroup):
+                live_group_keys.append(str(entry.presentation_key))
+                live_part_keys.extend(str(child.part_key) for child in entry.children)
+                self._build_group(
+                    entry,
+                    old_visible=old_visible,
+                    old_corner=old_corner,
+                    old_formed=old_formed,
+                    old_blank=old_blank,
+                    old_open=old_open,
+                    old_group_open=old_group_open,
+                )
+            else:
+                live_part_keys.append(str(entry.part_key))
+                self._build_part_row(
+                    self.content,
+                    entry,
+                    nested=False,
+                    old_visible=old_visible,
+                    old_corner=old_corner,
+                    old_formed=old_formed,
+                    old_blank=old_blank,
+                    old_open=old_open,
+                )
+
+        self.detail_open_stash.clear()
+        self.detail_open_stash.update(
+            {key: bool(old_open.get(key, False)) for key in live_part_keys}
+        )
+        self.group_open_stash.clear()
+        self.group_open_stash.update(
+            {key: bool(old_group_open.get(key, False)) for key in live_group_keys}
+        )
+
+        self.bind_scroll(self.content)
+        self._on_content_configure()
+
+    def set_part_details_open(self, key, is_open):
+        key = str(key)
+        details = self.detail_frames.get(key)
+        button = self.detail_buttons.get(key)
+        if details is None:
+            return False
+        is_open = bool(is_open)
+        if is_open:
+            if not details.winfo_manager():
+                details.pack(fill=tk.X)
+        elif details.winfo_manager():
+            details.pack_forget()
+        if button is not None:
+            try:
+                button.configure(text=("▾" if is_open else "▸"))
+            except Exception:
+                pass
+        self.detail_open_stash[key] = is_open
+        self._on_content_configure()
+        return is_open
+
+    def toggle_part_details(self, key):
+        key = str(key)
+        details = self.detail_frames.get(key)
+        if details is None:
+            return False
+        return self.set_part_details_open(key, not bool(details.winfo_manager()))
+
+    def set_group_open(self, key, is_open):
+        key = str(key)
+        details = self.group_detail_frames.get(key)
+        button = self.group_detail_buttons.get(key)
+        if details is None:
+            return False
+        is_open = bool(is_open)
+        if is_open:
+            if not details.winfo_manager():
+                details.pack(fill=tk.X)
+        elif details.winfo_manager():
+            details.pack_forget()
+        if button is not None:
+            try:
+                button.configure(text=("▾" if is_open else "▸"))
+            except Exception:
+                pass
+        self.group_open_stash[key] = is_open
+        self._on_content_configure()
+        return is_open
+
+    def toggle_group(self, key):
+        key = str(key)
+        details = self.group_detail_frames.get(key)
+        if details is None:
+            return False
+        return self.set_group_open(key, not bool(details.winfo_manager()))
