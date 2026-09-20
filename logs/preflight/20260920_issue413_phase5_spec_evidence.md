@@ -63,3 +63,16 @@ Design It Twice 結論：
 - pre-spec #416 / PR #417 evidence 不得成為正式 Phase 5 acceptance。
 - pre-spec census tooling 可在正式 T0 fresh-validate 後決定保留/修正/移除，但目前不算 T0 accepted。
 - manufacturing / Registry / CROSS / DXF / project schema / UI behavior / event ordering 均為 behavior-preserving protected surface。
+
+
+## Final verification before spec PR
+
+- remote branch readback: PASS
+- changed files: exactly 2 (spec + this evidence)
+- invalid arbitrary LOC hard target present: NO
+- PRE_SPEC_IMPLEMENTATION_ACCEPTED_AS_EVIDENCE=0 marker: PRESENT
+- DELETION_TEST_COMPLETE=1 T0 gate: PRESENT
+- physical-part / DXF final gate: PRESENT
+- implementation Issue creation before spec acceptance: FORBIDDEN
+- deep-module Traditional Chinese HTML delivery checker: PASS
+- final Phase6 Knowledge Preflight with both changed files + verification evidence: PASS / RC=0
