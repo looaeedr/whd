@@ -1,0 +1,36 @@
+name: "QA #432 T2 Knowledge Preflight"
+
+on:
+  push:
+    branches:
+      - refactor/issue432-t2-general-part-shared-host-20260920
+    paths:
+      - '.github/workflows/qa-issue432-t2-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue432-t2-preflight-evidence.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run T2 planned-change Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #432 T2 General part input/display content on the one shared Fold Designer host. Characterize normal-part host ownership, Assembly/Corner Data unmount behavior in part mode, input callback parity, display parity, and add/delete part parity. Preserve all input fields, data sources, validation, geometry, persistence, active-part identity, and callback semantics. GitHub Actions remote QA." \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/test_issue432_general_part_shared_host.py \
+            --changed-file .github/workflows/qa-issue432-t2.yml \
+            --changed-file docs/superpowers/checkpoints/issue432-t2-journal.md \
+            --changed-file docs/superpowers/checkpoints/issue432-t2-checkpoint.json \
+            --evidence docs/superpowers/checkpoints/issue432-t2-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"
