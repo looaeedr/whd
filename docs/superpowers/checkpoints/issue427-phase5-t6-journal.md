@@ -341,3 +341,10 @@ INTEGRATION_SHA=246578f815f4edfe273d1d5b6b443254ccfd6fa3
 POST_MERGE_RUN_ID=35493064085
 NEXT_ACTION=Fast-forward journal-only closing writeback, verify protected-owner drift zero, then produce exact-head finalization proof and close #427/#413.
 ```
+
+
+## Finalization Proof Preflight Evidence
+
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+RUN `35493235963` was a preflight-only evidence-format failure: the same reference had already been recorded as `SUPPORTING_REFERENCE_READ_BEFORE_CLOSURE`, but the machine gate requires the exact `READ_REFERENCE:` marker. No production ref or production file changed.
