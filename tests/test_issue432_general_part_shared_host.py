@@ -42,14 +42,16 @@ def _open(**kwargs):
 
 def _assert_part_mode_only(app):
     assert app._phase6_3d_display_mode == "single"
-    assert app.shared_content_host.winfo_manager() != ""
-    assert app.fold_editor_host.master is app.shared_content_host
+    assert app.shared_content_host is app.fold_editor_host
+    assert app.fold_editor_host.master is app.left
     assert app.fold_editor_host.winfo_manager() != ""
-    assert app.assembly_parts_panel.master is app.shared_content_host
+    assert app.input_content_host.master is app.fold_editor_host
+    assert app.input_content_host.winfo_manager() != ""
+    assert app.assembly_parts_panel.master is app.fold_editor_host
     assert app.assembly_parts_panel.winfo_manager() == ""
     panel = getattr(app, "corner_data_panel", None)
     if panel is not None:
-        assert panel.master is app.shared_content_host
+        assert panel.master is app.fold_editor_host
         assert panel.winfo_manager() == ""
 
 
