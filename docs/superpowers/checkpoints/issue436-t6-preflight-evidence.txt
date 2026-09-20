@@ -1,0 +1,63 @@
+Issue #436 / T6 — Knowledge Preflight Evidence
+
+TASK:
+Issue #436 T6 cumulative A/B, visual screenshot acceptance, Headless baseline/candidate, Xvfb baseline/candidate, shared-content single-host classifier, three-mode switch matrix, geometry/dataflow/persistence/callback/visibility/corner-data protected invariants, config.ini, DXF, project round-trip, target drift audit, non-force production integration, production readback, post-merge smoke, cleanup and issue-chain closure.
+
+FIXED BASELINE:
+50e14c7054916cb0b9597c61194725939c5de323
+
+T6 PREDECESSOR:
+#435 CLOSED/completed
+CANDIDATE_PREDECESSOR_SHA=e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea
+
+TARGET START READBACK:
+cleanup/2d-3d-sync=50e14c7054916cb0b9597c61194725939c5de323
+TARGET_DRIFT_AT_T6_START=0
+
+WORK BRANCH:
+qa/issue436-t6-cumulative-acceptance-20260920
+
+READ_SKILL: UI設計與去AI味
+READ_SKILL: Python測試實務
+READ_SKILL: 性質導向測試
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+READ_SKILL: issue-closure-gate
+READ_SKILL: executable-continuity-controller
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: phase6-overlay-relief-basis
+READ_SKILL: phase6-gui-performance-integrity
+READ_SKILL: phase6-assembly-view-boundaries
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: 截角資料入口收斂
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD截角資料與2D入口收斂規則.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/dm7_part_navigation_pitfalls.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+PLANNED_CHANGED_FILES:
+tests/test_issue436_visual_shared_host.py
+.github/workflows/qa-issue436-t6-preflight.yml
+.github/workflows/qa-issue436-t6-cumulative.yml
+.github/workflows/qa-issue436-t6-postmerge.yml
+docs/superpowers/checkpoints/issue436-t6-preflight-evidence.txt
+docs/superpowers/checkpoints/issue436-t6-journal.md
+docs/superpowers/checkpoints/issue436-t6-checkpoint.json
+
+T6_BOUNDARY:
+PRODUCTION_RUNTIME_EDIT_BEFORE_INTEGRATION=0
+VALIDATION_IS_JUDGE_ONLY=1
+FORCE_PUSH=0
+ISSUE_CLOSURE_REQUIRES_OWNING_FINALIZATION_PROOF=1
