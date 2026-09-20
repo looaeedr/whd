@@ -95,7 +95,7 @@ def test_issue444_r2_monkey_patch_restores_on_normal_init(monkeypatch):
     monkeypatch.setattr(bridge.Phase6FoldDesignerApp, "load_phase6_snapshot", lambda *_a, **_k: None)
 
     app = object.__new__(bridge.Phase6FoldDesignerApp)
-    bridge.Phase6FoldDesignerApp.__init__(app, _DummyRoot(), {})
+    bridge._FIX10_INIT(app, _DummyRoot(), {})
     assert original.BendingUI is before
 
 
@@ -111,7 +111,7 @@ def test_issue444_r2_monkey_patch_restores_on_injected_exception(monkeypatch):
 
     app = object.__new__(bridge.Phase6FoldDesignerApp)
     with pytest.raises(RuntimeError, match="injected predecessor init failure"):
-        bridge.Phase6FoldDesignerApp.__init__(app, _DummyRoot(), {})
+        bridge._FIX10_INIT(app, _DummyRoot(), {})
     assert original.BendingUI is before
 
 
