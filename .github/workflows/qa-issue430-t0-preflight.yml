@@ -21,17 +21,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run Phase6 Knowledge Preflight
+      - name: Run Phase6 Knowledge Preflight with planned changed files
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .scratch/issue430-t0
           python tools/phase6_skill_preflight.py \
             --task "Issue #430 T0 single shared-content host baseline census and duplicate-region characterization for Fold Designer left UI. Inventory normal-part, assembly, and corner-data host identity, mode authority, mount/unmount call sites, repeated-switch widget trees, project load/refresh/part add-delete behavior. Evidence/tests only; no production runtime edit. GitHub Actions remote QA and dispatch workflow." \
+            --changed-file tests/test_issue430_single_host_red.py \
+            --changed-file .github/workflows/qa-issue430-t0-census.yml \
+            --changed-file docs/superpowers/checkpoints/issue430-t0-census.md \
+            --changed-file docs/superpowers/checkpoints/issue430-t0-checkpoint.json \
+            --changed-file docs/superpowers/checkpoints/issue430-t0-journal.md \
             --evidence docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt \
             > .scratch/issue430-t0/preflight-output.txt
           cat .scratch/issue430-t0/preflight-output.txt
-          echo "KNOWLEDGE_PREFLIGHT_RC=0"
+          echo "KNOWLEDGE_PREFLIGHT_CHANGED_FILES_RC=0"
       - name: Upload preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
