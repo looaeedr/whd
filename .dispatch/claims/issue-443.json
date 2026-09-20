@@ -6,16 +6,19 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:34:44Z",
+  "last_update": "2026-09-20T13:35:31Z",
   "remote_qa": {
     "run_id": 35513915340,
     "head_sha": "0d8549f3d1c412c7b33d3a0f0e71a88c8fbac931",
-    "status": "queued",
-    "conclusion": null,
-    "mode": "BASELINE_AB"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "INHERITED_BASELINE_DEBT",
+    "candidate_only_failure": 0,
+    "baseline_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
+    "candidate_sha": "f4f46dded899669d506cc9362944194d7e9c5b36"
   },
-  "next_action": "Poll exact A/B run 35513915340 to terminal; compare the one failing GUI nodeid on accepted predecessor and candidate.",
+  "next_action": "Remove temporary A/B workflow, teach T1 main QA to allow only the proven inherited nodeid while failing on any candidate-only regression, then rerun full T1 GREEN including manufacturing/DXF and Git-object invariants.",
   "blocker": null
 }
