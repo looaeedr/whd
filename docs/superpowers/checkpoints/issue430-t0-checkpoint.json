@@ -2,20 +2,21 @@
   "version": 1,
   "issue": "430",
   "branch": "qa/issue430-t0-single-host-census-20260920",
-  "head_sha": "873975a9f73d8eef25ecdf8f34b00c431e114f2c",
+  "head_sha": "f618a373f4fd8199991c04f1c817f78220df3a46",
   "state": "RUNNING",
-  "next_action": "Commit durable completed-reading evidence, then update the preflight carrier to consume it and require KNOWLEDGE_PREFLIGHT_RC=0 before T0 host/mount analysis.",
-  "run_id": 35494744058,
-  "job_id": 106035622523,
+  "next_action": "Commit T0 characterization test/census/workflow and monitor the exact push-triggered run to terminal. Acceptance requires 4 PASS + exactly one intended duplicate-region RED, with no production runtime edits.",
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
     "POST_PHASE5_BASELINE=50e14c7054916cb0b9597c61194725939c5de323",
-    "FIRST_PREFLIGHT_RUN=35494744058",
-    "FIRST_PREFLIGHT_CLASSIFICATION=EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE",
-    "REQUIRED_SKILLS_READ=5",
-    "REQUIRED_REFERENCES_READ=7",
+    "KNOWLEDGE_PREFLIGHT_RUN=35495142279",
+    "CHANGED_FILE_PREFLIGHT_RUN=35495290137",
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "CURRENT_DIRECT_MODE_HOST_COUNT=3",
+    "TARGET_DIRECT_SHARED_HOST_COUNT=1",
     "PRODUCTION_RUNTIME_EDIT=0"
   ]
-}
+}\n

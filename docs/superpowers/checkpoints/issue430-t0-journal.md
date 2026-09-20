@@ -11,24 +11,32 @@
 ## Execution claim
 - Shared authority: `coord/dispatch-claims:.dispatch/claims/issue-430.json`
 - Worker: `chatgpt`
-- First guarded work-branch write used exact branch/base/head and returned `EXECUTION_CLAIM_GUARD_GREEN`.
+- executable guard is required before each work-branch write.
 
 ## Knowledge Preflight
-Initial remote preflight intentionally failed closed because no completed-reading evidence existed:
-- RUN `35494744058`
-- HEAD `873975a9f73d8eef25ecdf8f34b00c431e114f2c`
-- classification: `EXPECTED_PREFLIGHT_FAIL_CLOSED_MISSING_EVIDENCE`
+- first fail-closed run: `35494744058` — missing reading evidence, expected RED
+- harness-only false RED: `35495093718` — canonical preflight was all ✓; extra noncanonical grep failed
+- canonical task preflight GREEN: `35495142279`
+- changed-file preflight GREEN: `35495290137`
+- durable evidence: `docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt`
 
-All required Skills and references were then actually read. Durable machine evidence is:
-`docs/superpowers/checkpoints/issue430-t0-preflight-evidence.txt`
+## Baseline census
+Current presentation is mutually exclusive but currently has three direct left-content hosts:
+- normal: `fold_editor_host`
+- assembly: `assembly_parts_panel`
+- Corner Data: `corner_data_panel`
 
-## Product contract being characterized
-Exactly one physical left shared-content host must eventually serve three mutually exclusive presentations:
-1. normal part input/display
-2. assembly list
-3. corner-data content
+The exact mount/unmount and mode authority census is in:
+`docs/superpowers/checkpoints/issue430-t0-census.md`
 
-T0 does not fix the layout. It must prove the current host/mount/widget-tree reality and produce an intended RED if the current runtime violates the single-host contract.
+The intended RED is deliberately narrow: ascend each mode surface to the first child directly owned by `self.left`; #429 requires all three to resolve to one identity.
+
+The remaining lifecycle guards do **not** assert that three hosts are correct. They only prove:
+- existing mode/workspace authority remains single-source;
+- repeated switching does not accumulate more surface objects;
+- refresh + add/delete does not accumulate more surface objects;
+- a fresh workspace does not reuse stale Tk objects across instances;
+- only one mode surface is mounted at a time.
 
 ## Required T0 gates
 ```text
@@ -41,15 +49,8 @@ DUPLICATE_REGION_RED_INTENDED=1
 PRODUCTION_RUNTIME_EDIT=0
 ```
 
-## Evidence classifications
-- UI widget existence / `winfo_manager()` alone is insufficient for operator-visible ownership.
-- Assembly state existence alone is insufficient to prove one shared physical host.
-- Corner Data enter/exit lifecycle must be symmetric.
-- Validation observations are evidence only and may not become product/runtime authority.
-
 ## Current state
 ```text
 STATE=RUNNING
-LATEST_REMOTE_RUN=35494744058 (terminal expected fail-closed)
-NEXT_ACTION=Rerun Knowledge Preflight from committed evidence; require RC=0 before T0 host/mount analysis.
+NEXT_ACTION=Run qa-issue430-t0-census on the exact characterization HEAD; require 4 PASS + exactly 1 intended RED and zero production runtime edits.
 ```
