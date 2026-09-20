@@ -1,9 +1,9 @@
 name: QA Issue427 Phase5 Postmerge Smoke
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/issue413-phase5-assembly-presentation-20260920
+      - cleanup/2d-3d-sync
     paths:
       - .github/workflows/qa-issue427-phase5-postmerge-smoke.yml
   workflow_dispatch:
