@@ -13,8 +13,9 @@
 
 ## Knowledge Preflight
 
-Machine changed-file preflight returned `RC=0` before T1 RED write.
+Machine changed-file preflight returned `RC=0` before T1 RED write. Remote changed-file preflight later revealed the test-path route also requires `Python測試實務`; that Skill was fresh-read and added before retrying RED.
 
+READ_SKILL: Python測試實務
 READ_SKILL: 截角資料入口收斂
 READ_SKILL: 派工
 READ_SKILL: issue-closure-gate
@@ -43,7 +44,9 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
 
 ```text
 STATE=RED
-HEAD=9e153ed27e58017f729ef674f3eb939013260424
-RUN_ID=RUN_NOT_CREATED
-NEXT_ACTION=Run focused assertion RED; module must be missing without collection/import/harness errors.
+HEAD=3c0b5089716f6bb7e4a39e3b5c94ce48400a66bf
+RUN_ID=35486741374
+RUN_STATUS=PREFLIGHT_HARNESS_FAILURE
+EVIDENCE=Knowledge Preflight stopped before pytest because Python測試實務 evidence was missing; this run is NOT requirement RED evidence.
+NEXT_ACTION=Retry focused assertion RED after complete 7-Skill preflight; module must be missing without collection/import/harness errors.
 ```
