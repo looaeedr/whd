@@ -1249,7 +1249,7 @@ class Phase6FoldDesignerApp(original.MainApp):
         self._phase6_last_w = None
         self._phase6_last_d = None
         self._phase6_destroying = False
-        saved_bending_ui = original.BendingUI
+        # BendingUI is constructed inside predecessor MainApp.__init__; install the\n        # bridge-owned transaction action on this instance before that constructor runs.\n        # This preserves the 3-argument BendingUI constructor without facade growth.\n        self._phase6_on_box_symmetry_changed = lambda: _phase6_on_box_symmetry_changed(self)\n        saved_bending_ui = original.BendingUI
         original.BendingUI = Phase6BendingUI
         try:
             super().__init__(root)
