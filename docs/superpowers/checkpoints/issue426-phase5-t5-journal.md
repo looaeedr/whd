@@ -180,10 +180,10 @@ These are allowed composition/mount/event/compatibility seams, not presentation 
 
 ```text
 STATE=RED
-HEAD=4c5555121e84de6c86e5b7893f8f1fbe467cc260
-RUN_ID=35489797602
-RUN_STATUS=PRE_T5_SCOPE_DRIFT_GATE_FAILURE
-NEXT_ACTION=Retry focused T5 requirement RED from cleaned lineage; require scope GREEN then intended grouping-owner assertion RED.
+HEAD=2aec42e7aa22c14792ab0151f25c371df9d924f0
+RUN_ID=35489860269
+RUN_STATUS=VALID_RED_WITH_STALE_LEGACY_FIXTURE_BLOCKER_REMEDIATED
+NEXT_ACTION=Run cleaned T5 RED with expanded legacy-test scope; require intended grouping-owner RED plus legacy lane GREEN.
 ```
 
 
@@ -217,3 +217,46 @@ Corrective action:
 RUN `35489797602` is therefore classified as **PRE_T5_SCOPE_DRIFT_GATE_FAILURE** and is NOT requirement RED evidence.
 
 T5 may proceed only from the cleaned lineage after this corrective restore.
+
+
+## Valid T5 RED / Legacy Fixture Recovery
+
+RUN `35489860269` @ `1290bf633e15fd0037e8ea94c32d6e5b778964f6` passed:
+- lineage
+- Knowledge Preflight
+- `T5_SCOPE_EXTERNAL_DRIFT=0`
+- protected config capture
+- right-diagnostics out-of-scope gate
+
+Focused T5 requirement test:
+```text
+1 failed / 10 passed
+T5_RED_INTENDED=1
+T5_RED_PYTEST_RC=1
+```
+
+The sole focused failure is the intended requirement RED:
+`legacy_assembly_presentation_groups` does not yet exist in the pure presentation owner.
+
+The same RUN then found one legacy regression:
+`tests/test_phase6_corner_dimension_controls.py::test_assembly_query_includes_all_available_sheet_parts_and_honors_view_only_visibility`.
+
+Classification:
+- production was byte-equivalent to accepted #425 for the affected panel/Bridge owners;
+- the legacy test manually constructed `assembly_part_visible_vars` without `_phase6_assembly_panel_owner`;
+- after accepted T4, Final Scene visibility authority is panel-owned;
+- restoring Bridge reads from an ownerless legacy dict would recreate a second visibility authority and violate T4/T5 ownership gates.
+
+Corrective test-only update:
+- T5 scope/preflight now explicitly includes `tests/test_phase6_corner_dimension_controls.py`;
+- the fixture creates one panel-owner-compatible visibility mapping;
+- `assembly_part_visible_vars is _phase6_assembly_panel_owner.visible_vars`;
+- visibility is resolved through `Phase6AssemblyPanel._resolve_visibility_with_vars`;
+- corner compatibility snapshot assertion remains unchanged.
+
+No production behavior was changed to satisfy the stale fixture.
+
+Therefore:
+- RUN `35489860269` is accepted as **valid requirement RED evidence**;
+- its overall job failure is classified as **STALE_LEGACY_FIXTURE_BLOCKER**, now remediated test-only;
+- next RUN must show focused RED still intended and legacy lane GREEN before minimal GREEN implementation.
