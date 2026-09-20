@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue443-t1-dead-glue-20260920",
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
-  "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
-  "phase": "RED",
+  "head_sha": "16d1b6c04b63237aa04c5999f48dea4278df0987",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:20:20Z",
+  "last_update": "2026-09-20T13:21:28Z",
   "remote_qa": {
-    "run_id": 35513193296,
-    "head_sha": "eec06a19c818a0957f787f57e891453a798c3650",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "TEST_HARNESS_STALE_DEFINITION_LINE_NUMBERS"
+    "run_id": 35513259075,
+    "head_sha": "16d1b6c04b63237aa04c5999f48dea4278df0987",
+    "status": "queued",
+    "conclusion": null,
+    "retry_of": 35513193296
   },
-  "next_action": "Remove stale absolute line-number assumptions from zero-dispatch characterization; retain exact path/count plus zero calls/getattr/facade guards; rerun RED.",
+  "next_action": "Poll exact T1 RED run 35513259075 to terminal; require zero-dispatch characterization PASS and exactly one intended deletion RED.",
   "blocker": null
 }
