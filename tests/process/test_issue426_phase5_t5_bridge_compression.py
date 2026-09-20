@@ -1,0 +1,308 @@
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import ast
+import inspect
+import tkinter as tk
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+import fold_designer_bridge as bridge
+import phase6_assembly_presentation as presentation
+from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
+
+
+T0_BOUNDARY = (
+    "_phase6_refresh_box_body_piece_info_rows",
+    "_phase6_on_assembly_part_visibility_changed",
+    "_phase6_scroll_assembly_parts",
+    "_phase6_bind_assembly_scroll",
+    "_phase6_assembly_presentation_groups",
+    "_phase6_current_assembly_panel_part_keys",
+    "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+    "_phase6_set_assembly_part_details_open",
+    "_phase6_toggle_assembly_part_details",
+    "_phase6_set_assembly_presentation_group_open",
+    "_phase6_toggle_assembly_presentation_group",
+    "_phase6_set_box_body_piece_details_open",
+    "_phase6_toggle_box_body_piece_details",
+    "_phase6_refresh_assembly_parts_panel",
+    "_phase6_show_assembly",
+)
+
+T0_REFRESH_CALLS = (
+    (
+        "_phase6_refresh_profiles_from_settings",
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+    ),
+    (
+        "_phase6_on_baseline_model_changed",
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+    ),
+    (
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+        "_phase6_refresh_assembly_parts_panel",
+    ),
+    ("_fix11_init", "_phase6_refresh_assembly_parts_panel"),
+    ("_fix11_refresh_part_buttons", "_phase6_refresh_assembly_parts_panel"),
+)
+
+
+@pytest.fixture
+def tk_root():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        yield root
+    finally:
+        try:
+            root.update_idletasks()
+        except Exception:
+            pass
+        root.destroy()
+
+
+def _bridge_ast():
+    text = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    return text, ast.parse(text)
+
+
+def _function_source(name: str) -> str:
+    text, tree = _bridge_ast()
+    lines = text.splitlines()
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            return "\n".join(lines[node.lineno - 1:node.end_lineno])
+    raise AssertionError(f"missing bridge function: {name}")
+
+
+def _refresh_call_inventory():
+    _, tree = _bridge_ast()
+    targets = {
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+        "_phase6_refresh_assembly_parts_panel",
+    }
+    rows = []
+    for fn in tree.body:
+        if not isinstance(fn, ast.FunctionDef):
+            continue
+        for node in ast.walk(fn):
+            if not isinstance(node, ast.Call):
+                continue
+            callee = node.func.id if isinstance(node.func, ast.Name) else None
+            if callee in targets:
+                rows.append((fn.name, callee))
+    return tuple(rows)
+
+
+def test_t5_pure_owner_exposes_legacy_group_projection_and_bridge_is_thin_delegate():
+    helper = getattr(presentation, "legacy_assembly_presentation_groups", None)
+    assert callable(helper), (
+        "T5 requirement RED: pure Assembly presentation grouping compatibility "
+        "projection is missing"
+    )
+
+    values = (
+        "box_body",
+        "head",
+        "door_c1_r1",
+        "door_c1_r2",
+        "base_plate_c1_r1",
+        "base_plate_c1_r2",
+        "tail",
+    )
+    expected = (
+        ("box_body", ()),
+        ("head", ()),
+        ("door", ("door_c1_r1", "door_c1_r2")),
+        ("base_plate", ("base_plate_c1_r1", "base_plate_c1_r2")),
+        ("tail", ()),
+    )
+    assert helper(values) == expected
+    assert bridge._phase6_assembly_presentation_groups(values) == expected
+
+    source = _function_source("_phase6_assembly_presentation_groups")
+    assert "legacy_assembly_presentation_groups" in source
+    assert "build_assembly_presentation_model" not in source
+    assert "for " not in source
+    assert ".append(" not in source
+
+
+def test_t5_exact_t0_refresh_callsite_inventory_is_unchanged():
+    assert _refresh_call_inventory() == T0_REFRESH_CALLS
+
+
+def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths():
+    conditional = _function_source(
+        "_phase6_refresh_assembly_parts_panel_if_topology_changed"
+    )
+    assert "if current == wanted:" in conditional
+    assert "return False" in conditional
+    assert "_phase6_refresh_assembly_parts_panel(self)" in conditional
+
+    refresh_buttons = _function_source("_fix11_refresh_part_buttons")
+    assert 'getattr(self, "assembly_parts_panel", None) is not None' in refresh_buttons
+    assert "_phase6_refresh_assembly_parts_panel(self)" in refresh_buttons
+
+    init = _function_source("_fix11_init")
+    assert "_phase6_refresh_assembly_parts_panel(self)" in init
+
+
+def test_t5_mount_unmount_transition_sources_match_t0_behavior():
+    show = _function_source("_phase6_show_assembly")
+    corner = _function_source("_phase6_show_corner_data")
+    activate = _function_source("_fix11_activate_part")
+
+    assert 'getattr(self, "assembly_parts_panel", None)' in show
+    assert "assembly_panel.pack(fill=original.tk.BOTH, expand=True, pady=(0, 8))" in show
+
+    assert 'getattr(self, "assembly_parts_panel", None)' in corner
+    assert "assembly_panel.pack_forget()" in corner
+
+    assert 'getattr(self, "assembly_parts_panel", None)' in activate
+    assert "assembly_panel.pack_forget()" in activate
+
+
+def test_t5_repeated_bridge_refresh_preserves_alias_identity_and_ui_state(tk_root):
+    panel = Phase6AssemblyPanel(
+        tk_root,
+        actions=AssemblyPanelActions(on_visibility_changed=lambda: None),
+    )
+    fake = SimpleNamespace(
+        _phase6_assembly_panel_owner=panel,
+        _phase6_input_snapshot={},
+        designer_workspace=SimpleNamespace(
+            available_parts=("box_body", "head", "tail"),
+        ),
+    )
+    bridge._phase6_install_assembly_panel_aliases(fake, panel)
+    bridge._phase6_refresh_assembly_parts_panel(fake)
+
+    alias_refs = {
+        "assembly_part_visible_vars": fake.assembly_part_visible_vars,
+        "assembly_part_corner_vars": fake.assembly_part_corner_vars,
+        "assembly_part_formed_vars": fake.assembly_part_formed_vars,
+        "assembly_part_blank_vars": fake.assembly_part_blank_vars,
+        "assembly_part_detail_frames": fake.assembly_part_detail_frames,
+        "assembly_presentation_group_detail_frames":
+            fake.assembly_presentation_group_detail_frames,
+        "assembly_box_body_piece_visible_vars":
+            fake.assembly_box_body_piece_visible_vars,
+        "assembly_box_body_piece_formed_vars":
+            fake.assembly_box_body_piece_formed_vars,
+    }
+
+    fake.assembly_part_visible_vars["head"].set(False)
+    fake.assembly_part_formed_vars["head"].set("成形尺寸：保留")
+    panel.set_part_details_open("head", True)
+
+    bridge._phase6_refresh_assembly_parts_panel(fake)
+    bridge._phase6_refresh_assembly_parts_panel(fake)
+
+    for name, ref in alias_refs.items():
+        assert getattr(fake, name) is ref, f"stale legacy alias: {name}"
+    assert bool(fake.assembly_part_visible_vars["head"].get()) is False
+    assert fake.assembly_part_formed_vars["head"].get() == "成形尺寸：保留"
+    assert fake.assembly_part_detail_frames["head"].winfo_manager() == "pack"
+
+
+def test_t5_bridge_has_no_assembly_row_or_piece_row_tk_construction():
+    logical = _function_source("_phase6_refresh_assembly_parts_panel")
+    pieces = _function_source("_phase6_refresh_box_body_piece_info_rows")
+    forbidden = (
+        "ttk.Frame(",
+        "ttk.Checkbutton(",
+        "ttk.Label(",
+        "ttk.Button(",
+        "BooleanVar(",
+        "StringVar(",
+        "Canvas(",
+        "create_window(",
+    )
+    for token in forbidden:
+        assert token not in logical
+        assert token not in pieces
+
+
+def test_t5_bridge_collapse_scroll_and_visibility_policy_are_delegation_only():
+    collapse_names = (
+        "_phase6_set_assembly_part_details_open",
+        "_phase6_toggle_assembly_part_details",
+        "_phase6_set_assembly_presentation_group_open",
+        "_phase6_toggle_assembly_presentation_group",
+        "_phase6_set_box_body_piece_details_open",
+        "_phase6_toggle_box_body_piece_details",
+    )
+    for name in collapse_names:
+        source = _function_source(name)
+        assert "_phase6_assembly_panel_owner" in source
+        assert ".pack(" not in source
+        assert ".pack_forget(" not in source
+        assert "winfo_manager" not in source
+
+    scroll = _function_source("_phase6_scroll_assembly_parts")
+    bind = _function_source("_phase6_bind_assembly_scroll")
+    assert "_phase6_assembly_panel_owner" in scroll
+    assert "_phase6_assembly_panel_owner" in bind
+    assert "yview_scroll" not in scroll
+    assert ".bind(" not in bind
+
+    visibility = _function_source("_phase6_final_scene_visibility")
+    assert ".resolve_visibility(" in visibility
+    assert "visible_parts =" not in visibility
+    assert "box_piece_keys =" not in visibility
+
+
+def test_t5_compatibility_boundary_count_does_not_grow():
+    _, tree = _bridge_ast()
+    names = {
+        node.name for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    present = tuple(name for name in T0_BOUNDARY if name in names)
+    assert present == T0_BOUNDARY
+    assert len(present) == 15
+
+
+def test_t5_legacy_alias_installer_keeps_t0_proven_registry_names():
+    source = _function_source("_phase6_install_assembly_panel_aliases")
+    expected = {
+        "assembly_parts_panel": "host",
+        "assembly_parts_canvas": "canvas",
+        "assembly_parts_content": "content",
+        "assembly_part_visible_vars": "visible_vars",
+        "assembly_part_corner_vars": "corner_vars",
+        "assembly_part_formed_vars": "formed_vars",
+        "assembly_part_blank_vars": "blank_vars",
+        "assembly_part_sections": "sections",
+        "assembly_part_detail_frames": "detail_frames",
+        "assembly_part_detail_buttons": "detail_buttons",
+        "assembly_presentation_group_sections": "group_sections",
+        "assembly_presentation_group_detail_frames": "group_detail_frames",
+        "assembly_presentation_group_detail_buttons": "group_detail_buttons",
+        "assembly_box_body_piece_visible_vars": "box_piece_visible_vars",
+        "assembly_box_body_piece_formed_vars": "box_piece_formed_vars",
+        "assembly_box_body_piece_blank_vars": "box_piece_blank_vars",
+        "assembly_box_body_piece_corner_vars": "box_piece_corner_vars",
+    }
+    for legacy, owner in expected.items():
+        assert f"self.{legacy} = owner.{owner}" in source
+
+
+def test_t5_corner_snapshot_is_retained_because_t0_has_test_reader():
+    source = _function_source("_phase6_final_scene_corner_text_sink")
+    assert "_phase6_last_assembly_corner_dimension_texts" in source
+    assert "self._phase6_last_assembly_corner_dimension_texts = dict(values)" in source
+
+
+def test_t5_right_diagnostics_remain_outside_assembly_compression_boundary():
+    for name in T0_BOUNDARY:
+        source = _function_source(name)
+        assert "assembly_diagnostics_frame" not in source or name == "_phase6_show_assembly"
+    # _phase6_show_assembly owns the existing mount/event seam only; T5 must not
+    # move right-side diagnostics construction or diagnostics logic into panel.
+    panel_source = inspect.getsource(__import__("phase6_assembly_panel"))
+    assert "assembly_diagnostics_frame" not in panel_source
+    assert "diagnostic" not in panel_source.lower()
