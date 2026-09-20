@@ -10,12 +10,12 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35499063545,
     "head_sha": "25ac8474e6c9c568831a1333c5f3c4028201d9e6",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T5_CHARACTERIZATION_RED"
+    "classification": "ACTIVE_T5_CHARACTERIZATION_RED"
   },
-  "next_action": "Discover and poll T5 characterization at exact head 25ac8474e6c9c568831a1333c5f3c4028201d9e6. Production must be exact predecessor; only the four stale #378 wrapper assertions may fail.",
+  "next_action": "Poll run 35499063545 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null
 }
