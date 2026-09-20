@@ -5,18 +5,18 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
-  "phase": "GREEN",
+  "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T07:15:00Z",
+  "last_update": "2026-09-20T07:18:00Z",
   "remote_qa": {
-    "run_id": 35496205827,
-    "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T1_FOCUSED_GREEN_8_PASS_0_FAIL_0_SKIP"
+    "run_id": null,
+    "head_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T1_AB_QUALIFICATION"
   },
-  "next_action": "Run T1 A/B qualification from baseline 95ab91c900e9a531ce0fec25a698123116392cc2 vs tested candidate 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a: existing UI/Xvfb regressions plus part/DXF/persistence acceptance. Keep TESTED_SHA distinct from orchestration SHA.",
+  "next_action": "Discover and poll #431 T1 A/B qualification. TESTED_SHA remains 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a; orchestration SHA is 5e18d66ad3642c1a9b27da7f25c511626d1a90c4.",
   "blocker": null,
   "focused_green": {
     "run_id": 35496205827,
@@ -24,5 +24,7 @@
     "artifact_id": 10600549174,
     "artifact_sha256": "1f8478ee588d33340ac4b38225a55c391f2a4897acccc63566aa91487b3a95b8",
     "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a"
-  }
+  },
+  "tested_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
+  "orchestration_sha": "5e18d66ad3642c1a9b27da7f25c511626d1a90c4"
 }
