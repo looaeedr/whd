@@ -55,6 +55,24 @@ from phase6_settings_service import (
 )
 
 
+def _sync_mapping_in_place(
+    target: MutableMapping[str, object],
+    source: Mapping[str, object],
+) -> MutableMapping[str, object]:
+    """Apply a pure transition result without invalidating live nested refs."""
+    incoming = deepcopy(dict(source or {}))
+    for key in tuple(target):
+        if key not in incoming:
+            del target[key]
+    for key, value in incoming.items():
+        current = target.get(key)
+        if isinstance(current, MutableMapping) and isinstance(value, Mapping):
+            _sync_mapping_in_place(current, value)
+        else:
+            target[key] = value
+    return target
+
+
 @dataclass(frozen=True)
 class ExternalSyncPlan:
     accepted: bool
@@ -330,10 +348,10 @@ class Phase6SettingsTransactionController:
             self._corner_pair_same,
             part_key,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         part = str(part_key)
         return self._corner_state[part], self._corner_pair_same[part]
     def corner_selection(
@@ -357,10 +375,10 @@ class Phase6SettingsTransactionController:
             pair_key,
             enabled,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         part = str(part_key)
         return self._corner_state[part], self._corner_pair_same[part]
     def commit_corner_type(
@@ -373,10 +391,10 @@ class Phase6SettingsTransactionController:
             target_key,
             type_id,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         return deepcopy(result.value)
     def commit_corner_mode(
         self, part_key: str, target_key: str, mode
@@ -388,10 +406,10 @@ class Phase6SettingsTransactionController:
             target_key,
             mode,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         return deepcopy(result.value)
     def commit_corner_parameters(
         self,
@@ -415,10 +433,10 @@ class Phase6SettingsTransactionController:
             secondary_retain_t=secondary_retain_t,
             secondary_depth_t=secondary_depth_t,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         return deepcopy(result.value)
     def commit_assembly_intent(
         self,
@@ -446,10 +464,10 @@ class Phase6SettingsTransactionController:
             "assembly_joints": deepcopy(snapshot["assembly_joints"]),
             "assembly_type": snapshot["assembly_type"],
         })
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         self._assembly_type = result.assembly_type
         if mark_dirty:
             self.mark_workspace_dirty()
@@ -462,10 +480,10 @@ class Phase6SettingsTransactionController:
         result = settings_transitions.replace_corner_state(
             corner_state, corner_pair_same
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
         return (
             deepcopy(self._corner_state),
             deepcopy(self._corner_pair_same),
@@ -519,10 +537,10 @@ class Phase6SettingsTransactionController:
             self._corner_pair_same,
             fixed_corner_state,
         )
-        self._corner_state.clear()
-        self._corner_state.update(deepcopy(result.corner_state))
-        self._corner_pair_same.clear()
-        self._corner_pair_same.update(deepcopy(result.corner_pair_same))
+        _sync_mapping_in_place(self._corner_state, result.corner_state)
+        _sync_mapping_in_place(
+            self._corner_pair_same, result.corner_pair_same
+        )
     def commit_family_model_transition(
         self,
         new_model,
