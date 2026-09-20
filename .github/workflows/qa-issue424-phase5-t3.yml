@@ -213,6 +213,77 @@ jobs:
           cmp "$CONFIG_BEFORE" "$CONFIG_AFTER"
           echo "CONFIG_INVARIANT=GREEN"
 
+      - name: Authorize exact-owner T3 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          out = Path("/tmp/issue424-t3-closing")
+          out.mkdir(parents=True, exist_ok=True)
+          payload = {
+              "version": 1,
+              "issue": "424",
+              "branch": os.environ["WORK_BRANCH"],
+              "head_sha": os.environ["OWNER_HEAD"],
+              "state": "TERMINAL_SUCCESS",
+              "next_action": None,
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "job_id": None,
+              "log_cursor": None,
+              "blocked_count": 0,
+              "blocked_last_notified_at": None,
+              "evidence": [
+                  "KNOWLEDGE_PREFLIGHT_RC=0",
+                  "T3_GREEN=1",
+                  "BOX_PIECE_ROW_SOURCE_RENDER_DATA_PIECES=true",
+                  "BOX_PIECE_ROW_SOURCE_SWITCH_TO_DM7=0",
+                  "BOX_PIECE_ROW_CREATION_MOVED_TO_TOPOLOGY_TIME=0",
+                  "BOX_PIECE_ROW_CREATION_TIMING_PARITY=GREEN",
+                  "BOX_PIECE_ROW_ORDER_PARITY=GREEN",
+                  "BOX_PIECE_VAR_OWNER_IS_PANEL=true",
+                  "BOX_PIECE_VISIBILITY_STASH_PARITY=GREEN",
+                  "LATE_PIECE_WHEEL_COVERAGE=GREEN",
+                  "BOX_PIECE_TEXT_REWRITTEN_ON_EVERY_REFRESH=true",
+                  "BOX_PIECE_TEXT_REFRESH_WITHOUT_ROW_REBUILD_PARITY=GREEN",
+                  "BOX_BODY_LOGICAL_TEXT_SUMMARY_PARITY=GREEN",
+                  "BOX_PIECE_FORMED_TEXT_FORMAT_PARITY=GREEN",
+                  "BOX_PIECE_BLANK_TEXT_FORMAT_PARITY=GREEN",
+                  "BOX_PIECE_CORNER_TEXT_FORMAT_PARITY=GREEN",
+                  "LEGACY_BOX_PIECE_REGRESSIONS=GREEN",
+                  "PANEL_BRIDGE_IMPORTS=0",
+                  "PANEL_DM7_IMPORTS=0",
+                  "PANEL_SETTINGS_IMPORTS=0",
+                  "PANEL_DISPLAY_MODE_REFS=0",
+                  "PANEL_MANUFACTURING_SOLVE=0",
+                  "PANEL_PROJECT_MUTATION=0",
+                  "T3_SCOPE_EXTERNAL_DRIFT=0",
+                  "CONFIG_INVARIANT=GREEN",
+              ],
+          }
+          (out / "terminal-checkpoint.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          python -m tools.continuity_controller authorize-finalization \
+            /tmp/issue424-t3-closing/terminal-checkpoint.json \
+            --issue "424" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD" \
+            --proof-out /tmp/issue424-t3-closing/finalization-proof.json
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue424-t3-closing/terminal-checkpoint.json \
+            /tmp/issue424-t3-closing/finalization-proof.json \
+            --issue "424" \
+            --branch "$WORK_BRANCH" \
+            --head-sha "$OWNER_HEAD"
+          echo "FINALIZATION_GUARD_PASS=1"
+          echo "FINALIZATION_PROOF_VALID=1"
+
       - name: Upload T3 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -222,5 +293,7 @@ jobs:
             /tmp/issue424-t3-pytest.log
             /tmp/issue424-config-before.sha256
             /tmp/issue424-config-after.sha256
+            /tmp/issue424-t3-closing/terminal-checkpoint.json
+            /tmp/issue424-t3-closing/finalization-proof.json
           if-no-files-found: warn
           retention-days: 14
