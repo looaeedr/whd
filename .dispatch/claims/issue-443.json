@@ -6,23 +6,16 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
-  "phase": "CLOSING",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:38:10Z",
+  "last_update": "2026-09-20T13:39:32Z",
   "remote_qa": {
-    "run_id": 35514014820,
-    "head_sha": "9786a04911552cda257b6d2da31107711f93c22c",
-    "status": "completed",
-    "conclusion": "success",
-    "focused": "3 passed",
-    "bridge_regression": "INHERITED_BASELINE_DEBT",
-    "baseline_ab_run": 35513915340,
-    "candidate_only_failure": 0,
-    "manufacturing_dxf": "12 passed",
-    "dxf_git_object_invariant": 1,
-    "config_git_object_invariant": 1,
-    "protected_drift": 0
+    "run_id": 35514150050,
+    "head_sha": "76661e3908894d29c2e2704e646e68ea5ac638e0",
+    "status": "in_progress",
+    "conclusion": null,
+    "mode": "CLOSING"
   },
-  "next_action": "Advance guarded branch to closing head 76661e39..., lock closing QA run, require canonical finalization proof, then close/readback #443.",
+  "next_action": "Poll exact closing run 35514150050 to terminal; require full T1 GREEN plus canonical finalization proof.",
   "blocker": null
 }
