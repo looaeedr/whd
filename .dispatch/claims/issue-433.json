@@ -5,11 +5,17 @@
   "work_branch": "refactor/issue433-t3-assembly-shared-host-20260920",
   "claimed_at": "2026-09-20T07:44:00Z",
   "base_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
-  "head_sha": "0cafc232da774019f2b5f1ae818315095f0a56bf",
-  "phase": "CLAIMED",
+  "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T07:44:00Z",
-  "remote_qa": null,
-  "next_action": "Create fresh #433 branch from exact #432 closing SHA, run T3 Knowledge Preflight, then characterize Assembly host/tree/visibility/collapse semantics before any production edit.",
+  "last_update": "2026-09-20T07:46:00Z",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "68d37d99de9b3b53e7e706e8d58c170d426f9b12",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T3_KNOWLEDGE_PREFLIGHT"
+  },
+  "next_action": "Discover and poll the push-triggered #433 T3 Knowledge Preflight run at exact head 68d37d99de9b3b53e7e706e8d58c170d426f9b12.",
   "blocker": null
 }
