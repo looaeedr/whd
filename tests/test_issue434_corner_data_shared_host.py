@@ -59,7 +59,7 @@ def test_t4_corner_data_panel_is_the_shared_host_corner_content():
         assert panel.master is app.shared_content_host
         assert panel.winfo_manager() != ""
         assert _corner_mounted_count(app) == 1
-        assert app.fold_editor_host.winfo_manager() != ""
+        assert app.fold_editor_host is app.input_content_host
         assert app.input_content_host.winfo_manager() == ""
         assert app.assembly_parts_panel.winfo_manager() == ""
         assert app._phase6_3d_display_mode == "corner_data"
