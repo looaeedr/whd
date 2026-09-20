@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue431-t1-shared-content-host-20260920",
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
-  "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
-  "phase": "IMPLEMENTING",
+  "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T07:12:00Z",
+  "last_update": "2026-09-20T07:15:00Z",
   "remote_qa": {
-    "run_id": 35496092853,
-    "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T1_INTENDED_RED_CONFIRMED_5_PASS_3_FAIL_0_SKIP"
+    "run_id": null,
+    "head_sha": "9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T1_FOCUSED_GREEN"
   },
-  "next_action": "Apply minimal GREEN in fold_designer_bridge.py only: add one dedicated shared_content_host, parent the existing fold/assembly/corner-data surfaces under it, and centralize mutually-exclusive pack/pack_forget behavior without creating new state authority.",
+  "next_action": "Discover and poll the push-triggered #431 T1 GREEN run for exact head 9b9c4b489f5181883dd8f47bd98aa5c5bd66bf6a. Require 8 PASS / 0 FAIL / 0 SKIP and all five T1 gates.",
   "blocker": null
 }
