@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
   "head_sha": "2183e07d70499c4efd28233a482699a170097f28",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
     "run_id": 35497507917,
     "head_sha": "2183e07d70499c4efd28233a482699a170097f28",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T2_AB_QUALIFICATION"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T2_AB_QUALIFICATION_GREEN_NOOP_PRODUCTION"
   },
-  "next_action": "Poll run 35497507917 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Write accepted #432 checkpoint/journal and remove temporary #432 workflows only. Audit TESTED_SHA 94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb to closing HEAD; no production/test-contract drift allowed.",
   "blocker": null,
   "characterization_diagnostic": {
     "production_bridge_exact_predecessor": true,
@@ -35,5 +35,24 @@
     "production_runtime_edit": 0,
     "already_green_after_t1": true
   },
-  "orchestration_sha": "2183e07d70499c4efd28233a482699a170097f28"
+  "orchestration_sha": "2183e07d70499c4efd28233a482699a170097f28",
+  "final_ab": {
+    "run_id": 35497507917,
+    "orchestration_sha": "2183e07d70499c4efd28233a482699a170097f28",
+    "tested_sha": "94cedb227a1f6c1fd99529eb9a6d0d8ef22e35bb",
+    "production_bridge_exact_predecessor": true,
+    "production_runtime_edit": 0,
+    "common_ui": {
+      "baseline_passed": 11,
+      "candidate_passed": 11,
+      "exact_outcome_parity": true,
+      "artifact_id": 10601446114,
+      "artifact_sha256": "6fc1ca3317810256b89b9941d8563e75046e01368a007859d4d8545726f3cd2c"
+    },
+    "t2_candidate": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
 }
