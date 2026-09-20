@@ -190,13 +190,24 @@ def test_t5_export_reopen_preserves_domain_state_without_cross_instance_widgets(
             id(app1.assembly_parts_panel),
         }
 
+        assert exported.get("active_part") == before_active
+
         root2, app2 = _open(exported)
         bridge._phase6_show_corner_data(app2)
         _pump(root2)
 
         assert tuple(app2.designer_workspace.available_parts) == before_parts
+        assert _mapped_surface_count(app2) == 1
+
+        # Entering Fold Designer still follows the accepted startup contract:
+        # assembly view is backed by box_body. The persisted active part must
+        # remain available and be restorable without creating a second state owner.
+        assert app2.designer_workspace.active_part == "box_body"
+        app2.activate_part(before_active)
+        _pump(root2)
         assert app2.designer_workspace.active_part == before_active
         assert _mapped_surface_count(app2) == 1
+
         second_widgets = {
             id(app2.shared_content_host),
             id(app2.fold_editor_host),
