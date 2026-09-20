@@ -129,6 +129,22 @@ def function_nodes(text: str) -> dict[str, ast.FunctionDef | ast.AsyncFunctionDe
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
 
+
+def class_method_node(
+    text: str,
+    class_name: str,
+    method_name: str,
+) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    """Return one direct class method without treating methods as top-level functions."""
+    tree = ast.parse(text)
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef) or node.name != class_name:
+            continue
+        for child in node.body:
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child.name == method_name:
+                return child
+    return None
+
 def source_for(lines: list[str], node: ast.AST) -> str:
     start = int(getattr(node, "lineno", 1))
     end = int(getattr(node, "end_lineno", start))
@@ -364,8 +380,11 @@ def main() -> int:
     report["BOX_PIECE_KEY_SET_FORCED_EQUALIZATION"] = 0
 
     final_view = baseline_text(sha, FINAL_VIEW)
-    fv_funcs = function_nodes(final_view)
-    q = fv_funcs.get("query_assembly_render_data")
+    q = class_method_node(
+        final_view,
+        "Phase6FinalSceneViewAdapter",
+        "query_assembly_render_data",
+    )
     if q is None:
         failures.append("query_assembly_render_data missing")
         order_ok = False
