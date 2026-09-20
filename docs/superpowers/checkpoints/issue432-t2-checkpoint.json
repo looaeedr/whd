@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issue": "432",
+  "branch": "refactor/issue432-t2-general-part-shared-host-20260920",
+  "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
+  "head_sha": "9277c681acfc52dc1a2d15eb144830543a245256",
+  "state": "CHARACTERIZATION_PENDING",
+  "next_action": "Commit tests/workflow/docs only and run T2 characterization. Require 4 PASS / 0 FAIL / 0 SKIP plus production bridge blob exact predecessor equality.",
+  "preflight_run_id": 35497204537,
+  "evidence": [
+    "KNOWLEDGE_PREFLIGHT_RC=0",
+    "PRODUCTION_RUNTIME_EDIT=0"
+  ]
+}
