@@ -6,15 +6,16 @@
   "claimed_at": "2026-09-20T13:15:00Z",
   "base_sha": "cf14e2e6b7ba9d28109d94cd1010867a29e8c157",
   "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "delegated_branches": [],
-  "last_update": "2026-09-20T13:18:19Z",
+  "last_update": "2026-09-20T13:18:30Z",
   "remote_qa": {
     "run_id": 35513104125,
     "head_sha": "b9101db535726ae26f5e87ed659fbb8b5a10ca65",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "ENVIRONMENT_HARNESS_MISSING_PYTEST"
   },
-  "next_action": "Poll exact RED run 35513104125 for head b9101db535726ae26f5e87ed659fbb8b5a10ca65 to terminal; accept only intended T1 RED classifier.",
+  "next_action": "Install pytest in the T1 QA workflow only, rerun the same intended RED assertions, and classify exact retry.",
   "blocker": null
 }
