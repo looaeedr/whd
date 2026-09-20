@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-20T07:04:30Z",
   "base_sha": "95ab91c900e9a531ce0fec25a698123116392cc2",
   "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:12:00Z",
   "remote_qa": {
     "run_id": 35496092853,
     "head_sha": "7d4c569c5936924120ec0b520f7afd61bbd07fb2",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_T1_INTENDED_RED"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "T1_INTENDED_RED_CONFIRMED_5_PASS_3_FAIL_0_SKIP"
   },
-  "next_action": "Poll run 35496092853 on exact head 7d4c569c5936924120ec0b520f7afd61bbd07fb2 to terminal; no other work while REMOTE_QA active lock is held.",
+  "next_action": "Apply minimal GREEN in fold_designer_bridge.py only: add one dedicated shared_content_host, parent the existing fold/assembly/corner-data surfaces under it, and centralize mutually-exclusive pack/pack_forget behavior without creating new state authority.",
   "blocker": null
 }
