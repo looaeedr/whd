@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import inspect
+import tkinter as tk
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -16,6 +17,20 @@ from phase6_assembly_presentation import (
 
 
 MODULE = "phase6_assembly_panel"
+
+
+@pytest.fixture
+def tk_root():
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        yield root
+    finally:
+        try:
+            root.update_idletasks()
+        except Exception:
+            pass
+        root.destroy()
 
 
 def _module():
