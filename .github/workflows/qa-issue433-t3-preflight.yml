@@ -1,0 +1,37 @@
+name: "QA #433 T3 Knowledge Preflight"
+
+on:
+  push:
+    branches:
+      - refactor/issue433-t3-assembly-shared-host-20260920
+    paths:
+      - '.github/workflows/qa-issue433-t3-preflight.yml'
+      - 'docs/superpowers/checkpoints/issue433-t3-preflight-evidence.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run T3 planned-change Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "Issue #433 T3 Assembly list mounted into the same shared-content host. Preserve existing Phase 5 Assembly panel owner, per-part visibility, collapsible details, multipart hierarchy, default collapse, Final Scene ports, and Structure Tree shared vars. Characterize active/inactive widget-tree count and semantic parity. GitHub Actions remote QA." \
+            --changed-file fold_designer_bridge.py \
+            --changed-file phase6_assembly_panel.py \
+            --changed-file tests/test_issue433_assembly_shared_host.py \
+            --changed-file .github/workflows/qa-issue433-t3.yml \
+            --changed-file docs/superpowers/checkpoints/issue433-t3-journal.md \
+            --changed-file docs/superpowers/checkpoints/issue433-t3-checkpoint.json \
+            --evidence docs/superpowers/checkpoints/issue433-t3-preflight-evidence.txt
+          echo "KNOWLEDGE_PREFLIGHT_RC=0"

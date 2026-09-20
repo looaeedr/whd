@@ -1,0 +1,50 @@
+Issue #433 / T3 — Knowledge Preflight Evidence
+
+TASK:
+Issue #433 T3 Assembly list mounted into the same shared-content host. Preserve existing Phase 5 Assembly panel owner, per-part visibility, collapsible details, multipart hierarchy, default collapse, Final Scene ports, and Structure Tree shared vars. Characterize active/inactive widget-tree count and semantic parity. GitHub Actions remote QA.
+
+PREDECESSOR:
+#432 CLOSED/completed
+BASE/CLOSING_SHA=0cafc232da774019f2b5f1ae818315095f0a56bf
+
+WORK BRANCH:
+refactor/issue433-t3-assembly-shared-host-20260920
+
+READ_SKILL: phase6-assembly-view-boundaries
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: Python測試實務
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: UI設計與去AI味
+READ_SKILL: diagnosing-bugs
+READ_SKILL: tdd
+READ_SKILL: 程式碼庫設計
+
+READ_REFERENCE: CONTEXT.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PLANNED_CHANGED_FILES:
+fold_designer_bridge.py
+phase6_assembly_panel.py
+tests/test_issue433_assembly_shared_host.py
+.github/workflows/qa-issue433-t3.yml
+docs/superpowers/checkpoints/issue433-t3-journal.md
+docs/superpowers/checkpoints/issue433-t3-checkpoint.json
+
+T3_BOUNDARY:
+ASSEMBLY_PANEL_OWNER_CHANGED=0
+VISIBILITY_AUTHORITY_CHANGED=0
+COLLAPSE_AUTHORITY_CHANGED=0
+FINAL_SCENE_PORTS_CHANGED=0
+STRUCTURE_TREE_SHARED_VARS_CHANGED=0
+GEOMETRY_AUTHORITY_CHANGED=0
+VALIDATION_IS_JUDGE_ONLY=1
