@@ -6,17 +6,17 @@
   "claimed_at": "2026-09-20T11:28:00Z",
   "base_sha": "719f4509371376f9d01fca97553b5199963de4c6",
   "head_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
-  "phase": "REMOTE_QA",
+  "phase": "RELEASED",
   "delegated_branches": [],
   "last_update": "2026-09-20T11:28:00Z",
   "remote_qa": {
     "run_id": 35509571262,
     "head_sha": "c851cf305b4f99c2473ddfb8d7ceb8d78fadcb29",
-    "status": "in_progress",
-    "conclusion": null,
-    "classification": "ACTIVE_ISSUE439_POSTMERGE_PRODUCTION_SMOKE"
+    "status": "completed",
+    "conclusion": "success",
+    "classification": "ISSUE439_POSTMERGE_PRODUCTION_SMOKE_GREEN"
   },
-  "next_action": "Poll run 35509571262 to terminal; do not close #439 until exact production SHA 3be16a4d6e9bde6ad4ad74365f718f2b0385db36 smoke is GREEN.",
+  "next_action": "Terminal. Issue #439 may be closed completed.",
   "blocker": null,
   "closing_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
   "integration": {
@@ -25,5 +25,20 @@
     "integrated_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
     "force": false,
     "readback_exact": true
+  },
+  "postmerge": {
+    "run_id": 35509571262,
+    "production_sha": "3be16a4d6e9bde6ad4ad74365f718f2b0385db36",
+    "pass": 45,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "config_invariant": true,
+    "extra_shared_content_frame_count": 0,
+    "shared_content_host_is_fold_editor_host": true,
+    "outer_content_bbox_identical_all_modes": true,
+    "active_inner_content_tree_count": 1,
+    "artifact_id": 10605135014,
+    "artifact_sha256": "2e672bf05670bd74bdd3f81a3e85a0addbd537d779178f402b0d72575c13f17c"
   }
 }
