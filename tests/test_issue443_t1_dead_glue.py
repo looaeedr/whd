@@ -15,11 +15,12 @@ TARGETS = {
 
 def _tracked_python_paths() -> list[Path]:
     raw = subprocess.check_output(["git", "ls-files", "-z", "*.py"])
-    return [
+    paths = [
         Path(item.decode("utf-8", "surrogateescape"))
         for item in raw.split(b"\0")
         if item
     ]
+    return [path for path in paths if not (path.parts and path.parts[0] == "BACKUP")]
 
 
 def _inventory() -> dict[str, dict[str, list[tuple[str, int]]]]:
