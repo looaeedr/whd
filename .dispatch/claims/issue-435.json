@@ -10,13 +10,13 @@
   "delegated_branches": [],
   "last_update": "2026-09-20T08:13:00Z",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35499762496,
     "head_sha": "94fe9251c99b41386c304c8cc97d89bcc3690dd5",
-    "status": "awaiting_run_discovery",
+    "status": "in_progress",
     "conclusion": null,
-    "classification": "T5_FOCUSED_GREEN"
+    "classification": "ACTIVE_T5_FOCUSED_GREEN"
   },
-  "next_action": "Discover and poll push-triggered T5 GREEN run at exact head 94fe9251c99b41386c304c8cc97d89bcc3690dd5. Require zero failures, at most the one allowed #376 skip, all T5 gates, and persistence GREEN.",
+  "next_action": "Poll run 35499762496 to terminal; no other work while REMOTE_QA active lock is held.",
   "blocker": null,
   "characterization_diagnostic": {
     "passed": 29,
