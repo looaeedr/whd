@@ -81,8 +81,7 @@ jobs:
           fi
           rc=$?
           set -e
-          printf '%s
-' "$rc" > "$root/pytest.rc"
+          printf '%s\n' "$rc" > "$root/pytest.rc"
 
           config_after="$(sha256sum config.ini | awk '{print $1}')"
           dxf_after="$(find . -type f -iname '*.dxf' -not -path './.git/*' -not -path './.scratch/*' -print0 | sort -z | xargs -0 -r sha256sum | sha256sum | awk '{print $1}')"
@@ -129,8 +128,7 @@ jobs:
               "dxf_unchanged": os.environ["DXF_BEFORE"] == os.environ["DXF_AFTER"],
               "tracked_diff_unchanged": os.environ["TRACKED_BEFORE"] == os.environ["TRACKED_AFTER"],
           }
-          (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "
-")
+          (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
           print(json.dumps({
               "label": summary["label"],
               "collected": summary["collected"],
