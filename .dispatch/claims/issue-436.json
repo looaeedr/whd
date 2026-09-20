@@ -5,11 +5,17 @@
   "work_branch": "qa/issue436-t6-cumulative-acceptance-20260920",
   "claimed_at": "2026-09-20T08:38:00Z",
   "base_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "head_sha": "e3438fab1a77eee7bbcf8d03b0c2d765a1bcceea",
-  "phase": "CLAIMED",
+  "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-20T08:38:00Z",
-  "remote_qa": null,
-  "next_action": "Create fresh T6 branch, verify fixed T0 baseline 50e14c7054916cb0b9597c61194725939c5de323 and current production target, run Knowledge Preflight, then cumulative A/B + visual acceptance before any integration.",
+  "last_update": "2026-09-20T08:40:00Z",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T6_KNOWLEDGE_PREFLIGHT"
+  },
+  "next_action": "Discover and poll the push-triggered #436 T6 Knowledge Preflight run at exact head 5a9f5cd2b7aa6ffe925eb9b182dc30cbba0667bb.",
   "blocker": null
 }
