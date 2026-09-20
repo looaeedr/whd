@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue432-t2-general-part-shared-host-20260920",
   "claimed_at": "2026-09-20T07:32:00Z",
   "base_sha": "7ac2c3a1f3743e74750ed148e132be4004e340e5",
-  "head_sha": "9277c681acfc52dc1a2d15eb144830543a245256",
-  "phase": "IMPLEMENTING",
+  "head_sha": "ae88f3c5c0b2d2698ec4cf082fd91fa11f3452ea",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "last_update": "2026-09-20T07:34:00Z",
   "remote_qa": {
-    "run_id": 35497204537,
-    "head_sha": "9277c681acfc52dc1a2d15eb144830543a245256",
-    "status": "completed",
-    "conclusion": "success",
-    "classification": "T2_KNOWLEDGE_PREFLIGHT_GREEN"
+    "run_id": null,
+    "head_sha": "ae88f3c5c0b2d2698ec4cf082fd91fa11f3452ea",
+    "status": "awaiting_run_discovery",
+    "conclusion": null,
+    "classification": "T2_CHARACTERIZATION"
   },
-  "next_action": "Add T2 characterization tests/workflow/docs only. Assert fold_designer_bridge.py is byte-identical to #431 closing SHA; if all T2 gates are already GREEN, classify T2 as no-op production.",
+  "next_action": "Discover and poll the push-triggered T2 characterization run at exact head ae88f3c5c0b2d2698ec4cf082fd91fa11f3452ea. Require 4 PASS / 0 FAIL / 0 SKIP and production bridge blob exact predecessor equality.",
   "blocker": null
 }
