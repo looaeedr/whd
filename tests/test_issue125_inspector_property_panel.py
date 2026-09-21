@@ -181,16 +181,31 @@ def test_global_whdt_cells_match_label_value_unit_engineering_row_contract():
 def test_endcap_fw_extension_uses_plain_inspector_section_and_keeps_fw_entry_editable():
     root = tk.Tk()
     try:
-        dummy = SimpleNamespace(
-            _phase6_input_snapshot={"fw": 25.0},
-            _settings_values={"fw": 25.0},
-            _phase6_endcap_fw_state={},
+        commits = []
+        panel = settings_panel.Phase6SettingsPanel(
+            values_snapshot=lambda: {"fw": 25.0},
+            stage_setting_update=lambda _key, _value: None,
+            flush_settings=lambda: None,
+            save_defaults=lambda _context: None,
+            specs_provider=lambda _context: (),
+            part_labels={"head": "封頭"},
+            endcap_fw_value_selected=lambda part, value_var: commits.append(
+                (part, float(value_var.get()))
+            ),
         )
-        next_row, follow_var, value_var, entry = bridge._phase6_build_endcap_fw_settings(
-            dummy, root, "head", 0
+        state = {}
+        next_row = panel._render_owned_endcap_fw(
+            root,
+            "head",
+            0,
+            {"follow": True, "effective": 25.0},
+            state,
         )
         root.update_idletasks()
 
+        follow_var = state["endcap_fw_follow_var"]
+        value_var = state["endcap_fw_value_var"]
+        entry = state["endcap_fw_widget"]
         assert next_row == 1
         section = root.winfo_children()[0]
         assert section.winfo_class() == "TFrame", "#125 FW section must not remain a LabelFrame card"
@@ -211,5 +226,9 @@ def test_endcap_fw_extension_uses_plain_inspector_section_and_keeps_fw_entry_edi
                 separators.append(widget)
         assert "邊框寬度 FW" in labels
         assert separators, "#125 FW group requires title + separator hierarchy"
+
+        entry.event_generate("<FocusOut>")
+        root.update_idletasks()
+        assert commits[-1] == ("head", 25.0)
     finally:
         root.destroy()
