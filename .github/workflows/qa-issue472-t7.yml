@@ -15,6 +15,7 @@ permissions:
   contents: read
 
 env:
+  REMEDIATION_HEAD: 1c3e86ceb2953a638b96e3010c4fe4b5951697a9
   ACCEPTED_T6_HEAD: d5d66cf31f63911c1fe374d366b4275c5bdb3968
 
 jobs:
