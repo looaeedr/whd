@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "head_sha": "20de8c16b04d003688a113eb3914c721a2b43478",
-  "phase": "REMOTE_QA",
+  "head_sha": "684d416c003906280c3cae0d0246b80b14aac00f",
+  "phase": "CLOSING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -15,7 +15,7 @@
   "accepted_t6_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
   "t6_validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "t6_validation_drift_class": "QA_WORKFLOW_ONLY",
-  "chain_head": "20de8c16b04d003688a113eb3914c721a2b43478",
+  "chain_head": "684d416c003906280c3cae0d0246b80b14aac00f",
   "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
@@ -23,12 +23,17 @@
   "remote_qa": {
     "run_id": 35664160936,
     "head_sha": "20de8c16b04d003688a113eb3914c721a2b43478",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "fresh full T7 Combined Acceptance after candidate-only remediation"
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "FOCUSED_GREEN_AND_ZERO_CANDIDATE_ONLY_DELTA",
+    "full_lane_summary": {
+      "headless": "8 FAIL / 2722 PASS / 297 SKIP; exact same 8 FAIL on frozen X and current X",
+      "xvfb": "23 FAIL / 173 PASS / 1 SKIP; exact same 23 FAIL on frozen X and current X"
+    },
+    "protected_invariants": "GREEN"
   },
-  "last_update": "2026-09-22T06:57:00+08:00",
-  "next_action": "Poll locked run 35664160936 at head 20de8c16b04d003688a113eb3914c721a2b43478 to terminal; require preflight/focused/protected-invariant success and zero candidate-only delta vs established baseline debt.",
+  "last_update": "2026-09-22T07:03:00+08:00",
+  "next_action": "Persist TERMINAL_SUCCESS checkpoint and exact finalization proof at closing head 684d416c003906280c3cae0d0246b80b14aac00f; write terminal evidence, close #472 completed, release claim, then finalize Master #464.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
@@ -71,5 +76,33 @@
       "tests/test_receiving_door_frame_width_semantics.py"
     ],
     "semantics": "strict inner_door_vertical_frame_contract remains authoritative; derive_inner_door_frame_sets omits only per-item unresolved physical-terminal frames so unrelated topology sync continues"
+  },
+  "integration_readiness": {
+    "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+    "overlap_files": 0,
+    "synthetic_merge_commit": "c791fc660c727d6f0906cda523f999aa28f4151f",
+    "qa_head": "f63c33ac5e767e27f112f3585c6a8dfe356fa064",
+    "run_id": 35665392750,
+    "conclusion": "success",
+    "jobs": {
+      "preflight": "success",
+      "relevant_headless": "success",
+      "relevant_xvfb": "success",
+      "protected": "success"
+    },
+    "x_mutated": false,
+    "active_chain_rebased": false
+  },
+  "cleanup": {
+    "tested_head": "20de8c16b04d003688a113eb3914c721a2b43478",
+    "closing_head": "684d416c003906280c3cae0d0246b80b14aac00f",
+    "drift_class": "QA_WORKFLOW_DELETION_ONLY",
+    "removed_workflows": [
+      ".github/workflows/qa-issue471-t6.yml",
+      ".github/workflows/qa-issue472-t7-baseline-diff.yml",
+      ".github/workflows/qa-issue472-t7-candidate-only.yml",
+      ".github/workflows/qa-issue472-t7.yml"
+    ],
+    "production_test_drift": 0
   }
 }
