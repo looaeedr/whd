@@ -44,6 +44,12 @@ jobs:
           set -euo pipefail
           python tools/phase6_skill_preflight.py \
             --task "派工 #450 T8 Combined Acceptance：固定 T0 baseline vs candidate 的 Headless A/B、Xvfb A/B、source ownership scan、root phase6 reverse-import bridge guard、composition-root/facade ratchet、shared-content exact tests、geometry/manufacturing/persistence regression、tracked DXF Git-object manifest/digest、config.ini invariant、stale structural-test classifier、protected drift audit、R1-R9 final classifier。" \
+            --changed-file fold_designer_bridge.py \
+            --changed-file tests/process/test_issue426_phase5_t5_bridge_compression.py \
+            --changed-file tests/test_issue125_inspector_property_panel.py \
+            --changed-file tests/test_issue338_contrast_readability.py \
+            --changed-file tests/test_issue339_corner_presentation_fail_closed.py \
+            --changed-file tests/test_issue369_t5_corner_data_view_owner.py \
             --changed-file docs/superpowers/checkpoints/issue450-t8-preflight-evidence.txt \
             --changed-file .github/workflows/qa-issue450-t8-combined-acceptance.yml \
             --evidence docs/superpowers/checkpoints/issue450-t8-preflight-evidence.txt
@@ -59,6 +65,12 @@ jobs:
           from pathlib import Path
           actual={x for x in Path('/tmp/issue450-scope.txt').read_text().splitlines() if x}
           allowed={
+              'fold_designer_bridge.py',
+              'tests/process/test_issue426_phase5_t5_bridge_compression.py',
+              'tests/test_issue125_inspector_property_panel.py',
+              'tests/test_issue338_contrast_readability.py',
+              'tests/test_issue339_corner_presentation_fail_closed.py',
+              'tests/test_issue369_t5_corner_data_view_owner.py',
               'docs/superpowers/checkpoints/issue450-t8-preflight-evidence.txt',
               '.github/workflows/qa-issue450-t8-combined-acceptance.yml',
           }
