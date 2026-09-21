@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "1a1dfae33e0c28c5532288396d14c8cb8a7a410b",
-  "phase": "GREEN",
+  "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,11 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "1a1dfae33e0c28c5532288396d14c8cb8a7a410b",
+  "chain_head": "4be714d13c6120a28d8c290616fae5e9c8105b36",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": null,
-  "last_update": "2026-09-21T21:50:00+08:00",
-  "next_action": "Run focused process GREEN for Issue473 on exact head 1a1dfae33e0c28c5532288396d14c8cb8a7a410b; then update Skills/AI Library only after machine behavior passes.",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 473 Master Chain Turn Exit GREEN"
+  },
+  "last_update": "2026-09-21T21:54:00+08:00",
+  "next_action": "Locate and monitor Issue 473 Master Chain Turn Exit GREEN for exact head 4be714d13c6120a28d8c290616fae5e9c8105b36; on GREEN, update Skills/AI pitfall docs and rerun final process GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
