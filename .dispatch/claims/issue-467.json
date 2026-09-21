@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -17,13 +17,24 @@
   "chain_head": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35602420438,
     "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 467 T1 Review GREEN"
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106341423339,
+    "counts": {
+      "passed": 32,
+      "skipped": 1,
+      "failed": 1
+    },
+    "evidence": [
+      "only failing node: test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face",
+      "setup/dependency steps GREEN",
+      "failure occurs at legal-contact status assertion; diagnostic_code was not printed"
+    ]
   },
-  "last_update": "2026-09-21T22:00:00+08:00",
-  "next_action": "Locate and actively monitor Issue 467 T1 Review GREEN for exact head 1d2adfe77b20a5245abb8a08d2790b67fb131324; on failure inspect bounded log and remediate.",
+  "last_update": "2026-09-21T22:05:00+08:00",
+  "next_action": "Expose LegalContactResult diagnostic/evidence in the failing actual Receiving seam assertion, rerun the same focused acceptance, then fix the authoritative geometry cause without loosening production tolerances.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
