@@ -25,13 +25,12 @@
     "head_sha": "ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8",
     "status": "completed",
     "conclusion": "failure",
-    "updated_at": "2026-09-21T20:08:27Z",
     "purpose": "broader Headless/Xvfb acceptance after durable AI Library writeback",
-    "classification": "preflight/focused GREEN; broader Headless and Xvfb failed; protected invariants GREEN; exact failure text unavailable from current connector and run has no artifacts"
+    "classification": "focused GREEN; broader Headless 10 FAIL / 2719 PASS / 297 SKIP; Xvfb 26 FAIL / 170 PASS / 1 SKIP; protected invariants GREEN; exact failure nodes recovered"
   },
-  "last_update": "2026-09-22T05:08:19+08:00",
-  "next_action": "Obtain exact job logs for run 35647903543 or reproduce bounded relevant Headless/Xvfb scope in a capable executor; classify/repair, then launch fresh exact run_id+head_sha. On GREEN continue current-X virtual-merge integration-readiness, cleanup/drift audit, T7 closure/release and Master #464 finalization; do not merge X into active chain.",
-  "blocker": "TAKEOVER_EXECUTION_DEFECT: current GitHub connector exposes run/job metadata and artifacts but no Actions job-log download/read endpoint; run 35647903543 has no artifacts, so exact pytest failure text cannot be recovered in this invocation.",
+  "last_update": "2026-09-22T06:35:00+08:00",
+  "next_action": "Run exact failing Headless/Xvfb nodes against frozen X 05a455f602ba3477d9d05377055126fd5019451d and current X 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9 without mutating X; classify candidate-only failures vs baseline debt, then remediate only #464 regressions and launch fresh T7.",
+  "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
     "cycle_started_at": "2026-09-22T05:08:19+08:00",
@@ -55,5 +54,14 @@
     "status": "completed",
     "conclusion": "failure",
     "classification": "FOCUSED_MARKING_GREEN; broader residuals required post-writeback rerun"
+  },
+  "takeover": {
+    "resumed_at": "2026-09-22T06:35:00+08:00",
+    "log_access": "RECOVERED",
+    "candidate_failures": {
+      "headless": 10,
+      "xvfb": 26
+    },
+    "next_classifier": "bounded exact-node A/B against frozen X and current X"
   }
 }
