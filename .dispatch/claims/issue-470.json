@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:48:00+08:00",
   "base_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
-  "head_sha": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
-  "phase": "CLEANUP",
+  "head_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T4",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
+  "chain_head": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
     "run_id": 35619994683,
@@ -27,8 +27,8 @@
       "failed": 0
     }
   },
-  "last_update": "2026-09-22T00:27:00+08:00",
-  "next_action": "Delete temporary .github/workflows/qa-issue470-t4.yml, remote-read absence, then audit tested head d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65 to cleaned head for workflow-only drift.",
+  "last_update": "2026-09-22T00:31:00+08:00",
+  "next_action": "Persist terminal T4 checkpoint at closing head 947a2299cc4ab9109dbffadef325b12eab1ff3c3; authorize and verify owning finalization proof; post evidence, close #470, remote-read closed/completed, then release claim.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue470-t4-authority-read.txt",
@@ -60,5 +60,19 @@
       "code-review smell baseline"
     ],
     "spec_source": "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9"
-  }
+  },
+  "cleanup_evidence": {
+    "tested_head": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
+    "closing_head": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+    "ahead_by": 1,
+    "behind_by": 0,
+    "changed_files": [
+      ".github/workflows/qa-issue470-t4.yml"
+    ],
+    "change_class": "workflow-only deletion",
+    "remote_readback": "temporary workflow absent",
+    "production_x_head": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+    "production_drift": "none observed during T4 cleanup"
+  },
+  "checkpoint": ".dispatch/checkpoints/issue-470.json"
 }
