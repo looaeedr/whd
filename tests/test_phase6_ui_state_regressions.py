@@ -5,6 +5,7 @@ import pytest
 
 import gui
 import fold_designer_bridge as bridge
+import phase6_bending_ui as bending_ui
 import phase6_settings_panel as settings_panel
 
 
@@ -347,9 +348,11 @@ def test_phase6_box_symmetry_toggle_updates_authoritative_state():
 
 
 def test_phase6_box_page_restores_symmetry_checkbox():
-    source = Path(bridge.__file__).read_text(encoding="utf-8")
-    assert 'text="對稱折彎"' in source
-    assert "_phase6_on_box_symmetry_changed" in source
+    owner_source = Path(bending_ui.__file__).read_text(encoding="utf-8")
+    bridge_source = Path(bridge.__file__).read_text(encoding="utf-8")
+    assert 'text="對稱折彎"' in owner_source
+    assert "phase6_symmetry" in owner_source
+    assert "def _phase6_on_box_symmetry_changed" in bridge_source
 
 
 def test_corner_type_icon_canvas_mapping_is_vertically_flipped_for_operator_view():
@@ -608,10 +611,7 @@ def test_open_fold_designer_is_modal_and_blocks_main_2d_while_draft_is_open():
 
 def test_box_symmetry_checkbox_lives_in_fold_editor_not_right_settings_page():
     settings_source = Path(settings_panel.__file__).read_text(encoding="utf-8")
-    source = Path(bridge.__file__).read_text(encoding="utf-8")
-    bending_start = source.index("class Phase6BendingUI")
-    bending_end = source.index("class Phase6FoldDesignerApp", bending_start)
-    bending_source = source[bending_start:bending_end]
+    bending_source = Path(bending_ui.__file__).read_text(encoding="utf-8")
 
     assert "_phase6_build_box_symmetry_settings" not in settings_source
     assert 'text="對稱折彎"' in bending_source

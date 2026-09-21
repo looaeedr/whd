@@ -45,7 +45,7 @@ T0_REFRESH_CALLS = (
         "_phase6_refresh_assembly_parts_panel_if_topology_changed",
         "_phase6_refresh_assembly_parts_panel",
     ),
-    ("_fix11_init", "_phase6_refresh_assembly_parts_panel"),
+    ("_phase6_install_part_editor_compatibility", "_phase6_refresh_assembly_parts_panel"),
     ("_fix11_refresh_part_buttons", "_phase6_refresh_assembly_parts_panel"),
 )
 
@@ -146,8 +146,12 @@ def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths(
     assert 'getattr(self, "assembly_parts_panel", None) is not None' in refresh_buttons
     assert "_phase6_refresh_assembly_parts_panel(self)" in refresh_buttons
 
+    installer = _function_source("_phase6_install_part_editor_compatibility")
+    assert "_phase6_refresh_assembly_parts_panel(self)" in installer
+
     init = _function_source("_fix11_init")
-    assert "_phase6_refresh_assembly_parts_panel(self)" in init
+    assert "_phase6_install_part_editor_compatibility(self)" in init
+    assert "_phase6_refresh_assembly_parts_panel(self)" not in init
 
 
 def test_t5_mount_unmount_transition_sources_match_shared_host_owner():

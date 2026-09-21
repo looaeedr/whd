@@ -29,6 +29,7 @@ whd_schema: WHD_DOC_META_V1
 
 <!-- WHD_AUTHORITY contract=phase6-startup-baseline-model role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/10_WHD啟動基準型號規則.md -->
 <!-- WHD_AUTHORITY contract=phase6-assembly-shared-content-presentation role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md -->
+<!-- WHD_AUTHORITY contract=fold-designer-bridge-ownership role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md -->
 
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=CURRENT path=個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md -->
 <!-- WHD_AUTHORITY contract=manufacturing-architecture role=HISTORICAL path=handoff/01_ARCHITECTURE.md -->
@@ -60,6 +61,7 @@ whd_schema: WHD_DOC_META_V1
 
 - Executable enforcement 由對應 executable CURRENT owner 負責；文件 marker 或測試字串不得冒充 machine state。
 - `skill-routing` 與 `skill-classification` 分別由 registry / catalog 擁有；README 只做 navigation。
+- `fold-designer-bridge-ownership` 只擁有 composition/bootstrap/presentation owner boundary；不得覆蓋 geometry、manufacturing、Registry formula、project persistence 等 domain CURRENT owner。
 - `pitfall-ledger` 的 routing ownership 留在本 Map；實際 pitfall artifacts 全部保持 REFERENCE / incident evidence，不建立平行 process/domain CURRENT。
 - 日期化 acceptance、migration、combined guard 與 ticket provenance 留在 `docs/superpowers/verification/`、`docs/superpowers/checkpoints/`、Git history 或 GitHub Issue，不進本 Map 的 normative body。
 

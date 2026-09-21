@@ -66,6 +66,10 @@ from phase6_settings_transaction_controller import Phase6SettingsTransactionCont
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+from phase6_registry_diagnostics_panel import (
+    Phase6RegistryDiagnosticsPanel,
+    build_registry_choice,
+)
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -559,6 +563,65 @@ def _phase6_sync_registry_diagnostics_compatibility_mirrors(
         controller.promotion_candidates
     )
     return controller
+
+def _phase6_registry_load_rule_rows(self):
+    """Load Registry rows through the existing controller; no Tk ownership here."""
+    from ae_engine.certified_relief_registry import load_external_relief_rule_records
+
+    controller = _phase6_registry_diagnostics(self)
+    rows = controller.load_rule_records(loader=load_external_relief_rule_records)
+    _phase6_sync_registry_diagnostics_compatibility_mirrors(self, controller)
+    return rows
+
+
+def _phase6_registry_preview_payload(self):
+    """Return validated 2D preview data; drawing is owned by the panel."""
+    result = _phase6_registry_validate_formula_form(self)
+    geometry = _phase6_corner_data_view(self).registry_preview_geometry(result)
+    return {"result": result, "geometry": geometry}
+
+
+def _phase6_registry_panel(self):
+    panel = getattr(self, "registry_diagnostics_panel", None)
+    if panel is not None:
+        return panel
+
+    panel = Phase6RegistryDiagnosticsPanel(
+        owner=self,
+        present_token=lambda value, **kwargs: _phase6_registry_present_token(
+            value, **kwargs
+        ),
+        formula_display=lambda value, presentation_field="formula": _phase6_registry_formula_display(
+            value, presentation_field=presentation_field
+        ),
+        formula_raw=_phase6_formula_raw,
+        preconditions_display=_phase6_preconditions_display,
+        preconditions_raw=_phase6_preconditions_raw,
+        source_display=lambda value, presentation_field="source": _phase6_registry_source_display(
+            value, presentation_field=presentation_field
+        ),
+        source_raw=_phase6_source_raw,
+        validate_formula=lambda: _phase6_registry_validate_formula_form(self),
+        preview_payload=lambda: _phase6_registry_preview_payload(self),
+        preview_assembly_3d=lambda: _phase6_registry_preview_assembly_3d(self),
+        save_candidate=lambda: _phase6_registry_save_candidate_form(self),
+        run_formula_matrix=lambda: _phase6_registry_run_formula_matrix(self),
+        promote_candidate=lambda: _phase6_registry_promote_form(self),
+        load_rule_rows=lambda: _phase6_registry_load_rule_rows(self),
+        rule_record=lambda key: _phase6_registry_diagnostics(self).rule_record(key),
+        joint_rows=lambda: _phase6_joint_rows(self),
+        add_joint=lambda: _phase6_joint_form_add(self),
+        delete_joint=lambda: _phase6_joint_form_delete(self),
+        on_diagnostic_changed=lambda: _phase6_on_assembly_diagnostic_changed(self),
+        create_promotion_candidates=lambda: _phase6_create_relief_promotion_candidates(self),
+        diagnostic_ids=lambda resolved=None: _phase6_registry_diagnostics(self).diagnostic_ids(
+            resolved
+            or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
+        ),
+    )
+    self.registry_diagnostics_panel = panel
+    return panel
+
 
 
 def _phase6_corner_data_view(self):
@@ -1191,474 +1254,20 @@ def _phase6_rebuild_linked_endcaps(self):
     return linked
 
 
-def _phase6_resolve_profile_key(active_dict: Mapping[str, object], requested: object) -> str:
-    """Resolve stale notebook/renderer labels to a real editable profile key."""
-    key = str(requested)
-    if key in active_dict:
-        return key
-    if "X" in active_dict:
-        return "X"
-    try:
-        return next(iter(active_dict))
-    except StopIteration:
-        raise KeyError(key)
+from phase6_bending_ui import (
+    Phase6BendingUI,
+    resolve_profile_key as _phase6_resolve_profile_key,
+    _phase6_box_symmetry_allowed,
+    _phase6_legacy_symmetry_widgets,
+    _phase6_set_legacy_symmetry_visibility,
+    _phase6_apply_box_symmetry_policy,
+)
 
 # ---------------------------------------------------------------------------
 # Thin Tk bridge: input grid stays the user's original implementation.
 # Only metadata preservation / D-W-D row locking are added here.
 # ---------------------------------------------------------------------------
 import fold_designer_original as original
-
-
-def _phase6_box_symmetry_allowed(owner) -> bool:
-    """Resolve the current family symmetry capability from live/snapshot state."""
-    snapshot = dict(getattr(owner, "_phase6_input_snapshot", {}) or {})
-    model = str(snapshot.get("model") or snapshot.get("cabinet_type") or "").strip()
-    model_var = getattr(owner, "baseline_model_var", None)
-    if model_var is not None:
-        try:
-            live = str(model_var.get() or "").strip()
-        except Exception:
-            live = ""
-        if live:
-            model = live
-    return cabinet_family_policy.box_body_symmetry_allowed(model)
-
-
-def _phase6_legacy_symmetry_widgets(owner, *, exclude=None):
-    """Capture original Designer symmetry widgets so Receiving can hide them too."""
-    cached = getattr(owner, "_phase6_legacy_symmetry_widgets", None)
-    if cached is not None:
-        return cached
-    found = []
-
-    def walk(parent):
-        try:
-            children = tuple(parent.winfo_children())
-        except Exception:
-            return
-        for child in children:
-            if child is exclude:
-                continue
-            try:
-                text = str(child.cget("text") or "")
-            except Exception:
-                text = ""
-            if text == "對稱折彎":
-                try:
-                    info = dict(child.pack_info()) if child.winfo_manager() == "pack" else None
-                    siblings = list(child.master.pack_slaves()) if info is not None else []
-                    idx = siblings.index(child) if child in siblings else -1
-                    next_widget = siblings[idx + 1] if idx >= 0 and idx + 1 < len(siblings) else None
-                except Exception:
-                    info = None
-                    next_widget = None
-                found.append((child, info, next_widget))
-            walk(child)
-
-    left = getattr(owner, "left", None)
-    if left is not None:
-        walk(left)
-    owner._phase6_legacy_symmetry_widgets = found
-    return found
-
-
-def _phase6_set_legacy_symmetry_visibility(owner, allowed: bool, *, exclude=None):
-    for widget, info, next_widget in _phase6_legacy_symmetry_widgets(owner, exclude=exclude):
-        try:
-            managed = bool(widget.winfo_manager())
-        except Exception:
-            continue
-        if allowed:
-            if not managed and info is not None:
-                opts = {k: v for k, v in info.items() if k != "in"}
-                try:
-                    if next_widget is not None and next_widget.winfo_manager():
-                        widget.pack(in_=widget.master, before=next_widget, **opts)
-                    else:
-                        widget.pack(in_=widget.master, **opts)
-                except Exception:
-                    pass
-        elif managed:
-            try:
-                widget.pack_forget()
-            except Exception:
-                pass
-
-
-def _phase6_apply_box_symmetry_policy(owner, *, bending_ui=None) -> bool:
-    """Normalize state/UI so a disallowed family can never have effective symmetry."""
-    allowed = _phase6_box_symmetry_allowed(owner)
-    if not allowed:
-        try:
-            owner.state.symmetric = False
-        except Exception:
-            pass
-        var = getattr(owner, "v_sy", None)
-        if var is not None:
-            try:
-                if bool(var.get()):
-                    var.set(False)
-            except Exception:
-                pass
-    ui = bending_ui if bending_ui is not None else getattr(owner, "bend_ui", None)
-    if ui is not None:
-        phase_var = getattr(ui, "phase6_symmetry_var", None)
-        if not allowed and phase_var is not None:
-            try:
-                if bool(phase_var.get()):
-                    phase_var.set(False)
-            except Exception:
-                pass
-        _phase6_set_legacy_symmetry_visibility(
-            owner, allowed, exclude=getattr(ui, "phase6_symmetry_check", None)
-        )
-    return allowed
-
-
-class Phase6BendingUI(original.BendingUI):
-    """Original BendingUI with Phase6 metadata and boundary-only conversion."""
-
-    def __init__(self, parent, state, update_cb):
-        super().__init__(parent, state, update_cb)
-        owner = getattr(update_cb, "__self__", None)
-        self.phase6_symmetry_bar = original.ttk.Frame(parent)
-        self.phase6_symmetry_var = getattr(owner, "v_sy", None)
-        if self.phase6_symmetry_var is None:
-            self.phase6_symmetry_var = original.tk.BooleanVar(value=bool(getattr(state, "symmetric", True)))
-        self.phase6_symmetry_check = original.ttk.Checkbutton(
-            self.phase6_symmetry_bar,
-            text="對稱折彎",
-            variable=self.phase6_symmetry_var,
-            command=self._phase6_on_symmetry_toggle,
-        )
-        self.phase6_symmetry_check.pack(side=original.tk.LEFT, padx=(0, 8))
-        original.ttk.Label(
-            self.phase6_symmetry_bar,
-            text="開啟時，箱身兩側對應折彎同步修改／刪除",
-        ).pack(side=original.tk.LEFT)
-        self._phase6_refresh_symmetry_bar()
-
-    def _phase6_on_symmetry_toggle(self):
-        owner = getattr(self.update_cb, "__self__", None)
-        if owner is not None and hasattr(owner, "v_sy"):
-            _phase6_on_box_symmetry_changed(owner)
-        else:
-            self.state.symmetric = bool(self.phase6_symmetry_var.get())
-            self._mark_workspace_dirty()
-            self.update_cb()
-
-    def _phase6_refresh_symmetry_bar(self):
-        bar = getattr(self, "phase6_symmetry_bar", None)
-        if bar is None:
-            return
-        owner = getattr(self.update_cb, "__self__", None)
-        allowed = _phase6_apply_box_symmetry_policy(owner, bending_ui=self) if owner is not None else True
-        show = (
-            allowed
-            and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
-        )
-        if show:
-            if not bar.winfo_manager():
-                bar.pack(fill=original.tk.X, pady=(0, 4), before=self.container)
-            try:
-                self.phase6_symmetry_var.set(bool(getattr(self.state, "symmetric", True)))
-            except Exception:
-                pass
-        elif bar.winfo_manager():
-            bar.pack_forget()
-
-    def rebuild_tabs(self):
-        custom_tabs = getattr(self.state, "phase6_fold_ui_tabs", None)
-        if not custom_tabs:
-            return super().rebuild_tabs()
-        for tab in self.nb.tabs():
-            self.nb.forget(tab)
-        self.tabs.clear()
-        labels = {"X": " X 軸折彎 ", "Y": " Y 軸折彎 "}
-        for key in custom_tabs:
-            self.nb.add(original.ttk.Frame(self.nb), text=labels.get(key, f" {key} "))
-            self.tabs.append(key)
-        if self.state.active_bend not in self.tabs:
-            self.state.active_bend = self.tabs[0]
-        self.nb.select(self.tabs.index(self.state.active_bend))
-        self.render()
-        self._phase6_refresh_symmetry_bar()
-
-    def _mark_workspace_dirty(self):
-        owner = getattr(self.update_cb, "__self__", None)
-        if owner is not None and hasattr(owner, "designer_workspace"):
-            owner.designer_workspace.mark_dirty()
-
-    def apply_mirror(self, idx, key):
-        if getattr(self, "_phase6_refreshing_controls", False):
-            return
-        self._mark_workspace_dirty()
-        owner = getattr(self.update_cb, "__self__", None)
-        symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        if symmetry_allowed and getattr(self.state, "symmetric", False):
-            active = self.get_active_dict()
-            profile_key = self._active_profile_key(active)
-            segs = active.get(profile_key, ())
-            is_box = getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
-            pair = {
-                "zl1": "zr1", "zr1": "zl1",
-                "zl2": "zr2", "zr2": "zl2",
-                "fw_left": "fw_right", "fw_right": "fw_left",
-                "d_left": "d_right", "d_right": "d_left",
-                "w": "w",
-            }
-            try:
-                source_key = str(segs[idx].get("phase6_key") or "")
-                target_idx = None
-                if is_box and source_key in pair:
-                    if key == "len":
-                        target_key = pair[source_key]
-                        target_idx = next(
-                            (i for i, seg in enumerate(segs) if str(seg.get("phase6_key") or "") == target_key),
-                            None,
-                        )
-                    elif key == "angle" and idx + 1 < len(segs):
-                        next_key = str(segs[idx + 1].get("phase6_key") or "")
-                        if next_key in pair:
-                            target_left = pair[next_key]
-                            target_right = pair[source_key]
-                            target_idx = next(
-                                (
-                                    i for i in range(len(segs) - 1)
-                                    if str(segs[i].get("phase6_key") or "") == target_left
-                                    and str(segs[i + 1].get("phase6_key") or "") == target_right
-                                ),
-                                None,
-                            )
-                if target_idx is not None and target_idx != idx and key in self.controls[target_idx]:
-                    value = original.get_int(self.controls[idx][key].get())
-                    self.controls[target_idx][key].set(str(value))
-                    self.save(); self.update_cb()
-                    return None
-
-                if is_box:
-                    # Never fall back from a known structural Phase6 row to raw
-                    # positional mirroring: after asymmetric add/remove history
-                    # that is exactly how FW/D/Z fields became cross-wired.
-                    if source_key in pair:
-                        self.save(); self.update_cb()
-                        return None
-                    # Unkeyed operator-added folds may still mirror by position,
-                    # but only when the opposite candidate is also unkeyed.
-                    legacy_idx = (
-                        len(self.controls) - 1 - idx
-                        if key == "len" else len(self.controls) - 2 - idx
-                    )
-                    if 0 <= legacy_idx < len(segs):
-                        candidate_key = str(segs[legacy_idx].get("phase6_key") or "")
-                        if candidate_key:
-                            self.save(); self.update_cb()
-                            return None
-            except (TypeError, ValueError, IndexError, KeyError):
-                pass
-            return super().apply_mirror(idx, key)
-        # Original BendingUI returns immediately when symmetry is off, which
-        # leaves typed edits only in Tk variables. Phase6 must persist every
-        # asymmetric edit into the authoritative Fold Chain before recomputing.
-        self.save()
-        self.update_cb()
-        return None
-
-    def refresh_active_profile(self):
-        """Refresh existing editor vars when the X/Y widget topology is unchanged."""
-        active_dict = self.get_active_dict()
-        active_key = self._active_profile_key(active_dict)
-        segs = active_dict[active_key]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        if len(self.controls) != len(segs):
-            self.render(); return False
-        for ctrl, seg in zip(self.controls, segs):
-            if (("angle" in ctrl) != ("angle" in seg)) or "len" not in ctrl:
-                self.render(); return False
-        self._phase6_refreshing_controls = True
-        try:
-            for index, (ctrl, seg) in enumerate(zip(self.controls, segs)):
-                if "angle" in ctrl:
-                    text = str(original.get_int(engine_angle_to_ui(seg.get("angle", 0))))
-                    if ctrl["angle"].get() != text:
-                        ctrl["angle"].set(text)
-                operator_length = engine_segment_length_to_ui(seg)
-                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
-                    operator_length = -operator_length
-                length_text = str(original.get_int(operator_length))
-                if ctrl["len"].get() != length_text:
-                    ctrl["len"].set(length_text)
-                labels = self.container.grid_slaves(row=index + 1, column=5)
-                if labels:
-                    core = seg.get("core")
-                    material_text = f"料 {_ui_len(seg.get('len'))}"
-                    labels[0].configure(text=f"{material_text} / {core}" if core else material_text)
-        finally:
-            self._phase6_refreshing_controls = False
-        return True
-
-    def get_active_dict(self):
-        custom = getattr(self.state, "phase6_fold_ui_profiles", None)
-        if custom is not None:
-            return custom
-        return super().get_active_dict()
-
-    def on_tab(self, event):
-        # Programmatic tab selection during part switching already renders the
-        # selected profile in rebuild_tabs().  Tk still emits TabChanged later;
-        # do not redraw/schedule another full 3D update when the key did not
-        # actually change.  Real operator tab clicks still follow the original
-        # path below.
-        try:
-            idx = self.nb.index("current")
-        except Exception:
-            return
-        if not (0 <= idx < len(self.tabs)):
-            return
-        key = self.tabs[idx]
-        if key == self.state.active_bend:
-            return
-        self.state.active_bend = key
-        self.render()
-        self._phase6_refresh_symmetry_bar()
-        self.update_cb()
-
-    def _active_profile_key(self, active_dict=None):
-        active_dict = self.get_active_dict() if active_dict is None else active_dict
-        key = _phase6_resolve_profile_key(active_dict, self.state.active_bend)
-        if self.state.active_bend != key:
-            self.state.active_bend = key
-        return key
-
-    def render(self):
-        active_dict = self.get_active_dict()
-        active_key = self._active_profile_key(active_dict)
-        segs = active_dict[active_key]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        saved = []
-        for seg in segs:
-            original_values = {}
-            if "angle" in seg:
-                original_values["angle"] = seg["angle"]
-                seg["angle"] = engine_angle_to_ui(seg["angle"])
-            if _num(seg.get("ui_len_add")):
-                original_values["len"] = seg["len"]
-                operator_length = engine_segment_length_to_ui(seg)
-                if float(seg.get("phase6_ui_sign", 1.0) or 1.0) < 0.0:
-                    operator_length = -operator_length
-                seg["len"] = operator_length
-            if original_values:
-                saved.append((seg, original_values))
-        try:
-            super().render()
-        finally:
-            for seg, values in saved:
-                seg.update(values)
-
-        for index, seg in enumerate(segs):
-            row = index + 1
-            # The editable value is always operator outside dimension; show the
-            # authoritative material segment beside it for cutting/corner work.
-            length_labels = self.container.grid_slaves(row=row, column=3)
-            if length_labels:
-                try:
-                    length_labels[0].configure(text="包外:")
-                except Exception:
-                    pass
-            core = seg.get("core")
-            material_text = f"料 {_ui_len(seg.get('len'))}"
-            label = f"{material_text} / {core}" if core else material_text
-            original.ttk.Label(self.container, text=label).grid(row=row, column=5, padx=4)
-            if core:
-                delete_widgets = self.container.grid_slaves(row=row, column=6)
-                if delete_widgets:
-                    delete_widgets[0].configure(state="disabled")
-
-    def save(self):
-        active_dict = self.get_active_dict()
-        active_key = self._active_profile_key(active_dict)
-        old_segs = list(active_dict[active_key])
-        thickness = getattr(self.state, "phase6_thickness", 2.0)
-
-        # Build the edited bend topology first, so changing an angle and a length
-        # in the same row uses the NEW adjacent-bend count for outside -> material.
-        topology = []
-        for ctrl in self.controls:
-            seg = {"len": 0}
-            if "angle" in ctrl:
-                seg["angle"] = ui_angle_to_engine(original.get_int(ctrl["angle"].get()))
-            topology.append(seg)
-        apply_outside_dimension_compensation(topology, thickness)
-
-        new_segs = []
-        for index, ctrl in enumerate(self.controls):
-            old = old_segs[index] if index < len(old_segs) else {}
-            ui_length = original.get_int(ctrl["len"].get())
-            conversion = dict(old)
-            conversion["ui_len_add"] = topology[index].get("ui_len_add", 0)
-            length = ui_segment_length_to_engine(conversion, abs(ui_length))
-            seg = {"len": length}
-            if "phase6_ui_sign" in old or ui_length < 0:
-                seg["phase6_ui_sign"] = -1.0 if ui_length < 0 else 1.0
-            if "angle" in topology[index]:
-                seg["angle"] = topology[index]["angle"]
-            for key in ("core", "phase6_key"):
-                if key in old:
-                    seg[key] = old[key]
-            new_segs.append(seg)
-        apply_outside_dimension_compensation(new_segs, thickness)
-        active_dict[active_key] = new_segs
-        vault_key = getattr(self.state, "phase6_fold_ui_vault_key", None)
-        if vault_key and active_key == "X":
-            self.state.profiles_vault[vault_key] = new_segs
-
-    def add(self, pos):
-        self._mark_workspace_dirty()
-        self.save()
-        active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if pos == 0:
-            segs.insert(0, {"angle": 90, "len": 50, "ui_len_add": getattr(self.state, "phase6_thickness", 2.0)})
-        else:
-            if segs:
-                segs[-1]["angle"] = -90
-            segs.append({"len": 50})
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
-
-    def remove(self, idx):
-        self._mark_workspace_dirty()
-        self.save()
-        active_dict = self.get_active_dict()
-        segs = active_dict[self._active_profile_key(active_dict)]
-        if not (0 <= idx < len(segs)):
-            return
-        if not can_remove_segment(segs[idx]):
-            return
-
-        remove_indexes = [idx]
-        owner = getattr(self.update_cb, "__self__", None)
-        symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        is_symmetric_box = (
-            symmetry_allowed
-            and bool(getattr(self.state, "symmetric", False))
-            and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
-        )
-        if is_symmetric_box:
-            mirror_idx = len(segs) - 1 - idx
-            if mirror_idx != idx:
-                if not (0 <= mirror_idx < len(segs)) or not can_remove_segment(segs[mirror_idx]):
-                    return
-                remove_indexes.append(mirror_idx)
-
-        for remove_idx in sorted(set(remove_indexes), reverse=True):
-            segs.pop(remove_idx)
-        if segs and "angle" in segs[-1]:
-            del segs[-1]["angle"]
-        apply_outside_dimension_compensation(segs, getattr(self.state, "phase6_thickness", 2.0))
-        self.render(); self.update_cb()
-
 
 def _phase6_snapshot_with_settings_fallback(snapshot: Mapping[str, object]) -> dict[str, object]:
     """Materialize legacy nested global dimensions once at the snapshot ingress.
@@ -1703,6 +1312,10 @@ class Phase6FoldDesignerApp(original.MainApp):
         self._phase6_last_w = None
         self._phase6_last_d = None
         self._phase6_destroying = False
+        # BendingUI is constructed inside predecessor MainApp.__init__; install the
+        # bridge-owned transaction action on this instance before that constructor runs.
+        # This preserves the 3-argument BendingUI constructor without facade growth.
+        self._phase6_on_box_symmetry_changed = lambda: _phase6_on_box_symmetry_changed(self)
         saved_bending_ui = original.BendingUI
         original.BendingUI = Phase6BendingUI
         try:
@@ -3311,38 +2924,6 @@ def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
     _phase6_set_endcap_fw_override(self, part_key, value)
 
 
-def _phase6_build_endcap_fw_settings(self, parent, part_key, start_row):
-    part_key = str(part_key)
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    state = self._phase6_endcap_fw_state.setdefault(
-        part_key, {"follow_box": True, "value": _num(snapshot.get("fw", 25), 25)}
-    )
-    follow = bool(state.get("follow_box", True))
-    effective = resolve_endcap_fw(snapshot, part_key, state=self._phase6_endcap_fw_state)
-
-    box = original.ttk.Frame(parent, padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    original.ttk.Label(
-        box, text="邊框寬度 FW", font=("Microsoft JhengHei", 9, "bold")
-    ).pack(anchor=original.tk.W)
-    original.ttk.Separator(box, orient=original.tk.HORIZONTAL).pack(
-        fill=original.tk.X, pady=(2, 4)
-    )
-    follow_var = original.tk.BooleanVar(value=follow)
-    value_var = original.tk.StringVar(value=_setting_number_text(effective))
-    check = original.ttk.Checkbutton(box, text="跟隨箱身 FW", variable=follow_var)
-    check.pack(side=original.tk.LEFT, padx=(0, 8))
-    entry = original.ttk.Entry(box, textvariable=value_var, width=9, justify=original.tk.CENTER)
-    entry.pack(side=original.tk.LEFT, padx=(0, 6))
-    entry.configure(state="normal")
-    check.configure(state="disabled")
-    entry.bind("<Return>", lambda _e: _phase6_on_endcap_fw_value_selected(self, part_key, value_var))
-    entry.bind("<FocusOut>", lambda _e: _phase6_on_endcap_fw_value_selected(self, part_key, value_var))
-    original.ttk.Label(box, text="直接修改：先改一端會帶另一端；再改另一端後各自獨立").pack(side=original.tk.LEFT)
-    return start_row + 1, follow_var, value_var, entry
-
-
 _BOX_STRUCTURE_LABELS = {
     BoxBodyStructureType.INTEGRAL: "一體成型",
     BoxBodyStructureType.TWO_PIECE_W_SPLIT: "二件式（W 二分）",
@@ -3464,198 +3045,6 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
         _phase6_box_structure_error(self, exc)
         # Recreate the UI from canonical state; invalid text never becomes truth.
         _phase6_after_box_structure_commit(self, state, rebuild=True)
-
-
-def _phase6_structure_entry(box, row, label, value, callback, *, suffix="mm"):
-    original.ttk.Label(box, text=label).grid(row=row, column=0, sticky="w", padx=(0, 6), pady=2)
-    var = original.tk.StringVar(value=_setting_number_text(value))
-    entry = original.ttk.Entry(box, textvariable=var, width=10, justify=original.tk.CENTER)
-    entry.grid(row=row, column=1, sticky="w", pady=2)
-    original.ttk.Label(box, text=suffix).grid(row=row, column=2, sticky="w", padx=(5, 12), pady=2)
-    entry.bind("<Return>", lambda _e: callback(var))
-    entry.bind("<FocusOut>", lambda _e: callback(var))
-    return var, entry
-
-
-def _phase6_build_box_structure_settings(self, parent, start_row):
-    state = _phase6_box_structure_state(self)
-    active = BoxBodyStructureType(state["active_type"])
-    frame = original.ttk.LabelFrame(parent, text="結構參數", padding=5)
-    frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-
-    # T14: this is a UI projection of the already-resolved physical Box Body
-    # pieces.  The stable IDs and dimensions come from render_data.pieces;
-    # edits still write the single canonical box_body_structure_state.
-    self.box_body_piece_input_host = original.ttk.Frame(frame)
-    self.box_body_piece_input_host.grid(row=0, column=0, columnspan=4, sticky="ew")
-    self.box_body_piece_input_sections = {}
-    self.box_body_piece_input_vars = {}
-    self.box_body_piece_input_entries = {}
-
-    cfg = state["configs"][active.value]
-    total_w = _phase6_box_structure_w(self)
-    piece_values = {}
-    if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-        left, right = resolve_two_piece_widths(state, total_w)
-        piece_values = {
-            "box_body:left": ("width", "W 包外", left, "mm", "left"),
-            "box_body:right": ("width", "W 包外", right, "mm", "right"),
-        }
-    elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-        left, middle, right = resolve_three_piece_widths(state, total_w)
-        piece_values = {
-            "box_body:left": ("width", "W 包外", left, "mm", "left"),
-            "box_body:middle": ("width", "W 包外", middle, "mm", "middle"),
-            "box_body:right": ("width", "W 包外", right, "mm", "right"),
-        }
-    elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
-            getattr(self, "_phase6_input_snapshot", {}) or {}
-        )
-        rear_bend = (
-            side_rear_bend_outside_length(
-                state, float((getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0))
-            )
-            if outside_family else float(cfg.get("side_rear_bend", 15))
-        )
-        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
-        piece_values = {
-            "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
-            "box_body:back": ("width_comp_t", "寬補償", width_comp_t, "T", "back_width_comp_t"),
-            "box_body:right_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
-        }
-
-    projections = ()
-    if active is not BoxBodyStructureType.INTEGRAL:
-        try:
-            render_data = _phase6_box_body_structure_render_data(self)
-            projections = _phase6_box_body_piece_dimension_projections(render_data)
-            active_piece_key = str(getattr(self.designer_workspace, "active_part", "") or "")
-            if _phase6_is_box_body_physical_piece_key(active_piece_key):
-                projections = tuple(
-                    row for row in projections if row.part_key == active_piece_key
-                )
-        except Exception as exc:
-            original.ttk.Label(
-                self.box_body_piece_input_host,
-                text=f"逐片尺寸：無法解析（{exc}）",
-                foreground=WHD_SEMANTIC_COLORS["warning"],
-            ).pack(fill=original.tk.X, pady=2)
-
-    for projection in projections:
-        part_key = str(projection.part_key)
-        sub = original.ttk.LabelFrame(
-            self.box_body_piece_input_host, text=projection.label, padding=4
-        )
-        sub._phase6_part_key = part_key
-        sub.pack(fill=original.tk.X, pady=(2, 4))
-        self.box_body_piece_input_sections[part_key] = sub
-        self.box_body_piece_input_vars[part_key] = {}
-        self.box_body_piece_input_entries[part_key] = {}
-
-        spec = piece_values.get(part_key)
-        if spec is not None:
-            field_key, label, value, suffix, state_field = spec
-            original.ttk.Label(sub, text=label).grid(
-                row=0, column=0, sticky="w", padx=(0, 6), pady=2
-            )
-            var = original.tk.StringVar(
-                master=sub, value=_setting_number_text(value)
-            )
-            entry = original.ttk.Entry(
-                sub, textvariable=var, width=10, justify=original.tk.CENTER
-            )
-            entry.grid(row=0, column=1, sticky="w", pady=2)
-            original.ttk.Label(sub, text=suffix).grid(
-                row=0, column=2, sticky="w", padx=(5, 12), pady=2
-            )
-
-            if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            else:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            entry.bind("<Return>", lambda _e, cb=callback: cb())
-            entry.bind("<FocusOut>", lambda _e, cb=callback: cb())
-            self.box_body_piece_input_vars[part_key][field_key] = var
-            self.box_body_piece_input_entries[part_key][field_key] = entry
-
-        original.ttk.Label(
-            sub,
-            text=(
-                f"包外尺寸：{_setting_number_text(projection.formed_width)} × "
-                f"{_setting_number_text(projection.formed_height)} mm"
-            ),
-        ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 0))
-        original.ttk.Label(
-            sub,
-            text=(
-                f"料尺寸：{_setting_number_text(projection.blank_width)} × "
-                f"{_setting_number_text(projection.blank_height)} mm"
-            ),
-        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(0, 2))
-
-        if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-            if part_key in {"box_body:left_side", "box_body:right_side"}:
-                original.ttk.Label(
-                    sub,
-                    text=f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm",
-                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
-            elif part_key == "box_body:back":
-                original.ttk.Label(
-                    sub,
-                    text=f"成型寬：{_setting_number_text(projection.formed_width)} mm",
-                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
-
-    # Shared seam/relief settings remain shared canonical structure settings;
-    # they are intentionally not duplicated into one child piece.
-    row = 1
-    if active in {BoxBodyStructureType.TWO_PIECE_W_SPLIT, BoxBodyStructureType.THREE_PIECE_W_SPLIT}:
-        _phase6_structure_entry(
-            frame, row, "中央接合折邊", cfg.get("seam_bend", 12),
-            lambda v: _phase6_apply_box_structure_numeric(self, active, "seam_bend", v)
-        )
-        row += 1
-        seam = float(cfg.get("seam_bend", 12))
-        if seam >= 50:
-            original.ttk.Label(
-                frame,
-                text=f"⚠ 中央接合折邊 {seam:g} mm 已達 50 mm 以上，請確認尺寸是否合理。",
-                foreground=WHD_SEMANTIC_COLORS["warning"],
-            ).grid(row=row, column=0, columnspan=4, sticky="w", pady=(2, 4))
-            row += 1
-        advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
-        advanced_open = bool(advanced_flags.get(active.value, False))
-        original.ttk.Button(
-            frame, text=("▼ 截角／避讓" if advanced_open else "▶ 截角／避讓"),
-            command=lambda t=active: _phase6_toggle_structure_advanced(self, t),
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(5, 0))
-        row += 1
-        advanced = original.ttk.LabelFrame(frame, text="截角／避讓", padding=4)
-        if advanced_open:
-            advanced.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(3, 0))
-        row += 1
-        ar = 0
-        for label, field, value, suffix in (
-            ("封頭尾額外避讓", "endcap_extra_relief", cfg.get("endcap_extra_relief", 5), "mm"),
-            ("封頭尾單邊留肉", "endcap_single_side_meat_t", cfg.get("endcap_single_side_meat_t", 0.5), "T"),
-            ("底板避讓總長", "baseplate_relief_length", cfg.get("baseplate_relief_length", 20), "mm"),
-            ("底板單邊留肉", "baseplate_single_side_meat_t", cfg.get("baseplate_single_side_meat_t", 0.5), "T"),
-        ):
-            _phase6_structure_entry(
-                advanced, ar, label, value,
-                lambda v, f=field: _phase6_apply_box_structure_numeric(self, active, f, v),
-                suffix=suffix,
-            )
-            ar += 1
-    return start_row + 1
 
 
 def _phase6_joint_rows(self):
@@ -3977,20 +3366,6 @@ def _phase6_render_active_drawing_edge_controls(self):
     self.base_plate_edge_shrink_widgets = {}
     return None
 
-def _phase6_build_endcap_joint_settings(self, parent, part_key, start_row):
-    # Compatibility hook only. Four-edge AssemblyJoint controls are owned by
-    # the drawing-edge hosts and intentionally never live inside the lockable
-    # settings panel. Canonical writes still go through
-    # _phase6_on_endcap_edge_relation_selected().
-    return start_row
-
-
-def _phase6_build_assembly_settings(self, parent, start_row):
-    # 組合方式已移到右側 3D 常駐控制列。保留函式只為舊 caller 相容，
-    # 不再在可鎖定的參數面板重複建立第二份 UI。
-    return start_row
-
-
 def _phase6_on_box_symmetry_changed(self):
     """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
     var = getattr(self, "v_sy", None)
@@ -4025,21 +3400,6 @@ def _phase6_on_box_symmetry_changed(self):
     except Exception:
         pass
 
-def _phase6_build_box_symmetry_settings(self, parent, start_row):
-    box = original.ttk.LabelFrame(parent, text="箱身折彎", padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    if not hasattr(self, "v_sy"):
-        self.v_sy = original.tk.BooleanVar(value=bool(getattr(self.state, "symmetric", True)))
-    original.ttk.Checkbutton(
-        box,
-        text="對稱折彎",
-        variable=self.v_sy,
-        command=lambda: _phase6_on_box_symmetry_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 8))
-    original.ttk.Label(box, text="開啟時，箱身兩側對應折彎同步修改").pack(side=original.tk.LEFT)
-    return start_row + 1
-
-
 def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var, reserve_v_var):
     """Commit receiving WRAP reserve values without owning the Joint relation."""
     if str(part_key) not in ENDCAP_FW_PARTS:
@@ -4070,203 +3430,6 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     self.do_update()
     return committed
 
-
-def _phase6_build_receiving_bottom_wrap_settings(self, parent, part_key, start_row):
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    if (
-        str(part_key) not in ENDCAP_FW_PARTS
-        or not cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
-    ):
-        return start_row, None, None, None, None
-    item = resolve_endcap_bottom_wrap(
-        snapshot, str(part_key),
-        state=getattr(self, "_phase6_endcap_bottom_wrap_state", normalize_endcap_bottom_wrap_state(snapshot)),
-    )
-    if not bool(item.get("enabled", False)):
-        return start_row, None, None, None, None
-    box = original.ttk.LabelFrame(parent, text="下方包覆貼外預留", padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    reserve_u_var = original.tk.StringVar(value=_setting_number_text(item["reserve_u"]))
-    reserve_v_var = original.tk.StringVar(value=_setting_number_text(item["reserve_v"]))
-    original.ttk.Label(box, text="X 預留 (mm)").grid(row=0, column=0, sticky="e")
-    u_entry = original.ttk.Entry(box, textvariable=reserve_u_var, width=8, justify=original.tk.CENTER)
-    u_entry.grid(row=0, column=1, padx=(3, 10))
-    original.ttk.Label(box, text="Y 預留 (mm)").grid(row=0, column=2, sticky="e")
-    v_entry = original.ttk.Entry(box, textvariable=reserve_v_var, width=8, justify=original.tk.CENTER)
-    v_entry.grid(row=0, column=3, padx=3)
-    for entry in (u_entry, v_entry):
-        entry.bind("<Return>", lambda _e: _phase6_commit_receiving_bottom_wrap_controls(
-            self, part_key, reserve_u_var, reserve_v_var
-        ))
-        entry.bind("<FocusOut>", lambda _e: _phase6_commit_receiving_bottom_wrap_controls(
-            self, part_key, reserve_u_var, reserve_v_var
-        ))
-    original.ttk.Label(
-        box, text="WRAP 關係由組合方式／Joint Graph 決定；此處只調整預留。封頭/封尾先連動，修改另一端後才獨立。"
-    ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(3, 0))
-    return start_row + 1, None, reserve_u_var, reserve_v_var, box
-
-
-def _phase6_build_corner_settings(self, parent, part_key, start_row):
-    self.corner_pair_vars = {}
-    self.corner_pair_checkbuttons = {}
-    self.corner_type_vars = {}
-    self.corner_mode_vars = {}
-    self.corner_direction_vars = {}
-    self.corner_amount_vars = {}
-    self.corner_secondary_retain_vars = {}
-    self.corner_secondary_depth_vars = {}
-    self.corner_detail_frames = {}
-    self.fixed_corner_summary_var = original.tk.StringVar(value="")
-    self.corner_param_lock_button = None
-    if part_key == GLOBAL_CONTEXT or part_key == "box_body":
-        return start_row
-
-    # Shared indicator parts are factory-fixed and never unlockable.
-    if part_key in {"indicator_box", "indicator_door"}:
-        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
-        if summary:
-            box = original.ttk.LabelFrame(parent, text="截角類型（固定 / 唯讀）", padding=4)
-            box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-            self.fixed_corner_summary_var.set(summary)
-            original.ttk.Label(box, textvariable=self.fixed_corner_summary_var, wraplength=900).pack(anchor=original.tk.W)
-            return start_row + 1
-        return start_row
-
-    type_editable = _phase6_corner_type_editable(self, part_key)
-    params_unlocked = _phase6_corner_parameters_unlocked(self, part_key)
-    params_editable = _phase6_corner_parameters_editable(self, part_key)
-
-    if not type_editable and not params_unlocked:
-        # A read-only settings page is a view. Building it must not materialize
-        # default Corner state into the canonical manufacturing snapshot, or a
-        # pure part switch invalidates the manufacturing cache.
-        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
-        if summary:
-            box = original.ttk.LabelFrame(parent, text="截角類型（固定 / 唯讀）", padding=4)
-            box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-            self.fixed_corner_summary_var.set(summary)
-            original.ttk.Label(box, textvariable=self.fixed_corner_summary_var, wraplength=900).pack(anchor=original.tk.W)
-            return start_row + 1
-
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
-    box = original.ttk.LabelFrame(
-        parent,
-        text="截角類型" if type_editable else "截角類型（基準預設）",
-        padding=4,
-    )
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-
-    for pair_key in ("top", "bottom"):
-        row = original.ttk.Frame(box)
-        row.pack(fill=original.tk.X, pady=3)
-        original.ttk.Label(row, text="上方" if pair_key == "top" else "下方", width=6).pack(side=original.tk.LEFT)
-        same_var = original.tk.BooleanVar(master=row, value=bool(pairs[pair_key]))
-        self.corner_pair_vars[pair_key] = same_var
-        same_cb = original.ttk.Checkbutton(
-            row, text="左右相同", variable=same_var,
-            command=lambda p=part_key, pair=pair_key, v=same_var: _phase6_corner_pair_var_changed(self, p, pair, v),
-        )
-        same_cb.configure(state=("normal" if params_editable else "disabled"))
-        self.corner_pair_checkbuttons[pair_key] = same_cb
-        if params_unlocked:
-            same_cb.pack(side=original.tk.LEFT, padx=(0, 6))
-        targets = (pair_key,) if pairs[pair_key] else _CORNER_PAIR_KEYS[pair_key]
-
-        for target_key in targets:
-            physical = _CORNER_PAIR_KEYS[target_key][0] if target_key in _CORNER_PAIR_KEYS else target_key
-            selection = _phase6_selection_from_raw(state[physical])
-            target = original.ttk.Frame(row)
-            target.pack(side=original.tk.LEFT, padx=(3, 8))
-            if len(targets) > 1:
-                original.ttk.Label(target, text="左" if target_key.endswith("left") else "右").grid(row=0, column=0, sticky="w")
-
-            type_var = original.tk.StringVar(value=_CORNER_TYPE_LABEL_BY_ID[selection.type_id.value])
-            self.corner_type_vars[target_key] = type_var
-            top_assembly_owned = part_key in {"head", "tail"} and pair_key == "top"
-            type_cb = build_choice_menubutton(
-                target,
-                variable=type_var,
-                values=tuple(_CORNER_TYPE_LABEL_BY_ID.values()),
-                state=("normal" if type_editable and not top_assembly_owned else "disabled"),
-                width=12,
-                command=lambda p=part_key, t=target_key: _phase6_corner_type_selected(self, p, t),
-            )
-            type_cb.grid(row=0, column=1, padx=2, sticky="w")
-
-            subrow = original.ttk.Frame(target)
-            self.corner_detail_frames[target_key] = subrow
-            amount_var = original.tk.StringVar(value=_setting_number_text(selection.amount_t if selection.amount_t is not None else 1.0))
-            self.corner_amount_vars[target_key] = amount_var
-
-            if params_unlocked:
-                subrow.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
-            else:
-                original.ttk.Label(
-                    target,
-                    text=_phase6_corner_parameter_summary(selection),
-                ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
-
-            if selection.type_id is CornerTypeId.CROSS:
-                mode_var = original.tk.StringVar(value=_CORNER_MODE_LABEL[selection.cross_mode])
-                self.corner_mode_vars[target_key] = mode_var
-                mode_cb = build_choice_menubutton(
-                    subrow,
-                    variable=mode_var,
-                    values=("標準", "單邊留肉", "多切"),
-                    state=("normal" if params_editable else "disabled"),
-                    width=9,
-                    command=lambda p=part_key, t=target_key: _phase6_corner_mode_selected(self, p, t),
-                )
-                mode_cb.pack(side=original.tk.LEFT, padx=(0, 3))
-                if selection.cross_mode is not CrossCornerMode.STANDARD:
-                    direction_values = ("寬", "高") if selection.cross_mode is CrossCornerMode.RETAIN else ("寬＋高", "寬", "高")
-                    direction_var = original.tk.StringVar(value=_CORNER_DIRECTION_LABEL[selection.direction])
-                    self.corner_direction_vars[target_key] = direction_var
-                    direction_cb = build_choice_menubutton(
-                        subrow,
-                        variable=direction_var,
-                        values=direction_values,
-                        state=("normal" if params_editable else "disabled"),
-                        width=7,
-                        command=lambda p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t),
-                    )
-                    direction_cb.pack(side=original.tk.LEFT, padx=3)
-                    entry = original.ttk.Entry(subrow, textvariable=amount_var, width=6, justify=original.tk.CENTER)
-                    entry.configure(state=("normal" if params_editable else "disabled"))
-                    entry.pack(side=original.tk.LEFT, padx=(3, 1))
-                    original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                    entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                    entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-            elif selection.type_id in (CornerTypeId.OVERLAY, CornerTypeId.INSERT):
-                action = "留肉（高）" if selection.type_id is CornerTypeId.OVERLAY else "多切（高）"
-                original.ttk.Label(subrow, text=action).pack(side=original.tk.LEFT, padx=(0, 3))
-                entry = original.ttk.Entry(subrow, textvariable=amount_var, width=6, justify=original.tk.CENTER)
-                entry.configure(state=("normal" if params_editable else "disabled"))
-                entry.pack(side=original.tk.LEFT, padx=(3, 1))
-                original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-            else:
-                original.ttk.Label(subrow, text="貼外留肉（高）").pack(side=original.tk.LEFT, padx=(0, 2))
-                primary = original.ttk.Entry(subrow, textvariable=amount_var, width=5, justify=original.tk.CENTER)
-                primary.configure(state=("normal" if params_editable else "disabled"))
-                primary.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                retain_var = original.tk.StringVar(value=_setting_number_text(selection.secondary_retain_t))
-                depth_var = original.tk.StringVar(value=_setting_number_text(selection.secondary_depth_t))
-                self.corner_secondary_retain_vars[target_key] = retain_var
-                self.corner_secondary_depth_vars[target_key] = depth_var
-                original.ttk.Label(subrow, text="  嵌入留肉").pack(side=original.tk.LEFT)
-                retain = original.ttk.Entry(subrow, textvariable=retain_var, width=5, justify=original.tk.CENTER)
-                retain.configure(state=("normal" if params_editable else "disabled"))
-                retain.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T  深度").pack(side=original.tk.LEFT)
-                depth = original.ttk.Entry(subrow, textvariable=depth_var, width=5, justify=original.tk.CENTER)
-                depth.configure(state=("normal" if params_editable else "disabled"))
-                depth.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                for entry in (primary, retain, depth):
-                    entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                    entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-    return start_row + 1
 
 def _phase6_apply_external_assembly_type(self, type_id):
     transactions = _phase6_settings_transactions(self)
@@ -4300,6 +3463,261 @@ def _phase6_apply_external_corner_state(self, corner_state, corner_pair_same):
         _phase6_render_settings_context(self, context)
 
 
+
+def _phase6_settings_endcap_fw_projection(self, part_key):
+    part_key = str(part_key)
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
+    state = self._phase6_endcap_fw_state.setdefault(
+        part_key, {"follow_box": True, "value": _num(snapshot.get("fw", 25), 25)}
+    )
+    return {
+        "follow": bool(state.get("follow_box", True)),
+        "effective": resolve_endcap_fw(
+            snapshot, part_key, state=self._phase6_endcap_fw_state
+        ),
+    }
+
+
+def _phase6_settings_box_structure_projection(self):
+    state = _phase6_box_structure_state(self)
+    active = BoxBodyStructureType(state["active_type"])
+    cfg = state["configs"][active.value]
+    total_w = _phase6_box_structure_w(self)
+    piece_values = {}
+    mode = "integral"
+    if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
+        mode = "two_w"
+        left, right = resolve_two_piece_widths(state, total_w)
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
+    elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
+        mode = "three_w"
+        left, middle, right = resolve_three_piece_widths(state, total_w)
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:middle": ("width", "W 包外", middle, "mm", "middle"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
+    elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+        mode = "side_back"
+        outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+            getattr(self, "_phase6_input_snapshot", {}) or {}
+        )
+        rear_bend = (
+            side_rear_bend_outside_length(
+                state, float((getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0))
+            )
+            if outside_family else float(cfg.get("side_rear_bend", 15))
+        )
+        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
+        piece_values = {
+            "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+            "box_body:back": ("width_comp_t", "寬補償", width_comp_t, "T", "back_width_comp_t"),
+            "box_body:right_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+        }
+
+    projections = ()
+    projection_error = None
+    if active is not BoxBodyStructureType.INTEGRAL:
+        try:
+            render_data = _phase6_box_body_structure_render_data(self)
+            projections = _phase6_box_body_piece_dimension_projections(render_data)
+            active_piece_key = str(getattr(self.designer_workspace, "active_part", "") or "")
+            if _phase6_is_box_body_physical_piece_key(active_piece_key):
+                projections = tuple(
+                    row for row in projections if row.part_key == active_piece_key
+                )
+        except Exception as exc:
+            projection_error = str(exc)
+
+    pieces = []
+    for projection in projections:
+        part_key = str(projection.part_key)
+        spec = piece_values.get(part_key)
+        input_spec = None
+        if spec is not None:
+            field_key, label, value, suffix, state_field = spec
+            input_spec = {
+                "field_key": field_key,
+                "label": label,
+                "value": value,
+                "suffix": suffix,
+                "state_field": state_field,
+            }
+        detail = None
+        if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+            if part_key in {"box_body:left_side", "box_body:right_side"}:
+                detail = f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm"
+            elif part_key == "box_body:back":
+                detail = f"成型寬：{_setting_number_text(projection.formed_width)} mm"
+        pieces.append({
+            "part_key": part_key,
+            "label": projection.label,
+            "formed_width": projection.formed_width,
+            "formed_height": projection.formed_height,
+            "blank_width": projection.blank_width,
+            "blank_height": projection.blank_height,
+            "input": input_spec,
+            "detail": detail,
+        })
+
+    advanced_fields = ()
+    if mode in {"two_w", "three_w"}:
+        advanced_fields = (
+            {"label": "封頭尾額外避讓", "field": "endcap_extra_relief", "value": cfg.get("endcap_extra_relief", 5), "suffix": "mm"},
+            {"label": "封頭尾單邊留肉", "field": "endcap_single_side_meat_t", "value": cfg.get("endcap_single_side_meat_t", 0.5), "suffix": "T"},
+            {"label": "底板避讓總長", "field": "baseplate_relief_length", "value": cfg.get("baseplate_relief_length", 20), "suffix": "mm"},
+            {"label": "底板單邊留肉", "field": "baseplate_single_side_meat_t", "value": cfg.get("baseplate_single_side_meat_t", 0.5), "suffix": "T"},
+        )
+    advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
+    return {
+        "active_type": active,
+        "mode": mode,
+        "pieces": tuple(pieces),
+        "projection_error": projection_error,
+        "seam_bend": cfg.get("seam_bend", 12),
+        "advanced_open": bool(advanced_flags.get(active.value, False)),
+        "advanced_fields": advanced_fields,
+    }
+
+
+def _phase6_settings_bottom_wrap_projection(self, part_key):
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    if (
+        str(part_key) not in ENDCAP_FW_PARTS
+        or not cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
+    ):
+        return None
+    item = resolve_endcap_bottom_wrap(
+        snapshot,
+        str(part_key),
+        state=getattr(
+            self,
+            "_phase6_endcap_bottom_wrap_state",
+            normalize_endcap_bottom_wrap_state(snapshot),
+        ),
+    )
+    if not bool(item.get("enabled", False)):
+        return None
+    return {
+        "reserve_u": item["reserve_u"],
+        "reserve_v": item["reserve_v"],
+    }
+
+
+def _phase6_settings_corner_projection(self, part_key):
+    part_key = str(part_key)
+    if part_key == GLOBAL_CONTEXT or part_key == "box_body":
+        return {"mode": "none"}
+
+    if part_key in {"indicator_box", "indicator_door"}:
+        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
+        if summary:
+            return {"mode": "fixed", "summary": summary}
+
+    type_editable = _phase6_corner_type_editable(self, part_key)
+    params_unlocked = _phase6_corner_parameters_unlocked(self, part_key)
+    params_editable = _phase6_corner_parameters_editable(self, part_key)
+    if not type_editable and not params_unlocked:
+        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
+        if summary:
+            return {"mode": "fixed", "summary": summary}
+
+    state, pairs = _phase6_ensure_corner_part(self, part_key)
+    pair_rows = []
+    for pair_key in ("top", "bottom"):
+        targets = (pair_key,) if pairs[pair_key] else _CORNER_PAIR_KEYS[pair_key]
+        target_rows = []
+        for target_key in targets:
+            physical = (
+                _CORNER_PAIR_KEYS[target_key][0]
+                if target_key in _CORNER_PAIR_KEYS
+                else target_key
+            )
+            selection = _phase6_selection_from_raw(state[physical])
+            if selection.type_id is CornerTypeId.CROSS and selection.cross_mode is CrossCornerMode.RETAIN:
+                direction_options = ("寬", "高")
+            elif selection.type_id is CornerTypeId.CROSS and selection.cross_mode is not CrossCornerMode.STANDARD:
+                direction_options = ("寬＋高", "寬", "高")
+            else:
+                direction_options = ()
+            direction_label = (
+                _CORNER_DIRECTION_LABEL[selection.direction]
+                if selection.type_id is CornerTypeId.CROSS
+                and selection.cross_mode is not CrossCornerMode.STANDARD
+                else ""
+            )
+            target_rows.append({
+                "target_key": target_key,
+                "side_label": (
+                    ""
+                    if len(targets) <= 1
+                    else ("左" if target_key.endswith("left") else "右")
+                ),
+                "type_label": _CORNER_TYPE_LABEL_BY_ID[selection.type_id.value],
+                "type_options": tuple(_CORNER_TYPE_LABEL_BY_ID.values()),
+                "type_kind": selection.type_id.name,
+                "top_assembly_owned": (
+                    part_key in {"head", "tail"} and pair_key == "top"
+                ),
+                "parameter_summary": _phase6_corner_parameter_summary(selection),
+                "amount_t": (
+                    selection.amount_t if selection.amount_t is not None else 1.0
+                ),
+                "mode_label": (
+                    _CORNER_MODE_LABEL[selection.cross_mode]
+                    if selection.type_id is CornerTypeId.CROSS
+                    and selection.cross_mode is not None
+                    else ""
+                ),
+                "mode_kind": (
+                    selection.cross_mode.name
+                    if selection.type_id is CornerTypeId.CROSS
+                    and selection.cross_mode is not None
+                    else ""
+                ),
+                "direction_label": direction_label,
+                "direction_options": direction_options,
+                "secondary_retain_t": selection.secondary_retain_t,
+                "secondary_depth_t": selection.secondary_depth_t,
+            })
+        pair_rows.append({
+            "pair_key": pair_key,
+            "label": "上方" if pair_key == "top" else "下方",
+            "same": bool(pairs[pair_key]),
+            "targets": tuple(target_rows),
+        })
+    return {
+        "mode": "editable",
+        "type_editable": bool(type_editable),
+        "params_unlocked": bool(params_unlocked),
+        "params_editable": bool(params_editable),
+        "pairs": tuple(pair_rows),
+    }
+
+
+def _phase6_settings_context_extension_projection(self, context):
+    context = str(context)
+    return {
+        "box_structure": (
+            _phase6_settings_box_structure_projection(self)
+            if context == "box_body" else None
+        ),
+        "endcap_fw": (
+            _phase6_settings_endcap_fw_projection(self, context)
+            if context in ENDCAP_FW_PARTS else None
+        ),
+        "bottom_wrap": (
+            _phase6_settings_bottom_wrap_projection(self, context)
+            if context in ENDCAP_FW_PARTS else None
+        ),
+        "corner": _phase6_settings_corner_projection(self, context),
+    }
+
+
 _SETTINGS_EXTENSION_MAP_ATTRS = (
     "corner_pair_vars",
     "corner_pair_checkbuttons",
@@ -4313,54 +3731,6 @@ _SETTINGS_EXTENSION_MAP_ATTRS = (
 )
 
 
-def _phase6_render_settings_panel_extensions(self, parent, context, start_row):
-    old = {name: getattr(self, name, None) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
-    old_summary = getattr(self, "fixed_corner_summary_var", None)
-    old_lock_button = getattr(self, "corner_param_lock_button", None)
-    for name in _SETTINGS_EXTENSION_MAP_ATTRS:
-        setattr(self, name, {})
-    self.fixed_corner_summary_var = original.tk.StringVar(value="")
-    self.corner_param_lock_button = None
-    endcap_fw_follow_var = None
-    endcap_fw_value_var = None
-    endcap_fw_widget = None
-    bottom_wrap_enabled_var = None
-    bottom_wrap_reserve_u_var = None
-    bottom_wrap_reserve_v_var = None
-    bottom_wrap_widget = None
-    try:
-        next_row = int(start_row)
-        if context == "box_body":
-            next_row = _phase6_build_box_structure_settings(self, parent, next_row)
-        elif context in ENDCAP_FW_PARTS:
-            next_row = _phase6_build_endcap_joint_settings(self, parent, context, next_row)
-            next_row, endcap_fw_follow_var, endcap_fw_value_var, endcap_fw_widget = _phase6_build_endcap_fw_settings(
-                self, parent, context, next_row
-            )
-            next_row, bottom_wrap_enabled_var, bottom_wrap_reserve_u_var, bottom_wrap_reserve_v_var, bottom_wrap_widget = (
-                _phase6_build_receiving_bottom_wrap_settings(self, parent, context, next_row)
-            )
-        next_row = _phase6_build_corner_settings(self, parent, context, next_row)
-        state = {name: dict(getattr(self, name, {}) or {}) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
-        state.update({
-            "fixed_corner_summary_var": self.fixed_corner_summary_var,
-            "corner_param_lock_button": self.corner_param_lock_button,
-            "endcap_fw_follow_var": endcap_fw_follow_var,
-            "endcap_fw_value_var": endcap_fw_value_var,
-            "endcap_fw_widget": endcap_fw_widget,
-            "bottom_wrap_enabled_var": bottom_wrap_enabled_var,
-            "bottom_wrap_reserve_u_var": bottom_wrap_reserve_u_var,
-            "bottom_wrap_reserve_v_var": bottom_wrap_reserve_v_var,
-            "bottom_wrap_widget": bottom_wrap_widget,
-        })
-        return SettingsPanelExtensionResult(next_row=next_row, state=state)
-    finally:
-        for name, value in old.items():
-            setattr(self, name, value if value is not None else {})
-        self.fixed_corner_summary_var = old_summary
-        self.corner_param_lock_button = old_lock_button
-
-
 def _phase6_sync_settings_panel_extension(self, state, context):
     state = dict(state or {})
     for name in _SETTINGS_EXTENSION_MAP_ATTRS:
@@ -4371,6 +3741,10 @@ def _phase6_sync_settings_panel_extension(self, state, context):
     self.bottom_wrap_reserve_u_var = state.get("bottom_wrap_reserve_u_var")
     self.bottom_wrap_reserve_v_var = state.get("bottom_wrap_reserve_v_var")
     self.bottom_wrap_widget = state.get("bottom_wrap_widget")
+    self.box_body_piece_input_host = state.get("box_body_piece_input_host")
+    self.box_body_piece_input_sections = dict(state.get("box_body_piece_input_sections", {}) or {})
+    self.box_body_piece_input_vars = dict(state.get("box_body_piece_input_vars", {}) or {})
+    self.box_body_piece_input_entries = dict(state.get("box_body_piece_input_entries", {}) or {})
     if context in ENDCAP_FW_PARTS and state.get("endcap_fw_follow_var") is not None:
         snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
         snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
@@ -4404,7 +3778,17 @@ def _phase6_ensure_settings_panel(self):
         is_unknown_baseline=lambda model: _phase6_is_unknown_baseline(self, model),
         should_show_baseline_data=lambda context, specs: _phase6_should_show_baseline_data(self, context, specs),
         part_labels=PART_LABELS,
-        render_context_extensions=lambda parent, context, row: _phase6_render_settings_panel_extensions(self, parent, context, row),
+        context_extension_projection=lambda context: _phase6_settings_context_extension_projection(self, context),
+        endcap_fw_value_selected=lambda part_key, value_var: _phase6_on_endcap_fw_value_selected(self, part_key, value_var),
+        box_structure_numeric_changed=lambda type_id, field, value_var: _phase6_apply_box_structure_numeric(self, type_id, field, value_var),
+        box_structure_toggle_advanced=lambda type_id: _phase6_toggle_structure_advanced(self, type_id),
+        bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: _phase6_commit_receiving_bottom_wrap_controls(
+            self, part_key, reserve_u_var, reserve_v_var
+        ),
+        corner_pair_changed=lambda part_key, pair_key, var: _phase6_corner_pair_var_changed(self, part_key, pair_key, var),
+        corner_type_selected=lambda part_key, target_key: _phase6_corner_type_selected(self, part_key, target_key),
+        corner_mode_selected=lambda part_key, target_key: _phase6_corner_mode_selected(self, part_key, target_key),
+        corner_target_changed=lambda part_key, target_key: _phase6_corner_target_var_changed(self, part_key, target_key),
         sync_context_extension=lambda state, context: _phase6_sync_settings_panel_extension(self, state, context),
         baseline_model_changed=lambda: _phase6_on_baseline_model_changed(self),
         ui_text_size_changed=lambda key: _phase6_apply_ui_text_size(self, key),
@@ -4925,53 +4309,6 @@ def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
     return display_var
 
 
-def _phase6_form_choice(parent, variable, choices, *, width=18, presentation_field="choice"):
-    display_var = original.tk.StringVar(
-        master=parent,
-        value=_phase6_registry_present_token(
-            variable.get(),
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        ),
-    )
-    button = original.ttk.Menubutton(parent, textvariable=display_var, width=width, style="Selector.TMenubutton")
-    menu = configure_tk_menu(original.tk.Menu(button, tearoff=False))
-
-    def choose(raw):
-        variable.set(str(raw))
-        display_var.set(_phase6_registry_present_token(
-            raw,
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        ))
-
-    for choice in choices:
-        menu.add_command(
-            label=_phase6_registry_present_token(
-                choice,
-                presentation_field=presentation_field,
-                source_adapter="registry_choice",
-            ),
-            command=lambda v=str(choice): choose(v),
-        )
-    button.configure(menu=menu)
-
-    def sync_display(*_args):
-        value = _phase6_registry_present_token(
-            variable.get(),
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        )
-        if display_var.get() != value:
-            display_var.set(value)
-
-    variable.trace_add("write", sync_display)
-    button._phase6_display_var = display_var
-    button._phase6_raw_var = variable
-    button._phase6_presentation_field = presentation_field
-    return button
-
-
 def _phase6_registry_collect_rule_form(self):
     intent = str(self.relief_registry_intent_var.get() or "INSERT_OVERLAY")
     topology = int(float(self.relief_registry_topology_var.get() or (2 if intent == "INSERT_OVERLAY" else 1)))
@@ -5060,20 +4397,6 @@ def _phase6_registry_validate_formula_form(self):
         self.relief_registry_status_var.set(f"公式錯誤：{exc}")
         self._phase6_last_rule_form_result = None
         return None
-
-def _phase6_registry_preview_2d(self):
-    result = _phase6_registry_validate_formula_form(self)
-    canvas = getattr(self, "relief_registry_preview_canvas", None)
-    if canvas is None:
-        return result
-    geometry = _phase6_corner_data_view(self).registry_preview_geometry(result)
-    canvas.delete("all")
-    canvas.create_rectangle(*geometry["outer"], outline="#777")
-    if not result:
-        return None
-    for rect in geometry["cuts"]:
-        canvas.create_rectangle(*rect, outline="#222", width=2)
-    return result
 
 def _phase6_registry_candidate_form_is_current(self):
     try:
@@ -5267,103 +4590,6 @@ def _phase6_registry_promote_form(self):
             self.relief_registry_status_var.set(f"不可認證：{exc}")
         return None
 
-def _phase6_registry_refresh_rule_tree(self):
-    from ae_engine.certified_relief_registry import load_external_relief_rule_records
-    tree = getattr(self, "relief_registry_rule_tree", None)
-    if tree is None:
-        return ()
-    for item in tree.get_children():
-        tree.delete(item)
-    controller = _phase6_registry_diagnostics(self)
-    rows = controller.load_rule_records(
-        loader=load_external_relief_rule_records
-    )
-    _phase6_sync_registry_diagnostics_compatibility_mirrors(
-        self, controller
-    )
-    active_rows = [row for row in rows if bool(row.get("active", True))]
-    for row in active_rows:
-        tree.insert("", "end", iid=f"{row['rule_id']}@{row['revision']}", values=(
-            _phase6_registry_present_token(
-                row["rule_id"],
-                presentation_field="rule_id",
-                source_adapter="registry_rule_tree",
-            ),
-            row["revision"],
-            _phase6_registry_present_token(
-                row.get("trust_level", ""),
-                presentation_field="trust_level",
-                source_adapter="registry_rule_tree",
-            ),
-            _phase6_registry_present_token(
-                row.get("assembly_intent", ""),
-                presentation_field="assembly_intent",
-                source_adapter="registry_rule_tree",
-            ),
-            row.get("topology_levels", ""),
-        ))
-    return rows
-
-def _phase6_registry_rule_selected(self, *_args):
-    tree = getattr(self, "relief_registry_rule_tree", None)
-    if tree is None or not tree.selection():
-        return
-    key = tree.selection()[0]
-    raw = _phase6_registry_diagnostics(self).rule_record(key)
-    if not raw:
-        return
-    formula = dict(raw.get("formula", {}) or {})
-    self.relief_registry_rule_name_var.set(_phase6_registry_present_token(
-        raw.get("rule_id", ""),
-        presentation_field="rule_id",
-        source_adapter="registry_rule_selection",
-    ))
-    setters = (
-        (self.relief_registry_rule_id_var, raw.get("rule_id", "")),
-        (self.relief_registry_family_var, raw.get("cabinet_family", "ANY")),
-        (self.relief_registry_part_role_var, raw.get("part_role", "HEAD_OR_TAIL")),
-        (self.relief_registry_joint_face_var, raw.get("joint_face", "TOP")),
-        (self.relief_registry_intent_var, raw.get("assembly_intent", "INSERT_OVERLAY")),
-        (self.relief_registry_topology_var, raw.get("topology_levels", 2)),
-        (self.relief_registry_primary_u_var, formula.get("primary_u", "")),
-        (self.relief_registry_primary_v_var, formula.get("primary_v", "")),
-        (self.relief_registry_secondary_u_var, formula.get("secondary_u", "")),
-        (self.relief_registry_secondary_depth_var, formula.get("secondary_depth", "")),
-        (
-            self.relief_registry_preconditions_var,
-            ",".join(str(v) for v in (raw.get("preconditions", ()) or ())),
-        ),
-        (self.relief_registry_source_var, str(raw.get("source", ""))),
-    )
-    for var, value in setters:
-        var.set(str(value))
-    sig = list(raw.get("joint_signature", ()) or ())
-    extra = sig[1].get("relation") if len(sig) > 1 else "NONE"
-    self.relief_registry_extra_joint_var.set(str(extra))
-    if len(sig) > 1:
-        self.relief_registry_extra_target_role_var.set(
-            str(sig[1].get("target_role", "REAR_PANEL"))
-        )
-
-def _phase6_joint_form_refresh(self):
-    tree = getattr(self, "relief_joint_tree", None)
-    if tree is None:
-        return ()
-    rows = _phase6_joint_rows(self)
-    for item in tree.get_children():
-        tree.delete(item)
-    for row in rows:
-        tree.insert("", "end", iid=str(row["joint_id"]), values=(
-            _phase6_registry_present_token(row.get("subject_part", ""), presentation_field="subject_part", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("target_part", ""), presentation_field="target_part", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("relation", ""), presentation_field="relation", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("source", ""), presentation_field="source", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("subject_region", ""), presentation_field="subject_region", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("target_region", ""), presentation_field="target_region", source_adapter="joint_tree"),
-        ))
-    return rows
-
-
 def _phase6_joint_form_add(self):
     controller = _phase6_registry_diagnostics(self)
     try:
@@ -5489,187 +4715,23 @@ def _phase6_refresh_status_bar(self):
         var.set(text)
     return text
 
-def _phase6_open_relief_registry_form(self):
-    existing = getattr(self, "relief_registry_window", None)
-    try:
-        if existing is not None and existing.winfo_exists():
-            existing.deiconify(); existing.lift(); return existing
-    except Exception:
-        pass
-    win = original.tk.Toplevel(self.root)
-    win.title("截角資料庫／組合接合")
-    win.geometry("1120x720")
-    _phase6_configure_floating_surface(win, self.root, modal=False)
-    self.relief_registry_window = win
-    notebook = original.ttk.Notebook(win)
-    notebook.pack(fill=original.tk.BOTH, expand=True, padx=8, pady=8)
-    self.relief_registry_notebook = notebook
-
-    rules_tab = original.ttk.Frame(notebook, padding=8)
-    joints_tab = original.ttk.Frame(notebook, padding=8)
-    notebook.add(rules_tab, text="截角公式")
-    notebook.add(joints_tab, text="組合接合")
-
-    # ----- Rules tab -----
-    left = original.ttk.Frame(rules_tab); left.pack(side=original.tk.LEFT, fill=original.tk.Y, padx=(0, 8))
-    cols = ("id", "rev", "trust", "intent", "topology")
-    tree = original.ttk.Treeview(left, columns=cols, show="headings", height=24)
-    widths = {"id":280,"rev":45,"trust":105,"intent":120,"topology":55}
-    labels = {"id":"規則名稱","rev":"版次","trust":"認證狀態","intent":"組合方式","topology":"級數"}
-    for col in cols:
-        tree.heading(col, text=labels[col]); tree.column(col, width=widths[col], stretch=(col=="id"))
-    tree.pack(fill=original.tk.BOTH, expand=True)
-    tree.bind("<<TreeviewSelect>>", lambda _e: _phase6_registry_rule_selected(self))
-    self.relief_registry_rule_tree = tree
-
-    form = original.ttk.Frame(rules_tab); form.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
-    vars_defaults = {
-        "rule_id":"USER_RULE_001", "rule_name":"自訂截角規則", "family":"ANY", "part_role":"HEAD_OR_TAIL", "joint_face":"TOP",
-        "intent":"INSERT_OVERLAY", "topology":"2", "target_role":"BOX_SIDE", "extra_joint":"NONE",
-        "extra_target_role":"REAR_PANEL", "primary_u":"side_fold + FW", "primary_v":"ytop1 + FW - T",
-        "secondary_u":"side_fold + 0.5*T", "secondary_depth":"2*T",
-        "preconditions":"ytop1_present,x_folded", "symmetry":"MIRROR_IF_GEOMETRY_SYMMETRIC", "source":"",
-        "sample_t":"2", "sample_fw":"25", "sample_side":"15", "sample_ytop":"16", "sample_mating":"50",
-    }
-    for name, default in vars_defaults.items():
-        setattr(self, f"relief_registry_{name}_var", original.tk.StringVar(value=default))
-    self.relief_registry_status_var = original.tk.StringVar(value="請先驗證公式")
-
-    row = 0
-    def entry(label, var, width=28):
-        nonlocal row
-        original.ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", padx=3, pady=2)
-        widget = original.ttk.Entry(form, textvariable=var, width=width)
-        widget.grid(row=row, column=1, columnspan=3, sticky="ew", padx=3, pady=2); row += 1
-        return widget
-    original.ttk.Label(form, text="規則名稱").grid(row=row, column=0, sticky="w", padx=3, pady=2)
-    original.ttk.Entry(
-        form, textvariable=self.relief_registry_rule_name_var, width=28, state="readonly"
-    ).grid(row=row, column=1, columnspan=3, sticky="ew", padx=3, pady=2)
-    row += 1
-    original.ttk.Label(form, text="盤體條件").grid(row=row,column=0,sticky="w",padx=3,pady=2)
-    _phase6_form_choice(form,self.relief_registry_family_var,("ANY","金庫型","受電箱"),width=14).grid(row=row,column=1,sticky="w")
-    original.ttk.Label(form, text="板件角色").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_part_role_var,("HEAD_OR_TAIL","HEAD","TAIL"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="截角／接合位置").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_joint_face_var,("TOP","BOTTOM"),width=18).grid(row=row,column=1,sticky="ew")
-    original.ttk.Label(form,text="組合方式").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_intent_var,("INSERT","OVERLAY","INSERT_OVERLAY"),width=16).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="截角級數").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_topology_var,("1","2"),width=8).grid(row=row,column=1,sticky="w")
-    original.ttk.Label(form,text="主要接合對象").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_target_role_var,("BOX_SIDE","REAR_PANEL"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="附加接合方式").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_extra_joint_var,("NONE","WRAP","INSERT","OVERLAY","INSERT_OVERLAY"),width=16).grid(row=row,column=1,sticky="ew")
-    original.ttk.Label(form,text="附加接合對象").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_extra_target_role_var,("REAR_PANEL","BOX_SIDE"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    # Formulas and preconditions keep stable evaluator tokens internally while
-    # the operator edits Traditional-Chinese aliases.
-    for raw_name in ("primary_u", "primary_v", "secondary_u", "secondary_depth"):
-        raw_var = getattr(self, f"relief_registry_{raw_name}_var")
-        display_var = original.tk.StringVar(master=form)
-        _phase6_bind_translated_var(
-            raw_var,
-            display_var,
-            lambda value, field=raw_name: _phase6_registry_formula_display(
-                value, presentation_field=field
-            ),
-            _phase6_formula_raw,
-        )
-        setattr(self, f"relief_registry_{raw_name}_display_var", display_var)
-    self.relief_registry_preconditions_display_var = original.tk.StringVar(master=form)
-    _phase6_bind_translated_var(
-        self.relief_registry_preconditions_var, self.relief_registry_preconditions_display_var,
-        _phase6_preconditions_display, _phase6_preconditions_raw,
-    )
-    entry("第一級橫向公式", self.relief_registry_primary_u_display_var)
-    entry("第一級縱向公式", self.relief_registry_primary_v_display_var)
-    entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)
-    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)
-    entry("適用條件", self.relief_registry_preconditions_display_var)
-    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
-    _phase6_bind_translated_var(
-        self.relief_registry_source_var, self.relief_registry_source_display_var,
-        lambda value: _phase6_registry_source_display(value, presentation_field="source"),
-        _phase6_source_raw,
-    )
-    entry("公式來源／備註", self.relief_registry_source_display_var)
-
-    help_box = original.ttk.LabelFrame(form, text="公式變數說明", padding=6)
-    help_box.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(5, 3)); row += 1
-    help_lines = (
-        "板厚：目前板件厚度。",
-        "名義框寬：封頭／封尾自身的框寬參數；不等於箱身成型後實際占位。",
-        "側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",
-        "上折：封頭／封尾縱向第一折尺寸。",
-        "成型接合寬：接合對象折好後真正需要避讓的寬度，例如貼外取箱身成型框寬。",
-        "第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",
-        "嵌入、貼外、嵌入貼外、外側包覆皆以同一接合語意資料層保存。",
-    )
-    for help_row, text in enumerate(help_lines):
-        original.ttk.Label(help_box, text=text, wraplength=660, justify="left").grid(
-            row=help_row, column=0, sticky="w", pady=1
-        )
-
-    sample = original.ttk.LabelFrame(form,text="即時公式預覽",padding=5); sample.grid(row=row,column=0,columnspan=4,sticky="ew",pady=5); row+=1
-    for col,(label,var) in enumerate((("板厚",self.relief_registry_sample_t_var),("名義框寬",self.relief_registry_sample_fw_var),("側折",self.relief_registry_sample_side_var),("上折",self.relief_registry_sample_ytop_var),("成型接合寬",self.relief_registry_sample_mating_var))):
-        original.ttk.Label(sample,text=label).grid(row=0,column=col*2,sticky="e")
-        original.ttk.Entry(sample,textvariable=var,width=7).grid(row=0,column=col*2+1,sticky="w",padx=(2,6))
-    canvas=original.tk.Canvas(form,width=245,height=160,background="white",highlightthickness=1,highlightbackground="#aaa")
-    canvas.grid(row=row,column=0,columnspan=4,sticky="w",pady=4); self.relief_registry_preview_canvas=canvas; row+=1
-    actions=original.ttk.Frame(form); actions.grid(row=row,column=0,columnspan=4,sticky="ew",pady=4); row+=1
-    for text,cmd in (
-        ("驗證公式",lambda:_phase6_registry_validate_formula_form(self)),
-        ("預覽平面",lambda:_phase6_registry_preview_2d(self)),
-        ("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self)),
-        ("儲存候選",lambda:_phase6_registry_save_candidate_form(self)),
-        ("執行回歸",lambda:_phase6_registry_run_formula_matrix(self)),
-    ):
-        original.ttk.Button(actions,text=text,command=cmd).pack(side=original.tk.LEFT,padx=2)
-    self.relief_registry_save_candidate_button = next((w for w in actions.winfo_children() if str(w.cget("text"))=="儲存候選"), None)
-    self.relief_registry_promote_button=original.ttk.Button(actions,text="認證新版次",command=lambda:_phase6_registry_promote_form(self),style="Primary.TButton")
-    self.relief_registry_promote_button.pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Label(form,textvariable=self.relief_registry_status_var,foreground=WHD_THEME["text"]).grid(row=row,column=0,columnspan=4,sticky="w",pady=(4,0))
-    for col in (1,3): form.columnconfigure(col,weight=1)
-
-    # ----- Joint tab -----
-    jcols=("subject","target","relation","source","subject_region","target_region")
-    jtree=original.ttk.Treeview(joints_tab,columns=jcols,show="headings",height=15)
-    for col,label,width in (("subject","主動板件",100),("target","接合板件",100),("relation","接合關係",130),("source","資料來源",120),("subject_region","主動板件區域",160),("target_region","接合板件區域",160)):
-        jtree.heading(col,text=label); jtree.column(col,width=width)
-    jtree.pack(fill=original.tk.X,pady=(0,8)); self.relief_joint_tree=jtree
-    self.relief_joint_relation_choices=("INSERT","OVERLAY","INSERT_OVERLAY","WRAP")
-    self.relief_joint_subject_var=original.tk.StringVar(value="head")
-    self.relief_joint_target_var=original.tk.StringVar(value="box_body")
-    self.relief_joint_relation_var=original.tk.StringVar(value="WRAP")
-    self.relief_joint_subject_region_var=original.tk.StringVar(value="rear_edge")
-    self.relief_joint_target_region_var=original.tk.StringVar(value="rear_mating")
-    self.relief_joint_clearance_var=original.tk.StringVar(value="ZERO")
-    self.relief_joint_topology_var=original.tk.StringVar(value="1")
-    self.relief_joint_status_var=original.tk.StringVar(value="外側包覆：主動板件包覆接合板件")
-    jf=original.ttk.LabelFrame(joints_tab,text="新增使用者接合規則",padding=6); jf.pack(fill=original.tk.X)
-    fields=(
-        ("主動板件",self.relief_joint_subject_var,("head","tail","box_body")),
-        ("接合板件",self.relief_joint_target_var,("box_body","head","tail")),
-        ("主動板件區域",self.relief_joint_subject_region_var,("rear_edge","TOP","BOTTOM")),
-        ("接合板件區域",self.relief_joint_target_region_var,("rear_mating","MATING_ZONE","OUTER_SURFACE")),
-        ("間隙條件",self.relief_joint_clearance_var,("ZERO",)),
-    )
-    for i,(label,var,choices) in enumerate(fields):
-        original.ttk.Label(jf,text=label).grid(row=i//3*2,column=(i%3)*2,sticky="w",padx=3)
-        _phase6_form_choice(jf,var,choices,width=18).grid(row=i//3*2+1,column=(i%3)*2,sticky="ew",padx=3,pady=(0,4))
-    original.ttk.Label(jf,text="接合關係").grid(row=0,column=5,sticky="w",padx=3)
-    _phase6_form_choice(jf,self.relief_joint_relation_var,self.relief_joint_relation_choices,width=16).grid(row=1,column=5,sticky="ew",padx=3)
-    original.ttk.Label(jf,text="自動辨識級數").grid(row=2,column=4,sticky="w",padx=3)
-    _phase6_form_choice(jf,self.relief_joint_topology_var,("1","2"),width=8).grid(row=3,column=4,sticky="w",padx=3)
-    buttons=original.ttk.Frame(joints_tab); buttons.pack(fill=original.tk.X,pady=6)
-    original.ttk.Button(buttons,text="新增接合",command=lambda:_phase6_joint_form_add(self)).pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Button(buttons,text="刪除使用者接合",command=lambda:_phase6_joint_form_delete(self)).pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Label(buttons,textvariable=self.relief_joint_status_var).pack(side=original.tk.LEFT,padx=10)
-
-    _phase6_registry_refresh_rule_tree(self)
-    _phase6_joint_form_refresh(self)
-    return win
+# Compatibility routing only: concrete Tk construction lives in
+# phase6_registry_diagnostics_panel.py.
+_phase6_form_choice = lambda parent, variable, choices, width=18, presentation_field="choice": build_registry_choice(
+    parent,
+    variable,
+    choices,
+    present_token=_phase6_registry_present_token,
+    width=width,
+    presentation_field=presentation_field,
+)
+_phase6_registry_preview_2d = lambda self: _phase6_registry_panel(self).draw_registry_preview()
+_phase6_registry_refresh_rule_tree = lambda self: _phase6_registry_panel(self).refresh_rule_rows()
+_phase6_registry_rule_selected = lambda self, *_args: _phase6_registry_panel(self).populate_rule_form()
+_phase6_joint_form_refresh = lambda self: _phase6_registry_panel(self).refresh_joint_rows()
+_phase6_open_relief_registry_form = lambda self: _phase6_registry_panel(self).open_registry_editor()
+_phase6_refresh_joint_diagnostic_menu = lambda self, resolved=None: _phase6_registry_panel(self).refresh_joint_diagnostic_menu(resolved)
+_phase6_build_assembly_diagnostics = lambda self: _phase6_registry_panel(self).build_assembly_diagnostics(self.right)
 
 
 def _phase6_keyboard_save(self, _event=None):
@@ -6574,44 +5636,6 @@ def _phase6_create_relief_promotion_candidates(self):
             status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
     return candidates
 
-def _phase6_refresh_joint_diagnostic_menu(self, resolved=None):
-    var = getattr(self, "assembly_joint_diag_var", None)
-    button = getattr(self, "assembly_joint_diag_button", None)
-    if var is None or button is None:
-        return ()
-    resolved = (
-        resolved
-        or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-    )
-    menu = getattr(self, "assembly_joint_diag_menu", None)
-    if menu is None:
-        menu_name = str(button.cget("menu") or "")
-        if not menu_name:
-            return ()
-        try:
-            menu = button.nametowidget(menu_name)
-        except Exception:
-            return ()
-    menu.delete(0, "end")
-    ids = list(_phase6_registry_diagnostics(self).diagnostic_ids(resolved))
-    current = str(var.get() or "")
-    if current not in ids:
-        current = ids[0] if ids else ""
-        var.set(current)
-    labels = {
-        joint_id: f"接合 {index + 1}"
-        for index, joint_id in enumerate(ids)
-    }
-    for joint_id in ids:
-        menu.add_radiobutton(
-            label=labels[joint_id],
-            value=joint_id,
-            variable=var,
-            command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-        )
-    button.configure(text=labels.get(current, "接合"))
-    return tuple(ids)
-
 def _phase6_selected_joint_diagnostic(self):
     resolved = getattr(
         self, "_phase6_last_resolved_manufacturing_geometry", None
@@ -6627,46 +5651,6 @@ def _phase6_selected_joint_diagnostic(self):
     return _phase6_registry_diagnostics(self).selected_diagnostic(
         resolved, joint_id
     )
-
-def _phase6_build_assembly_diagnostics(self):
-    frame = original.ttk.LabelFrame(self.right, text="組合體診斷", padding=6)
-    self.assembly_diagnostics_frame = frame
-    self.assembly_ignore_fixed_corner_var = original.tk.BooleanVar(value=True)
-    self.assembly_show_interference_var = original.tk.BooleanVar(value=True)
-    self.assembly_relief_clearance_var = original.tk.StringVar(value="0")
-    self.assembly_relief_size_var = original.tk.StringVar(value="實際截角尺寸：等待計算")
-    self.assembly_collision_status_var = original.tk.StringVar(value="3D驗證：等待計算")
-    original.ttk.Checkbutton(
-        frame, text="未知組合允許3D求截角",
-        variable=self.assembly_ignore_fixed_corner_var,
-        command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, text="淨空 A").pack(side=original.tk.LEFT, padx=(0, 4))
-    self.assembly_relief_clearance_entry = original.ttk.Entry(
-        frame, textvariable=self.assembly_relief_clearance_var, width=7
-    )
-    self.assembly_relief_clearance_entry.pack(side=original.tk.LEFT, padx=(0, 10))
-    self.assembly_relief_clearance_entry.bind(
-        "<Return>", lambda _event: _phase6_on_assembly_diagnostic_changed(self)
-    )
-    self.assembly_relief_clearance_entry.bind(
-        "<FocusOut>", lambda _event: _phase6_on_assembly_diagnostic_changed(self)
-    )
-    original.ttk.Checkbutton(
-        frame, text="顯示干涉碰撞區",
-        variable=self.assembly_show_interference_var,
-        command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 10))
-    self.assembly_relief_promotion_button = original.ttk.Button(
-        frame, text="建立認證候選",
-        command=lambda: _phase6_create_relief_promotion_candidates(self),
-    )
-    self.assembly_relief_promotion_button.pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, textvariable=self.assembly_relief_size_var).pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, textvariable=self.assembly_collision_status_var).pack(side=original.tk.LEFT)
-    frame.pack_forget()
-    return frame
-
 
 def _phase6_update_assembly_diagnostic_status(self):
     status_var = getattr(self, "assembly_collision_status_var", None)
@@ -6913,12 +5897,7 @@ _FIX10_INIT = Phase6FoldDesignerApp.__init__
 _FIX10_EXPORT = Phase6FoldDesignerApp.export_phase6_snapshot
 
 
-def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
-    # Atomic lifecycle: inherited Tk construction may invoke traced callbacks and
-    # legacy do_update() methods, but none of those bootstrap intermediates are
-    # authoritative live-sync state. Publish is disabled until the final Phase6
-    # workspace has ingested the current application snapshot and reached READY.
-    self._phase6_initializing = True
+def _phase6_bootstrap_authoritative_state(self, snapshot):
     # Phase 4 composition services may be reached by inherited Tk callbacks
     # during construction. Establish the authoritative mapping identities before
     # any such callback can ask the composition root for Settings owners. From
@@ -6952,6 +5931,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         "h": _ui_len(snapshot.get("h", 600)),
         "d": _ui_len(snapshot.get("d", 200)),
     })
+    return snapshot
+
+
+def _phase6_install_runtime_ports(self, *, on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
     self._settings_change_callback = on_settings_change
     self._phase6_transactional_mode = on_transaction_confirm is not None and on_live_sync is None
     self._live_sync_callback = on_live_sync
@@ -6976,6 +5959,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_external_draw_stock_var = output_draw_stock_var
     self._phase6_external_export_vars = dict(output_export_vars or {})
     self._phase6_export_selected_dxf_callback = on_export_selected_dxf
+
+
+def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_box_body_active_piece_key = str(snapshot.get("box_body_active_piece") or "")
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
@@ -7038,7 +6024,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
     self.queue_update = _phase6_queue_update.__get__(self, type(self))
     self.do_update = _phase6_preview_aware_do_update.__get__(self, type(self))
-    _FIX10_INIT(self, root, snapshot)
+
+
+def _phase6_finish_legacy_host_compatibility(self, snapshot):
     _phase6_settings_transactions(self)
     # FIX10 marks itself ready as soon as its legacy snapshot is loaded. Phase6
     # still has to build the persistent controls/workspace, so keep the public
@@ -7073,6 +6061,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         self.main_nb.forget(tabs[1])
     self.main_nb.pack_forget()
 
+
+def _phase6_bootstrap_workspace_profiles(self, snapshot):
     stored_profiles = snapshot.get("part_profiles") or {}
     for key in self.designer_workspace.available_parts:
         if key == "box_body":
@@ -7102,6 +6092,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.designer_workspace.active_part = None
     self.designer_workspace.selected_part = None
 
+
+def _phase6_install_part_editor_compatibility(self):
     # 板件選擇／新增／刪除固定同一列，永不因切換板件消失。
     self.part_selector = original.ttk.Frame(self.left)
     self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
@@ -7193,6 +6185,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_refresh_assembly_parts_panel(self)
 
+
+def _phase6_install_initial_owner_views(self):
     self._refresh_part_buttons()
     self._refresh_add_part_menu()
     try:
@@ -7204,8 +6198,14 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     _phase6_build_settings_center(self)
     _phase6_install_renderer_view(self)
     self.settings_center.pack_forget()
+
+
+def _phase6_select_initial_mode(self):
     self.activate_part("box_body", initial=True)
     _phase6_show_assembly(self, initial=True)
+
+
+def _phase6_mark_ready(self):
     self.designer_workspace.mark_clean()
 
     # READY starts from the exact authoritative state already displayed. Seed the
@@ -7218,6 +6218,39 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_initializing = False
     self._phase6_sync_ready = True
 
+
+def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
+    # Atomic lifecycle root: enter INITIALIZING before predecessor construction can
+    # emit traced callbacks, then install accepted owners in one deterministic order.
+    self._phase6_initializing = True
+    snapshot = _phase6_bootstrap_authoritative_state(self, snapshot)
+    _phase6_install_runtime_ports(
+        self,
+        on_settings_change=on_settings_change,
+        on_save_defaults=on_save_defaults,
+        on_corner_change=on_corner_change,
+        on_transaction_confirm=on_transaction_confirm,
+        on_transaction_cancel=on_transaction_cancel,
+        on_live_sync=on_live_sync,
+        on_baseline_data_query=on_baseline_data_query,
+        on_scene_query=on_scene_query,
+        on_part_spec_query=on_part_spec_query,
+        on_ui_text_size_change=on_ui_text_size_change,
+        on_project_load=on_project_load,
+        on_project_path_change=on_project_path_change,
+        on_project_save=on_project_save,
+        output_draw_stock_var=output_draw_stock_var,
+        output_export_vars=output_export_vars,
+        on_export_selected_dxf=on_export_selected_dxf,
+    )
+    _phase6_prepare_predecessor_init(self, root, snapshot)
+    _FIX10_INIT(self, root, snapshot)
+    _phase6_finish_legacy_host_compatibility(self, snapshot)
+    _phase6_bootstrap_workspace_profiles(self, snapshot)
+    _phase6_install_part_editor_compatibility(self)
+    _phase6_install_initial_owner_views(self)
+    _phase6_select_initial_mode(self)
+    _phase6_mark_ready(self)
 
 
 def _phase6_clear_navigation_residue(self):
