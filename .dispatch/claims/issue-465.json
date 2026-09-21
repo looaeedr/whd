@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
+  "head_sha": "cd85f863e9d9bf3f78aabd157c4b94f994e65e6e",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,9 +14,9 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
+  "chain_head": "cd85f863e9d9bf3f78aabd157c4b94f994e65e6e",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:21:00+08:00",
+  "last_update": "2026-09-21T20:24:00+08:00",
   "remote_qa": {
     "run_id": 35598082041,
     "head_sha": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
@@ -37,7 +37,7 @@
       "reason": "runner missing ezdxf"
     }
   },
-  "next_action": "Implement T0 owner semantic, neutral ResolvedPhysicalMatingRegion DTO, and true-solid terminal-face resolver; then run same focused tests GREEN.",
+  "next_action": "Continue T0 from recovered forward-only branch head cd85f863e9d9bf3f78aabd157c4b94f994e65e6e: add ResolvedPhysicalMatingRegion DTO and neutral true-solid terminal-face resolver, then focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
@@ -62,6 +62,17 @@
     "observed_branch_head": "05a455f602ba3477d9d05377055126fd5019451d",
     "production_commits_after_claim": 0,
     "checkpoint_present": false,
-    "reason": "Existing newly-created claim used owner instead of worker and omitted issue_url/claimed_at/delegated_branches, so current execution_claim_guard.py could not validate it. Repaired by exact blob-SHA CAS before any production mutation."
+    "reason": "Existing newly-created claim used owner instead of worker and omitted issue_url/claimed_at/delegated_branches, so current execution_claim_guard.py could not validate it. Repaired by exact blob-SHA CAS before any production mutation.",
+    "forward_head_recovery": {
+      "previous_claim_head": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
+      "observed_branch_head": "cd85f863e9d9bf3f78aabd157c4b94f994e65e6e",
+      "compare_status": "ahead",
+      "ahead_by": 1,
+      "changed_files": [
+        "ae_engine/inner_door_frames.py"
+      ],
+      "commit_message": "feat: publish inner-door lower terminal mating region",
+      "classification": "same-ticket intended T0 owner-semantic implementation; no cross-chain contamination"
+    }
   }
 }
