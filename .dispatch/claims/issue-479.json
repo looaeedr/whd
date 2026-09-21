@@ -11,16 +11,16 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "7b828bb012651b916d6cd15376ab66360554302d",
+  "head_sha": "5442179c29f0bc05d2008409c12192fa6190566e",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Persist T1 architecture contract test for approved R1, then move the 35-port composition wiring into the existing Phase6FoldDesignerComposition owner.",
+  "next_action": "Create one-shot T1 RED workflow at head 5442179c29f0bc05d2008409c12192fa6190566e and lock exact run_id+head_sha; require RED due bridge-owned FinalSceneCompositionPorts wiring, then implement ownership move.",
   "blocker": null,
-  "last_update": "2026-09-22T07:18:00+08:00",
+  "last_update": "2026-09-22T07:20:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
@@ -48,5 +48,11 @@
       "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
       "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
     ]
+  },
+  "red_contract": {
+    "head_sha": "5442179c29f0bc05d2008409c12192fa6190566e",
+    "test_file": "tests/test_issue479_final_scene_composition_owner.py",
+    "commit": "5442179c29f0bc05d2008409c12192fa6190566e",
+    "expected_failure": "bridge still owns deep 35-port FinalScene composition"
   }
 }
