@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:04:30+08:00",
   "base_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
   "head_sha": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
-  "phase": "GREEN",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T3",
@@ -33,8 +33,8 @@
       "T0 physical mating-region regressions GREEN"
     ]
   },
-  "last_update": "2026-09-21T23:34:00+08:00",
-  "next_action": "Run T3 code review against accepted T2 parent 69b12789c572f700e9e5626759d9e230eb18d09b and current head 016c2c502c85972da8e13e56ae5c0a739fdc1501; if clean, remove temporary Issue469 workflow and audit tested-to-closing drift.",
+  "last_update": "2026-09-21T23:38:00+08:00",
+  "next_action": "Delete .github/workflows/qa-issue469-t3.yml under fresh execution-claim guard, remote-read absence, then audit tested head 016c2c502c85972da8e13e56ae5c0a739fdc1501 to closing head for workflow-only drift.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue469-t3-authority-read.txt",
@@ -52,5 +52,17 @@
       "ae_engine/joint_marking_policy.py"
     ],
     "activation": "DORMANT_FOUNDATION_ONLY"
+  },
+  "review_evidence": {
+    "fixed_point": "69b12789c572f700e9e5626759d9e230eb18d09b",
+    "reviewed_head": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
+    "standards_findings": 0,
+    "spec_findings": 0,
+    "standards_sources": [
+      "AGENTS.md",
+      "handoff/04_DEVELOPMENT_RULES.md",
+      "code-review smell baseline"
+    ],
+    "spec_source": "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9"
   }
 }
