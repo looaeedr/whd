@@ -6,12 +6,12 @@
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
   "head_sha": "e108931eea3937198c801a2f3d3278a92e50be86",
-  "phase": "RECOVERING",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Poll PR #487 exact bootstrap run 35629738722 at e108931eea3937198c801a2f3d3278a92e50be86 to terminal; if success, classify bb2d3bad→e108931e as evidence-metadata-only descendant, classify Phase5 census independently, then merge PR with expected head.",
+  "next_action": "Fresh-read PR #487 and target; if head/base unchanged and mergeable, merge non-force with expected head e108931eea3937198c801a2f3d3278a92e50be86; then production readback, verify #477 terminal, release claim.",
   "blocker": null,
-  "last_update": "2026-09-22T01:06:00+08:00",
+  "last_update": "2026-09-22T01:07:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
     "final_qa": {
@@ -60,11 +60,11 @@
   },
   "drift_audit": {
     "tested_head": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
-    "closing_head": "bb2d3bad64664b862e525c527b272bbfbec401c3",
-    "classification": "WORKFLOW_CLEANUP_ONLY",
-    "changed_files": [
-      ".github/workflows/qa-issue477-preflight.yml",
-      ".github/workflows/qa-issue477-red.yml"
+    "cleanup_head": "bb2d3bad64664b862e525c527b272bbfbec401c3",
+    "closing_head": "e108931eea3937198c801a2f3d3278a92e50be86",
+    "classifications": [
+      "fb304140→bb2d3bad WORKFLOW_CLEANUP_ONLY",
+      "bb2d3bad→e108931e EVIDENCE_METADATA_ONLY"
     ]
   },
   "target_head_observed": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
@@ -74,5 +74,22 @@
     "root_cause": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md lacked WHD_DOC_META_V1 YAML frontmatter",
     "repair_commit": "e108931eea3937198c801a2f3d3278a92e50be86",
     "repair": "added REFERENCE metadata with stable contract issue477-skill-write-preflight-evidence"
+  },
+  "pr": {
+    "number": 487,
+    "head_sha": "e108931eea3937198c801a2f3d3278a92e50be86",
+    "base": "cleanup/2d-3d-sync",
+    "bootstrap": {
+      "run_id": 35629738722,
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "phase5_census": {
+      "run_id": 35629738906,
+      "status": "completed",
+      "conclusion": "failure",
+      "classification": "PRE_EXISTING_UNRELATED_PHASE5_PRODUCTION_CENSUS_DEBT",
+      "evidence": "BRIDGE_METRICS unchanged at 8046,340,283,1122; PHASE5_T0_DECISION=RED with PRODUCTION_SOURCE_DRIFT=121; PR changes only process/Skill/guard/tests/docs/pitfall, no bridge production source"
+    }
   }
 }
