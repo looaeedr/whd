@@ -45,7 +45,7 @@ T0_REFRESH_CALLS = (
         "_phase6_refresh_assembly_parts_panel_if_topology_changed",
         "_phase6_refresh_assembly_parts_panel",
     ),
-    ("_fix11_init", "_phase6_refresh_assembly_parts_panel"),
+    ("_phase6_install_part_editor_compatibility", "_phase6_refresh_assembly_parts_panel"),
     ("_fix11_refresh_part_buttons", "_phase6_refresh_assembly_parts_panel"),
 )
 
