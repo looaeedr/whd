@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
   "head_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:09:00+08:00",
+  "last_update": "2026-09-21T13:13:00+08:00",
   "remote_qa": {
     "run_id": 35561070337,
     "head_sha": "115402ccc948f32b4140ac946eecdcec24251fae",
@@ -31,9 +31,9 @@
       "config_git_object_invariant": 1
     }
   },
-  "next_action": "Persist TERMINAL_SUCCESS checkpoint for #447 at cleaned head 9ccd3f51, create/verify finalization proof, write terminal evidence, close/readback Issue #447, release claim, then dispatch #448 from accepted cleaned head.",
+  "next_action": "Write terminal T5 evidence to Issue #447, close/readback completed, release claim, then dispatch #448 from accepted cleaned HEAD 9ccd3f51.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md",
+  "checkpoint": ".dispatch/checkpoints/issue-447.json",
   "cleanup": {
     "tested_head": "115402ccc948f32b4140ac946eecdcec24251fae",
     "cleaned_head": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
@@ -43,5 +43,6 @@
     "changed_files": [
       ".github/workflows/qa-issue447-t5-workspace-shell.yml"
     ]
-  }
+  },
+  "finalization_proof": ".dispatch/checkpoints/issue-447.finalization-proof.json"
 }
