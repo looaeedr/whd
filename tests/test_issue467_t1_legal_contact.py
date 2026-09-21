@@ -353,9 +353,10 @@ def test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_suppo
     from ae_engine.assembly_placement import resolve_assembly_placement
     from ae_engine.contracts import FoldProfileSegment
     from ae_engine.door_dividers import derive_box_body_dividers
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
     from ae_engine.inner_door_frames import (
         LOWER_TERMINAL_FACE,
-        derive_inner_door_frames,
+        derive_all_inner_door_frames,
         inner_door_frame_mating_region,
     )
     from ae_engine.manufacturing_api import (
@@ -384,12 +385,12 @@ def test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_suppo
     dimensions = (800.0, 1600.0, 350.0)
     thickness = 2.0
 
-    frame = derive_inner_door_frames(
-        "upper",
-        spans={"left": 1014.0},
-        thickness=thickness,
-        included_sides=("left",),
-    )[0]
+    frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+    frames = derive_all_inner_door_frames(frame_sets)
+    frame = next(
+        row for row in frames
+        if row.stable_id == "inner_door:upper:left_frame"
+    )
     frame_data = build_inner_door_frame_render_data(frame)
     frame_placement = resolve_assembly_placement(snapshot, frame.stable_id)
     attached = resolve_physical_mating_region(
