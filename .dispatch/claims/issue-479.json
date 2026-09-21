@@ -5,13 +5,13 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
+  "head_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
@@ -22,29 +22,23 @@
     "conclusion": "success",
     "jobs": {
       "final_scene": {
-        "status": "completed",
         "conclusion": "success",
-        "job_id": 106556229417,
         "summary": "85 passed"
       },
       "physical_dxf": {
-        "status": "completed",
         "conclusion": "success",
-        "job_id": 106556229539,
         "summary": "30 passed / 56 warnings"
       },
       "protected_architecture": {
-        "status": "completed",
         "conclusion": "success",
-        "job_id": 106556229717,
         "summary": "26 passed / 1 skipped"
       }
     },
     "protected_invariants": "GREEN"
   },
-  "next_action": "Delete temporary Issue479 QA workflows from the work-order branch; compare tested head f30b4cdee42cd10e5e4a4106ef6a6a4df1943896 to cleaned closing head and require workflow-deletion-only drift with production/test drift=0; then seal checkpoint/proof, close #479, release claim and acquire #480.",
+  "next_action": "Persist TERMINAL_SUCCESS checkpoint + exact finalization proof at closing head 539728f9986ac55fcc0d9ac68d84ce9231fd1475; close #479 completed, release claim, then atomically claim #480 from this accepted T1 head.",
   "blocker": null,
-  "last_update": "2026-09-22T07:46:00+08:00",
+  "last_update": "2026-09-22T07:49:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
@@ -101,5 +95,15 @@
     "remediation": "After physical-dxf terminal, update only these stale ownership assertions to inspect the application composition owner; do not restore inline 35-port wiring to bridge.",
     "remediation_head": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
     "production_files_changed_in_remediation": 0
+  },
+  "cleanup": {
+    "tested_head": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
+    "closing_head": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
+    "removed_workflows": [
+      ".github/workflows/qa-issue479-t1.yml",
+      ".github/workflows/qa-issue479-t1-acceptance.yml"
+    ],
+    "drift_class": "QA_WORKFLOW_DELETION_ONLY",
+    "production_test_drift": 0
   }
 }
