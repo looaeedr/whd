@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:51:00+08:00",
   "base_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
-  "head_sha": "46b5259a31dd11ed3d79b3dde7583543fa396706",
-  "phase": "RECOVERING",
+  "head_sha": "f62e08827d092fd5b884270016a337d966ed00de",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T6",
@@ -17,26 +17,15 @@
   "resolved_t5_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+  "chain_head": "f62e08827d092fd5b884270016a337d966ed00de",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "run_id": 35622955723,
-    "head_sha": "46b5259a31dd11ed3d79b3dde7583543fa396706",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106410250496,
-    "counts": {
-      "passed": 2,
-      "failed": 2
-    },
-    "classification": "1_IMPLEMENTATION_FAILURE_PLUS_1_TEST_ORACLE_ERROR",
-    "notes": [
-      "one Receiving frame result is not EMITTED; diagnostic must be surfaced",
-      "vertical door ratio change need not change locator flat coordinates; use horizontal door-gap change for geometry-change regression"
-    ]
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "f62e08827d092fd5b884270016a337d966ed00de",
+    "run_id": null
   },
-  "last_update": "2026-09-22T00:19:00+08:00",
-  "next_action": "Refine T6 test oracle to change horizontal door gap and include exact resolution results in failed EMITTED assertion; rerun focused test to expose the remaining production diagnostic.",
+  "last_update": "2026-09-22T00:21:00+08:00",
+  "next_action": "Resolve the focused Gate B rerun triggered at f62e08827d092fd5b884270016a337d966ed00de; poll to terminal and read exact remaining ResolvedJointMarkingResult diagnostic.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
