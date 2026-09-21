@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -17,14 +17,24 @@
   "chain_head": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35607727615,
     "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 473 Master Chain Turn Exit GREEN",
-    "revision": 4
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106358833571,
+    "counts": {
+      "passed": 63,
+      "failed": 0
+    },
+    "evidence": [
+      "Master-chain hard-gate behavior GREEN",
+      "missing/mismatched expected_master_issue fail-closed GREEN",
+      "legacy turn-exit proof enforcement GREEN",
+      "dispatch/closure/continuity Skill and knowledge contracts GREEN"
+    ]
   },
-  "last_update": "2026-09-21T22:20:00+08:00",
-  "next_action": "Locate and monitor final Issue473 machine+knowledge GREEN for exact head f32d8fcb07fea7b715aa8a51f1b19fbbdacced72; on success clean temporary workflows and perform tested→closing drift audit.",
+  "last_update": "2026-09-21T22:24:00+08:00",
+  "next_action": "Delete Issue473 RED/GREEN one-shot workflows, remote-read absence, then audit final tested head f32d8fcb07fea7b715aa8a51f1b19fbbdacced72 to cleaned head for workflow-only drift.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
