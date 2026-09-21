@@ -5,8 +5,8 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "996e5566335b40f8df0d93ca99e71a724721a4a7",
-  "phase": "CLEANUP",
+  "head_sha": "df041e5c55a157a304ba60897d1747dc1ccda74a",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -14,29 +14,24 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "996e5566335b40f8df0d93ca99e71a724721a4a7",
+  "chain_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:55:00+08:00",
+  "last_update": "2026-09-21T19:58:00+08:00",
   "remote_qa": {
     "run_id": 35594987369,
     "head_sha": "996e5566335b40f8df0d93ca99e71a724721a4a7",
     "status": "completed",
     "conclusion": "success",
     "job_id": 106317630808,
-    "counts": "40 passed, 1 skipped",
-    "invariants": {
-      "DURABLE_OWNERSHIP_CURRENT_COUNT": 1,
-      "LEGACY_TEMP_QA_RESIDUE": 0,
-      "ISSUE451_SCOPE_DRIFT": 0,
-      "PROTECTED_DRIFT": 0,
-      "CONFIG_GIT_OBJECT_DELTA": 0,
-      "DXF_GIT_OBJECT_DELTA": 0,
-      "FORCE_PUSH": 0,
-      "VALIDATION_MUTATION_DRIFT": 0
-    }
+    "counts": "40 passed, 1 skipped"
   },
-  "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
-  "next_action": "Delete one-shot qa-issue451-t9-writeback.yml from the tested branch, read back cleaned HEAD, and prove tested-head to cleaned-head drift is workflow-delete-only.",
+  "cleanup": {
+    "one_shot_workflow_removed": true,
+    "tested_head": "996e5566335b40f8df0d93ca99e71a724721a4a7",
+    "cleaned_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
+    "drift": "GREEN_WORKFLOW_DELETE_ONLY"
+  },
+  "next_action": "Open the authorized non-force integration PR from cleaned T9 head df041e5c55a157a304ba60897d1747dc1ccda74a to cleanup/2d-3d-sync at current X 86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57, verify mergeability, and merge only non-force.",
   "blocker": null,
   "handoff_ready": false
 }
