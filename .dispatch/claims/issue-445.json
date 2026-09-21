@@ -6,15 +6,23 @@
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
   "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
-  "last_update": "2026-09-21T09:42:30+08:00",
+  "last_update": "2026-09-21T09:44:00+08:00",
   "remote_qa": {
     "run_id": 35551653538,
     "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
-    "status": "in_progress"
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106187383802,
+    "evidence": {
+      "ownership_contract": "5 passed",
+      "real_tk_ab": "INHERITED_BASELINE_DEBT",
+      "manufacturing_dxf": "12 passed",
+      "protected_drift": "0"
+    }
   },
-  "next_action": "Poll RUN 35551653538 at head c7ec5179 to terminal.",
+  "next_action": "Delete the one-shot #445 QA workflow, then verify tested-head c7ec5179 to cleaned-head drift is workflow-only before acceptance.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
