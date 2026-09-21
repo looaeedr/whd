@@ -5,10 +5,10 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "bd72e1eda4d117e66f284de110c80cbfcc3f4098",
+  "head_sha": "6d9d32e1d91fcc02476ebac639938225c7807f79",
   "phase": "REMEDIATION",
   "delegated_branches": [],
-  "last_update": "2026-09-21T17:14:00+08:00",
+  "last_update": "2026-09-21T17:16:00+08:00",
   "remote_qa": {
     "run_id": 35577683274,
     "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
@@ -27,8 +27,18 @@
       "tests.test_issue369_t5_corner_data_view_owner::test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state"
     ],
     "xvfb_ab": "failure",
-    "classifier": "RED"
+    "classifier": "RED",
+    "remediation": {
+      "runtime_fix": "non-CROSS corner mode projection fail-closed",
+      "stale_tests": [
+        "tests/process/test_issue426_phase5_t5_bridge_compression.py",
+        "tests/test_issue338_contrast_readability.py",
+        "tests/test_issue339_corner_presentation_fail_closed.py",
+        "tests/test_issue369_t5_corner_data_view_owner.py",
+        "tests/test_issue125_inspector_property_panel.py"
+      ]
+    }
   },
-  "next_action": "Migrate proven stale owner/source contracts (#426/#338/#339/#369/#125) while preserving their behavioral assertions, then dispatch replacement Combined Acceptance.",
+  "next_action": "Update T8 one-shot workflow changed-file Preflight/scope for the exact remediation set, then trigger and lock a fresh replacement Combined Acceptance run.",
   "blocker": null
 }
