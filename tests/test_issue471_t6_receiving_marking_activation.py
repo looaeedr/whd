@@ -148,7 +148,7 @@ def test_receiving_real_left_right_frames_emit_exact_four_marks_on_shared_divide
         "inner_door:upper:left_frame",
         "inner_door:upper:right_frame",
     }
-    assert all(r.status == "EMITTED" for r in resolution.results)
+    assert all(r.status == "EMITTED" for r in resolution.results), repr(resolution.results)
     assert all(r.export_disposition == DISPOSITION for r in resolution.results)
     assert all(len(r.mark_ids) == 2 for r in resolution.results)
     assert len({mid for r in resolution.results for mid in r.mark_ids}) == 4
@@ -244,7 +244,8 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
     assert ids2 == ids1
     assert _line_signature(lines2) == _line_signature(lines1)
 
-    changed = _snapshot((1000.0, 600.0))
+    changed = _snapshot()
+    changed["door_gap_w"] = 10.0
     moved = marking.resolve_receiving_joint_markings(
         changed,
         _build_geometry(changed),
