@@ -312,7 +312,8 @@ def test_rigid_rotation_preserves_semantic_roles_and_rotates_signed_basis():
         (_rotate_z_90((-1.0, -0.5, 0.0)),),
     )
     assert projected.status == "RESOLVED", repr(projected)
-    assert projected.flat_points == pytest.approx(((1.0, 0.5),), abs=1e-8)
+    assert len(projected.flat_points) == 1
+    assert projected.flat_points[0] == pytest.approx((1.0, 0.5), abs=1e-8)
 
 
 def test_current_horizontal_inward_orientation_preserves_semantic_roles():
