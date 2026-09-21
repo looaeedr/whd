@@ -20,12 +20,13 @@
   "chain_head": "46b5259a31dd11ed3d79b3dde7583543fa396706",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35622955723,
     "head_sha": "46b5259a31dd11ed3d79b3dde7583543fa396706",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T00:14:00+08:00",
-  "next_action": "Resolve push-triggered Issue471 Gate B focused run for head 46b5259a31dd11ed3d79b3dde7583543fa396706, lock run_id, poll to terminal, then classify/fix any requirement failures.",
+  "last_update": "2026-09-22T00:16:00+08:00",
+  "next_action": "Poll locked Gate B focused run 35622955723 at head 46b5259a31dd11ed3d79b3dde7583543fa396706 to terminal; inspect exact pytest summary/logs and repair only demonstrated failures.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
