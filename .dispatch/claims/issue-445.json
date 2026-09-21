@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue445-t3-settings-owner-20260921",
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
+  "head_sha": "3f8cea7bf3adcf3738b43fbbf41a4a5f200cf5cb",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T08:19:11+08:00",
+  "last_update": "2026-09-21T08:20:00+08:00",
   "remote_qa": {
     "run_id": 35547295514,
     "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Diff base/current bridge around _PHASE6_BRIDGE_METHODS, restore accidentally deleted facade section without restoring selected Settings Tk builders, then revalidate.",
+  "next_action": "Discover #445 focused QA run triggered by corrected facade ratchet test at head 3f8cea7b, then lock and poll it to terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
@@ -33,5 +33,12 @@
     "failed_step": "T3 ownership contracts",
     "result": "4 passed, 1 failed",
     "cause": "_PHASE6_BRIDGE_METHODS marker missing"
+  },
+  "test_harness_correction": {
+    "stale_marker": "_PHASE6_BRIDGE_METHODS",
+    "baseline_marker_present": false,
+    "t0_authority": "tools/phase6_bridge_refactor_t0_census.py::install_fold_designer_bridge_facade AST dict count",
+    "baseline_count": 69,
+    "candidate_count": 69
   }
 }
