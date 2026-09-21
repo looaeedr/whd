@@ -5,8 +5,8 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
-  "phase": "DRIFT_AUDIT",
+  "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -14,10 +14,13 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
+  "chain_head": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:36:00+08:00",
-  "remote_qa": null,
+  "last_update": "2026-09-21T19:38:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED_OR_NOT_YET_DISCOVERED",
+    "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990"
+  },
   "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
   "durable_writeback": {
     "ownership_current_path": "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
@@ -25,17 +28,9 @@
   },
   "cleanup": {
     "qa_issue442_workflow_removed": true,
-    "qa_issue443_workflow_removed": true,
-    "residue_readback": "GREEN"
+    "qa_issue443_workflow_removed": true
   },
-  "branch_local_drift": {
-    "base": "4b401077d457acd1e754366637c595b3d82f38d4",
-    "head": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
-    "changed_files": 5,
-    "production_code_changed": false,
-    "config_or_dxf_changed": false
-  },
-  "next_action": "Create one-shot T9 writeback QA workflow on this claimed branch, discover exact run_id from its issue start marker, lock run_id+head_sha, and monitor to terminal before cleanup.",
+  "next_action": "Discover exact run_id from #451 workflow start marker for HEAD 67907eadf14dfe726be9d9ea3795c4db56b7b990; once known, enter REMOTE_QA lock and poll that run to terminal.",
   "blocker": null,
   "handoff_ready": false
 }
