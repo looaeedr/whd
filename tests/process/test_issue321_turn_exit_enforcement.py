@@ -98,8 +98,8 @@ def test_path_boundary_must_really_invoke_canonical_guard(monkeypatch, tmp_path:
 
     calls = []
 
-    def probe(checkpoint):
-        calls.append(checkpoint)
+    def probe(checkpoint, *, expected_master_issue=None):
+        calls.append((checkpoint, expected_master_issue))
         raise continuity.TurnExitBlocked("guard invocation probe")
 
     monkeypatch.setattr(continuity, "assert_turn_exitable", probe)
@@ -107,6 +107,8 @@ def test_path_boundary_must_really_invoke_canonical_guard(monkeypatch, tmp_path:
         boundary(path, **_guard_kwargs(receipt))
 
     assert len(calls) == 1, "path boundary bypassed canonical assert_turn_exitable guard"
+    assert calls[0][0].issue == EXPECTED_ISSUE
+    assert calls[0][1] is None
     assert not receipt.exists(), "failed guard invocation must not mint turn-exit proof"
 
 

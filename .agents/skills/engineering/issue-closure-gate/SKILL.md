@@ -192,7 +192,19 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 
 `code integrated, process incomplete` 是精確 observation，不是合法停工點。只要 owning checkpoint 仍是 `RUNNING` 且 `next_action` 為 workflow cleanup、tested→closing drift、close/readback leaf、closing ticket 或 Master，本 Skill 在任何 user-visible response boundary 都必須呼叫 `assert_turn_exitable`；machine guard 拒絕時立即續做 next action。
 
-只有 genuine `BLOCKED`（需要外部 authority/capability）或 terminal checkpoint 才能合法結束 turn。Workflow 是否真的完成仍另外要求 owning finalization guard + current proof + 全 issue chain readback；turn-exit 與 closure gate 不得合併。
+### MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
+
+關閉一張 child Issue 後，**不得只看到 child checkpoint terminal 就結束 turn**。如果 parent/Master 尚有 required child：
+
+1. fresh-read Master/child dependency 與下一票狀態；
+2. child terminal checkpoint 寫入 `master_issue + chain_state + next_issue + chain_next_action/chain_reason`；
+3. 外層 turn-exit boundary 以 fresh `expected_master_issue` 呼叫 canonical guard；
+4. `NEXT_CHILD_EXECUTABLE` 必須立即進下一票 claim/start，禁止 user-visible close report 後 return；
+5. checkpoint 漏 handoff、Master mismatch、next child authority 不完整，一律 fail closed，不得用聊天記憶補。
+
+只有 `CHAIN_COMPLETE`、genuine `NEXT_CHILD_BLOCKED`，或 explicit `USER_STOPPED` 才能讓 terminal child 成為合法 turn-exit 邊界。**child close != Master-chain complete**。
+
+只有 genuine `BLOCKED`（需要外部 authority/capability）或上述 chain gate 允許的 terminal checkpoint 才能合法結束 turn。Workflow 是否真的完成仍另外要求 owning finalization guard + current proof + 全 issue chain readback；turn-exit 與 closure gate 不得合併。
 
 ## BRANCH_CLEANUP_OPEN_PR_REF_GATE
 
