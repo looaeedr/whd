@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,12 +18,31 @@
   "remote_qa": {
     "run_id": 35667146541,
     "head_sha": "ed200a84444b77b314394b9cb34be8ed4be6c64e",
-    "status": "queued",
-    "conclusion": null
+    "status": "in_progress",
+    "conclusion": null,
+    "jobs": {
+      "protected_architecture": {
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 106555320640
+      },
+      "final_scene": {
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 106555320674,
+        "summary": "2 failed / 83 passed; protected invariants success"
+      },
+      "physical_dxf": {
+        "status": "queued",
+        "conclusion": null,
+        "job_id": 106555320385
+      }
+    },
+    "classification": "FINAL_SCENE_TWO_STALE_OWNERSHIP_ORACLES; PHYSICAL_DXF_PENDING"
   },
-  "next_action": "Poll locked final acceptance run 35667146541 at head ed200a84444b77b314394b9cb34be8ed4be6c64e to terminal; classify any failed lane immediately, otherwise cleanup/drift audit and close T1.",
+  "next_action": "Keep locked run 35667146541 until physical-dxf terminal; then update the two stale ownership-oracle tests to inspect Phase6FoldDesignerComposition, launch fresh final acceptance on a guarded new head, and continue cleanup/drift audit.",
   "blocker": null,
-  "last_update": "2026-09-22T07:35:00+08:00",
+  "last_update": "2026-09-22T07:37:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
@@ -70,5 +89,13 @@
     "manufacturing_owner_changed": false,
     "facade_binding_added": 0,
     "second_root_added": false
+  },
+  "recovery_evidence": {
+    "stale_tests": [
+      "tests/process/test_issue425_phase5_t4_final_scene_visibility.py::test_t4_final_scene_adapter_keeps_all_four_presentation_ports_wired",
+      "tests/test_phase6_3d_single_source_renderer.py::test_3d_render_path_consumes_scene_callback_only"
+    ],
+    "reason": "Both tests inspect fold_designer_bridge._phase6_final_scene_adapter source for port names that T1 intentionally moved into existing Phase6FoldDesignerComposition; 83 other FinalScene tests pass and protected hashes are unchanged.",
+    "remediation": "After physical-dxf terminal, update only these stale ownership assertions to inspect the application composition owner; do not restore inline 35-port wiring to bridge."
   }
 }
