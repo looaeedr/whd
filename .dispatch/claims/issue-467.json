@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "95aa3161b39e41737223c57d130a059a4ddad5be",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -17,13 +17,23 @@
   "chain_head": "95aa3161b39e41737223c57d130a059a4ddad5be",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35600585458,
     "head_sha": "95aa3161b39e41737223c57d130a059a4ddad5be",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 467 T1 RED"
+    "status": "completed",
+    "conclusion": "failure_expected_red",
+    "job_id": 106335462767,
+    "counts": {
+      "failed": 7,
+      "passed": 0
+    },
+    "evidence": [
+      "AssemblyGeometryToleranceContract missing",
+      "LegalContactResult/ResolvedLegalContact missing",
+      "neutral ae_engine.assembly_contact module missing"
+    ]
   },
-  "last_update": "2026-09-21T21:11:00+08:00",
-  "next_action": "Locate and actively monitor Issue 467 T1 RED run for exact head 95aa3161b39e41737223c57d130a059a4ddad5be; accept only intended requirement assertions.",
+  "last_update": "2026-09-21T21:15:00+08:00",
+  "next_action": "Implement the canonical assembly-geometry tolerance owner and legal-contact contracts, then the neutral coplanar contact resolver; consolidate the T0 terminal-face numerical path onto the same owner.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json"
 }
