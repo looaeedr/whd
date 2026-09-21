@@ -410,6 +410,36 @@ def folded_profile_segment_center_from_envelope(profile, segment_index: int) -> 
         (float(z0) + float(z1)) / 2.0,
     )
 
+def folded_profile_segment_center_from_full_envelope(
+    profile,
+    segment_index: int,
+) -> tuple[float, float]:
+    """Return one semantic folded segment midpoint in the same centered local frame as assembly placement.
+
+    place_assembly_points recenters the full folded strip mesh in both folded
+    U and folded Z before applying the authoritative placement offset. Contact
+    owners that already know the semantic segment identity may use this helper
+    to reproduce that exact local frame without selecting a face from a bbox.
+    The envelope is therefore a placement-transform detail, not contact authority.
+    """
+    segs = list(profile or ())
+    index = int(segment_index)
+    if index < 0 or index >= len(segs):
+        raise ValueError("folded profile segment index is outside the fold chain")
+    _boundaries, folded = _profile_geometry(segs)
+    if len(folded) != len(segs) + 1:
+        raise ValueError("folded profile geometry is incomplete")
+    u0, z0 = folded[index]
+    u1, z1 = folded[index + 1]
+    min_u = min(float(point[0]) for point in folded)
+    max_u = max(float(point[0]) for point in folded)
+    min_z = min(float(point[1]) for point in folded)
+    max_z = max(float(point[1]) for point in folded)
+    return (
+        (float(u0) + float(u1)) / 2.0 - (min_u + max_u) / 2.0,
+        (float(z0) + float(z1)) / 2.0 - (min_z + max_z) / 2.0,
+    )
+
 def _profile_segment_index(position, boundaries):
     value = float(position)
     total = float(boundaries[-1])
