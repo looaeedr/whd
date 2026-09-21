@@ -60,7 +60,6 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import subprocess
 
           root = Path('.')
           owner = root / '個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md'
@@ -78,11 +77,6 @@ jobs:
               '.github/workflows/qa-issue443-t1-dead-glue.yml',
           ):
               assert not Path(stale).exists(), f'TEMP_QA_RESIDUE={stale}'
-
-          changed = set(subprocess.check_output(
-              ['git','diff','--name-only', f'{subprocess.check_output(["git","rev-parse","$BASE_SHA"], text=True).strip()}...HEAD'],
-              text=True
-          ).splitlines())
           PY
           echo "DURABLE_OWNERSHIP_CURRENT_COUNT=1"
           echo "LEGACY_TEMP_QA_RESIDUE=0"
