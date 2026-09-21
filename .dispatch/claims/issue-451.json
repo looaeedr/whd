@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "head_sha": "df041e5c55a157a304ba60897d1747dc1ccda74a",
-  "phase": "DRIFT_AUDIT",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -15,14 +15,22 @@
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "chain_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
-  "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:58:00+08:00",
+  "current_x_head_observation": "05a455f602ba3477d9d05377055126fd5019451d",
+  "last_update": "2026-09-21T19:59:00+08:00",
+  "integration": {
+    "pr": 463,
+    "method": "merge",
+    "force_push": 0,
+    "base_before": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
+    "head_integrated": "df041e5c55a157a304ba60897d1747dc1ccda74a",
+    "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+    "production_readback": "GREEN"
+  },
   "remote_qa": {
     "run_id": 35594987369,
     "head_sha": "996e5566335b40f8df0d93ca99e71a724721a4a7",
     "status": "completed",
     "conclusion": "success",
-    "job_id": 106317630808,
     "counts": "40 passed, 1 skipped"
   },
   "cleanup": {
@@ -31,7 +39,7 @@
     "cleaned_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
     "drift": "GREEN_WORKFLOW_DELETE_ONLY"
   },
-  "next_action": "Open the authorized non-force integration PR from cleaned T9 head df041e5c55a157a304ba60897d1747dc1ccda74a to cleanup/2d-3d-sync at current X 86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57, verify mergeability, and merge only non-force.",
+  "next_action": "Create a one-shot post-integration smoke workflow on the claimed T9 branch that checks out exact production SHA 05a455f602ba3477d9d05377055126fd5019451d, run focused ownership/authority tests, lock its run_id+tested production SHA, and monitor to terminal.",
   "blocker": null,
   "handoff_ready": false
 }
