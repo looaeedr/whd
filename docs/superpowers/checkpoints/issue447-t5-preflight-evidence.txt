@@ -36,3 +36,15 @@ READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
 READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
 READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+REMOTE_QA_PREFLIGHT:
+- tests/test_issue447_workspace_shell_owner.py
+- .github/workflows/qa-issue447-t5-workspace-shell.yml
+MATCHED_ROUTE=ui-design-de-ai
+MATCHED_ROUTE=remote-qa-monitoring
+READ_SKILL: UI設計與去AI味
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
