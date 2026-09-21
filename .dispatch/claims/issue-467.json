@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
+  "head_sha": "889964cf4c42f6ee4197e63c2e0ce800991f1db4",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
+  "chain_head": "889964cf4c42f6ee4197e63c2e0ce800991f1db4",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35602759252,
@@ -36,8 +36,8 @@
       "classification": "Receiving authoritative frame/divider placement closure mismatch; classifier is behaving correctly"
     }
   },
-  "last_update": "2026-09-21T22:14:00+08:00",
-  "next_action": "Fix Receiving left/right frame span and center from the authoritative shared horizontal Divider CORE_PHYSICAL_SEGMENT support skin; do not widen tolerance or encode the observed 4.5 mm delta.",
+  "last_update": "2026-09-21T22:18:00+08:00",
+  "next_action": "Add Receiving family vertical-frame contract that derives top datum from canonical Door geometry and lower datum from the exact shared Divider CORE_PHYSICAL_SEGMENT support skin using the new centered folded-profile helper.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
