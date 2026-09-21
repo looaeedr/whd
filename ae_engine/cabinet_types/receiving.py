@@ -387,9 +387,8 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
             gap_w=gap_w, gap_h=gap_h, frame_edges=cell.edges,
         )
         inner_w = float(outer_w) - INNER_DOOR_INSET_LEFT - INNER_DOOR_INSET_RIGHT
-        inner_h = float(outer_h) - INNER_DOOR_INSET_TOP
-        if inner_w <= 0 or inner_h <= 0:
-            raise ValueError("receiving inner-door 50 mm inset leaves no valid finished area")
+        if inner_w <= 0:
+            raise ValueError("receiving inner-door horizontal insets leave no valid finished width")
         included = tuple(
             side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
             if side != "bottom"
