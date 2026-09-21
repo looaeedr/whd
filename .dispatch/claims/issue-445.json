@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
   "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T08:18:39+08:00",
+  "last_update": "2026-09-21T08:19:11+08:00",
   "remote_qa": {
     "run_id": 35547295514,
     "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure"
   },
-  "next_action": "Poll exact run 35547295514 at head fe94e2da to terminal; inspect jobs/steps and bounded failure evidence if needed.",
+  "next_action": "Diff base/current bridge around _PHASE6_BRIDGE_METHODS, restore accidentally deleted facade section without restoring selected Settings Tk builders, then revalidate.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
@@ -25,5 +25,13 @@
     "terminal": "completed/failure",
     "failed_step": "Knowledge Preflight",
     "cause": "missing READ_SKILL diagnosing-bugs evidence; production/tests were not executed"
+  },
+  "recovery_evidence_latest": {
+    "run_id": 35547295514,
+    "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
+    "terminal": "completed/failure",
+    "failed_step": "T3 ownership contracts",
+    "result": "4 passed, 1 failed",
+    "cause": "_PHASE6_BRIDGE_METHODS marker missing"
   }
 }
