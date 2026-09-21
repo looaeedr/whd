@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "issue": "470",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35619994683,
+  "job_id": 106400350256,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement authority: docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md @ 0fafeae16c7cb0b4e2d1902c004626d7714d97d9",
+    "Expected parent accepted T3 head 245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c preserved",
+    "Initial Gate A RED run 35619184377: one requirement RED (missing dormant foundation status resolver) plus three harness dependency failures (matplotlib missing)",
+    "Dormant implementation commit 70df2efb3266611918013ca3e3806cb3d38c0ca9 exposes frozen Gate A status through manufacturing diagnostics only",
+    "Gate A focused run 35619752459 at 70df2efb3266611918013ca3e3806cb3d38c0ca9: 4 passed, 0 failed",
+    "Adjacent T4/T3/T2/T1/T0 run 35619994683 at d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65: 37 passed, 0 failed",
+    "Gate state verified as FOUNDATION_MERGED / MARKING_NOT_ACTIVATED",
+    "activation_enabled=false, export_disposition=UNRESOLVED, production_policy_count=0",
+    "FinalScene material/primitives unchanged and no Joint Placement MARKING emitted before activation",
+    "DXF entity-set parity against pre-feature baseline verified",
+    "Code review fixed point 245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c to tested head d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65: standards findings 0, spec findings 0",
+    "Temporary .github/workflows/qa-issue470-t4.yml removed and remotely absent",
+    "Tested head d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65 to closing head 947a2299cc4ab9109dbffadef325b12eab1ff3c3 is exactly one commit ahead with workflow-only deletion",
+    "cleanup/2d-3d-sync observed unchanged at 98300a2c213ce12ad5860e4aa04d1234a48adc80 during T4 cleanup",
+    "AI Library writeback remains owned by closing T7"
+  ]
+}
