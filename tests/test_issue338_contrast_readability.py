@@ -58,14 +58,16 @@ def test_shared_theme_standard_text_contrast_meets_4_5():
 
 def test_shared_theme_owns_secondary_warning_and_hidden_text_colors():
     bridge = _text("fold_designer_bridge.py")
+    settings_panel = _text("phase6_settings_panel.py")
     gui = _text("gui.py")
     final_scene = _text("phase6_final_scene_renderer.py")
 
-    assert "#777777" not in bridge
-    assert 'foreground="#333"' not in bridge
-    assert 'foreground="#b45309"' not in bridge
+    for source in (bridge, settings_panel):
+        assert "#777777" not in source
+        assert 'foreground="#333"' not in source
+        assert 'foreground="#b45309"' not in source
     assert 'WHD_THEME["muted_text"]' in bridge
-    assert 'WHD_SEMANTIC_COLORS["warning"]' in bridge
+    assert 'WHD_SEMANTIC_COLORS["warning"]' in settings_panel
 
     assert 'fill=WHD_SEMANTIC_COLORS["success"]' in gui
     assert 'color=WHD_THEME["text"]' in final_scene
