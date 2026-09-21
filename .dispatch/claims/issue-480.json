@@ -5,21 +5,21 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_automation",
   "claimed_at": "2026-09-22T07:51:00+08:00",
-  "phase": "RED",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
-  "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
+  "head_sha": "d7ee274a8e393da135bf8f74488bda52ddb96084",
   "delegated_branches": ["coord/dispatch-claims"],
   "remote_qa": {
-    "run_id": 35669065287,
-    "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
+    "run_id": 35669129897,
+    "head_sha": "d7ee274a8e393da135bf8f74488bda52ddb96084",
     "status": "queued",
     "conclusion": null
   },
-  "next_action": "Poll exact RED run 35669065287 at e626e98af02d0dc14871a1f34d1d75c5cff359fa to terminal; EXPECTED RED must fail because phase6_derived_part_projection pure immutable owner does not exist yet. If failure matches, implement minimal pure immutable request/plan owner; otherwise classify/repair the RED contract.",
+  "next_action": "Poll exact implementation run 35669129897 at d7ee274a8e393da135bf8f74488bda52ddb96084. If GREEN, continue T2 integration so bridge consumes the pure plan seam while navigation remains the sole mutation owner; then run focused physical-identity and protected acceptance before cleanup/closure.",
   "blocker": null,
   "preflight": {
     "frozen_parent": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
@@ -36,25 +36,10 @@
       "個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md",
       "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
       "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
-    ],
-    "script_execution": "canonical route reconstructed from exact frozen registry; required Skills/references fresh-read from exact frozen SHA"
+    ]
   },
-  "r2_census": {
-    "symbol": "_phase6_sync_authoritative_derived_parts",
-    "loc": 201,
-    "navigation_mutation_calls": 16,
-    "finding": "projection/derivation and workspace/navigation mutation are mixed in bridge"
-  },
-  "red_contract": {
-    "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
-    "test_file": "tests/test_issue480_derived_part_projection_plan.py",
-    "workflow": ".github/workflows/qa-issue480-t2-red.yml",
-    "expected_failure": "ModuleNotFoundError for phase6_derived_part_projection or equivalent missing pure-owner contract"
-  },
-  "provenance": {
-    "executor_source": "chatgpt_automation",
-    "cycle_started_at": "2026-09-22T07:44:04+08:00",
-    "owning_issue": 480,
-    "action": "fresh preflight + R2 census + requirement RED + exact RED run lock"
-  }
+  "r2_census": {"symbol":"_phase6_sync_authoritative_derived_parts","loc":201,"navigation_mutation_calls":16,"finding":"projection/derivation and workspace/navigation mutation are mixed in bridge"},
+  "red_contract": {"run_id":35669065287,"head_sha":"e626e98af02d0dc14871a1f34d1d75c5cff359fa","conclusion":"EXPECTED_RED","summary":"3 failed; all fail with ModuleNotFoundError: phase6_derived_part_projection"},
+  "implementation": {"head_sha":"d7ee274a8e393da135bf8f74488bda52ddb96084","new_owner":"phase6_derived_part_projection.py","properties":["frozen request","frozen plan","no bridge import","no Tk import","no DesignerWorkspace ownership","no manufacturing geometry formulas"]},
+  "provenance": {"executor_source":"chatgpt_automation","cycle_started_at":"2026-09-22T07:44:04+08:00","owning_issue":480,"action":"fresh preflight + R2 census + EXPECTED RED + minimal pure immutable plan owner + exact implementation run lock"}
 }
