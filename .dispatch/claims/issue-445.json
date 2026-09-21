@@ -6,17 +6,24 @@
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
   "head_sha": "583024dd9d3f5df78924a3e07f8da0966786bd70",
-  "phase": "RECOVERING",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T08:17:19+08:00",
+  "last_update": "2026-09-21T08:18:00+08:00",
   "remote_qa": {
     "run_id": 35547183667,
     "head_sha": "583024dd9d3f5df78924a3e07f8da0966786bd70",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Read canonical diagnosing-bugs Skill, add its required Preflight evidence marker, then trigger one replacement #445 focused QA run.",
-  "blocker": "RUN 35547183667 failed only at Knowledge Preflight: missing diagnosing-bugs evidence; all later validation steps skipped.",
+  "next_action": "Add READ_SKILL diagnosing-bugs to #445 Preflight evidence; that push triggers the single replacement focused QA run.",
+  "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
-  "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1"
+  "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
+  "recovery_evidence": {
+    "previous_run_id": 35547183667,
+    "previous_head_sha": "583024dd9d3f5df78924a3e07f8da0966786bd70",
+    "terminal": "completed/failure",
+    "failed_step": "Knowledge Preflight",
+    "cause": "missing READ_SKILL diagnosing-bugs evidence; production/tests were not executed"
+  }
 }
