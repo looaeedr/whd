@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
-  "phase": "IMPLEMENTING",
+  "head_sha": "1a1dfae33e0c28c5532288396d14c8cb8a7a410b",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,22 +14,11 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "bf394bca729c54e1fdafa163c91765800725c924",
+  "chain_head": "1a1dfae33e0c28c5532288396d14c8cb8a7a410b",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": {
-    "run_id": 35606351046,
-    "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
-    "status": "completed",
-    "conclusion": "failure_expected_red",
-    "job_id": 106354277172,
-    "counts": {
-      "failed": 7,
-      "passed": 0
-    },
-    "evidence": "R-CHAIN-EXIT: continuity controller cannot represent Master-chain continuation"
-  },
-  "last_update": "2026-09-21T21:45:00+08:00",
-  "next_action": "Implement structured Master-chain continuation metadata + turn-exit/scheduled-resume enforcement, then update dispatch/closure Skills and durable pitfall knowledge.",
+  "remote_qa": null,
+  "last_update": "2026-09-21T21:50:00+08:00",
+  "next_action": "Run focused process GREEN for Issue473 on exact head 1a1dfae33e0c28c5532288396d14c8cb8a7a410b; then update Skills/AI Library only after machine behavior passes.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
