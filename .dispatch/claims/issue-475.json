@@ -5,13 +5,22 @@
   "work_branch": "process/issue475-dispatch-skill-live-remote-authority-20260922",
   "claimed_at": "2026-09-22T00:32:05+08:00",
   "base_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
-  "head_sha": "3ef2600782930844b03f889ee50fa1ba326fb833",
-  "phase": "RED",
+  "head_sha": "73c0201fb1458351230c094d3e6f119a0e1c0338",
+  "phase": "GREEN",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
   "baseline_skill_blob_sha": "a52053d956822154a8bb68116321478334459183",
-  "next_action": "Run targeted RED contract test on branch head 3ef2600782930844b03f889ee50fa1ba326fb833; confirm failure is missing LIVE_REMOTE_QA_AUTHORITY_BRIDGE before modifying 派工 Skill.",
+  "next_action": "Run project-level Skill/preflight/release gates against 73c0201fb1458351230c094d3e6f119a0e1c0338; then remote-readback and close #475 only if all required gates are terminal GREEN.",
   "blocker": null,
-  "last_update": "2026-09-22T00:36:00+08:00",
-  "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN"
+  "last_update": "2026-09-22T00:39:00+08:00",
+  "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
+  "red_evidence": {
+    "test": "tests/test_dispatching_skill_timeout_contract.py::test_dispatching_skill_live_remote_qa_overrides_stale_claim_snapshot",
+    "result": "1 failed",
+    "missing": "LIVE_REMOTE_QA_AUTHORITY_BRIDGE"
+  },
+  "green_evidence": {
+    "test": "tests/test_dispatching_skill_timeout_contract.py::test_dispatching_skill_live_remote_qa_overrides_stale_claim_snapshot",
+    "result": "1 passed"
+  }
 }
