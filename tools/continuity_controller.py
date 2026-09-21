@@ -46,6 +46,16 @@ class ScheduledResumeAction(str, Enum):
     NO_OP = "NO_OP"
 
 
+class ChainContinuationState(str, Enum):
+    """Master/work-order continuation state carried by a terminal child checkpoint."""
+
+    NONE = "NONE"
+    NEXT_CHILD_EXECUTABLE = "NEXT_CHILD_EXECUTABLE"
+    NEXT_CHILD_BLOCKED = "NEXT_CHILD_BLOCKED"
+    CHAIN_COMPLETE = "CHAIN_COMPLETE"
+    USER_STOPPED = "USER_STOPPED"
+
+
 NONTERMINAL_STATES = frozenset(
     {
         ContinuityState.RUNNING,
@@ -135,6 +145,11 @@ class Checkpoint:
     blocked_count: int = 0
     blocked_last_notified_at: str | None = None
     evidence: tuple[str, ...] = ()
+    master_issue: str | None = None
+    chain_state: ChainContinuationState = ChainContinuationState.NONE
+    next_issue: str | None = None
+    chain_next_action: str | None = None
+    chain_reason: str | None = None
 
     def __post_init__(self) -> None:
         issue = _require_text("issue", self.issue)
@@ -148,6 +163,20 @@ class Checkpoint:
 
         next_action = _normalize_optional_text(self.next_action)
         log_cursor = _normalize_optional_text(self.log_cursor)
+        master_issue = _normalize_optional_text(self.master_issue)
+        next_issue = _normalize_optional_text(self.next_issue)
+        chain_next_action = _normalize_optional_text(self.chain_next_action)
+        chain_reason = _normalize_optional_text(self.chain_reason)
+        try:
+            chain_state = (
+                self.chain_state
+                if isinstance(self.chain_state, ChainContinuationState)
+                else ChainContinuationState(self.chain_state)
+            )
+        except (TypeError, ValueError) as exc:
+            raise CheckpointError(
+                f"invalid chain continuation state: {self.chain_state!r}"
+            ) from exc
         blocked_last_notified_at = _normalize_optional_utc_timestamp(
             self.blocked_last_notified_at
         )
@@ -171,6 +200,50 @@ class Checkpoint:
                 raise CheckpointError("run_id is required for WAITING_REMOTE")
             _require_text("head_sha", head_sha)
 
+        if master_issue is None:
+            if chain_state is not ChainContinuationState.NONE or any(
+                value is not None
+                for value in (next_issue, chain_next_action, chain_reason)
+            ):
+                raise CheckpointError(
+                    "chain continuation metadata requires master_issue"
+                )
+        else:
+            if state not in TERMINAL_STATES:
+                raise CheckpointError(
+                    "Master-chain continuation metadata is only valid on terminal child checkpoints"
+                )
+            if chain_state is ChainContinuationState.NONE:
+                raise CheckpointError(
+                    "chain_state is required when master_issue is present"
+                )
+            if chain_state is ChainContinuationState.NEXT_CHILD_EXECUTABLE:
+                if next_issue is None or chain_next_action is None:
+                    raise CheckpointError(
+                        "NEXT_CHILD_EXECUTABLE requires next_issue and chain_next_action"
+                    )
+            elif chain_state is ChainContinuationState.NEXT_CHILD_BLOCKED:
+                if chain_reason is None:
+                    raise CheckpointError(
+                        "NEXT_CHILD_BLOCKED requires chain_reason"
+                    )
+                if chain_next_action is not None:
+                    raise CheckpointError(
+                        "NEXT_CHILD_BLOCKED cannot carry chain_next_action"
+                    )
+            elif chain_state is ChainContinuationState.CHAIN_COMPLETE:
+                if next_issue is not None or chain_next_action is not None:
+                    raise CheckpointError(
+                        "CHAIN_COMPLETE cannot carry next_issue or chain_next_action"
+                    )
+            elif chain_state is ChainContinuationState.USER_STOPPED:
+                if chain_reason is None:
+                    raise CheckpointError("USER_STOPPED requires chain_reason")
+                if chain_next_action is not None:
+                    raise CheckpointError(
+                        "USER_STOPPED cannot carry chain_next_action"
+                    )
+
         normalized_evidence: list[str] = []
         for index, item in enumerate(self.evidence):
             normalized_evidence.append(_require_text(f"evidence[{index}]", item))
@@ -181,6 +254,11 @@ class Checkpoint:
         object.__setattr__(self, "state", state)
         object.__setattr__(self, "next_action", next_action)
         object.__setattr__(self, "log_cursor", log_cursor)
+        object.__setattr__(self, "master_issue", master_issue)
+        object.__setattr__(self, "chain_state", chain_state)
+        object.__setattr__(self, "next_issue", next_issue)
+        object.__setattr__(self, "chain_next_action", chain_next_action)
+        object.__setattr__(self, "chain_reason", chain_reason)
         object.__setattr__(self, "blocked_last_notified_at", blocked_last_notified_at)
         object.__setattr__(self, "evidence", tuple(normalized_evidence))
 
@@ -195,6 +273,17 @@ def scheduled_resume_action(checkpoint: Checkpoint) -> ScheduledResumeAction:
     This is intentionally a pure routing function. It does not mutate or persist
     the checkpoint and therefore cannot become a second workflow state machine.
     """
+
+    if (
+        checkpoint.is_terminal
+        and checkpoint.chain_state is ChainContinuationState.NEXT_CHILD_EXECUTABLE
+    ):
+        return ScheduledResumeAction.EXECUTE_NEXT_ACTION
+    if (
+        checkpoint.is_terminal
+        and checkpoint.chain_state is ChainContinuationState.NEXT_CHILD_BLOCKED
+    ):
+        return ScheduledResumeAction.REPORT_BLOCKER
 
     mapping = {
         ContinuityState.RUNNING: ScheduledResumeAction.EXECUTE_NEXT_ACTION,
@@ -226,6 +315,7 @@ class FinalizationProof:
 def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     data = asdict(checkpoint)
     data["state"] = checkpoint.state.value
+    data["chain_state"] = checkpoint.chain_state.value
     data["evidence"] = list(checkpoint.evidence)
     return {"version": CHECKPOINT_VERSION, **data}
 
@@ -312,6 +402,11 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
         "blocked_count",
         "blocked_last_notified_at",
         "evidence",
+        "master_issue",
+        "chain_state",
+        "next_issue",
+        "chain_next_action",
+        "chain_reason",
     }
     unknown = set(payload) - allowed
     if unknown:
@@ -335,6 +430,13 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
             blocked_count=payload.get("blocked_count", 0),
             blocked_last_notified_at=payload.get("blocked_last_notified_at"),
             evidence=tuple(evidence),
+            master_issue=payload.get("master_issue"),
+            chain_state=ChainContinuationState(
+                payload.get("chain_state", ChainContinuationState.NONE.value)
+            ),
+            next_issue=payload.get("next_issue"),
+            chain_next_action=payload.get("chain_next_action"),
+            chain_reason=payload.get("chain_reason"),
         )
     except KeyError as exc:
         raise CheckpointError(f"missing checkpoint field: {exc.args[0]}") from exc
@@ -365,6 +467,11 @@ def transition_checkpoint(
     blocked_count: int | object = _UNSET,
     blocked_last_notified_at: str | None | object = _UNSET,
     evidence: tuple[str, ...] | None = None,
+    master_issue: str | None | object = _UNSET,
+    chain_state: ChainContinuationState | str | object = _UNSET,
+    next_issue: str | None | object = _UNSET,
+    chain_next_action: str | None | object = _UNSET,
+    chain_reason: str | None | object = _UNSET,
 ) -> Checkpoint:
     """Return a validated next checkpoint without reusing stale remote ownership."""
 
@@ -426,6 +533,15 @@ def transition_checkpoint(
         blocked_count=next_blocked_count,
         blocked_last_notified_at=next_blocked_last_notified_at,
         evidence=merged_evidence,
+        master_issue=checkpoint.master_issue if master_issue is _UNSET else master_issue,
+        chain_state=checkpoint.chain_state if chain_state is _UNSET else chain_state,
+        next_issue=checkpoint.next_issue if next_issue is _UNSET else next_issue,
+        chain_next_action=(
+            checkpoint.chain_next_action
+            if chain_next_action is _UNSET
+            else chain_next_action
+        ),
+        chain_reason=checkpoint.chain_reason if chain_reason is _UNSET else chain_reason,
     )
 
 
@@ -608,6 +724,17 @@ def assert_turn_exitable(checkpoint: Checkpoint) -> None:
         raise TurnExitBlocked(
             f"turn exit blocked for checkpoint {checkpoint.state.value}; "
             f"next_action={checkpoint.next_action!r}"
+        )
+
+    if (
+        checkpoint.is_terminal
+        and checkpoint.chain_state is ChainContinuationState.NEXT_CHILD_EXECUTABLE
+    ):
+        raise TurnExitBlocked(
+            "turn exit blocked: child checkpoint is terminal but Master chain remains "
+            f"executable; master_issue={checkpoint.master_issue!r}; "
+            f"next_issue={checkpoint.next_issue!r}; "
+            f"next_action={checkpoint.chain_next_action!r}"
         )
 
 
@@ -849,6 +976,12 @@ def main(argv: Iterable[str] | None = None) -> int:
             return 0
         if args.command == "resume":
             if checkpoint.is_terminal:
+                if (
+                    checkpoint.chain_state
+                    is ChainContinuationState.NEXT_CHILD_EXECUTABLE
+                ):
+                    print(checkpoint.chain_next_action)
+                    return 0
                 raise CheckpointError(
                     f"terminal checkpoint {checkpoint.state.value} has no next action to resume"
                 )
