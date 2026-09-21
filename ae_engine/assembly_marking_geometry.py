@@ -68,6 +68,21 @@ def _flat_axis_vector(axis):
     return key, table[key]
 
 
+def _authoritative_locator_mapping(contact):
+    """Return the locator region's canonical flat mapping and reject stale copies."""
+    region = getattr(contact, "locator_region", None)
+    mapping = tuple(getattr(region, "flat_mapping", ()) or ())
+    if not mapping:
+        raise ValueError("locator authoritative flat mapping is missing")
+
+    copied = tuple(getattr(contact, "locator_flat_mapping", ()) or ())
+    if copied and copied != mapping:
+        raise ValueError(
+            "legal-contact locator mapping copy disagrees with locator region authority"
+        )
+    return mapping
+
+
 def _mapped_axis_vector(record, axis):
     flat = tuple(getattr(record, "flat", ()) or ())
     world = tuple(getattr(record, "world", ()) or ())
@@ -162,9 +177,7 @@ def resolve_contact_local_frame(
     try:
         if not isinstance(contact, ResolvedLegalContact):
             raise ValueError("legal contact is unresolved")
-        mapping = tuple(contact.locator_flat_mapping or ())
-        if not mapping:
-            raise ValueError("locator authoritative flat mapping is missing")
+        mapping = _authoritative_locator_mapping(contact)
 
         longitudinal_key, longitudinal_flat = _flat_axis_vector(
             longitudinal_flat_axis
@@ -378,13 +391,14 @@ def backproject_locator_world_points(
     points,
 ) -> LocatorBackprojectionResult:
     """Backproject contact points through locator authoritative mapping only."""
-    mapping = tuple(getattr(contact, "locator_flat_mapping", ()) or ())
-    if not mapping:
+    try:
+        mapping = _authoritative_locator_mapping(contact)
+    except (TypeError, ValueError) as exc:
         return LocatorBackprojectionResult(
             status="SKIPPED_FAIL_CLOSED",
             diagnostic_code="BACKPROJECTION_FAILED",
             flat_points=(),
-            evidence={"reason": "locator authoritative flat mapping is missing"},
+            evidence={"reason": str(exc)},
         )
 
     tolerance = float(
