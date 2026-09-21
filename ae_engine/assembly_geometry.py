@@ -22,7 +22,7 @@ def triangle_bounds(triangles):
     )
 
 
-def thicken_triangle_surface(triangles, thickness, *, tolerance=1e-7):
+def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     """Turn a zero-thickness folded triangle surface into a sharp-bend sheet solid.
 
     The folded surface remains the geometric mid-surface.  Two skins are offset by
@@ -1170,7 +1170,7 @@ def resolve_physical_mating_region(
     world_normal = _mating_normalize(_mating_vec_sub(world_probe[1], world_probe[0]))
     plane_point = tuple(float(v) for v in world_probe[0])
 
-    solid_local = tuple(thicken_triangle_surface(mid_triangles, t))
+    solid_local = tuple(thicken_triangle_surface(\n        mid_triangles, t, tolerance=numerical_tolerance\n    ))
     solid_points = [point for tri in solid_local for point in tri[:3]]
     placed_points = place_assembly_points(
         solid_points,
