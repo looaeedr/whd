@@ -21,3 +21,18 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與�
 
 INITIAL_SCOPE=read-only deletion test of persistent top area / toolbar / fullscreen / shell layout.
 PROTECTED_UI_CONTRACT=single shared input/display physical slot; assembly/corner data are mutually exclusive direct siblings; no extra visible wrapper.
+
+CHANGED_FILE_PREFLIGHT:
+- fold_designer_bridge.py
+- phase6_workspace_shell.py (prospective only; only if EXTRACT)
+- tests/test_issue447_workspace_shell_owner.py
+- docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md
+MATCHED_ROUTE=phase6-corner-relief-3d
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
