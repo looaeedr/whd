@@ -21,13 +21,14 @@
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T05:08:19+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35663550436,
     "head_sha": "28364d7ff629e011b796a577df5d4acc70e883c3",
-    "run_id": null,
+    "status": "in_progress",
+    "conclusion": null,
     "purpose": "bounded exact-node baseline diff against frozen X and current X"
   },
-  "last_update": "2026-09-22T06:38:00+08:00",
-  "next_action": "Resolve push-triggered Issue472 T7 Baseline Diff run for head 28364d7ff629e011b796a577df5d4acc70e883c3; lock run_id and poll all four matrix jobs to terminal; classify candidate-only failures.",
+  "last_update": "2026-09-22T06:39:00+08:00",
+  "next_action": "Poll locked run 35663550436 at head 28364d7ff629e011b796a577df5d4acc70e883c3 until all four frozen/current-X Headless/Xvfb matrix jobs are terminal; then compute candidate-only failure delta.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
