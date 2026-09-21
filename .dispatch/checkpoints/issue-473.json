@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "473",
+  "branch": "cleanup/2d-3d-sync",
+  "head_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35607727615,
+  "job_id": 106358833571,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement RED RUN 35606351046 @ bf394bca729c54e1fdafa163c91765800725c924: 7 expected failures proving no Master-chain continuation representation",
+    "Machine GREEN RUN 35607309230 @ e4ab7cae40c69f5a9b5543c34e113cfab29ba60e: 36 passed / 0 failed",
+    "Final machine + knowledge GREEN RUN 35607727615 @ f32d8fcb07fea7b715aa8a51f1b19fbbdacced72: 63 passed / 0 failed",
+    "tested f32d8fcb07fea7b715aa8a51f1b19fbbdacced72 -> cleaned 6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1: only deletion of two Issue473 temporary workflows",
+    "PR #474 merged non-force; merge commit 98300a2c213ce12ad5860e4aa04d1234a48adc80",
+    "remote readback cleanup/2d-3d-sync = 98300a2c213ce12ad5860e4aa04d1234a48adc80",
+    "Issue #473 remained OPEN after merge because PR autoclose was deliberately removed before integration"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
