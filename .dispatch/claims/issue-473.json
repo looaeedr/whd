@@ -5,7 +5,7 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
+  "head_sha": "cd97c92eecdf98d2e4f97cd7394d6529f2bcd407",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": null,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "4be714d13c6120a28d8c290616fae5e9c8105b36",
+  "chain_head": "cd97c92eecdf98d2e4f97cd7394d6529f2bcd407",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35606675082,
@@ -27,8 +27,8 @@
       "failed": 0
     }
   },
-  "last_update": "2026-09-21T21:58:00+08:00",
-  "next_action": "Harden turn-exit ownership: caller-supplied expected_master_issue must match structured checkpoint handoff; missing/mismatched Master evidence must fail closed. Add regression, then update Skills/AI knowledge.",
+  "last_update": "2026-09-21T22:02:00+08:00",
+  "next_action": "Add regression that caller-known Master #464 + checkpoint missing/mismatched master_issue must fail closed, then rerun process GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
