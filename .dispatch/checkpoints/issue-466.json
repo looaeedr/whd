@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "466",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+  "state": "BLOCKED",
+  "next_action": "Obtain explicit product-authority selection of BLOCK_EXPORT or ALLOW_EXPORT_WITH_DIAGNOSTIC for OPEN-1, then persist that choice as canonical decision authority before T6.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 1,
+  "blocked_last_notified_at": "2026-09-21T15:43:00Z",
+  "evidence": [
+    "Issue #466 requires owning product authority to explicitly select exactly one export disposition.",
+    "Issue #466 has no comments or existing product decision.",
+    "Issue #471/T6 is explicitly blocked by #466 and #470.",
+    "Issue #470/T4 is closed/completed at accepted head 947a2299cc4ab9109dbffadef325b12eab1ff3c3.",
+    "Gate A state is FOUNDATION_MERGED / MARKING_NOT_ACTIVATED.",
+    "Production activation remains disabled and export disposition remains UNRESOLVED."
+  ]
+}
