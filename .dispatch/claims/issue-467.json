@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "621975545f2b3e2e7734936184a6a3a0f5ed7540",
-  "phase": "GREEN",
+  "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,28 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "621975545f2b3e2e7734936184a6a3a0f5ed7540",
+  "chain_head": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": 35601250370,
-    "head_sha": "9f657ca5f179d8de2a37bcc6ce97b391112c2a04",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106337624782,
-    "counts": {
-      "passed": 26,
-      "skipped": 1,
-      "failed": 0
-    },
-    "evidence": [
-      "T1 legal-contact contracts GREEN",
-      "T0 physical mating-region regressions GREEN",
-      "Receiving placement GREEN",
-      "joint collision classifier GREEN"
-    ]
+    "run_id": null,
+    "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 467 T1 Review GREEN"
   },
-  "last_update": "2026-09-21T21:57:00+08:00",
-  "next_action": "Create fresh focused T1 review-GREEN workflow on exact head 621975545f2b3e2e7734936184a6a3a0f5ed7540 and run the actual Receiving frame→Divider seam plus prior T1/T0 regressions.",
+  "last_update": "2026-09-21T22:00:00+08:00",
+  "next_action": "Locate and actively monitor Issue 467 T1 Review GREEN for exact head 1d2adfe77b20a5245abb8a08d2790b67fb131324; on failure inspect bounded log and remediate.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
