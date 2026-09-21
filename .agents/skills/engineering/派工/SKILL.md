@@ -160,6 +160,7 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 
 - `branch-create`：任何 implementation / QA branch 建立前都必須先驗 issue、canonical URL、worker、claimed work branch、base SHA 與 claim active state。
 - `write` / `commit` / `pr-write`：production、test、Skill、AI Library、workflow 或其他 repo write 前都必須 fail-closed 驗證 owner 與 branch。
+- `write/commit` 必須帶實際 `--changed-file`；缺 path identity 一律 fail closed。若 target 符合 `.agents/skills/**/SKILL.md`，同次 guard 還必須帶 `--preflight-evidence`，並由 canonical Phase6 Preflight evidence 證明 `寫技能` + required Skills/references 全部完成；execution claim 不得取代 Skill-authoring Preflight。
 - `qa-dispatch` / `workflow-dispatch`：遠端 QA/Actions 啟動前必須重新驗證；只有 claim 中明確列出的 delegated branch 可替 owner branch 執行 QA。
 - missing claim、non-owner、issue/URL mismatch、branch mismatch、malformed/stale/inactive/ambiguous claim 一律 **FAIL**；不得用新 branch、手動 comment、重跑 workflow 或其他旁路繞過。
 - guard 成功只授權該次 action，不建立永久 session 權限；下一次 repo mutation 必須再次驗證最新 claim。
@@ -168,7 +169,7 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 CLI precondition 形式：
 
 ```text
-python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD>
+python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD> [--changed-file <repo-relative-path>] [--preflight-evidence <phase6-evidence>]
 ```
 
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
@@ -425,6 +426,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] GitHub 專案每票在 Worker 前都有真正 GitHub owning Issue 並反讀 number + URL + title。
 - [ ] `NO_WORK_WITHOUT_CLAIM`：一票同時只有一個 execution claim owner；第一筆施工 write 前必須 atomic claim shared coordination authority。
 - [ ] `EXECUTION_CLAIM_PREWRITE_HARD_GATE`：每次 branch-create / write / commit / QA dispatch 前都要執行 `tools/execution_claim_guard.py`；missing/non-owner/branch mismatch/base SHA/head SHA/stale/malformed/inactive/ambiguous 一律 fail closed。
+- [ ] Skill write/commit 帶 `--changed-file` + `--preflight-evidence`；`.agents/skills/**/SKILL.md` 沒有 `寫技能` canonical Preflight evidence 時不得 mutation。
 - [ ] branch-local lock / Issue comment / label 沒有被誤當全域互斥 authority；claim 失敗時 fail closed 並轉下一張可執行未認領票。
 - [ ] `CLAIM_PROGRESS_STATE` 同步 phase/state、last_update、branch/HEAD、remote QA、next_action、blocker，重大 transition 即時更新。
 - [ ] 未完成工單可分成 `我持有` / `其他 AI 已鎖定` / `尚未認領`，且 claimed ticket 可看見進度與下一步。

@@ -11,6 +11,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 GUARD = ROOT / "tools/execution_claim_guard.py"
 DISPATCH_SKILL = ROOT / ".agents/skills/engineering/派工/SKILL.md"
+WRITING_SKILL = ROOT / ".agents/skills/engineering/寫技能/SKILL.md"
+AGENTS = ROOT / "AGENTS.md"
 PITFALL = ROOT / "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md"
 BASE_SHA = "e0a82f28f4ce3204c9fae56326f34f1a0964851f"
 HEAD_SHA = "6c1189a1b991bad2c953a5fbc95f0acda903b5d5"
@@ -59,6 +61,7 @@ def _assert_claim(guard, path: Path, **overrides):
         "action": "write",
         "expected_base_sha": BASE_SHA,
         "expected_head_sha": HEAD_SHA,
+        "changed_files": ("tools/example.py",),
     }
     kwargs.update(overrides)
     return guard.assert_execution_claim(path, **kwargs)
@@ -150,7 +153,7 @@ def test_base_sha_mismatch_is_rejected(tmp_path: Path) -> None:
         _assert_claim(guard, path)
 
 
-def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
+def test_cli_write_requires_changed_file_identity_and_owner(tmp_path: Path) -> None:
     path = _write_claim(tmp_path, _claim())
     common = [
         sys.executable,
@@ -168,8 +171,19 @@ def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
         "--head-sha",
         HEAD_SHA,
     ]
-    owner = subprocess.run(
+
+    missing_path = subprocess.run(
         [*common, "--worker", "chatgpt"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert missing_path.returncode == 2
+    assert "EXECUTION_CLAIM_GUARD_ERROR" in missing_path.stdout
+    assert "changed-file" in missing_path.stdout.lower()
+
+    owner = subprocess.run(
+        [*common, "--worker", "chatgpt", "--changed-file", "tools/example.py"],
         capture_output=True,
         text=True,
         check=False,
@@ -178,13 +192,91 @@ def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
     assert "EXECUTION_CLAIM_GUARD_GREEN" in owner.stdout
 
     intruder = subprocess.run(
-        [*common, "--worker", "other-worker"],
+        [*common, "--worker", "other-worker", "--changed-file", "tools/example.py"],
         capture_output=True,
         text=True,
         check=False,
     )
     assert intruder.returncode == 2
     assert "EXECUTION_CLAIM_GUARD_ERROR" in intruder.stdout
+
+
+def test_cli_skill_write_requires_canonical_writing_skill_preflight_evidence(tmp_path: Path) -> None:
+    path = _write_claim(tmp_path, _claim())
+    skill_path = ".agents/skills/engineering/派工/SKILL.md"
+    common = [
+        sys.executable,
+        str(GUARD),
+        "--claim",
+        str(path),
+        "--issue",
+        "256",
+        "--worker",
+        "chatgpt",
+        "--branch",
+        WORK_BRANCH,
+        "--action",
+        "write",
+        "--base-sha",
+        BASE_SHA,
+        "--head-sha",
+        HEAD_SHA,
+        "--changed-file",
+        skill_path,
+    ]
+
+    missing = subprocess.run(common, capture_output=True, text=True, check=False)
+    assert missing.returncode == 2
+    assert "EXECUTION_CLAIM_GUARD_ERROR" in missing.stdout
+    assert "preflight" in missing.stdout.lower()
+    assert "寫技能" in missing.stdout
+
+    incomplete_evidence = tmp_path / "incomplete-preflight.md"
+    incomplete_evidence.write_text(
+        "\n".join(
+            [
+                "派工",
+                "issue-closure-gate",
+                "phase6-release-packaging",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+                "READ_REFERENCE: release_required_artifacts.json",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    incomplete = subprocess.run(
+        [*common, "--preflight-evidence", str(incomplete_evidence)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert incomplete.returncode == 2
+    assert "寫技能" in incomplete.stdout
+
+    complete_evidence = tmp_path / "complete-preflight.md"
+    complete_evidence.write_text(
+        "\n".join(
+            [
+                "寫技能",
+                "派工",
+                "issue-closure-gate",
+                "phase6-release-packaging",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+                "READ_REFERENCE: release_required_artifacts.json",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    complete = subprocess.run(
+        [*common, "--preflight-evidence", str(complete_evidence)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert complete.returncode == 0, complete.stdout + complete.stderr
+    assert "EXECUTION_CLAIM_GUARD_GREEN" in complete.stdout
 
 
 def test_dispatch_skill_requires_executable_prewrite_gate() -> None:
@@ -203,3 +295,20 @@ def test_ai_pitfall_records_claim_acquisition_is_not_enough() -> None:
     assert "atomic claim" in text.lower()
     assert "pre-write" in text.lower() or "prewrite" in text.lower()
     assert "非 owner" in text or "non-owner" in text.lower()
+
+
+def test_skill_prewrite_gate_is_visible_in_project_authorities() -> None:
+    dispatch = DISPATCH_SKILL.read_text(encoding="utf-8")
+    writing = WRITING_SKILL.read_text(encoding="utf-8")
+    agents = AGENTS.read_text(encoding="utf-8")
+    pitfall = PITFALL.read_text(encoding="utf-8")
+
+    for text in (dispatch, writing, agents):
+        assert "--changed-file" in text
+        assert "--preflight-evidence" in text
+        assert "寫技能" in text
+        assert ".agents/skills/**/SKILL.md" in text
+
+    assert "Skill write" in pitfall
+    assert "changed-file" in pitfall
+    assert "preflight evidence" in pitfall.lower()

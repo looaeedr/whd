@@ -41,3 +41,14 @@ Guard 必須 fail closed 驗證：owning Issue、Issue URL、worker identity、c
 此 guard 不負責建立、接管或釋放 claim；它只消費既有 shared coordination authority 並決定目前 action 是否允許。stale takeover 仍必須走既有 compare-and-swap recovery 規則。
 
 GitHub 平台本身若沒有 repository ruleset / server-side hook，任意外部 API 仍可能繞過 repo 內工具；因此 WHD 的派工流程必須把此 executable pre-write guard 視為 branch/write/QA action 的強制前置條件，而不是建議。
+
+
+## Skill write preflight identity（2026-09-22）
+
+execution claim 只證明「誰可以寫」，不能證明「寫 Skill 的資格已完成」。過去曾出現 owner/branch/head 全部合法，但 Agent 直接修改 `.agents/skills/**/SKILL.md`，漏掉 `寫技能` Preflight 的流程洞。
+
+固定防錯：
+- file mutation 的 execution guard 必須知道實際 `changed-file`；`write/commit` 缺 changed-file identity 直接拒絕。
+- Skill write target 命中 `.agents/skills/**/SKILL.md` 時，guard 必須驗 `preflight evidence`，至少證明 canonical registry 要求的 `寫技能`、其他 required Skills 與 required references 都完成。
+- 只在聊天中說「有讀寫技能」、只留 Issue comment、或只持有 atomic claim 都不是 Skill authoring authority。
+- scope 新增 Skill/AI Library/測試檔時，先重跑 changed-file Preflight，再進下一次 write。
