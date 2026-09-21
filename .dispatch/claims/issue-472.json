@@ -21,12 +21,13 @@
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T00:21:18+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35628673353,
     "head_sha": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T00:58:00+08:00",
-  "next_action": "Resolve fresh Issue472 Combined Acceptance run for head 107cf4f17ce0afd5ff312d5d787f40eddc279fde, lock exact run_id+head_sha, and poll to terminal.",
+  "last_update": "2026-09-22T00:59:00+08:00",
+  "next_action": "Poll locked run 35628673353 @ 107cf4f17ce0afd5ff312d5d787f40eddc279fde to terminal; no duplicate runs.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
