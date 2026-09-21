@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "ae640d29ff8adf5b675c46c368957f322ff20a85",
-  "phase": "RED",
+  "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,11 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "ae640d29ff8adf5b675c46c368957f322ff20a85",
+  "chain_head": "bf394bca729c54e1fdafa163c91765800725c924",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": null,
-  "last_update": "2026-09-21T21:40:00+08:00",
-  "next_action": "Create focused Issue473 RED workflow on exact head ae640d29ff8adf5b675c46c368957f322ff20a85 and verify failure is due to missing Master-chain continuation machine contract.",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 473 Master Chain Turn Exit RED"
+  },
+  "last_update": "2026-09-21T21:42:00+08:00",
+  "next_action": "Locate and monitor Issue 473 RED run for exact head bf394bca729c54e1fdafa163c91765800725c924; accept RED only if failure is the missing Master-chain continuation machine contract.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
