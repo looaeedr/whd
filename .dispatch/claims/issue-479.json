@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,12 +18,13 @@
   "remote_qa": {
     "run_id": 35667017433,
     "head_sha": "1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "summary": "35 passed / 1 skipped"
   },
-  "next_action": "Poll locked GREEN run 35667017433 at implementation head 1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1 to terminal; on success run expanded FinalScene/physical-part acceptance, then cleanup and drift audit.",
+  "next_action": "Launch T1 final acceptance on the same implementation lineage: FinalScene render/query/preview/visibility regressions plus physical-part/DXF/persistence acceptance and protected config/DXF invariants; then cleanup workflow-only drift and close #479.",
   "blocker": null,
-  "last_update": "2026-09-22T07:28:00+08:00",
+  "last_update": "2026-09-22T07:31:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
