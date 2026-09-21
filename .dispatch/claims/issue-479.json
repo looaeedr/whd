@@ -5,44 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "RECOVERING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "ed200a84444b77b314394b9cb34be8ed4be6c64e",
+  "head_sha": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": 35667146541,
-    "head_sha": "ed200a84444b77b314394b9cb34be8ed4be6c64e",
-    "status": "in_progress",
-    "conclusion": null,
-    "jobs": {
-      "protected_architecture": {
-        "status": "completed",
-        "conclusion": "success",
-        "job_id": 106555320640
-      },
-      "final_scene": {
-        "status": "completed",
-        "conclusion": "failure",
-        "job_id": 106555320674,
-        "summary": "2 failed / 83 passed; protected invariants success"
-      },
-      "physical_dxf": {
-        "status": "queued",
-        "conclusion": null,
-        "job_id": 106555320385
-      }
-    },
-    "classification": "FINAL_SCENE_TWO_STALE_OWNERSHIP_ORACLES; PHYSICAL_DXF_PENDING"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
+    "run_id": null
   },
-  "next_action": "Keep locked run 35667146541 until physical-dxf terminal; then update the two stale ownership-oracle tests to inspect Phase6FoldDesignerComposition, launch fresh final acceptance on a guarded new head, and continue cleanup/drift audit.",
+  "next_action": "Resolve fresh Issue479 final acceptance run for test-oracle remediation head f30b4cdee42cd10e5e4a4106ef6a6a4df1943896; require FinalScene, physical-DXF, protected-architecture and protected hashes GREEN; then remove temporary workflows and drift-audit.",
   "blocker": null,
-  "last_update": "2026-09-22T07:37:00+08:00",
+  "last_update": "2026-09-22T07:41:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
@@ -96,6 +76,8 @@
       "tests/test_phase6_3d_single_source_renderer.py::test_3d_render_path_consumes_scene_callback_only"
     ],
     "reason": "Both tests inspect fold_designer_bridge._phase6_final_scene_adapter source for port names that T1 intentionally moved into existing Phase6FoldDesignerComposition; 83 other FinalScene tests pass and protected hashes are unchanged.",
-    "remediation": "After physical-dxf terminal, update only these stale ownership assertions to inspect the application composition owner; do not restore inline 35-port wiring to bridge."
+    "remediation": "After physical-dxf terminal, update only these stale ownership assertions to inspect the application composition owner; do not restore inline 35-port wiring to bridge.",
+    "remediation_head": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
+    "production_files_changed_in_remediation": 0
   }
 }
