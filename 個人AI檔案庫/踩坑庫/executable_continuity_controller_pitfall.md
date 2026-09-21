@@ -53,3 +53,29 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 `RUNNING / WAITING_REMOTE / RECOVERING` 有可自主 next action，因此 turn exit fail closed；`BLOCKED` 代表真正外部 wait，可結束 turn但仍不可 finalizable；terminal states 可通過兩者。特別是 remote run terminal 後，只要 cleanup/drift/closure 未完，必須回 `RUNNING(next_acceptance_action)` 並由 turn-exit guard 接手，不能因 remote lock 解除就回報後停止。
 
 對應 machine guard：`tools/continuity_controller.py` + `tests/process/test_continuity_controller.py`。Skill/AI marker tests 只保護 bridge 存在，不得再次被誤稱為 runtime enforcement。
+
+
+## MASTER_CHAIN_CHILD_TERMINAL_EXIT_PITFALL_20260921
+
+### 事故
+
+#467/T1 已完成 remote QA、cleanup、drift audit 並 CLOSED/completed，下一張 #468/T2 已 OPEN、exact parent 已寫回、沒有 blocker；assistant 卻把「child terminal」誤當成「整條 Master #464 terminal」，在回報 #467 完成後結束 turn，留下 #468 未 claim。
+
+### 根因
+
+舊 `assert_turn_exitable` 只看單一 checkpoint 的 `RUNNING / WAITING_REMOTE / RECOVERING / BLOCKED / TERMINAL_*`。它不知道 terminal checkpoint 是 leaf/child 還是 Master，因此 `TERMINAL_SUCCESS` 會直接放行 turn exit，無法表示「這張 child 完成，但 Master 還有可自主執行的 next child」。
+
+### 永久硬閘門
+
+- Canonical executable owner：`tools/continuity_controller.py`。
+- terminal child 若屬 Master/work-order chain，checkpoint 必須結構化保存 `master_issue + chain_state + next_issue + chain_next_action/chain_reason`。
+- `NEXT_CHILD_EXECUTABLE`：child 可關，但 turn exit **必須拒絕**；scheduled resume / CLI resume 皆回 exact `chain_next_action`。
+- `NEXT_CHILD_BLOCKED`：只允許 genuine external authority/capability wait，且需 reason。
+- `CHAIN_COMPLETE`：只有整條 Master 已真正 terminal。
+- `USER_STOPPED`：只有使用者明確停止／取消 chain。
+- 外層已知 Master 時必須傳 `expected_master_issue`；checkpoint 漏填或填錯 Master handoff 一律 fail closed。
+- 不得從聊天文字、Issue comment、commit message 或 evidence 字串推理 handoff authority。
+
+Primary regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py`。判斷式固定為：
+
+`run terminal != child terminal != Master-chain terminal`
