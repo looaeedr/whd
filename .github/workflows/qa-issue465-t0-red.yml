@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install -q pytest shapely
+          python -m pip install -q pytest -r requirements.txt
       - name: Run T0 requirement RED
         shell: bash
         run: |
