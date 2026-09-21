@@ -16,6 +16,16 @@ whd_schema: WHD_DOC_META_V1
 
 同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。
 
+### LIVE_REMOTE_QA_AUTHORITY_BRIDGE
+
+remote QA 的 durable claim/checkpoint 只是可恢復快照，**不是 live run status authority**。只要已知 exact `run_id + head_sha`，每次 resume、scheduled re-entry、checkpoint reread、30 秒 poll、final gate 前，都必須 fresh-read 該 exact GitHub Actions run；**live run status/conclusion/updated_at 永遠高於 claim/checkpoint 內的 `remote_qa.status`、`conclusion` 與舊 `next_action`**。
+
+- claim/checkpoint 若寫 `queued / in_progress / WAITING_REMOTE / RUN_NOT_CREATED`，但 live exact run 已 terminal，立即標記 stale remote-QA snapshot；禁止回到等待、禁止套用 10 分鐘保護、禁止沿用舊的「poll to terminal」next action。
+- live exact run `completed + success` → 同一 execution flow 立即 reconcile durable state，擷取 counts/invariants，做 workflow cleanup、tested-head → closing-head drift audit、Issue terminal evidence/closure、claim release，並在有 dependency-unblocked successor 時依 lineage 取得下一票後繼續 first executable action。
+- live exact run `failure / cancelled / timed_out` → 同一 execution flow 立即讀 exact failed job/log evidence、分類、repair/retry；不得因 claim 仍寫 `in_progress` 而假等。
+- claim/checkpoint 與 live Actions 衝突時，以 live exact `run_id + head_sha` readback 為 remote-QA authority，再把 durable state CAS/writeback 修正成一致；**stale snapshot 只能觸發 reconcile/recovery，不能成為 stop condition**。
+- 本 bridge 與 `monitoring-remote-qa::STALE_WAIT_WATCHDOG` / `GLOBAL_TURN_EXIT_AFTER_REMOTE_BRIDGE` 同義；若兩者文字有差異，以較嚴格、要求 continuation 的規則為準。
+
 ### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
 
 本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
@@ -473,6 +483,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] collection SHA + journal/resume 防止舊證據誤用。
 - [ ] Xvfb 有 SIGKILL / parent-death guard 契約。
 - [ ] remote QA 建立 run 即啟動 `monitoring-remote-qa`，鎖 `run_id + head_sha` 到 terminal。
+- [ ] `LIVE_REMOTE_QA_AUTHORITY_BRIDGE`：claim/checkpoint remote status 只作 snapshot；每次 resume/poll/final gate 都 fresh-read exact live `run_id + head_sha`，live terminal 必須立即 reconcile + continuation，不得因 stale `in_progress/WAITING_REMOTE` 停手。
 - [ ] `REMOTE_QA_ACTIVE_LOCK` 期間沒有其他工作插隊。
 - [ ] success 後仍做 cleanup + durable state + drift audit 才 ACCEPT。
 - [ ] 未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與 blocker，且不得中斷執行。
