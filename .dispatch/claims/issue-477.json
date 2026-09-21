@@ -5,13 +5,13 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "bb2d3bad64664b862e525c527b272bbfbec401c3",
-  "phase": "CLOSING",
+  "head_sha": "e108931eea3937198c801a2f3d3278a92e50be86",
+  "phase": "RECOVERING",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Open non-force PR from issue477 closing head bb2d3bad64664b862e525c527b272bbfbec401c3 to cleanup/2d-3d-sync; inspect PR checks, merge with expected head if no issue477 regression, then production readback + close/release.",
+  "next_action": "Poll PR #487 exact bootstrap run 35629738722 at e108931eea3937198c801a2f3d3278a92e50be86 to terminal; if success, classify bb2d3bad→e108931e as evidence-metadata-only descendant, classify Phase5 census independently, then merge PR with expected head.",
   "blocker": null,
-  "last_update": "2026-09-22T01:05:00+08:00",
+  "last_update": "2026-09-22T01:06:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
     "final_qa": {
@@ -67,5 +67,12 @@
       ".github/workflows/qa-issue477-red.yml"
     ]
   },
-  "target_head_observed": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5"
+  "target_head_observed": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
+  "bootstrap_recovery": {
+    "failed_run": 35629482437,
+    "failed_job": 106431902321,
+    "root_cause": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md lacked WHD_DOC_META_V1 YAML frontmatter",
+    "repair_commit": "e108931eea3937198c801a2f3d3278a92e50be86",
+    "repair": "added REFERENCE metadata with stable contract issue477-skill-write-preflight-evidence"
+  }
 }
