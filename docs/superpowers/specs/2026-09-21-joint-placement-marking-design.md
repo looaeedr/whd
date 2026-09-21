@@ -8,7 +8,7 @@ whd_schema: WHD_DOC_META_V1
 # 板件接合定位打標（Joint Placement MARKING）設計規格 v1.3
 
 - **日期**：2026-09-21
-- **狀態**：CURRENT／正式重寫版
+- **狀態**：CURRENT／正式重寫版／第二輪 review 補強
 - **Canonical repo path**：`docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md`
 - **取代**：同一路徑先前 v1.2 內容，以及未經 Skill gate 產生的 v1.3 PRE-GATE draft
 - **適用範圍**：WHD Phase6 physical parts、assembly placement、FinalScene、2D、DXF；首個啟用案例為 Receiving inner-door left/right frame → shared horizontal Divider
@@ -301,6 +301,30 @@ marking resolver 需要 neutral physical-face/contact seam，不能假設「所�
 
 第一階段只需要 locator Divider contact skin具 flat mapping；attached end wall可以提供 world-space physical face。未來若 locator 本身是 boundary wall，需擴充 mapped physical face能力後才啟用。
 
+### CS-6A — current Inner Door Frame 尚未發布 authoritative terminal mating-region contract
+
+Fresh-read current：
+
+- `ae_engine/inner_door_frames.py` 的 `InnerDoorFramePart` 目前只有 stable ID、side、span、thickness、signed/material fold chain 與 fold profile；
+- `build_inner_door_frame_render_data()` 目前只發布 FinalScene、material、fold guides 與一般 metadata；
+- current tests 只驗 blank / fold / stable identity / shared Divider role；
+- **目前沒有** `LOWER_TERMINAL_FACE`、`terminal_mating_region`、`ResolvedPhysicalMatingRegion` 或等價 authoritative API。
+
+因此「attached frame 的 authoritative lower terminal mating footprint」目前不是現成 production contract，而是本功能必須先補上的 **RED seam**。
+
+禁止 marking resolver 自己從下列資料偷偷產生 terminal region：
+
+- frame bbox 的 min/max；
+- mesh 最低點；
+- blank 的某條邊因為「看起來像下端」；
+- viewer intersection；
+- collision probe；
+- fixture expected。
+
+terminal region 必須由 physical-part geometry owner 發布 semantic region，再由 geometry-neutral resolver 建立實際 world physical face。
+
+---
+
 ### CS-7 — tolerance 尚未有單一 geometry-neutral owner
 
 Current production geometry存在多個 numerical defaults，例如：
@@ -479,6 +503,59 @@ ResolvedLegalContact
 
 若 attached terminal face由 true-solid boundary wall形成，可以只要求其 world physical face；**locator side 必須具有 authoritative world→flat mapping**，因 marking 最終寫在 locator。
 
+#### EC-1.1 — terminal-face contact 的「共面」定義
+
+EC-1 第 3 點的「共面」只比較**兩個 policy-selected actual physical mating faces**，不是把 attached geometry 先投影到 locator plane 後再宣告共面。
+
+第一階段 candidate face 可以是：
+
+- formed sheet 的 mapped physical skin；
+- true-solid 的 boundary side wall / terminal face；
+- 未來其他由 physical-part owner 明確發布的 physical mating face。
+
+對 locator face 與 attached face，resolver 必須各自取得：
+
+- authoritative face identity；
+- supporting plane；
+- canonical outward normal；
+- world polygon / bounded face geometry。
+
+設：
+
+- locator supporting plane 上任一 authoritative point = `P_l`
+- attached supporting plane 上任一 authoritative point = `P_a`
+- canonical locator normal = `N_l`
+- canonical attached normal = `N_a`
+
+則 terminal/end contact 的 coplanar contract 是：
+
+1. `N_l` / `N_a` 先通過 EC-1 的 opposing-normal residual contract；
+2. 兩個**實際 supporting planes** 的法向 separation：
+
+`abs(dot(P_a - P_l, N_l)) <= coplanar_distance_tolerance`
+
+3. 再在該 coincident mating plane 上求兩個 bounded physical faces 的 positive-area overlap。
+
+不得：
+
+- 把 locator support face 當唯一 plane，然後把 attached wall硬投影過去；
+- 只因 attached terminal edge碰到 locator就視為 face contact；
+- 以 mid-surface skin代替實際 terminal side wall；
+- 以 bbox end plane代替 physical face。
+
+Receiving 首案的 intended interpretation：
+
+- locator mating face = shared horizontal Divider 上由 policy指定的實際 support face；
+- attached mating face = left/right inner-door frame 下端 true-solid boundary wall / terminal face；
+- 兩者自己的 supporting plane 必須在 tolerance 內重合且 normals 相向；
+- overlap 就是後續 marking footprint 的 legal contact evidence。
+
+如果 attached terminal physical face 尚未由 authoritative mating-region contract發布：
+
+`MATING_REGION_UNRESOLVED`
+
+fail closed；不得由 marking module臨時生成。
+
 ---
 
 ### EC-2 — `contact_span_contract`：數值 tolerance 不等於有效接合尺度
@@ -514,6 +591,56 @@ Resolver 驗證：
 **第一個 Receiving left/right frame → Divider policy 使用 `EXPECTED_REGION_COVERAGE`。**
 
 其 expected region是 attached frame 的 authoritative lower terminal mating footprint，在 current placement 下與指定 Divider support face應形成完整 end-contact；不得用任意 mm threshold。
+
+#### EC-2.1 — `EXPECTED_REGION_COVERAGE` 的 authority owner
+
+Current repo **沒有現成 lower-terminal mating-region API**，所以第一個 Receiving policy施工前必須先建立 neutral physical-region seam。
+
+最低 contract：
+
+```text
+ResolvedPhysicalMatingRegion
+- part_id
+- region_id
+- region_role
+- physical_face_kind
+- supporting_plane
+- outward_normal
+- world_polygon
+- flat_mapping          # locator 需要；attached terminal wall 可為 None
+- provenance
+```
+
+Authority 分工：
+
+1. **physical-part owner 發布 semantic region contract**  
+   - Inner Door Frame：由 `ae_engine.inner_door_frames`（或其正式後繼 physical-part owner）發布 terminal-region semantics；
+   - 第一個 left/right frame 至少要有穩定 region identity：`LOWER_TERMINAL_FACE`（名稱可等價，但語意不可靠 marking module定義）；
+   - Divider 的 support region 必須引用既有 `BoxBodyDividerPart.physical_geometry_contract` / `CORE_PHYSICAL_SEGMENT` 語意，不得由 marking 自己選一張看起來接近的 face。
+
+2. **geometry-neutral assembly resolver 建 actual world face**  
+   建議 seam：
+   `resolve_physical_mating_region(part, region_id, render_data, placement, dimensions, thickness)`
+   （可置於 `ae_engine.assembly_geometry` 或獨立 neutral module；名稱可等價）。
+   
+   它只能從：
+   - canonical physical part；
+   - Final Material / Fold topology；
+   - authoritative placement；
+   - true thickness；
+   - owner-published region semantics
+   
+   建立 `ResolvedPhysicalMatingRegion`。
+
+3. **marking policy 只引用 region，不創造 region**  
+   `JointMarkingPolicy.attached_contact_region = LOWER_TERMINAL_FACE`。
+   marking resolver 若拿不到 region object：
+   `MATING_REGION_UNRESOLVED`。
+
+4. **`EXPECTED_REGION_COVERAGE` 比對的是 region object 的 bounded physical face**  
+   不是 bbox、不是 span scalar、不是 mesh extremum，也不是 pytest fixture。
+
+Receiving 第一階段必須先讓 left/right frame 的 `LOWER_TERMINAL_FACE` 有上述 authority，才能開始 legal contact → marking solve。
 
 ---
 
@@ -830,6 +957,7 @@ ResolvedJointMarkingResult
 - `ATTACHED_MISSING`
 - `STALE_STABLE_ID`
 - `PLACEMENT_UNRESOLVED`
+- `MATING_REGION_UNRESOLVED`
 - `CONTACT_NOT_FOUND`
 - `CONTACT_NOT_COPLANAR`
 - `CONTACT_NORMAL_MISMATCH`
@@ -1124,6 +1252,60 @@ role identity綁 canonical flat basis，world handedness只做 derived evidence�
 
 如果後續需要 primitive-level provenance，再獨立擴充 `LinePrimitive`，不能為了本功能強制改所有 DrawingScene consumer。
 
+### ID-11 — terminal mating region 必須先由 physical-part owner 發布
+
+第一票工程不得直接從 marking resolver 開始畫線。
+
+順序固定：
+
+1. Inner Door Frame physical owner補 semantic terminal-region contract；
+2. neutral assembly geometry resolver把該 semantic region解析成 true-solid world physical face；
+3. focused tests證明 region identity / face geometry / normal / placement deterministic；
+4. marking legal-contact resolver只消費 `ResolvedPhysicalMatingRegion`；
+5. 最後才生成 MARKING。
+
+若第 1～3 步未成立，Receiving marking 必須保持 fail closed。
+
+### ID-12 — Foundation Merge 與 Production Activation 分離
+
+OPEN-1 **不阻擋底層工程 merge**，但阻擋 marking 正式進 production manufacturing output。
+
+#### Foundation Merge 允許
+
+OPEN-1 尚未決定時，可以 merge／部署下列 dormant foundation：
+
+- physical mating-region contract；
+- geometry-neutral region resolver；
+- single production tolerance owner；
+- legal coplanar-contact classifier；
+- boundary-frame resolver；
+- policy registry / DTO；
+- diagnostics / report DTO；
+- focused tests。
+
+條件：
+
+- production `PartRenderData.scene` 尚未因 Joint Placement Marking 新增任何 MARKING；
+- canonical DXF output 與 merge 前保持 manufacturing behavior parity；
+- 不存在 silently active default policy；
+- 不把 export disposition猜成 blocking 或 non-blocking。
+
+#### Production Activation 禁止提前
+
+只有 OPEN-1 被 owning product authority明確選為：
+
+- `BLOCK_EXPORT`，或
+- `ALLOW_EXPORT_WITH_DIAGNOSTIC`
+
+且 Production Activation Gate 全綠後，才可：
+
+- 將 matched marking policy接入 resolved manufacturing orchestration；
+- enrich locator FinalScene；
+- 讓正式 DXF開始輸出 Joint Placement MARKING；
+- 對外宣告功能 enabled / production-ready。
+
+換句話說：**可以先把引擎、contract、resolver、tests 合進 production branch；不能在 OPEN-1 未決時改變正式製造輸出。**
+
 ---
 
 ## Testing Decisions
@@ -1145,6 +1327,20 @@ role identity綁 canonical flat basis，world handedness只做 derived evidence�
 - no contact → `CONTACT_NOT_FOUND`；
 - interior / through-plane penetration → `PENETRATION_NOT_CONTACT`；
 - multiple disjoint valid candidates → `CONTACT_NOT_UNIQUE`。
+
+### TD-2A — terminal-face coplanar contract
+
+至少建立一個 Receiving left/right frame → Divider focused case，驗：
+
+- attached candidate 是 true-solid terminal boundary wall，不是 mid-surface skin proxy；
+- locator / attached 各自有 authoritative physical region identity；
+- coplanar 比較的是兩個 actual supporting planes；
+- opposing normal residual通過；
+- plane separation在 production tolerance內；
+- positive-area overlap存在；
+- 把 attached wall沿 normal移開超過 tolerance → `CONTACT_NOT_COPLANAR`；
+- region authority缺失 → `MATING_REGION_UNRESOLVED`；
+- 不允許把 attached geometry投影到 locator plane後假造 PASS。
 
 ### TD-3 — frame role invariance
 
@@ -1171,6 +1367,16 @@ role identity綁 canonical flat basis，world handedness只做 derived evidence�
 - 微小碎片 contact，即使尺寸 > numerical tolerance → FAIL；
 - 缺一段 expected region → `CONTACT_SPAN_BELOW_MINIMUM` 或等價 coverage failure；
 - fixture數值不得出現在 production policy。
+
+### TD-4A — terminal mating-region authority
+
+直接測 physical-region seam，不透過 marking line結果間接驗：
+
+- `InnerDoorFramePart` 或正式後繼 owner能發布 left/right frame 的 stable `LOWER_TERMINAL_FACE` semantic region；
+- neutral resolver從 canonical render_data + placement + T建出 deterministic world physical face；
+- 尺寸／placement合法變更後 region identity不變、world geometry跟著變；
+- bbox/minmax、renderer、DXF verifier、pytest fixture都不是 region source；
+- marking resolver若沒有 region object必須 fail closed。
 
 ### TD-5 — Receiving exact topology
 
@@ -1281,6 +1487,18 @@ Reload後：
 - 只能投影 same resolved mark；
 - 刪除3D display不能改 DXF。
 
+### TD-13 — Foundation Merge / Activation guard
+
+OPEN-1 未決時的 merge candidate 必須證明：
+
+- foundation modules / contracts可正常 import / resolve；
+- matched policy不得被 production orchestration啟用；
+- locator FinalScene在 enable 前沒有新增 Joint Placement MARKING；
+- resolved DXF export與 baseline manufacturing entity set保持 parity；
+- diagnostics DTO可測，但 export disposition維持 `UNRESOLVED`。
+
+OPEN-1 決定後，另開 activation RED/GREEN，才驗正式 MARKING output與選定 disposition。
+
 ---
 
 ## Out of Scope / Open Items
@@ -1290,6 +1508,13 @@ Reload後：
 `BLOCK_EXPORT` 或 `ALLOW_EXPORT_WITH_DIAGNOSTIC` 待產品確認。
 
 這是本 v1.3 唯一刻意保留的產品決策，不由工程實作偷選。
+
+**Scope of block：**
+
+- OPEN-1 **不阻擋 Foundation Merge**；
+- OPEN-1 **阻擋 Production Activation**；
+- 可部署包含 dormant foundation 的版本，前提是 production manufacturing path 尚未呼叫 marking enrichment、DXF output 無行為變更；
+- 不得把「程式已 merge／已部署」寫成「Joint Placement Marking 已啟用」。
 
 ### OUT-1 — CAM process parameters
 
@@ -1416,6 +1641,27 @@ Review要求對 `acdfcfc6…` 重新確認。
 - DXF `1e-6` 是 **validation-only authority**；
 - v1.3 的 normative要求是「single geometry-neutral production tolerance owner」，不是「production 一律 1e-6」。
 
+### 2026-09-21 second-review supplement readback
+
+補強起始 target：
+
+`cleanup/2d-3d-sync @ a93ff976b0d7ebb1de9e4ebe03110c29e56edd39`
+
+Fresh read：
+
+- canonical marking spec blob：`9c7a3ebb0c00e9a8afdac72255aa1f33b0c0953f`
+- `ae_engine/inner_door_frames.py`：`0ebf28d7a7ac15142158ca7c898712b7d9e8da22`
+- `ae_engine/manufacturing_api.py`：`4b2d2ded30d0a86cd92f2cba0a864f1a7208c1d3`
+- `ae_engine/assembly_geometry.py`：`4173836bf3ef878b62e49c4e89d9453f97a60d7c`
+- `ae_engine/door_dividers.py`：`225b515165d4917de82150fb1ca1a9a86454d57f`
+- `tests/test_phase6_t04_inner_door_frames.py`：`40275c214fd3a25808e96ac3cced34095676861e`
+- `tests/test_phase6_t05_box_body_dividers.py`：`2c5a943675bffbd8db1dc3dd4b45fc4e29ea5a23`
+- `tests/test_phase6_t16_receiving_placement.py`：`d96c73f6668bb291d6e9224c036b64cd9bdfa48b`
+
+Confirmed current gap：
+
+> current Inner Door Frame path沒有 authoritative terminal mating-region API；因此本補強把 `ResolvedPhysicalMatingRegion` seam列為 Receiving marking 的前置 RED，而不是讓 marking resolver自行猜 terminal face。
+
 ### Superseded draft record
 
 下列 PRE-GATE v1.3 說法不得再使用：
@@ -1432,27 +1678,58 @@ Review要求對 `acdfcfc6…` 重新確認。
 
 ## Completion Gate
 
-實作可宣告 geometry feature GREEN 前，至少必須同時滿足：
+### Gate A — Foundation Merge Gate（OPEN-1 未決時可完成）
 
-- [ ] explicit marking policy registry；
+以下全綠即可把底層工程 merge 到 production branch；若部署，功能必須保持 dormant，製造輸出不得改變：
+
+- [ ] physical-part owner發布 stable mating-region semantics；
+- [ ] left/right Inner Door Frame有 authoritative `LOWER_TERMINAL_FACE` 或等價 stable region；
+- [ ] neutral `ResolvedPhysicalMatingRegion` resolver；
+- [ ] terminal boundary-wall與 locator support face使用 actual supporting-plane coplanar contract；
 - [ ] legal coplanar contact與 penetration分離；
 - [ ] single production tolerance owner；
+- [ ] explicit marking policy registry / DTO存在但 production activation關閉；
 - [ ] `EXPECTED_REGION_COVERAGE`拒絕碎片 contact；
 - [ ] `CONTACT_LOCAL_FRAME_V1`使用 signed flat basis；
 - [ ] mirror / inward transform不交換 boundary semantic role；
+- [ ] diagnostics / export-summary DTO可測；
+- [ ] `POLICY_NOT_FOUND`不污染 ordinary no-policy joints；
+- [ ] baseline FinalScene / DXF 在 activation 前**沒有**新增 Joint Placement MARKING；
+- [ ] CUTTING/BEND/holes/relief/material無 drift；
+- [ ] 3D renderer不是 manufacturing authority。
+
+Gate A GREEN 的狀態名稱只能是：
+
+`FOUNDATION_MERGED / MARKING_NOT_ACTIVATED`
+
+不得宣告 Joint Placement Marking production-ready。
+
+### Gate B — Production Activation Gate（OPEN-1 必須先決）
+
+只有下列全部成立才能正式啟用 marking：
+
+- [ ] OPEN-1 已由產品 authority選定 `BLOCK_EXPORT` 或 `ALLOW_EXPORT_WITH_DIAGNOSTIC`；
+- [ ] Gate A 已 GREEN；
+- [ ] first Receiving policy正式接入 resolved manufacturing orchestration；
+- [ ] locator Divider support region與 frame terminal region均來自 authoritative region contract；
 - [ ] first Receiving policy用 locator Divider `+X / +Y` basis；
 - [ ] left/right frame各 2 marks，標準 total 4；
 - [ ] no fictitious bottom-frame physical part；
 - [ ] marking不改 CUTTING/BEND/holes/relief/material；
 - [ ] failed policy出現在 export/manufacturing summary；
-- [ ] `POLICY_NOT_FOUND`不污染 ordinary no-policy joints；
+- [ ] 選定的 export disposition有 focused regression；
 - [ ] DXF save→reopen MARKING parity；
 - [ ] Save→Reload derived geometry parity；
-- [ ] 3D renderer不是 manufacturing authority；
-- [ ] OPEN-1 在 final production activation前由產品 authority明確選定。
+- [ ] dynamic topology / stale stable ID regression GREEN；
+- [ ] 2D consumer讀同一 enriched FinalScene；
+- [ ] 若有3D presentation，只消費同一 resolved marking。
+
+Gate B GREEN 後才可標：
+
+`JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED`
 
 ---
 
 ## 一句話 Source of Truth
 
-> **接合定位打標不是「在圖上補兩條線」：它是 explicit marking policy 對 authoritative physical parts 與 placement 求得 legal true-thickness mating contact，再以 canonical flat basis穩定定義兩側 role、反投影到 locator Final Material，最後把 MARKING 寫回同一份 PartRenderData / FinalScene；DXF只序列化，validation tolerance不回灌 production，任何應有 marking 的 fail-closed 都必須可見且不可靜默。**
+> **接合定位打標不是「在圖上補兩條線」：physical-part owner 先發布可命名的真實 mating region，neutral resolver 以 authoritative placement + true thickness 建立 actual physical mating faces；marking policy 再對這些 faces 求 legal coplanar contact、以 canonical flat basis穩定定義兩側 role並反投影到 locator Final Material，最後才把 MARKING 寫回同一份 PartRenderData / FinalScene。OPEN-1 不阻擋 foundation merge，但在 export disposition 明確前不得改變正式製造輸出；DXF只序列化，validation tolerance不回灌 production，任何應有 marking 的 fail-closed 都必須可見且不可靜默。**
