@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -32,8 +32,15 @@
       "workflow_readback": "ABSENT"
     }
   },
-  "last_update": "2026-09-21T22:27:00+08:00",
-  "next_action": "Fresh-read cleanup/2d-3d-sync, compare target drift from frozen base and governance branch, then open a PR if non-conflicting. Do not close Issue473 until target integration and remote reread succeed.",
+  "last_update": "2026-09-21T22:30:00+08:00",
+  "next_action": "Open PR from governance/issue473-master-chain-turn-exit-hard-gate-20260921 to cleanup/2d-3d-sync at unchanged target 05a455f602ba3477d9d05377055126fd5019451d, merge non-force, remote-read target, then seal terminal checkpoint and close Issue473.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-473.json"
+  "checkpoint": ".dispatch/checkpoints/issue-473.json",
+  "integration": {
+    "target_before": "05a455f602ba3477d9d05377055126fd5019451d",
+    "target_drift": "IDENTICAL_TO_FROZEN_BASE",
+    "branch_head": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
+    "permanent_files": 9,
+    "tested_run_id": 35607727615
+  }
 }
