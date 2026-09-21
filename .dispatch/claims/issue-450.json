@@ -5,11 +5,11 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "phase": "CLAIMED",
+  "head_sha": "96da15be09aef65462f8670b4cf7ebe9c6cd9513",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T16:00:00+08:00",
+  "last_update": "2026-09-21T16:20:00+08:00",
   "remote_qa": null,
-  "next_action": "Run execution claim guard for issue 450 against accepted predecessor HEAD 1faebaa991aaaed7b968c5432bfc7e04ab32b432, create/resume qa/issue450-t8-combined-acceptance-20260921 from that exact HEAD, then execute T8 combined acceptance without substituting newer production HEAD.",
+  "next_action": "Create one-shot T8 Combined Acceptance workflow at exact head 96da15be, using fixed T0 baseline 2b9aecce and candidate lineage head; then lock exact run and poll to terminal.",
   "blocker": null
 }
