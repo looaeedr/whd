@@ -6,16 +6,16 @@
   "claimed_at": "2026-09-21T11:24:00+08:00",
   "base_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
   "head_sha": "cb3b51a518a7532147bb35df275f0a43f489b4df",
-  "phase": "REMOTE_QA",
+  "phase": "ACCEPTANCE",
   "delegated_branches": [],
-  "last_update": "2026-09-21T12:13:00+08:00",
+  "last_update": "2026-09-21T12:00:06+08:00",
   "remote_qa": {
     "run_id": 35558693211,
     "head_sha": "cb3b51a518a7532147bb35df275f0a43f489b4df",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success"
   },
-  "next_action": "Poll exact RUN 35558693211 + head cb3b51a5 to terminal. REMOTE_QA_ACTIVE_LOCK: no production/test/workflow mutations while non-terminal.",
+  "next_action": "Run acceptance evidence readback for exact RUN 35558693211 at cb3b51a5, then guarded one-shot workflow cleanup, tested-head to closing-head drift audit, Issue closure, and claim release.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue446-t4-registry-census.md",
   "red_contract_commit": "d9a3f155b6762dbde8fc6728665f25830f6ffc96"
