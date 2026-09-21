@@ -17,12 +17,13 @@
   "chain_head": "0df07e002f4432c0fef4daec64e8a7c582f0d9e9",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35619184377,
     "head_sha": "0df07e002f4432c0fef4daec64e8a7c582f0d9e9",
-    "run_id": null
+    "status": "queued",
+    "conclusion": null
   },
   "last_update": "2026-09-22T00:01:00+08:00",
-  "next_action": "Resolve push-triggered Issue470 T4 Gate A run for exact head 0df07e002f4432c0fef4daec64e8a7c582f0d9e9, then lock and poll it to terminal.",
+  "next_action": "Poll locked Issue470 T4 RED run 35619184377 at head 0df07e002f4432c0fef4daec64e8a7c582f0d9e9 to terminal; on failure inspect focused pytest step and distinguish requirement assertion RED from harness/setup failure.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue470-t4-authority-read.txt",
