@@ -8,9 +8,14 @@
   "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:50:00+08:00",
-  "remote_qa": null,
-  "next_action": "Find and lock the exact QA run for head 7e42ade2; poll only that run/jobs/steps to terminal. Do not mutate production while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
+  "last_update": "2026-09-21T13:52:00+08:00",
+  "remote_qa": {
+    "run_id": 35562081929,
+    "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "next_action": "Read exact failed step/log for RUN 35562081929. Classify contract false positive vs inherited baseline debt vs candidate regression before any mutation; do not rerun blindly.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md"
 }
