@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
+  "head_sha": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,17 +14,26 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
+  "chain_head": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": null,
-    "head_sha": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
+    "head_sha": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
     "status": "RUN_NOT_RESOLVED_YET",
     "workflow": "Issue 467 T1 Review GREEN",
-    "review_revision": 3
+    "review_revision": 3,
+    "previous_failure": {
+      "run_id": 35604056971,
+      "counts": {
+        "passed": 30,
+        "skipped": 1,
+        "failed": 3
+      },
+      "root_cause": "single missing cabinet_family_policy import in resolve_inner_door_frame_placement"
+    }
   },
-  "last_update": "2026-09-21T22:42:00+08:00",
-  "next_action": "Locate and actively monitor Issue 467 T1 Review GREEN for exact head d943b239c2f3817ec9234f9d3f9417e1bdf33f8c after shared-Divider frame closure.",
+  "last_update": "2026-09-21T21:16:00+08:00",
+  "next_action": "Locate and monitor the automatically triggered Issue 467 T1 Review GREEN for exact head c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487; if GREEN, clean temporary workflow and run closing drift audit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
