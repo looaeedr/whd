@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "RED",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,12 +18,14 @@
   "remote_qa": {
     "run_id": 35666863913,
     "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "EXPECTED_REQUIREMENT_RED",
+    "summary": "2 expected R1 failures / 32 passed / 1 skipped"
   },
-  "next_action": "Poll locked RED run 35666863913 at head 24cf451aa265230d7b2af2178be9f0ff6421a046 to terminal; require requirement-level RED, then implement FinalScene composition ownership move.",
+  "next_action": "Move 35-port FinalSceneCompositionPorts wiring from fold_designer_bridge.py into existing Phase6FoldDesignerComposition in gui_modules/application/fold_designer_adapter.py; keep view/renderer/manufacturing owners unchanged; rerun same workflow for GREEN.",
   "blocker": null,
-  "last_update": "2026-09-22T07:23:00+08:00",
+  "last_update": "2026-09-22T07:24:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
