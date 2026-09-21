@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "472",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "684d416c003906280c3cae0d0246b80b14aac00f",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35665392750,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "T0→T6 accepted heads form one ancestor chain; T7 closing head descends from accepted T6 lineage.",
+    "Focused Joint Placement MARKING/contact + physical DXF + Save→Reload acceptance is GREEN at run 35664160936.",
+    "Full broader parity at run 35664160936 has zero candidate-only delta: Headless residual 8 FAIL matches frozen X/current X exactly; Xvfb residual 23 FAIL matches frozen X/current X exactly; protected invariants GREEN.",
+    "Candidate-only remediation run 35664013640 is GREEN: Headless 3 PASS and Xvfb 3 PASS for Receiving transient-topology regressions.",
+    "AI Library writeback is durable and remote-read verified at closing head for 04_WHD鈑金展開幾何引擎規範.md, 09_WHD_Canonical_Authority_Map.md, and phase6_assembly_relief_pitfalls.md.",
+    "Current X locked at 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9; frozen-base path overlap between current X and active chain is zero files.",
+    "Synthetic virtual merge c791fc660c727d6f0906cda523f999aa28f4151f has parents current X 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9 and active chain 20de8c16b04d003688a113eb3914c721a2b43478.",
+    "Integration-readiness run 35665392750 is SUCCESS: preflight, relevant Headless, relevant Xvfb, and protected jobs all GREEN.",
+    "Temporary work-order QA workflows were removed; tested head 20de8c16b04d003688a113eb3914c721a2b43478 → closing head 684d416c003906280c3cae0d0246b80b14aac00f changes only four workflow deletions; production/test drift = 0.",
+    "No partial merge, force merge, or rebase to cleanup/2d-3d-sync was performed."
+  ]
+}
