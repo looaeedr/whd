@@ -1,0 +1,7 @@
+{
+  "branch": "refactor/issue451-t9-durable-writeback-20260921",
+  "checkpoint_fingerprint": "996effc5deaaf35462349c6217dcbfec659a4b25fce68b01d82fe148438356b7",
+  "head_sha": "62e916de9a31cd463cfd0b6ae141a18ed1d33f41",
+  "issue": "451",
+  "version": 1
+}
