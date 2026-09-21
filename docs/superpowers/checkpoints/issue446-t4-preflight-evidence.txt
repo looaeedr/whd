@@ -34,3 +34,11 @@ MATCHED_ROUTE=part-dxf-acceptance
 READ_SKILL: 驗證板件與DXF
 READ_SKILL: monitoring-remote-qa
 READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+
+REMOTE_QA_PREFLIGHT:
+- .github/workflows/qa-issue446-t4-registry-panel.yml
+MATCHED_ROUTE=remote-qa-monitoring
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
