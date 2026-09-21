@@ -11,31 +11,20 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
-  "head_sha": "6e155350afcbb6cb4fe47351e7628ef4b3129ec9",
-  "delegated_branches": [
-    "coord/dispatch-claims"
-  ],
+  "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
+  "delegated_branches": ["coord/dispatch-claims"],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "run_id": 35669065287,
+    "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
+    "status": "queued",
+    "conclusion": null
   },
-  "next_action": "Run the issue480 requirement RED at head 6e155350afcbb6cb4fe47351e7628ef4b3129ec9; confirm the new projection-owner contract fails for the intended missing seam, then implement the minimal pure immutable Derived Part projection request/plan owner without bridge/Tk/workspace mutation or geometry-formula duplication.",
+  "next_action": "Poll exact RED run 35669065287 at e626e98af02d0dc14871a1f34d1d75c5cff359fa to terminal; EXPECTED RED must fail because phase6_derived_part_projection pure immutable owner does not exist yet. If failure matches, implement minimal pure immutable request/plan owner; otherwise classify/repair the RED contract.",
   "blocker": null,
   "preflight": {
     "frozen_parent": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
-    "matched_routes": [
-      "dispatching-workflow",
-      "phase6-corner-relief-3d",
-      "part-dxf-acceptance",
-      "python-testing-practices"
-    ],
-    "required_skills_read": [
-      "派工",
-      "issue-closure-gate",
-      "phase6-corner-3d-model-integrity",
-      "驗證板件與DXF",
-      "monitoring-remote-qa",
-      "Python測試實務"
-    ],
+    "matched_routes": ["dispatching-workflow", "phase6-corner-relief-3d", "part-dxf-acceptance", "python-testing-practices"],
+    "required_skills_read": ["派工", "issue-closure-gate", "phase6-corner-3d-model-integrity", "驗證板件與DXF", "monitoring-remote-qa", "Python測試實務"],
     "authority_refs_read": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -48,24 +37,24 @@
       "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
       "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
     ],
-    "script_execution": "canonical route reconstructed from exact frozen registry; local repository clone unavailable due DNS, but required Skills/references were fresh-read from exact frozen SHA via GitHub connector"
+    "script_execution": "canonical route reconstructed from exact frozen registry; required Skills/references fresh-read from exact frozen SHA"
   },
   "r2_census": {
-    "source": "docs/superpowers/checkpoints/issue478-t0-ownership-census.md at accepted T1 parent",
     "symbol": "_phase6_sync_authoritative_derived_parts",
     "loc": 201,
     "navigation_mutation_calls": 16,
-    "finding": "projection/derivation and workspace/navigation mutation are mixed in the bridge; T2 must separate planning from mutation without moving manufacturing formulas"
+    "finding": "projection/derivation and workspace/navigation mutation are mixed in bridge"
   },
   "red_contract": {
-    "head_sha": "6e155350afcbb6cb4fe47351e7628ef4b3129ec9",
+    "head_sha": "e626e98af02d0dc14871a1f34d1d75c5cff359fa",
     "test_file": "tests/test_issue480_derived_part_projection_plan.py",
-    "expected_failure": "phase6_derived_part_projection pure immutable owner does not exist yet"
+    "workflow": ".github/workflows/qa-issue480-t2-red.yml",
+    "expected_failure": "ModuleNotFoundError for phase6_derived_part_projection or equivalent missing pure-owner contract"
   },
   "provenance": {
     "executor_source": "chatgpt_automation",
     "cycle_started_at": "2026-09-22T07:44:04+08:00",
     "owning_issue": 480,
-    "action": "fresh preflight authority read + R2 census + requirement RED commit"
+    "action": "fresh preflight + R2 census + requirement RED + exact RED run lock"
   }
 }
