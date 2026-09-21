@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:43:00+08:00",
   "base_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
   "head_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T5",
@@ -17,13 +17,21 @@
   "chain_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": null,
-  "last_update": "2026-09-21T23:52:00+08:00",
-  "next_action": "Persist TERMINAL_SUCCESS checkpoint for T5, authorize and verify finalization proof, write terminal evidence to #466, close completed, remote-read, release claim, then acquire #471/T6 from accepted T5 head.",
+  "last_update": "2026-09-21T23:50:00+08:00",
+  "next_action": null,
   "blocker": null,
   "product_decision": {
     "disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
     "authority": "user explicit selection",
     "canonical_spec_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
     "semantics": "MARKING fail-closed does not block otherwise-valid DXF; machine-readable diagnostic is mandatory"
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "finalization_proof_fingerprint": "30a21d0ffb880e74fd9e4bc041cb64286e991ab8db6e444cf5703dd63fb4da79",
+    "product_decision": "ALLOW_EXPORT_WITH_DIAGNOSTIC"
   }
 }
