@@ -102,6 +102,13 @@ def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
         if delegate not in source:
             violations.append((name, "MISSING_DELEGATE", delegate))
 
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    assert (
+        "_phase6_registry_preview_2d = lambda self: "
+        "_phase6_registry_panel(self).draw_registry_preview()"
+    ) in bridge_source
+    assert "registry_preview_geometry" in bridge_source
+
     select = funcs["_phase6_select_corner_data_part"]
     for node in ast.walk(select):
         if (
