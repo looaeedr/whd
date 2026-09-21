@@ -45,3 +45,17 @@ PROTECTED_GIT_OBJECT_RULE=tracked DXF path/blob/hash delta=0 and config.ini Git-
 GEOMETRY_RULE=validation judge-only; geometry/manufacturing/persistence regression suites must not mutate production authority
 R1_R9_RULE=final classifier must emit all R1-R9 satisfied before closure
 AI_LIBRARY_WRITEBACK=None; durable writeback belongs to T9/#451
+
+REMEDIATION_CHANGED_FILE_PREFLIGHT=2026-09-21T17:02:00+08:00
+READ_SKILL: Python測試實務
+READ_SKILL: 性質導向測試
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+REMEDIATION_RULE=fix runtime KeyError for non-CROSS settings corner projection; migrate stale source tests to accepted T3/T4/T7 owners without weakening semantics
+FIRST_T8_RUN=35577683274
+FIRST_T8_FOCUSED_INVARIANTS=GREEN
+FIRST_T8_HEADLESS_CANDIDATE_ONLY=5
+FIRST_T8_XVFB_CANDIDATE_ONLY=10
+RUNTIME_ROOT_CAUSE=_phase6_settings_corner_projection indexed _CORNER_MODE_LABEL with selection.cross_mode=None for non-CROSS selections
