@@ -8,6 +8,7 @@ on:
       - '.github/workflows/qa-issue471-t6.yml'
       - 'ae_engine/receiving_joint_marking.py'
       - 'ae_engine/joint_marking_policy.py'
+      - 'ae_engine/assembly_marking_geometry.py'
       - 'phase6_manufacturing_service.py'
       - 'phase6_manufacturing_contracts.py'
       - 'tests/test_issue471_t6_receiving_marking_activation.py'
