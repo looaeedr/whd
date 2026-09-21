@@ -21,13 +21,14 @@
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T05:08:19+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35664160936,
     "head_sha": "20de8c16b04d003688a113eb3914c721a2b43478",
-    "run_id": null,
+    "status": "in_progress",
+    "conclusion": null,
     "purpose": "fresh full T7 Combined Acceptance after candidate-only remediation"
   },
-  "last_update": "2026-09-22T06:56:00+08:00",
-  "next_action": "Resolve push-triggered full T7 run for head 20de8c16b04d003688a113eb3914c721a2b43478; lock exact run_id/head_sha, poll all jobs to terminal, compare residual failure set against frozen/current-X baseline debt, then proceed to integration-readiness if candidate-only delta is zero.",
+  "last_update": "2026-09-22T06:57:00+08:00",
+  "next_action": "Poll locked run 35664160936 at head 20de8c16b04d003688a113eb3914c721a2b43478 to terminal; require preflight/focused/protected-invariant success and zero candidate-only delta vs established baseline debt.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
