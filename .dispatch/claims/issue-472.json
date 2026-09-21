@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "head_sha": "28364d7ff629e011b796a577df5d4acc70e883c3",
-  "phase": "IMPLEMENTING",
+  "head_sha": "1c3e86ceb2953a638b96e3010c4fe4b5951697a9",
+  "phase": "REMOTE_QA",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -15,36 +15,19 @@
   "accepted_t6_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
   "t6_validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "t6_validation_drift_class": "QA_WORKFLOW_ONLY",
-  "chain_head": "28364d7ff629e011b796a577df5d4acc70e883c3",
+  "chain_head": "1c3e86ceb2953a638b96e3010c4fe4b5951697a9",
   "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T05:08:19+08:00",
   "remote_qa": {
-    "run_id": 35663550436,
-    "head_sha": "28364d7ff629e011b796a577df5d4acc70e883c3",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "bounded exact-node baseline diff against frozen X and current X",
-    "classification": "BASELINE_DIFF_COMPLETE",
-    "candidate_only": {
-      "headless": [
-        "tests/test_phase6_t06_receiving_fresh_family.py::test_receiving_family_defaults_publish_fresh_intent_layout_and_upper_inner_door_role",
-        "tests/test_receiving_door_frame_width_semantics.py::test_receiving_inner_door_derivation_uses_the_same_corrected_outer_door_finished_face"
-      ],
-      "xvfb": [
-        "tests/test_phase6_t15_inner_door_panels.py::test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_guards_green",
-        "tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_base_plate_count_tracks_one_and_three_door_topology[heights0-1]",
-        "tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_live_door_topology_add_remove_keeps_base_plate_ids_in_lockstep"
-      ]
-    },
-    "baseline_debt": {
-      "headless": 8,
-      "xvfb": 23
-    }
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "1c3e86ceb2953a638b96e3010c4fe4b5951697a9",
+    "run_id": null,
+    "purpose": "candidate-only remediation verification"
   },
-  "last_update": "2026-09-22T06:44:00+08:00",
-  "next_action": "Remediate five candidate-only failures: preserve strict inner_door_vertical_frame_contract but make derive_inner_door_frame_sets omit only per-item frames whose physical terminal contract is unavailable during transient/single-door topology; update two stale 1014 span oracles to physical terminal span authority; run candidate-only focused QA then fresh T7.",
+  "last_update": "2026-09-22T06:47:00+08:00",
+  "next_action": "Create and run Issue472 candidate-only remediation QA: two Headless stale-oracle nodes + new no-divider regression + three Xvfb topology nodes. On GREEN launch fresh full T7 Combined Acceptance.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
@@ -78,5 +61,14 @@
       "xvfb": 26
     },
     "next_classifier": "bounded exact-node A/B against frozen X and current X"
+  },
+  "remediation": {
+    "candidate_only_fix_head": "1c3e86ceb2953a638b96e3010c4fe4b5951697a9",
+    "production_file": "ae_engine/cabinet_types/receiving.py",
+    "stale_oracle_files": [
+      "tests/test_phase6_t06_receiving_fresh_family.py",
+      "tests/test_receiving_door_frame_width_semantics.py"
+    ],
+    "semantics": "strict inner_door_vertical_frame_contract remains authoritative; derive_inner_door_frame_sets omits only per-item unresolved physical-terminal frames so unrelated topology sync continues"
   }
 }
