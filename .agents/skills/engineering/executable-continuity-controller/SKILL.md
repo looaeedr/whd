@@ -335,6 +335,23 @@ checkpoint 在 guard 後只要被改寫，先前 proof 立即失效。`BLOCKED` 
 - successful guard invocation 產生 bound proof；
 - checkpoint 改寫後 proof stale 並 fail closed。
 
+## MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
+
+Checkpoint 的 `TERMINAL_SUCCESS / TERMINAL_FAILURE` 只描述**目前 child**。若 child 屬於仍未完成的 Master/work-order chain，還必須攜帶 structured continuation：
+
+`master_issue + chain_state + next_issue + chain_next_action/chain_reason`
+
+Canonical `ChainContinuationState`：
+
+- `NEXT_CHILD_EXECUTABLE`：`assert_turn_exitable` 必須拒絕；`scheduled_resume_action` 回 `EXECUTE_NEXT_ACTION`；CLI `resume` 回 `chain_next_action`。
+- `NEXT_CHILD_BLOCKED`：僅 genuine external authority/capability wait；必須有 `chain_reason`。
+- `CHAIN_COMPLETE`：Master chain 已真正完成，child terminal 才可作 turn-exit terminal。
+- `USER_STOPPED`：使用者明確停止／取消 chain，必須有 `chain_reason`。
+
+當外層 execution context fresh 知道 Master identity，必須以 `expected_master_issue` 呼叫 turn-exit guard。checkpoint 缺 `master_issue`、Master 不符、或 handoff metadata 不完整時 **fail closed**；不得因 child 本身 terminal 而 mint turn-exit proof。
+
+Primary machine regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py`。這個 gate 專門防止「#467 已關 → #468 可做，但 assistant 把 child terminal 當 Master terminal 而停工」類事故。
+
 ## CHATGPT_SCHEDULED_REENTRY_V1
 
 WHD 的 primary autonomous resume executor 是 **ChatGPT scheduled re-entry**。Hourly ChatGPT Automation 只負責重新喚醒新的 ChatGPT Runtime；被喚醒後仍必須回到本 Skill 與 `tools/continuity_controller.py` 的 canonical durable state。
