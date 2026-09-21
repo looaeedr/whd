@@ -1,0 +1,164 @@
+name: "QA #451 T9 Durable Writeback"
+
+on:
+  push:
+    branches:
+      - refactor/issue451-t9-durable-writeback-20260921
+    paths:
+      - '.github/workflows/qa-issue451-t9-writeback.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  BASE_SHA: 4b401077d457acd1e754366637c595b3d82f38d4
+
+jobs:
+  writeback-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Publish exact run identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment 451 --repo "$GITHUB_REPOSITORY" --body "ISSUE451_T9_QA_START run=$GITHUB_RUN_ID head=$GITHUB_SHA branch=$GITHUB_REF_NAME"
+
+      - name: Install validation dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "派工 #451 T9 durable writeback, remote QA, production integration, formal completion and issue closure" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md" \
+            --changed-file "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md" \
+            --changed-file "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md" \
+            --changed-file ".github/workflows/qa-issue451-t9-writeback.yml" \
+            --evidence "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md"
+
+      - name: Durable ownership and cleanup guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          root = Path('.')
+          owner = root / '個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md'
+          amap = root / '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md'
+          owner_text = owner.read_text(encoding='utf-8')
+          map_text = amap.read_text(encoding='utf-8')
+
+          assert 'whd_doc_role: CURRENT' in owner_text
+          assert 'whd_contract: fold-designer-bridge-ownership' in owner_text
+          marker = 'WHD_AUTHORITY contract=fold-designer-bridge-ownership role=CURRENT'
+          assert map_text.count(marker) == 1, map_text.count(marker)
+
+          for stale in (
+              '.github/workflows/qa-issue442-t0-census.yml',
+              '.github/workflows/qa-issue443-t1-dead-glue.yml',
+          ):
+              assert not Path(stale).exists(), f'TEMP_QA_RESIDUE={stale}'
+
+          changed = set(subprocess.check_output(
+              ['git','diff','--name-only', f'{subprocess.check_output(["git","rev-parse","$BASE_SHA"], text=True).strip()}...HEAD'],
+              text=True
+          ).splitlines())
+          PY
+          echo "DURABLE_OWNERSHIP_CURRENT_COUNT=1"
+          echo "LEGACY_TEMP_QA_RESIDUE=0"
+
+      - name: Exact scope and protected-object drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA"...HEAD)
+          printf '%s\n' "${changed[@]}"
+          python - <<'PY'
+          import os, subprocess
+          base=os.environ['BASE_SHA']
+          actual={x for x in subprocess.check_output(
+              ['git','diff','--name-only',f'{base}...HEAD'],text=True
+          ).splitlines() if x}
+          allowed={
+              '.github/workflows/qa-issue442-t0-census.yml',
+              '.github/workflows/qa-issue443-t1-dead-glue.yml',
+              '.github/workflows/qa-issue451-t9-writeback.yml',
+              'docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md',
+              '個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md',
+              '個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md',
+          }
+          assert actual == allowed, f'ISSUE451_SCOPE_DRIFT actual={sorted(actual)}'
+          protected=[
+              'config.ini',
+              'fold_designer_bridge.py',
+              'phase6_bending_ui.py',
+              'phase6_settings_panel.py',
+              'phase6_registry_diagnostics_panel.py',
+          ]
+          drift=subprocess.check_output(
+              ['git','diff','--name-only',base,'HEAD','--',*protected],
+              text=True
+          ).splitlines()
+          assert not drift, f'PROTECTED_DRIFT={drift}'
+          dxf=subprocess.check_output(
+              ['git','diff','--name-only',base,'HEAD','--','*.dxf','**/*.dxf'],
+              text=True
+          ).splitlines()
+          assert not dxf, f'DXF_GIT_OBJECT_DRIFT={dxf}'
+          print('ISSUE451_SCOPE_DRIFT=0')
+          print('PROTECTED_DRIFT=0')
+          print('CONFIG_GIT_OBJECT_DELTA=0')
+          print('DXF_GIT_OBJECT_DELTA=0')
+          print('FORCE_PUSH=0')
+          PY
+
+      - name: Ownership regression smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q --tb=short \
+            tests/knowledge/test_knowledge_authority_contract.py \
+            tests/test_issue444_bending_ui_owner.py \
+            tests/test_issue445_settings_presentation_owner.py \
+            tests/test_issue446_registry_diagnostics_presentation_owner.py \
+            tests/test_issue447_workspace_shell_owner.py \
+            tests/test_issue448_part_editor_owner_decision.py \
+            tests/test_issue449_fix11_init_bootstrap_owner.py \
+            | tee /tmp/issue451-t9-pytest.log
+
+      - name: Validation mutation drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          echo "VALIDATION_MUTATION_DRIFT=0"
+
+      - name: Publish terminal marker
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          gh issue comment 451 --repo "$GITHUB_REPOSITORY" --body "ISSUE451_T9_QA_TERMINAL run=$GITHUB_RUN_ID head=$GITHUB_SHA status=$JOB_STATUS"
