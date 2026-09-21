@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:04:30+08:00",
   "base_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
-  "head_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
-  "phase": "CLAIMED",
+  "head_sha": "9f7bb6153fec0a1060ae9733628e6bc1991a830a",
+  "phase": "RED",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T3",
@@ -14,10 +14,15 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "69b12789c572f700e9e5626759d9e230eb18d09b",
+  "chain_head": "9f7bb6153fec0a1060ae9733628e6bc1991a830a",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": null,
-  "last_update": "2026-09-21T23:04:30+08:00",
-  "next_action": "Run execution claim guard for issue #469 at exact accepted T2 parent 69b12789c572f700e9e5626759d9e230eb18d09b, then perform Phase6 Preflight and T3 R3 first executable RED/implementation action for JointMarkingPolicy registry + diagnostics core.",
-  "blocker": null
+  "last_update": "2026-09-21T23:12:00+08:00",
+  "next_action": "Create T3 R3 focused RED test for policy routing, diagnostics, EXPECTED_REGION_COVERAGE, stable mark identity and no-drawing-primitive boundary; then run remote focused QA to terminal.",
+  "blocker": null,
+  "preflight_evidence": {
+    "path": "logs/preflight/issue469-t3-authority-read.txt",
+    "result": "GREEN",
+    "required_skill": "phase6-corner-3d-model-integrity"
+  }
 }
