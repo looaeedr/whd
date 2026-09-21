@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:51:00+08:00",
   "base_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
-  "head_sha": "05b01715110ccaf0df5cc7b9384ee318a755b83a",
+  "head_sha": "3219804e798176cc21fc3a0fb910612f3b8828a9",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
@@ -17,15 +17,15 @@
   "resolved_t5_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "05b01715110ccaf0df5cc7b9384ee318a755b83a",
+  "chain_head": "3219804e798176cc21fc3a0fb910612f3b8828a9",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
     "status": "RUN_NOT_CREATED",
-    "head_sha": "05b01715110ccaf0df5cc7b9384ee318a755b83a",
+    "head_sha": "3219804e798176cc21fc3a0fb910612f3b8828a9",
     "run_id": null
   },
-  "last_update": "2026-09-22T00:10:00+08:00",
-  "next_action": "Resolve the focused Gate B diagnostic run triggered at 05b01715110ccaf0df5cc7b9384ee318a755b83a; poll terminal and inspect best_plane_residual / best_barycentric_violation.",
+  "last_update": "2026-09-22T00:13:00+08:00",
+  "next_action": "Resolve focused Gate B locator-coverage diagnostic run at 3219804e798176cc21fc3a0fb910612f3b8828a9; inspect support_face_interior_count and mapping_flat_bounds, then apply smallest proven region-construction fix.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
