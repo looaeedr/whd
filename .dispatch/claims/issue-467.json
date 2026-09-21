@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "0a820cc32a880d2f4e0487d132d106bfecdf74e3",
-  "phase": "GREEN",
+  "head_sha": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,30 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "0a820cc32a880d2f4e0487d132d106bfecdf74e3",
+  "chain_head": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": 35602759252,
-    "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106342542080,
-    "counts": {
-      "passed": 32,
-      "skipped": 1,
-      "failed": 1
-    },
-    "evidence": {
-      "failing_node": "test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face",
-      "diagnostic_code": "CONTACT_NOT_COPLANAR",
-      "plane_separation": 4.5,
-      "coplanar_distance_limit": 0.000001,
-      "tolerance_provenance": "ASSEMBLY_GEOMETRY_ENGINEERING_V1",
-      "classification": "Receiving authoritative frame/divider placement closure mismatch; classifier is behaving correctly"
-    }
+    "run_id": null,
+    "head_sha": "d943b239c2f3817ec9234f9d3f9417e1bdf33f8c",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 467 T1 Review GREEN",
+    "review_revision": 3
   },
-  "last_update": "2026-09-21T22:39:00+08:00",
-  "next_action": "Retrigger Issue 467 T1 Review GREEN from exact head after adding all production/placement/Receiving regression paths to the temporary workflow; monitor to terminal.",
+  "last_update": "2026-09-21T22:42:00+08:00",
+  "next_action": "Locate and actively monitor Issue 467 T1 Review GREEN for exact head d943b239c2f3817ec9234f9d3f9417e1bdf33f8c after shared-Divider frame closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
