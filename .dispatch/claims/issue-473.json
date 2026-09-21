@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
-  "phase": "CLEANUP",
+  "head_sha": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
+  "chain_head": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35607727615,
@@ -26,15 +26,14 @@
       "passed": 63,
       "failed": 0
     },
-    "evidence": [
-      "Master-chain hard-gate behavior GREEN",
-      "missing/mismatched expected_master_issue fail-closed GREEN",
-      "legacy turn-exit proof enforcement GREEN",
-      "dispatch/closure/continuity Skill and knowledge contracts GREEN"
-    ]
+    "cleanup": {
+      "cleaned_head": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
+      "tested_to_cleaned": "only deletion of two Issue473 temporary workflows",
+      "workflow_readback": "ABSENT"
+    }
   },
-  "last_update": "2026-09-21T22:24:00+08:00",
-  "next_action": "Delete Issue473 RED/GREEN one-shot workflows, remote-read absence, then audit final tested head f32d8fcb07fea7b715aa8a51f1b19fbbdacced72 to cleaned head for workflow-only drift.",
+  "last_update": "2026-09-21T22:27:00+08:00",
+  "next_action": "Fresh-read cleanup/2d-3d-sync, compare target drift from frozen base and governance branch, then open a PR if non-conflicting. Do not close Issue473 until target integration and remote reread succeed.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
