@@ -5,12 +5,12 @@
   "work_branch": "refactor/issue447-t5-workspace-shell-20260921",
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
-  "head_sha": "0984d2915acb1d20bb34890b7e9645acca93deed",
+  "head_sha": "15119dc564fa881915bd7d9e05f1c007ec8cdf7b",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T12:47:00+08:00",
+  "last_update": "2026-09-21T12:52:00+08:00",
   "remote_qa": null,
-  "next_action": "Add focused #447 machine contracts for DECISION=NO_EXTRACTION, single-caller shell composition, single keyboard installer, and one direct shared mode surface; then run remote headless/Xvfb acceptance without production shell changes.",
+  "next_action": "Complete remote-QA Preflight (monitoring/long-log/continuity), create one-shot qa-issue447-t5-workspace-shell.yml, and validate NO_EXTRACTION with headless + Xvfb + protected persistence/source invariants.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md"
 }
