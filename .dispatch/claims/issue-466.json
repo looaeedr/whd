@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:43:00+08:00",
   "base_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
-  "head_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
-  "phase": "CLAIMED",
+  "head_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T5",
@@ -14,10 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+  "chain_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": null,
-  "last_update": "2026-09-21T23:43:00+08:00",
-  "next_action": "Obtain explicit product-authority selection of exactly one OPEN-1 disposition: BLOCK_EXPORT or ALLOW_EXPORT_WITH_DIAGNOSTIC. Do not infer a default. After selection, persist the decision authority and close T5 before T6 activation.",
-  "blocker": "PRODUCT_AUTHORITY_REQUIRED: OPEN-1 export disposition is intentionally unresolved."
+  "last_update": "2026-09-21T23:52:00+08:00",
+  "next_action": "Persist TERMINAL_SUCCESS checkpoint for T5, authorize and verify finalization proof, write terminal evidence to #466, close completed, remote-read, release claim, then acquire #471/T6 from accepted T5 head.",
+  "blocker": null,
+  "product_decision": {
+    "disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
+    "authority": "user explicit selection",
+    "canonical_spec_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
+    "semantics": "MARKING fail-closed does not block otherwise-valid DXF; machine-readable diagnostic is mandatory"
+  }
 }
