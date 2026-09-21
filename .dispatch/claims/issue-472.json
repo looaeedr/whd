@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "head_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "phase": "IMPLEMENTING",
+  "head_sha": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
+  "phase": "RECOVERING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -15,19 +15,27 @@
   "accepted_t6_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
   "t6_validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "t6_validation_drift_class": "QA_WORKFLOW_ONLY",
-  "chain_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+  "chain_head": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
   "current_x_head": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T00:21:18+08:00",
   "remote_qa": null,
-  "last_update": "2026-09-22T00:21:18+08:00",
-  "next_action": "Run T7 changed-file preflight and full chain ancestry/readback; inspect all T0-T6 accepted heads, current workflow residue, current X drift, and required broader Headless/Xvfb + DXF/Save-Reload acceptance surface before first T7 production mutation.",
-  "blocker": null,
+  "last_update": "2026-09-22T00:59:00+08:00",
+  "next_action": "Restore only .agents/skills/engineering/派工/SKILL.md to the T6 validation-head blob, verify net content drift is removed, then resume T7 Combined Acceptance.",
+  "blocker": "UNRELATED_PROCESS_DRIFT: .agents/skills/engineering/派工/SKILL.md changed after T6 validation head",
   "provenance": {
     "executor_source": "chatgpt_automation",
     "cycle_started_at": "2026-09-22T00:21:18+08:00",
     "owning_issue": 472,
     "action": "recovered CLAIM_ONLY_STALL, fresh-read T6 release and T7 authority, wrote EXECUTION_CLAIM_GUARD_GREEN, beginning T7 preflight/readback"
+  },
+  "recovery_evidence": {
+    "previous_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+    "live_head": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
+    "drift_commit": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
+    "drift_file": ".agents/skills/engineering/派工/SKILL.md",
+    "drift_class": "PROCESS_ONLY_UNRELATED_TO_MASTER_464",
+    "resolution": "restore work-order branch file content to T6 validation head before T7 acceptance"
   }
 }
