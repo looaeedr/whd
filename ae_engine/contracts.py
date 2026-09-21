@@ -297,6 +297,61 @@ class LegalContactResult:
 
 
 @dataclass(frozen=True)
+class ContactLocalFrame:
+    """Semantic contact-local frame derived from one signed canonical flat basis."""
+
+    frame_version: str
+    origin: tuple[float, float, float]
+    normal: tuple[float, float, float]
+    longitudinal: tuple[float, float, float]
+    cross: tuple[float, float, float]
+    handedness_parity: int
+    basis_part: str
+    longitudinal_flat_axis: str
+    cross_flat_axis: str
+
+
+@dataclass(frozen=True)
+class ContactLocalFrameResult:
+    status: str
+    diagnostic_code: str | None = None
+    frame: ContactLocalFrame | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SemanticBoundary:
+    role: str
+    world_segment: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    signed_cross: float
+
+
+@dataclass(frozen=True)
+class SemanticBoundaryPair:
+    negative: SemanticBoundary
+    positive: SemanticBoundary
+
+
+@dataclass(frozen=True)
+class SemanticBoundaryPairResult:
+    status: str
+    diagnostic_code: str | None = None
+    pair: SemanticBoundaryPair | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class LocatorBackprojectionResult:
+    status: str
+    diagnostic_code: str | None = None
+    flat_points: tuple[tuple[float, float], ...] = ()
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ResolvedPhysicalMatingRegion:
     """Geometry-neutral resolved physical face used by assembly mating logic.
 
