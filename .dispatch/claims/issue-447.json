@@ -6,16 +6,32 @@
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
   "head_sha": "115402ccc948f32b4140ac946eecdcec24251fae",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:03:00+08:00",
+  "last_update": "2026-09-21T13:06:00+08:00",
   "remote_qa": {
     "run_id": 35561070337,
     "head_sha": "115402ccc948f32b4140ac946eecdcec24251fae",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106213917900,
+    "evidence": {
+      "headless": "5 passed / 1 skipped",
+      "xvfb": "40 passed",
+      "active_mode_surface_count": 1,
+      "separate_assembly_region": 0,
+      "separate_corner_data_region": 0,
+      "duplicate_event_binding": 0,
+      "callback_multiplication": 0,
+      "decision": "NO_EXTRACTION",
+      "production_shell_drift": 0,
+      "project_persistence_ownership_drift": 0,
+      "geometry_owner_drift": 0,
+      "dxf_drift": 0,
+      "config_git_object_invariant": 1
+    }
   },
-  "next_action": "Poll exact RUN 35561070337 + head 115402cc to terminal. Do not mutate other repository state while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
+  "next_action": "Delete one-shot qa-issue447-t5-workspace-shell.yml, prove tested-head 115402cc → cleaned-head drift is workflow-delete-only, then terminal checkpoint/closure/release.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md"
 }
