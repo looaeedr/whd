@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "f4a6a347885a6f3646170bb85bdc598329245cee",
+  "head_sha": "e664fd24dc931bbcc25dc451967c5f75d1034125",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "f4a6a347885a6f3646170bb85bdc598329245cee",
+  "chain_head": "e664fd24dc931bbcc25dc451967c5f75d1034125",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600585458,
@@ -32,8 +32,8 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:26:00+08:00",
-  "next_action": "Fix incomplete tolerance-owner consolidation detected by remote source reread before GREEN: thicken_triangle_surface None fallback and physical-face plane-section default must both consume PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.",
+  "last_update": "2026-09-21T21:28:00+08:00",
+  "next_action": "Fix literal newline escape inserted into assembly_geometry solid_local call and update stale T1-consolidation docstring; remote reread again before GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
@@ -41,6 +41,11 @@
       "head": "f4a6a347885a6f3646170bb85bdc598329245cee",
       "finding": "signature changed to tolerance=None but fallback body replacement did not apply; plane-section retained 1e-7 default",
       "impact": "caught before any GREEN run; no invalid acceptance evidence created"
+    },
+    "pre_green_literal_escape_fix": {
+      "head": "e664fd24dc931bbcc25dc451967c5f75d1034125",
+      "finding": "literal \\\\n escape sequence present in solid_local call after scripted replacement",
+      "impact": "caught before GREEN run"
     }
   }
 }
