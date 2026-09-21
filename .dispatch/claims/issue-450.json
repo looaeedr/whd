@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
   "head_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T19:11:00+08:00",
+  "last_update": "2026-09-21T19:14:00+08:00",
   "remote_qa": {
     "run_id": 35590479636,
     "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
@@ -35,24 +35,19 @@
     "tested_head": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
     "cleaned_head": "4b401077d457acd1e754366637c595b3d82f38d4",
     "deleted_path": ".github/workflows/qa-issue450-t8-combined-acceptance.yml",
-    "commit": "4b401077d457acd1e754366637c595b3d82f38d4",
-    "drift_audit": {
-      "status": "GREEN",
-      "ahead_by": 1,
-      "behind_by": 0,
-      "files": [
-        {
-          "path": ".github/workflows/qa-issue450-t8-combined-acceptance.yml",
-          "status": "removed"
-        }
-      ],
-      "unexpected_files": []
-    }
+    "drift_audit_status": "GREEN",
+    "unexpected_files": []
   },
-  "next_action": "Write terminal acceptance evidence to owning Issue #450 and close it. Then release this claim and hand off accepted cleaned HEAD 4b401077d457acd1e754366637c595b3d82f38d4 to #451.",
+  "issue_terminal": {
+    "state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-21T11:13:57Z"
+  },
+  "next_action": "T8 complete. Next chain owner is #451 T9 Durable writeback / cleanup / integration, using accepted predecessor HEAD 4b401077d457acd1e754366637c595b3d82f38d4.",
   "blocker": null,
-  "dispatcher_observed_at": "2026-09-21T19:11:00+08:00",
-  "dispatcher_latest_evidence": "tested-head to cleaned-head audit is GREEN: exactly one fast-forward commit and the only changed path is removal of the one-shot T8 workflow.",
-  "dispatcher_exact_next_action": "Close #450 with terminal evidence, release claim, hand off cleaned accepted HEAD to #451.",
-  "handoff_ready": true
+  "dispatcher_observed_at": "2026-09-21T19:14:00+08:00",
+  "dispatcher_latest_evidence": "Issue #450 terminal evidence written and issue closed after cleanup-only drift audit. Execution claim released only after remote QA success, workflow cleanup, drift audit, and owning Issue terminal state.",
+  "dispatcher_exact_next_action": "For any continuation of master #441, enter #451 from accepted predecessor HEAD 4b401077d457acd1e754366637c595b3d82f38d4 and acquire #451 execution claim before mutation.",
+  "handoff_ready": true,
+  "released_at": "2026-09-21T19:14:00+08:00"
 }
