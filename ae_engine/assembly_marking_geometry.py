@@ -417,7 +417,11 @@ def backproject_locator_world_points(
                 status="SKIPPED_FAIL_CLOSED",
                 diagnostic_code="BACKPROJECTION_FAILED",
                 flat_points=(),
-                evidence={"reason": "point is outside locator authoritative mapping"},
+                evidence={
+                    "reason": "point is outside locator authoritative mapping",
+                    "world_point": point,
+                    "mapping_record_count": len(mapping),
+                },
             )
 
         owner = candidates[0]
