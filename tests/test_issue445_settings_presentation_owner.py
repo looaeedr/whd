@@ -40,6 +40,33 @@ def _class_methods(path: Path, class_name: str) -> set[str]:
     raise AssertionError(f"missing class {class_name}")
 
 
+def _facade_binding_count(path: Path) -> int:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    facade_calls = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = (
+            node.func.id
+            if isinstance(node.func, ast.Name)
+            else node.func.attr
+            if isinstance(node.func, ast.Attribute)
+            else ""
+        )
+        if name == "install_fold_designer_bridge_facade":
+            facade_calls.append(node)
+    assert len(facade_calls) == 1, (
+        "expected exactly one install_fold_designer_bridge_facade call, "
+        f"got {len(facade_calls)}"
+    )
+    dict_args = [arg for arg in facade_calls[0].args if isinstance(arg, ast.Dict)]
+    assert len(dict_args) == 1, (
+        "expected exactly one facade binding dict argument, "
+        f"got {len(dict_args)}"
+    )
+    return len(dict_args[0].keys)
+
+
 def test_selected_settings_widget_builders_leave_bridge():
     bridge_defs = _top_level_defs(BRIDGE)
     assert not (SELECTED_BUILDERS & bridge_defs), (
@@ -83,10 +110,5 @@ def test_settings_panel_does_not_take_transaction_or_domain_mutation_ownership()
 
 
 def test_bridge_facade_ratchet_does_not_grow_past_t0_baseline():
-    source = BRIDGE.read_text(encoding="utf-8")
-    marker = "_PHASE6_BRIDGE_METHODS = {"
-    start = source.index(marker)
-    end = source.index("}\n", start)
-    block = source[start:end]
-    entries = sum(1 for line in block.splitlines() if line.lstrip().startswith('"'))
+    entries = _facade_binding_count(BRIDGE)
     assert entries <= 69, f"bridge facade grew past T0 baseline: {entries} > 69"
