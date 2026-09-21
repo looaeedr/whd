@@ -22,6 +22,11 @@ from ae_engine.contracts import (
 )
 from ae_engine.manufacturing_api import build_part_render_data
 from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
+from ae_engine.receiving_joint_marking import (
+    joint_marking_export_summary as _joint_marking_export_summary,
+    resolve_joint_marking_production_status,
+    resolve_receiving_joint_markings,
+)
 from phase6_endcap_semantics import assembly_intent_value
 from phase6_final_scene_view import AssemblyScenePart
 from phase6_fold_profiles import _num
@@ -500,6 +505,21 @@ def resolve(request):
         relief_rules=tuple(traces),
         diagnostics=tuple(diagnostics),
     )
+
+    joint_marking_status = resolve_joint_marking_production_status()
+    joint_marking_results = ()
+    if _cabinet_family(request) == "受電箱":
+        marking_resolution = resolve_receiving_joint_markings(
+            snapshot,
+            resolved,
+            dimensions=dims,
+            sheet_thickness=thickness,
+            cabinet_family="受電箱",
+        )
+        resolved = marking_resolution.geometry
+        joint_marking_status = marking_resolution.status
+        joint_marking_results = tuple(marking_resolution.results)
+
     return ManufacturingResolveResult(
         geometry=resolved,
         diagnostics=ManufacturingDiagnosticsResult(
@@ -509,6 +529,11 @@ def resolve(request):
             rule_traces=tuple(traces),
             interference_probe_parts=tuple(pre_solve_probe_parts),
             joint_marking_foundation=resolve_joint_marking_foundation_status(),
+            joint_marking_status=joint_marking_status,
+            joint_marking_results=joint_marking_results,
+            joint_marking_export_summary=_joint_marking_export_summary(
+                joint_marking_results
+            ),
         ),
         mutations=ManufacturingMutationResult(
             snapshot_patch=snapshot_patch

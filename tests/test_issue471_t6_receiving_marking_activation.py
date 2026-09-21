@@ -258,10 +258,12 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
     assert _line_signature(lines3) != _line_signature(lines1)
 
     no_boundary = _snapshot((1600.0,))
-    no_boundary_geometry = _build_geometry(no_boundary)
+    # Feed the previously enriched geometry against the new topology.  The
+    # resolver must reject the stale shared-Divider identity and remove its
+    # derived marks instead of rebinding to an adjacent/fictional part.
     failed = marking.resolve_receiving_joint_markings(
         no_boundary,
-        no_boundary_geometry,
+        first.geometry,
         dimensions=(800.0, 1600.0, 350.0),
         sheet_thickness=2.0,
         cabinet_family="受電箱",
@@ -269,3 +271,5 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
     assert failed.results
     assert all(r.status == "SKIPPED_FAIL_CLOSED" for r in failed.results)
     assert all(not r.mark_ids for r in failed.results)
+    _stale_divider, stale_lines = _mark_rows(failed.geometry)
+    assert stale_lines == []

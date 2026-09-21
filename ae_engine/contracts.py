@@ -430,6 +430,44 @@ class ContactSpanValidationResult:
 
 
 @dataclass(frozen=True)
+class JointMarkingFailurePolicy:
+    """Product-owned export disposition for expected marking failures."""
+
+    disposition: str
+
+    def __post_init__(self):
+        value = str(self.disposition or "").strip().upper()
+        if value not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC"}:
+            raise ValueError(f"unsupported JointMarkingFailurePolicy disposition: {value!r}")
+        object.__setattr__(self, "disposition", value)
+
+
+@dataclass(frozen=True)
+class JointMarkingProductionStatus:
+    """Production activation state for Joint Placement MARKING."""
+
+    gate_state: str
+    activation_enabled: bool
+    export_disposition: str
+    production_policy_count: int
+
+    def __post_init__(self):
+        state = str(self.gate_state or "").strip()
+        disposition = str(self.export_disposition or "").strip().upper()
+        count = int(self.production_policy_count)
+        if not state:
+            raise ValueError("gate_state must be nonblank")
+        if disposition not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC", "UNRESOLVED"}:
+            raise ValueError(f"unsupported export disposition: {disposition!r}")
+        if count < 0:
+            raise ValueError("production_policy_count must be >= 0")
+        object.__setattr__(self, "gate_state", state)
+        object.__setattr__(self, "activation_enabled", bool(self.activation_enabled))
+        object.__setattr__(self, "export_disposition", disposition)
+        object.__setattr__(self, "production_policy_count", count)
+
+
+@dataclass(frozen=True)
 class ResolvedJointMarkingResult:
     """Dedicated dormant Joint Placement MARKING result/diagnostic DTO."""
 
