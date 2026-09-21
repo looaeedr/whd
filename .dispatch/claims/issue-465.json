@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "b5bff7cc963d89af047257923aecea0b8b3cae25",
+  "head_sha": "4c751b66dbb592f0d6a216ec1e2624305bd62cfc",
   "phase": "RED",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,21 +14,11 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "b5bff7cc963d89af047257923aecea0b8b3cae25",
+  "chain_head": "4c751b66dbb592f0d6a216ec1e2624305bd62cfc",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:10:00+08:00",
-  "remote_qa": {
-    "run_id": 35597536059,
-    "head_sha": "b5bff7cc963d89af047257923aecea0b8b3cae25",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106325719281,
-    "evidence": {
-      "step": "Enforce T0 changed-file Knowledge Preflight",
-      "step_conclusion": "success"
-    }
-  },
-  "next_action": "Create and run T0 requirement RED contract tests for authoritative terminal mating-region ownership and neutral resolution; then implement the minimum physical mating-region foundation.",
+  "last_update": "2026-09-21T20:13:00+08:00",
+  "remote_qa": null,
+  "next_action": "Create focused T0 RED workflow at head 4c751b66dbb592f0d6a216ec1e2624305bd62cfc and verify expected assertion failures for missing owner/neutral mating-region contracts.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
