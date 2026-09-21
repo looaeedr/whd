@@ -1,0 +1,15 @@
+{
+  "issue": 465,
+  "master_issue": 464,
+  "owner": "chatgpt",
+  "phase": "CLAIMED",
+  "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "head_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_head_observed": "05a455f602ba3477d9d05377055126fd5019451d",
+  "remote_qa": null,
+  "last_update": "2026-09-21T20:00:45+08:00",
+  "next_action": "Run execution_claim_guard.py for issue 465 against exact work-order HEAD, complete Phase6 preflight for T0 Physical Mating Region Foundation, then create the first RED/implementation evidence on this lineage."
+}
