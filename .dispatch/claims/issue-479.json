@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35667441410,
     "head_sha": "f30b4cdee42cd10e5e4a4106ef6a6a4df1943896",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve fresh Issue479 final acceptance run for test-oracle remediation head f30b4cdee42cd10e5e4a4106ef6a6a4df1943896; require FinalScene, physical-DXF, protected-architecture and protected hashes GREEN; then remove temporary workflows and drift-audit.",
+  "next_action": "Poll locked final acceptance run 35667441410 at head f30b4cdee42cd10e5e4a4106ef6a6a4df1943896 to terminal; on all GREEN cleanup QA workflows, drift-audit tested head to closing head, then close #479 and hand off #480.",
   "blocker": null,
-  "last_update": "2026-09-22T07:41:00+08:00",
+  "last_update": "2026-09-22T07:42:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
