@@ -717,8 +717,20 @@ def assert_finalization_proof(
         )
 
 
-def assert_turn_exitable(checkpoint: Checkpoint) -> None:
+def assert_turn_exitable(
+    checkpoint: Checkpoint,
+    *,
+    expected_master_issue: str | None = None,
+) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
+
+    expected_master = _normalize_optional_text(expected_master_issue)
+    if expected_master is not None and checkpoint.master_issue != expected_master:
+        raise TurnExitBlocked(
+            "turn exit blocked: Master-chain handoff evidence is missing or stale; "
+            f"expected_master_issue={expected_master!r}; "
+            f"checkpoint_master_issue={checkpoint.master_issue!r}"
+        )
 
     if checkpoint.state in TURN_EXIT_BLOCKING_STATES:
         raise TurnExitBlocked(
@@ -797,6 +809,7 @@ def _turn_exit_proof_payload(
         "issue": checkpoint.issue,
         "branch": checkpoint.branch,
         "head_sha": checkpoint.head_sha,
+        "master_issue": checkpoint.master_issue,
         "checkpoint_digest": checkpoint_digest,
         "guard": "assert_turn_exitable",
     }
@@ -809,6 +822,7 @@ def assert_turn_exitable_path(
     expected_branch: str,
     expected_head_sha: str,
     receipt_path: Path,
+    expected_master_issue: str | None = None,
 ) -> Checkpoint:
     """Load the owning checkpoint, invoke the canonical guard, and mint proof.
 
@@ -824,7 +838,10 @@ def assert_turn_exitable_path(
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
     )
-    assert_turn_exitable(checkpoint)
+    assert_turn_exitable(
+        checkpoint,
+        expected_master_issue=expected_master_issue,
+    )
     digest = _checkpoint_digest(path)
     proof = json.dumps(
         _turn_exit_proof_payload(checkpoint, checkpoint_digest=digest),
@@ -843,6 +860,7 @@ def assert_turn_exit_permitted(
     expected_issue: str,
     expected_branch: str,
     expected_head_sha: str,
+    expected_master_issue: str | None = None,
 ) -> Checkpoint:
     """Verify current owning checkpoint has current proof from actual guard invocation."""
 
@@ -854,6 +872,10 @@ def assert_turn_exit_permitted(
         expected_issue=expected_issue,
         expected_branch=expected_branch,
         expected_head_sha=expected_head_sha,
+    )
+    assert_turn_exitable(
+        checkpoint,
+        expected_master_issue=expected_master_issue,
     )
 
     try:
@@ -874,6 +896,8 @@ def assert_turn_exit_permitted(
     expected_owner = (checkpoint.issue, checkpoint.branch, checkpoint.head_sha)
     if owner != expected_owner:
         raise TurnExitBlocked("guard invocation proof stale: owner mismatch")
+    if payload.get("master_issue") != checkpoint.master_issue:
+        raise TurnExitBlocked("guard invocation proof stale: Master-chain owner mismatch")
 
     current_digest = _checkpoint_digest(checkpoint_path)
     if payload.get("checkpoint_digest") != current_digest:
@@ -925,6 +949,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="exit nonzero while autonomous non-terminal work must continue in this turn",
     )
     turn_exitable.add_argument("path", type=Path)
+    turn_exitable.add_argument(
+        "--master-issue",
+        dest="expected_master_issue",
+        help="expected Master/work-order owner for child-terminal turn-exit enforcement",
+    )
 
     resume = subparsers.add_parser("resume", help="print the exact next action for non-terminal work")
     resume.add_argument("path", type=Path)
@@ -971,7 +1000,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             )
             return 0
         if args.command == "assert-turn-exitable":
-            assert_turn_exitable(checkpoint)
+            assert_turn_exitable(
+                checkpoint,
+                expected_master_issue=args.expected_master_issue,
+            )
             print(f"TURN_EXITABLE {checkpoint.state.value}")
             return 0
         if args.command == "resume":
