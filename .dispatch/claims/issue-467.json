@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c",
+  "head_sha": "5c467b4c8dcfe0f4bea46ff12d5a06ef1abeeaf1",
   "phase": "RED",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c",
+  "chain_head": "5c467b4c8dcfe0f4bea46ff12d5a06ef1abeeaf1",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600224554,
@@ -27,8 +27,8 @@
       "step_conclusion": "success"
     }
   },
-  "last_update": "2026-09-21T21:06:00+08:00",
-  "next_action": "Create and run T1 requirement RED for missing single production tolerance owner, legal coplanar contact resolver/result, and penetration-vs-contact separation.",
+  "last_update": "2026-09-21T21:09:00+08:00",
+  "next_action": "Run guarded focused T1 RED workflow on head 5c467b4c8dcfe0f4bea46ff12d5a06ef1abeeaf1; accept RED only for missing tolerance/contact contracts, not runner/import dependency failures.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json"
 }
