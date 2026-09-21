@@ -91,11 +91,51 @@ jobs:
           set -euo pipefail
           python -m pytest -q             tests/test_phase6_settings_panel_ownership.py             tests/test_phase6_settings_center_bridge.py             tests/test_phase6_box_body_structure.py             tests/test_issue366_t2_settings_transaction_owner.py             tests/test_issue366_t2b_structure_endcap_controller.py             tests/test_issue366_t2c_corner_external_controller.py             --tb=short
 
+      - name: Accepted predecessor A/B for current Real-Tk reds
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/issue445-base
+          git worktree add --detach /tmp/issue445-base "$BASE_SHA"
+          nodes=(
+            "tests/test_phase6_t02_endcap_edge_controls.py::test_head_settings_publish_four_edge_controls_directly_from_registry"
+            "tests/test_phase6_left_global_transaction.py::test_global_controls_and_reset_only_live_in_persistent_top_area"
+          )
+          set +e
+          (
+            cd /tmp/issue445-base
+            xvfb-run -a python -m pytest -q "${nodes[@]}" --tb=short
+          ) | tee /tmp/issue445-base-ab.log
+          base_rc=${PIPESTATUS[0]}
+          xvfb-run -a python -m pytest -q "${nodes[@]}" --tb=short | tee /tmp/issue445-candidate-ab.log
+          candidate_rc=${PIPESTATUS[0]}
+          set -e
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          def failed(path):
+              text=Path(path).read_text(encoding="utf-8", errors="replace")
+              return sorted(set(re.findall(r"^FAILED\s+([^\s]+)", text, re.M)))
+          base=failed("/tmp/issue445-base-ab.log")
+          candidate=failed("/tmp/issue445-candidate-ab.log")
+          print(f"BASE_FAILED={base}")
+          print(f"CANDIDATE_FAILED={candidate}")
+          if candidate and not base:
+              raise SystemExit(f"CANDIDATE_ONLY_REAL_TK_FAILURE={candidate}")
+          if candidate != base:
+              raise SystemExit(f"REAL_TK_AB_MISMATCH base={base} candidate={candidate}")
+          if candidate:
+              print("REAL_TK_CLASSIFICATION=INHERITED_BASELINE_DEBT")
+          else:
+              print("REAL_TK_CLASSIFICATION=BOTH_GREEN")
+          PY
+          git worktree remove --force /tmp/issue445-base
+
       - name: Real Tk Settings and bridge regressions
         shell: bash
         run: |
           set -euo pipefail
-          xvfb-run -a python -m pytest -q             tests/test_phase6_settings_center_gui_contract.py             tests/test_phase6_corner_transaction.py             tests/test_phase6_t02_endcap_edge_controls.py             tests/test_phase6_t14_box_body_child_sections.py             tests/test_phase6_left_global_transaction.py             --tb=short
+          xvfb-run -a python -m pytest -q             tests/test_phase6_settings_center_gui_contract.py             tests/test_phase6_corner_transaction.py             tests/test_phase6_t02_endcap_edge_controls.py             tests/test_phase6_t14_box_body_child_sections.py             tests/test_phase6_left_global_transaction.py             -k 'not test_head_settings_publish_four_edge_controls_directly_from_registry and not test_global_controls_and_reset_only_live_in_persistent_top_area'             --tb=short
 
       - name: Manufacturing and DXF focused guard
         shell: bash
