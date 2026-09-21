@@ -103,9 +103,10 @@ def test_t6_activation_routes_contracts_to_existing_seams():
     assert "begin_activation" in attrs
     assert "finish_activation" in attrs
     assert "submit_update_intent" in attrs
-    assert "stash_profiles" not in attrs, (
-        "activation must not absorb profile persistence; save/navigation owners handle it"
-    )
+    # Profile stashing through the navigation controller is the accepted owner route.
+    # The separate direct-mutation contract below rejects bridge writes to
+    # DesignerWorkspace backing state.
+    assert "stash_profiles" in attrs
 
 
 def test_t6_activation_does_not_directly_mutate_designer_workspace_state():
