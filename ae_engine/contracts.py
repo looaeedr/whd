@@ -376,6 +376,77 @@ class ResolvedPhysicalMatingRegion:
 
 
 @dataclass(frozen=True)
+class JointMarkingPolicy:
+    """Immutable semantic policy for dormant Joint Placement MARKING foundation."""
+
+    policy_id: str
+    revision: int
+    enabled: bool
+    locator_selector: str
+    attached_selector: str
+    locator_contact_region: str
+    attached_contact_region: str
+    footprint_mode: str
+    boundary_frame_contract: Mapping[str, object]
+    contact_span_contract: str
+    allowed_overlap_contract: str
+
+    def __post_init__(self):
+        for name in (
+            "policy_id",
+            "locator_selector",
+            "attached_selector",
+            "locator_contact_region",
+            "attached_contact_region",
+            "footprint_mode",
+            "contact_span_contract",
+            "allowed_overlap_contract",
+        ):
+            if not str(getattr(self, name) or "").strip():
+                raise ValueError(f"{name} must be nonblank")
+        if isinstance(self.revision, bool) or int(self.revision) <= 0:
+            raise ValueError("revision must be a positive integer")
+        if not isinstance(self.boundary_frame_contract, Mapping):
+            raise TypeError("boundary_frame_contract must be a mapping")
+
+
+@dataclass(frozen=True)
+class JointMarkingPolicyLookupResult:
+    """Registry routing result; ordinary no-policy is intentionally non-diagnostic."""
+
+    status: str
+    policy: JointMarkingPolicy | None = None
+    diagnostic_code: str | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ContactSpanValidationResult:
+    """Policy-level contact-span/coverage validation result."""
+
+    status: str
+    diagnostic_code: str | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ResolvedJointMarkingResult:
+    """Dedicated dormant Joint Placement MARKING result/diagnostic DTO."""
+
+    policy_id: str
+    policy_revision: int
+    locator_part_id: str
+    attached_part_id: str
+    status: str
+    mark_ids: tuple[str, ...] = ()
+    diagnostic_code: str | None = None
+    diagnostic_detail: str = ""
+    export_disposition: str = "UNRESOLVED"
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+
+@dataclass(frozen=True)
 class FinalMaterialCollisionPart:
     """GUI-independent neutral final-material contract for collision solving.
 
