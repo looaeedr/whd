@@ -5,20 +5,27 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "3125c7a853bc857a8fb33d52c28872d3b85c4641",
-  "phase": "GREEN",
+  "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Lock exact Issue 477 Preflight Gate and RED Contracts runs at head 3125c7a853bc857a8fb33d52c28872d3b85c4641; require both terminal success before cleanup.",
+  "next_action": "Poll exact Issue 477 Final QA run 35629315406 and Preflight run 35629315519 to terminal on head fb304140e3d098bc8eab3521aa423bb4cb5192a8; require both success, then delete both one-shot workflows and drift-audit.",
   "blocker": null,
-  "last_update": "2026-09-22T01:02:00+08:00",
+  "last_update": "2026-09-22T01:03:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
-    "run_id": 35628875957,
-    "head_sha": "6e1d9dc2318ceadcfb2d47c8e02718024f8afa31",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106429904425
+    "final_qa": {
+      "run_id": 35629315406,
+      "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
+      "status": "queued",
+      "conclusion": null
+    },
+    "preflight": {
+      "run_id": 35629315519,
+      "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
+      "status": "queued",
+      "conclusion": null
+    }
   },
   "red_evidence": {
     "summary": "2 failed, 13 passed in 0.27s",
