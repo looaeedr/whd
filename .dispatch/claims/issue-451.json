@@ -5,7 +5,7 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "0b1381cdfb7e27e6fd452689c20441c203ec0ed8",
+  "head_sha": "61b81caa806388d3e8b4c771b6a5f772948a4609",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 441,
@@ -14,9 +14,9 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "0b1381cdfb7e27e6fd452689c20441c203ec0ed8",
+  "chain_head": "61b81caa806388d3e8b4c771b6a5f772948a4609",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:27:00+08:00",
+  "last_update": "2026-09-21T19:29:00+08:00",
   "remote_qa": null,
   "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
   "integration_drift": {
@@ -25,7 +25,12 @@
     "current_x_vs_chain": {"status": "diverged", "ahead_by": 94, "behind_by": 36},
     "merge_base": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e"
   },
-  "next_action": "Write durable Fold Designer Bridge ownership CURRENT document and Canonical Authority Map row, then remove residual qa-issue442/443 one-shot workflows and validate branch-local authority/protected invariants.",
+  "durable_writeback": {
+    "ownership_current_path": "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+    "ownership_current_commit": "61b81caa806388d3e8b4c771b6a5f772948a4609",
+    "authority_map_updated": false
+  },
+  "next_action": "Update Canonical Authority Map with unique CURRENT fold-designer-bridge-ownership row, then remove residual qa-issue442/443 one-shot workflows and validate branch-local authority/protected invariants.",
   "blocker": null,
   "handoff_ready": false
 }
