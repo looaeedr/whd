@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue445-t3-settings-owner-20260921",
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "head_sha": "07ac073f1939b1e613fda2226e9911e469c25daa",
-  "phase": "IMPLEMENTING",
+  "head_sha": "9f9104358c54115459d4692c4cdc0790dae8add9",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T11:01:00+08:00",
+  "last_update": "2026-09-21T11:04:00+08:00",
   "remote_qa": {
     "run_id": 35551653538,
     "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
@@ -22,7 +22,7 @@
       "protected_drift": "0"
     }
   },
-  "next_action": "Recreate the one-shot #445 T3 QA workflow on head 07ac073f, run exact focused regression + A/B, lock the resulting run_id + head_sha to terminal, then remove the workflow if GREEN.",
+  "next_action": "Lock the pull-request/push QA run for head 9f910435 to terminal; if GREEN, delete the one-shot workflow, perform tested-head→cleaned-head drift audit, update #445 terminal evidence, close/release, then dispatch #446.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
