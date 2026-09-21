@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
-  "phase": "IMPLEMENTING",
+  "head_sha": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,26 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
+  "chain_head": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": 35606974269,
-    "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106356339081,
-    "counts": {
-      "passed": 35,
-      "failed": 1
-    },
-    "evidence": [
-      "Master-chain hard-gate regressions passed",
-      "single failure is legacy test monkeypatch signature incompatibility",
-      "test_path_boundary_must_really_invoke_canonical_guard probe() rejected expected_master_issue keyword"
-    ]
+    "run_id": null,
+    "head_sha": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 473 Master Chain Turn Exit GREEN",
+    "revision": 3
   },
-  "last_update": "2026-09-21T22:08:00+08:00",
-  "next_action": "Update the legacy turn-exit probe signature to accept expected_master_issue without weakening the canonical guard invocation assertion, then rerun the same focused GREEN suite.",
+  "last_update": "2026-09-21T22:10:00+08:00",
+  "next_action": "Locate and monitor Issue 473 Master Chain Turn Exit GREEN for exact head e4ab7cae40c69f5a9b5543c34e113cfab29ba60e; require all hard-gate and legacy turn-exit regressions GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
