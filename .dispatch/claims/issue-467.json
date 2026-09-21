@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "78d6d24028fdbb2680d1c7c2d5a16a344b7286a1",
+  "head_sha": "3bb81b44060bf0d55c6db13d5e9d8704d9bb4500",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "78d6d24028fdbb2680d1c7c2d5a16a344b7286a1",
+  "chain_head": "3bb81b44060bf0d55c6db13d5e9d8704d9bb4500",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600585458,
@@ -32,8 +32,8 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:30:00+08:00",
-  "next_action": "Apply exact literal-backslash-n replacement in assembly_geometry and verify lines 1178-1194 remotely before any GREEN run.",
+  "last_update": "2026-09-21T21:33:00+08:00",
+  "next_action": "Add owner-injection regression proving coplanar plane separation is controlled only by AssemblyGeometryToleranceContract, then run focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
