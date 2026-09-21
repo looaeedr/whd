@@ -85,6 +85,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git config core.quotepath false
           mapfile -t changed < <(git diff --name-only "$BASE_SHA"...HEAD)
           printf '%s\n' "${changed[@]}"
           python - <<'PY'
