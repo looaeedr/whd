@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:48:00+08:00",
   "base_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
   "head_sha": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T4",
@@ -17,12 +17,18 @@
   "chain_head": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35619994683,
     "head_sha": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
-    "run_id": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106400350256,
+    "counts": {
+      "passed": 37,
+      "failed": 0
+    }
   },
-  "last_update": "2026-09-22T00:21:00+08:00",
-  "next_action": "Resolve the push-triggered Issue470 Gate A adjacent chain run at head d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65, lock it, and poll to terminal.",
+  "last_update": "2026-09-22T00:27:00+08:00",
+  "next_action": "Delete temporary .github/workflows/qa-issue470-t4.yml, remote-read absence, then audit tested head d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65 to cleaned head for workflow-only drift.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue470-t4-authority-read.txt",
@@ -42,5 +48,17 @@
       "one-shot workflow installs matplotlib"
     ],
     "activation": "OFF"
+  },
+  "review_evidence": {
+    "fixed_point": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
+    "reviewed_head": "d191ddfd5c8d8209d8c18c720aeb8968b4a6fd65",
+    "standards_findings": 0,
+    "spec_findings": 0,
+    "standards_sources": [
+      "AGENTS.md",
+      "handoff/04_DEVELOPMENT_RULES.md",
+      "code-review smell baseline"
+    ],
+    "spec_source": "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9"
   }
 }
