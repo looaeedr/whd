@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "2f377020a550d86d42c9dd5632ba29d58c4f0849",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -23,11 +23,38 @@
   "remote_qa": {
     "run_id": 35625887983,
     "head_sha": "2f377020a550d86d42c9dd5632ba29d58c4f0849",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "preflight": {
+        "status": "completed",
+        "conclusion": "success",
+        "job_id": 106420030361
+      },
+      "focused": {
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 106420293809,
+        "summary": "106 passed / 2 failed"
+      },
+      "headless": {
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 106420293748,
+        "summary": "2718 passed / 10 failed / 297 skipped / 197 deselected"
+      },
+      "xvfb": {
+        "status": "completed",
+        "conclusion": "failure",
+        "job_id": 106420293747,
+        "summary": "150 passed / 46 failed / 1 skipped / 3025 deselected"
+      }
+    },
+    "protected_invariants": "SUCCESS in focused/headless/xvfb",
+    "classification": "ONE_CONFIRMED_MARKING_REGRESSION_PLUS_PREEXISTING_FROZEN_CHAIN_DEBT"
   },
-  "last_update": "2026-09-22T01:17:00+08:00",
-  "next_action": "Poll locked run 35625887983 at head 2f377020a550d86d42c9dd5632ba29d58c4f0849 to terminal; read exact preflight/focused/headless/xvfb summaries and continue cleanup/writeback on success.",
+  "last_update": "2026-09-22T00:54:00+08:00",
+  "next_action": "Fix confirmed marking regression in _clean_geometry_prior_joint_markings: composite BoxBodyStructureRenderData must not be dataclasses.replace(scene=..., metadata=...). Add focused regression coverage, run fresh T7 acceptance, then classify residual failures against frozen/current-X baseline without importing X into active chain.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
