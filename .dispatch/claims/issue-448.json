@@ -5,12 +5,12 @@
   "work_branch": "refactor/issue448-t6-part-editor-owner-20260921",
   "claimed_at": "2026-09-21T13:22:00+08:00",
   "base_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
-  "head_sha": "9eb942d4008bc2799a54efe5490f813a3af7289a",
-  "phase": "RED",
+  "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:48:00+08:00",
+  "last_update": "2026-09-21T13:50:00+08:00",
   "remote_qa": null,
-  "next_action": "Create guarded one-shot qa-issue448-t6-part-editor-owner.yml. Candidate contains docs/tests only; production drift from base must remain zero. Lock exact RUN+HEAD once created.",
+  "next_action": "Find and lock the exact QA run for head 7e42ade2; poll only that run/jobs/steps to terminal. Do not mutate production while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md"
 }
