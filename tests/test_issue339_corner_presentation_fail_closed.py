@@ -123,9 +123,9 @@ def test_unknown_choice_projects_fallback_but_preserves_raw_var():
 
 
 def test_joint_diagnostic_menu_source_does_not_expose_raw_joint_ids():
-    source = _source()
-    start = source.index("def _phase6_refresh_joint_diagnostic_menu")
-    end = source.index("\ndef _phase6_selected_joint_diagnostic", start)
+    source = (ROOT / "phase6_registry_diagnostics_panel.py").read_text(encoding="utf-8")
+    start = source.index("    def refresh_joint_diagnostic_menu")
+    end = source.index("\n    def ", start + 5)
     body = source[start:end]
     assert 'label=joint_id' not in body
     assert 'current or "Joint"' not in body
