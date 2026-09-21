@@ -32,8 +32,8 @@
       "workflow_readback": "ABSENT"
     }
   },
-  "last_update": "2026-09-21T22:30:00+08:00",
-  "next_action": "Open PR from governance/issue473-master-chain-turn-exit-hard-gate-20260921 to cleanup/2d-3d-sync at unchanged target 05a455f602ba3477d9d05377055126fd5019451d, merge non-force, remote-read target, then seal terminal checkpoint and close Issue473.",
+  "last_update": "2026-09-21T22:33:00+08:00",
+  "next_action": "Merge PR #474 non-force into unchanged cleanup/2d-3d-sync, remote-read target and permanent files, then create terminal continuity checkpoint/proof and close Issue473 explicitly.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json",
   "integration": {
@@ -41,6 +41,9 @@
     "target_drift": "IDENTICAL_TO_FROZEN_BASE",
     "branch_head": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
     "permanent_files": 9,
-    "tested_run_id": 35607727615
+    "tested_run_id": 35607727615,
+    "pr_number": 474,
+    "pr_url": "https://github.com/looaeedr/whd/pull/474",
+    "autoclose_removed": true
   }
 }
