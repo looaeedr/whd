@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue445-t3-settings-owner-20260921",
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "head_sha": "9f9104358c54115459d4692c4cdc0790dae8add9",
-  "phase": "CLEANUP",
+  "head_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T11:08:00+08:00",
+  "last_update": "2026-09-21T11:12:00+08:00",
   "remote_qa": {
     "run_id": 35555924062,
     "head_sha": "9f9104358c54115459d4692c4cdc0790dae8add9",
@@ -30,7 +30,7 @@
       "mutation_owner_move": 0
     }
   },
-  "next_action": "Delete one-shot qa-issue445-t3-settings-owner.yml from the tested branch, then prove tested-head 9f910435 → cleaned-head drift is workflow-delete-only.",
+  "next_action": "Create/update a canonical issue445 T3 continuity checkpoint at cleaned head cc2af5a4 with TERMINAL_SUCCESS evidence, run owning finalization guard/proof, write terminal evidence to Issue #445, close/readback #445, close validation PR #456, release claim, then hand off #446 from accepted cleaned head.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
@@ -57,9 +57,14 @@
     "candidate_count": 69
   },
   "cleanup": {
-    "tested_head": "c7ec517925bb7e24cea3960845e66764647486d3",
-    "cleaned_head": "849df089b1842e67ceb5d5de3338edd0ef6d6206",
-    "drift": "workflow-delete-only"
+    "tested_head": "9f9104358c54115459d4692c4cdc0790dae8add9",
+    "cleaned_head": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
+    "workflow_removed": true,
+    "drift": "workflow-delete-only",
+    "ahead_by": 1,
+    "changed_files": [
+      ".github/workflows/qa-issue445-t3-settings-owner.yml"
+    ]
   },
   "recovery_evidence_candidate_only": {
     "run_id": 35551653538,
