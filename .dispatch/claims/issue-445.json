@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue445-t3-settings-owner-20260921",
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
-  "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
-  "phase": "CLEANUP",
+  "head_sha": "849df089b1842e67ceb5d5de3338edd0ef6d6206",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T09:44:00+08:00",
+  "last_update": "2026-09-21T09:47:00+08:00",
   "remote_qa": {
     "run_id": 35551653538,
     "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
@@ -22,7 +22,7 @@
       "protected_drift": "0"
     }
   },
-  "next_action": "Delete the one-shot #445 QA workflow, then verify tested-head c7ec5179 to cleaned-head drift is workflow-only before acceptance.",
+  "next_action": "Verify all #445 acceptance gates at cleaned head 849df089, write durable review evidence, then close validation PR #456 without merge and complete issue closure if closing drift is evidence-only.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
@@ -47,5 +47,10 @@
     "t0_authority": "tools/phase6_bridge_refactor_t0_census.py::install_fold_designer_bridge_facade AST dict count",
     "baseline_count": 69,
     "candidate_count": 69
+  },
+  "cleanup": {
+    "tested_head": "c7ec517925bb7e24cea3960845e66764647486d3",
+    "cleaned_head": "849df089b1842e67ceb5d5de3338edd0ef6d6206",
+    "drift": "workflow-delete-only"
   }
 }
