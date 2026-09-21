@@ -369,6 +369,14 @@ def _resolve_divider_core_support_region(
             ),
             "flat_band": (band_start, band_end),
             "placement": str(part.placement),
+            "support_face_interior_count": len(tuple(face.interiors)),
+            "support_face_area": float(face.area),
+            "mapping_flat_bounds": (
+                min(float(point[0]) for record in selected for point in record.flat),
+                min(float(point[1]) for record in selected for point in record.flat),
+                max(float(point[0]) for record in selected for point in record.flat),
+                max(float(point[1]) for record in selected for point in record.flat),
+            ),
         },
     )
 
@@ -700,7 +708,10 @@ def _solve_one(
                     attached_part_id=attached_id,
                     diagnostic_code="BACKPROJECTION_FAILED",
                     detail="locator-only backprojection failed",
-                    evidence=dict(back.evidence or {}),
+                    evidence={
+                        **dict(back.evidence or {}),
+                        "locator_region_provenance": dict(locator.provenance or {}),
+                    },
                 ),
                 (),
             )
