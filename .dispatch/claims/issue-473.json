@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
-  "phase": "IMPLEMENTING",
+  "head_sha": "bdb33d89f0e0a66a8b302bde690507ca04f13b73",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,21 +14,11 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
+  "chain_head": "bdb33d89f0e0a66a8b302bde690507ca04f13b73",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": {
-    "run_id": 35607309230,
-    "head_sha": "e4ab7cae40c69f5a9b5543c34e113cfab29ba60e",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106357410716,
-    "counts": {
-      "passed": 36,
-      "failed": 0
-    }
-  },
-  "last_update": "2026-09-21T22:13:00+08:00",
-  "next_action": "Synchronize MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1 into dispatching, executable-continuity-controller, issue-closure-gate, and durable AI pitfall knowledge; then run final process + knowledge contract GREEN.",
+  "remote_qa": null,
+  "last_update": "2026-09-21T22:18:00+08:00",
+  "next_action": "Expand the temporary Issue473 GREEN workflow to cover machine behavior plus dispatch/closure/continuity routing contracts on exact head bdb33d89f0e0a66a8b302bde690507ca04f13b73; monitor terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
