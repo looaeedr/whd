@@ -164,3 +164,33 @@ def test_inner_door_frame_dxf_roundtrip_is_unchanged_by_t0(tmp_path):
     result = api.verify_saved_part_render_data_dxf(data, path)
     assert result.ok is True
     assert result.issues == ()
+
+
+
+def test_resolved_mating_region_preserves_locator_flat_mapping_provenance():
+    from ae_engine.contracts import ResolvedPhysicalMatingRegion
+
+    mapping = {
+        "kind": "AUTHORITATIVE_MAPPED_PHYSICAL_FACE",
+        "flat_basis": ((1.0, 0.0), (0.0, 1.0)),
+        "source": "canonical_folded_uv",
+    }
+    provenance = {
+        "semantic_owner": "ae_engine.box_body_dividers",
+        "mapping_source": "folded_mesh_with_flat_uv_from_polygon",
+    }
+    region = ResolvedPhysicalMatingRegion(
+        part_id="box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1",
+        region_id="CORE_PHYSICAL_SEGMENT",
+        region_role="LOCATOR_SUPPORT_FACE",
+        physical_face_kind="MAPPED_SKIN",
+        supporting_plane=((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+        outward_normal=(0.0, 1.0, 0.0),
+        world_polygon=((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (1.0, 0.0, 1.0)),
+        flat_mapping=mapping,
+        provenance=provenance,
+    )
+
+    assert region.flat_mapping is mapping
+    assert region.provenance is provenance
+    assert region.flat_mapping["source"] == "canonical_folded_uv"
