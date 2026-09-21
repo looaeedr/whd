@@ -102,7 +102,19 @@ def test_t6_activation_routes_contracts_to_existing_seams():
     assert "plan_activation" in attrs
     assert "begin_activation" in attrs
     assert "finish_activation" in attrs
-    assert "submit_update_intent" in attrs
+
+    body = ast.get_source_segment(BRIDGE.read_text(encoding="utf-8"), fn) or ""
+    # Compatibility adapter resolves the installed facade method dynamically, then
+    # calls the local `submit` exactly once. Do not require a direct Attribute call.
+    assert 'getattr(self, "submit_update_intent", None)' in body
+    local_submit_calls = [
+        node
+        for node in ast.walk(fn)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "submit"
+    ]
+    assert len(local_submit_calls) == 1
     # Profile stashing through the navigation controller is the accepted owner route.
     # The separate direct-mutation contract below rejects bridge writes to
     # DesignerWorkspace backing state.
