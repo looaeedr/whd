@@ -150,7 +150,7 @@ def test_base_sha_mismatch_is_rejected(tmp_path: Path) -> None:
         _assert_claim(guard, path)
 
 
-def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
+def test_cli_write_requires_changed_file_identity_and_owner(tmp_path: Path) -> None:
     path = _write_claim(tmp_path, _claim())
     common = [
         sys.executable,
@@ -168,8 +168,19 @@ def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
         "--head-sha",
         HEAD_SHA,
     ]
-    owner = subprocess.run(
+
+    missing_path = subprocess.run(
         [*common, "--worker", "chatgpt"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert missing_path.returncode == 2
+    assert "EXECUTION_CLAIM_GUARD_ERROR" in missing_path.stdout
+    assert "changed-file" in missing_path.stdout.lower()
+
+    owner = subprocess.run(
+        [*common, "--worker", "chatgpt", "--changed-file", "tools/example.py"],
         capture_output=True,
         text=True,
         check=False,
@@ -178,13 +189,91 @@ def test_cli_is_fail_closed_and_owner_usable(tmp_path: Path) -> None:
     assert "EXECUTION_CLAIM_GUARD_GREEN" in owner.stdout
 
     intruder = subprocess.run(
-        [*common, "--worker", "other-worker"],
+        [*common, "--worker", "other-worker", "--changed-file", "tools/example.py"],
         capture_output=True,
         text=True,
         check=False,
     )
     assert intruder.returncode == 2
     assert "EXECUTION_CLAIM_GUARD_ERROR" in intruder.stdout
+
+
+def test_cli_skill_write_requires_canonical_writing_skill_preflight_evidence(tmp_path: Path) -> None:
+    path = _write_claim(tmp_path, _claim())
+    skill_path = ".agents/skills/engineering/派工/SKILL.md"
+    common = [
+        sys.executable,
+        str(GUARD),
+        "--claim",
+        str(path),
+        "--issue",
+        "256",
+        "--worker",
+        "chatgpt",
+        "--branch",
+        WORK_BRANCH,
+        "--action",
+        "write",
+        "--base-sha",
+        BASE_SHA,
+        "--head-sha",
+        HEAD_SHA,
+        "--changed-file",
+        skill_path,
+    ]
+
+    missing = subprocess.run(common, capture_output=True, text=True, check=False)
+    assert missing.returncode == 2
+    assert "EXECUTION_CLAIM_GUARD_ERROR" in missing.stdout
+    assert "preflight" in missing.stdout.lower()
+    assert "寫技能" in missing.stdout
+
+    incomplete_evidence = tmp_path / "incomplete-preflight.md"
+    incomplete_evidence.write_text(
+        "\n".join(
+            [
+                "派工",
+                "issue-closure-gate",
+                "phase6-release-packaging",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+                "READ_REFERENCE: release_required_artifacts.json",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    incomplete = subprocess.run(
+        [*common, "--preflight-evidence", str(incomplete_evidence)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert incomplete.returncode == 2
+    assert "寫技能" in incomplete.stdout
+
+    complete_evidence = tmp_path / "complete-preflight.md"
+    complete_evidence.write_text(
+        "\n".join(
+            [
+                "寫技能",
+                "派工",
+                "issue-closure-gate",
+                "phase6-release-packaging",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+                "READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+                "READ_REFERENCE: release_required_artifacts.json",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    complete = subprocess.run(
+        [*common, "--preflight-evidence", str(complete_evidence)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert complete.returncode == 0, complete.stdout + complete.stderr
+    assert "EXECUTION_CLAIM_GUARD_GREEN" in complete.stdout
 
 
 def test_dispatch_skill_requires_executable_prewrite_gate() -> None:
