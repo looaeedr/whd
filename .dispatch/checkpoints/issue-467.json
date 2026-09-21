@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "master_id": 464,
+  "task_id": "T1",
+  "issue": 467,
+  "issue_url": "https://github.com/looaeedr/whd/issues/467",
+  "role": "Geometry tolerance owner + legal coplanar contact resolver",
+  "state": "ACCEPTED",
+  "target_x": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
+  "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "tested_head": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
+  "accepted_closing_head": "90a44fe459da2b78140987d89a995af6255a5934",
+  "requirement_red": {
+    "valid_run_id": 35600585458,
+    "valid_head_sha": "95aa3161b39e41737223c57d130a059a4ddad5be",
+    "result": "7 failed / 0 passed",
+    "expected_failures": [
+      "AssemblyGeometryToleranceContract missing",
+      "LegalContactResult missing",
+      "neutral legal coplanar contact resolver missing"
+    ]
+  },
+  "acceptance": {
+    "initial_green_run_id": 35601250370,
+    "initial_green_head_sha": "9f657ca5f179d8de2a37bcc6ce97b391112c2a04",
+    "initial_counts": {
+      "passed": 26,
+      "skipped": 1,
+      "failed": 0
+    },
+    "code_review_gap": "TD-2A required a real Receiving frame terminal wall -> shared Divider support-face case",
+    "diagnostic_runs": [
+      {
+        "run_id": 35602420438,
+        "result": "1 failed / 32 passed / 1 skipped",
+        "finding": "actual Receiving seam failed focused acceptance"
+      },
+      {
+        "run_id": 35602759252,
+        "result": "1 failed / 32 passed / 1 skipped",
+        "finding": "CONTACT_NOT_COPLANAR; plane_separation=4.5 mm, production tolerance=1e-6; no tolerance widening allowed"
+      },
+      {
+        "run_id": 35604056971,
+        "result": "3 failed / 30 passed / 1 skipped",
+        "finding": "single implementation defect: missing cabinet_family_policy import"
+      }
+    ],
+    "final_run_id": 35604436722,
+    "final_job_id": 106347988176,
+    "final_head_sha": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
+    "counts": {
+      "passed": 33,
+      "skipped": 1,
+      "failed": 0
+    },
+    "actual_receiving_terminal_contact": "GREEN",
+    "production_tolerance_owner": "GREEN",
+    "opposed_normal_residual": "GREEN",
+    "non_coplanar_fail_closed": "GREEN",
+    "penetration_not_contact": "GREEN",
+    "dxf_validation_tolerance_not_authority": "GREEN"
+  },
+  "remediation": {
+    "root_cause": "Receiving left/right inner-door frame longitudinal span/center were still panel-bottom-owned while the product contract requires the lower terminal to mate the exact shared horizontal Divider support skin.",
+    "fix": "derive Receiving vertical-frame span and center from canonical top inset + exact shared Divider CORE_PHYSICAL_SEGMENT support skin; no observed 4.5 mm delta encoded and no tolerance widened."
+  },
+  "cleanup": {
+    "removed": [
+      ".github/workflows/qa-issue467-t1-preflight.yml",
+      ".github/workflows/qa-issue467-t1-red.yml",
+      ".github/workflows/qa-issue467-t1-green.yml",
+      ".github/workflows/qa-issue467-t1-review-green.yml"
+    ],
+    "remote_readback": "ABSENT"
+  },
+  "drift_audit": {
+    "base": "c28afde844ef0bf9dbb6ff19c8cc29ef51f0c487",
+    "head": "90a44fe459da2b78140987d89a995af6255a5934",
+    "ahead_by": 1,
+    "allowed_changes": "only deletion of .github/workflows/qa-issue467-t1-review-green.yml; earlier temporary workflows were already absent",
+    "production_test_drift": "NONE"
+  },
+  "final_files": [
+    "ae_engine/assembly_contact.py",
+    "ae_engine/assembly_geometry.py",
+    "ae_engine/assembly_placement.py",
+    "ae_engine/cabinet_types/policy.py",
+    "ae_engine/cabinet_types/receiving.py",
+    "ae_engine/contracts.py",
+    "tests/test_issue467_t1_legal_contact.py",
+    "tests/test_phase6_t16_receiving_placement.py"
+  ],
+  "ai_library_writeback": "DEFERRED_TO_T7_PER_ISSUE_AUTHORITY",
+  "next_action": "T2 #468 must use accepted_closing_head 90a44fe459da2b78140987d89a995af6255a5934 as its exact parent on the same work-order branch."
+}
