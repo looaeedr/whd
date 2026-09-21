@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "b32b50952ea14be998997d272220a97a5df7c9a4",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -23,12 +23,16 @@
   "remote_qa": {
     "run_id": 35664013640,
     "head_sha": "b32b50952ea14be998997d272220a97a5df7c9a4",
-    "status": "queued",
-    "conclusion": null,
-    "purpose": "candidate-only remediation verification"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "candidate-only remediation verification",
+    "counts": {
+      "headless_passed": 3,
+      "xvfb_passed": 3
+    }
   },
-  "last_update": "2026-09-22T06:51:00+08:00",
-  "next_action": "Poll locked run 35664013640 at head b32b50952ea14be998997d272220a97a5df7c9a4 to terminal; require preflight/headless/xvfb GREEN.",
+  "last_update": "2026-09-22T06:54:00+08:00",
+  "next_action": "Trigger fresh full Issue472 T7 Combined Acceptance on the remediated lineage; require focused GREEN and no candidate-only failures beyond frozen/current-X common baseline debt. Then perform current-X virtual-merge readiness, cleanup, tested-to-closing drift audit, closure and Master finalization.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
