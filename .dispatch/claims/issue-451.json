@@ -5,8 +5,8 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "2cda3dff06919ae67b83db4484a9b543ad382fe7",
-  "phase": "CLEANUP",
+  "head_sha": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -14,22 +14,28 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "2cda3dff06919ae67b83db4484a9b543ad382fe7",
+  "chain_head": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:33:00+08:00",
+  "last_update": "2026-09-21T19:36:00+08:00",
   "remote_qa": null,
   "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
   "durable_writeback": {
     "ownership_current_path": "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
-    "ownership_current_commit": "61b81caa806388d3e8b4c771b6a5f772948a4609",
-    "authority_map_updated": true,
-    "authority_map_commit": "0d9f8f40af1c8dcf55375b4b676d8990e5791518"
+    "authority_map_updated": true
   },
   "cleanup": {
     "qa_issue442_workflow_removed": true,
-    "qa_issue443_workflow_removed": false
+    "qa_issue443_workflow_removed": true,
+    "residue_readback": "GREEN"
   },
-  "next_action": "Remove residual qa-issue443 one-shot workflow, then validate residue=0, authority uniqueness, metadata, protected/config/DXF drift before integration acceptance.",
+  "branch_local_drift": {
+    "base": "4b401077d457acd1e754366637c595b3d82f38d4",
+    "head": "675b37f93b758e0d296cdbefccb5a645466c8fb3",
+    "changed_files": 5,
+    "production_code_changed": false,
+    "config_or_dxf_changed": false
+  },
+  "next_action": "Create one-shot T9 writeback QA workflow on this claimed branch, discover exact run_id from its issue start marker, lock run_id+head_sha, and monitor to terminal before cleanup.",
   "blocker": null,
   "handoff_ready": false
 }
