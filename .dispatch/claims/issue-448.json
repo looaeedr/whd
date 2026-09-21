@@ -5,17 +5,17 @@
   "work_branch": "refactor/issue448-t6-part-editor-owner-20260921",
   "claimed_at": "2026-09-21T13:22:00+08:00",
   "base_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
-  "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
+  "head_sha": "1c07efe9f59512ab1016db424c2cef498c0bbfd5",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:55:00+08:00",
+  "last_update": "2026-09-21T13:57:00+08:00",
   "remote_qa": {
     "run_id": 35562081929,
     "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Patch only the T6 contract/workflow update-intent guard to recognize getattr+local-call compatibility routing; keep production code untouched, then create a fresh one-shot QA run.",
+  "next_action": "Patch the one-shot workflow update-intent source guard to recognize getattr(self, 'submit_update_intent', None) + one local submit() call; then fresh QA.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md",
   "failure_classification": {
