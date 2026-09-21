@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "2b5e3e546b407a4eda92a8ea909d58ce73ace2ef",
-  "phase": "GREEN",
+  "head_sha": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T0",
@@ -14,30 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "2b5e3e546b407a4eda92a8ea909d58ce73ace2ef",
+  "chain_head": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:30:00+08:00",
+  "last_update": "2026-09-21T20:33:00+08:00",
   "remote_qa": {
-    "run_id": 35598082041,
-    "head_sha": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
-    "status": "completed",
-    "conclusion": "failure_expected_red",
-    "job_id": 106327436030,
-    "counts": {
-      "passed": 1,
-      "failed": 3
-    },
-    "evidence": [
-      "R1 assertion: Inner Door Frame owner terminal mating-region API missing",
-      "R2 assertion: ResolvedPhysicalMatingRegion contract missing",
-      "neutral resolver callable missing"
-    ],
-    "invalid_predecessor_run": {
-      "run_id": 35597969551,
-      "reason": "runner missing ezdxf"
-    }
+    "run_id": null,
+    "head_sha": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 465 T0 GREEN"
   },
-  "next_action": "Create/trigger focused T0 GREEN workflow for exact implementation head 2b5e3e546b407a4eda92a8ea909d58ce73ace2ef and monitor to terminal.",
+  "next_action": "Locate and actively monitor Issue 465 T0 GREEN run for exact head d5a7cf48e485473700fc8cd7938fc7a3e935fe51 to terminal; on failure inspect bounded failed log and remediate.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
