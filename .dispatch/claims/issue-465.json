@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "7ab9e420ac7bb71eb8bafa57e43ee7e16b403950",
+  "head_sha": "f7a8d248f88456da25bb8a0fc7bf5e901c4401c6",
   "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,9 +14,9 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "7ab9e420ac7bb71eb8bafa57e43ee7e16b403950",
+  "chain_head": "f7a8d248f88456da25bb8a0fc7bf5e901c4401c6",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:52:00+08:00",
+  "last_update": "2026-09-21T20:53:00+08:00",
   "remote_qa": {
     "run_id": 35599810725,
     "head_sha": "e9fd0e20d19660eea550596a5304629b05a50594",
@@ -36,7 +36,7 @@
       "locator flat_mapping/provenance preservation contract GREEN"
     ]
   },
-  "next_action": "Continue guarded cleanup: delete qa-issue465-t0-red.yml, then qa-issue465-t0-green.yml.",
+  "next_action": "Delete final temporary qa-issue465-t0-green.yml, remote-read absence, then perform tested-head→closing-head cleanup-only drift audit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
