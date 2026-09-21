@@ -5,10 +5,10 @@
   "work_branch": "refactor/issue447-t5-workspace-shell-20260921",
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
-  "head_sha": "115402ccc948f32b4140ac946eecdcec24251fae",
-  "phase": "CLEANUP",
+  "head_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:06:00+08:00",
+  "last_update": "2026-09-21T13:09:00+08:00",
   "remote_qa": {
     "run_id": 35561070337,
     "head_sha": "115402ccc948f32b4140ac946eecdcec24251fae",
@@ -31,7 +31,17 @@
       "config_git_object_invariant": 1
     }
   },
-  "next_action": "Delete one-shot qa-issue447-t5-workspace-shell.yml, prove tested-head 115402cc → cleaned-head drift is workflow-delete-only, then terminal checkpoint/closure/release.",
+  "next_action": "Persist TERMINAL_SUCCESS checkpoint for #447 at cleaned head 9ccd3f51, create/verify finalization proof, write terminal evidence, close/readback Issue #447, release claim, then dispatch #448 from accepted cleaned head.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md"
+  "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md",
+  "cleanup": {
+    "tested_head": "115402ccc948f32b4140ac946eecdcec24251fae",
+    "cleaned_head": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
+    "workflow_removed": true,
+    "drift": "workflow-delete-only",
+    "ahead_by": 1,
+    "changed_files": [
+      ".github/workflows/qa-issue447-t5-workspace-shell.yml"
+    ]
+  }
 }
