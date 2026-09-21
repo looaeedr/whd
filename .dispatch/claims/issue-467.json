@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "ac5dc2f1bbf27f0e5885c8ada9143ec7460a7c9e",
-  "phase": "IMPLEMENTING",
+  "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,27 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "ac5dc2f1bbf27f0e5885c8ada9143ec7460a7c9e",
+  "chain_head": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": 35602420438,
-    "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106341423339,
-    "counts": {
-      "passed": 32,
-      "skipped": 1,
-      "failed": 1
-    },
-    "evidence": [
-      "only failing node: test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face",
-      "setup/dependency steps GREEN",
-      "failure occurs at legal-contact status assertion; diagnostic_code was not printed"
-    ]
+    "run_id": null,
+    "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 467 T1 Review GREEN",
+    "diagnostic_revision": 2
   },
-  "last_update": "2026-09-21T22:07:00+08:00",
-  "next_action": "Retrigger the exact T1 review-GREEN suite with LegalContactResult repr enabled so the failed actual Receiving seam exposes diagnostic_code/evidence.",
+  "last_update": "2026-09-21T22:09:00+08:00",
+  "next_action": "Locate and actively monitor diagnostic rerun of Issue 467 T1 Review GREEN for exact head 2fa753dd3ffdf524ad081d888f9c7425e9f07f0a; extract LegalContactResult diagnostic on terminal failure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
