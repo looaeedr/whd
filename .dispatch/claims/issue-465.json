@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T0",
@@ -16,14 +16,21 @@
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "chain_head": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:33:00+08:00",
+  "last_update": "2026-09-21T20:36:00+08:00",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35599469463,
     "head_sha": "d5a7cf48e485473700fc8cd7938fc7a3e935fe51",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 465 T0 GREEN"
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106331875271,
+    "counts": {
+      "passed": 16,
+      "skipped": 1,
+      "failed": 0
+    },
+    "evidence": "T0 contract + inner-door frame owner + Receiving placement focused suite"
   },
-  "next_action": "Locate and actively monitor Issue 465 T0 GREEN run for exact head d5a7cf48e485473700fc8cd7938fc7a3e935fe51 to terminal; on failure inspect bounded failed log and remediate.",
+  "next_action": "Strengthen T0 acceptance with executable no-bbox/minmax authority guard and actual Inner Door Frame DXF save→reopen parity; rerun focused acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
