@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:04:30+08:00",
   "base_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
   "head_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
-  "phase": "RELEASED",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T3",
@@ -17,24 +17,20 @@
   "chain_head": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "run_id": 35617924980,
-    "head_sha": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
+    "run_id": 35617279995,
+    "head_sha": "fb595ce3ccd9c700b54c62f345c1efa74372856f",
     "status": "completed",
-    "conclusion": "success",
-    "job_id": 106393325516,
+    "conclusion": "failure",
+    "job_id": 106391112305,
     "counts": {
-      "passed": 33,
-      "failed": 0
+      "passed": 0,
+      "failed": 7
     },
-    "evidence": [
-      "T3 policy/diagnostics contract suite GREEN",
-      "T2 contact-local frame regressions GREEN",
-      "T1 legal-contact regressions GREEN",
-      "T0 physical mating-region regressions GREEN"
-    ]
+    "classification": "EXPECTED_REQUIREMENT_RED",
+    "root_cause": "ae_engine.joint_marking_policy module missing; setup/checkout/dependencies all GREEN"
   },
-  "last_update": "2026-09-21T23:47:00+08:00",
-  "next_action": null,
+  "last_update": "2026-09-21T23:24:00+08:00",
+  "next_action": "Implement immutable T3 contracts in ae_engine/contracts.py and dormant pure ae_engine/joint_marking_policy.py at the current work-order head, then trigger focused GREEN.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue469-t3-authority-read.txt",
