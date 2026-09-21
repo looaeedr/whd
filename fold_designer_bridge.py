@@ -2861,38 +2861,6 @@ def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
     _phase6_set_endcap_fw_override(self, part_key, value)
 
 
-def _phase6_build_endcap_fw_settings(self, parent, part_key, start_row):
-    part_key = str(part_key)
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    state = self._phase6_endcap_fw_state.setdefault(
-        part_key, {"follow_box": True, "value": _num(snapshot.get("fw", 25), 25)}
-    )
-    follow = bool(state.get("follow_box", True))
-    effective = resolve_endcap_fw(snapshot, part_key, state=self._phase6_endcap_fw_state)
-
-    box = original.ttk.Frame(parent, padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    original.ttk.Label(
-        box, text="邊框寬度 FW", font=("Microsoft JhengHei", 9, "bold")
-    ).pack(anchor=original.tk.W)
-    original.ttk.Separator(box, orient=original.tk.HORIZONTAL).pack(
-        fill=original.tk.X, pady=(2, 4)
-    )
-    follow_var = original.tk.BooleanVar(value=follow)
-    value_var = original.tk.StringVar(value=_setting_number_text(effective))
-    check = original.ttk.Checkbutton(box, text="跟隨箱身 FW", variable=follow_var)
-    check.pack(side=original.tk.LEFT, padx=(0, 8))
-    entry = original.ttk.Entry(box, textvariable=value_var, width=9, justify=original.tk.CENTER)
-    entry.pack(side=original.tk.LEFT, padx=(0, 6))
-    entry.configure(state="normal")
-    check.configure(state="disabled")
-    entry.bind("<Return>", lambda _e: _phase6_on_endcap_fw_value_selected(self, part_key, value_var))
-    entry.bind("<FocusOut>", lambda _e: _phase6_on_endcap_fw_value_selected(self, part_key, value_var))
-    original.ttk.Label(box, text="直接修改：先改一端會帶另一端；再改另一端後各自獨立").pack(side=original.tk.LEFT)
-    return start_row + 1, follow_var, value_var, entry
-
-
 _BOX_STRUCTURE_LABELS = {
     BoxBodyStructureType.INTEGRAL: "一體成型",
     BoxBodyStructureType.TWO_PIECE_W_SPLIT: "二件式（W 二分）",
@@ -3014,198 +2982,6 @@ def _phase6_apply_box_structure_numeric(self, type_id, field, var):
         _phase6_box_structure_error(self, exc)
         # Recreate the UI from canonical state; invalid text never becomes truth.
         _phase6_after_box_structure_commit(self, state, rebuild=True)
-
-
-def _phase6_structure_entry(box, row, label, value, callback, *, suffix="mm"):
-    original.ttk.Label(box, text=label).grid(row=row, column=0, sticky="w", padx=(0, 6), pady=2)
-    var = original.tk.StringVar(value=_setting_number_text(value))
-    entry = original.ttk.Entry(box, textvariable=var, width=10, justify=original.tk.CENTER)
-    entry.grid(row=row, column=1, sticky="w", pady=2)
-    original.ttk.Label(box, text=suffix).grid(row=row, column=2, sticky="w", padx=(5, 12), pady=2)
-    entry.bind("<Return>", lambda _e: callback(var))
-    entry.bind("<FocusOut>", lambda _e: callback(var))
-    return var, entry
-
-
-def _phase6_build_box_structure_settings(self, parent, start_row):
-    state = _phase6_box_structure_state(self)
-    active = BoxBodyStructureType(state["active_type"])
-    frame = original.ttk.LabelFrame(parent, text="結構參數", padding=5)
-    frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-
-    # T14: this is a UI projection of the already-resolved physical Box Body
-    # pieces.  The stable IDs and dimensions come from render_data.pieces;
-    # edits still write the single canonical box_body_structure_state.
-    self.box_body_piece_input_host = original.ttk.Frame(frame)
-    self.box_body_piece_input_host.grid(row=0, column=0, columnspan=4, sticky="ew")
-    self.box_body_piece_input_sections = {}
-    self.box_body_piece_input_vars = {}
-    self.box_body_piece_input_entries = {}
-
-    cfg = state["configs"][active.value]
-    total_w = _phase6_box_structure_w(self)
-    piece_values = {}
-    if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-        left, right = resolve_two_piece_widths(state, total_w)
-        piece_values = {
-            "box_body:left": ("width", "W 包外", left, "mm", "left"),
-            "box_body:right": ("width", "W 包外", right, "mm", "right"),
-        }
-    elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-        left, middle, right = resolve_three_piece_widths(state, total_w)
-        piece_values = {
-            "box_body:left": ("width", "W 包外", left, "mm", "left"),
-            "box_body:middle": ("width", "W 包外", middle, "mm", "middle"),
-            "box_body:right": ("width", "W 包外", right, "mm", "right"),
-        }
-    elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-        outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
-            getattr(self, "_phase6_input_snapshot", {}) or {}
-        )
-        rear_bend = (
-            side_rear_bend_outside_length(
-                state, float((getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0))
-            )
-            if outside_family else float(cfg.get("side_rear_bend", 15))
-        )
-        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
-        piece_values = {
-            "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
-            "box_body:back": ("width_comp_t", "寬補償", width_comp_t, "T", "back_width_comp_t"),
-            "box_body:right_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
-        }
-
-    projections = ()
-    if active is not BoxBodyStructureType.INTEGRAL:
-        try:
-            render_data = _phase6_box_body_structure_render_data(self)
-            projections = _phase6_box_body_piece_dimension_projections(render_data)
-            active_piece_key = str(getattr(self.designer_workspace, "active_part", "") or "")
-            if _phase6_is_box_body_physical_piece_key(active_piece_key):
-                projections = tuple(
-                    row for row in projections if row.part_key == active_piece_key
-                )
-        except Exception as exc:
-            original.ttk.Label(
-                self.box_body_piece_input_host,
-                text=f"逐片尺寸：無法解析（{exc}）",
-                foreground=WHD_SEMANTIC_COLORS["warning"],
-            ).pack(fill=original.tk.X, pady=2)
-
-    for projection in projections:
-        part_key = str(projection.part_key)
-        sub = original.ttk.LabelFrame(
-            self.box_body_piece_input_host, text=projection.label, padding=4
-        )
-        sub._phase6_part_key = part_key
-        sub.pack(fill=original.tk.X, pady=(2, 4))
-        self.box_body_piece_input_sections[part_key] = sub
-        self.box_body_piece_input_vars[part_key] = {}
-        self.box_body_piece_input_entries[part_key] = {}
-
-        spec = piece_values.get(part_key)
-        if spec is not None:
-            field_key, label, value, suffix, state_field = spec
-            original.ttk.Label(sub, text=label).grid(
-                row=0, column=0, sticky="w", padx=(0, 6), pady=2
-            )
-            var = original.tk.StringVar(
-                master=sub, value=_setting_number_text(value)
-            )
-            entry = original.ttk.Entry(
-                sub, textvariable=var, width=10, justify=original.tk.CENTER
-            )
-            entry.grid(row=0, column=1, sticky="w", pady=2)
-            original.ttk.Label(sub, text=suffix).grid(
-                row=0, column=2, sticky="w", padx=(5, 12), pady=2
-            )
-
-            if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            else:
-                callback = lambda v=var, f=state_field: _phase6_apply_box_structure_numeric(
-                    self, active, f, v
-                )
-            entry.bind("<Return>", lambda _e, cb=callback: cb())
-            entry.bind("<FocusOut>", lambda _e, cb=callback: cb())
-            self.box_body_piece_input_vars[part_key][field_key] = var
-            self.box_body_piece_input_entries[part_key][field_key] = entry
-
-        original.ttk.Label(
-            sub,
-            text=(
-                f"包外尺寸：{_setting_number_text(projection.formed_width)} × "
-                f"{_setting_number_text(projection.formed_height)} mm"
-            ),
-        ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 0))
-        original.ttk.Label(
-            sub,
-            text=(
-                f"料尺寸：{_setting_number_text(projection.blank_width)} × "
-                f"{_setting_number_text(projection.blank_height)} mm"
-            ),
-        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(0, 2))
-
-        if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
-            if part_key in {"box_body:left_side", "box_body:right_side"}:
-                original.ttk.Label(
-                    sub,
-                    text=f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm",
-                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
-            elif part_key == "box_body:back":
-                original.ttk.Label(
-                    sub,
-                    text=f"成型寬：{_setting_number_text(projection.formed_width)} mm",
-                ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(0, 2))
-
-    # Shared seam/relief settings remain shared canonical structure settings;
-    # they are intentionally not duplicated into one child piece.
-    row = 1
-    if active in {BoxBodyStructureType.TWO_PIECE_W_SPLIT, BoxBodyStructureType.THREE_PIECE_W_SPLIT}:
-        _phase6_structure_entry(
-            frame, row, "中央接合折邊", cfg.get("seam_bend", 12),
-            lambda v: _phase6_apply_box_structure_numeric(self, active, "seam_bend", v)
-        )
-        row += 1
-        seam = float(cfg.get("seam_bend", 12))
-        if seam >= 50:
-            original.ttk.Label(
-                frame,
-                text=f"⚠ 中央接合折邊 {seam:g} mm 已達 50 mm 以上，請確認尺寸是否合理。",
-                foreground=WHD_SEMANTIC_COLORS["warning"],
-            ).grid(row=row, column=0, columnspan=4, sticky="w", pady=(2, 4))
-            row += 1
-        advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
-        advanced_open = bool(advanced_flags.get(active.value, False))
-        original.ttk.Button(
-            frame, text=("▼ 截角／避讓" if advanced_open else "▶ 截角／避讓"),
-            command=lambda t=active: _phase6_toggle_structure_advanced(self, t),
-        ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(5, 0))
-        row += 1
-        advanced = original.ttk.LabelFrame(frame, text="截角／避讓", padding=4)
-        if advanced_open:
-            advanced.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(3, 0))
-        row += 1
-        ar = 0
-        for label, field, value, suffix in (
-            ("封頭尾額外避讓", "endcap_extra_relief", cfg.get("endcap_extra_relief", 5), "mm"),
-            ("封頭尾單邊留肉", "endcap_single_side_meat_t", cfg.get("endcap_single_side_meat_t", 0.5), "T"),
-            ("底板避讓總長", "baseplate_relief_length", cfg.get("baseplate_relief_length", 20), "mm"),
-            ("底板單邊留肉", "baseplate_single_side_meat_t", cfg.get("baseplate_single_side_meat_t", 0.5), "T"),
-        ):
-            _phase6_structure_entry(
-                advanced, ar, label, value,
-                lambda v, f=field: _phase6_apply_box_structure_numeric(self, active, f, v),
-                suffix=suffix,
-            )
-            ar += 1
-    return start_row + 1
 
 
 def _phase6_joint_rows(self):
@@ -3527,14 +3303,6 @@ def _phase6_render_active_drawing_edge_controls(self):
     self.base_plate_edge_shrink_widgets = {}
     return None
 
-def _phase6_build_endcap_joint_settings(self, parent, part_key, start_row):
-    # Compatibility hook only. Four-edge AssemblyJoint controls are owned by
-    # the drawing-edge hosts and intentionally never live inside the lockable
-    # settings panel. Canonical writes still go through
-    # _phase6_on_endcap_edge_relation_selected().
-    return start_row
-
-
 def _phase6_on_box_symmetry_changed(self):
     """Keep BoxBody symmetry authoritative and fail closed for asymmetric families."""
     var = getattr(self, "v_sy", None)
@@ -3600,203 +3368,6 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     return committed
 
 
-def _phase6_build_receiving_bottom_wrap_settings(self, parent, part_key, start_row):
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    if (
-        str(part_key) not in ENDCAP_FW_PARTS
-        or not cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
-    ):
-        return start_row, None, None, None, None
-    item = resolve_endcap_bottom_wrap(
-        snapshot, str(part_key),
-        state=getattr(self, "_phase6_endcap_bottom_wrap_state", normalize_endcap_bottom_wrap_state(snapshot)),
-    )
-    if not bool(item.get("enabled", False)):
-        return start_row, None, None, None, None
-    box = original.ttk.LabelFrame(parent, text="下方包覆貼外預留", padding=4)
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-    reserve_u_var = original.tk.StringVar(value=_setting_number_text(item["reserve_u"]))
-    reserve_v_var = original.tk.StringVar(value=_setting_number_text(item["reserve_v"]))
-    original.ttk.Label(box, text="X 預留 (mm)").grid(row=0, column=0, sticky="e")
-    u_entry = original.ttk.Entry(box, textvariable=reserve_u_var, width=8, justify=original.tk.CENTER)
-    u_entry.grid(row=0, column=1, padx=(3, 10))
-    original.ttk.Label(box, text="Y 預留 (mm)").grid(row=0, column=2, sticky="e")
-    v_entry = original.ttk.Entry(box, textvariable=reserve_v_var, width=8, justify=original.tk.CENTER)
-    v_entry.grid(row=0, column=3, padx=3)
-    for entry in (u_entry, v_entry):
-        entry.bind("<Return>", lambda _e: _phase6_commit_receiving_bottom_wrap_controls(
-            self, part_key, reserve_u_var, reserve_v_var
-        ))
-        entry.bind("<FocusOut>", lambda _e: _phase6_commit_receiving_bottom_wrap_controls(
-            self, part_key, reserve_u_var, reserve_v_var
-        ))
-    original.ttk.Label(
-        box, text="WRAP 關係由組合方式／Joint Graph 決定；此處只調整預留。封頭/封尾先連動，修改另一端後才獨立。"
-    ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(3, 0))
-    return start_row + 1, None, reserve_u_var, reserve_v_var, box
-
-
-def _phase6_build_corner_settings(self, parent, part_key, start_row):
-    self.corner_pair_vars = {}
-    self.corner_pair_checkbuttons = {}
-    self.corner_type_vars = {}
-    self.corner_mode_vars = {}
-    self.corner_direction_vars = {}
-    self.corner_amount_vars = {}
-    self.corner_secondary_retain_vars = {}
-    self.corner_secondary_depth_vars = {}
-    self.corner_detail_frames = {}
-    self.fixed_corner_summary_var = original.tk.StringVar(value="")
-    self.corner_param_lock_button = None
-    if part_key == GLOBAL_CONTEXT or part_key == "box_body":
-        return start_row
-
-    # Shared indicator parts are factory-fixed and never unlockable.
-    if part_key in {"indicator_box", "indicator_door"}:
-        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
-        if summary:
-            box = original.ttk.LabelFrame(parent, text="截角類型（固定 / 唯讀）", padding=4)
-            box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-            self.fixed_corner_summary_var.set(summary)
-            original.ttk.Label(box, textvariable=self.fixed_corner_summary_var, wraplength=900).pack(anchor=original.tk.W)
-            return start_row + 1
-        return start_row
-
-    type_editable = _phase6_corner_type_editable(self, part_key)
-    params_unlocked = _phase6_corner_parameters_unlocked(self, part_key)
-    params_editable = _phase6_corner_parameters_editable(self, part_key)
-
-    if not type_editable and not params_unlocked:
-        # A read-only settings page is a view. Building it must not materialize
-        # default Corner state into the canonical manufacturing snapshot, or a
-        # pure part switch invalidates the manufacturing cache.
-        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
-        if summary:
-            box = original.ttk.LabelFrame(parent, text="截角類型（固定 / 唯讀）", padding=4)
-            box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-            self.fixed_corner_summary_var.set(summary)
-            original.ttk.Label(box, textvariable=self.fixed_corner_summary_var, wraplength=900).pack(anchor=original.tk.W)
-            return start_row + 1
-
-    state, pairs = _phase6_ensure_corner_part(self, part_key)
-    box = original.ttk.LabelFrame(
-        parent,
-        text="截角類型" if type_editable else "截角類型（基準預設）",
-        padding=4,
-    )
-    box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
-
-    for pair_key in ("top", "bottom"):
-        row = original.ttk.Frame(box)
-        row.pack(fill=original.tk.X, pady=3)
-        original.ttk.Label(row, text="上方" if pair_key == "top" else "下方", width=6).pack(side=original.tk.LEFT)
-        same_var = original.tk.BooleanVar(master=row, value=bool(pairs[pair_key]))
-        self.corner_pair_vars[pair_key] = same_var
-        same_cb = original.ttk.Checkbutton(
-            row, text="左右相同", variable=same_var,
-            command=lambda p=part_key, pair=pair_key, v=same_var: _phase6_corner_pair_var_changed(self, p, pair, v),
-        )
-        same_cb.configure(state=("normal" if params_editable else "disabled"))
-        self.corner_pair_checkbuttons[pair_key] = same_cb
-        if params_unlocked:
-            same_cb.pack(side=original.tk.LEFT, padx=(0, 6))
-        targets = (pair_key,) if pairs[pair_key] else _CORNER_PAIR_KEYS[pair_key]
-
-        for target_key in targets:
-            physical = _CORNER_PAIR_KEYS[target_key][0] if target_key in _CORNER_PAIR_KEYS else target_key
-            selection = _phase6_selection_from_raw(state[physical])
-            target = original.ttk.Frame(row)
-            target.pack(side=original.tk.LEFT, padx=(3, 8))
-            if len(targets) > 1:
-                original.ttk.Label(target, text="左" if target_key.endswith("left") else "右").grid(row=0, column=0, sticky="w")
-
-            type_var = original.tk.StringVar(value=_CORNER_TYPE_LABEL_BY_ID[selection.type_id.value])
-            self.corner_type_vars[target_key] = type_var
-            top_assembly_owned = part_key in {"head", "tail"} and pair_key == "top"
-            type_cb = build_choice_menubutton(
-                target,
-                variable=type_var,
-                values=tuple(_CORNER_TYPE_LABEL_BY_ID.values()),
-                state=("normal" if type_editable and not top_assembly_owned else "disabled"),
-                width=12,
-                command=lambda p=part_key, t=target_key: _phase6_corner_type_selected(self, p, t),
-            )
-            type_cb.grid(row=0, column=1, padx=2, sticky="w")
-
-            subrow = original.ttk.Frame(target)
-            self.corner_detail_frames[target_key] = subrow
-            amount_var = original.tk.StringVar(value=_setting_number_text(selection.amount_t if selection.amount_t is not None else 1.0))
-            self.corner_amount_vars[target_key] = amount_var
-
-            if params_unlocked:
-                subrow.grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
-            else:
-                original.ttk.Label(
-                    target,
-                    text=_phase6_corner_parameter_summary(selection),
-                ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
-
-            if selection.type_id is CornerTypeId.CROSS:
-                mode_var = original.tk.StringVar(value=_CORNER_MODE_LABEL[selection.cross_mode])
-                self.corner_mode_vars[target_key] = mode_var
-                mode_cb = build_choice_menubutton(
-                    subrow,
-                    variable=mode_var,
-                    values=("標準", "單邊留肉", "多切"),
-                    state=("normal" if params_editable else "disabled"),
-                    width=9,
-                    command=lambda p=part_key, t=target_key: _phase6_corner_mode_selected(self, p, t),
-                )
-                mode_cb.pack(side=original.tk.LEFT, padx=(0, 3))
-                if selection.cross_mode is not CrossCornerMode.STANDARD:
-                    direction_values = ("寬", "高") if selection.cross_mode is CrossCornerMode.RETAIN else ("寬＋高", "寬", "高")
-                    direction_var = original.tk.StringVar(value=_CORNER_DIRECTION_LABEL[selection.direction])
-                    self.corner_direction_vars[target_key] = direction_var
-                    direction_cb = build_choice_menubutton(
-                        subrow,
-                        variable=direction_var,
-                        values=direction_values,
-                        state=("normal" if params_editable else "disabled"),
-                        width=7,
-                        command=lambda p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t),
-                    )
-                    direction_cb.pack(side=original.tk.LEFT, padx=3)
-                    entry = original.ttk.Entry(subrow, textvariable=amount_var, width=6, justify=original.tk.CENTER)
-                    entry.configure(state=("normal" if params_editable else "disabled"))
-                    entry.pack(side=original.tk.LEFT, padx=(3, 1))
-                    original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                    entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                    entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-            elif selection.type_id in (CornerTypeId.OVERLAY, CornerTypeId.INSERT):
-                action = "留肉（高）" if selection.type_id is CornerTypeId.OVERLAY else "多切（高）"
-                original.ttk.Label(subrow, text=action).pack(side=original.tk.LEFT, padx=(0, 3))
-                entry = original.ttk.Entry(subrow, textvariable=amount_var, width=6, justify=original.tk.CENTER)
-                entry.configure(state=("normal" if params_editable else "disabled"))
-                entry.pack(side=original.tk.LEFT, padx=(3, 1))
-                original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-            else:
-                original.ttk.Label(subrow, text="貼外留肉（高）").pack(side=original.tk.LEFT, padx=(0, 2))
-                primary = original.ttk.Entry(subrow, textvariable=amount_var, width=5, justify=original.tk.CENTER)
-                primary.configure(state=("normal" if params_editable else "disabled"))
-                primary.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                retain_var = original.tk.StringVar(value=_setting_number_text(selection.secondary_retain_t))
-                depth_var = original.tk.StringVar(value=_setting_number_text(selection.secondary_depth_t))
-                self.corner_secondary_retain_vars[target_key] = retain_var
-                self.corner_secondary_depth_vars[target_key] = depth_var
-                original.ttk.Label(subrow, text="  嵌入留肉").pack(side=original.tk.LEFT)
-                retain = original.ttk.Entry(subrow, textvariable=retain_var, width=5, justify=original.tk.CENTER)
-                retain.configure(state=("normal" if params_editable else "disabled"))
-                retain.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T  深度").pack(side=original.tk.LEFT)
-                depth = original.ttk.Entry(subrow, textvariable=depth_var, width=5, justify=original.tk.CENTER)
-                depth.configure(state=("normal" if params_editable else "disabled"))
-                depth.pack(side=original.tk.LEFT, padx=(1, 1)); original.ttk.Label(subrow, text="T").pack(side=original.tk.LEFT)
-                for entry in (primary, retain, depth):
-                    entry.bind("<Return>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-                    entry.bind("<FocusOut>", lambda _e, p=part_key, t=target_key: _phase6_corner_target_var_changed(self, p, t))
-    return start_row + 1
-
 def _phase6_apply_external_assembly_type(self, type_id):
     transactions = _phase6_settings_transactions(self)
     stable = assembly_intent_value(type_id)
@@ -3829,6 +3400,243 @@ def _phase6_apply_external_corner_state(self, corner_state, corner_pair_same):
         _phase6_render_settings_context(self, context)
 
 
+
+def _phase6_settings_endcap_fw_projection(self, part_key):
+    part_key = str(part_key)
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
+    state = self._phase6_endcap_fw_state.setdefault(
+        part_key, {"follow_box": True, "value": _num(snapshot.get("fw", 25), 25)}
+    )
+    return {
+        "follow": bool(state.get("follow_box", True)),
+        "effective": resolve_endcap_fw(
+            snapshot, part_key, state=self._phase6_endcap_fw_state
+        ),
+    }
+
+
+def _phase6_settings_box_structure_projection(self):
+    state = _phase6_box_structure_state(self)
+    active = BoxBodyStructureType(state["active_type"])
+    cfg = state["configs"][active.value]
+    total_w = _phase6_box_structure_w(self)
+    piece_values = {}
+    mode = "integral"
+    if active is BoxBodyStructureType.TWO_PIECE_W_SPLIT:
+        mode = "two_w"
+        left, right = resolve_two_piece_widths(state, total_w)
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
+    elif active is BoxBodyStructureType.THREE_PIECE_W_SPLIT:
+        mode = "three_w"
+        left, middle, right = resolve_three_piece_widths(state, total_w)
+        piece_values = {
+            "box_body:left": ("width", "W 包外", left, "mm", "left"),
+            "box_body:middle": ("width", "W 包外", middle, "mm", "middle"),
+            "box_body:right": ("width", "W 包外", right, "mm", "right"),
+        }
+    elif active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+        mode = "side_back"
+        outside_family = cabinet_family_policy.box_body_profile_uses_outside_dimensions(
+            getattr(self, "_phase6_input_snapshot", {}) or {}
+        )
+        rear_bend = (
+            side_rear_bend_outside_length(
+                state, float((getattr(self, "_phase6_input_snapshot", {}) or {}).get("t", 2.0))
+            )
+            if outside_family else float(cfg.get("side_rear_bend", 15))
+        )
+        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
+        piece_values = {
+            "box_body:left_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+            "box_body:back": ("width_comp_t", "寬補償", width_comp_t, "T", "back_width_comp_t"),
+            "box_body:right_side": ("rear_bend", "後折", rear_bend, "mm", "side_rear_bend"),
+        }
+
+    projections = ()
+    projection_error = None
+    if active is not BoxBodyStructureType.INTEGRAL:
+        try:
+            render_data = _phase6_box_body_structure_render_data(self)
+            projections = _phase6_box_body_piece_dimension_projections(render_data)
+            active_piece_key = str(getattr(self.designer_workspace, "active_part", "") or "")
+            if _phase6_is_box_body_physical_piece_key(active_piece_key):
+                projections = tuple(
+                    row for row in projections if row.part_key == active_piece_key
+                )
+        except Exception as exc:
+            projection_error = str(exc)
+
+    pieces = []
+    for projection in projections:
+        part_key = str(projection.part_key)
+        spec = piece_values.get(part_key)
+        input_spec = None
+        if spec is not None:
+            field_key, label, value, suffix, state_field = spec
+            input_spec = {
+                "field_key": field_key,
+                "label": label,
+                "value": value,
+                "suffix": suffix,
+                "state_field": state_field,
+            }
+        detail = None
+        if active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT:
+            if part_key in {"box_body:left_side", "box_body:right_side"}:
+                detail = f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm"
+            elif part_key == "box_body:back":
+                detail = f"成型寬：{_setting_number_text(projection.formed_width)} mm"
+        pieces.append({
+            "part_key": part_key,
+            "label": projection.label,
+            "formed_width": projection.formed_width,
+            "formed_height": projection.formed_height,
+            "blank_width": projection.blank_width,
+            "blank_height": projection.blank_height,
+            "input": input_spec,
+            "detail": detail,
+        })
+
+    advanced_fields = ()
+    if mode in {"two_w", "three_w"}:
+        advanced_fields = (
+            {"label": "封頭尾額外避讓", "field": "endcap_extra_relief", "value": cfg.get("endcap_extra_relief", 5), "suffix": "mm"},
+            {"label": "封頭尾單邊留肉", "field": "endcap_single_side_meat_t", "value": cfg.get("endcap_single_side_meat_t", 0.5), "suffix": "T"},
+            {"label": "底板避讓總長", "field": "baseplate_relief_length", "value": cfg.get("baseplate_relief_length", 20), "suffix": "mm"},
+            {"label": "底板單邊留肉", "field": "baseplate_single_side_meat_t", "value": cfg.get("baseplate_single_side_meat_t", 0.5), "suffix": "T"},
+        )
+    advanced_flags = dict(getattr(self, "_phase6_box_structure_advanced_open", {}) or {})
+    return {
+        "active_type": active,
+        "mode": mode,
+        "pieces": tuple(pieces),
+        "projection_error": projection_error,
+        "seam_bend": cfg.get("seam_bend", 12),
+        "advanced_open": bool(advanced_flags.get(active.value, False)),
+        "advanced_fields": advanced_fields,
+    }
+
+
+def _phase6_settings_bottom_wrap_projection(self, part_key):
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    if (
+        str(part_key) not in ENDCAP_FW_PARTS
+        or not cabinet_family_policy.supports_bottom_wrap_controls(snapshot)
+    ):
+        return None
+    item = resolve_endcap_bottom_wrap(
+        snapshot,
+        str(part_key),
+        state=getattr(
+            self,
+            "_phase6_endcap_bottom_wrap_state",
+            normalize_endcap_bottom_wrap_state(snapshot),
+        ),
+    )
+    if not bool(item.get("enabled", False)):
+        return None
+    return {
+        "reserve_u": item["reserve_u"],
+        "reserve_v": item["reserve_v"],
+    }
+
+
+def _phase6_settings_corner_projection(self, part_key):
+    part_key = str(part_key)
+    if part_key == GLOBAL_CONTEXT or part_key == "box_body":
+        return {"mode": "none"}
+
+    if part_key in {"indicator_box", "indicator_door"}:
+        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
+        if summary:
+            return {"mode": "fixed", "summary": summary}
+
+    type_editable = _phase6_corner_type_editable(self, part_key)
+    params_unlocked = _phase6_corner_parameters_unlocked(self, part_key)
+    params_editable = _phase6_corner_parameters_editable(self, part_key)
+    if not type_editable and not params_unlocked:
+        summary = _FIXED_CORNER_SUMMARIES.get(part_key, "")
+        if summary:
+            return {"mode": "fixed", "summary": summary}
+
+    state, pairs = _phase6_ensure_corner_part(self, part_key)
+    pair_rows = []
+    for pair_key in ("top", "bottom"):
+        targets = (pair_key,) if pairs[pair_key] else _CORNER_PAIR_KEYS[pair_key]
+        target_rows = []
+        for target_key in targets:
+            physical = (
+                _CORNER_PAIR_KEYS[target_key][0]
+                if target_key in _CORNER_PAIR_KEYS
+                else target_key
+            )
+            selection = _phase6_selection_from_raw(state[physical])
+            if selection.cross_mode is CrossCornerMode.RETAIN:
+                direction_options = ("寬", "高")
+            else:
+                direction_options = ("寬＋高", "寬", "高")
+            target_rows.append({
+                "target_key": target_key,
+                "side_label": (
+                    ""
+                    if len(targets) <= 1
+                    else ("左" if target_key.endswith("left") else "右")
+                ),
+                "type_label": _CORNER_TYPE_LABEL_BY_ID[selection.type_id.value],
+                "type_options": tuple(_CORNER_TYPE_LABEL_BY_ID.values()),
+                "type_kind": selection.type_id.name,
+                "top_assembly_owned": (
+                    part_key in {"head", "tail"} and pair_key == "top"
+                ),
+                "parameter_summary": _phase6_corner_parameter_summary(selection),
+                "amount_t": (
+                    selection.amount_t if selection.amount_t is not None else 1.0
+                ),
+                "mode_label": _CORNER_MODE_LABEL[selection.cross_mode],
+                "mode_kind": selection.cross_mode.name,
+                "direction_label": _CORNER_DIRECTION_LABEL[selection.direction],
+                "direction_options": direction_options,
+                "secondary_retain_t": selection.secondary_retain_t,
+                "secondary_depth_t": selection.secondary_depth_t,
+            })
+        pair_rows.append({
+            "pair_key": pair_key,
+            "label": "上方" if pair_key == "top" else "下方",
+            "same": bool(pairs[pair_key]),
+            "targets": tuple(target_rows),
+        })
+    return {
+        "mode": "editable",
+        "type_editable": bool(type_editable),
+        "params_unlocked": bool(params_unlocked),
+        "params_editable": bool(params_editable),
+        "pairs": tuple(pair_rows),
+    }
+
+
+def _phase6_settings_context_extension_projection(self, context):
+    context = str(context)
+    return {
+        "box_structure": (
+            _phase6_settings_box_structure_projection(self)
+            if context == "box_body" else None
+        ),
+        "endcap_fw": (
+            _phase6_settings_endcap_fw_projection(self, context)
+            if context in ENDCAP_FW_PARTS else None
+        ),
+        "bottom_wrap": (
+            _phase6_settings_bottom_wrap_projection(self, context)
+            if context in ENDCAP_FW_PARTS else None
+        ),
+        "corner": _phase6_settings_corner_projection(self, context),
+    }
+
+
 _SETTINGS_EXTENSION_MAP_ATTRS = (
     "corner_pair_vars",
     "corner_pair_checkbuttons",
@@ -3842,54 +3650,6 @@ _SETTINGS_EXTENSION_MAP_ATTRS = (
 )
 
 
-def _phase6_render_settings_panel_extensions(self, parent, context, start_row):
-    old = {name: getattr(self, name, None) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
-    old_summary = getattr(self, "fixed_corner_summary_var", None)
-    old_lock_button = getattr(self, "corner_param_lock_button", None)
-    for name in _SETTINGS_EXTENSION_MAP_ATTRS:
-        setattr(self, name, {})
-    self.fixed_corner_summary_var = original.tk.StringVar(value="")
-    self.corner_param_lock_button = None
-    endcap_fw_follow_var = None
-    endcap_fw_value_var = None
-    endcap_fw_widget = None
-    bottom_wrap_enabled_var = None
-    bottom_wrap_reserve_u_var = None
-    bottom_wrap_reserve_v_var = None
-    bottom_wrap_widget = None
-    try:
-        next_row = int(start_row)
-        if context == "box_body":
-            next_row = _phase6_build_box_structure_settings(self, parent, next_row)
-        elif context in ENDCAP_FW_PARTS:
-            next_row = _phase6_build_endcap_joint_settings(self, parent, context, next_row)
-            next_row, endcap_fw_follow_var, endcap_fw_value_var, endcap_fw_widget = _phase6_build_endcap_fw_settings(
-                self, parent, context, next_row
-            )
-            next_row, bottom_wrap_enabled_var, bottom_wrap_reserve_u_var, bottom_wrap_reserve_v_var, bottom_wrap_widget = (
-                _phase6_build_receiving_bottom_wrap_settings(self, parent, context, next_row)
-            )
-        next_row = _phase6_build_corner_settings(self, parent, context, next_row)
-        state = {name: dict(getattr(self, name, {}) or {}) for name in _SETTINGS_EXTENSION_MAP_ATTRS}
-        state.update({
-            "fixed_corner_summary_var": self.fixed_corner_summary_var,
-            "corner_param_lock_button": self.corner_param_lock_button,
-            "endcap_fw_follow_var": endcap_fw_follow_var,
-            "endcap_fw_value_var": endcap_fw_value_var,
-            "endcap_fw_widget": endcap_fw_widget,
-            "bottom_wrap_enabled_var": bottom_wrap_enabled_var,
-            "bottom_wrap_reserve_u_var": bottom_wrap_reserve_u_var,
-            "bottom_wrap_reserve_v_var": bottom_wrap_reserve_v_var,
-            "bottom_wrap_widget": bottom_wrap_widget,
-        })
-        return SettingsPanelExtensionResult(next_row=next_row, state=state)
-    finally:
-        for name, value in old.items():
-            setattr(self, name, value if value is not None else {})
-        self.fixed_corner_summary_var = old_summary
-        self.corner_param_lock_button = old_lock_button
-
-
 def _phase6_sync_settings_panel_extension(self, state, context):
     state = dict(state or {})
     for name in _SETTINGS_EXTENSION_MAP_ATTRS:
@@ -3900,6 +3660,10 @@ def _phase6_sync_settings_panel_extension(self, state, context):
     self.bottom_wrap_reserve_u_var = state.get("bottom_wrap_reserve_u_var")
     self.bottom_wrap_reserve_v_var = state.get("bottom_wrap_reserve_v_var")
     self.bottom_wrap_widget = state.get("bottom_wrap_widget")
+    self.box_body_piece_input_host = state.get("box_body_piece_input_host")
+    self.box_body_piece_input_sections = dict(state.get("box_body_piece_input_sections", {}) or {})
+    self.box_body_piece_input_vars = dict(state.get("box_body_piece_input_vars", {}) or {})
+    self.box_body_piece_input_entries = dict(state.get("box_body_piece_input_entries", {}) or {})
     if context in ENDCAP_FW_PARTS and state.get("endcap_fw_follow_var") is not None:
         snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
         snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
@@ -3933,7 +3697,17 @@ def _phase6_ensure_settings_panel(self):
         is_unknown_baseline=lambda model: _phase6_is_unknown_baseline(self, model),
         should_show_baseline_data=lambda context, specs: _phase6_should_show_baseline_data(self, context, specs),
         part_labels=PART_LABELS,
-        render_context_extensions=lambda parent, context, row: _phase6_render_settings_panel_extensions(self, parent, context, row),
+        context_extension_projection=lambda context: _phase6_settings_context_extension_projection(self, context),
+        endcap_fw_value_selected=lambda part_key, value_var: _phase6_on_endcap_fw_value_selected(self, part_key, value_var),
+        box_structure_numeric_changed=lambda type_id, field, value_var: _phase6_apply_box_structure_numeric(self, type_id, field, value_var),
+        box_structure_toggle_advanced=lambda type_id: _phase6_toggle_structure_advanced(self, type_id),
+        bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: _phase6_commit_receiving_bottom_wrap_controls(
+            self, part_key, reserve_u_var, reserve_v_var
+        ),
+        corner_pair_changed=lambda part_key, pair_key, var: _phase6_corner_pair_var_changed(self, part_key, pair_key, var),
+        corner_type_selected=lambda part_key, target_key: _phase6_corner_type_selected(self, part_key, target_key),
+        corner_mode_selected=lambda part_key, target_key: _phase6_corner_mode_selected(self, part_key, target_key),
+        corner_target_changed=lambda part_key, target_key: _phase6_corner_target_var_changed(self, part_key, target_key),
         sync_context_extension=lambda state, context: _phase6_sync_settings_panel_extension(self, state, context),
         baseline_model_changed=lambda: _phase6_on_baseline_model_changed(self),
         ui_text_size_changed=lambda key: _phase6_apply_ui_text_size(self, key),
