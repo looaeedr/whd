@@ -5887,12 +5887,7 @@ _FIX10_INIT = Phase6FoldDesignerApp.__init__
 _FIX10_EXPORT = Phase6FoldDesignerApp.export_phase6_snapshot
 
 
-def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
-    # Atomic lifecycle: inherited Tk construction may invoke traced callbacks and
-    # legacy do_update() methods, but none of those bootstrap intermediates are
-    # authoritative live-sync state. Publish is disabled until the final Phase6
-    # workspace has ingested the current application snapshot and reached READY.
-    self._phase6_initializing = True
+def _phase6_bootstrap_authoritative_state(self, snapshot):
     # Phase 4 composition services may be reached by inherited Tk callbacks
     # during construction. Establish the authoritative mapping identities before
     # any such callback can ask the composition root for Settings owners. From
@@ -5926,6 +5921,10 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         "h": _ui_len(snapshot.get("h", 600)),
         "d": _ui_len(snapshot.get("d", 200)),
     })
+    return snapshot
+
+
+def _phase6_install_runtime_ports(self, *, on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
     self._settings_change_callback = on_settings_change
     self._phase6_transactional_mode = on_transaction_confirm is not None and on_live_sync is None
     self._live_sync_callback = on_live_sync
@@ -5950,6 +5949,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_external_draw_stock_var = output_draw_stock_var
     self._phase6_external_export_vars = dict(output_export_vars or {})
     self._phase6_export_selected_dxf_callback = on_export_selected_dxf
+
+
+def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_box_body_active_piece_key = str(snapshot.get("box_body_active_piece") or "")
     self._phase6_current_project_path = str(snapshot.get("_runtime_project_path") or "").strip() or None
     self._factory_defaults = dict(snapshot.get("factory_defaults") or {})
@@ -6012,7 +6014,9 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._whd_style = apply_ttk_dark_theme(root, text_scale=1.0)
     self.queue_update = _phase6_queue_update.__get__(self, type(self))
     self.do_update = _phase6_preview_aware_do_update.__get__(self, type(self))
-    _FIX10_INIT(self, root, snapshot)
+
+
+def _phase6_finish_legacy_host_compatibility(self, snapshot):
     _phase6_settings_transactions(self)
     # FIX10 marks itself ready as soon as its legacy snapshot is loaded. Phase6
     # still has to build the persistent controls/workspace, so keep the public
@@ -6047,6 +6051,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
         self.main_nb.forget(tabs[1])
     self.main_nb.pack_forget()
 
+
+def _phase6_bootstrap_workspace_profiles(self, snapshot):
     stored_profiles = snapshot.get("part_profiles") or {}
     for key in self.designer_workspace.available_parts:
         if key == "box_body":
@@ -6076,6 +6082,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self.designer_workspace.active_part = None
     self.designer_workspace.selected_part = None
 
+
+def _phase6_install_part_editor_compatibility(self):
     # 板件選擇／新增／刪除固定同一列，永不因切換板件消失。
     self.part_selector = original.ttk.Frame(self.left)
     self.part_selector.pack(fill=original.tk.X, pady=(0, 4))
@@ -6167,6 +6175,8 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
 
     _phase6_refresh_assembly_parts_panel(self)
 
+
+def _phase6_install_initial_owner_views(self):
     self._refresh_part_buttons()
     self._refresh_add_part_menu()
     try:
@@ -6178,8 +6188,14 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     _phase6_build_settings_center(self)
     _phase6_install_renderer_view(self)
     self.settings_center.pack_forget()
+
+
+def _phase6_select_initial_mode(self):
     self.activate_part("box_body", initial=True)
     _phase6_show_assembly(self, initial=True)
+
+
+def _phase6_mark_ready(self):
     self.designer_workspace.mark_clean()
 
     # READY starts from the exact authoritative state already displayed. Seed the
@@ -6192,6 +6208,39 @@ def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=N
     self._phase6_initializing = False
     self._phase6_sync_ready = True
 
+
+def _fix11_init(self, root, snapshot: Mapping[str, object], on_settings_change=None, on_save_defaults=None, on_corner_change=None, on_transaction_confirm=None, on_transaction_cancel=None, on_live_sync=None, on_baseline_data_query=None, on_scene_query=None, on_part_spec_query=None, on_ui_text_size_change=None, on_project_load=None, on_project_path_change=None, on_project_save=None, output_draw_stock_var=None, output_export_vars=None, on_export_selected_dxf=None):
+    # Atomic lifecycle root: enter INITIALIZING before predecessor construction can
+    # emit traced callbacks, then install accepted owners in one deterministic order.
+    self._phase6_initializing = True
+    snapshot = _phase6_bootstrap_authoritative_state(self, snapshot)
+    _phase6_install_runtime_ports(
+        self,
+        on_settings_change=on_settings_change,
+        on_save_defaults=on_save_defaults,
+        on_corner_change=on_corner_change,
+        on_transaction_confirm=on_transaction_confirm,
+        on_transaction_cancel=on_transaction_cancel,
+        on_live_sync=on_live_sync,
+        on_baseline_data_query=on_baseline_data_query,
+        on_scene_query=on_scene_query,
+        on_part_spec_query=on_part_spec_query,
+        on_ui_text_size_change=on_ui_text_size_change,
+        on_project_load=on_project_load,
+        on_project_path_change=on_project_path_change,
+        on_project_save=on_project_save,
+        output_draw_stock_var=output_draw_stock_var,
+        output_export_vars=output_export_vars,
+        on_export_selected_dxf=on_export_selected_dxf,
+    )
+    _phase6_prepare_predecessor_init(self, root, snapshot)
+    _FIX10_INIT(self, root, snapshot)
+    _phase6_finish_legacy_host_compatibility(self, snapshot)
+    _phase6_bootstrap_workspace_profiles(self, snapshot)
+    _phase6_install_part_editor_compatibility(self)
+    _phase6_install_initial_owner_views(self)
+    _phase6_select_initial_mode(self)
+    _phase6_mark_ready(self)
 
 
 def _phase6_clear_navigation_residue(self):
