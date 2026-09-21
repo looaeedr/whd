@@ -11,14 +11,14 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
+  "head_sha": "7b828bb012651b916d6cd15376ab66360554302d",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Commit T1 preflight evidence + requirement RED contract asserting bridge deep FinalSceneCompositionPorts constructor=0, application composition owns exact 35-port factory/inventory, reverse-import=0, second-root=0, facade bindings<=69; run exact RED workflow.",
+  "next_action": "Persist T1 architecture contract test for approved R1, then move the 35-port composition wiring into the existing Phase6FoldDesignerComposition owner.",
   "blocker": null,
   "last_update": "2026-09-22T07:18:00+08:00",
   "preflight": {
