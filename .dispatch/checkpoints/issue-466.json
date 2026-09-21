@@ -2,20 +2,22 @@
   "version": 1,
   "issue": "466",
   "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "head_sha": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
-  "state": "BLOCKED",
-  "next_action": "Obtain explicit product-authority selection of BLOCK_EXPORT or ALLOW_EXPORT_WITH_DIAGNOSTIC for OPEN-1, then persist that choice as canonical decision authority before T6.",
+  "head_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 1,
   "blocked_last_notified_at": "2026-09-21T15:43:00Z",
   "evidence": [
-    "Issue #466 requires owning product authority to explicitly select exactly one export disposition.",
-    "Issue #466 has no comments or existing product decision.",
-    "Issue #471/T6 is explicitly blocked by #466 and #470.",
-    "Issue #470/T4 is closed/completed at accepted head 947a2299cc4ab9109dbffadef325b12eab1ff3c3.",
-    "Gate A state is FOUNDATION_MERGED / MARKING_NOT_ACTIVATED.",
-    "Production activation remains disabled and export disposition remains UNRESOLVED."
+    "Owning product authority explicitly selected ALLOW_EXPORT_WITH_DIAGNOSTIC on 2026-09-21.",
+    "Canonical v1.3 spec updated at f9aa859396d2d317ad674b829ebf03715e44d948.",
+    "OPEN-1 / ED-1 is RESOLVED and Gate B checklist pins ALLOW_EXPORT_WITH_DIAGNOSTIC.",
+    "Selected semantics: expected MARKING failure remains fail-closed for marks; otherwise-valid DXF may export; machine-readable diagnostic/export summary is mandatory and non-silent.",
+    "BLOCK_EXPORT is not the v1.3 production default.",
+    "T6 activation remains subject to Gate B engineering acceptance.",
+    "Decision diff from accepted T4 head 947a2299cc4ab9109dbffadef325b12eab1ff3c3 is one commit modifying canonical spec plus preflight evidence only.",
+    "No production code, tests, or production X were changed by T5."
   ]
 }
