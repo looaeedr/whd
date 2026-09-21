@@ -1021,7 +1021,7 @@ def _physical_face_plane_section_polygon(
 
     The plane itself comes from owner semantics plus authoritative placement.
     This helper only performs numerical surface/plane sectioning; its tolerance
-    is not a legal-contact/product tolerance and will be consolidated by T1.
+    comes from the canonical T1 assembly-geometry owner and is not a product clearance.
     """
     from shapely.geometry import LineString
     from shapely.ops import polygonize, unary_union
