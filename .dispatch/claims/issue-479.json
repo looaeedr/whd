@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "RED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,6 +18,35 @@
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Run T1 changed-file Phase6 Preflight and requirement RED contract, then implement FinalScene composition port wiring ownership in existing Phase6FoldDesignerComposition.",
-  "blocker": null
+  "next_action": "Commit T1 preflight evidence + requirement RED contract asserting bridge deep FinalSceneCompositionPorts constructor=0, application composition owns exact 35-port factory/inventory, reverse-import=0, second-root=0, facade bindings<=69; run exact RED workflow.",
+  "blocker": null,
+  "last_update": "2026-09-22T07:18:00+08:00",
+  "preflight": {
+    "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
+    "matched_routes": [
+      "dispatching-workflow",
+      "phase6-corner-relief-3d",
+      "part-dxf-acceptance",
+      "python-testing-practices"
+    ],
+    "required_skills_read": [
+      "派工",
+      "issue-closure-gate",
+      "phase6-corner-3d-model-integrity",
+      "驗證板件與DXF",
+      "monitoring-remote-qa",
+      "Python測試實務",
+      "long-log-context-safe-execution",
+      "executable-continuity-controller"
+    ],
+    "authority_refs_read": [
+      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+    ]
+  }
 }
