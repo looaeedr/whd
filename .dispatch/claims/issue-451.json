@@ -5,7 +5,7 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
+  "head_sha": "e31e0bd73a138643a732d84bb8702834a1034f0b",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 441,
@@ -14,28 +14,19 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
+  "chain_head": "e31e0bd73a138643a732d84bb8702834a1034f0b",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:40:00+08:00",
+  "last_update": "2026-09-21T19:42:00+08:00",
   "remote_qa": {
-    "run_id": 35594692830,
-    "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
-    "status": "completed",
-    "conclusion": "failure",
-    "failed_step": "Durable ownership and cleanup guards",
-    "classification": "QA_HARNESS_BUG",
-    "root_cause": "Python subprocess passed literal $BASE_SHA to git rev-parse; shell variable expansion does not occur inside subprocess argv."
+    "previous_run_id": 35594692830,
+    "previous_head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
+    "previous_conclusion": "failure",
+    "previous_classification": "QA_HARNESS_BUG",
+    "status": "REPLACEMENT_RUN_NOT_YET_DISCOVERED",
+    "head_sha": "e31e0bd73a138643a732d84bb8702834a1034f0b"
   },
   "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
-  "durable_writeback": {
-    "ownership_current_path": "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
-    "authority_map_updated": true
-  },
-  "cleanup": {
-    "qa_issue442_workflow_removed": true,
-    "qa_issue443_workflow_removed": true
-  },
-  "next_action": "Repair only qa-issue451-t9-writeback.yml by deleting the erroneous unused literal-$BASE_SHA subprocess block; push that minimal harness fix, discover the replacement run from #451 marker, and monitor exact replacement run to terminal.",
+  "next_action": "Discover replacement run_id from #451 start marker for HEAD e31e0bd73a138643a732d84bb8702834a1034f0b, then lock and monitor only that replacement run to terminal.",
   "blocker": null,
   "handoff_ready": false
 }
