@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-21T13:22:00+08:00",
   "base_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
   "head_sha": "41bf313b9389a7e98f9978c36b96380c237e57ec",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T14:07:00+08:00",
+  "last_update": "2026-09-21T14:10:00+08:00",
   "remote_qa": {
     "run_id": 35562796984,
     "head_sha": "d3108da360eff9c787fc5d0f0def7b36b3ad4d08",
@@ -33,9 +33,9 @@
       "config_git_object_invariant": 1
     }
   },
-  "next_action": "Persist TERMINAL_SUCCESS checkpoint bound to issue #448 / branch / cleaned head 41bf313b, verify finalization identity, write terminal evidence, close/readback Issue #448, release claim, then dispatch #449 from accepted cleaned head.",
+  "next_action": "Write terminal acceptance evidence to Issue #448, close/readback completed, release claim, then dispatch #449 from accepted cleaned head 41bf313b9389a7e98f9978c36b96380c237e57ec.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md",
+  "checkpoint": ".dispatch/checkpoints/issue-448.json",
   "failure_classification": {
     "run_id": 35562081929,
     "type": "CONTRACT_FALSE_POSITIVE",
@@ -50,5 +50,6 @@
     "changed_files": [
       ".github/workflows/qa-issue448-t6-part-editor-owner.yml"
     ]
-  }
+  },
+  "finalization_proof": ".dispatch/checkpoints/issue-448.finalization-proof.json"
 }
