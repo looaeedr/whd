@@ -66,6 +66,10 @@ from phase6_settings_transaction_controller import Phase6SettingsTransactionCont
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+from phase6_registry_diagnostics_panel import (
+    Phase6RegistryDiagnosticsPanel,
+    build_registry_choice,
+)
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -559,6 +563,65 @@ def _phase6_sync_registry_diagnostics_compatibility_mirrors(
         controller.promotion_candidates
     )
     return controller
+
+def _phase6_registry_load_rule_rows(self):
+    """Load Registry rows through the existing controller; no Tk ownership here."""
+    from ae_engine.certified_relief_registry import load_external_relief_rule_records
+
+    controller = _phase6_registry_diagnostics(self)
+    rows = controller.load_rule_records(loader=load_external_relief_rule_records)
+    _phase6_sync_registry_diagnostics_compatibility_mirrors(self, controller)
+    return rows
+
+
+def _phase6_registry_preview_payload(self):
+    """Return validated 2D preview data; drawing is owned by the panel."""
+    result = _phase6_registry_validate_formula_form(self)
+    geometry = _phase6_corner_data_view(self).registry_preview_geometry(result)
+    return {"result": result, "geometry": geometry}
+
+
+def _phase6_registry_panel(self):
+    panel = getattr(self, "registry_diagnostics_panel", None)
+    if panel is not None:
+        return panel
+
+    panel = Phase6RegistryDiagnosticsPanel(
+        owner=self,
+        present_token=lambda value, **kwargs: _phase6_registry_present_token(
+            value, **kwargs
+        ),
+        formula_display=lambda value, presentation_field="formula": _phase6_registry_formula_display(
+            value, presentation_field=presentation_field
+        ),
+        formula_raw=_phase6_formula_raw,
+        preconditions_display=_phase6_preconditions_display,
+        preconditions_raw=_phase6_preconditions_raw,
+        source_display=lambda value, presentation_field="source": _phase6_registry_source_display(
+            value, presentation_field=presentation_field
+        ),
+        source_raw=_phase6_source_raw,
+        validate_formula=lambda: _phase6_registry_validate_formula_form(self),
+        preview_payload=lambda: _phase6_registry_preview_payload(self),
+        preview_assembly_3d=lambda: _phase6_registry_preview_assembly_3d(self),
+        save_candidate=lambda: _phase6_registry_save_candidate_form(self),
+        run_formula_matrix=lambda: _phase6_registry_run_formula_matrix(self),
+        promote_candidate=lambda: _phase6_registry_promote_form(self),
+        load_rule_rows=lambda: _phase6_registry_load_rule_rows(self),
+        rule_record=lambda key: _phase6_registry_diagnostics(self).rule_record(key),
+        joint_rows=lambda: _phase6_joint_rows(self),
+        add_joint=lambda: _phase6_joint_form_add(self),
+        delete_joint=lambda: _phase6_joint_form_delete(self),
+        on_diagnostic_changed=lambda: _phase6_on_assembly_diagnostic_changed(self),
+        create_promotion_candidates=lambda: _phase6_create_relief_promotion_candidates(self),
+        diagnostic_ids=lambda resolved=None: _phase6_registry_diagnostics(self).diagnostic_ids(
+            resolved
+            or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
+        ),
+    )
+    self.registry_diagnostics_panel = panel
+    return panel
+
 
 
 def _phase6_corner_data_view(self):
@@ -4236,53 +4299,6 @@ def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
     return display_var
 
 
-def _phase6_form_choice(parent, variable, choices, *, width=18, presentation_field="choice"):
-    display_var = original.tk.StringVar(
-        master=parent,
-        value=_phase6_registry_present_token(
-            variable.get(),
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        ),
-    )
-    button = original.ttk.Menubutton(parent, textvariable=display_var, width=width, style="Selector.TMenubutton")
-    menu = configure_tk_menu(original.tk.Menu(button, tearoff=False))
-
-    def choose(raw):
-        variable.set(str(raw))
-        display_var.set(_phase6_registry_present_token(
-            raw,
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        ))
-
-    for choice in choices:
-        menu.add_command(
-            label=_phase6_registry_present_token(
-                choice,
-                presentation_field=presentation_field,
-                source_adapter="registry_choice",
-            ),
-            command=lambda v=str(choice): choose(v),
-        )
-    button.configure(menu=menu)
-
-    def sync_display(*_args):
-        value = _phase6_registry_present_token(
-            variable.get(),
-            presentation_field=presentation_field,
-            source_adapter="registry_choice",
-        )
-        if display_var.get() != value:
-            display_var.set(value)
-
-    variable.trace_add("write", sync_display)
-    button._phase6_display_var = display_var
-    button._phase6_raw_var = variable
-    button._phase6_presentation_field = presentation_field
-    return button
-
-
 def _phase6_registry_collect_rule_form(self):
     intent = str(self.relief_registry_intent_var.get() or "INSERT_OVERLAY")
     topology = int(float(self.relief_registry_topology_var.get() or (2 if intent == "INSERT_OVERLAY" else 1)))
@@ -4371,20 +4387,6 @@ def _phase6_registry_validate_formula_form(self):
         self.relief_registry_status_var.set(f"公式錯誤：{exc}")
         self._phase6_last_rule_form_result = None
         return None
-
-def _phase6_registry_preview_2d(self):
-    result = _phase6_registry_validate_formula_form(self)
-    canvas = getattr(self, "relief_registry_preview_canvas", None)
-    if canvas is None:
-        return result
-    geometry = _phase6_corner_data_view(self).registry_preview_geometry(result)
-    canvas.delete("all")
-    canvas.create_rectangle(*geometry["outer"], outline="#777")
-    if not result:
-        return None
-    for rect in geometry["cuts"]:
-        canvas.create_rectangle(*rect, outline="#222", width=2)
-    return result
 
 def _phase6_registry_candidate_form_is_current(self):
     try:
@@ -4578,103 +4580,6 @@ def _phase6_registry_promote_form(self):
             self.relief_registry_status_var.set(f"不可認證：{exc}")
         return None
 
-def _phase6_registry_refresh_rule_tree(self):
-    from ae_engine.certified_relief_registry import load_external_relief_rule_records
-    tree = getattr(self, "relief_registry_rule_tree", None)
-    if tree is None:
-        return ()
-    for item in tree.get_children():
-        tree.delete(item)
-    controller = _phase6_registry_diagnostics(self)
-    rows = controller.load_rule_records(
-        loader=load_external_relief_rule_records
-    )
-    _phase6_sync_registry_diagnostics_compatibility_mirrors(
-        self, controller
-    )
-    active_rows = [row for row in rows if bool(row.get("active", True))]
-    for row in active_rows:
-        tree.insert("", "end", iid=f"{row['rule_id']}@{row['revision']}", values=(
-            _phase6_registry_present_token(
-                row["rule_id"],
-                presentation_field="rule_id",
-                source_adapter="registry_rule_tree",
-            ),
-            row["revision"],
-            _phase6_registry_present_token(
-                row.get("trust_level", ""),
-                presentation_field="trust_level",
-                source_adapter="registry_rule_tree",
-            ),
-            _phase6_registry_present_token(
-                row.get("assembly_intent", ""),
-                presentation_field="assembly_intent",
-                source_adapter="registry_rule_tree",
-            ),
-            row.get("topology_levels", ""),
-        ))
-    return rows
-
-def _phase6_registry_rule_selected(self, *_args):
-    tree = getattr(self, "relief_registry_rule_tree", None)
-    if tree is None or not tree.selection():
-        return
-    key = tree.selection()[0]
-    raw = _phase6_registry_diagnostics(self).rule_record(key)
-    if not raw:
-        return
-    formula = dict(raw.get("formula", {}) or {})
-    self.relief_registry_rule_name_var.set(_phase6_registry_present_token(
-        raw.get("rule_id", ""),
-        presentation_field="rule_id",
-        source_adapter="registry_rule_selection",
-    ))
-    setters = (
-        (self.relief_registry_rule_id_var, raw.get("rule_id", "")),
-        (self.relief_registry_family_var, raw.get("cabinet_family", "ANY")),
-        (self.relief_registry_part_role_var, raw.get("part_role", "HEAD_OR_TAIL")),
-        (self.relief_registry_joint_face_var, raw.get("joint_face", "TOP")),
-        (self.relief_registry_intent_var, raw.get("assembly_intent", "INSERT_OVERLAY")),
-        (self.relief_registry_topology_var, raw.get("topology_levels", 2)),
-        (self.relief_registry_primary_u_var, formula.get("primary_u", "")),
-        (self.relief_registry_primary_v_var, formula.get("primary_v", "")),
-        (self.relief_registry_secondary_u_var, formula.get("secondary_u", "")),
-        (self.relief_registry_secondary_depth_var, formula.get("secondary_depth", "")),
-        (
-            self.relief_registry_preconditions_var,
-            ",".join(str(v) for v in (raw.get("preconditions", ()) or ())),
-        ),
-        (self.relief_registry_source_var, str(raw.get("source", ""))),
-    )
-    for var, value in setters:
-        var.set(str(value))
-    sig = list(raw.get("joint_signature", ()) or ())
-    extra = sig[1].get("relation") if len(sig) > 1 else "NONE"
-    self.relief_registry_extra_joint_var.set(str(extra))
-    if len(sig) > 1:
-        self.relief_registry_extra_target_role_var.set(
-            str(sig[1].get("target_role", "REAR_PANEL"))
-        )
-
-def _phase6_joint_form_refresh(self):
-    tree = getattr(self, "relief_joint_tree", None)
-    if tree is None:
-        return ()
-    rows = _phase6_joint_rows(self)
-    for item in tree.get_children():
-        tree.delete(item)
-    for row in rows:
-        tree.insert("", "end", iid=str(row["joint_id"]), values=(
-            _phase6_registry_present_token(row.get("subject_part", ""), presentation_field="subject_part", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("target_part", ""), presentation_field="target_part", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("relation", ""), presentation_field="relation", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("source", ""), presentation_field="source", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("subject_region", ""), presentation_field="subject_region", source_adapter="joint_tree"),
-            _phase6_registry_present_token(row.get("target_region", ""), presentation_field="target_region", source_adapter="joint_tree"),
-        ))
-    return rows
-
-
 def _phase6_joint_form_add(self):
     controller = _phase6_registry_diagnostics(self)
     try:
@@ -4800,187 +4705,23 @@ def _phase6_refresh_status_bar(self):
         var.set(text)
     return text
 
-def _phase6_open_relief_registry_form(self):
-    existing = getattr(self, "relief_registry_window", None)
-    try:
-        if existing is not None and existing.winfo_exists():
-            existing.deiconify(); existing.lift(); return existing
-    except Exception:
-        pass
-    win = original.tk.Toplevel(self.root)
-    win.title("截角資料庫／組合接合")
-    win.geometry("1120x720")
-    _phase6_configure_floating_surface(win, self.root, modal=False)
-    self.relief_registry_window = win
-    notebook = original.ttk.Notebook(win)
-    notebook.pack(fill=original.tk.BOTH, expand=True, padx=8, pady=8)
-    self.relief_registry_notebook = notebook
-
-    rules_tab = original.ttk.Frame(notebook, padding=8)
-    joints_tab = original.ttk.Frame(notebook, padding=8)
-    notebook.add(rules_tab, text="截角公式")
-    notebook.add(joints_tab, text="組合接合")
-
-    # ----- Rules tab -----
-    left = original.ttk.Frame(rules_tab); left.pack(side=original.tk.LEFT, fill=original.tk.Y, padx=(0, 8))
-    cols = ("id", "rev", "trust", "intent", "topology")
-    tree = original.ttk.Treeview(left, columns=cols, show="headings", height=24)
-    widths = {"id":280,"rev":45,"trust":105,"intent":120,"topology":55}
-    labels = {"id":"規則名稱","rev":"版次","trust":"認證狀態","intent":"組合方式","topology":"級數"}
-    for col in cols:
-        tree.heading(col, text=labels[col]); tree.column(col, width=widths[col], stretch=(col=="id"))
-    tree.pack(fill=original.tk.BOTH, expand=True)
-    tree.bind("<<TreeviewSelect>>", lambda _e: _phase6_registry_rule_selected(self))
-    self.relief_registry_rule_tree = tree
-
-    form = original.ttk.Frame(rules_tab); form.pack(side=original.tk.LEFT, fill=original.tk.BOTH, expand=True)
-    vars_defaults = {
-        "rule_id":"USER_RULE_001", "rule_name":"自訂截角規則", "family":"ANY", "part_role":"HEAD_OR_TAIL", "joint_face":"TOP",
-        "intent":"INSERT_OVERLAY", "topology":"2", "target_role":"BOX_SIDE", "extra_joint":"NONE",
-        "extra_target_role":"REAR_PANEL", "primary_u":"side_fold + FW", "primary_v":"ytop1 + FW - T",
-        "secondary_u":"side_fold + 0.5*T", "secondary_depth":"2*T",
-        "preconditions":"ytop1_present,x_folded", "symmetry":"MIRROR_IF_GEOMETRY_SYMMETRIC", "source":"",
-        "sample_t":"2", "sample_fw":"25", "sample_side":"15", "sample_ytop":"16", "sample_mating":"50",
-    }
-    for name, default in vars_defaults.items():
-        setattr(self, f"relief_registry_{name}_var", original.tk.StringVar(value=default))
-    self.relief_registry_status_var = original.tk.StringVar(value="請先驗證公式")
-
-    row = 0
-    def entry(label, var, width=28):
-        nonlocal row
-        original.ttk.Label(form, text=label).grid(row=row, column=0, sticky="w", padx=3, pady=2)
-        widget = original.ttk.Entry(form, textvariable=var, width=width)
-        widget.grid(row=row, column=1, columnspan=3, sticky="ew", padx=3, pady=2); row += 1
-        return widget
-    original.ttk.Label(form, text="規則名稱").grid(row=row, column=0, sticky="w", padx=3, pady=2)
-    original.ttk.Entry(
-        form, textvariable=self.relief_registry_rule_name_var, width=28, state="readonly"
-    ).grid(row=row, column=1, columnspan=3, sticky="ew", padx=3, pady=2)
-    row += 1
-    original.ttk.Label(form, text="盤體條件").grid(row=row,column=0,sticky="w",padx=3,pady=2)
-    _phase6_form_choice(form,self.relief_registry_family_var,("ANY","金庫型","受電箱"),width=14).grid(row=row,column=1,sticky="w")
-    original.ttk.Label(form, text="板件角色").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_part_role_var,("HEAD_OR_TAIL","HEAD","TAIL"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="截角／接合位置").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_joint_face_var,("TOP","BOTTOM"),width=18).grid(row=row,column=1,sticky="ew")
-    original.ttk.Label(form,text="組合方式").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_intent_var,("INSERT","OVERLAY","INSERT_OVERLAY"),width=16).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="截角級數").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_topology_var,("1","2"),width=8).grid(row=row,column=1,sticky="w")
-    original.ttk.Label(form,text="主要接合對象").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_target_role_var,("BOX_SIDE","REAR_PANEL"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    original.ttk.Label(form,text="附加接合方式").grid(row=row,column=0,sticky="w")
-    _phase6_form_choice(form,self.relief_registry_extra_joint_var,("NONE","WRAP","INSERT","OVERLAY","INSERT_OVERLAY"),width=16).grid(row=row,column=1,sticky="ew")
-    original.ttk.Label(form,text="附加接合對象").grid(row=row,column=2,sticky="e")
-    _phase6_form_choice(form,self.relief_registry_extra_target_role_var,("REAR_PANEL","BOX_SIDE"),width=18).grid(row=row,column=3,sticky="ew"); row+=1
-    # Formulas and preconditions keep stable evaluator tokens internally while
-    # the operator edits Traditional-Chinese aliases.
-    for raw_name in ("primary_u", "primary_v", "secondary_u", "secondary_depth"):
-        raw_var = getattr(self, f"relief_registry_{raw_name}_var")
-        display_var = original.tk.StringVar(master=form)
-        _phase6_bind_translated_var(
-            raw_var,
-            display_var,
-            lambda value, field=raw_name: _phase6_registry_formula_display(
-                value, presentation_field=field
-            ),
-            _phase6_formula_raw,
-        )
-        setattr(self, f"relief_registry_{raw_name}_display_var", display_var)
-    self.relief_registry_preconditions_display_var = original.tk.StringVar(master=form)
-    _phase6_bind_translated_var(
-        self.relief_registry_preconditions_var, self.relief_registry_preconditions_display_var,
-        _phase6_preconditions_display, _phase6_preconditions_raw,
-    )
-    entry("第一級橫向公式", self.relief_registry_primary_u_display_var)
-    entry("第一級縱向公式", self.relief_registry_primary_v_display_var)
-    entry("第二級橫向公式", self.relief_registry_secondary_u_display_var)
-    entry("第二級深度公式", self.relief_registry_secondary_depth_display_var)
-    entry("適用條件", self.relief_registry_preconditions_display_var)
-    self.relief_registry_source_display_var = original.tk.StringVar(master=form)
-    _phase6_bind_translated_var(
-        self.relief_registry_source_var, self.relief_registry_source_display_var,
-        lambda value: _phase6_registry_source_display(value, presentation_field="source"),
-        _phase6_source_raw,
-    )
-    entry("公式來源／備註", self.relief_registry_source_display_var)
-
-    help_box = original.ttk.LabelFrame(form, text="公式變數說明", padding=6)
-    help_box.grid(row=row, column=0, columnspan=4, sticky="ew", pady=(5, 3)); row += 1
-    help_lines = (
-        "板厚：目前板件厚度。",
-        "名義框寬：封頭／封尾自身的框寬參數；不等於箱身成型後實際占位。",
-        "側折：封頭／封尾橫向側邊折彎基底；貼外沒有橫向折彎時為 0。",
-        "上折：封頭／封尾縱向第一折尺寸。",
-        "成型接合寬：接合對象折好後真正需要避讓的寬度，例如貼外取箱身成型框寬。",
-        "第一級橫向／縱向：主要截角的橫向／縱向切除量；第二級橫向／深度：二級截角的內側位置與深度。",
-        "嵌入、貼外、嵌入貼外、外側包覆皆以同一接合語意資料層保存。",
-    )
-    for help_row, text in enumerate(help_lines):
-        original.ttk.Label(help_box, text=text, wraplength=660, justify="left").grid(
-            row=help_row, column=0, sticky="w", pady=1
-        )
-
-    sample = original.ttk.LabelFrame(form,text="即時公式預覽",padding=5); sample.grid(row=row,column=0,columnspan=4,sticky="ew",pady=5); row+=1
-    for col,(label,var) in enumerate((("板厚",self.relief_registry_sample_t_var),("名義框寬",self.relief_registry_sample_fw_var),("側折",self.relief_registry_sample_side_var),("上折",self.relief_registry_sample_ytop_var),("成型接合寬",self.relief_registry_sample_mating_var))):
-        original.ttk.Label(sample,text=label).grid(row=0,column=col*2,sticky="e")
-        original.ttk.Entry(sample,textvariable=var,width=7).grid(row=0,column=col*2+1,sticky="w",padx=(2,6))
-    canvas=original.tk.Canvas(form,width=245,height=160,background="white",highlightthickness=1,highlightbackground="#aaa")
-    canvas.grid(row=row,column=0,columnspan=4,sticky="w",pady=4); self.relief_registry_preview_canvas=canvas; row+=1
-    actions=original.ttk.Frame(form); actions.grid(row=row,column=0,columnspan=4,sticky="ew",pady=4); row+=1
-    for text,cmd in (
-        ("驗證公式",lambda:_phase6_registry_validate_formula_form(self)),
-        ("預覽平面",lambda:_phase6_registry_preview_2d(self)),
-        ("預覽立體組合",lambda:_phase6_registry_preview_assembly_3d(self)),
-        ("儲存候選",lambda:_phase6_registry_save_candidate_form(self)),
-        ("執行回歸",lambda:_phase6_registry_run_formula_matrix(self)),
-    ):
-        original.ttk.Button(actions,text=text,command=cmd).pack(side=original.tk.LEFT,padx=2)
-    self.relief_registry_save_candidate_button = next((w for w in actions.winfo_children() if str(w.cget("text"))=="儲存候選"), None)
-    self.relief_registry_promote_button=original.ttk.Button(actions,text="認證新版次",command=lambda:_phase6_registry_promote_form(self),style="Primary.TButton")
-    self.relief_registry_promote_button.pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Label(form,textvariable=self.relief_registry_status_var,foreground=WHD_THEME["text"]).grid(row=row,column=0,columnspan=4,sticky="w",pady=(4,0))
-    for col in (1,3): form.columnconfigure(col,weight=1)
-
-    # ----- Joint tab -----
-    jcols=("subject","target","relation","source","subject_region","target_region")
-    jtree=original.ttk.Treeview(joints_tab,columns=jcols,show="headings",height=15)
-    for col,label,width in (("subject","主動板件",100),("target","接合板件",100),("relation","接合關係",130),("source","資料來源",120),("subject_region","主動板件區域",160),("target_region","接合板件區域",160)):
-        jtree.heading(col,text=label); jtree.column(col,width=width)
-    jtree.pack(fill=original.tk.X,pady=(0,8)); self.relief_joint_tree=jtree
-    self.relief_joint_relation_choices=("INSERT","OVERLAY","INSERT_OVERLAY","WRAP")
-    self.relief_joint_subject_var=original.tk.StringVar(value="head")
-    self.relief_joint_target_var=original.tk.StringVar(value="box_body")
-    self.relief_joint_relation_var=original.tk.StringVar(value="WRAP")
-    self.relief_joint_subject_region_var=original.tk.StringVar(value="rear_edge")
-    self.relief_joint_target_region_var=original.tk.StringVar(value="rear_mating")
-    self.relief_joint_clearance_var=original.tk.StringVar(value="ZERO")
-    self.relief_joint_topology_var=original.tk.StringVar(value="1")
-    self.relief_joint_status_var=original.tk.StringVar(value="外側包覆：主動板件包覆接合板件")
-    jf=original.ttk.LabelFrame(joints_tab,text="新增使用者接合規則",padding=6); jf.pack(fill=original.tk.X)
-    fields=(
-        ("主動板件",self.relief_joint_subject_var,("head","tail","box_body")),
-        ("接合板件",self.relief_joint_target_var,("box_body","head","tail")),
-        ("主動板件區域",self.relief_joint_subject_region_var,("rear_edge","TOP","BOTTOM")),
-        ("接合板件區域",self.relief_joint_target_region_var,("rear_mating","MATING_ZONE","OUTER_SURFACE")),
-        ("間隙條件",self.relief_joint_clearance_var,("ZERO",)),
-    )
-    for i,(label,var,choices) in enumerate(fields):
-        original.ttk.Label(jf,text=label).grid(row=i//3*2,column=(i%3)*2,sticky="w",padx=3)
-        _phase6_form_choice(jf,var,choices,width=18).grid(row=i//3*2+1,column=(i%3)*2,sticky="ew",padx=3,pady=(0,4))
-    original.ttk.Label(jf,text="接合關係").grid(row=0,column=5,sticky="w",padx=3)
-    _phase6_form_choice(jf,self.relief_joint_relation_var,self.relief_joint_relation_choices,width=16).grid(row=1,column=5,sticky="ew",padx=3)
-    original.ttk.Label(jf,text="自動辨識級數").grid(row=2,column=4,sticky="w",padx=3)
-    _phase6_form_choice(jf,self.relief_joint_topology_var,("1","2"),width=8).grid(row=3,column=4,sticky="w",padx=3)
-    buttons=original.ttk.Frame(joints_tab); buttons.pack(fill=original.tk.X,pady=6)
-    original.ttk.Button(buttons,text="新增接合",command=lambda:_phase6_joint_form_add(self)).pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Button(buttons,text="刪除使用者接合",command=lambda:_phase6_joint_form_delete(self)).pack(side=original.tk.LEFT,padx=2)
-    original.ttk.Label(buttons,textvariable=self.relief_joint_status_var).pack(side=original.tk.LEFT,padx=10)
-
-    _phase6_registry_refresh_rule_tree(self)
-    _phase6_joint_form_refresh(self)
-    return win
+# Compatibility routing only: concrete Tk construction lives in
+# phase6_registry_diagnostics_panel.py.
+_phase6_form_choice = lambda parent, variable, choices, width=18, presentation_field="choice": build_registry_choice(
+    parent,
+    variable,
+    choices,
+    present_token=_phase6_registry_present_token,
+    width=width,
+    presentation_field=presentation_field,
+)
+_phase6_registry_preview_2d = lambda self: _phase6_registry_panel(self).draw_registry_preview()
+_phase6_registry_refresh_rule_tree = lambda self: _phase6_registry_panel(self).refresh_rule_rows()
+_phase6_registry_rule_selected = lambda self, *_args: _phase6_registry_panel(self).populate_rule_form()
+_phase6_joint_form_refresh = lambda self: _phase6_registry_panel(self).refresh_joint_rows()
+_phase6_open_relief_registry_form = lambda self: _phase6_registry_panel(self).open_registry_editor()
+_phase6_refresh_joint_diagnostic_menu = lambda self, resolved=None: _phase6_registry_panel(self).refresh_joint_diagnostic_menu(resolved)
+_phase6_build_assembly_diagnostics = lambda self: _phase6_registry_panel(self).build_assembly_diagnostics(self.right)
 
 
 def _phase6_keyboard_save(self, _event=None):
@@ -5885,44 +5626,6 @@ def _phase6_create_relief_promotion_candidates(self):
             status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
     return candidates
 
-def _phase6_refresh_joint_diagnostic_menu(self, resolved=None):
-    var = getattr(self, "assembly_joint_diag_var", None)
-    button = getattr(self, "assembly_joint_diag_button", None)
-    if var is None or button is None:
-        return ()
-    resolved = (
-        resolved
-        or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-    )
-    menu = getattr(self, "assembly_joint_diag_menu", None)
-    if menu is None:
-        menu_name = str(button.cget("menu") or "")
-        if not menu_name:
-            return ()
-        try:
-            menu = button.nametowidget(menu_name)
-        except Exception:
-            return ()
-    menu.delete(0, "end")
-    ids = list(_phase6_registry_diagnostics(self).diagnostic_ids(resolved))
-    current = str(var.get() or "")
-    if current not in ids:
-        current = ids[0] if ids else ""
-        var.set(current)
-    labels = {
-        joint_id: f"接合 {index + 1}"
-        for index, joint_id in enumerate(ids)
-    }
-    for joint_id in ids:
-        menu.add_radiobutton(
-            label=labels[joint_id],
-            value=joint_id,
-            variable=var,
-            command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-        )
-    button.configure(text=labels.get(current, "接合"))
-    return tuple(ids)
-
 def _phase6_selected_joint_diagnostic(self):
     resolved = getattr(
         self, "_phase6_last_resolved_manufacturing_geometry", None
@@ -5938,46 +5641,6 @@ def _phase6_selected_joint_diagnostic(self):
     return _phase6_registry_diagnostics(self).selected_diagnostic(
         resolved, joint_id
     )
-
-def _phase6_build_assembly_diagnostics(self):
-    frame = original.ttk.LabelFrame(self.right, text="組合體診斷", padding=6)
-    self.assembly_diagnostics_frame = frame
-    self.assembly_ignore_fixed_corner_var = original.tk.BooleanVar(value=True)
-    self.assembly_show_interference_var = original.tk.BooleanVar(value=True)
-    self.assembly_relief_clearance_var = original.tk.StringVar(value="0")
-    self.assembly_relief_size_var = original.tk.StringVar(value="實際截角尺寸：等待計算")
-    self.assembly_collision_status_var = original.tk.StringVar(value="3D驗證：等待計算")
-    original.ttk.Checkbutton(
-        frame, text="未知組合允許3D求截角",
-        variable=self.assembly_ignore_fixed_corner_var,
-        command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, text="淨空 A").pack(side=original.tk.LEFT, padx=(0, 4))
-    self.assembly_relief_clearance_entry = original.ttk.Entry(
-        frame, textvariable=self.assembly_relief_clearance_var, width=7
-    )
-    self.assembly_relief_clearance_entry.pack(side=original.tk.LEFT, padx=(0, 10))
-    self.assembly_relief_clearance_entry.bind(
-        "<Return>", lambda _event: _phase6_on_assembly_diagnostic_changed(self)
-    )
-    self.assembly_relief_clearance_entry.bind(
-        "<FocusOut>", lambda _event: _phase6_on_assembly_diagnostic_changed(self)
-    )
-    original.ttk.Checkbutton(
-        frame, text="顯示干涉碰撞區",
-        variable=self.assembly_show_interference_var,
-        command=lambda: _phase6_on_assembly_diagnostic_changed(self),
-    ).pack(side=original.tk.LEFT, padx=(0, 10))
-    self.assembly_relief_promotion_button = original.ttk.Button(
-        frame, text="建立認證候選",
-        command=lambda: _phase6_create_relief_promotion_candidates(self),
-    )
-    self.assembly_relief_promotion_button.pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, textvariable=self.assembly_relief_size_var).pack(side=original.tk.LEFT, padx=(0, 10))
-    original.ttk.Label(frame, textvariable=self.assembly_collision_status_var).pack(side=original.tk.LEFT)
-    frame.pack_forget()
-    return frame
-
 
 def _phase6_update_assembly_diagnostic_status(self):
     status_var = getattr(self, "assembly_collision_status_var", None)
