@@ -1,3 +1,4 @@
+# acceptance-revision: 2
 name: Issue 465 T0 GREEN
 
 on:
@@ -6,6 +7,10 @@ on:
       - workorder/issue464-joint-placement-marking-v1.3-20260921
     paths:
       - '.github/workflows/qa-issue465-t0-green.yml'
+      - 'tests/test_issue465_t0_physical_mating_region.py'
+      - 'ae_engine/inner_door_frames.py'
+      - 'ae_engine/contracts.py'
+      - 'ae_engine/assembly_geometry.py'
   workflow_dispatch:
 
 permissions:
