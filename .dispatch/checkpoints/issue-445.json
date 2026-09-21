@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "445",
+  "branch": "refactor/issue445-t3-settings-owner-20260921",
+  "head_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35555924062,
+  "job_id": 106199435213,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "T3_OWNERSHIP_CONTRACT=GREEN: 5 passed",
+    "SETTINGS_PURE_REGRESSION=GREEN: 38 passed / 16 skipped",
+    "REAL_TK_AB=INHERITED_BASELINE_DEBT: same 2 failures baseline/candidate",
+    "REAL_TK_REGRESSION=GREEN: 23 passed / 2 deselected",
+    "MANUFACTURING_DXF=GREEN: 12 passed",
+    "CONFIG_GIT_OBJECT_INVARIANT=1",
+    "GEOMETRY_OWNER_DRIFT=0",
+    "DXF_DRIFT=0",
+    "PROJECT_SCHEMA_DRIFT=0",
+    "MUTATION_OWNER_MOVE=0",
+    "TEMP_QA_WORKFLOW_REMOVED=1",
+    "TESTED_HEAD=9f9104358c54115459d4692c4cdc0790dae8add9",
+    "CLEANED_HEAD=cc2af5a40769d8897ecd81679bfcb81fa36e5599",
+    "TESTED_TO_CLEANED_DRIFT=workflow-delete-only"
+  ]
+}
