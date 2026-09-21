@@ -122,3 +122,45 @@ def test_t0_does_not_emit_joint_placement_marking():
         and str(getattr(p, "source_type", "")).startswith("joint_placement")
         for p in primitives
     )
+
+
+
+def test_t0_resolver_has_no_bbox_or_renderer_authority():
+    import ast
+    import inspect
+    from ae_engine import assembly_geometry as geometry
+    from ae_engine import inner_door_frames as owner
+
+    resolver_tree = ast.parse(inspect.getsource(geometry.resolve_physical_mating_region))
+    owner_tree = ast.parse(inspect.getsource(owner.inner_door_frame_mating_region))
+
+    resolver_names = {
+        node.id for node in ast.walk(resolver_tree) if isinstance(node, ast.Name)
+    }
+    resolver_attrs = {
+        node.attr for node in ast.walk(resolver_tree) if isinstance(node, ast.Attribute)
+    }
+    owner_calls = {
+        node.func.id
+        for node in ast.walk(owner_tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+
+    assert "triangle_bounds" not in resolver_names
+    assert "bounds" not in resolver_attrs
+    assert "renderer" not in resolver_names
+    assert "collision" not in resolver_names
+    assert "min" not in owner_calls
+    assert "max" not in owner_calls
+
+
+def test_inner_door_frame_dxf_roundtrip_is_unchanged_by_t0(tmp_path):
+    from ae_engine import manufacturing_api as api
+
+    data = api.build_inner_door_frame_render_data(_left_frame())
+    path = tmp_path / "inner-door-left-frame.dxf"
+    api.save_part_render_data_dxf(data, path, overwrite=True)
+
+    result = api.verify_saved_part_render_data_dxf(data, path)
+    assert result.ok is True
+    assert result.issues == ()
