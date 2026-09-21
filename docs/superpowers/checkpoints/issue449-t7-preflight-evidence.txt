@@ -30,3 +30,22 @@ ACCEPTED_T6_DECISION=Part Editor C_KEEP_BRIDGE_COMPATIBILITY / #448
 
 MUTATION_GATE=_fix11_init remains sole composition root; helpers/installers may hide construction detail but must not create a second lifecycle/composition authority.
 DOD=semantic ownership/order invariants, not LOC threshold.
+
+GREEN_QA_PREFLIGHT:
+- fold_designer_bridge.py
+- tests/test_issue449_fix11_init_bootstrap_owner.py
+- docs/superpowers/checkpoints/issue449-t7-preflight-evidence.txt
+- docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md
+- .github/workflows/qa-issue449-t7-green.yml
+MATCHED_ROUTE=remote-qa-monitoring
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+SOURCE_AUDIT_FIX11_ROOT_LINES=34
+SOURCE_AUDIT_FORBIDDEN_DEEP_OWNER_TOKENS=0
+SOURCE_AUDIT_FIX10_CALL_SITES=1
