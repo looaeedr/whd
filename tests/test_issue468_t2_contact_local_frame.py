@@ -25,7 +25,7 @@ def _api():
     return geometry, frame, pair, backproject
 
 
-def _region(*, mapping, normal=(0.0, 0.0, 1.0)):
+def _region(*, mapping, normal=(0.0, 0.0, 1.0), world_polygon=None):
     return ResolvedPhysicalMatingRegion(
         part_id="locator",
         region_id="CORE_PHYSICAL_SEGMENT",
@@ -33,19 +33,23 @@ def _region(*, mapping, normal=(0.0, 0.0, 1.0)):
         physical_face_kind="MAPPED_SKIN",
         supporting_plane=((0.0, 0.0, 0.0), tuple(normal)),
         outward_normal=tuple(normal),
-        world_polygon=(
+        world_polygon=tuple(world_polygon or (
             (-2.0, -1.0, 0.0),
             (2.0, -1.0, 0.0),
             (2.0, 1.0, 0.0),
             (-2.0, 1.0, 0.0),
-        ),
+        )),
         flat_mapping=mapping,
         provenance={"source": "authoritative_locator_mapping"},
     )
 
 
 def _contact(*, mapping, world_polygon=None, normal=(0.0, 0.0, 1.0)):
-    locator = _region(mapping=mapping, normal=normal)
+    locator = _region(
+        mapping=mapping,
+        normal=normal,
+        world_polygon=world_polygon,
+    )
     attached = ResolvedPhysicalMatingRegion(
         part_id="attached",
         region_id="LOWER_TERMINAL_FACE",
@@ -108,6 +112,37 @@ def _mirrored_mapping():
 
 def _assert_vec(actual, expected):
     assert tuple(actual) == pytest.approx(tuple(expected), abs=1e-9)
+
+
+def _transform_mapping(mapping, transform):
+    return tuple(
+        MappedSkinTriangle(
+            flat=record.flat,
+            world=tuple(transform(point) for point in record.world),
+            side=record.side,
+        )
+        for record in mapping
+    )
+
+
+def _rotate_z_90(point):
+    x, y, z = map(float, point)
+    return (-y, x, z)
+
+
+def _current_horizontal_inward_transform(mapping, points):
+    from ae_engine.assembly_geometry import place_assembly_points
+
+    reference = tuple(record.world for record in mapping)
+    placed = place_assembly_points(
+        tuple(points),
+        reference,
+        "divider_horizontal_inward",
+        (800.0, 1600.0, 350.0),
+        (0.0, 0.0, 0.0),
+    )
+    assert len(placed) == len(tuple(points))
+    return tuple(placed)
 
 
 def test_r3_contact_local_frame_contract_exists():
@@ -235,3 +270,131 @@ def test_production_module_has_no_bbox_renderer_or_world_axis_fallback():
     assert "world_z" not in source
     assert "left" not in source
     assert "right" not in source
+
+
+def test_rigid_rotation_preserves_semantic_roles_and_rotates_signed_basis():
+    _geometry, frame_resolver, pair_resolver, backproject = _api()
+    base_mapping = _identity_mapping()
+    mapping = _transform_mapping(base_mapping, _rotate_z_90)
+    polygon = tuple(
+        _rotate_z_90(point)
+        for point in (
+            (-2.0, -1.0, 0.0),
+            (2.0, -1.0, 0.0),
+            (2.0, 1.0, 0.0),
+            (-2.0, 1.0, 0.0),
+        )
+    )
+    contact = _contact(
+        mapping=mapping,
+        world_polygon=polygon,
+        normal=(0.0, 0.0, 1.0),
+    )
+
+    frame = frame_resolver(
+        contact,
+        longitudinal_flat_axis="+X",
+        cross_flat_axis="+Y",
+    )
+    assert frame.status == "RESOLVED", repr(frame)
+    _assert_vec(frame.frame.longitudinal, (0.0, 1.0, 0.0))
+    _assert_vec(frame.frame.cross, (-1.0, 0.0, 0.0))
+    assert frame.frame.handedness_parity == 1
+
+    pair = pair_resolver(contact, frame.frame)
+    assert pair.status == "RESOLVED", repr(pair)
+    assert pair.pair.negative.role == "SIDE_NEGATIVE"
+    assert pair.pair.positive.role == "SIDE_POSITIVE"
+    assert pair.pair.negative.signed_cross < pair.pair.positive.signed_cross
+
+    projected = backproject(
+        contact,
+        (_rotate_z_90((-1.0, -0.5, 0.0)),),
+    )
+    assert projected.status == "RESOLVED", repr(projected)
+    assert projected.flat_points == pytest.approx(((1.0, 0.5),), abs=1e-8)
+
+
+def test_current_horizontal_inward_orientation_preserves_semantic_roles():
+    _geometry, frame_resolver, pair_resolver, _backproject = _api()
+    base_mapping = _identity_mapping()
+    reference = tuple(record.world for record in base_mapping)
+    all_points = tuple(point for record in base_mapping for point in record.world)
+    placed_points = _current_horizontal_inward_transform(
+        base_mapping,
+        all_points,
+    )
+    chunks = tuple(
+        tuple(placed_points[index:index + 3])
+        for index in range(0, len(placed_points), 3)
+    )
+    mapping = tuple(
+        MappedSkinTriangle(
+            flat=record.flat,
+            world=world,
+            side=record.side,
+        )
+        for record, world in zip(base_mapping, chunks)
+    )
+    source_polygon = (
+        (-2.0, -1.0, 0.0),
+        (2.0, -1.0, 0.0),
+        (2.0, 1.0, 0.0),
+        (-2.0, 1.0, 0.0),
+    )
+    polygon = _current_horizontal_inward_transform(
+        base_mapping,
+        source_polygon,
+    )
+    normal_probe = _current_horizontal_inward_transform(
+        base_mapping,
+        ((0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+    )
+    normal_delta = tuple(
+        float(normal_probe[1][i]) - float(normal_probe[0][i])
+        for i in range(3)
+    )
+    magnitude = math.sqrt(sum(value * value for value in normal_delta))
+    normal = tuple(value / magnitude for value in normal_delta)
+
+    contact = _contact(
+        mapping=mapping,
+        world_polygon=polygon,
+        normal=normal,
+    )
+    frame = frame_resolver(
+        contact,
+        longitudinal_flat_axis="+X",
+        cross_flat_axis="+Y",
+    )
+    assert frame.status == "RESOLVED", repr(frame)
+    _assert_vec(frame.frame.normal, (0.0, 1.0, 0.0))
+    _assert_vec(frame.frame.longitudinal, (0.0, 0.0, -1.0))
+    _assert_vec(frame.frame.cross, (1.0, 0.0, 0.0))
+    assert frame.frame.handedness_parity == -1
+
+    pair = pair_resolver(contact, frame.frame)
+    assert pair.status == "RESOLVED", repr(pair)
+    assert pair.pair.negative.role == "SIDE_NEGATIVE"
+    assert pair.pair.positive.role == "SIDE_POSITIVE"
+    assert pair.pair.negative.signed_cross < pair.pair.positive.signed_cross
+
+
+def test_locator_region_mapping_is_authority_and_stale_contact_copy_fails_closed():
+    from dataclasses import replace
+
+    _geometry, frame_resolver, _pair, backproject = _api()
+    contact = _contact(mapping=_identity_mapping())
+    stale = replace(contact, locator_flat_mapping=_mirrored_mapping())
+
+    frame = frame_resolver(
+        stale,
+        longitudinal_flat_axis="+X",
+        cross_flat_axis="+Y",
+    )
+    assert frame.status == "SKIPPED_FAIL_CLOSED"
+    assert frame.diagnostic_code == "BOUNDARY_FRAME_UNRESOLVED"
+
+    projected = backproject(stale, ((0.0, 0.0, 0.0),))
+    assert projected.status == "SKIPPED_FAIL_CLOSED"
+    assert projected.diagnostic_code == "BACKPROJECTION_FAILED"
