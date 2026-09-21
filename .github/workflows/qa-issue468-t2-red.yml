@@ -1,0 +1,32 @@
+name: Issue 468 T2 RED
+
+on:
+  push:
+    branches:
+      - workorder/issue464-joint-placement-marking-v1.3-20260921
+    paths:
+      - '.github/workflows/qa-issue468-t2-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest -r requirements.txt
+      - name: Run T2 requirement RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/test_issue468_t2_contact_local_frame.py
