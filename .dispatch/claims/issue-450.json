@@ -5,10 +5,10 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "c75fdc6a764f5f4714b79b3040326b5268dbe9b0",
+  "head_sha": "bd72e1eda4d117e66f284de110c80cbfcc3f4098",
   "phase": "REMEDIATION",
   "delegated_branches": [],
-  "last_update": "2026-09-21T17:12:00+08:00",
+  "last_update": "2026-09-21T17:14:00+08:00",
   "remote_qa": {
     "run_id": 35577683274,
     "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
