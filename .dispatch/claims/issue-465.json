@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "e9fd0e20d19660eea550596a5304629b05a50594",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T0",
@@ -16,15 +16,27 @@
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "chain_head": "e9fd0e20d19660eea550596a5304629b05a50594",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:47:00+08:00",
+  "last_update": "2026-09-21T20:51:00+08:00",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35599810725,
     "head_sha": "e9fd0e20d19660eea550596a5304629b05a50594",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 465 T0 GREEN",
-    "acceptance_revision": 3
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106332978562,
+    "counts": {
+      "passed": 19,
+      "skipped": 1,
+      "failed": 0
+    },
+    "evidence": [
+      "all six T0 acceptance requirements have executable coverage",
+      "actual Inner Door Frame DXF save→reopen parity GREEN",
+      "no Joint Placement MARKING emitted",
+      "no bbox/minmax/renderer/collision authority source guard GREEN",
+      "locator flat_mapping/provenance preservation contract GREEN"
+    ]
   },
-  "next_action": "Monitor auto-triggered final T0 GREEN acceptance for exact head e9fd0e20d19660eea550596a5304629b05a50594; require locator mapping provenance contract plus prior gates.",
+  "next_action": "Delete temporary issue465 preflight/RED/GREEN workflows with guarded writes, then audit tested head e9fd0e20d19660eea550596a5304629b05a50594 to closing head for cleanup-only drift.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
