@@ -38,7 +38,6 @@ EXPECTED_DELEGATES = {
     "_phase6_format_formed_size_text": "formed_size_text",
     "_phase6_format_unfolded_blank_text": "unfolded_blank_text",
     "_phase6_current_unfolded_size": "current_unfolded_size",
-    "_phase6_registry_preview_2d": "registry_preview_geometry",
     "_phase6_prepare_corner_data_canvas": "canvas_visibility_plan",
     "_phase6_hide_corner_data_canvas": "canvas_visibility_plan",
 }
@@ -107,7 +106,9 @@ def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
         "_phase6_registry_preview_2d = lambda self: "
         "_phase6_registry_panel(self).draw_registry_preview()"
     ) in bridge_source
-    assert "registry_preview_geometry" in bridge_source
+    preview_payload = ast.unparse(funcs["_phase6_registry_preview_payload"])
+    assert "_phase6_registry_validate_formula_form" in preview_payload
+    assert "registry_preview_geometry" in preview_payload
 
     select = funcs["_phase6_select_corner_data_part"]
     for node in ast.walk(select):
