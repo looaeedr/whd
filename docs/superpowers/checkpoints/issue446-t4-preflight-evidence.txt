@@ -24,3 +24,13 @@ READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pit
 
 BOUNDARY=Presentation extraction only; Certified Registry formula/promote semantics, manufacturing geometry, AssemblyJoint canonical mutation remain outside panel.
 LOCAL_CHECKOUT=BLOCKED: Could not resolve host github.com
+
+CHANGED_FILE_PREFLIGHT:
+- fold_designer_bridge.py
+- phase6_registry_diagnostics_panel.py
+- tests/test_issue446_registry_diagnostics_presentation_owner.py
+- tests/test_issue368_t4_registry_diagnostics_owner.py
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: monitoring-remote-qa
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
