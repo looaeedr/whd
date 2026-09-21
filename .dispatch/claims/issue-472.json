@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "72ac5590b66d1abf8f745d33c349f71ef3dd7be7",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -23,11 +23,13 @@
   "remote_qa": {
     "run_id": 35625722427,
     "head_sha": "72ac5590b66d1abf8f745d33c349f71ef3dd7be7",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106419472821,
+    "classification": "PREFLIGHT_EVIDENCE_HARNESS_FAILURE"
   },
-  "last_update": "2026-09-22T01:10:00+08:00",
-  "next_action": "Poll locked run 35625722427 at head 72ac5590b66d1abf8f745d33c349f71ef3dd7be7 until all preflight/focused/headless/xvfb jobs are terminal; read exact summaries and repair only demonstrated failures.",
+  "last_update": "2026-09-22T01:13:00+08:00",
+  "next_action": "Add long-log-context-safe-execution and executable-continuity-controller skills plus required pitfall references to committed T7 authority evidence; point phase6_skill_preflight.py --evidence at that committed file; rerun Combined Acceptance.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
