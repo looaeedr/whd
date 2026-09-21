@@ -3667,8 +3667,18 @@ def _phase6_settings_corner_projection(self, part_key):
                 "amount_t": (
                     selection.amount_t if selection.amount_t is not None else 1.0
                 ),
-                "mode_label": _CORNER_MODE_LABEL[selection.cross_mode],
-                "mode_kind": selection.cross_mode.name,
+                "mode_label": (
+                    _CORNER_MODE_LABEL[selection.cross_mode]
+                    if selection.type_id is CornerTypeId.CROSS
+                    and selection.cross_mode is not None
+                    else ""
+                ),
+                "mode_kind": (
+                    selection.cross_mode.name
+                    if selection.type_id is CornerTypeId.CROSS
+                    and selection.cross_mode is not None
+                    else ""
+                ),
                 "direction_label": direction_label,
                 "direction_options": direction_options,
                 "secondary_retain_t": selection.secondary_retain_t,
