@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35667017433,
     "head_sha": "1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue479 T1 GREEN run for implementation head 1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1, lock exact run_id+head_sha, poll to terminal, then run focused FinalScene + part/DXF acceptance and cleanup/drift audit.",
+  "next_action": "Poll locked GREEN run 35667017433 at implementation head 1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1 to terminal; on success run expanded FinalScene/physical-part acceptance, then cleanup and drift audit.",
   "blocker": null,
-  "last_update": "2026-09-22T07:27:00+08:00",
+  "last_update": "2026-09-22T07:28:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
