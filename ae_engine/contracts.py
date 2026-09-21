@@ -214,6 +214,89 @@ class PartExportResult:
 
 
 @dataclass(frozen=True)
+class AssemblyGeometryToleranceContract:
+    """Single geometry-neutral numerical contract for assembly mating geometry.
+
+    These values are engineering numerical-robustness tolerances for the mm-scale
+    assembly model.  They are not product clearances, DXF verifier tolerances,
+    renderer tolerances, or pytest expectations.  The named production instance
+    below is the only owner consumed by the Joint Placement MARKING contact path.
+    """
+
+    coplanar_distance_tolerance: float
+    opposed_normal_residual_tolerance: float
+    flat_world_mapping_tolerance: float
+    boundary_separation_tolerance: float
+    polygon_robustness_epsilon: float
+    provenance: str = "ASSEMBLY_GEOMETRY_ENGINEERING_V1"
+    revision: int = 1
+
+    def __post_init__(self):
+        for name in (
+            "coplanar_distance_tolerance",
+            "opposed_normal_residual_tolerance",
+            "flat_world_mapping_tolerance",
+            "boundary_separation_tolerance",
+            "polygon_robustness_epsilon",
+        ):
+            value = float(getattr(self, name))
+            if value <= 0.0:
+                raise ValueError(f"{name} must be > 0")
+
+
+# Canonical production owner for assembly mating/contact numerical robustness.
+# Values are deliberately tiny relative to physical manufacturing dimensions and
+# are owned here independently of validation/DXF reconstruction.
+PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES = AssemblyGeometryToleranceContract(
+    coplanar_distance_tolerance=1.0e-6,
+    opposed_normal_residual_tolerance=1.0e-7,
+    flat_world_mapping_tolerance=1.0e-7,
+    boundary_separation_tolerance=1.0e-7,
+    polygon_robustness_epsilon=1.0e-9,
+)
+
+
+@dataclass(frozen=True)
+class TrueSolidPenetrationEvidence:
+    """Authoritative upstream evidence that physical solids penetrate illegally."""
+
+    detected: bool
+    through_thickness: bool = False
+    positive_volume: bool = False
+    source: str = ""
+    evidence: object | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedLegalContact:
+    """One legal, policy-selected physical mating contact."""
+
+    locator_part_id: str
+    attached_part_id: str
+    locator_region: object
+    attached_region: object
+    contact_plane: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    locator_outward_normal: tuple[float, float, float]
+    attached_outward_normal: tuple[float, float, float]
+    overlap_world: tuple[tuple[float, float, float], ...]
+    locator_flat_mapping: object | None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class LegalContactResult:
+    """Fail-closed legal-contact classification result."""
+
+    status: str
+    diagnostic_code: str | None = None
+    contact: ResolvedLegalContact | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ResolvedPhysicalMatingRegion:
     """Geometry-neutral resolved physical face used by assembly mating logic.
 
