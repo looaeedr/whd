@@ -13,21 +13,25 @@
     "evidence": "No issue-478 branch commits, no remote QA run, no checkpoint; work-order branch exists at frozen base. Prior automation stalled before T0 census."
   },
   "recovered_at": "2026-09-22T06:53:00+08:00",
-  "phase": "GREEN",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "production_head_observed": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "head_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "last_update": "2026-09-22T07:03:00+08:00",
+  "last_update": "2026-09-22T07:08:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "QA T0 census: verify exact branch diff is evidence-only, persist terminal checkpoint/finalization proof, close #478, then immediately claim/start #479.",
+  "next_action": null,
   "blocker": null,
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "delegated_branches": [
     "coord/dispatch-claims"
-  ]
+  ],
+  "closed_issue_state": "completed",
+  "accepted_head_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
+  "next_issue": 479,
+  "handoff_ready": true
 }
