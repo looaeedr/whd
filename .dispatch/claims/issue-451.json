@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "head_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "phase": "CLAIMED",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -16,10 +16,16 @@
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "chain_head": "4b401077d457acd1e754366637c595b3d82f38d4",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:18:00+08:00",
+  "last_update": "2026-09-21T19:21:00+08:00",
   "remote_qa": null,
-  "checkpoint": null,
-  "next_action": "Run execution_claim_guard for branch-create, create the T9 branch from exact accepted predecessor 4b401077d457acd1e754366637c595b3d82f38d4, read back branch HEAD, then run changed-file preflight before AI Library writes.",
+  "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
+  "integration_drift": {
+    "chain_from_frozen": {"ahead_by": 94, "behind_by": 0},
+    "current_x_from_frozen": {"ahead_by": 36, "behind_by": 0},
+    "current_x_vs_chain": {"status": "diverged", "ahead_by": 94, "behind_by": 36},
+    "merge_base": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e"
+  },
+  "next_action": "Run changed-file Knowledge Preflight for AI Library ownership writeback, issue451 checkpoint, and cleanup of qa-issue442/443 one-shot workflows; read T1-T7 accepted ownership evidence; then guarded writes.",
   "blocker": null,
   "handoff_ready": false
 }
