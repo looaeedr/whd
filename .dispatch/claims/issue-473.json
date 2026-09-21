@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "cd97c92eecdf98d2e4f97cd7394d6529f2bcd407",
-  "phase": "IMPLEMENTING",
+  "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,21 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "cd97c92eecdf98d2e4f97cd7394d6529f2bcd407",
+  "chain_head": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": 35606675082,
-    "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106355331027,
-    "counts": {
-      "passed": 34,
-      "failed": 0
-    }
+    "run_id": null,
+    "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 473 Master Chain Turn Exit GREEN",
+    "revision": 2
   },
-  "last_update": "2026-09-21T22:02:00+08:00",
-  "next_action": "Add regression that caller-known Master #464 + checkpoint missing/mismatched master_issue must fail closed, then rerun process GREEN.",
+  "last_update": "2026-09-21T22:05:00+08:00",
+  "next_action": "Monitor Issue 473 Master Chain Turn Exit GREEN for exact head 3eccb0b8d42e6544c578cf4a379f48f35f0730ab; require expected-Master missing/mismatch regressions GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
