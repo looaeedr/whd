@@ -16,10 +16,15 @@
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "chain_head": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
   "current_x_head_observation": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
-  "last_update": "2026-09-21T19:38:00+08:00",
+  "last_update": "2026-09-21T19:40:00+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED_OR_NOT_YET_DISCOVERED",
-    "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990"
+    "run_id": 35594692830,
+    "head_sha": "67907eadf14dfe726be9d9ea3795c4db56b7b990",
+    "status": "completed",
+    "conclusion": "failure",
+    "failed_step": "Durable ownership and cleanup guards",
+    "classification": "QA_HARNESS_BUG",
+    "root_cause": "Python subprocess passed literal $BASE_SHA to git rev-parse; shell variable expansion does not occur inside subprocess argv."
   },
   "checkpoint": "docs/superpowers/checkpoints/issue451-t9-preflight-evidence.md",
   "durable_writeback": {
@@ -30,7 +35,7 @@
     "qa_issue442_workflow_removed": true,
     "qa_issue443_workflow_removed": true
   },
-  "next_action": "Discover exact run_id from #451 workflow start marker for HEAD 67907eadf14dfe726be9d9ea3795c4db56b7b990; once known, enter REMOTE_QA lock and poll that run to terminal.",
+  "next_action": "Repair only qa-issue451-t9-writeback.yml by deleting the erroneous unused literal-$BASE_SHA subprocess block; push that minimal harness fix, discover the replacement run from #451 marker, and monitor exact replacement run to terminal.",
   "blocker": null,
   "handoff_ready": false
 }
