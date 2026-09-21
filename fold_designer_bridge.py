@@ -81,7 +81,6 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from gui_modules.application.fold_designer_adapter import (
-    FinalSceneCompositionPorts,
     Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
@@ -753,122 +752,9 @@ def _phase6_final_scene_refresh_preview(self):
 
 
 def _phase6_final_scene_adapter(self):
-    return _phase6_composition(self).final_scene_adapter(
-        FinalSceneCompositionPorts(
-                number_text=_setting_number_text,
-                is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
-                physical_piece_render_data=lambda key: _phase6_box_body_piece_render_data(
-                    self, key
-                ),
-                user_joint_parts=lambda: {
-                    str(raw.get(field) or "")
-                    for raw in tuple(
-                        migrate_legacy_snapshot_joints(
-                            dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-                        ).get("assembly_joints", ()) or ()
-                    )
-                    if str(raw.get("source") or "")
-                    == AssemblyJointSource.USER_ADDED.value
-                    for field in ("subject_part", "target_part")
-                },
-                resolve_geometry=lambda: _phase6_resolve_manufacturing_geometry(
-                    self
-                ),
-                scene_payload_for_part=lambda key: _phase6_scene_query_payload_for_part(
-                    self, key
-                ),
-                publish_live_state=lambda **kwargs: _phase6_publish_live_state(
-                    self, **kwargs
-                ),
-                corner_dimension_text=_phase6_render_data_corner_dimension_text,
-                formed_size_text=lambda render_data, **kwargs: _phase6_format_formed_size_text(
-                    render_data, **kwargs
-                ),
-                blank_text=lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
-                    render_data, part_key=part_key
-                ),
-                refresh_box_body_piece_info=lambda render_data: _phase6_refresh_box_body_piece_info_rows(
-                    self, render_data
-                ),
-                operator_dimensions=lambda part_key=None: _phase6_final_scene_operator_dimensions(
-                    self, part_key
-                ),
-                cabinet_family=lambda: _phase6_current_cabinet_family(self),
-                assembly_blank_text=lambda render_data: _phase6_assembly_unfolded_blank_text(
-                    render_data,
-                    snapshot=getattr(self, "_phase6_input_snapshot", {}),
-                ),
-                active_mesh_profiles=lambda material: _phase6_active_mesh_profiles(
-                    self, material
-                ),
-                assembly_render_data_cls=AssemblySceneRenderData,
-                assembly_part_cls=AssemblyScenePart,
-                final_render_provider=lambda: _phase6_query_final_render_data(
-                    self
-                ),
-                assembly_render_provider=lambda: _phase6_query_assembly_render_data(
-                    self
-                ),
-                request_provider=lambda: _phase6_final_scene_view_request(self),
-                after_render=lambda: (
-                    _phase6_update_unfolded_size_label(self),
-                    _phase6_update_assembly_diagnostic_status(self),
-                ),
-                active_part=lambda: str(
-                    getattr(
-                        getattr(self, "designer_workspace", None),
-                        "active_part",
-                        "",
-                    )
-                    or ""
-                ),
-                scene_query=lambda key, payload: _phase6_final_scene_scene_query(
-                    self, key, payload
-                ),
-                input_snapshot=lambda: dict(
-                    getattr(self, "_phase6_input_snapshot", {}) or {}
-                ),
-                settings_values=lambda: dict(
-                    getattr(self, "_settings_values", {}) or {}
-                ),
-                alpha_bend=lambda: float(
-                    getattr(getattr(self, "state", None), "alpha_bend", 0.85)
-                ),
-                display_mode=lambda: str(
-                    getattr(self, "_phase6_3d_display_mode", "single")
-                    or "single"
-                ),
-                assembly_corner_text_sink=lambda values: _phase6_final_scene_corner_text_sink(
-                    self, values
-                ),
-                assembly_part_text_sink=lambda kind, key, value: _phase6_final_scene_part_text_sink(
-                    self, kind, key, value
-                ),
-                assembly_visibility=lambda parts: _phase6_final_scene_visibility(
-                    self, parts
-                ),
-                interference_probe_parts=lambda: tuple(
-                    getattr(self, "_phase6_last_interference_probe_parts", ())
-                    or ()
-                ),
-                show_interference=lambda: bool(
-                    getattr(
-                        getattr(self, "assembly_show_interference_var", None),
-                        "get",
-                        lambda: True,
-                    )()
-                ),
-                render_committed=lambda: _phase6_final_scene_render_committed(
-                    self
-                ),
-                set_preview_enabled=lambda enabled: _phase6_final_scene_set_preview_enabled(
-                    self, enabled
-                ),
-                refresh_preview=lambda: _phase6_final_scene_refresh_preview(
-                    self
-                ),
-
-        )
+    composition = _phase6_composition(self)
+    return composition.final_scene_adapter(
+        composition.final_scene_ports(globals())
     )
 
 def _phase6_sync_authoritative_derived_parts(self):

@@ -34,12 +34,16 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_feature_map_to_part_features,
 )
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
+from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
 from phase6_settings_center import load_factory_defaults_from_ae
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
-from phase6_final_scene_contracts import FinalSceneDependencies
+from phase6_final_scene_contracts import (
+    AssemblyScenePart,
+    AssemblySceneRenderData,
+    FinalSceneDependencies,
+)
 from phase6_final_scene_renderer import Phase6FinalSceneRenderer
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
@@ -781,6 +785,55 @@ def install_fold_designer_bridge_facade(app_cls, bindings):
 
 
 @dataclass(frozen=True)
+class FinalScenePortInventoryEntry:
+    port_name: str
+    source_owner: str
+    access: str
+    callback_direction: str
+    bootstrap_need: bool
+    mutation_capability: str
+
+
+FINAL_SCENE_PORT_INVENTORY = (
+    FinalScenePortInventoryEntry("number_text", "phase6_settings_panel", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("is_physical_piece_key", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("physical_piece_render_data", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("user_joint_parts", "ae_engine.assembly_joint", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("resolve_geometry", "phase6_manufacturing_adapter", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("scene_payload_for_part", "phase6_manufacturing_adapter", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("publish_live_state", "canonical live-sync application seam", "READ_WRITE", "FINAL_SCENE_TO_APP", True, "CANONICAL_APPLICATION_STATE"),
+    FinalScenePortInventoryEntry("corner_dimension_text", "phase6_corner_dimension_display", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("formed_size_text", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("blank_text", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("refresh_box_body_piece_info", "phase6_assembly_panel", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("operator_dimensions", "phase6_manufacturing_adapter", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("cabinet_family", "phase6_manufacturing_geometry", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("assembly_blank_text", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("active_mesh_profiles", "fold_designer_bridge.compat", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("assembly_render_data_cls", "phase6_final_scene_contracts", "TYPE", "BOOTSTRAP", True, "NONE"),
+    FinalScenePortInventoryEntry("assembly_part_cls", "phase6_final_scene_contracts", "TYPE", "BOOTSTRAP", True, "NONE"),
+    FinalScenePortInventoryEntry("final_render_provider", "Phase6FinalSceneViewAdapter compatibility seam", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("assembly_render_provider", "Phase6FinalSceneViewAdapter compatibility seam", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("request_provider", "Phase6FinalSceneViewAdapter compatibility seam", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("after_render", "Fold Designer presentation effects", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("active_part", "Phase6DesignerWorkspace", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("scene_query", "Fold Designer scene query callback", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("input_snapshot", "Fold Designer canonical input snapshot", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("settings_values", "Phase6 settings application state", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("alpha_bend", "Fold Designer state", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("display_mode", "Fold Designer presentation state", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("assembly_corner_text_sink", "phase6_assembly_panel", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("assembly_part_text_sink", "phase6_assembly_panel", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("assembly_visibility", "phase6_assembly_panel", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("interference_probe_parts", "Fold Designer presentation state", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("show_interference", "Fold Designer presentation variable", "READ", "APP_TO_FINAL_SCENE", True, "NONE"),
+    FinalScenePortInventoryEntry("render_committed", "Phase6FinalSceneRenderer display effect", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("set_preview_enabled", "Phase6FinalSceneRenderer display effect", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+    FinalScenePortInventoryEntry("refresh_preview", "Phase6FinalSceneRenderer display effect", "WRITE", "FINAL_SCENE_TO_APP", True, "DISPLAY_EFFECT"),
+)
+
+
+@dataclass(frozen=True)
 class FinalSceneCompositionPorts:
     number_text: object
     is_physical_piece_key: object
@@ -917,6 +970,140 @@ class Phase6FoldDesignerComposition:
                 )
                 app.final_scene_view = self._final_scene_renderer
         return self._final_scene_renderer
+
+    def final_scene_ports(self, namespace):
+        """Compose the fixed 35-port FinalScene application boundary.
+
+        The bridge passes its compatibility namespace as a narrow bootstrap
+        input; this application composition owner owns the actual wiring.
+        No manufacturing or renderer ownership moves here.
+        """
+        app = self.app
+
+        def required(name):
+            try:
+                return namespace[name]
+            except KeyError as exc:
+                raise RuntimeError(
+                    f"Fold Designer FinalScene composition port is unavailable: {name}"
+                ) from exc
+
+        return FinalSceneCompositionPorts(
+            number_text=required("_setting_number_text"),
+            is_physical_piece_key=required("_phase6_is_box_body_physical_piece_key"),
+            physical_piece_render_data=lambda key: required(
+                "_phase6_box_body_piece_render_data"
+            )(app, key),
+            user_joint_parts=lambda: {
+                str(raw.get(field) or "")
+                for raw in tuple(
+                    migrate_legacy_snapshot_joints(
+                        dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+                    ).get("assembly_joints", ()) or ()
+                )
+                if str(raw.get("source") or "")
+                == AssemblyJointSource.USER_ADDED.value
+                for field in ("subject_part", "target_part")
+            },
+            resolve_geometry=lambda: required(
+                "_phase6_resolve_manufacturing_geometry"
+            )(app),
+            scene_payload_for_part=lambda key: required(
+                "_phase6_scene_query_payload_for_part"
+            )(app, key),
+            publish_live_state=lambda **kwargs: required(
+                "_phase6_publish_live_state"
+            )(app, **kwargs),
+            corner_dimension_text=required(
+                "_phase6_render_data_corner_dimension_text"
+            ),
+            formed_size_text=lambda render_data, **kwargs: required(
+                "_phase6_format_formed_size_text"
+            )(render_data, **kwargs),
+            blank_text=lambda render_data, *, part_key="": required(
+                "_phase6_format_unfolded_blank_text"
+            )(render_data, part_key=part_key),
+            refresh_box_body_piece_info=lambda render_data: required(
+                "_phase6_refresh_box_body_piece_info_rows"
+            )(app, render_data),
+            operator_dimensions=lambda part_key=None: required(
+                "_phase6_final_scene_operator_dimensions"
+            )(app, part_key),
+            cabinet_family=lambda: required("_phase6_current_cabinet_family")(app),
+            assembly_blank_text=lambda render_data: required(
+                "_phase6_assembly_unfolded_blank_text"
+            )(
+                render_data,
+                snapshot=getattr(app, "_phase6_input_snapshot", {}),
+            ),
+            active_mesh_profiles=lambda material: required(
+                "_phase6_active_mesh_profiles"
+            )(app, material),
+            assembly_render_data_cls=AssemblySceneRenderData,
+            assembly_part_cls=AssemblyScenePart,
+            final_render_provider=lambda: required(
+                "_phase6_query_final_render_data"
+            )(app),
+            assembly_render_provider=lambda: required(
+                "_phase6_query_assembly_render_data"
+            )(app),
+            request_provider=lambda: required("_phase6_final_scene_view_request")(app),
+            after_render=lambda: (
+                required("_phase6_update_unfolded_size_label")(app),
+                required("_phase6_update_assembly_diagnostic_status")(app),
+            ),
+            active_part=lambda: str(
+                getattr(
+                    getattr(app, "designer_workspace", None),
+                    "active_part",
+                    "",
+                )
+                or ""
+            ),
+            scene_query=lambda key, payload: required(
+                "_phase6_final_scene_scene_query"
+            )(app, key, payload),
+            input_snapshot=lambda: dict(
+                getattr(app, "_phase6_input_snapshot", {}) or {}
+            ),
+            settings_values=lambda: dict(
+                getattr(app, "_settings_values", {}) or {}
+            ),
+            alpha_bend=lambda: float(
+                getattr(getattr(app, "state", None), "alpha_bend", 0.85)
+            ),
+            display_mode=lambda: str(
+                getattr(app, "_phase6_3d_display_mode", "single") or "single"
+            ),
+            assembly_corner_text_sink=lambda values: required(
+                "_phase6_final_scene_corner_text_sink"
+            )(app, values),
+            assembly_part_text_sink=lambda kind, key, value: required(
+                "_phase6_final_scene_part_text_sink"
+            )(app, kind, key, value),
+            assembly_visibility=lambda parts: required(
+                "_phase6_final_scene_visibility"
+            )(app, parts),
+            interference_probe_parts=lambda: tuple(
+                getattr(app, "_phase6_last_interference_probe_parts", ()) or ()
+            ),
+            show_interference=lambda: bool(
+                getattr(
+                    getattr(app, "assembly_show_interference_var", None),
+                    "get",
+                    lambda: True,
+                )()
+            ),
+            render_committed=lambda: required(
+                "_phase6_final_scene_render_committed"
+            )(app),
+            set_preview_enabled=lambda enabled: required(
+                "_phase6_final_scene_set_preview_enabled"
+            )(app, enabled),
+            refresh_preview=lambda: required(
+                "_phase6_final_scene_refresh_preview"
+            )(app),
+        )
 
     def final_scene_adapter(self, ports: FinalSceneCompositionPorts):
         if self._final_scene_adapter is None:

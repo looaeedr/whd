@@ -90,3 +90,47 @@ def test_t1_owner_modules_never_reverse_import_bridge():
 
 def test_t1_facade_ratchet_does_not_grow_past_t0_baseline():
     assert _facade_binding_count() <= 69
+
+
+def test_t1_final_scene_port_inventory_is_exact_and_bounded():
+    tree = _tree(ADAPTER)
+    assign = next(
+        (
+            node for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name)
+                and target.id == "FINAL_SCENE_PORT_INVENTORY"
+                for target in node.targets
+            )
+        ),
+        None,
+    )
+    assert assign is not None, "T1 RED: missing FinalScene port inventory"
+    assert isinstance(assign.value, (ast.Tuple, ast.List))
+    rows = []
+    for item in assign.value.elts:
+        assert isinstance(item, ast.Call)
+        values = [ast.literal_eval(arg) for arg in item.args]
+        assert len(values) == 6
+        rows.append(values)
+    port_cls = _class(ADAPTER, "FinalSceneCompositionPorts")
+    fields = [
+        node.target.id
+        for node in port_cls.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+    ]
+    assert len(rows) == 35
+    assert [row[0] for row in rows] == fields
+    assert all(row[1] for row in rows)
+    assert all(row[2] in {"READ", "WRITE", "READ_WRITE", "TYPE"} for row in rows)
+    assert all(
+        row[3] in {"APP_TO_FINAL_SCENE", "FINAL_SCENE_TO_APP", "BOOTSTRAP"}
+        for row in rows
+    )
+    assert all(isinstance(row[4], bool) for row in rows)
+    assert all(
+        row[5] in {"NONE", "DISPLAY_EFFECT", "CANONICAL_APPLICATION_STATE"}
+        for row in rows
+    )
