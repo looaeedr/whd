@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "head_sha": "6a87ce012ce829c77055c5546ad970e092d3a849",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -16,7 +16,7 @@
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "chain_head": "6a87ce012ce829c77055c5546ad970e092d3a849",
   "current_x_head_observation": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:00:00+08:00",
+  "last_update": "2026-09-21T20:02:00+08:00",
   "integration": {
     "pr": 463,
     "method": "merge",
@@ -28,10 +28,18 @@
     "run_id": 35595899075,
     "trigger_head_sha": "6a87ce012ce829c77055c5546ad970e092d3a849",
     "tested_production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-    "status": "queued_or_in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106320489369,
+    "counts": "42 passed, 1 skipped",
+    "invariants": {
+      "POST_INTEGRATION_AUTHORITY_CURRENT_COUNT": 1,
+      "POST_INTEGRATION_PROTECTED_DRIFT": 0,
+      "POST_INTEGRATION_FORCE_PUSH": 0,
+      "POST_INTEGRATION_VALIDATION_MUTATION_DRIFT": 0
+    }
   },
-  "next_action": "Poll locked post-integration RUN 35595899075 testing exact production SHA 05a455f602ba3477d9d05377055126fd5019451d to terminal; GREEN -> capture counts/invariants and remove one-shot smoke workflow; RED -> inspect only failed job/step bounded slice.",
+  "next_action": "Remove one-shot qa-issue451-post-integration-smoke.yml from the claimed branch, then prove trigger-head to cleaned-head drift is workflow-delete-only and enter closing.",
   "blocker": null,
   "handoff_ready": false
 }
