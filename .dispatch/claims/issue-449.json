@@ -8,10 +8,10 @@
   "head_sha": "22c699e4b324785374737f4ad377d93de3412928",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T14:30:00+08:00",
+  "last_update": "2026-09-21T14:34:00+08:00",
   "remote_qa": null,
-  "next_action": "Evaluate exact T7 RED at head 22c699e4; expected failures are direct deep/bootstrap implementation remaining inside _fix11_init and missing target helper seams. If matched, refactor vertical slices without moving semantic owners.",
-  "blocker": null,
+  "next_action": "Execute tests/test_issue449_fix11_init_bootstrap_owner.py at exact head 22c699e4 in a shell-capable executor; confirm expected RED, then refactor vertical slices without moving semantic owners.",
+  "blocker": "Scheduled connector runtime has no shell/pytest execution primitive and no workflow-dispatch primitive; exact RED cannot be executed here. Branch/claim HEAD identity was fresh-verified before this CAS.",
   "checkpoint": "docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md",
   "current_x_head_observation": "acdfcfc66a46940798bff77df4b8e32bfc10b7ca",
   "red_contract_commit": "22c699e4b324785374737f4ad377d93de3412928"
