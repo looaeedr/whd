@@ -5,12 +5,12 @@
   "work_branch": "refactor/issue447-t5-workspace-shell-20260921",
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
-  "head_sha": "15119dc564fa881915bd7d9e05f1c007ec8cdf7b",
+  "head_sha": "289ab27c894873491a6d1c1473ffa08221e85e4c",
   "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T12:52:00+08:00",
+  "last_update": "2026-09-21T12:56:00+08:00",
   "remote_qa": null,
-  "next_action": "Complete remote-QA Preflight (monitoring/long-log/continuity), create one-shot qa-issue447-t5-workspace-shell.yml, and validate NO_EXTRACTION with headless + Xvfb + protected persistence/source invariants.",
+  "next_action": "Create guarded one-shot qa-issue447-t5-workspace-shell.yml and lock exact RUN+HEAD; acceptance must prove NO_EXTRACTION, active surface count 1, shared-slot/no-wrapper, toolbar/F11 callback parity, and zero production/persistence drift.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md"
 }
