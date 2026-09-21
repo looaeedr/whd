@@ -5,13 +5,29 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "384a2e3be47ec02cc14830e8e97fd9f99c68ee15",
+  "head_sha": "6e1d9dc2318ceadcfb2d47c8e02718024f8afa31",
   "phase": "RED",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Run RED contract tests at head 384a2e3be47ec02cc14830e8e97fd9f99c68ee15; expected failures must demonstrate current execution_claim_guard accepts write without changed-file and lacks Skill preflight evidence enforcement.",
+  "next_action": "Rerun canonical Preflight with execution_claim_hard_gate_pitfall.md added, then implement executable guard + docs/Skills/pitfall and rerun RED contracts to GREEN.",
   "blocker": null,
-  "last_update": "2026-09-22T00:58:00+08:00",
+  "last_update": "2026-09-22T00:59:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
-  "remote_qa": null
+  "remote_qa": {
+    "run_id": 35628875957,
+    "head_sha": "6e1d9dc2318ceadcfb2d47c8e02718024f8afa31",
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106429904425
+  },
+  "red_evidence": {
+    "summary": "2 failed, 13 passed in 0.27s",
+    "failures": [
+      "write without changed-file currently returns EXECUTION_CLAIM_GUARD_GREEN",
+      "execution_claim_guard CLI does not recognize --changed-file, so Skill preflight evidence cannot be enforced"
+    ]
+  },
+  "scope_expansion": [
+    "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md"
+  ]
 }
