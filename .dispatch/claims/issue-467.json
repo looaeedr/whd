@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
-  "phase": "REMEDIATION",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -19,19 +19,25 @@
   "remote_qa": {
     "run_id": 35602759252,
     "head_sha": "2fa753dd3ffdf524ad081d888f9c7425e9f07f0a",
-    "status": "completed/failure",
-    "workflow": "Issue 467 T1 Review GREEN",
-    "diagnostic_revision": 2,
-    "failed_job_id": 106342542080,
-    "failed_test": "tests/test_issue467_t1_legal_contact.py::test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face",
-    "diagnostic_code": "CONTACT_NOT_COPLANAR",
-    "plane_separation": 4.5,
-    "coplanar_distance_limit": 1e-06,
-    "tolerance_provenance": "ASSEMBLY_GEOMETRY_ENGINEERING_V1",
-    "tolerance_revision": 1
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106342542080,
+    "counts": {
+      "passed": 32,
+      "skipped": 1,
+      "failed": 1
+    },
+    "evidence": {
+      "failing_node": "test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face",
+      "diagnostic_code": "CONTACT_NOT_COPLANAR",
+      "plane_separation": 4.5,
+      "coplanar_distance_limit": 0.000001,
+      "tolerance_provenance": "ASSEMBLY_GEOMETRY_ENGINEERING_V1",
+      "classification": "Receiving authoritative frame/divider placement closure mismatch; classifier is behaving correctly"
+    }
   },
-  "last_update": "2026-09-21T21:05:30+08:00",
-  "next_action": "Guard exact head 2fa753dd3ffdf524ad081d888f9c7425e9f07f0a and repair the real Receiving frame LOWER_TERMINAL_FACE to shared horizontal Divider CORE_PHYSICAL_SEGMENT seam geometry: diagnostic proves plane separation 4.5 mm, so do not widen the 1e-6 engineering coplanar tolerance. Re-run focused T1 review GREEN after minimal geometry/test-fixture correction.",
+  "last_update": "2026-09-21T22:14:00+08:00",
+  "next_action": "Fix Receiving left/right frame span and center from the authoritative shared horizontal Divider CORE_PHYSICAL_SEGMENT support skin; do not widen tolerance or encode the observed 4.5 mm delta.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
