@@ -11,16 +11,18 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "5442179c29f0bc05d2008409c12192fa6190566e",
+  "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
+    "run_id": null
   },
-  "next_action": "Create one-shot T1 RED workflow at head 5442179c29f0bc05d2008409c12192fa6190566e and lock exact run_id+head_sha; require RED due bridge-owned FinalSceneCompositionPorts wiring, then implement ownership move.",
+  "next_action": "Resolve push-triggered Issue479 T1 RED run for head 24cf451aa265230d7b2af2178be9f0ff6421a046, lock exact run_id+head_sha, read terminal RED, then implement ownership move.",
   "blocker": null,
-  "last_update": "2026-09-22T07:20:00+08:00",
+  "last_update": "2026-09-22T07:22:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
