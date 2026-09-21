@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "9f657ca5f179d8de2a37bcc6ce97b391112c2a04",
+  "head_sha": "f823d9c1a23dcc2f9d1ff9cc8deca2cc0993ad65",
   "phase": "CLEANUP",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "9f657ca5f179d8de2a37bcc6ce97b391112c2a04",
+  "chain_head": "f823d9c1a23dcc2f9d1ff9cc8deca2cc0993ad65",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35601250370,
@@ -34,8 +34,8 @@
       "joint collision classifier GREEN"
     ]
   },
-  "last_update": "2026-09-21T21:42:00+08:00",
-  "next_action": "Delete temporary Issue467 preflight/RED/GREEN workflows with guarded writes, remote-read absence, then tested-head→closing-head cleanup-only drift audit.",
+  "last_update": "2026-09-21T21:43:00+08:00",
+  "next_action": "Continue guarded cleanup: delete qa-issue467-t1-red.yml, then qa-issue467-t1-green.yml.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
