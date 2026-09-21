@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-21T14:15:00+08:00",
   "base_sha": "41bf313b9389a7e98f9978c36b96380c237e57ec",
   "head_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T15:22:00+08:00",
+  "last_update": "2026-09-21T15:24:00+08:00",
   "remote_qa": {
     "run_id": 35572271880,
     "head_sha": "22218d6efdd16ae9ef7fe86bed36f8acb17bf9e8",
@@ -35,9 +35,9 @@
       "part_editor_decision": "C_KEEP_BRIDGE_COMPATIBILITY"
     }
   },
-  "next_action": "Persist TERMINAL_SUCCESS checkpoint for #449 at cleaned head 1faebaa9, authorize/verify finalization proof, write terminal evidence, close/readback Issue #449, release claim, then dispatch #450 from accepted cleaned head.",
+  "next_action": "Write terminal acceptance evidence to Issue #449, close/readback completed, release claim, then dispatch #450 from accepted cleaned head 1faebaa991aaaed7b968c5432bfc7e04ab32b432.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md",
+  "checkpoint": ".dispatch/checkpoints/issue-449.json",
   "current_x_head_observation": "acdfcfc66a46940798bff77df4b8e32bfc10b7ca",
   "red_contract_commit": "22c699e4b324785374737f4ad377d93de3412928",
   "cleanup": {
@@ -49,5 +49,6 @@
     "changed_files": [
       ".github/workflows/qa-issue449-t7-green.yml"
     ]
-  }
+  },
+  "finalization_proof": ".dispatch/checkpoints/issue-449.finalization-proof.json"
 }
