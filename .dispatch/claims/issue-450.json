@@ -5,10 +5,10 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
-  "phase": "CLEANUP",
+  "head_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T19:09:00+08:00",
+  "last_update": "2026-09-21T19:10:00+08:00",
   "remote_qa": {
     "run_id": 35590479636,
     "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
@@ -31,10 +31,16 @@
     "config_git_object_delta": 0,
     "validation_mutation_drift": 0
   },
-  "next_action": "Delete one-shot .github/workflows/qa-issue450-t8-combined-acceptance.yml on the same work branch; then audit tested HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to cleaned HEAD and close #450 if cleanup-only drift is proven.",
+  "cleanup": {
+    "tested_head": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
+    "cleaned_head": "4b401077d457acd1e754366637c595b3d82f38d4",
+    "deleted_path": ".github/workflows/qa-issue450-t8-combined-acceptance.yml",
+    "commit": "4b401077d457acd1e754366637c595b3d82f38d4"
+  },
+  "next_action": "Audit 5a1dde94eadd30bdce637dee8ac3b149122ca2a8..4b401077d457acd1e754366637c595b3d82f38d4 and prove cleanup-only drift; then write terminal evidence and close #450.",
   "blocker": null,
-  "dispatcher_observed_at": "2026-09-21T19:09:00+08:00",
-  "dispatcher_latest_evidence": "RUN 35590479636 terminal success on exact HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8. focused-invariants/headless-ab/xvfb-ab/final-classifier all success; R1-R9 all true; candidate-only Headless/Xvfb failures and errors are empty.",
-  "dispatcher_exact_next_action": "Perform T8 one-shot workflow cleanup, tested-head to cleaned-head drift audit, terminal Issue evidence and closure. Do not trigger another QA run.",
+  "dispatcher_observed_at": "2026-09-21T19:10:00+08:00",
+  "dispatcher_latest_evidence": "One-shot T8 workflow deleted on the claimed work branch at cleanup commit 4b401077d457acd1e754366637c595b3d82f38d4.",
+  "dispatcher_exact_next_action": "Perform tested-head to cleaned-head drift audit, then #450 terminal evidence/closure; do not trigger another QA run.",
   "handoff_ready": false
 }
