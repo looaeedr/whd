@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T20:00:26+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "84f44b051ab4c1613414a2c22dea8e206056c852",
-  "phase": "IMPLEMENTING",
+  "head_sha": "2b5e3e546b407a4eda92a8ea909d58ce73ace2ef",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T0",
@@ -14,9 +14,9 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "84f44b051ab4c1613414a2c22dea8e206056c852",
+  "chain_head": "2b5e3e546b407a4eda92a8ea909d58ce73ace2ef",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:27:00+08:00",
+  "last_update": "2026-09-21T20:30:00+08:00",
   "remote_qa": {
     "run_id": 35598082041,
     "head_sha": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
@@ -37,7 +37,7 @@
       "reason": "runner missing ezdxf"
     }
   },
-  "next_action": "Implement resolve_physical_mating_region on exact work-order head 84f44b051ab4c1613414a2c22dea8e206056c852, using owner semantic + canonical Final Material/Fold topology + true thickness + authoritative placement; then focused GREEN.",
+  "next_action": "Create/trigger focused T0 GREEN workflow for exact implementation head 2b5e3e546b407a4eda92a8ea909d58ce73ace2ef and monitor to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-465.json",
   "recovery_evidence": {
