@@ -1,0 +1,38 @@
+name: Issue 468 T2 GREEN
+
+on:
+  push:
+    branches:
+      - workorder/issue464-joint-placement-marking-v1.3-20260921
+    paths:
+      - '.github/workflows/qa-issue468-t2-green.yml'
+      - 'ae_engine/contracts.py'
+      - 'ae_engine/assembly_marking_geometry.py'
+      - 'tests/test_issue468_t2_contact_local_frame.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest -r requirements.txt
+      - name: Run T2 GREEN and T1 regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q \
+            tests/test_issue468_t2_contact_local_frame.py \
+            tests/test_issue467_t1_legal_contact.py \
+            tests/test_issue465_t0_physical_mating_region.py
