@@ -393,7 +393,16 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
             side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
             if side != "bottom"
         )
-        vertical = inner_door_vertical_frame_contract(data, stable_id)
+        try:
+            vertical = inner_door_vertical_frame_contract(data, stable_id)
+        except ValueError:
+            # A vertical frame exists only when its two physical terminal
+            # datums resolve uniquely.  Single-door/transient topologies can
+            # legitimately remove the shared Divider; fail closed for this
+            # derived frame item without aborting unrelated Door/Base Plate/
+            # panel synchronization.  The strict terminal resolver remains
+            # authoritative and marking diagnostics surface missing frames.
+            continue
         spans = {
             "top": inner_w,
             "left": float(vertical["span"]),
