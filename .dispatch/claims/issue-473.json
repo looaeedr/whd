@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -17,13 +17,18 @@
   "chain_head": "4be714d13c6120a28d8c290616fae5e9c8105b36",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35606675082,
     "head_sha": "4be714d13c6120a28d8c290616fae5e9c8105b36",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 473 Master Chain Turn Exit GREEN"
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106355331027,
+    "counts": {
+      "passed": 34,
+      "failed": 0
+    }
   },
-  "last_update": "2026-09-21T21:54:00+08:00",
-  "next_action": "Locate and monitor Issue 473 Master Chain Turn Exit GREEN for exact head 4be714d13c6120a28d8c290616fae5e9c8105b36; on GREEN, update Skills/AI pitfall docs and rerun final process GREEN.",
+  "last_update": "2026-09-21T21:58:00+08:00",
+  "next_action": "Harden turn-exit ownership: caller-supplied expected_master_issue must match structured checkpoint handoff; missing/mismatched Master evidence must fail closed. Add regression, then update Skills/AI knowledge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
