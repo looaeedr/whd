@@ -413,6 +413,44 @@ def backproject_locator_world_points(
             if mapped is not None:
                 candidates.append(mapped)
         if not candidates:
+            best = None
+            for index, record in enumerate(mapping):
+                world = tuple(getattr(record, "world", ()) or ())
+                if len(world) != 3:
+                    continue
+                a, b, c_world = world
+                v0 = _sub(b, a)
+                v1 = _sub(c_world, a)
+                v2 = _sub(point, a)
+                d00 = _dot(v0, v0)
+                d01 = _dot(v0, v1)
+                d11 = _dot(v1, v1)
+                d20 = _dot(v2, v0)
+                d21 = _dot(v2, v1)
+                denom = d00 * d11 - d01 * d01
+                if abs(denom) <= float(
+                    PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon
+                ):
+                    continue
+                beta = (d11 * d20 - d01 * d21) / denom
+                gamma = (d00 * d21 - d01 * d20) / denom
+                alpha = 1.0 - beta - gamma
+                weights = (alpha, beta, gamma)
+                reconstructed = tuple(
+                    alpha * float(a[i])
+                    + beta * float(b[i])
+                    + gamma * float(c_world[i])
+                    for i in range(3)
+                )
+                plane_residual = _norm(_sub(point, reconstructed))
+                barycentric_violation = max(
+                    0.0,
+                    -min(weights),
+                    max(weights) - 1.0,
+                )
+                score = (plane_residual, barycentric_violation, index)
+                if best is None or score < best[0]:
+                    best = (score, weights)
             return LocatorBackprojectionResult(
                 status="SKIPPED_FAIL_CLOSED",
                 diagnostic_code="BACKPROJECTION_FAILED",
@@ -421,6 +459,10 @@ def backproject_locator_world_points(
                     "reason": "point is outside locator authoritative mapping",
                     "world_point": point,
                     "mapping_record_count": len(mapping),
+                    "best_plane_residual": None if best is None else best[0][0],
+                    "best_barycentric_violation": None if best is None else best[0][1],
+                    "best_mapping_record_index": None if best is None else best[0][2],
+                    "best_barycentric_weights": None if best is None else best[1],
                 },
             )
 
