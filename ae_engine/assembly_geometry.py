@@ -36,6 +36,11 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     import math
     from collections import defaultdict
 
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = (
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+        )
     source = [tuple(tuple(float(v) for v in point) for point in tri[:3])
               for tri in (triangles or ()) if len(tuple(tri)) >= 3]
     t = max(0.0, float(thickness or 0.0))
@@ -980,7 +985,7 @@ def _physical_face_plane_section_polygon(
     *,
     plane_point,
     plane_normal,
-    numerical_tolerance=1e-7,
+    numerical_tolerance=None,
 ):
     """Section a true-solid surface on one semantic plane into one bounded face.
 
@@ -991,6 +996,11 @@ def _physical_face_plane_section_polygon(
     from shapely.geometry import LineString
     from shapely.ops import polygonize, unary_union
 
+    if numerical_tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        numerical_tolerance = (
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+        )
     tol = max(float(numerical_tolerance), 1e-12)
     origin = tuple(float(v) for v in plane_point)
     normal = _mating_normalize(plane_normal)
@@ -1133,7 +1143,10 @@ def resolve_physical_mating_region(
 
     total_y = sum(float(_segment_value(row, "len", 0.0) or 0.0) for row in tuple(y_profile or ()))
     boundary_value = 0.0 if side == "MIN" else float(total_y)
-    numerical_tolerance = 1e-7
+    from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    numerical_tolerance = (
+        PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    )
 
     witnesses = []
     for row in mapped:
