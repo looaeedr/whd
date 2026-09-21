@@ -5,10 +5,10 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "b725d8ccffe1902daf9c6917599cf7cc9864b621",
+  "head_sha": "4d3e50146c75a7b7b0f13b437ef886d066726f4b",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T18:38:00+08:00",
+  "last_update": "2026-09-21T18:41:00+08:00",
   "remote_qa": {
     "run_id": 35582342898,
     "head_sha": "b725d8ccffe1902daf9c6917599cf7cc9864b621",
@@ -31,6 +31,6 @@
     "classifier": "RED",
     "classification": "three remaining candidate-only failures are stale structural contracts in both headless and Xvfb; focused accepted R1-R8 owner contracts remain GREEN"
   },
-  "next_action": "Guard exact b725d8cc head, update the three stale structural tests to accepted owner seams, then lock the fresh Combined Acceptance run to terminal.",
+  "next_action": "First stale test updated; guard exact 4d3e5014 head and update the remaining two structural ownership tests, then run fresh Combined Acceptance.",
   "blocker": null
 }
