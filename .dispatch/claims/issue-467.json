@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "45ab8908fe945e9affb57399fa848c3bef2da23c",
+  "head_sha": "0a820cc32a880d2f4e0487d132d106bfecdf74e3",
   "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "45ab8908fe945e9affb57399fa848c3bef2da23c",
+  "chain_head": "0a820cc32a880d2f4e0487d132d106bfecdf74e3",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35602759252,
@@ -36,8 +36,8 @@
       "classification": "Receiving authoritative frame/divider placement closure mismatch; classifier is behaving correctly"
     }
   },
-  "last_update": "2026-09-21T22:37:00+08:00",
-  "next_action": "Update stale T1 consolidation docstring in assembly_geometry, then retrigger exact-head review GREEN with all T1/Receiving changed paths.",
+  "last_update": "2026-09-21T22:39:00+08:00",
+  "next_action": "Retrigger Issue 467 T1 Review GREEN from exact head after adding all production/placement/Receiving regression paths to the temporary workflow; monitor to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
