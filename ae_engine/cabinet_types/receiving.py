@@ -212,6 +212,97 @@ def default_inner_doors(
     }]
 
 
+def inner_door_vertical_frame_contract(snapshot, inner_door_id: object) -> dict[str, object]:
+    """Resolve Receiving vertical-frame span/center from its two physical terminal datums.
+
+    The upper datum comes from the canonical outer Door finished face after the
+    confirmed top inset. The lower datum is the upper-facing physical skin of
+    the exact shared horizontal Divider CORE_PHYSICAL_SEGMENT. No observed gap,
+    renderer bbox, or test fixture delta participates in this contract.
+    """
+    from ae_engine.assembly_geometry import folded_profile_segment_center_from_full_envelope
+    from ae_engine.assembly_placement import resolve_divider_placement, resolve_outer_door_placement
+    from ae_engine.door_dividers import derive_box_body_dividers, resolve_inner_door_lower_frame_role
+    from ae_engine.sheetmetal_part_adapters import calculate_door_finished_size, derive_door_layout_cells, door_layout_part_key
+
+    data = dict(snapshot or {})
+    wanted = str(inner_door_id or '').strip()
+    if not wanted:
+        raise ValueError("inner_door_id must be non-empty")
+    item = next(
+        (row for row in list(data.get('inner_doors') or ())
+         if isinstance(row, dict) and str(row.get('stable_id') or '').strip() == wanted),
+        None,
+    )
+    if item is None:
+        raise ValueError(f"inner door stable id is missing from authoritative state: {wanted!r}")
+
+    columns = list(data.get('door_layout_columns') or ())
+    if not columns or not bool(data.get('multi_door_enabled', False)):
+        raise ValueError("Receiving vertical frame contract requires enabled Door topology")
+    normalized = tuple((float(row[0]), tuple(float(v) for v in row[1])) for row in columns)
+    cells = {f'{cell.column_index}:{cell.row_index}': cell for cell in derive_door_layout_cells(normalized)}
+    cell_key = str(item.get('cell_key') or '').strip()
+    if cell_key not in cells:
+        raise ValueError(f"inner-door cell outside authoritative Door topology: {cell_key!r}")
+    cell = cells[cell_key]
+
+    t = float(data.get('t', 2.0))
+    fw = door_material_frame_width(
+        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])), thickness=t
+    )
+    outer_w, outer_h = calculate_door_finished_size(
+        w=cell.start_width, h=cell.start_height, t=t, fw=fw,
+        gap_w=float(data.get('door_gap_w', DOOR_DEFAULTS['door_gap_w'])),
+        gap_h=float(data.get('door_gap_h', DOOR_DEFAULTS['door_gap_h'])),
+        frame_edges=cell.edges,
+    )
+    outer = resolve_outer_door_placement(data, door_layout_part_key(cell))
+    top_y = float(outer.world_offset[1]) + float(outer_h) / 2.0 - float(INNER_DOOR_INSET_TOP)
+
+    dividers = derive_box_body_dividers(
+        normalized,
+        depth=float(data.get('d', BOX_BODY_DEFAULTS['d'])),
+        thickness=t,
+        frame_width=float(data.get('fw', BOX_BODY_DEFAULTS['fw'])),
+        layout_scope=str(data.get('door_layout_scope') or DEFAULT_DOOR_LAYOUT_SCOPE).strip() or DEFAULT_DOOR_LAYOUT_SCOPE,
+        handle_edges=dict(data.get('door_handle_edges') or {}),
+        model_name='受電箱',
+    )
+    lower_role = dict(item.get('lower_frame_role') or {})
+    role = resolve_inner_door_lower_frame_role(
+        wanted,
+        dividers,
+        previous_divider_stable_id=(str(lower_role.get('divider_stable_id') or '').strip() or None),
+    )
+    if role is None:
+        raise ValueError("Receiving vertical frame has no unambiguous shared horizontal Divider")
+    divider = next((row for row in dividers if row.stable_id == role.divider_stable_id), None)
+    if divider is None or str(divider.axis) != 'HORIZONTAL':
+        raise ValueError("Receiving lower-frame role does not resolve a horizontal Divider")
+    placement = resolve_divider_placement(data, divider.stable_id)
+    if placement.placement_kind not in {'divider_horizontal', 'divider_horizontal_inward'}:
+        raise ValueError("Receiving lower-frame Divider has unsupported assembly orientation")
+
+    _core_u, core_z = folded_profile_segment_center_from_full_envelope(
+        divider.fold_profile, divider.core_segment_index
+    )
+    lower_support_y = (
+        float(placement.world_offset[1]) + float(core_z) + float(t) / 2.0
+    )
+    span = float(top_y) - float(lower_support_y)
+    if span <= 0.0:
+        raise ValueError("Receiving vertical frame physical terminal datums do not define a positive span")
+    return {
+        'inner_door_id': wanted,
+        'divider_stable_id': str(divider.stable_id),
+        'top_terminal_y': float(top_y),
+        'lower_terminal_y': float(lower_support_y),
+        'center_y': (float(top_y) + float(lower_support_y)) / 2.0,
+        'span': float(span),
+        'authority': 'OUTER_DOOR_TOP_INSET__TO__SHARED_DIVIDER_CORE_SUPPORT_SKIN',
+    }
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     """Derive one real flat panel for every enabled outer-door inner-door item."""
     from ae_engine.inner_door_panels import derive_inner_door_panel
@@ -303,10 +394,11 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
             side for side in (str(v).strip().lower() for v in item.get("included_frame_sides", ("top", "left", "right")))
             if side != "bottom"
         )
+        vertical = inner_door_vertical_frame_contract(data, stable_id)
         spans = {
             "top": inner_w,
-            "left": inner_h,
-            "right": inner_h,
+            "left": float(vertical["span"]),
+            "right": float(vertical["span"]),
         }
         result.append(InnerDoorFrameSet(
             inner_door_id=stable_id,
