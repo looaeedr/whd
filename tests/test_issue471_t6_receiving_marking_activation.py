@@ -12,6 +12,7 @@ from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufactu
 from ae_engine.door_dividers import derive_box_body_dividers
 from ae_engine.inner_door_frames import derive_all_inner_door_frames
 from ae_engine.manufacturing_api import (
+    BoxBodyStructureRenderData,
     build_box_body_divider_render_data,
     build_inner_door_frame_render_data,
     save_resolved_manufacturing_geometry_dxf,
@@ -274,3 +275,40 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
     assert all(not r.mark_ids for r in failed.results)
     _stale_divider, stale_lines = _mark_rows(failed.geometry)
     assert stale_lines == []
+
+
+def test_marking_cleanup_leaves_composite_box_body_render_owner_untouched():
+    marking = _api()
+    snapshot = _snapshot()
+    geometry = _build_geometry(snapshot)
+    preview = geometry.parts[0].render_data
+    composite = BoxBodyStructureRenderData(
+        structure_type="TEST_COMPOSITE",
+        pieces=(),
+        preview_render_data=preview,
+        canonical_strip_render_data=preview,
+    )
+    box_body = ResolvedManufacturingPart(
+        part_key="box_body",
+        render_data=composite,
+        placement="box_body",
+        offset=(0.0, 0.0, 0.0),
+    )
+    with_box_body = ResolvedManufacturingGeometry(
+        parts=(box_body,) + tuple(geometry.parts),
+    )
+
+    resolution = marking.resolve_receiving_joint_markings(
+        snapshot,
+        with_box_body,
+        dimensions=(800.0, 1600.0, 350.0),
+        sheet_thickness=2.0,
+        cabinet_family="受電箱",
+    )
+
+    resolved_box_body = resolution.geometry.part("box_body")
+    assert resolved_box_body is not None
+    assert resolved_box_body.render_data is composite
+    assert not hasattr(resolved_box_body.render_data, "metadata")
+    assert len(resolution.results) == 2
+    assert all(result.status == "EMITTED" for result in resolution.results)

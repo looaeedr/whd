@@ -439,6 +439,14 @@ def _clean_geometry_prior_joint_markings(
 ) -> ResolvedManufacturingGeometry:
     parts = []
     for part in tuple(geometry.parts or ()):
+        # Composite render owners (for example BoxBodyStructureRenderData)
+        # expose scene/material as read-only projections but do not own the
+        # PartRenderData metadata contract. Joint-placement MARKING is emitted
+        # only onto physical PartRenderData, so composite owners must remain
+        # untouched during stale-mark cleanup.
+        if not hasattr(part.render_data, "metadata"):
+            parts.append(part)
+            continue
         scene, metadata = _clean_prior_joint_markings(
             part.render_data
         )
