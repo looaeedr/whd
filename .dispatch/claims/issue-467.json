@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
+  "head_sha": "ac5dc2f1bbf27f0e5885c8ada9143ec7460a7c9e",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "1d2adfe77b20a5245abb8a08d2790b67fb131324",
+  "chain_head": "ac5dc2f1bbf27f0e5885c8ada9143ec7460a7c9e",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35602420438,
@@ -33,8 +33,8 @@
       "failure occurs at legal-contact status assertion; diagnostic_code was not printed"
     ]
   },
-  "last_update": "2026-09-21T22:05:00+08:00",
-  "next_action": "Expose LegalContactResult diagnostic/evidence in the failing actual Receiving seam assertion, rerun the same focused acceptance, then fix the authoritative geometry cause without loosening production tolerances.",
+  "last_update": "2026-09-21T22:07:00+08:00",
+  "next_action": "Retrigger the exact T1 review-GREEN suite with LegalContactResult repr enabled so the failed actual Receiving seam exposes diagnostic_code/evidence.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
