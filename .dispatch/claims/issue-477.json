@@ -5,10 +5,12 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
+  "head_sha": "e2f965ba89ccf027acf911a6e22ddfb354d22184",
   "phase": "CLAIMED",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Create independent branch; write canonical preflight evidence/workflow; run Phase6 Preflight to GREEN before touching any .agents/skills/**/SKILL.md file.",
-  "blocker": null
+  "next_action": "Create one-shot Phase6 Preflight workflow on issue477 branch; require exact planned changed files and evidence to pass before any Skill file mutation.",
+  "blocker": null,
+  "last_update": "2026-09-22T00:56:00+08:00",
+  "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md"
 }
