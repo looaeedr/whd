@@ -120,3 +120,30 @@ def test_user_explicit_stop_allows_turn_exit_without_claiming_next_child():
     )
 
     assert_turn_exitable(checkpoint)
+
+
+
+def test_caller_known_master_rejects_terminal_checkpoint_missing_handoff():
+    checkpoint = Checkpoint(
+        issue="#467",
+        branch="workorder/issue464-joint-placement-marking-v1.3-20260921",
+        head_sha="90a44fe459da2b78140987d89a995af6255a5934",
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+    )
+
+    with pytest.raises(TurnExitBlocked, match=r"missing or stale|Master-chain"):
+        assert_turn_exitable(checkpoint, expected_master_issue="#464")
+
+
+def test_caller_known_master_rejects_mismatched_handoff_owner():
+    ChainContinuationState = _chain_api()
+    checkpoint = _terminal_child(
+        master_issue="#999",
+        chain_state=ChainContinuationState.CHAIN_COMPLETE,
+        next_issue=None,
+        chain_next_action=None,
+    )
+
+    with pytest.raises(TurnExitBlocked, match=r"expected_master_issue.*#464"):
+        assert_turn_exitable(checkpoint, expected_master_issue="#464")
