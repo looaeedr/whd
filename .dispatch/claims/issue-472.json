@@ -21,12 +21,13 @@
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T00:21:18+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35625722427,
     "head_sha": "72ac5590b66d1abf8f745d33c349f71ef3dd7be7",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T01:08:00+08:00",
-  "next_action": "Resolve push-triggered Issue472 T7 Combined Acceptance run for head 72ac5590b66d1abf8f745d33c349f71ef3dd7be7, lock exact run_id + head_sha, and poll preflight/focused/headless/xvfb to terminal.",
+  "last_update": "2026-09-22T01:10:00+08:00",
+  "next_action": "Poll locked run 35625722427 at head 72ac5590b66d1abf8f745d33c349f71ef3dd7be7 until all preflight/focused/headless/xvfb jobs are terminal; read exact summaries and repair only demonstrated failures.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
