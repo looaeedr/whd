@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:48:00+08:00",
   "base_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
   "head_sha": "0df07e002f4432c0fef4daec64e8a7c582f0d9e9",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T4",
@@ -19,11 +19,13 @@
   "remote_qa": {
     "run_id": 35619184377,
     "head_sha": "0df07e002f4432c0fef4daec64e8a7c582f0d9e9",
-    "status": "queued",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106397627143,
+    "classification": "1_REQUIREMENT_RED_PLUS_3_HARNESS_DEPENDENCY_FAILURES"
   },
-  "last_update": "2026-09-22T00:01:00+08:00",
-  "next_action": "Poll locked Issue470 T4 RED run 35619184377 at head 0df07e002f4432c0fef4daec64e8a7c582f0d9e9 to terminal; on failure inspect focused pytest step and distinguish requirement assertion RED from harness/setup failure.",
+  "last_update": "2026-09-22T00:05:00+08:00",
+  "next_action": "Read T4 focused contract and manufacturing owner seam; add dormant Gate A status resolver without activating MARKING, fix one-shot workflow dependency gap (matplotlib), then run replacement focused QA.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue470-t4-authority-read.txt",
