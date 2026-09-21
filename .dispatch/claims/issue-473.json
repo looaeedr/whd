@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -17,13 +17,19 @@
   "chain_head": "bf394bca729c54e1fdafa163c91765800725c924",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35606351046,
     "head_sha": "bf394bca729c54e1fdafa163c91765800725c924",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 473 Master Chain Turn Exit RED"
+    "status": "completed",
+    "conclusion": "failure_expected_red",
+    "job_id": 106354277172,
+    "counts": {
+      "failed": 7,
+      "passed": 0
+    },
+    "evidence": "R-CHAIN-EXIT: continuity controller cannot represent Master-chain continuation"
   },
-  "last_update": "2026-09-21T21:42:00+08:00",
-  "next_action": "Locate and monitor Issue 473 RED run for exact head bf394bca729c54e1fdafa163c91765800725c924; accept RED only if failure is the missing Master-chain continuation machine contract.",
+  "last_update": "2026-09-21T21:45:00+08:00",
+  "next_action": "Implement structured Master-chain continuation metadata + turn-exit/scheduled-resume enforcement, then update dispatch/closure Skills and durable pitfall knowledge.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
