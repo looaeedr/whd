@@ -1,0 +1,14 @@
+{
+  "issue": 477,
+  "issue_url": "https://github.com/looaeedr/whd/issues/477",
+  "worker": "chatgpt",
+  "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
+  "claimed_at": "2026-09-22T00:54:55+08:00",
+  "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
+  "head_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
+  "phase": "CLAIMED",
+  "delegated_branches": [],
+  "target": "cleanup/2d-3d-sync",
+  "next_action": "Create independent branch; write canonical preflight evidence/workflow; run Phase6 Preflight to GREEN before touching any .agents/skills/**/SKILL.md file.",
+  "blocker": null
+}
