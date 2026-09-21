@@ -5,13 +5,13 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "1c3e11c872cff20971635282206333b91c91aa9c",
-  "phase": "IMPLEMENTING",
+  "head_sha": "3125c7a853bc857a8fb33d52c28872d3b85c4641",
+  "phase": "GREEN",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Implement execution_claim_guard changed-file + Skill Preflight evidence gate; update guard tests, AGENTS, 寫技能, 派工, and execution-claim pitfall in one branch commit; then rerun RED contracts to GREEN.",
+  "next_action": "Lock exact Issue 477 Preflight Gate and RED Contracts runs at head 3125c7a853bc857a8fb33d52c28872d3b85c4641; require both terminal success before cleanup.",
   "blocker": null,
-  "last_update": "2026-09-22T01:00:00+08:00",
+  "last_update": "2026-09-22T01:02:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
     "run_id": 35628875957,
@@ -35,5 +35,11 @@
     "head_sha": "1c3e11c872cff20971635282206333b91c91aa9c",
     "status": "completed",
     "conclusion": "success"
+  },
+  "implementation": {
+    "commit": "3125c7a853bc857a8fb33d52c28872d3b85c4641",
+    "writing_skill_lines": 278,
+    "dispatch_skill_lines": 476,
+    "contract": "write/commit require changed-file; Skill SKILL.md targets require canonical Preflight evidence including 寫技能"
   }
 }
