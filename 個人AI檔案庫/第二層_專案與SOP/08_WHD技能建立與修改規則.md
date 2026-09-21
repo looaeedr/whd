@@ -14,6 +14,34 @@ whd_schema: WHD_DOC_META_V1
 2. `AGENTS.md`、Phase6 Knowledge Preflight、WHD 專案 Skill/Registry/AI Library/Source of Truth 次之。
 3. 通用 skill-writing 慣例只能補充，不能繞過 WHD gate。
 
+## Skill 使用前公告硬閘門
+
+<!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
+
+使用者已確認：**只要本回合實際使用 WHD Skill，使用者可見輸出的最前面必須先寫出正在使用哪一個 Skill。**
+
+單一 Skill 標準格式：
+
+```text
+使用「<技能名>」技能…
+```
+
+多個 Skill 在開始時已知：
+
+```text
+使用「<技能A>」「<技能B>」技能…
+```
+
+永久規則：
+
+- 這一行必須早於任何 user-visible 計畫、進度、澄清、分析、結果或工具操作說明；不得事後補寫。
+- 名稱使用 `skill_catalog.json` 判定為 active canonical 的 identity；中文 Skill 用 canonical 中文名稱。
+- **只有實際要使用 Skill 時才公告**；沒有使用 Skill 不得假裝使用。
+- 後續 evidence 才導致新增 Skill 時，在第一次實際使用前輸出 `追加使用「<技能名>」技能…`。
+- announcement 不能取代 Skill 本體讀取、Phase6 Knowledge Preflight、required references、RED/GREEN、checkpoint 或其他 execution evidence。
+- announcement 也不能作為「已執行 Skill」證據；沒有真正執行相應 workflow 時仍屬未執行。
+- 全域 execution gate 由 `AGENTS.md` 擁有；`寫技能` 負責確保所有新建／修改 canonical Skill 不得關閉或繞過此 gate。
+
 ## 必守規則
 
 - 修改 Skill 前先反讀 target HEAD，依 WHD `branch-first` 建新 branch；不得直接改 `cleanup/2d-3d-sync` / `main`。
