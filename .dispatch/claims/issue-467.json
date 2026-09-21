@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "f4a6a347885a6f3646170bb85bdc598329245cee",
-  "phase": "GREEN",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -32,8 +32,15 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:24:00+08:00",
-  "next_action": "Create and run focused T1 GREEN on head f4a6a347885a6f3646170bb85bdc598329245cee: T1 legal-contact contracts + T0 physical mating-region regressions + Receiving placement.",
+  "last_update": "2026-09-21T21:26:00+08:00",
+  "next_action": "Fix incomplete tolerance-owner consolidation detected by remote source reread before GREEN: thicken_triangle_surface None fallback and physical-face plane-section default must both consume PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-467.json"
+  "checkpoint": ".dispatch/checkpoints/issue-467.json",
+  "recovery_evidence": {
+    "pre_green_source_reread": {
+      "head": "f4a6a347885a6f3646170bb85bdc598329245cee",
+      "finding": "signature changed to tolerance=None but fallback body replacement did not apply; plane-section retained 1e-7 default",
+      "impact": "caught before any GREEN run; no invalid acceptance evidence created"
+    }
+  }
 }
