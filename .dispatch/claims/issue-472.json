@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -16,18 +16,40 @@
   "t6_validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "t6_validation_drift_class": "QA_WORKFLOW_ONLY",
   "chain_head": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
-  "current_x_head": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+  "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T00:21:18+08:00",
   "remote_qa": {
     "run_id": 35628673353,
     "head_sha": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "preflight": {
+        "job_id": 106429213877,
+        "conclusion": "success"
+      },
+      "focused": {
+        "job_id": 106429461144,
+        "conclusion": "success"
+      },
+      "headless": {
+        "job_id": 106429461151,
+        "conclusion": "failure",
+        "summary": "2719 passed / 10 failed / 297 skipped / 197 deselected"
+      },
+      "xvfb": {
+        "job_id": 106429461304,
+        "conclusion": "failure",
+        "summary": "170 passed / 26 failed / 1 skipped / 3026 deselected"
+      }
+    },
+    "protected_invariants": "SUCCESS in focused/headless/xvfb",
+    "classification": "FOCUSED_MARKING_GREEN; RESIDUAL_FULL_SUITE_FAILURES_ARE_OUTSIDE_MARKING_CHANGED_FILES_AND_REQUIRE BASELINE/RELEVANT-SCOPE CLASSIFICATION"
   },
-  "last_update": "2026-09-22T00:59:00+08:00",
-  "next_action": "Poll locked run 35628673353 @ 107cf4f17ce0afd5ff312d5d787f40eddc279fde to terminal; no duplicate runs.",
+  "last_update": "2026-09-22T01:10:00+08:00",
+  "next_action": "Run code review of T7 marking remediation, write durable AI Library contract, then execute relevant broader Headless/Xvfb GREEN and current-X virtual-merge integration-readiness without merging X into chain.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
