@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:04:30+08:00",
   "base_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
-  "head_sha": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
-  "phase": "CLEANUP",
+  "head_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T3",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
+  "chain_head": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
     "run_id": 35617924980,
@@ -33,8 +33,8 @@
       "T0 physical mating-region regressions GREEN"
     ]
   },
-  "last_update": "2026-09-21T23:38:00+08:00",
-  "next_action": "Delete .github/workflows/qa-issue469-t3.yml under fresh execution-claim guard, remote-read absence, then audit tested head 016c2c502c85972da8e13e56ae5c0a739fdc1501 to closing head for workflow-only drift.",
+  "last_update": "2026-09-21T23:42:00+08:00",
+  "next_action": "Persist terminal continuity checkpoint for #469 at closing head 245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c, authorize/verify owning finalization proof, post terminal evidence, close/readback #469, then release claim.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue469-t3-authority-read.txt",
@@ -64,5 +64,19 @@
       "code-review smell baseline"
     ],
     "spec_source": "docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md@0fafeae16c7cb0b4e2d1902c004626d7714d97d9"
-  }
+  },
+  "cleanup_evidence": {
+    "tested_head": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
+    "closing_head": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
+    "ahead_by": 1,
+    "behind_by": 0,
+    "changed_files": [
+      ".github/workflows/qa-issue469-t3.yml"
+    ],
+    "change_class": "workflow-only deletion",
+    "remote_readback": "temporary workflow absent",
+    "production_x_head": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+    "production_drift": "none observed during cleanup"
+  },
+  "checkpoint": ".dispatch/checkpoints/issue-469.json"
 }
