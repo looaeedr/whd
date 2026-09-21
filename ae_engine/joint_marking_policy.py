@@ -20,6 +20,30 @@ from .contracts import (
 )
 
 
+GATE_A_FOUNDATION_STATE = "FOUNDATION_MERGED / MARKING_NOT_ACTIVATED"
+
+
+@dataclass(frozen=True)
+class JointMarkingFoundationStatus:
+    """Dormant Gate A status exposed to manufacturing diagnostics only."""
+
+    gate_state: str
+    activation_enabled: bool
+    export_disposition: str
+    production_policy_count: int
+
+
+def resolve_joint_marking_foundation_status() -> JointMarkingFoundationStatus:
+    """Return Gate A foundation state without activating production MARKING."""
+
+    return JointMarkingFoundationStatus(
+        gate_state=GATE_A_FOUNDATION_STATE,
+        activation_enabled=False,
+        export_disposition="UNRESOLVED",
+        production_policy_count=0,
+    )
+
+
 MARKING_DIAGNOSTIC_CODES = frozenset(
     {
         "POLICY_NOT_FOUND",

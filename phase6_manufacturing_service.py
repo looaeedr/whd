@@ -21,6 +21,7 @@ from ae_engine.contracts import (
     ResolvedReliefRuleTrace,
 )
 from ae_engine.manufacturing_api import build_part_render_data
+from ae_engine.joint_marking_policy import resolve_joint_marking_foundation_status
 from phase6_endcap_semantics import assembly_intent_value
 from phase6_final_scene_view import AssemblyScenePart
 from phase6_fold_profiles import _num
@@ -507,6 +508,7 @@ def resolve(request):
             joint_diagnostics=tuple(diagnostics),
             rule_traces=tuple(traces),
             interference_probe_parts=tuple(pre_solve_probe_parts),
+            joint_marking_foundation=resolve_joint_marking_foundation_status(),
         ),
         mutations=ManufacturingMutationResult(
             snapshot_patch=snapshot_patch

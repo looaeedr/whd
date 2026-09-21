@@ -371,6 +371,7 @@ class ManufacturingDiagnosticsResult:
     joint_diagnostics: Any = ()
     rule_traces: Any = ()
     interference_probe_parts: Any = ()
+    joint_marking_foundation: Any = None
     warnings: Any = ()
 
     def __post_init__(self) -> None:
