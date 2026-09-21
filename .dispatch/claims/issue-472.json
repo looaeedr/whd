@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "684d416c003906280c3cae0d0246b80b14aac00f",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -32,8 +32,8 @@
     },
     "protected_invariants": "GREEN"
   },
-  "last_update": "2026-09-22T07:03:00+08:00",
-  "next_action": "Persist TERMINAL_SUCCESS checkpoint and exact finalization proof at closing head 684d416c003906280c3cae0d0246b80b14aac00f; write terminal evidence, close #472 completed, release claim, then finalize Master #464.",
+  "last_update": "2026-09-22T07:04:00+08:00",
+  "next_action": null,
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
@@ -103,6 +103,21 @@
       ".github/workflows/qa-issue472-t7-candidate-only.yml",
       ".github/workflows/qa-issue472-t7.yml"
     ],
+    "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closing_head": "684d416c003906280c3cae0d0246b80b14aac00f",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "finalization_proof_fingerprint": "35d6b21342c110c2e1fc15c241aa51639ad6b57fc6b7b6a99010088b3193aa75",
+    "full_acceptance_run": 35664160936,
+    "integration_readiness_run": 35665392750,
+    "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+    "candidate_only_delta": {
+      "headless": 0,
+      "xvfb": 0
+    },
     "production_test_drift": 0
   }
 }
