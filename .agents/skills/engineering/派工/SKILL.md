@@ -478,8 +478,31 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] 未完成派工每 30 秒回報目前工單、正在做的事項、最新測試/進度數字與 blocker，且不得中斷執行。
 - [ ] 未宣稱不存在的背景工程師、subagent 或 scheduler 正在替你工作。
 
+## MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
+
+多子票 Master 的 child terminal **不是整條工單 terminal**。每次 child ACCEPT/CLOSE 時，durable child checkpoint 必須結構化寫入：
+
+- `master_issue`
+- `chain_state`
+- `next_issue`（若適用）
+- `chain_next_action` 或 `chain_reason`
+
+固定狀態：`NEXT_CHILD_EXECUTABLE / NEXT_CHILD_BLOCKED / CHAIN_COMPLETE / USER_STOPPED`。
+
+- `NEXT_CHILD_EXECUTABLE`：child 可關票，但 **assistant turn exit 必須 fail closed**；立即 claim/start `next_issue`。
+- `NEXT_CHILD_BLOCKED`：只接受真正外部 authority/capability wait，且必須有 `chain_reason`。
+- `USER_STOPPED`：只接受使用者明確停止／取消整條已授權 Master chain。
+- `CHAIN_COMPLETE`：只有整條 Master 已完成 required child/closing gate 才成立。
+- run terminal、child terminal、Master-chain terminal 三者不得互相代替。
+
+Turn-exit caller 已知目前屬於 Master 時，必須呼叫 canonical guard 並傳入 fresh `expected_master_issue`；checkpoint 漏填或填錯 Master handoff evidence 一律 fail closed。禁止從聊天句子、Issue comment 或 evidence 字串猜 handoff。
+
+Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gate.py` + `tools/continuity_controller.py`。
+
 ## GLOBAL_TURN_EXIT_GATE_BRIDGE
 
 `NON_TERMINAL_CONTINUE` 的 machine enforcement 一律委派 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1`。任何 progress/CHECKPOINT/QA PASS/code integrated 回報後，只要 owning checkpoint 仍為 `RUNNING / WAITING_REMOTE / RECOVERING`，結束 assistant turn 前必須呼叫 `assert_turn_exitable`；被拒絕就立即執行 `next_action`，不得等待使用者再輸入「繼續／輪／GO」。
+
+對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
 `BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
