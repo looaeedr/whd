@@ -17,12 +17,13 @@
   "chain_head": "fb595ce3ccd9c700b54c62f345c1efa74372856f",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35617279995,
     "head_sha": "fb595ce3ccd9c700b54c62f345c1efa74372856f",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-21T23:18:00+08:00",
-  "next_action": "Resolve the push-triggered Issue469 T3 focused workflow run for head fb595ce3ccd9c700b54c62f345c1efa74372856f; once run_id exists, lock and poll run/jobs/steps to terminal.",
+  "last_update": "2026-09-21T23:19:00+08:00",
+  "next_action": "Poll locked run 35617279995 at head fb595ce3ccd9c700b54c62f345c1efa74372856f until terminal; on expected RED failure inspect the failed focused pytest step and confirm it is the missing T3 policy core rather than harness/setup failure.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue469-t3-authority-read.txt",
