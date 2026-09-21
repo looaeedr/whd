@@ -106,6 +106,23 @@ Registry route：
 
 任何派工收尾、Final Combined、production integration、關單、Master completion 都必須讓 Preflight 命中此 Skill，不得靠聊天記憶。
 
+## CHILD_CLOSE_MASTER_CHAIN_HANDOFF_PITFALL
+
+### 事故模式
+
+leaf/child Issue 已 `closed/completed`、自己的 checkpoint 也 terminal，不代表 assistant turn 可結束。只要 Master 還有 required open child 且 next child 可自主執行，child close 後直接回 final 就是 process-state 停工。
+
+### 永久規則
+
+- child close 前後 fresh-read parent/Master 與 next dependency；
+- terminal child checkpoint 必須帶 structured chain handoff；
+- caller 以 fresh `expected_master_issue` 驗 Master ownership；
+- `NEXT_CHILD_EXECUTABLE` → 立即 claim/start next child，turn exit fail closed；
+- genuine external block / explicit user stop / whole-chain complete 才是合法 turn boundary；
+- GitHub child closure evidence不能取代 Master-chain continuation evidence。
+
+Executable owner：`tools/continuity_controller.py`；regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py`。
+
 ## OPEN_PR_BASE_REF_CLEANUP_PITFALL
 
 ### 事故
