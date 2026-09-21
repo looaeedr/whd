@@ -6,35 +6,35 @@
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
   "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
-  "last_update": "2026-09-21T18:58:30+08:00",
+  "last_update": "2026-09-21T19:09:00+08:00",
   "remote_qa": {
     "run_id": 35590479636,
     "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success"
   },
-  "failure_classification": {
+  "terminal_acceptance": {
+    "final_classifier": "GREEN",
+    "R1_R9_all_satisfied": true,
     "focused_invariants": "success",
-    "headless_candidate_only": [
-      "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths",
-      "tests.test_issue339_corner_presentation_fail_closed::test_joint_diagnostic_menu_source_does_not_expose_raw_joint_ids",
-      "tests.test_issue369_t5_corner_data_view_owner::test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state"
-    ],
-    "xvfb_candidate_only": [
-      "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths",
-      "tests.test_issue339_corner_presentation_fail_closed::test_joint_diagnostic_menu_source_does_not_expose_raw_joint_ids",
-      "tests.test_issue369_t5_corner_data_view_owner::test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state"
-    ],
-    "candidate_only_errors": [],
-    "classifier": "RED",
-    "classification": "three remaining candidate-only failures are stale structural contracts in both headless and Xvfb; focused accepted R1-R8 owner contracts remain GREEN"
+    "headless_candidate_only_failures": [],
+    "headless_candidate_only_errors": [],
+    "xvfb_candidate_only_failures": [],
+    "xvfb_candidate_only_errors": [],
+    "phase6_reverse_import_bridge_count": 0,
+    "second_composition_root": 0,
+    "facade_binding_count": 69,
+    "shared_content_duplicate_region_tree_binding": 0,
+    "dxf_git_object_path_blob_hash_delta": 0,
+    "config_git_object_delta": 0,
+    "validation_mutation_drift": 0
   },
-  "next_action": "Poll locked RUN 35590479636 + HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to terminal; focused-invariants and headless-ab are GREEN, xvfb-ab remains in candidate Xvfb step. On RED inspect only failed job/step slices; on GREEN proceed immediately to T8 cleanup/finalization. Do not dispatch a duplicate run.",
+  "next_action": "Delete one-shot .github/workflows/qa-issue450-t8-combined-acceptance.yml on the same work branch; then audit tested HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to cleaned HEAD and close #450 if cleanup-only drift is proven.",
   "blocker": null,
-  "dispatcher_observed_at": "2026-09-21T18:58:30+08:00",
-  "dispatcher_latest_evidence": "Fresh poll: RUN 35590479636 remains in_progress on exact locked HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8. focused-invariants=success, headless-ab=success, xvfb-ab=in_progress at candidate Xvfb.",
-  "dispatcher_exact_next_action": "Poll locked RUN 35590479636 + HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to terminal; then continue T8 acceptance or bounded repair in the same owning scope.",
-  "handoff_ready": true
+  "dispatcher_observed_at": "2026-09-21T19:09:00+08:00",
+  "dispatcher_latest_evidence": "RUN 35590479636 terminal success on exact HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8. focused-invariants/headless-ab/xvfb-ab/final-classifier all success; R1-R9 all true; candidate-only Headless/Xvfb failures and errors are empty.",
+  "dispatcher_exact_next_action": "Perform T8 one-shot workflow cleanup, tested-head to cleaned-head drift audit, terminal Issue evidence and closure. Do not trigger another QA run.",
+  "handoff_ready": false
 }
