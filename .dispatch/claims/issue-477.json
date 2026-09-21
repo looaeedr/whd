@@ -6,25 +6,27 @@
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
   "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Poll exact Issue 477 Final QA run 35629315406 and Preflight run 35629315519 to terminal on head fb304140e3d098bc8eab3521aa423bb4cb5192a8; require both success, then delete both one-shot workflows and drift-audit.",
+  "next_action": "Delete both issue477 one-shot workflows in one cleanup commit; compare tested head fb304140e3d098bc8eab3521aa423bb4cb5192a8 to closing head and require workflow-only drift.",
   "blocker": null,
-  "last_update": "2026-09-22T01:03:00+08:00",
+  "last_update": "2026-09-22T01:04:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
     "final_qa": {
       "run_id": 35629315406,
       "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
-      "status": "queued",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "success",
+      "job_id": 106431348851,
+      "summary": "84 passed in 1.05s; 寫技能 277 lines; 派工 475 lines"
     },
     "preflight": {
       "run_id": 35629315519,
       "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
-      "status": "queued",
-      "conclusion": null
+      "status": "completed",
+      "conclusion": "success"
     }
   },
   "red_evidence": {
@@ -48,5 +50,12 @@
     "writing_skill_lines": 278,
     "dispatch_skill_lines": 476,
     "contract": "write/commit require changed-file; Skill SKILL.md targets require canonical Preflight evidence including 寫技能"
+  },
+  "green_evidence": {
+    "red_run": 35628875957,
+    "red_summary": "2 failed, 13 passed",
+    "green_guard_run": 35629240167,
+    "final_run": 35629315406,
+    "final_summary": "84 passed in 1.05s"
   }
 }
