@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "master_id": 464,
+  "task_id": "T0",
+  "issue": 465,
+  "issue_url": "https://github.com/looaeedr/whd/issues/465",
+  "role": "T0 Implementer",
+  "state": "RED",
+  "target_x": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "branch_head": "b5bff7cc963d89af047257923aecea0b8b3cae25",
+  "completed": [
+    "Published Master #464 and child issues #465-#472",
+    "Acquired/repaired shared execution claim for #465",
+    "Changed-file Knowledge Preflight GREEN",
+    "RUN 35597536059 / head b5bff7cc963d89af047257923aecea0b8b3cae25 / job 106325719281"
+  ],
+  "pending": [
+    "Create executable T0 RED tests",
+    "Implement owner-published terminal mating-region semantics",
+    "Implement ResolvedPhysicalMatingRegion neutral contract/resolver",
+    "Focused GREEN",
+    "T0 QA acceptance and handoff to T1"
+  ],
+  "failed": [],
+  "blocked": [],
+  "related_files": [
+    "ae_engine/inner_door_frames.py",
+    "ae_engine/contracts.py",
+    "ae_engine/assembly_geometry.py",
+    "tests/test_issue465_t0_physical_mating_region.py"
+  ],
+  "verification": [
+    "GitHub Actions run 35597536059: completed/success",
+    "preflight step Enforce T0 changed-file Knowledge Preflight: success"
+  ],
+  "next_action": "Create T0 RED tests on exact work-order head b5bff7cc963d89af047257923aecea0b8b3cae25, run remote focused RED, then implement.",
+  "resume_command": "Fresh-read .dispatch/claims/issue-465.json + this checkpoint; verify work-order HEAD; run execution_claim_guard.py before next repository mutation."
+}
