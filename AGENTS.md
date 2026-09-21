@@ -17,6 +17,33 @@ whd_schema: WHD_DOC_META_V1
 
 # 0. 啟動硬閘門：先完成 Phase6 Knowledge Preflight，才准做事
 
+### 0.0.0 Skill 使用前 user-visible 公告硬閘門
+
+<!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
+
+當本回合**實際要使用任一 WHD canonical Skill** 時，在任何實質 user-visible 內容之前，必須先公告本回合要使用的 Skill。這是使用者可見的硬閘門，不得只留在內部 reasoning、checkpoint 或 tool log。
+
+單一 Skill 的固定格式：
+
+```text
+使用「<技能名>」技能…
+```
+
+多個 Skill 已在本回合開始時確定時，第一行一次列出：
+
+```text
+使用「<技能A>」「<技能B>」技能…
+```
+
+硬規則：
+
+1. 上述公告必須是本回合**第一個 user-visible 行／句**；不得先輸出計畫、狀態、問題、分析、工具操作說明、結果或其他前言，再補 Skill 名稱。
+2. Skill 名稱使用 active canonical identity，中文 Skill 直接使用 canonical 中文 `name`；不得用 retired alias 或自創簡稱冒充。
+3. 只有實際要使用 Skill 時才公告；沒有使用 Skill 的回合不得為了形式虛報。
+4. 若本回合開始時已知會使用多個 Skill，必須在第一行全部列出。若因後續 evidence / scope expansion 才新增一個事前無法知道的 Skill，必須在**第一次實際使用該新增 Skill 之前**另行輸出 `追加使用「<技能名>」技能…`。
+5. announcement 本身不算 Skill execution evidence。後續仍必須真正讀取／載入該 Skill，完成 Preflight、required references、checkpoint、tests 或該 Skill 自己要求的其他證據。
+6. 不得先完成實質工作，再用「使用某 Skill」補述並宣稱符合本 gate；公告順序錯誤即屬本回合流程違規。
+
 > **這是所有 AI / Agent / Subagent 接手本專案後的第一個執行規則。優先級高於本文後續章節。**
 
 在進行任何實質的**程式分析、Bug 診斷、派工、規格判斷、程式/測試/SOP 修改、重構、回歸或出包**之前，必須先執行 Phase6 Knowledge Preflight。禁止先靠經驗、記憶或通用技能開始工作，再事後補讀。

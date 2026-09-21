@@ -13,6 +13,26 @@ whd_schema: WHD_DOC_META_V1
 
 ## 1. 執行優先級
 
+### Global Skill invocation announcement invariant
+
+<!-- SKILL_INVOCATION_ANNOUNCEMENT_GATE_V1 -->
+
+WHD 的 user-visible Skill 使用公告由 `AGENTS.md` 擁有全域硬閘門。所有 canonical Skill 與所有新建／修改 Skill 都必須繼承此 contract，不得在個別 Skill 關閉、弱化或改成事後補述。
+
+單一 Skill 的標準 user-visible 起始格式：
+
+```text
+使用「<技能名>」技能…
+```
+
+建立或修改 Skill 時必須確認：
+
+- 真正使用 Skill 的回合，第一個 user-visible 行／句先公告 canonical Skill identity；
+- 若一開始已知多個 Skill，同一第一行全部列出；
+- 沒有使用 Skill 時不虛報；
+- announcement 只證明「已告知將使用」，**不證明** Skill 已讀、Preflight 已完成或 workflow 已執行；
+- 個別 Skill 不得另訂與 `AGENTS.md` 競爭的公告格式或省略規則。
+
 開始前先建立 authority 順序：
 
 1. 使用者本輪明確指示與已核准規格。
