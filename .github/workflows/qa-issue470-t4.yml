@@ -11,6 +11,10 @@ on:
       - 'ae_engine/contracts.py'
       - 'ae_engine/joint_marking_policy.py'
       - 'tests/test_issue470_t4_dormant_gate_a.py'
+      - 'tests/test_issue469_t3_joint_marking_policy.py'
+      - 'tests/test_issue468_t2_contact_local_frame.py'
+      - 'tests/test_issue467_t1_legal_contact.py'
+      - 'tests/test_issue465_t0_physical_mating_region.py'
   workflow_dispatch:
 
 permissions:
@@ -30,13 +34,13 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install -q pytest matplotlib -r requirements.txt
-      - name: Run Issue470 T4 Gate A contract
+      - name: Run Issue470 Gate A adjacent chain
         shell: bash
         run: |
           set -euo pipefail
           pytest -q \
-  tests/test_issue470_t4_dormant_gate_a.py \
-  tests/test_issue469_t3_joint_marking_policy.py \
-  tests/test_issue468_t2_contact_local_frame.py \
-  tests/test_issue467_t1_legal_contact.py \
-  tests/test_issue465_t0_physical_mating_region.py
+            tests/test_issue470_t4_dormant_gate_a.py \
+            tests/test_issue469_t3_joint_marking_policy.py \
+            tests/test_issue468_t2_contact_local_frame.py \
+            tests/test_issue467_t1_legal_contact.py \
+            tests/test_issue465_t0_physical_mating_region.py
