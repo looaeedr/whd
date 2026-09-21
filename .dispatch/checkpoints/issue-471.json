@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "471",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+  "accepted_production_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35624437100,
+  "job_id": 106415187236,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #471 remote-read closed/completed.",
+    "Focused Gate B accepted production head d5d66cf31f63911c1fe374d366b4275c5bdb3968.",
+    "Focused Gate B run 35624267308: 4 passed / 0 failed.",
+    "Adjacent T6/T5/T4/T3/T2/T1/T0 validation head 970eca7fc493122fa67f49bc5d536101d8ebcd83.",
+    "Adjacent run 35624437100 job 106415187236: 41 passed / 0 failed.",
+    "d5d66cf3 -> 970eca7f is exactly one QA-workflow-only commit (.github/workflows/qa-issue471-t6.yml); no production/test drift.",
+    "Gate B state JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED.",
+    "OPEN-1 disposition ALLOW_EXPORT_WITH_DIAGNOSTIC.",
+    "T7/#472 owns final workflow cleanup, broader acceptance, AI Library writeback, and integration-readiness."
+  ]
+}
