@@ -5,18 +5,13 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "958ab225745958f5c7a41763f4a45190addae00a",
-  "phase": "REMOTE_QA",
+  "head_sha": "384a2e3be47ec02cc14830e8e97fd9f99c68ee15",
+  "phase": "RED",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Poll exact Issue 477 Preflight Gate run 35628724154 to terminal. Only after success may any .agents/skills/**/SKILL.md mutation occur.",
+  "next_action": "Run RED contract tests at head 384a2e3be47ec02cc14830e8e97fd9f99c68ee15; expected failures must demonstrate current execution_claim_guard accepts write without changed-file and lacks Skill preflight evidence enforcement.",
   "blocker": null,
-  "last_update": "2026-09-22T00:56:00+08:00",
+  "last_update": "2026-09-22T00:58:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
-  "remote_qa": {
-    "run_id": 35628724154,
-    "head_sha": "958ab225745958f5c7a41763f4a45190addae00a",
-    "status": "queued",
-    "conclusion": null
-  }
+  "remote_qa": null
 }
