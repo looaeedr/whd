@@ -8,14 +8,17 @@
   "head_sha": "3f8cea7bf3adcf3738b43fbbf41a4a5f200cf5cb",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T08:20:00+08:00",
+  "last_update": "2026-09-21T09:39:00+08:00",
   "remote_qa": {
-    "run_id": 35547295514,
-    "head_sha": "fe94e2dab969930ee11ee3b0c319eb999045d826",
+    "run_id": 35547398223,
+    "head_sha": "3f8cea7bf3adcf3738b43fbbf41a4a5f200cf5cb",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "failure",
+    "failed_job_id": 106175674051,
+    "classification": "real-tk-regression-needs-predecessor-ab",
+    "result": "ownership contracts GREEN; Real Tk 23 passed / 2 failed"
   },
-  "next_action": "Discover #445 focused QA run triggered by corrected facade ratchet test at head 3f8cea7b, then lock and poll it to terminal.",
+  "next_action": "Run an accepted-predecessor A/B for the two failing Real-Tk tests against base 29b47853 and candidate 3f8cea7b. Repair only candidate-only regressions; otherwise record inherited baseline debt and continue remaining T3 gates.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
