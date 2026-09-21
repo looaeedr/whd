@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T22:08:00+08:00",
   "base_sha": "90a44fe459da2b78140987d89a995af6255a5934",
-  "head_sha": "cfe795814c97e279ccd12fece6d6c1dcfb902768",
-  "phase": "IMPLEMENTING",
+  "head_sha": "48bd34c7c6923786d98bbf86bc52fdcc06c581d6",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T2",
@@ -14,22 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "90a44fe459da2b78140987d89a995af6255a5934",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "cfe795814c97e279ccd12fece6d6c1dcfb902768",
+  "chain_head": "48bd34c7c6923786d98bbf86bc52fdcc06c581d6",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "run_id": 35611016554,
-    "head_sha": "cfe795814c97e279ccd12fece6d6c1dcfb902768",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106369822299,
-    "counts": {
-      "passed": 25,
-      "failed": 1
-    },
-    "evidence": "single test-harness TypeError: pytest.approx nested tuple unsupported; production assertions before it passed"
+    "run_id": null,
+    "head_sha": "48bd34c7c6923786d98bbf86bc52fdcc06c581d6",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 468 T2 GREEN",
+    "revision": 3
   },
-  "last_update": "2026-09-21T22:46:00+08:00",
-  "next_action": "Fix only nested pytest.approx assertion shape in rigid-rotation backprojection test, rerun same T2 GREEN suite; do not modify production.",
+  "last_update": "2026-09-21T22:48:00+08:00",
+  "next_action": "Locate and monitor T2 GREEN rerun for exact head 48bd34c7c6923786d98bbf86bc52fdcc06c581d6 after test-only assertion fix.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-468.json",
   "review_evidence": {
