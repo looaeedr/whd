@@ -5,10 +5,10 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
+  "head_sha": "f898d710b0e2dbf6dea061f3c86a1915882dfc74",
   "phase": "REMEDIATION",
   "delegated_branches": [],
-  "last_update": "2026-09-21T16:59:30+08:00",
+  "last_update": "2026-09-21T17:03:00+08:00",
   "remote_qa": {
     "run_id": 35577683274,
     "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
@@ -29,6 +29,6 @@
     "xvfb_ab": "failure",
     "classifier": "RED"
   },
-  "next_action": "Classify the five headless candidate-only failures and the Xvfb candidate-only delta against accepted R1-R8 ownership. Apply the minimal T8 remediation without reverting accepted owner boundaries, then dispatch a fresh replacement Combined Acceptance run.",
+  "next_action": "Apply minimal runtime fix for non-CROSS corner projection None mode, then migrate five proven stale ownership/source contracts to accepted T3/T4/T7 owners.",
   "blocker": null
 }
