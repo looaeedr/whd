@@ -1,12 +1,29 @@
 {
   "issue": 478,
+  "issue_url": "https://github.com/looaeedr/whd/issues/478",
+  "master_issue": 486,
   "worker": "chatgpt",
-  "executor_source": "chatgpt_automation",
-  "cycle_started_at": "2026-09-22T01:19:05+08:00",
-  "phase": "CLAIMED",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T01:19:05+08:00",
+  "recovered_from": {
+    "executor_source": "chatgpt_automation",
+    "claim_blob_sha": "982cd0a5aac7ce01da505b22c3d80f618d291955",
+    "prior_phase": "CLAIMED",
+    "prior_next_action": "EXECUTION_CLAIM_GUARD_GREEN then create/freeze Phase 4 work-order lineage and T0 census evidence",
+    "evidence": "No issue-478 branch commits, no remote QA run, no checkpoint; work-order branch exists at frozen base. Prior automation stalled before T0 census."
+  },
+  "recovered_at": "2026-09-22T06:53:00+08:00",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
-  "production_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
-  "next_action": "EXECUTION_CLAIM_GUARD_GREEN then create/freeze Phase 4 work-order lineage and T0 census evidence",
-  "remote_qa": {"status": "RUN_NOT_CREATED"},
-  "action": "acquire ready unclaimed T0 and begin execution"
+  "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "production_head_observed": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "work_order_branch": "work/issue486-phase4-ownership-20260922",
+  "base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "head_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "last_update": "2026-09-22T06:53:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Complete Phase6 Knowledge Preflight on frozen SHA, generate exact-source T0 ownership census, persist checkpoint/evidence, then QA T0.",
+  "blocker": null
 }
