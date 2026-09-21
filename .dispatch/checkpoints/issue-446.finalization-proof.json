@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "issue": "446",
+  "branch": "refactor/issue446-t4-registry-diagnostics-owner-20260921",
+  "head_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
+  "checkpoint_fingerprint": "09cd8b53f1dca026a4d954b28d46ad63e8c962d86710909bf87ca494fb719356"
+}
