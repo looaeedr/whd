@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "1bfd92314df6ca74c6b25b796052c8c5fdb33697",
-  "phase": "DRIFT_AUDIT",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -34,8 +34,8 @@
       "joint collision classifier GREEN"
     ]
   },
-  "last_update": "2026-09-21T21:47:00+08:00",
-  "next_action": "Verify all Issue467 temporary workflows are absent; compare tested head 9f657ca5f179d8de2a37bcc6ce97b391112c2a04 to closing head 1bfd92314df6ca74c6b25b796052c8c5fdb33697 for cleanup-only drift; run code review of final T1 diff.",
+  "last_update": "2026-09-21T21:52:00+08:00",
+  "next_action": "Code-review Spec finding: add an actual Receiving seam test using authoritative Inner Door Frame LOWER_TERMINAL_FACE plus the shared horizontal Divider CORE_PHYSICAL_SEGMENT physical skin; rerun T1 GREEN before closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
@@ -48,6 +48,15 @@
       "head": "e664fd24dc931bbcc25dc451967c5f75d1034125",
       "finding": "literal \\\\n escape sequence present in solid_local call after scripted replacement",
       "impact": "caught before GREEN run"
+    }
+  },
+  "review_evidence": {
+    "code_review": {
+      "fixed_point": "0094d55c0a470fb51b104f53778fef1e343a0401",
+      "reviewed_head": "1bfd92314df6ca74c6b25b796052c8c5fdb33697",
+      "standards_findings": 0,
+      "spec_findings": 1,
+      "finding": "TD-2A requires a real Receiving frame→Divider focused terminal-face contact case; current T1 tests classify synthetic regions only."
     }
   }
 }
