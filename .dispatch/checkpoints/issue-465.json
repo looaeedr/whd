@@ -4,37 +4,62 @@
   "task_id": "T0",
   "issue": 465,
   "issue_url": "https://github.com/looaeedr/whd/issues/465",
-  "role": "T0 Implementer",
-  "state": "RED",
+  "role": "QA / PM acceptance",
+  "state": "ACCEPTED",
   "target_x": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "branch_head": "b5bff7cc963d89af047257923aecea0b8b3cae25",
-  "completed": [
-    "Published Master #464 and child issues #465-#472",
-    "Acquired/repaired shared execution claim for #465",
-    "Changed-file Knowledge Preflight GREEN",
-    "RUN 35597536059 / head b5bff7cc963d89af047257923aecea0b8b3cae25 / job 106325719281"
-  ],
-  "pending": [
-    "Create executable T0 RED tests",
-    "Implement owner-published terminal mating-region semantics",
-    "Implement ResolvedPhysicalMatingRegion neutral contract/resolver",
-    "Focused GREEN",
-    "T0 QA acceptance and handoff to T1"
-  ],
-  "failed": [],
-  "blocked": [],
-  "related_files": [
+  "tested_head": "e9fd0e20d19660eea550596a5304629b05a50594",
+  "accepted_closing_head": "0094d55c0a470fb51b104f53778fef1e343a0401",
+  "requirement_red": {
+    "valid_run_id": 35598082041,
+    "valid_head_sha": "44f6f4e878e1bd965739a0cf53c9924aa3555f43",
+    "result": "3 failed / 1 passed",
+    "expected_failures": [
+      "R1 owner terminal-region API missing",
+      "R2 ResolvedPhysicalMatingRegion missing",
+      "neutral resolver missing"
+    ],
+    "invalid_predecessor_run_id": 35597969551,
+    "invalid_predecessor_reason": "runner dependency failure: ezdxf missing"
+  },
+  "acceptance": {
+    "final_run_id": 35599810725,
+    "final_job_id": 106332978562,
+    "final_head_sha": "e9fd0e20d19660eea550596a5304629b05a50594",
+    "counts": {
+      "passed": 19,
+      "skipped": 1,
+      "failed": 0
+    },
+    "dxf_roundtrip": "GREEN",
+    "no_marking_emission": "GREEN",
+    "no_bbox_minmax_renderer_collision_authority": "GREEN",
+    "locator_flat_mapping_provenance": "GREEN",
+    "terminal_face_true_thickness": "GREEN",
+    "region_identity_stability": "GREEN"
+  },
+  "cleanup": {
+    "removed": [
+      ".github/workflows/qa-issue465-t0-preflight.yml",
+      ".github/workflows/qa-issue465-t0-red.yml",
+      ".github/workflows/qa-issue465-t0-green.yml"
+    ],
+    "remote_readback": "ABSENT"
+  },
+  "drift_audit": {
+    "base": "e9fd0e20d19660eea550596a5304629b05a50594",
+    "head": "0094d55c0a470fb51b104f53778fef1e343a0401",
+    "ahead_by": 3,
+    "allowed_changes": "only deletion of the three temporary Issue465 workflows",
+    "production_test_drift": "NONE"
+  },
+  "final_files": [
     "ae_engine/inner_door_frames.py",
     "ae_engine/contracts.py",
     "ae_engine/assembly_geometry.py",
     "tests/test_issue465_t0_physical_mating_region.py"
   ],
-  "verification": [
-    "GitHub Actions run 35597536059: completed/success",
-    "preflight step Enforce T0 changed-file Knowledge Preflight: success"
-  ],
-  "next_action": "Create T0 RED tests on exact work-order head b5bff7cc963d89af047257923aecea0b8b3cae25, run remote focused RED, then implement.",
-  "resume_command": "Fresh-read .dispatch/claims/issue-465.json + this checkpoint; verify work-order HEAD; run execution_claim_guard.py before next repository mutation."
+  "ai_library_writeback": "DEFERRED_TO_T7_PER_ISSUE_AUTHORITY",
+  "next_action": "T1 #467 must use accepted_closing_head 0094d55c0a470fb51b104f53778fef1e343a0401 as its exact parent on the same work-order branch."
 }
