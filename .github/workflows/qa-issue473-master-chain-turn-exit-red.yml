@@ -1,0 +1,32 @@
+name: Issue 473 Master Chain Turn Exit RED
+
+on:
+  push:
+    branches:
+      - governance/issue473-master-chain-turn-exit-hard-gate-20260921
+    paths:
+      - '.github/workflows/qa-issue473-master-chain-turn-exit-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+      - name: Run master-chain turn-exit requirement RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/process/test_issue473_master_chain_turn_exit_gate.py
