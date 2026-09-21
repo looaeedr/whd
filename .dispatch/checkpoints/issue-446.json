@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "446",
+  "branch": "refactor/issue446-t4-registry-diagnostics-owner-20260921",
+  "head_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35558693211,
+  "job_id": 106207240390,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "T4_OWNERSHIP_CONTRACT=GREEN: 11 passed",
+    "REGISTRY_CONTROLLER_BACKEND=GREEN: 14 passed",
+    "REGISTRY_XVFB_AB=BOTH_GREEN: base 9 passed / candidate 9 passed",
+    "MANUFACTURING_DXF=GREEN: 12 passed",
+    "ISSUE446_SCOPE_DRIFT=0",
+    "CONFIG_GIT_OBJECT_INVARIANT=1",
+    "REGISTRY_CONTROLLER_DRIFT=0",
+    "CERTIFIED_REGISTRY_DRIFT=0",
+    "GEOMETRY_OWNER_DRIFT=0",
+    "DXF_DRIFT=0",
+    "PROJECT_SCHEMA_DRIFT=0",
+    "ASSEMBLY_JOINT_MUTATION_DRIFT=0",
+    "TEMP_QA_WORKFLOW_REMOVED=1",
+    "TESTED_HEAD=cb3b51a518a7532147bb35df275f0a43f489b4df",
+    "CLEANED_HEAD=b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
+    "TESTED_TO_CLEANED_DRIFT=workflow-delete-only"
+  ]
+}
