@@ -1,0 +1,17 @@
+{
+  "issue": 449,
+  "issue_url": "https://github.com/looaeedr/whd/issues/449",
+  "worker": "chatgpt",
+  "work_branch": "refactor/issue449-t7-fix11-init-bootstrap-20260921",
+  "claimed_at": "2026-09-21T14:15:00+08:00",
+  "base_sha": "41bf313b9389a7e98f9978c36b96380c237e57ec",
+  "head_sha": "41bf313b9389a7e98f9978c36b96380c237e57ec",
+  "phase": "CLAIMED",
+  "delegated_branches": [],
+  "last_update": "2026-09-21T14:15:00+08:00",
+  "remote_qa": null,
+  "next_action": "Guard branch-create, create refactor/issue449-t7-fix11-init-bootstrap-20260921 from accepted predecessor 41bf313b, persist Preflight evidence, then characterize _fix11_init responsibilities against accepted T2-T6 owners before production mutation.",
+  "blocker": null,
+  "checkpoint": "docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md",
+  "current_x_head_observation": "acdfcfc66a46940798bff77df4b8e32bfc10b7ca"
+}
