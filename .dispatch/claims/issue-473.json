@@ -5,8 +5,8 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "bdb33d89f0e0a66a8b302bde690507ca04f13b73",
-  "phase": "GREEN",
+  "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -14,11 +14,17 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "bdb33d89f0e0a66a8b302bde690507ca04f13b73",
+  "chain_head": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": null,
-  "last_update": "2026-09-21T22:18:00+08:00",
-  "next_action": "Expand the temporary Issue473 GREEN workflow to cover machine behavior plus dispatch/closure/continuity routing contracts on exact head bdb33d89f0e0a66a8b302bde690507ca04f13b73; monitor terminal.",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 473 Master Chain Turn Exit GREEN",
+    "revision": 4
+  },
+  "last_update": "2026-09-21T22:20:00+08:00",
+  "next_action": "Locate and monitor final Issue473 machine+knowledge GREEN for exact head f32d8fcb07fea7b715aa8a51f1b19fbbdacced72; on success clean temporary workflows and perform tested→closing drift audit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
