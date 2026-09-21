@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -17,14 +17,23 @@
   "chain_head": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35606974269,
     "head_sha": "3eccb0b8d42e6544c578cf4a379f48f35f0730ab",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 473 Master Chain Turn Exit GREEN",
-    "revision": 2
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106356339081,
+    "counts": {
+      "passed": 35,
+      "failed": 1
+    },
+    "evidence": [
+      "Master-chain hard-gate regressions passed",
+      "single failure is legacy test monkeypatch signature incompatibility",
+      "test_path_boundary_must_really_invoke_canonical_guard probe() rejected expected_master_issue keyword"
+    ]
   },
-  "last_update": "2026-09-21T22:05:00+08:00",
-  "next_action": "Monitor Issue 473 Master Chain Turn Exit GREEN for exact head 3eccb0b8d42e6544c578cf4a379f48f35f0730ab; require expected-Master missing/mismatch regressions GREEN.",
+  "last_update": "2026-09-21T22:08:00+08:00",
+  "next_action": "Update the legacy turn-exit probe signature to accept expected_master_issue without weakening the canonical guard invocation assertion, then rerun the same focused GREEN suite.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
