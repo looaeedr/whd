@@ -185,3 +185,260 @@ def test_coplanar_distance_is_controlled_by_injected_geometry_owner():
     )
     assert relaxed_result.status == "LEGAL_CONTACT"
     assert relaxed_result.contact.evidence["coplanar_distance_limit"] == pytest.approx(0.30)
+
+
+
+def _triangle_normal3(triangle):
+    import math
+
+    a, b, c = triangle
+    u = tuple(float(b[i]) - float(a[i]) for i in range(3))
+    v = tuple(float(c[i]) - float(a[i]) for i in range(3))
+    n = (
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+    )
+    mag = math.sqrt(sum(value * value for value in n))
+    assert mag > 1e-12
+    return tuple(value / mag for value in n)
+
+
+def _dot3(a, b):
+    return sum(float(a[i]) * float(b[i]) for i in range(3))
+
+
+def _sub3(a, b):
+    return tuple(float(a[i]) - float(b[i]) for i in range(3))
+
+
+def _add3(a, b):
+    return tuple(float(a[i]) + float(b[i]) for i in range(3))
+
+
+def _scale3(v, k):
+    return tuple(float(v[i]) * float(k) for i in range(3))
+
+
+def _norm3(v):
+    import math
+
+    return math.sqrt(sum(float(value) * float(value) for value in v))
+
+
+def _plane_basis3(normal):
+    n = tuple(float(value) for value in normal)
+    reference = min(
+        ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+        key=lambda axis: abs(_dot3(axis, n)),
+    )
+    u = (
+        reference[1] * n[2] - reference[2] * n[1],
+        reference[2] * n[0] - reference[0] * n[2],
+        reference[0] * n[1] - reference[1] * n[0],
+    )
+    um = _norm3(u)
+    u = tuple(value / um for value in u)
+    v = (
+        n[1] * u[2] - n[2] * u[1],
+        n[2] * u[0] - n[0] * u[2],
+        n[0] * u[1] - n[1] * u[0],
+    )
+    vm = _norm3(v)
+    return u, tuple(value / vm for value in v)
+
+
+def _actual_divider_core_support_region(
+    divider,
+    render_data,
+    placement,
+    *,
+    dimensions,
+    sheet_thickness,
+    attached_outward_normal,
+):
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+
+    from ae_engine.assembly_geometry import (
+        folded_mesh_with_flat_uv_from_polygon,
+        world_skin_with_flat_uv,
+    )
+    from ae_engine.contracts import ResolvedPhysicalMatingRegion, FoldProfileSegment
+
+    x_profile = tuple(divider.fold_profile)
+    y_profile = (
+        FoldProfileSegment(
+            length=float(divider.span),
+            angle=None,
+            phase6_key="divider_span",
+        ),
+    )
+    mapped = tuple(folded_mesh_with_flat_uv_from_polygon(
+        render_data.material,
+        x_profile,
+        y_profile,
+        fold_guides=tuple(render_data.fold_guides or ()),
+    ))
+    skins = tuple(world_skin_with_flat_uv(
+        mapped,
+        placement.placement_kind,
+        dimensions,
+        offset=placement.world_offset,
+        sheet_thickness=sheet_thickness,
+    ))
+    core = divider.physical_geometry_contract["core_physical_segment"]
+    band_start, band_end = map(float, core["flat_band"])
+
+    selected = []
+    selected_normal = None
+    for record in skins:
+        centroid_x = sum(float(point[0]) for point in record.flat) / 3.0
+        if not (band_start + 1e-8 < centroid_x < band_end - 1e-8):
+            continue
+        mid_normal = _triangle_normal3(record.world)
+        outward = tuple(float(record.side) * value for value in mid_normal)
+        if _norm3(_add3(outward, attached_outward_normal)) <= 1e-6:
+            selected.append(record)
+            selected_normal = outward
+
+    assert selected, "actual Divider core support skin opposite the frame terminal normal was not found"
+    assert selected_normal is not None
+
+    origin = tuple(float(v) for v in selected[0].world[0])
+    axis_u, axis_v = _plane_basis3(selected_normal)
+
+    def project(point):
+        delta = _sub3(point, origin)
+        return (_dot3(delta, axis_u), _dot3(delta, axis_v))
+
+    polygons = [
+        Polygon(tuple(project(point) for point in record.world))
+        for record in selected
+    ]
+    face = unary_union(polygons)
+    assert str(getattr(face, "geom_type", "")) == "Polygon"
+    assert float(face.area) > 0.0
+
+    world_polygon = tuple(
+        _add3(
+            origin,
+            _add3(
+                _scale3(axis_u, float(x)),
+                _scale3(axis_v, float(y)),
+            ),
+        )
+        for x, y in tuple(face.exterior.coords)[:-1]
+    )
+    return ResolvedPhysicalMatingRegion(
+        part_id=str(divider.stable_id),
+        region_id="CORE_PHYSICAL_SEGMENT",
+        region_role="LOCATOR_SUPPORT_FACE",
+        physical_face_kind="MAPPED_SKIN",
+        supporting_plane=(origin, tuple(selected_normal)),
+        outward_normal=tuple(selected_normal),
+        world_polygon=world_polygon,
+        flat_mapping=tuple(selected),
+        provenance={
+            "source": "DIVIDER_CORE_PHYSICAL_SEGMENT_MAPPED_SKIN",
+            "flat_band": (band_start, band_end),
+            "placement_kind": str(placement.placement_kind),
+        },
+    )
+
+
+def test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_support_face():
+    from ae_engine.assembly_contact import resolve_legal_coplanar_contact
+    from ae_engine.assembly_geometry import resolve_physical_mating_region
+    from ae_engine.assembly_placement import resolve_assembly_placement
+    from ae_engine.contracts import FoldProfileSegment
+    from ae_engine.door_dividers import derive_box_body_dividers
+    from ae_engine.inner_door_frames import (
+        LOWER_TERMINAL_FACE,
+        derive_inner_door_frames,
+        inner_door_frame_mating_region,
+    )
+    from ae_engine.manufacturing_api import (
+        build_box_body_divider_render_data,
+        build_inner_door_frame_render_data,
+    )
+
+    snapshot = {
+        "model": "受電箱",
+        "w": 800.0,
+        "h": 1600.0,
+        "d": 350.0,
+        "t": 2.0,
+        "fw": 29.0,
+        "door_gap_w": 3.5,
+        "door_gap_h": 3.5,
+        "multi_door_enabled": True,
+        "door_layout_scope": "receiving-main",
+        "door_layout_columns": [[800.0, [1100.0, 500.0]]],
+        "inner_doors": [{
+            "stable_id": "upper",
+            "cell_key": "0:0",
+            "included_frame_sides": ["top", "left", "right"],
+        }],
+    }
+    dimensions = (800.0, 1600.0, 350.0)
+    thickness = 2.0
+
+    frame = derive_inner_door_frames(
+        "upper",
+        spans={"left": 1014.0},
+        thickness=thickness,
+        included_sides=("left",),
+    )[0]
+    frame_data = build_inner_door_frame_render_data(frame)
+    frame_placement = resolve_assembly_placement(snapshot, frame.stable_id)
+    attached = resolve_physical_mating_region(
+        part_id=frame.stable_id,
+        semantic=inner_door_frame_mating_region(frame, LOWER_TERMINAL_FACE),
+        render_data=frame_data,
+        x_profile=tuple(frame.fold_profile),
+        y_profile=(
+            FoldProfileSegment(
+                length=float(frame.span),
+                angle=None,
+                phase6_key="frame_span",
+            ),
+        ),
+        placement=frame_placement.placement_kind,
+        dimensions=dimensions,
+        offset=frame_placement.world_offset,
+        sheet_thickness=thickness,
+    )
+
+    divider = derive_box_body_dividers(
+        [(800.0, [1100.0, 500.0])],
+        depth=350.0,
+        thickness=thickness,
+        layout_scope="receiving-main",
+        model_name="受電箱",
+        frame_width=29.0,
+    )[0]
+    assert divider.stable_id == "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
+    divider_data = build_box_body_divider_render_data(divider)
+    divider_placement = resolve_assembly_placement(snapshot, divider.stable_id)
+    locator = _actual_divider_core_support_region(
+        divider,
+        divider_data,
+        divider_placement,
+        dimensions=dimensions,
+        sheet_thickness=thickness,
+        attached_outward_normal=attached.outward_normal,
+    )
+
+    result = resolve_legal_coplanar_contact(locator, attached)
+
+    assert result.status == "LEGAL_CONTACT"
+    assert result.diagnostic_code is None
+    assert result.contact is not None
+    assert result.contact.locator_part_id == divider.stable_id
+    assert result.contact.attached_part_id == frame.stable_id
+    assert result.contact.locator_region.region_id == "CORE_PHYSICAL_SEGMENT"
+    assert result.contact.attached_region.region_id == LOWER_TERMINAL_FACE
+    assert result.contact.locator_flat_mapping
+    assert result.contact.evidence["plane_separation"] <= result.contact.evidence["coplanar_distance_limit"]
+    assert result.contact.evidence["normal_residual"] <= result.contact.evidence["normal_residual_limit"]
