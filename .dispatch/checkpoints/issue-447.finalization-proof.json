@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "issue": "447",
+  "branch": "refactor/issue447-t5-workspace-shell-20260921",
+  "head_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
+  "checkpoint_fingerprint": "2f885006da7ee72dff73d3050106cca154ca2ff53bbb41a09064e34a46c5d8db"
+}
