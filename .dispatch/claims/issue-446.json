@@ -5,12 +5,12 @@
   "work_branch": "refactor/issue446-t4-registry-diagnostics-owner-20260921",
   "claimed_at": "2026-09-21T11:24:00+08:00",
   "base_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
-  "head_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
-  "phase": "CLAIMED",
+  "head_sha": "53b1f1f767edd9d1978dee61a84f4ccb6b822050",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T11:24:00+08:00",
+  "last_update": "2026-09-21T11:31:00+08:00",
   "remote_qa": null,
-  "next_action": "Run execution_claim_guard for branch-create, create refactor/issue446-t4-registry-diagnostics-owner-20260921 from accepted predecessor cc2af5a4, then characterize Registry Tk/controller seam and freeze EXTRACT vs NO_EXTRACTION evidence.",
+  "next_action": "Persist Registry presentation census with DECISION=EXTRACT, then add RED ownership contracts proving selected Registry/diagnostics Tk construction still lives in fold_designer_bridge.py while controller/domain semantics remain outside the panel.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue446-t4-registry-census.md"
 }
