@@ -17,12 +17,13 @@
   "chain_head": "70df2efb3266611918013ca3e3806cb3d38c0ca9",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35619752459,
     "head_sha": "70df2efb3266611918013ca3e3806cb3d38c0ca9",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T00:09:00+08:00",
-  "next_action": "Resolve the push-triggered Issue470 T4 Gate A replacement run for head 70df2efb3266611918013ca3e3806cb3d38c0ca9, then lock and poll it to terminal.",
+  "last_update": "2026-09-22T00:11:00+08:00",
+  "next_action": "Poll locked run 35619752459 at head 70df2efb3266611918013ca3e3806cb3d38c0ca9 to terminal; on success extract Gate A counts and run adjacent regression before cleanup.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue470-t4-authority-read.txt",
