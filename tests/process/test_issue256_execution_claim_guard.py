@@ -11,6 +11,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 GUARD = ROOT / "tools/execution_claim_guard.py"
 DISPATCH_SKILL = ROOT / ".agents/skills/engineering/派工/SKILL.md"
+WRITING_SKILL = ROOT / ".agents/skills/engineering/寫技能/SKILL.md"
+AGENTS = ROOT / "AGENTS.md"
 PITFALL = ROOT / "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md"
 BASE_SHA = "e0a82f28f4ce3204c9fae56326f34f1a0964851f"
 HEAD_SHA = "6c1189a1b991bad2c953a5fbc95f0acda903b5d5"
@@ -59,6 +61,7 @@ def _assert_claim(guard, path: Path, **overrides):
         "action": "write",
         "expected_base_sha": BASE_SHA,
         "expected_head_sha": HEAD_SHA,
+        "changed_files": ("tools/example.py",),
     }
     kwargs.update(overrides)
     return guard.assert_execution_claim(path, **kwargs)
@@ -292,3 +295,20 @@ def test_ai_pitfall_records_claim_acquisition_is_not_enough() -> None:
     assert "atomic claim" in text.lower()
     assert "pre-write" in text.lower() or "prewrite" in text.lower()
     assert "非 owner" in text or "non-owner" in text.lower()
+
+
+def test_skill_prewrite_gate_is_visible_in_project_authorities() -> None:
+    dispatch = DISPATCH_SKILL.read_text(encoding="utf-8")
+    writing = WRITING_SKILL.read_text(encoding="utf-8")
+    agents = AGENTS.read_text(encoding="utf-8")
+    pitfall = PITFALL.read_text(encoding="utf-8")
+
+    for text in (dispatch, writing, agents):
+        assert "--changed-file" in text
+        assert "--preflight-evidence" in text
+        assert "寫技能" in text
+        assert ".agents/skills/**/SKILL.md" in text
+
+    assert "Skill write" in pitfall
+    assert "changed-file" in pitfall
+    assert "preflight evidence" in pitfall.lower()

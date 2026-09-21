@@ -72,6 +72,24 @@ Preflight 輸出的兩類清單都屬於硬閘門：
 8. 派工給 Subagent 時，Subagent 必須在自己的隔離工作上下文重新跑相同 Preflight、讀相同必讀來源並留下自己的 evidence；總控不得用自己的 evidence 代替 Subagent。
 9. 正式交付前依第 11 節要求再次跑帶 verification evidence 的 Preflight。
 
+### 0.0.0A Skill mutation Preflight pre-write 硬閘門
+
+<!-- SKILL_MUTATION_PREFLIGHT_PREWRITE_V1 -->
+
+任何 repo mutation 只要 target path 符合 `.agents/skills/**/SKILL.md`，不得只靠「我已經讀過 Skill」或一般 execution claim 放行。**在該次 write/commit 前**必須同時滿足：
+
+1. 已用本任務完整描述 + planned changed files 跑 canonical `tools/phase6_skill_preflight.py`，且 evidence 證明 `寫技能` 與所有 required references 已完成。
+2. 緊接著的 `tools/execution_claim_guard.py` 必須帶實際 target `--changed-file "<path>"`；`write/commit` 缺 changed-file 一律 fail closed。
+3. Skill target 另必須帶至少一個 `--preflight-evidence "<evidence-path>"`；guard 會用 canonical Phase6 Preflight required/completed 邏輯重新驗證，缺 `寫技能`、缺 required Skill 或缺 required reference 都不得 GREEN。
+4. scope / planned changed files 擴大時先重跑 Preflight；舊 evidence 只有在仍覆蓋目前 target requirements 時才可重用。
+5. 此 gate 由 executable guard 擁有 machine enforcement；本節只定義啟動 authority，不建立第二套 evidence parser。
+
+標準形式：
+
+```text
+python tools/execution_claim_guard.py ... --action write --changed-file ".agents/skills/<...>/SKILL.md" --preflight-evidence "<phase6-evidence>"
+```
+
 ### 0.0.1 派工 Skill 實際執行硬閘門
 
 當任務明確要求「派工」、使用 `.agents/skills/engineering/派工/SKILL.md`，或總控自行拆成 PM / Worker / QA 工單時，不能只在文字上宣稱已派工。總控必須驗收以下外顯證據，任一缺失即視為**未實際執行派工 Skill**：
