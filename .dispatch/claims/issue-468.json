@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T22:08:00+08:00",
   "base_sha": "90a44fe459da2b78140987d89a995af6255a5934",
-  "head_sha": "adcfd8b756d27dbd559cffd58390b0bab1a8df51",
-  "phase": "RED",
+  "head_sha": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T2",
@@ -14,11 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "90a44fe459da2b78140987d89a995af6255a5934",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "adcfd8b756d27dbd559cffd58390b0bab1a8df51",
+  "chain_head": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
-  "remote_qa": null,
-  "last_update": "2026-09-21T22:16:00+08:00",
-  "next_action": "Create and monitor focused T2 RED for contact-local frame / semantic side roles / locator-only backprojection on exact head adcfd8b756d27dbd559cffd58390b0bab1a8df51.",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 468 T2 RED"
+  },
+  "last_update": "2026-09-21T22:18:00+08:00",
+  "next_action": "Locate and monitor Issue468 T2 RED for exact head 3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf; accept only requirement assertions, not harness/setup failures.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-468.json"
 }
