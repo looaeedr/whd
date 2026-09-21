@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "head_sha": "28364d7ff629e011b796a577df5d4acc70e883c3",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -23,12 +23,28 @@
   "remote_qa": {
     "run_id": 35663550436,
     "head_sha": "28364d7ff629e011b796a577df5d4acc70e883c3",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "bounded exact-node baseline diff against frozen X and current X"
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "bounded exact-node baseline diff against frozen X and current X",
+    "classification": "BASELINE_DIFF_COMPLETE",
+    "candidate_only": {
+      "headless": [
+        "tests/test_phase6_t06_receiving_fresh_family.py::test_receiving_family_defaults_publish_fresh_intent_layout_and_upper_inner_door_role",
+        "tests/test_receiving_door_frame_width_semantics.py::test_receiving_inner_door_derivation_uses_the_same_corrected_outer_door_finished_face"
+      ],
+      "xvfb": [
+        "tests/test_phase6_t15_inner_door_panels.py::test_3d_workspace_generates_panels_only_for_checked_outer_doors_and_keeps_guards_green",
+        "tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_base_plate_count_tracks_one_and_three_door_topology[heights0-1]",
+        "tests/test_phase6_t19_receiving_baseplate_topology.py::test_receiving_live_door_topology_add_remove_keeps_base_plate_ids_in_lockstep"
+      ]
+    },
+    "baseline_debt": {
+      "headless": 8,
+      "xvfb": 23
+    }
   },
-  "last_update": "2026-09-22T06:39:00+08:00",
-  "next_action": "Poll locked run 35663550436 at head 28364d7ff629e011b796a577df5d4acc70e883c3 until all four frozen/current-X Headless/Xvfb matrix jobs are terminal; then compute candidate-only failure delta.",
+  "last_update": "2026-09-22T06:44:00+08:00",
+  "next_action": "Remediate five candidate-only failures: preserve strict inner_door_vertical_frame_contract but make derive_inner_door_frame_sets omit only per-item frames whose physical terminal contract is unavailable during transient/single-door topology; update two stale 1014 span oracles to physical terminal span authority; run candidate-only focused QA then fresh T7.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
