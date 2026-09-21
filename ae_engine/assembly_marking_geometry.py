@@ -386,6 +386,58 @@ def _world_point_to_flat(point, record):
     return (u, v)
 
 
+def _world_point_to_flat_planar_affine(point, record):
+    """Resolve a coplanar point through one locator-owned affine UV provenance.
+
+    Unlike triangle containment, this deliberately permits extrapolation inside
+    the same physical support plane.  Callers still own Final Material
+    containment; this helper never turns a CUTTING void into material.
+    """
+    tol = float(
+        PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    )
+    world = tuple(getattr(record, "world", ()) or ())
+    flat = tuple(getattr(record, "flat", ()) or ())
+    if len(world) != 3 or len(flat) != 3:
+        return None
+
+    a, b, c_world = world
+    v0 = _sub(b, a)
+    v1 = _sub(c_world, a)
+    v2 = _sub(point, a)
+    d00 = _dot(v0, v0)
+    d01 = _dot(v0, v1)
+    d11 = _dot(v1, v1)
+    d20 = _dot(v2, v0)
+    d21 = _dot(v2, v1)
+    denom = d00 * d11 - d01 * d01
+    if abs(denom) <= float(
+        PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon
+    ):
+        return None
+
+    beta = (d11 * d20 - d01 * d21) / denom
+    gamma = (d00 * d21 - d01 * d20) / denom
+    alpha = 1.0 - beta - gamma
+    reconstructed = tuple(
+        alpha * float(a[i])
+        + beta * float(b[i])
+        + gamma * float(c_world[i])
+        for i in range(3)
+    )
+    if _norm(_sub(point, reconstructed)) > tol:
+        return None
+
+    return (
+        alpha * float(flat[0][0])
+        + beta * float(flat[1][0])
+        + gamma * float(flat[2][0]),
+        alpha * float(flat[0][1])
+        + beta * float(flat[1][1])
+        + gamma * float(flat[2][1]),
+    )
+
+
 def backproject_locator_world_points(
     contact: ResolvedLegalContact,
     points,
@@ -413,58 +465,42 @@ def backproject_locator_world_points(
             if mapped is not None:
                 candidates.append(mapped)
         if not candidates:
-            best = None
-            for index, record in enumerate(mapping):
-                world = tuple(getattr(record, "world", ()) or ())
-                if len(world) != 3:
-                    continue
-                a, b, c_world = world
-                v0 = _sub(b, a)
-                v1 = _sub(c_world, a)
-                v2 = _sub(point, a)
-                d00 = _dot(v0, v0)
-                d01 = _dot(v0, v1)
-                d11 = _dot(v1, v1)
-                d20 = _dot(v2, v0)
-                d21 = _dot(v2, v1)
-                denom = d00 * d11 - d01 * d01
-                if abs(denom) <= float(
-                    PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.polygon_robustness_epsilon
-                ):
-                    continue
-                beta = (d11 * d20 - d01 * d21) / denom
-                gamma = (d00 * d21 - d01 * d20) / denom
-                alpha = 1.0 - beta - gamma
-                weights = (alpha, beta, gamma)
-                reconstructed = tuple(
-                    alpha * float(a[i])
-                    + beta * float(b[i])
-                    + gamma * float(c_world[i])
-                    for i in range(3)
+            affine_candidates = []
+            for record in mapping:
+                mapped = _world_point_to_flat_planar_affine(point, record)
+                if mapped is not None:
+                    affine_candidates.append(mapped)
+            if not affine_candidates:
+                return LocatorBackprojectionResult(
+                    status="SKIPPED_FAIL_CLOSED",
+                    diagnostic_code="BACKPROJECTION_FAILED",
+                    flat_points=(),
+                    evidence={
+                        "reason": "point is outside locator authoritative planes",
+                        "world_point": point,
+                        "mapping_record_count": len(mapping),
+                    },
                 )
-                plane_residual = _norm(_sub(point, reconstructed))
-                barycentric_violation = max(
-                    0.0,
-                    -min(weights),
-                    max(weights) - 1.0,
+
+            owner = affine_candidates[0]
+            for candidate in affine_candidates[1:]:
+                distance = math.hypot(
+                    float(candidate[0]) - float(owner[0]),
+                    float(candidate[1]) - float(owner[1]),
                 )
-                score = (plane_residual, barycentric_violation, index)
-                if best is None or score < best[0]:
-                    best = (score, weights)
-            return LocatorBackprojectionResult(
-                status="SKIPPED_FAIL_CLOSED",
-                diagnostic_code="BACKPROJECTION_FAILED",
-                flat_points=(),
-                evidence={
-                    "reason": "point is outside locator authoritative mapping",
-                    "world_point": point,
-                    "mapping_record_count": len(mapping),
-                    "best_plane_residual": None if best is None else best[0][0],
-                    "best_barycentric_violation": None if best is None else best[0][1],
-                    "best_mapping_record_index": None if best is None else best[0][2],
-                    "best_barycentric_weights": None if best is None else best[1],
-                },
-            )
+                if distance > tolerance:
+                    return LocatorBackprojectionResult(
+                        status="SKIPPED_FAIL_CLOSED",
+                        diagnostic_code="BACKPROJECTION_FAILED",
+                        flat_points=(),
+                        evidence={
+                            "reason": "locator planar affine mapping is not unique",
+                            "world_point": point,
+                            "mapping_record_count": len(mapping),
+                            "candidate_count": len(affine_candidates),
+                        },
+                    )
+            candidates = [owner]
 
         owner = candidates[0]
         for candidate in candidates[1:]:
