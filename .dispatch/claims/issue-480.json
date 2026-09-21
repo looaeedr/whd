@@ -1,0 +1,23 @@
+{
+  "issue": 480,
+  "issue_url": "https://github.com/looaeedr/whd/issues/480",
+  "master_issue": 486,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T07:51:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "work_order_branch": "work/issue486-phase4-ownership-20260922",
+  "work_branch": "work/issue486-phase4-ownership-20260922",
+  "base_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
+  "head_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Run T2 Phase6 changed-file preflight and R2 source census at accepted T1 HEAD, then add requirement RED for a pure immutable Derived Part projection request/plan owner with no bridge/Tk/workspace mutation or geometry-formula duplication.",
+  "blocker": null
+}
