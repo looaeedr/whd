@@ -8,11 +8,11 @@
   "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T18:46:00+08:00",
+  "last_update": "2026-09-21T18:53:00+08:00",
   "remote_qa": {
     "run_id": 35590479636,
     "head_sha": "5a1dde94eadd30bdce637dee8ac3b149122ca2a8",
-    "status": "queued",
+    "status": "in_progress",
     "conclusion": null
   },
   "failure_classification": {
@@ -31,6 +31,10 @@
     "classifier": "RED",
     "classification": "three remaining candidate-only failures are stale structural contracts in both headless and Xvfb; focused accepted R1-R8 owner contracts remain GREEN"
   },
-  "next_action": "Poll locked RUN 35590479636 + HEAD 5a1dde94 to terminal; on RED inspect only failed job/step slices, on GREEN proceed to T8 cleanup/finalization.",
-  "blocker": null
+  "next_action": "Poll locked RUN 35590479636 + HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to terminal; on RED inspect only failed job/step slices, on GREEN proceed to T8 cleanup/finalization. Do not dispatch a duplicate run.",
+  "blocker": null,
+  "dispatcher_observed_at": "2026-09-21T18:53:00+08:00",
+  "dispatcher_latest_evidence": "RUN 35590479636 is in_progress on exact locked HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8; Issue #450 remains open under Master #441.",
+  "dispatcher_exact_next_action": "Poll locked RUN 35590479636 + HEAD 5a1dde94eadd30bdce637dee8ac3b149122ca2a8 to terminal; on RED inspect only failed job/step slices, on GREEN proceed to T8 cleanup/finalization. Do not dispatch a duplicate run.",
+  "handoff_ready": true
 }
