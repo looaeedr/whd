@@ -8,9 +8,14 @@
   "head_sha": "d3108da360eff9c787fc5d0f0def7b36b3ad4d08",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T14:00:00+08:00",
-  "remote_qa": null,
-  "next_action": "Find and lock the fresh QA run for head d3108da3. Poll only that exact run to terminal; do not reuse failed RUN 35562081929.",
+  "last_update": "2026-09-21T14:01:00+08:00",
+  "remote_qa": {
+    "run_id": 35562796984,
+    "head_sha": "d3108da360eff9c787fc5d0f0def7b36b3ad4d08",
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "next_action": "Poll exact RUN 35562796984 + head d3108da3 to terminal. Do not mutate repository state while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md",
   "failure_classification": {
