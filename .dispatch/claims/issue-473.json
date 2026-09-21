@@ -5,7 +5,7 @@
   "work_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "head_sha": "ae640d29ff8adf5b675c46c368957f322ff20a85",
   "phase": "RED",
   "delegated_branches": [],
   "master_id": null,
@@ -14,11 +14,11 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
-  "chain_head": "05a455f602ba3477d9d05377055126fd5019451d",
+  "chain_head": "ae640d29ff8adf5b675c46c368957f322ff20a85",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": null,
-  "last_update": "2026-09-21T21:36:00+08:00",
-  "next_action": "Add executable behavior RED for terminal child checkpoint with incomplete Master chain and executable next child; run focused process test.",
+  "last_update": "2026-09-21T21:40:00+08:00",
+  "next_action": "Create focused Issue473 RED workflow on exact head ae640d29ff8adf5b675c46c368957f322ff20a85 and verify failure is due to missing Master-chain continuation machine contract.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json"
 }
