@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
-  "phase": "CLAIMED",
+  "head_sha": "8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,11 +14,16 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "0094d55c0a470fb51b104f53778fef1e343a0401",
+  "chain_head": "8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "remote_qa": null,
-  "last_update": "2026-09-21T21:00:00+08:00",
-  "next_action": "Run T1 changed-file preflight and requirement RED for missing single production tolerance owner/legal coplanar contact resolver on accepted T0 parent.",
+  "remote_qa": {
+    "run_id": null,
+    "head_sha": "8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c",
+    "status": "RUN_NOT_RESOLVED_YET",
+    "workflow": "Issue 467 T1 Knowledge Preflight"
+  },
+  "last_update": "2026-09-21T21:03:00+08:00",
+  "next_action": "Locate and monitor Issue 467 T1 Knowledge Preflight run for head 8df9fe25d14e2a3dee8e2b55ba69c7fd27fe9d7c to terminal; on GREEN create T1 requirement RED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json"
 }
