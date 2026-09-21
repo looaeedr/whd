@@ -20,12 +20,13 @@
   "chain_head": "24d6ddd43de2e5af22910bfea3675cdb7f0ca675",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35622159222,
     "head_sha": "24d6ddd43de2e5af22910bfea3675cdb7f0ca675",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T00:03:00+08:00",
-  "next_action": "Resolve push-triggered Issue471 Gate B RED run for head 24d6ddd43de2e5af22910bfea3675cdb7f0ca675; lock run_id and poll to terminal.",
+  "last_update": "2026-09-22T00:05:00+08:00",
+  "next_action": "Poll locked run 35622159222 at head 24d6ddd43de2e5af22910bfea3675cdb7f0ca675 to terminal; inspect bounded failed-step logs and classify.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
