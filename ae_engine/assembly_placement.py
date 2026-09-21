@@ -286,6 +286,8 @@ def resolve_inner_door_panel_placement(snapshot: Mapping[str, object], inner_doo
 def resolve_inner_door_frame_placement(
     snapshot: Mapping[str, object], inner_door_id: str, side: str
 ) -> AssemblyPlacement:
+    from .cabinet_types import policy as cabinet_family_policy
+
     side = str(side or "").strip().lower()
     if side == "bottom":
         return resolve_inner_door_lower_frame_placement(snapshot, inner_door_id)
