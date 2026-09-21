@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T21:30:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "head_sha": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
   "master_id": null,
   "task_id": "ISSUE473",
@@ -15,7 +15,7 @@
   "expected_parent_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "work_order_branch": "governance/issue473-master-chain-turn-exit-hard-gate-20260921",
   "chain_head": "6a5ba8fcbfb1b06126c6eb877162f4d37e7daef1",
-  "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
     "run_id": 35607727615,
     "head_sha": "f32d8fcb07fea7b715aa8a51f1b19fbbdacced72",
@@ -32,8 +32,8 @@
       "workflow_readback": "ABSENT"
     }
   },
-  "last_update": "2026-09-21T22:33:00+08:00",
-  "next_action": "Merge PR #474 non-force into unchanged cleanup/2d-3d-sync, remote-read target and permanent files, then create terminal continuity checkpoint/proof and close Issue473 explicitly.",
+  "last_update": "2026-09-21T22:01:00+08:00",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-473.json",
   "integration": {
@@ -45,5 +45,25 @@
     "pr_number": 474,
     "pr_url": "https://github.com/looaeedr/whd/pull/474",
     "autoclose_removed": true
+  },
+  "released_at": "2026-09-21T22:01:00+08:00",
+  "issue_state": "closed/completed",
+  "finalization_proof": ".dispatch/checkpoints/issue-473.finalization-proof.json",
+  "finalization": {
+    "run_id": 35609072856,
+    "guard_pass": 1,
+    "proof_valid": 1,
+    "checkpoint_fingerprint": "7aba26648ed873c660aa8ab5552bca138d45f68be746915f01713da52612b699",
+    "checkpoint": ".dispatch/checkpoints/issue-473.json",
+    "proof": ".dispatch/checkpoints/issue-473.finalization-proof.json"
+  },
+  "terminal": {
+    "pr": 474,
+    "merge_commit": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+    "final_machine_knowledge_run": 35607727615,
+    "final_machine_knowledge_counts": "63 passed / 0 failed",
+    "finalization_run": 35609072856,
+    "issue_473": "closed/completed",
+    "temporary_qa_residue": 0
   }
 }
