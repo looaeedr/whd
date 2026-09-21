@@ -1,3 +1,10 @@
+---
+whd_doc_role: REFERENCE
+whd_contract: issue477-skill-write-preflight-evidence
+whd_canonical: null
+whd_schema: WHD_DOC_META_V1
+---
+
 # Issue #477 Phase6 Preflight Evidence
 
 Task: enforce fail-closed Skill writes requiring 寫技能 Preflight before `.agents/skills/**/SKILL.md` mutation.
