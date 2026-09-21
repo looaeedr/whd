@@ -24,3 +24,16 @@ READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedCo
 PRE_AGREED_TEST_SEAMS=owning Issue #448 approved acceptance seams: part identity, part switch behavior, profile save/reload, multipart physical-child selection, render intent.
 DECISION_SPACE=A:DEEPEN_EXISTING_DESIGNER_WORKSPACE | B:EXTRACT_PART_EDITOR_SESSION | C:KEEP_BRIDGE_COMPATIBILITY
 MUTATION_GATE=no production mutation before characterization and A/B/C decision are durable.
+
+REMOTE_QA_PREFLIGHT:
+- tests/test_issue448_part_editor_owner_decision.py
+- .github/workflows/qa-issue448-t6-part-editor-owner.yml
+MATCHED_ROUTE=remote-qa-monitoring
+MATCHED_ROUTE=part-dxf-acceptance
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_SKILL: 驗證板件與DXF
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
