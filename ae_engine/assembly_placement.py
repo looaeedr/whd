@@ -297,10 +297,17 @@ def resolve_inner_door_frame_placement(
     panel_h = float(geometry["panel_height"])
     if side == "top":
         position = (cx, cy + panel_h / 2.0, cz)
-    elif side == "left":
-        position = (cx - panel_w / 2.0, cy, cz)
     else:
-        position = (cx + panel_w / 2.0, cy, cz)
+        vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
+            snapshot, inner_door_id
+        )
+        frame_center_y = (
+            float(vertical["center_y"]) if vertical is not None else float(cy)
+        )
+        if side == "left":
+            position = (cx - panel_w / 2.0, frame_center_y, cz)
+        else:
+            position = (cx + panel_w / 2.0, frame_center_y, cz)
     stable_id = f"inner_door:{str(inner_door_id).strip()}:{side}_frame"
     outer_key = str(geometry["outer_key"])
     return AssemblyPlacement(
