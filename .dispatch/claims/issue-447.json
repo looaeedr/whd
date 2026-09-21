@@ -5,12 +5,12 @@
   "work_branch": "refactor/issue447-t5-workspace-shell-20260921",
   "claimed_at": "2026-09-21T12:31:00+08:00",
   "base_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
-  "head_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
-  "phase": "CLAIMED",
+  "head_sha": "9a51cbd0b058ebdb27de4f1784be1796012eecbc",
+  "phase": "RED",
   "delegated_branches": [],
-  "last_update": "2026-09-21T12:31:00+08:00",
+  "last_update": "2026-09-21T12:36:00+08:00",
   "remote_qa": null,
-  "next_action": "Guard branch-create, create refactor/issue447-t5-workspace-shell-20260921 from accepted predecessor b9fcf32b, persist Preflight evidence, then run the shell deletion-test census and decide EXTRACT vs NO_EXTRACTION.",
+  "next_action": "Complete changed-file Preflight for fold_designer_bridge.py + prospective phase6_workspace_shell.py, then persist deletion-test census and freeze DECISION=EXTRACT or NO_EXTRACTION.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md"
 }
