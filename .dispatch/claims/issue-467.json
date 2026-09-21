@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "d221d303a14fa0026b6e5f05cd6cad8dc0d03ce0",
+  "head_sha": "8527043c19e63f5f16289720019af772ba6ec522",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "d221d303a14fa0026b6e5f05cd6cad8dc0d03ce0",
+  "chain_head": "8527043c19e63f5f16289720019af772ba6ec522",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600585458,
@@ -32,8 +32,8 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:18:00+08:00",
-  "next_action": "Add neutral ae_engine/assembly_contact.py on exact head d221d303a14fa0026b6e5f05cd6cad8dc0d03ce0 using the canonical production tolerance owner and fail-closed legal-contact diagnostics.",
+  "last_update": "2026-09-21T21:21:00+08:00",
+  "next_action": "Consolidate the T0 terminal physical-face numerical path onto PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES, then run focused T1 GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json"
 }
