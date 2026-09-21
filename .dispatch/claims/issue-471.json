@@ -20,12 +20,13 @@
   "chain_head": "f62e08827d092fd5b884270016a337d966ed00de",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35623102341,
     "head_sha": "f62e08827d092fd5b884270016a337d966ed00de",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "last_update": "2026-09-22T00:21:00+08:00",
-  "next_action": "Resolve the focused Gate B rerun triggered at f62e08827d092fd5b884270016a337d966ed00de; poll to terminal and read exact remaining ResolvedJointMarkingResult diagnostic.",
+  "last_update": "2026-09-22T00:04:00+08:00",
+  "next_action": "Poll locked run 35623102341 at f62e08827d092fd5b884270016a337d966ed00de to terminal; if RED, read exact remaining ResolvedJointMarkingResult diagnostic and apply smallest T6 fix.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
