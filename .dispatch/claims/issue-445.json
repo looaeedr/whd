@@ -6,9 +6,9 @@
   "claimed_at": "2026-09-21T07:41:00+08:00",
   "base_sha": "29b47853e21582a8533cda79a1a381a04a5571f3",
   "head_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
-  "phase": "DRIFT_AUDIT",
+  "phase": "CLOSING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T11:12:00+08:00",
+  "last_update": "2026-09-21T11:16:00+08:00",
   "remote_qa": {
     "run_id": 35555924062,
     "head_sha": "9f9104358c54115459d4692c4cdc0790dae8add9",
@@ -30,9 +30,9 @@
       "mutation_owner_move": 0
     }
   },
-  "next_action": "Create/update a canonical issue445 T3 continuity checkpoint at cleaned head cc2af5a4 with TERMINAL_SUCCESS evidence, run owning finalization guard/proof, write terminal evidence to Issue #445, close/readback #445, close validation PR #456, release claim, then hand off #446 from accepted cleaned head.",
+  "next_action": "Persist TERMINAL_SUCCESS continuity checkpoint bound to issue #445 / branch refactor/issue445-t3-settings-owner-20260921 / head cc2af5a4, run current finalization proof, write terminal evidence, close/readback Issue #445 and validation PR #456, then release the claim.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
+  "checkpoint": ".dispatch/checkpoints/issue-445.json",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
   "recovery_evidence": {
     "previous_run_id": 35547183667,
