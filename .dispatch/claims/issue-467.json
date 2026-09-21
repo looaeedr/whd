@@ -5,7 +5,7 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "df2aad82f24d65ddf874dc176725cfb3a38e84e8",
+  "head_sha": "503a7896040599b43981e1da71f4da871dfcbdd1",
   "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "df2aad82f24d65ddf874dc176725cfb3a38e84e8",
+  "chain_head": "503a7896040599b43981e1da71f4da871dfcbdd1",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35602759252,
@@ -36,8 +36,8 @@
       "classification": "Receiving authoritative frame/divider placement closure mismatch; classifier is behaving correctly"
     }
   },
-  "last_update": "2026-09-21T22:27:00+08:00",
-  "next_action": "Replace stale Receiving frame test oracles: actual seam must consume cabinet_family_policy.derive_inner_door_frame_sets; placement regression must assert physical top/lower terminal invariants instead of old panel-center y=225.",
+  "last_update": "2026-09-21T22:30:00+08:00",
+  "next_action": "Replace tests/test_phase6_t16_receiving_placement.py stale left/right panel-center oracle with canonical vertical-frame contract invariants on exact head 503a7896040599b43981e1da71f4da871dfcbdd1.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
