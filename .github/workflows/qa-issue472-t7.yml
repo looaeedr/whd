@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/qa-issue472-t7.yml'
       - 'logs/preflight/issue472-t7-authority-read.txt'
+      - 'ae_engine/receiving_joint_marking.py'
+      - 'tests/test_issue471_t6_receiving_marking_activation.py'
   workflow_dispatch:
 
 permissions:
@@ -39,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .scratch/issue472
-          python tools/phase6_skill_preflight.py             --task "T7 Combined Acceptance for Joint Placement MARKING with physical DXF, Save-Reload, broader Headless/Xvfb, protected invariants, durable AI Library writeback and X integration-readiness."             --changed-file .github/workflows/qa-issue472-t7.yml             --changed-file logs/preflight/issue472-t7-authority-read.txt             --evidence logs/preflight/issue472-t7-authority-read.txt
+          python tools/phase6_skill_preflight.py             --task "T7 Combined Acceptance for Joint Placement MARKING with physical DXF, Save-Reload, broader Headless/Xvfb, protected invariants, durable AI Library writeback and X integration-readiness."             --changed-file .github/workflows/qa-issue472-t7.yml             --changed-file logs/preflight/issue472-t7-authority-read.txt             --changed-file ae_engine/receiving_joint_marking.py             --changed-file tests/test_issue471_t6_receiving_marking_activation.py             --evidence logs/preflight/issue472-t7-authority-read.txt
       - name: Prove Headless plus Xvfb covers full collection
         shell: bash
         run: |
