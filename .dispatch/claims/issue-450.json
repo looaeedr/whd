@@ -5,11 +5,11 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "96da15be09aef65462f8670b4cf7ebe9c6cd9513",
-  "phase": "IMPLEMENTING",
+  "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T16:20:00+08:00",
+  "last_update": "2026-09-21T16:24:00+08:00",
   "remote_qa": null,
-  "next_action": "Create one-shot T8 Combined Acceptance workflow at exact head 96da15be, using fixed T0 baseline 2b9aecce and candidate lineage head; then lock exact run and poll to terminal.",
+  "next_action": "Find and lock the exact T8 Combined Acceptance run for head 68808837; poll that run/jobs/steps to terminal. Do not mutate repository while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
   "blocker": null
 }
