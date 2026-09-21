@@ -595,12 +595,7 @@ class Phase6SettingsPanel:
             for col in range(5):
                 page_frame.columnconfigure(col, weight=1)
             extension_state = None
-            result = None
-            if self._context_extension_projection is not None:
-                result = self.render_owned_context_extensions(page_frame, context, next_row)
-            elif self._render_context_extensions is not None:
-                # Compatibility fallback for callers not yet migrated to the panel-owned seam.
-                result = self._render_context_extensions(page_frame, context, next_row)
+            result = self.render_context_extensions(page_frame, context, next_row)
             if result is not None:
                 if not isinstance(result, SettingsPanelExtensionResult):
                     raise TypeError("settings context extension 必須回傳 SettingsPanelExtensionResult")
@@ -1039,6 +1034,15 @@ class Phase6SettingsPanel:
                             entry.bind("<Return>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
                             entry.bind("<FocusOut>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
         return start_row + 1
+
+    def render_context_extensions(self, parent, context, start_row):
+        """Dispatch Settings context extensions through the canonical panel owner."""
+        if self._context_extension_projection is not None:
+            return self.render_owned_context_extensions(parent, context, start_row)
+        if self._render_context_extensions is not None:
+            # Compatibility fallback for callers not yet migrated to the owned projection seam.
+            return self._render_context_extensions(parent, context, start_row)
+        return SettingsPanelExtensionResult(next_row=int(start_row), state=None)
 
     def render_owned_context_extensions(self, parent, context, start_row):
         """Render the live Settings extension cluster inside the canonical panel owner."""
