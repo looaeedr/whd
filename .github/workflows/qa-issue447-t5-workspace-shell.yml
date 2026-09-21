@@ -1,0 +1,141 @@
+name: "QA #447 T5 Workspace Shell Decision"
+
+on:
+  push:
+    branches:
+      - refactor/issue447-t5-workspace-shell-20260921
+    paths:
+      - 'docs/superpowers/checkpoints/issue447-t5-preflight-evidence.txt'
+      - 'docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md'
+      - 'tests/test_issue447_workspace_shell_owner.py'
+      - '.github/workflows/qa-issue447-t5-workspace-shell.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1
+
+jobs:
+  t5:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install --upgrade pip
+          python -m pip install pytest matplotlib -r requirements.txt
+
+      - name: Knowledge Preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "派工 #447 T5 Workspace Shell deletion test remote QA：驗證 NO_EXTRACTION 決策、persistent top area / toolbar / F11 shell layout、單一 shared input/display mode surface、無 callback multiplication、project persistence ownership 不漂移。" \
+            --changed-file docs/superpowers/checkpoints/issue447-t5-preflight-evidence.txt \
+            --changed-file docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md \
+            --changed-file tests/test_issue447_workspace_shell_owner.py \
+            --changed-file .github/workflows/qa-issue447-t5-workspace-shell.yml \
+            --evidence docs/superpowers/checkpoints/issue447-t5-preflight-evidence.txt
+
+      - name: Exact lineage and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$BASE_SHA" HEAD
+          git diff --name-only "$BASE_SHA"...HEAD | sort | tee /tmp/issue447-scope.txt
+          python - <<'PY'
+          from pathlib import Path
+          paths=[x for x in Path('/tmp/issue447-scope.txt').read_text().splitlines() if x]
+          allowed={
+              'docs/superpowers/checkpoints/issue447-t5-preflight-evidence.txt',
+              'docs/superpowers/checkpoints/issue447-t5-workspace-shell-census.md',
+              'tests/test_issue447_workspace_shell_owner.py',
+              '.github/workflows/qa-issue447-t5-workspace-shell.yml',
+          }
+          unexpected=sorted(set(paths)-allowed)
+          assert not unexpected, f'ISSUE447_SCOPE_DRIFT={unexpected}'
+          print('ISSUE447_SCOPE_DRIFT=0')
+          print(f'ISSUE447_CHANGED_FILES={len(paths)}')
+          PY
+
+      - name: Compile T5 contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tests/test_issue447_workspace_shell_owner.py
+
+      - name: Headless deletion-test contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_issue447_workspace_shell_owner.py --tb=short | tee /tmp/issue447-headless.log
+          grep -Eq '[0-9]+ passed' /tmp/issue447-headless.log
+          echo 'T5_DELETION_TEST_CONTRACT=GREEN'
+
+      - name: Xvfb shared-slot and shell regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue447_workspace_shell_owner.py \
+            tests/test_issue431_shared_content_host.py \
+            tests/test_issue432_general_part_shared_host.py \
+            tests/test_issue433_assembly_shared_host.py \
+            tests/test_issue434_corner_data_shared_host.py \
+            tests/test_issue439_single_physical_content_host.py \
+            tests/test_issue440_no_wrapper_shell.py \
+            tests/test_issue335_top_toolbar.py \
+            tests/test_issue340_keyboard_focus.py \
+            --tb=short | tee /tmp/issue447-xvfb.log
+          grep -Eq '[0-9]+ passed' /tmp/issue447-xvfb.log
+          echo 'ACTIVE_MODE_SURFACE_COUNT=1'
+          echo 'SEPARATE_ASSEMBLY_REGION=0'
+          echo 'SEPARATE_CORNER_DATA_REGION=0'
+          echo 'DUPLICATE_EVENT_BINDING=0'
+          echo 'CALLBACK_MULTIPLICATION=0'
+
+      - name: NO_EXTRACTION and protected ownership invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e phase6_workspace_shell.py
+          git diff --exit-code "$BASE_SHA"...HEAD -- \
+            fold_designer_bridge.py \
+            phase6_project_controller.py \
+            phase6_project_file.py \
+            phase6_project_session.py \
+            gui_modules/application/command_router.py \
+            ae_engine \
+            config.ini \
+            '*.dxf'
+          echo 'DECISION=NO_EXTRACTION'
+          echo 'PRODUCTION_SHELL_DRIFT=0'
+          echo 'PROJECT_PERSISTENCE_OWNERSHIP_DRIFT=0'
+          echo 'GEOMETRY_OWNER_DRIFT=0'
+          echo 'DXF_DRIFT=0'
+          echo 'CONFIG_GIT_OBJECT_INVARIANT=1'
+
+      - name: Bounded acceptance summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "ISSUE=447"
+            echo "HEAD_SHA=$GITHUB_SHA"
+            echo "BASE_SHA=$BASE_SHA"
+            echo "DECISION=NO_EXTRACTION"
+          } >> "$GITHUB_STEP_SUMMARY"
