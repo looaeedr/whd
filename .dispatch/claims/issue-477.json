@@ -5,13 +5,13 @@
   "work_branch": "process/issue477-skill-write-preflight-hard-gate-20260922",
   "claimed_at": "2026-09-22T00:54:55+08:00",
   "base_sha": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5",
-  "head_sha": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
-  "phase": "CLEANUP",
+  "head_sha": "bb2d3bad64664b862e525c527b272bbfbec401c3",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
-  "next_action": "Delete both issue477 one-shot workflows in one cleanup commit; compare tested head fb304140e3d098bc8eab3521aa423bb4cb5192a8 to closing head and require workflow-only drift.",
+  "next_action": "Open non-force PR from issue477 closing head bb2d3bad64664b862e525c527b272bbfbec401c3 to cleanup/2d-3d-sync; inspect PR checks, merge with expected head if no issue477 regression, then production readback + close/release.",
   "blocker": null,
-  "last_update": "2026-09-22T01:04:00+08:00",
+  "last_update": "2026-09-22T01:05:00+08:00",
   "preflight_evidence": "docs/superpowers/checkpoints/issue477-skill-write-preflight-evidence.md",
   "remote_qa": {
     "final_qa": {
@@ -57,5 +57,15 @@
     "green_guard_run": 35629240167,
     "final_run": 35629315406,
     "final_summary": "84 passed in 1.05s"
-  }
+  },
+  "drift_audit": {
+    "tested_head": "fb304140e3d098bc8eab3521aa423bb4cb5192a8",
+    "closing_head": "bb2d3bad64664b862e525c527b272bbfbec401c3",
+    "classification": "WORKFLOW_CLEANUP_ONLY",
+    "changed_files": [
+      ".github/workflows/qa-issue477-preflight.yml",
+      ".github/workflows/qa-issue477-red.yml"
+    ]
+  },
+  "target_head_observed": "6e3b3f1181827a370ddeb6664eaf2da5634a03d5"
 }
