@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "3bb81b44060bf0d55c6db13d5e9d8704d9bb4500",
-  "phase": "IMPLEMENTING",
+  "head_sha": "7bd21a1b16111142c96e317e06211e967f9c964c",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "3bb81b44060bf0d55c6db13d5e9d8704d9bb4500",
+  "chain_head": "7bd21a1b16111142c96e317e06211e967f9c964c",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600585458,
@@ -32,8 +32,8 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:33:00+08:00",
-  "next_action": "Add owner-injection regression proving coplanar plane separation is controlled only by AssemblyGeometryToleranceContract, then run focused GREEN.",
+  "last_update": "2026-09-21T21:36:00+08:00",
+  "next_action": "Create and monitor focused T1 GREEN: T1 legal contact + T0 physical mating region + Receiving placement + joint collision classifier.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
