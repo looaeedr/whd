@@ -8,13 +8,13 @@
   "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T09:41:00+08:00",
+  "last_update": "2026-09-21T09:42:30+08:00",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35551653538,
     "head_sha": "c7ec517925bb7e24cea3960845e66764647486d3",
-    "status": "RUN_NOT_CREATED"
+    "status": "in_progress"
   },
-  "next_action": "Discover the push-triggered #445 focused QA run for head c7ec5179, lock that exact run_id+head_sha, and poll it through terminal.",
+  "next_action": "Poll RUN 35551653538 at head c7ec5179 to terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue445-t3-settings-cluster-census.md",
   "red_contract_commit": "b4b97490fe43f70c61ac825bf13062c3ca5d33d1",
