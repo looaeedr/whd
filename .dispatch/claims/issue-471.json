@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:51:00+08:00",
   "base_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "head_sha": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
-  "phase": "CLOSING",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T6",
@@ -27,12 +27,44 @@
     "status": "completed",
     "conclusion": "success",
     "job_id": 106414630438,
-    "counts": {"passed": 4, "failed": 0}
+    "counts": {
+      "passed": 4,
+      "failed": 0
+    },
+    "evidence": [
+      "Gate B active with ALLOW_EXPORT_WITH_DIAGNOSTIC",
+      "left/right real frames emit total 4 stable marks on exact shared Divider",
+      "material and non-MARKING primitives unchanged",
+      "actual DXF save/reopen contains 4 MARKING LINE entities",
+      "failure path allows DXF and returns machine-readable non-silent diagnostics",
+      "Save/Reload preserves mark IDs/geometry; topology removal clears stale marks",
+      "locator planar affine provenance remains locator-owned; Final Material containment still guards CUTTING voids"
+    ]
   },
-  "last_update": "2026-09-22T00:18:20+08:00",
-  "next_action": "Durably accept/close T6 at exact GREEN head d5d66cf31f63911c1fe374d366b4275c5bdb3968, release claim, then immediately acquire dependency-unblocked T7/#472 from this accepted parent.",
+  "last_update": "2026-09-22T00:22:00+08:00",
+  "next_action": "Expand Issue471 workflow to run T6 plus accepted T4/T3/T2/T1/T0 adjacent regressions at the same head lineage, then lock the triggered run to terminal.",
   "blocker": null,
-  "red_evidence": {"test_path":"tests/test_issue471_t6_receiving_marking_activation.py","expected_gap":"ae_engine.receiving_joint_marking production activation module and Gate B status are absent"},
-  "implementation": {"commit":"46b5259a31dd11ed3d79b3dde7583543fa396706","recovery_commit":"d5d66cf31f63911c1fe374d366b4275c5bdb3968","activation":"JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED","disposition":"ALLOW_EXPORT_WITH_DIAGNOSTIC","files":["ae_engine/contracts.py","ae_engine/receiving_joint_marking.py","phase6_manufacturing_contracts.py","phase6_manufacturing_service.py","ae_engine/assembly_marking_geometry.py"]},
-  "provenance": {"executor_source":"chatgpt_automation","cycle_started_at":"2026-09-22T00:13:41+08:00","owning_issue":471,"action":"fresh-read self-owned recovery; verified exact run 35624267308 at d5d66cf31f63911c1fe374d366b4275c5bdb3968 GREEN 4 passed; advanced T6 to closing"}
+  "red_evidence": {
+    "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
+    "expected_gap": "ae_engine.receiving_joint_marking production activation module and Gate B status are absent"
+  },
+  "implementation": {
+    "commit": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+    "recovery_commit": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
+    "activation": "JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED",
+    "disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
+    "files": [
+      "ae_engine/contracts.py",
+      "ae_engine/receiving_joint_marking.py",
+      "phase6_manufacturing_contracts.py",
+      "phase6_manufacturing_service.py",
+      "ae_engine/assembly_marking_geometry.py"
+    ]
+  },
+  "provenance": {
+    "executor_source": "chatgpt_automation",
+    "cycle_started_at": "2026-09-22T00:13:41+08:00",
+    "owning_issue": 471,
+    "action": "fresh-read self-owned recovery; verified exact run 35624267308 at d5d66cf31f63911c1fe374d366b4275c5bdb3968 GREEN 4 passed; advanced T6 to closing"
+  }
 }
