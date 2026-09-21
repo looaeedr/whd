@@ -1,4 +1,4 @@
-# diagnostic-revision: 2
+# review-revision: 3
 name: Issue 467 T1 Review GREEN
 
 on:
@@ -7,6 +7,12 @@ on:
       - workorder/issue464-joint-placement-marking-v1.3-20260921
     paths:
       - '.github/workflows/qa-issue467-t1-review-green.yml'
+      - 'ae_engine/assembly_geometry.py'
+      - 'ae_engine/assembly_placement.py'
+      - 'ae_engine/cabinet_types/policy.py'
+      - 'ae_engine/cabinet_types/receiving.py'
+      - 'tests/test_issue467_t1_legal_contact.py'
+      - 'tests/test_phase6_t16_receiving_placement.py'
   workflow_dispatch:
 
 permissions:
