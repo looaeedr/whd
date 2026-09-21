@@ -16,8 +16,14 @@ whd_schema: WHD_DOC_META_V1
 
 同步遠端 QA / GitHub Actions QA 一旦啟動，上述 sub-skill 強制生效；必須鎖定同一 `run_id + head_sha` 主動輪詢到 terminal。
 
-### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
+### LIVE_REMOTE_QA_AUTHORITY_BRIDGE
+claim/checkpoint 的 remote QA 狀態只是 durable snapshot；只要存在 exact `run_id + head_sha`，每次 resume / poll / final gate 都必須 fresh-read GitHub Actions，**live run status/conclusion 永遠高於 snapshot**。
+- claim/checkpoint 若仍是 `queued / in_progress / WAITING_REMOTE / RUN_NOT_CREATED`，但 live exact run 已 terminal，立即標記 `stale remote-QA snapshot`；禁止套用 10 分鐘保護，也禁止沿用舊的「poll to terminal」next action。
+- live exact run `completed + success` → 同一 flow 立即 reconcile durable state，接續 counts/invariants、cleanup、drift audit、Issue closure/release；有 dependency-unblocked successor 時續做下一票。
+- live exact run failure/cancelled/timed_out → 同一 flow 立即讀 exact failed-job evidence、分類並 repair/retry；不得因 stale snapshot 假等。
+- stale snapshot 只能觸發 reconcile/recovery，**不能成為 stop condition**；本 bridge 與 `monitoring-remote-qa` 的 stale-wait / terminal continuation 規則同義，衝突時採較嚴格的 continuation 規則。
 
+### USER_VISIBLE_CHECKPOINT_GATE_BRIDGE
 本 Skill 一旦進入長流程、remote QA、recovery 或 closure chain，強制服從 `執行開發任務` 的 `USER_VISIBLE_CHECKPOINT_GATE`。該 gate 是 user-visible CHECKPOINT 的唯一 canonical authority；本 Skill 不複製其欄位／refresh state machine，且不得建立第二套 CHECKPOINT authority。
 
 - 需要顯示 CHECKPOINT 時，沿用 canonical gate 的固定標題、欄位與重大 state transition refresh 規則。
@@ -26,7 +32,6 @@ whd_schema: WHD_DOC_META_V1
 - 本 Skill 只保留自己的 domain responsibility；CHECKPOINT 呈現責任一律 bridge 回 canonical gate。
 
 ### NON_TERMINAL_CONTINUE
-
 只要本票仍有任何 required step 處於 pending，例如 Requirement/RED、production/test/Skill 修改、GREEN 驗證、remote QA、workflow cleanup、tested-head → closing-head drift audit、AI Library writeback、owning Issue terminal evidence/closure，該狀態只能標示為「進行中／pending」，**但 pending 本身不是停工點，也不是結束回合的理由**。
 
 - progress update、CHECKPOINT、「尚未完成」、「因此不宣稱完成」都只是 observation，不能當作 `return` condition。
@@ -36,9 +41,7 @@ whd_schema: WHD_DOC_META_V1
 - 任何 user-visible progress/checkpoint 後，只要沒有合法 stop condition，就必須接續下一個 tool/action；不得輸出狀態後直接結束回合。
 
 ## 1. 啟動與能力邊界
-
 ### 1.1 先遵守專案啟動鏈
-
 任何實質派工、production/test/Skill/SOP 修改前，先依 `AGENTS.md` 執行 Phase6 Knowledge Preflight，讀完 required Skills / required references 並留下 evidence。預計修改檔已知後，再依專案規則帶 `--changed-file` 重跑。
 
 修改任務一律遵守 branch-first：反讀 authoritative target HEAD → 從該 HEAD 建新 work branch → 反讀 branch base → 才能寫檔。不得直接 patch `cleanup/2d-3d-sync` / `main`。
@@ -46,7 +49,6 @@ whd_schema: WHD_DOC_META_V1
 當 target 是 X 第二主分支、或同時存在 A/B/C/D 等多個 Master 工單鏈時，**REQUIRED REFERENCE:** `個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md`。
 
 ### WORK_ORDER_LINEAGE_CONTRACT
-
 當一個 Master / 工單被拆成 T1/T2/... 多張子票時，branch-first 的單位是**整張工單**，不是每張子票各自重新從 production 起跑。
 
 - 派工開始時，從當下 authoritative production target HEAD 建立唯一長期 **工單主分支**，並記錄 work-order branch、base SHA、production target、production HEAD。
@@ -61,7 +63,6 @@ whd_schema: WHD_DOC_META_V1
 - 若既有工單已發生 T3/T4 類 lineage divergence，先保留所有已驗收 commit/evidence，建立或修復單一 work-order lineage，再續工；不得為了「從 production 重新開始比較乾淨」而丟掉前序 accepted work。
 
 ### X_SECOND_MAIN_INDEPENDENT_CHAIN_CONTRACT
-
 當 `X` 被指定為第二主分支／主要整合目標（WHD 現行 `X = cleanup/2d-3d-sync`），且 A/B/C/D 等多個 Master 工單組可能並行時，本節是 `WORK_ORDER_LINEAGE_CONTRACT` 的強化硬閘門。
 
 1. **每個 Master 都有自己的 frozen X base。** 建立 A/B/C/D 任一 Master 時，先反讀 X HEAD，記錄 `FROZEN_X_BASE_SHA`，從該 exact SHA 建該 Master 的 `WORK_ORDER_BRANCH`，並反讀證明 branch base 正確。若 A/B/C/D 是同一批次同時建立，除非使用者另有指定，應共用同一個 X snapshot SHA；不同時間建立則各自在建立當下凍結自己的 X HEAD。
@@ -76,14 +77,12 @@ whd_schema: WHD_DOC_META_V1
 10. **任何 cross-chain contamination 一律 fail closed。** frozen base 不明、parent 不符、兄弟鏈 commit 混入、active chain 被 merge/rebase newer X、RUN HEAD 錯鏈、partial task 被要求直接 merge X，都必須先停止該 chain 的 production mutation並修正 authority。
 
 ### 1.2 能力偵測
-
 - 若環境真的支援獨立 Subagent Runtime，可以把 Worker/QA 放到隔離上下文；每個 Subagent 仍必須自行重跑相同 Preflight、讀相同 authority 並留下自己的 evidence。
 - 若環境**不支援**真正背景 Subagent Runtime，必須由同一執行者在同一工作上下文自動完成角色切換，不能停下來等不存在的第三方。
 - 不得宣稱「已派給工程師、等回報」而實際沒有可觀測的 runtime / task / result。
 - 聊天回合不是 remote runner；需要跨回合續工的狀態必須落到 checkpoint / journal / GitHub Issue / remote run，而不是只存在對話文字。
 
 ## 2. 狀態機
-
 固定狀態：
 
 ```text
@@ -102,9 +101,7 @@ whd_schema: WHD_DOC_META_V1
 如果任務本身不需要拆成 T1/T2…，仍要依該任務的設計/驗收 gate 決定何時從 PM 轉 Implementer；不得因「任務小」跳過專案 Preflight、branch-first 或必要 QA。
 
 ## 3. PM：工單與 Authority Gate
-
 ### 3.1 Requirement RED-first
-
 若需要拆工單，固定先讀：
 
 `.agents/skills/engineering/拆解任務工單/SKILL.md`
@@ -117,7 +114,6 @@ PM 必須：
 4. RED 核准後才草擬 T1/T2… breakdown；breakdown 本身仍需使用者第二次核准。
 
 ### 3.2 每張票的 Authority
-
 每張核准工單至少明列：
 
 - `Requirement Authority`
@@ -132,7 +128,6 @@ PM 必須：
 拆票前必須實際搜尋/讀取相關 `個人AI檔案庫/**`。不得只口頭寫「AI 庫已讀」。若 AI 庫與使用者本輪已核准規格衝突，**最新使用者核准規格**是 authority，並把 AI 庫修正標成 `AI Library Writeback: REQUIRED`。
 
 ### 3.3 GitHub owning Issue 硬閘門
-
 若施工來源是 GitHub repository，**每張核准工單都必須先建立真正的 GitHub owning Issue**，再遠端反讀確認：
 
 - `issue_number`
@@ -150,7 +145,6 @@ PM 必須：
 若事後才發現漏建 Issue：立即停止新增 production 變更，補建 Issue，並明確標示 **Retroactive provenance / 施工後補建**；寫入實際施工 branch、已發生 commit/run/evidence 與 target。不得假裝事後 Issue 原本就存在。
 
 ### 3.4 NO_WORK_WITHOUT_CLAIM / 唯一 execution claim
-
 GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Worker 共同使用同一 tracker 時，**一張 GitHub owning Issue 同時間只能有一個 execution claim owner**。
 
 1. `production/test/Skill/AI Library 第一筆 write 前`，Worker 必須先成功取得該 owning Issue 的 execution claim。
@@ -162,7 +156,6 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 7. 若目前環境沒有任何可提供 shared + atomic ownership 的能力，必須把它記成 capability blocker；不得把 branch-local 檔案或 comment 假裝成安全鎖。
 
 ### EXECUTION_CLAIM_PREWRITE_HARD_GATE
-
 成功取得 atomic claim **不等於已獲准寫入**。在每一次會建立或改動 repository state 的動作前，必須立即執行 `tools/execution_claim_guard.py`，以 shared coordination claim 的最新內容作唯一 authority；不得只相信 Issue comment、branch 名稱、聊天記憶或先前一次 guard 結果。
 
 - `branch-create`：任何 implementation / QA branch 建立前都必須先驗 issue、canonical URL、worker、claimed work branch、base SHA 與 claim active state。
@@ -181,7 +174,6 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
 
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
-
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
 
 - `phase/state`：例如 CLAIMED / RED / IMPLEMENTING / GREEN / REMOTE_QA / CLEANUP / DRIFT_AUDIT / CLOSING；
@@ -202,7 +194,6 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 - `尚未認領`：可由下一個 Worker 嘗試 atomic claim。
 
 ### 3.6 STALE_CLAIM_RECOVERY / stale owner 接管
-
 「很久沒更新」不等於可以偷鎖。stale claim recovery 必須先查 owning branch、目前 HEAD、checkpoint/journal、`last_update`、remote QA run/status、Issue 最新活動與既有 owner 是否仍有 non-terminal work。
 
 - **不得直接搶鎖**、覆蓋 owner 或刪除 claim。
@@ -214,7 +205,6 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 只有 owning **Issue terminal** evidence、必要 workflow cleanup、durable state/writeback、tested-head → closing-head drift audit 都完成後，才可 `release claim`。單純 code GREEN、commit 完成或 remote QA success 都不足以釋放 ownership。
 
 ### 3.7 PM → Implementer
-
 只有 requirement RED 已核准、breakdown 已核准、owning Issue 已建立且反讀成功、必要 AI Library authority 已讀完，且該 Worker 已成功取得唯一 execution claim，才輸出：
 
 `[轉移至：實作者]`
@@ -222,9 +212,7 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 然後同一次工作流程直接進下一狀態，不以「已派工」作為停工點。
 
 ## 4. Implementer：實作與 Checkpoint
-
 ### 4.1 角色標記
-
 進 Worker 時回覆開頭使用：
 
 `[當前角色：Tn 實作者]`
@@ -232,7 +220,6 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 `Tn` 依實際工單替換。Implementer 專注於該票 production/test/Skill 修改，不混入新的 PM scope decision。
 
 ### 4.2 實體 checkpoint
-
 每完成一個可恢復的實質修改單位，必須產出**實體 checkpoint path**；可使用 ZIP、durable worktree snapshot、remote artifact 或專案核准的等價形式。checkpoint 不能只是一段聊天文字。
 
 checkpoint / state 至少記錄：
@@ -249,7 +236,6 @@ checkpoint / state 至少記錄：
 若下一步是長回歸，已有尚未封裝的變更時，**先封 checkpoint 再進長回歸**。
 
 ### 4.3 checkpoint provenance
-
 每個已驗收 checkpoint 都要保存 **checkpoint provenance**：來源 FULL/上一 checkpoint SHA256、已修改檔案清單與 SHA256，組成可重算的 **execution tree fingerprint**。
 
 fresh extract、checkpoint restore、Runtime 重建或手動複製後，在 resume 前重算 execution tree fingerprint，與**最近已驗收 checkpoint**比對。
@@ -257,7 +243,6 @@ fresh extract、checkpoint restore、Runtime 重建或手動複製後，在 resu
 若出現部分檔案舊、部分新版、來源包 identity 不符或 fingerprint 不同，標記為**混合狀態**。混合狀態不得靠 mtime、聊天記憶或挑檔補拷貝續工；必須回乾淨目錄從最近已驗收 checkpoint 完整恢復，再重放未驗收變更。
 
 ### 4.4 Implementer → QA
-
 實質修改與 checkpoint 已落盤後輸出：
 
 `[轉移至：總控審查]`
@@ -265,9 +250,7 @@ fresh extract、checkpoint restore、Runtime 重建或手動複製後，在 resu
 然後進 QA。
 
 ## 5. QA：審查與完成條件
-
 ### 5.1 角色標記與審查責任
-
 QA 開頭使用：
 
 `[當前角色：總控審查]`
@@ -275,7 +258,6 @@ QA 開頭使用：
 QA 以獨立 reviewer 視角對照 Requirement Authority、actual diff、tests、AI Library 與 owning Issue。若不合格，退回 Implementer；不得為了關票降低 oracle、改規格或掩蓋失敗。
 
 ### 5.2 AI Library QA
-
 任何 `AI Library Writeback: REQUIRED` 在 QA ACCEPT 前必須：
 
 - 實際落盤；
@@ -284,13 +266,11 @@ QA 以獨立 reviewer 視角對照 Requirement Authority、actual diff、tests�
 - 確認內容與最終已核准 requirement / production 結果一致。
 
 ### 5.3 Owning Issue QA
-
 GitHub ticketed work 必須反讀 owning Issue，確認 terminal run / PASS-FAIL、final head / target SHA、dependency、acceptance 結果已回寫。沒有 owning Issue 或只有 `.scratch` mirror，不得宣告工單完成。
 
 若使用 execution claim，QA 同時確認 claim owner 與實際施工 branch 一致，`CLAIM_PROGRESS_STATE` 已更新到目前終態，且 claim 尚未在 cleanup / drift audit / Issue terminal evidence 完成前被提早釋放。
 
 ### 5.4 QA 完成條件
-
 若本票進入測試回歸，只有同時滿足下列條件才可 ACCEPT：
 
 - intended nodeids 全部有 terminal 狀態，沒有 pending；
@@ -305,9 +285,7 @@ GitHub ticketed work 必須反讀 owning Issue，確認 terminal run / PASS-FAIL
 - execution claim 的 terminal progress 已寫回，Issue terminal + cleanup + drift audit 後才 release claim。
 
 ## 6. 測試 Runner / TIMEOUT 協定
-
 ### 6.1 每批獨立 process group
-
 每個 pytest / GUI batch 使用獨立 **process group / session**（例如 `start_new_session=True` 或等價機制）。timeout、取消或外層 Runtime 中斷時，要終止**整個 process group**，不能只 kill 父 pytest。
 
 優先 TERM，短暫 grace 後再 KILL；最後確認沒有殘留 pytest / Xvfb / child Python。若 runner 有 `killpg` 能力，以整個 process group 為 cleanup 單位。
@@ -315,7 +293,6 @@ GitHub ticketed work 必須反讀 owning Issue，確認 terminal run / PASS-FAIL
 禁止留下 99% CPU orphan pytest 污染下一批。
 
 ### 6.2 Xvfb ownership / hard kill
-
 長 GUI batch 不依賴 `xvfb-run` 當唯一 lifecycle owner。優先由 runner 自行啟動 Xvfb、等待 DISPLAY ready、傳入 pytest，最後自行清理。
 
 Linux 外層可能 `SIGKILL` runner 時，只靠 Python `finally` 不夠；Xvfb child 要有 kernel **parent-death** guard（例如 `PR_SET_PDEATHSIG` / `PDEATHSIG`）。hard-kill regression 必須真的 `SIGKILL` 父 runner，再確認 Xvfb PID 已死亡/成 zombie，不只 mock callback。
@@ -323,7 +300,6 @@ Linux 外層可能 `SIGKILL` runner 時，只靠 Python `finally` 不夠；Xvfb 
 若只能用 `xvfb-run`，只跑短批，並以 pytest log summary 判讀測試本體，不用 wrapper timeout 直接判 production fail。
 
 ### 6.3 TIMEOUT 分類
-
 收到 TIMEOUT / 外層時間切斷後，第一動作是讀 log + process 狀態，**不得直接重跑**。
 
 **complete**
@@ -350,13 +326,11 @@ Linux 外層可能 `SIGKILL` runner 時，只靠 Python `finally` 不夠；Xvfb 
 只有 pytest 自己的 `FAILED` / `ERROR` / collection failure 才是**真 RED**。
 
 ### 6.4 Timeout 後縮批
-
 `incomplete_timeout` 後把未完成範圍二分：例如 100 → 50 → 25 → 10 → 單檔/單 nodeid。
 
 已具完整 PASS summary 的 batch/nodeid 從 pending 移除，禁止為方便整段重跑。單顆獨立 PASS、放在某 prefix 後才 hang/fail 時，用 prefix/binary bisection 找 order-dependent 污染源；禁止改 production 幾何、尺寸常數或放寬 oracle 來讓 gate 過。
 
 ### 6.5 Journal / Resume
-
 長回歸維護可恢復 journal（JSONL 或等價），每批結束立即落盤，至少包含：
 
 - collection count；
@@ -376,9 +350,7 @@ Resume：
 journal 的 collection identity 不能代替 source-tree execution tree fingerprint；兩者都一致才可安全 resume。
 
 ## 7. Remote QA Active Lock
-
 ### 7.1 啟動監控
-
 只要建立 GitHub Actions / remote current-head QA / 等價 remote CI run，立即讀並使用：
 
 `.agents/skills/engineering/monitoring-remote-qa/SKILL.md`
@@ -386,7 +358,6 @@ journal 的 collection identity 不能代替 source-tree execution tree fingerpr
 鎖定本輪 **`run_id + head_sha`**。workflow trigger 只代表監控開始，不是 QA 完成。
 
 ### 7.2 REMOTE_QA_ACTIVE_LOCK
-
 `monitoring-remote-qa` 一旦鎖定 non-terminal run，派工狀態機進入 **`REMOTE_QA_ACTIVE_LOCK`**。
 
 Lock 期間不得：
@@ -401,7 +372,6 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 若 job failure：先讀 failed-job log，依本 Skill TIMEOUT 分類與 `diagnosing-bugs` 判定 production / harness / workflow failure。只有需要 replacement run 時才解除舊 run 的 terminal lock；新 run 建立後立即以新 `run_id + head_sha` 重新上鎖。
 
 ### 7.3 Terminal 後仍未完成
-
 `completed + success` 後仍要：
 
 - 取得 exact PASS/FAIL + invariant evidence；
@@ -416,7 +386,6 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 聊天/工具 Runtime **不得成為 remote QA scheduler**。長 run 本身要能 durable checkpoint/resume；若 Runtime 中斷，下回合從既有 `remote_qa_run_id` / `run_id + head_sha` 接手，禁止因聊天斷線重新 trigger 全套。
 
 ## 8. 30 秒進度回報
-
 只要派工任務尚未完成，對話層**每 30 秒**至少回報一次；內容至少包含：
 
 - **目前工單**；
@@ -429,7 +398,6 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 未完成前不得只回「還在跑」後結束；TIMEOUT 也不是停工理由，而是進入 log 判讀、process-group cleanup、縮批與 resume 的觸發條件。
 
 ## 9. 掃描深模組來源檢查
-
 若工作由 `掃描深模組` 候選轉入實作，任何 Implementer production write 前再確認：
 
 - owning Issue 已建立並反讀；
@@ -440,7 +408,6 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - closing owner 的 QA 必須包含 AI Library writeback、Combined terminal QA、workflow cleanup、drift audit、integration evidence。
 
 ## 10. Skill 自我檢查
-
 修改本 Skill 後必須確認：
 
 - [ ] frontmatter `name: 派工`，且沒有 stale `name: dispatching`。
@@ -479,7 +446,6 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] 未宣稱不存在的背景工程師、subagent 或 scheduler 正在替你工作。
 
 ## MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1
-
 多子票 Master 的 child terminal **不是整條工單 terminal**。每次 child ACCEPT/CLOSE 時，durable child checkpoint 必須結構化寫入：
 
 - `master_issue`
@@ -500,7 +466,6 @@ Turn-exit caller 已知目前屬於 Master 時，必須呼叫 canonical guard �
 Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gate.py` + `tools/continuity_controller.py`。
 
 ## GLOBAL_TURN_EXIT_GATE_BRIDGE
-
 `NON_TERMINAL_CONTINUE` 的 machine enforcement 一律委派 `executable-continuity-controller::ASSISTANT_TURN_EXIT_GATE_V1`。任何 progress/CHECKPOINT/QA PASS/code integrated 回報後，只要 owning checkpoint 仍為 `RUNNING / WAITING_REMOTE / RECOVERING`，結束 assistant turn 前必須呼叫 `assert_turn_exitable`；被拒絕就立即執行 `next_action`，不得等待使用者再輸入「繼續／輪／GO」。
 
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。

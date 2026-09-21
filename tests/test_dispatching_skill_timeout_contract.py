@@ -201,3 +201,18 @@ def test_dispatching_skill_stale_claim_recovery_is_audited_not_silent_steal():
 
     assert "Issue terminal" in text
     assert "release claim" in text
+
+
+def test_dispatching_skill_live_remote_qa_overrides_stale_claim_snapshot():
+    text = _skill_text()
+    for required in (
+        "LIVE_REMOTE_QA_AUTHORITY_BRIDGE",
+        "live run status",
+        "claim/checkpoint",
+        "stale remote-QA snapshot",
+        "禁止套用 10 分鐘保護",
+        "completed + success",
+        "reconcile",
+        "不能成為 stop condition",
+    ):
+        assert required in text
