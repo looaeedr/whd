@@ -160,3 +160,28 @@ def test_production_contact_module_does_not_import_dxf_verifier_or_renderer():
     assert not any("render" in name.lower() for name in imported | imported_from)
     assert "coordinate_tolerance" not in source
     assert "area_tolerance" not in source
+
+
+
+def test_coplanar_distance_is_controlled_by_injected_geometry_owner():
+    import dataclasses
+    import ae_engine.contracts as contracts
+    _module, resolver = _api()
+
+    locator = _region(part_id="divider", normal=(0.0, 1.0, 0.0), flat_mapping={"uv": True})
+    attached = _region(part_id="frame", normal=(0.0, -1.0, 0.0), plane_y=0.25)
+
+    default_result = resolver(locator, attached)
+    assert default_result.diagnostic_code == "CONTACT_NOT_COPLANAR"
+
+    permissive_for_contract_test = dataclasses.replace(
+        contracts.PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES,
+        coplanar_distance_tolerance=0.30,
+    )
+    relaxed_result = resolver(
+        locator,
+        attached,
+        tolerances=permissive_for_contract_test,
+    )
+    assert relaxed_result.status == "LEGAL_CONTACT"
+    assert relaxed_result.contact.evidence["coplanar_distance_limit"] == pytest.approx(0.30)
