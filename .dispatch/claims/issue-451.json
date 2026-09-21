@@ -5,8 +5,8 @@
   "work_branch": "refactor/issue451-t9-durable-writeback-20260921",
   "claimed_at": "2026-09-21T19:18:00+08:00",
   "base_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
-  "head_sha": "6a87ce012ce829c77055c5546ad970e092d3a849",
-  "phase": "CLEANUP",
+  "head_sha": "62e916de9a31cd463cfd0b6ae141a18ed1d33f41",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "master_id": 441,
   "task_id": "T9",
@@ -14,32 +14,38 @@
   "frozen_x_base_sha": "2b9aeccee2c91446ca02cbfe9fdcefee587ba29e",
   "expected_parent_sha": "4b401077d457acd1e754366637c595b3d82f38d4",
   "work_order_branch": "refactor/issue451-t9-durable-writeback-20260921",
-  "chain_head": "6a87ce012ce829c77055c5546ad970e092d3a849",
+  "chain_head": "62e916de9a31cd463cfd0b6ae141a18ed1d33f41",
   "current_x_head_observation": "05a455f602ba3477d9d05377055126fd5019451d",
-  "last_update": "2026-09-21T20:02:00+08:00",
+  "last_update": "2026-09-21T20:05:00+08:00",
   "integration": {
     "pr": 463,
     "method": "merge",
     "force_push": 0,
+    "base_before": "86c6b1aaa391c596dc9ff85b0fd9b34b1c3fba57",
+    "integrated_chain_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
     "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
     "production_readback": "GREEN"
+  },
+  "branch_local_qa": {
+    "run_id": 35594987369,
+    "tested_head": "996e5566335b40f8df0d93ca99e71a724721a4a7",
+    "cleaned_head": "df041e5c55a157a304ba60897d1747dc1ccda74a",
+    "counts": "40 passed, 1 skipped",
+    "cleanup_drift": "WORKFLOW_DELETE_ONLY"
   },
   "post_integration_qa": {
     "run_id": 35595899075,
     "trigger_head_sha": "6a87ce012ce829c77055c5546ad970e092d3a849",
+    "cleaned_head_sha": "62e916de9a31cd463cfd0b6ae141a18ed1d33f41",
     "tested_production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
     "status": "completed",
     "conclusion": "success",
     "job_id": 106320489369,
     "counts": "42 passed, 1 skipped",
-    "invariants": {
-      "POST_INTEGRATION_AUTHORITY_CURRENT_COUNT": 1,
-      "POST_INTEGRATION_PROTECTED_DRIFT": 0,
-      "POST_INTEGRATION_FORCE_PUSH": 0,
-      "POST_INTEGRATION_VALIDATION_MUTATION_DRIFT": 0
-    }
+    "cleanup_drift": "WORKFLOW_DELETE_ONLY"
   },
-  "next_action": "Remove one-shot qa-issue451-post-integration-smoke.yml from the claimed branch, then prove trigger-head to cleaned-head drift is workflow-delete-only and enter closing.",
+  "checkpoint": ".dispatch/checkpoints/issue-451.json",
+  "next_action": "Persist terminal-success continuity checkpoint bound to issue #451 / branch refactor/issue451-t9-durable-writeback-20260921 / head 62e916de9a31cd463cfd0b6ae141a18ed1d33f41, run finalization authorization+proof verification, update #451 evidence, then close/read back #451 before closing #441.",
   "blocker": null,
-  "handoff_ready": false
+  "handoff_ready": true
 }
