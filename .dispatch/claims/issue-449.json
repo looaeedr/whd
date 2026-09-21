@@ -8,9 +8,14 @@
   "head_sha": "22218d6efdd16ae9ef7fe86bed36f8acb17bf9e8",
   "phase": "REMOTE_QA",
   "delegated_branches": [],
-  "last_update": "2026-09-21T14:49:00+08:00",
-  "remote_qa": null,
-  "next_action": "Find and lock the exact T7 GREEN run for head 22218d6e; poll only that run to terminal. Do not mutate repository state while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
+  "last_update": "2026-09-21T14:50:00+08:00",
+  "remote_qa": {
+    "run_id": 35572271880,
+    "head_sha": "22218d6efdd16ae9ef7fe86bed36f8acb17bf9e8",
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "next_action": "Poll exact RUN 35572271880 + head 22218d6e to terminal. Do not mutate repository state while REMOTE_QA_ACTIVE_LOCK is non-terminal.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue449-t7-fix11-init-census.md",
   "current_x_head_observation": "acdfcfc66a46940798bff77df4b8e32bfc10b7ca",
