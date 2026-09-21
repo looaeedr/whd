@@ -34,4 +34,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pytest -q tests/test_issue470_t4_dormant_gate_a.py
+          pytest -q \
+  tests/test_issue470_t4_dormant_gate_a.py \
+  tests/test_issue469_t3_joint_marking_policy.py \
+  tests/test_issue468_t2_contact_local_frame.py \
+  tests/test_issue467_t1_legal_contact.py \
+  tests/test_issue465_t0_physical_mating_region.py
