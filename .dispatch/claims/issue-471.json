@@ -1,29 +1,64 @@
 {
-  "issue":471,
-  "issue_url":"https://github.com/looaeedr/whd/issues/471",
-  "worker":"chatgpt",
-  "work_branch":"workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "claimed_at":"2026-09-21T23:51:00+08:00",
-  "base_sha":"f9aa859396d2d317ad674b829ebf03715e44d948",
-  "head_sha":"970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "phase":"REMOTE_QA",
-  "master_id":464,
-  "task_id":"T6",
-  "target_x":"cleanup/2d-3d-sync",
-  "frozen_x_base_sha":"05a455f602ba3477d9d05377055126fd5019451d",
-  "expected_parent_sha":"f9aa859396d2d317ad674b829ebf03715e44d948",
-  "accepted_t4_head":"947a2299cc4ab9109dbffadef325b12eab1ff3c3",
-  "resolved_t5_head":"f9aa859396d2d317ad674b829ebf03715e44d948",
-  "product_disposition":"ALLOW_EXPORT_WITH_DIAGNOSTIC",
-  "work_order_branch":"workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head":"970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "production_sha":"98300a2c213ce12ad5860e4aa04d1234a48adc80",
-  "execution_claim_guard":"EXECUTION_CLAIM_GUARD_GREEN",
-  "guard_checked_at":"2026-09-22T00:18:20+08:00",
-  "remote_qa":{"status":"in_progress","head_sha":"970eca7fc493122fa67f49bc5d536101d8ebcd83","run_id":35624437100},
-  "last_update":"2026-09-22T00:25:30+08:00",
-  "next_action":"Poll exact run 35624437100 + head 970eca7fc493122fa67f49bc5d536101d8ebcd83 to terminal; on success accept/close/release T6 and acquire T7/#472 from closing HEAD; on failure read exact job/log and repair without unrelated duplicate run.",
-  "blocker":null,
-  "implementation":{"commit":"46b5259a31dd11ed3d79b3dde7583543fa396706","recovery_commit":"d5d66cf31f63911c1fe374d366b4275c5bdb3968","activation":"JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED","disposition":"ALLOW_EXPORT_WITH_DIAGNOSTIC"},
-  "provenance":{"executor_source":"chatgpt_automation","cycle_started_at":"2026-09-22T00:13:41+08:00","owning_issue":471,"action":"verified focused GREEN, expanded adjacent-chain QA, locked exact run 35624437100 at 970eca7fc493122fa67f49bc5d536101d8ebcd83"}
+  "issue": 471,
+  "issue_url": "https://github.com/looaeedr/whd/issues/471",
+  "worker": "chatgpt",
+  "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "claimed_at": "2026-09-21T23:51:00+08:00",
+  "base_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
+  "head_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+  "phase": "RELEASED",
+  "master_id": 464,
+  "task_id": "T6",
+  "target_x": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "expected_parent_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
+  "accepted_t4_head": "947a2299cc4ab9109dbffadef325b12eab1ff3c3",
+  "resolved_t5_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
+  "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
+  "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "chain_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+  "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
+  "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
+  "guard_checked_at": "2026-09-22T00:18:20+08:00",
+  "remote_qa": {
+    "run_id": 35624437100,
+    "head_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106415187236,
+    "counts": {
+      "passed": 41,
+      "failed": 0
+    }
+  },
+  "last_update": "2026-09-22T00:50:00+08:00",
+  "next_action": null,
+  "blocker": null,
+  "implementation": {
+    "commit": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+    "recovery_commit": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
+    "activation": "JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED",
+    "disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC"
+  },
+  "provenance": {
+    "executor_source": "chatgpt_automation",
+    "cycle_started_at": "2026-09-22T00:13:41+08:00",
+    "owning_issue": 471,
+    "action": "verified focused GREEN, expanded adjacent-chain QA, locked exact run 35624437100 at 970eca7fc493122fa67f49bc5d536101d8ebcd83"
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_production_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
+    "validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "qa_only_drift": [
+      ".github/workflows/qa-issue471-t6.yml"
+    ],
+    "remote_qa_run_id": 35624437100,
+    "remote_qa_counts": {
+      "passed": 41,
+      "failed": 0
+    }
+  }
 }
