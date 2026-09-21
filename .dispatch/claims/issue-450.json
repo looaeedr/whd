@@ -5,40 +5,32 @@
   "work_branch": "qa/issue450-t8-combined-acceptance-20260921",
   "claimed_at": "2026-09-21T16:00:00+08:00",
   "base_sha": "1faebaa991aaaed7b968c5432bfc7e04ab32b432",
-  "head_sha": "6d9d32e1d91fcc02476ebac639938225c7807f79",
+  "head_sha": "b725d8ccffe1902daf9c6917599cf7cc9864b621",
   "phase": "REMEDIATION",
   "delegated_branches": [],
-  "last_update": "2026-09-21T17:16:00+08:00",
+  "last_update": "2026-09-21T18:04:00+08:00",
   "remote_qa": {
-    "run_id": 35577683274,
-    "head_sha": "6880883724abcf5bb9e516a4e3bd25c94a9b3593",
+    "run_id": 35582342898,
+    "head_sha": "b725d8ccffe1902daf9c6917599cf7cc9864b621",
     "status": "completed",
     "conclusion": "failure"
   },
   "failure_classification": {
     "focused_invariants": "success",
-    "headless_baseline_failures": 7,
-    "headless_candidate_failures": 12,
     "headless_candidate_only": [
-      "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_exact_t0_refresh_callsite_inventory_is_unchanged",
       "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths",
-      "tests.test_issue338_contrast_readability::test_shared_theme_owns_secondary_warning_and_hidden_text_colors",
       "tests.test_issue339_corner_presentation_fail_closed::test_joint_diagnostic_menu_source_does_not_expose_raw_joint_ids",
       "tests.test_issue369_t5_corner_data_view_owner::test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state"
     ],
-    "xvfb_ab": "failure",
+    "xvfb_candidate_only": [
+      "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths",
+      "tests.test_issue339_corner_presentation_fail_closed::test_joint_diagnostic_menu_source_does_not_expose_raw_joint_ids",
+      "tests.test_issue369_t5_corner_data_view_owner::test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state"
+    ],
+    "candidate_only_errors": [],
     "classifier": "RED",
-    "remediation": {
-      "runtime_fix": "non-CROSS corner mode projection fail-closed",
-      "stale_tests": [
-        "tests/process/test_issue426_phase5_t5_bridge_compression.py",
-        "tests/test_issue338_contrast_readability.py",
-        "tests/test_issue339_corner_presentation_fail_closed.py",
-        "tests/test_issue369_t5_corner_data_view_owner.py",
-        "tests/test_issue125_inspector_property_panel.py"
-      ]
-    }
+    "classification": "three remaining candidate-only failures are stale structural contracts in both headless and Xvfb; focused accepted R1-R8 owner contracts remain GREEN"
   },
-  "next_action": "Update T8 one-shot workflow changed-file Preflight/scope for the exact remediation set, then trigger and lock a fresh replacement Combined Acceptance run.",
+  "next_action": "Guard the exact b725d8cc head, update only the three stale structural tests to the accepted R1-R8 ownership contracts, rerun changed-file Preflight, then trigger and lock a fresh replacement Combined Acceptance run.",
   "blocker": null
 }
