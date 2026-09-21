@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "1bfd92314df6ca74c6b25b796052c8c5fdb33697",
-  "phase": "IMPLEMENTING",
+  "head_sha": "621975545f2b3e2e7734936184a6a3a0f5ed7540",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "1bfd92314df6ca74c6b25b796052c8c5fdb33697",
+  "chain_head": "621975545f2b3e2e7734936184a6a3a0f5ed7540",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35601250370,
@@ -34,8 +34,8 @@
       "joint collision classifier GREEN"
     ]
   },
-  "last_update": "2026-09-21T21:52:00+08:00",
-  "next_action": "Code-review Spec finding: add an actual Receiving seam test using authoritative Inner Door Frame LOWER_TERMINAL_FACE plus the shared horizontal Divider CORE_PHYSICAL_SEGMENT physical skin; rerun T1 GREEN before closure.",
+  "last_update": "2026-09-21T21:57:00+08:00",
+  "next_action": "Create fresh focused T1 review-GREEN workflow on exact head 621975545f2b3e2e7734936184a6a3a0f5ed7540 and run the actual Receiving frame→Divider seam plus prior T1/T0 regressions.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json",
   "recovery_evidence": {
