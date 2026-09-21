@@ -6,12 +6,18 @@ on:
       - workorder/issue464-joint-placement-marking-v1.3-20260921
     paths:
       - '.github/workflows/qa-issue471-t6.yml'
+      - 'ae_engine/contracts.py'
       - 'ae_engine/receiving_joint_marking.py'
       - 'ae_engine/joint_marking_policy.py'
       - 'ae_engine/assembly_marking_geometry.py'
       - 'phase6_manufacturing_service.py'
       - 'phase6_manufacturing_contracts.py'
       - 'tests/test_issue471_t6_receiving_marking_activation.py'
+      - 'tests/test_issue470_t4_dormant_gate_a.py'
+      - 'tests/test_issue469_t3_joint_marking_policy.py'
+      - 'tests/test_issue468_t2_contact_local_frame.py'
+      - 'tests/test_issue467_t1_legal_contact.py'
+      - 'tests/test_issue465_t0_physical_mating_region.py'
   workflow_dispatch:
 
 permissions:
@@ -20,7 +26,7 @@ permissions:
 jobs:
   gate-b:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,9 +36,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install -q pytest -r requirements.txt
-      - name: Run Issue471 T6 Gate B RED
+          python -m pip install -q pytest matplotlib -r requirements.txt
+      - name: Run Issue471 Gate B adjacent chain
         shell: bash
         run: |
           set -euo pipefail
-          pytest -q tests/test_issue471_t6_receiving_marking_activation.py
+          pytest -q \
+            tests/test_issue471_t6_receiving_marking_activation.py \
+            tests/test_issue470_t4_dormant_gate_a.py \
+            tests/test_issue469_t3_joint_marking_policy.py \
+            tests/test_issue468_t2_contact_local_frame.py \
+            tests/test_issue467_t1_legal_contact.py \
+            tests/test_issue465_t0_physical_mating_region.py
