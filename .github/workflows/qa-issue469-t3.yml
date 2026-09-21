@@ -28,8 +28,12 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install -q pytest -r requirements.txt
-      - name: Run Issue469 T3 focused contract
+      - name: Run T3 GREEN and T2-T0 regressions
         shell: bash
         run: |
           set -euo pipefail
-          pytest -q tests/test_issue469_t3_joint_marking_policy.py
+          pytest -q \
+            tests/test_issue469_t3_joint_marking_policy.py \
+            tests/test_issue468_t2_contact_local_frame.py \
+            tests/test_issue467_t1_legal_contact.py \
+            tests/test_issue465_t0_physical_mating_region.py
