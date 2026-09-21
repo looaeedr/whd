@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35667146541,
     "head_sha": "ed200a84444b77b314394b9cb34be8ed4be6c64e",
-    "run_id": null
+    "status": "queued",
+    "conclusion": null
   },
-  "next_action": "Resolve Issue479 final acceptance run at head ed200a84444b77b314394b9cb34be8ed4be6c64e; require FinalScene regressions, physical DXF/persistence, protected architecture and config/DXF invariants GREEN; then cleanup temporary workflows and drift-audit.",
+  "next_action": "Poll locked final acceptance run 35667146541 at head ed200a84444b77b314394b9cb34be8ed4be6c64e to terminal; classify any failed lane immediately, otherwise cleanup/drift audit and close T1.",
   "blocker": null,
-  "last_update": "2026-09-22T07:34:00+08:00",
+  "last_update": "2026-09-22T07:35:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
