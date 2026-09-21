@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35666863913,
     "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue479 T1 RED run for head 24cf451aa265230d7b2af2178be9f0ff6421a046, lock exact run_id+head_sha, read terminal RED, then implement ownership move.",
+  "next_action": "Poll locked RED run 35666863913 at head 24cf451aa265230d7b2af2178be9f0ff6421a046 to terminal; require requirement-level RED, then implement FinalScene composition ownership move.",
   "blocker": null,
-  "last_update": "2026-09-22T07:22:00+08:00",
+  "last_update": "2026-09-22T07:23:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
