@@ -5,27 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:09:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
-  "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
+  "head_sha": "1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": 35666863913,
-    "head_sha": "24cf451aa265230d7b2af2178be9f0ff6421a046",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "EXPECTED_REQUIREMENT_RED",
-    "summary": "2 expected R1 failures / 32 passed / 1 skipped"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1",
+    "run_id": null
   },
-  "next_action": "Move 35-port FinalSceneCompositionPorts wiring from fold_designer_bridge.py into existing Phase6FoldDesignerComposition in gui_modules/application/fold_designer_adapter.py; keep view/renderer/manufacturing owners unchanged; rerun same workflow for GREEN.",
+  "next_action": "Resolve push-triggered Issue479 T1 GREEN run for implementation head 1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1, lock exact run_id+head_sha, poll to terminal, then run focused FinalScene + part/DXF acceptance and cleanup/drift audit.",
   "blocker": null,
-  "last_update": "2026-09-22T07:24:00+08:00",
+  "last_update": "2026-09-22T07:27:00+08:00",
   "preflight": {
     "frozen_parent": "76c7f3faed713622cf90d823a4be88edb4677488",
     "matched_routes": [
@@ -59,5 +56,18 @@
     "test_file": "tests/test_issue479_final_scene_composition_owner.py",
     "commit": "5442179c29f0bc05d2008409c12192fa6190566e",
     "expected_failure": "bridge still owns deep 35-port FinalScene composition"
+  },
+  "implementation": {
+    "head_sha": "1a180c6d4ed01f98c42dd93f8d72e9962a4a42f1",
+    "changed_files": [
+      "fold_designer_bridge.py",
+      "gui_modules/application/fold_designer_adapter.py",
+      "tests/test_issue479_final_scene_composition_owner.py"
+    ],
+    "ownership_change": "35-port FinalScene composition wiring moved from bridge inline constructor into existing Phase6FoldDesignerComposition.final_scene_ports(namespace)",
+    "renderer_owner_changed": false,
+    "manufacturing_owner_changed": false,
+    "facade_binding_added": 0,
+    "second_root_added": false
   }
 }
