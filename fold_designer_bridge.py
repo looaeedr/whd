@@ -3575,10 +3575,18 @@ def _phase6_settings_corner_projection(self, part_key):
                 else target_key
             )
             selection = _phase6_selection_from_raw(state[physical])
-            if selection.cross_mode is CrossCornerMode.RETAIN:
+            if selection.type_id is CornerTypeId.CROSS and selection.cross_mode is CrossCornerMode.RETAIN:
                 direction_options = ("寬", "高")
-            else:
+            elif selection.type_id is CornerTypeId.CROSS and selection.cross_mode is not CrossCornerMode.STANDARD:
                 direction_options = ("寬＋高", "寬", "高")
+            else:
+                direction_options = ()
+            direction_label = (
+                _CORNER_DIRECTION_LABEL[selection.direction]
+                if selection.type_id is CornerTypeId.CROSS
+                and selection.cross_mode is not CrossCornerMode.STANDARD
+                else ""
+            )
             target_rows.append({
                 "target_key": target_key,
                 "side_label": (
@@ -3598,7 +3606,7 @@ def _phase6_settings_corner_projection(self, part_key):
                 ),
                 "mode_label": _CORNER_MODE_LABEL[selection.cross_mode],
                 "mode_kind": selection.cross_mode.name,
-                "direction_label": _CORNER_DIRECTION_LABEL[selection.direction],
+                "direction_label": direction_label,
                 "direction_options": direction_options,
                 "secondary_retain_t": selection.secondary_retain_t,
                 "secondary_depth_t": selection.secondary_depth_t,
