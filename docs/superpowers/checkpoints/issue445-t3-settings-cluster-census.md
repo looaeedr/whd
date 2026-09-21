@@ -64,3 +64,36 @@ NEXT_DECISION=EXTRACT_SELECTED_TK_PRESENTATION_CLUSTER
 ```
 
 Next executable action: add RED ownership contracts that fail while the selected Tk builder implementations remain in `fold_designer_bridge.py`, while locking mutation ownership/reverse-import/facade invariants.
+
+
+## T3 implementation checkpoint — 2026-09-21
+
+- RED contract commit: `b4b97490fe43f70c61ac825bf13062c3ca5d33d1`
+- Panel-owner commit: `fa569fb52058327ade5a3b8bed42ff05908b177e`
+- Bridge-projection commit: `db51ddd6165cc963b56038ddb0ad27175851f946`
+- Validation PR: #456 (draft / validation only)
+- Local clone remains unavailable because runtime DNS cannot resolve github.com; no local result is used as acceptance evidence.
+
+Exact Git-object ownership classifier at `db51ddd6`:
+
+```text
+SELECTED_BUILDERS_REMAINING_IN_BRIDGE=[]
+PANEL_RENDER_OWNED_CONTEXT_EXTENSIONS=1
+PANEL_REVERSE_IMPORT_BRIDGE=0
+PANEL_FORBIDDEN_TRANSACTION_DOMAIN_TOKENS=[]
+OLD_BRIDGE_RENDER_EXTENSION_OWNER=0
+PURE_BRIDGE_EXTENSION_PROJECTION=1
+EXPLICIT_PANEL_CALLBACK_WIRING=1
+STATIC_OWNERSHIP_DECISION=GREEN
+```
+
+Implementation boundary:
+- concrete Tk construction for BoxBody structure, EndCap FW, receiving bottom-wrap and Corner extension rows is now implemented by `Phase6SettingsPanel`;
+- bridge retains domain/state projection and canonical mutation callbacks;
+- EndCap Joint settings compatibility hook is no longer a Settings-panel builder; the drawing-edge owner remains unchanged;
+- transaction/state ownership, symmetry presentation, geometry, DXF and persistence semantics are intentionally unchanged.
+
+Next action:
+1. run PR-triggered focused remote QA against the exact current candidate;
+2. if GREEN, update durable evidence/claim, close validation PR without merge, complete drift/readback and issue #445 acceptance;
+3. only then release #445 and hand #446 the accepted HEAD.
