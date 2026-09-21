@@ -6,6 +6,8 @@ on:
       - work/issue486-phase4-ownership-20260922
     paths:
       - '.github/workflows/qa-issue479-t1-acceptance.yml'
+      - 'tests/process/test_issue425_phase5_t4_final_scene_visibility.py'
+      - 'tests/test_phase6_3d_single_source_renderer.py'
   workflow_dispatch:
 
 permissions:

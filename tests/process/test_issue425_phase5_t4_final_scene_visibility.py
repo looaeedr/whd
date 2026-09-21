@@ -398,11 +398,25 @@ def test_t4_bridge_final_scene_wrappers_are_thin_panel_delegates():
 
 
 def test_t4_final_scene_adapter_keeps_all_four_presentation_ports_wired():
-    source = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_final_scene_adapter",
+    # Phase 4 T1 (#479) moved application wiring ownership into the existing
+    # Phase6FoldDesignerComposition root. The presentation-port contract still
+    # exists; only the source owner changed from bridge inline construction.
+    source = Path(
+        "gui_modules/application/fold_designer_adapter.py"
+    ).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    cls = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef)
+        and node.name == "Phase6FoldDesignerComposition"
     )
-    assert "assembly_corner_text_sink=" in source
-    assert "assembly_part_text_sink=" in source
-    assert "refresh_box_body_piece_info=" in source
-    assert "assembly_visibility=" in source
+    method = next(
+        node for node in cls.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "final_scene_ports"
+    )
+    method_source = ast.get_source_segment(source, method) or ""
+    assert "assembly_corner_text_sink=" in method_source
+    assert "assembly_part_text_sink=" in method_source
+    assert "refresh_box_body_piece_info=" in method_source
+    assert "assembly_visibility=" in method_source

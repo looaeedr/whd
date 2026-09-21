@@ -28,7 +28,14 @@ def _module_function_source(path, name):
 
 
 def test_3d_render_path_consumes_scene_callback_only():
-    src = _function_source("_phase6_final_scene_adapter")
+    # Phase 4 T1 (#479) moved the FinalScene port factory to the existing
+    # application composition owner. Keep validating the same single-source
+    # callback, but at its new authoritative wiring seam.
+    src = _class_method_source(
+        ROOT / "gui_modules" / "application" / "fold_designer_adapter.py",
+        "Phase6FoldDesignerComposition",
+        "final_scene_ports",
+    )
     assert "final_render_provider" in src
     assert "_phase6_query_final_render_data" in src
     forbidden = (
