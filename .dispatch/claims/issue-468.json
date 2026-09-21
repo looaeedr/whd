@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T22:08:00+08:00",
   "base_sha": "90a44fe459da2b78140987d89a995af6255a5934",
   "head_sha": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T2",
@@ -17,13 +17,19 @@
   "chain_head": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35610168340,
     "head_sha": "3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf",
-    "status": "RUN_NOT_RESOLVED_YET",
-    "workflow": "Issue 468 T2 RED"
+    "status": "completed",
+    "conclusion": "failure_expected_red",
+    "job_id": 106367000023,
+    "counts": {
+      "failed": 7,
+      "passed": 0
+    },
+    "evidence": "R3 neutral assembly marking-geometry module/contracts missing"
   },
-  "last_update": "2026-09-21T22:18:00+08:00",
-  "next_action": "Locate and monitor Issue468 T2 RED for exact head 3464d8a21bee6f91cc8c79b8bce45b3a8fff86cf; accept only requirement assertions, not harness/setup failures.",
+  "last_update": "2026-09-21T22:23:00+08:00",
+  "next_action": "Implement T2 contracts and neutral assembly_marking_geometry without modifying T1 legal-contact classification; then run focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-468.json"
 }
