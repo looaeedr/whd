@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "issue": "441",
+  "branch": "cleanup/2d-3d-sync",
+  "head_sha": "05a455f602ba3477d9d05377055126fd5019451d",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35595899075,
+  "job_id": 106320489369,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "#442..#451 all closed/completed by fresh GitHub readback",
+    "#450 Combined Acceptance RUN 35590479636 GREEN with R1-R9 satisfied",
+    "#451 branch-local RUN 35594987369: 40 passed, 1 skipped",
+    "#451 PR #463 merged non-force into cleanup/2d-3d-sync",
+    "exact production SHA 05a455f602ba3477d9d05377055126fd5019451d",
+    "#451 post-integration RUN 35595899075 on exact production: 42 passed, 1 skipped",
+    "AI Library fold-designer-bridge-ownership CURRENT writeback complete",
+    "temporary QA workflows cleaned; protected/config/DXF drift 0; FORCE_PUSH=0"
+  ]
+}
