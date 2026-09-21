@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T23:51:00+08:00",
   "base_sha": "f9aa859396d2d317ad674b829ebf03715e44d948",
-  "head_sha": "24d6ddd43de2e5af22910bfea3675cdb7f0ca675",
-  "phase": "IMPLEMENTING",
+  "head_sha": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T6",
@@ -17,26 +17,29 @@
   "resolved_t5_head": "f9aa859396d2d317ad674b829ebf03715e44d948",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "24d6ddd43de2e5af22910bfea3675cdb7f0ca675",
+  "chain_head": "46b5259a31dd11ed3d79b3dde7583543fa396706",
   "production_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
   "remote_qa": {
-    "run_id": 35622159222,
-    "head_sha": "24d6ddd43de2e5af22910bfea3675cdb7f0ca675",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106407588806,
-    "counts": {
-      "passed": 0,
-      "failed": 4
-    },
-    "classification": "EXPECTED_REQUIREMENT_RED",
-    "root_cause": "ae_engine.receiving_joint_marking production Gate B module absent; checkout/setup/dependencies GREEN"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+    "run_id": null
   },
-  "last_update": "2026-09-22T00:08:00+08:00",
-  "next_action": "Implement pure Receiving Gate B marking resolver + selected ALLOW_EXPORT_WITH_DIAGNOSTIC policy and wire enriched geometry/results into manufacturing service diagnostics; then run focused GREEN.",
+  "last_update": "2026-09-22T00:14:00+08:00",
+  "next_action": "Resolve push-triggered Issue471 Gate B focused run for head 46b5259a31dd11ed3d79b3dde7583543fa396706, lock run_id, poll to terminal, then classify/fix any requirement failures.",
   "blocker": null,
   "red_evidence": {
     "test_path": "tests/test_issue471_t6_receiving_marking_activation.py",
     "expected_gap": "ae_engine.receiving_joint_marking production activation module and Gate B status are absent"
+  },
+  "implementation": {
+    "commit": "46b5259a31dd11ed3d79b3dde7583543fa396706",
+    "activation": "JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED",
+    "disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
+    "files": [
+      "ae_engine/contracts.py",
+      "ae_engine/receiving_joint_marking.py",
+      "phase6_manufacturing_contracts.py",
+      "phase6_manufacturing_service.py"
+    ]
   }
 }
