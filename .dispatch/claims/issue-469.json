@@ -6,7 +6,7 @@
   "claimed_at": "2026-09-21T23:04:30+08:00",
   "base_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
   "head_sha": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T3",
@@ -19,11 +19,22 @@
   "remote_qa": {
     "run_id": 35617924980,
     "head_sha": "016c2c502c85972da8e13e56ae5c0a739fdc1501",
-    "status": "queued",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106393325516,
+    "counts": {
+      "passed": 33,
+      "failed": 0
+    },
+    "evidence": [
+      "T3 policy/diagnostics contract suite GREEN",
+      "T2 contact-local frame regressions GREEN",
+      "T1 legal-contact regressions GREEN",
+      "T0 physical mating-region regressions GREEN"
+    ]
   },
-  "last_update": "2026-09-21T23:31:00+08:00",
-  "next_action": "Poll locked adjacent-regression run 35617924980 at head 016c2c502c85972da8e13e56ae5c0a739fdc1501 to terminal; do not trigger another run.",
+  "last_update": "2026-09-21T23:34:00+08:00",
+  "next_action": "Run T3 code review against accepted T2 parent 69b12789c572f700e9e5626759d9e230eb18d09b and current head 016c2c502c85972da8e13e56ae5c0a739fdc1501; if clean, remove temporary Issue469 workflow and audit tested-to-closing drift.",
   "blocker": null,
   "preflight_evidence": {
     "path": "logs/preflight/issue469-t3-authority-read.txt",
