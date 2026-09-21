@@ -432,8 +432,8 @@ def test_receiving_left_frame_terminal_wall_contacts_actual_shared_divider_suppo
 
     result = resolve_legal_coplanar_contact(locator, attached)
 
-    assert result.status == "LEGAL_CONTACT"
-    assert result.diagnostic_code is None
+    assert result.status == "LEGAL_CONTACT", repr(result)
+    assert result.diagnostic_code is None, repr(result)
     assert result.contact is not None
     assert result.contact.locator_part_id == divider.stable_id
     assert result.contact.attached_part_id == frame.stable_id
