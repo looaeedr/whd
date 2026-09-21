@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "issue": "469",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35617924980,
+  "job_id": 106393325516,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement authority: docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md @ 0fafeae16c7cb0b4e2d1902c004626d7714d97d9",
+    "Expected parent 69b12789c572f700e9e5626759d9e230eb18d09b preserved as accepted T2 lineage",
+    "R3 RED run 35617279995 at fb595ce3ccd9c700b54c62f345c1efa74372856f: 7 failed, 0 harness errors; all failures identified missing JointMarkingPolicy registry module",
+    "Implementation commit 13431faf9367a6148fe818b6665a6285ad368235 adds dormant policy/diagnostics foundation only",
+    "Focused GREEN run 35617809740 at 13431faf9367a6148fe818b6665a6285ad368235: 7 passed, 0 failed",
+    "Adjacent regression run 35617924980 at 016c2c502c85972da8e13e56ae5c0a739fdc1501: 33 passed, 0 failed across T3/T2/T1/T0",
+    "Registry outcomes MATCHED / NO_POLICY_REQUIRED / EXPLICIT_POLICY_ID_MISSING verified",
+    "Ordinary no-policy emits no diagnostic; explicit missing policy emits POLICY_NOT_FOUND",
+    "EXPECTED_REGION_COVERAGE fragment rejection verified without fixture-derived production threshold",
+    "Stable marking identity verified as policy + locator + attached + boundary role",
+    "All v1.3 diagnostic codes represented; export disposition remains UNRESOLVED",
+    "Registry layer has no drawing/export side effects and production activation remains dormant",
+    "Code review fixed point 69b12789c572f700e9e5626759d9e230eb18d09b to tested head 016c2c502c85972da8e13e56ae5c0a739fdc1501: standards findings 0, spec findings 0",
+    "Temporary .github/workflows/qa-issue469-t3.yml removed and remotely absent",
+    "Tested head 016c2c502c85972da8e13e56ae5c0a739fdc1501 to closing head 245b4bcbd14a7ac3a6cc840967f2b0ffb379aa0c is exactly 1 commit ahead with workflow-only deletion",
+    "cleanup/2d-3d-sync observed unchanged at 98300a2c213ce12ad5860e4aa04d1234a48adc80 during T3 cleanup",
+    "AI Library writeback is explicitly owned by closing T7, not T3"
+  ]
+}
