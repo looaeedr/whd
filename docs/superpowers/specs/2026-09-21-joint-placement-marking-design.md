@@ -846,14 +846,24 @@ Grounding：
 
 ### EC-8 — backprojection 與 Final Material containment
 
-Resolved world contact boundary 必須透過 locator authoritative flat provenance反投影。
+Resolved world contact boundary 必須透過 **locator-side authoritative flat provenance** 反投影。
+
+當 attached region 是 true-solid terminal / boundary wall、其 `ResolvedPhysicalMatingRegion.flat_mapping = None` 時，這是合法狀態；**marking solve 不要求 attached side 具備 flat mapping**。attached side 只負責提供 authoritative world physical mating face、supporting plane、outward normal 與 bounded overlap geometry。
+
+所有 manufacturing world→flat backprojection 一律以 **locator region 的 authoritative `flat_mapping`** 為唯一座標 authority，因 MARKING 最終寫入 locator 的 Final Material / FinalScene。若 locator region 沒有 flat mapping：
+
+`BACKPROJECTION_FAILED`
+
+fail closed；不得改用 attached mapping、renderer inverse、bbox 或任意世界座標比例換算補洞。
 
 不得：
 
 - inverse renderer transform；
 - bbox interpolation；
 - world-axis比例換算；
-- test fixture offset。
+- test fixture offset；
+- 因 attached `flat_mapping = None` 而要求雙邊 mapping 才能求解；
+- 將 attached side 的 mapping（即使未來存在）當作 locator marking 座標 authority。
 
 Backproject 後每條 mark：
 
@@ -1375,6 +1385,8 @@ OPEN-1 尚未決定時，可以 merge／部署下列 dormant foundation：
 - `InnerDoorFramePart` 或正式後繼 owner能發布 left/right frame 的 stable `LOWER_TERMINAL_FACE` semantic region；
 - neutral resolver從 canonical render_data + placement + T建出 deterministic world physical face；
 - 尺寸／placement合法變更後 region identity不變、world geometry跟著變；
+- attached terminal region 的 `flat_mapping = None` 仍可完成 legal contact；只要 locator region 有 authoritative flat mapping，marking backprojection 必須成功；
+- locator region 缺 flat mapping → `BACKPROJECTION_FAILED`，不得 fallback 到 attached mapping / renderer / bbox；
 - bbox/minmax、renderer、DXF verifier、pytest fixture都不是 region source；
 - marking resolver若沒有 region object必須 fail closed。
 
@@ -1661,6 +1673,10 @@ Fresh read：
 Confirmed current gap：
 
 > current Inner Door Frame path沒有 authoritative terminal mating-region API；因此本補強把 `ResolvedPhysicalMatingRegion` seam列為 Receiving marking 的前置 RED，而不是讓 marking resolver自行猜 terminal face。
+
+2026-09-21 backprojection ownership clarification：
+
+> attached terminal wall 可合法沒有 `flat_mapping`；manufacturing world→flat 只使用 locator authoritative mapping。這是 EC-8 的 ownership 澄清，不新增第二套座標路徑。
 
 ### Superseded draft record
 
