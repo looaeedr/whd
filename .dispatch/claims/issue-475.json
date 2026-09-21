@@ -5,14 +5,14 @@
   "work_branch": "process/issue475-dispatch-skill-live-remote-authority-20260922",
   "claimed_at": "2026-09-22T00:32:05+08:00",
   "base_sha": "98300a2c213ce12ad5860e4aa04d1234a48adc80",
-  "head_sha": "d503a2d4aeb74569c5ab31fbdc3b2c62ec5d3a93",
-  "phase": "CLEANUP",
+  "head_sha": "198b92e63d9e83ef49694254023714d30d84d774",
+  "phase": "CLOSING",
   "delegated_branches": [],
   "target": "cleanup/2d-3d-sync",
   "baseline_skill_blob_sha": "a52053d956822154a8bb68116321478334459183",
-  "next_action": "Delete one-shot .github/workflows/qa-issue475-skill-authoring.yml from branch, classify tested-head→closing-head as workflow-only drift, remote-readback Skill/test, then integrate accepted #475 into cleanup/2d-3d-sync and close issue.",
+  "next_action": "Create PR from process/issue475-dispatch-skill-live-remote-authority-20260922 into cleanup/2d-3d-sync; merge non-force after live target readback, then close/readback #475 and release claim.",
   "blocker": null,
-  "last_update": "2026-09-22T00:41:00+08:00",
+  "last_update": "2026-09-22T00:42:00+08:00",
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "red_evidence": {
     "test": "tests/test_dispatching_skill_timeout_contract.py::test_dispatching_skill_live_remote_qa_overrides_stale_claim_snapshot",
@@ -30,5 +30,13 @@
     "conclusion": "success",
     "job_id": 106423827711,
     "summary": "SKILL_STRUCTURE_GREEN 473; Phase6 Knowledge Preflight success; 54 passed in 0.40s"
+  },
+  "drift_audit": {
+    "tested_head": "d503a2d4aeb74569c5ab31fbdc3b2c62ec5d3a93",
+    "closing_head": "198b92e63d9e83ef49694254023714d30d84d774",
+    "classification": "WORKFLOW_CLEANUP_ONLY",
+    "changed_files": [
+      ".github/workflows/qa-issue475-skill-authoring.yml"
+    ]
   }
 }
