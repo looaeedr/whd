@@ -21,13 +21,14 @@
   "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
   "guard_checked_at": "2026-09-22T05:08:19+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35664013640,
     "head_sha": "b32b50952ea14be998997d272220a97a5df7c9a4",
-    "run_id": null,
+    "status": "queued",
+    "conclusion": null,
     "purpose": "candidate-only remediation verification"
   },
-  "last_update": "2026-09-22T06:50:00+08:00",
-  "next_action": "Resolve push-triggered candidate-only remediation run for head b32b50952ea14be998997d272220a97a5df7c9a4; poll preflight/headless/xvfb to terminal. On GREEN launch fresh full T7 Combined Acceptance.",
+  "last_update": "2026-09-22T06:51:00+08:00",
+  "next_action": "Poll locked run 35664013640 at head b32b50952ea14be998997d272220a97a5df7c9a4 to terminal; require preflight/headless/xvfb GREEN.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
