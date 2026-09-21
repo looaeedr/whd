@@ -5,18 +5,28 @@
   "work_branch": "refactor/issue446-t4-registry-diagnostics-owner-20260921",
   "claimed_at": "2026-09-21T11:24:00+08:00",
   "base_sha": "cc2af5a40769d8897ecd81679bfcb81fa36e5599",
-  "head_sha": "cb3b51a518a7532147bb35df275f0a43f489b4df",
-  "phase": "ACCEPTANCE",
+  "head_sha": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
+  "phase": "DRIFT_AUDIT",
   "delegated_branches": [],
-  "last_update": "2026-09-21T12:00:06+08:00",
+  "last_update": "2026-09-21T12:24:00+08:00",
   "remote_qa": {
     "run_id": 35558693211,
     "head_sha": "cb3b51a518a7532147bb35df275f0a43f489b4df",
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Run acceptance evidence readback for exact RUN 35558693211 at cb3b51a5, then guarded one-shot workflow cleanup, tested-head to closing-head drift audit, Issue closure, and claim release.",
+  "next_action": "Persist TERMINAL_SUCCESS checkpoint bound to issue #446 / branch / cleaned head b9fcf32b; verify finalization identity; write terminal evidence to Issue #446; close/readback Issue; release claim; then dispatch #447 from accepted cleaned head.",
   "blocker": null,
   "checkpoint": "docs/superpowers/checkpoints/issue446-t4-registry-census.md",
-  "red_contract_commit": "d9a3f155b6762dbde8fc6728665f25830f6ffc96"
+  "red_contract_commit": "d9a3f155b6762dbde8fc6728665f25830f6ffc96",
+  "cleanup": {
+    "tested_head": "cb3b51a518a7532147bb35df275f0a43f489b4df",
+    "cleaned_head": "b9fcf32b5aa652bf283be5ce5c3840aa4d197ed1",
+    "workflow_removed": true,
+    "drift": "workflow-delete-only",
+    "ahead_by": 1,
+    "changed_files": [
+      ".github/workflows/qa-issue446-t4-registry-panel.yml"
+    ]
+  }
 }
