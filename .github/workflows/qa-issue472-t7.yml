@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .scratch/issue472
-          python tools/phase6_skill_preflight.py             --task "T7 Combined Acceptance for Joint Placement MARKING with physical DXF, Save-Reload, broader Headless/Xvfb, protected invariants, durable AI Library writeback and X integration-readiness."             --changed-file .github/workflows/qa-issue472-t7.yml             --changed-file logs/preflight/issue472-t7-authority-read.txt             --evidence .scratch/issue472/preflight.txt
+          python tools/phase6_skill_preflight.py             --task "T7 Combined Acceptance for Joint Placement MARKING with physical DXF, Save-Reload, broader Headless/Xvfb, protected invariants, durable AI Library writeback and X integration-readiness."             --changed-file .github/workflows/qa-issue472-t7.yml             --changed-file logs/preflight/issue472-t7-authority-read.txt             --evidence logs/preflight/issue472-t7-authority-read.txt
       - name: Prove Headless plus Xvfb covers full collection
         shell: bash
         run: |

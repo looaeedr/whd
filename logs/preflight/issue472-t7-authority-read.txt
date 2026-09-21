@@ -22,3 +22,7 @@ LINEAGE_AUDIT: T0->T1->T2->T3->T4->T5->T6 all ahead / behind_by=0
 X_DRIFT: current X is 17 commits ahead of frozen base; no marking production-file overlap observed
 PROCESS_DRIFT_RECOVERY: 82b9410e process-only dispatch-skill change restored; net diff from T6 validation head is empty
 T7_WRITEBACK_PLAN: avoid 06_WHD shared file because current X changed it; write accepted contract into 04 / 09 / phase6_assembly_relief_pitfalls
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
