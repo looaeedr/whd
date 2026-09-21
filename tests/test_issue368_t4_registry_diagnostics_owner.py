@@ -6,6 +6,7 @@ from pathlib import Path
 
 BRIDGE = Path("fold_designer_bridge.py")
 CONTROLLER = Path("phase6_registry_diagnostics_controller.py")
+PANEL = Path("phase6_registry_diagnostics_panel.py")
 
 TARGETS = {
     "_phase6_registry_validate_formula_form",
@@ -15,12 +16,9 @@ TARGETS = {
     "_phase6_registry_run_formula_matrix",
     "_phase6_registry_preview_assembly_3d",
     "_phase6_registry_promote_form",
-    "_phase6_registry_refresh_rule_tree",
-    "_phase6_registry_rule_selected",
     "_phase6_joint_form_add",
     "_phase6_joint_form_delete",
     "_phase6_create_relief_promotion_candidates",
-    "_phase6_refresh_joint_diagnostic_menu",
     "_phase6_selected_joint_diagnostic",
     "_phase6_update_assembly_diagnostic_status",
 }
@@ -129,12 +127,9 @@ def test_issue368_bridge_commands_delegate_to_registry_controller():
         "_phase6_registry_run_formula_matrix": "run_formula_matrix",
         "_phase6_registry_preview_assembly_3d": "merge_3d_evidence",
         "_phase6_registry_promote_form": "promote_candidate",
-        "_phase6_registry_refresh_rule_tree": "load_rule_records",
-        "_phase6_registry_rule_selected": "rule_record",
         "_phase6_joint_form_add": "route_joint_add",
         "_phase6_joint_form_delete": "route_joint_delete",
         "_phase6_create_relief_promotion_candidates": "build_promotion_candidates",
-        "_phase6_refresh_joint_diagnostic_menu": "diagnostic_ids",
         "_phase6_selected_joint_diagnostic": "selected_diagnostic",
         "_phase6_update_assembly_diagnostic_status": "diagnostic_status",
     }
@@ -143,3 +138,74 @@ def test_issue368_bridge_commands_delegate_to_registry_controller():
         if method not in ast.unparse(funcs[name]):
             missing.append((name,method))
     assert missing == [], f"RED: bridge T4 delegates missing: {missing}"
+
+def test_issue446_registry_diagnostics_presentation_moves_to_panel_without_semantic_ownership():
+    assert PANEL.is_file(), "T4 v3: missing Registry diagnostics presentation owner"
+    tree = _tree(PANEL)
+    classes = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef)
+    }
+    panel = classes.get("Phase6RegistryDiagnosticsPanel")
+    assert panel is not None
+    methods = {
+        node.name
+        for node in panel.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    required = {
+        "open_registry_editor",
+        "build_assembly_diagnostics",
+        "refresh_rule_rows",
+        "populate_rule_form",
+        "refresh_joint_rows",
+        "refresh_joint_diagnostic_menu",
+        "draw_registry_preview",
+    }
+    assert required <= methods
+
+    source = PANEL.read_text(encoding="utf-8")
+    forbidden = (
+        "fold_designer_bridge",
+        "ae_engine.certified_relief_registry",
+        "save_relief_rule_candidate",
+        "promote_relief_rule_candidate",
+        "evaluate_editable_endcap_rule_record",
+        "build_relief_promotion_candidate",
+        "_phase6_add_user_joint",
+        "_phase6_delete_user_joint",
+        "resolve_manufacturing_geometry",
+    )
+    assert not [token for token in forbidden if token in source]
+
+
+def test_issue446_bridge_keeps_semantic_registry_callbacks_but_not_selected_tk_constructors():
+    funcs = _functions(_tree(BRIDGE))
+    selected_presentation = {
+        "_phase6_form_choice",
+        "_phase6_registry_preview_2d",
+        "_phase6_registry_refresh_rule_tree",
+        "_phase6_registry_rule_selected",
+        "_phase6_joint_form_refresh",
+        "_phase6_open_relief_registry_form",
+        "_phase6_refresh_joint_diagnostic_menu",
+        "_phase6_build_assembly_diagnostics",
+    }
+    assert not (selected_presentation & set(funcs))
+    semantic_callbacks = {
+        "_phase6_registry_validate_formula_form",
+        "_phase6_registry_candidate_form_is_current",
+        "_phase6_registry_require_current_candidate",
+        "_phase6_registry_save_candidate_form",
+        "_phase6_registry_run_formula_matrix",
+        "_phase6_registry_preview_assembly_3d",
+        "_phase6_registry_promote_form",
+        "_phase6_joint_form_add",
+        "_phase6_joint_form_delete",
+        "_phase6_create_relief_promotion_candidates",
+        "_phase6_selected_joint_diagnostic",
+        "_phase6_update_assembly_diagnostic_status",
+    }
+    assert semantic_callbacks <= set(funcs)
+
