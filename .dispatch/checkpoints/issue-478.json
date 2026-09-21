@@ -1,0 +1,31 @@
+{
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "branch": "work/issue486-phase4-ownership-20260922",
+  "chain_next_action": "Acquire shared execution claim for #479 on the same work-order lineage at accepted T0 HEAD 76c7f3faed713622cf90d823a4be88edb4677488, then execute T1 FinalScene composition ports ownership.",
+  "chain_reason": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "evidence": [
+    "Phase6 preflight initial + planned-changed-files exit 0; canonical registry blob 4ed99227c91212fc06fe00074430975884b2e79a.",
+    "T0 census docs/superpowers/checkpoints/issue478-t0-ownership-census.md committed on work-order branch.",
+    "Frozen base 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9; bridge blob 22335b2dd2c4421d76698423d36b0aa967f5f1d3; 8046 lines; 340 top-level defs/classes.",
+    "R1: FinalScene inline wiring 35/35 ports at bridge lines 755-873.",
+    "R2: derived sync 201 LOC mixes projection tokens with 16 navigation mutation calls.",
+    "R3: linked endcap 78 LOC classified for T3 decision; no T0 ownership decision.",
+    "R4: exact six Settings projection/glue functions inventoried.",
+    "Architecture baseline: reverse-import total 0; facade bindings 69; workspace shell and part editor session modules absent.",
+    "Protected baseline: config blob 3165d9f4192ac80fcfdca54fbbe7d1a22900a0d1; 10 DXF blobs inventoried.",
+    "Frozen-base -> T0 HEAD diff contains only preflight and census evidence files; production/test/Skill/DXF/config drift = 0.",
+    "Remote QA not created: T0 is source census only with zero runtime/production/test mutation."
+  ],
+  "head_sha": "76c7f3faed713622cf90d823a4be88edb4677488",
+  "issue": "#478",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": "#486",
+  "next_action": null,
+  "next_issue": "#479",
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
+}
