@@ -214,6 +214,30 @@ class PartExportResult:
 
 
 @dataclass(frozen=True)
+class ResolvedPhysicalMatingRegion:
+    """Geometry-neutral resolved physical face used by assembly mating logic.
+
+    The physical-part owner supplies the semantic region identity; this contract
+    carries only the resolved world-space face and its provenance.  Boundary-wall
+    regions such as an Inner Door Frame terminal face are allowed to have no flat
+    mapping.  Locator policies may require a mapping in later marking stages.
+    """
+
+    part_id: str
+    region_id: str
+    region_role: str
+    physical_face_kind: str
+    supporting_plane: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    outward_normal: tuple[float, float, float]
+    world_polygon: tuple[tuple[float, float, float], ...]
+    flat_mapping: object | None = None
+    provenance: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class FinalMaterialCollisionPart:
     """GUI-independent neutral final-material contract for collision solving.
 
