@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-22T00:55:00+08:00",
   "base_sha": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-  "head_sha": "58d5898e54a63449171f05e736e01445afc0d194",
-  "phase": "IMPLEMENTING",
+  "head_sha": "ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8",
+  "phase": "REMOTE_QA",
   "master_id": 464,
   "task_id": "T7",
   "target_x": "cleanup/2d-3d-sync",
@@ -15,33 +15,26 @@
   "accepted_t6_head": "d5d66cf31f63911c1fe374d366b4275c5bdb3968",
   "t6_validation_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
   "t6_validation_drift_class": "QA_WORKFLOW_ONLY",
-  "chain_head": "58d5898e54a63449171f05e736e01445afc0d194",
+  "chain_head": "ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8",
   "current_x_head": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "product_disposition": "ALLOW_EXPORT_WITH_DIAGNOSTIC",
-  "execution_claim_guard": "PENDING_REFRESH",
-  "guard_checked_at": null,
+  "execution_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
+  "guard_checked_at": "2026-09-22T03:55:45+08:00",
   "remote_qa": {
-    "run_id": 35628673353,
-    "head_sha": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
-    "status": "completed",
-    "conclusion": "failure",
-    "jobs": {
-      "preflight": {"job_id": 106429213877, "conclusion": "success"},
-      "focused": {"job_id": 106429461144, "conclusion": "success"},
-      "headless": {"job_id": 106429461151, "conclusion": "failure", "summary": "2719 passed / 10 failed / 297 skipped / 197 deselected"},
-      "xvfb": {"job_id": 106429461304, "conclusion": "failure", "summary": "170 passed / 26 failed / 1 skipped / 3026 deselected"}
-    },
-    "protected_invariants": "SUCCESS in focused/headless/xvfb",
-    "classification": "FOCUSED_MARKING_GREEN; RESIDUAL_FULL_SUITE_FAILURES_ARE_OUTSIDE_MARKING_CHANGED_FILES_AND_REQUIRE BASELINE/RELEVANT-SCOPE CLASSIFICATION"
+    "run_id": 35647903543,
+    "head_sha": "ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "broader Headless/Xvfb acceptance after durable AI Library writeback"
   },
-  "last_update": "2026-09-22T03:57:00+08:00",
-  "next_action": "Run execution claim guard at closing HEAD 58d5898e54a63449171f05e736e01445afc0d194, then execute relevant broader Headless/Xvfb GREEN and current-X virtual-merge integration-readiness without merging X into chain.",
+  "last_update": "2026-09-22T03:56:20+08:00",
+  "next_action": "Poll exact run 35647903543 + head ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8. On success continue current-X virtual-merge integration-readiness, cleanup/drift audit, T7 closure/release and Master #464 finalization; on failure inspect bounded failed jobs and repair/classify.",
   "blocker": null,
   "provenance": {
     "executor_source": "chatgpt_automation",
     "cycle_started_at": "2026-09-22T03:55:09+08:00",
     "owning_issue": 472,
-    "action": "reconcile self-owned claim from tested QA head to descendant AI-library closing head before guarded broader acceptance"
+    "action": "EXECUTION_CLAIM_GUARD_GREEN; wrote preflight continuation evidence; triggered and locked broader T7 acceptance run 35647903543 at ddf2a9a95df25bdc7fe82c59b5a111731fe9aca8"
   },
   "review_evidence": {
     "reviewed_head": "8aaee969589a3ab495b3263db81edf9882eea9ab",
@@ -50,24 +43,15 @@
     "result": "GREEN",
     "durable_comment_id": 5764486270
   },
-  "recovery_evidence": {
-    "previous_head": "970eca7fc493122fa67f49bc5d536101d8ebcd83",
-    "live_head": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
-    "drift_commit": "82b9410e1d47e8d0d9da24616cfa050d51db08fd",
-    "drift_file": ".agents/skills/engineering/派工/SKILL.md",
-    "drift_class": "PROCESS_ONLY_UNRELATED_TO_MASTER_464",
-    "resolution": "restore work-order branch file content to T6 validation head before T7 acceptance",
-    "restored_head": "25be634f105bdce3a4e7e7ff496e0fddc63dd74e",
-    "net_diff_files": []
-  },
-  "remediation": {
-    "source_run_id": 35625887983,
-    "confirmed_regression": "BoxBodyStructureRenderData incorrectly passed through dataclasses.replace(scene=..., metadata=...) in joint-marking stale cleanup",
-    "fix_head": "8aaee969589a3ab495b3263db81edf9882eea9ab",
-    "changed_files": ["ae_engine/receiving_joint_marking.py", "tests/test_issue471_t6_receiving_marking_activation.py"]
-  },
   "ai_library_writeback": {
     "closing_head": "58d5898e54a63449171f05e736e01445afc0d194",
     "status": "DURABLE"
+  },
+  "prior_remote_qa": {
+    "run_id": 35628673353,
+    "head_sha": "107cf4f17ce0afd5ff312d5d787f40eddc279fde",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "FOCUSED_MARKING_GREEN; broader residuals required post-writeback rerun"
   }
 }
