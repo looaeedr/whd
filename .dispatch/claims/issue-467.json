@@ -5,8 +5,8 @@
   "work_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
   "claimed_at": "2026-09-21T21:00:00+08:00",
   "base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
-  "head_sha": "8527043c19e63f5f16289720019af772ba6ec522",
-  "phase": "IMPLEMENTING",
+  "head_sha": "f4a6a347885a6f3646170bb85bdc598329245cee",
+  "phase": "GREEN",
   "delegated_branches": [],
   "master_id": 464,
   "task_id": "T1",
@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "expected_parent_sha": "0094d55c0a470fb51b104f53778fef1e343a0401",
   "work_order_branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
-  "chain_head": "8527043c19e63f5f16289720019af772ba6ec522",
+  "chain_head": "f4a6a347885a6f3646170bb85bdc598329245cee",
   "production_sha": "05a455f602ba3477d9d05377055126fd5019451d",
   "remote_qa": {
     "run_id": 35600585458,
@@ -32,8 +32,8 @@
       "neutral ae_engine.assembly_contact module missing"
     ]
   },
-  "last_update": "2026-09-21T21:21:00+08:00",
-  "next_action": "Consolidate the T0 terminal physical-face numerical path onto PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES, then run focused T1 GREEN.",
+  "last_update": "2026-09-21T21:24:00+08:00",
+  "next_action": "Create and run focused T1 GREEN on head f4a6a347885a6f3646170bb85bdc598329245cee: T1 legal-contact contracts + T0 physical mating-region regressions + Receiving placement.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-467.json"
 }
