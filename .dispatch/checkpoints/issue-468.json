@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "468",
+  "branch": "workorder/issue464-joint-placement-marking-v1.3-20260921",
+  "head_sha": "69b12789c572f700e9e5626759d9e230eb18d09b",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35611157459,
+  "job_id": 106370304896,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement authority: docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md @ 0fafeae16c7cb0b4e2d1902c004626d7714d97d9",
+    "Expected parent 90a44fe459da2b78140987d89a995af6255a5934 preserved in work-order lineage",
+    "Remote QA run 35611157459 at tested head 48bd34c7c6923786d98bbf86bc52fdcc06c581d6 completed success: 26 passed, 0 failed",
+    "CONTACT_LOCAL_FRAME_V1, rigid rotation, divider inward and mirror semantic side-role invariance GREEN",
+    "Attached terminal flat_mapping=None legal and locator-region mapping is sole world-to-flat authority",
+    "Missing locator mapping produces BACKPROJECTION_FAILED; no renderer/bbox/world-axis fallback accepted",
+    "Code review fixed point 90a44fe459da2b78140987d89a995af6255a5934 to reviewed head 48bd34c7c6923786d98bbf86bc52fdcc06c581d6: standards findings 0, spec findings 0",
+    "Temporary qa-issue468-t2-red.yml and qa-issue468-t2-green.yml removed and remotely absent",
+    "Tested head 48bd34c7c6923786d98bbf86bc52fdcc06c581d6 to closing head 69b12789c572f700e9e5626759d9e230eb18d09b is exactly 2 commits ahead with workflow-only deletions",
+    "cleanup/2d-3d-sync observed unchanged at 98300a2c213ce12ad5860e4aa04d1234a48adc80 during T2 cleanup"
+  ]
+}
