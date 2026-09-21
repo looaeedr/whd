@@ -6,16 +6,21 @@
   "claimed_at": "2026-09-21T13:22:00+08:00",
   "base_sha": "9ccd3f51dbda0a9096c2ec964aa69c803ee09238",
   "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
-  "last_update": "2026-09-21T13:52:00+08:00",
+  "last_update": "2026-09-21T13:55:00+08:00",
   "remote_qa": {
     "run_id": 35562081929,
     "head_sha": "7e42ade27cf48b0b22fb431f57ae5bba85aea372",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Read exact failed step/log for RUN 35562081929. Classify contract false positive vs inherited baseline debt vs candidate regression before any mutation; do not rerun blindly.",
+  "next_action": "Patch only the T6 contract/workflow update-intent guard to recognize getattr+local-call compatibility routing; keep production code untouched, then create a fresh one-shot QA run.",
   "blocker": null,
-  "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md"
+  "checkpoint": "docs/superpowers/checkpoints/issue448-t6-part-editor-census.md",
+  "failure_classification": {
+    "run_id": 35562081929,
+    "type": "CONTRACT_FALSE_POSITIVE",
+    "evidence": "test expected Attribute-call submit_update_intent, but _fix11_activate_part intentionally resolves submit via getattr(self, 'submit_update_intent', None) then calls local submit(reason, commit=True). Production unchanged."
+  }
 }
