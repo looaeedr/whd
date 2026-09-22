@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T15:53:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T15:56:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35749863841,
     "head_sha": "5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106820881631,
+    "summary": "31 PASS / 1 FAIL; only #510 legacy harness fails because root.withdraw() makes winfo_ismapped false. #517 focused behavior, #187, resolved export, T7 project/export all GREEN. config invariant GREEN."
   },
-  "next_action": "Poll exact combined regression run 35749863841 at head 5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac to terminal; no mutation while active.",
+  "next_action": "Test-only harness correction: make #510 GUI root visible for its mapped assertion and add #510 test path to the temporary combined-QA workflow trigger; production remains unchanged.",
   "blocker": null,
   "delegated_branches": []
 }
