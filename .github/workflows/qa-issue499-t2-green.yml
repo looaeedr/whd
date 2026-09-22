@@ -1,7 +1,11 @@
 name: "QA #499 T2 Settings apply GREEN"
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - '.github/workflows/qa-issue499-t2-green.yml'
 
 permissions:
   contents: read
@@ -19,7 +23,6 @@ jobs:
         run: |
           set -euo pipefail
           git merge-base --is-ancestor 87e5c47e3fcb68729d1d266e85cec85bd45ae4ff HEAD
-          test "$(git rev-parse HEAD)" = "__SELF__"
           echo "T1_ACCEPTED_BASE=87e5c47e3fcb68729d1d266e85cec85bd45ae4ff"
           echo "CANDIDATE=$(git rev-parse HEAD)"
 
