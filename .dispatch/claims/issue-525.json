@@ -1,0 +1,20 @@
+{
+  "issue": 525,
+  "issue_url": "https://github.com/looaeedr/whd/issues/525",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T02:19:30+08:00",
+  "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
+  "head_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T02:19:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "A4",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run Stage A Combined architecture acceptance on integrated HEAD and emit exact STAGE_B_REQUIRED decision from A0 frozen budget symbols.",
+  "blocker": null
+}
