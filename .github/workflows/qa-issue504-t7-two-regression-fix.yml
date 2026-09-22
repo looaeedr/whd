@@ -1,0 +1,29 @@
+name: "QA #504 T7 two-regression fix"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - '.github/workflows/qa-issue504-t7-two-regression-fix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  focused-xvfb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run exact two regressions
+        run: |
+          xvfb-run -a python -m pytest -q             tests/test_issue119_corner_data_transition_ui.py::test_red_119_2b_family_switch_has_one_corner_data_refresh_owner             tests/test_phase6_head_tail_close_perf.py::test_head_tail_save_does_not_set_unchanged_global_whd             --tb=short
