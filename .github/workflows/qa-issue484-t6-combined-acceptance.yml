@@ -1,0 +1,266 @@
+name: Issue 484 T6 Phase4 Combined Acceptance
+
+on:
+  push:
+    branches:
+      - work/issue486-phase4-ownership-20260922
+    paths:
+      - '.github/workflows/qa-issue484-t6-combined-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  T0_BASELINE_SHA: 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9
+
+jobs:
+  baseline-headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Checkout fixed T0 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$T0_BASELINE_SHA"
+          test "$(git rev-parse HEAD)" = "$T0_BASELINE_SHA"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run fixed-baseline Headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue484/baseline-headless
+          set +e
+          python -m pytest -q -ra --tb=short \
+            --junitxml=.scratch/issue484/baseline-headless/junit.xml \
+            2>&1 | tee .scratch/issue484/baseline-headless/pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$rc" > .scratch/issue484/baseline-headless/rc.txt
+          printf '%s\n' "$T0_BASELINE_SHA" > .scratch/issue484/baseline-headless/head.sha
+      - name: Upload baseline Headless evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue484-baseline-headless
+          path: .scratch/issue484/baseline-headless
+          if-no-files-found: error
+
+  candidate-headless:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run candidate Headless
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue484/candidate-headless
+          set +e
+          python -m pytest -q -ra --tb=short \
+            --junitxml=.scratch/issue484/candidate-headless/junit.xml \
+            2>&1 | tee .scratch/issue484/candidate-headless/pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$rc" > .scratch/issue484/candidate-headless/rc.txt
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue484/candidate-headless/head.sha
+      - name: Upload candidate Headless evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue484-candidate-headless
+          path: .scratch/issue484/candidate-headless
+          if-no-files-found: error
+
+  baseline-xvfb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Checkout fixed T0 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach "$T0_BASELINE_SHA"
+          test "$(git rev-parse HEAD)" = "$T0_BASELINE_SHA"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run fixed-baseline Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue484/baseline-xvfb
+          set +e
+          xvfb-run -a python -m pytest -q -ra --tb=short \
+            --junitxml=.scratch/issue484/baseline-xvfb/junit.xml \
+            2>&1 | tee .scratch/issue484/baseline-xvfb/pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$rc" > .scratch/issue484/baseline-xvfb/rc.txt
+          printf '%s\n' "$T0_BASELINE_SHA" > .scratch/issue484/baseline-xvfb/head.sha
+      - name: Upload baseline Xvfb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue484-baseline-xvfb
+          path: .scratch/issue484/baseline-xvfb
+          if-no-files-found: error
+
+  candidate-xvfb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind candidate SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run candidate Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue484/candidate-xvfb
+          set +e
+          xvfb-run -a python -m pytest -q -ra --tb=short \
+            --junitxml=.scratch/issue484/candidate-xvfb/junit.xml \
+            2>&1 | tee .scratch/issue484/candidate-xvfb/pytest.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$rc" > .scratch/issue484/candidate-xvfb/rc.txt
+          printf '%s\n' "$GITHUB_SHA" > .scratch/issue484/candidate-xvfb/head.sha
+      - name: Upload candidate Xvfb evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue484-candidate-xvfb
+          path: .scratch/issue484/candidate-xvfb
+          if-no-files-found: error
+
+  architecture-and-protected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Snapshot protected config and DXF
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue484/protected
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > .scratch/issue484/protected/before.sha256
+      - name: Verify R1-R4 ownership ratchets and focused behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q -ra --tb=short \
+            tests/test_issue479_final_scene_composition_owner.py \
+            tests/test_issue480_derived_part_projection_plan.py \
+            tests/test_issue481_derived_apply_linked_endcap_owner.py \
+            tests/test_issue483_t5_bridge_dead_glue_cleanup.py \
+            tests/test_issue447_workspace_shell_owner.py \
+            tests/test_issue448_part_editor_owner_decision.py \
+            tests/test_issue449_fix11_init_bootstrap_owner.py \
+            tests/test_issue396_phase4_composition_root.py \
+            tests/test_phase6_final_scene_view_ownership.py \
+            tests/test_phase6_settings_center_bridge.py \
+            tests/test_phase6_designer_workspace.py \
+            tests/test_fold_designer_joint_state.py \
+            tests/test_issue41_persistence_parity.py \
+            tests/test_resolved_manufacturing_bridge.py \
+            tests/test_dxf_acceptance.py \
+            tests/test_multipart_dxf_acceptance.py
+      - name: Verify architecture gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          root = Path('.')
+          bridge = root / 'fold_designer_bridge.py'
+          tree = ast.parse(bridge.read_text(encoding='utf-8'))
+          funcs = {n.name for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+          deleted = {
+              '_phase6_on_setting_var_changed',
+              '_phase6_corner_targets',
+              '_phase6_on_endcap_fw_follow_selected',
+              '_phase6_bind_translated_var',
+              '_phase6_scene_from_structural_result',
+              '_phase6_profile_material_total',
+          }
+          assert funcs.isdisjoint(deleted), sorted(funcs & deleted)
+          for keep in (
+              '_phase6_rebuild_linked_endcaps',
+              '_phase6_settings_box_structure_projection',
+              '_phase6_settings_endcap_fw_projection',
+              '_phase6_settings_bottom_wrap_projection',
+              '_phase6_settings_corner_projection',
+              '_phase6_settings_context_extension_projection',
+              '_phase6_sync_settings_panel_extension',
+              '_fix11_init',
+          ):
+              assert keep in funcs, keep
+          print('ISSUE484_ARCHITECTURE_GATES_GREEN')
+          PY
+      - name: Verify protected invariants unchanged
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git ls-files | grep -E '(^|/)config\.ini$|\.dxf$' | sort | while read -r f; do sha256sum "$f"; done > .scratch/issue484/protected/after.sha256
+          cmp .scratch/issue484/protected/before.sha256 .scratch/issue484/protected/after.sha256
+          git diff --exit-code
