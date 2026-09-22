@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T04:29:10+08:00",
   "base_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
   "head_sha": "185991276c57fa3aeecace562daf89fa7be5b5ae",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T04:39:10+08:00",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T04:40:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,24 +17,13 @@
     "qa/issue526-finalization-20260923"
   ],
   "remote_qa": {
-    "run_id": 35781297993,
-    "head_sha": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "formal B1 DT-0..DT-6 Deletion-Test",
-    "evidence": {
-      "decision": "B1_KEEP_COMPATIBILITY",
-      "baseline_headless": "24 passed, 3 skipped",
-      "xvfb_exact_switch": "1 passed",
-      "variant_k_direct_workspace_mutation": true,
-      "variant_e_forbidden_imports": 0,
-      "variant_e_opaque_presentation_callback": true,
-      "variant_e_old_body_removed": false,
-      "variant_e_duplicate_path_count": 1,
-      "artifact_id": 10718655323
-    }
+    "run_id": 35781771706,
+    "head_sha": "8a536e3f752a34ade79bc59c72d61457cc4e1aea",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "executable finalization guard/proof"
   },
-  "next_action": "Create delegated finalization branch, run executable finalization guard/proof, close #526, then claim #527/B2.",
+  "next_action": "Poll exact finalization RUN 35781771706 @ 8a536e3f752a34ade79bc59c72d61457cc4e1aea to terminal; then close #526 and claim #527/B2.",
   "blocker": null,
   "drift_audit": {
     "tested_head": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
