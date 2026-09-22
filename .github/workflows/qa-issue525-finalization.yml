@@ -1,0 +1,35 @@
+name: QA #525 Executable Finalization
+on:
+  push:
+    branches: [qa/issue525-finalization-20260923]
+    paths: [.github/workflows/qa-issue525-finalization.yml]
+permissions:
+  contents: read
+jobs:
+  finalization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Fetch coordination checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-525.json > /tmp/issue-525.json
+      - name: Authorize finalization
+        run: |
+          python -m tools.continuity_controller authorize-finalization /tmp/issue-525.json --issue 525 --branch work/issue520-phase6-bridge-residual-reduction-20260923 --head-sha 4d085c4d2daf172bf55684c87e6086572d9d818c --proof-out /tmp/issue-525.finalization-proof.json
+      - name: Verify finalization proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller verify-finalization-proof /tmp/issue-525.json /tmp/issue-525.finalization-proof.json --issue 525 --branch work/issue520-phase6-bridge-residual-reduction-20260923 --head-sha 4d085c4d2daf172bf55684c87e6086572d9d818c
+          sha256sum /tmp/issue-525.finalization-proof.json
+          cp /tmp/issue-525.finalization-proof.json issue-525.finalization-proof.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue525-finalization-proof
+          path: issue-525.finalization-proof.json
+          retention-days: 14
