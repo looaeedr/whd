@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "c5f8b0592932f2ad35b070de89ddfc22fe7cdcee",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T15:48:00Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-22T15:49:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35749675123,
     "head_sha": "c5f8b0592932f2ad35b070de89ddfc22fe7cdcee",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106820225109,
+    "summary": "Focused #517 Xvfb GREEN: 4 passed; config.ini invariant GREEN."
   },
-  "next_action": "Poll exact run 35749675123 at head c5f8b0592932f2ad35b070de89ddfc22fe7cdcee to terminal; no mutation while active.",
+  "next_action": "Run adjacent regression set for #510 rear-panel modes, #187 output selection, resolved manufacturing export, and T7 project/export ownership before closure.",
   "blocker": null,
   "delegated_branches": []
 }
