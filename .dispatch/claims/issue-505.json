@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:59:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
@@ -13,18 +13,17 @@
   "delegated_branches": [
     "coord/dispatch-claims",
     "qa/issue505-t8-integration-20260923",
-    "qa/issue505-t8-post-integration-20260923"
+    "qa/issue505-t8-post-integration-20260923",
+    "qa/issue505-current-x-sentinel-20260923"
   ],
   "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
   "last_update": "2026-09-22T23:59:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_POST_INTEGRATION_SMOKE",
-    "run_id": 35752980748,
-    "head_sha": "f246263c12db3629d17f5e593fe2f43cc54ef565",
-    "production_sha": "abb970e135a7cca725cf714253cdf75bf669ddc3",
-    "workflow": "qa-issue505-t8-post-integration.yml"
+    "status": "RUN_NOT_CREATED_CURRENT_X_SENTINEL",
+    "production_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+    "workflow": "qa-issue505-current-x-sentinel.yml"
   },
-  "next_action": "Poll exact post-integration smoke run 35752980748 to terminal; on GREEN delete delegated QA branches, write terminal evidence, close #505/#506, then release execution claims.",
+  "next_action": "Run current-X Phase 5 sentinel on adbfa95092a35183b3b64d0d38ea8cb68be64b65; workflow must live-fetch OPEN PR refs, pass canonical branch_cleanup_ref_guard, and self-delete qa/issue505-current-x-sentinel-20260923. Then execute #505 finalization proof and close/readback, followed by #506.",
   "blocker": null,
   "integration": {
     "pr_number": 518,
