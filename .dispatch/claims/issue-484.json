@@ -6,7 +6,7 @@
   "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T10:54:54+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "FINALIZING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
@@ -44,9 +44,9 @@
       "config_dxf_digest_unchanged": true
     }
   },
-  "next_action": "Persist corrected #484 TERMINAL_SUCCESS checkpoint/finalization proof at closing head 58c9c3a0638fd3c894d04274649775554311c1d2; close #484; then resume #485 T7 from corrected T6 accepted head and rebuild integration/post-smoke evidence.",
+  "next_action": null,
   "blocker": null,
-  "last_update": "2026-09-22T13:03:00+08:00",
+  "last_update": "2026-09-22T13:06:00+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
@@ -71,9 +71,14 @@
   "acceptance": {
     "issue_state": "closed",
     "state_reason": "completed",
-    "run_id": 35677198331,
+    "run_id": 35686800963,
     "run_conclusion": "success",
-    "all_jobs_green": true
+    "true_differential_green": true,
+    "headless_candidate_only_failures": [],
+    "headless_candidate_only_errors": [],
+    "xvfb_candidate_only_failures": [],
+    "xvfb_candidate_only_errors": [],
+    "architecture_protected": "100 PASS / 130 warnings; ISSUE484_R1_R4_G1_G4_GREEN"
   },
   "provenance": {
     "executor_source": "chatgpt_automation",
@@ -100,5 +105,12 @@
       "conclusion": "success",
       "summary": "29 PASS; ISSUE484_LEGACY_COMPAT_BINDING_GREEN"
     }
+  },
+  "release_evidence": {
+    "closing_head": "58c9c3a0638fd3c894d04274649775554311c1d2",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "finalization_proof_fingerprint": "86b9996d42eaa27a171f58dff9ef94334b9506977589e467c6d190d7437af6c2",
+    "completion_comment_id": 5771472075,
+    "next_issue": 485
   }
 }
