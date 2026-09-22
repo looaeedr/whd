@@ -321,6 +321,72 @@ class Phase6FinalSceneRenderer:
                     linewidth=1.0, linestyle=("-" if layer == "MARKING" else "--"), alpha=0.9,
                 )
 
+    def _draw_assembly_scene_markings(
+        self,
+        scene,
+        x_profile,
+        y_profile,
+        fold_guides,
+        local_reference,
+        placement,
+        dimensions,
+        offset,
+    ):
+        """Project canonical flat MARKING through the same assembly placement as the part."""
+        from ae_engine.assembly_geometry import place_assembly_points
+        from ae_engine.sheetmetal_drawing import LinePrimitive
+
+        if not callable(getattr(self.renderer.ax3d, "plot", None)):
+            return
+        placement_key = str(placement or "offset").lower()
+        if placement_key in {"top", "head", "bottom", "tail"}:
+            # EndCaps use the dedicated box-body mating transform. Do not guess a
+            # second point transform here; current Receiving frame markings never
+            # use these placements.
+            return
+
+        for primitive in getattr(scene, "primitives", ()):
+            if (
+                not isinstance(primitive, LinePrimitive)
+                or str(getattr(primitive, "layer", "") or "").upper() != "MARKING"
+            ):
+                continue
+            local_points = (
+                self._map_xy(
+                    primitive.p1.x,
+                    primitive.p1.y,
+                    x_profile,
+                    y_profile,
+                    fold_guides,
+                ),
+                self._map_xy(
+                    primitive.p2.x,
+                    primitive.p2.y,
+                    x_profile,
+                    y_profile,
+                    fold_guides,
+                ),
+            )
+            world_points = place_assembly_points(
+                local_points,
+                local_reference,
+                placement,
+                dimensions,
+                offset,
+            )
+            if len(world_points) != 2:
+                continue
+            a, b = world_points
+            self.renderer.ax3d.plot(
+                [a[0], b[0]],
+                [a[1], b[1]],
+                [a[2], b[2]],
+                color="#f59e0b",
+                linewidth=1.0,
+                linestyle="-",
+                alpha=0.9,
+            )
+
     def _resolved_finished_dimensions(self, request, triangles):
         return resolve_operator_finished_dimensions(
             request.part_key,
@@ -616,6 +682,16 @@ class Phase6FinalSceneRenderer:
                         interference_points.extend(diagnostic.intersection_points)
                         interference_segments.extend(diagnostic.intersection_segments)
                         interference_pairs += int(diagnostic.pair_count)
+                self._draw_assembly_scene_markings(
+                    part_data.scene,
+                    tuple(dict(seg) for seg in part.x_profile),
+                    tuple(dict(seg) for seg in part.y_profile),
+                    tuple(getattr(part_data, "fold_guides", ()) or ()),
+                    local,
+                    placement,
+                    request.finished_dimensions,
+                    offset,
+                )
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 poly = Poly3DCollection(
                     placed,

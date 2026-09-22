@@ -5,6 +5,7 @@ state projection. Project persistence remains Phase6ProjectController authority;
 manufacturing geometry/DXF generation remains manufacturing_api authority.
 """
 import os
+from dataclasses import replace
 from tkinter import filedialog, messagebox
 
 from ae_engine import manufacturing_api
@@ -96,7 +97,69 @@ def _validate_selected_indicator_exports(self, flags, val):
         self._validate_single_door_indicator_fit(val)
 
 
+def _resolved_export_intention_key(part_key):
+    """Map canonical physical identity to the existing operator export intention."""
+    key = str(part_key or "").strip()
+    if key == "box_body" or key.startswith("box_body:"):
+        return "box_body"
+    if key == "head":
+        return "head"
+    if key == "tail":
+        return "tail"
+    if key == "door" or key.startswith("door_") or key.startswith("inner_door:"):
+        return "door"
+    if key == "base_plate" or key.startswith("base_plate_"):
+        return "base_plate"
+    if key == "indicator_box" or key.startswith("indicator_box_"):
+        return "indicator_box"
+    if key == "indicator_door" or key.startswith("indicator_door_"):
+        return "indicator_door"
+    return None
+
+
+def _selected_resolved_geometry(resolved_geometry, flags):
+    """Filter presence by export intention without inventing a physical-part list."""
+    selected = tuple(
+        part
+        for part in tuple(getattr(resolved_geometry, "parts", ()) or ())
+        if bool(flags.get(_resolved_export_intention_key(part.part_key), False))
+    )
+    return replace(resolved_geometry, parts=selected)
+
+
+def _export_selected_resolved_parts(self, folder, flags):
+    """Export the primary GUI's canonical resolved physical inventory when available."""
+    designer = getattr(self, "fold_designer_app", None)
+    resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
+    if not callable(resolver):
+        return None
+
+    resolved = resolver()
+    selected = _selected_resolved_geometry(resolved, flags)
+    if not tuple(getattr(selected, "parts", ()) or ()):
+        return ([], ["canonical resolved export: no selected physical parts"])
+
+    outputs = manufacturing_api.save_resolved_manufacturing_geometry_dxf(
+        selected,
+        folder,
+        overwrite=True,
+    )
+    return ([os.path.basename(path) for path in outputs.values()], [])
+
+
 def _export_selected_parts(self, folder, val, flags, draw_stock):
+    # Primary Phase6 UI already owns one canonical ResolvedManufacturingGeometry.
+    # Export its physical inventory directly; logical checkboxes only filter
+    # operator intention and never become a second physical-part authority.
+    try:
+        canonical = _export_selected_resolved_parts(self, folder, flags)
+    except Exception as ex:
+        return [], [f"canonical resolved export: {ex}"]
+    if canonical is not None:
+        return canonical
+
+    # Legacy compatibility callers without an attached Phase6 designer retain
+    # the historical PartSpec export path.
     context = self._manufacturing_context(draw_stock=draw_stock)
     exported = []
     errors = []
