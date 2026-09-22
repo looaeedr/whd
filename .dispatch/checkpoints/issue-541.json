@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "541",
   "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
-  "head_sha": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
+  "head_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
   "state": "TERMINAL_SUCCESS",
   "next_action": null,
   "run_id": 35795824278,
@@ -21,11 +21,12 @@
     "FACADE_COUNT 69 -> 65.",
     "B6_1_ACCOUNTED=12; UNCLASSIFIED=0; DYNAMIC_REF_UNREVIEWED=0.",
     "One-shot audit/RED/GREEN workflows removed.",
-    "Tested-head cef59e90877ca9f87d542d6d50ae348027200539 -> closing-head a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29 production/test drift=0."
+    "Canonical duplicate evidence cleanup removed issue541-b6-1-facade-final.{json,md}; retained issue541-b6-1-final-classification.{json,md}.",
+    "Tested-head cef59e90877ca9f87d542d6d50ae348027200539 -> closing-head 2c5bcd5784501c892a2e5f3fc1da318374aaec22 production/test drift=0."
   ],
   "master_issue": "520",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "542",
-  "chain_next_action": "Atomically claim #542/B6-2 from accepted HEAD a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29 and continue the serial 69-entry facade audit.",
+  "chain_next_action": "Atomically claim #542/B6-2 from accepted HEAD 2c5bcd5784501c892a2e5f3fc1da318374aaec22 and continue the serial 69-entry facade audit.",
   "chain_reason": "B6 controller #531 remains non-terminal; batch 1 accounted 12/69 keys."
 }
