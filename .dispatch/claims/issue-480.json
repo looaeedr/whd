@@ -11,16 +11,16 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
-  "head_sha": "8ae4c4c9dd7cb67d579ccc492cc4d59783a07804",
+  "head_sha": "19a517012d071a342762dab3f668a085d33d9092",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED",
-    "head_sha": "8ae4c4c9dd7cb67d579ccc492cc4d59783a07804",
+    "head_sha": "19a517012d071a342762dab3f668a085d33d9092",
     "run_id": null
   },
-  "next_action": "Create focused T2 acceptance at integration head 8ae4c4c9dd7cb67d579ccc492cc4d59783a07804 covering immutable-plan contract, dynamic physical identity/workspace navigation, 2D roundtrip/persistence, and protected #447/#448/#449; lock exact run_id+head_sha and poll to terminal.",
+  "next_action": "Resolve push-triggered Issue480 T2 Focused Acceptance for head 19a517012d071a342762dab3f668a085d33d9092, lock exact run_id+head_sha, poll all jobs to terminal, classify any candidate-only regression, repair without undoing immutable plan ownership.",
   "blocker": null,
   "preflight": {
     "frozen_parent": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
@@ -86,5 +86,5 @@
     "owning_issue": 480,
     "action": "fresh-read exact run 35669129897 terminal success; reconcile stale queued remote-QA snapshot and advance exact next_action to T2 integration"
   },
-  "last_update": "2026-09-22T08:10:00+08:00"
+  "last_update": "2026-09-22T08:12:00+08:00"
 }
