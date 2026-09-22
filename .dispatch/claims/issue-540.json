@@ -6,24 +6,24 @@
   "work_branch": "feature/issue540-stale-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "b76f8b3135a4096641291818b4e479f70025ed85",
+  "head_sha": "eb410442555e4d712c394673ec72f95fb196ee1d",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:58:00+08:00",
+  "last_update": "2026-09-23T07:01:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35794867842,
-    "head_sha": "ed6350287485f9937fd1905870b01d39db35131e",
+    "run_id": 35795286144,
+    "head_sha": "eb410442555e4d712c394673ec72f95fb196ee1d",
     "status": "completed",
     "conclusion": "failure",
-    "purpose": "Issue #540 durable Skill bridge GREEN",
+    "purpose": "Issue #540 bound stale-takeover evidence RED",
     "evidence": {
-      "behavior_tests": "26 passed",
-      "failed_test": "exact action=claim-takeover literal missing",
-      "repair_commit": "b76f8b3135a4096641291818b4e479f70025ed85"
+      "focused": "9 failed, 27 passed",
+      "root_cause": "execution_claim_guard has no takeover_evidence parameter/binding yet",
+      "red_proven": true
     }
   },
-  "next_action": "Harden execution_claim_guard claim-takeover with required machine stale evidence; implement trusted Remote Guard fresh live-head/commit/exact-run evaluator path and receipt binding; run replacement GREEN.",
+  "next_action": "Implement machine-bound stale takeover evidence in tools/stale_claim_takeover.py and tools/execution_claim_guard.py, including observed live HEAD takeover and decision-out evidence; rerun focused GREEN.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
