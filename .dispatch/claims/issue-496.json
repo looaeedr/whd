@@ -13,8 +13,8 @@
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T21:02:00+08:00",
-  "next_action": "Obtain fresh Remote Guard pr-write receipt for candidate 61e08cb0..., open PR to cleanup/2d-3d-sync, verify exact 1-commit/3-file diff and relevant checks, then merge non-force with a fresh merge receipt.",
+  "last_update": "2026-09-22T21:06:00+08:00",
+  "next_action": "Obtain a fresh Remote Guard pr-write receipt for merging PR #508 at exact head 61e08cb0... into cleanup/2d-3d-sync, then merge non-force only if PR/X identities remain unchanged.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -110,6 +110,29 @@
         "tests/process/test_remote_execution_guard_skill_contract.py"
       ],
       "exact_readback": "ALL_GREEN"
+    },
+    "chinese_name_pr": {
+      "pr": 508,
+      "create_guard_run_id": 35731038962,
+      "head_sha": "61e08cb0399c1c7abaa0f039dc796831154d04e8",
+      "base_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+      "changed_files": [
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+        ".agents/skills/skill_registry.json",
+        "tests/process/test_remote_execution_guard_skill_contract.py"
+      ],
+      "checks": {
+        "knowledge_governance": {
+          "run_id": 35731141230,
+          "conclusion": "success"
+        },
+        "phase5_bridge_census": {
+          "run_id": 35731141244,
+          "conclusion": "failure",
+          "classification": "PERSISTENT_UNRELATED_PRODUCTION_DRIFT_CENSUS",
+          "metrics": "BASELINE_SHA_EXACT=1 PRODUCTION_SOURCE_DRIFT=169 PROTECTED_MANIFEST_MISSING=0 UNKNOWN_BUCKET_COUNT=0"
+        }
+      }
     }
   },
   "remote_guard": {
