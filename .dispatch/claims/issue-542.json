@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
   "head_sha": "58b8150e99ed4b147b617f3764dcd72471be30b4",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T07:17:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T07:17:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,12 +18,17 @@
   "remote_qa": {
     "run_id": 35796616236,
     "head_sha": "58b8150e99ed4b147b617f3764dcd72471be30b4",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "B6-2 replacement RED for activate_selected_part NO_CALLER removal",
+    "evidence": {
+      "failed": 2,
+      "passed": 1,
+      "artifact_id": 10724600373
+    },
     "audit_run": 35796289899
   },
-  "next_action": "Poll exact RED RUN 35796616236; require failure only because activate_selected_part facade entry still exists.",
+  "next_action": "Remove only activate_selected_part facade binding; retain implementation function; then run B6-2 GREEN.",
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
