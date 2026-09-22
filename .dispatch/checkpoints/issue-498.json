@@ -3,10 +3,10 @@
   "issue": "#498",
   "branch": "work/issue506-phase5-settings-dataflow-20260922",
   "head_sha": "824f3dc0c234be9535220084297decec0b66e6e4",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll locked run 35727296797 @ 824f3dc0c234be9535220084297decec0b66e6e4; read run→jobs→steps until terminal. On expected RED success, extract RED evidence then transition RUNNING for minimal T1 GREEN.",
+  "state": "RECOVERING",
+  "next_action": "Patch qa-issue498-t1-red.yml to install python3-tk only; push replacement RED harness; then lock new run_id+head_sha.",
   "run_id": 35727296797,
-  "job_id": null,
+  "job_id": 106743962472,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -15,7 +15,8 @@
     "T0 accepted base e072f052298f3dea2aba4e9de4d5f1b17f06850e",
     "RED test commit 3eec36fc3b36088a957f4ef2a2ceb9c1bbc8864d",
     "RED workflow commit 824f3dc0c234be9535220084297decec0b66e6e4",
-    "Locked run 35727296797"
+    "Locked run 35727296797",
+    "Run 35727296797 terminal failure classified as harness: tests/conftest.py -> ModuleNotFoundError: tkinter"
   ],
   "master_issue": null,
   "chain_state": "NONE",
