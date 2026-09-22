@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:44:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
@@ -14,14 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "059489988ac24b157a844bf659c882b7483d810b",
-  "last_update": "2026-09-22T22:20:00+08:00",
+  "last_update": "2026-09-22T23:12:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_COMBINED_FRESH",
+    "status": "FAILURE_CLASSIFIED",
     "run_id": 35742730733,
     "head_sha": "059489988ac24b157a844bf659c882b7483d810b",
     "workflow": "qa-issue504-t7-combined.yml",
-    "supersedes_run_id": 35741913085
+    "result": "Exactly two Xvfb candidate-only failures: stale structural Corner Data owner assertion and unchanged W/D UI projection during Head/Tail save."
   },
-  "next_action": "Poll exact fresh Combined run 35742730733 on head 05948998 to terminal; classify any remaining candidate-only failures. On full GREEN, cleanup acceptance workflows, drift-audit, finalize #504, then immediately start #505.",
+  "next_action": "Apply two minimal remediations on the Phase 5 work-order branch: move issue119 structural oracle to the new bounded finalize port owner, and make editor commit UI projection changed-keys-only. Then run focused Xvfb regression on both tests before re-running Combined Acceptance.",
   "blocker": null
 }
