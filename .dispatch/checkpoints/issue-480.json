@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "issue": "#480",
+  "branch": "work/issue486-phase4-ownership-20260922",
+  "head_sha": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35671138946,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "T2 requirement RED run 35669065287 @ e626e98af02d0dc14871a1f34d1d75c5cff359fa: 3 expected failures, all ModuleNotFoundError for missing phase6_derived_part_projection.",
+    "Pure planner owner phase6_derived_part_projection.py introduced at d7ee274a8e393da135bf8f74488bda52ddb96084 with frozen request/plan, no fold_designer_bridge import, no Tk import, no DesignerWorkspace ownership, no workspace/navigation mutation, and no manufacturing geometry formulas.",
+    "Implementation contract run 35669129897 @ d7ee274a8e393da135bf8f74488bda52ddb96084 completed SUCCESS.",
+    "Integration head 8ae4c4c9dd7cb67d579ccc492cc4d59783a07804 routes _phase6_sync_authoritative_derived_parts through DerivedPartProjectionRequest/DerivedPartSyncPlan; all authoritative Door/BasePlate/BoxBody/Divider/InnerDoor projections are computed before navigation mutation; linked-endcap ownership remains deferred to T3.",
+    "Focused acceptance run 35671138946 @ 19a517012d071a342762dab3f668a085d33d9092 completed SUCCESS: projection-and-identity 88 PASS; physical-persistence 21 PASS; protected-architecture 32 PASS / 1 SKIP.",
+    "Focused acceptance protected config/DXF Git-object digest remained unchanged; protected architecture #447/#448/#449 and prior T1 ownership ratchets are GREEN.",
+    "Temporary Issue480 QA workflows removed. Tested head 19a517012d071a342762dab3f668a085d33d9092 -> closing head 5179fbfade246776e1376aaf0cb51dee6f1b145c changes only two workflow deletions; production/test drift=0.",
+    "T3/#481 is OPEN and becomes executable from accepted T2 closing head 5179fbfade246776e1376aaf0cb51dee6f1b145c."
+  ],
+  "master_issue": "#486",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#481",
+  "chain_next_action": "Acquire shared execution claim for #481 on work/issue486-phase4-ownership-20260922 at accepted T2 HEAD 5179fbfade246776e1376aaf0cb51dee6f1b145c, then execute T3 Derived sync apply + linked endcap owner decision.",
+  "chain_reason": null
+}
