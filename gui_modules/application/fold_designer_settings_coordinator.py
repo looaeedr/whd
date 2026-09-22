@@ -173,6 +173,59 @@ class Phase6FoldDesignerSettingsCoordinator:
         self._transactions = transactions
         self._ports = ports
 
+    def apply_updates(
+        self,
+        updates,
+        *,
+        notify: bool = True,
+        external_apply_guard: bool = False,
+    ) -> dict[str, Any]:
+        """Apply one Settings commit while owning only application effect order."""
+        clean = dict(
+            self._transactions.normalize_updates(
+                updates,
+                external_apply_guard=bool(external_apply_guard),
+            )
+            or {}
+        )
+        if not clean:
+            return {}
+
+        if "w" in clean:
+            snapshot = self._ports.read_settings_snapshot()
+            box_whd = getattr(snapshot, "box_whd", {}) or {}
+            previous_w = float(box_whd.get("w", clean["w"]))
+            try:
+                self._transactions.commit_reconciled_width_structure(clean["w"])
+            except Exception as exc:
+                clean.pop("w", None)
+                self._transactions.restore_setting("w", previous_w)
+                self._ports.project_ui_values(
+                    {"w": previous_w},
+                    rejected_key="w",
+                    error=str(exc),
+                )
+                if not clean:
+                    return {}
+
+        try:
+            self._ports.save_current_part()
+        except Exception:
+            # Compatibility owner historically treats editor-save failure as
+            # non-fatal for Settings application.
+            pass
+
+        committed = dict(self._transactions.commit_settings(clean) or {})
+        if not committed:
+            return {}
+
+        self._ports.apply_profile_plan(committed)
+        self._ports.project_ui_values(committed)
+        self._ports.submit_update_intent(committed)
+        if notify:
+            self._ports.publish_live_state(committed)
+        return committed
+
     @property
     def transactions(self) -> "Phase6SettingsTransactionController":
         return self._transactions
