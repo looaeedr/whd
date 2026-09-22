@@ -3,10 +3,10 @@
   "issue": "#498",
   "branch": "work/issue506-phase5-settings-dataflow-20260922",
   "head_sha": "0bd7632fca3170747819975e1095d154195a3eee",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll locked replacement RED run 35727584666 @ 0bd7632fca3170747819975e1095d154195a3eee until terminal; on expected RED success, extract evidence then transition RUNNING for minimal T1 GREEN.",
+  "state": "RUNNING",
+  "next_action": "Implement minimal T1 GREEN in contracts/coordinator/composition; then run focused GREEN QA.",
   "run_id": 35727584666,
-  "job_id": null,
+  "job_id": 106744913789,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -17,7 +17,8 @@
     "RED workflow commit 824f3dc0c234be9535220084297decec0b66e6e4",
     "Locked run 35727296797",
     "Run 35727296797 terminal failure classified as harness: tests/conftest.py -> ModuleNotFoundError: tkinter",
-    "Replacement RED harness run 35727584666 @ 0bd7632fca3170747819975e1095d154195a3eee queued after python3-tk harness fix"
+    "Replacement RED harness run 35727584666 @ 0bd7632fca3170747819975e1095d154195a3eee queued after python3-tk harness fix",
+    "Expected RED confirmed by run 35727584666: 5 failed in 0.09s; all required RED markers present"
   ],
   "master_issue": null,
   "chain_state": "NONE",
