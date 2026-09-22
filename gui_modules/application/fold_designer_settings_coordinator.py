@@ -226,6 +226,128 @@ class Phase6FoldDesignerSettingsCoordinator:
             self._ports.publish_live_state(committed)
         return committed
 
+    def apply_baseline_transition(
+        self,
+        *,
+        new_model,
+        old_model,
+        new_editable: bool,
+        old_editable: bool,
+        fixed_corner_state=None,
+        available_parts=(),
+        previous_non_receiving_structure=None,
+    ):
+        """Apply one family/model transition while preserving semantic ownership."""
+        plan = None
+        try:
+            plan = self._transactions.commit_family_model_transition(
+                new_model,
+                old_model,
+                new_editable=bool(new_editable),
+                old_editable=bool(old_editable),
+                fixed_corner_state=fixed_corner_state,
+                available_parts=tuple(available_parts or ()),
+                previous_non_receiving_structure=previous_non_receiving_structure,
+            )
+        except Exception:
+            plan = None
+
+        committed = {}
+        if plan is not None:
+            if getattr(plan, "family_values", None):
+                committed = dict(
+                    self._transactions.commit_settings(plan.family_values) or {}
+                )
+            self._ports.project_ui_values(
+                committed,
+                baseline_transition=plan,
+                baseline_stage="commit",
+                new_model=str(new_model or ""),
+                old_model=str(old_model or ""),
+                new_editable=bool(new_editable),
+                old_editable=bool(old_editable),
+            )
+            if committed:
+                self._ports.apply_profile_plan(
+                    committed,
+                    reset_box_profile=True,
+                )
+
+        self._ports.project_ui_values(
+            {},
+            baseline_transition=plan,
+            baseline_stage="state",
+            new_model=str(new_model or ""),
+            old_model=str(old_model or ""),
+            new_editable=bool(new_editable),
+            old_editable=bool(old_editable),
+        )
+        self._ports.sync_derived_parts()
+        self._ports.refresh_topology(reason="baseline")
+        self._ports.refresh_persistent_controls()
+        self._ports.project_ui_values(
+            {},
+            baseline_transition=plan,
+            baseline_stage="finalize",
+            new_model=str(new_model or ""),
+            old_model=str(old_model or ""),
+            new_editable=bool(new_editable),
+            old_editable=bool(old_editable),
+        )
+        self._ports.project_status(
+            message=(
+                "自訂：沿用目前資料並即時同步主畫面"
+                if bool(new_editable)
+                else "已選基準型號；截角修改即時同步主畫面"
+            ),
+            settings=True,
+        )
+        self._ports.submit_update_intent({"reason": "baseline", "force": True})
+        return plan
+
+    def reset_factory_settings(self, factory_defaults) -> bool:
+        """Restore immutable factory Settings through the canonical transaction seam."""
+        factory = dict(factory_defaults or {})
+        if not factory:
+            self._ports.project_status(message="找不到程式初始值", settings=True)
+            return False
+
+        snapshot = self._ports.read_settings_snapshot()
+        current = dict(getattr(snapshot, "settings_values", {}) or {})
+        clean = {}
+        for key, raw in factory.items():
+            if key not in current:
+                continue
+            if isinstance(current.get(key), bool):
+                clean[key] = bool(raw)
+            else:
+                try:
+                    clean[key] = float(raw)
+                except (TypeError, ValueError):
+                    continue
+        if not clean:
+            return False
+
+        committed = dict(self._transactions.commit_settings(clean) or {})
+        if not committed:
+            return False
+        self._transactions.mark_workspace_dirty()
+        self._ports.apply_profile_plan(
+            committed,
+            reset_box_profile=True,
+            reset_all_profiles=True,
+            render=False,
+        )
+        self._ports.project_ui_values(committed, factory_reset=True)
+        self._ports.render_bending()
+        self._ports.refresh_settings_panel()
+        self._ports.submit_update_intent(committed)
+        self._ports.project_status(
+            message="已還原程式初始值並同步主畫面",
+            settings=True,
+        )
+        return True
+
     @property
     def transactions(self) -> "Phase6SettingsTransactionController":
         return self._transactions
