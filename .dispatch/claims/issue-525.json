@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
   "head_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T02:28:10+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T04:29:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -35,7 +35,7 @@
       "artifact_id": 10712466696
     }
   },
-  "next_action": "Create terminal checkpoint and executable finalization proof for #525; close/readback; then claim #526/B1 because STAGE_B_REQUIRED=true.",
+  "next_action": null,
   "blocker": null,
   "recovery_state": null,
   "remediation": {
@@ -52,5 +52,17 @@
       ".github/workflows/qa-issue525-stage-a-combined.yml removed",
       "docs/superpowers/checkpoints/issue525-a4-stage-a-gate.md added"
     ]
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+    "stage_b_required": true,
+    "finalization_run": 35767316442,
+    "finalization_artifact": 10712721905,
+    "proof_sha256": "2234fb03d2abfc2c0b590f36b9c4c0c1f385bb25ec9e3728744cf60d84ad80ab",
+    "checkpoint": ".dispatch/checkpoints/issue-525.json",
+    "temp_finalization_branch": "qa/issue525-finalization-20260923",
+    "temp_branch_cleanup_deferred_to_chain_cleanup": true
   }
 }
