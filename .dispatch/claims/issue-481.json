@@ -5,24 +5,34 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T08:22:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "RED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
-  "head_sha": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
+  "head_sha": "0aa34aad692705080aef684c4c8e16baa4e6ef63",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "0aa34aad692705080aef684c4c8e16baa4e6ef63",
+    "run_id": null
   },
-  "next_action": "Run T3 characterization from accepted T2 HEAD: identify exact remaining navigation mutation surface in bridge and characterize _phase6_rebuild_linked_endcaps against DEEPEN_FOLD_PROFILES / JOIN_DERIVED_PART_PLAN / KEEP_COMPATIBILITY; then create approved RED contract before production mutation.",
+  "next_action": "Resolve push-triggered Issue481 T3 Requirement RED for head 0aa34aad692705080aef684c4c8e16baa4e6ef63, lock exact run_id+head_sha, require RED only for missing navigation apply seam / linked-endcap decision evidence, then implement KEEP_COMPATIBILITY cutover.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
+  },
+  "last_update": "2026-09-22T08:24:00+08:00",
+  "characterization": {
+    "linked_endcap_decision": "KEEP_COMPATIBILITY",
+    "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
+    "bridge_role": "workspace/live-editor compatibility effects",
+    "reject_join_derived_part_plan": "different domain: linked EndCap profile refresh is not derived physical-part topology",
+    "reject_deepen_fold_profiles": "would pull workspace/Tk/live-editor effects into pure fold-profile derivation owner"
   }
 }
