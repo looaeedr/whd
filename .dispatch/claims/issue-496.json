@@ -3,20 +3,18 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/496",
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "skill/issue496-remote-guard-chinese-name-20260922",
+  "work_branch": "qa/issue496-finalization-20260922",
   "claimed_at": "2026-09-22T19:13:30+08:00",
-  "base_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
-  "head_sha": "61e08cb0399c1c7abaa0f039dc796831154d04e8",
+  "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
+  "head_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
   "phase": "CLOSING",
   "action_mode": "EXECUTE_NOW",
-  "delegated_branches": [
-    "qa/issue496-finalization-20260922"
-  ],
+  "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T21:22:00+08:00",
-  "next_action": "Run delegated qa/issue496-finalization-20260922 one-shot finalization harness against owning checkpoint for issue #496 / skill branch 61e08cb0..., then close/readback and release.",
+  "last_update": "2026-09-22T21:25:00+08:00",
+  "next_action": "Commit one-shot qa-issue496-finalization workflow on QA branch; after push update claim head to the workflow commit. Workflow waits for exact claim owner/head, mints and persists terminal checkpoint + proof via canonical continuity_controller, verifies persisted proof, closes #496, and readbacks completed.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
