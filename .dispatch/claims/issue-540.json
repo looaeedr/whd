@@ -6,25 +6,17 @@
   "work_branch": "feature/issue540-stale-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "809c450caf920013e3f7d86f1b0feb55f311ddfe",
+  "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:48:20+08:00",
+  "last_update": "2026-09-23T06:50:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35794256383,
-    "head_sha": "809c450caf920013e3f7d86f1b0feb55f311ddfe",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "Issue #540 expected RED contract",
-    "evidence": {
-      "pytest": "9 failed",
-      "missing_module": "tools.stale_claim_takeover",
-      "missing_action": "claim-takeover",
-      "marker": "ISSUE540_RED_PROVEN"
-    }
+    "status": "pending",
+    "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
+    "purpose": "Issue #540 executable stale takeover GREEN acceptance"
   },
-  "next_action": "Implement tools/stale_claim_takeover.py, add claim-takeover to execution_claim_guard, add CLI coverage and Traditional-Chinese GREEN workflow, then lock exact GREEN run.",
+  "next_action": "Lock exact #540 GREEN run at f78c788c; if GREEN, update canonical Skills with machine authority and then integrate cleanup authority before bootstrapping default-branch Remote Guard claim-takeover.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -38,6 +30,13 @@
       "request_comment_id": 5785501471,
       "result_comment_id": 5785504151,
       "run_id": 35794154499,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "implementation_commit": {
+      "request_comment_id": 5785529896,
+      "result_comment_id": 5785532652,
+      "run_id": 35794337505,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
