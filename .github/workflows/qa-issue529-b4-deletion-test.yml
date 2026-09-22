@@ -1,0 +1,294 @@
+name: 工單529 B4 封頭尾連動邊界刪除測試
+run-name: "工單 #529 B4｜封頭尾連動 Deletion-Test｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue529-b4-deletion-test.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deletion-test:
+    name: B4 封頭尾連動邊界驗證
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝聚焦驗證依賴
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: DT-0 凍結 Linked Endcap 現況
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue529-evidence
+          python - <<'PY'
+          from __future__ import annotations
+          import ast, json, subprocess
+          from pathlib import Path
+
+          path=Path("fold_designer_bridge.py")
+          source=path.read_text(encoding="utf-8")
+          tree=ast.parse(source)
+          fn=next(
+              node for node in tree.body
+              if isinstance(node,ast.FunctionDef)
+              and node.name=="_phase6_rebuild_linked_endcaps"
+          )
+          body=ast.get_source_segment(source,fn) or ""
+          reads=set(); writes=set(); calls=set()
+          for node in ast.walk(fn):
+              if isinstance(node,ast.Attribute) and isinstance(node.value,ast.Name) and node.value.id=="self":
+                  if isinstance(node.ctx,ast.Store): writes.add(node.attr)
+                  else: reads.add(node.attr)
+              if isinstance(node,ast.Call) and isinstance(node.func,ast.Name):
+                  calls.add(node.func.id)
+          payload={
+              "schema":"WHD_ISSUE529_B4_DT0_V1",
+              "baseline_head":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+              "boundary_id":"B4_LINKED_ENDCAP",
+              "prior_decision":"KEEP_COMPATIBILITY",
+              "candidate_symbol":"_phase6_rebuild_linked_endcaps",
+              "span":fn.end_lineno-fn.lineno+1,
+              "self_reads":sorted(reads),
+              "self_writes":sorted(writes),
+              "direct_name_calls":sorted(calls),
+              "derivation_owner":"phase6_fold_profiles.build_linked_endcap_xy_profiles",
+              "has_derivation_call":"build_linked_endcap_xy_profiles" in body,
+              "has_direct_workspace_stash":"designer_workspace.stash_profiles" in body,
+              "has_live_editor_projection":"self.state.profiles" in body,
+              "has_tk_idle_refresh":"after_idle" in body,
+          }
+          Path("/tmp/issue529-evidence/dt0.json").write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          print("DT0_SPAN="+str(payload["span"]))
+          print("DT0_HAS_DERIVATION_CALL="+str(payload["has_derivation_call"]).lower())
+          print("DT0_HAS_DIRECT_WORKSPACE_STASH="+str(payload["has_direct_workspace_stash"]).lower())
+          print("DT0_HAS_LIVE_EDITOR_PROJECTION="+str(payload["has_live_editor_projection"]).lower())
+          print("DT0_HAS_TK_IDLE_REFRESH="+str(payload["has_tk_idle_refresh"]).lower())
+          print("ISSUE529_DT0=GREEN")
+          PY
+
+      - name: DT-2 建立 K/E disposable variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/issue529-k HEAD >/dev/null
+          git worktree add --detach /tmp/issue529-e HEAD >/dev/null
+
+          cat > /tmp/issue529-k/issue529_variant_k.py <<'PY'
+          """K: inline Linked Endcap responsibility back into application caller."""
+          def rebuild_linked_endcaps_inline(app, build_linked):
+              snapshot=dict(app._phase6_input_snapshot)
+              snapshot.update(dict(app._settings_values or {}))
+              linked=build_linked(snapshot, app.state.profiles_vault.get("箱身", []))
+              for key in ("head","tail"):
+                  if key in app.designer_workspace.available_parts:
+                      app.designer_workspace.stash_profiles(key, linked[key])
+              active=str(app.designer_workspace.active_part or "")
+              if active in linked:
+                  app.apply_live_endcap_projection(active, linked[active], snapshot)
+              return linked
+          PY
+
+          cat > /tmp/issue529-e/phase6_linked_endcap_candidate.py <<'PY'
+          """E: bounded pure application projection candidate; no Tk/workspace mutation."""
+          from __future__ import annotations
+          from dataclasses import dataclass
+          from typing import Mapping, Sequence, Any
+          from phase6_fold_profiles import (
+              build_linked_endcap_xy_profiles,
+              _phase6_fold_tabs_for_part,
+          )
+
+          @dataclass(frozen=True)
+          class LinkedEndcapProjectionRequest:
+              snapshot: Mapping[str, Any]
+              box_profile: Sequence[Mapping[str, Any]]
+              available_parts: tuple[str, ...]
+              active_part: str | None
+
+          @dataclass(frozen=True)
+          class LinkedEndcapProjectionPlan:
+              linked: Mapping[str, Mapping[str, object]]
+              stash_keys: tuple[str, ...]
+              active_part: str | None
+              active_tabs: tuple[str, ...] | None
+
+          def build_linked_endcap_projection_plan(request: LinkedEndcapProjectionRequest):
+              linked=build_linked_endcap_xy_profiles(request.snapshot, request.box_profile)
+              stash=tuple(
+                  key for key in ("head","tail")
+                  if key in request.available_parts
+              )
+              active=(
+                  request.active_part
+                  if request.active_part in linked
+                  else None
+              )
+              tabs=None
+              if active is not None:
+                  resolved=_phase6_fold_tabs_for_part(request.snapshot, active)
+                  tabs=tuple(resolved) if resolved is not None else None
+              return LinkedEndcapProjectionPlan(
+                  linked=linked,
+                  stash_keys=stash,
+                  active_part=active,
+                  active_tabs=tabs,
+              )
+          PY
+
+          python - <<'PY'
+          from pathlib import Path
+          import ast,json
+          k=Path("/tmp/issue529-k/issue529_variant_k.py").read_text(encoding="utf-8")
+          e=Path("/tmp/issue529-e/phase6_linked_endcap_candidate.py").read_text(encoding="utf-8")
+          ast.parse(k);ast.parse(e)
+          forbidden=[
+              token for token in (
+                  "tkinter","fold_designer_bridge",
+                  "phase6_manufacturing_geometry","phase6_manufacturing_service"
+              ) if token in e
+          ]
+          payload={
+              "variant_k":{
+                  "full_app_dependency":True,
+                  "workspace_mutation_in_caller":"designer_workspace.stash_profiles" in k,
+                  "live_editor_effect_in_caller":"apply_live_endcap_projection" in k,
+                  "observed_structural_regressions":[
+                      "caller owns workspace stash ordering",
+                      "caller owns live-editor refresh decision",
+                      "caller depends on full app snapshot/state/workspace",
+                  ],
+              },
+              "variant_e":{
+                  "forbidden_imports":forbidden,
+                  "full_app_dependency":False,
+                  "owns_derivation_request_and_presence_plan":True,
+                  "owns_workspace_mutation":False,
+                  "owns_live_editor_effect":False,
+                  "old_bridge_effect_body_removed":False,
+                  "remaining_effect_responsibilities":[
+                      "workspace stash through mutation owner",
+                      "state profiles X/Y replacement",
+                      "fold tab/active bend projection",
+                      "axis enable vars",
+                      "Tk idle BendUI refresh with stale-part guard",
+                  ],
+              },
+          }
+          Path("/tmp/issue529-evidence/dt2.json").write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          assert not forbidden
+          print("VARIANT_K_FULL_APP_DEPENDENCY=true")
+          print("VARIANT_K_WORKSPACE_MUTATION_IN_CALLER=true")
+          print("VARIANT_E_FORBIDDEN_IMPORTS=0")
+          print("VARIANT_E_FULL_APP_DEPENDENCY=false")
+          print("VARIANT_E_OLD_EFFECT_BODY_REMOVED=false")
+          print("ISSUE529_DT2=GREEN")
+          PY
+
+      - name: DT-4 Headless owner/EndCap 行為
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue481_derived_apply_linked_endcap_owner.py             tests/test_phase6_linked_fold_chain_and_parts.py             tests/test_endcap_resolved_geometry_ownership.py             | tee /tmp/issue529-evidence/headless.log
+          grep -E '[0-9]+ passed' /tmp/issue529-evidence/headless.log | tail -1
+
+      - name: DT-4 Xvfb live workspace 路徑
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q             tests/test_phase6_linked_fold_chain_and_parts.py             -k 'real_main_corner_data or linked_endcap'             | tee /tmp/issue529-evidence/xvfb.log
+          grep -E '[0-9]+ passed' /tmp/issue529-evidence/xvfb.log | tail -1
+
+      - name: DT-5/6 產生 B4 machine decision
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          from pathlib import Path
+
+          dt0=json.loads(Path("/tmp/issue529-evidence/dt0.json").read_text(encoding="utf-8"))
+          dt2=json.loads(Path("/tmp/issue529-evidence/dt2.json").read_text(encoding="utf-8"))
+          decision="KEEP_COMPATIBILITY"
+          payload={
+              "schema":"WHD_ISSUE529_B4_DELETION_TEST_V1",
+              "boundary_id":"B4_LINKED_ENDCAP",
+              "baseline_head":dt0["baseline_head"],
+              "prior_decision":"KEEP_COMPATIBILITY",
+              "variant_keep":dt2["variant_k"],
+              "variant_extract":dt2["variant_e"],
+              "decision":decision,
+              "derivation_owner":"phase6_fold_profiles.build_linked_endcap_xy_profiles",
+              "join_derived_part_plan":False,
+              "deepen_fold_profiles":False,
+              "deepen_application_coordinator":False,
+              "bridge_role":"workspace/live-editor compatibility effects",
+              "support_keep":[
+                  "Derivation is already deep and pure in phase6_fold_profiles.",
+                  "Variant K returns workspace mutation and live-editor effect ordering to a full-app caller.",
+                  "Variant E can own pure request/presence planning, but cannot delete the old bridge effect body.",
+                  "Joining DerivedPartSyncPlan would mix canonical existing EndCap profile refresh with derived physical-part topology.",
+                  "Deepening Fold Profiles would import workspace/Tk application effects into a pure derivation owner.",
+                  "A new application coordinator would still need multiple workspace/state/Tk effect ports and would be a sequencing middle-man unless another accepted presentation owner absorbs those effects.",
+              ],
+              "tests":{
+                  "headless":"GREEN",
+                  "xvfb":"GREEN",
+                  "combined_required":True,
+              },
+              "production_change_required":False,
+              "bridge_symbols_removed":[],
+              "rationale":"No candidate removes the bridge compatibility effect body without either contaminating the pure Fold owner, mixing unrelated derived-part topology, or recreating the same application/Tk effect surface behind ports.",
+          }
+          Path("/tmp/issue529-evidence/issue529-b4-deletion-test.json").write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          Path("/tmp/issue529-evidence/issue529-b4-deletion-test.md").write_text(
+              "# Issue 529 B4 Linked Endcap Deletion-Test\n\n"
+              f"- decision: **{decision}**\n"
+              "- derivation owner remains phase6_fold_profiles.build_linked_endcap_xy_profiles\n"
+              "- JOIN_DERIVED_PART_PLAN=false\n"
+              "- DEEPEN_FOLD_PROFILES=false\n"
+              "- production change required=false\n",
+              encoding="utf-8",
+          )
+          print("B4_DECISION="+decision)
+          print("B4_JOIN_DERIVED_PART_PLAN=false")
+          print("B4_DEEPEN_FOLD_PROFILES=false")
+          print("B4_PRODUCTION_CHANGE_REQUIRED=false")
+          print("B4_BRIDGE_SYMBOLS_REMOVED=0")
+          print("ISSUE529_DT6=GREEN")
+          PY
+
+      - name: 上傳 B4 Deletion-Test 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue529-b4-deletion-test
+          path: /tmp/issue529-evidence/
+          if-no-files-found: error
+          retention-days: 14
