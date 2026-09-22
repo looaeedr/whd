@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T01:54:20+08:00",
   "base_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
   "head_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T02:01:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T02:02:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -29,6 +29,15 @@
       "artifact_id": 10711347347
     }
   },
-  "next_action": "Create terminal checkpoint and delegated finalization guard for #523, then close/readback and claim #524.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
+    "finalization_run": 35764452803,
+    "finalization_artifact": 10711388474,
+    "proof_sha256": "e0b5428cf92a31d9fcd9f985eeb3504e44393295d58d67a0f49ed2f0a1e8a49b",
+    "checkpoint": ".dispatch/checkpoints/issue-523.json"
+  }
 }
