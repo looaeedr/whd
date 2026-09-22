@@ -1039,8 +1039,8 @@ class Phase6FoldDesignerComposition:
             active_mesh_profiles=lambda material: required(
                 "_phase6_active_mesh_profiles"
             )(app, material),
-            assembly_render_data_cls=AssemblySceneRenderData,
-            assembly_part_cls=AssemblyScenePart,
+            assembly_render_data_cls=required("AssemblySceneRenderData"),
+            assembly_part_cls=required("AssemblyScenePart"),
             final_render_provider=lambda: required(
                 "_phase6_query_final_render_data"
             )(app),
