@@ -6,29 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T04:40:45+08:00",
   "base_sha": "185991276c57fa3aeecace562daf89fa7be5b5ae",
-  "head_sha": "abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T04:48:00+08:00",
+  "head_sha": "d370d5d155feff0ee06af7402d774a8b5b36faa2",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T04:53:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B2",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35782285637,
-    "head_sha": "abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B2 Workspace Shell deletion-test candidate characterization",
-    "evidence": {
-      "cluster_loc": 383,
-      "current_tests": "5 passed, 1 skipped",
-      "xvfb_single_slot": "1 passed",
-      "candidate_decision": "B2_EXTRACT_DEEP_SHELL_OWNER",
-      "implementation_required": true,
-      "artifact_id": 10719035227
-    }
+    "run_id": 35783183790,
+    "head_sha": "d370d5d155feff0ee06af7402d774a8b5b36faa2",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B2 deep Workspace Shell owner GREEN acceptance"
   },
-  "next_action": "Cleanup one-shot qa-issue527-b2-deletion-test.yml under execution guard; then add replacement RED tests for the deep Workspace Shell owner. Every new #527 workflow/run from this point must use explicit Traditional-Chinese name/run-name/job/step labels.",
+  "next_action": "Poll exact RUN 35783183790 @ d370d5d155feff0ee06af7402d774a8b5b36faa2 to terminal; on RED fetch failed step/log and remediate.",
   "blocker": null
 }
