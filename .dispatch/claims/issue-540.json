@@ -19,11 +19,11 @@
     "purpose": "Issue #540 durable Skill bridge GREEN",
     "evidence": {
       "behavior_tests": "26 passed",
-      "marker_failure": "missing literal action=claim-takeover",
+      "failed_test": "exact action=claim-takeover literal missing",
       "repair_commit": "b76f8b3135a4096641291818b4e479f70025ed85"
     }
   },
-  "next_action": "Patch the one-shot GREEN workflow paths to include the three Skill files and AI pitfall, triggering a fresh run at a head containing b76f8b31; lock it to terminal.",
+  "next_action": "Harden execution_claim_guard claim-takeover with required machine stale evidence; implement trusted Remote Guard fresh live-head/commit/exact-run evaluator path and receipt binding; run replacement GREEN.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
