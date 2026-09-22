@@ -7,13 +7,23 @@
   "claimed_at": "2026-09-22T19:13:30+08:00",
   "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "head_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "phase": "CLAIMED",
+  "phase": "IMPLEMENTING",
   "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T19:13:30+08:00",
-  "next_action": "Obtain WHD Remote Guard GREEN for branch-create, then create skill/issue496-remote-execution-guard-20260922 from exact frozen X base.",
-  "blocker": null
+  "last_update": "2026-09-22T19:15:00+08:00",
+  "next_action": "Obtain a single Remote Guard GREEN for one exact commit containing the new Skill, skill_registry route, and focused contract test; then create one commit on the exact branch head.",
+  "blocker": null,
+  "evidence": {
+    "branch_create_remote_guard": {
+      "run_id": 35720291279,
+      "request_comment_id": 5775442343,
+      "receipt_comment_id": 5775444998,
+      "result": "GREEN",
+      "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
+      "tested_target_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa"
+    }
+  }
 }
