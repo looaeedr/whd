@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:44:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
@@ -13,22 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "24d0d0d0aeb7860b7d5c299243547701d2f64e25",
-  "last_update": "2026-09-22T22:18:00+08:00",
+  "head_sha": "059489988ac24b157a844bf659c882b7483d810b",
+  "last_update": "2026-09-22T22:20:00+08:00",
   "remote_qa": {
-    "status": "SUPERSEDED_BY_TEST_CONTRACT_MIGRATION",
-    "prior_run_id": 35741913085,
-    "prior_head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
-    "evidence": {
-      "focused_physical_persistence": "82 PASS",
-      "headless_candidate_only": [
-        "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_exact_t0_refresh_callsite_inventory_is_unchanged",
-        "tests.test_dm7_topology_persistence::test_family_switch_commits_derived_topology_before_visible_navigation_refresh"
-      ],
-      "classification": "Both are stale structural-owner assertions; accepted Phase 5 refactor moved the same invariants to new application owners.",
-      "architecture_failure": "false positive in classifier; fixed workflow exists on branch but no authoritative run yet"
-    }
+    "status": "IN_PROGRESS_COMBINED_FRESH",
+    "run_id": 35742730733,
+    "head_sha": "059489988ac24b157a844bf659c882b7483d810b",
+    "workflow": "qa-issue504-t7-combined.yml",
+    "supersedes_run_id": 35741913085
   },
-  "next_action": "Patch the existing Combined workflow architecture classifier to use production-only AST class definitions, then let the workflow-file commit trigger a fresh Combined Acceptance run on the latest candidate including stale-test contract migrations.",
+  "next_action": "Poll exact fresh Combined run 35742730733 on head 05948998 to terminal; classify any remaining candidate-only failures. On full GREEN, cleanup acceptance workflows, drift-audit, finalize #504, then immediately start #505.",
   "blocker": null
 }
