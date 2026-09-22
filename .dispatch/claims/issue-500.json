@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -13,15 +13,16 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "f79b6467fa722bf92374d16abde905d86ccac2c0",
-  "last_update": "2026-09-22T22:35:00+08:00",
+  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+  "last_update": "2026-09-22T23:05:00+08:00",
   "remote_qa": {
-    "status": "HARNESS_FAILURE",
-    "run_id": 35734898161,
-    "head_sha": "f79b6467fa722bf92374d16abde905d86ccac2c0",
-    "workflow": "qa-issue500-t3-green.yml",
-    "result": "Focused pytest collection failed because ezdxf was not installed; no T3 product assertion executed."
+    "status": "GREEN_CLEANED",
+    "run_id": 35735472804,
+    "tested_head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
+    "cleaned_head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+    "finalization_run_id": 35735817696,
+    "result": "48 passed, 2 skipped; facade=69; tested->cleaned workflow-delete-only; finalization proof verified; issue CLOSED/completed"
   },
-  "next_action": "Repair only GREEN workflow dependency setup to install requirements/ezdxf; re-run same focused T3 suite on unchanged production/test implementation, then classify terminal result.",
+  "next_action": "Terminal #500 released after CLOSED/completed readback; Master chain continues at #501.",
   "blocker": null
 }
