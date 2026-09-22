@@ -7424,7 +7424,6 @@ install_fold_designer_bridge_facade(
         "on_3d_scroll": _phase6_on_3d_scroll,
         "add_part": _fix11_add_part,
         "select_part": _fix11_select_part,
-        "activate_selected_part": _fix11_activate_selected_part,
         "remove_selected_part": _fix11_remove_selected_part,
         "remove_part": _fix11_remove_part,
         "available_parts": property(_legacy_available_parts_get, _legacy_available_parts_set),
