@@ -3,8 +3,8 @@
   "issue": "490",
   "branch": "hotfix/issue490-marking-divider-holeeditor-20260922",
   "head_sha": "3464c2020483d23675c4585e449b08cd6f785809",
-  "state": "RUNNING",
-  "next_action": "Mark PR #492 ready, non-force merge to unchanged cleanup/2d-3d-sync c48f650f..., verify post-integration ancestry/files, then terminalize checkpoint and close issue.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 35718611106,
   "job_id": 106715916641,
   "log_cursor": null,
@@ -21,6 +21,8 @@
     "Temporary #490 QA workflow removed. Tested head 183e3d495a09631f85ed0fa338381417afccd662 -> closing head 3464c2020483d23675c4585e449b08cd6f785809 changes only workflow deletion; production/test drift=0.",
     "AI Library writeback committed at 7789aac5e8135dc291b842ab0d80021205e96c74 and remote-read content verified before closing.",
     "Two-axis code review after remediation: Standards findings=0; Spec findings=0.",
-    "Fresh production target cleanup/2d-3d-sync remains c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8; PR #492 reports mergeable=true."
+    "Fresh production target cleanup/2d-3d-sync remains c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8; PR #492 reports mergeable=true.",
+    "PR #492 merged non-force into cleanup/2d-3d-sync as ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa; production target fresh-read now equals that merge commit.",
+    "Post-integration readback confirms ae_engine/receiving_joint_marking.py present, Receiving manufacturing resolver applies Joint Placement MARKING, non-active Divider blank projection reads ResolvedManufacturingGeometry, and HoleEditor box-body close no longer calls legacy draw_box_body/canvas_z."
   ]
 }
