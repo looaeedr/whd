@@ -16,18 +16,19 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35671726956,
     "head_sha": "0aa34aad692705080aef684c4c8e16baa4e6ef63",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue481 T3 Requirement RED for head 0aa34aad692705080aef684c4c8e16baa4e6ef63, lock exact run_id+head_sha, require RED only for missing navigation apply seam / linked-endcap decision evidence, then implement KEEP_COMPATIBILITY cutover.",
+  "next_action": "Poll locked T3 RED run 35671726956 @ 0aa34aad692705080aef684c4c8e16baa4e6ef63 to terminal; classify exact failures; then implement navigation apply_derived_sync_plan plus KEEP_COMPATIBILITY decision.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:24:00+08:00",
+  "last_update": "2026-09-22T08:25:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
