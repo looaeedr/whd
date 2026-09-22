@@ -11,11 +11,12 @@
   "base_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
   "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
   "delegated_branches": [
-    "coord/dispatch-claims"
+    "coord/dispatch-claims",
+    "qa/issue505-t8-integration-20260923"
   ],
-  "head_sha": "f4a897d5186c6ff25799b924fb6e453dd4dbb2d7",
+  "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
   "last_update": "2026-09-22T23:59:00+08:00",
   "remote_qa": null,
-  "next_action": "Verify T8 cleanup/writeback readback and tested-head to cleaned-head drift, then classify current-X overlap/conflicts for Integration Acceptance.",
+  "next_action": "Create delegated qa/issue505-t8-integration-20260923 from PR #518 exact merge commit and run T8 merge-ref focused acceptance; on GREEN delete QA branch, merge whole chain non-force, read back production, run post-integration smoke.",
   "blocker": null
 }
