@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -13,15 +13,14 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "1e9e7826f499ede9f21d22fb5501f71e3c929cf0",
-  "last_update": "2026-09-22T20:39:00+08:00",
+  "head_sha": "4f427510a024cc74a768c1c2b450e90580ab70e9",
+  "last_update": "2026-09-22T20:41:00+08:00",
   "remote_qa": {
-    "status": "EXPECTED_RED_GREEN",
-    "run_id": 35727584666,
-    "head_sha": "0bd7632fca3170747819975e1095d154195a3eee",
-    "workflow": "qa-issue498-t1-red.yml",
-    "result": "5 failed in 0.09s; expected RED markers confirmed"
+    "status": "QUEUED",
+    "run_id": 35727975345,
+    "head_sha": "4f427510a024cc74a768c1c2b450e90580ab70e9",
+    "workflow": "qa-issue498-t1-green.yml"
   },
-  "next_action": "Create focused T1 GREEN workflow at exact candidate HEAD, run coordinator contract/composition tests plus existing Settings ownership regressions, then lock run to terminal.",
+  "next_action": "Poll locked T1 GREEN run 35727975345 @ 4f427510a024cc74a768c1c2b450e90580ab70e9 until terminal; classify any failure, otherwise extract counts/invariants and review diff.",
   "blocker": null
 }
