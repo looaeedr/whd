@@ -531,8 +531,16 @@ def _phase6_settings_application_apply_profile_plan(
     reset_box_profile=False,
     reset_all_profiles=False,
     render=True,
+    editor_commit=False,
+    editor_changed_keys=(),
 ):
     committed = dict(committed or {})
+    if bool(editor_commit):
+        _phase6_recalculate_part_dimensions(self)
+        changed_keys = set(editor_changed_keys or ())
+        if {"w", "h", "d", "t", "fw"}.intersection(changed_keys):
+            _phase6_refresh_linked_part_profiles(self, changed_keys)
+        return committed
     if "t" in committed:
         self.state.phase6_thickness = float(committed["t"])
     self._phase6_settings_guard = True
@@ -559,9 +567,13 @@ def _phase6_settings_application_project_ui_values(
     new_editable=False,
     old_editable=False,
     factory_reset=False,
+    editor_commit=False,
+    editor_snapshot=None,
 ):
     values = dict(values or {})
     plan = baseline_transition
+    if bool(editor_commit) and editor_snapshot is not None:
+        self._phase6_input_snapshot.update(dict(editor_snapshot or {}))
 
     if rejected_key == "w":
         if error is not None:
@@ -703,12 +715,14 @@ def _phase6_settings_application_submit_update_intent(self, committed):
     except Exception:
         return None
 
-def _phase6_settings_application_publish_live_state(self, _committed):
+def _phase6_settings_application_publish_live_state(self, committed, *, partial=False):
     if (
         not getattr(self, "_phase6_transactional_mode", False)
         and self._settings_change_callback is not None
     ):
-        self._settings_change_callback(dict(self._settings_values))
+        payload = dict(committed or {}) if bool(partial) else dict(self._settings_values)
+        if payload:
+            self._settings_change_callback(payload)
 
 
 def _phase6_settings_application_render_bending(self):
@@ -782,8 +796,8 @@ def _phase6_settings_application_ports(self):
         submit_update_intent=lambda committed: _phase6_settings_application_submit_update_intent(
             self, committed
         ),
-        publish_live_state=lambda committed: _phase6_settings_application_publish_live_state(
-            self, committed
+        publish_live_state=lambda committed, **kwargs: _phase6_settings_application_publish_live_state(
+            self, committed, **kwargs
         ),
         project_status=lambda *args, **kwargs: _phase6_settings_application_project_status(
             self, *args, **kwargs
@@ -6816,87 +6830,12 @@ def _phase6_refresh_linked_part_profiles(self, changed_keys):
 
 
 def _phase6_store_editor_values(self, values, *, notify=True):
-    """Accept authoritative X/Y/FoldChain edits into the shared settings state.
-
-    Part switching calls this to persist the outgoing editor.  Do not wake the
-    main GUI when the persisted values are unchanged, and when something did
-    change send only those keys.  The main GUI callback accepts partial setting
-    payloads; sending the whole settings dictionary forced a full AE/main-preview
-    recalculation on every part switch even when the operator changed nothing.
-    """
-    clean = dict(values or {})
-    if not clean:
-        return
-
-    changed_settings = {}
-    for key, value in list(clean.items()):
-        if key not in self._settings_values:
-            continue
-        old = self._settings_values[key]
-        if key == "ui_text_size":
-            normalized = normalize_ui_text_size(value)
-        elif isinstance(old, bool):
-            normalized = bool(value)
-        else:
-            normalized = float(value)
-        # Keep the snapshot/settings transaction on the same normalized value.
-        # Family snapshots include string-valued ui_text_size alongside numeric
-        # W/H/D; treating every non-bool as float aborted receiving rebases.
-        clean[key] = normalized
-        if key == "ui_text_size":
-            different = normalize_ui_text_size(old) != normalized
-        elif isinstance(old, bool):
-            different = bool(old) != normalized
-        else:
-            try:
-                different = abs(float(old) - float(normalized)) > 1e-9
-            except (TypeError, ValueError):
-                different = old != normalized
-        if different:
-            changed_settings[key] = normalized
-
-    # A real box-FW edit is an explicit operator takeover.  Do this before
-    # rebuilding linked EndCaps so Head/Tail resolve from the same state.
-    if "fw" in changed_settings:
-        commit_box_fw(self._phase6_endcap_fw_state, float(changed_settings["fw"]))
-        self._phase6_input_snapshot["endcap_fw"] = deepcopy(self._phase6_endcap_fw_state)
-
-    self._phase6_input_snapshot.update(clean)
-    for key, value in clean.items():
-        if key not in self._settings_values:
-            continue
-        if key == "ui_text_size":
-            self._settings_values[key] = normalize_ui_text_size(value)
-        elif isinstance(self._settings_values[key], bool):
-            self._settings_values[key] = bool(value)
-        else:
-            self._settings_values[key] = float(value)
-    for key in ("w", "h", "d"):
-        if key in clean:
-            self._phase6_box_whd[key] = original.get_int(clean[key])
-    if hasattr(self, "left_global_vars"):
-        self._phase6_settings_guard = True
-        try:
-            for key in ("w", "h", "d", "t", "fw"):
-                if key not in clean or key not in self.left_global_vars:
-                    continue
-                text = _setting_number_text(clean[key])
-                if self.left_global_vars[key].get() != text:
-                    self.left_global_vars[key].set(text)
-        finally:
-            self._phase6_settings_guard = False
-    _phase6_recalculate_part_dimensions(self)
-    if {"w", "h", "d", "t", "fw"}.intersection(changed_settings):
-        _phase6_refresh_linked_part_profiles(self, set(changed_settings))
-    if (
-        notify
-        and changed_settings
-        and not getattr(self, "_phase6_applying_settings", False)
-        and not getattr(self, "_phase6_transactional_mode", False)
-        and self._settings_change_callback is not None
-    ):
-        self._settings_change_callback(changed_settings)
-
+    return _phase6_settings_coordinator(self).commit_editor_values(
+        values,
+        notify=bool(notify),
+        applying_settings=bool(getattr(self, "_phase6_applying_settings", False)),
+        transactional_mode=bool(getattr(self, "_phase6_transactional_mode", False)),
+    )
 
 def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, notify=True):
     """Commit one physical side/back Fold editor through canonical BoxBody state."""

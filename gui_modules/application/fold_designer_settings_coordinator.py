@@ -226,6 +226,62 @@ class Phase6FoldDesignerSettingsCoordinator:
             self._ports.publish_live_state(committed)
         return committed
 
+    def commit_editor_values(
+        self,
+        values,
+        *,
+        notify: bool = True,
+        applying_settings: bool = False,
+        transactional_mode: bool = False,
+    ) -> dict[str, Any]:
+        """Commit editor-originated Settings through canonical owners and bounded effects."""
+        clean = dict(values or {})
+        if not clean:
+            return {}
+
+        snapshot = self._ports.read_settings_snapshot()
+        current = dict(getattr(snapshot, "settings_values", {}) or {})
+        normalized = dict(self._transactions.normalize_updates(clean) or {})
+        for key, value in normalized.items():
+            clean[key] = value
+
+        changed: dict[str, Any] = {}
+        for key, value in normalized.items():
+            old = current.get(key)
+            if isinstance(old, bool):
+                different = bool(old) != bool(value)
+            else:
+                try:
+                    different = abs(float(old) - float(value)) > 1e-9
+                except (TypeError, ValueError):
+                    different = old != value
+            if different:
+                changed[key] = value
+
+        if "fw" in changed:
+            self._transactions.commit_editor_fw_takeover(changed["fw"])
+        if normalized:
+            self._transactions.commit_settings(normalized)
+
+        self._ports.project_ui_values(
+            clean,
+            editor_commit=True,
+            editor_snapshot=clean,
+        )
+        self._ports.apply_profile_plan(
+            clean,
+            editor_commit=True,
+            editor_changed_keys=tuple(sorted(changed)),
+        )
+        if (
+            notify
+            and changed
+            and not bool(applying_settings)
+            and not bool(transactional_mode)
+        ):
+            self._ports.publish_live_state(changed, partial=True)
+        return changed
+
     def apply_baseline_transition(
         self,
         *,
