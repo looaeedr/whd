@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "921277d04fff38f99d38b9919a4a466551a2200f",
+  "head_sha": "cf802375583a48e497c0332c36851efcf122e926",
   "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:14:50+08:00",
+  "last_update": "2026-09-23T02:15:35+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -56,7 +56,7 @@
       "artifact_id": 10712350745
     }
   },
-  "next_action": "Persist A3 audit/RED/GREEN evidence, remove three one-shot workflows, verify tested-to-closing production/test drift=0, then finalize #524.",
+  "next_action": "Delete one-shot qa-issue524-facade-audit.yml, qa-issue524-a3-red.yml, and qa-issue524-a3-green.yml with guarded writes; then drift audit.",
   "blocker": null,
   "production_change": {
     "bridge_before_loc": 7806,
