@@ -114,7 +114,7 @@ Request 前必須 fresh-read：
 - exact work branch observed live HEAD 與該 HEAD commit time；
 - claim 有 `remote_qa.run_id` 時的 exact remote run fresh status/updated_at。
 
-trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。只有 machine decision 為 `EXECUTOR_STUCK` 才能再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt。
+trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。只有 machine decision 為 `EXECUTOR_STUCK` 才能再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt；Remote Guard request 的 exact machine syntax 是 `action=claim-takeover`。
 
 `RUN_LIVE`、`WAIT_ON_FOREIGN_RUNTIME`、`ALREADY_SCHEDULER`、`TERMINAL` 或 evaluator error 一律 Remote Guard FAIL；不得 mutation claim。
 
