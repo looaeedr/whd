@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,15 +14,13 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "9b18b80928649977044ea3da2c66b96741034f93",
-  "last_update": "2026-09-22T21:56:00+08:00",
+  "last_update": "2026-09-22T21:58:00+08:00",
   "remote_qa": {
-    "status": "AB_CLASSIFIED",
-    "candidate_run_id": 35731884812,
-    "baseline_run_id": 35732090162,
-    "candidate_head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
-    "baseline_checkout_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
-    "result": "Legacy focused candidate-only failing-file delta = []; new issue499 focused contract PASS."
+    "status": "IN_PROGRESS_ACCEPTANCE",
+    "run_id": 35732305573,
+    "head_sha": "9b18b80928649977044ea3da2c66b96741034f93",
+    "workflow": "qa-issue499-t2-acceptance.yml"
   },
-  "next_action": "Lock exact T2 acceptance run triggered by 9b18b809 and poll to terminal; on GREEN cleanup one-shot QA workflows and perform tested-to-cleaned drift audit.",
+  "next_action": "Poll exact acceptance run 35732305573 on head 9b18b809 to terminal; on GREEN perform workflow cleanup, tested-to-cleaned drift audit, terminal checkpoint/finalization proof, close #499, then start #500.",
   "blocker": null
 }
