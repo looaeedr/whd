@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T06:35:30+08:00",
   "base_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
   "head_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
-  "phase": "FINALIZING",
-  "last_update": "2026-09-23T06:42:40+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T06:43:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -23,11 +23,23 @@
     "conclusion": null,
     "purpose": "B4 executable finalization guard/proof"
   },
-  "next_action": "Poll finalization RUN 35793730610 to terminal; on GREEN close #529 and claim #530.",
+  "next_action": null,
   "blocker": null,
   "drift_audit": {
     "tested_head": "4d1618937dd342b67a82c45b1f29feca86661a18",
     "closing_head": "8fa30cfc7800afba16b71c7580552893db5d1037",
     "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "8fa30cfc7800afba16b71c7580552893db5d1037",
+    "decision": "KEEP_COMPATIBILITY",
+    "finalization_run": 35793730610,
+    "finalization_artifact": 10723200528,
+    "proof_sha256": "db319e035d0fb970d5dc4a38ca54daa3cd485f08b39223fcd7f0d29f6499d974",
+    "checkpoint": ".dispatch/checkpoints/issue-529.json",
+    "temp_finalization_branch": "qa/issue529-finalization-20260923",
+    "temp_branch_cleanup_deferred_to_chain_cleanup": true
   }
 }
