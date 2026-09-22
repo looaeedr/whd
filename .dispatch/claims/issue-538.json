@@ -4,15 +4,15 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T02:05:00+08:00",
-  "phase": "CLOSING",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "work_branch": "feature/issue538-actions-chinese-contract-20260923",
   "delegated_branches": [
     "qa/issue538-finalization-20260923"
   ],
-  "head_sha": "37e9f212082e53d7ac063ce540d35b70295de730",
-  "last_update": "2026-09-23T04:42:00+08:00",
+  "head_sha": "16a37c1797e489b0e56290d1cd1a2374920d1b3e",
+  "last_update": "2026-09-23T04:43:00+08:00",
   "remote_qa": {
     "run_id": 35765860616,
     "head_sha": "486d149cd6694cec2e4fd6445b89807a7c3f5d72",
@@ -26,7 +26,7 @@
       "skill_contract": "GREEN"
     }
   },
-  "next_action": "Write terminal evidence to #538, close/readback as completed, then mark claim RELEASED with temp finalization branch cleanup explicitly deferred because current connector exposes no delete-ref primitive.",
+  "next_action": "Remove .github/workflows/qa-issue538-finalization.yml from delegated QA branch under fresh Remote Guard, then release claim. Remote branch deletion is deferred because the current GitHub connector exposes no delete-ref primitive.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -116,5 +116,20 @@
     "finalization_proof": "VALID",
     "proof_sha256": "79369db8e408b3f1c5cbf65e278bbb51b0c550f4b9aedc18452ee1c7600638e8",
     "artifact_id": 10718845603
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-22T20:42:22Z",
+    "accepted_head": "37e9f212082e53d7ac063ce540d35b70295de730",
+    "integration_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
+    "finalization_run": 35781877111,
+    "finalization_artifact": 10718845603,
+    "finalization_proof_sha256": "79369db8e408b3f1c5cbf65e278bbb51b0c550f4b9aedc18452ee1c7600638e8",
+    "checkpoint": ".dispatch/checkpoints/issue-538.json",
+    "terminal_evidence_comment_id": 5783827749,
+    "temp_finalization_branch": "qa/issue538-finalization-20260923",
+    "temp_branch_cleanup_deferred": true,
+    "temp_branch_cleanup_reason": "Current GitHub connector exposes no delete-ref/delete-branch primitive; workflow file will be removed before claim release."
   }
 }
