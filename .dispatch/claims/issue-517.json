@@ -6,18 +6,16 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "bc41b4b89ed81bf94e09457a6af2f42821160c37",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T16:00:00Z",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T16:01:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
-    "run_id": 35749863841,
-    "head_sha": "5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106820881631,
-    "summary": "31 PASS / 1 FAIL; only #510 legacy harness fails because root.withdraw() makes winfo_ismapped false. #517 focused behavior, #187, resolved export, T7 project/export all GREEN. config invariant GREEN."
+    "run_id": 35750382109,
+    "head_sha": "bc41b4b89ed81bf94e09457a6af2f42821160c37",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Observe auto-triggered combined #517 adjacent regression at head bc41b4b89ed81bf94e09457a6af2f42821160c37; lock exact run_id+head_sha and poll to terminal.",
+  "next_action": "Poll exact combined regression run 35750382109 at head bc41b4b89ed81bf94e09457a6af2f42821160c37 to terminal; no mutation while active.",
   "blocker": null,
   "delegated_branches": []
 }
