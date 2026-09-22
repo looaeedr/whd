@@ -205,11 +205,13 @@ jobs:
                 matches = list(Path(".agents/skills").glob(f"**/{skill}/SKILL.md"))
                 if len(matches) != 1:
                     raise SystemExit(f"required skill unavailable or ambiguous: {skill}: {matches}")
+                matches[0].read_text(encoding="utf-8")
                 lines.append(f"READ_SKILL: {skill} path={matches[0].as_posix()}")
             for ref in refs:
                 path = Path(ref)
                 if not path.is_file():
                     raise SystemExit(f"required reference missing: {ref}")
+                path.read_text(encoding="utf-8")
                 lines.append(f"READ_REFERENCE: {ref}")
             Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
             PY
@@ -233,6 +235,7 @@ jobs:
               --action "$RG_ACTION"
               --base-sha "$RG_BASE_SHA"
               --head-sha "$RG_HEAD_SHA"
+              --preflight-evidence /tmp/preflight-evidence.txt
             )
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
