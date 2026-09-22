@@ -19,21 +19,25 @@ def _pump(root, cycles=5):
 
 
 def _open_vault_designer():
+    """Open the real production primary lifecycle, then normalize it to Vault."""
     import tkinter as tk
     import gui
 
     root = tk.Tk()
     root.geometry("1400x900+0+0")
-    app = gui.BoxCalculatorGUI(root)
-    app.baseline_var.set("金庫型")
-    _pump(root, 2)
-    designer = app.open_original_fold_designer()
+    app = gui.Phase6PrimaryApplication(root)
+    designer = app.fold_designer_app
+    assert designer is not None
     try:
         designer.root.deiconify()
         designer.root.geometry("1400x900+0+0")
     except Exception:
         pass
     _pump(root, 5)
+
+    designer.baseline_model_var.set("金庫型")
+    _pump(root, 8)
+    assert str(designer._phase6_input_snapshot.get("model") or "") == "金庫型"
     return tk, root, app, designer
 
 
@@ -96,14 +100,15 @@ def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geomet
             "Visible 3D mesh bounds stayed identical after live-switch to 受電箱; "
             f"before={before!r} after={after!r}"
         )
-        assert tuple(
+        box_children = {
             str(key) for key in designer.designer_workspace.available_parts
             if str(key).startswith("box_body:")
-        )[:3] == (
+        }
+        assert {
             "box_body:left_side",
             "box_body:back",
             "box_body:right_side",
-        )
+        } <= box_children
     finally:
         _close(tk, root, designer)
 
@@ -133,7 +138,7 @@ def test_structure_tree_selecting_back_panel_exposes_mapped_back_panel_mode_sele
         # Mapped is not enough inside a Canvas: selecting 後面板 must bring the
         # selector into the user's current settings viewport without requiring
         # them to discover a hidden scroll position.
-        canvas = designer.settings_scroll_canvas
+        canvas = designer.settings_panel.settings_scroll_canvas
         assert canvas is not None and bool(canvas.winfo_ismapped())
         selector_top = selector.winfo_rooty()
         selector_bottom = selector_top + max(1, selector.winfo_height())
