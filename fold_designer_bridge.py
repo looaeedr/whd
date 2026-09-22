@@ -524,16 +524,27 @@ def _phase6_settings_application_save_current_part(self):
         self._phase6_applying_settings = False
 
 
-def _phase6_settings_application_apply_profile_plan(self, committed):
+def _phase6_settings_application_apply_profile_plan(
+    self,
+    committed,
+    *,
+    reset_box_profile=False,
+    reset_all_profiles=False,
+    render=True,
+):
     committed = dict(committed or {})
     if "t" in committed:
         self.state.phase6_thickness = float(committed["t"])
     self._phase6_settings_guard = True
     try:
-        return _phase6_refresh_profiles_from_settings(self)
+        return _phase6_refresh_profiles_from_settings(
+            self,
+            reset_box_profile=bool(reset_box_profile),
+            reset_all_profiles=bool(reset_all_profiles),
+            render=bool(render),
+        )
     finally:
         self._phase6_settings_guard = False
-
 
 def _phase6_settings_application_project_ui_values(
     self,
@@ -541,8 +552,17 @@ def _phase6_settings_application_project_ui_values(
     *,
     rejected_key=None,
     error=None,
+    baseline_transition=None,
+    baseline_stage=None,
+    new_model="",
+    old_model="",
+    new_editable=False,
+    old_editable=False,
+    factory_reset=False,
 ):
     values = dict(values or {})
+    plan = baseline_transition
+
     if rejected_key == "w":
         if error is not None:
             _phase6_box_structure_error(self, ValueError(str(error)))
@@ -557,6 +577,32 @@ def _phase6_settings_application_project_ui_values(
         finally:
             self._phase6_settings_guard = False
         return
+
+    if baseline_stage == "commit" and plan is not None:
+        remembered = getattr(plan, "remember_non_receiving_structure", None)
+        if remembered is not None:
+            self._phase6_non_receiving_structure_state = deepcopy(remembered)
+
+        if "fw" in values:
+            state = getattr(self, "_phase6_endcap_fw_state", None)
+            if isinstance(state, MutableMapping):
+                commit_box_fw(state, float(values["fw"]))
+                self._phase6_input_snapshot["endcap_fw"] = deepcopy(state)
+
+        defaults = dict(getattr(plan, "defaults", {}) or {})
+        if defaults:
+            for key, attr in (("w", "w"), ("h", "h"), ("d", "d")):
+                if key in defaults:
+                    setattr(self.state, attr, original.get_int(defaults[key]))
+            self.v_w.set(str(self.state.w))
+            self.v_h.set(str(self.state.h))
+            self.v_d.set(str(self.state.d))
+            self._phase6_last_w = self.state.w
+            self._phase6_last_d = self.state.d
+
+        assembly_var = getattr(self, "assembly_type_var", None)
+        if assembly_var is not None:
+            assembly_var.set(ASSEMBLY_TYPE_LABELS[plan.assembly_type])
 
     if "ui_text_size" in values:
         key = values["ui_text_size"]
@@ -600,8 +646,51 @@ def _phase6_settings_application_project_ui_values(
     finally:
         self._phase6_settings_guard = False
 
+    if baseline_stage == "state":
+        if bool(new_editable) and str(old_model or "") and not bool(old_editable):
+            self._corner_transaction_unknown_state = deepcopy(
+                self._phase6_corner_state
+            )
+            self._corner_transaction_unknown_pairs = deepcopy(
+                self._phase6_corner_pair_same
+            )
+        self._corner_editable = bool(new_editable)
+        self._phase6_baseline_last_model = str(new_model or "")
+        _phase6_apply_box_symmetry_policy(self)
+        bend_ui = getattr(self, "bend_ui", None)
+        refresh_symmetry = getattr(bend_ui, "_phase6_refresh_symmetry_bar", None)
+        if callable(refresh_symmetry):
+            refresh_symmetry()
 
-def _phase6_settings_application_submit_update_intent(self, _committed):
+    if baseline_stage == "finalize":
+        _phase6_invalidate_corner_pages(self)
+        if (
+            hasattr(self, "settings_center")
+            and getattr(self, "active_part_key", None) is not None
+        ):
+            _phase6_render_settings_context(
+                self,
+                getattr(self, "settings_context", self.active_part_key),
+            )
+        corner_data_panel = getattr(self, "corner_data_panel", None)
+        if (
+            str(getattr(self, "_phase6_3d_display_mode", "") or "")
+            == "corner_data"
+            and corner_data_panel is not None
+            and corner_data_panel.winfo_manager()
+        ):
+            _phase6_refresh_corner_data_parts_panel(self)
+            if getattr(self, "corner_data_canvas", None) is not None:
+                _phase6_refresh_corner_data_unfold_view(self)
+
+def _phase6_settings_application_submit_update_intent(self, committed):
+    payload = dict(committed or {}) if isinstance(committed, Mapping) else {}
+    if payload.get("reason") == "baseline":
+        submit = getattr(self, "submit_update_intent", None)
+        if callable(submit):
+            return submit("baseline", commit=True)
+        return _phase6_publish_live_state(self, force=bool(payload.get("force", True)))
+
     legacy_job = getattr(self, "_job", None)
     if legacy_job is not None:
         try:
@@ -614,7 +703,6 @@ def _phase6_settings_application_submit_update_intent(self, _committed):
     except Exception:
         return None
 
-
 def _phase6_settings_application_publish_live_state(self, _committed):
     if (
         not getattr(self, "_phase6_transactional_mode", False)
@@ -626,18 +714,32 @@ def _phase6_settings_application_publish_live_state(self, _committed):
 def _phase6_settings_application_render_bending(self):
     bend_ui = getattr(self, "bend_ui", None)
     render = getattr(bend_ui, "render", None)
-    return render() if callable(render) else None
-
+    if not callable(render):
+        return None
+    try:
+        return render()
+    except Exception:
+        return None
 
 def _phase6_settings_application_refresh_settings_panel(self):
     panel = getattr(self, "settings_panel", None)
     refresh = getattr(panel, "refresh_baseline_data", None)
-    return refresh() if callable(refresh) else None
+    if not callable(refresh):
+        return None
+    try:
+        return refresh()
+    except Exception:
+        return None
 
-
-def _phase6_settings_application_refresh_topology(self):
+def _phase6_settings_application_refresh_topology(self, *args, **kwargs):
+    if kwargs.get("reason") == "baseline":
+        refresh_parts = getattr(self, "_refresh_part_buttons", None)
+        if (
+            callable(refresh_parts)
+            and getattr(self, "part_choice_menu", None) is not None
+        ):
+            return refresh_parts()
     return _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
-
 
 def _phase6_settings_application_refresh_persistent_controls(self):
     return _phase6_refresh_persistent_structure_controls(self)
@@ -647,19 +749,19 @@ def _phase6_settings_application_project_status(self, *args, **kwargs):
     message = kwargs.get("message")
     if message is None and args:
         message = args[0]
-    status_var = getattr(self, "_phase6_status_var", None)
+    status_name = "settings_status_var" if kwargs.get("settings") else "_phase6_status_var"
+    status_var = getattr(self, status_name, None)
     setter = getattr(status_var, "set", None)
     if callable(setter) and message is not None:
         setter(str(message))
-
 
 def _phase6_settings_application_ports(self):
     return Phase6SettingsApplicationPorts(
         read_settings_snapshot=lambda: _phase6_settings_application_read_snapshot(self),
         read_profile_snapshot=lambda: _phase6_settings_application_read_profile_snapshot(self),
         save_current_part=lambda: _phase6_settings_application_save_current_part(self),
-        apply_profile_plan=lambda committed: _phase6_settings_application_apply_profile_plan(
-            self, committed
+        apply_profile_plan=lambda committed, **kwargs: _phase6_settings_application_apply_profile_plan(
+            self, committed, **kwargs
         ),
         sync_derived_parts=lambda *args, **kwargs: _phase6_sync_authoritative_derived_parts(
             self
@@ -671,7 +773,9 @@ def _phase6_settings_application_ports(self):
         refresh_settings_panel=lambda: _phase6_settings_application_refresh_settings_panel(
             self
         ),
-        refresh_topology=lambda: _phase6_settings_application_refresh_topology(self),
+        refresh_topology=lambda *args, **kwargs: _phase6_settings_application_refresh_topology(
+            self, *args, **kwargs
+        ),
         refresh_persistent_controls=lambda: _phase6_settings_application_refresh_persistent_controls(
             self
         ),
@@ -685,8 +789,6 @@ def _phase6_settings_application_ports(self):
             self, *args, **kwargs
         ),
     )
-
-
 def _phase6_settings_coordinator(self):
     return _phase6_composition(self).settings_coordinator(
         _phase6_settings_application_ports(self)
@@ -1597,7 +1699,7 @@ def _phase6_recalculate_part_dimensions(self):
     return deepcopy(dims)
 
 
-def _phase6_apply_settings_profile_projection(self, plan):
+def _phase6_apply_settings_profile_projection(self, plan, *, render=True):
     snapshot = materialize_settings_profile_value(plan.snapshot)
     self._phase6_input_snapshot.update(snapshot)
 
@@ -1626,14 +1728,20 @@ def _phase6_apply_settings_profile_projection(self, plan):
         self.state.profiles["X"] = clone_profile(profiles.get("X", []))
         self.state.profiles["Y"] = clone_profile(profiles.get("Y", []))
 
-    try:
-        self.bend_ui.render()
-    except Exception:
-        pass
+    if render:
+        try:
+            self.bend_ui.render()
+        except Exception:
+            pass
     return plan
 
-
-def _phase6_refresh_profiles_from_settings(self, *, reset_box_profile=False):
+def _phase6_refresh_profiles_from_settings(
+    self,
+    *,
+    reset_box_profile=False,
+    reset_all_profiles=False,
+    render=True,
+):
     """Build a pure Settings-to-Profile plan, then apply it through existing owners."""
     workspace = self.designer_workspace
     request = SettingsProfileProjectionRequest(
@@ -1644,10 +1752,14 @@ def _phase6_refresh_profiles_from_settings(self, *, reset_box_profile=False):
         box_body_profile=self.state.profiles_vault.get("箱身", []),
         active_part=workspace.active_part or "box_body",
         reset_box_profile=bool(reset_box_profile),
+        reset_all_profiles=bool(reset_all_profiles),
     )
     plan = build_settings_profile_projection(request)
-    return _phase6_apply_settings_profile_projection(self, plan)
-
+    return _phase6_apply_settings_profile_projection(
+        self,
+        plan,
+        render=bool(render),
+    )
 
 def _phase6_apply_setting_updates(self, updates, *, notify=True):
     return _phase6_settings_coordinator(self).apply_updates(
@@ -1931,11 +2043,17 @@ def _phase6_on_baseline_model_changed(self, *_args):
         return
     self._phase6_corner_param_unlocked = {}
     new_model = str(self.baseline_model_var.get() or "").strip()
-    old_model = str(getattr(self, "_phase6_baseline_last_model", "") or "").strip()
+    old_model = str(
+        getattr(self, "_phase6_baseline_last_model", "") or ""
+    ).strip()
     old_editable = _phase6_is_unknown_baseline(self, old_model)
     if old_editable:
-        self._corner_transaction_unknown_state = deepcopy(self._phase6_corner_state)
-        self._corner_transaction_unknown_pairs = deepcopy(self._phase6_corner_pair_same)
+        self._corner_transaction_unknown_state = deepcopy(
+            self._phase6_corner_state
+        )
+        self._corner_transaction_unknown_pairs = deepcopy(
+            self._phase6_corner_pair_same
+        )
 
     editable = _phase6_is_unknown_baseline(self, new_model)
     needs_fixed_corner_preset = bool(
@@ -1944,106 +2062,25 @@ def _phase6_on_baseline_model_changed(self, *_args):
     )
     fixed_corner_state = (
         _phase6_known_model_corner_state(self)
-        if needs_fixed_corner_preset else {}
+        if needs_fixed_corner_preset
+        else {}
     )
-
-    transactions = _phase6_settings_transactions(self)
     previous_non_receiving_structure = getattr(
-        self, "_phase6_non_receiving_structure_state", None
+        self,
+        "_phase6_non_receiving_structure_state",
+        None,
     )
-    plan = None
-    try:
-        plan = transactions.commit_family_model_transition(
-            new_model,
-            old_model,
-            new_editable=editable,
-            old_editable=old_editable,
-            fixed_corner_state=fixed_corner_state,
-            available_parts=tuple(
-                getattr(self.designer_workspace, "available_parts", ()) or ()
-            ),
-            previous_non_receiving_structure=previous_non_receiving_structure,
-        )
-    except Exception:
-        # Preserve the baseline fail-closed behavior: rendering/validation will
-        # surface the real family/structure error; do not invent a fallback.
-        plan = None
-
-    if plan is not None:
-        if plan.remember_non_receiving_structure is not None:
-            self._phase6_non_receiving_structure_state = deepcopy(
-                plan.remember_non_receiving_structure
-            )
-
-        if editable and old_model and not old_editable:
-            self._corner_transaction_unknown_state = deepcopy(
-                self._phase6_corner_state
-            )
-            self._corner_transaction_unknown_pairs = deepcopy(
-                self._phase6_corner_pair_same
-            )
-
-        if plan.family_values:
-            _phase6_store_editor_values(
-                self, plan.family_values, notify=True
-            )
-            defaults = dict(plan.defaults or {})
-            self.state.w = original.get_int(defaults["w"])
-            self.state.h = original.get_int(defaults["h"])
-            self.state.d = original.get_int(defaults["d"])
-            self.v_w.set(str(self.state.w))
-            self.v_h.set(str(self.state.h))
-            self.v_d.set(str(self.state.d))
-            self._phase6_last_w = self.state.w
-            self._phase6_last_d = self.state.d
-            _phase6_refresh_profiles_from_settings(
-                self, reset_box_profile=True
-            )
-
-            assembly_var = getattr(self, "assembly_type_var", None)
-            if assembly_var is not None:
-                assembly_var.set(ASSEMBLY_TYPE_LABELS[plan.assembly_type])
-
-    self._corner_editable = editable
-    self._phase6_baseline_last_model = new_model
-    _phase6_apply_box_symmetry_policy(self)
-    if hasattr(self, "bend_ui"):
-        self.bend_ui._phase6_refresh_symmetry_bar()
-    _phase6_sync_authoritative_derived_parts(self)
-    refresh_parts = getattr(self, "_refresh_part_buttons", None)
-    if callable(refresh_parts) and getattr(self, "part_choice_menu", None) is not None:
-        refresh_parts()
-    else:
-        _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
-    _phase6_refresh_persistent_structure_controls(self)
-
-    # Cached pages depend on whether the family is editable. Baseline changes
-    # are explicit user actions, so rebuilding here preserves the old UI order.
-    _phase6_invalidate_corner_pages(self)
-    if hasattr(self, "settings_center") and getattr(self, "active_part_key", None) is not None:
-        _phase6_render_settings_context(
-            self, getattr(self, "settings_context", self.active_part_key)
-        )
-    if hasattr(self, "settings_status_var"):
-        self.settings_status_var.set(
-            "自訂：沿用目前資料並即時同步主畫面"
-            if editable else "已選基準型號；截角修改即時同步主畫面"
-        )
-    submit = getattr(self, "submit_update_intent", None)
-    if callable(submit):
-        submit("baseline", commit=True)
-    else:
-        _phase6_publish_live_state(self, force=True)
-
-    corner_data_panel = getattr(self, "corner_data_panel", None)
-    if (
-        str(getattr(self, "_phase6_3d_display_mode", "") or "") == "corner_data"
-        and corner_data_panel is not None
-        and corner_data_panel.winfo_manager()
-    ):
-        _phase6_refresh_corner_data_parts_panel(self)
-        if getattr(self, "corner_data_canvas", None) is not None:
-            _phase6_refresh_corner_data_unfold_view(self)
+    return _phase6_settings_coordinator(self).apply_baseline_transition(
+        new_model=new_model,
+        old_model=old_model,
+        new_editable=editable,
+        old_editable=old_editable,
+        fixed_corner_state=fixed_corner_state,
+        available_parts=tuple(
+            getattr(self.designer_workspace, "available_parts", ()) or ()
+        ),
+        previous_non_receiving_structure=previous_non_receiving_structure,
+    )
 
 def _phase6_collect_workspace_state(self):
     active = self.designer_workspace.active_part
@@ -4963,108 +5000,11 @@ def _phase6_build_persistent_top_area(self):
 
 
 def _phase6_reset_initial_values(self):
-    """Restore the immutable AE factory defaults inside the 3D transaction.
-
-    The source is ``ae_engine.ae.default_config`` captured by the main GUI when
-    開啟此設計器時的工作區內容。基準型號與手動截角交易資料不屬於
-    of that mapping and therefore remain untouched.
-    """
+    """Restore immutable AE factory defaults through the Settings coordinator."""
     self.flush_pending_settings()
-    factory = dict(getattr(self, "_factory_defaults", {}) or {})
-    if not factory:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set("找不到程式初始值")
-        return False
-
-    clean = {}
-    for key, raw in factory.items():
-        if key not in self._settings_values:
-            continue
-        if isinstance(self._settings_values.get(key), bool):
-            clean[key] = bool(raw)
-        else:
-            try:
-                clean[key] = float(raw)
-            except (TypeError, ValueError):
-                continue
-    if not clean:
-        return False
-
-    _phase6_replace_mapping(self, "_phase6_pending_settings", {})
-    self._settings_values.update(clean)
-    self._phase6_input_snapshot.update(clean)
-    if "t" in clean:
-        self.state.phase6_thickness = float(clean["t"])
-    for key in ("w", "h", "d"):
-        if key in clean:
-            self._phase6_box_whd[key] = _ui_len(clean[key])
-
-    # Recreate the standard profiles rather than merging into the edited ones;
-    # this is what makes added/changed fold segments truly return to defaults.
-    _phase6_recalculate_part_dimensions(self)
-    reset_snapshot = self._phase6_input_snapshot
-    self.state.profiles_vault["箱身"] = build_box_body_profile(reset_snapshot)
-    for part_key in self.designer_workspace.available_parts:
-        if part_key == "box_body":
-            continue
-        defaults = (
-            build_endcap_xy_profiles(reset_snapshot, part_key=part_key)
-            if part_key in {"head", "tail"}
-            else build_standard_part_profiles(reset_snapshot, part_key)
-        )
-        self.designer_workspace.stash_profiles(part_key, defaults)
-
-    active = self.designer_workspace.active_part
-    if active == "box_body":
-        self.state.phase6_fold_ui_profiles = {"X": self.state.profiles_vault["箱身"]}
-    elif active in self.designer_workspace.available_parts:
-        profiles = self.designer_workspace.profiles_for(active, {}) or {}
-        self.state.profiles["X"] = clone_profile(profiles.get("X", []))
-        self.state.profiles["Y"] = clone_profile(profiles.get("Y", []))
-
-    self._phase6_settings_guard = True
-    try:
-        if "w" in clean:
-            self.v_w.set(_setting_number_text(clean["w"]))
-        if "h" in clean:
-            self.v_h.set(_setting_number_text(clean["h"]))
-        if "d" in clean:
-            self.v_d.set(_setting_number_text(clean["d"]))
-        for key, var in getattr(self, "left_global_vars", {}).items():
-            if key not in clean:
-                continue
-            if isinstance(var, original.tk.BooleanVar):
-                var.set(bool(clean[key]))
-            else:
-                var.set(_setting_number_text(clean[key]))
-        for key, var in getattr(self, "setting_vars", {}).items():
-            if key not in clean:
-                continue
-            if isinstance(var, original.tk.BooleanVar):
-                var.set(bool(clean[key]))
-            else:
-                var.set(_setting_number_text(clean[key]))
-    finally:
-        self._phase6_settings_guard = False
-
-    self.designer_workspace.mark_dirty()
-    try:
-        self.bend_ui.render()
-    except Exception:
-        pass
-    try:
-        if hasattr(self, "settings_panel"):
-            self.settings_panel.refresh_baseline_data()
-    except Exception:
-        pass
-    try:
-        self.do_update()
-    except Exception:
-        pass
-    if hasattr(self, "settings_status_var"):
-        self.settings_status_var.set("已還原程式初始值並同步主畫面")
-    return True
-
+    return _phase6_settings_coordinator(self).reset_factory_settings(
+        getattr(self, "_factory_defaults", {}) or {}
+    )
 
 def _phase6_save_settings_context_as_defaults(self, context):
     self.flush_pending_settings()
