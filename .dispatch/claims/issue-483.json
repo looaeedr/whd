@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -16,13 +16,16 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "97b5bbbcae64bef3d4e528a5f28765666263dc7f"
+    "run_id": 35676253296,
+    "head_sha": "97b5bbbcae64bef3d4e528a5f28765666263dc7f",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "PREFLIGHT_EVIDENCE_MISSING",
+    "summary": "canonical preflight rejected missing Skill/reference evidence before census; production/census steps skipped"
   },
-  "next_action": "Resolve push-triggered Issue483 T5 Dead Glue Census run for head 97b5bbbcae64bef3d4e528a5f28765666263dc7f, lock exact run_id+head_sha, poll to terminal, inspect strong zero-static candidates, then perform only evidence-backed cleanup and focused acceptance.",
+  "next_action": "Patch only qa-issue483-t5-census.yml to generate explicit Skill/reference evidence before canonical Phase6 preflight, then rerun the same census; do not mutate production.",
   "blocker": null,
-  "last_update": "2026-09-22T09:39:00+08:00",
+  "last_update": "2026-09-22T09:41:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
