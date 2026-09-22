@@ -1,0 +1,16 @@
+{
+  "issue": 514,
+  "issue_url": "https://github.com/looaeedr/whd/issues/514",
+  "worker": "chatgpt",
+  "work_branch": "hotfix/issue514-remote-guard-skill-resolution-20260922",
+  "claimed_at": "2026-09-22T14:07:23Z",
+  "base_sha": "5170c8539102ca176dc3a0b4a65157678f692326",
+  "head_sha": "5170c8539102ca176dc3a0b4a65157678f692326",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-22T14:07:23Z",
+  "target_branch": "main",
+  "remote_qa": null,
+  "next_action": "Remote Guard branch-create for hotfix/issue514-remote-guard-skill-resolution-20260922",
+  "blocker": null,
+  "delegated_branches": []
+}
