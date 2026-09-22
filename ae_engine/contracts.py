@@ -121,6 +121,9 @@ class BoxBodyPartSpec:
     tail_corner_policy: FourCornerTypePolicy | None = None
     # Phase6 multi-piece box-body structure state. Empty keeps the legacy integral path.
     structure_state: Mapping[str, object] = field(default_factory=dict)
+    # Receiving rear-panel manufacturing contract resolved from family state + Door topology.
+    # Empty keeps every other cabinet family and legacy multipart path unchanged.
+    back_panel_contract: Mapping[str, object] = field(default_factory=dict)
     # Actual EndCap/Tail lower flange values drive multi-piece end relief.
     head_ybottom1: float = 15.0
     tail_ybottom1: float = 15.0

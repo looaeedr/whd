@@ -58,12 +58,12 @@ from phase6_assembly_presentation import (
 )
 from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
-    BoxBodyStructureType, normalize_box_body_structure_state, set_active_structure,
+    BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state, set_active_structure,
     activate_structure_with_defaults,
     set_structure_locked, set_two_piece_width, set_three_piece_width,
     reconcile_box_body_structure_for_total_w_change,
     set_join_seam_bend, set_side_back_geometry, set_side_back_piece_profile,
-    side_rear_bend_outside_length,
+    set_side_back_back_panel_mode, back_panel_mode, side_rear_bend_outside_length,
     update_structure_config,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
@@ -2847,6 +2847,16 @@ _BOX_STRUCTURE_LABELS = {
 _BOX_STRUCTURE_LABEL_TO_TYPE = {label: key for key, label in _BOX_STRUCTURE_LABELS.items()}
 
 
+_BACK_PANEL_MODE_LABELS = {
+    BackPanelMode.FULL: "全板",
+    BackPanelMode.HALF: "半截",
+    BackPanelMode.BACK_OPENING: "背開孔",
+}
+_BACK_PANEL_MODE_LABEL_TO_MODE = {
+    label: mode for mode, label in _BACK_PANEL_MODE_LABELS.items()
+}
+
+
 def _phase6_box_structure_state(self):
     return normalize_box_body_structure_state(self.designer_workspace.box_body_structure_state())
 
@@ -2937,6 +2947,23 @@ def _phase6_toggle_structure_advanced(self, type_id):
     self._phase6_box_structure_advanced_open = flags
     _phase6_invalidate_settings_page(self, "box_body")
     _phase6_render_settings_context(self, "box_body")
+
+
+def _phase6_select_back_panel_mode(self, var):
+    """Commit the Receiving rear-panel mode through canonical structure state."""
+    mode = _BACK_PANEL_MODE_LABEL_TO_MODE.get(str(var.get()).strip())
+    if mode is None:
+        return
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+        return
+    state = _phase6_box_structure_state(self)
+    try:
+        committed = set_side_back_back_panel_mode(state, mode)
+        _phase6_commit_box_structure_state(self, committed, rebuild=True)
+    except Exception as exc:
+        _phase6_box_structure_error(self, exc)
+        _phase6_after_box_structure_commit(self, state, rebuild=True)
 
 
 def _phase6_apply_box_structure_numeric(self, type_id, field, var):
@@ -3467,6 +3494,20 @@ def _phase6_settings_box_structure_projection(self):
                 detail = f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm"
             elif part_key == "box_body:back":
                 detail = f"成型寬：{_setting_number_text(projection.formed_width)} mm"
+        back_panel_selector = None
+        if (
+            part_key == "box_body:back"
+            and active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
+            and cabinet_family_policy.canonical_family_name(
+                getattr(self, "_phase6_input_snapshot", {}) or {}
+            ) == "受電箱"
+        ):
+            current_mode = back_panel_mode(state)
+            back_panel_selector = {
+                "label": "後面板形式",
+                "value": _BACK_PANEL_MODE_LABELS[current_mode],
+                "options": tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
+            }
         pieces.append({
             "part_key": part_key,
             "label": projection.label,
@@ -3475,6 +3516,7 @@ def _phase6_settings_box_structure_projection(self):
             "blank_width": projection.blank_width,
             "blank_height": projection.blank_height,
             "input": input_spec,
+            "back_panel_selector": back_panel_selector,
             "detail": detail,
         })
 
@@ -3695,6 +3737,7 @@ def _phase6_ensure_settings_panel(self):
         context_extension_projection=lambda context: _phase6_settings_context_extension_projection(self, context),
         endcap_fw_value_selected=lambda part_key, value_var: _phase6_on_endcap_fw_value_selected(self, part_key, value_var),
         box_structure_numeric_changed=lambda type_id, field, value_var: _phase6_apply_box_structure_numeric(self, type_id, field, value_var),
+        box_back_panel_mode_changed=lambda value_var: _phase6_select_back_panel_mode(self, value_var),
         box_structure_toggle_advanced=lambda type_id: _phase6_toggle_structure_advanced(self, type_id),
         bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: _phase6_commit_receiving_bottom_wrap_controls(
             self, part_key, reserve_u_var, reserve_v_var

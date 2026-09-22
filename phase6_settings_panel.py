@@ -179,6 +179,7 @@ class Phase6SettingsPanel:
         context_extension_projection: Callable[[str], Mapping[str, object]] | None = None,
         endcap_fw_value_selected: Callable[[str, object], object] | None = None,
         box_structure_numeric_changed: Callable[[object, str, object], object] | None = None,
+        box_back_panel_mode_changed: Callable[[object], object] | None = None,
         box_structure_toggle_advanced: Callable[[object], object] | None = None,
         bottom_wrap_commit: Callable[[str, object, object], object] | None = None,
         corner_pair_changed: Callable[[str, str, object], object] | None = None,
@@ -207,6 +208,7 @@ class Phase6SettingsPanel:
         self._context_extension_projection = context_extension_projection
         self._endcap_fw_value_selected = endcap_fw_value_selected
         self._box_structure_numeric_changed = box_structure_numeric_changed
+        self._box_back_panel_mode_changed = box_back_panel_mode_changed
         self._box_structure_toggle_advanced = box_structure_toggle_advanced
         self._bottom_wrap_commit = bottom_wrap_commit
         self._corner_pair_changed = corner_pair_changed
@@ -733,24 +735,53 @@ class Phase6SettingsPanel:
                 piece_vars[part_key][field_key] = var
                 piece_entries[part_key][field_key] = entry
 
+            next_row = 1 if input_spec else 0
+            selector = item.get("back_panel_selector")
+            if selector:
+                selector = dict(selector)
+                ttk.Label(sub, text=str(selector.get("label") or "後面板形式")).grid(
+                    row=next_row, column=0, sticky="w", padx=(0, 6), pady=2
+                )
+                selector_var = tk.StringVar(
+                    master=sub, value=str(selector.get("value") or "")
+                )
+                selector_widget = ttk.Combobox(
+                    sub,
+                    textvariable=selector_var,
+                    values=tuple(selector.get("options") or ()),
+                    state="readonly",
+                    width=10,
+                )
+                selector_widget.grid(row=next_row, column=1, columnspan=2, sticky="w", pady=2)
+                if self._box_back_panel_mode_changed is not None:
+                    selector_widget.bind(
+                        "<<ComboboxSelected>>",
+                        lambda _e, v=selector_var: self._box_back_panel_mode_changed(v),
+                    )
+                piece_vars[part_key]["back_panel_mode"] = selector_var
+                piece_entries[part_key]["back_panel_mode"] = selector_widget
+                next_row += 1
+
             ttk.Label(
                 sub,
                 text=(
                     f"包外尺寸：{setting_number_text(item.get('formed_width'))} × "
                     f"{setting_number_text(item.get('formed_height'))} mm"
                 ),
-            ).grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 0))
+            ).grid(row=next_row, column=0, columnspan=4, sticky="w", pady=(2, 0))
+            next_row += 1
             ttk.Label(
                 sub,
                 text=(
                     f"料尺寸：{setting_number_text(item.get('blank_width'))} × "
                     f"{setting_number_text(item.get('blank_height'))} mm"
                 ),
-            ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(0, 2))
+            ).grid(row=next_row, column=0, columnspan=4, sticky="w", pady=(0, 2))
+            next_row += 1
             detail = item.get("detail")
             if detail:
                 ttk.Label(sub, text=str(detail)).grid(
-                    row=3, column=0, columnspan=4, sticky="w", pady=(0, 2)
+                    row=next_row, column=0, columnspan=4, sticky="w", pady=(0, 2)
                 )
 
         state["box_body_piece_input_host"] = piece_host

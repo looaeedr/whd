@@ -1412,6 +1412,7 @@ class BoxBodyPieceRenderData:
     render_data: PartRenderData
     formed_outer_width: float | None = None
     formed_outer_height: float | None = None
+    formed_y_offset: float = 0.0
 
     @property
     def formed_outer_dimensions(self) -> tuple[float, float]:
@@ -1792,6 +1793,7 @@ def build_box_body_structure_render_data(
         spec.fold_profile,
         w=float(spec.width), h=float(spec.height), t=float(spec.thickness), d=float(spec.depth),
         structure_state=spec.structure_state,
+        back_panel_contract=spec.back_panel_contract,
         head_corner_policy=spec.head_corner_policy, tail_corner_policy=spec.tail_corner_policy,
         head_ybottom1=float(spec.head_ybottom1), tail_ybottom1=float(spec.tail_ybottom1),
     )
@@ -1806,6 +1808,18 @@ def build_box_body_structure_render_data(
         if ctx.draw_stock:
             scene.add(ae.build_stock_outline(piece.structural.width, piece.structural.height))
         scene.extend(structural_result_to_primitives(piece.structural))
+        if piece.role == "back" and spec.back_panel_contract:
+            contract = dict(spec.back_panel_contract or {})
+            for profile in tuple(contract.get("fixed_slot_profiles") or ()):
+                scene.add_polyline(profile, layer="CUTTING", closed=True)
+            opening = contract.get("opening")
+            if opening is not None:
+                x0, y0, x1, y1 = map(float, opening)
+                scene.add_polyline(
+                    ((x0, y0), (x1, y0), (x1, y1), (x0, y1)),
+                    layer="CUTTING",
+                    closed=True,
+                )
         resolved_features = tuple(feature_stores.get(piece.key, ()) or ())
         if resolved_features:
             scene.extend(resolved_features_to_primitives(resolved_features))
@@ -1818,10 +1832,15 @@ def build_box_body_structure_render_data(
             y_segments=(MaterialSegment("Y", "piece_height", float(piece.structural.height), "BOX_BODY_STRUCTURAL_RESULT"),),
             source="BOX_BODY_PHYSICAL_PIECE", revision=1,
         )
+        metadata = {}
+        if piece.role == "back" and spec.back_panel_contract:
+            metadata["back_panel_contract"] = dict(spec.back_panel_contract)
+            metadata["back_panel_mode"] = str(spec.back_panel_contract.get("mode") or "FULL")
         render_data = PartRenderData(
             scene=scene,
             material=material_polygon_from_final_scene(scene),
             fold_guides=fold_guides_from_final_scene(scene),
+            metadata=metadata,
             unfolded_topology=topology,
         )
         pieces.append(BoxBodyPieceRenderData(
@@ -1830,6 +1849,7 @@ def build_box_body_structure_render_data(
             fold_profile=tuple(piece.fold_profile), render_data=render_data,
             formed_outer_width=float(piece.formed_outer_dimensions[0]),
             formed_outer_height=float(piece.formed_outer_dimensions[1]),
+            formed_y_offset=float(getattr(piece, "formed_y_offset", 0.0)),
         ))
     piece_tuple = tuple(pieces)
     return BoxBodyStructureRenderData(

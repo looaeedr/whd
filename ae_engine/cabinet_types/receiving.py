@@ -62,6 +62,18 @@ DIVIDER_FORMED_CORE = 106.0
 DIVIDER_OUTSIDE_LAST = 17.0
 
 
+# Receiving rear-panel reference authority from the user-supplied 後面板.dxf.
+# Coordinates are panel-local manufacturing datums, not renderer measurements.
+BACK_PANEL_CERTIFIED_UPPER_SECTION = 1100.0
+BACK_PANEL_CERTIFIED_HALF_HEIGHT = 1124.0
+BACK_PANEL_GENERAL_TOP_EXTENSION = 24.0
+BACK_PANEL_FIXED_SLOT_X_LEFT = 120.0
+BACK_PANEL_FIXED_SLOT_X_RIGHT_INSET = 120.0
+BACK_PANEL_FIXED_SLOT_Y_INSET = 120.0
+BACK_PANEL_OPENING_BOUNDS = (72.5, 248.0, 722.5, 448.0)
+BACK_PANEL_OPENING_SIZE = (650.0, 200.0)
+
+
 def divider_fold_contract(
     *,
     depth: float,
@@ -499,7 +511,130 @@ def resolve_box_body_structure_state(state=None):
 
     # 受電箱後面板是無折彎平板；已確認成形/下料寬 = W - 2.5T。
     cfg["back_width_comp_t"] = 2.5
+    # #510: rear-panel mode is Receiving family state, not a generic BoxBody option.
+    cfg.setdefault("back_panel_mode", "FULL")
     return result
+
+
+def _back_panel_fixed_slot_profile(datum) -> tuple[tuple[float, float], ...]:
+    """Return the certified key-slot contour from 後面板.dxf around one datum.
+
+    The datum is the centre of the 9-mm neck line. The reference profile is a
+    4.5-mm upper semicircle joined to the major arc of an R8 lower bulb whose
+    centre is 11 mm below the datum; its exact envelope is 16 x 23.5 mm.
+    """
+    from math import atan2, cos, pi, sin, sqrt
+
+    cx, cy = map(float, datum)
+    neck_half = 4.5
+    upper_radius = 4.5
+    lower_radius = 8.0
+    lower_center_y = -11.0
+    neck_y = lower_center_y + sqrt(lower_radius ** 2 - neck_half ** 2)
+
+    points = []
+    for index in range(13):
+        angle = pi * index / 12.0
+        points.append((
+            cx + upper_radius * cos(angle),
+            cy + upper_radius * sin(angle),
+        ))
+    points.append((cx - neck_half, cy + neck_y))
+
+    start_angle = atan2(neck_y - lower_center_y, -neck_half)
+    end_angle = atan2(neck_y - lower_center_y, neck_half) + 2.0 * pi
+    sweep = end_angle - start_angle
+    for index in range(1, 31):
+        angle = start_angle + sweep * index / 30.0
+        points.append((
+            cx + lower_radius * cos(angle),
+            cy + lower_center_y + lower_radius * sin(angle),
+        ))
+    points.append((cx + neck_half, cy))
+    return tuple(points)
+
+
+def resolve_back_panel_contract(
+    snapshot,
+    *,
+    structure_state,
+    panel_width: float,
+    full_panel_height: float,
+) -> dict[str, object]:
+    """Resolve Receiving rear-panel manufacturing geometry from canonical state.
+
+    The 1100-mm upper section uses the certified fixed half-panel position from
+    the supplied 後面板.dxf. Other upper-section heights retain the same
+    family-owned 24-mm top extension. The four mounting-slot datums and the
+    optional 650x200 rear opening are manufacturing coordinates.
+    """
+    from phase6_box_body_structure import BackPanelMode, back_panel_mode
+
+    data = dict(snapshot or {})
+    if not is_receiving_snapshot(data):
+        raise ValueError("back-panel mode contract is Receiving-only")
+
+    width = float(panel_width)
+    full_height = float(full_panel_height)
+    if width <= 0.0 or full_height <= 0.0:
+        raise ValueError("rear-panel dimensions must be positive")
+
+    mode = back_panel_mode(structure_state)
+    material_height = full_height
+    formed_y_offset = 0.0
+
+    if mode is BackPanelMode.HALF:
+        columns = list(data.get("door_layout_columns") or ())
+        if not columns or len(columns[0]) < 2 or not list(columns[0][1] or ()):
+            raise ValueError("Receiving half rear panel requires authoritative Door topology")
+        upper_section = float(list(columns[0][1])[0])
+        if abs(upper_section - BACK_PANEL_CERTIFIED_UPPER_SECTION) <= 1e-9:
+            material_height = BACK_PANEL_CERTIFIED_HALF_HEIGHT
+        else:
+            material_height = upper_section + BACK_PANEL_GENERAL_TOP_EXTENSION
+        if material_height <= 0.0 or material_height >= full_height:
+            raise ValueError("Receiving half rear-panel height must remain inside the full panel")
+        # The short panel keeps the original full-panel top edge in assembly.
+        formed_y_offset = (full_height - material_height) / 2.0
+
+    left_x = BACK_PANEL_FIXED_SLOT_X_LEFT
+    right_x = width - BACK_PANEL_FIXED_SLOT_X_RIGHT_INSET
+    lower_y = BACK_PANEL_FIXED_SLOT_Y_INSET
+    upper_y = material_height - BACK_PANEL_FIXED_SLOT_Y_INSET
+    if not (0.0 < left_x < right_x < width and 0.0 < lower_y < upper_y < material_height):
+        raise ValueError("Receiving rear-panel mounting-slot datums fall outside material")
+
+    opening = None
+    if mode is BackPanelMode.BACK_OPENING:
+        opening = tuple(float(v) for v in BACK_PANEL_OPENING_BOUNDS)
+        x0, y0, x1, y1 = opening
+        if (
+            abs((x1 - x0) - BACK_PANEL_OPENING_SIZE[0]) > 1e-9
+            or abs((y1 - y0) - BACK_PANEL_OPENING_SIZE[1]) > 1e-9
+            or x0 < 0.0 or y0 < 0.0 or x1 > width or y1 > material_height
+        ):
+            raise ValueError("certified Receiving rear opening does not fit rear-panel material")
+
+    fixed_slot_datums = (
+        (left_x, upper_y),
+        (right_x, upper_y),
+        (left_x, lower_y),
+        (right_x, lower_y),
+    )
+    return {
+        "mode": mode.value,
+        "panel_width": width,
+        "full_panel_height": full_height,
+        "material_height": float(material_height),
+        "formed_y_offset": float(formed_y_offset),
+        "fixed_slot_datums": fixed_slot_datums,
+        "fixed_slot_profiles": tuple(
+            _back_panel_fixed_slot_profile(datum)
+            for datum in fixed_slot_datums
+        ),
+        "opening": opening,
+        "authority": "USER_SUPPLIED_BACK_PANEL_DXF_2026_09_22",
+    }
 
 
 def family_fixes_box_body_structure() -> bool:

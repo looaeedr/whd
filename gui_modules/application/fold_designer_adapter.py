@@ -672,6 +672,7 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             tail_corner_policy=payload_policy("tail"),
             fold_profile=data.get("fold_profile"),
             structure_state=data.get("box_body_structure"),
+            snapshot=data,
             head_ybottom1=float(data.get("head_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
             tail_ybottom1=float(data.get("tail_ybottom1", data.get("ybottom1", ae.ybottom1_def))),
         )
