@@ -52,6 +52,7 @@ class ResolvedBoxBodyPiece:
     structural: StructuralGeometryResult
     formed_outer_width: float | None = None
     formed_outer_height: float | None = None
+    formed_y_offset: float = 0.0
 
     @property
     def formed_width(self) -> float:
@@ -380,6 +381,7 @@ def resolve_box_body_structure(
     t,
     d=None,
     structure_state=None,
+    back_panel_contract=None,
     head_corner_policy=None,
     tail_corner_policy=None,
     head_ybottom1=15.0,
@@ -422,6 +424,18 @@ def resolve_box_body_structure(
         back_width = float(w) - comp_t * float(t)
         if back_width <= 0:
             raise ValueError("側背分離後面板寬度計算後必須大於 0")
+        back_contract = dict(back_panel_contract or {})
+        if back_contract:
+            contract_width = float(back_contract.get("panel_width", back_width))
+            if abs(contract_width - back_width) > 1e-6:
+                raise ValueError("後面板 contract 寬度與 canonical structure 不一致")
+            back_height = float(back_contract.get("material_height", height))
+            back_y_offset = float(back_contract.get("formed_y_offset", 0.0))
+            if back_height <= 0.0 or back_height > float(height) + 1e-6:
+                raise ValueError("後面板 contract 高度超出 canonical structure")
+        else:
+            back_height = float(height)
+            back_y_offset = 0.0
         back_rows = [{"len": back_width, "core": "W_BACK", "phase6_key": "back_panel"}]
 
         piece_overrides = dict(cfg.get("piece_profiles") or {})
@@ -441,9 +455,9 @@ def resolve_box_body_structure(
         offset = (float(w) - back_width) / 2.0
         formed_depth = _formed_depth_from_profile(profile, thickness=float(t), explicit_depth=d)
         back_result = (
-            _flat_panel_result(width=back_width, height=height)
+            _flat_panel_result(width=back_width, height=back_height)
             if len(back_rows) == 1 and not back_rows[0].get("angle")
-            else _generic_strip_result(back_rows, height=height)
+            else _generic_strip_result(back_rows, height=back_height)
         )
         pieces = (
             ResolvedBoxBodyPiece(
@@ -454,7 +468,8 @@ def resolve_box_body_structure(
             ResolvedBoxBodyPiece(
                 "box_body_back", "back", offset, offset + back_width,
                 _to_contract(back_rows), back_result,
-                formed_outer_width=back_width, formed_outer_height=height,
+                formed_outer_width=back_width, formed_outer_height=back_height,
+                formed_y_offset=back_y_offset,
             ),
             ResolvedBoxBodyPiece(
                 "box_body_right_side", "right_side", float(w), float(w),
