@@ -4,15 +4,26 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T02:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "work_branch": "feature/issue538-actions-chinese-contract-20260923",
   "delegated_branches": [],
   "head_sha": "08808eb7c1d360d39852a7a5d023b17fcdccec60",
-  "last_update": "2026-09-23T02:10:00+08:00",
-  "remote_qa": null,
-  "next_action": "Lock exact #538 focused QA run created by commit 08808eb7, poll to terminal, verify Traditional-Chinese run-name externally, then cleanup one-shot workflow and prepare PR.",
+  "last_update": "2026-09-23T02:12:00+08:00",
+  "remote_qa": {
+    "run_id": 35765375447,
+    "head_sha": "08808eb7c1d360d39852a7a5d023b17fcdccec60",
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "Actions 繁中顯示命名契約 focused QA",
+    "blocker": "HARNESS_DEPENDENCY_MISSING: pytest not installed",
+    "evidence": {
+      "failed_step": "執行命名守門單元測試",
+      "error": "No module named pytest"
+    }
+  },
+  "next_action": "Patch only qa-issue538-actions-visible-naming.yml to install pytest, then trigger replacement focused QA and poll to terminal.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
