@@ -72,6 +72,27 @@ class DerivedPartProjectionRequest:
 
 
 @dataclass(frozen=True)
+class DerivedPartRequestAssemblyInput:
+    """Already-derived projections plus workspace identity needed to assemble intent."""
+
+    door_part_keys: tuple[str, ...]
+    door_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
+    base_plate_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
+    divider_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
+    inner_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
+    box_piece_profiles: Mapping[str, Mapping[str, Iterable[Any]]]
+    current_piece_keys: tuple[str, ...]
+    source_parts: tuple[str, ...]
+    available_parts: tuple[str, ...]
+    source_part_features: Mapping[str, Iterable[Any]]
+    known_feature_keys: tuple[str, ...]
+    single_door_profiles: Mapping[str, Iterable[Any]] | None
+    single_base_plate_profiles: Mapping[str, Iterable[Any]] | None
+    active_part: str | None
+    selected_part: str | None
+
+
+@dataclass(frozen=True)
 class DerivedPartSyncPlan:
     namespaces: tuple[DerivedPartNamespaceProjection, ...] = ()
     remove_part_keys: tuple[str, ...] = ()
@@ -84,6 +105,96 @@ class DerivedPartSyncPlan:
 
 def _unique_keys(values: Iterable[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(str(value) for value in values))
+
+
+def build_derived_part_projection_request(
+    data: DerivedPartRequestAssemblyInput,
+) -> DerivedPartProjectionRequest:
+    """Assemble immutable workspace intent from already-derived projections.
+
+    Domain derivation stays with the caller/current domain owners.  This owner
+    only decides namespace replacement, add/remove/stash intent, and legacy
+    active/selected identity repair before the navigation owner applies a plan.
+    """
+    if not isinstance(data, DerivedPartRequestAssemblyInput):
+        raise TypeError("data must be DerivedPartRequestAssemblyInput")
+
+    door_keys = tuple(str(key) for key in data.door_part_keys)
+    available = set(str(key) for key in data.available_parts)
+    source_parts = set(str(key) for key in data.source_parts)
+    known_features = set(str(key) for key in data.known_feature_keys)
+    current_piece_keys = set(str(key) for key in data.current_piece_keys)
+
+    remove_part_keys: list[str] = []
+    add_parts: list[DerivedPartProfileProjection] = []
+    stash_profiles: list[DerivedPartProfileProjection] = []
+    stash_features: list[DerivedPartFeatureProjection] = []
+
+    if door_keys and "door" in available:
+        remove_part_keys.append("door")
+    for key in door_keys:
+        if key not in known_features and key in data.source_part_features:
+            stash_features.append(
+                feature_projection(key, data.source_part_features[key])
+            )
+    if (
+        not door_keys
+        and "door" in source_parts
+        and "door" not in available
+        and data.single_door_profiles is not None
+    ):
+        add_parts.append(profile_projection("door", data.single_door_profiles))
+
+    if door_keys and "base_plate" in available:
+        remove_part_keys.append("base_plate")
+    if (
+        not door_keys
+        and "base_plate" in source_parts
+        and "base_plate" not in available
+        and data.single_base_plate_profiles is not None
+    ):
+        add_parts.append(
+            profile_projection("base_plate", data.single_base_plate_profiles)
+        )
+
+    desired_piece_keys = set(str(key) for key in data.box_piece_profiles)
+    for key in sorted(current_piece_keys - desired_piece_keys):
+        remove_part_keys.append(key)
+    for key, profiles in data.box_piece_profiles.items():
+        projection = profile_projection(key, profiles)
+        if key in available:
+            stash_profiles.append(projection)
+        else:
+            add_parts.append(projection)
+
+    active_repair = None
+    selected_repair = None
+    if door_keys:
+        first_door = door_keys[0]
+        first_base = first_door.replace("door_", "base_plate_", 1)
+        if data.active_part == "door":
+            active_repair = first_door
+        elif data.active_part == "base_plate":
+            active_repair = first_base
+        if data.selected_part == "door":
+            selected_repair = first_door
+        elif data.selected_part == "base_plate":
+            selected_repair = first_base
+
+    return DerivedPartProjectionRequest(
+        namespaces=(
+            namespace_projection("door_c", data.door_profiles),
+            namespace_projection("base_plate_c", data.base_plate_profiles),
+            namespace_projection("box_body:divider:", data.divider_profiles),
+            namespace_projection("inner_door:", data.inner_profiles),
+        ),
+        remove_part_keys=tuple(remove_part_keys),
+        add_parts=tuple(add_parts),
+        stash_profiles=tuple(stash_profiles),
+        stash_features=tuple(stash_features),
+        active_part_repair=active_repair,
+        selected_part_repair=selected_repair,
+    )
 
 
 def build_derived_part_sync_plan(
