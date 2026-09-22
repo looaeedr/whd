@@ -6,13 +6,13 @@
   "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T11:47:36+08:00",
   "claimed_at": "2026-09-22T10:54:54+08:00",
-  "phase": "RECOVERING",
+  "phase": "GREEN",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "8b08024a9b93fe5577846489df099ce0387d08b4",
-  "head_sha": "0e9c689a512d46e599c7725e1c36231e3cd5b7fe",
+  "head_sha": "58c9c3a0638fd3c894d04274649775554311c1d2",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
@@ -24,12 +24,13 @@
     "conclusion": "success",
     "summary": "99 passed / 130 warnings; exact production checkout GREEN; architecture GREEN; protected GREEN"
   },
-  "next_action": "Wait only on active T6 remediation owned by #484; after T6 true differential GREEN, integrate remediation non-force to current X if needed, run fresh exact-production post-integration smoke, then create new #485 terminal checkpoint/proof.",
+  "next_action": "Create temporary exact-production post-integration smoke orchestrator on work-order branch; runner must detach to corrected production SHA c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8, include the remediated legacy AssemblySceneRenderData compatibility regression plus Phase4 ownership/derived/settings/persistence/DXF focused smoke, lock exact run to terminal, then cleanup orchestrator and rebuild #485 terminal checkpoint/proof.",
   "blocker": null,
-  "last_update": "2026-09-22T12:05:00+08:00",
+  "last_update": "2026-09-22T13:10:00+08:00",
   "predecessor": {
     "issue": 484,
-    "accepted_head": "8b08024a9b93fe5577846489df099ce0387d08b4"
+    "accepted_head": "58c9c3a0638fd3c894d04274649775554311c1d2",
+    "checkpoint": ".dispatch/checkpoints/issue-484.json"
   },
   "preflight_evidence": {
     "frozen_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
@@ -106,5 +107,18 @@
     "reason": "dependency #484 Combined Acceptance reopened due candidate-only regression",
     "stale_checkpoint": ".dispatch/checkpoints/issue-485.json",
     "stale_proof": ".dispatch/checkpoints/issue-485.finalization-proof.json"
+  },
+  "integration_correction": {
+    "pr": 489,
+    "merge_method": "merge",
+    "force_push": false,
+    "prior_production_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
+    "corrected_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
+    "work_order_head": "58c9c3a0638fd3c894d04274649775554311c1d2",
+    "diff": [
+      "gui_modules/application/fold_designer_adapter.py"
+    ],
+    "additions": 2,
+    "deletions": 2
   }
 }
