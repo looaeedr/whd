@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "9012a2871d0da75cbb95c6c061b88ccb329794c4",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-22T14:14:00Z",
+  "head_sha": "044b5eca938c197752cf9410c5f2c2ac396a6017",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-22T14:16:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35737274103,
@@ -17,7 +17,7 @@
     "job_id": 106777646336,
     "summary": "focused 6 passed; part/DXF/persistence 24 passed; durable governance 27 passed"
   },
-  "next_action": "Delete temporary #509 workflow, remote-read cleanup, then tested-head to closing-head drift audit.",
+  "next_action": "Final review and non-force integration of closing head 044b5eca938c197752cf9410c5f2c2ac396a6017 into current X; then post-integration readback, issue close, release claim.",
   "blocker": null,
   "delegated_branches": []
 }
