@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T04:29:10+08:00",
   "base_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
-  "head_sha": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
+  "head_sha": "8b1dd7fe5950fff926b4f087a193b9bc4b0031ba",
   "phase": "CLEANUP",
-  "last_update": "2026-09-23T04:37:15+08:00",
+  "last_update": "2026-09-23T04:37:45+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -32,6 +32,6 @@
       "artifact_id": 10718655323
     }
   },
-  "next_action": "Delete one-shot B1 workflow, persist DT-6 JSON/MD checkpoint, perform drift/readback + finalization, close #526, then claim #527/B2.",
+  "next_action": "Persist B1 DT-6 machine JSON and human checkpoint to work-order branch, then drift/readback + finalization.",
   "blocker": null
 }
