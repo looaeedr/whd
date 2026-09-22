@@ -6,11 +6,16 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "b117271b7bdafa3f6b91a633f1d76a1afb264eba",
-  "phase": "RED",
-  "last_update": "2026-09-22T15:19:00Z",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T15:20:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": null,
-  "next_action": "Acquire and monitor the exact #517 Xvfb rerun triggered by test-seam repair at b117271b7bdafa3f6b91a633f1d76a1afb264eba; classify only assertion-level failures.",
+  "remote_qa": {
+    "run_id": 35746226329,
+    "head_sha": "b117271b7bdafa3f6b91a633f1d76a1afb264eba",
+    "status": "in_progress",
+    "conclusion": null
+  },
+  "next_action": "Poll exact run 35746226329 at head b117271b7bdafa3f6b91a633f1d76a1afb264eba to terminal; accept only assertion-level RED and classify each symptom separately.",
   "blocker": null,
   "delegated_branches": []
 }
