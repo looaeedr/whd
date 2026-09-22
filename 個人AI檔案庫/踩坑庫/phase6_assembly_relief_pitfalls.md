@@ -354,3 +354,11 @@ whd_schema: WHD_DOC_META_V1
 - **正確規則**：先把 DXF 認證成兩種端型「66×27 + U 槽」與「60×27 plain」，再由 object Fold sign 分配端向；對象是負折的那一端用有槽型。
 - **禁止**：用 collision/backprojection 找哪端要槽，再把結果寫回 Registry。3D 只能驗證「依 Fold sign 算出的 production」有沒有穿透。
 - 本次 Receiving HORIZONTAL 證據：`MIN_Y -> zl2=-90°`，有槽端落 MIN_Y 後 post-refold positive overlap = 0。
+
+
+## 2026-09-22 — Divider view sink 不得因 UI active-part 不同退回 raw pre-relief geometry
+
+- **事故模式**：Divider canonical CROSS relief solver 與 Certified Registry 全部 GREEN，但 Corner Data 選到 Divider 時，若 `designer_workspace.active_part` 仍是 aggregate `box_body`，view helper 會繞過 `ResolvedManufacturingGeometry`，改讀 raw scene provider。raw Divider 本來就是 pre-relief rectangle，因此 CROSS 截角消失；derived Joint Placement `MARKING` 也同時消失。
+- **永久 authority**：Receiving Divider 的 final CUTTING、assembly relief、derived MARKING 都在 manufacturing resolve 後才成立。任何 2D/3D/Corner Data/DXF sink 只要顯示或輸出 `box_body:divider:...`，都必須讀 resolved part；**UI selection identity 不能決定 manufacturing 是否 resolve**。
+- **禁止修法**：不得把 CROSS 座標硬畫回 preview、不得把 MARKING 在 renderer 重算、不得把 raw `build_box_body_divider_render_data()` 改成偷偷含 assembly-dependent relief。raw part 保持 nominal；resolved manufacturing 才擁有 final material。
+- **必要 regression**：至少覆蓋「Corner Data selected Divider != workspace active part」並斷言回傳 resolved render object；另以 actual resolved DXF export→reopen 驗證 final CROSS material。
