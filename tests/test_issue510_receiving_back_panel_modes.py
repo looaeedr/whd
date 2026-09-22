@@ -4,17 +4,12 @@ import pytest
 
 
 def _snapshot(*, upper=1100.0, lower=500.0):
-    return {
-        "model": "受電箱",
-        "w": 800.0,
-        "h": upper + lower,
-        "d": 350.0,
-        "t": 2.0,
-        "fw": 29.0,
-        "multi_door_enabled": True,
-        "door_layout_scope": "receiving-main",
-        "door_layout_columns": [[800.0, [float(upper), float(lower)]]],
-    }
+    from ae_engine.cabinet_types import receiving
+
+    snapshot = receiving.apply_family_defaults({"model": "受電箱"})
+    snapshot["h"] = float(upper) + float(lower)
+    snapshot["door_layout_columns"] = [[800.0, [float(upper), float(lower)]]]
+    return snapshot
 
 
 def _state(mode):
@@ -111,12 +106,15 @@ def test_receiving_1100_half_contract_uses_certified_fixed_position_and_four_slo
     assert contract["material_height"] == pytest.approx(1124.0)
     assert contract["formed_y_offset"] == pytest.approx(236.0)
     assert contract["opening"] is None
-    assert tuple(contract["fixed_slot_datums"]) == pytest.approx((
+    expected = (
         (120.0, 1004.0),
         (675.0, 1004.0),
         (120.0, 120.0),
         (675.0, 120.0),
-    ))
+    )
+    assert len(contract["fixed_slot_datums"]) == len(expected)
+    for actual, wanted in zip(contract["fixed_slot_datums"], expected):
+        assert tuple(actual) == pytest.approx(wanted)
 
     changed = _contract("HALF", upper=900.0, lower=700.0)
     assert changed["material_height"] == pytest.approx(924.0)
@@ -132,8 +130,10 @@ def test_receiving_full_and_back_opening_contracts_use_four_holes_and_fixed_650x
         (120.0, 120.0),
         (675.0, 120.0),
     )
-    assert tuple(full["fixed_slot_datums"]) == pytest.approx(expected_slots)
-    assert tuple(opened["fixed_slot_datums"]) == pytest.approx(expected_slots)
+    for contract in (full, opened):
+        assert len(contract["fixed_slot_datums"]) == len(expected_slots)
+        for actual, wanted in zip(contract["fixed_slot_datums"], expected_slots):
+            assert tuple(actual) == pytest.approx(wanted)
     assert full["opening"] is None
     assert tuple(opened["opening"]) == pytest.approx((72.5, 248.0, 722.5, 448.0))
 
