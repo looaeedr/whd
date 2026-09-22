@@ -8,26 +8,22 @@
   "base_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
   "head_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
   "phase": "FINALIZING",
-  "last_update": "2026-09-23T06:42:00+08:00",
+  "last_update": "2026-09-23T06:42:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B4",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue529-finalization-20260923"
+  ],
   "remote_qa": {
-    "run_id": 35793499633,
-    "head_sha": "4d1618937dd342b67a82c45b1f29feca86661a18",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "formal B4 Linked Endcap DT-0..DT-6",
-    "evidence": {
-      "decision": "KEEP_COMPATIBILITY",
-      "headless": "55 passed, 5 skipped",
-      "xvfb": "10 passed, 24 deselected",
-      "artifact_id": 10722084894
-    }
+    "run_id": 35793730610,
+    "head_sha": "de8736f28cf39d4fa6d581721f8f70c03d05ffc7",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B4 executable finalization guard/proof"
   },
-  "next_action": "Run executable finalization guard/proof for #529, close/readback, then atomically claim #530/B5.",
+  "next_action": "Poll finalization RUN 35793730610 to terminal; on GREEN close #529 and claim #530.",
   "blocker": null,
   "drift_audit": {
     "tested_head": "4d1618937dd342b67a82c45b1f29feca86661a18",
