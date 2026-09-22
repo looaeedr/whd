@@ -6,15 +6,27 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:54:20+08:00",
   "base_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
-  "head_sha": "b6f1d1ea0c226db50df58f3749223d2dd30607fe",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T01:56:00+08:00",
+  "head_sha": "0d78e2ae85d337b6d874c872391d6fa41b8a51be",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T01:59:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A2",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create one-shot exact-branch owner-guard workflow; run selected architecture ownership tests to prove OWNER_VIOLATION_COUNT=0 or identify exact violating seam.",
+  "remote_qa": {
+    "run_id": 35764051382,
+    "head_sha": "0d78e2ae85d337b6d874c872391d6fa41b8a51be",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "CURRENT-owner architecture audit",
+    "evidence": {
+      "passed": 74,
+      "skipped": 1,
+      "owner_violation_count": 0,
+      "artifact_id": 10711347347
+    }
+  },
+  "next_action": "Persist A2 zero-violation evidence, remove one-shot workflow, verify net production/test drift=0, finalize and close #523, then transition to #524/A3.",
   "blocker": null
 }
