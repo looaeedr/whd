@@ -7,6 +7,23 @@ whd_schema: WHD_DOC_META_V1
 
 # 板件接合定位打標（Joint Placement MARKING）設計規格 v1.3
 
+## 2026-09-22 #509 — Receiving frame MARKING product-rule supersession
+
+> **CURRENT / SUPERSEDES THE FIRST RECEIVING V1 POLICY BELOW.** 2026-09-22 使用者重新確認實際製造呈現：受電箱內門的 **上框、左框、右框** 三支 physical frame 都必須在**各自 canonical FinalScene / DXF** 擁有一條 **上方水平 MARKING**。舊版「只處理 left/right vertical frame → shared horizontal Divider，並在 Divider 輸出 SIDE_NEGATIVE / SIDE_POSITIVE 兩側線」對此 Receiving 案例正式 **SUPERSEDED / REVOKED**。
+
+Normative rule：
+
+- scope = Receiving inner-door `top_frame / left_frame / right_frame`；
+- marking owner = 各 frame 自己的 physical `PartRenderData`；
+- 每支 frame = exactly one `UPPER_HORIZONTAL` MARKING；
+- flat-domain authority = frame owner 的 Fold material width + explicit frame span；不得從 Canvas、renderer bbox、測試 expected 或固定畫面座標猜線；
+- shared Divider 不再承載這個 Receiving rule 的舊四條 side-boundary MARKING；
+- CUTTING / BEND / holes / relief / material 不得因 MARKING 改變；
+- DXF 仍只序列化同一份 enriched FinalScene，Save→Reload 不保存 derived XY，而是由 canonical frame state 重建；
+- 本文件後文凡寫「first Receiving policy = left/right → shared Divider / SIDE_BOUNDARY_PAIR / total 4」者，只保留歷史 provenance，**不得再當 CURRENT implementation authority**。
+
+
+
 - **日期**：2026-09-21
 - **狀態**：CURRENT／正式重寫版／第二輪 review 補強
 - **Canonical repo path**：`docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md`
