@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "bc41b4b89ed81bf94e09457a6af2f42821160c37",
+  "head_sha": "26f0fb82d4f0d9abb4fe62e8dab5c9c87f26f374",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T16:04:00Z",
+  "last_update": "2026-09-22T16:06:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35750382109,
@@ -17,7 +17,7 @@
     "job_id": 106822652782,
     "summary": "31 PASS / 1 FAIL; only #510 legacy test treats active physical-part _phase6_query_final_render_data() as aggregate BoxBody and dereferences .pieces. All production-focused and other adjacent tests GREEN; config invariant GREEN."
   },
-  "next_action": "Test-only #510 correction: read canonical resolved aggregate via _phase6_resolve_manufacturing_geometry().part('box_body').render_data before inspecting the back piece.",
+  "next_action": "Observe auto-triggered combined #517 adjacent regression at head 26f0fb82d4f0d9abb4fe62e8dab5c9c87f26f374; lock exact run_id+head_sha and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
