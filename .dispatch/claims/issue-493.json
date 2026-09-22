@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-22T18:45:20+08:00",
   "base_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
   "head_sha": "6291964351b111136fb771369b9f87d44866a8c4",
-  "phase": "GREEN",
-  "action_mode": "EXECUTE_NOW",
+  "phase": "RELEASED",
+  "action_mode": "TERMINAL",
   "delegated_branches": [],
   "production_target": "main",
   "frozen_main_base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
   "expected_parent_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "last_update": "2026-09-22T19:13:00+08:00",
-  "next_action": "Open and merge recovery PR to main with expected head 62919643..., then send second remote guard smoke request and do not mutate claim until receipt/run terminal.",
+  "last_update": "2026-09-22T19:20:00+08:00",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "branch_head": "402ca47e1c4578f102a6859b8e6ddd44a35bf5ac",
@@ -31,5 +31,24 @@
     "from_branch": "infra/issue493-remote-guard-20260922",
     "failed_run_id": 35719476112,
     "reason": "Post-integration smoke job failed because upload-artifact excluded hidden .remote-guard directory; also harden fail-fast semantics before second smoke."
+  },
+  "remote_qa": {
+    "run_id": 35719871936,
+    "status": "completed",
+    "conclusion": "success",
+    "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
+    "tested_target_sha": "6291964351b111136fb771369b9f87d44866a8c4",
+    "request_comment_id": 5775387477,
+    "receipt_comment_id": 5775389543,
+    "receipt_result": "GREEN",
+    "artifact_id": 10691251712
+  },
+  "completion": {
+    "bootstrap_pr": 494,
+    "recovery_pr": 495,
+    "default_branch_head": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
+    "remote_guard_receipt_schema": "WHD_REMOTE_GUARD_RECEIPT_V1",
+    "accepted_run_id": 35719871936,
+    "accepted": true
   }
 }
