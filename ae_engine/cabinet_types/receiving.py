@@ -514,6 +514,44 @@ def resolve_box_body_structure_state(state=None):
     return result
 
 
+def _back_panel_fixed_slot_profile(datum) -> tuple[tuple[float, float], ...]:
+    """Return the certified key-slot contour from 後面板.dxf around one datum.
+
+    The datum is the centre of the 9-mm neck line. The reference profile is a
+    4.5-mm upper semicircle joined to the major arc of an R8 lower bulb whose
+    centre is 11 mm below the datum; its exact envelope is 16 x 23.5 mm.
+    """
+    from math import atan2, cos, pi, sin, sqrt
+
+    cx, cy = map(float, datum)
+    neck_half = 4.5
+    upper_radius = 4.5
+    lower_radius = 8.0
+    lower_center_y = -11.0
+    neck_y = lower_center_y + sqrt(lower_radius ** 2 - neck_half ** 2)
+
+    points = []
+    for index in range(13):
+        angle = pi * index / 12.0
+        points.append((
+            cx + upper_radius * cos(angle),
+            cy + upper_radius * sin(angle),
+        ))
+    points.append((cx - neck_half, cy + neck_y))
+
+    start_angle = atan2(neck_y - lower_center_y, -neck_half)
+    end_angle = atan2(neck_y - lower_center_y, neck_half) + 2.0 * pi
+    sweep = end_angle - start_angle
+    for index in range(1, 31):
+        angle = start_angle + sweep * index / 30.0
+        points.append((
+            cx + lower_radius * cos(angle),
+            cy + lower_center_y + lower_radius * sin(angle),
+        ))
+    points.append((cx + neck_half, cy))
+    return tuple(points)
+
+
 def resolve_back_panel_contract(
     snapshot,
     *,
@@ -575,17 +613,22 @@ def resolve_back_panel_contract(
         ):
             raise ValueError("certified Receiving rear opening does not fit rear-panel material")
 
+    fixed_slot_datums = (
+        (left_x, upper_y),
+        (right_x, upper_y),
+        (left_x, lower_y),
+        (right_x, lower_y),
+    )
     return {
         "mode": mode.value,
         "panel_width": width,
         "full_panel_height": full_height,
         "material_height": float(material_height),
         "formed_y_offset": float(formed_y_offset),
-        "fixed_slot_datums": (
-            (left_x, upper_y),
-            (right_x, upper_y),
-            (left_x, lower_y),
-            (right_x, lower_y),
+        "fixed_slot_datums": fixed_slot_datums,
+        "fixed_slot_profiles": tuple(
+            _back_panel_fixed_slot_profile(datum)
+            for datum in fixed_slot_datums
         ),
         "opening": opening,
         "authority": "USER_SUPPLIED_BACK_PANEL_DXF_2026_09_22",
