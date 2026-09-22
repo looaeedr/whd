@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "137fae03262a2062d3bb97b25d73f5e1af4832db",
-  "last_update": "2026-09-22T21:26:00+08:00",
+  "head_sha": "7511b2aadeeb0797ac67debb8a6a51e1d6efe20c",
+  "last_update": "2026-09-22T21:28:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35729945389,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue499-t2-red.yml",
     "result": "4 failed in 0.20s; both required R1 RED markers confirmed"
   },
-  "next_action": "Repair focused GREEN workflow to one-shot push trigger with no self-referential HEAD assertion; the workflow-only commit will become the exact QA candidate.",
+  "next_action": "Lock the exact GREEN run triggered by workflow commit 7511b2aa, persist run_id/head_sha, and poll that same run to terminal.",
   "blocker": null
 }
