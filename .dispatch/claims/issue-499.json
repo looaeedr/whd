@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
-  "last_update": "2026-09-22T21:43:00+08:00",
+  "head_sha": "3ea720ba2d04d6d0f33a381e341943f3d7fe2f0c",
+  "last_update": "2026-09-22T21:46:00+08:00",
   "remote_qa": {
     "status": "DIAGNOSTIC_FAILURE",
     "run_id": 35731884812,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue499-t2-diagnostic.yml",
     "result": "Candidate matrix terminal: 6 PASS / 6 FAIL. Issue499 focused contract itself PASS."
   },
-  "next_action": "Run identical per-file baseline matrix against accepted T1 head 87e5c47e; compute candidate-only failing-file difference and repair only that delta.",
+  "next_action": "Lock exact accepted-T1 baseline matrix run triggered by 3ea720ba; compare per-file results with candidate run 35731884812.",
   "blocker": null
 }
