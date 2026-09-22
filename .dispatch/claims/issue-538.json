@@ -12,7 +12,7 @@
     "qa/issue538-finalization-20260923"
   ],
   "head_sha": "37e9f212082e53d7ac063ce540d35b70295de730",
-  "last_update": "2026-09-23T04:39:00+08:00",
+  "last_update": "2026-09-23T04:42:00+08:00",
   "remote_qa": {
     "run_id": 35765860616,
     "head_sha": "486d149cd6694cec2e4fd6445b89807a7c3f5d72",
@@ -26,7 +26,7 @@
       "skill_contract": "GREEN"
     }
   },
-  "next_action": "Obtain exact commit Remote Guard receipt for .github/workflows/qa-issue538-finalization.yml on qa/issue538-finalization-20260923, create Traditional-Chinese executable finalization workflow, lock run to terminal, close/readback #538, then cleanup delegated branch and release claim.",
+  "next_action": "Write terminal evidence to #538, close/readback as completed, then mark claim RELEASED with temp finalization branch cleanup explicitly deferred because current connector exposes no delete-ref primitive.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -105,5 +105,16 @@
     "production_target": "cleanup/2d-3d-sync",
     "production_readback": true,
     "production_test_drift": 0
+  },
+  "finalization_evidence": {
+    "run_id": 35781877111,
+    "run_title": "WHD｜#538｜可執行關單驗證",
+    "run_head": "16a37c1797e489b0e56290d1cd1a2374920d1b3e",
+    "conclusion": "success",
+    "checkpoint_sha": "a591e1c620ea2a9035684d7b013bafd094560303",
+    "finalization_guard": "PASS",
+    "finalization_proof": "VALID",
+    "proof_sha256": "79369db8e408b3f1c5cbf65e278bbb51b0c550f4b9aedc18452ee1c7600638e8",
+    "artifact_id": 10718845603
   }
 }
