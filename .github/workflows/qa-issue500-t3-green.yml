@@ -1,0 +1,101 @@
+name: "QA #500 T3 Settings profile GREEN"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - '.github/workflows/qa-issue500-t3-green.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  t3-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install focused harness
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+      - name: Run T3 focused contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue500_settings_profile_projection.py             tests/test_receiving_door_dimension_projection_semantics.py             tests/test_multi_door_layout.py             tests/test_profile_layer_preservation.py             tests/test_issue480_derived_part_projection_plan.py             tests/test_phase6_t13_receiving_base_plate_55.py             tests/test_phase6_t04_multi_door_formal.py             --tb=short
+      - name: Architecture ratchet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          tree = ast.parse(bridge)
+          names = {
+              node.name: ast.get_source_segment(bridge, node) or ""
+              for node in tree.body if isinstance(node, ast.FunctionDef)
+          }
+          recalc = names["_phase6_recalculate_part_dimensions"]
+          refresh = names["_phase6_refresh_profiles_from_settings"]
+
+          assert "project_part_dimensions" in recalc
+          assert "build_settings_profile_projection" in refresh
+          for token in (
+              "calculate_door_finished_size",
+              "derive_door_layout_cells",
+              "cabinet_family_policy.door_material_frame_width",
+              'snapshot["part_dimensions"]',
+          ):
+              assert token not in recalc, token
+          for token in (
+              "build_box_body_profile",
+              "merge_box_body_profile",
+              "build_endcap_xy_profiles",
+              "build_standard_part_profiles",
+              "_merge_keyed_profiles",
+              "designer_workspace.stash_profiles",
+              "bend_ui.render",
+          ):
+              assert token not in refresh, token
+
+          assert "class DoorPartProjection" not in bridge
+          assert "def _phase6_door_part_projections" not in bridge
+          assert "def build_standard_part_profiles" not in bridge
+          assert "def _merge_keyed_profiles" not in bridge
+
+          projection = Path("phase6_settings_profile_projection.py").read_text(encoding="utf-8")
+          ptree = ast.parse(projection)
+          imports = set()
+          for node in ast.walk(ptree):
+              if isinstance(node, ast.Import):
+                  imports.update(alias.name for alias in node.names)
+              elif isinstance(node, ast.ImportFrom) and node.module:
+                  imports.add(node.module)
+          forbidden = {
+              name for name in imports
+              if name == "fold_designer_bridge"
+              or name == "tkinter"
+              or name.startswith("tkinter.")
+              or name == "phase6_designer_workspace"
+              or name == "phase6_workspace_navigation_controller"
+              or "renderer" in name
+              or "manufacturing" in name
+          }
+          assert forbidden == set(), forbidden
+
+          facade_call = next(
+              node for node in ast.walk(tree)
+              if isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Name)
+              and node.func.id == "install_fold_designer_bridge_facade"
+          )
+          assert isinstance(facade_call.args[1], ast.Dict)
+          count = len(facade_call.args[1].keys)
+          assert count <= 69, count
+          print(f"FACADE_BINDING_COUNT={count}")
+          print("ISSUE500_T3_ARCH_GREEN=1")
+          PY
