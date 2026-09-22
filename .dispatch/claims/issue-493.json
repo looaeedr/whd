@@ -6,15 +6,15 @@
   "work_branch": "hotfix/issue493-remote-guard-smoke-20260922",
   "claimed_at": "2026-09-22T18:45:20+08:00",
   "base_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
-  "head_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
-  "phase": "IMPLEMENTING",
+  "head_sha": "6291964351b111136fb771369b9f87d44866a8c4",
+  "phase": "GREEN",
   "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "main",
   "frozen_main_base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
   "expected_parent_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "last_update": "2026-09-22T19:08:00+08:00",
-  "next_action": "Create fresh recovery branch from actual main bc72ef1..., fix hidden artifact path and make inner validation fail-fast outside if-condition errexit suppression, then run second issue_comment smoke.",
+  "last_update": "2026-09-22T19:13:00+08:00",
+  "next_action": "Open and merge recovery PR to main with expected head 62919643..., then send second remote guard smoke request and do not mutate claim until receipt/run terminal.",
   "blocker": null,
   "evidence": {
     "branch_head": "402ca47e1c4578f102a6859b8e6ddd44a35bf5ac",
@@ -23,19 +23,9 @@
     "fail_closed_fix": "102a0b038e6ecfdaab8240d3cf927b3342d2efe6",
     "preflight_compat_fix": "376f8e1e51aca45995f7052a6b6fb14ac2d886a8",
     "static_validation": "YAML_PARSE_OK; bash -n all run blocks GREEN",
-    "shell_syntax_fix": "2dedfe89c7de6e5c405ffcb5d7eaa5b3c62a03da"
-  },
-  "remote_qa": {
-    "run_id": 35719476112,
-    "status": "completed",
-    "conclusion": "failure",
-    "orchestrator_head_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
-    "tested_target_sha": "2dedfe89c7de6e5c405ffcb5d7eaa5b3c62a03da",
-    "request_comment_id": 5775336907,
-    "receipt_comment_id": 5775339923,
-    "receipt_result": "GREEN",
-    "acceptance_valid": false,
-    "failure_classification": "HARNESS_ARTIFACT_PUBLISH_FAILURE"
+    "shell_syntax_fix": "2dedfe89c7de6e5c405ffcb5d7eaa5b3c62a03da",
+    "recovery_fix": "6291964351b111136fb771369b9f87d44866a8c4",
+    "recovery_static_validation": "YAML_PARSE_OK; bash -n all run blocks GREEN"
   },
   "recovery": {
     "from_branch": "infra/issue493-remote-guard-20260922",
