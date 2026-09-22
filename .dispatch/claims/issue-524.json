@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
   "head_sha": "921277d04fff38f99d38b9919a4a466551a2200f",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T02:14:10+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T02:14:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -44,9 +44,19 @@
       "pytest": "1 failed, 2 passed",
       "expected_failure": "test_a3_direct_owner_delegates_are_identity_aliases",
       "artifact_id": 10711289071
+    },
+    "green_run": {
+      "run_id": 35765706274,
+      "head_sha": "921277d04fff38f99d38b9919a4a466551a2200f",
+      "status": "completed",
+      "conclusion": "success",
+      "pytest": "59 passed",
+      "facade_binding_count": 69,
+      "dynamic_getattr_retained": true,
+      "artifact_id": 10712350745
     }
   },
-  "next_action": "Lock exact A3 GREEN run at 921277d0 and poll run/jobs/steps to terminal.",
+  "next_action": "Persist A3 audit/RED/GREEN evidence, remove three one-shot workflows, verify tested-to-closing production/test drift=0, then finalize #524.",
   "blocker": null,
   "production_change": {
     "bridge_before_loc": 7806,
