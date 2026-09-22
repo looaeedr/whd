@@ -210,16 +210,19 @@ jobs:
               reverse += text.count("from fold_designer_bridge import")
           assert reverse == 0, reverse
 
-          defs = []
+          owners = []
           for py in root.rglob("*.py"):
-              if ".git" in py.parts:
+              rel = py.relative_to(root)
+              if ".git" in rel.parts or rel.parts[0] == "tests":
                   continue
-              text = py.read_text(encoding="utf-8", errors="ignore")
-              defs += [
-                  str(py.relative_to(root))
-                  for _ in range(text.count("class Phase6FoldDesignerComposition"))
-              ]
-          assert len(defs) == 1, defs
+              try:
+                  parsed = ast.parse(py.read_text(encoding="utf-8"))
+              except SyntaxError:
+                  continue
+              for node in parsed.body:
+                  if isinstance(node, ast.ClassDef) and node.name == "Phase6FoldDesignerComposition":
+                      owners.append(str(rel))
+          assert owners == ["gui_modules/application/fold_designer_adapter.py"], owners
 
           def object_map(repo_dir):
               lines = subprocess.check_output(
