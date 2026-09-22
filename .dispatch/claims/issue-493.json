@@ -6,14 +6,19 @@
   "work_branch": "infra/issue493-remote-guard-20260922",
   "claimed_at": "2026-09-22T18:45:20+08:00",
   "base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "head_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "phase": "CLAIMED",
+  "head_sha": "402ca47e1c4578f102a6859b8e6ddd44a35bf5ac",
+  "phase": "IMPLEMENTING",
   "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "main",
   "frozen_main_base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
   "expected_parent_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "last_update": "2026-09-22T18:45:20+08:00",
-  "next_action": "Run canonical preflight and execution claim guard for branch-create, then create infra/issue493-remote-guard-20260922 from exact frozen main base.",
-  "blocker": null
+  "last_update": "2026-09-22T18:54:00+08:00",
+  "next_action": "Fix fail-closed defects in whd-remote-execution-guard.yml, run focused validation, then integrate to main only after acceptance.",
+  "blocker": null,
+  "evidence": {
+    "branch_head": "402ca47e1c4578f102a6859b8e6ddd44a35bf5ac",
+    "branch_compare": "ahead_by=1 behind_by=0 from frozen main base",
+    "guard_branch_create": "EXECUTION_CLAIM_GUARD_GREEN"
+  }
 }
