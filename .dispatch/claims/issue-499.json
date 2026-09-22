@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,7 +14,7 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
-  "last_update": "2026-09-22T22:05:00+08:00",
+  "last_update": "2026-09-22T22:10:00+08:00",
   "remote_qa": {
     "status": "GREEN_CLEANED",
     "run_id": 35732305573,
@@ -22,6 +22,6 @@
     "cleaned_head_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
     "result": "Acceptance SUCCESS; tested->cleaned diff is exactly five workflow deletions; production/test drift=0."
   },
-  "next_action": "Persist terminal #499 checkpoint with Master #506 handoff to #500; run canonical finalization authorization+verification; close #499; release claim; immediately claim/start #500.",
+  "next_action": "Terminal #499 released after CLOSED/completed readback; Master chain continues at #500.",
   "blocker": null
 }
