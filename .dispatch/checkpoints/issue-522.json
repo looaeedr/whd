@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "issue": "522",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35761530082,
+  "job_id": 106860473453,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1.",
+    "A0 accepted parent HEAD 23fd989edfa35583af8e3435ca86fc08835e4260.",
+    "Issue #522 Phase6 Preflight GREEN: phase6-corner-3d-model-integrity + monitoring-remote-qa + long-log-context-safe-execution + executable-continuity-controller.",
+    "Exact census RUN 35761321697 @ 448f2f73a6f968e7773332841d4b7154ce9000db SUCCESS: 41 high-confidence candidates, DEAD_CANDIDATE_COUNT=0.",
+    "Exhaustive exact-branch census RUN 35761530082 @ 1fbf1ac691d6e476f673d0db1249045c2b047c4e SUCCESS: 327 candidates, dead=0, live=327, malformed=0; artifact 10710820254.",
+    "One-shot census workflow removed from work-order branch.",
+    "A1 parent-to-closing diff contains only preflight/census evidence; production/test drift=0.",
+    "fold_designer_bridge.py remains blob 17c4254c6aac960980c8ecfadfcd7e0ca03fc0d6, LOC 7806.",
+    "Current production target cleanup/2d-3d-sync remains frozen base adbfa95092a35183b3b64d0d38ea8cb68be64b65.",
+    "A1 production deletion count=0 because no census-proven DEAD_OR_DUPLICATE_GLUE exists."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "523",
+  "chain_next_action": "Atomically claim #523/A2 Existing-Owner Violation Removal on accepted work-order HEAD 6e4ffde8cb837af240e1d948c3ca5d95373d801c and continue the Master chain.",
+  "chain_reason": null
+}
