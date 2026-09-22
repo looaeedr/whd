@@ -5,12 +5,20 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "8ffffb246adde15a4d093ce75ad51a7375c9845a",
-  "phase": "RED",
-  "last_update": "2026-09-22T13:40:00Z",
+  "head_sha": "16d04be0358fd00aed6e0155bc20c52821bb4030",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T13:44:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": null,
-  "next_action": "Lock the replacement #509 QA run for head 8ffffb246adde15a4d093ce75ad51a7375c9845a and poll to terminal.",
+  "remote_qa": {
+    "run_id": 35734822985,
+    "head_sha": "8ffffb246adde15a4d093ce75ad51a7375c9845a",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "EXPECTED_PRODUCT_RED",
+    "job_id": 106769254663,
+    "summary": "1 failed, 5 passed"
+  },
+  "next_action": "Replace V1 Divider SIDE_BOUNDARY_PAIR production path with V2 per-frame UPPER_HORIZONTAL FinalScene marking.",
   "blocker": null,
   "delegated_branches": []
 }
