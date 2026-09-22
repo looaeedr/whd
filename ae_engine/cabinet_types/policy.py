@@ -202,6 +202,27 @@ def resolve_box_body_structure_state(source, state=None) -> dict:
     return normalize_box_body_structure_state(state)
 
 
+def resolve_back_panel_contract(
+    source,
+    snapshot,
+    *,
+    structure_state,
+    panel_width: float,
+    full_panel_height: float,
+):
+    """Resolve a family-owned rear-panel contract when the family defines one."""
+    module = _family_module(source)
+    callback = getattr(module, "resolve_back_panel_contract", None) if module is not None else None
+    if not callable(callback):
+        return None
+    return callback(
+        snapshot,
+        structure_state=structure_state,
+        panel_width=float(panel_width),
+        full_panel_height=float(full_panel_height),
+    )
+
+
 def box_body_structure_is_fixed(source) -> bool:
     try:
         return bool(resolve_box_body_structure_state(source, None).get("locked", False))
