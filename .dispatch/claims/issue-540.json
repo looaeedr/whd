@@ -6,24 +6,17 @@
   "work_branch": "feature/issue540-stale-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "eb410442555e4d712c394673ec72f95fb196ee1d",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T07:01:00+08:00",
+  "head_sha": "27d8187413a9ee18402f5fceb9c214b1fa772ab2",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T07:03:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35795286144,
-    "head_sha": "eb410442555e4d712c394673ec72f95fb196ee1d",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "Issue #540 bound stale-takeover evidence RED",
-    "evidence": {
-      "focused": "9 failed, 27 passed",
-      "root_cause": "execution_claim_guard has no takeover_evidence parameter/binding yet",
-      "red_proven": true
-    }
+    "status": "pending",
+    "head_sha": "27d8187413a9ee18402f5fceb9c214b1fa772ab2",
+    "purpose": "Issue #540 machine-bound stale takeover evidence GREEN"
   },
-  "next_action": "Implement machine-bound stale takeover evidence in tools/stale_claim_takeover.py and tools/execution_claim_guard.py, including observed live HEAD takeover and decision-out evidence; rerun focused GREEN.",
+  "next_action": "Lock exact GREEN run for 27d81874; on success, harden durable Skill wording if needed, cleanup one-shot RED/GREEN workflows, and integrate executable authority to cleanup/2d-3d-sync.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -58,6 +51,13 @@
       "request_comment_id": 5785637813,
       "result_comment_id": 5785640118,
       "run_id": 35794991173,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "bound_takeover_implementation": {
+      "request_comment_id": 5785698419,
+      "result_comment_id": 5785700905,
+      "run_id": 35795373572,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
