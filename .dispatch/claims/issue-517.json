@@ -5,12 +5,12 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
+  "head_sha": "f57e0b36b2d03b686d5721d98cf1664d13696e20",
   "phase": "CLAIMED",
-  "last_update": "2026-09-22T14:55:00Z",
+  "last_update": "2026-09-22T15:04:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": null,
-  "next_action": "Create guarded work branch, run Phase6 preflight for exact live-switch/UI/DXF path, then write RED that reproduces user's sequence.",
+  "next_action": "Run exact #517 Xvfb RED: visible 3D live-switch, real Structure Tree rear-panel selector reachability, actual GUI DXF export vs canonical physical inventory, assembly-visible MARKING.",
   "blocker": null,
   "delegated_branches": []
 }
