@@ -1795,20 +1795,6 @@ def _phase6_stage_setting_update(self, key, value):
     job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
     service.install_debounce_job(job)
 
-def _phase6_on_setting_var_changed(self, key, var, spec):
-    if getattr(self, "_phase6_settings_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    raw = var.get()
-    if spec.kind == "bool":
-        value = bool(raw)
-    elif spec.kind == "choice":
-        value = normalize_ui_text_size(raw) if spec.key == "ui_text_size" else str(raw)
-    else:
-        try:
-            value = float(raw)
-        except (TypeError, ValueError, original.tk.TclError):
-            return
-    _phase6_stage_setting_update(self, key, value)
 
 
 
@@ -1908,8 +1894,6 @@ def _phase6_corner_pair_var_changed(self, part_key, pair_key, var):
     _phase6_invalidate_settings_page(self, part_key)
     _phase6_render_settings_context(self, part_key)
 
-def _phase6_corner_targets(pairs, target_key):
-    return _CORNER_PAIR_KEYS[target_key] if target_key in _CORNER_PAIR_KEYS else (target_key,)
 
 
 def _phase6_corner_type_selected(self, part_key, target_key):
@@ -2844,17 +2828,6 @@ def _phase6_set_endcap_fw_override(self, part_key, value):
     return _phase6_commit_endcap_fw_state(self)
 
 
-def _phase6_on_endcap_fw_follow_selected(self, part_key, follow_var, value_var, value_widget):
-    follow = bool(follow_var.get())
-    _phase6_set_endcap_fw_follow(self, part_key, follow)
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    effective = resolve_endcap_fw(snapshot, part_key, state=self._phase6_endcap_fw_state)
-    value_var.set(_setting_number_text(effective))
-    try:
-        value_widget.configure(state=("disabled" if follow else "normal"))
-    except Exception:
-        pass
 
 
 def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
@@ -4225,29 +4198,6 @@ def _phase6_registry_source_display(value, *, presentation_field="source"):
     )
 
 
-def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
-    busy = {"value": False}
-    def raw_changed(*_args):
-        if busy["value"]:
-            return
-        busy["value"] = True
-        try:
-            display_var.set(to_display(raw_var.get()))
-        finally:
-            busy["value"] = False
-    def display_changed(*_args):
-        if busy["value"]:
-            return
-        busy["value"] = True
-        try:
-            raw_var.set(to_raw(display_var.get()))
-        finally:
-            busy["value"] = False
-    raw_var.trace_add("write", raw_changed)
-    display_var.trace_add("write", display_changed)
-    raw_changed()
-    display_var._phase6_raw_var = raw_var
-    return display_var
 
 
 def _phase6_registry_collect_rule_form(self):
@@ -5242,18 +5192,6 @@ def _phase6_save_settings_context_as_defaults(self, context):
         self.settings_status_var.set("已儲存到 config.ini")
     return True
 
-def _phase6_scene_from_structural_result(result, features, surface_id):
-    from ae_engine.sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
-    from ae_engine.sheetmetal_features import feature_surface_from_structural_result, resolve_surface_features
-
-    scene = DrawingScene()
-    scene.extend(structural_result_to_primitives(result))
-    if features:
-        surface = feature_surface_from_structural_result(surface_id, result)
-        scene.extend(resolved_features_to_primitives(
-            resolve_surface_features(surface, list(features), float(result.width), float(result.height))
-        ))
-    return scene
 
 
 
@@ -5379,8 +5317,6 @@ def _phase6_install_renderer_view(self):
         pass
     return result
 
-def _phase6_profile_material_total(profile):
-    return float(sum(abs(_num(seg.get("len", 0.0))) for seg in (profile or ())))
 
 
 def _phase6_corner_policy_for(self, part_key):
