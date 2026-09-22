@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:24:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "23a63cc1ffd91f1f684e56addee3974795d5ee9f",
@@ -14,14 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
-  "last_update": "2026-09-22T22:40:00+08:00",
+  "last_update": "2026-09-22T22:39:00+08:00",
   "remote_qa": {
-    "status": "EXPECTED_RED_GREEN",
-    "run_id": 35741015712,
-    "head_sha": "085f8883fa2f9f283ecae1e5f6054c80ce412556",
-    "workflow": "qa-issue503-t6-red.yml",
-    "result": "R6 expected RED confirmed."
+    "status": "GREEN",
+    "run_id": 35741325688,
+    "head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
+    "workflow": "qa-issue503-t6-green.yml",
+    "result": "5 planner-contract tests passed; 18 live-sync/Xvfb tests passed; facade=69; architecture ratchet GREEN."
   },
-  "next_action": "Lock exact T6 GREEN run triggered by 64777eee and poll to terminal; repair only failed scope or cleanup/finalize #503 on GREEN.",
+  "next_action": "Delete T6 red/green one-shot workflows in one cleanup commit; verify tested->cleaned diff is workflow-delete-only; finalize/close #503; start #504 Combined Acceptance.",
   "blocker": null
 }
