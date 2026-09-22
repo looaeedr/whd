@@ -14,7 +14,7 @@
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "last_update": "2026-09-22T21:10:00+08:00",
-  "next_action": "Create durable TERMINAL_SUCCESS checkpoint bound to cleanup/2d-3d-sync@b82d6114..., obtain Remote Guard for qa/issue496-finalization-20260922, run canonical continuity_controller authorize+verify and close #496 in the same GitHub Actions job, then remote-readback and release claim.",
+  "next_action": "Run canonical continuity_controller.py authorize-finalization and verify-finalization-proof against owning TERMINAL_SUCCESS checkpoint bound to issue 496, cleanup/2d-3d-sync, X HEAD b82d6114..., then close issue and release claim.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -138,6 +138,13 @@
       "pr": 508,
       "merge_guard_run_id": 35731255907,
       "merge_guard_result_comment_id": 5777049106,
+      "merge_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
+      "current_x_head": "b82d6114a6258853819d6cb7683f06d427ceb9f8"
+    },
+    "chinese_name_merge": {
+      "pr": 508,
+      "merge_guard_run_id": 35731255907,
+      "result": "GREEN",
       "merge_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
       "current_x_head": "b82d6114a6258853819d6cb7683f06d427ceb9f8"
     }
