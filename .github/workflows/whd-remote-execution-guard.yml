@@ -164,7 +164,8 @@ jobs:
           : > /tmp/remote-guard.log
           : > /tmp/preflight-evidence.txt
 
-          {
+          if (
+            set -euo pipefail
             remote_authority="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
             test -n "$remote_authority"
             test "$remote_authority" = "$RG_GUARD_AUTHORITY_SHA"
@@ -237,8 +238,11 @@ jobs:
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
             "${guard_args[@]}"
-          } > /tmp/remote-guard.log 2>&1
-          rc=$?
+          ) > /tmp/remote-guard.log 2>&1; then
+            rc=0
+          else
+            rc=$?
+          fi
 
           if [ "$rc" -eq 0 ] && grep -q '^EXECUTION_CLAIM_GUARD_GREEN ' /tmp/remote-guard.log; then
             result="GREEN"
@@ -281,20 +285,26 @@ jobs:
           )
           PY
 
+          mkdir -p "$GITHUB_WORKSPACE/.remote-guard"
+          cp /tmp/remote-guard-request.json "$GITHUB_WORKSPACE/.remote-guard/remote-guard-request.json"
+          cp /tmp/remote-guard-receipt.json "$GITHUB_WORKSPACE/.remote-guard/remote-guard-receipt.json"
+          cp /tmp/preflight-evidence.txt "$GITHUB_WORKSPACE/.remote-guard/preflight-evidence.txt"
+          cp /tmp/remote-guard.log "$GITHUB_WORKSPACE/.remote-guard/remote-guard.log"
+
           {
             echo "result=$result"
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
 
       - name: Publish machine-readable receipt
-        if: always() && hashFiles('/tmp/remote-guard-receipt.json') != ''
+        if: always() && hashFiles('.remote-guard/remote-guard-receipt.json') != ''
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const receipt = fs.readFileSync('/tmp/remote-guard-receipt.json', 'utf8').trim();
-            const log = fs.existsSync('/tmp/remote-guard.log')
-              ? fs.readFileSync('/tmp/remote-guard.log', 'utf8').trim().split('\n').slice(-30).join('\n')
+            const receipt = fs.readFileSync('.remote-guard/remote-guard-receipt.json', 'utf8').trim();
+            const log = fs.existsSync('.remote-guard/remote-guard.log')
+              ? fs.readFileSync('.remote-guard/remote-guard.log', 'utf8').trim().split('\n').slice(-30).join('\n')
               : '';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -316,15 +326,11 @@ jobs:
             });
 
       - name: Upload guard receipt
-        if: always() && hashFiles('/tmp/remote-guard-receipt.json') != ''
+        if: always() && hashFiles('.remote-guard/remote-guard-receipt.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: remote-guard-receipt-${{ github.event.comment.id }}
-          path: |
-            /tmp/remote-guard-request.json
-            /tmp/remote-guard-receipt.json
-            /tmp/preflight-evidence.txt
-            /tmp/remote-guard.log
+          path: .remote-guard/
           if-no-files-found: error
           retention-days: 7
 
