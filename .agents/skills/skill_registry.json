@@ -247,6 +247,35 @@
       ]
     },
     {
+      "id": "remote-execution-guard",
+      "keywords": [
+        "Remote Guard",
+        "remote execution guard",
+        "WHD_REMOTE_GUARD_REQUEST_V1",
+        "WHD_REMOTE_GUARD_RECEIPT_V1",
+        "repository command execution",
+        "scheduler no shell",
+        "排程沒有 shell",
+        "排程無 shell",
+        "execution_claim_guard.py 無法執行",
+        "GUARD_EXECUTION_CAPABILITY_BLOCKER"
+      ],
+      "file_globs": [
+        ".github/workflows/whd-remote-execution-guard.yml",
+        ".agents/skills/engineering/remote-execution-guard/**"
+      ],
+      "required_skills": [
+        "remote-execution-guard",
+        "monitoring-remote-qa",
+        "long-log-context-safe-execution",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "issue-closure-gate",
       "keywords": [
         "關單",
