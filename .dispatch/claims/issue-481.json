@@ -5,32 +5,29 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T08:22:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
-  "head_sha": "d72f6aba01ecc9b213b9720cdc812e9909360533",
+  "head_sha": "0d1660667579f5b2d312bae6d8463c537c6934c8",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": 35671839530,
-    "head_sha": "d72f6aba01ecc9b213b9720cdc812e9909360533",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "STALE_T2_SOURCE_ORACLE",
-    "summary": "1 failed / 11 passed; stale T2 test required bridge mutation tokens that T3 intentionally removed"
+    "status": "RUN_NOT_CREATED",
+    "head_sha": "0d1660667579f5b2d312bae6d8463c537c6934c8",
+    "run_id": null
   },
-  "next_action": "Update stale T2 source oracle to accept navigation.apply_derived_sync_plan(plan) after plan construction, ensure T3 workflow reruns on that test change, then lock fresh GREEN run.",
+  "next_action": "Resolve fresh T3 workflow run at recovery head 0d1660667579f5b2d312bae6d8463c537c6934c8, lock exact run_id+head_sha and poll terminal; on GREEN dispatch expanded T3 acceptance.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:31:00+08:00",
+  "last_update": "2026-09-22T08:33:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
