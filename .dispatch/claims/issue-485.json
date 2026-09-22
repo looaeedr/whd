@@ -3,33 +3,28 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/485",
   "master_issue": 486,
   "worker": "chatgpt",
-  "executor_source": "chatgpt_automation",
+  "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T11:47:36+08:00",
   "claimed_at": "2026-09-22T10:54:54+08:00",
-  "phase": "GREEN",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "8b08024a9b93fe5577846489df099ce0387d08b4",
   "head_sha": "db21dc1245b9d6af73bd503fefda6cd541ad3723",
-  "delegated_branches": ["coord/dispatch-claims"],
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
   "remote_qa": {
     "run_id": null,
     "head_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "Create/dispatch post-integration focused smoke on exact production SHA 81dff9d9f33b489d2f9acaca01645a9b7b4babec; lock exact run_id+head_sha; on GREEN complete T7 terminal checkpoint/finalization, close #485, then close Master #486 after all child readback.",
-  "blocker": {
-    "type": "TAKEOVER_EXECUTION_DEFECT",
-    "fingerprint": "485|81dff9d9f33b489d2f9acaca01645a9b7b4babec|RUN_NOT_CREATED|create/dispatch exact-production post-integration focused smoke|new workflow dispatch primitive unavailable",
-    "root_cause": "Fresh capability rediscovery exposes Actions read/rerun primitives but no workflow-dispatch/create-run primitive; exact production SHA has zero workflow runs, so rerun cannot create the required producer.",
-    "observed_at": "2026-09-22T11:47:36+08:00",
-    "exact_attempt": "Fresh-read exact production Actions runs/check-runs: both zero; rediscovered GitHub workflow capabilities and confirmed no dispatch primitive is exposed.",
-    "durable_issue_evidence": "issuecomment-5770750719"
-  },
-  "last_update": "2026-09-22T11:47:36+08:00",
+  "next_action": "Create temporary post-integration smoke orchestrator on work-order branch; runner must detach checkout exact production SHA 81dff9d9f33b489d2f9acaca01645a9b7b4babec, assert exact HEAD, run focused Phase4 ownership/FinalScene/derived/settings/persistence/DXF smoke, lock exact run_id+orchestrator head+tested production SHA to terminal, then remove orchestrator and finalize #485/#486.",
+  "blocker": null,
+  "last_update": "2026-09-22T11:55:00+08:00",
   "predecessor": {
     "issue": 484,
     "accepted_head": "8b08024a9b93fe5577846489df099ce0387d08b4"
@@ -38,7 +33,11 @@
     "frozen_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
     "route_result": "repository-read canonical preflight refreshed; SCRIPT_EXECUTION_UNAVAILABLE",
     "script_execution": "SCRIPT_EXECUTION_UNAVAILABLE; repository-read reconstruction completed",
-    "read_skills": ["派工", "issue-closure-gate", "executable-continuity-controller"],
+    "read_skills": [
+      "派工",
+      "issue-closure-gate",
+      "executable-continuity-controller"
+    ],
     "read_references": [
       "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
       "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
@@ -75,5 +74,10 @@
     "cycle_started_at": "2026-09-22T11:47:36+08:00",
     "owning_issue": 485,
     "action": "fresh canonical preflight and capability rediscovery; exact production run/check-run attempt; reconcile durable blocker into shared claim without duplicate issue comment"
+  },
+  "takeover": {
+    "from_executor": "chatgpt_automation",
+    "to_executor": "chatgpt_interactive",
+    "reason": "User flagged stale state. Fresh live read shows T7 only lacks post-integration smoke; workflow_dispatch absence is bypassable via work-order push-triggered orchestrator that explicitly detaches to exact production SHA."
   }
 }
