@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:24:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "23a63cc1ffd91f1f684e56addee3974795d5ee9f",
@@ -13,15 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
-  "last_update": "2026-09-22T22:39:00+08:00",
+  "head_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
+  "last_update": "2026-09-22T22:42:00+08:00",
   "remote_qa": {
-    "status": "GREEN",
+    "status": "GREEN_CLEANED",
     "run_id": 35741325688,
-    "head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
-    "workflow": "qa-issue503-t6-green.yml",
-    "result": "5 planner-contract tests passed; 18 live-sync/Xvfb tests passed; facade=69; architecture ratchet GREEN."
+    "tested_head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
+    "cleaned_head_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
+    "result": "5 planner tests + 18 live-sync/Xvfb tests passed; facade=69; tested->cleaned workflow-delete-only; production/test drift=0."
   },
-  "next_action": "Delete T6 red/green one-shot workflows in one cleanup commit; verify tested->cleaned diff is workflow-delete-only; finalize/close #503; start #504 Combined Acceptance.",
+  "next_action": "Persist terminal checkpoint with Master #506 handoff to #504; run canonical finalization authorization+verification; close #503; release claim; immediately claim/start #504.",
   "blocker": null
 }
