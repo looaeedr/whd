@@ -1,0 +1,29 @@
+ISSUE: #472
+TASK: T7 — Combined Acceptance + AI Library Writeback + Integration Readiness
+WORK_ORDER_BRANCH: workorder/issue464-joint-placement-marking-v1.3-20260921
+EXECUTION_BASE_HEAD: 25be634f105bdce3a4e7e7ff496e0fddc63dd74e
+ACCEPTED_T6_PRODUCTION_HEAD: d5d66cf31f63911c1fe374d366b4275c5bdb3968
+T6_VALIDATION_HEAD: 970eca7fc493122fa67f49bc5d536101d8ebcd83
+TARGET_X: cleanup/2d-3d-sync
+FROZEN_X_BASE_SHA: 05a455f602ba3477d9d05377055126fd5019451d
+CURRENT_X_HEAD: 98300a2c213ce12ad5860e4aa04d1234a48adc80
+READ_SKILL: 派工
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: 驗證板件與DXF
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+PREFLIGHT_RESULT: GREEN
+LINEAGE_AUDIT: T0->T1->T2->T3->T4->T5->T6 all ahead / behind_by=0
+X_DRIFT: current X is 17 commits ahead of frozen base; no marking production-file overlap observed
+PROCESS_DRIFT_RECOVERY: 82b9410e process-only dispatch-skill change restored; net diff from T6 validation head is empty
+T7_WRITEBACK_PLAN: avoid 06_WHD shared file because current X changed it; write accepted contract into 04 / 09 / phase6_assembly_relief_pitfalls
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+SCHEDULE_CONTINUATION_2026-09-22T03:55:09+08:00: EXECUTION_CLAIM_GUARD_GREEN at 58d5898e54a63449171f05e736e01445afc0d194; AI Library writeback durable; trigger broader T7 Headless/Xvfb acceptance.

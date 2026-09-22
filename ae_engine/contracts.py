@@ -214,6 +214,277 @@ class PartExportResult:
 
 
 @dataclass(frozen=True)
+class AssemblyGeometryToleranceContract:
+    """Single geometry-neutral numerical contract for assembly mating geometry.
+
+    These values are engineering numerical-robustness tolerances for the mm-scale
+    assembly model.  They are not product clearances, DXF verifier tolerances,
+    renderer tolerances, or pytest expectations.  The named production instance
+    below is the only owner consumed by the Joint Placement MARKING contact path.
+    """
+
+    coplanar_distance_tolerance: float
+    opposed_normal_residual_tolerance: float
+    flat_world_mapping_tolerance: float
+    boundary_separation_tolerance: float
+    polygon_robustness_epsilon: float
+    provenance: str = "ASSEMBLY_GEOMETRY_ENGINEERING_V1"
+    revision: int = 1
+
+    def __post_init__(self):
+        for name in (
+            "coplanar_distance_tolerance",
+            "opposed_normal_residual_tolerance",
+            "flat_world_mapping_tolerance",
+            "boundary_separation_tolerance",
+            "polygon_robustness_epsilon",
+        ):
+            value = float(getattr(self, name))
+            if value <= 0.0:
+                raise ValueError(f"{name} must be > 0")
+
+
+# Canonical production owner for assembly mating/contact numerical robustness.
+# Values are deliberately tiny relative to physical manufacturing dimensions and
+# are owned here independently of validation/DXF reconstruction.
+PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES = AssemblyGeometryToleranceContract(
+    coplanar_distance_tolerance=1.0e-6,
+    opposed_normal_residual_tolerance=1.0e-7,
+    flat_world_mapping_tolerance=1.0e-7,
+    boundary_separation_tolerance=1.0e-7,
+    polygon_robustness_epsilon=1.0e-9,
+)
+
+
+@dataclass(frozen=True)
+class TrueSolidPenetrationEvidence:
+    """Authoritative upstream evidence that physical solids penetrate illegally."""
+
+    detected: bool
+    through_thickness: bool = False
+    positive_volume: bool = False
+    source: str = ""
+    evidence: object | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedLegalContact:
+    """One legal, policy-selected physical mating contact."""
+
+    locator_part_id: str
+    attached_part_id: str
+    locator_region: object
+    attached_region: object
+    contact_plane: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    locator_outward_normal: tuple[float, float, float]
+    attached_outward_normal: tuple[float, float, float]
+    overlap_world: tuple[tuple[float, float, float], ...]
+    locator_flat_mapping: object | None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class LegalContactResult:
+    """Fail-closed legal-contact classification result."""
+
+    status: str
+    diagnostic_code: str | None = None
+    contact: ResolvedLegalContact | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ContactLocalFrame:
+    """Semantic contact-local frame derived from one signed canonical flat basis."""
+
+    frame_version: str
+    origin: tuple[float, float, float]
+    normal: tuple[float, float, float]
+    longitudinal: tuple[float, float, float]
+    cross: tuple[float, float, float]
+    handedness_parity: int
+    basis_part: str
+    longitudinal_flat_axis: str
+    cross_flat_axis: str
+
+
+@dataclass(frozen=True)
+class ContactLocalFrameResult:
+    status: str
+    diagnostic_code: str | None = None
+    frame: ContactLocalFrame | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SemanticBoundary:
+    role: str
+    world_segment: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    signed_cross: float
+
+
+@dataclass(frozen=True)
+class SemanticBoundaryPair:
+    negative: SemanticBoundary
+    positive: SemanticBoundary
+
+
+@dataclass(frozen=True)
+class SemanticBoundaryPairResult:
+    status: str
+    diagnostic_code: str | None = None
+    pair: SemanticBoundaryPair | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class LocatorBackprojectionResult:
+    status: str
+    diagnostic_code: str | None = None
+    flat_points: tuple[tuple[float, float], ...] = ()
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ResolvedPhysicalMatingRegion:
+    """Geometry-neutral resolved physical face used by assembly mating logic.
+
+    The physical-part owner supplies the semantic region identity; this contract
+    carries only the resolved world-space face and its provenance.  Boundary-wall
+    regions such as an Inner Door Frame terminal face are allowed to have no flat
+    mapping.  Locator policies may require a mapping in later marking stages.
+    """
+
+    part_id: str
+    region_id: str
+    region_role: str
+    physical_face_kind: str
+    supporting_plane: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ]
+    outward_normal: tuple[float, float, float]
+    world_polygon: tuple[tuple[float, float, float], ...]
+    flat_mapping: object | None = None
+    provenance: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class JointMarkingPolicy:
+    """Immutable semantic policy for dormant Joint Placement MARKING foundation."""
+
+    policy_id: str
+    revision: int
+    enabled: bool
+    locator_selector: str
+    attached_selector: str
+    locator_contact_region: str
+    attached_contact_region: str
+    footprint_mode: str
+    boundary_frame_contract: Mapping[str, object]
+    contact_span_contract: str
+    allowed_overlap_contract: str
+
+    def __post_init__(self):
+        for name in (
+            "policy_id",
+            "locator_selector",
+            "attached_selector",
+            "locator_contact_region",
+            "attached_contact_region",
+            "footprint_mode",
+            "contact_span_contract",
+            "allowed_overlap_contract",
+        ):
+            if not str(getattr(self, name) or "").strip():
+                raise ValueError(f"{name} must be nonblank")
+        if isinstance(self.revision, bool) or int(self.revision) <= 0:
+            raise ValueError("revision must be a positive integer")
+        if not isinstance(self.boundary_frame_contract, Mapping):
+            raise TypeError("boundary_frame_contract must be a mapping")
+
+
+@dataclass(frozen=True)
+class JointMarkingPolicyLookupResult:
+    """Registry routing result; ordinary no-policy is intentionally non-diagnostic."""
+
+    status: str
+    policy: JointMarkingPolicy | None = None
+    diagnostic_code: str | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ContactSpanValidationResult:
+    """Policy-level contact-span/coverage validation result."""
+
+    status: str
+    diagnostic_code: str | None = None
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class JointMarkingFailurePolicy:
+    """Product-owned export disposition for expected marking failures."""
+
+    disposition: str
+
+    def __post_init__(self):
+        value = str(self.disposition or "").strip().upper()
+        if value not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC"}:
+            raise ValueError(f"unsupported JointMarkingFailurePolicy disposition: {value!r}")
+        object.__setattr__(self, "disposition", value)
+
+
+@dataclass(frozen=True)
+class JointMarkingProductionStatus:
+    """Production activation state for Joint Placement MARKING."""
+
+    gate_state: str
+    activation_enabled: bool
+    export_disposition: str
+    production_policy_count: int
+
+    def __post_init__(self):
+        state = str(self.gate_state or "").strip()
+        disposition = str(self.export_disposition or "").strip().upper()
+        count = int(self.production_policy_count)
+        if not state:
+            raise ValueError("gate_state must be nonblank")
+        if disposition not in {"BLOCK_EXPORT", "ALLOW_EXPORT_WITH_DIAGNOSTIC", "UNRESOLVED"}:
+            raise ValueError(f"unsupported export disposition: {disposition!r}")
+        if count < 0:
+            raise ValueError("production_policy_count must be >= 0")
+        object.__setattr__(self, "gate_state", state)
+        object.__setattr__(self, "activation_enabled", bool(self.activation_enabled))
+        object.__setattr__(self, "export_disposition", disposition)
+        object.__setattr__(self, "production_policy_count", count)
+
+
+@dataclass(frozen=True)
+class ResolvedJointMarkingResult:
+    """Dedicated dormant Joint Placement MARKING result/diagnostic DTO."""
+
+    policy_id: str
+    policy_revision: int
+    locator_part_id: str
+    attached_part_id: str
+    status: str
+    mark_ids: tuple[str, ...] = ()
+    diagnostic_code: str | None = None
+    diagnostic_detail: str = ""
+    export_disposition: str = "UNRESOLVED"
+    evidence: Mapping[str, object] = field(default_factory=dict)
+
+
+
+@dataclass(frozen=True)
 class FinalMaterialCollisionPart:
     """GUI-independent neutral final-material contract for collision solving.
 
