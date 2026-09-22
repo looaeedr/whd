@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "9a8b74836fe9a4cb872579497d30432bdba8654b",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T15:55:00Z",
+  "head_sha": "fc0708ef395e6ad09aab7e20bd03601dbb34702e",
+  "phase": "RED",
+  "last_update": "2026-09-22T15:59:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35747762754,
@@ -17,7 +17,7 @@
     "job_id": 106813662378,
     "summary": "3 PASS / 1 FAIL. MARKING visible GREEN; canonical DXF inventory GREEN; current live-switch probe GREEN; only rear-panel selector operator-reachability test remains. config invariant GREEN."
   },
-  "next_action": "Vertical slice 3: identify the real mapped parent/viewport of the rear-panel mode selector after Structure Tree selects box_body:back; fix the operator-visible input routing, not by force-mapping an unrelated settings canvas.",
+  "next_action": "Run exact #517 selector RED at head fc0708ef395e6ad09aab7e20bd03601dbb34702e; expected only selector-input-region assertion to fail while live-switch/DXF/MARKING stay GREEN.",
   "blocker": null,
   "delegated_branches": []
 }
