@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "da14f8b68785cdb7894d02653a5ebeaf29089a77",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T15:29:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T15:34:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35746571743,
     "head_sha": "da14f8b68785cdb7894d02653a5ebeaf29089a77",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106809635660,
+    "summary": "Production-primary RED: selector canonical scroll surface unmapped; GUI DXF actual 5 vs canonical 14; canonical frame MARKING 3 vs assembly visible 0. Live-switch mesh-bounds probe passed but does not yet close user's first-switch symptom."
   },
-  "next_action": "Poll exact run 35746571743 at head da14f8b68785cdb7894d02653a5ebeaf29089a77 to terminal; classify production-primary live-switch, selector viewport, DXF inventory, and assembly MARKING.",
+  "next_action": "Vertical slice 1: make assembly 3D project canonical MARKING from each resolved physical part without recalculating geometry; rerun exact #517 focused Xvfb before DXF/UI slices.",
   "blocker": null,
   "delegated_branches": []
 }
