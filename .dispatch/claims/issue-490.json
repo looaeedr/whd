@@ -5,15 +5,15 @@
   "work_branch": "hotfix/issue490-marking-divider-holeeditor-20260922",
   "claimed_at": "2026-09-22T18:16:30+08:00",
   "base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "head_sha": "fb67a23c8b39df4b83ff14bfba9cbda7ec6125dc",
-  "phase": "IMPLEMENTING",
+  "head_sha": "31accb5561111ed8ecef5a7b92c8797e56ea374a",
+  "phase": "REMOTE_QA",
   "delegated_branches": [],
   "target_x": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "expected_parent_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "last_update": "2026-09-22T18:47:00+08:00",
-  "next_action": "Create and push one-shot #490 QA workflow on exact hotfix HEAD, then lock and monitor the resulting run_id + head_sha to terminal.",
+  "last_update": "2026-09-22T18:47:30+08:00",
+  "next_action": "Poll exact RUN 35717803648 @ 31accb5561111ed8ecef5a7b92c8797e56ea374a to terminal; on failure read failed-job logs, on success collect exact counts then continue acceptance.",
   "blocker": null,
   "red_evidence": {
     "marking_missing_from_x": true,
@@ -24,5 +24,11 @@
     "red_test_commit": "6a6db439e3957136fbad735dabdc515461d08dbc",
     "production_fix_commit": "fb67a23c8b39df4b83ff14bfba9cbda7ec6125dc"
   },
-  "checkpoint": ".dispatch/checkpoints/issue-490.json"
+  "checkpoint": ".dispatch/checkpoints/issue-490.json",
+  "remote_qa": {
+    "run_id": 35717803648,
+    "head_sha": "31accb5561111ed8ecef5a7b92c8797e56ea374a",
+    "status": "queued",
+    "workflow": ".github/workflows/qa-issue490-hotfix.yml"
+  }
 }
