@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "bc41b4b89ed81bf94e09457a6af2f42821160c37",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T16:01:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T16:04:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35750382109,
     "head_sha": "bc41b4b89ed81bf94e09457a6af2f42821160c37",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106822652782,
+    "summary": "31 PASS / 1 FAIL; only #510 legacy test treats active physical-part _phase6_query_final_render_data() as aggregate BoxBody and dereferences .pieces. All production-focused and other adjacent tests GREEN; config invariant GREEN."
   },
-  "next_action": "Poll exact combined regression run 35750382109 at head bc41b4b89ed81bf94e09457a6af2f42821160c37 to terminal; no mutation while active.",
+  "next_action": "Test-only #510 correction: read canonical resolved aggregate via _phase6_resolve_manufacturing_geometry().part('box_body').render_data before inspecting the back piece.",
   "blocker": null,
   "delegated_branches": []
 }
