@@ -3,7 +3,8 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/481",
   "master_issue": 486,
   "worker": "chatgpt",
-  "executor_source": "chatgpt_interactive",
+  "executor_source": "chatgpt_automation",
+  "cycle_started_at": "2026-09-22T08:34:36+08:00",
   "claimed_at": "2026-09-22T08:22:00+08:00",
   "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
@@ -11,39 +12,28 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
-  "head_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
-  "delegated_branches": [
-    "coord/dispatch-claims"
-  ],
+  "head_sha": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+  "delegated_branches": ["coord/dispatch-claims"],
   "remote_qa": {
     "run_id": 35672095974,
     "head_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
     "status": "completed",
     "conclusion": "success",
     "jobs": {
-      "ownership_and_linked_endcap": {
-        "conclusion": "success",
-        "summary": "74 passed / 50 warnings"
-      },
-      "identity_and_state": {
-        "conclusion": "success",
-        "summary": "80 passed / 817 warnings"
-      },
-      "persistence_dxf_protected": {
-        "conclusion": "success",
-        "summary": "54 passed / 4 warnings"
-      }
+      "ownership_and_linked_endcap": {"conclusion": "success", "summary": "74 passed / 50 warnings"},
+      "identity_and_state": {"conclusion": "success", "summary": "80 passed / 817 warnings"},
+      "persistence_dxf_protected": {"conclusion": "success", "summary": "54 passed / 4 warnings"}
     },
     "protected_invariants": "GREEN"
   },
-  "next_action": "Delete temporary Issue481 RED/acceptance workflows, audit tested head 1c628cabf223945f526257e35184dfdfceac46bf to cleaned head for workflow-only drift, create terminal checkpoint/proof, close #481, release claim, continue #482.",
-  "blocker": null,
-  "predecessor": {
-    "issue": 480,
-    "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
-    "checkpoint": ".dispatch/checkpoints/issue-480.json"
-  },
-  "last_update": "2026-09-22T08:40:00+08:00",
+  "head_drift_class": "CLEANUP_ONLY_DESCENDANT",
+  "tested_head_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
+  "closing_head_sha": "960e79e3ded9f0bdeb7760161150bfeea291e58c",
+  "next_action": "Run executable tools/execution_claim_guard.py against exact closing head 960e79e3ded9f0bdeb7760161150bfeea291e58c; then create terminal checkpoint/finalization proof, close #481, release claim, continue #482.",
+  "blocker": "EXECUTION_PRIMITIVE_REQUIRED: current automation runtime cannot execute repository Python/guard; cleanup-only drift has been reconciled but closure remains fail-closed until executable guard/finalization proof runs.",
+  "predecessor": {"issue": 480, "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c", "checkpoint": ".dispatch/checkpoints/issue-480.json"},
+  "last_update": "2026-09-22T08:34:36+08:00",
+  "last_action": "Reconciled tested head to cleanup-only closing head after two temporary workflow deletion commits.",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
@@ -62,5 +52,13 @@
     "stale_test": "tests/test_issue480_derived_part_projection_plan.py::test_r2_bridge_builds_immutable_plan_before_first_navigation_mutation",
     "reason": "T3 correctly moves all plan-apply mutations into Phase6WorkspaceNavigationController; T2 source oracle must accept controller delegation after plan construction.",
     "production_change_required": false
+  },
+  "preflight_evidence": {
+    "frozen_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
+    "changed_file_scope": [".github/workflows/qa-issue481-t3-red.yml", ".github/workflows/qa-issue481-t3-acceptance.yml"],
+    "route_result": "repository-read reconstruction completed",
+    "script_execution": "SCRIPT_EXECUTION_UNAVAILABLE",
+    "read_skills": ["派工", "issue-closure-gate", "executable-continuity-controller", "phase6-release-packaging"],
+    "read_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md", "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md", "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md", "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md", "release_required_artifacts.json"]
   }
 }
