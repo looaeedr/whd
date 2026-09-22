@@ -4,13 +4,13 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T02:05:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "work_branch": "feature/issue538-actions-chinese-contract-20260923",
   "delegated_branches": [],
-  "head_sha": "ab898a270534e6610f7a284be570092e1359ba9c",
-  "last_update": "2026-09-23T02:15:00+08:00",
+  "head_sha": "486d149cd6694cec2e4fd6445b89807a7c3f5d72",
+  "last_update": "2026-09-23T02:16:00+08:00",
   "remote_qa": {
     "run_id": 35765684155,
     "head_sha": "ab898a270534e6610f7a284be570092e1359ba9c",
@@ -24,7 +24,7 @@
       "missing_marker": "禁止 fallback 到英文 commit message"
     }
   },
-  "next_action": "Patch monitoring-remote-qa Skill wording to the exact canonical marker `禁止 fallback 到英文 commit message`, then rerun focused QA.",
+  "next_action": "Lock replacement #538 focused QA at 486d149c, verify all naming guard/tests/Skill contract GREEN, then cleanup one-shot workflow and integrate to cleanup/2d-3d-sync.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -45,6 +45,13 @@
       "request_comment_id": 5781578553,
       "result_comment_id": 5781582089,
       "run_id": 35765595200,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "skill_marker_fix": {
+      "request_comment_id": 5781601360,
+      "result_comment_id": 5781603984,
+      "run_id": 35765782633,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
