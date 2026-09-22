@@ -287,6 +287,16 @@ jobs:
               )
           )
           '''
+          replacement_lines=replacement.splitlines()
+          replacement=(
+              replacement_lines[0]
+              + "\n"
+              + "\n".join(
+                  line[6:] if line.startswith("      ") else line
+                  for line in replacement_lines[1:]
+              )
+              + "\n"
+          )
           source=source[:start]+replacement+source[end:]
           path.write_text(source,encoding="utf-8")
           PY
