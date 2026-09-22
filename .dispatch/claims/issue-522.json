@@ -6,26 +6,28 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:26:59+08:00",
   "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
-  "head_sha": "448f2f73a6f968e7773332841d4b7154ce9000db",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T01:34:20+08:00",
+  "head_sha": "1fbf1ac691d6e476f673d0db1249045c2b047c4e",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T01:36:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35761321697,
-    "head_sha": "448f2f73a6f968e7773332841d4b7154ce9000db",
+    "run_id": 35761530082,
+    "head_sha": "1fbf1ac691d6e476f673d0db1249045c2b047c4e",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "41-candidate exact tracked-file dead-glue census",
+    "purpose": "327-candidate exhaustive exact-branch dead-glue census",
     "evidence": {
-      "candidate_count": 41,
+      "candidate_count": 327,
       "dead_candidate_count": 0,
-      "artifact_id": 10709533787
+      "live_candidate_count": 327,
+      "malformed_definition_count": 0,
+      "artifact_id": 10710820254
     }
   },
-  "next_action": "Expand exact-branch census to all A0 BOUNDARY_RECONSIDERATION_CANDIDATE symbols (327), trigger replacement census run, and poll it to terminal.",
+  "next_action": "Persist exhaustive census artifact/checkpoint, remove one-shot workflow, review A1 diff, close #522, then claim #523/A2.",
   "blocker": null
 }
