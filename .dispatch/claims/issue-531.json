@@ -1,0 +1,20 @@
+{
+  "issue": 531,
+  "issue_url": "https://github.com/looaeedr/whd/issues/531",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T07:00:20+08:00",
+  "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
+  "head_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T07:00:20+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "B6",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Read A0 69-entry facade inventory, create bounded <=12-entry B6 child audit issues, then execute repo-wide consumer classification batches until 69/69 accounted.",
+  "blocker": null
+}
