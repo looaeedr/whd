@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "23a63cc1ffd91f1f684e56addee3974795d5ee9f",
-  "last_update": "2026-09-22T22:12:00+08:00",
+  "head_sha": "169091654804d4a9817031423741f5b831798256",
+  "last_update": "2026-09-22T22:15:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Add focused R6 RED contract requiring a pure immutable live-sync publication planner and a narrow bridge plan/effect boundary; run expected RED remotely, then implement.",
+  "next_action": "Create one-shot focused T6 RED workflow on exact head 16909165; confirm R6 expected RED, then implement pure publication planner plus narrow bridge plan/effect boundary.",
   "blocker": null
 }
