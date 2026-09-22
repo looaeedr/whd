@@ -6,15 +6,15 @@
   "work_branch": "skill/issue496-remote-guard-chinese-name-20260922",
   "claimed_at": "2026-09-22T19:13:30+08:00",
   "base_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
-  "head_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
-  "phase": "IMPLEMENTING",
+  "head_sha": "61e08cb0399c1c7abaa0f039dc796831154d04e8",
+  "phase": "GREEN",
   "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T20:58:00+08:00",
-  "next_action": "Obtain one Remote Guard commit receipt for the exact 3-file Chinese Skill rename, then create one atomic commit on skill/issue496-remote-guard-chinese-name-20260922.",
+  "last_update": "2026-09-22T21:02:00+08:00",
+  "next_action": "Obtain fresh Remote Guard pr-write receipt for candidate 61e08cb0..., open PR to cleanup/2d-3d-sync, verify exact 1-commit/3-file diff and relevant checks, then merge non-force with a fresh merge receipt.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -97,6 +97,19 @@
       "result": "GREEN",
       "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
       "tested_target_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005"
+    },
+    "chinese_name_commit": {
+      "run_id": 35730558391,
+      "request_comment_id": 5776952512,
+      "receipt_comment_id": 5776955374,
+      "result": "GREEN",
+      "commit_sha": "61e08cb0399c1c7abaa0f039dc796831154d04e8",
+      "changed_files": [
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+        ".agents/skills/skill_registry.json",
+        "tests/process/test_remote_execution_guard_skill_contract.py"
+      ],
+      "exact_readback": "ALL_GREEN"
     }
   },
   "remote_guard": {
