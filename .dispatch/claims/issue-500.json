@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "a7be3e1d12dd2bef8ece837fc562d4d67ffc4f0f",
-  "last_update": "2026-09-22T22:28:00+08:00",
+  "head_sha": "f79b6467fa722bf92374d16abde905d86ccac2c0",
+  "last_update": "2026-09-22T22:31:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35734358907,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue500-t3-red.yml",
     "result": "R2 expected RED confirmed: pure projection owner missing and bridge remains deep mixed projection/apply implementation."
   },
-  "next_action": "Create focused T3 GREEN workflow on exact head a7be3e1d covering issue500 contract plus door/base-plate/multi-door/profile/derived parity; poll exact run to terminal and classify candidate-only regressions.",
+  "next_action": "Lock exact T3 GREEN run triggered by f79b6467; poll same run to terminal; on failure classify only candidate-only regressions.",
   "blocker": null
 }
