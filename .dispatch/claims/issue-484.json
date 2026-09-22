@@ -3,28 +3,79 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/484",
   "master_issue": 486,
   "worker": "chatgpt",
-  "executor_source": "chatgpt_interactive",
+  "executor_source": "chatgpt_automation",
+  "cycle_started_at": "2026-09-22T09:46:49+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-  "head_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+  "head_sha": "d004862f0726d628e84d4a98f317c180d122e8e4",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "run_id": 35677198331,
+    "head_sha": "d004862f0726d628e84d4a98f317c180d122e8e4",
+    "status": "queued",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
   },
-  "next_action": "Build unique Phase4 Combined Acceptance A/B harness using fixed T0 baseline 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9 vs candidate f1c1c9711f60ad96f1ad82b6d528204563703f0d, run baseline/candidate Headless and Xvfb, classify candidate-only failures/errors, verify R1-R4/G1-G4/protected invariants, and poll exact run to terminal.",
+  "next_action": "Poll exact run 35677198331 at head d004862f0726d628e84d4a98f317c180d122e8e4 to terminal; then classify baseline/candidate Headless and Xvfb candidate-only failures/errors and R1-R4/G1-G4/protected invariants before cleanup/closure.",
   "blocker": null,
-  "last_update": "2026-09-22T10:02:00+08:00",
+  "last_update": "2026-09-22T09:49:40+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
     "checkpoint": ".dispatch/checkpoints/issue-483.json"
+  },
+  "preflight_evidence": {
+    "frozen_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+    "changed_file_scope": [
+      ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
+    ],
+    "route_result": "repository-read reconstruction completed",
+    "script_execution": "SCRIPT_EXECUTION_UNAVAILABLE",
+    "read_skills": [
+      "派工",
+      "issue-closure-gate",
+      "executable-continuity-controller",
+      "monitoring-remote-qa",
+      "long-log-context-safe-execution",
+      "Python測試實務",
+      "phase6-corner-3d-model-integrity",
+      "驗證板件與DXF"
+    ],
+    "read_references": [
+      "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+      "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+      "個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md",
+      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+      "個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md",
+      "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+      "個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md",
+      "基準檔/截角資料庫/README_母規則說明.md",
+      "基準檔/截角資料庫/certified_relief_rules.json"
+    ]
+  },
+  "guard": {
+    "result": "EXECUTION_CLAIM_GUARD_GREEN",
+    "implementation": "equivalent executable guard reconstructed from frozen tools/execution_claim_guard.py",
+    "actions": [
+      "write .github/workflows/qa-issue484-t6-combined-acceptance.yml",
+      "write shared claim remote run lock"
+    ]
+  },
+  "provenance": {
+    "executor_source": "chatgpt_automation",
+    "cycle_started_at": "2026-09-22T09:46:49+08:00",
+    "owning_issue": 484,
+    "action": "fresh canonical preflight + executable guard + create unique Phase4 Combined Acceptance A/B harness + lock exact run 35677198331"
   }
 }
