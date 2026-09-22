@@ -17,17 +17,18 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "b52add3b66ff48acd90d068636781fe14fac9808"
+    "run_id": 35675894603,
+    "head_sha": "b52add3b66ff48acd90d068636781fe14fac9808",
+    "status": "queued",
+    "conclusion": null
   },
   "predecessor": {
     "issue": 481,
     "accepted_head": "960e79e3ded9f0bdeb7760161150bfeea291e58c"
   },
-  "next_action": "Resolve push-triggered Issue482 T4 Focused Acceptance run for head b52add3b66ff48acd90d068636781fe14fac9808, lock exact run_id+head_sha, poll to terminal, then cleanup/drift/finalize #482 and continue #483.",
+  "next_action": "Poll locked run 35675894603 @ b52add3b66ff48acd90d068636781fe14fac9808 to terminal; if GREEN cleanup workflow-only drift, persist checkpoint/proof, close #482, release claim, continue #483.",
   "blocker": null,
-  "last_update": "2026-09-22T09:29:00+08:00",
+  "last_update": "2026-09-22T09:30:00+08:00",
   "last_action": "Persisted exact-six Settings deletion-test decision KEEP_BRIDGE_COMPATIBILITY at be2cb51dae0d6effa6529fe066814a0a8eb6e732 after executable equivalent claim guard GREEN.",
   "decision_evidence": "docs/superpowers/checkpoints/issue482-t4-settings-projection-decision.json",
   "decision": "KEEP_BRIDGE_COMPATIBILITY",
