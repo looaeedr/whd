@@ -14,7 +14,11 @@ from phase6_corner_dimension_display import (
 
 from copy import deepcopy
 from dataclasses import dataclass
-from phase6_sync_envelope import mapping_delta, stable_fingerprint
+from phase6_sync_envelope import (
+    materialize_sync_value,
+    plan_live_sync_envelope,
+    stable_fingerprint,
+)
 from datetime import datetime
 from pathlib import Path
 import re
@@ -2390,64 +2394,57 @@ def _phase6_corner_transaction_payload(self):
 
 
 def _phase6_publish_live_state(self, *, force=False):
-    """Publish one revision only when authoritative live state actually changes."""
+    """Publish only when the pure live-sync plan requires one envelope."""
     callback = getattr(self, "_live_sync_callback", None)
-    if (not callable(callback) or getattr(self, "_phase6_live_sync_guard", False)
-            or getattr(self, "_phase6_initializing", False)
-            or not getattr(self, "_phase6_sync_ready", False)
-            or not hasattr(self, "baseline_model_var")
-            or not hasattr(self, "designer_workspace")):
+    if (
+        not callable(callback)
+        or getattr(self, "_phase6_live_sync_guard", False)
+        or getattr(self, "_phase6_initializing", False)
+        or not getattr(self, "_phase6_sync_ready", False)
+        or not hasattr(self, "baseline_model_var")
+        or not hasattr(self, "designer_workspace")
+    ):
         return False
+
     state = _phase6_corner_transaction_payload(self)
-    fingerprint = stable_fingerprint(state)
-
-    # Initialization can legitimately solve/normalize a verified assembly relief
-    # while live publication is suppressed.  In that case the designer's
-    # last-live fingerprint already describes the canonical state, but the host
-    # snapshot may still carry the older relief contract.  ``force`` never
-    # bypasses anti-echo for an equivalent host; it only repairs that proven
-    # host/canonical relief delta.
     input_snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    host_relief_present = isinstance(input_snapshot, Mapping) and "assembly_relief" in input_snapshot
-    host_relief = deepcopy(input_snapshot.get("assembly_relief") or {}) if host_relief_present else {}
-    canonical_relief = deepcopy(state.get("assembly_relief") or {})
-    force_host_relief_sync = bool(
-        force
-        and host_relief_present
-        and stable_fingerprint(host_relief) != stable_fingerprint(canonical_relief)
+    host_relief_present = (
+        isinstance(input_snapshot, Mapping)
+        and "assembly_relief" in input_snapshot
     )
+    host_relief = (
+        deepcopy(input_snapshot.get("assembly_relief") or {})
+        if host_relief_present
+        else {}
+    )
+    plan = plan_live_sync_envelope(
+        current_state=state,
+        previous_state=getattr(self, "_phase6_last_live_state", None) or {},
+        previous_fingerprint=getattr(
+            self, "_phase6_last_live_fingerprint", None
+        ),
+        current_revision=getattr(self, "_phase6_sync_revision", 0),
+        active_transaction_id=getattr(
+            self, "_phase6_active_transaction_id", ""
+        ),
+        host_relief_present=host_relief_present,
+        host_relief=host_relief,
+        force=bool(force),
+    )
+    if not plan.should_publish:
+        return False
 
-    if (fingerprint == getattr(self, "_phase6_last_live_fingerprint", None)
-            and not force_host_relief_sync):
-        return False
-    previous = getattr(self, "_phase6_last_live_state", None) or {}
-    if force_host_relief_sync:
-        previous = deepcopy(state)
-        previous["assembly_relief"] = host_relief
-    delta = mapping_delta(previous, state)
-    if not delta and previous:
-        return False
-    revision = int(getattr(self, "_phase6_sync_revision", 0) or 0) + 1
-    transaction_id = (
-        str(getattr(self, "_phase6_active_transaction_id", "") or "").strip()
-        or f"fold_designer:{revision}"
-    )
-    payload = deepcopy(state)
-    payload.update({
-        "origin": "fold_designer",
-        "revision": revision,
-        "transaction_id": transaction_id,
-        "delta": deepcopy(delta),
-        "fingerprint": fingerprint,
-    })
+    payload = materialize_sync_value(plan.payload)
     self._phase6_live_sync_guard = True
     try:
         callback(deepcopy(payload))
-        self._phase6_sync_revision = revision
+        self._phase6_sync_revision = plan.next_revision
         self._phase6_last_live_state = deepcopy(state)
-        self._phase6_last_live_fingerprint = fingerprint
+        self._phase6_last_live_fingerprint = plan.fingerprint
         self._phase6_last_live_payload = deepcopy(payload)
-        self._phase6_input_snapshot["assembly_relief"] = deepcopy(state.get("assembly_relief") or {})
+        self._phase6_input_snapshot["assembly_relief"] = (
+            materialize_sync_value(plan.host_relief_repair)
+        )
     except Exception as exc:
         if hasattr(self, "settings_status_var"):
             self.settings_status_var.set(f"即時同步失敗：{exc}")
