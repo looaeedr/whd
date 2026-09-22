@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "a3765d5e8d7d47c3578b39742694679d7504d7e3",
-  "last_update": "2026-09-22T21:16:00+08:00",
+  "head_sha": "9ee6366542c27308a10595c24cf4ac98a9812e09",
+  "last_update": "2026-09-22T21:18:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35729945389,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue499-t2-red.yml",
     "result": "4 failed in 0.20s; both required R1 RED markers confirmed"
   },
-  "next_action": "Implement minimal R1 GREEN: Phase6FoldDesignerSettingsCoordinator.apply_updates sequencing plus narrow bridge effect ports/delegate; then run focused GREEN.",
+  "next_action": "Complete T2 GREEN cutover: wire bounded Settings application ports in bridge and reduce _phase6_apply_setting_updates to a narrow coordinator delegate; then run focused GREEN.",
   "blocker": null
 }
