@@ -6,14 +6,16 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:54:20+08:00",
   "base_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
-  "head_sha": "ac5eeb8fbe1f033b8c409e01b13fba7ea90c764f",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:00:10+08:00",
+  "head_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T02:01:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A2",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue523-finalization-20260923"
+  ],
   "remote_qa": {
     "run_id": 35764051382,
     "head_sha": "0d78e2ae85d337b6d874c872391d6fa41b8a51be",
@@ -27,6 +29,6 @@
       "artifact_id": 10711347347
     }
   },
-  "next_action": "Remove one-shot owner-audit workflow, then verify A2 net diff has production/test drift=0.",
+  "next_action": "Create terminal checkpoint and delegated finalization guard for #523, then close/readback and claim #524.",
   "blocker": null
 }
