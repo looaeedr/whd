@@ -17,14 +17,15 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
+    "run_id": 35689462155,
     "head_sha": "75e80af94583f90a95cb944a99aa4f662c177fbe",
-    "tested_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8"
+    "tested_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered corrected Issue485 post-integration smoke for orchestrator head 75e80af94583f90a95cb944a99aa4f662c177fbe; lock exact run_id+orchestrator head+tested production SHA c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8; poll to terminal; on GREEN delete orchestrator, audit cleanup-only drift, rebuild #485 terminal checkpoint/proof, close #485, then close Master #486 after full child readback.",
+  "next_action": "Poll locked corrected post-integration smoke RUN 35689462155 @ orchestrator 75e80af94583f90a95cb944a99aa4f662c177fbe testing exact production c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8 to terminal; then cleanup/finalize #485/#486.",
   "blocker": null,
-  "last_update": "2026-09-22T13:13:00+08:00",
+  "last_update": "2026-09-22T13:14:00+08:00",
   "predecessor": {
     "issue": 484,
     "accepted_head": "58c9c3a0638fd3c894d04274649775554311c1d2",
