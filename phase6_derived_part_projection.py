@@ -1,7 +1,7 @@
 """Pure immutable planning seam for topology-derived physical-part synchronization.
 
 This module deliberately owns no workspace/navigation mutation and no manufacturing
-geometry formulas.  Callers derive authoritative profiles/features through their
+geometry formulas. Callers derive authoritative profiles/features through their
 existing domain owners, freeze those projections into a request, and receive a
 stable plan describing the workspace intent to apply elsewhere.
 """
@@ -12,15 +12,46 @@ from typing import Any, Iterable, Mapping
 
 
 @dataclass(frozen=True)
+class FrozenMappingValue:
+    items: tuple[tuple[str, Any], ...] = ()
+
+
+@dataclass(frozen=True)
+class FrozenSequenceValue:
+    items: tuple[Any, ...] = ()
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return FrozenMappingValue(
+            tuple((str(key), _freeze(item)) for key, item in value.items())
+        )
+    if isinstance(value, (list, tuple)):
+        return FrozenSequenceValue(tuple(_freeze(item) for item in value))
+    if isinstance(value, (set, frozenset)):
+        frozen = tuple(_freeze(item) for item in value)
+        return FrozenSequenceValue(tuple(sorted(frozen, key=repr)))
+    return value
+
+
+def _thaw(value: Any) -> Any:
+    if isinstance(value, FrozenMappingValue):
+        return {key: _thaw(item) for key, item in value.items}
+    if isinstance(value, FrozenSequenceValue):
+        return [_thaw(item) for item in value.items]
+    return value
+
+
+@dataclass(frozen=True)
 class DerivedPartProfileProjection:
     part_key: str
-    profiles: tuple[Any, ...] = ()
+    profiles: FrozenMappingValue = FrozenMappingValue()
 
 
 @dataclass(frozen=True)
 class DerivedPartFeatureProjection:
     part_key: str
-    features: tuple[Any, ...] = ()
+    features: FrozenSequenceValue = FrozenSequenceValue()
 
 
 @dataclass(frozen=True)
@@ -72,22 +103,67 @@ def build_derived_part_sync_plan(
     )
 
 
-def profile_projection(part_key: str, profiles: Iterable[Any]) -> DerivedPartProfileProjection:
+def profile_projection(
+    part_key: str,
+    profiles: Mapping[str, Iterable[Any]],
+) -> DerivedPartProfileProjection:
     """Freeze already-derived authoritative profiles; no geometry is calculated here."""
-    return DerivedPartProfileProjection(str(part_key), tuple(profiles))
+    frozen = _freeze(dict(profiles or {}))
+    if not isinstance(frozen, FrozenMappingValue):
+        raise TypeError("profile projection must freeze to a mapping")
+    return DerivedPartProfileProjection(str(part_key), frozen)
 
 
-def feature_projection(part_key: str, features: Iterable[Any]) -> DerivedPartFeatureProjection:
+def feature_projection(
+    part_key: str,
+    features: Iterable[Any],
+) -> DerivedPartFeatureProjection:
     """Freeze already-derived authoritative features; no geometry is calculated here."""
-    return DerivedPartFeatureProjection(str(part_key), tuple(features))
+    frozen = _freeze(tuple(features or ()))
+    if not isinstance(frozen, FrozenSequenceValue):
+        raise TypeError("feature projection must freeze to a sequence")
+    return DerivedPartFeatureProjection(str(part_key), frozen)
 
 
 def namespace_projection(
     namespace: str,
-    part_profiles: Mapping[str, Iterable[Any]],
+    part_profiles: Mapping[str, Mapping[str, Iterable[Any]]],
 ) -> DerivedPartNamespaceProjection:
     """Freeze a namespace replacement while preserving caller-provided order."""
     return DerivedPartNamespaceProjection(
         namespace=str(namespace),
-        parts=tuple(profile_projection(key, value) for key, value in part_profiles.items()),
+        parts=tuple(
+            profile_projection(key, profiles)
+            for key, profiles in dict(part_profiles or {}).items()
+        ),
     )
+
+
+def materialize_profiles(
+    projection: DerivedPartProfileProjection,
+) -> dict[str, list[Any]]:
+    """Return a detached mutable copy for the existing workspace mutation API."""
+    value = _thaw(projection.profiles)
+    if not isinstance(value, dict):
+        raise TypeError("profile projection did not materialize to a mapping")
+    return value
+
+
+def materialize_features(
+    projection: DerivedPartFeatureProjection,
+) -> list[Any]:
+    """Return a detached mutable copy for the existing workspace mutation API."""
+    value = _thaw(projection.features)
+    if not isinstance(value, list):
+        raise TypeError("feature projection did not materialize to a sequence")
+    return value
+
+
+def materialize_namespace(
+    projection: DerivedPartNamespaceProjection,
+) -> dict[str, dict[str, list[Any]]]:
+    """Materialize one namespace only at the workspace mutation boundary."""
+    return {
+        item.part_key: materialize_profiles(item)
+        for item in projection.parts
+    }

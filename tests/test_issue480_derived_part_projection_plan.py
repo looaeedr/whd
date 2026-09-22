@@ -69,3 +69,54 @@ def test_r2_same_request_produces_same_plan_without_workspace_mutation_api():
         ".stash_profiles(",
     )
     assert not any(token in source for token in forbidden_mutations)
+
+
+def test_r2_projection_values_are_deeply_frozen_and_materialize_detached_copies():
+    module = _projection_module()
+    source = {
+        "X": [{"len": 12.0, "meta": {"tag": "x"}}],
+        "Y": [{"len": 34.0}],
+    }
+    projection = module.profile_projection("door_c1_r1", source)
+    request = module.DerivedPartProjectionRequest(
+        namespaces=(module.namespace_projection("door_c", {"door_c1_r1": source}),),
+        add_parts=(projection,),
+    )
+    plan = module.build_derived_part_sync_plan(request)
+
+    source["X"][0]["len"] = 999.0
+    first = module.materialize_profiles(plan.add_parts[0])
+    second = module.materialize_profiles(plan.add_parts[0])
+    assert first["X"][0]["len"] == 12.0
+    first["X"][0]["len"] = 77.0
+    assert second["X"][0]["len"] == 12.0
+
+
+def test_r2_bridge_builds_immutable_plan_before_first_navigation_mutation():
+    from pathlib import Path
+
+    source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    fn = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_phase6_sync_authoritative_derived_parts"
+    )
+    body = ast.get_source_segment(source, fn) or ""
+    assert "DerivedPartProjectionRequest(" in body
+    assert "build_derived_part_sync_plan(request)" in body
+
+    plan_pos = body.index("build_derived_part_sync_plan(request)")
+    mutation_tokens = (
+        "navigation.remove_part(",
+        "navigation.sync_derived_parts(",
+        "navigation.stash_features(",
+        "navigation.add_part(",
+        "navigation.stash_profiles(",
+        "navigation.set_active_part(",
+        "navigation.set_selected_part(",
+    )
+    positions = [body.index(token) for token in mutation_tokens if token in body]
+    assert positions
+    assert plan_pos < min(positions)
