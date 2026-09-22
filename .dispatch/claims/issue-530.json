@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:43:30+08:00",
   "base_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
-  "head_sha": "b8feb9d0a853569b8c35a3b4bcf82531c11fc5d4",
+  "head_sha": "593dc19ce3f157a8de33b283f7838a5df628117c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:51:00+08:00",
+  "last_update": "2026-09-23T06:53:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -36,6 +36,6 @@
       35794138484
     ]
   },
-  "next_action": "Complete bridge delegation to DerivedPartRequestAssemblyInput/build_derived_part_projection_request on current head b8feb9d0, then run B5 GREEN.",
+  "next_action": "Run B5 GREEN on production extraction HEAD 593dc19c: replacement owner contract + derived behavior + Xvfb physical-part parity + architecture/reduction.",
   "blocker": null
 }
