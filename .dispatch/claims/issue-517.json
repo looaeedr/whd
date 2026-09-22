@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "26f0fb82d4f0d9abb4fe62e8dab5c9c87f26f374",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T16:07:00Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-22T16:10:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35750708074,
     "head_sha": "26f0fb82d4f0d9abb4fe62e8dab5c9c87f26f374",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106823749665,
+    "summary": "Combined adjacent regression GREEN: 32 PASS / 0 FAIL; config.ini invariant GREEN."
   },
-  "next_action": "Poll exact combined regression run 35750708074 at head 26f0fb82d4f0d9abb4fe62e8dab5c9c87f26f374 to terminal; no mutation while active.",
+  "next_action": "Final product acceptance per 驗證板件與DXF: run canonical DXF reopen/multipart/resolved geometry plus project Save→Reload/dynamic-ID parity and current Receiving MARKING V2 acceptance on exact tested head.",
   "blocker": null,
   "delegated_branches": []
 }
