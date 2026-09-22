@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
-  "head_sha": "61f75b16a5f358eba0609fcd2ac6616d1485e452",
+  "head_sha": "7e6fee9785568919dd8ec4784ad39338975e3849",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T07:15:10+08:00",
+  "last_update": "2026-09-23T07:16:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -27,7 +27,7 @@
       "artifact_id": 10723972833
     }
   },
-  "next_action": "Add replacement RED for activate_selected_part NO_CALLER removal; retain remaining 11 compatibility/public/property entries.",
+  "next_action": "Run execution_claim_guard for .github/workflows/qa-issue542-b6-2-red.yml, then create one-shot replacement RED workflow.",
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
