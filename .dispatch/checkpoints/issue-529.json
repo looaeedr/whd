@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "529",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35793499633,
+  "job_id": 106967295533,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2.",
+    "Parent accepted HEAD f06309c0741a4a4ab22ec43cfad4405cc1264ec2.",
+    "Formal B4 Deletion-Test RUN 35793499633 @ 4d1618937dd342b67a82c45b1f29feca86661a18 SUCCESS.",
+    "DT0 span=61; derivation call + direct workspace stash + live editor projection + Tk idle refresh all characterized.",
+    "Variant K full-app dependency=true and workspace mutation returns to caller.",
+    "Variant E forbidden imports=0/full-app dependency=false but old live-effect body removed=false.",
+    "Headless 55 passed / 5 skipped; Xvfb 10 passed / 24 deselected.",
+    "Machine decision KEEP_COMPATIBILITY; JOIN_DERIVED_PART_PLAN=false; DEEPEN_FOLD_PROFILES=false.",
+    "Production change=0; bridge symbols removed=0.",
+    "One-shot B4 workflow removed.",
+    "Parent→closing production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "530",
+  "chain_next_action": "Atomically claim #530/B5 Derived Projection / Request Assembly Reconsideration from accepted HEAD 8fa30cfc7800afba16b71c7580552893db5d1037 and continue mandatory Stage B.",
+  "chain_reason": "STAGE_B_REQUIRED=true; B4 final decision KEEP_COMPATIBILITY"
+}
