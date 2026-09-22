@@ -6,14 +6,16 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
-  "head_sha": "7a6638ea54b75d15d47fb5acdb27419d9c36ea94",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:27:00+08:00",
+  "head_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T02:28:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A4",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue525-finalization-20260923"
+  ],
   "remote_qa": {
     "run_id": 35766956819,
     "head_sha": "d4f2d0139ef022e8586b2cc292a1e87bd642fd2d",
@@ -33,7 +35,7 @@
       "artifact_id": 10712466696
     }
   },
-  "next_action": "Remove one-shot qa-issue525-stage-a-combined.yml, then verify tested-head d4f2d013 -> closing production/test drift=0.",
+  "next_action": "Create terminal checkpoint and executable finalization proof for #525; close/readback; then claim #526/B1 because STAGE_B_REQUIRED=true.",
   "blocker": null,
   "recovery_state": null,
   "remediation": {
@@ -41,5 +43,14 @@
     "old_contract": "compatibility boundary must be ast.FunctionDef",
     "new_contract": "compatibility boundary may be ast.FunctionDef or direct alias ast.Assign",
     "production_change": false
+  },
+  "drift_audit": {
+    "tested_head": "d4f2d0139ef022e8586b2cc292a1e87bd642fd2d",
+    "closing_head": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+    "production_test_drift": 0,
+    "closing_only": [
+      ".github/workflows/qa-issue525-stage-a-combined.yml removed",
+      "docs/superpowers/checkpoints/issue525-a4-stage-a-gate.md added"
+    ]
   }
 }
