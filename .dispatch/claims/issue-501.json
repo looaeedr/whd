@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -13,14 +13,14 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "ff8fa3c1ba6ef775fcb648c8c39dcd76de104603",
-  "last_update": "2026-09-22T23:35:00+08:00",
+  "head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
+  "last_update": "2026-09-22T23:37:00+08:00",
   "remote_qa": {
     "status": "PARTIAL_GREEN_STALE_CONTRACT",
     "run_id": 35737220712,
     "head_sha": "a7349f68d6207147af259400ffd40b6d208d33cc",
     "result": "Xvfb baseline/factory parity SUCCESS; headless 29 PASS / 1 FAIL, sole failure was stale T2D static contract requiring direct bridge delegate superseded by T4 coordinator ownership."
   },
-  "next_action": "Re-run exact T4 GREEN after updating stale T2D ownership test to bridge->coordinator->transaction chain; require both headless and Xvfb success, then cleanup/finalize #501.",
+  "next_action": "Lock exact T4 rerun triggered by 654eb54b; poll same run to terminal; require headless+Xvfb GREEN, then cleanup/finalize #501 and immediately claim #502.",
   "blocker": null
 }
