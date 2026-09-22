@@ -1,4 +1,5 @@
 name: WHD Remote Execution Guard
+run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
 
 on:
   issue_comment:
@@ -41,7 +42,7 @@ jobs:
           if not lines or lines[0].strip() != "WHD_REMOTE_GUARD_REQUEST_V1":
               raise SystemExit("invalid request marker")
 
-          allowed_single = {
+          required_single = {
               "issue",
               "worker",
               "action",
@@ -52,6 +53,7 @@ jobs:
               "guard_authority_sha",
               "tested_target_sha",
           }
+          allowed_single = required_single | {"executor_source"}
           allowed_multi = {"changed_file"}
           singles = {}
           changed_files = []
@@ -72,7 +74,7 @@ jobs:
               else:
                   raise SystemExit(f"unsupported request key: {key}")
 
-          missing = sorted(allowed_single - set(singles))
+          missing = sorted(required_single - set(singles))
           if missing:
               raise SystemExit(f"missing request keys: {missing}")
 
@@ -82,6 +84,12 @@ jobs:
           issue = int(singles["issue"])
           if issue != int(os.environ["EVENT_ISSUE"]):
               raise SystemExit("request issue does not match event issue")
+
+          executor_source = singles.get("executor_source")
+          if executor_source is None:
+              executor_source = "unknown"
+          elif executor_source not in {"chat", "scheduler"}:
+              raise SystemExit("invalid executor_source")
 
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
@@ -135,6 +143,7 @@ jobs:
           request = {
               **singles,
               "issue": issue,
+              "executor_source": executor_source,
               "changed_files": normalized,
               "request_comment_id": int(os.environ["COMMENT_ID"]),
           }
@@ -266,6 +275,7 @@ jobs:
               "request_comment_id": request["request_comment_id"],
               "issue": request["issue"],
               "worker": request["worker"],
+              "executor_source": request["executor_source"],
               "action": request["action"],
               "branch": request["branch"],
               "base_sha": request["base_sha"],
