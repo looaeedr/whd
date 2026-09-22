@@ -1,0 +1,60 @@
+name: WHD Actions 繁中顯示命名契約
+run-name: "WHD｜#538｜Actions 繁中顯示命名契約驗收"
+
+on:
+  push:
+    branches:
+      - feature/issue538-actions-chinese-contract-20260923
+    paths:
+      - .agents/skills/engineering/monitoring-remote-qa/SKILL.md
+      - tools/actions_visible_naming_guard.py
+      - tests/process/test_actions_visible_naming_guard.py
+      - 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+      - .github/workflows/qa-issue538-actions-visible-naming.yml
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: 繁中顯示命名契約驗收
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 執行環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 執行命名守門單元測試
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_actions_visible_naming_guard.py
+
+      - name: 驗證目前工作流程繁中名稱
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/actions_visible_naming_guard.py .github/workflows/qa-issue538-actions-visible-naming.yml
+
+      - name: 驗證 Remote QA 技能契約
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          text = Path(".agents/skills/engineering/monitoring-remote-qa/SKILL.md").read_text(encoding="utf-8")
+          required = (
+              "ACTIONS_USER_VISIBLE_TRADITIONAL_CHINESE_V1",
+              "tools/actions_visible_naming_guard.py",
+              "禁止 fallback 到英文 commit message",
+          )
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f"missing contract markers: {missing}")
+          print("ACTIONS_CHINESE_SKILL_CONTRACT_GREEN")
+          PY

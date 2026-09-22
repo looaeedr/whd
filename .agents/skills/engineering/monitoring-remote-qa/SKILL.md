@@ -9,6 +9,24 @@ whd_schema: WHD_DOC_META_V1
 
 # Monitoring Remote QA
 
+
+## ACTIONS_USER_VISIBLE_TRADITIONAL_CHINESE_V1
+
+GitHub Actions 是使用者直接觀察 WHD 執行狀態的介面。**所有新建或修改、且會被觸發的 GitHub Actions workflow，其使用者可見名稱一律使用繁體中文**；不得把使用者逼進 RUN 才能知道這顆在做什麼。
+
+固定契約：
+
+- 每個新建／修改 workflow 都必須明確設定 top-level `name:` 與 `run-name:`，且兩者都包含繁體中文；禁止缺少 `run-name` 後讓 GitHub fallback 到英文 commit message。
+- Actions 清單外層的 `run-name` 必須直接表達「工單／階段／用途」，例如：`WHD｜#524 A3｜窄委派／別名與 Facade 收斂驗收`。
+- 每個 job 必須設定 user-visible `name:`，每個 step 也必須設定 user-visible `name:`；顯示名稱使用繁體中文。SHA、Issue 編號、A1/A2、pytest、Xvfb、DXF、API 等不可替代技術識別可以保留。
+- one-shot census、RED/GREEN、Combined Acceptance、reduction gate、finalization、integration、post-integration smoke、Remote Guard 等都適用；「只是暫時 workflow」不是例外。
+- 歷史已完成 RUN 無法 retroactive 改名，不要求重跑；規則從新 workflow／新 RUN 起生效。
+- workflow dispatch 前，對本次新增／修改的 exact workflow path 執行：
+  `python tools/actions_visible_naming_guard.py <workflow.yml> [...]`
+- guard 非 GREEN 時分類為 `RUN_NOT_CREATED` prerequisite failure：先修正顯示名稱，再 dispatch；不得先觸發後補名字。
+- executable authority：`tools/actions_visible_naming_guard.py`；behavior tests：`tests/process/test_actions_visible_naming_guard.py`。本 Skill 擁有 remote-QA 命名 dispatch gate，其他 Skill 只 bridge，不建立第二套判定器。
+
+
 ## SCHEDULED_WAKEUP_CONTINUITY_BRIDGE
 
 Scheduled wake-up execution is owned by `.agents/skills/engineering/executable-continuity-controller/SKILL.md`; this Skill **does not own scheduled wake-up execution** and must not create a second execution authority. A schedule only wakes the owning execution context.
