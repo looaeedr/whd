@@ -5,15 +5,15 @@
   "work_branch": "hotfix/issue490-marking-divider-holeeditor-20260922",
   "claimed_at": "2026-09-22T18:16:30+08:00",
   "base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "head_sha": "9378f558434bebc00790d16cfaac0ef127c6a812",
-  "phase": "CLEANUP",
+  "head_sha": "7789aac5e8135dc291b842ab0d80021205e96c74",
+  "phase": "IMPLEMENTING",
   "delegated_branches": [],
   "target_x": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "expected_parent_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "last_update": "2026-09-22T18:52:00+08:00",
-  "next_action": "Write durable AI-library pitfalls for integration-ready-not-integrated and resolved-vs-raw Divider sink ownership; then production/test drift audit and final integration.",
+  "last_update": "2026-09-22T18:54:00+08:00",
+  "next_action": "Strengthen HoleEditor regression to actual Phase6PrimaryApplication instance + HoleEditorModalLifecycle.cancel_all path; rerun focused Xvfb; then cleanup/drift/integration.",
   "blocker": null,
   "red_evidence": {
     "marking_missing_from_x": true,
@@ -37,5 +37,10 @@
       "baseline_xvfb": "29 passed",
       "candidate_physical": "21 passed"
     }
+  },
+  "code_review": {
+    "standards_findings": 0,
+    "spec_findings": 1,
+    "finding": "Regression invokes captured on_close directly; strengthen to actual Phase6PrimaryApplication + cancel_all traceback path before final acceptance."
   }
 }
