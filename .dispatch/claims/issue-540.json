@@ -6,25 +6,24 @@
   "work_branch": "feature/issue540-stale-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
+  "head_sha": "ed6350287485f9937fd1905870b01d39db35131e",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:52:00+08:00",
+  "last_update": "2026-09-23T06:56:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35794492687,
-    "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
+    "run_id": 35794867842,
+    "head_sha": "ed6350287485f9937fd1905870b01d39db35131e",
     "status": "completed",
-    "conclusion": "success",
-    "purpose": "Issue #540 executable stale takeover GREEN acceptance",
+    "conclusion": "failure",
+    "purpose": "Issue #540 durable Skill bridge GREEN",
     "evidence": {
-      "focused_tests": "26 passed",
-      "actions_naming": "GREEN",
-      "boundary_599": "BLOCKED",
-      "boundary_600": "EXECUTOR_STUCK"
+      "behavior_tests": "26 passed",
+      "failed_test": "test_durable_skill_bridges_reference_executable_stale_takeover_authority",
+      "root_cause": "Remote Guard Skill described claim-takeover semantically but omitted exact literal request syntax action=claim-takeover."
     }
   },
-  "next_action": "Harden claim-takeover guard so stale evidence is machine-required; add exact remote-run head validation, canonical Skill/AI writeback, and trusted Remote Guard claim-takeover contract on the feature branch.",
+  "next_action": "Patch only remote-execution-guard Skill to include exact request syntax `action=claim-takeover`, preserving the stronger test oracle; rerun exact GREEN workflow.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -45,6 +44,13 @@
       "request_comment_id": 5785529896,
       "result_comment_id": 5785532652,
       "run_id": 35794337505,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "skill_write": {
+      "request_comment_id": 5785594319,
+      "result_comment_id": 5785597501,
+      "run_id": 35794736919,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
