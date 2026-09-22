@@ -210,9 +210,26 @@ jobs:
           skills = required_skills_for(task=task, changed_files=changed)
           refs = required_references_for(task=task, changed_files=changed)
 
+          def declared_skill_name(path):
+              text = path.read_text(encoding="utf-8")
+              raw_lines = text.splitlines()
+              if not raw_lines or raw_lines[0].strip() != "---":
+                  return None
+              for raw in raw_lines[1:]:
+                  if raw.strip() == "---":
+                      break
+                  if raw.startswith("name:"):
+                      return raw.split(":", 1)[1].strip().strip("'\"")
+              return None
+
+          skill_paths = list(Path(".agents/skills").glob("**/SKILL.md"))
           lines = []
           for skill in skills:
-              matches = list(Path(".agents/skills").glob(f"**/{skill}/SKILL.md"))
+              matches = [
+                  path
+                  for path in skill_paths
+                  if declared_skill_name(path) == skill
+              ]
               if len(matches) != 1:
                   raise SystemExit(f"required skill unavailable or ambiguous: {skill}: {matches}")
               matches[0].read_text(encoding="utf-8")
