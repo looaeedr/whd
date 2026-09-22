@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "4822510d09b6bd879c6feec1d5cad3806d48fe92"
+    "run_id": 35676351857,
+    "head_sha": "4822510d09b6bd879c6feec1d5cad3806d48fe92",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue483 T5 Dead Glue Census rerun for head 4822510d09b6bd879c6feec1d5cad3806d48fe92, lock exact run_id+head_sha, poll to terminal, inspect AST zero-static candidate evidence, then perform only evidence-backed cleanup.",
+  "next_action": "Poll locked census run 35676351857 @ 4822510d09b6bd879c6feec1d5cad3806d48fe92 to terminal; inspect exact ISSUE483_CENSUS_JSON, then delete only proven zero-caller/duplicate/stale bridge glue.",
   "blocker": null,
-  "last_update": "2026-09-22T09:43:00+08:00",
+  "last_update": "2026-09-22T09:44:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
