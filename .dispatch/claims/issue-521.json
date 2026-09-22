@@ -6,15 +6,15 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:18:15+08:00",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
-  "head_sha": "0ccc9d4a47689bdb2f91e7b033e5947d45b305fb",
+  "head_sha": "2a1bdc0a1ba59f1c9c7de28a56afdbef748ecf54",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T01:23:03+08:00",
+  "last_update": "2026-09-23T01:23:51+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A0",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Persist user-approved v1.4 spec, then write A0 machine census JSON/MD and validate.",
+  "next_action": "Generate and persist 347-symbol ownership census JSON with 69/69 facade inventory and budget freeze.",
   "blocker": null
 }
