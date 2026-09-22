@@ -1,0 +1,7 @@
+{
+  "branch": "qa/issue496-finalization-20260922",
+  "checkpoint_fingerprint": "fd3b7e34c1975bfb5a5bbd42f3df469ad24207b10d80c17f59f6109493900043",
+  "head_sha": "8985aa3117211b0692841d0460c8d1482a0476b7",
+  "issue": "#496",
+  "version": 1
+}
