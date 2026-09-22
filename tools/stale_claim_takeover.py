@@ -59,11 +59,17 @@ class StaleTakeoverEvaluation:
     previous_executor_source: str
     observed_live_head_sha: str
     reason: str
+    stale_after_seconds: int
+    claim_head_sha: str
+    claim_last_update: datetime
+    claim_phase: str
 
     def to_payload(self) -> dict[str, object]:
         payload = asdict(self)
+        payload["schema"] = "WHD_STALE_CLAIM_TAKEOVER_V1"
         payload["classification"] = self.classification.value
         payload["latest_progress_at"] = _iso_utc(self.latest_progress_at)
+        payload["claim_last_update"] = _iso_utc(self.claim_last_update)
         return payload
 
 
@@ -116,8 +122,12 @@ def _remote_progress(
 ) -> tuple[bool, datetime | None, str]:
     remote_qa = claim.get("remote_qa")
     expected_run_id: int | None = None
+    expected_run_head = _require_sha("claim head_sha", claim.get("head_sha"))
     if isinstance(remote_qa, Mapping) and remote_qa.get("run_id") is not None:
         expected_run_id = _positive_int("claim remote_qa.run_id", remote_qa.get("run_id"))
+        remote_head = remote_qa.get("head_sha") or remote_qa.get("tested_target_sha")
+        if remote_head is not None:
+            expected_run_head = _require_sha("claim remote_qa head", remote_head)
         if remote_run is None:
             raise StaleTakeoverError(
                 "fresh remote_run observation is required when claim remote_qa has run_id"
@@ -138,6 +148,12 @@ def _remote_progress(
     if not found:
         return False, None, f"exact remote run {observed_run_id} is missing"
 
+    observed_run_head = _require_sha("remote_run.head_sha", remote_run.get("head_sha"))
+    if observed_run_head != expected_run_head:
+        raise StaleTakeoverError(
+            f"remote run head mismatch expected={expected_run_head} observed={observed_run_head}"
+        )
+
     status = str(remote_run.get("status") or "").strip().lower()
     conclusion = str(remote_run.get("conclusion") or "").strip().lower() or None
     updated_at = _as_utc("remote_run.updated_at", remote_run.get("updated_at"))
@@ -151,8 +167,6 @@ def _remote_progress(
         f"exact remote run {observed_run_id} is not active "
         f"status={status or 'unknown'} conclusion={conclusion or 'none'}"
     )
-
-
 def evaluate_stale_claim_takeover(
     claim: Mapping[str, object],
     *,
@@ -177,6 +191,7 @@ def evaluate_stale_claim_takeover(
     if phase not in _ACTIVE_PHASES and phase not in _INACTIVE_PHASES:
         raise StaleTakeoverError(f"unknown claim phase={phase}")
 
+    claim_head = _require_sha("claim head_sha", claim.get("head_sha"))
     last_update = _as_utc("claim last_update", claim.get("last_update"))
     previous_source = str(claim.get("executor_source") or "unknown").strip() or "unknown"
 
@@ -192,67 +207,64 @@ def evaluate_stale_claim_takeover(
         )
     stale_seconds = int((now_utc - latest_progress).total_seconds())
 
-    if phase in _INACTIVE_PHASES:
+    def result(
+        classification: TakeoverClassification,
+        actionable: bool,
+        reason: str,
+    ) -> StaleTakeoverEvaluation:
         return StaleTakeoverEvaluation(
-            classification=TakeoverClassification.TERMINAL,
-            actionable=False,
+            classification=classification,
+            actionable=actionable,
             stale_seconds=stale_seconds,
             latest_progress_at=latest_progress,
             previous_executor_source=previous_source,
             observed_live_head_sha=live_head,
-            reason=f"claim phase={phase} is terminal/inactive",
+            reason=reason,
+            stale_after_seconds=threshold,
+            claim_head_sha=claim_head,
+            claim_last_update=last_update,
+            claim_phase=phase,
+        )
+
+    if phase in _INACTIVE_PHASES:
+        return result(
+            TakeoverClassification.TERMINAL,
+            False,
+            f"claim phase={phase} is terminal/inactive",
         )
 
     if previous_source == "scheduler":
-        return StaleTakeoverEvaluation(
-            classification=TakeoverClassification.ALREADY_SCHEDULER,
-            actionable=False,
-            stale_seconds=stale_seconds,
-            latest_progress_at=latest_progress,
-            previous_executor_source=previous_source,
-            observed_live_head_sha=live_head,
-            reason="claim is already owned by scheduler executor_source",
+        return result(
+            TakeoverClassification.ALREADY_SCHEDULER,
+            False,
+            "claim is already owned by scheduler executor_source",
         )
 
     if remote_active:
-        return StaleTakeoverEvaluation(
-            classification=TakeoverClassification.RUN_LIVE,
-            actionable=False,
-            stale_seconds=stale_seconds,
-            latest_progress_at=latest_progress,
-            previous_executor_source=previous_source,
-            observed_live_head_sha=live_head,
-            reason=remote_reason,
+        return result(
+            TakeoverClassification.RUN_LIVE,
+            False,
+            remote_reason,
         )
 
     if stale_seconds >= threshold:
-        return StaleTakeoverEvaluation(
-            classification=TakeoverClassification.EXECUTOR_STUCK,
-            actionable=True,
-            stale_seconds=stale_seconds,
-            latest_progress_at=latest_progress,
-            previous_executor_source=previous_source,
-            observed_live_head_sha=live_head,
-            reason=(
+        return result(
+            TakeoverClassification.EXECUTOR_STUCK,
+            True,
+            (
                 f"no active exact run and no durable progress for {stale_seconds}s "
                 f"(threshold={threshold}s); {remote_reason}"
             ),
         )
 
-    return StaleTakeoverEvaluation(
-        classification=TakeoverClassification.WAIT_ON_FOREIGN_RUNTIME,
-        actionable=False,
-        stale_seconds=stale_seconds,
-        latest_progress_at=latest_progress,
-        previous_executor_source=previous_source,
-        observed_live_head_sha=live_head,
-        reason=(
+    return result(
+        TakeoverClassification.WAIT_ON_FOREIGN_RUNTIME,
+        False,
+        (
             f"durable progress age={stale_seconds}s is below threshold={threshold}s; "
             f"{remote_reason}"
         ),
     )
-
-
 def _load_json_object(path: Path, *, label: str) -> dict[str, object]:
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -280,6 +292,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--now")
     parser.add_argument("--require-actionable", action="store_true")
+    parser.add_argument("--decision-out", type=Path)
     return parser
 
 
@@ -305,7 +318,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"STALE_CLAIM_TAKEOVER_ERROR: {exc}")
         return 2
 
-    payload = json.dumps(result.to_payload(), ensure_ascii=False, sort_keys=True)
+    payload_data = result.to_payload()
+    payload = json.dumps(payload_data, ensure_ascii=False, sort_keys=True)
+    if args.decision_out is not None:
+        args.decision_out.write_text(
+            json.dumps(payload_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     print(f"STALE_CLAIM_TAKEOVER_DECISION {payload}")
     if result.actionable:
         print(

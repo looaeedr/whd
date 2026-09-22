@@ -316,3 +316,68 @@ def test_durable_skill_bridges_reference_executable_stale_takeover_authority():
     assert "tools/stale_claim_takeover.py" in continuity
 
     assert "ISSUE540_STALE_CLAIM_TAKEOVER_PITFALL" in pitfalls
+
+
+def test_evaluator_decision_out_is_bound_guard_evidence(tmp_path: Path):
+    import subprocess
+    import sys
+
+    module_path = Path(__file__).resolve().parents[2] / "tools" / "stale_claim_takeover.py"
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T05:00:00Z")),
+        encoding="utf-8",
+    )
+    evidence = tmp_path / "decision.json"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(module_path),
+            "--claim", str(claim_path),
+            "--live-head-sha", LIVE_HEAD,
+            "--live-head-committed-at", "2026-09-23T05:50:00Z",
+            "--now", "2026-09-23T06:00:00Z",
+            "--require-actionable",
+            "--decision-out", str(evidence),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    payload = json.loads(evidence.read_text(encoding="utf-8"))
+    assert payload["schema"] == "WHD_STALE_CLAIM_TAKEOVER_V1"
+    assert payload["claim_head_sha"] == CLAIM_HEAD
+    assert payload["observed_live_head_sha"] == LIVE_HEAD
+    assert payload["stale_after_seconds"] == 600
+
+    guard = importlib.import_module("tools.execution_claim_guard")
+    claim = guard.assert_execution_claim(
+        claim_path,
+        issue=ISSUE,
+        worker="chatgpt",
+        branch=WORK_BRANCH,
+        action="claim-takeover",
+        expected_base_sha=BASE_SHA,
+        expected_head_sha=LIVE_HEAD,
+        takeover_evidence=evidence,
+    )
+    assert claim.head_sha == CLAIM_HEAD
+
+
+def test_remote_run_head_mismatch_fails_closed():
+    now = datetime(2026, 9, 23, 7, 0, 0, tzinfo=UTC)
+    remote = {
+        "found": True,
+        "run_id": 12345,
+        "head_sha": LIVE_HEAD,
+        "status": "in_progress",
+        "conclusion": None,
+        "updated_at": "2026-09-23T05:00:00Z",
+    }
+    claim = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        remote_qa={"run_id": 12345, "head_sha": CLAIM_HEAD},
+    )
+    with pytest.raises(Exception, match="remote run head mismatch"):
+        _evaluate(now=now, claim=claim, remote=remote)
