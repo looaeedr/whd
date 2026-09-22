@@ -118,5 +118,9 @@ def test_r2_bridge_builds_immutable_plan_before_first_navigation_mutation():
         "navigation.set_selected_part(",
     )
     positions = [body.index(token) for token in mutation_tokens if token in body]
-    assert positions
-    assert plan_pos < min(positions)
+    if positions:
+        assert plan_pos < min(positions)
+    else:
+        delegate = "navigation.apply_derived_sync_plan(plan)"
+        assert delegate in body
+        assert plan_pos < body.index(delegate)

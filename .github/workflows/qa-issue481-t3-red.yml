@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/qa-issue481-t3-red.yml'
       - 'tests/test_issue481_derived_apply_linked_endcap_owner.py'
+      - 'tests/test_issue480_derived_part_projection_plan.py'
       - 'phase6_workspace_navigation_controller.py'
       - 'fold_designer_bridge.py'
       - 'docs/superpowers/checkpoints/issue481-t3-linked-endcap-decision.json'
