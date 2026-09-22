@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T07:02:00+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
   "head_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
-  "phase": "FINALIZING",
-  "last_update": "2026-09-23T07:09:40+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T07:11:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -34,11 +34,22 @@
     "audit_v2_run": 35795603842,
     "audit_v1_run": 35795523293
   },
-  "next_action": "Run executable finalization guard/proof for #541, close/readback, release claim, then claim #542/B6-2.",
+  "next_action": null,
   "blocker": null,
   "drift_audit": {
     "tested_head": "cef59e90877ca9f87d542d6d50ae348027200539",
     "closing_head": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
     "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
+    "accounted": 12,
+    "facade_count": 65,
+    "finalization_run": 35796087153,
+    "finalization_artifact": 10723784524,
+    "proof_sha256": "aa1c9579410f65dcf6f77f9eaf025ba4597404f23b9fa3559e4e7ef90dc9462b",
+    "checkpoint": ".dispatch/checkpoints/issue-541.json"
   }
 }
