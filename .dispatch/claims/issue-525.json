@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
-  "head_sha": "d4f2d0139ef022e8586b2cc292a1e87bd642fd2d",
+  "head_sha": "7a6638ea54b75d15d47fb5acdb27419d9c36ea94",
   "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:26:00+08:00",
+  "last_update": "2026-09-23T02:27:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -33,7 +33,7 @@
       "artifact_id": 10712466696
     }
   },
-  "next_action": "Persist A4 gate evidence, remove one-shot workflow, verify tested-to-closing production/test drift=0, finalize #525, then dispatch mandatory Stage B.",
+  "next_action": "Remove one-shot qa-issue525-stage-a-combined.yml, then verify tested-head d4f2d013 -> closing production/test drift=0.",
   "blocker": null,
   "recovery_state": null,
   "remediation": {
