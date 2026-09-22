@@ -6,15 +6,26 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:26:59+08:00",
   "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
-  "head_sha": "b69194562592e4c0fce022fa250092631b68c2d3",
+  "head_sha": "448f2f73a6f968e7773332841d4b7154ce9000db",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T01:29:30+08:00",
+  "last_update": "2026-09-23T01:34:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A1",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create one-shot exact-branch GitHub Actions dead-glue census workflow, lock its run_id+head_sha, and poll to terminal.",
+  "remote_qa": {
+    "run_id": 35761321697,
+    "head_sha": "448f2f73a6f968e7773332841d4b7154ce9000db",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "41-candidate exact tracked-file dead-glue census",
+    "evidence": {
+      "candidate_count": 41,
+      "dead_candidate_count": 0,
+      "artifact_id": 10709533787
+    }
+  },
+  "next_action": "Expand exact-branch census to all A0 BOUNDARY_RECONSIDERATION_CANDIDATE symbols (327), trigger replacement census run, and poll it to terminal.",
   "blocker": null
 }
