@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:02:00+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "head_sha": "88a7273047572f299d66759160030e8378ceda28",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T07:06:30+08:00",
+  "head_sha": "cef59e90877ca9f87d542d6d50ae348027200539",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T07:07:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,24 +16,15 @@
   "task_id": "B6-1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35795722034,
-    "head_sha": "88a7273047572f299d66759160030e8378ceda28",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B6-1 replacement RED",
-    "evidence": {
-      "failures": 2,
-      "passes": 1,
-      "zero_caller": [
-        "_phase6_cutting_mesh_error",
-        "_phase6_view_initialized",
-        "_phase6_base_renderer_render",
-        "_phase6_scroll_cid"
-      ]
-    },
+    "run_id": 35795824278,
+    "head_sha": "cef59e90877ca9f87d542d6d50ae348027200539",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "B6-1 final GREEN: 12/12 classifications, facade count 65",
+    "replacement_red_run": 35795722034,
     "audit_v2_run": 35795603842,
     "audit_v1_run": 35795523293
   },
-  "next_action": "Remove exactly four NO_CALLER facade bindings, then run B6-1 GREEN.",
+  "next_action": "Poll exact RUN 35795824278 to terminal; on GREEN persist 12-key final classification, cleanup workflows, drift audit, finalization, close #541, then claim #542.",
   "blocker": null
 }
