@@ -1,0 +1,83 @@
+name: "QA #499 T2 Settings apply GREEN"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 87e5c47e3fcb68729d1d266e85cec85bd45ae4ff HEAD
+          test "$(git rev-parse HEAD)" = "__SELF__"
+          echo "T1_ACCEPTED_BASE=87e5c47e3fcb68729d1d266e85cec85bd45ae4ff"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install focused harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run T2 GREEN focused contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue499_settings_apply_coordinator.py             tests/test_issue498_settings_application_coordinator.py             tests/test_issue366_t2_settings_transaction_owner.py             tests/test_issue366_t2a_settings_stage_controller.py             tests/test_issue390_settings_contracts.py             tests/test_issue391_settings_transitions.py             tests/test_issue392_settings_service.py             tests/test_phase6_settings_service.py             tests/test_phase6_left_global_transaction.py             tests/test_gui_fold_designer_transaction_contract.py             tests/test_issue445_settings_presentation_owner.py             tests/test_phase6_settings_panel_ownership.py             --tb=short
+
+      - name: Architecture ratchet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          tree = ast.parse(bridge)
+          fn = next(
+              node for node in tree.body
+              if isinstance(node, ast.FunctionDef)
+              and node.name == "_phase6_apply_setting_updates"
+          )
+          src = ast.get_source_segment(bridge, fn) or ""
+          forbidden = (
+              "normalize_updates",
+              "commit_reconciled_width_structure",
+              "restore_setting",
+              "commit_settings",
+              "_save_current_part",
+              "_phase6_refresh_profiles_from_settings",
+              "after_cancel",
+              "do_update",
+              "_settings_change_callback",
+              "_phase6_settings_guard",
+          )
+          remaining = [token for token in forbidden if token in src]
+          assert remaining == [], remaining
+          assert "_phase6_settings_coordinator" in src
+          assert ".apply_updates(" in src
+
+          facade_anchor = "install_fold_designer_bridge_facade("
+          tail = bridge[bridge.index(facade_anchor):]
+          body = tail[tail.index("{") + 1:tail.index("}")]
+          count = sum(
+              1 for line in body.splitlines()
+              if line.startswith("        \"") or line.startswith("        '")
+          )
+          assert count <= 69, count
+          print(f"FACADE_BINDING_COUNT={count}")
+          print("ISSUE499_T2_ARCH_GREEN=1")
+          PY
