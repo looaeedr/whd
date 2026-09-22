@@ -5,19 +5,12 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "dcb50bf9f58d367ffae3287f5f984b44f91d97fa",
-  "phase": "GREEN",
-  "last_update": "2026-09-22T13:53:00Z",
+  "head_sha": "2d55f3d048807db747a16607add26ca412acbf9f",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T13:56:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": {
-    "run_id": 35736238937,
-    "head_sha": "dcb50bf9f58d367ffae3287f5f984b44f91d97fa",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106774094511,
-    "summary": "6 passed in 2.34s"
-  },
-  "next_action": "Write #509 canonical spec/AI-library supersession, then run final part/DXF acceptance.",
+  "remote_qa": null,
+  "next_action": "Poll #509 broader part/DXF/persistence run for head 2d55f3d048807db747a16607add26ca412acbf9f to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
