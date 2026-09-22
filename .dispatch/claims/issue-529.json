@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:35:30+08:00",
   "base_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
-  "head_sha": "1d25bc7ae3c2b2cd514a45b981427cdc1252d909",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T06:40:30+08:00",
+  "head_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
+  "phase": "FINALIZING",
+  "last_update": "2026-09-23T06:42:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -27,6 +27,11 @@
       "artifact_id": 10722084894
     }
   },
-  "next_action": "Remove one-shot B4 workflow, run parent→closing production/test drift audit, write terminal checkpoint/finalization proof, close #529, then claim #530.",
-  "blocker": null
+  "next_action": "Run executable finalization guard/proof for #529, close/readback, then atomically claim #530/B5.",
+  "blocker": null,
+  "drift_audit": {
+    "tested_head": "4d1618937dd342b67a82c45b1f29feca86661a18",
+    "closing_head": "8fa30cfc7800afba16b71c7580552893db5d1037",
+    "production_test_drift": 0
+  }
 }
