@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T08:22:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "GREEN",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,17 +18,18 @@
   "remote_qa": {
     "run_id": 35671961303,
     "head_sha": "0d1660667579f5b2d312bae6d8463c537c6934c8",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "summary": "12 passed"
   },
-  "next_action": "Poll locked T3 recovery run 35671961303 @ 0d1660667579f5b2d312bae6d8463c537c6934c8 to terminal; on success dispatch expanded T3 acceptance.",
+  "next_action": "Create T3 final acceptance covering linked-EndCap regression, derived physical identity/profile/features/active-selected parity, Save-Reload/DXF, and protected architecture at head 0d1660667579f5b2d312bae6d8463c537c6934c8; lock exact run and poll terminal.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:34:00+08:00",
+  "last_update": "2026-09-22T08:35:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
