@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -14,14 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "0bd7632fca3170747819975e1095d154195a3eee",
-  "last_update": "2026-09-22T20:32:00+08:00",
+  "last_update": "2026-09-22T20:33:00+08:00",
   "remote_qa": {
-    "status": "QUEUED",
+    "status": "EXPECTED_RED_GREEN",
     "run_id": 35727584666,
     "head_sha": "0bd7632fca3170747819975e1095d154195a3eee",
     "workflow": "qa-issue498-t1-red.yml",
-    "replaces_run_id": 35727296797
+    "result": "5 failed in 0.09s; expected RED markers confirmed"
   },
-  "next_action": "Poll locked replacement RED run 35727584666 @ 0bd7632fca3170747819975e1095d154195a3eee until terminal; on expected RED success, extract RED evidence then implement minimal T1 GREEN.",
+  "next_action": "Implement minimal T1 GREEN: bounded Settings application effect contract, bounded coordinator ports/coordinator, and existing composition factory; then run focused GREEN QA.",
   "blocker": null
 }
