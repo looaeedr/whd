@@ -6,8 +6,8 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "9f54cd577b6807b7b81a3b0eda1bf9914e581cd8",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-22T15:14:00Z",
+  "phase": "RED",
+  "last_update": "2026-09-22T15:16:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35745594316,
@@ -17,7 +17,7 @@
     "job_id": 106806255175,
     "summary": "3 failed / 1 passed. Valid product RED: GUI DXF export actual 5 vs canonical physical inventory 14. Live-switch test harness used wrong renderer object. MARKING test did not reach assembly because mode became single. Selector component mapped but viewport reachability not yet proven."
   },
-  "next_action": "Repair only #517 regression tests to establish red-capable seams for visible 3D live-switch, viewport-reachable back-panel selector, and assembly MARKING; do not mutate production until those exact repros are valid.",
+  "next_action": "Repair only #517 test seams for visible 3D live-switch, viewport-reachable rear-panel selector, and assembly MARKING; rerun Xvfb RED. Durable continuity state remains RECOVERING.",
   "blocker": null,
   "delegated_branches": []
 }
