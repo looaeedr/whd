@@ -7,13 +7,15 @@
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
   "head_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-23T02:17:30+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T02:18:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A3",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue524-finalization-20260923"
+  ],
   "remote_qa": {
     "run_id": 35764899441,
     "head_sha": "e34963a8ab767322749ca3c4ab05c6bcfea43c0b",
@@ -56,7 +58,7 @@
       "artifact_id": 10712350745
     }
   },
-  "next_action": "Inline Standards+Spec review parent 65eff72e...closing 14457702; persist terminal checkpoint; run executable finalization guard.",
+  "next_action": "Create terminal checkpoint + executable finalization proof for #524, close/readback, then atomically claim #525/A4.",
   "blocker": null,
   "production_change": {
     "bridge_before_loc": 7806,
