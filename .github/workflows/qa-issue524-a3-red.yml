@@ -1,0 +1,58 @@
+name: Issue 524 A3 RED
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue524-a3-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Run A3 RED contract
+        shell: bash
+        run: |
+          set -o pipefail
+          set +e
+          python -m pytest -q tests/test_issue524_a3_facade_ratchet.py 2>&1 | tee /tmp/issue524-a3-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "ISSUE524_A3_RED_UNEXPECTED_GREEN"
+            exit 1
+          fi
+          grep -q "test_a3_direct_owner_delegates_are_identity_aliases" /tmp/issue524-a3-red.log
+          echo "ISSUE524_A3_RED=EXPECTED_FAILURE"
+          exit 0
+
+      - name: Upload RED evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue524-a3-red
+          path: /tmp/issue524-a3-red.log
+          if-no-files-found: error
+          retention-days: 14
