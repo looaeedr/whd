@@ -6,8 +6,8 @@
   "claimed_at": "2026-09-22T14:22:00Z",
   "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
   "head_sha": "1ad212fb62c30914ed8739fdd9b0108981417f6c",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-22T14:45:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-22T14:47:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35741934489,
@@ -17,7 +17,18 @@
     "job_id": 106793630925,
     "summary": "Final acceptance GREEN: focused 15 PASS/1 SKIP; broader 37 PASS/18 SKIP; Xvfb 3 PASS; config.ini invariant GREEN."
   },
-  "next_action": "Create/fresh-read PR from closing head 1ad212fb62c30914ed8739fdd9b0108981417f6c to cleanup/2d-3d-sync, merge non-force, post-integration readback, finalize checkpoint/proof, close #510, release claim.",
+  "next_action": null,
   "blocker": null,
-  "delegated_branches": []
+  "delegated_branches": [],
+  "production_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "integration_pr": 516,
+    "merge_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
+    "final_run": 35741934489,
+    "final_run_conclusion": "success",
+    "closing_head": "1ad212fb62c30914ed8739fdd9b0108981417f6c",
+    "finalization_proof": ".dispatch/checkpoints/issue-510.finalization-proof.json"
+  }
 }
