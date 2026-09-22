@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "fc0708ef395e6ad09aab7e20bd03601dbb34702e",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T16:00:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T16:04:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35748286439,
     "head_sha": "fc0708ef395e6ad09aab7e20bd03601dbb34702e",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106815433565,
+    "summary": "Expected selector RED: 3 PASS / 1 FAIL. Only rear-panel selector is mapped outside normal input_content_host. MARKING/DXF/live-switch probes stay GREEN. config invariant GREEN."
   },
-  "next_action": "Poll exact selector RED run 35748286439 to terminal; no mutation while active.",
+  "next_action": "Move the one canonical rear-panel mode control from hidden SettingsPanel rendering into normal input_content_host for active box_body:back; reuse _phase6_select_back_panel_mode and canonical BackPanelMode state; remove duplicate SettingsPanel selector rendering.",
   "blocker": null,
   "delegated_branches": []
 }
