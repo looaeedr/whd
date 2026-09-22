@@ -5,24 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "GREEN",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
-  "head_sha": "da9d1c541b484ac635aa36cb7fb3d81733a34bc3",
+  "head_sha": "bd1d1e9fcf15d964161118688b38cf431ad072aa",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED",
     "run_id": null,
-    "head_sha": "da9d1c541b484ac635aa36cb7fb3d81733a34bc3"
+    "head_sha": "bd1d1e9fcf15d964161118688b38cf431ad072aa"
   },
-  "next_action": "Create and run T5 focused acceptance at implementation head da9d1c541b484ac635aa36cb7fb3d81733a34bc3 across T1-T4 ownership ratchets, protected #447/#448/#449 seams, FinalScene/Derived/Settings, Save/Reload/DXF and protected config/DXF hashes; poll exact run to terminal.",
+  "next_action": "Resolve push-triggered Issue483 T5 Focused Acceptance run for head bd1d1e9fcf15d964161118688b38cf431ad072aa, lock exact run_id+head_sha, poll to terminal, then cleanup qa-issue483 workflows, audit tested->closing drift, persist checkpoint/proof, close #483 and continue #484.",
   "blocker": null,
-  "last_update": "2026-09-22T09:52:00+08:00",
+  "last_update": "2026-09-22T09:54:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
