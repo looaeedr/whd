@@ -1000,33 +1000,8 @@ def _phase6_sync_authoritative_derived_parts(self):
     )
     plan = build_derived_part_sync_plan(request)
 
-    # ---- Mutation phase: apply the immutable plan through navigation only ----
-    for key in plan.remove_part_keys:
-        navigation.remove_part(key)
-    for projection in plan.namespaces:
-        navigation.sync_derived_parts(
-            namespace=projection.namespace,
-            part_profiles=_materialize_derived_namespace(projection),
-        )
-    for projection in plan.stash_features:
-        navigation.stash_features(
-            projection.part_key,
-            _materialize_derived_features(projection),
-        )
-    for projection in plan.add_parts:
-        navigation.add_part(
-            projection.part_key,
-            default_profiles=_materialize_derived_profiles(projection),
-        )
-    for projection in plan.stash_profiles:
-        navigation.stash_profiles(
-            projection.part_key,
-            _materialize_derived_profiles(projection),
-        )
-    if plan.active_part_repair is not None:
-        navigation.set_active_part(plan.active_part_repair)
-    if plan.selected_part_repair is not None:
-        navigation.set_selected_part(plan.selected_part_repair)
+    # Workspace/navigation remains the unique mutation owner.
+    navigation.apply_derived_sync_plan(plan)
 
     return (
         tuple(divider_profiles),

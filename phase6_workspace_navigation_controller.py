@@ -17,6 +17,12 @@ from phase6_part_navigation import (
     is_box_body_physical_piece_key,
     resolve_navigation,
 )
+from phase6_derived_part_projection import (
+    DerivedPartSyncPlan,
+    materialize_features as _materialize_derived_features,
+    materialize_namespace as _materialize_derived_namespace,
+    materialize_profiles as _materialize_derived_profiles,
+)
 
 
 @dataclass(frozen=True)
@@ -210,6 +216,38 @@ class Phase6WorkspaceNavigationController:
         if not callable(sync):
             return ()
         return tuple(sync(namespace=namespace, part_profiles=part_profiles))
+
+    def apply_derived_sync_plan(self, plan: DerivedPartSyncPlan) -> None:
+        """Apply an already-derived immutable topology plan through the sole mutation owner."""
+        if not isinstance(plan, DerivedPartSyncPlan):
+            raise TypeError("plan must be DerivedPartSyncPlan")
+
+        for key in plan.remove_part_keys:
+            self.remove_part(key)
+        for projection in plan.namespaces:
+            self.sync_derived_parts(
+                namespace=projection.namespace,
+                part_profiles=_materialize_derived_namespace(projection),
+            )
+        for projection in plan.stash_features:
+            self.stash_features(
+                projection.part_key,
+                _materialize_derived_features(projection),
+            )
+        for projection in plan.add_parts:
+            self.add_part(
+                projection.part_key,
+                default_profiles=_materialize_derived_profiles(projection),
+            )
+        for projection in plan.stash_profiles:
+            self.stash_profiles(
+                projection.part_key,
+                _materialize_derived_profiles(projection),
+            )
+        if plan.active_part_repair is not None:
+            self.set_active_part(plan.active_part_repair)
+        if plan.selected_part_repair is not None:
+            self.set_selected_part(plan.selected_part_repair)
 
     def mark_dirty(self) -> None:
         marker = getattr(self._workspace, "mark_dirty", None)
