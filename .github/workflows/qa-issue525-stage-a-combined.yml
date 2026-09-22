@@ -6,6 +6,7 @@ on:
       - work/issue520-phase6-bridge-residual-reduction-20260923
     paths:
       - .github/workflows/qa-issue525-stage-a-combined.yml
+      - tests/process/test_issue426_phase5_t5_bridge_compression.py
 
 permissions:
   contents: read
