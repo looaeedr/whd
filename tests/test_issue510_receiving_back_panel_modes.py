@@ -346,7 +346,8 @@ def test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_
             designer.designer_workspace.box_body_structure_state()
         ) is BackPanelMode.HALF
 
-        rendered = bridge._phase6_query_final_render_data(designer)
+        resolved = designer._phase6_resolve_manufacturing_geometry()
+        rendered = resolved.part("box_body").render_data
         back = next(piece for piece in rendered.pieces if piece.role == "back")
         assert back.material_dimensions[1] == pytest.approx(1124.0)
 
