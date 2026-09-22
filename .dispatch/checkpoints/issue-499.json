@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "#499",
+  "branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "head_sha": "a3765d5e8d7d47c3578b39742694679d7504d7e3",
+  "state": "WAITING_REMOTE",
+  "next_action": "Poll locked T2 RED run 35729945389 @ a3765d5e8d7d47c3578b39742694679d7504d7e3 until terminal; confirm expected R1 RED markers, then implement minimal GREEN.",
+  "run_id": 35729945389,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Owning issue #499",
+    "T1 accepted base 87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
+    "T2 preflight commit e9ac33451b03ccdfd40fb97e3cd5e51b425fe292",
+    "T2 RED test commit efa37b314f773af1e2623cf9099e383ece35284e",
+    "T2 RED workflow commit a3765d5e8d7d47c3578b39742694679d7504d7e3"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
