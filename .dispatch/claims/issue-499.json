@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,14 +14,13 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
-  "last_update": "2026-09-22T21:38:00+08:00",
+  "last_update": "2026-09-22T21:40:00+08:00",
   "remote_qa": {
-    "status": "FAILURE",
-    "run_id": 35731625854,
-    "head_sha": "7511b2aadeeb0797ac67debb8a6a51e1d6efe20c",
-    "workflow": "qa-issue499-t2-green.yml",
-    "result": "Focused pytest step failed; checkout/identity/install succeeded; architecture step skipped."
+    "status": "IN_PROGRESS",
+    "run_id": 35731884812,
+    "head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
+    "workflow": "qa-issue499-t2-diagnostic.yml"
   },
-  "next_action": "Lock the exact diagnostic matrix run triggered by ff8d7d48 and identify failing test files; then repair only the failing scope.",
+  "next_action": "Poll exact diagnostic run 35731884812 on ff8d7d48 to terminal; classify failing matrix jobs only.",
   "blocker": null
 }
