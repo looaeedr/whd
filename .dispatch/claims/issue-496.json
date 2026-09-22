@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-22T19:13:30+08:00",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
   "head_sha": "024bc2f6313c1c2c778b57083d81a19d528ae10b",
-  "phase": "CLOSING",
-  "action_mode": "EXECUTE_NOW",
+  "phase": "RELEASED",
+  "action_mode": "TERMINAL",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T21:31:00+08:00",
-  "next_action": "Monitor exact QA cleanup run at 024bc2f6313c1c2c778b57083d81a19d528ae10b; after BRANCH_CLEANUP_DONE, fresh-read branch absence then mark claim RELEASED.",
+  "last_update": "2026-09-22T21:29:00+08:00",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -174,7 +174,22 @@
       "result": "GREEN",
       "prior_head": "8985aa3117211b0692841d0460c8d1482a0476b7"
     },
-    "cleanup_workflow_commit": "024bc2f6313c1c2c778b57083d81a19d528ae10b"
+    "cleanup_workflow_commit": "024bc2f6313c1c2c778b57083d81a19d528ae10b",
+    "cleanup": {
+      "run_id": 35733633600,
+      "job_id": 106765181525,
+      "open_pr_ref_guard": "GREEN",
+      "temporary_qa_branch_deleted": true,
+      "deleted_branch": "qa/issue496-finalization-20260922",
+      "exact_cleanup_head": "024bc2f6313c1c2c778b57083d81a19d528ae10b"
+    },
+    "terminal_readback": {
+      "issue_state": "closed",
+      "issue_state_reason": "completed",
+      "checkpoint_sha": "f7449302c322b050cfa634ad5f9aa0eae3a397c5",
+      "proof_sha": "38b6a934d709ec33be2af0b63738f6f7b886fa00",
+      "production_head": "b82d6114a6258853819d6cb7683f06d427ceb9f8"
+    }
   },
   "remote_guard": {
     "branch_create": {
@@ -197,5 +212,6 @@
       "WHD_REMOTE_GUARD_REQUEST_V1",
       "WHD_REMOTE_GUARD_RECEIPT_V1"
     ]
-  }
+  },
+  "released_at": "2026-09-22T21:29:00+08:00"
 }
