@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
   "head_sha": "3f25ad3e429bc4969d31a8a46ac82254be69bd91",
-  "phase": "INTEGRATING_CLEANUP_AUTHORITY",
-  "last_update": "2026-09-23T07:10:00+08:00",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T07:11:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -25,7 +25,7 @@
       "evidence_schema": "WHD_STALE_CLAIM_TAKEOVER_V1"
     }
   },
-  "next_action": "Correct PR #553 body from Fixes to Part of #540, obtain fresh pr-write guard, merge cleanup authority only, then continue #540 on a delegated main-based branch for trusted Remote Guard support.",
+  "next_action": "Retry exact pr-write guard under canonical DRIFT_AUDIT phase, update PR #553 body to Part of #540, then obtain a separate fresh pr-write receipt for merge.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -107,5 +107,11 @@
     ],
     "tested_to_cleanup_drift": "one-shot workflow deletion only"
   },
-  "pr_number": 553
+  "pr_number": 553,
+  "guard_failure": {
+    "run_id": 35796089028,
+    "reason": "REMOTE_GUARD_FAILED",
+    "root_cause": "invalid custom claim phase INTEGRATING_CLEANUP_AUTHORITY",
+    "recovery": "restored canonical DRIFT_AUDIT phase"
+  }
 }
