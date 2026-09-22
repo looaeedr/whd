@@ -1,0 +1,17 @@
+{
+  "issue": 538,
+  "issue_url": "https://github.com/looaeedr/whd/issues/538",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-23T02:05:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "work_branch": "feature/issue538-actions-chinese-contract-20260923",
+  "delegated_branches": [],
+  "head_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "last_update": "2026-09-23T02:05:00+08:00",
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Remote Guard receipt, create branch from exact cleanup HEAD, add executable GitHub Actions user-visible Traditional-Chinese naming guard + monitoring-remote-qa durable contract/tests.",
+  "blocker": null
+}
