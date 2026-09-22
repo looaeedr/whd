@@ -5,17 +5,19 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "e84c99e7cc07a81672ac2a78c8d8e41647d2a980",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T16:08:00Z",
+  "head_sha": "c5f8b0592932f2ad35b070de89ddfc22fe7cdcee",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T15:45:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35748894447,
     "head_sha": "e84c99e7cc07a81672ac2a78c8d8e41647d2a980",
-    "status": "queued",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106817512079,
+    "summary": "3 PASS / 1 FAIL: normal-input rear-panel selector was present but duplicate legacy settings_center selector also remained. config invariant GREEN."
   },
-  "next_action": "Poll exact run 35748894447 at head e84c99e7cc07a81672ac2a78c8d8e41647d2a980 to terminal; no mutation while active.",
+  "next_action": "Observe auto-triggered #517 QA for head c5f8b0592932f2ad35b070de89ddfc22fe7cdcee; lock exact run_id+head_sha and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
