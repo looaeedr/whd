@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "c469d3604249bd7eda636eca83a716dd55114da2",
-  "last_update": "2026-09-22T23:12:00+08:00",
+  "head_sha": "6562d68e4424c983e7ec72f4753644ddbd639886",
+  "last_update": "2026-09-22T23:18:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Add focused R3/R4 RED contract on current T4 head c469d360; run expected RED; then deepen coordinator baseline/reset sequencing without moving semantic owners.",
+  "next_action": "Create one-shot focused T4 RED workflow on exact head 6562d68e; confirm R3/R4 RED markers, then deepen coordinator baseline/reset sequencing.",
   "blocker": null
 }
