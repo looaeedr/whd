@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "71121d4b82ee2cb7be73f3ccb50a97d55f4800ba",
+  "head_sha": "9a8b74836fe9a4cb872579497d30432bdba8654b",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T15:45:00Z",
+  "last_update": "2026-09-22T15:49:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35747065581,
@@ -17,7 +17,7 @@
     "job_id": 106811315175,
     "summary": "2 PASS / 2 FAIL. Assembly MARKING slice GREEN; live-switch current probe PASS. Remaining product REDs: selector settings surface unmapped; GUI DXF actual 5 vs canonical 14. config invariant GREEN."
   },
-  "next_action": "Vertical slice 2: replace legacy GUI DXF physical-file enumeration with canonical resolved manufacturing inventory filtered only by existing export intention; preserve #187 presence/visibility/intention separation.",
+  "next_action": "Observe auto-triggered #517 QA at head 9a8b74836fe9a4cb872579497d30432bdba8654b; once exact run_id exists, lock/poll to terminal before selector or live-switch mutation.",
   "blocker": null,
   "delegated_branches": []
 }
