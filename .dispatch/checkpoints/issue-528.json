@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "issue": "528",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35783860498,
+  "job_id": 106935755380,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2.",
+    "Parent accepted HEAD 3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba.",
+    "Formal B3 Deletion-Test RUN 35783860498 @ 9d15c242e10440b961cd7ac82c7d5deb1c2750f3 SUCCESS.",
+    "Exact-six total span=277 LOC; distinct bridge/domain helper dependencies=16.",
+    "Variant E removes only 1/6 bodies; duplicate_path_count=5; no legal deep destination proven.",
+    "Settings owner suite 26 passed / 6 skipped; Xvfb Settings panel 11 passed.",
+    "Machine decision KEEP_CURRENT_BOUNDARY; production change=0; bridge symbols removed=0.",
+    "One-shot B3 workflow removed.",
+    "Tested-head 9d15c242 -> closing-head f06309c0 production/test drift=0.",
+    "Current X observed at closing a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04; sealed work-order chain did not chase X."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "529",
+  "chain_next_action": "Atomically claim #529/B4 Linked Endcap Boundary Reconsideration from accepted HEAD f06309c0741a4a4ab22ec43cfad4405cc1264ec2 and continue mandatory Stage B.",
+  "chain_reason": "STAGE_B_REQUIRED=true; B3 final decision KEEP_CURRENT_BOUNDARY"
+}
