@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -13,15 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
-  "last_update": "2026-09-22T22:56:00+08:00",
+  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+  "last_update": "2026-09-22T23:00:00+08:00",
   "remote_qa": {
-    "status": "GREEN",
+    "status": "GREEN_CLEANED",
     "run_id": 35735472804,
-    "head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
-    "workflow": "qa-issue500-t3-green.yml",
-    "result": "48 passed, 2 skipped; FACADE_BINDING_COUNT=69; ISSUE500_T3_ARCH_GREEN=1"
+    "tested_head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
+    "cleaned_head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+    "result": "48 passed, 2 skipped; facade=69; tested->cleaned diff workflow-delete-only"
   },
-  "next_action": "Delete T3 RED/GREEN one-shot workflows in one cleanup commit; verify tested 064dc887 -> cleaned diff is workflow-delete-only; then finalize #500 and hand off #501.",
+  "next_action": "Persist terminal #500 checkpoint with handoff to #501; run canonical finalization authorization+verification; close #500; release claim; immediately claim/start #501.",
   "blocker": null
 }
