@@ -1,0 +1,23 @@
+{
+  "issue": 503,
+  "issue_url": "https://github.com/looaeedr/whd/issues/503",
+  "master_issue": 506,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T22:24:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "base_sha": "23a63cc1ffd91f1f684e56addee3974795d5ee9f",
+  "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "23a63cc1ffd91f1f684e56addee3974795d5ee9f",
+  "last_update": "2026-09-22T22:24:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Fresh-read T6 R6 source and live-sync transport/lifecycle contracts on accepted T5 cleaned head; create focused RED, then deepen phase6_sync_envelope.py into a pure publication planner while preserving callback/bookkeeping effects in application layer.",
+  "blocker": null
+}
