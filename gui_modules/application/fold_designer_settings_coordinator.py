@@ -8,10 +8,122 @@ owned by their established modules.
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
-from typing import Any, Callable
+from enum import Enum
+from types import MappingProxyType
+from typing import Any, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 
 
 PortCallable = Callable[..., Any]
+
+
+class Phase6SettingsApplicationPortRole(str, Enum):
+    READ = "read"
+    MUTATION = "mutation"
+    EFFECT = "effect"
+
+
+@dataclass(frozen=True)
+class Phase6SettingsApplicationPortSpec:
+    role: Phase6SettingsApplicationPortRole
+    canonical_owner: str
+    callback_direction: str
+    bootstrap_required: bool = False
+    compatibility_only: bool = False
+
+    def __post_init__(self) -> None:
+        role = (
+            self.role
+            if isinstance(self.role, Phase6SettingsApplicationPortRole)
+            else Phase6SettingsApplicationPortRole(str(self.role))
+        )
+        owner = str(self.canonical_owner or "").strip()
+        direction = str(self.callback_direction or "").strip()
+        if not owner:
+            raise ValueError("canonical_owner must be non-empty")
+        if direction not in {"owner_to_coordinator", "coordinator_to_owner"}:
+            raise ValueError(
+                "callback_direction must be owner_to_coordinator or coordinator_to_owner"
+            )
+        object.__setattr__(self, "role", role)
+        object.__setattr__(self, "canonical_owner", owner)
+        object.__setattr__(self, "callback_direction", direction)
+        object.__setattr__(self, "bootstrap_required", bool(self.bootstrap_required))
+        object.__setattr__(self, "compatibility_only", bool(self.compatibility_only))
+
+
+SETTINGS_APPLICATION_PORT_SPECS = MappingProxyType(
+    {
+        "read_settings_snapshot": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.READ,
+            canonical_owner="Phase6SettingsTransactionController",
+            callback_direction="owner_to_coordinator",
+        ),
+        "read_profile_snapshot": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.READ,
+            canonical_owner="Phase6DesignerWorkspace",
+            callback_direction="owner_to_coordinator",
+        ),
+        "save_current_part": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="#448 Part Editor compatibility",
+            callback_direction="coordinator_to_owner",
+            compatibility_only=True,
+        ),
+        "apply_profile_plan": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.MUTATION,
+            canonical_owner="Phase6WorkspaceNavigationController",
+            callback_direction="coordinator_to_owner",
+        ),
+        "sync_derived_parts": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.MUTATION,
+            canonical_owner="Phase6WorkspaceNavigationController",
+            callback_direction="coordinator_to_owner",
+        ),
+        "project_ui_values": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Fold Designer presentation",
+            callback_direction="coordinator_to_owner",
+        ),
+        "render_bending": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="BendingUI",
+            callback_direction="coordinator_to_owner",
+        ),
+        "refresh_settings_panel": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Phase6SettingsPanel",
+            callback_direction="coordinator_to_owner",
+        ),
+        "refresh_topology": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Fold Designer application composition",
+            callback_direction="coordinator_to_owner",
+        ),
+        "refresh_persistent_controls": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Fold Designer application composition",
+            callback_direction="coordinator_to_owner",
+        ),
+        "submit_update_intent": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="gui_modules.application.command_router",
+            callback_direction="coordinator_to_owner",
+        ),
+        "publish_live_state": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Fold Designer live-sync effect layer",
+            callback_direction="coordinator_to_owner",
+        ),
+        "project_status": Phase6SettingsApplicationPortSpec(
+            role=Phase6SettingsApplicationPortRole.EFFECT,
+            canonical_owner="Fold Designer presentation",
+            callback_direction="coordinator_to_owner",
+        ),
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -50,14 +162,19 @@ class Phase6FoldDesignerSettingsCoordinator:
 
     __slots__ = ("_transactions", "_ports")
 
-    def __init__(self, *, transactions: Any, ports: Phase6SettingsApplicationPorts):
+    def __init__(
+        self,
+        *,
+        transactions: "Phase6SettingsTransactionController",
+        ports: Phase6SettingsApplicationPorts,
+    ):
         if not isinstance(ports, Phase6SettingsApplicationPorts):
             raise TypeError("ports must be Phase6SettingsApplicationPorts")
         self._transactions = transactions
         self._ports = ports
 
     @property
-    def transactions(self) -> Any:
+    def transactions(self) -> "Phase6SettingsTransactionController":
         return self._transactions
 
     @property
@@ -66,6 +183,9 @@ class Phase6FoldDesignerSettingsCoordinator:
 
 
 __all__ = [
+    "Phase6SettingsApplicationPortRole",
+    "Phase6SettingsApplicationPortSpec",
+    "SETTINGS_APPLICATION_PORT_SPECS",
     "Phase6SettingsApplicationPorts",
     "Phase6FoldDesignerSettingsCoordinator",
 ]
