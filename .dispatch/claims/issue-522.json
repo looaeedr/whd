@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:26:59+08:00",
   "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
-  "head_sha": "1fbf1ac691d6e476f673d0db1249045c2b047c4e",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T01:49:10+08:00",
+  "head_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T01:51:12+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,6 +30,6 @@
       "artifact_id": 10710820254
     }
   },
-  "next_action": "Persist A1 no-deletion evidence; remove one-shot workflow; verify production/test drift=0; close #522; transition to #523/A2.",
+  "next_action": "Create delegated finalization branch from 6e4ffde8, run canonical continuity authorize+verify against coord checkpoint, then close/readback #522 and transition to #523.",
   "blocker": null
 }
