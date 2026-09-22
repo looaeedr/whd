@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -14,13 +14,13 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
-  "last_update": "2026-09-22T23:37:00+08:00",
+  "last_update": "2026-09-22T23:40:00+08:00",
   "remote_qa": {
-    "status": "PARTIAL_GREEN_STALE_CONTRACT",
-    "run_id": 35737220712,
-    "head_sha": "a7349f68d6207147af259400ffd40b6d208d33cc",
-    "result": "Xvfb baseline/factory parity SUCCESS; headless 29 PASS / 1 FAIL, sole failure was stale T2D static contract requiring direct bridge delegate superseded by T4 coordinator ownership."
+    "status": "GREEN",
+    "run_id": 35737558172,
+    "head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
+    "result": "Headless 30 passed; Xvfb 15 passed; R3/R4 behavior and ownership GREEN."
   },
-  "next_action": "Lock exact T4 rerun triggered by 654eb54b; poll same run to terminal; require headless+Xvfb GREEN, then cleanup/finalize #501 and immediately claim #502.",
+  "next_action": "Delete T4 RED/GREEN one-shot workflows in one cleanup commit; verify tested->cleaned workflow-delete-only drift; then terminal checkpoint/finalization/close #501 and claim #502.",
   "blocker": null
 }
