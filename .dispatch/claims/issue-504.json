@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:44:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
@@ -14,17 +14,21 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "b07514e71087adafcbb50b3f96e64453cec282ac",
-  "last_update": "2026-09-22T22:53:00+08:00",
+  "last_update": "2026-09-22T22:12:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_COMBINED",
-    "run_id": 35741913085,
-    "head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
-    "workflow": "qa-issue504-t7-combined.yml",
-    "partial": {
+    "status": "SUPERSEDED_BY_TEST_CONTRACT_MIGRATION",
+    "prior_run_id": 35741913085,
+    "prior_head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
+    "evidence": {
       "focused_physical_persistence": "82 PASS",
-      "architecture_protected": "FAIL - classifier false positive counted test source mention as second composition root"
+      "headless_candidate_only": [
+        "tests.process.test_issue426_phase5_t5_bridge_compression::test_t5_exact_t0_refresh_callsite_inventory_is_unchanged",
+        "tests.test_dm7_topology_persistence::test_family_switch_commits_derived_topology_before_visible_navigation_refresh"
+      ],
+      "classification": "Both are stale structural-owner assertions; accepted Phase 5 refactor moved the same invariants to new application owners.",
+      "architecture_failure": "false positive in classifier; fixed workflow exists on branch but no authoritative run yet"
     }
   },
-  "next_action": "Keep polling Combined run 35741913085 for Headless/Xvfb completion. In parallel lock architecture-fix run on workflow-only descendant b07514e7; require da12eea6->b07514e7 drift to be workflow-only before combining evidence.",
+  "next_action": "Migrate two stale structural tests to the accepted Phase 5 ownership boundaries, preserving the same behavioral/order invariants. Then create a fresh Combined Acceptance workflow on the new exact candidate head; prior run 35741913085 becomes non-authoritative for final acceptance.",
   "blocker": null
 }
