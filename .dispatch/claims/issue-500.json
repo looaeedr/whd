@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -14,14 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
-  "last_update": "2026-09-22T22:51:00+08:00",
+  "last_update": "2026-09-22T22:56:00+08:00",
   "remote_qa": {
-    "status": "HARNESS_DEPENDENCY_FAILURE",
-    "run_id": 35735265651,
-    "head_sha": "a70d6f95e082c406801c3d1678d7f81f001aa690",
+    "status": "GREEN",
+    "run_id": 35735472804,
+    "head_sha": "064dc88745cf0f52b23f8680bdebaf8de205e2d6",
     "workflow": "qa-issue500-t3-green.yml",
-    "result": "Focused collection now reaches project requirements; sole remaining collection dependency missing is matplotlib."
+    "result": "48 passed, 2 skipped; FACADE_BINDING_COUNT=69; ISSUE500_T3_ARCH_GREEN=1"
   },
-  "next_action": "Lock exact T3 GREEN run triggered by 064dc887 after full focused harness dependency repair; poll same run to terminal and inspect only true implementation failures.",
+  "next_action": "Delete T3 RED/GREEN one-shot workflows in one cleanup commit; verify tested 064dc887 -> cleaned diff is workflow-delete-only; then finalize #500 and hand off #501.",
   "blocker": null
 }
