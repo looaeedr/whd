@@ -1,0 +1,23 @@
+{
+  "issue": 501,
+  "issue_url": "https://github.com/looaeedr/whd/issues/501",
+  "master_issue": 506,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T23:05:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+  "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+  "last_update": "2026-09-22T23:05:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Run T4 preflight and focused R3/R4 RED characterization from accepted T3 cleaned head; then move baseline transition and factory-reset application effects into the typed Settings coordinator without changing semantic owners.",
+  "blocker": null
+}
