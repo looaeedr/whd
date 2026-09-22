@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
   "head_sha": "3fb0c2a1d0b07dde290b1b905c54499ea41896c8",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-23T02:22:10+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T02:22:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -27,6 +27,7 @@
       "reduction_gate_status": "NOT_RUN"
     }
   },
-  "next_action": "Update stale #426 architecture oracle to accept direct alias assignment as the same compatibility boundary without weakening boundary-count/diagnostics guards; rerun Stage A Combined on replacement head.",
-  "blocker": null
+  "next_action": "Guarded stale-oracle remediation: update tests/process/test_issue426_phase5_t5_bridge_compression.py to recognize direct alias assignment without weakening prior boundary guards.",
+  "blocker": null,
+  "recovery_state": "RECOVERING"
 }
