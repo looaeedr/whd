@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "517",
+  "branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
+  "head_sha": "9f54cd577b6807b7b81a3b0eda1bf9914e581cd8",
+  "state": "WAITING_REMOTE",
+  "next_action": "Poll exact GitHub Actions run 35745594316 at head 9f54cd577b6807b7b81a3b0eda1bf9914e581cd8 to terminal; classify exact #517 Xvfb result.",
+  "run_id": 35745594316,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Phase6 Knowledge Preflight GREEN: 8 required Skills + 8 required references.",
+    "Execution claim guard GREEN before #517 RED test write.",
+    "Execution claim guard GREEN before temporary workflow write and workflow dispatch.",
+    "RED test commit f57e0b36b2d03b686d5721d98cf1664d13696e20.",
+    "Remote QA head 9f54cd577b6807b7b81a3b0eda1bf9914e581cd8; run 35745594316 in progress."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
