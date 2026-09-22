@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -13,16 +13,14 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84",
-  "last_update": "2026-09-22T20:52:00+08:00",
+  "head_sha": "e26cb37cf449e81dce2bcdd8b13470e620aa5810",
+  "last_update": "2026-09-22T20:54:00+08:00",
   "remote_qa": {
-    "status": "EXPECTED_REVIEW_RED",
-    "run_id": 35728411681,
-    "head_sha": "886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84",
-    "workflow": "qa-issue498-t1-green.yml",
-    "result": "23 passed, 6 skipped, 1 expected fail",
-    "failure": "missing SETTINGS_APPLICATION_PORT_SPECS / Phase6SettingsApplicationPortRole"
+    "status": "QUEUED",
+    "run_id": 35728636388,
+    "head_sha": "e26cb37cf449e81dce2bcdd8b13470e620aa5810",
+    "workflow": "qa-issue498-t1-green.yml"
   },
-  "next_action": "Implement minimal machine-readable port role/canonical-owner/direction/bootstrap/compatibility metadata, then rerun focused GREEN.",
+  "next_action": "Poll final T1 GREEN run 35728636388 @ e26cb37cf449e81dce2bcdd8b13470e620aa5810 until terminal; then extract counts, run final diff review, cleanup one-shot workflows, and close #498 if all gates remain GREEN.",
   "blocker": null
 }
