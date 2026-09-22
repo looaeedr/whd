@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "issue": "490",
+  "branch": "hotfix/issue490-marking-divider-holeeditor-20260922",
+  "head_sha": "3464c2020483d23675c4585e449b08cd6f785809",
+  "state": "RUNNING",
+  "next_action": "Mark PR #492 ready, non-force merge to unchanged cleanup/2d-3d-sync c48f650f..., verify post-integration ancestry/files, then terminalize checkpoint and close issue.",
+  "run_id": 35718611106,
+  "job_id": 106715916641,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Accepted #464 Joint Placement MARKING closing lineage 684d416c003906280c3cae0d0246b80b14aac00f integrated with ancestry preserved by merge commit f4f7c75535a8677cca686889fe656ae9171df051.",
+    "Root cause fixed: non-active Corner Data Divider now reads ResolvedManufacturingGeometry instead of raw pre-relief scene; no CROSS coordinates or MARKING geometry were reimplemented.",
+    "Root cause fixed: Phase6PrimaryApplication HoleEditor close routes to canonical preview refresh and never restores legacy canvas_z ownership; legacy compatibility route remains.",
+    "Focused RUN 35717803648 @ 31accb5561111ed8ecef5a7b92c8797e56ea374a SUCCESS: headless 16 PASS, Xvfb 5 PASS.",
+    "Broader A/B RUN 35718078898 @ fbe4cc939cc6e5877b307dfe423160854e72f877 SUCCESS: candidate headless 106 PASS/5 SKIP = baseline 106 PASS/5 SKIP; candidate Xvfb 30 PASS vs baseline 29 PASS; candidate physical DXF 21 PASS.",
+    "Actual resolved Receiving Divider CROSS DXF export/reopen acceptance is included in candidate physical job and GREEN.",
+    "Final code-review remediation RUN 35718611106 @ 183e3d495a09631f85ed0fa338381417afccd662 SUCCESS: 9 PASS, exercising actual Phase6PrimaryApplication + HoleEditorModalLifecycle.cancel_all traceback path.",
+    "Temporary #490 QA workflow removed. Tested head 183e3d495a09631f85ed0fa338381417afccd662 -> closing head 3464c2020483d23675c4585e449b08cd6f785809 changes only workflow deletion; production/test drift=0.",
+    "AI Library writeback committed at 7789aac5e8135dc291b842ab0d80021205e96c74 and remote-read content verified before closing.",
+    "Two-axis code review after remediation: Standards findings=0; Spec findings=0.",
+    "Fresh production target cleanup/2d-3d-sync remains c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8; PR #492 reports mergeable=true."
+  ]
+}
