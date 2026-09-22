@@ -1,0 +1,50 @@
+name: "QA #499 T2 Settings apply RED"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - 'tests/test_issue499_settings_apply_coordinator.py'
+      - '.github/workflows/qa-issue499-t2-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t2-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 87e5c47e3fcb68729d1d266e85cec85bd45ae4ff HEAD
+          echo "T1_ACCEPTED_BASE=87e5c47e3fcb68729d1d266e85cec85bd45ae4ff"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install pytest
+
+      - name: Run intended T2 RED
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          python -m pytest -q tests/test_issue499_settings_apply_coordinator.py --tb=short | tee /tmp/t2-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: coordinator missing apply_updates sequencing owner" /tmp/t2-red.log
+          grep -q "RED: bridge still owns deep apply/update sequencing" /tmp/t2-red.log
+          echo "PASS EXPECTED_ISSUE499_T2_RED=1"
