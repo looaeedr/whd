@@ -6,33 +6,31 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:43:30+08:00",
   "base_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
-  "head_sha": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
+  "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T06:48:10+08:00",
+  "last_update": "2026-09-23T06:50:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B5",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35794244876,
-    "head_sha": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
-    "status": "in_progress",
+    "run_id": 35794404726,
+    "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
+    "status": "queued",
     "conclusion": null,
-    "purpose": "B5 Deletion-Test replacement with deterministic E-variant source patch",
-    "prior_runs": [
-      {
-        "run_id": 35794007741,
-        "conclusion": "failure",
-        "classification": "HARNESS_INDENTATION_ERROR"
-      },
-      {
-        "run_id": 35794138484,
-        "conclusion": "failure",
-        "classification": "HARNESS_INDENTATION_ERROR"
-      }
+    "purpose": "B5 replacement requirement RED before production extraction",
+    "candidate_run": {
+      "run_id": 35794244876,
+      "head_sha": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
+      "conclusion": "success",
+      "decision": "DEEPEN_DERIVED_PROJECTION_OWNER"
+    },
+    "prior_harness_failures": [
+      35794007741,
+      35794138484
     ]
   },
-  "next_action": "Poll exact RUN 35794244876 @ e07f3c1b98d96cbd7bbc51b9cafc8334bc896672 to terminal; candidate logic unchanged.",
+  "next_action": "Poll exact RED RUN 35794404726; require expected B5 RED seam, then implement production extraction.",
   "blocker": null
 }
