@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "RED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -14,13 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "824f3dc0c234be9535220084297decec0b66e6e4",
-  "last_update": "2026-09-22T20:30:00+08:00",
+  "last_update": "2026-09-22T20:31:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS",
+    "status": "FAILED_HARNESS",
     "run_id": 35727296797,
     "head_sha": "824f3dc0c234be9535220084297decec0b66e6e4",
-    "workflow": "qa-issue498-t1-red.yml"
+    "workflow": "qa-issue498-t1-red.yml",
+    "failure": "tests/conftest.py import failed: ModuleNotFoundError: tkinter"
   },
-  "next_action": "Poll locked GitHub Actions run 35727296797 @ 824f3dc0c234be9535220084297decec0b66e6e4 until terminal; on expected RED success, extract evidence then implement minimal T1 GREEN.",
+  "next_action": "Patch RED workflow harness to install python3-tk only; let push create replacement RED run; lock replacement run to terminal.",
   "blocker": null
 }
