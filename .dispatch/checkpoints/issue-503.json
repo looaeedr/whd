@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "#503",
+  "branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "head_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35741325688,
+  "job_id": 106791541555,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "R6 expected RED run 35741015712 SUCCESS",
+    "T6 GREEN run 35741325688 SUCCESS on tested head 64777eee411c02ecbf28dc4c728608666e4591eb",
+    "pure planner contract: 5 passed",
+    "live-sync/Xvfb parity: 18 passed",
+    "FACADE_BINDING_COUNT=69",
+    "ISSUE503_T6_ARCH_GREEN=1",
+    "cleaned head 8b468f96c435f300acb6e855b354ba872fa37cf1",
+    "tested->cleaned diff contains only removal of qa-issue503-t6-red.yml and qa-issue503-t6-green.yml",
+    "production/test drift = 0"
+  ],
+  "master_issue": "#506",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#504",
+  "chain_next_action": "Claim and execute #504/T7 Combined Acceptance from accepted T6 cleaned head 8b468f96c435f300acb6e855b354ba872fa37cf1.",
+  "chain_reason": null
+}
