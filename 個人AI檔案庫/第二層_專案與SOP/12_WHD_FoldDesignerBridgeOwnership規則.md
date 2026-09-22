@@ -41,14 +41,18 @@ CURRENT composition owner：既有 `Phase6FoldDesignerComposition`。
 - manufacturing owner 不因 FinalScene composition wiring 搬移而改變。
 - 禁止在 bridge 重新建立 deep `FinalSceneCompositionPorts(...)` constructor；禁止第二個 composition root；owner 不得 reverse-import bridge。
 
-### Derived-part projection / apply
+### Derived-part projection / request assembly / apply
 
-Pure planning owner：`phase6_derived_part_projection.py`。
+CURRENT pure projection/request owner：`phase6_derived_part_projection.py`。
 
-- Door / BasePlate / BoxBody / Divider / InnerDoor 的 derived projection 必須先形成 immutable `DerivedPartProjectionRequest`，再產生 `DerivedPartSyncPlan`。
-- pure planner 不得 import bridge / Tk，不得擁有 `DesignerWorkspace`、workspace/navigation mutation 或 manufacturing geometry formula。
-- mutation/apply owner：`Phase6WorkspaceNavigationController.apply_derived_sync_plan`；bridge 不得直接 apply workspace/navigation mutation。
+- Door / BasePlate / BoxBody / Divider / InnerDoor 的**domain derivation**仍由既有 canonical domain/application owners完成；Bridge 可負責蒐集/呼叫這些 authoritative derivations，但不得複製公式。
+- 已完成的 derived projections 必須封裝成 `DerivedPartRequestAssemblyInput`，由 `build_derived_part_projection_request(...)` 統一組裝 namespace replacement、remove/add/stash intent 與 legacy active/selected repair，產生 immutable `DerivedPartProjectionRequest`。
+- `build_derived_part_sync_plan(...)` 繼續把 immutable request 轉為 `DerivedPartSyncPlan`。
+- pure projection/request owner 不得 import bridge / Tk，不得擁有 `DesignerWorkspace`、workspace/navigation mutation 或 manufacturing geometry formula。
+- mutation/apply owner仍是 `Phase6WorkspaceNavigationController.apply_derived_sync_plan`；Bridge 不得直接 apply workspace/navigation mutation。
+- `fold_designer_bridge.py::_phase6_sync_authoritative_derived_parts` 不得重新建立本地 `remove_part_keys / add_parts / stash_profiles / stash_features / active_repair / selected_repair` ownership；它只保留 domain projection assembly → pure request owner → immutable plan → navigation apply 的 narrow orchestration。
 - physical-part identity、project persistence 與 manufacturing authority 不因 projection seam 改變。
+- Phase 6 / #530 Deletion-Test 已 supersede「request assembly 留在 Bridge」的舊實作邊界；CURRENT decision = `DEEPEN_DERIVED_PROJECTION_OWNER`。
 
 ### Linked endcap
 
