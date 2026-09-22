@@ -6,18 +6,16 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "e84c99e7cc07a81672ac2a78c8d8e41647d2a980",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T16:07:00Z",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T16:08:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
-    "run_id": 35748286439,
-    "head_sha": "fc0708ef395e6ad09aab7e20bd03601dbb34702e",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106815433565,
-    "summary": "Expected selector RED: 3 PASS / 1 FAIL. Only rear-panel selector is mapped outside normal input_content_host. MARKING/DXF/live-switch probes stay GREEN. config invariant GREEN."
+    "run_id": 35748894447,
+    "head_sha": "e84c99e7cc07a81672ac2a78c8d8e41647d2a980",
+    "status": "queued",
+    "conclusion": null
   },
-  "next_action": "Observe auto-triggered #517 QA at head e84c99e7cc07a81672ac2a78c8d8e41647d2a980; once exact run_id exists, lock/poll to terminal before any further mutation.",
+  "next_action": "Poll exact run 35748894447 at head e84c99e7cc07a81672ac2a78c8d8e41647d2a980 to terminal; no mutation while active.",
   "blocker": null,
   "delegated_branches": []
 }
