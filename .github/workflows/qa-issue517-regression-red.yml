@@ -6,6 +6,10 @@ on:
       - hotfix/issue517-receiving-live-switch-ui-dxf-20260922
     paths:
       - tests/test_issue517_receiving_live_switch_ui_export_marking.py
+      - tests/test_issue510_receiving_back_panel_modes.py
+      - tests/test_issue187_3d_output_migration.py
+      - tests/test_resolved_manufacturing_export.py
+      - tests/test_issue295_t7_project_export_adapter_slice.py
       - fold_designer_bridge.py
       - phase6_settings_panel.py
       - phase6_final_scene_renderer.py
