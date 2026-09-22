@@ -5,24 +5,36 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:59:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
   "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
   "delegated_branches": [
     "coord/dispatch-claims",
-    "qa/issue505-t8-integration-20260923"
+    "qa/issue505-t8-integration-20260923",
+    "qa/issue505-t8-post-integration-20260923"
   ],
   "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
   "last_update": "2026-09-22T23:59:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_INTEGRATION_ACCEPTANCE",
+    "status": "INTEGRATION_ACCEPTANCE_GREEN_POST_SMOKE_PENDING",
     "run_id": 35752709414,
     "head_sha": "eace29d916279a3454fe39d60c94134e000c2dc5",
     "merge_candidate_sha": "14fbe195425e64fab5cb2e05316794f08c604978",
     "workflow": "qa-issue505-t8-integration.yml"
   },
-  "next_action": "Poll exact T8 Integration Acceptance run 35752709414 to terminal; on GREEN delete delegated QA branch, merge PR #518 non-force, read back exact X, and run post-integration smoke.",
-  "blocker": null
+  "next_action": "Create qa/issue505-t8-post-integration-20260923 from exact production abb970e135a7cca725cf714253cdf75bf669ddc3 and run post-integration focused smoke; on GREEN delete QA branches, write terminal evidence, close #505/#506, release claims.",
+  "blocker": null,
+  "integration": {
+    "pr_number": 518,
+    "production_target": "cleanup/2d-3d-sync",
+    "production_sha": "abb970e135a7cca725cf714253cdf75bf669ddc3",
+    "merge_parents": [
+      "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
+      "390259646e7390ad237bdc023519d89c61f138fc"
+    ],
+    "integration_acceptance_run_id": 35752709414,
+    "integration_acceptance_conclusion": "success"
+  }
 }
