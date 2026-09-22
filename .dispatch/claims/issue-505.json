@@ -5,20 +5,14 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:59:00+08:00",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
   "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
-  "delegated_branches": [
-    "coord/dispatch-claims",
-    "qa/issue505-t8-integration-20260923",
-    "qa/issue505-t8-post-integration-20260923",
-    "qa/issue505-current-x-sentinel-20260923",
-    "qa/issue505-finalization-20260923"
-  ],
+  "delegated_branches": [],
   "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
-  "last_update": "2026-09-22T23:59:00+08:00",
+  "last_update": "2026-09-23T00:39:00+08:00",
   "remote_qa": {
     "status": "CURRENT_X_SENTINEL_GREEN",
     "run_id": 35753647424,
@@ -27,7 +21,7 @@
     "conclusion": "success",
     "workflow": "qa-issue505-current-x-sentinel.yml"
   },
-  "next_action": "Run executable finalization authorization/verification for #505 against terminal checkpoint; then write terminal evidence, close/readback #505, and continue directly to Master #506.",
+  "next_action": null,
   "blocker": null,
   "integration": {
     "pr_number": 518,
@@ -39,5 +33,20 @@
     ],
     "integration_acceptance_run_id": 35752709414,
     "integration_acceptance_conclusion": "success"
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-22T16:26:05Z",
+    "integration_pr": 518,
+    "integration_sha": "abb970e135a7cca725cf714253cdf75bf669ddc3",
+    "post_integration_run": 35752980748,
+    "current_x_sentinel_run": 35753647424,
+    "finalization_run": 35753978556,
+    "finalization_conclusion": "success",
+    "finalization_proof_artifact_id": 10705923732,
+    "finalization_proof_sha256": "86595761f6fa604952508eedafc74c8936b807bff40b845ea775ab10612670d5",
+    "checkpoint": ".dispatch/checkpoints/issue-505.json",
+    "terminal_evidence_comment_id": 5780106006
   }
 }
