@@ -264,7 +264,7 @@ class Phase6FoldDesignerSettingsCoordinator:
             self._transactions.commit_settings(normalized)
 
         self._ports.project_ui_values(
-            clean,
+            changed,
             editor_commit=True,
             editor_snapshot=clean,
         )
