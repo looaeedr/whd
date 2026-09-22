@@ -70,12 +70,26 @@ def _bridge_ast():
 
 
 def _function_source(name: str) -> str:
+    """Return one accepted Bridge compatibility boundary.
+
+    Phase 6 v1.4 allows behavior-identical thin delegates to collapse into a
+    direct owner alias. Treat a top-level name = owner_callable assignment as
+    the same compatibility boundary instead of requiring a FunctionDef.
+    """
     text, tree = _bridge_ast()
     lines = text.splitlines()
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name == name:
-            return "\n".join(lines[node.lineno - 1:node.end_lineno])
-    raise AssertionError(f"missing bridge function: {name}")
+            return "\\n".join(lines[node.lineno - 1:node.end_lineno])
+        if isinstance(node, ast.Assign):
+            if any(
+                isinstance(target, ast.Name) and target.id == name
+                for target in node.targets
+            ):
+                return "\\n".join(lines[node.lineno - 1:node.end_lineno])
+    raise AssertionError(f"missing bridge compatibility boundary: {name}")
+
+
 
 
 def _refresh_call_inventory():
@@ -270,9 +284,18 @@ def test_t5_compatibility_boundary_count_does_not_grow():
         node.name for node in tree.body
         if isinstance(node, ast.FunctionDef)
     }
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            names.update(
+                target.id
+                for target in node.targets
+                if isinstance(target, ast.Name)
+            )
     present = tuple(name for name in T0_BOUNDARY if name in names)
     assert present == T0_BOUNDARY
     assert len(present) == 15
+
+
 
 
 def test_t5_legacy_alias_installer_keeps_t0_proven_registry_names():
