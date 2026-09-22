@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "541",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35795824278,
+  "job_id": 106974750541,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R3.",
+    "Parent accepted HEAD b04310c426ccb07dbc18a09b451a27e54fd2d24f.",
+    "Audit V1 RUN 35795523293 invalidated for BACKUP/tooling contamination.",
+    "Corrected Audit V2 RUN 35795603842 SUCCESS; 12/12 keys accounted.",
+    "Replacement RED RUN 35795722034 SUCCESS with expected 2 failed / 1 passed because four NO_CALLER entries still existed.",
+    "Removed exactly four NO_CALLER facade entries: _phase6_cutting_mesh_error, _phase6_view_initialized, _phase6_base_renderer_render, _phase6_scroll_cid.",
+    "GREEN RUN 35795824278 SUCCESS: 25 passed / 1 skipped.",
+    "FACADE_COUNT 69 -> 65.",
+    "B6_1_ACCOUNTED=12; UNCLASSIFIED=0; DYNAMIC_REF_UNREVIEWED=0.",
+    "One-shot audit/RED/GREEN workflows removed.",
+    "Tested-head cef59e90877ca9f87d542d6d50ae348027200539 -> closing-head a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29 production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "542",
+  "chain_next_action": "Atomically claim #542/B6-2 from accepted HEAD a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29 and continue the serial 69-entry facade audit.",
+  "chain_reason": "B6 controller #531 remains non-terminal; batch 1 accounted 12/69 keys."
+}
