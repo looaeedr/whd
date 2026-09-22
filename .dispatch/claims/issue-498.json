@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "WAITING_REMOTE",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -14,7 +14,7 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "824f3dc0c234be9535220084297decec0b66e6e4",
-  "last_update": "2026-09-22T20:28:00+08:00",
+  "last_update": "2026-09-22T20:30:00+08:00",
   "remote_qa": {
     "status": "IN_PROGRESS",
     "run_id": 35727296797,
