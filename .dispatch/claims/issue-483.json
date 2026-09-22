@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -16,13 +16,15 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "2faf0a3c4cb596e47ce987aec9b9e746448eb54b"
+    "run_id": 35676467843,
+    "head_sha": "2faf0a3c4cb596e47ce987aec9b9e746448eb54b",
+    "status": "completed",
+    "conclusion": "success",
+    "summary": "planned changed-files preflight GREEN; census GREEN; protected tests GREEN"
   },
-  "next_action": "Resolve push-triggered Issue483 T5 planned-scope preflight/census run for head 2faf0a3c4cb596e47ce987aec9b9e746448eb54b, lock exact run_id+head_sha, poll to terminal; if GREEN delete exactly six proven zero-caller functions and add T5 regression/deletion evidence.",
+  "next_action": "Delete exactly six census-proven zero-caller bridge functions, add T5 regression and durable deletion evidence, then run focused behavior/geometry/persistence acceptance.",
   "blocker": null,
-  "last_update": "2026-09-22T09:48:00+08:00",
+  "last_update": "2026-09-22T09:50:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
