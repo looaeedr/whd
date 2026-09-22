@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "d8b3234c79a52952551e5145bcdebc29a5041cde",
-  "last_update": "2026-09-22T22:38:00+08:00",
+  "head_sha": "64777eee411c02ecbf28dc4c728608666e4591eb",
+  "last_update": "2026-09-22T22:40:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35741015712,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue503-t6-red.yml",
     "result": "R6 expected RED confirmed."
   },
-  "next_action": "Create focused T6 GREEN workflow on exact head d8b3234c covering pure planner contract, live canonical sync/Xvfb parity, transaction close path, and architecture ratchet; poll exact run to terminal.",
+  "next_action": "Lock exact T6 GREEN run triggered by 64777eee and poll to terminal; repair only failed scope or cleanup/finalize #503 on GREEN.",
   "blocker": null
 }
