@@ -7,15 +7,21 @@
   "claimed_at": "2026-09-22T19:13:30+08:00",
   "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "head_sha": "544d923f77ab50dd75851cf96d055d8b32b52bfe",
-  "phase": "GREEN",
-  "action_mode": "EXECUTE_NOW",
+  "phase": "CLOSING",
+  "action_mode": "WAIT_ON_FOREIGN_RUNTIME",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T19:29:00+08:00",
-  "next_action": "Obtain a fresh second Remote Guard pr-write receipt for merging PR #507 at exact head 544d923f... into cleanup/2d-3d-sync; merge only if current X and PR head remain unchanged.",
-  "blocker": null,
+  "last_update": "2026-09-22T19:34:00+08:00",
+  "next_action": "In a repository-command-capable interactive runtime, materialize exact cleanup/2d-3d-sync@9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005 tools/continuity_controller.py (blob 30b0ed85b3af3bdf93dded845cb7fadd3846c13e), create an owning TERMINAL_SUCCESS checkpoint for issue 496 at the integrated X HEAD, run canonical authorize-finalization and verify-finalization-proof, then close #496 and read back state=closed/state_reason=completed; afterwards release the claim.",
+  "blocker": {
+    "code": "FINALIZATION_GUARD_EXECUTION_CAPABILITY_BLOCKER",
+    "classification": "PROCESS_CLOSURE_ONLY",
+    "detail": "Code is integrated into cleanup/2d-3d-sync and Skill/registry/test are present. Current runtime cannot obtain an exact executable repository checkout because container DNS cannot resolve github.com/raw.githubusercontent.com, and no existing remote authorize-finalization workflow was found. Reduced/reimplemented finalization logic is not accepted as canonical proof.",
+    "target_head": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+    "canonical_guard_blob": "30b0ed85b3af3bdf93dded845cb7fadd3846c13e"
+  },
   "evidence": {
     "branch_create_remote_guard": {
       "run_id": 35720291279,
@@ -66,6 +72,29 @@
         "classification": "PERSISTENT_UNRELATED_PRODUCTION_DRIFT_CENSUS",
         "evidence": "PRODUCTION_SOURCE_DRIFT=169; prior unrelated Skill/process PR #477 run 35629738906 also failed same census with PRODUCTION_SOURCE_DRIFT=121"
       }
+    },
+    "integration": {
+      "pr": 507,
+      "merge_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+      "current_x_head": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+      "skill_path": ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+      "skill_lines": 288,
+      "registry_route": "remote-execution-guard",
+      "contract_test": "tests/process/test_remote_execution_guard_skill_contract.py"
+    },
+    "merge_remote_guard": {
+      "run_id": 35721723619,
+      "request_comment_id": 5775634416,
+      "receipt_comment_id": 5775636941,
+      "result": "GREEN"
+    },
+    "closure_gate": {
+      "issue_closure_skill_read": true,
+      "issue_closure_pitfall_read": true,
+      "continuity_controller_blob": "30b0ed85b3af3bdf93dded845cb7fadd3846c13e",
+      "local_clone_attempt": "FAILED_DNS_Could_not_resolve_host_github.com",
+      "existing_remote_finalization_workflow_search": "NO_MATCH",
+      "proof_status": "NOT_RUN_FAIL_CLOSED"
     }
   },
   "remote_guard": {
@@ -77,5 +106,7 @@
       "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
       "tested_target_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa"
     }
-  }
+  },
+  "handoff_requested_to": "repository_command_capable_chatgpt_interactive",
+  "handoff_reason": "CANONICAL_FINALIZATION_PROOF_REQUIRED"
 }
