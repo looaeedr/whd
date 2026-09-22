@@ -65,6 +65,7 @@ class SettingsProfileProjectionRequest:
     box_body_profile: Any = ()
     active_part: str = "box_body"
     reset_box_profile: bool = False
+    reset_all_profiles: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -94,6 +95,7 @@ class SettingsProfileProjectionRequest:
         )
         object.__setattr__(self, "active_part", str(self.active_part or "box_body"))
         object.__setattr__(self, "reset_box_profile", bool(self.reset_box_profile))
+        object.__setattr__(self, "reset_all_profiles", bool(self.reset_all_profiles))
 
 
 @dataclass(frozen=True)
@@ -501,7 +503,11 @@ def build_settings_profile_projection(
             else build_standard_part_profiles(snapshot, key)
         )
         existing = dict(existing_profiles.get(key, {}) or {})
-        merged = merge_keyed_profiles(existing, defaults)
+        merged = (
+            defaults
+            if request.reset_all_profiles
+            else merge_keyed_profiles(existing, defaults)
+        )
         if key in {"head", "tail"}:
             merged = _phase6_normalize_endcap_profile_order(
                 merged,
