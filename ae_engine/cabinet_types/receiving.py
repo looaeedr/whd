@@ -511,6 +511,8 @@ def resolve_box_body_structure_state(state=None):
 
     # 受電箱後面板是無折彎平板；已確認成形/下料寬 = W - 2.5T。
     cfg["back_width_comp_t"] = 2.5
+    # #510: rear-panel mode is Receiving family state, not a generic BoxBody option.
+    cfg.setdefault("back_panel_mode", "FULL")
     return result
 
 
