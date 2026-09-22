@@ -1,0 +1,342 @@
+name: WHD Remote Execution Guard
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  guard:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout trusted workflow repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse fixed-schema request
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import PurePosixPath
+
+          body = os.environ["COMMENT_BODY"].replace("\r\n", "\n")
+          lines = body.split("\n")
+          if not lines or lines[0].strip() != "WHD_REMOTE_GUARD_REQUEST_V1":
+              raise SystemExit("invalid request marker")
+
+          allowed_single = {
+              "issue",
+              "worker",
+              "action",
+              "branch",
+              "base_sha",
+              "head_sha",
+              "claim_blob_sha",
+              "guard_authority_sha",
+              "tested_target_sha",
+          }
+          allowed_multi = {"changed_file"}
+          singles = {}
+          changed_files = []
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed request line: {raw!r}")
+              key, value = raw.split("=", 1)
+              key = key.strip()
+              value = value.strip()
+              if key in allowed_single:
+                  if key in singles:
+                      raise SystemExit(f"duplicate request key: {key}")
+                  singles[key] = value
+              elif key in allowed_multi:
+                  changed_files.append(value)
+              else:
+                  raise SystemExit(f"unsupported request key: {key}")
+
+          missing = sorted(allowed_single - set(singles))
+          if missing:
+              raise SystemExit(f"missing request keys: {missing}")
+
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("remote guard requests are restricted to the repository owner")
+
+          issue = int(singles["issue"])
+          if issue != int(os.environ["EVENT_ISSUE"]):
+              raise SystemExit("request issue does not match event issue")
+
+          if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
+              raise SystemExit("invalid worker")
+          if singles["action"] not in {
+              "branch-create",
+              "write",
+              "commit",
+              "qa-dispatch",
+              "workflow-dispatch",
+              "pr-write",
+          }:
+              raise SystemExit("unsupported action")
+
+          branch = singles["branch"]
+          if (
+              not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", branch)
+              or branch.startswith("/")
+              or branch.endswith("/")
+              or ".." in branch
+              or "//" in branch
+              or "@{" in branch
+          ):
+              raise SystemExit("invalid branch")
+
+          sha_keys = {
+              "base_sha",
+              "head_sha",
+              "claim_blob_sha",
+              "guard_authority_sha",
+              "tested_target_sha",
+          }
+          for key in sha_keys:
+              if not re.fullmatch(r"[0-9a-f]{40}", singles[key]):
+                  raise SystemExit(f"invalid SHA: {key}")
+
+          if singles["tested_target_sha"] != singles["head_sha"]:
+              raise SystemExit("tested_target_sha must equal guarded head_sha")
+
+          normalized = []
+          for value in changed_files:
+              value = value.replace("\\", "/")
+              while value.startswith("./"):
+                  value = value[2:]
+              if not value or value.startswith("/") or ".." in PurePosixPath(value).parts:
+                  raise SystemExit(f"invalid changed_file: {value!r}")
+              if value not in normalized:
+                  normalized.append(value)
+          if singles["action"] in {"write", "commit"} and not normalized:
+              raise SystemExit("write/commit requires at least one changed_file")
+
+          request = {
+              **singles,
+              "issue": issue,
+              "changed_files": normalized,
+              "request_comment_id": int(os.environ["COMMENT_ID"]),
+          }
+          with open("/tmp/remote-guard-request.json", "w", encoding="utf-8") as fh:
+              json.dump(request, fh, indent=2, ensure_ascii=False)
+              fh.write("\n")
+
+          env_path = os.environ["GITHUB_ENV"]
+          with open(env_path, "a", encoding="utf-8") as fh:
+              for key, value in singles.items():
+                  fh.write(f"RG_{key.upper()}={value}\n")
+              fh.write(f"RG_ISSUE={issue}\n")
+              fh.write(f"RG_COMMENT_ID={os.environ['COMMENT_ID']}\n")
+
+          with open("/tmp/remote-guard-changed-files.txt", "w", encoding="utf-8") as fh:
+              for value in normalized:
+                  fh.write(value + "\n")
+          PY
+
+      - name: Execute canonical remote guard
+        id: remote_guard
+        shell: bash
+        run: |
+          set -u -o pipefail
+          result="FAIL"
+          reason="unknown"
+          : > /tmp/remote-guard.log
+          : > /tmp/preflight-evidence.txt
+
+          if (
+            set -euo pipefail
+            remote_authority="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
+            test -n "$remote_authority"
+            test "$remote_authority" = "$RG_GUARD_AUTHORITY_SHA"
+
+            git fetch --no-tags origin "$RG_GUARD_AUTHORITY_SHA"
+            git checkout --detach "$RG_GUARD_AUTHORITY_SHA"
+            test "$(git rev-parse HEAD)" = "$RG_GUARD_AUTHORITY_SHA"
+
+            git fetch --no-tags origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+            claim_path=".dispatch/claims/issue-${RG_ISSUE}.json"
+            actual_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${claim_path}")"
+            test "$actual_blob" = "$RG_CLAIM_BLOB_SHA"
+            git show "refs/remotes/origin/coord/dispatch-claims:${claim_path}" > /tmp/execution-claim.json
+
+            git check-ref-format --branch "$RG_BRANCH" >/dev/null
+            current_branch_sha="$(git ls-remote origin "refs/heads/${RG_BRANCH}" | awk '{print $1}')"
+            if [ "$RG_ACTION" = "branch-create" ]; then
+              test -z "$current_branch_sha"
+            else
+              test -n "$current_branch_sha"
+              test "$current_branch_sha" = "$RG_HEAD_SHA"
+            fi
+
+          python - <<'PY'
+          from pathlib import Path
+          from tools.phase6_skill_preflight import required_references_for, required_skills_for
+          import json
+
+          request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
+          task = "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
+          changed = request["changed_files"]
+          skills = required_skills_for(task=task, changed_files=changed)
+          refs = required_references_for(task=task, changed_files=changed)
+
+          lines = []
+          for skill in skills:
+              matches = list(Path(".agents/skills").glob(f"**/{skill}/SKILL.md"))
+              if len(matches) != 1:
+                  raise SystemExit(f"required skill unavailable or ambiguous: {skill}: {matches}")
+              matches[0].read_text(encoding="utf-8")
+              lines.append(f"READ_SKILL: {skill} path={matches[0].as_posix()}")
+          for ref in refs:
+              path = Path(ref)
+              if not path.is_file():
+                  raise SystemExit(f"required reference missing: {ref}")
+              path.read_text(encoding="utf-8")
+              lines.append(f"READ_REFERENCE: {ref}")
+          Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+            preflight_args=(
+              python tools/phase6_skill_preflight.py
+              --task "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
+              --evidence /tmp/preflight-evidence.txt
+            )
+            while IFS= read -r changed_file; do
+              [ -z "$changed_file" ] || preflight_args+=(--changed-file "$changed_file")
+            done < /tmp/remote-guard-changed-files.txt
+            "${preflight_args[@]}"
+
+            guard_args=(
+              python tools/execution_claim_guard.py
+              --claim /tmp/execution-claim.json
+              --issue "$RG_ISSUE"
+              --worker "$RG_WORKER"
+              --branch "$RG_BRANCH"
+              --action "$RG_ACTION"
+              --base-sha "$RG_BASE_SHA"
+              --head-sha "$RG_HEAD_SHA"
+              --preflight-evidence /tmp/preflight-evidence.txt
+            )
+            while IFS= read -r changed_file; do
+              [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
+            done < /tmp/remote-guard-changed-files.txt
+            "${guard_args[@]}"
+          ) > /tmp/remote-guard.log 2>&1; then
+            rc=0
+          else
+            rc=$?
+          fi
+
+          if [ "$rc" -eq 0 ] && grep -q '^EXECUTION_CLAIM_GUARD_GREEN ' /tmp/remote-guard.log; then
+            result="GREEN"
+            reason="EXECUTION_CLAIM_GUARD_GREEN"
+          else
+            reason="REMOTE_GUARD_FAILED"
+          fi
+
+          RG_RESULT="$result" RG_REASON="$reason" python - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          from pathlib import Path
+
+          request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
+          now = dt.datetime.now(dt.timezone.utc)
+          receipt = {
+              "schema": "WHD_REMOTE_GUARD_RECEIPT_V1",
+              "request_comment_id": request["request_comment_id"],
+              "issue": request["issue"],
+              "worker": request["worker"],
+              "action": request["action"],
+              "branch": request["branch"],
+              "base_sha": request["base_sha"],
+              "head_sha": request["head_sha"],
+              "claim_blob_sha": request["claim_blob_sha"],
+              "guard_authority_sha": request["guard_authority_sha"],
+              "tested_target_sha": request["tested_target_sha"],
+              "changed_files": request["changed_files"],
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "orchestrator_head_sha": os.environ["GITHUB_SHA"],
+              "issued_at": now.isoformat().replace("+00:00", "Z"),
+              "expires_at": (now + dt.timedelta(minutes=20)).isoformat().replace("+00:00", "Z"),
+              "result": os.environ["RG_RESULT"],
+              "reason": os.environ["RG_REASON"],
+          }
+          Path("/tmp/remote-guard-receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          mkdir -p "$GITHUB_WORKSPACE/.remote-guard"
+          cp /tmp/remote-guard-request.json "$GITHUB_WORKSPACE/.remote-guard/remote-guard-request.json"
+          cp /tmp/remote-guard-receipt.json "$GITHUB_WORKSPACE/.remote-guard/remote-guard-receipt.json"
+          cp /tmp/preflight-evidence.txt "$GITHUB_WORKSPACE/.remote-guard/preflight-evidence.txt"
+          cp /tmp/remote-guard.log "$GITHUB_WORKSPACE/.remote-guard/remote-guard.log"
+
+          {
+            echo "result=$result"
+            echo "reason=$reason"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish machine-readable receipt
+        if: always() && hashFiles('.remote-guard/remote-guard-receipt.json') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const receipt = fs.readFileSync('.remote-guard/remote-guard-receipt.json', 'utf8').trim();
+            const log = fs.existsSync('.remote-guard/remote-guard.log')
+              ? fs.readFileSync('.remote-guard/remote-guard.log', 'utf8').trim().split('\n').slice(-30).join('\n')
+              : '';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                'WHD_REMOTE_GUARD_RESULT_V1',
+                '~~~json',
+                receipt,
+                '~~~',
+                '',
+                '<details><summary>bounded guard log</summary>',
+                '',
+                '~~~text',
+                log,
+                '~~~',
+                '</details>',
+              ].join('\n'),
+            });
+
+      - name: Upload guard receipt
+        if: always() && hashFiles('.remote-guard/remote-guard-receipt.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-guard-receipt-${{ github.event.comment.id }}
+          path: .remote-guard/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Enforce terminal guard result
+        if: steps.remote_guard.outputs.result != 'GREEN'
+        run: exit 1
