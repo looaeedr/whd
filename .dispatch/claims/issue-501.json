@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "34efeaca95ff7739c89ae8ef5f1440ed888b508c",
-  "last_update": "2026-09-22T23:28:00+08:00",
+  "head_sha": "a7349f68d6207147af259400ffd40b6d208d33cc",
+  "last_update": "2026-09-22T23:31:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35736678370,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue501-t4-red.yml",
     "result": "R3/R4 expected RED confirmed: coordinator lacks baseline/reset sequencing; bridge handlers remain deep."
   },
-  "next_action": "Create focused T4 GREEN workflow with headless ownership contracts plus Xvfb factory/baseline parity on exact implementation head 34efeaca; poll exact run to terminal and classify failures.",
+  "next_action": "Lock exact T4 GREEN run triggered by a7349f68 and poll that same run to terminal; on failure inspect only failed job/step and repair minimally; on success cleanup/finalize #501 and immediately claim #502.",
   "blocker": null
 }
