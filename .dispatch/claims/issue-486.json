@@ -1,0 +1,28 @@
+{
+  "issue": 486,
+  "issue_url": "https://github.com/looaeedr/whd/issues/486",
+  "master_issue": 486,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T13:27:00+08:00",
+  "phase": "RECOVERING",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
+  "work_order_branch": "work/issue486-phase4-ownership-20260922",
+  "work_branch": "work/issue486-phase4-ownership-20260922",
+  "head_sha": "f54493ad2c9b994c61ea5f3c8af08b6b3dc29455",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED",
+    "run_id": null,
+    "head_sha": null,
+    "tested_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8"
+  },
+  "next_action": "Run exact-production Master shared-content gate classifier on #430-#435 tests against c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8 to determine whether shared-content duplicate region/tree/binding=0 is currently GREEN or a true regression. Do not close Master until classified.",
+  "blocker": null,
+  "last_update": "2026-09-22T13:27:00+08:00",
+  "children_readback": "#478-#485 all CLOSED/completed",
+  "phase4_temporary_workflow_residue": 0
+}
