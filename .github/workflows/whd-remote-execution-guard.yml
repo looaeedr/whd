@@ -189,32 +189,32 @@ jobs:
               test "$current_branch_sha" = "$RG_HEAD_SHA"
             fi
 
-            python - <<'PY'
-            from pathlib import Path
-            from tools.phase6_skill_preflight import required_references_for, required_skills_for
-            import json
+          python - <<'PY'
+          from pathlib import Path
+          from tools.phase6_skill_preflight import required_references_for, required_skills_for
+          import json
 
-            request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
-            task = "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
-            changed = request["changed_files"]
-            skills = required_skills_for(task=task, changed_files=changed)
-            refs = required_references_for(task=task, changed_files=changed)
+          request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
+          task = "GitHub Actions remote QA scheduler execution claim guard workflow run_id"
+          changed = request["changed_files"]
+          skills = required_skills_for(task=task, changed_files=changed)
+          refs = required_references_for(task=task, changed_files=changed)
 
-            lines = []
-            for skill in skills:
-                matches = list(Path(".agents/skills").glob(f"**/{skill}/SKILL.md"))
-                if len(matches) != 1:
-                    raise SystemExit(f"required skill unavailable or ambiguous: {skill}: {matches}")
-                matches[0].read_text(encoding="utf-8")
-                lines.append(f"READ_SKILL: {skill} path={matches[0].as_posix()}")
-            for ref in refs:
-                path = Path(ref)
-                if not path.is_file():
-                    raise SystemExit(f"required reference missing: {ref}")
-                path.read_text(encoding="utf-8")
-                lines.append(f"READ_REFERENCE: {ref}")
-            Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-            PY
+          lines = []
+          for skill in skills:
+              matches = list(Path(".agents/skills").glob(f"**/{skill}/SKILL.md"))
+              if len(matches) != 1:
+                  raise SystemExit(f"required skill unavailable or ambiguous: {skill}: {matches}")
+              matches[0].read_text(encoding="utf-8")
+              lines.append(f"READ_SKILL: {skill} path={matches[0].as_posix()}")
+          for ref in refs:
+              path = Path(ref)
+              if not path.is_file():
+                  raise SystemExit(f"required reference missing: {ref}")
+              path.read_text(encoding="utf-8")
+              lines.append(f"READ_REFERENCE: {ref}")
+          Path("/tmp/preflight-evidence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
 
             preflight_args=(
               python tools/phase6_skill_preflight.py
