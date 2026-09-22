@@ -3,10 +3,10 @@
   "issue": "#499",
   "branch": "work/issue506-phase5-settings-dataflow-20260922",
   "head_sha": "9b18b80928649977044ea3da2c66b96741034f93",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll exact acceptance run 35732305573 on head 9b18b809 to terminal; on GREEN perform workflow cleanup, tested-to-cleaned drift audit, terminal checkpoint/finalization proof, close #499, then start #500.",
+  "state": "RUNNING",
+  "next_action": "Delete all five T2 one-shot QA workflows in one cleanup commit; verify tested 9b18b809 -> cleaned diff is workflow-delete-only; then finalize #499 with next child #500.",
   "run_id": 35732305573,
-  "job_id": null,
+  "job_id": 106760662043,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -26,7 +26,8 @@
     "Candidate diagnostic matrix run 35731884812 terminal: 6 PASS / 6 FAIL; issue499 focused contract PASS.",
     "Accepted-T1 baseline matrix run 35732090162 locked; jobs checkout 87e5c47e3fcb68729d1d266e85cec85bd45ae4ff.",
     "Accepted-T1 baseline matrix run 35732090162 terminal; legacy focused candidate-only failing-file delta = []; issue499 candidate contract PASS.",
-    "T2 acceptance run 35732305573 locked on exact head 9b18b80928649977044ea3da2c66b96741034f93."
+    "T2 acceptance run 35732305573 locked on exact head 9b18b80928649977044ea3da2c66b96741034f93.",
+    "T2 acceptance run 35732305573 terminal SUCCESS on tested head 9b18b80928649977044ea3da2c66b96741034f93; candidate-only focused failures=[]; architecture ratchet GREEN."
   ],
   "master_issue": null,
   "chain_state": "NONE",
