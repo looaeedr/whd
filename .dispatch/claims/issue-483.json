@@ -16,13 +16,14 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "bd1d1e9fcf15d964161118688b38cf431ad072aa"
+    "run_id": 35676695045,
+    "head_sha": "bd1d1e9fcf15d964161118688b38cf431ad072aa",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue483 T5 Focused Acceptance run for head bd1d1e9fcf15d964161118688b38cf431ad072aa, lock exact run_id+head_sha, poll to terminal, then cleanup qa-issue483 workflows, audit tested->closing drift, persist checkpoint/proof, close #483 and continue #484.",
+  "next_action": "Poll locked T5 acceptance run 35676695045 @ bd1d1e9fcf15d964161118688b38cf431ad072aa to terminal; if GREEN cleanup temporary Issue483 workflows, audit drift, finalize/close/release, continue #484.",
   "blocker": null,
-  "last_update": "2026-09-22T09:54:00+08:00",
+  "last_update": "2026-09-22T09:55:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
