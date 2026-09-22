@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "#482",
+  "branch": "work/issue486-phase4-ownership-20260922",
+  "head_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35675894603,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "T4 deletion-test durable decision at be2cb51dae0d6effa6529fe066814a0a8eb6e732: exact six Settings projection/glue functions all resolved to KEEP_BRIDGE_COMPATIBILITY; no second Settings owner created.",
+    "Focused acceptance RUN 35675894603 @ b52add3b66ff48acd90d068636781fe14fac9808 completed SUCCESS.",
+    "RUN 35675894603 exact-six-decision job: ISSUE482_EXACT_SIX_DECISION_GREEN.",
+    "RUN 35675894603 settings-presentation: 53 PASS / 77 warnings.",
+    "RUN 35675894603 owner-boundaries: 69 PASS / 4 SKIP.",
+    "RUN 35675894603 protected-invariants: ISSUE482_G1_G4_GREEN; facade bindings <= 69; reverse-import bridge=0; second composition root=0.",
+    "Settings transaction owner, Registry mutation owner, manufacturing mutation owner, AssemblyJoint mutation owner all unchanged; no new edit capability.",
+    "Temporary Issue482 acceptance workflow removed. Tested head b52add3b66ff48acd90d068636781fe14fac9808 -> closing head 1455e9737cefe3d9dbe900daae6b9286a891740e changes only .github/workflows/qa-issue482-t4-acceptance.yml deletion; production/test drift=0.",
+    "T5/#483 is dependency-unblocked from accepted T4 closing head 1455e9737cefe3d9dbe900daae6b9286a891740e."
+  ],
+  "master_issue": "#486",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#483",
+  "chain_next_action": "Acquire shared execution claim for #483 on work/issue486-phase4-ownership-20260922 at accepted T4 HEAD 1455e9737cefe3d9dbe900daae6b9286a891740e, then execute T5 Bridge compatibility ratchet / dead-glue cleanup.",
+  "chain_reason": null
+}
