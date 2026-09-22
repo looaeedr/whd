@@ -1,0 +1,39 @@
+{
+  "issue": 521,
+  "master_issue": 520,
+  "task_id": "A0",
+  "role": "PM/QA accepted",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "current_x_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "remote_qa": null,
+  "completed": [
+    "GitHub owning Issue published/read back",
+    "Atomic execution claim acquired",
+    "Work-order branch created from frozen X base",
+    "Phase6 Knowledge Preflight GREEN",
+    "Accepted v1.4 spec persisted",
+    "347/347 top-level symbols classified with UNKNOWN=0",
+    "69/69 facade entries accounted",
+    "Budget frozen: MIN_REDUCTION=1000; EFFECTIVE_FINAL_CEILING=6500",
+    "Production behavior change=0",
+    "Inline Standards review PASS",
+    "Inline Spec review PASS"
+  ],
+  "pending": [
+    "Close #521 and transition chain to #522/A1"
+  ],
+  "failed": [],
+  "blocked": [],
+  "dirty_files": [],
+  "validation": [
+    "compare adbfa950...23fd989: only spec/preflight/census evidence files",
+    "census readback gates all true",
+    "current X == frozen X base"
+  ],
+  "config_invariant": "NOT_TOUCHED",
+  "temporary_workflows": [],
+  "next_exact_action": "Close #521, set claim RELEASED, create #522 claim with base/head=23fd989edfa35583af8e3435ca86fc08835e4260."
+}
