@@ -1,0 +1,7 @@
+{
+  "branch": "hotfix/issue490-marking-divider-holeeditor-20260922",
+  "checkpoint_fingerprint": "12f9e97385771bc3d385793d95b8b800427c0a9ecabb4861d2defccd612217de",
+  "head_sha": "3464c2020483d23675c4585e449b08cd6f785809",
+  "issue": "490",
+  "version": 1
+}
