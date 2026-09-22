@@ -6,8 +6,8 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "8780c55f624a7b70f37f516001073017668735d0",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-22T16:17:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-22T16:20:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35752222099,
@@ -17,9 +17,11 @@
     "job_id": 106828999285,
     "summary": "Combined SUCCESS; Final physical/DXF SUCCESS; candidate #45 1 PASS/1 FAIL and frozen-base #45 1 PASS/1 FAIL with identical result_door_w_var == '-' assertion; config.ini invariant GREEN. Classified as pre-existing baseline debt, not #517 regression."
   },
-  "next_action": "Create/fresh-read PR from closing head 8780c55f624a7b70f37f516001073017668735d0 to cleanup/2d-3d-sync; merge non-force; post-integration readback; terminal checkpoint/proof; close #517; release claim.",
+  "next_action": "Run canonical continuity_controller authorize-finalization + verify-finalization-proof on delegated closure-guard branch without changing owning work branch/head; then close/readback #517 and release claim.",
   "blocker": null,
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue517-finalization-guard-20260922"
+  ],
   "ai_library_writeback": {
     "commit": "6ccac1ba32b8b0abecb68a85188575fef4875ba6",
     "marker": "ISSUE517_EXACT_GUI_ACCEPTANCE_PITFALL",
