@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "issue": "526",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "185991276c57fa3aeecace562daf89fa7be5b5ae",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35781297993,
+  "job_id": 106927146061,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2.",
+    "Parent accepted HEAD 4d085c4d2daf172bf55684c87e6086572d9d818c.",
+    "Formal Deletion-Test RUN 35781297993 @ 0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7 SUCCESS.",
+    "DT-0/DT-2/DT-4/DT-6 all completed; focused 24 passed, 3 skipped; exact Xvfb activation path 1 passed.",
+    "Variant K returns direct Workspace mutation/full-app ordering to caller.",
+    "Variant E forbidden imports=0 but old body removed=false, opaque presentation callback=true, duplicate_path_count=1.",
+    "Decision B1_KEEP_COMPATIBILITY; production_change_required=false; bridge_symbols_removed=0.",
+    "One-shot B1 workflow removed.",
+    "Parent-to-closing diff contains only preflight + B1 DT JSON/MD; production/test drift=0.",
+    "Current X advanced to a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04; active chain remains sealed on frozen lineage and does not chase X."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "527",
+  "chain_next_action": "Atomically claim #527/B2 Workspace Shell Deletion-Test / Boundary Reconsideration from accepted HEAD 185991276c57fa3aeecace562daf89fa7be5b5ae and continue mandatory Stage B.",
+  "chain_reason": "B1_KEEP_COMPATIBILITY; Stage B remains mandatory."
+}
