@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "issue": "#484",
+  "branch": "work/issue486-phase4-ownership-20260922",
+  "head_sha": "58c9c3a0638fd3c894d04274649775554311c1d2",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35686800963,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Prior T6 acceptance RUN 35677198331 was invalidated because candidate-only failure classification was missing and revealed one candidate-only legacy AssemblySceneRenderData compatibility regression in both Headless and Xvfb.",
+    "Remediation root cause: FinalScene composition statically bound AssemblySceneRenderData/AssemblyScenePart instead of resolving them from the bridge compatibility namespace.",
+    "Remediation implementation head 3e5bb54ab7f3a80e186e91ba31aa045df6a978d2 namespace-bound both class ports via required(...). Focused RUN 35686672750 @ 84f5746fef1cdf74a57ca1546dd69f7bf43457c0 completed SUCCESS: 29 PASS and ISSUE484_LEGACY_COMPAT_BINDING_GREEN.",
+    "True differential RUN 35686800963 @ 7fecca1a0e5382ea8268edd1dd2cde46e9b37496 completed SUCCESS.",
+    "Headless true differential: baseline 2696 PASS / 8 FAIL / 0 ERROR / 494 SKIP; candidate 2714 PASS / 8 FAIL / 0 ERROR / 494 SKIP; candidate-only failures=[]; candidate-only errors=[].",
+    "Xvfb true differential: baseline 3148 PASS / 49 FAIL / 0 ERROR / 1 SKIP; candidate 3166 PASS / 49 FAIL / 0 ERROR / 1 SKIP; candidate-only failures=[]; candidate-only errors=[].",
+    "Differential classifier emitted ISSUE484_TRUE_DIFFERENTIAL_GREEN.",
+    "Architecture/protected job: 100 PASS / 130 warnings and ISSUE484_R1_R4_G1_G4_GREEN; config/DXF digest unchanged.",
+    "Temporary remediation and true-differential workflows removed. Tested head 7fecca1a0e5382ea8268edd1dd2cde46e9b37496 -> closing head 58c9c3a0638fd3c894d04274649775554311c1d2 changes only those two workflow deletions; production/test drift=0.",
+    "T7/#485 must resume from this corrected accepted T6 closing head; prior #485 finalization evidence is stale because T6 was reopened."
+  ],
+  "master_issue": "#486",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#485",
+  "chain_next_action": "Resume #485 T7 from corrected T6 accepted closing head 58c9c3a0638fd3c894d04274649775554311c1d2: integrate remediation non-force into current X if not already present, run a fresh exact-production post-integration smoke, rebuild #485 terminal checkpoint/proof, close #485, then close Master #486 after full child readback.",
+  "chain_reason": null
+}
