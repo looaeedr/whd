@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,15 +18,34 @@
   "remote_qa": {
     "run_id": 35676351857,
     "head_sha": "4822510d09b6bd879c6feec1d5cad3806d48fe92",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "summary": "canonical preflight GREEN; census GREEN; protected tests 26 PASS / 1 SKIP"
   },
-  "next_action": "Poll locked census run 35676351857 @ 4822510d09b6bd879c6feec1d5cad3806d48fe92 to terminal; inspect exact ISSUE483_CENSUS_JSON, then delete only proven zero-caller/duplicate/stale bridge glue.",
+  "next_action": "Run planned-changed-files preflight for fold_designer_bridge.py, tests/test_issue483_t5_bridge_dead_glue_cleanup.py, and docs/superpowers/checkpoints/issue483-t5-dead-glue-deletion.json; if GREEN delete exactly six census-proven zero-caller functions and run focused acceptance.",
   "blocker": null,
-  "last_update": "2026-09-22T09:44:00+08:00",
+  "last_update": "2026-09-22T09:46:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
     "checkpoint": ".dispatch/checkpoints/issue-482.json"
+  },
+  "census": {
+    "run_id": 35676351857,
+    "head_sha": "4822510d09b6bd879c6feec1d5cad3806d48fe92",
+    "bridge_loc": 7987,
+    "top_level_functions": 335,
+    "facade_binding_count": 69,
+    "workspace_shell_exists": false,
+    "part_editor_session_exists": false,
+    "deletion_candidates": [
+      "_phase6_on_setting_var_changed",
+      "_phase6_corner_targets",
+      "_phase6_on_endcap_fw_follow_selected",
+      "_phase6_bind_translated_var",
+      "_phase6_scene_from_structural_result",
+      "_phase6_profile_material_total"
+    ],
+    "evidence_class": "strong_zero_static_and_repo_exact_name_zero"
   }
 }
