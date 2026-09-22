@@ -32,6 +32,30 @@ Bridge 可保留的責任：
 
 Bridge 不得重新吸回已抽出的 presentation implementation，也不得建立第二個 Settings / Registry / Bending / manufacturing / FinalScene owner。
 
+### FinalScene composition ports
+
+CURRENT composition owner：既有 `Phase6FoldDesignerComposition`。
+
+- FinalScene 的完整 port assembly / wiring 由 application composition owner 建立；bridge 只保留 narrow delegate / bootstrap handoff。
+- `Phase6FinalSceneViewAdapter` / renderer owner 不因 composition wiring 搬移而改變。
+- manufacturing owner 不因 FinalScene composition wiring 搬移而改變。
+- 禁止在 bridge 重新建立 deep `FinalSceneCompositionPorts(...)` constructor；禁止第二個 composition root；owner 不得 reverse-import bridge。
+
+### Derived-part projection / apply
+
+Pure planning owner：`phase6_derived_part_projection.py`。
+
+- Door / BasePlate / BoxBody / Divider / InnerDoor 的 derived projection 必須先形成 immutable `DerivedPartProjectionRequest`，再產生 `DerivedPartSyncPlan`。
+- pure planner 不得 import bridge / Tk，不得擁有 `DesignerWorkspace`、workspace/navigation mutation 或 manufacturing geometry formula。
+- mutation/apply owner：`Phase6WorkspaceNavigationController.apply_derived_sync_plan`；bridge 不得直接 apply workspace/navigation mutation。
+- physical-part identity、project persistence 與 manufacturing authority 不因 projection seam 改變。
+
+### Linked endcap
+
+**Decision：KEEP_COMPATIBILITY。**
+
+Linked-endcap compatibility orchestration 可留在 bridge；不得因此建立新的 domain owner。Derived sync apply 仍由 `Phase6WorkspaceNavigationController.apply_derived_sync_plan` 擁有，bridge direct apply mutation 必須維持為 0。
+
 ### Bending UI
 
 CURRENT owner：`phase6_bending_ui.py`。
@@ -49,12 +73,16 @@ Bridge 只可保留必要 compatibility transaction delegate、暫時 monkey-pat
 
 CURRENT owner：既有 `phase6_settings_panel.py`。
 
+**Phase 4 decision：KEEP_BRIDGE_COMPATIBILITY。** Exact-six Settings projection/dataflow compatibility functions不另建 competing Settings owner；既有 Settings presentation owner維持不變。
+
 規則：
 
 - Settings presentation cluster 在該 owner 內深化；
 - 不建立第二個 Settings panel/module；
 - canonical Settings mutation / transaction / state authority 不因 presentation ownership 改變；
-- symmetry presentation 已屬 BendingUI 的部分不得在 Settings 重複實作。
+- Registry mutation、manufacturing mutation、AssemblyJoint mutation owners 不因 compatibility projection 改變；
+- symmetry presentation 已屬 BendingUI 的部分不得在 Settings 重複實作；
+- compatibility seam 不得新增 edit capability。
 
 ### Registry diagnostics presentation
 
@@ -164,7 +192,9 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 
 ## Accepted lineage provenance
 
-本 CURRENT contract 由 #441 ownership-refactor chain 的已接受 decisions 收斂而成：
+本 CURRENT contract 由 #441 ownership-refactor chain 與 #486 Phase 4 ownership chain 的已接受 decisions 收斂而成。
+
+既有 #441 stable decisions：
 
 - Bending UI owner：#444；
 - Settings presentation owner：#445；
@@ -173,5 +203,13 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 - Part Editor C_KEEP_BRIDGE_COMPATIBILITY：#448；
 - `_fix11_init` bootstrap-only：#449；
 - Combined invariant acceptance：#450。
+
+Phase 4 #486 stable decisions：
+
+- FinalScene composition ports owner → existing `Phase6FoldDesignerComposition`：#479；
+- immutable derived-part projection planning → `phase6_derived_part_projection.py`：#480；
+- derived sync apply → `Phase6WorkspaceNavigationController.apply_derived_sync_plan`，linked endcap `KEEP_COMPATIBILITY`：#481；
+- Settings exact-six decision → `KEEP_BRIDGE_COMPATIBILITY`，existing `phase6_settings_panel.py` presentation owner unchanged：#482；
+- compatibility ratchet / dead-glue cleanup與 Combined Acceptance由 #483/#484 驗證，沒有建立新的 domain authority。
 
 以上 issue/run/commit 只提供 provenance；**本文件的 stable ownership contract 才是後續 routing 要讀的 CURRENT 規則**。
