@@ -1,0 +1,124 @@
+name: "QA #504 T7 architecture fix"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - '.github/workflows/qa-issue504-t7-architecture-fix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  architecture-protected:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          path: candidate
+      - name: Checkout fixed T0 baseline
+        uses: actions/checkout@v4
+        with:
+          ref: ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa
+          path: baseline
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Architecture and protected-object gates
+        run: |
+          python - <<'PY'
+          import ast
+          import subprocess
+          from pathlib import Path
+
+          root = Path("candidate")
+          bridge = (root / "fold_designer_bridge.py").read_text(encoding="utf-8")
+          tree = ast.parse(bridge)
+
+          facade = next(
+              node for node in ast.walk(tree)
+              if isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Name)
+              and node.func.id == "install_fold_designer_bridge_facade"
+          )
+          assert isinstance(facade.args[1], ast.Dict)
+          facade_count = len(facade.args[1].keys)
+          assert facade_count <= 69, facade_count
+
+          assert not (root / "phase6_workspace_shell.py").exists()
+          assert not (root / "phase6_part_editor_session.py").exists()
+          for name in (
+              "_phase6_rebuild_linked_endcaps",
+              "_fix11_activate_part",
+              "_fix11_save_current_part",
+              "_phase6_settings_box_structure_projection",
+              "_phase6_settings_endcap_fw_projection",
+              "_phase6_settings_bottom_wrap_projection",
+              "_phase6_settings_corner_projection",
+              "_phase6_settings_context_extension_projection",
+              "_phase6_sync_settings_panel_extension",
+          ):
+              assert f"def {name}(" in bridge, name
+
+          owner_files = [
+              "phase6_settings_center.py",
+              "phase6_settings_contracts.py",
+              "phase6_settings_transitions.py",
+              "phase6_settings_service.py",
+              "phase6_settings_transaction_controller.py",
+              "phase6_settings_panel.py",
+              "phase6_sync_envelope.py",
+              "gui_modules/application/fold_designer_adapter.py",
+              "gui_modules/application/command_router.py",
+              "gui_modules/application/lifecycle.py",
+              "phase6_workspace_navigation_controller.py",
+              "phase6_derived_part_projection.py",
+              "phase6_settings_profile_projection.py",
+              "gui_modules/application/fold_designer_settings_coordinator.py",
+          ]
+          reverse = 0
+          for rel in owner_files:
+              text = (root / rel).read_text(encoding="utf-8")
+              reverse += text.count("import fold_designer_bridge")
+              reverse += text.count("from fold_designer_bridge import")
+          assert reverse == 0, reverse
+
+          owners = []
+          for py in root.rglob("*.py"):
+              rel = py.relative_to(root)
+              if ".git" in rel.parts or rel.parts[0] == "tests":
+                  continue
+              try:
+                  parsed = ast.parse(py.read_text(encoding="utf-8"))
+              except SyntaxError:
+                  continue
+              for node in parsed.body:
+                  if isinstance(node, ast.ClassDef) and node.name == "Phase6FoldDesignerComposition":
+                      owners.append(str(rel))
+          assert owners == ["gui_modules/application/fold_designer_adapter.py"], owners
+
+          def object_map(repo_dir):
+              lines = subprocess.check_output(
+                  ["git", "-C", repo_dir, "ls-tree", "-r", "HEAD"],
+                  text=True,
+              ).splitlines()
+              out = {}
+              for line in lines:
+                  meta, path = line.split("\t", 1)
+                  sha = meta.split()[2]
+                  if path == "config.ini" or path.lower().endswith(".dxf"):
+                      out[path] = sha
+              return out
+
+          b = object_map("baseline")
+          c = object_map("candidate")
+          assert c == b, {"baseline": b, "candidate": c}
+
+          print(f"FACADE_BINDING_COUNT={facade_count}")
+          print("PHASE6_REVERSE_IMPORT_BRIDGE_COUNT=0")
+          print("SECOND_COMPOSITION_ROOT=0")
+          print("CONFIG_DXF_GIT_OBJECT_DELTA=0")
+          print("PHASE5_PROTECTED_DECISIONS_GREEN=1")
+          PY
