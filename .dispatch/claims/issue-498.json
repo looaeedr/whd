@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -13,16 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "4f427510a024cc74a768c1c2b450e90580ab70e9",
-  "last_update": "2026-09-22T20:43:00+08:00",
+  "head_sha": "1a13f968d6c2e6cd4d498bad7bae6f442e0d8213",
+  "last_update": "2026-09-22T20:45:00+08:00",
   "remote_qa": {
-    "status": "FAILED_HARNESS",
-    "run_id": 35727975345,
-    "head_sha": "4f427510a024cc74a768c1c2b450e90580ab70e9",
+    "status": "QUEUED",
+    "run_id": 35728144746,
+    "head_sha": "1a13f968d6c2e6cd4d498bad7bae6f442e0d8213",
     "workflow": "qa-issue498-t1-green.yml",
-    "result": "22 passed, 6 skipped, 1 failed",
-    "failure": "ModuleNotFoundError: matplotlib while importing existing phase6_final_scene_renderer"
+    "replaces_run_id": 35727975345
   },
-  "next_action": "Patch T1 GREEN workflow harness to install matplotlib only; let push create replacement GREEN run and lock it to terminal.",
+  "next_action": "Poll locked replacement T1 GREEN run 35728144746 @ 1a13f968d6c2e6cd4d498bad7bae6f442e0d8213 until terminal; classify failure or extract counts/invariants.",
   "blocker": null
 }
