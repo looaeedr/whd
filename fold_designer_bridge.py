@@ -2949,6 +2949,52 @@ def _phase6_toggle_structure_advanced(self, type_id):
     _phase6_render_settings_context(self, "box_body")
 
 
+def _phase6_back_panel_mode_control_is_applicable(self):
+    """Normal-input visibility contract for the Receiving rear-panel product choice."""
+    workspace = getattr(self, "designer_workspace", None)
+    active_part = str(getattr(workspace, "active_part", "") or "")
+    if active_part != "box_body:back":
+        return False
+    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
+    if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
+        return False
+    state = _phase6_box_structure_state(self)
+    return (
+        str(state.get("active_type") or "")
+        == BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    )
+
+
+def _phase6_refresh_back_panel_mode_control(self):
+    """Project canonical rear-panel mode into the existing normal input region."""
+    frame = getattr(self, "back_panel_mode_control", None)
+    var = getattr(self, "back_panel_mode_var", None)
+    selector = getattr(self, "back_panel_mode_selector", None)
+    if frame is None or var is None or selector is None:
+        return False
+
+    if not _phase6_back_panel_mode_control_is_applicable(self):
+        if frame.winfo_manager():
+            frame.pack_forget()
+        return False
+
+    current = back_panel_mode(_phase6_box_structure_state(self))
+    label = _BACK_PANEL_MODE_LABELS[current]
+    if str(var.get() or "") != label:
+        var.set(label)
+
+    if not frame.winfo_manager():
+        before = getattr(getattr(self, "bend_ui", None), "nb", None)
+        options = {
+            "fill": original.tk.X,
+            "pady": (0, 4),
+        }
+        if before is not None and before.winfo_manager():
+            options["before"] = before
+        frame.pack(**options)
+    return True
+
+
 def _phase6_select_back_panel_mode(self, var):
     """Commit the Receiving rear-panel mode through canonical structure state."""
     mode = _BACK_PANEL_MODE_LABEL_TO_MODE.get(str(var.get()).strip())
@@ -2964,6 +3010,8 @@ def _phase6_select_back_panel_mode(self, var):
     except Exception as exc:
         _phase6_box_structure_error(self, exc)
         _phase6_after_box_structure_commit(self, state, rebuild=True)
+    finally:
+        _phase6_refresh_back_panel_mode_control(self)
 
 
 def _phase6_apply_box_structure_numeric(self, type_id, field, var):
@@ -6095,6 +6143,32 @@ def _phase6_install_part_editor_compatibility(self):
     self.input_content_host = original.ttk.Frame(self.left)
     self.fold_editor_host = self.input_content_host
     self.shared_content_host = self.left
+
+    # Receiving 後面板形式 is a normal product choice, not an advanced
+    # parameter.  Keep one normal-input projection bound to the existing
+    # canonical structure-state callback; no second state owner is created.
+    self.back_panel_mode_control = original.ttk.Frame(self.input_content_host)
+    original.ttk.Label(
+        self.back_panel_mode_control,
+        text="後面板形式",
+    ).pack(side=original.tk.LEFT, padx=(0, 6))
+    self.back_panel_mode_var = original.tk.StringVar(
+        master=self.back_panel_mode_control,
+        value=_BACK_PANEL_MODE_LABELS[BackPanelMode.FULL],
+    )
+    self.back_panel_mode_selector = original.ttk.Combobox(
+        self.back_panel_mode_control,
+        textvariable=self.back_panel_mode_var,
+        values=tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
+        state="readonly",
+        width=10,
+    )
+    self.back_panel_mode_selector.pack(side=original.tk.LEFT)
+    self.back_panel_mode_selector.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: _phase6_select_back_panel_mode(self, self.back_panel_mode_var),
+    )
+
     self.bend_ui = Phase6BendingUI(
         self.input_content_host, self.state, self.queue_update
     )
@@ -6540,6 +6614,7 @@ def _fix11_refresh_part_buttons(self):
             self.part_var.set(_phase6_part_label(active, snapshot=snapshot))
     self._refresh_part_button_states()
     _phase6_refresh_box_body_piece_selector(self)
+    _phase6_refresh_back_panel_mode_control(self)
     if getattr(self, "assembly_parts_panel", None) is not None:
         _phase6_refresh_assembly_parts_panel(self)
     _phase6_refresh_structure_tree(self)
@@ -7579,6 +7654,7 @@ def _fix11_activate_part(self, key, initial=False):
         self.do_update()
     _phase6_refresh_persistent_structure_controls(self)
     _phase6_refresh_box_body_piece_selector(self)
+    _phase6_refresh_back_panel_mode_control(self)
     _phase6_refresh_content_switch(self)
 
 
