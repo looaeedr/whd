@@ -6,27 +6,47 @@
   "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T10:54:54+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "FINALIZING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-  "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496",
+  "head_sha": "58c9c3a0638fd3c894d04274649775554311c1d2",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "run_id": 35686800963,
     "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496",
-    "status": "queued",
-    "conclusion": null,
-    "workflow": ".github/workflows/qa-issue484-t6-true-differential.yml"
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": ".github/workflows/qa-issue484-t6-true-differential.yml",
+    "classifier": {
+      "headless": {
+        "baseline": "2696 PASS / 8 FAIL / 0 ERROR / 494 SKIP",
+        "candidate": "2714 PASS / 8 FAIL / 0 ERROR / 494 SKIP",
+        "candidate_only_failures": [],
+        "candidate_only_errors": []
+      },
+      "xvfb": {
+        "baseline": "3148 PASS / 49 FAIL / 0 ERROR / 1 SKIP",
+        "candidate": "3166 PASS / 49 FAIL / 0 ERROR / 1 SKIP",
+        "candidate_only_failures": [],
+        "candidate_only_errors": []
+      },
+      "result": "ISSUE484_TRUE_DIFFERENTIAL_GREEN"
+    },
+    "architecture_protected": {
+      "result": "ISSUE484_R1_R4_G1_G4_GREEN",
+      "focused": "100 PASS / 130 warnings",
+      "config_dxf_digest_unchanged": true
+    }
   },
-  "next_action": "Poll locked true differential RUN 35686800963 @ 7fecca1a0e5382ea8268edd1dd2cde46e9b37496 to terminal; require candidate-only failures/errors=[] in Headless and Xvfb plus architecture/protected GREEN; then cleanup temp workflows, audit drift, rebuild #484 terminal checkpoint/proof, close #484, resume #485 remediation integration/post-smoke.",
+  "next_action": "Persist corrected #484 TERMINAL_SUCCESS checkpoint/finalization proof at closing head 58c9c3a0638fd3c894d04274649775554311c1d2; close #484; then resume #485 T7 from corrected T6 accepted head and rebuild integration/post-smoke evidence.",
   "blocker": null,
-  "last_update": "2026-09-22T12:16:00+08:00",
+  "last_update": "2026-09-22T13:03:00+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
@@ -39,17 +59,14 @@
     ]
   },
   "cleanup": {
-    "tested_head": "d004862f0726d628e84d4a98f317c180d122e8e4",
-    "closing_head": "8b08024a9b93fe5577846489df099ce0387d08b4",
+    "tested_head": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496",
+    "closing_head": "58c9c3a0638fd3c894d04274649775554311c1d2",
     "removed_workflows": [
-      ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
+      ".github/workflows/qa-issue484-t6-remediation.yml",
+      ".github/workflows/qa-issue484-t6-true-differential.yml"
     ],
-    "drift_class": "CLEANUP_ONLY_DESCENDANT",
-    "compare_status": "ahead",
-    "ahead_by": 1,
-    "changed_files": [
-      ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
-    ]
+    "drift_class": "QA_WORKFLOW_DELETION_ONLY",
+    "production_test_drift": 0
   },
   "acceptance": {
     "issue_state": "closed",
