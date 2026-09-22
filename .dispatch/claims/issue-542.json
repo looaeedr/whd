@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
   "head_sha": "61f75b16a5f358eba0609fcd2ac6616d1485e452",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T07:14:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T07:15:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,11 +18,16 @@
   "remote_qa": {
     "run_id": 35796289899,
     "head_sha": "61f75b16a5f358eba0609fcd2ac6616d1485e452",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "B6-2 exact 12-key facade consumer/dynamic/property/public audit"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-2 exact facade audit",
+    "evidence": {
+      "accounted": 12,
+      "unclassified": 0,
+      "artifact_id": 10723972833
+    }
   },
-  "next_action": "Poll exact RUN 35796289899 @ 61f75b16a5f358eba0609fcd2ac6616d1485e452 to terminal; classify all 12 keys before any facade mutation.",
+  "next_action": "Add replacement RED for activate_selected_part NO_CALLER removal; retain remaining 11 compatibility/public/property entries.",
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
