@@ -1,0 +1,65 @@
+{
+  "schema": "WHD_ISSUE541_B6_1_FACADE_FINAL_V1",
+  "issue": 541,
+  "parent_issue": 531,
+  "master_issue": 520,
+  "parent_accepted_head": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
+  "audit_v1": {
+    "run_id": 35795523293,
+    "status": "NON_ACCEPTANCE_EVIDENCE_BACKUP_CONTAMINATION"
+  },
+  "audit_v2": {
+    "run_id": 35795603842,
+    "head_sha": "058cc7e9c9c688b1d8ecf0916229a43d45990bb9",
+    "artifact_id": 10723808691
+  },
+  "replacement_red": {
+    "run_id": 35795722034,
+    "head_sha": "88a7273047572f299d66759160030e8378ceda28",
+    "artifact_id": 10723218400,
+    "result": "EXPECTED_RED",
+    "pytest": "2 failed, 1 passed"
+  },
+  "green": {
+    "run_id": 35795824278,
+    "head_sha": "cef59e90877ca9f87d542d6d50ae348027200539",
+    "artifact_id": 10723188742,
+    "pytest": "25 passed, 1 skipped",
+    "facade_count": 65,
+    "removed": 4,
+    "retained": 8,
+    "unclassified": 0,
+    "dynamic_pending": 0
+  },
+  "classification": {
+    "__getattr__": "LEGACY_REQUIRED",
+    "_phase6_last_cutting_mesh": "PROPERTY_COMPAT",
+    "_phase6_last_cutting_material": "PROPERTY_COMPAT",
+    "_phase6_cutting_mesh_error": "NO_CALLER",
+    "_phase6_zoom_scale": "PROPERTY_COMPAT",
+    "_phase6_view_initialized": "NO_CALLER",
+    "_phase6_base_renderer_render": "NO_CALLER",
+    "_phase6_scroll_cid": "NO_CALLER",
+    "__init__": "LEGACY_REQUIRED",
+    "_refresh_part_buttons": "LEGACY_REQUIRED",
+    "_refresh_part_button_states": "LEGACY_REQUIRED",
+    "_refresh_add_part_menu": "LEGACY_REQUIRED"
+  },
+  "removed": [
+    "_phase6_cutting_mesh_error",
+    "_phase6_view_initialized",
+    "_phase6_base_renderer_render",
+    "_phase6_scroll_cid"
+  ],
+  "retained": [
+    "__getattr__",
+    "_phase6_last_cutting_mesh",
+    "_phase6_last_cutting_material",
+    "_phase6_zoom_scale",
+    "__init__",
+    "_refresh_part_buttons",
+    "_refresh_part_button_states",
+    "_refresh_add_part_menu"
+  ],
+  "next_issue": 542
+}
