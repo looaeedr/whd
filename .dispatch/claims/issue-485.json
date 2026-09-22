@@ -6,25 +6,25 @@
   "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T11:47:36+08:00",
   "claimed_at": "2026-09-22T10:54:54+08:00",
-  "phase": "RECOVERING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "8b08024a9b93fe5577846489df099ce0387d08b4",
-  "head_sha": "db21dc1245b9d6af73bd503fefda6cd541ad3723",
+  "head_sha": "6c31870349a964ae8924fc786cdb94f8292a9cef",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": null,
-    "head_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
     "status": "RUN_NOT_CREATED",
-    "conclusion": null
+    "run_id": null,
+    "head_sha": "6c31870349a964ae8924fc786cdb94f8292a9cef",
+    "tested_production_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec"
   },
-  "next_action": "Create temporary post-integration smoke orchestrator on work-order branch; runner must detach checkout exact production SHA 81dff9d9f33b489d2f9acaca01645a9b7b4babec, assert exact HEAD, run focused Phase4 ownership/FinalScene/derived/settings/persistence/DXF smoke, lock exact run_id+orchestrator head+tested production SHA to terminal, then remove orchestrator and finalize #485/#486.",
+  "next_action": "Resolve push-triggered Issue485 T7 Post Integration Smoke run for orchestrator head 6c31870349a964ae8924fc786cdb94f8292a9cef; lock exact run_id+orchestrator head+tested production SHA 81dff9d9f33b489d2f9acaca01645a9b7b4babec; poll to terminal; on GREEN delete temporary orchestrator, audit cleanup-only drift, finalize #485 then Master #486.",
   "blocker": null,
-  "last_update": "2026-09-22T11:55:00+08:00",
+  "last_update": "2026-09-22T11:57:00+08:00",
   "predecessor": {
     "issue": 484,
     "accepted_head": "8b08024a9b93fe5577846489df099ce0387d08b4"
