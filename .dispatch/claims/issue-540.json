@@ -6,17 +6,26 @@
   "work_branch": "feature/issue540-stale-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "27d8187413a9ee18402f5fceb9c214b1fa772ab2",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T07:03:00+08:00",
+  "head_sha": "47b92f6ba05914d9084d60213a82d5ecdf948080",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T07:08:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "status": "pending",
-    "head_sha": "27d8187413a9ee18402f5fceb9c214b1fa772ab2",
-    "purpose": "Issue #540 machine-bound stale takeover evidence GREEN"
+    "run_id": 35795817863,
+    "head_sha": "47b92f6ba05914d9084d60213a82d5ecdf948080",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "Issue #540 machine-bound stale takeover evidence GREEN",
+    "evidence": {
+      "focused_tests": "38 passed",
+      "actions_naming": "GREEN",
+      "boundary_599": "WAIT_ON_FOREIGN_RUNTIME / blocked",
+      "boundary_600": "EXECUTOR_STUCK / actionable",
+      "evidence_schema": "WHD_STALE_CLAIM_TAKEOVER_V1"
+    }
   },
-  "next_action": "Lock exact GREEN run for 27d81874; on success, harden durable Skill wording if needed, cleanup one-shot RED/GREEN workflows, and integrate executable authority to cleanup/2d-3d-sync.",
+  "next_action": "Remove one-shot #540 RED/GREEN workflows under a fresh guard, audit final durable diff, then PR/merge executable authority to cleanup/2d-3d-sync before modifying the main-only trusted Remote Guard workflow.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -58,6 +67,13 @@
       "request_comment_id": 5785698419,
       "result_comment_id": 5785700905,
       "run_id": 35795373572,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "forward_ref_fix": {
+      "request_comment_id": 5785751493,
+      "result_comment_id": 5785762483,
+      "run_id": 35795723066,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
