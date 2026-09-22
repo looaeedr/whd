@@ -16,18 +16,19 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35671961303,
     "head_sha": "0d1660667579f5b2d312bae6d8463c537c6934c8",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve fresh T3 workflow run at recovery head 0d1660667579f5b2d312bae6d8463c537c6934c8, lock exact run_id+head_sha and poll terminal; on GREEN dispatch expanded T3 acceptance.",
+  "next_action": "Poll locked T3 recovery run 35671961303 @ 0d1660667579f5b2d312bae6d8463c537c6934c8 to terminal; on success dispatch expanded T3 acceptance.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:33:00+08:00",
+  "last_update": "2026-09-22T08:34:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
