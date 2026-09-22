@@ -1,0 +1,93 @@
+name: "QA #498 T1 Settings coordinator GREEN"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - 'phase6_settings_contracts.py'
+      - 'gui_modules/application/fold_designer_settings_coordinator.py'
+      - 'gui_modules/application/fold_designer_adapter.py'
+      - 'tests/test_issue498_settings_application_coordinator.py'
+      - '.github/workflows/qa-issue498-t1-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t1-green:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e072f052298f3dea2aba4e9de4d5f1b17f06850e HEAD
+          echo "T0_ACCEPTED_BASE=e072f052298f3dea2aba4e9de4d5f1b17f06850e"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install focused harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install -r requirements.txt pytest
+
+      - name: Run T1 focused GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue498_settings_application_coordinator.py \
+            tests/test_issue390_settings_contracts.py \
+            tests/test_issue366_t2_settings_transaction_owner.py \
+            tests/test_issue445_settings_presentation_owner.py \
+            tests/test_phase6_settings_panel_ownership.py \
+            --tb=short
+
+      - name: Architecture ratchet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          coordinator = Path("gui_modules/application/fold_designer_settings_coordinator.py")
+          tree = ast.parse(coordinator.read_text(encoding="utf-8"), filename=str(coordinator))
+          imports = set()
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  imports.update(alias.name for alias in node.names)
+              elif isinstance(node, ast.ImportFrom) and node.module:
+                  imports.add(node.module)
+          forbidden = sorted(
+              name for name in imports
+              if name == "fold_designer_bridge"
+              or name == "tkinter"
+              or name.startswith("tkinter.")
+              or "manufacturing" in name
+          )
+          assert forbidden == [], forbidden
+
+          adapter = Path("gui_modules/application/fold_designer_adapter.py").read_text(encoding="utf-8")
+          assert adapter.count("class Phase6FoldDesignerComposition") == 1
+          assert "def settings_coordinator(" in adapter
+
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          start = bridge.index("install_fold_designer_bridge_facade(")
+          tail = bridge[start:]
+          left = tail.index("{")
+          right = tail.index("}", left)
+          import re
+          count = len(re.findall(r'^\s*["\'][^"\']+["\']\s*:', tail[left + 1:right], flags=re.M))
+          print(f"FACADE_BINDING_COUNT={count}")
+          assert count <= 69
+          print("PASS ISSUE498_T1_ARCHITECTURE=1")
+          PY
