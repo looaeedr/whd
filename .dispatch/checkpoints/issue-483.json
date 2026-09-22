@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "#483",
+  "branch": "work/issue486-phase4-ownership-20260922",
+  "head_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35676695045,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Initial census run 35676253296 failed only because canonical preflight evidence was missing; production/census/protected test steps were skipped.",
+    "Recovered census run 35676351857 @ 4822510d09b6bd879c6feec1d5cad3806d48fe92 completed SUCCESS: canonical preflight GREEN, AST census GREEN, protected #447/#448/#449/#396 26 PASS / 1 SKIP.",
+    "Planned changed-files preflight/census run 35676467843 @ 2faf0a3c4cb596e47ce987aec9b9e746448eb54b completed SUCCESS before production cleanup.",
+    "Implementation head da9d1c541b484ac635aa36cb7fb3d81733a34bc3 deletes exactly six zero-caller bridge functions: _phase6_on_setting_var_changed, _phase6_corner_targets, _phase6_on_endcap_fw_follow_selected, _phase6_bind_translated_var, _phase6_scene_from_structural_result, _phase6_profile_material_total.",
+    "Durable deletion evidence: docs/superpowers/checkpoints/issue483-t5-dead-glue-deletion.json; T3 KEEP_COMPATIBILITY linked-endcap seam and T4 KEEP_BRIDGE_COMPATIBILITY exact-six Settings seam intentionally retained.",
+    "Final focused acceptance RUN 35676695045 @ bd1d1e9fcf15d964161118688b38cf431ad072aa completed SUCCESS.",
+    "RUN 35676695045 ownership-ratchets: 44 PASS / 1 SKIP.",
+    "RUN 35676695045 deletion-evidence: ISSUE483_DELETION_EVIDENCE_GREEN.",
+    "RUN 35676695045 behavior-persistence: 54 PASS / 126 warnings; protected config/DXF digest unchanged.",
+    "Temporary Issue483 census and acceptance workflows removed. Tested head bd1d1e9fcf15d964161118688b38cf431ad072aa -> closing head f1c1c9711f60ad96f1ad82b6d528204563703f0d changes only two workflow deletions; production/test drift=0.",
+    "T6/#484 is OPEN and dependency-unblocked from accepted T5 closing head f1c1c9711f60ad96f1ad82b6d528204563703f0d."
+  ],
+  "master_issue": "#486",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#484",
+  "chain_next_action": "Acquire shared execution claim for #484 on work/issue486-phase4-ownership-20260922 at accepted T5 HEAD f1c1c9711f60ad96f1ad82b6d528204563703f0d, then execute the unique Phase 4 Combined Acceptance against the fixed T0 baseline.",
+  "chain_reason": null
+}
