@@ -14,16 +14,20 @@
     "coord/dispatch-claims",
     "qa/issue505-t8-integration-20260923",
     "qa/issue505-t8-post-integration-20260923",
-    "qa/issue505-current-x-sentinel-20260923"
+    "qa/issue505-current-x-sentinel-20260923",
+    "qa/issue505-finalization-20260923"
   ],
   "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
   "last_update": "2026-09-22T23:59:00+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED_CURRENT_X_SENTINEL",
+    "status": "CURRENT_X_SENTINEL_GREEN",
+    "run_id": 35753647424,
+    "head_sha": "482ed85ea65ce2dab72c24c9745fc35f2ebf4a2a",
     "production_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+    "conclusion": "success",
     "workflow": "qa-issue505-current-x-sentinel.yml"
   },
-  "next_action": "Run current-X Phase 5 sentinel on adbfa95092a35183b3b64d0d38ea8cb68be64b65; workflow must live-fetch OPEN PR refs, pass canonical branch_cleanup_ref_guard, and self-delete qa/issue505-current-x-sentinel-20260923. Then execute #505 finalization proof and close/readback, followed by #506.",
+  "next_action": "Run executable finalization authorization/verification for #505 against terminal checkpoint; then write terminal evidence, close/readback #505, and continue directly to Master #506.",
   "blocker": null,
   "integration": {
     "pr_number": 518,
