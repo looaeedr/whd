@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T01:26:59+08:00",
   "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
-  "head_sha": "6e4ffde8cb837af240e1d948c3ca5d95373d801c",
-  "phase": "RELEASED",
-  "last_update": "2026-09-23T01:54:20+08:00",
+  "head_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T04:28:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -21,7 +21,7 @@
     "head_sha": "1fbf1ac691d6e476f673d0db1249045c2b047c4e",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "exhaustive 327-candidate exact tracked-file dead-glue census",
+    "purpose": "exhaustive exact-branch tracked-file dead-glue census",
     "evidence": {
       "candidate_count": 327,
       "dead_candidate_count": 0,
@@ -30,7 +30,7 @@
       "artifact_id": 10710820254
     }
   },
-  "next_action": null,
+  "next_action": "Delete temporary qa-issue522-dead-glue-census.yml after execution_claim_guard, then write durable A1 checkpoint and close #522.",
   "blocker": null,
   "release_evidence": {
     "issue_state": "closed",
