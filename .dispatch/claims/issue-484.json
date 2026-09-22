@@ -1,0 +1,30 @@
+{
+  "issue": 484,
+  "issue_url": "https://github.com/looaeedr/whd/issues/484",
+  "master_issue": 486,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T10:02:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
+  "work_order_branch": "work/issue486-phase4-ownership-20260922",
+  "work_branch": "work/issue486-phase4-ownership-20260922",
+  "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+  "head_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Build unique Phase4 Combined Acceptance A/B harness using fixed T0 baseline 02a58dfe1102db0d3a97ed04f12f5ec1286a68b9 vs candidate f1c1c9711f60ad96f1ad82b6d528204563703f0d, run baseline/candidate Headless and Xvfb, classify candidate-only failures/errors, verify R1-R4/G1-G4/protected invariants, and poll exact run to terminal.",
+  "blocker": null,
+  "last_update": "2026-09-22T10:02:00+08:00",
+  "predecessor": {
+    "issue": 483,
+    "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+    "checkpoint": ".dispatch/checkpoints/issue-483.json"
+  }
+}
