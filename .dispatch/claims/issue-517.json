@@ -5,19 +5,12 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "b117271b7bdafa3f6b91a633f1d76a1afb264eba",
+  "head_sha": "da14f8b68785cdb7894d02653a5ebeaf29089a77",
   "phase": "RED",
-  "last_update": "2026-09-22T15:23:00Z",
+  "last_update": "2026-09-22T15:27:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": {
-    "run_id": 35746226329,
-    "head_sha": "b117271b7bdafa3f6b91a633f1d76a1afb264eba",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106808442565,
-    "summary": "4 failed. Valid product REDs: GUI DXF 5 vs canonical 14; canonical frame MARKING 3 vs assembly visible 0. Live-switch legacy mesh changed; child-order assertion invalid. Selector scroll-owner harness path invalid."
-  },
-  "next_action": "Correct remaining test harness to use Phase6PrimaryApplication production entrypoint for live-switch and settings_panel.settings_scroll_canvas for selector viewport; rerun before any production mutation.",
+  "remote_qa": null,
+  "next_action": "Acquire exact #517 run triggered by production-primary test head da14f8b68785cdb7894d02653a5ebeaf29089a77; monitor to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
