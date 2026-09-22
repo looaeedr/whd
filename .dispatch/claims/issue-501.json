@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "RED",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -14,10 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "0ab7d1bda71d8d8fa3d582b772e9efe1a740a71d",
-  "last_update": "2026-09-22T23:20:00+08:00",
+  "last_update": "2026-09-22T23:23:00+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "EXPECTED_RED_GREEN",
+    "run_id": 35736678370,
+    "head_sha": "0ab7d1bda71d8d8fa3d582b772e9efe1a740a71d",
+    "workflow": "qa-issue501-t4-red.yml",
+    "result": "R3/R4 expected RED confirmed: coordinator lacks baseline/reset sequencing; bridge handlers remain deep."
   },
-  "next_action": "Lock exact T4 expected-RED run triggered by 0ab7d1bd; poll same run to terminal; on expected RED implement coordinator baseline/reset sequencing and narrow bridge delegates.",
+  "next_action": "Deepen existing Settings coordinator with apply_baseline_transition/reset_factory_settings without changing the 13-port contract; extend existing port adapters with bounded kwargs; cut both bridge handlers to narrow delegates; run focused GREEN.",
   "blocker": null
 }
