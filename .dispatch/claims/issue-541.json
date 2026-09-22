@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:02:00+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "head_sha": "058cc7e9c9c688b1d8ecf0916229a43d45990bb9",
+  "head_sha": "88a7273047572f299d66759160030e8378ceda28",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T07:04:30+08:00",
+  "last_update": "2026-09-23T07:06:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,17 +16,14 @@
   "task_id": "B6-1",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35795603842,
-    "head_sha": "058cc7e9c9c688b1d8ecf0916229a43d45990bb9",
-    "status": "queued",
+    "run_id": 35795722034,
+    "head_sha": "88a7273047572f299d66759160030e8378ceda28",
+    "status": "in_progress",
     "conclusion": null,
-    "purpose": "B6-1 V2 exact facade audit excluding BACKUP/tooling from runtime evidence",
-    "prior_run": {
-      "run_id": 35795523293,
-      "conclusion": "success",
-      "classification": "NON_ACCEPTANCE_EVIDENCE_BACKUP_CONTAMINATION"
-    }
+    "purpose": "B6-1 replacement RED for four zero-caller facade removals",
+    "audit_v2_run": 35795603842,
+    "audit_v1_run": 35795523293
   },
-  "next_action": "Poll exact V2 RUN 35795603842; use only current production/tests evidence for final 12-key classification.",
+  "next_action": "Poll exact RED RUN 35795722034; require failure only because the four NO_CALLER facade entries still exist.",
   "blocker": null
 }
