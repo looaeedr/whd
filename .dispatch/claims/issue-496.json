@@ -3,25 +3,19 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/496",
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "skill/issue496-remote-execution-guard-20260922",
+  "work_branch": "skill/issue496-remote-guard-chinese-name-20260922",
   "claimed_at": "2026-09-22T19:13:30+08:00",
-  "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "head_sha": "544d923f77ab50dd75851cf96d055d8b32b52bfe",
-  "phase": "CLOSING",
-  "action_mode": "WAIT_ON_FOREIGN_RUNTIME",
+  "base_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+  "head_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
+  "phase": "IMPLEMENTING",
+  "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T19:34:00+08:00",
-  "next_action": "In a repository-command-capable interactive runtime, materialize exact cleanup/2d-3d-sync@9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005 tools/continuity_controller.py (blob 30b0ed85b3af3bdf93dded845cb7fadd3846c13e), create an owning TERMINAL_SUCCESS checkpoint for issue 496 at the integrated X HEAD, run canonical authorize-finalization and verify-finalization-proof, then close #496 and read back state=closed/state_reason=completed; afterwards release the claim.",
-  "blocker": {
-    "code": "FINALIZATION_GUARD_EXECUTION_CAPABILITY_BLOCKER",
-    "classification": "PROCESS_CLOSURE_ONLY",
-    "detail": "Code is integrated into cleanup/2d-3d-sync and Skill/registry/test are present. Current runtime cannot obtain an exact executable repository checkout because container DNS cannot resolve github.com/raw.githubusercontent.com, and no existing remote authorize-finalization workflow was found. Reduced/reimplemented finalization logic is not accepted as canonical proof.",
-    "target_head": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005",
-    "canonical_guard_blob": "30b0ed85b3af3bdf93dded845cb7fadd3846c13e"
-  },
+  "last_update": "2026-09-22T20:55:00+08:00",
+  "next_action": "Rename Skill display/frontmatter name to 遠端執行守門, update skill_registry required_skills and focused contract test on a fresh branch from X@9cbfd1ba..., validate, non-force merge, then run finalization closure.",
+  "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
       "run_id": 35720291279,
@@ -107,6 +101,16 @@
       "tested_target_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa"
     }
   },
-  "handoff_requested_to": "repository_command_capable_chatgpt_interactive",
-  "handoff_reason": "CANONICAL_FINALIZATION_PROOF_REQUIRED"
+  "handoff_requested_to": null,
+  "handoff_reason": null,
+  "requirement_correction": {
+    "authority": "User 2026-09-22 requested Chinese Skill name",
+    "new_skill_name": "遠端執行守門",
+    "preserve_path": ".agents/skills/engineering/remote-execution-guard/",
+    "preserve_route_id": "remote-execution-guard",
+    "preserve_machine_schemas": [
+      "WHD_REMOTE_GUARD_REQUEST_V1",
+      "WHD_REMOTE_GUARD_RECEIPT_V1"
+    ]
+  }
 }
