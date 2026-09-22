@@ -4,18 +4,28 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T00:26:00+08:00",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "390259646e7390ad237bdc023519d89c61f138fc",
   "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
-  "delegated_branches": [
-    "coord/dispatch-claims",
-    "qa/issue506-finalization-20260923"
-  ],
+  "delegated_branches": [],
   "head_sha": "390259646e7390ad237bdc023519d89c61f138fc",
-  "last_update": "2026-09-23T00:26:00+08:00",
+  "last_update": "2026-09-23T00:39:00+08:00",
   "remote_qa": null,
-  "next_action": "Run executable Master finalization proof after #497-#505 closed/completed readback; close/readback #506, then release #504/#505/#506 coordination claims.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-22T16:28:33Z",
+    "all_children_closed": true,
+    "finalization_run": 35754211785,
+    "finalization_conclusion": "success",
+    "finalization_proof_artifact_id": 10706953271,
+    "finalization_proof_sha256": "3eb335bbc555f58da447ec4d0e0684e22c900f2c3660ba66a04822db104ad316",
+    "checkpoint": ".dispatch/checkpoints/issue-506.json",
+    "terminal_evidence_comment_id": 5780143246,
+    "production_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65"
+  }
 }
