@@ -6,11 +6,18 @@
   "claimed_at": "2026-09-22T14:22:00Z",
   "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
   "head_sha": "f11623d95c1082d213e12870d9de9202b3dfdd6e",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T14:19:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T14:25:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": null,
-  "next_action": "Poll exact #510 RED workflow run at head f11623d95c1082d213e12870d9de9202b3dfdd6e; if expected RED, implement production.",
+  "remote_qa": {
+    "run_id": 35739424515,
+    "head_sha": "f11623d95c1082d213e12870d9de9202b3dfdd6e",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "EXPECTED_RED",
+    "summary": "7 failed; missing #510 state/family/manufacturing/3D contracts; claim guard and config invariant GREEN"
+  },
+  "next_action": "Implement #510 state + Receiving family contract + canonical back-panel FinalScene + 3D top-edge placement, then rerun focused QA.",
   "blocker": null,
   "delegated_branches": []
 }
