@@ -4,9 +4,9 @@
   "master_issue": 486,
   "worker": "chatgpt",
   "executor_source": "chatgpt_automation",
-  "cycle_started_at": "2026-09-22T10:31:55+08:00",
+  "cycle_started_at": "2026-09-22T10:54:54+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
@@ -15,52 +15,13 @@
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
   "head_sha": "8b08024a9b93fe5577846489df099ce0387d08b4",
   "delegated_branches": ["coord/dispatch-claims"],
-  "remote_qa": {
-    "run_id": 35677198331,
-    "head_sha": "d004862f0726d628e84d4a98f317c180d122e8e4",
-    "status": "completed",
-    "conclusion": "success",
-    "updated_at": "2026-09-22T02:07:33Z",
-    "workflow": ".github/workflows/qa-issue484-t6-combined-acceptance.yml",
-    "jobs": {
-      "baseline_headless": "success",
-      "candidate_headless": "success",
-      "baseline_xvfb": "success",
-      "candidate_xvfb": "success",
-      "architecture_and_protected": "success"
-    }
-  },
-  "next_action": "Audit tested head d004862f0726d628e84d4a98f317c180d122e8e4 to closing head 8b08024a9b93fe5577846489df099ce0387d08b4 as temporary-QA-workflow deletion only; persist T6 acceptance/closure evidence, close and release #484, then acquire dependency-unblocked #485.",
+  "remote_qa": {"run_id":35677198331,"head_sha":"d004862f0726d628e84d4a98f317c180d122e8e4","status":"completed","conclusion":"success","updated_at":"2026-09-22T02:07:33Z","workflow":".github/workflows/qa-issue484-t6-combined-acceptance.yml","jobs":{"baseline_headless":"success","candidate_headless":"success","baseline_xvfb":"success","candidate_xvfb":"success","architecture_and_protected":"success"}},
+  "next_action": null,
   "blocker": null,
-  "last_update": "2026-09-22T10:31:55+08:00",
-  "predecessor": {
-    "issue": 483,
-    "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-    "checkpoint": ".dispatch/checkpoints/issue-483.json"
-  },
-  "preflight_evidence": {
-    "frozen_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-    "changed_file_scope": [".github/workflows/qa-issue484-t6-combined-acceptance.yml"],
-    "route_result": "repository-read reconstruction completed",
-    "script_execution": "equivalent executable guard available this invocation",
-    "read_skills": ["派工","issue-closure-gate","executable-continuity-controller","monitoring-remote-qa","long-log-context-safe-execution","Python測試實務","phase6-corner-3d-model-integrity","驗證板件與DXF"],
-    "read_references": ["個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md","個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md","個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md","個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md","個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md","個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md","個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md","個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md","個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md","個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md","基準檔/截角資料庫/README_母規則說明.md","基準檔/截角資料庫/certified_relief_rules.json"]
-  },
-  "guard": {
-    "result": "EXECUTION_CLAIM_GUARD_GREEN",
-    "implementation": "equivalent executable guard executed from live tools/execution_claim_guard.py semantics",
-    "actions": ["delete .github/workflows/qa-issue484-t6-combined-acceptance.yml"]
-  },
-  "cleanup": {
-    "tested_head": "d004862f0726d628e84d4a98f317c180d122e8e4",
-    "closing_head": "8b08024a9b93fe5577846489df099ce0387d08b4",
-    "removed_workflows": [".github/workflows/qa-issue484-t6-combined-acceptance.yml"],
-    "drift_class": "PENDING_EXACT_COMPARE"
-  },
-  "provenance": {
-    "executor_source": "chatgpt_automation",
-    "cycle_started_at": "2026-09-22T10:31:55+08:00",
-    "owning_issue": 484,
-    "action": "executed equivalent claim guard; deleted temporary issue484 QA workflow; reconciled closing HEAD"
-  }
+  "last_update": "2026-09-22T10:54:54+08:00",
+  "predecessor": {"issue":483,"accepted_head":"f1c1c9711f60ad96f1ad82b6d528204563703f0d","checkpoint":".dispatch/checkpoints/issue-483.json"},
+  "guard": {"result":"EXECUTION_CLAIM_GUARD_GREEN","actions":["delete .github/workflows/qa-issue484-t6-combined-acceptance.yml"]},
+  "cleanup": {"tested_head":"d004862f0726d628e84d4a98f317c180d122e8e4","closing_head":"8b08024a9b93fe5577846489df099ce0387d08b4","removed_workflows":[".github/workflows/qa-issue484-t6-combined-acceptance.yml"],"drift_class":"CLEANUP_ONLY_DESCENDANT","compare_status":"ahead","ahead_by":1,"changed_files":[".github/workflows/qa-issue484-t6-combined-acceptance.yml"]},
+  "acceptance": {"issue_state":"closed","state_reason":"completed","run_id":35677198331,"run_conclusion":"success","all_jobs_green":true},
+  "provenance": {"executor_source":"chatgpt_automation","cycle_started_at":"2026-09-22T10:54:54+08:00","owning_issue":484,"action":"fresh-read terminal QA; exact tested-to-closing compare proved temporary-QA-workflow deletion only; released accepted T6"}
 }
