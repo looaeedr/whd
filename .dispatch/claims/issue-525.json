@@ -7,14 +7,26 @@
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
   "head_sha": "3fb0c2a1d0b07dde290b1b905c54499ea41896c8",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T02:21:20+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-23T02:22:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A4",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock exact Issue 525 Stage A Combined run at 3fb0c2a1 and poll to terminal; consume machine STAGE_B_REQUIRED decision.",
+  "remote_qa": {
+    "run_id": 35766572872,
+    "head_sha": "3fb0c2a1d0b07dde290b1b905c54499ea41896c8",
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "Stage A Combined architecture acceptance + reduction gate",
+    "evidence": {
+      "pytest": "3 failed, 81 passed, 1 skipped",
+      "failed_test_file": "tests/process/test_issue426_phase5_t5_bridge_compression.py",
+      "root_cause": "stale AST oracle requires FunctionDef for _phase6_assembly_presentation_groups; v1.4/A3 authorizes direct identity alias",
+      "reduction_gate_status": "NOT_RUN"
+    }
+  },
+  "next_action": "Update stale #426 architecture oracle to accept direct alias assignment as the same compatibility boundary without weakening boundary-count/diagnostics guards; rerun Stage A Combined on replacement head.",
   "blocker": null
 }
