@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "82c2d111a2564c45b1053115ec8fa746501cd884",
+  "head_sha": "f7d39c7da0606d55dbc94878ef1befbff359048c",
   "phase": "RED",
-  "last_update": "2026-09-23T02:10:15+08:00",
+  "last_update": "2026-09-23T02:11:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -37,6 +37,6 @@
       "artifact_id": 10712080995
     }
   },
-  "next_action": "Run test_issue524_a3_facade_ratchet.py on exact 82c2d111 head and confirm identity assertions RED before production alias changes.",
+  "next_action": "Lock exact A3 RED run at f7d39c7d, poll to terminal, and verify expected identity failure before production alias change.",
   "blocker": null
 }
