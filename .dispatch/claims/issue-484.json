@@ -6,22 +6,79 @@
   "executor_source": "chatgpt_automation",
   "cycle_started_at": "2026-09-22T10:54:54+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "RELEASED",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-  "head_sha": "8b08024a9b93fe5577846489df099ce0387d08b4",
-  "delegated_branches": ["coord/dispatch-claims"],
-  "remote_qa": {"run_id":35677198331,"head_sha":"d004862f0726d628e84d4a98f317c180d122e8e4","status":"completed","conclusion":"success","updated_at":"2026-09-22T02:07:33Z","workflow":".github/workflows/qa-issue484-t6-combined-acceptance.yml","jobs":{"baseline_headless":"success","candidate_headless":"success","baseline_xvfb":"success","candidate_xvfb":"success","architecture_and_protected":"success"}},
-  "next_action": null,
+  "head_sha": "0e9c689a512d46e599c7725e1c36231e3cd5b7fe",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "remote_qa": {
+    "run_id": 35677198331,
+    "head_sha": "d004862f0726d628e84d4a98f317c180d122e8e4",
+    "status": "completed",
+    "conclusion": "success",
+    "updated_at": "2026-09-22T02:07:33Z",
+    "workflow": ".github/workflows/qa-issue484-t6-combined-acceptance.yml",
+    "jobs": {
+      "baseline_headless": "success",
+      "candidate_headless": "success",
+      "baseline_xvfb": "success",
+      "candidate_xvfb": "success",
+      "architecture_and_protected": "success"
+    }
+  },
+  "next_action": "Remediate candidate-only legacy AssemblySceneRenderData compatibility regression on work-order branch, run focused regression GREEN, then rerun true T6 baseline-vs-candidate differential with explicit candidate-only classifier.",
   "blocker": null,
-  "last_update": "2026-09-22T10:54:54+08:00",
-  "predecessor": {"issue":483,"accepted_head":"f1c1c9711f60ad96f1ad82b6d528204563703f0d","checkpoint":".dispatch/checkpoints/issue-483.json"},
-  "guard": {"result":"EXECUTION_CLAIM_GUARD_GREEN","actions":["delete .github/workflows/qa-issue484-t6-combined-acceptance.yml"]},
-  "cleanup": {"tested_head":"d004862f0726d628e84d4a98f317c180d122e8e4","closing_head":"8b08024a9b93fe5577846489df099ce0387d08b4","removed_workflows":[".github/workflows/qa-issue484-t6-combined-acceptance.yml"],"drift_class":"CLEANUP_ONLY_DESCENDANT","compare_status":"ahead","ahead_by":1,"changed_files":[".github/workflows/qa-issue484-t6-combined-acceptance.yml"]},
-  "acceptance": {"issue_state":"closed","state_reason":"completed","run_id":35677198331,"run_conclusion":"success","all_jobs_green":true},
-  "provenance": {"executor_source":"chatgpt_automation","cycle_started_at":"2026-09-22T10:54:54+08:00","owning_issue":484,"action":"fresh-read terminal QA; exact tested-to-closing compare proved temporary-QA-workflow deletion only; released accepted T6"}
+  "last_update": "2026-09-22T12:05:00+08:00",
+  "predecessor": {
+    "issue": 483,
+    "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+    "checkpoint": ".dispatch/checkpoints/issue-483.json"
+  },
+  "guard": {
+    "result": "EXECUTION_CLAIM_GUARD_GREEN",
+    "actions": [
+      "delete .github/workflows/qa-issue484-t6-combined-acceptance.yml"
+    ]
+  },
+  "cleanup": {
+    "tested_head": "d004862f0726d628e84d4a98f317c180d122e8e4",
+    "closing_head": "8b08024a9b93fe5577846489df099ce0387d08b4",
+    "removed_workflows": [
+      ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
+    ],
+    "drift_class": "CLEANUP_ONLY_DESCENDANT",
+    "compare_status": "ahead",
+    "ahead_by": 1,
+    "changed_files": [
+      ".github/workflows/qa-issue484-t6-combined-acceptance.yml"
+    ]
+  },
+  "acceptance": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "run_id": 35677198331,
+    "run_conclusion": "success",
+    "all_jobs_green": true
+  },
+  "provenance": {
+    "executor_source": "chatgpt_automation",
+    "cycle_started_at": "2026-09-22T10:54:54+08:00",
+    "owning_issue": 484,
+    "action": "fresh-read terminal QA; exact tested-to-closing compare proved temporary-QA-workflow deletion only; released accepted T6"
+  },
+  "acceptance_invalidated": {
+    "run_id": 35677198331,
+    "reason": "candidate-only failure set was not classified before prior closure",
+    "candidate_only": [
+      "tests/test_phase6_assembly_3d_view.py::test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contract"
+    ],
+    "headless": "baseline 8 fail vs candidate 9 fail",
+    "xvfb": "baseline 49 fail vs candidate 50 fail"
+  }
 }
