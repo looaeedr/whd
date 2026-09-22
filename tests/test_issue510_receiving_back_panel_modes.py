@@ -32,10 +32,9 @@ def _contract(mode, *, upper=1100.0, lower=500.0):
     )
 
 
-def _render(mode):
+def _spec(mode):
     from ae_engine.cabinet_types import receiving
     from ae_engine.contracts import BoxBodyPartSpec
-    from ae_engine.manufacturing_api import build_box_body_structure_render_data
     from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
 
     snapshot = _snapshot()
@@ -46,7 +45,7 @@ def _render(mode):
         panel_width=795.0,
         full_panel_height=1596.0,
     )
-    spec = BoxBodyPartSpec(
+    return BoxBodyPartSpec(
         width=800.0,
         height=1600.0,
         depth=350.0,
@@ -57,7 +56,12 @@ def _render(mode):
         structure_state=state,
         back_panel_contract=contract,
     )
-    data = build_box_body_structure_render_data(spec)
+
+
+def _render(mode):
+    from ae_engine.manufacturing_api import build_box_body_structure_render_data
+
+    data = build_box_body_structure_render_data(_spec(mode))
     return data, next(piece for piece in data.pieces if piece.role == "back")
 
 
@@ -96,6 +100,21 @@ def test_receiving_back_panel_state_defaults_full_and_persists_one_of_three_mode
         from phase6_box_body_structure import BoxBodyStructureType
         key = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
         assert changed["configs"][key]["back_panel_mode"] == mode.value
+
+
+def test_back_panel_mode_is_receiving_family_owned_not_generic_box_body_state():
+    from ae_engine.cabinet_types import receiving
+    from phase6_box_body_structure import (
+        BoxBodyStructureType,
+        default_box_body_structure_state,
+    )
+
+    generic = default_box_body_structure_state()
+    key = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    assert "back_panel_mode" not in generic["configs"][key]
+
+    receiving_state = receiving.resolve_box_body_structure_state(None)
+    assert receiving_state["configs"][key]["back_panel_mode"] == "FULL"
 
 
 def test_receiving_1100_half_contract_uses_certified_fixed_position_and_four_slot_datums():
@@ -247,6 +266,37 @@ def test_back_panel_dxf_save_reopen_preserves_reference_cutting(mode, expected_c
         and bool(entity.closed)
     ]
     assert len(cutting) == expected_closed_cutting
+
+
+@pytest.mark.parametrize("mode", ("FULL", "HALF", "BACK_OPENING"))
+def test_receiving_back_panel_modes_export_exact_three_multipart_boxbody_dxfs(mode, tmp_path):
+    import ezdxf
+    from ae_engine.manufacturing_api import (
+        ManufacturingContext,
+        generate_box_body_structure_parts,
+    )
+
+    results = generate_box_body_structure_parts(
+        _spec(mode),
+        tmp_path,
+        ManufacturingContext(overwrite=True),
+    )
+
+    assert len(results) == 3
+    assert {result.part_kind for result in results} == {
+        "box_body_left_side",
+        "box_body_back",
+        "box_body_right_side",
+    }
+    assert {path.name for path in tmp_path.glob("*.dxf")} == {
+        "左側板.dxf",
+        "後面板.dxf",
+        "右側板.dxf",
+    }
+    # Reopen every physical-piece output from disk; no aggregate/stale fourth file.
+    for result in results:
+        doc = ezdxf.readfile(result.output_path)
+        assert len(doc.modelspace()) > 0
 
 
 def test_receiving_back_panel_selector_lives_inside_existing_back_section_and_updates_canonical_state():
