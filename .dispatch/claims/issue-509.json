@@ -6,11 +6,18 @@
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
   "head_sha": "2d55f3d048807db747a16607add26ca412acbf9f",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T13:56:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-22T14:02:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": null,
-  "next_action": "Poll #509 broader part/DXF/persistence run for head 2d55f3d048807db747a16607add26ca412acbf9f to terminal.",
+  "remote_qa": {
+    "run_id": 35736445559,
+    "head_sha": "2d55f3d048807db747a16607add26ca412acbf9f",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106774799398,
+    "summary": "focused 6 passed; broader part/DXF/persistence 24 passed"
+  },
+  "next_action": "Durable #509 Skill/spec/AI-library writeback; validate Skill preflight; cleanup temporary workflow; closing drift audit; integrate to X.",
   "blocker": null,
   "delegated_branches": []
 }
