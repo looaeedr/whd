@@ -6,15 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:35:30+08:00",
   "base_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
-  "head_sha": "af5d341f70c9155043d0633db66e3a3e81ac2a02",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:38:00+08:00",
+  "head_sha": "4d1618937dd342b67a82c45b1f29feca86661a18",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T06:39:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B4",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create one-shot B4 Linked Endcap DT-0..DT-6 workflow; characterize KEEP vs JOIN_DERIVED_PART_PLAN vs application coordinator without changing production.",
+  "remote_qa": {
+    "run_id": 35793499633,
+    "head_sha": "4d1618937dd342b67a82c45b1f29feca86661a18",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "formal B4 Linked Endcap DT-0..DT-6"
+  },
+  "next_action": "Poll exact RUN 35793499633 @ 4d1618937dd342b67a82c45b1f29feca86661a18 to terminal; on failure fetch exact failed-step log and remediate.",
   "blocker": null
 }
