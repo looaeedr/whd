@@ -7,16 +7,24 @@
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
   "head_sha": "809c450caf920013e3f7d86f1b0feb55f311ddfe",
-  "phase": "RED",
-  "last_update": "2026-09-23T06:47:30+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T06:48:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "status": "pending",
+    "run_id": 35794256383,
     "head_sha": "809c450caf920013e3f7d86f1b0feb55f311ddfe",
-    "purpose": "Issue #540 stale takeover RED behavior contract"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "Issue #540 expected RED contract",
+    "evidence": {
+      "pytest": "9 failed",
+      "missing_module": "tools.stale_claim_takeover",
+      "missing_action": "claim-takeover",
+      "marker": "ISSUE540_RED_PROVEN"
+    }
   },
-  "next_action": "Lock the exact #540 RED workflow run at 809c450c and prove expected RED before implementing stale takeover authority.",
+  "next_action": "Implement tools/stale_claim_takeover.py, add claim-takeover to execution_claim_guard, add CLI coverage and Traditional-Chinese GREEN workflow, then lock exact GREEN run.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
