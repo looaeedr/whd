@@ -1,0 +1,20 @@
+{
+  "issue": 522,
+  "issue_url": "https://github.com/looaeedr/whd/issues/522",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T01:26:59+08:00",
+  "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
+  "head_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T01:26:59+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "A1",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run A1 preflight, prove caller/deletion evidence for DEAD_OR_DUPLICATE_GLUE, then delete only proven dead glue.",
+  "blocker": null
+}
