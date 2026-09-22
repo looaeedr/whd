@@ -16,18 +16,19 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35672095974,
     "head_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue481 T3 Final Acceptance for head 1c628cabf223945f526257e35184dfdfceac46bf, lock exact run_id+head_sha, poll all jobs terminal, classify any red before cleanup/closure.",
+  "next_action": "Poll locked T3 final acceptance run 35672095974 @ 1c628cabf223945f526257e35184dfdfceac46bf to terminal; on GREEN cleanup workflows, drift-audit, checkpoint/proof, close #481, then continue #482.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:37:00+08:00",
+  "last_update": "2026-09-22T08:38:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
