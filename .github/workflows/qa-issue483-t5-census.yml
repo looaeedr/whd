@@ -25,6 +25,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p logs/preflight
+          cat > logs/preflight/issue483-t5-preflight.txt <<'EOF'
+          phase6-corner-3d-model-integrity
+          驗證板件與DXF
+          monitoring-remote-qa
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          EOF
           python tools/phase6_skill_preflight.py             --task "Issue483 T5 Bridge compatibility ratchet and dead-glue cleanup after Phase4 T1-T4 accepted owner decisions. Identify and remove only zero-caller glue, duplicate delegates, stale aliases, or superseded implementations while preserving issue447 NO_EXTRACTION, issue448 C_KEEP_BRIDGE_COMPATIBILITY, issue449 bootstrap-only, reverse-import=0, second composition root=0, facade binding count<=69, and zero behavior/geometry/persistence drift."             --changed-file fold_designer_bridge.py             --evidence logs/preflight/issue483-t5-preflight.txt
       - name: Census bridge top-level symbols and static references
         shell: bash
