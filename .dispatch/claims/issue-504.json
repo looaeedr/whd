@@ -14,10 +14,17 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
-  "last_update": "2026-09-22T22:47:00+08:00",
+  "last_update": "2026-09-22T22:50:00+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "IN_PROGRESS_COMBINED",
+    "run_id": 35741913085,
+    "head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
+    "workflow": "qa-issue504-t7-combined.yml",
+    "partial": {
+      "focused_physical_persistence": "82 PASS",
+      "architecture_protected": "FAIL - classifier false positive counted test source mention as second composition root"
+    }
   },
-  "next_action": "Lock exact T7 Combined Acceptance run triggered by da12eea6; poll same run to terminal; classify candidate-only A/B failures and any focused/architecture gate failures without restarting successful jobs.",
+  "next_action": "Continue polling exact Combined Acceptance run 35741913085. Preserve successful focused evidence. After Headless/Xvfb classifiers finish, repair only the architecture classifier and rerun that bounded gate on a workflow-only descendant head.",
   "blocker": null
 }
