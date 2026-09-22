@@ -6,14 +6,14 @@
   "claimed_at": "2026-09-22T18:16:30+08:00",
   "base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "head_sha": "3464c2020483d23675c4585e449b08cd6f785809",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "delegated_branches": [],
   "target_x": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "expected_parent_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "last_update": "2026-09-22T18:58:00+08:00",
-  "next_action": "Mark PR #492 ready, update closing evidence, non-force merge into unchanged X c48f650f..., verify post-integration ancestry/files, terminalize checkpoint, authorize finalization, close #490 and release claim.",
+  "production_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "last_update": "2026-09-22T19:03:24+08:00",
+  "next_action": null,
   "blocker": null,
   "red_evidence": {
     "marking_missing_from_x": true,
@@ -43,5 +43,18 @@
     "closing_head": "3464c2020483d23675c4585e449b08cd6f785809",
     "production_test_drift": 0,
     "only_change": ".github/workflows/qa-issue490-hotfix.yml deleted"
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-22T11:03:24Z",
+    "integration_pr": 492,
+    "production_merge_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+    "checkpoint": ".dispatch/checkpoints/issue-490.json",
+    "finalization_proof": ".dispatch/checkpoints/issue-490.finalization-proof.json",
+    "finalization_proof_fingerprint": "12f9e97385771bc3d385793d95b8b800427c0a9ecabb4861d2defccd612217de",
+    "completion_comment_id": 5775318327,
+    "final_remote_qa_run_id": 35718611106,
+    "final_remote_qa_conclusion": "success"
   }
 }
