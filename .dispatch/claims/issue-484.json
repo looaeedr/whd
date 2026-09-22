@@ -3,38 +3,28 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/484",
   "master_issue": 486,
   "worker": "chatgpt",
-  "executor_source": "chatgpt_automation",
+  "executor_source": "chatgpt_interactive",
   "cycle_started_at": "2026-09-22T10:54:54+08:00",
   "claimed_at": "2026-09-22T10:02:00+08:00",
-  "phase": "RECOVERING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "fixed_t0_baseline_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-  "head_sha": "0e9c689a512d46e599c7725e1c36231e3cd5b7fe",
+  "head_sha": "84f5746fef1cdf74a57ca1546dd69f7bf43457c0",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": 35677198331,
-    "head_sha": "d004862f0726d628e84d4a98f317c180d122e8e4",
-    "status": "completed",
-    "conclusion": "success",
-    "updated_at": "2026-09-22T02:07:33Z",
-    "workflow": ".github/workflows/qa-issue484-t6-combined-acceptance.yml",
-    "jobs": {
-      "baseline_headless": "success",
-      "candidate_headless": "success",
-      "baseline_xvfb": "success",
-      "candidate_xvfb": "success",
-      "architecture_and_protected": "success"
-    }
+    "status": "RUN_NOT_CREATED",
+    "run_id": null,
+    "head_sha": "84f5746fef1cdf74a57ca1546dd69f7bf43457c0"
   },
-  "next_action": "Remediate candidate-only legacy AssemblySceneRenderData compatibility regression on work-order branch, run focused regression GREEN, then rerun true T6 baseline-vs-candidate differential with explicit candidate-only classifier.",
+  "next_action": "Resolve push-triggered focused remediation run for head 84f5746fef1cdf74a57ca1546dd69f7bf43457c0, lock exact run_id+head_sha, poll to terminal; on GREEN rerun true T6 baseline-vs-candidate differential with explicit candidate-only classifier.",
   "blocker": null,
-  "last_update": "2026-09-22T12:05:00+08:00",
+  "last_update": "2026-09-22T12:10:00+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
@@ -80,5 +70,10 @@
     ],
     "headless": "baseline 8 fail vs candidate 9 fail",
     "xvfb": "baseline 49 fail vs candidate 50 fail"
+  },
+  "remediation": {
+    "implementation_head": "3e5bb54ab7f3a80e186e91ba31aa045df6a978d2",
+    "root_cause": "FinalScene composition statically bound AssemblySceneRenderData/AssemblyScenePart instead of resolving them from bridge compatibility namespace",
+    "fix": "namespace-bound both class ports via required(...)"
   }
 }
