@@ -1,0 +1,79 @@
+name: WHD #540 停滯接手機器判定 GREEN
+run-name: "WHD｜#540｜停滯接手機器判定 GREEN"
+
+on:
+  push:
+    branches:
+      - feature/issue540-stale-takeover-20260923
+    paths:
+      - tools/stale_claim_takeover.py
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue540_stale_claim_takeover.py
+      - .github/workflows/qa-issue540-stale-takeover-green.yml
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    name: 驗證 10 分鐘停滯接手與 claim takeover 守門
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 執行環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+
+      - name: 驗證 Actions 外層與步驟繁中名稱
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/actions_visible_naming_guard.py .github/workflows/qa-issue540-stale-takeover-green.yml
+
+      - name: 執行停滯接手與 execution claim focused tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/process/test_issue540_stale_claim_takeover.py             tests/process/test_issue256_execution_claim_guard.py
+
+      - name: 驗證 CLI 的 600 秒硬邊界
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/claim.json <<'JSON'
+          {
+            "issue": 540,
+            "issue_url": "https://github.com/looaeedr/whd/issues/540",
+            "worker": "chatgpt",
+            "executor_source": "chatgpt_interactive",
+            "work_branch": "feature/issue540-stale-takeover-20260923",
+            "claimed_at": "2026-09-23T05:00:00Z",
+            "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
+            "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "phase": "IMPLEMENTING",
+            "last_update": "2026-09-23T06:00:00Z",
+            "remote_qa": null,
+            "next_action": "continue",
+            "blocker": null
+          }
+          JSON
+
+          set +e
+          python tools/stale_claim_takeover.py             --claim /tmp/claim.json             --live-head-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa             --live-head-committed-at 2026-09-23T05:00:00Z             --now 2026-09-23T06:09:59Z             --require-actionable > /tmp/early.txt
+          early_rc=$?
+          set -e
+          test "$early_rc" -eq 3
+          grep -q 'WAIT_ON_FOREIGN_RUNTIME' /tmp/early.txt
+
+          python tools/stale_claim_takeover.py             --claim /tmp/claim.json             --live-head-sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa             --live-head-committed-at 2026-09-23T05:00:00Z             --now 2026-09-23T06:10:00Z             --require-actionable | tee /tmp/stale.txt
+          grep -q 'STALE_CLAIM_TAKEOVER_GREEN' /tmp/stale.txt

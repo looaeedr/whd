@@ -1,7 +1,7 @@
 """Fail-closed execution-claim ownership guard for WHD development actions.
 
-This module does not acquire, transfer, or release claims. It validates an already
-acquired shared coordination claim immediately before a branch/write/QA action so a
+This module does not acquire, mutate, or release claims. It validates an already
+acquired shared coordination claim immediately before a branch/write/QA/takeover action so a
 second worker cannot treat comments, branch names, stale chat state, or a stale claim
 snapshot as ownership.
 """
@@ -18,6 +18,7 @@ _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_ACTIONS = frozenset(
     {
         "branch-create",
+        "claim-takeover",
         "write",
         "commit",
         "qa-dispatch",

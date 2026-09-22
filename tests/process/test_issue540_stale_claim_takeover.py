@@ -167,3 +167,46 @@ def test_execution_claim_guard_accepts_claim_takeover_as_single_guarded_action(t
     )
     assert claim.issue == ISSUE
     assert claim.work_branch == WORK_BRANCH
+
+
+def test_cli_require_actionable_uses_same_600_second_boundary(tmp_path: Path):
+    import subprocess
+    import sys
+
+    module_path = Path(__file__).resolve().parents[2] / "tools" / "stale_claim_takeover.py"
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T06:00:00Z")),
+        encoding="utf-8",
+    )
+    common = [
+        sys.executable,
+        str(module_path),
+        "--claim",
+        str(claim_path),
+        "--live-head-sha",
+        CLAIM_HEAD,
+        "--live-head-committed-at",
+        "2026-09-23T05:00:00Z",
+        "--require-actionable",
+    ]
+
+    early = subprocess.run(
+        [*common, "--now", "2026-09-23T06:09:59Z"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert early.returncode == 3
+    assert "WAIT_ON_FOREIGN_RUNTIME" in early.stdout
+    assert "STALE_CLAIM_TAKEOVER_BLOCKED" in early.stdout
+
+    stale = subprocess.run(
+        [*common, "--now", "2026-09-23T06:10:00Z"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert stale.returncode == 0, stale.stdout + stale.stderr
+    assert "EXECUTOR_STUCK" in stale.stdout
+    assert "STALE_CLAIM_TAKEOVER_GREEN" in stale.stdout
