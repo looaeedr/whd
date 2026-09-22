@@ -13,14 +13,16 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "7293097bdcae4e94ce2a7193c89c0ff9d8b10ee4",
-  "last_update": "2026-09-22T23:18:00+08:00",
+  "head_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
+  "last_update": "2026-09-22T23:18:49+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_FOCUSED",
-    "run_id": 35745531878,
-    "head_sha": "7293097bdcae4e94ce2a7193c89c0ff9d8b10ee4",
-    "workflow": "qa-issue504-t7-two-regression-fix.yml"
+    "status": "QUEUED_COMBINED",
+    "run_id": 35746442145,
+    "head_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
+    "workflow": "qa-issue504-t7-combined.yml",
+    "prior_focused_run_id": 35745531878,
+    "prior_focused_conclusion": "success"
   },
-  "next_action": "Poll exact focused run 35745531878 to terminal; on GREEN immediately re-run T7 Combined Acceptance on the same fixed lineage.",
+  "next_action": "Poll exact T7 Combined Acceptance run 35746442145 on head 65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce to terminal; on GREEN continue T7 cleanup, drift audit, durable writeback, and closure without stopping.",
   "blocker": null
 }
