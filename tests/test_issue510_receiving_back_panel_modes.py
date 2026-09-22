@@ -311,7 +311,7 @@ def test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_
     from phase6_box_body_structure import BackPanelMode, back_panel_mode
 
     root = tk.Tk()
-    root.withdraw()
+    root.geometry("1400x900+0+0")
     app = gui.BoxCalculatorGUI(root)
     designer = None
     try:
