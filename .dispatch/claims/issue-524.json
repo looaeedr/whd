@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "e34963a8ab767322749ca3c4ab05c6bcfea43c0b",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T02:08:30+08:00",
+  "head_sha": "82c2d111a2564c45b1053115ec8fa746501cd884",
+  "phase": "RED",
+  "last_update": "2026-09-23T02:10:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -37,6 +37,6 @@
       "artifact_id": 10712080995
     }
   },
-  "next_action": "Validate __getattr__ dynamic-protocol semantics and inspect installer; then classify direct-alias candidates before any bridge mutation.",
+  "next_action": "Run test_issue524_a3_facade_ratchet.py on exact 82c2d111 head and confirm identity assertions RED before production alias changes.",
   "blocker": null
 }
