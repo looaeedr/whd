@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "e26cb37cf449e81dce2bcdd8b13470e620aa5810",
-  "last_update": "2026-09-22T20:57:00+08:00",
+  "head_sha": "a601dec918d5214d1faac0a163c8af6b6ecd3f4e",
+  "last_update": "2026-09-22T20:58:00+08:00",
   "remote_qa": {
     "status": "GREEN",
     "run_id": 35728636388,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue498-t1-green.yml",
     "result": "24 passed, 6 skipped; FACADE_BINDING_COUNT=69; architecture GREEN"
   },
-  "next_action": "Delete one-shot T1 RED/GREEN workflows with execution guards; verify tested e26cb37c... -> cleaned head contains workflow deletions only; then terminalize #498.",
+  "next_action": "Delete remaining one-shot T1 GREEN workflow; then verify tested e26cb37c... -> cleaned head is workflow-delete-only.",
   "blocker": null
 }
