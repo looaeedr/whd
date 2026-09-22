@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -13,14 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
-  "last_update": "2026-09-22T23:40:00+08:00",
+  "head_sha": "c62e895059f1c583a9e5958ee81c9a8755c80255",
+  "last_update": "2026-09-22T23:43:00+08:00",
   "remote_qa": {
-    "status": "GREEN",
+    "status": "GREEN_CLEANED",
     "run_id": 35737558172,
-    "head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
-    "result": "Headless 30 passed; Xvfb 15 passed; R3/R4 behavior and ownership GREEN."
+    "tested_head_sha": "654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
+    "cleaned_head_sha": "c62e895059f1c583a9e5958ee81c9a8755c80255",
+    "result": "Headless 30 passed; Xvfb 15 passed; tested->cleaned diff is exactly two workflow deletions; production/test drift=0."
   },
-  "next_action": "Delete T4 RED/GREEN one-shot workflows in one cleanup commit; verify tested->cleaned workflow-delete-only drift; then terminal checkpoint/finalization/close #501 and claim #502.",
+  "next_action": "Persist terminal #501 checkpoint with Master #506 handoff to #502; run canonical finalization authorization+verification; close #501; release claim; immediately claim/start #502.",
   "blocker": null
 }
