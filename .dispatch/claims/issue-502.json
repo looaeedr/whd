@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "7a0801647c5b2f9e615931c00fda17c4a848be93",
-  "last_update": "2026-09-22T23:51:00+08:00",
+  "head_sha": "274a55ddd88f9b3c3abdce531a625df1d06d2b5b",
+  "last_update": "2026-09-22T22:15:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Add focused R5 RED contract on current head 7a080164; confirm coordinator editor-commit seam missing and bridge still owns canonical mutation, then implement commit_editor_values through existing 13-port boundary.",
+  "next_action": "Run focused T5 R5 expected-RED on exact head 274a55dd; after RED confirmation implement commit_editor_values through existing 13-port coordinator boundary without moving #448 or Linked Endcap KEEP seams.",
   "blocker": null
 }
