@@ -213,3 +213,72 @@ Phase 4 #486 stable decisions：
 - compatibility ratchet / dead-glue cleanup與 Combined Acceptance由 #483/#484 驗證，沒有建立新的 domain authority。
 
 以上 issue/run/commit 只提供 provenance；**本文件的 stable ownership contract 才是後續 routing 要讀的 CURRENT 規則**。
+
+## Phase 5 — Settings mutation / dataflow ownership
+
+Phase 5 收斂的是跨 owner 的 Settings application sequencing 與 pure planning 邊界；它**沒有建立第二個 Settings domain owner**，也沒有改變既有 geometry / manufacturing / Registry / persistence authority。
+
+### Application sequencing / effect owner
+
+CURRENT application sequencing owner：`gui_modules/application/fold_designer_settings_coordinator.py::Phase6FoldDesignerSettingsCoordinator`。
+
+- 它擁有跨 owner 的 effect ordering / orchestration：canonical Settings commit 前後的 compatibility effect、profile/dimension plan、workspace/profile apply、UI projection、update intent、host/live notification 等 sequencing。
+- 它只透過 `phase6_settings_contracts.py` 的 bounded typed contracts / ports 取得能力；不得持有 full bridge/app service bag，也不得用 arbitrary `getattr(self, ...)` 擴張權限。
+- 它**不擁有** W/H/D/T/FW、Corner、Registry、AssemblyJoint、manufacturing geometry、workspace identity、project persistence、family-model semantic normalization 或 canonical Settings transaction semantics。
+- 唯一 composition root 仍是既有 `Phase6FoldDesignerComposition`；不得因 Settings coordinator 另建第二個 composition root。
+- `fold_designer_bridge.py` 在這條路徑只保留 narrow compatibility delegate / bootstrap handoff，不再擁有 deep Settings apply/update effect ordering。
+
+### Settings → Profile pure projection owner
+
+CURRENT pure planning owner：`phase6_settings_profile_projection.py`。
+
+- Settings → part-dimension / profile projection 必須先形成 deterministic immutable plan，再交給既有 workspace/navigation owner apply。
+- pure projection 不得 import Tk / bridge，不得擁有 `DesignerWorkspace`、workspace mutation、render、live publish 或 mechanical/manufacturing formula。
+- authoritative dimension/profile builders與既有 family / topology policy 仍是語意來源；planner 只能組合/投影，不得複製公式。
+- workspace/profile mutation 與 derived-part apply 仍由既有 `Phase6WorkspaceNavigationController` / derived-part planner+apply seam 擁有；physical-part identity authority 不變。
+
+### Baseline transition / factory reset
+
+- `commit_family_model_transition(...)` 與既有 Settings transaction/transition owner仍是 baseline/family semantic authority。
+- `Phase6FoldDesignerSettingsCoordinator` 只擁有 baseline/model transition 與 factory reset 的 cross-owner effect sequence，不得取代 semantic owner。
+- factory source 仍是 immutable AE factory defaults / existing SettingsService factory snapshot contract；reset 不得繞過 typed Settings application flow，也不得偷偷清除既有 baseline/corner transaction state。
+
+### Part Editor Settings commit seam
+
+Phase 4 / #448 的 `C_KEEP_BRIDGE_COMPATIBILITY` 與 Linked Endcap `KEEP_COMPATIBILITY` 仍受保護。
+
+- `_fix11_save_current_part` / `_fix11_activate_part` 可保留 compatibility orchestration，但 canonical Settings mutation 必須走既有 Settings coordinator/controller seam。
+- editor-value save 只提交實際 changed Settings delta；no-op 不得產生 host notification。
+- FW explicit operator takeover 仍由既有 EndCap/FW semantic owner決定；linked Head/Tail refresh 只能經 narrow compatibility port 觸發。
+- 不建立 `phase6_part_editor_session.py`，也不把 Part Editor compatibility 誤升格成新的 domain owner。
+
+### Live-sync pure planning owner
+
+CURRENT pure publication-plan owner：`phase6_sync_envelope.py`。
+
+- fingerprint / delta / revision / transaction-id / immutable envelope / anti-echo / host-relief repair intent 必須由 pure plan 產生。
+- planner 不得呼叫 host callback、不得 mutate app/bridge、不得寫 status/project state、不得 mutate manufacturing state。
+- callback execution、成功/失敗 bookkeeping 與 application effects 留在 application/coordinator layer；callback failure 不得先提交 success bookkeeping。
+- unchanged fingerprint 不 publish；`force=True` 不等於 unconditional resend；revision/transaction identity 必須維持 accepted parity。
+
+### Phase 5 permanent structural invariants
+
+- Settings presentation owner仍是 `phase6_settings_panel.py`；Phase 5 application coordinator不形成 competing panel/domain owner。
+- root owner modules不得 reverse-import `fold_designer_bridge.py`。
+- second composition root = 0。
+- bridge facade / compatibility surface只能收斂；Phase 5 Combined Acceptance 的 facade binding ceiling 為 69，但該數字只是 ratchet evidence，不是 domain truth。
+- config / DXF protected objects與 Phase 4 protected owner decisions不得因 Settings dataflow 收斂而漂移。
+
+### Phase 5 accepted provenance
+
+- #497：T0 ownership census / fixed baseline；
+- #498：typed Settings application coordinator / bounded ports；
+- #499：Settings apply/update sequencing ownership；
+- #500：Settings→Profile pure projection ownership；
+- #501：baseline transition + factory reset application flow；
+- #502：Part Editor editor-value Settings commit seam；
+- #503：live-sync envelope pure planning ownership；
+- #504：Combined Acceptance；final RUN `35746442145` @ `65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce` GREEN，Headless / Xvfb candidate-only failures 均為空，structural/protected gates GREEN。
+
+以上 ticket / RUN 只提供 provenance；本節定義的 stable ownership boundary 才是後續 routing 要沿用的 CURRENT contract。
+
