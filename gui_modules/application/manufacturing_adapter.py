@@ -76,6 +76,7 @@ def _box_body_part_spec_from_values(
     self, val, *, model_name, features, face_features,
     head_corner_policy=None, tail_corner_policy=None, fold_profile=None,
     structure_state=None, head_ybottom1=None, tail_ybottom1=None,
+    snapshot=None,
 ):
     def resolved_ybottom(part_key):
         profiles = self.workspace_controller.profile_for(part_key) or {}
@@ -93,6 +94,27 @@ def _box_body_part_spec_from_values(
         model_name, source_structure
     )
 
+    back_panel_contract = {}
+    if cabinet_family_policy.canonical_family_name(model_name) == "受電箱":
+        from phase6_box_body_structure import BoxBodyStructureType
+        from ae_engine.sheetmetal_geometry import box_body_height_from_corner_policies
+
+        cfg = structure_state["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+        panel_width = float(val["w"]) - float(cfg.get("back_width_comp_t", 0.0)) * float(val["t"])
+        full_panel_height = box_body_height_from_corner_policies(
+            float(val["h"]),
+            float(val["t"]),
+            head_corner_policy=head_corner_policy,
+            tail_corner_policy=tail_corner_policy,
+        )
+        back_panel_contract = cabinet_family_policy.resolve_back_panel_contract(
+            model_name,
+            dict(snapshot or val),
+            structure_state=structure_state,
+            panel_width=panel_width,
+            full_panel_height=full_panel_height,
+        ) or {}
+
     return BoxBodyPartSpec(
         width=float(val['w']), height=float(val['h']), depth=float(val['d']),
         thickness=float(val['t']), frame_width=float(val['fw']),
@@ -106,10 +128,8 @@ def _box_body_part_spec_from_values(
         features=tuple(features or ()),
         face_features={k: tuple(v) for k, v in dict(face_features or {}).items()},
         head_corner_policy=head_corner_policy, tail_corner_policy=tail_corner_policy,
-        structure_state=(
-            self.workspace_controller.box_body_structure_state()
-            if structure_state is None else deepcopy(dict(structure_state or {}))
-        ),
+        structure_state=deepcopy(dict(structure_state or {})),
+        back_panel_contract=deepcopy(dict(back_panel_contract or {})),
         head_ybottom1=(resolved_ybottom("head") if head_ybottom1 is None else float(head_ybottom1)),
         tail_ybottom1=(resolved_ybottom("tail") if tail_ybottom1 is None else float(tail_ybottom1)),
     )
@@ -121,6 +141,7 @@ def _box_body_part_spec(self, val):
         features=self.surface_features["box_body"],
         face_features=self.box_body_face_features,
         head_corner_policy=head_policy, tail_corner_policy=tail_policy,
+        snapshot=val,
     )
 
 def _end_cap_part_spec_from_values(
