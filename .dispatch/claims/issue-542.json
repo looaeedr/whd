@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
-  "head_sha": "46f7cc0eb5137cd88e8669e400b31417d82d968a",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T07:18:30+08:00",
+  "head_sha": "b14bbe4cadb332235d3ea249b121d38bca07c47f",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T07:19:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,13 +18,20 @@
   "remote_qa": {
     "run_id": 35796724897,
     "head_sha": "46f7cc0eb5137cd88e8669e400b31417d82d968a",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "B6-2 final GREEN: 12/12 classification and facade count 64",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-2 final GREEN",
+    "evidence": {
+      "passed": 25,
+      "skipped": 3,
+      "facade_count": 64,
+      "removed": 1,
+      "artifact_id": 10724111058
+    },
     "replacement_red_run": 35796616236,
     "audit_run": 35796289899
   },
-  "next_action": "Poll exact GREEN RUN 35796724897 @ 46f7cc0eb5137cd88e8669e400b31417d82d968a to terminal; on success persist final classification, cleanup, drift audit, finalization.",
+  "next_action": "Remove B6-2 one-shot audit/RED/GREEN workflows, then tested-head→closing-head production/test drift audit and finalization.",
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
