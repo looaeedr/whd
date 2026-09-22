@@ -55,3 +55,29 @@ def test_project_file_strips_derived_final_geometry_on_write_and_read(tmp_path):
 
     loaded = project.read_project(path)
     assert loaded.get("final_geometry") == {}
+
+
+def test_corner_data_non_active_divider_uses_resolved_final_geometry(monkeypatch):
+    """Corner Data selection must not fall back to raw Divider geometry."""
+    from types import SimpleNamespace
+    import fold_designer_bridge as bridge
+
+    divider_key = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
+    canonical_render = object()
+    raw_render = object()
+
+    class Resolved:
+        def part(self, key):
+            assert key == divider_key
+            return SimpleNamespace(render_data=canonical_render)
+
+    designer = SimpleNamespace(
+        designer_workspace=SimpleNamespace(active_part="box_body"),
+        _phase6_input_snapshot={},
+        _scene_query_callback=lambda *_args, **_kwargs: raw_render,
+    )
+    monkeypatch.setattr(
+        bridge, "_phase6_resolve_manufacturing_geometry", lambda _self: Resolved()
+    )
+
+    assert bridge._phase6_render_data_for_blank(designer, divider_key) is canonical_render

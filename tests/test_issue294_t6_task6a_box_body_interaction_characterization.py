@@ -111,3 +111,58 @@ def test_task6a_box_body_press_miss_clears_pending_click():
         SimpleNamespace(x=50.0, y=50.0, time=500)
     ) == "break"
     assert host._box_body_face_last_click is None
+
+
+def test_primary_box_body_hole_editor_close_refreshes_phase6_view_without_canvas_z():
+    from gui_modules.rendering import interaction
+
+    class Host:
+        _phase6_primary_workspace = True
+
+        def __init__(self):
+            self.box_body_face_selected_var = Var()
+            self.box_body_face_features = {"left": []}
+            self.baseline_var = Var("受電箱")
+            self.preview_calls = 0
+            self.open_kwargs = None
+
+        def get_float_values(self):
+            return {"w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 29.0}
+
+        def _box_body_corner_policies(self, _fw):
+            return None, None
+
+        def _box_body_face_baseline_scene(self, _face_key, _val):
+            return None
+
+        def _open_unified_hole_editor(self, *args, **kwargs):
+            self.open_kwargs = kwargs
+            return "EDITOR"
+
+        def draw_preview(self):
+            self.preview_calls += 1
+
+        def draw_box_body(self, *_args, **_kwargs):
+            raise AssertionError("primary lifecycle must not call legacy canvas_z refresh")
+
+    host = Host()
+    result = interaction.open_box_body_face_editor(
+        host,
+        "left",
+        messagebox_module=SimpleNamespace(showerror=lambda *_a, **_k: None),
+        face_dimensions_fn=lambda **_kwargs: {
+            "left": (350.0, 1600.0),
+            "back": (800.0, 1600.0),
+            "right": (350.0, 1600.0),
+        },
+        vertical_offsets_fn=lambda *_a, **_k: (0.0, 0.0),
+        surface_builder=lambda *_a, **_k: object(),
+        guide_type=lambda *_a, **_k: object(),
+        vec2_type=lambda x, y: (x, y),
+        baseline_label_fn=lambda _model: "",
+    )
+
+    assert result == "EDITOR"
+    assert callable(host.open_kwargs["on_close"])
+    host.open_kwargs["on_close"]()
+    assert host.preview_calls == 1
