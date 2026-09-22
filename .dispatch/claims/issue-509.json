@@ -7,10 +7,17 @@
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
   "head_sha": "dcb50bf9f58d367ffae3287f5f984b44f91d97fa",
   "phase": "GREEN",
-  "last_update": "2026-09-22T13:53:00Z",
+  "last_update": "2026-09-22T13:52:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": null,
-  "next_action": "Lock the #509 focused QA run for head dcb50bf9f58d367ffae3287f5f984b44f91d97fa and poll to terminal.",
+  "remote_qa": {
+    "run_id": 35736238937,
+    "head_sha": "dcb50bf9f58d367ffae3287f5f984b44f91d97fa",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 106774094511,
+    "summary": "6 passed in 2.34s"
+  },
+  "next_action": "Run part/DXF/persistence acceptance for #509 V2, then durable spec/AI-library writeback and cleanup.",
   "blocker": null,
   "delegated_branches": []
 }
