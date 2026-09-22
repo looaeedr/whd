@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "523",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35764051382,
+  "job_id": 106868971792,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2.",
+    "Parent accepted HEAD 6e4ffde8cb837af240e1d948c3ca5d95373d801c.",
+    "CURRENT ownership authority fresh-read from 12_WHD_FoldDesignerBridgeOwnership規則.md.",
+    "Owner-audit RUN 35764051382 @ 0d78e2ae85d337b6d874c872391d6fa41b8a51be SUCCESS: 74 passed, 1 skipped.",
+    "OWNER_VIOLATION_COUNT=0; no A2 production move authorized.",
+    "One-shot owner-audit workflow removed.",
+    "Parent-to-closing net diff contains only A2 preflight/evidence; production/test drift=0.",
+    "fold_designer_bridge.py unchanged from blob 17c4254c6aac960980c8ecfadfcd7e0ca03fc0d6.",
+    "Protected prior Workspace/PartEditor/LinkedEndcap/Settings exact-six decisions were not changed."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "524",
+  "chain_next_action": "Atomically claim #524/A3 Narrow Delegate / Alias + Obvious Facade Ratchet from accepted HEAD 65eff72ec7a9b0b9542468454a5b4e9012d6be86 and continue the Master chain.",
+  "chain_reason": null
+}
