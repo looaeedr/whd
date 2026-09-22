@@ -4,17 +4,15 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T01:33:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "RELEASED",
   "production_target": "main",
   "base_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
   "work_branch": "hotfix/issue536-remote-guard-run-name-20260923",
-  "delegated_branches": [
-    "coord/dispatch-claims"
-  ],
+  "delegated_branches": [],
   "head_sha": "2b501412a4d834e063269b699f41ab7f896ff06e",
-  "last_update": "2026-09-23T01:49:10+08:00",
+  "last_update": "2026-09-23T01:51:00+08:00",
   "remote_qa": null,
-  "next_action": "Obtain fresh pr-write Remote Guard receipt for PR #537 merge at exact head 2b501412..., merge to main non-force, then smoke ordinary comment title as 非守門請求.",
+  "next_action": null,
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -39,5 +37,23 @@
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
   },
-  "pr_number": 537
+  "pr_number": 537,
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "pr_number": 537,
+    "merge_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
+    "fix_commit": "2b501412a4d834e063269b699f41ab7f896ff06e",
+    "workflow_blob_sha": "4883bbe95e5a7d17cdf2ad694caeae938d52fe64",
+    "smoke_comment_id": 5781285240,
+    "smoke_run_id": 35763225040,
+    "smoke_run_title": "WHD｜工單 #536｜非守門請求",
+    "smoke_conclusion": "skipped",
+    "guard_runs": [
+      35762755296,
+      35762872255,
+      35762988167,
+      35763123987
+    ]
+  }
 }
