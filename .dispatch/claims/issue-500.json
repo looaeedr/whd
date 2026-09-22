@@ -1,0 +1,23 @@
+{
+  "issue": 500,
+  "issue_url": "https://github.com/looaeedr/whd/issues/500",
+  "master_issue": 506,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T22:10:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
+  "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
+  "last_update": "2026-09-22T22:10:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Run T3 preflight and exact R2 RED characterization on accepted T2 head eb1b574d; create T3 focused RED contract, then implement pure Settings-to-Profile projection owner without workspace/render ownership.",
+  "blocker": null
+}
