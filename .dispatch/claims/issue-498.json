@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -14,14 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "1a13f968d6c2e6cd4d498bad7bae6f442e0d8213",
-  "last_update": "2026-09-22T20:45:00+08:00",
+  "last_update": "2026-09-22T20:48:00+08:00",
   "remote_qa": {
-    "status": "QUEUED",
+    "status": "GREEN",
     "run_id": 35728144746,
     "head_sha": "1a13f968d6c2e6cd4d498bad7bae6f442e0d8213",
     "workflow": "qa-issue498-t1-green.yml",
-    "replaces_run_id": 35727975345
+    "result": "23 passed, 6 skipped; FACADE_BINDING_COUNT=69; architecture GREEN"
   },
-  "next_action": "Poll locked replacement T1 GREEN run 35728144746 @ 1a13f968d6c2e6cd4d498bad7bae6f442e0d8213 until terminal; classify failure or extract counts/invariants.",
+  "next_action": "Address code-review gap: add machine-readable port role/canonical-owner classification contract with RED→GREEN test, then rerun focused GREEN.",
   "blocker": null
 }
