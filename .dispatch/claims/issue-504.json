@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "b07514e71087adafcbb50b3f96e64453cec282ac",
-  "last_update": "2026-09-22T22:12:00+08:00",
+  "head_sha": "24d0d0d0aeb7860b7d5c299243547701d2f64e25",
+  "last_update": "2026-09-22T22:18:00+08:00",
   "remote_qa": {
     "status": "SUPERSEDED_BY_TEST_CONTRACT_MIGRATION",
     "prior_run_id": 35741913085,
@@ -29,6 +29,6 @@
       "architecture_failure": "false positive in classifier; fixed workflow exists on branch but no authoritative run yet"
     }
   },
-  "next_action": "Migrate two stale structural tests to the accepted Phase 5 ownership boundaries, preserving the same behavioral/order invariants. Then create a fresh Combined Acceptance workflow on the new exact candidate head; prior run 35741913085 becomes non-authoritative for final acceptance.",
+  "next_action": "Patch the existing Combined workflow architecture classifier to use production-only AST class definitions, then let the workflow-file commit trigger a fresh Combined Acceptance run on the latest candidate including stale-test contract migrations.",
   "blocker": null
 }
