@@ -16,18 +16,19 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
+    "run_id": 35671839530,
     "head_sha": "d72f6aba01ecc9b213b9720cdc812e9909360533",
-    "run_id": null
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue481 T3 workflow at implementation head d72f6aba01ecc9b213b9720cdc812e9909360533; lock exact run_id+head_sha and poll to terminal; then run expanded identity/profile/active-selected/Save-Reload acceptance.",
+  "next_action": "Poll locked T3 GREEN run 35671839530 @ d72f6aba01ecc9b213b9720cdc812e9909360533 to terminal; if GREEN, dispatch expanded T3 acceptance for identity/profile/features/active-selected/Save-Reload plus linked-endcap regressions.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:28:00+08:00",
+  "last_update": "2026-09-22T08:29:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
