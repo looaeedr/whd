@@ -150,12 +150,56 @@ def test_malformed_progress_timestamp_fails_closed():
         _evaluate(now=now, claim=_claim(last_update="not-a-time"))
 
 
-def test_execution_claim_guard_accepts_claim_takeover_as_single_guarded_action(tmp_path: Path):
+def _write_takeover_evidence(tmp_path: Path, **overrides) -> Path:
+    payload = {
+        "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+        "classification": "EXECUTOR_STUCK",
+        "actionable": True,
+        "stale_seconds": 600,
+        "stale_after_seconds": 600,
+        "previous_executor_source": "chatgpt_interactive",
+        "observed_live_head_sha": LIVE_HEAD,
+        "claim_head_sha": CLAIM_HEAD,
+        "claim_last_update": "2026-09-23T05:00:00Z",
+        "claim_phase": "IMPLEMENTING",
+        "latest_progress_at": "2026-09-23T05:50:00Z",
+    }
+    payload.update(overrides)
+    path = tmp_path / "takeover-evidence.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_claim_takeover_requires_machine_stale_evidence(tmp_path: Path):
     guard = importlib.import_module("tools.execution_claim_guard")
     assert "claim-takeover" in guard.ALLOWED_ACTIONS
 
     claim_path = tmp_path / "claim.json"
-    claim_path.write_text(json.dumps(_claim()), encoding="utf-8")
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T05:00:00Z")),
+        encoding="utf-8",
+    )
+    with pytest.raises(guard.ExecutionClaimError, match="takeover|evidence|stale"):
+        guard.assert_execution_claim(
+            claim_path,
+            issue=ISSUE,
+            worker="chatgpt",
+            branch=WORK_BRANCH,
+            action="claim-takeover",
+            expected_base_sha=BASE_SHA,
+            expected_head_sha=LIVE_HEAD,
+        )
+
+
+def test_claim_takeover_accepts_bound_evidence_and_observed_live_head(tmp_path: Path):
+    guard = importlib.import_module("tools.execution_claim_guard")
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T05:00:00Z")),
+        encoding="utf-8",
+    )
+    evidence = _write_takeover_evidence(tmp_path)
+
     claim = guard.assert_execution_claim(
         claim_path,
         issue=ISSUE,
@@ -163,10 +207,50 @@ def test_execution_claim_guard_accepts_claim_takeover_as_single_guarded_action(t
         branch=WORK_BRANCH,
         action="claim-takeover",
         expected_base_sha=BASE_SHA,
-        expected_head_sha=CLAIM_HEAD,
+        expected_head_sha=LIVE_HEAD,
+        takeover_evidence=evidence,
     )
     assert claim.issue == ISSUE
     assert claim.work_branch == WORK_BRANCH
+    assert claim.head_sha == CLAIM_HEAD
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("classification", "WAIT_ON_FOREIGN_RUNTIME"),
+        ("actionable", False),
+        ("stale_seconds", 599),
+        ("previous_executor_source", "other-runtime"),
+        ("observed_live_head_sha", "c" * 40),
+        ("claim_head_sha", "d" * 40),
+        ("claim_last_update", "2026-09-23T05:00:01Z"),
+        ("claim_phase", "GREEN"),
+    ],
+)
+def test_claim_takeover_rejects_unbound_or_nonactionable_evidence(
+    tmp_path: Path,
+    field: str,
+    value,
+):
+    guard = importlib.import_module("tools.execution_claim_guard")
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T05:00:00Z")),
+        encoding="utf-8",
+    )
+    evidence = _write_takeover_evidence(tmp_path, **{field: value})
+    with pytest.raises(guard.ExecutionClaimError, match="takeover|evidence|stale|head|source|phase"):
+        guard.assert_execution_claim(
+            claim_path,
+            issue=ISSUE,
+            worker="chatgpt",
+            branch=WORK_BRANCH,
+            action="claim-takeover",
+            expected_base_sha=BASE_SHA,
+            expected_head_sha=LIVE_HEAD,
+            takeover_evidence=evidence,
+        )
 
 
 def test_cli_require_actionable_uses_same_600_second_boundary(tmp_path: Path):
