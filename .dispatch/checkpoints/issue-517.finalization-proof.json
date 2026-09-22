@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "issue": "517",
+  "branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
+  "head_sha": "8780c55f624a7b70f37f516001073017668735d0",
+  "checkpoint_fingerprint": "a6df270ce96b15d86053edf4c5f09c9995dc23fd0edabc0ea741135c5c815e42"
+}
