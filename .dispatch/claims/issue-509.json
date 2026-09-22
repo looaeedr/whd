@@ -5,19 +5,12 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "0980de5743332f148d7a08ee59a6d7d718233a42",
+  "head_sha": "8ffffb246adde15a4d093ce75ad51a7375c9845a",
   "phase": "RED",
-  "last_update": "2026-09-22T13:39:10Z",
+  "last_update": "2026-09-22T13:40:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": {
-    "run_id": 35734620896,
-    "head_sha": "0980de5743332f148d7a08ee59a6d7d718233a42",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "HARNESS_IDENTITY_SHALLOW_CHECKOUT",
-    "job_id": 106768565991
-  },
-  "next_action": "Recover QA harness by adding fetch-depth: 0; then rerun focused #509 RED.",
+  "remote_qa": null,
+  "next_action": "Lock the replacement #509 QA run for head 8ffffb246adde15a4d093ce75ad51a7375c9845a and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
