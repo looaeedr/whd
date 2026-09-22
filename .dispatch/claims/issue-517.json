@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac",
+  "head_sha": "8c57691189384ac51f42205c5ea38b0249a0670c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T15:56:00Z",
+  "last_update": "2026-09-22T15:58:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35749863841,
@@ -17,7 +17,7 @@
     "job_id": 106820881631,
     "summary": "31 PASS / 1 FAIL; only #510 legacy harness fails because root.withdraw() makes winfo_ismapped false. #517 focused behavior, #187, resolved export, T7 project/export all GREEN. config invariant GREEN."
   },
-  "next_action": "Test-only harness correction: make #510 GUI root visible for its mapped assertion and add #510 test path to the temporary combined-QA workflow trigger; production remains unchanged.",
+  "next_action": "Add all adjacent-test paths to temporary #517 workflow trigger so the #510 harness correction creates a guarded combined-QA run.",
   "blocker": null,
   "delegated_branches": []
 }
