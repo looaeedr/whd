@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "0ab7d1bda71d8d8fa3d582b772e9efe1a740a71d",
-  "last_update": "2026-09-22T23:23:00+08:00",
+  "head_sha": "34efeaca95ff7739c89ae8ef5f1440ed888b508c",
+  "last_update": "2026-09-22T23:28:00+08:00",
   "remote_qa": {
     "status": "EXPECTED_RED_GREEN",
     "run_id": 35736678370,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue501-t4-red.yml",
     "result": "R3/R4 expected RED confirmed: coordinator lacks baseline/reset sequencing; bridge handlers remain deep."
   },
-  "next_action": "Deepen existing Settings coordinator with apply_baseline_transition/reset_factory_settings without changing the 13-port contract; extend existing port adapters with bounded kwargs; cut both bridge handlers to narrow delegates; run focused GREEN.",
+  "next_action": "Create focused T4 GREEN workflow with headless ownership contracts plus Xvfb factory/baseline parity on exact implementation head 34efeaca; poll exact run to terminal and classify failures.",
   "blocker": null
 }
