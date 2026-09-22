@@ -1,0 +1,48 @@
+name: "QA #498 T1 Settings coordinator RED"
+
+on:
+  push:
+    branches:
+      - work/issue506-phase5-settings-dataflow-20260922
+    paths:
+      - 'tests/test_issue498_settings_application_coordinator.py'
+      - '.github/workflows/qa-issue498-t1-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  t1-red:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e072f052298f3dea2aba4e9de4d5f1b17f06850e HEAD
+          echo "T0_ACCEPTED_BASE=e072f052298f3dea2aba4e9de4d5f1b17f06850e"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+
+      - name: Install RED harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pytest
+
+      - name: Run intended T1 RED
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/test_issue498_settings_application_coordinator.py --tb=short | tee /tmp/t1-red.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          test "$rc" -ne 0
+          grep -q "RED: missing Phase 5 Settings application coordinator" /tmp/t1-red.log
+          grep -q "RED: missing bounded Settings application effect kind" /tmp/t1-red.log
+          grep -q "RED: existing composition does not own Phase 5 Settings coordinator" /tmp/t1-red.log
+          echo "PASS EXPECTED_ISSUE498_T1_RED=1"
