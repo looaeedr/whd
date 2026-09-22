@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
-  "last_update": "2026-09-22T23:00:00+08:00",
+  "head_sha": "f79b6467fa722bf92374d16abde905d86ccac2c0",
+  "last_update": "2026-09-22T22:32:00+08:00",
   "remote_qa": {
     "status": "GREEN_CLEANED",
     "run_id": 35735472804,
@@ -22,6 +22,6 @@
     "cleaned_head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
     "result": "48 passed, 2 skipped; facade=69; tested->cleaned diff workflow-delete-only"
   },
-  "next_action": "Persist terminal #500 checkpoint with handoff to #501; run canonical finalization authorization+verification; close #500; release claim; immediately claim/start #501.",
+  "next_action": "Lock exact T3 GREEN run triggered by f79b6467 and poll that same run to terminal; on failure inspect only failed job/step and repair minimally; on success cleanup/finalize #500 then immediately claim #501.",
   "blocker": null
 }
