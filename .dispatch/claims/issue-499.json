@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "WAITING_REMOTE",
+  "phase": "RECOVERING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,13 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "7511b2aadeeb0797ac67debb8a6a51e1d6efe20c",
-  "last_update": "2026-09-22T21:30:00+08:00",
+  "last_update": "2026-09-22T21:33:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS",
+    "status": "FAILURE",
     "run_id": 35731625854,
     "head_sha": "7511b2aadeeb0797ac67debb8a6a51e1d6efe20c",
-    "workflow": "qa-issue499-t2-green.yml"
+    "workflow": "qa-issue499-t2-green.yml",
+    "result": "Focused pytest step failed; checkout/identity/install succeeded; architecture step skipped."
   },
-  "next_action": "Poll exact run 35731625854 on head 7511b2aa to terminal; on failure inspect only failed job/step and repair minimally; on success continue T2 acceptance/cleanup/closure.",
+  "next_action": "Run bounded per-file diagnostic matrix on the same T2 candidate lineage to identify the failing focused test file(s), then inspect only that scope and repair minimally.",
   "blocker": null
 }
