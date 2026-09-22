@@ -1,0 +1,163 @@
+name: 工單542 B6-2 Facade 消費者稽核
+run-name: "工單 #542 B6-2｜Facade 12-key Consumer Audit｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue542-b6-2-facade-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: B6-2 逐項 facade caller / dynamic refs 稽核
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 逐項掃描 12 個 facade keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue542
+          python - <<'PY' | tee /tmp/issue542/audit.log
+          from __future__ import annotations
+          import json,re,subprocess
+          from pathlib import Path
+
+          keys=[
+              "_save_current_part",
+              "_load_part_holes",
+              "activate_part",
+              "show_home",
+              "on_3d_scroll",
+              "add_part",
+              "select_part",
+              "activate_selected_part",
+              "remove_selected_part",
+              "remove_part",
+              "available_parts",
+              "active_part_key",
+          ]
+          a0=json.loads(
+              Path("docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json")
+              .read_text(encoding="utf-8")
+          )
+          inventory={row["name"]:row for row in a0["facade"]["inventory"]}
+          if set(keys)-set(inventory):
+              raise SystemExit("A0 facade inventory missing batch keys")
+
+          raw=subprocess.check_output(["git","ls-files","-z"])
+          paths=[Path(x.decode("utf-8","surrogateescape")) for x in raw.split(b"\0") if x]
+          excluded={".github/workflows/qa-issue542-b6-2-facade-audit.yml"}
+
+          def category(path: Path) -> str:
+              p=path.as_posix()
+              low=p.lower()
+              if (
+                  p.startswith("tests/")
+                  or path.name.startswith("test_")
+                  or "/test_" in low
+              ):
+                  return "tests"
+              if (
+                  p.startswith("BACKUP/")
+                  or p.startswith(".agents/")
+                  or p.startswith("tools/")
+                  or p.startswith("scripts/")
+                  or p.startswith("docs/")
+                  or p.startswith("logs/")
+                  or p.startswith(".dispatch/")
+                  or p.startswith(".github/")
+                  or p.endswith(".md")
+              ):
+                  return "non_runtime"
+              if p.endswith(".py"):
+                  return "production_py"
+              return "other"
+
+          decoded={}
+          for path in paths:
+              p=path.as_posix()
+              if p in excluded: continue
+              try: data=path.read_bytes()
+              except OSError: continue
+              if b"\x00" in data[:4096]: continue
+              try: decoded[p]=data.decode("utf-8","surrogateescape").splitlines()
+              except UnicodeDecodeError: continue
+
+          rows={}
+          for key in keys:
+              attr=re.compile(rf"\.\s*{re.escape(key)}\b")
+              exact_str=re.compile(rf"['\"]{re.escape(key)}['\"]")
+              getattr_pat=re.compile(rf"\b(?:getattr|setattr|hasattr)\([^\n]*['\"]{re.escape(key)}['\"]")
+              refs=[]
+              for p,file_lines in decoded.items():
+                  for lineno,line in enumerate(file_lines,1):
+                      kinds=[]
+                      if attr.search(line): kinds.append("attribute")
+                      if exact_str.search(line): kinds.append("exact_string")
+                      if getattr_pat.search(line): kinds.append("dynamic_attr")
+                      if not kinds: continue
+                      refs.append({
+                          "path":p,
+                          "line":lineno,
+                          "category":category(Path(p)),
+                          "kinds":kinds,
+                          "snippet":line.strip()[:260],
+                      })
+              prod=[r for r in refs if r["category"]=="production_py"]
+              tests=[r for r in refs if r["category"]=="tests"]
+              other=[r for r in refs if r["category"]=="other"]
+              dynamic=[r for r in refs if "dynamic_attr" in r["kinds"] and r["category"] in {"production_py","tests","other"}]
+              inv=inventory[key]
+              rows[key]={
+                  "value_expression":inv["value_expression"],
+                  "a0_class":inv["current_compatibility_class"],
+                  "property_compat":bool(inv["property_compat"]),
+                  "public_surface":bool(inv["public_surface"]),
+                  "production_ref_count":len(prod),
+                  "test_ref_count":len(tests),
+                  "other_runtime_ref_count":len(other),
+                  "dynamic_ref_count":len(dynamic),
+                  "runtime_refs":(prod+other+tests)[:40],
+              }
+              print("FACADE_KEY="+key)
+              print("  VALUE="+inv["value_expression"])
+              print("  A0_CLASS="+inv["current_compatibility_class"])
+              print("  PROPERTY_COMPAT="+str(bool(inv["property_compat"])).lower())
+              print("  PUBLIC_SURFACE="+str(bool(inv["public_surface"])).lower())
+              print("  PROD_REFS="+str(len(prod))+" TEST_REFS="+str(len(tests))+" OTHER_REFS="+str(len(other))+" DYNAMIC_REFS="+str(len(dynamic)))
+              for ref in (prod+other+tests)[:16]:
+                  print("  REF="+ref["category"]+":"+ref["path"]+":"+str(ref["line"])+":"+(",".join(ref["kinds"]))+":"+ref["snippet"])
+
+          payload={
+              "schema":"WHD_ISSUE542_B6_2_FACADE_AUDIT_V1",
+              "head_sha":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+              "keys":keys,
+              "rows":rows,
+              "accounted":len(rows),
+              "unclassified":0,
+          }
+          Path("/tmp/issue542/facade-audit.json").write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+          print("B6_2_ACCOUNTED="+str(len(rows)))
+          print("B6_2_UNCLASSIFIED=0")
+          print("ISSUE542_B6_2_AUDIT=GREEN")
+          PY
+
+      - name: 上傳 B6-2 稽核證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue542-b6-2-facade-audit
+          path: /tmp/issue542/
+          if-no-files-found: error
+          retention-days: 14
