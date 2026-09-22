@@ -6,15 +6,15 @@
   "work_branch": "skill/issue496-remote-execution-guard-20260922",
   "claimed_at": "2026-09-22T19:13:30+08:00",
   "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "head_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "phase": "IMPLEMENTING",
+  "head_sha": "544d923f77ab50dd75851cf96d055d8b32b52bfe",
+  "phase": "GREEN",
   "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T19:15:00+08:00",
-  "next_action": "Obtain Remote Guard write receipt for new remote-execution-guard Skill, skill_registry route, and focused contract test; then write all three files atomically on the claimed branch.",
+  "last_update": "2026-09-22T19:24:00+08:00",
+  "next_action": "Obtain fresh Remote Guard pr-write receipt at exact skill HEAD 544d923f..., open PR to cleanup/2d-3d-sync, verify one-commit/three-file diff, then obtain a second pr-write receipt for expected-head non-force merge.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -24,6 +24,27 @@
       "result": "GREEN",
       "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
       "tested_target_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa"
+    },
+    "commit_remote_guard": {
+      "run_id": 35721024356,
+      "request_comment_id": 5775536227,
+      "receipt_comment_id": 5775539320,
+      "result": "GREEN",
+      "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
+      "tested_target_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+      "changed_files": [
+        ".agents/skills/engineering/remote-execution-guard/SKILL.md",
+        ".agents/skills/skill_registry.json",
+        "tests/process/test_remote_execution_guard_skill_contract.py"
+      ]
+    },
+    "skill_commit": "544d923f77ab50dd75851cf96d055d8b32b52bfe",
+    "exact_readback": {
+      "skill_lines": 288,
+      "changed_files": 3,
+      "registry_route": "remote-execution-guard",
+      "focused_contract": "GREEN",
+      "automatic_ci": "none"
     }
   },
   "remote_guard": {
