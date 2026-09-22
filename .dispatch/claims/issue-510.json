@@ -5,9 +5,9 @@
   "work_branch": "feature/issue510-receiving-back-panel-modes-20260922",
   "claimed_at": "2026-09-22T14:22:00Z",
   "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
-  "head_sha": "65e311eb3f790848d7dc1869f2b20fd67b955e13",
+  "head_sha": "01af390955060b8f4e09e6d8327b0f0e27cef86d",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T14:59:00Z",
+  "last_update": "2026-09-22T15:01:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35739424515,
@@ -17,7 +17,7 @@
     "job_id": 106784971561,
     "summary": "Expected RED: 7 failed; missing BackPanelMode/state setter, receiving contract, FinalScene integration."
   },
-  "next_action": "Materialize FULL default only in Receiving family state, add Receiving-only regression, then rerun final acceptance.",
+  "next_action": "Add Receiving-only and multipart exported-file-count acceptance, then rerun exact final QA.",
   "blocker": null,
   "delegated_branches": []
 }
