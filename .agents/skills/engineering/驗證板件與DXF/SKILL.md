@@ -265,3 +265,14 @@ Validation 只能判斷上述 contract 是否符合；測試 expected、fixture�
 - 3D 的「輸出選取的 DXF 檔案」只應委派既有 authoritative exporter / manufacturing pipeline；UI regression 可以驗 delegation 與 state routing，真正製造成品仍要做 save DXF → `ezdxf.readfile()` reopen → canonical compare。
 - 若 Combined/acceptance 出現失敗，先在**精確 production baseline**重跑同 nodeid。只有 production baseline 原本也以同原因失敗、candidate 沒新增失敗時，才可標記為 inherited baseline debt；不得把一般 FAIL 改名成 PASS。
 - Tk/GUI 測試若只在大包同 process 失敗、fresh process GREEN，先分類 test-order / lifecycle leakage；未證明 production 行為錯誤前不得修改 production 迎合污染狀態。
+
+
+## Receiving inner-door MARKING correction（2026-09-22）
+
+<!-- ISSUE509_RECEIVING_FRAME_UPPER_HORIZONTAL_MARKING_V2 -->
+- **CURRENT product authority**：受電箱內門的 physical `top_frame / left_frame / right_frame` 各自在自己的 canonical `PartRenderData.scene` / FinalScene 擁有 **exactly one** `MARKING`，role = `UPPER_HORIZONTAL`。
+- 這三條線必須是各 frame 展開料上的**上方水平線**；2D、3D presentation（若顯示）、DXF 都只能消費同一 resolved FinalScene，禁止 renderer 另算或另畫。
+- **SUPERSEDED / REVOKED for this Receiving case**：舊 `RECEIVING_INNER_DOOR_VERTICAL_FRAME_TO_SHARED_DIVIDER_V1` 的 `SIDE_BOUNDARY_PAIR`、`SIDE_NEGATIVE / SIDE_POSITIVE`、以及「在 shared horizontal Divider 上總共四條 MARKING」不得再作 current acceptance oracle。
+- shared Divider 對此 V2 rule 不應殘留上述舊四條 side-boundary MARKING；若看到它們，視為 stale V1 regression。
+- MARKING enrichment 不得改變 CUTTING / BEND / holes / relief / Final Material；mark identity 由 stable physical IDs + policy/role 決定，project 不另存 derived XY。
+- 驗收至少檢查：三支 frame 各 1 條水平 MARKING、Divider 無 V1 side marks、actual DXF save→`ezdxf.readfile()` reopen 後 layer/type/方向一致、Save→Reload 重建後 stable mark IDs/geometry 等價。

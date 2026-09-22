@@ -160,7 +160,7 @@ def stable_joint_mark_id(
         _nonblank(attached_part_id, "attached_part_id"),
         _nonblank(boundary_role, "boundary_role"),
     )
-    if rows[3] not in {"SIDE_NEGATIVE", "SIDE_POSITIVE"}:
+    if rows[3] not in {"SIDE_NEGATIVE", "SIDE_POSITIVE", "UPPER_HORIZONTAL"}:
         raise ValueError(f"unsupported boundary role: {rows[3]}")
     return "jointmark:" + ":".join(rows)
 

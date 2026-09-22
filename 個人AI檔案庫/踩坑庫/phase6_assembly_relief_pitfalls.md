@@ -362,3 +362,14 @@ whd_schema: WHD_DOC_META_V1
 - **永久 authority**：Receiving Divider 的 final CUTTING、assembly relief、derived MARKING 都在 manufacturing resolve 後才成立。任何 2D/3D/Corner Data/DXF sink 只要顯示或輸出 `box_body:divider:...`，都必須讀 resolved part；**UI selection identity 不能決定 manufacturing 是否 resolve**。
 - **禁止修法**：不得把 CROSS 座標硬畫回 preview、不得把 MARKING 在 renderer 重算、不得把 raw `build_box_body_divider_render_data()` 改成偷偷含 assembly-dependent relief。raw part 保持 nominal；resolved manufacturing 才擁有 final material。
 - **必要 regression**：至少覆蓋「Corner Data selected Divider != workspace active part」並斷言回傳 resolved render object；另以 actual resolved DXF export→reopen 驗證 final CROSS material。
+
+
+## 2026-09-22 — Receiving frame MARKING V2：frame-owned upper-horizontal
+
+<!-- ISSUE509_RECEIVING_MARKING_V2_DOMAIN -->
+- 使用者明確更正第一版 Receiving MARKING：`top_frame / left_frame / right_frame` 三支 physical frame 都要在**自己的** FinalScene / DXF 上有一條上方水平 `MARKING`。
+- Current policy identity：`RECEIVING_INNER_DOOR_FRAME_UPPER_HORIZONTAL_V2`；role = `UPPER_HORIZONTAL`。
+- **SUPERSEDED**：`RECEIVING_INNER_DOOR_VERTICAL_FRAME_TO_SHARED_DIVIDER_V1` 對此案例的 `SIDE_BOUNDARY_PAIR`、`SIDE_NEGATIVE / SIDE_POSITIVE`、shared Divider 四條定位線。
+- FinalScene owner 與 stable physical identity 必須一致；view selection / renderer 不得另畫第二套 MARKING。DXF 直接 serialize resolved frame scene。
+- MARKING 是 derived manufacturing projection，不能改 CUTTING/BEND/holes/relief/material，也不另存 XY project truth。Save→Reload 由 topology/state 重建。
+- acceptance 要同時鎖：三支 frame 各 1 條水平線、Divider 無 stale V1 side marks、actual DXF reopen parity、mark IDs reload stable。
