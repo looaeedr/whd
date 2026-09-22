@@ -108,6 +108,13 @@ from gui_modules.application.command_router import (
     apply_fold_designer_settings_delta,
     install_fold_designer_keyboard_shortcuts,
 )
+from phase6_workspace_shell import (
+    WorkspaceShellActions,
+    WorkspaceShellOwner,
+    WorkspaceShellState,
+    mount_shared_content as _workspace_shell_mount_shared_content,
+    toggle_fullscreen as _workspace_shell_toggle_fullscreen,
+)
 from gui_modules.application.fold_designer_adapter import (
     Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
@@ -4667,36 +4674,16 @@ def _phase6_install_keyboard_shortcuts(self):
     )
 
 def _phase6_build_project_toolbar(self, parent=None):
-    """永久置頂的「檔案」選單。"""
-    parent = parent or self.left
-    self.project_toolbar = original.ttk.Frame(parent)
-    self.project_toolbar.pack(side=original.tk.LEFT, padx=(0, 8))
-    self.project_file_button = original.ttk.Menubutton(self.project_toolbar, text="檔案 ▼", style="Secondary.TMenubutton", takefocus=True)
-    self.project_file_menu = configure_tk_menu(original.tk.Menu(self.project_file_button, tearoff=False))
-    self.project_file_menu.add_command(label="開啟", command=self.load_project_file)
-    self.project_file_menu.add_command(label="儲存", command=self.save_project_file)
-    self.project_file_menu.add_command(label="另存新檔", command=self.save_project_file_as)
-    self.project_file_button.configure(menu=self.project_file_menu)
-    self.project_file_button.pack(side=original.tk.LEFT)
-    self.relief_registry_button = original.ttk.Button(
-        self.project_toolbar, text="截角資料庫", command=lambda: _phase6_open_relief_registry_form(self), style="Secondary.TButton", takefocus=True
-    )
-    self.relief_registry_button.pack(side=original.tk.LEFT, padx=(6, 0))
-
-
-
+    owner = _phase6_workspace_shell_owner(self)
+    result = owner.build_project_toolbar(parent)
+    _phase6_apply_workspace_shell_bindings(self, owner)
+    return result
 
 def _phase6_build_transaction_buttons(self, parent=None):
-    """Top-right project actions: live canonical mode has no confirm/cancel."""
-    parent = parent or self.left
-    self.transaction_buttons = original.ttk.Frame(parent)
-    self.transaction_buttons.pack(side=original.tk.RIGHT)
-    self.transaction_buttons.columnconfigure(0, weight=1)
-    self.reset_initial_button = original.ttk.Button(
-        self.transaction_buttons, text="還原初始值", command=self.reset_initial_values, style="Secondary.TButton", takefocus=True
-    )
-    self.reset_initial_button.grid(row=0, column=0, sticky="ew")
-
+    owner = _phase6_workspace_shell_owner(self)
+    result = owner.build_transaction_buttons(parent)
+    _phase6_apply_workspace_shell_bindings(self, owner)
+    return result
 
 def _phase6_hide_original_visual_controls(root_widget):
     for child in root_widget.winfo_children():
@@ -4715,137 +4702,27 @@ def _phase6_hide_original_visual_controls(root_widget):
 
 
 def _phase6_build_visual_controls(self, parent):
-    # T2 presentation only: keep the existing display controls/variables, but
-    # remove the decorative section title so the renderer gets the vertical space.
-    self.visual_controls = original.ttk.Frame(parent, padding=(4, 2))
-    self.visual_controls.pack(side=original.tk.LEFT, fill=original.tk.X, padx=(0, 8))
-
-    original.ttk.Label(self.visual_controls, text="文字大小").grid(row=0, column=0, sticky="w")
-    self.ui_text_size_combo = build_choice_menubutton(
-        self.visual_controls,
-        variable=self.ui_text_size_var,
-        values=tuple(UI_TEXT_SIZE_LABELS.values()),
-        width=5,
-    )
-    self.ui_text_size_combo.grid(row=0, column=1, sticky="w", padx=(4, 10))
-    self.settings_panel.ui_text_size_combo = self.ui_text_size_combo
-
-    original.ttk.Label(self.visual_controls, text="折彎透視").grid(row=0, column=2, sticky="w")
-    original.ttk.Scale(
-        self.visual_controls, from_=0.1, to=1.0, variable=self.v_a_bend, command=self.queue_update,
-        length=110,
-    ).grid(row=0, column=3, sticky="ew", padx=(4, 8))
-    original.ttk.Label(self.visual_controls, text="面板透視").grid(row=0, column=4, sticky="w")
-    original.ttk.Scale(
-        self.visual_controls, from_=0.0, to=1.0, variable=self.v_a_face, command=self.queue_update,
-        length=110,
-    ).grid(row=0, column=5, sticky="ew", padx=(4, 0))
-
+    owner = _phase6_workspace_shell_owner(self)
+    result = owner.build_visual_controls(parent)
+    _phase6_apply_workspace_shell_bindings(self, owner)
+    return result
 
 def _phase6_toggle_fullscreen(self):
-    root = self.root
-    enabled = bool(getattr(self, "_phase6_fullscreen", False))
-    if not enabled:
-        try:
-            self._phase6_restore_geometry = root.geometry()
-        except Exception:
-            self._phase6_restore_geometry = None
-        applied = False
-        try:
-            root.state("zoomed")
-            applied = True
-        except Exception:
-            pass
-        if not applied:
-            try:
-                root.attributes("-zoomed", True)
-                applied = True
-            except Exception:
-                pass
-        if not applied:
-            try:
-                root.attributes("-fullscreen", True)
-                applied = True
-            except Exception:
-                pass
-        self._phase6_fullscreen = bool(applied)
-    else:
-        restored = False
-        try:
-            root.attributes("-fullscreen", False)
-        except Exception:
-            pass
-        try:
-            root.attributes("-zoomed", False)
-        except Exception:
-            pass
-        try:
-            root.state("normal")
-            restored = True
-        except Exception:
-            pass
-        geometry = getattr(self, "_phase6_restore_geometry", None)
-        if restored and geometry:
-            try:
-                root.geometry(geometry)
-            except Exception:
-                pass
-        self._phase6_fullscreen = False
-    button = getattr(self, "fullscreen_button", None)
-    if button is not None:
-        button.configure(text=("還原視窗" if self._phase6_fullscreen else "全螢幕"))
+    enabled, geometry = _workspace_shell_toggle_fullscreen(
+        self.root,
+        getattr(self, "fullscreen_button", None),
+        enabled=bool(getattr(self, "_phase6_fullscreen", False)),
+        restore_geometry=getattr(self, "_phase6_restore_geometry", None),
+    )
+    self._phase6_fullscreen = bool(enabled)
+    self._phase6_restore_geometry = geometry
     return self._phase6_fullscreen
 
-
 def _phase6_build_global_persistent_controls(self):
-    host = self.left_global_controls
-
-    self.parameter_lock_button = original.ttk.Button(
-        host,
-        text="參數鎖定",
-        command=lambda: _phase6_toggle_parameter_panel(self),
-        style="Secondary.TButton",
-    )
-    self.parameter_lock_button.grid(row=0, column=3, sticky="ew", padx=2, pady=2)
-
-    state = _phase6_box_structure_state(self)
-    active = BoxBodyStructureType(state["active_type"])
-    structure_cell = original.ttk.Frame(host)
-    structure_cell.grid(row=1, column=4, sticky="ew", padx=2, pady=2)
-    self.left_global_cells["structure"] = structure_cell
-    original.ttk.Label(structure_cell, text="結構").pack(anchor=original.tk.W)
-    self.structure_type_var = original.tk.StringVar(value=_BOX_STRUCTURE_LABELS[active])
-    self.structure_choice_button = build_choice_menubutton(
-        structure_cell,
-        variable=self.structure_type_var,
-        values=tuple(_BOX_STRUCTURE_LABELS.values()),
-        width=16,
-        command=lambda: _phase6_select_box_structure_type(self, self.structure_type_var),
-    )
-    self.structure_choice_button.pack(fill=original.tk.X)
-
-    assembly_cell = original.ttk.Frame(host)
-    assembly_cell.grid(row=1, column=5, sticky="ew", padx=2, pady=2)
-    self.left_global_cells["assembly"] = assembly_cell
-    original.ttk.Label(assembly_cell, text="組合方式").pack(anchor=original.tk.W)
-    self.assembly_type_var = original.tk.StringVar(
-        value=ASSEMBLY_TYPE_LABELS[getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)]
-    )
-    self.assembly_choice_button = build_choice_menubutton(
-        assembly_cell,
-        variable=self.assembly_type_var,
-        values=tuple(ASSEMBLY_TYPE_LABELS.values()),
-        width=12,
-        command=lambda: _phase6_on_assembly_type_selected(self),
-    )
-    self.assembly_choice_button.pack(fill=original.tk.X)
-
-    # BOTTOM WRAP is selected through the canonical 組合方式 preset (包覆貼外).
-    # Do not expose a second enable/disable control in the permanent 3D row.
-    host.columnconfigure(4, weight=1)
-    host.columnconfigure(5, weight=1)
-    _phase6_refresh_persistent_structure_controls(self)
-
+    owner = _phase6_workspace_shell_owner(self)
+    result = owner.build_global_persistent_controls()
+    _phase6_apply_workspace_shell_bindings(self, owner)
+    return result
 
 def _phase6_refresh_sticky_structure_tree(self):
     """Keep the retired Structure Tree compatibility object out of operator layout.
@@ -4894,194 +4771,88 @@ def _phase6_export_selected_dxf_from_3d(self):
     )
 
 def _phase6_build_output_controls(self, parent=None):
-    """Compact top-row Output projection using the existing state/callback owners."""
-    host = parent or self.top_command_row
-    self.output_controls_frame = original.ttk.Frame(host, padding=(4, 0))
-    self.output_controls_frame.pack(side=original.tk.RIGHT, fill=original.tk.X)
+    owner = _phase6_workspace_shell_owner(self)
+    result = owner.build_output_controls(parent)
+    _phase6_apply_workspace_shell_bindings(self, owner)
+    return result
 
-    draw_stock_var = getattr(self, "_phase6_external_draw_stock_var", None)
-    if draw_stock_var is None:
-        draw_stock_var = original.tk.BooleanVar(
-            master=self.output_controls_frame,
-            value=bool(self._settings_values.get("draw_stock", False)),
-        )
-    self.output_draw_stock_var = draw_stock_var
-    self.output_draw_stock_check = original.ttk.Checkbutton(
-        self.output_controls_frame,
-        text="輸出 STOCK 母材外框",
-        variable=self.output_draw_stock_var,
-        command=lambda: _phase6_commit_output_draw_stock(self),
+def _phase6_workspace_shell_owner(self):
+    owner = getattr(self, "_phase6_workspace_shell_owner", None)
+    if owner is not None:
+        return owner
+    panel = _phase6_ensure_settings_panel(self)
+    structure_state = _phase6_box_structure_state(self)
+    active_structure = BoxBodyStructureType(structure_state["active_type"])
+    shell_state = WorkspaceShellState(
+        root=self.root,
+        left=self.left,
+        right=self.right,
+        ui_text_size_values=tuple(UI_TEXT_SIZE_LABELS.values()),
+        v_a_bend=self.v_a_bend,
+        v_a_face=self.v_a_face,
+        baseline_models=tuple(self._baseline_models),
+        initial_model=self._phase6_baseline_initial_model,
+        structure_label=_BOX_STRUCTURE_LABELS[active_structure],
+        structure_choices=tuple(_BOX_STRUCTURE_LABELS.values()),
+        assembly_label=ASSEMBLY_TYPE_LABELS[
+            getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
+        ],
+        assembly_choices=tuple(ASSEMBLY_TYPE_LABELS.values()),
+        settings_values=dict(self._settings_values),
+        external_draw_stock_var=getattr(self, "_phase6_external_draw_stock_var", None),
+        external_export_vars=dict(
+            getattr(self, "_phase6_external_export_vars", {}) or {}
+        ),
+        left_workspace_width=_phase6_left_workspace_width(
+            self._settings_values.get("ui_text_size", "small")
+        ),
+        theme_background=WHD_THEME["background"],
     )
-    self.output_draw_stock_check.pack(side=original.tk.LEFT, padx=(0, 6))
+    actions = WorkspaceShellActions(
+        status_projection=lambda: _phase6_status_projection(self),
+        load_project_file=self.load_project_file,
+        save_project_file=self.save_project_file,
+        save_project_file_as=self.save_project_file_as,
+        open_relief_registry=lambda: _phase6_open_relief_registry_form(self),
+        reset_initial_values=self.reset_initial_values,
+        build_settings_global_controls=lambda host: panel.build_left_global_controls(
+            host,
+            baseline_models=tuple(self._baseline_models),
+            initial_model=self._phase6_baseline_initial_model,
+        ),
+        sync_settings_panel_compat=lambda: _phase6_sync_settings_panel_compat(self),
+        get_left_global_controls=lambda: self.left_global_controls,
+        get_left_global_cells=lambda: self.left_global_cells,
+        get_ui_text_size_var=lambda: self.ui_text_size_var,
+        set_ui_text_size_combo=lambda combo: setattr(
+            self.settings_panel, "ui_text_size_combo", combo
+        ),
+        toggle_parameter_panel=lambda: _phase6_toggle_parameter_panel(self),
+        select_structure_type=lambda var: _phase6_select_box_structure_type(self, var),
+        select_assembly_type=lambda: _phase6_on_assembly_type_selected(self),
+        refresh_persistent_structure_controls=lambda: _phase6_refresh_persistent_structure_controls(self),
+        commit_output_draw_stock=lambda: _phase6_commit_output_draw_stock(self),
+        export_selected_dxf=lambda: _phase6_export_selected_dxf_from_3d(self),
+        queue_update=self.queue_update,
+        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
+        refresh_sticky_structure_tree=lambda: _phase6_refresh_sticky_structure_tree(self),
+        install_keyboard_shortcuts=lambda: _phase6_install_keyboard_shortcuts(self),
+        toggle_fullscreen=lambda: _phase6_toggle_fullscreen(self),
+    )
+    owner = WorkspaceShellOwner(shell_state, actions)
+    self._phase6_workspace_shell_owner = owner
+    return owner
 
-    parts_host = original.ttk.Frame(self.output_controls_frame)
-    parts_host.pack(side=original.tk.LEFT)
-    external_vars = dict(getattr(self, "_phase6_external_export_vars", {}) or {})
-    labels = (
-        ("box_body", "箱身"),
-        ("head", "封頭"),
-        ("tail", "封尾"),
-        ("door", "門"),
-        ("base_plate", "底板"),
-        ("indicator_box", "指示燈盒子"),
-        ("indicator_door", "指示燈小門"),
-    )
-    default_enabled = {
-        "box_body": True, "head": True, "tail": True,
-        "door": True, "base_plate": True,
-        "indicator_box": False, "indicator_door": False,
-    }
-    self.output_export_vars = {}
-    self.output_export_checks = {}
-    for index, (key, label) in enumerate(labels):
-        var = external_vars.get(key)
-        if var is None:
-            var = original.tk.BooleanVar(
-                master=parts_host, value=bool(default_enabled[key])
-            )
-        self.output_export_vars[key] = var
-        check = original.ttk.Checkbutton(parts_host, text=label, variable=var)
-        check.grid(row=0, column=index, sticky=original.tk.W, padx=(0, 6))
-        self.output_export_checks[key] = check
 
-    self.output_export_button = original.ttk.Button(
-        self.output_controls_frame,
-        text="輸出選取的 DXF 檔案",
-        command=lambda: _phase6_export_selected_dxf_from_3d(self),
-        style="Primary.TButton",
-        takefocus=True,
-    )
-    self.output_export_button.pack(side=original.tk.LEFT, padx=(4, 0))
+def _phase6_apply_workspace_shell_bindings(self, owner):
+    for name, value in owner.compatibility_bindings().items():
+        setattr(self, name, value)
 
 
 def _phase6_build_persistent_top_area(self):
-    """Operator layout: top commands, scrollable left inputs, right controls/canvas."""
-    previous_status = getattr(self, "status_bar", None)
-    if previous_status is not None:
-        try:
-            previous_status.destroy()
-        except Exception:
-            pass
-    self.status_bar = original.ttk.Frame(self.root, padding=(8, 2))
-    original.ttk.Separator(
-        self.status_bar, orient=original.tk.HORIZONTAL
-    ).pack(fill=original.tk.X, pady=(0, 2))
-    self.status_projection_var = original.tk.StringVar(
-        master=self.status_bar, value=_phase6_status_projection(self)
-    )
-    self.status_projection_label = original.ttk.Label(
-        self.status_bar, textvariable=self.status_projection_var, anchor=original.tk.W
-    )
-    self.status_projection_label.pack(fill=original.tk.X)
-    self.status_bar.pack(side=original.tk.BOTTOM, fill=original.tk.X)
-
-    try:
-        self.left.pack_forget()
-        self.right.pack_forget()
-    except Exception:
-        pass
-
-    # The top command surface is intentionally tiny: project File + Corner Data only.
-    self.top_persistent_bar = original.ttk.Frame(self.root, padding=(10, 8, 10, 4))
-    self.top_persistent_bar.pack(side=original.tk.TOP, fill=original.tk.X)
-    self.top_command_row = original.ttk.Frame(self.top_persistent_bar)
-    self.top_command_row.pack(fill=original.tk.X)
-    _phase6_build_project_toolbar(self, self.top_command_row)
-    _phase6_build_output_controls(self, self.top_command_row)
-
-    # Right-side controls are ordered for vertical economy: display/actions first,
-    # global settings immediately below, then the existing renderer viewport.
-    self.right_controls_host = original.ttk.Frame(self.right, padding=(8, 4, 8, 2))
-    self.right_global_host = original.ttk.Frame(self.right_controls_host)
-    panel = _phase6_ensure_settings_panel(self)
-    panel.build_left_global_controls(
-        self.right_global_host,
-        baseline_models=tuple(self._baseline_models),
-        initial_model=self._phase6_baseline_initial_model,
-    )
-    _phase6_sync_settings_panel_compat(self)
-    _phase6_build_global_persistent_controls(self)
-    _phase6_sync_settings_panel_compat(self)
-
-    # Build display controls only after the shared settings panel has created
-    # ui_text_size_var; this preserves the existing ownership/lifecycle.
-    self.right_controls_primary = original.ttk.Frame(self.right_controls_host)
-    self.right_controls_primary.pack(fill=original.tk.X, pady=(5, 0))
-    _phase6_build_transaction_buttons(self, self.right_controls_primary)
-    _phase6_build_visual_controls(self, self.right_controls_primary)
-    self.fullscreen_button = original.ttk.Button(
-        self.right_controls_primary,
-        text="全螢幕",
-        command=lambda: _phase6_toggle_fullscreen(self),
-        style="Secondary.TButton",
-        takefocus=True,
-    )
-    self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
-    self.right_global_host.pack(fill=original.tk.X, pady=(4, 0))
-    _phase6_pack_right_panel_above_canvas(self, self.right_controls_host)
-
-    # The complete existing left workspace is one scroll owner. It keeps the same
-    # selector/editor/state callbacks; this canvas changes presentation only.
-    self.left_scroll_canvas = original.tk.Canvas(
-        self.root,
-        width=_phase6_left_workspace_width(self._settings_values.get("ui_text_size", "small")),
-        background=WHD_THEME["background"],
-        highlightthickness=0,
-        borderwidth=0,
-        takefocus=False,
-    )
-    def _left_scroll_command(*args):
-        self.left_scroll_canvas.yview(*args)
-        _phase6_refresh_sticky_structure_tree(self)
-
-    def _left_yview_changed(first, last):
-        self.left_scrollbar.set(first, last)
-        _phase6_refresh_sticky_structure_tree(self)
-
-    self.left_scrollbar = original.ttk.Scrollbar(
-        self.root,
-        orient=original.tk.VERTICAL,
-        command=_left_scroll_command,
-    )
-    self.left_scroll_canvas.configure(yscrollcommand=_left_yview_changed)
-    try:
-        self.left.pack_propagate(True)
-    except Exception:
-        pass
-    self.left_scroll_window = self.left_scroll_canvas.create_window(
-        (0, 0), window=self.left, anchor="nw"
-    )
-
-    def _sync_left_scrollregion(_event=None):
-        try:
-            bbox = self.left_scroll_canvas.bbox("all")
-            if bbox is not None:
-                self.left_scroll_canvas.configure(scrollregion=bbox)
-            _phase6_refresh_sticky_structure_tree(self)
-        except Exception:
-            pass
-
-    def _size_left_window(event):
-        try:
-            self.left_scroll_canvas.itemconfigure(
-                self.left_scroll_window, width=max(1, int(event.width))
-            )
-        except Exception:
-            pass
-        _sync_left_scrollregion()
-
-    self.left.bind("<Configure>", _sync_left_scrollregion, add="+")
-    self.left_scroll_canvas.bind("<Configure>", _size_left_window, add="+")
-    self.left_scroll_canvas.pack(side=original.tk.LEFT, fill=original.tk.Y)
-    self.left_scrollbar.pack(side=original.tk.LEFT, fill=original.tk.Y)
-    self.right.pack(side=original.tk.RIGHT, fill=original.tk.BOTH, expand=True)
-    # self.left is a root child embedded as a Canvas window. Keep the embedded
-    # operator workspace above its sibling Canvas so mapped controls are actually
-    # visible and hit-testable instead of being painted underneath the Canvas.
-    self.left.lift(self.left_scroll_canvas)
-    _sync_left_scrollregion()
-    _phase6_install_keyboard_shortcuts(self)
-
+    owner = _phase6_workspace_shell_owner(self)
+    owner.build_persistent_top_area()
+    _phase6_apply_workspace_shell_bindings(self, owner)
 
 def _phase6_reset_initial_values(self):
     """Restore immutable AE factory defaults through the Settings coordinator."""
@@ -6138,41 +5909,13 @@ def _phase6_build_content_switch(self):
 
 
 def _phase6_mount_shared_content(self, mode):
-    """Swap one direct mode surface into the single left-side layout slot.
-
-    There is deliberately no permanent outer content Frame.  Active content
-    owns its natural height; switching modes replaces the mapped sibling rather
-    than preserving an empty fixed-height shell.
-    """
-    host = getattr(self, "left", None)
-    if host is None:
-        return None
-
-    selected_mode = (
-        "assembly"
-        if str(mode or "") == "assembly"
-        else "corner_data"
-        if str(mode or "") == "corner_data"
-        else "single"
+    return _workspace_shell_mount_shared_content(
+        getattr(self, "left", None),
+        getattr(self, "input_content_host", None),
+        getattr(self, "assembly_parts_panel", None),
+        getattr(self, "corner_data_panel", None),
+        mode,
     )
-    surfaces = {
-        "single": getattr(self, "input_content_host", None),
-        "assembly": getattr(self, "assembly_parts_panel", None),
-        "corner_data": getattr(self, "corner_data_panel", None),
-    }
-    selected = surfaces.get(selected_mode)
-    if selected is None:
-        return None
-
-    for key, widget in surfaces.items():
-        if widget is None:
-            continue
-        if key == selected_mode:
-            if not widget.winfo_manager():
-                widget.pack(fill=original.tk.BOTH, expand=False, pady=(0, 8))
-        elif widget.winfo_manager():
-            widget.pack_forget()
-    return selected
 
 def _phase6_structure_tree_visibility_var(self, key):
     """Return the exact panel-owned visibility var for one physical identity."""
