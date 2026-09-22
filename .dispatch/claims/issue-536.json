@@ -4,7 +4,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T01:33:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "IMPLEMENTING",
   "production_target": "main",
   "base_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
   "work_branch": "hotfix/issue536-remote-guard-run-name-20260923",
@@ -12,8 +12,17 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
-  "last_update": "2026-09-23T01:33:00+08:00",
+  "last_update": "2026-09-23T01:46:00+08:00",
   "remote_qa": null,
-  "next_action": "Obtain Remote Guard branch-create receipt, create hotfix branch from exact main HEAD, patch only run-name classification, then validate and merge to main.",
-  "blocker": null
+  "next_action": "Obtain exact commit Remote Guard receipt for .github/workflows/whd-remote-execution-guard.yml, patch only run-name classification, then PR/merge/readback and smoke ordinary comment vs chat/scheduler titles.",
+  "blocker": null,
+  "remote_guard": {
+    "branch_create": {
+      "request_comment_id": 5781221773,
+      "result_comment_id": 5781224296,
+      "run_id": 35762755296,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    }
+  }
 }
