@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "52f77a4948433d865e36a9c104540aeec1a8d79c",
+  "head_sha": "caebc091c1f10cad8fe296915541d1cca0b9a5a5",
   "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:16:10+08:00",
+  "last_update": "2026-09-23T02:16:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -56,7 +56,7 @@
       "artifact_id": 10712350745
     }
   },
-  "next_action": "Continue guarded cleanup: remove qa-issue524-a3-red.yml then qa-issue524-a3-green.yml.",
+  "next_action": "Remove final one-shot qa-issue524-a3-green.yml, then tested-head→closing-head drift audit.",
   "blocker": null,
   "production_change": {
     "bridge_before_loc": 7806,
