@@ -12,9 +12,9 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "2b501412a4d834e063269b699f41ab7f896ff06e",
-  "last_update": "2026-09-23T01:47:30+08:00",
+  "last_update": "2026-09-23T01:49:10+08:00",
   "remote_qa": null,
-  "next_action": "Obtain pr-write Remote Guard receipt, open PR to main, validate exact one-line diff, merge non-force, then smoke ordinary issue comment title as 非守門請求.",
+  "next_action": "Obtain fresh pr-write Remote Guard receipt for PR #537 merge at exact head 2b501412..., merge to main non-force, then smoke ordinary comment title as 非守門請求.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -30,6 +30,14 @@
       "run_id": 35762872255,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "pr_create": {
+      "request_comment_id": 5781253779,
+      "result_comment_id": 5781256709,
+      "run_id": 35762988167,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
-  }
+  },
+  "pr_number": 537
 }
