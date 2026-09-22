@@ -6,11 +6,20 @@
   "claimed_at": "2026-09-22T13:50:17Z",
   "base_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
   "head_sha": "7d8f76be012a187dd4588b3b2168e99849917a06",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T13:55:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-22T22:03:00+08:00",
   "target_branch": "main",
-  "remote_qa": null,
-  "next_action": "Validate exact diff, then guarded pr-write to main",
+  "remote_qa": {
+    "status": "GREEN_CLEANED",
+    "integration_pr": 512,
+    "integration_sha": "5170c8539102ca176dc3a0b4a65157678f692326",
+    "chat_smoke_run_id": 35736844222,
+    "scheduler_smoke_run_id": 35736898819,
+    "chat_source": "chat",
+    "scheduler_source": "scheduler",
+    "result": "executor_source receipts GREEN; Chinese Actions run-name verified for chat and scheduler"
+  },
+  "next_action": null,
   "blocker": null,
   "delegated_branches": []
 }
