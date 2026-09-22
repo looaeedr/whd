@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T04:40:45+08:00",
   "base_sha": "185991276c57fa3aeecace562daf89fa7be5b5ae",
   "head_sha": "abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T04:45:05+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T04:48:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,10 +17,18 @@
   "remote_qa": {
     "run_id": 35782285637,
     "head_sha": "abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8",
-    "status": "queued",
-    "conclusion": null,
-    "purpose": "B2 Workspace Shell deletion-test candidate characterization"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B2 Workspace Shell deletion-test candidate characterization",
+    "evidence": {
+      "cluster_loc": 383,
+      "current_tests": "5 passed, 1 skipped",
+      "xvfb_single_slot": "1 passed",
+      "candidate_decision": "B2_EXTRACT_DEEP_SHELL_OWNER",
+      "implementation_required": true,
+      "artifact_id": 10719035227
+    }
   },
-  "next_action": "Poll exact RUN 35782285637 @ abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8 to terminal; if candidate EXTRACT is GREEN, add replacement RED tests before production extraction.",
+  "next_action": "Cleanup one-shot qa-issue527-b2-deletion-test.yml under execution guard; then add replacement RED tests for the deep Workspace Shell owner. Every new #527 workflow/run from this point must use explicit Traditional-Chinese name/run-name/job/step labels.",
   "blocker": null
 }
