@@ -16,7 +16,7 @@ GitHub Actions 是使用者直接觀察 WHD 執行狀態的介面。**所有新�
 
 固定契約：
 
-- 每個新建／修改 workflow 都必須明確設定 top-level `name:` 與 `run-name:`，且兩者都包含繁體中文；禁止缺少 `run-name` 後讓 GitHub fallback 到英文 commit message。
+- 每個新建／修改 workflow 都必須明確設定 top-level `name:` 與 `run-name:`，且兩者都包含繁體中文；**禁止 fallback 到英文 commit message**：不得缺少 `run-name` 後讓 GitHub 以英文 commit message 當外層標題。
 - Actions 清單外層的 `run-name` 必須直接表達「工單／階段／用途」，例如：`WHD｜#524 A3｜窄委派／別名與 Facade 收斂驗收`。
 - 每個 job 必須設定 user-visible `name:`，每個 step 也必須設定 user-visible `name:`；顯示名稱使用繁體中文。SHA、Issue 編號、A1/A2、pytest、Xvfb、DXF、API 等不可替代技術識別可以保留。
 - one-shot census、RED/GREEN、Combined Acceptance、reduction gate、finalization、integration、post-integration smoke、Remote Guard 等都適用；「只是暫時 workflow」不是例外。
