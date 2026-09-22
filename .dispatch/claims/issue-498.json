@@ -1,0 +1,23 @@
+{
+  "issue": 498,
+  "issue_url": "https://github.com/looaeedr/whd/issues/498",
+  "master_issue": 506,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T19:51:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
+  "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
+  "last_update": "2026-09-22T19:51:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Run changed-file Phase6 preflight for T1, then implement typed Settings coordinator/ports on the existing work-order branch.",
+  "blocker": null
+}
