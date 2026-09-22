@@ -8,7 +8,7 @@
   "base_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
   "head_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
   "phase": "RELEASED",
-  "last_update": "2026-09-23T07:00:20+08:00",
+  "last_update": "2026-09-23T07:00:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
