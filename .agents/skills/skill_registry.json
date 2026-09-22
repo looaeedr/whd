@@ -249,6 +249,7 @@
     {
       "id": "remote-execution-guard",
       "keywords": [
+        "遠端執行守門",
         "Remote Guard",
         "remote execution guard",
         "WHD_REMOTE_GUARD_REQUEST_V1",
@@ -258,14 +259,15 @@
         "排程沒有 shell",
         "排程無 shell",
         "execution_claim_guard.py 無法執行",
-        "GUARD_EXECUTION_CAPABILITY_BLOCKER"
+        "GUARD_EXECUTION_CAPABILITY_BLOCKER",
+        "remote-execution-guard"
       ],
       "file_globs": [
         ".github/workflows/whd-remote-execution-guard.yml",
         ".agents/skills/engineering/remote-execution-guard/**"
       ],
       "required_skills": [
-        "remote-execution-guard",
+        "遠端執行守門",
         "monitoring-remote-qa",
         "long-log-context-safe-execution",
         "executable-continuity-controller"

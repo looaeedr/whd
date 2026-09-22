@@ -11,7 +11,7 @@ REGISTRY = ROOT / ".agents" / "skills" / "skill_registry.json"
 def test_remote_execution_guard_skill_contract() -> None:
     text = SKILL.read_text(encoding="utf-8")
     for marker in (
-        "name: remote-execution-guard",
+        "name: 遠端執行守門",
         "whd_contract: remote-execution-guard",
         "WHD_REMOTE_GUARD_REQUEST_V1",
         "WHD_REMOTE_GUARD_RECEIPT_V1",
@@ -33,7 +33,7 @@ def test_remote_execution_guard_registry_route() -> None:
     routes = {route["id"]: route for route in data["routes"]}
     route = routes["remote-execution-guard"]
 
-    assert "remote-execution-guard" in route["required_skills"]
+    assert "遠端執行守門" in route["required_skills"]
     assert "monitoring-remote-qa" in route["required_skills"]
     assert "long-log-context-safe-execution" in route["required_skills"]
     assert "executable-continuity-controller" in route["required_skills"]
@@ -42,6 +42,7 @@ def test_remote_execution_guard_registry_route() -> None:
 
     keywords = set(route["keywords"])
     assert {
+        "遠端執行守門",
         "Remote Guard",
         "WHD_REMOTE_GUARD_REQUEST_V1",
         "WHD_REMOTE_GUARD_RECEIPT_V1",
