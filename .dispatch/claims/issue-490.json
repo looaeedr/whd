@@ -6,14 +6,14 @@
   "claimed_at": "2026-09-22T18:16:30+08:00",
   "base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "head_sha": "183e3d495a09631f85ed0fa338381417afccd662",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "delegated_branches": [],
   "target_x": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "expected_parent_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-  "last_update": "2026-09-22T18:55:35+08:00",
-  "next_action": "Poll exact RUN 35718611106 @ 183e3d495a09631f85ed0fa338381417afccd662 to terminal; then delete one-shot workflow and complete drift/integration.",
+  "last_update": "2026-09-22T18:56:20+08:00",
+  "next_action": "Delete final one-shot QA workflow; re-run closing production/test drift audit; fresh-read target X; integrate hotfix non-force; post-integration readback; close issue and release claim.",
   "blocker": null,
   "red_evidence": {
     "marking_missing_from_x": true,
@@ -28,9 +28,9 @@
   "remote_qa": {
     "run_id": 35718611106,
     "head_sha": "183e3d495a09631f85ed0fa338381417afccd662",
-    "status": "queued",
-    "workflow": ".github/workflows/qa-issue490-hotfix.yml",
-    "purpose": "code-review remediation exact cancel_all path"
+    "status": "completed",
+    "conclusion": "success",
+    "counts": "9 passed"
   },
   "code_review": {
     "standards_findings": 0,
