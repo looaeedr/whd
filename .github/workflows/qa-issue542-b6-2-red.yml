@@ -1,0 +1,54 @@
+name: 工單542 B6-2 Replacement RED
+run-name: "工單 #542 B6-2｜activate_selected_part Removal RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue542-b6-2-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: 驗證 zero-caller facade requirement 先紅
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 新 requirement 必須先 RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q tests/test_issue542_b6_2_facade_batch.py > /tmp/issue542-b6-2-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue542-b6-2-red.log
+          test "$rc" -ne 0
+          grep -E "B6-2 RED|activate_selected_part" /tmp/issue542-b6-2-red.log
+          echo "ISSUE542_B6_2_REPLACEMENT_RED=GREEN"
+
+      - name: 上傳 RED 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue542-b6-2-replacement-red
+          path: /tmp/issue542-b6-2-red.log
+          if-no-files-found: error
+          retention-days: 14
