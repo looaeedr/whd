@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "c5f8b0592932f2ad35b070de89ddfc22fe7cdcee",
-  "phase": "GREEN",
-  "last_update": "2026-09-22T15:49:00Z",
+  "head_sha": "5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T15:52:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35749675123,
@@ -17,7 +17,7 @@
     "job_id": 106820225109,
     "summary": "Focused #517 Xvfb GREEN: 4 passed; config.ini invariant GREEN."
   },
-  "next_action": "Run adjacent regression set for #510 rear-panel modes, #187 output selection, resolved manufacturing export, and T7 project/export ownership before closure.",
+  "next_action": "Observe auto-triggered combined #517 adjacent regression at head 5c55a8c0527a7c4e4f58034c9064b0cd7d85b4ac; lock exact run_id+head_sha and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
