@@ -6,15 +6,15 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:19:30+08:00",
   "base_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
-  "head_sha": "f2f02f5dfd7591fab9ad73ccd160bf2268a6a14a",
+  "head_sha": "3fb0c2a1d0b07dde290b1b905c54499ea41896c8",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T02:20:20+08:00",
+  "last_update": "2026-09-23T02:21:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A4",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create one-shot Stage A Combined workflow at exact f2f02f5d head; run ownership regression union and compute STAGE_B_REQUIRED from A0 census symbols.",
+  "next_action": "Lock exact Issue 525 Stage A Combined run at 3fb0c2a1 and poll to terminal; consume machine STAGE_B_REQUIRED decision.",
   "blocker": null
 }
