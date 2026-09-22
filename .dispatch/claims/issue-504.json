@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:44:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
-  "last_update": "2026-09-22T22:44:00+08:00",
+  "head_sha": "da12eea61ab6a05c281d36bfc045ccd0cdc4337d",
+  "last_update": "2026-09-22T22:47:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Fresh-read T7 Combined Acceptance issue requirements and current work-order tree; create one-shot fixed-baseline Headless/Xvfb + structural/protected-object acceptance workflow from accepted T6 cleaned head.",
+  "next_action": "Lock exact T7 Combined Acceptance run triggered by da12eea6; poll same run to terminal; classify candidate-only A/B failures and any focused/architecture gate failures without restarting successful jobs.",
   "blocker": null
 }
