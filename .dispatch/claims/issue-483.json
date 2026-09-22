@@ -5,22 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
-  "head_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
+  "head_sha": "97b5bbbcae64bef3d4e528a5f28765666263dc7f",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "RUN_NOT_CREATED",
+    "run_id": null,
+    "head_sha": "97b5bbbcae64bef3d4e528a5f28765666263dc7f"
   },
-  "next_action": "Run T5 bridge dead-glue census at accepted T4 head 1455e9737cefe3d9dbe900daae6b9286a891740e; identify only zero-caller/duplicate/stale aliases or superseded implementations, preserve #447/#448/#449, then implement bounded cleanup and focused acceptance.",
+  "next_action": "Resolve push-triggered Issue483 T5 Dead Glue Census run for head 97b5bbbcae64bef3d4e528a5f28765666263dc7f, lock exact run_id+head_sha, poll to terminal, inspect strong zero-static candidates, then perform only evidence-backed cleanup and focused acceptance.",
   "blocker": null,
-  "last_update": "2026-09-22T09:37:00+08:00",
+  "last_update": "2026-09-22T09:39:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
