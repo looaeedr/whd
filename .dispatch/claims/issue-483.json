@@ -5,26 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "GREEN",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
-  "head_sha": "2faf0a3c4cb596e47ce987aec9b9e746448eb54b",
+  "head_sha": "da9d1c541b484ac635aa36cb7fb3d81733a34bc3",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "run_id": 35676467843,
-    "head_sha": "2faf0a3c4cb596e47ce987aec9b9e746448eb54b",
-    "status": "completed",
-    "conclusion": "success",
-    "summary": "planned changed-files preflight GREEN; census GREEN; protected tests GREEN"
+    "status": "RUN_NOT_CREATED",
+    "run_id": null,
+    "head_sha": "da9d1c541b484ac635aa36cb7fb3d81733a34bc3"
   },
-  "next_action": "Delete exactly six census-proven zero-caller bridge functions, add T5 regression and durable deletion evidence, then run focused behavior/geometry/persistence acceptance.",
+  "next_action": "Create and run T5 focused acceptance at implementation head da9d1c541b484ac635aa36cb7fb3d81733a34bc3 across T1-T4 ownership ratchets, protected #447/#448/#449 seams, FinalScene/Derived/Settings, Save/Reload/DXF and protected config/DXF hashes; poll exact run to terminal.",
   "blocker": null,
-  "last_update": "2026-09-22T09:50:00+08:00",
+  "last_update": "2026-09-22T09:52:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
@@ -47,5 +45,25 @@
       "_phase6_profile_material_total"
     ],
     "evidence_class": "strong_zero_static_and_repo_exact_name_zero"
+  },
+  "implementation": {
+    "head_sha": "da9d1c541b484ac635aa36cb7fb3d81733a34bc3",
+    "deleted_functions": [
+      "_phase6_on_setting_var_changed",
+      "_phase6_corner_targets",
+      "_phase6_on_endcap_fw_follow_selected",
+      "_phase6_bind_translated_var",
+      "_phase6_scene_from_structural_result",
+      "_phase6_profile_material_total"
+    ],
+    "deletion_evidence": "docs/superpowers/checkpoints/issue483-t5-dead-glue-deletion.json",
+    "regression_test": "tests/test_issue483_t5_bridge_dead_glue_cleanup.py",
+    "protected_decisions_preserved": {
+      "linked_endcap": "KEEP_COMPATIBILITY",
+      "settings": "KEEP_BRIDGE_COMPATIBILITY",
+      "workspace_shell": "NO_EXTRACTION",
+      "part_editor": "C_KEEP_BRIDGE_COMPATIBILITY",
+      "fix11_init": "bootstrap-only"
+    }
   }
 }
