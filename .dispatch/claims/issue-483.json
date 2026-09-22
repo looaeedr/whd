@@ -5,13 +5,13 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T09:37:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "1455e9737cefe3d9dbe900daae6b9286a891740e",
-  "head_sha": "bd1d1e9fcf15d964161118688b38cf431ad072aa",
+  "head_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
@@ -36,9 +36,9 @@
     },
     "protected_invariants": "GREEN"
   },
-  "next_action": "Delete temporary qa-issue483-t5-census.yml and qa-issue483-t5-acceptance.yml, audit tested head bd1d1e9fcf15d964161118688b38cf431ad072aa -> closing head for workflow-only drift, persist terminal checkpoint/proof, close #483, release claim, continue #484.",
+  "next_action": null,
   "blocker": null,
-  "last_update": "2026-09-22T09:57:00+08:00",
+  "last_update": "2026-09-22T10:00:00+08:00",
   "predecessor": {
     "issue": 482,
     "accepted_head": "1455e9737cefe3d9dbe900daae6b9286a891740e",
@@ -81,5 +81,28 @@
       "part_editor": "C_KEEP_BRIDGE_COMPATIBILITY",
       "fix11_init": "bootstrap-only"
     }
+  },
+  "cleanup": {
+    "tested_head": "bd1d1e9fcf15d964161118688b38cf431ad072aa",
+    "closing_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+    "removed_workflows": [
+      ".github/workflows/qa-issue483-t5-census.yml",
+      ".github/workflows/qa-issue483-t5-acceptance.yml"
+    ],
+    "drift_class": "QA_WORKFLOW_DELETION_ONLY",
+    "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closing_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "finalization_proof_fingerprint": "5d4950219951b10ab2952a90e56076c9157304b43a7cc70bbb8db66100aa3297",
+    "final_acceptance_run": 35676695045,
+    "ownership_ratchets": "44 PASS / 1 SKIP",
+    "behavior_persistence": "54 PASS",
+    "production_test_drift": 0,
+    "next_issue": 484,
+    "completion_comment_id": 5770062966
   }
 }
