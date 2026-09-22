@@ -37,14 +37,9 @@ from ae_engine.sheetmetal_part_adapters import (
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_derived_part_projection import (
-    DerivedPartProjectionRequest,
+    DerivedPartRequestAssemblyInput,
+    build_derived_part_projection_request,
     build_derived_part_sync_plan,
-    feature_projection as _derived_feature_projection,
-    materialize_features as _materialize_derived_features,
-    materialize_namespace as _materialize_derived_namespace,
-    materialize_profiles as _materialize_derived_profiles,
-    namespace_projection as _derived_namespace_projection,
-    profile_projection as _derived_profile_projection,
 )
 from phase6_part_navigation import (
     NavigationIntent,
@@ -1183,90 +1178,38 @@ def _phase6_sync_authoritative_derived_parts(self):
     inner_profiles = inner_door_frame_part_profiles(frames)
     inner_profiles.update(inner_door_panel_part_profiles(panels))
 
-    remove_part_keys = []
-    add_parts = []
-    stash_profiles = []
-    stash_features = []
-
-    if door_rows and "door" in available_parts:
-        remove_part_keys.append("door")
-    for row in door_rows:
+    single_door_profiles = (
+        build_standard_part_profiles(snapshot, "door")
+        if not door_rows and "door" in source_parts and "door" not in available_parts
+        else None
+    )
+    single_base_plate_profiles = (
+        build_standard_part_profiles(snapshot, "base_plate")
         if (
-            row.part_key not in known_feature_keys
-            and row.part_key in source_part_features
-        ):
-            stash_features.append(
-                _derived_feature_projection(
-                    row.part_key,
-                    source_part_features[row.part_key],
-                )
-            )
-    if not door_rows and "door" in source_parts and "door" not in available_parts:
-        add_parts.append(
-            _derived_profile_projection(
-                "door",
-                build_standard_part_profiles(snapshot, "door"),
-            )
+            not door_rows
+            and "base_plate" in source_parts
+            and "base_plate" not in available_parts
         )
-
-    if door_rows and "base_plate" in available_parts:
-        remove_part_keys.append("base_plate")
-    if (
-        not door_rows
-        and "base_plate" in source_parts
-        and "base_plate" not in available_parts
-    ):
-        add_parts.append(
-            _derived_profile_projection(
-                "base_plate",
-                build_standard_part_profiles(snapshot, "base_plate"),
-            )
+        else None
+    )
+    request = build_derived_part_projection_request(
+        DerivedPartRequestAssemblyInput(
+            door_part_keys=tuple(row.part_key for row in door_rows),
+            door_profiles=door_profiles,
+            base_plate_profiles=base_plate_profiles,
+            divider_profiles=divider_profiles,
+            inner_profiles=inner_profiles,
+            box_piece_profiles=box_piece_profiles,
+            current_piece_keys=tuple(current_piece_keys),
+            source_parts=source_parts,
+            available_parts=available_parts,
+            source_part_features=source_part_features,
+            known_feature_keys=tuple(known_feature_keys),
+            single_door_profiles=single_door_profiles,
+            single_base_plate_profiles=single_base_plate_profiles,
+            active_part=workspace.active_part,
+            selected_part=workspace.selected_part,
         )
-
-    for key in tuple(current_piece_keys - desired_piece_keys):
-        remove_part_keys.append(key)
-    for key, profiles in box_piece_profiles.items():
-        projection = _derived_profile_projection(key, profiles)
-        if key in available_parts:
-            stash_profiles.append(projection)
-        else:
-            add_parts.append(projection)
-
-    active_repair = None
-    selected_repair = None
-    if door_rows:
-        if workspace.active_part == "door":
-            active_repair = door_rows[0].part_key
-        elif workspace.active_part == "base_plate":
-            active_repair = str(door_rows[0].part_key).replace(
-                "door_", "base_plate_", 1
-            )
-        if workspace.selected_part == "door":
-            selected_repair = door_rows[0].part_key
-        elif workspace.selected_part == "base_plate":
-            selected_repair = str(door_rows[0].part_key).replace(
-                "door_", "base_plate_", 1
-            )
-
-    request = DerivedPartProjectionRequest(
-        namespaces=(
-            _derived_namespace_projection("door_c", door_profiles),
-            _derived_namespace_projection(
-                "base_plate_c",
-                base_plate_profiles,
-            ),
-            _derived_namespace_projection(
-                "box_body:divider:",
-                divider_profiles,
-            ),
-            _derived_namespace_projection("inner_door:", inner_profiles),
-        ),
-        remove_part_keys=tuple(remove_part_keys),
-        add_parts=tuple(add_parts),
-        stash_profiles=tuple(stash_profiles),
-        stash_features=tuple(stash_features),
-        active_part_repair=active_repair,
-        selected_part_repair=selected_repair,
     )
     plan = build_derived_part_sync_plan(request)
 
