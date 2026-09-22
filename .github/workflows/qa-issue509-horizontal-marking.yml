@@ -10,6 +10,9 @@ on:
       - tests/test_issue509_receiving_horizontal_marking.py
       - tests/test_issue471_t6_receiving_marking_activation.py
       - docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md
+      - .agents/skills/engineering/驗證板件與DXF/SKILL.md
+      - 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+      - 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
       - .github/workflows/qa-issue509-horizontal-marking.yml
 
 permissions:
@@ -60,6 +63,21 @@ jobs:
             tests/test_issue41_persistence_parity.py \
             tests/test_dm7_topology_persistence.py \
             --tb=short | tee /tmp/issue509-part-dxf.log
+
+      - name: Durable governance contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ISSUE509_RECEIVING_FRAME_UPPER_HORIZONTAL_MARKING_V2' '.agents/skills/engineering/驗證板件與DXF/SKILL.md'
+          grep -q 'ISSUE509_MARKING_SUPERSESSION_PITFALL' '個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md'
+          grep -q 'ISSUE509_RECEIVING_MARKING_V2_DOMAIN' '個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md'
+          grep -q '#509 — Receiving frame MARKING product-rule supersession' 'docs/superpowers/specs/2026-09-21-joint-placement-marking-design.md'
+          python -m pytest -q \
+            tests/test_dxf_skill_scope_contract.py \
+            tests/test_phase6_skill_preflight_gate.py \
+            tests/test_remote_qa_monitoring_skill_contract.py \
+            tests/test_chinese_skill_identity_contract.py \
+            --tb=short | tee /tmp/issue509-governance.log
 
       - name: Config invariant
         if: always()
