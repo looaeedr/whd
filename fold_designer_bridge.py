@@ -242,9 +242,7 @@ from phase6_manufacturing_adapter import (
 )
 
 
-def _phase6_resolve_manufacturing_geometry(self):
-    """Compatibility-only manufacturing entry."""
-    return resolve_for_app(self)
+_phase6_resolve_manufacturing_geometry = resolve_for_app
 
 
 @dataclass(frozen=True)
@@ -290,9 +288,7 @@ def _phase6_box_body_piece_dimension_projections(render_data) -> tuple[Phase6Par
     return tuple(rows)
 
 
-def _phase6_is_box_body_physical_piece_key(value) -> bool:
-    """Compatibility adapter to the single DM7 navigation identity owner."""
-    return _dm7_is_box_body_physical_piece_key(value)
+_phase6_is_box_body_physical_piece_key = _dm7_is_box_body_physical_piece_key
 
 
 def _phase6_is_side_back_editable_piece_key(value) -> bool:
@@ -304,14 +300,10 @@ def _phase6_is_side_back_editable_piece_key(value) -> bool:
     }
 
 
-def _phase6_operator_part_selector_keys(values) -> tuple[str, ...]:
-    """Compatibility adapter to the common DM7 hierarchy projection."""
-    return _dm7_operator_part_selector_keys(values)
+_phase6_operator_part_selector_keys = _dm7_operator_part_selector_keys
 
 
-def _phase6_box_body_piece_keys(values) -> tuple[str, ...]:
-    """Compatibility adapter to authoritative child identity classification."""
-    return _dm7_box_body_piece_keys(values)
+_phase6_box_body_piece_keys = _dm7_box_body_piece_keys
 
 
 def _phase6_structure_tree_rows(values) -> tuple[tuple[str, str | None], ...]:
@@ -5629,9 +5621,7 @@ def _phase6_bind_assembly_scroll(widget, self):
         owner.bind_scroll(widget)
 
 
-def _phase6_assembly_presentation_groups(values) -> tuple[tuple[str, tuple[str, ...]], ...]:
-    """Compatibility delegate to the pure Phase 5 presentation owner."""
-    return legacy_assembly_presentation_groups(values)
+_phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
     """Return the part-key topology currently represented by assembly rows."""
