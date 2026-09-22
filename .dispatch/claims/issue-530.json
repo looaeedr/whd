@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:43:30+08:00",
   "base_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
-  "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T06:50:00+08:00",
+  "head_sha": "b8feb9d0a853569b8c35a3b4bcf82531c11fc5d4",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T06:51:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,9 +17,14 @@
   "remote_qa": {
     "run_id": 35794404726,
     "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
-    "status": "queued",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "B5 replacement requirement RED before production extraction",
+    "evidence": {
+      "artifact_id": 10723891087,
+      "failures": 2,
+      "passes": 4
+    },
     "candidate_run": {
       "run_id": 35794244876,
       "head_sha": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
@@ -31,6 +36,6 @@
       35794138484
     ]
   },
-  "next_action": "Poll exact RED RUN 35794404726; require expected B5 RED seam, then implement production extraction.",
+  "next_action": "Complete bridge delegation to DerivedPartRequestAssemblyInput/build_derived_part_projection_request on current head b8feb9d0, then run B5 GREEN.",
   "blocker": null
 }
