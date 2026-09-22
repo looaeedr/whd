@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "caebc091c1f10cad8fe296915541d1cca0b9a5a5",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T02:16:40+08:00",
+  "head_sha": "144577021f407e4cc0e52dc0a6d433f01c603489",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T02:17:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -56,7 +56,7 @@
       "artifact_id": 10712350745
     }
   },
-  "next_action": "Remove final one-shot qa-issue524-a3-green.yml, then tested-head→closing-head drift audit.",
+  "next_action": "Inline Standards+Spec review parent 65eff72e...closing 14457702; persist terminal checkpoint; run executable finalization guard.",
   "blocker": null,
   "production_change": {
     "bridge_before_loc": 7806,
@@ -64,5 +64,16 @@
     "bridge_delta": -10,
     "direct_identity_aliases": 5,
     "facade_binding_count_expected": 69
+  },
+  "drift_audit": {
+    "tested_head": "921277d04fff38f99d38b9919a4a466551a2200f",
+    "closing_head": "144577021f407e4cc0e52dc0a6d433f01c603489",
+    "production_test_drift": 0,
+    "closing_only": [
+      ".github/workflows/qa-issue524-facade-audit.yml removed",
+      ".github/workflows/qa-issue524-a3-red.yml removed",
+      ".github/workflows/qa-issue524-a3-green.yml removed",
+      "docs/superpowers/checkpoints/issue524-a3-facade-ratchet.md added"
+    ]
   }
 }
