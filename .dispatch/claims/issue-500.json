@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "f79b6467fa722bf92374d16abde905d86ccac2c0",
-  "last_update": "2026-09-22T22:34:00+08:00",
+  "head_sha": "b184cd1579bc319e33ef7f959b73733d77b22642",
+  "last_update": "2026-09-22T22:37:00+08:00",
   "remote_qa": {
     "status": "HARNESS_DEPENDENCY_FAILURE",
     "run_id": 35734898161,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue500-t3-green.yml",
     "result": "Focused pytest collection blocked only by missing ezdxf in 4 test modules; checkout/install otherwise succeeded."
   },
-  "next_action": "Patch only the T3 GREEN workflow harness to install ezdxf, rerun the same focused suite, and classify implementation failures only after collection succeeds.",
+  "next_action": "Lock exact replacement GREEN run triggered by b184cd15 after ezdxf harness repair; poll same run to terminal and inspect only implementation failures.",
   "blocker": null
 }
