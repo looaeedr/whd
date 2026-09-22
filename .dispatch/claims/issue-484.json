@@ -18,13 +18,15 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
-    "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496"
+    "run_id": 35686800963,
+    "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496",
+    "status": "queued",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue484-t6-true-differential.yml"
   },
-  "next_action": "Resolve push-triggered true differential run for head 7fecca1a0e5382ea8268edd1dd2cde46e9b37496, lock exact run_id+head_sha, poll all lanes and classifier to terminal; candidate-only failures/errors must be empty in both Headless and Xvfb.",
+  "next_action": "Poll locked true differential RUN 35686800963 @ 7fecca1a0e5382ea8268edd1dd2cde46e9b37496 to terminal; require candidate-only failures/errors=[] in Headless and Xvfb plus architecture/protected GREEN; then cleanup temp workflows, audit drift, rebuild #484 terminal checkpoint/proof, close #484, resume #485 remediation integration/post-smoke.",
   "blocker": null,
-  "last_update": "2026-09-22T12:15:00+08:00",
+  "last_update": "2026-09-22T12:16:00+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
