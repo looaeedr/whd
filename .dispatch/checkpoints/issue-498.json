@@ -3,10 +3,10 @@
   "issue": "#498",
   "branch": "work/issue506-phase5-settings-dataflow-20260922",
   "head_sha": "886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84",
-  "state": "WAITING_REMOTE",
-  "next_action": "Poll review-RED run 35728411681 @ 886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84 to terminal; confirm expected missing-metadata RED then implement minimal GREEN.",
+  "state": "RUNNING",
+  "next_action": "Implement minimal machine-readable port metadata in coordinator module; rerun focused GREEN.",
   "run_id": 35728411681,
-  "job_id": null,
+  "job_id": 106747635966,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -24,7 +24,8 @@
     "Replacement T1 GREEN run 35728144746 @ 1a13f968d6c2e6cd4d498bad7bae6f442e0d8213 queued after matplotlib harness fix",
     "T1 focused GREEN run 35728144746: 23 passed, 6 skipped; facade=69; architecture GREEN",
     "Code-review spec axis found incomplete port classification metadata required by #498 acceptance",
-    "Code-review RED test commit 886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84 queued as run 35728411681"
+    "Code-review RED test commit 886abf85b63e55c4baf5d8b3a7f96c3a24ff0e84 queued as run 35728411681",
+    "Review RED run 35728411681: 23 passed, 6 skipped, 1 expected fail; missing port metadata only"
   ],
   "master_issue": null,
   "chain_state": "NONE",
