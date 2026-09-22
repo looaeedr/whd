@@ -6,36 +6,23 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T06:43:30+08:00",
   "base_sha": "8fa30cfc7800afba16b71c7580552893db5d1037",
-  "head_sha": "593dc19ce3f157a8de33b283f7838a5df628117c",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:53:00+08:00",
+  "head_sha": "9fe131b9574d6fdfb918eca56eaaa7988da75104",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T06:56:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B5",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35794404726,
-    "head_sha": "93fe402288767a24fdffe8ac79a9ccb4295fbe6c",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B5 replacement requirement RED before production extraction",
-    "evidence": {
-      "artifact_id": 10723891087,
-      "failures": 2,
-      "passes": 4
-    },
-    "candidate_run": {
-      "run_id": 35794244876,
-      "head_sha": "e07f3c1b98d96cbd7bbc51b9cafc8334bc896672",
-      "conclusion": "success",
-      "decision": "DEEPEN_DERIVED_PROJECTION_OWNER"
-    },
-    "prior_harness_failures": [
-      35794007741,
-      35794138484
-    ]
+    "run_id": 35794936955,
+    "head_sha": "9fe131b9574d6fdfb918eca56eaaa7988da75104",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B5 production GREEN acceptance after deepening existing derived projection owner",
+    "replacement_red_run": 35794404726,
+    "candidate_run": 35794244876
   },
-  "next_action": "Run B5 GREEN on production extraction HEAD 593dc19c: replacement owner contract + derived behavior + Xvfb physical-part parity + architecture/reduction.",
+  "next_action": "Poll exact RUN 35794936955 @ 9fe131b9574d6fdfb918eca56eaaa7988da75104 to terminal; on RED fetch exact failed-step log and remediate.",
   "blocker": null
 }
