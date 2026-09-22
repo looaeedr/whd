@@ -30,58 +30,18 @@ jobs:
           import subprocess
           from pathlib import Path
 
+          census_path = Path("docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json")
+          a0 = json.loads(census_path.read_text(encoding="utf-8"))
           candidates = [
-              "_phase6_is_door_part_key",
-              "_phase6_is_base_plate_part_key",
-              "_phase6_final_scene_renderer",
-              "_phase6_final_scene_scene_query",
-              "_phase6_final_scene_corner_text_sink",
-              "_phase6_final_scene_operator_dimensions",
-              "_phase6_final_scene_part_text_sink",
-              "_phase6_final_scene_visibility",
-              "_phase6_final_scene_render_committed",
-              "_phase6_final_scene_refresh_preview",
-              "_profile_value",
-              "_phase6_set_endcap_fw_follow",
-              "_phase6_toggle_box_structure_lock",
-              "_phase6_sync_joint_state_for_intent",
-              "_phase6_registry_candidate_form_is_current",
-              "_phase6_registry_require_current_candidate",
-              "_phase6_configure_floating_surface",
-              "_phase6_active_mesh_profiles",
-              "_phase6_make_assembly_scene_render_data",
-              "_phase6_refresh_box_body_piece_info_rows",
-              "_phase6_query_assembly_render_data",
-              "_phase6_assembly_unfolded_blank_text",
-              "_phase6_final_scene_view_request",
-              "_phase6_render_true_cutting_mesh",
-              "_phase6_corner_policy_for",
-              "_phase6_draw_operator_dimensions",
-              "_phase6_format_formed_size_text",
-              "_phase6_current_unfolded_size",
-              "_phase6_update_unfolded_size_label",
-              "_phase6_selected_joint_diagnostic",
-              "_phase6_scroll_assembly_parts",
-              "_phase6_bind_assembly_scroll",
-              "_phase6_assembly_presentation_groups",
-              "_phase6_set_assembly_part_details_open",
-              "_phase6_toggle_assembly_part_details",
-              "_phase6_set_assembly_presentation_group_open",
-              "_phase6_toggle_assembly_presentation_group",
-              "_phase6_set_box_body_piece_details_open",
-              "_phase6_toggle_box_body_piece_details",
-              "_phase6_show_input_content",
-              "_phase6_corner_data_unfold_projections",
+              row["name"]
+              for row in a0["top_level_symbols"]
+              if row["classification"] == "BOUNDARY_RECONSIDERATION_CANDIDATE"
           ]
-          if len(candidates) != 41 or len(set(candidates)) != 41:
-              raise SystemExit("candidate inventory mismatch")
+          if len(candidates) != 327 or len(set(candidates)) != 327:
+              raise SystemExit(f"candidate inventory mismatch: {len(candidates)}")
 
           excluded_paths = {
               ".github/workflows/qa-issue522-dead-glue-census.yml",
-              "docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json",
-              "docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.md",
-              "logs/preflight/issue521-a0-preflight.txt",
-              "logs/preflight/issue522-a1-preflight.txt",
           }
           raw = subprocess.check_output(["git", "ls-files", "-z"])
           paths = [Path(p.decode("utf-8", "surrogateescape")) for p in raw.split(b"\0") if p]
@@ -105,27 +65,31 @@ jobs:
                   return "runtime_text"
               return "other_tracked_text"
 
+          decoded = {}
+          for path in paths:
+              p = path.as_posix()
+              if p in excluded_paths:
+                  continue
+              try:
+                  data = path.read_bytes()
+              except OSError:
+                  continue
+              if b"\x00" in data[:4096]:
+                  continue
+              try:
+                  decoded[p] = data.decode("utf-8", "surrogateescape").splitlines()
+              except UnicodeDecodeError:
+                  continue
+
           rows = {}
           for name in candidates:
               pat = re.compile(rf"\b{re.escape(name)}\b")
               definition_pat = re.compile(rf"^\s*(?:async\s+)?(?:def|class)\s+{re.escape(name)}\b")
               refs = []
               definitions = []
-              for path in paths:
-                  p = path.as_posix()
-                  if p in excluded_paths:
-                      continue
-                  try:
-                      data = path.read_bytes()
-                  except OSError:
-                      continue
-                  if b"\x00" in data[:4096]:
-                      continue
-                  try:
-                      text = data.decode("utf-8", "surrogateescape")
-                  except UnicodeDecodeError:
-                      continue
-                  for lineno, line in enumerate(text.splitlines(), 1):
+              for p, file_lines in decoded.items():
+                  path = Path(p)
+                  for lineno, line in enumerate(file_lines, 1):
                       if not pat.search(line):
                           continue
                       if p == "fold_designer_bridge.py" and definition_pat.search(line):
@@ -151,12 +115,17 @@ jobs:
               }
 
           dead = sorted(name for name, row in rows.items() if row["dead_candidate"])
+          live = sorted(name for name, row in rows.items() if row["runtime_reference_count"] > 0)
+          malformed = sorted(name for name, row in rows.items() if len(row["definitions"]) != 1)
           payload = {
-              "schema": "WHD_ISSUE522_DEAD_GLUE_CENSUS_V1",
+              "schema": "WHD_ISSUE522_DEAD_GLUE_CENSUS_V2",
               "head_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
               "candidate_count": len(candidates),
               "dead_candidate_count": len(dead),
               "dead_candidates": dead,
+              "live_candidate_count": len(live),
+              "malformed_definition_count": len(malformed),
+              "malformed_definitions": malformed,
               "rows": rows,
           }
           Path("issue522-dead-glue-census.json").write_text(
@@ -164,17 +133,19 @@ jobs:
               encoding="utf-8",
           )
           md = [
-              "# Issue 522 exact-branch dead-glue census",
+              "# Issue 522 exact-branch exhaustive dead-glue census",
               "",
               f"- HEAD: \`{payload['head_sha']}\`",
               f"- candidates: {len(candidates)}",
               f"- dead candidates: {len(dead)}",
+              f"- live candidates: {len(live)}",
+              f"- malformed definitions: {len(malformed)}",
               "",
               "## Dead candidates",
               "",
               *([f"- \`{x}\`" for x in dead] or ["- none"]),
               "",
-              "## Runtime references",
+              "## Runtime-reference counts",
               "",
               "| symbol | runtime refs | docs/evidence refs |",
               "|---|---:|---:|",
@@ -189,6 +160,8 @@ jobs:
 
           print(f"CANDIDATE_COUNT={len(candidates)}")
           print(f"DEAD_CANDIDATE_COUNT={len(dead)}")
+          print(f"LIVE_CANDIDATE_COUNT={len(live)}")
+          print(f"MALFORMED_DEFINITION_COUNT={len(malformed)}")
           print("DEAD_CANDIDATES=" + ",".join(dead))
           print("ISSUE522_DEAD_GLUE_CENSUS=GREEN")
           PY
