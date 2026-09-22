@@ -17,14 +17,15 @@
     "coord/dispatch-claims"
   ],
   "remote_qa": {
-    "status": "RUN_NOT_CREATED",
-    "run_id": null,
+    "run_id": 35684950103,
     "head_sha": "6c31870349a964ae8924fc786cdb94f8292a9cef",
-    "tested_production_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec"
+    "tested_production_sha": "81dff9d9f33b489d2f9acaca01645a9b7b4babec",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Resolve push-triggered Issue485 T7 Post Integration Smoke run for orchestrator head 6c31870349a964ae8924fc786cdb94f8292a9cef; lock exact run_id+orchestrator head+tested production SHA 81dff9d9f33b489d2f9acaca01645a9b7b4babec; poll to terminal; on GREEN delete temporary orchestrator, audit cleanup-only drift, finalize #485 then Master #486.",
+  "next_action": "Poll locked RUN 35684950103 at orchestrator head 6c31870349a964ae8924fc786cdb94f8292a9cef; require job checkout assertion HEAD=81dff9d9f33b489d2f9acaca01645a9b7b4babec and focused smoke GREEN; then cleanup orchestrator and finalize #485/#486.",
   "blocker": null,
-  "last_update": "2026-09-22T11:57:00+08:00",
+  "last_update": "2026-09-22T11:58:00+08:00",
   "predecessor": {
     "issue": 484,
     "accepted_head": "8b08024a9b93fe5577846489df099ce0387d08b4"
