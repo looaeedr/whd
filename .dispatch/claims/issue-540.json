@@ -8,15 +8,23 @@
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
   "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T06:50:10+08:00",
+  "last_update": "2026-09-23T06:52:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "status": "pending",
+    "run_id": 35794492687,
     "head_sha": "f78c788c64e3adc01e77ba28661d56a456ce8348",
-    "purpose": "Issue #540 executable stale takeover GREEN acceptance"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "Issue #540 executable stale takeover GREEN acceptance",
+    "evidence": {
+      "focused_tests": "26 passed",
+      "actions_naming": "GREEN",
+      "boundary_599": "BLOCKED",
+      "boundary_600": "EXECUTOR_STUCK"
+    }
   },
-  "next_action": "Lock exact #540 GREEN run at f78c788c; if GREEN, update canonical Skills with machine authority and then integrate cleanup authority before bootstrapping default-branch Remote Guard claim-takeover.",
+  "next_action": "Harden claim-takeover guard so stale evidence is machine-required; add exact remote-run head validation, canonical Skill/AI writeback, and trusted Remote Guard claim-takeover contract on the feature branch.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
