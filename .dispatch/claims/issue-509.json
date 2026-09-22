@@ -5,9 +5,9 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "2d55f3d048807db747a16607add26ca412acbf9f",
+  "head_sha": "6809e924af820a0e1c6397553e88b37b01f863f2",
   "phase": "CLOSING",
-  "last_update": "2026-09-22T14:02:00Z",
+  "last_update": "2026-09-22T14:05:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35736445559,
@@ -17,7 +17,7 @@
     "job_id": 106774799398,
     "summary": "focused 6 passed; broader part/DXF/persistence 24 passed"
   },
-  "next_action": "Durable #509 Skill/spec/AI-library writeback; validate Skill preflight; cleanup temporary workflow; closing drift audit; integrate to X.",
+  "next_action": "Write #509 global/domain AI pitfalls, reread durable authority, validate Skill/preflight, cleanup QA workflow.",
   "blocker": null,
   "delegated_branches": []
 }
