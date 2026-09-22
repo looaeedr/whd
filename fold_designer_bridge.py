@@ -5382,7 +5382,13 @@ def _phase6_render_data_for_blank(self, part_key=None):
     active = str(getattr(getattr(self, "designer_workspace", None), "active_part", "") or "")
     if key == active:
         return _phase6_query_final_render_data(self)
-    if key in {"box_body", "head", "tail"}:
+    if (
+        key in {"box_body", "head", "tail"}
+        or key.startswith("box_body:divider:")
+    ):
+        # Divider CROSS relief and Joint Placement MARKING are derived during
+        # resolved manufacturing.  Corner Data may select a Divider without
+        # changing workspace.active_part, so never fall back to its raw scene.
         return _phase6_resolve_manufacturing_geometry(self).part(key).render_data
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:

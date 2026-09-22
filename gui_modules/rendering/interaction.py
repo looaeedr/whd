@@ -186,6 +186,13 @@ def draw_preview(host):
     return refresh() if callable(refresh) else None
 
 
+def _refresh_box_body_after_hole_editor(host):
+    """Refresh the owning view without reviving legacy canvas ownership."""
+    if bool(getattr(host, "_phase6_primary_workspace", False)):
+        return host.draw_preview()
+    return host.draw_box_body(host.get_float_values())
+
+
 def open_box_body_face_editor(
     host,
     face_key,
@@ -242,5 +249,5 @@ def open_box_body_face_editor(
         feature_list_override=host.box_body_face_features[face_key],
         baseline_scene=host._box_body_face_baseline_scene(face_key, val),
         baseline_status_text=baseline_label_fn(host.baseline_var.get()),
-        on_close=lambda: host.draw_box_body(host.get_float_values()),
+        on_close=lambda: _refresh_box_body_after_hole_editor(host),
     )
