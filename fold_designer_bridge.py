@@ -32,6 +32,16 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
+from phase6_derived_part_projection import (
+    DerivedPartProjectionRequest,
+    build_derived_part_sync_plan,
+    feature_projection as _derived_feature_projection,
+    materialize_features as _materialize_derived_features,
+    materialize_namespace as _materialize_derived_namespace,
+    materialize_profiles as _materialize_derived_profiles,
+    namespace_projection as _derived_namespace_projection,
+    profile_projection as _derived_profile_projection,
+)
 from phase6_part_navigation import (
     NavigationIntent,
     NavigationMemory,
@@ -81,7 +91,6 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from gui_modules.application.fold_designer_adapter import (
-    FinalSceneCompositionPorts,
     Phase6FoldDesignerComposition,
     install_fold_designer_bridge_facade,
 )
@@ -753,153 +762,26 @@ def _phase6_final_scene_refresh_preview(self):
 
 
 def _phase6_final_scene_adapter(self):
-    return _phase6_composition(self).final_scene_adapter(
-        FinalSceneCompositionPorts(
-                number_text=_setting_number_text,
-                is_physical_piece_key=_phase6_is_box_body_physical_piece_key,
-                physical_piece_render_data=lambda key: _phase6_box_body_piece_render_data(
-                    self, key
-                ),
-                user_joint_parts=lambda: {
-                    str(raw.get(field) or "")
-                    for raw in tuple(
-                        migrate_legacy_snapshot_joints(
-                            dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-                        ).get("assembly_joints", ()) or ()
-                    )
-                    if str(raw.get("source") or "")
-                    == AssemblyJointSource.USER_ADDED.value
-                    for field in ("subject_part", "target_part")
-                },
-                resolve_geometry=lambda: _phase6_resolve_manufacturing_geometry(
-                    self
-                ),
-                scene_payload_for_part=lambda key: _phase6_scene_query_payload_for_part(
-                    self, key
-                ),
-                publish_live_state=lambda **kwargs: _phase6_publish_live_state(
-                    self, **kwargs
-                ),
-                corner_dimension_text=_phase6_render_data_corner_dimension_text,
-                formed_size_text=lambda render_data, **kwargs: _phase6_format_formed_size_text(
-                    render_data, **kwargs
-                ),
-                blank_text=lambda render_data, *, part_key="": _phase6_format_unfolded_blank_text(
-                    render_data, part_key=part_key
-                ),
-                refresh_box_body_piece_info=lambda render_data: _phase6_refresh_box_body_piece_info_rows(
-                    self, render_data
-                ),
-                operator_dimensions=lambda part_key=None: _phase6_final_scene_operator_dimensions(
-                    self, part_key
-                ),
-                cabinet_family=lambda: _phase6_current_cabinet_family(self),
-                assembly_blank_text=lambda render_data: _phase6_assembly_unfolded_blank_text(
-                    render_data,
-                    snapshot=getattr(self, "_phase6_input_snapshot", {}),
-                ),
-                active_mesh_profiles=lambda material: _phase6_active_mesh_profiles(
-                    self, material
-                ),
-                assembly_render_data_cls=AssemblySceneRenderData,
-                assembly_part_cls=AssemblyScenePart,
-                final_render_provider=lambda: _phase6_query_final_render_data(
-                    self
-                ),
-                assembly_render_provider=lambda: _phase6_query_assembly_render_data(
-                    self
-                ),
-                request_provider=lambda: _phase6_final_scene_view_request(self),
-                after_render=lambda: (
-                    _phase6_update_unfolded_size_label(self),
-                    _phase6_update_assembly_diagnostic_status(self),
-                ),
-                active_part=lambda: str(
-                    getattr(
-                        getattr(self, "designer_workspace", None),
-                        "active_part",
-                        "",
-                    )
-                    or ""
-                ),
-                scene_query=lambda key, payload: _phase6_final_scene_scene_query(
-                    self, key, payload
-                ),
-                input_snapshot=lambda: dict(
-                    getattr(self, "_phase6_input_snapshot", {}) or {}
-                ),
-                settings_values=lambda: dict(
-                    getattr(self, "_settings_values", {}) or {}
-                ),
-                alpha_bend=lambda: float(
-                    getattr(getattr(self, "state", None), "alpha_bend", 0.85)
-                ),
-                display_mode=lambda: str(
-                    getattr(self, "_phase6_3d_display_mode", "single")
-                    or "single"
-                ),
-                assembly_corner_text_sink=lambda values: _phase6_final_scene_corner_text_sink(
-                    self, values
-                ),
-                assembly_part_text_sink=lambda kind, key, value: _phase6_final_scene_part_text_sink(
-                    self, kind, key, value
-                ),
-                assembly_visibility=lambda parts: _phase6_final_scene_visibility(
-                    self, parts
-                ),
-                interference_probe_parts=lambda: tuple(
-                    getattr(self, "_phase6_last_interference_probe_parts", ())
-                    or ()
-                ),
-                show_interference=lambda: bool(
-                    getattr(
-                        getattr(self, "assembly_show_interference_var", None),
-                        "get",
-                        lambda: True,
-                    )()
-                ),
-                render_committed=lambda: _phase6_final_scene_render_committed(
-                    self
-                ),
-                set_preview_enabled=lambda enabled: _phase6_final_scene_set_preview_enabled(
-                    self, enabled
-                ),
-                refresh_preview=lambda: _phase6_final_scene_refresh_preview(
-                    self
-                ),
-
-        )
+    composition = _phase6_composition(self)
+    return composition.final_scene_adapter(
+        composition.final_scene_ports(globals())
     )
 
 def _phase6_sync_authoritative_derived_parts(self):
-    """Sync topology-derived physical parts into the persistent workspace.
-
-    Divider geometry is fully determined by authoritative multi-door topology.
-    Receiving frame spans are derived by its family policy from Door finished
-    geometry plus the confirmed 50 mm left/right/top insets; other families may
-    still supply explicit spans to the generic frame capability.
-    """
+    """Plan derived physical-part topology first, then apply workspace mutations."""
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
     workspace = _designer_workspace(self)
     navigation = _phase6_workspace_navigation(self)
     if not navigation.supports_derived_sync:
-        # Baseline-change and migration adapters may supply a lightweight
-        # workspace facade that predates topology-derived physical parts.
-        # Derived synchronization is additive capability; it must not make
-        # those transactions fail before a full DesignerWorkspace is attached.
         return (), ()
 
-    # Multi-Door cells are topology-owned physical parts.  The legacy logical
-    # ``door`` exists only in single-door mode; otherwise every downstream
-    # consumer sees exactly the formal cell identities.
+    # ---- Pure input/projection phase: no workspace/navigation mutation below ----
     door_rows = _phase6_door_part_projections(snapshot)
-    # A formal multi-door part can be born after the initial workspace snapshot
-    # has been constructed. Preserve any canonical per-door features already
-    # present in the source snapshot when that identity is first materialized.
-    # Existing workspace feature stashes always win so live edits are never
-    # overwritten by an older snapshot during later topology refreshes.
     source_part_features = dict(snapshot.get("part_features") or {})
     known_feature_keys = set(workspace.part_features_snapshot())
+    source_parts = tuple(snapshot.get("existing_parts") or ())
+    available_parts = tuple(workspace.available_parts)
+
     door_profiles = {}
     for row in door_rows:
         local = dict(snapshot)
@@ -914,30 +796,6 @@ def _phase6_sync_authoritative_derived_parts(self):
         local["part_dimensions"] = local_dims
         door_profiles[row.part_key] = build_standard_part_profiles(local, row.part_key)
 
-    legacy_active = workspace.active_part == "door"
-    legacy_selected = workspace.selected_part == "door"
-    if door_rows and "door" in workspace.available_parts:
-        navigation.remove_part("door")
-    navigation.sync_derived_parts(namespace="door_c", part_profiles=door_profiles)
-    for row in door_rows:
-        if row.part_key not in known_feature_keys and row.part_key in source_part_features:
-            navigation.stash_features(row.part_key, source_part_features[row.part_key])
-    if door_rows:
-        if legacy_active:
-            navigation.set_active_part(door_rows[0].part_key)
-        if legacy_selected:
-            navigation.set_selected_part(door_rows[0].part_key)
-    else:
-        source_parts = tuple(snapshot.get("existing_parts") or ())
-        if "door" in source_parts and "door" not in workspace.available_parts:
-            navigation.add_part(
-                "door",
-                default_profiles=build_standard_part_profiles(snapshot, "door"),
-            )
-
-    # Receiving multi-door Base Plates are physical parts owned 1:1 by the
-    # authoritative Door cells.  Their finished-face dimensions are the owning
-    # cell nominal W/H after the existing family shrink policy.
     base_plate_profiles = {}
     if door_rows:
         columns = tuple(
@@ -956,60 +814,43 @@ def _phase6_sync_authoritative_derived_parts(self):
                 for key, value in dict(snapshot.get("part_dimensions") or {}).items()
             }
             local_dims[base_key] = {
-                "width": max(1.0, float(cell.start_width) - shrink_left - shrink_right),
-                "height": max(1.0, float(cell.start_height) - shrink_top - shrink_bottom),
+                "width": max(
+                    1.0,
+                    float(cell.start_width) - shrink_left - shrink_right,
+                ),
+                "height": max(
+                    1.0,
+                    float(cell.start_height) - shrink_top - shrink_bottom,
+                ),
             }
             local["part_dimensions"] = local_dims
-            base_plate_profiles[base_key] = build_standard_part_profiles(local, base_key)
-
-    legacy_base_active = workspace.active_part == "base_plate"
-    legacy_base_selected = workspace.selected_part == "base_plate"
-    if door_rows and "base_plate" in workspace.available_parts:
-        navigation.remove_part("base_plate")
-    navigation.sync_derived_parts(
-        namespace="base_plate_c",
-        part_profiles=base_plate_profiles,
-    )
-    if door_rows:
-        first_base = str(door_rows[0].part_key).replace("door_", "base_plate_", 1)
-        if legacy_base_active:
-            navigation.set_active_part(first_base)
-        if legacy_base_selected:
-            navigation.set_selected_part(first_base)
-    else:
-        source_parts = tuple(snapshot.get("existing_parts") or ())
-        if "base_plate" in source_parts and "base_plate" not in workspace.available_parts:
-            navigation.add_part(
-                "base_plate",
-                default_profiles=build_standard_part_profiles(snapshot, "base_plate"),
+            base_plate_profiles[base_key] = build_standard_part_profiles(
+                local, base_key
             )
 
-    # Manufacturing-owned multipart BoxBody identities must be real 3D workspace
-    # contexts, not only nested labels inside the aggregate `box_body` page.
-    # Query the canonical aggregate result and project exactly its physical pieces.
     try:
         box_render_data = _phase6_box_body_structure_render_data(self)
     except Exception:
         box_render_data = None
-    if box_render_data is not None:
-        box_piece_profiles = _phase6_box_body_piece_part_profiles(box_render_data, snapshot)
-        desired_piece_keys = set(box_piece_profiles)
-        current_piece_keys = {
-            key for key in workspace.available_parts
-            if _phase6_is_box_body_physical_piece_key(key)
-        }
-        for key in tuple(current_piece_keys - desired_piece_keys):
-            navigation.remove_part(key)
-        for key, profiles in box_piece_profiles.items():
-            if key in workspace.available_parts:
-                navigation.stash_profiles(key, profiles)
-            else:
-                navigation.add_part(key, default_profiles=profiles)
+    box_piece_profiles = (
+        _phase6_box_body_piece_part_profiles(box_render_data, snapshot)
+        if box_render_data is not None
+        else {}
+    )
+    desired_piece_keys = set(box_piece_profiles)
+    current_piece_keys = {
+        key
+        for key in available_parts
+        if _phase6_is_box_body_physical_piece_key(key)
+    }
 
     divider_profiles = {}
     columns = list(snapshot.get("door_layout_columns") or ())
     if bool(snapshot.get("multi_door_enabled", False)) and columns:
-        from ae_engine.door_dividers import derive_box_body_dividers, divider_part_profiles
+        from ae_engine.door_dividers import (
+            derive_box_body_dividers,
+            divider_part_profiles,
+        )
 
         normalized_columns = tuple(
             (float(row[0]), tuple(float(value) for value in row[1]))
@@ -1019,27 +860,29 @@ def _phase6_sync_authoritative_derived_parts(self):
             normalized_columns,
             depth=float(snapshot.get("d", 0.0)),
             thickness=float(snapshot.get("t", 0.0)),
-            layout_scope=str(snapshot.get("door_layout_scope") or "main").strip() or "main",
+            layout_scope=(
+                str(snapshot.get("door_layout_scope") or "main").strip()
+                or "main"
+            ),
             handle_edges=dict(snapshot.get("door_handle_edges") or {}),
             model_name=str(snapshot.get("model") or "").strip() or None,
             frame_width=float(snapshot.get("fw", 0.0)),
         )
         divider_profiles = divider_part_profiles(dividers)
-    navigation.sync_derived_parts(
-        namespace="box_body:divider:",
-        part_profiles=divider_profiles,
-    )
 
     from ae_engine.inner_door_frames import (
         InnerDoorFrameSet,
         derive_all_inner_door_frames,
         inner_door_frame_part_profiles,
     )
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
 
     frame_sets = []
     thickness = float(snapshot.get("t", 0.0))
     if cabinet_family_policy.has_inner_door_frame_derivation(snapshot):
-        frame_sets.extend(cabinet_family_policy.derive_inner_door_frame_sets(snapshot))
+        frame_sets.extend(
+            cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+        )
     else:
         for item in list(snapshot.get("inner_doors") or ()):
             if not isinstance(item, Mapping):
@@ -1050,27 +893,125 @@ def _phase6_sync_authoritative_derived_parts(self):
             stable_id = str(item.get("stable_id") or "").strip()
             if not stable_id:
                 continue
-            included = tuple(str(side).strip().lower() for side in (item.get("included_frame_sides") or ("top", "bottom", "left", "right")))
-            frame_sets.append(InnerDoorFrameSet(
-                inner_door_id=stable_id,
-                spans=dict(spans),
-                thickness=thickness,
-                included_sides=included,
-            ))
+            included = tuple(
+                str(side).strip().lower()
+                for side in (
+                    item.get("included_frame_sides")
+                    or ("top", "bottom", "left", "right")
+                )
+            )
+            frame_sets.append(
+                InnerDoorFrameSet(
+                    inner_door_id=stable_id,
+                    spans=dict(spans),
+                    thickness=thickness,
+                    included_sides=included,
+                )
+            )
     frames = derive_all_inner_door_frames(tuple(frame_sets))
-    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
     panels = cabinet_family_policy.derive_inner_door_panels(snapshot)
     inner_profiles = inner_door_frame_part_profiles(frames)
     inner_profiles.update(inner_door_panel_part_profiles(panels))
-    navigation.sync_derived_parts(
-        namespace="inner_door:",
-        part_profiles=inner_profiles,
+
+    remove_part_keys = []
+    add_parts = []
+    stash_profiles = []
+    stash_features = []
+
+    if door_rows and "door" in available_parts:
+        remove_part_keys.append("door")
+    for row in door_rows:
+        if (
+            row.part_key not in known_feature_keys
+            and row.part_key in source_part_features
+        ):
+            stash_features.append(
+                _derived_feature_projection(
+                    row.part_key,
+                    source_part_features[row.part_key],
+                )
+            )
+    if not door_rows and "door" in source_parts and "door" not in available_parts:
+        add_parts.append(
+            _derived_profile_projection(
+                "door",
+                build_standard_part_profiles(snapshot, "door"),
+            )
+        )
+
+    if door_rows and "base_plate" in available_parts:
+        remove_part_keys.append("base_plate")
+    if (
+        not door_rows
+        and "base_plate" in source_parts
+        and "base_plate" not in available_parts
+    ):
+        add_parts.append(
+            _derived_profile_projection(
+                "base_plate",
+                build_standard_part_profiles(snapshot, "base_plate"),
+            )
+        )
+
+    for key in tuple(current_piece_keys - desired_piece_keys):
+        remove_part_keys.append(key)
+    for key, profiles in box_piece_profiles.items():
+        projection = _derived_profile_projection(key, profiles)
+        if key in available_parts:
+            stash_profiles.append(projection)
+        else:
+            add_parts.append(projection)
+
+    active_repair = None
+    selected_repair = None
+    if door_rows:
+        if workspace.active_part == "door":
+            active_repair = door_rows[0].part_key
+        elif workspace.active_part == "base_plate":
+            active_repair = str(door_rows[0].part_key).replace(
+                "door_", "base_plate_", 1
+            )
+        if workspace.selected_part == "door":
+            selected_repair = door_rows[0].part_key
+        elif workspace.selected_part == "base_plate":
+            selected_repair = str(door_rows[0].part_key).replace(
+                "door_", "base_plate_", 1
+            )
+
+    request = DerivedPartProjectionRequest(
+        namespaces=(
+            _derived_namespace_projection("door_c", door_profiles),
+            _derived_namespace_projection(
+                "base_plate_c",
+                base_plate_profiles,
+            ),
+            _derived_namespace_projection(
+                "box_body:divider:",
+                divider_profiles,
+            ),
+            _derived_namespace_projection("inner_door:", inner_profiles),
+        ),
+        remove_part_keys=tuple(remove_part_keys),
+        add_parts=tuple(add_parts),
+        stash_profiles=tuple(stash_profiles),
+        stash_features=tuple(stash_features),
+        active_part_repair=active_repair,
+        selected_part_repair=selected_repair,
     )
+    plan = build_derived_part_sync_plan(request)
+
+    # Workspace/navigation remains the unique mutation owner.
+    navigation.apply_derived_sync_plan(plan)
+
     return (
         tuple(divider_profiles),
-        tuple([*(frame.stable_id for frame in frames), *(panel.stable_id for panel in panels)]),
+        tuple(
+            [
+                *(frame.stable_id for frame in frames),
+                *(panel.stable_id for panel in panels),
+            ]
+        ),
     )
-
 
 def _legacy_available_parts_get(self):
     return list(_designer_workspace(self).available_parts)
@@ -1854,20 +1795,6 @@ def _phase6_stage_setting_update(self, key, value):
     job = self.root.after(plan.schedule_after_ms, self.flush_pending_settings)
     service.install_debounce_job(job)
 
-def _phase6_on_setting_var_changed(self, key, var, spec):
-    if getattr(self, "_phase6_settings_guard", False) or getattr(self, "_phase6_settings_rendering", False):
-        return
-    raw = var.get()
-    if spec.kind == "bool":
-        value = bool(raw)
-    elif spec.kind == "choice":
-        value = normalize_ui_text_size(raw) if spec.key == "ui_text_size" else str(raw)
-    else:
-        try:
-            value = float(raw)
-        except (TypeError, ValueError, original.tk.TclError):
-            return
-    _phase6_stage_setting_update(self, key, value)
 
 
 
@@ -1967,8 +1894,6 @@ def _phase6_corner_pair_var_changed(self, part_key, pair_key, var):
     _phase6_invalidate_settings_page(self, part_key)
     _phase6_render_settings_context(self, part_key)
 
-def _phase6_corner_targets(pairs, target_key):
-    return _CORNER_PAIR_KEYS[target_key] if target_key in _CORNER_PAIR_KEYS else (target_key,)
 
 
 def _phase6_corner_type_selected(self, part_key, target_key):
@@ -2903,17 +2828,6 @@ def _phase6_set_endcap_fw_override(self, part_key, value):
     return _phase6_commit_endcap_fw_state(self)
 
 
-def _phase6_on_endcap_fw_follow_selected(self, part_key, follow_var, value_var, value_widget):
-    follow = bool(follow_var.get())
-    _phase6_set_endcap_fw_follow(self, part_key, follow)
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    effective = resolve_endcap_fw(snapshot, part_key, state=self._phase6_endcap_fw_state)
-    value_var.set(_setting_number_text(effective))
-    try:
-        value_widget.configure(state=("disabled" if follow else "normal"))
-    except Exception:
-        pass
 
 
 def _phase6_on_endcap_fw_value_selected(self, part_key, value_var):
@@ -4284,29 +4198,6 @@ def _phase6_registry_source_display(value, *, presentation_field="source"):
     )
 
 
-def _phase6_bind_translated_var(raw_var, display_var, to_display, to_raw):
-    busy = {"value": False}
-    def raw_changed(*_args):
-        if busy["value"]:
-            return
-        busy["value"] = True
-        try:
-            display_var.set(to_display(raw_var.get()))
-        finally:
-            busy["value"] = False
-    def display_changed(*_args):
-        if busy["value"]:
-            return
-        busy["value"] = True
-        try:
-            raw_var.set(to_raw(display_var.get()))
-        finally:
-            busy["value"] = False
-    raw_var.trace_add("write", raw_changed)
-    display_var.trace_add("write", display_changed)
-    raw_changed()
-    display_var._phase6_raw_var = raw_var
-    return display_var
 
 
 def _phase6_registry_collect_rule_form(self):
@@ -5301,18 +5192,6 @@ def _phase6_save_settings_context_as_defaults(self, context):
         self.settings_status_var.set("已儲存到 config.ini")
     return True
 
-def _phase6_scene_from_structural_result(result, features, surface_id):
-    from ae_engine.sheetmetal_drawing import DrawingScene, structural_result_to_primitives, resolved_features_to_primitives
-    from ae_engine.sheetmetal_features import feature_surface_from_structural_result, resolve_surface_features
-
-    scene = DrawingScene()
-    scene.extend(structural_result_to_primitives(result))
-    if features:
-        surface = feature_surface_from_structural_result(surface_id, result)
-        scene.extend(resolved_features_to_primitives(
-            resolve_surface_features(surface, list(features), float(result.width), float(result.height))
-        ))
-    return scene
 
 
 
@@ -5438,8 +5317,6 @@ def _phase6_install_renderer_view(self):
         pass
     return result
 
-def _phase6_profile_material_total(profile):
-    return float(sum(abs(_num(seg.get("len", 0.0))) for seg in (profile or ())))
 
 
 def _phase6_corner_policy_for(self, part_key):

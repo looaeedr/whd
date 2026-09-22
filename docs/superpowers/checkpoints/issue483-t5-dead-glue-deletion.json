@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "issue": 483,
+  "master_issue": 486,
+  "requirement": "T5 bridge compatibility ratchet / dead-glue cleanup",
+  "census_run": 35676351857,
+  "planned_scope_preflight_run": 35676467843,
+  "source_head": "2faf0a3c4cb596e47ce987aec9b9e746448eb54b",
+  "production_file": "fold_designer_bridge.py",
+  "deletion_class": "ZERO_CALLER_GLUE",
+  "deleted": [
+    {
+      "name": "_phase6_on_setting_var_changed",
+      "source_lines": [
+        1798,
+        1811
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    },
+    {
+      "name": "_phase6_corner_targets",
+      "source_lines": [
+        1911,
+        1912
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    },
+    {
+      "name": "_phase6_on_endcap_fw_follow_selected",
+      "source_lines": [
+        2847,
+        2857
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    },
+    {
+      "name": "_phase6_bind_translated_var",
+      "source_lines": [
+        4228,
+        4250
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    },
+    {
+      "name": "_phase6_scene_from_structural_result",
+      "source_lines": [
+        5245,
+        5256
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    },
+    {
+      "name": "_phase6_profile_material_total",
+      "source_lines": [
+        5382,
+        5383
+      ],
+      "evidence": "AST static refs=0; bridge occurrence=1; repo exact-name search=0"
+    }
+  ],
+  "intentionally_retained": {
+    "linked_endcap": "KEEP_COMPATIBILITY from T3; _phase6_rebuild_linked_endcaps retained",
+    "settings_exact_six": "KEEP_BRIDGE_COMPATIBILITY from T4; all six retained",
+    "workspace_shell": "#447 NO_EXTRACTION",
+    "part_editor": "#448 C_KEEP_BRIDGE_COMPATIBILITY",
+    "fix11_init": "#449 bootstrap-only",
+    "dynamic_final_scene_ports": "retained because composition namespace consumes names dynamically even when AST Name refs are zero"
+  },
+  "protected_baseline": {
+    "facade_binding_count": 69,
+    "reverse_import_bridge": 0,
+    "second_composition_root": 0
+  }
+}

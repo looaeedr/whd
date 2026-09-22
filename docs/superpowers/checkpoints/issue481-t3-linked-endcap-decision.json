@@ -1,0 +1,32 @@
+{
+  "schema": "WHD_PHASE4_T3_LINKED_ENDCAP_OWNER_DECISION_V1",
+  "issue": 481,
+  "master_issue": 486,
+  "decision": "KEEP_COMPATIBILITY",
+  "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
+  "bridge_role": "workspace/live-editor compatibility effects",
+  "join_derived_part_plan": false,
+  "deepen_fold_profiles": false,
+  "characterized_symbol": "fold_designer_bridge._phase6_rebuild_linked_endcaps",
+  "evidence": {
+    "t0_loc": 78,
+    "reads": [
+      "self._phase6_input_snapshot",
+      "self.designer_workspace",
+      "self.state"
+    ],
+    "domain_call": "build_linked_endcap_xy_profiles",
+    "compatibility_effects": [
+      "workspace head/tail profile stash",
+      "active EndCap live profile cache refresh",
+      "bend tab/live UI refresh scheduling"
+    ]
+  },
+  "rationale": [
+    "Linked EndCap profile derivation already belongs to phase6_fold_profiles.",
+    "The remaining bridge seam coordinates application/workspace/Tk compatibility effects, not derived physical-part topology.",
+    "Joining DerivedPartSyncPlan would mix distinct ownership domains.",
+    "Deepening phase6_fold_profiles would import application/Tk effects into a pure fold-profile derivation owner."
+  ],
+  "invariant": "No manufacturing geometry formula or workspace mutation authority is moved into the derived-part planner."
+}
