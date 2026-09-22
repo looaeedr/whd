@@ -6,18 +6,16 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "71121d4b82ee2cb7be73f3ccb50a97d55f4800ba",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T15:38:00Z",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T15:39:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
-    "run_id": 35746571743,
-    "head_sha": "da14f8b68785cdb7894d02653a5ebeaf29089a77",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106809635660,
-    "summary": "Production-primary RED: selector canonical scroll surface unmapped; GUI DXF actual 5 vs canonical 14; canonical frame MARKING 3 vs assembly visible 0. Live-switch mesh-bounds probe passed but does not yet close user's first-switch symptom."
+    "run_id": 35747065581,
+    "head_sha": "71121d4b82ee2cb7be73f3ccb50a97d55f4800ba",
+    "status": "in_progress",
+    "conclusion": null
   },
-  "next_action": "Observe the automatically triggered #517 Xvfb run at head 71121d4b82ee2cb7be73f3ccb50a97d55f4800ba; once run_id exists, lock and poll to terminal before any further mutation.",
+  "next_action": "Poll exact run 35747065581 at head 71121d4b82ee2cb7be73f3ccb50a97d55f4800ba to terminal; do not mutate further while active.",
   "blocker": null,
   "delegated_branches": []
 }
