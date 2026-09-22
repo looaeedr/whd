@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T23:05:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "RED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
-  "last_update": "2026-09-22T23:05:00+08:00",
+  "head_sha": "c469d3604249bd7eda636eca83a716dd55114da2",
+  "last_update": "2026-09-22T23:12:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Run T4 preflight and focused R3/R4 RED characterization from accepted T3 cleaned head; then move baseline transition and factory-reset application effects into the typed Settings coordinator without changing semantic owners.",
+  "next_action": "Add focused R3/R4 RED contract on current T4 head c469d360; run expected RED; then deepen coordinator baseline/reset sequencing without moving semantic owners.",
   "blocker": null
 }
