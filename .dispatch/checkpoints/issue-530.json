@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "issue": "530",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35794936955,
+  "job_id": 106971925136,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2.",
+    "Parent accepted HEAD 8fa30cfc7800afba16b71c7580552893db5d1037.",
+    "Deletion-Test candidate RUN 35794244876 SUCCESS; decision DEEPEN_DERIVED_PROJECTION_OWNER.",
+    "Harness failures 35794007741 and 35794138484 REVOKED as HARNESS_INDENTATION_ERROR.",
+    "Replacement requirement RED RUN 35794404726 SUCCESS as expected RED: 2 failed / 4 passed.",
+    "Production GREEN RUN 35794936955 @ 9fe131b9574d6fdfb918eca56eaaa7988da75104 SUCCESS.",
+    "Headless 52 passed; Xvfb 2 passed / 33 deselected.",
+    "Bridge LOC 7482; B5 reduction from pre-B5 58; derived sync span 193.",
+    "Request assembly owner phase6_derived_part_projection; navigation mutation owner unchanged; reverse import bridge=0.",
+    "CURRENT AI Library ownership writeback completed.",
+    "One-shot B5 workflows removed.",
+    "Tested→closing production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "531",
+  "chain_next_action": "Atomically claim #531/B6 Facade Compatibility Audit Controller from accepted HEAD b04310c426ccb07dbc18a09b451a27e54fd2d24f and continue mandatory Stage B.",
+  "chain_reason": "STAGE_B_REQUIRED=true; B5 accepted DEEPEN_DERIVED_PROJECTION_OWNER"
+}
