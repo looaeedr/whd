@@ -4,27 +4,27 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T02:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "work_branch": "feature/issue538-actions-chinese-contract-20260923",
   "delegated_branches": [],
   "head_sha": "486d149cd6694cec2e4fd6445b89807a7c3f5d72",
-  "last_update": "2026-09-23T02:16:00+08:00",
+  "last_update": "2026-09-23T02:17:00+08:00",
   "remote_qa": {
-    "run_id": 35765684155,
-    "head_sha": "ab898a270534e6610f7a284be570092e1359ba9c",
+    "run_id": 35765860616,
+    "head_sha": "486d149cd6694cec2e4fd6445b89807a7c3f5d72",
     "status": "completed",
-    "conclusion": "failure",
-    "purpose": "Actions 繁中顯示命名契約 replacement QA",
+    "conclusion": "success",
+    "purpose": "Actions 繁中顯示命名契約 focused QA",
     "evidence": {
+      "outer_run_name": "WHD｜#538｜Actions 繁中顯示命名契約驗收",
       "unit_tests": "GREEN",
       "self_naming_guard": "GREEN",
-      "skill_contract_marker": "FAIL",
-      "missing_marker": "禁止 fallback 到英文 commit message"
+      "skill_contract": "GREEN"
     }
   },
-  "next_action": "Lock replacement #538 focused QA at 486d149c, verify all naming guard/tests/Skill contract GREEN, then cleanup one-shot workflow and integrate to cleanup/2d-3d-sync.",
+  "next_action": "Remove one-shot qa-issue538-actions-visible-naming.yml under a fresh commit guard, verify final branch diff contains only durable Skill/tool/test/pitfall changes, then PR/merge to cleanup/2d-3d-sync.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
