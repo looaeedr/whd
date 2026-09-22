@@ -62,7 +62,6 @@ def default_box_body_structure_state() -> dict:
             BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value: {
                 "side_rear_bend": 15.0,
                 "back_width_comp_t": 0.5,
-                "back_panel_mode": BackPanelMode.FULL.value,
                 # Physical-piece Fold editors persist here. The aggregate
                 # box_body Fold Chain remains the source for shared D/FW/W
                 # dimensions; piece profiles own piece-local topology/angles.
