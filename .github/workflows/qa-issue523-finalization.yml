@@ -1,0 +1,58 @@
+name: QA #523 Executable Finalization
+
+on:
+  push:
+    branches:
+      - qa/issue523-finalization-20260923
+    paths:
+      - .github/workflows/qa-issue523-finalization.yml
+
+permissions:
+  contents: read
+
+jobs:
+  finalization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch coordination checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-523.json > /tmp/issue-523.json
+
+      - name: Authorize finalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller authorize-finalization /tmp/issue-523.json \
+            --issue 523 \
+            --branch work/issue520-phase6-bridge-residual-reduction-20260923 \
+            --head-sha 65eff72ec7a9b0b9542468454a5b4e9012d6be86 \
+            --proof-out /tmp/issue-523.finalization-proof.json
+
+      - name: Verify finalization proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller verify-finalization-proof \
+            /tmp/issue-523.json \
+            /tmp/issue-523.finalization-proof.json \
+            --issue 523 \
+            --branch work/issue520-phase6-bridge-residual-reduction-20260923 \
+            --head-sha 65eff72ec7a9b0b9542468454a5b4e9012d6be86
+          sha256sum /tmp/issue-523.finalization-proof.json
+          cp /tmp/issue-523.finalization-proof.json issue-523.finalization-proof.json
+
+      - name: Upload finalization proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue523-finalization-proof
+          path: issue-523.finalization-proof.json
+          if-no-files-found: error
+          retention-days: 14
