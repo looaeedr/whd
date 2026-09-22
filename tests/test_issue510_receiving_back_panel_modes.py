@@ -98,7 +98,9 @@ def test_receiving_back_panel_state_defaults_full_and_persists_one_of_three_mode
     for mode in (BackPanelMode.FULL, BackPanelMode.HALF, BackPanelMode.BACK_OPENING):
         changed = set_side_back_back_panel_mode(state, mode)
         assert back_panel_mode(changed) is mode
-        assert changed["configs"]["THREE_PIECE_SIDE_BACK_SPLIT"]["back_panel_mode"] == mode.value
+        from phase6_box_body_structure import BoxBodyStructureType
+        key = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+        assert changed["configs"][key]["back_panel_mode"] == mode.value
 
 
 def test_receiving_1100_half_contract_uses_certified_fixed_position_and_four_slot_datums():
