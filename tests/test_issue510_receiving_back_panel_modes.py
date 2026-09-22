@@ -299,7 +299,7 @@ def test_receiving_back_panel_modes_export_exact_three_multipart_boxbody_dxfs(mo
         assert len(doc.modelspace()) > 0
 
 
-def test_receiving_back_panel_selector_lives_inside_existing_back_section_and_updates_canonical_state():
+def test_receiving_back_panel_selector_lives_in_normal_input_region_and_updates_canonical_state():
     import os
 
     if not os.environ.get("DISPLAY"):
@@ -320,23 +320,24 @@ def test_receiving_back_panel_selector_lives_inside_existing_back_section_and_up
         designer = app.open_original_fold_designer()
         root.update_idletasks(); root.update()
 
-        designer.activate_part("box_body")
-        bridge._phase6_invalidate_settings_page(designer, "box_body")
-        bridge._phase6_render_settings_context(designer, "box_body")
+        designer.activate_part("box_body:back")
         root.update_idletasks(); root.update()
 
-        sections = dict(designer.box_body_piece_input_sections)
-        assert tuple(sections) == (
-            "box_body:left_side",
-            "box_body:back",
-            "box_body:right_side",
-        )
-        assert "back_panel_mode" in designer.box_body_piece_input_vars["box_body:back"]
-        selector_var = designer.box_body_piece_input_vars["box_body:back"]["back_panel_mode"]
-        selector = designer.box_body_piece_input_entries["box_body:back"]["back_panel_mode"]
+        selector_var = designer.back_panel_mode_var
+        selector = designer.back_panel_mode_selector
         assert selector_var.get() == "全板"
         assert tuple(selector.cget("values")) == ("全板", "半截", "背開孔")
         assert str(selector.cget("state")) == "readonly"
+        assert bool(selector.winfo_ismapped())
+
+        parent = selector
+        inside_input = False
+        while parent is not None:
+            if parent is designer.input_content_host:
+                inside_input = True
+                break
+            parent = getattr(parent, "master", None)
+        assert inside_input
 
         selector_var.set("半截")
         selector.event_generate("<<ComboboxSelected>>")
@@ -352,9 +353,9 @@ def test_receiving_back_panel_selector_lives_inside_existing_back_section_and_up
         bridge._phase6_invalidate_settings_page(designer, "box_body")
         bridge._phase6_render_settings_context(designer, "box_body")
         root.update_idletasks(); root.update()
-        assert (
-            designer.box_body_piece_input_vars["box_body:back"]["back_panel_mode"].get()
-            == "半截"
+        assert designer.back_panel_mode_var.get() == "半截"
+        assert "back_panel_mode" not in (
+            designer.box_body_piece_input_vars.get("box_body:back", {})
         )
     finally:
         try:

@@ -3542,20 +3542,10 @@ def _phase6_settings_box_structure_projection(self):
                 detail = f"成型深度 D：{_setting_number_text(_phase6_box_structure_d(self))} mm"
             elif part_key == "box_body:back":
                 detail = f"成型寬：{_setting_number_text(projection.formed_width)} mm"
+        # #517: 後面板形式 is a normal product choice projected by
+        # back_panel_mode_control inside input_content_host.  settings_center
+        # must not render a second selector for the same canonical state.
         back_panel_selector = None
-        if (
-            part_key == "box_body:back"
-            and active is BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT
-            and cabinet_family_policy.canonical_family_name(
-                getattr(self, "_phase6_input_snapshot", {}) or {}
-            ) == "受電箱"
-        ):
-            current_mode = back_panel_mode(state)
-            back_panel_selector = {
-                "label": "後面板形式",
-                "value": _BACK_PANEL_MODE_LABELS[current_mode],
-                "options": tuple(_BACK_PANEL_MODE_LABELS[item] for item in BackPanelMode),
-            }
         pieces.append({
             "part_key": part_key,
             "label": projection.label,
