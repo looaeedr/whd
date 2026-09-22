@@ -13,18 +13,18 @@
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
   "base_sha": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
-  "head_sha": "84f5746fef1cdf74a57ca1546dd69f7bf43457c0",
+  "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED",
     "run_id": null,
-    "head_sha": "84f5746fef1cdf74a57ca1546dd69f7bf43457c0"
+    "head_sha": "7fecca1a0e5382ea8268edd1dd2cde46e9b37496"
   },
-  "next_action": "Resolve push-triggered focused remediation run for head 84f5746fef1cdf74a57ca1546dd69f7bf43457c0, lock exact run_id+head_sha, poll to terminal; on GREEN rerun true T6 baseline-vs-candidate differential with explicit candidate-only classifier.",
+  "next_action": "Resolve push-triggered true differential run for head 7fecca1a0e5382ea8268edd1dd2cde46e9b37496, lock exact run_id+head_sha, poll all lanes and classifier to terminal; candidate-only failures/errors must be empty in both Headless and Xvfb.",
   "blocker": null,
-  "last_update": "2026-09-22T12:10:00+08:00",
+  "last_update": "2026-09-22T12:15:00+08:00",
   "predecessor": {
     "issue": 483,
     "accepted_head": "f1c1c9711f60ad96f1ad82b6d528204563703f0d",
@@ -74,6 +74,12 @@
   "remediation": {
     "implementation_head": "3e5bb54ab7f3a80e186e91ba31aa045df6a978d2",
     "root_cause": "FinalScene composition statically bound AssemblySceneRenderData/AssemblyScenePart instead of resolving them from bridge compatibility namespace",
-    "fix": "namespace-bound both class ports via required(...)"
+    "fix": "namespace-bound both class ports via required(...)",
+    "focused_run": {
+      "run_id": 35686672750,
+      "head_sha": "84f5746fef1cdf74a57ca1546dd69f7bf43457c0",
+      "conclusion": "success",
+      "summary": "29 PASS; ISSUE484_LEGACY_COMPAT_BINDING_GREEN"
+    }
   }
 }
