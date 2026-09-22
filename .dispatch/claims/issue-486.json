@@ -4,26 +4,39 @@
   "master_issue": 486,
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
+  "cycle_started_at": "2026-09-22T15:06:00+08:00",
   "claimed_at": "2026-09-22T13:27:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
+  "base_sha": "f54493ad2c9b994c61ea5f3c8af08b6b3dc29455",
   "head_sha": "759b3688ccba1f82ce7633974a9cb4354480fa6c",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
+  "action_mode": "EXECUTE_NOW",
   "remote_qa": {
     "run_id": 35689968442,
+    "orchestrator_head_sha": "759b3688ccba1f82ce7633974a9cb4354480fa6c",
     "head_sha": "759b3688ccba1f82ce7633974a9cb4354480fa6c",
+    "tested_target_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
     "tested_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "failure_class": "MASTER_HARNESS_INVALID_T0_INTENDED_RED",
+    "failure_node": "tests/test_issue430_single_host_red.py::test_t0_intended_red_all_three_modes_require_one_direct_shared_content_host",
+    "summary": "1 failed / 24 passed / 100 warnings; failure is #430 T0 intended RED harness mistakenly included in final GREEN gate"
   },
-  "next_action": "Poll locked Master shared-content gate RUN 35689968442 @ orchestrator 759b3688ccba1f82ce7633974a9cb4354480fa6c testing exact production c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8 to terminal; then cleanup/finalize Master or persist exact blocker.",
+  "next_action": "Fix .github/workflows/qa-issue486-master-shared-content-gate.yml so final Master shared-content gate runs accepted GREEN contracts #431-#435 and excludes #430 T0 intended RED; push-trigger fresh exact-production run; lock new run_id+orchestrator_head_sha+tested_target_sha; require terminal success; cleanup workflow; rebuild Master terminal checkpoint/finalization proof; close #486 only after proof verify.",
   "blocker": null,
-  "last_update": "2026-09-22T13:31:00+08:00",
+  "last_update": "2026-09-22T15:06:00+08:00",
   "children_readback": "#478-#485 all CLOSED/completed",
-  "phase4_temporary_workflow_residue": 0
+  "phase4_temporary_workflow_residue": 1,
+  "closure_invalidation": {
+    "invalid_closed_at": "2026-09-22T05:21:39Z",
+    "reason": "Master was closed after locked RUN 35689968442 had already completed/failure; closure skipped live exact-run authority. The run failure itself is harness-invalid because it executes #430 T0 intended RED as a final GREEN contract.",
+    "required_recovery": "reopen #486; correct harness; fresh terminal Master gate; cleanup; current finalization proof"
+  }
 }
