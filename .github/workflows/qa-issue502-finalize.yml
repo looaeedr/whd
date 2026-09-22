@@ -1,0 +1,47 @@
+name: "Finalize #502 via canonical continuity guard"
+
+on:
+  push:
+    branches:
+      - coord/dispatch-claims
+    paths:
+      - '.github/workflows/qa-issue502-finalize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source owner
+        uses: actions/checkout@v4
+        with:
+          ref: 23a63cc1ffd91f1f684e56addee3974795d5ee9f
+          path: source
+
+      - name: Checkout coordination branch
+        uses: actions/checkout@v4
+        with:
+          ref: coord/dispatch-claims
+          path: coord
+
+      - name: Authorize and verify finalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python source/tools/continuity_controller.py authorize-finalization             coord/.dispatch/checkpoints/issue-502.json             --issue '#502'             --branch work/issue506-phase5-settings-dataflow-20260922             --head-sha 23a63cc1ffd91f1f684e56addee3974795d5ee9f             --proof-out coord/.dispatch/checkpoints/issue-502.finalization-proof.json
+
+          python source/tools/continuity_controller.py verify-finalization-proof             coord/.dispatch/checkpoints/issue-502.json             coord/.dispatch/checkpoints/issue-502.finalization-proof.json             --issue '#502'             --branch work/issue506-phase5-settings-dataflow-20260922             --head-sha 23a63cc1ffd91f1f684e56addee3974795d5ee9f
+
+      - name: Commit finalization proof
+        working-directory: coord
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .dispatch/checkpoints/issue-502.finalization-proof.json
+          git diff --cached --quiet && exit 0
+          git commit -m "continuity: finalize issue 502 proof"
+          git push origin HEAD:coord/dispatch-claims
