@@ -1,0 +1,19 @@
+{
+  "issue": 536,
+  "issue_url": "https://github.com/looaeedr/whd/issues/536",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-23T01:33:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "main",
+  "base_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
+  "work_branch": "hotfix/issue536-remote-guard-run-name-20260923",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
+  "last_update": "2026-09-23T01:33:00+08:00",
+  "remote_qa": null,
+  "next_action": "Obtain Remote Guard branch-create receipt, create hotfix branch from exact main HEAD, patch only run-name classification, then validate and merge to main.",
+  "blocker": null
+}
