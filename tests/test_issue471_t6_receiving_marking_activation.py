@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import json
 
 import ezdxf
@@ -20,9 +19,15 @@ from ae_engine.manufacturing_api import (
 from ae_engine.sheetmetal_drawing import LinePrimitive
 
 
-POLICY_ID = "RECEIVING_INNER_DOOR_VERTICAL_FRAME_TO_SHARED_DIVIDER_V1"
+POLICY_ID = "RECEIVING_INNER_DOOR_FRAME_UPPER_HORIZONTAL_V2"
 GATE_B_STATE = "JOINT_PLACEMENT_MARKING_PRODUCTION_ENABLED"
 DISPOSITION = "ALLOW_EXPORT_WITH_DIAGNOSTIC"
+FRAME_IDS = (
+    "inner_door:upper:top_frame",
+    "inner_door:upper:left_frame",
+    "inner_door:upper:right_frame",
+)
+DIVIDER_ID = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
 
 
 def _snapshot(rows=(1100.0, 500.0)):
@@ -83,20 +88,19 @@ def _api():
 
     assert marking.PRODUCTION_JOINT_MARKING_FAILURE_POLICY.disposition == DISPOSITION
     assert marking.RECEIVING_INNER_DOOR_VERTICAL_FRAME_POLICY.policy_id == POLICY_ID
+    assert marking.RECEIVING_INNER_DOOR_FRAME_UPPER_HORIZONTAL_POLICY.policy_id == POLICY_ID
     assert callable(marking.resolve_joint_marking_production_status)
     assert callable(marking.resolve_receiving_joint_markings)
     return marking
 
 
-def _mark_rows(geometry):
-    divider = geometry.part(
-        "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
-    ).render_data
+def _mark_rows(geometry, part_id):
+    data = geometry.part(part_id).render_data
     rows = [
-        p for p in tuple(divider.scene.primitives)
+        p for p in tuple(data.scene.primitives)
         if isinstance(p, LinePrimitive) and str(p.layer) == "MARKING"
     ]
-    return divider, rows
+    return data, rows
 
 
 def _line_signature(rows):
@@ -111,6 +115,14 @@ def _line_signature(rows):
     ))
 
 
+def _frame_line_signatures(geometry):
+    return {
+        part_id: _line_signature(_mark_rows(geometry, part_id)[1])
+        for part_id in FRAME_IDS
+        if geometry.part(part_id) is not None
+    }
+
+
 def test_gate_b_status_and_selected_export_disposition_are_production_active():
     marking = _api()
     status = marking.resolve_joint_marking_production_status()
@@ -121,18 +133,20 @@ def test_gate_b_status_and_selected_export_disposition_are_production_active():
     assert status.production_policy_count == 1
 
 
-def test_receiving_real_left_right_frames_emit_exact_four_marks_on_shared_divider(tmp_path):
+def test_receiving_top_left_right_frames_emit_one_upper_horizontal_mark_each(tmp_path):
     marking = _api()
     snapshot = _snapshot()
     original = _build_geometry(snapshot)
-    original_divider = original.part(
-        "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
-    ).render_data
-    material_before = bytes(original_divider.material.wkb)
-    non_marking_before = tuple(
-        repr(p) for p in original_divider.scene.primitives
-        if str(getattr(p, "layer", "")) != "MARKING"
-    )
+    before = {}
+    for part_id in FRAME_IDS:
+        data = original.part(part_id).render_data
+        before[part_id] = (
+            bytes(data.material.wkb),
+            tuple(
+                repr(p) for p in data.scene.primitives
+                if str(getattr(p, "layer", "")) != "MARKING"
+            ),
+        )
 
     resolution = marking.resolve_receiving_joint_markings(
         snapshot,
@@ -141,68 +155,69 @@ def test_receiving_real_left_right_frames_emit_exact_four_marks_on_shared_divide
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
-    divider, marks = _mark_rows(resolution.geometry)
 
     assert resolution.status.gate_state == GATE_B_STATE
-    assert len(resolution.results) == 2
-    assert {r.attached_part_id for r in resolution.results} == {
-        "inner_door:upper:left_frame",
-        "inner_door:upper:right_frame",
-    }
+    assert len(resolution.results) == 3
+    assert {r.locator_part_id for r in resolution.results} == set(FRAME_IDS)
     assert all(r.status == "EMITTED" for r in resolution.results), repr(resolution.results)
     assert all(r.export_disposition == DISPOSITION for r in resolution.results)
-    assert all(len(r.mark_ids) == 2 for r in resolution.results)
-    assert len({mid for r in resolution.results for mid in r.mark_ids}) == 4
-    assert all(":bottom_frame:" not in mid for r in resolution.results for mid in r.mark_ids)
-    assert len(marks) == 4
+    assert all(len(r.mark_ids) == 1 for r in resolution.results)
+    assert len({mid for r in resolution.results for mid in r.mark_ids}) == 3
 
-    metadata = tuple(divider.metadata["joint_markings"])
-    assert {row["boundary_role"] for row in metadata} == {"SIDE_NEGATIVE", "SIDE_POSITIVE"}
-    assert {row["attached_part_id"] for row in metadata} == {
-        "inner_door:upper:left_frame",
-        "inner_door:upper:right_frame",
-    }
-    assert all(row["locator_part_id"] == "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1" for row in metadata)
+    for part_id in FRAME_IDS:
+        data, marks = _mark_rows(resolution.geometry, part_id)
+        assert len(marks) == 1
+        mark = marks[0]
+        assert float(mark.p1.y) == pytest.approx(float(mark.p2.y))
+        assert float(mark.p2.x) > float(mark.p1.x)
+        metadata = tuple(data.metadata["joint_markings"])
+        assert len(metadata) == 1
+        assert metadata[0]["boundary_role"] == "UPPER_HORIZONTAL"
+        assert metadata[0]["locator_part_id"] == part_id
+        assert bytes(data.material.wkb) == before[part_id][0]
+        assert tuple(
+            repr(p) for p in data.scene.primitives
+            if str(getattr(p, "layer", "")) != "MARKING"
+        ) == before[part_id][1]
 
-    assert bytes(divider.material.wkb) == material_before
-    assert tuple(
-        repr(p) for p in divider.scene.primitives
-        if str(getattr(p, "layer", "")) != "MARKING"
-    ) == non_marking_before
+    _divider, divider_marks = _mark_rows(resolution.geometry, DIVIDER_ID)
+    assert divider_marks == []
 
     outputs = save_resolved_manufacturing_geometry_dxf(
         resolution.geometry, tmp_path, overwrite=True
     )
-    doc = ezdxf.readfile(outputs[
-        "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"
-    ])
-    saved_marks = [
-        entity for entity in doc.modelspace()
-        if entity.dxftype() == "LINE" and str(entity.dxf.layer) == "MARKING"
-    ]
-    assert len(saved_marks) == 4
+    for part_id in FRAME_IDS:
+        doc = ezdxf.readfile(outputs[part_id])
+        saved_marks = [
+            entity for entity in doc.modelspace()
+            if entity.dxftype() == "LINE" and str(entity.dxf.layer) == "MARKING"
+        ]
+        assert len(saved_marks) == 1
+        start = saved_marks[0].dxf.start
+        end = saved_marks[0].dxf.end
+        assert float(start.y) == pytest.approx(float(end.y))
 
 
 def test_marking_failure_allows_dxf_but_is_machine_readable_and_non_silent(tmp_path):
     marking = _api()
     snapshot = _snapshot()
     geometry = _build_geometry(snapshot)
-    without_divider = ResolvedManufacturingGeometry(
+    without_frames = ResolvedManufacturingGeometry(
         parts=tuple(
             part for part in geometry.parts
-            if not str(part.part_key).startswith("box_body:divider:")
+            if not str(part.part_key).startswith("inner_door:upper:")
         )
     )
 
     resolution = marking.resolve_receiving_joint_markings(
         snapshot,
-        without_divider,
+        without_frames,
         dimensions=(800.0, 1600.0, 350.0),
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
 
-    assert len(resolution.results) == 2
+    assert len(resolution.results) == 3
     assert all(r.status == "SKIPPED_FAIL_CLOSED" for r in resolution.results)
     assert all(r.diagnostic_code in {"LOCATOR_MISSING", "STALE_STABLE_ID"} for r in resolution.results)
     assert all(r.export_disposition == DISPOSITION for r in resolution.results)
@@ -213,7 +228,7 @@ def test_marking_failure_allows_dxf_but_is_machine_readable_and_non_silent(tmp_p
     )
     assert outputs
     summary = marking.joint_marking_export_summary(resolution.results)
-    assert len(summary) == 2
+    assert len(summary) == 3
     assert all(row["status"] == "SKIPPED_FAIL_CLOSED" for row in summary)
     assert all(row["export_disposition"] == DISPOSITION for row in summary)
     assert all(row["diagnostic_code"] for row in summary)
@@ -229,7 +244,7 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
-    _divider1, lines1 = _mark_rows(first.geometry)
+    lines1 = _frame_line_signatures(first.geometry)
     ids1 = tuple(sorted(mid for r in first.results for mid in r.mark_ids))
 
     reloaded_snapshot = json.loads(json.dumps(snapshot, ensure_ascii=False))
@@ -240,10 +255,10 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
-    _divider2, lines2 = _mark_rows(reloaded.geometry)
+    lines2 = _frame_line_signatures(reloaded.geometry)
     ids2 = tuple(sorted(mid for r in reloaded.results for mid in r.mark_ids))
     assert ids2 == ids1
-    assert _line_signature(lines2) == _line_signature(lines1)
+    assert lines2 == lines1
 
     changed = _snapshot()
     changed["door_gap_w"] = 10.0
@@ -254,15 +269,12 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
         sheet_thickness=2.0,
         cabinet_family="受電箱",
     )
-    _divider3, lines3 = _mark_rows(moved.geometry)
+    lines3 = _frame_line_signatures(moved.geometry)
     ids3 = tuple(sorted(mid for r in moved.results for mid in r.mark_ids))
     assert ids3 == ids1
-    assert _line_signature(lines3) != _line_signature(lines1)
+    assert lines3 != lines1
 
     no_boundary = _snapshot((1600.0,))
-    # Feed the previously enriched geometry against the new topology.  The
-    # resolver must reject the stale shared-Divider identity and remove its
-    # derived marks instead of rebinding to an adjacent/fictional part.
     failed = marking.resolve_receiving_joint_markings(
         no_boundary,
         first.geometry,
@@ -273,8 +285,10 @@ def test_save_reload_and_ratio_change_keep_semantic_ids_without_stale_rebinding(
     assert failed.results
     assert all(r.status == "SKIPPED_FAIL_CLOSED" for r in failed.results)
     assert all(not r.mark_ids for r in failed.results)
-    _stale_divider, stale_lines = _mark_rows(failed.geometry)
-    assert stale_lines == []
+    for part_id in FRAME_IDS:
+        if failed.geometry.part(part_id) is not None:
+            _data, stale_lines = _mark_rows(failed.geometry, part_id)
+            assert stale_lines == []
 
 
 def test_marking_cleanup_leaves_composite_box_body_render_owner_untouched():
@@ -310,5 +324,5 @@ def test_marking_cleanup_leaves_composite_box_body_render_owner_untouched():
     assert resolved_box_body is not None
     assert resolved_box_body.render_data is composite
     assert not hasattr(resolved_box_body.render_data, "metadata")
-    assert len(resolution.results) == 2
+    assert len(resolution.results) == 3
     assert all(result.status == "EMITTED" for result in resolution.results)
