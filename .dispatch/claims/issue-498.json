@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:51:00+08:00",
-  "phase": "CLEANUP",
+  "phase": "CLOSING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
@@ -13,15 +13,15 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "a601dec918d5214d1faac0a163c8af6b6ecd3f4e",
-  "last_update": "2026-09-22T20:58:00+08:00",
+  "head_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
+  "last_update": "2026-09-22T21:00:00+08:00",
   "remote_qa": {
-    "status": "GREEN",
+    "status": "GREEN_CLEANED",
     "run_id": 35728636388,
     "head_sha": "e26cb37cf449e81dce2bcdd8b13470e620aa5810",
-    "workflow": "qa-issue498-t1-green.yml",
-    "result": "24 passed, 6 skipped; FACADE_BINDING_COUNT=69; architecture GREEN"
+    "cleaned_head_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
+    "result": "24 passed, 6 skipped; facade=69; tested->cleaned diff workflow-delete-only"
   },
-  "next_action": "Delete remaining one-shot T1 GREEN workflow; then verify tested e26cb37c... -> cleaned head is workflow-delete-only.",
+  "next_action": "Persist terminal checkpoint/finalization proof for cleaned HEAD 87e5c47e..., close #498, release claim, then claim/start #499 from this accepted HEAD.",
   "blocker": null
 }
