@@ -1,5 +1,5 @@
 name: WHD Remote Execution Guard
-run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
+run-name: "WHD｜工單 #${{ github.event.issue.number }}｜${{ !startsWith(github.event.comment.body, 'WHD_REMOTE_GUARD_REQUEST_V1') && '非守門請求' || contains(github.event.comment.body, 'executor_source=scheduler') && '排程接手' || contains(github.event.comment.body, 'executor_source=chat') && '聊天室接手' || '來源未標記' }}"
 
 on:
   issue_comment:
