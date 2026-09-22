@@ -69,29 +69,32 @@ def _visible_back_panel_selector(designer):
     return matches
 
 
-def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_multipart():
+def _mesh_bounds(triangles):
+    points = [point for tri in tuple(triangles or ()) for point in tuple(tri or ())]
+    assert points, "visible 3D mesh must exist"
+    axes = tuple(zip(*points))
+    return tuple(
+        (round(min(float(v) for v in axis), 6), round(max(float(v) for v in axis), 6))
+        for axis in axes
+    )
+
+
+def test_live_switch_with_visible_3d_replaces_vault_render_with_receiving_geometry():
     tk, root, _app, designer = _open_vault_designer()
     try:
         assert designer._phase6_3d_display_mode == "assembly"
-        renderer = designer.final_scene_view.renderer
-        assert renderer is not None
-        before = renderer.last_cutting_material
-        assert before is not None
-        assert not (
-            isinstance(before, tuple)
-            and before
-            and isinstance(before[0], tuple)
-            and len(before[0]) == 3
-        ), "Vault must not already look like Receiving's 3-piece Box Body"
+        scene_renderer = designer.final_scene_view
+        assert scene_renderer is not None
+        before = _mesh_bounds(scene_renderer.last_cutting_mesh)
 
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
 
-        after = renderer.last_cutting_material
-        assert after is not None
-        assert isinstance(after, tuple) and after
-        assert isinstance(after[0], tuple) and len(after[0]) == 3, (
-            "Visible 3D stayed on the previous family after live-switch to 受電箱"
+        assert str(designer._phase6_input_snapshot.get("model") or "") == "受電箱"
+        after = _mesh_bounds(scene_renderer.last_cutting_mesh)
+        assert after != before, (
+            "Visible 3D mesh bounds stayed identical after live-switch to 受電箱; "
+            f"before={before!r} after={after!r}"
         )
         assert tuple(
             str(key) for key in designer.designer_workspace.available_parts
@@ -124,7 +127,23 @@ def test_structure_tree_selecting_back_panel_exposes_mapped_back_panel_mode_sele
             "Selecting 後面板 through the real Structure Tree must expose exactly one "
             "mapped 後面板形式 selector in the existing visible input region"
         )
-        assert str(selectors[0].get()) == "全板"
+        selector = selectors[0]
+        assert str(selector.get()) == "全板"
+
+        # Mapped is not enough inside a Canvas: selecting 後面板 must bring the
+        # selector into the user's current settings viewport without requiring
+        # them to discover a hidden scroll position.
+        canvas = designer.settings_scroll_canvas
+        assert canvas is not None and bool(canvas.winfo_ismapped())
+        selector_top = selector.winfo_rooty()
+        selector_bottom = selector_top + max(1, selector.winfo_height())
+        viewport_top = canvas.winfo_rooty()
+        viewport_bottom = viewport_top + max(1, canvas.winfo_height())
+        assert selector_bottom > viewport_top and selector_top < viewport_bottom, (
+            "後面板形式 selector exists but is outside the visible settings viewport: "
+            f"selector=({selector_top},{selector_bottom}) "
+            f"viewport=({viewport_top},{viewport_bottom})"
+        )
     finally:
         _close(tk, root, designer)
 
@@ -178,11 +197,34 @@ def test_receiving_assembly_view_visibly_projects_three_frame_markings():
     try:
         designer.baseline_model_var.set("受電箱")
         _pump(root, 8)
+
+        # Reach assembly through the real operator navigation, not a private helper.
+        tree = designer.structure_tree
+        tree.selection_set("mode:assembly")
+        tree.focus("mode:assembly")
+        tree.event_generate("<<TreeviewSelect>>")
+        _pump(root, 5)
         assert designer._phase6_3d_display_mode == "assembly"
 
-        renderer = designer.final_scene_view.renderer
-        assert renderer is not None
-        ax = renderer.renderer.ax3d
+        from ae_engine.sheetmetal_drawing import LinePrimitive
+        resolved = designer._phase6_resolve_manufacturing_geometry()
+        source_marks = []
+        for part_id in (
+            "inner_door:upper:top_frame",
+            "inner_door:upper:left_frame",
+            "inner_door:upper:right_frame",
+        ):
+            source_marks.extend(
+                primitive
+                for primitive in tuple(resolved.part(part_id).render_data.scene.primitives)
+                if isinstance(primitive, LinePrimitive)
+                and str(primitive.layer).upper() == "MARKING"
+            )
+        assert len(source_marks) == 3, "canonical #509 frame MARKING source must exist"
+
+        scene_renderer = designer.final_scene_view
+        assert scene_renderer is not None
+        ax = scene_renderer.renderer.ax3d
         marking_lines = [
             line for line in tuple(ax.lines)
             if str(line.get_color()).lower() == "#f59e0b"
