@@ -5,9 +5,9 @@
   "work_branch": "feature/issue510-receiving-back-panel-modes-20260922",
   "claimed_at": "2026-09-22T14:22:00Z",
   "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
-  "head_sha": "1049453b857a955eb337565f9bf3a4a5e905a056",
+  "head_sha": "b46e1f7b844b21ade6395a45784d6452c46b4ac6",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T14:44:00Z",
+  "last_update": "2026-09-22T14:46:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35739424515,
@@ -17,7 +17,7 @@
     "job_id": 106784971561,
     "summary": "Expected RED: 7 failed; missing BackPanelMode/state setter, receiving contract, FinalScene integration."
   },
-  "next_action": "Wire Phase6SettingsPanel selector UI, add DXF/persistence/Xvfb acceptance, then run focused+broad GREEN.",
+  "next_action": "Add #510 DXF reopen, Save→Reload, and Xvfb selector tests; extend QA workflow; run exact acceptance.",
   "blocker": null,
   "delegated_branches": []
 }
