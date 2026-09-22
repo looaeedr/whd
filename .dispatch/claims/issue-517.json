@@ -7,17 +7,16 @@
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "8780c55f624a7b70f37f516001073017668735d0",
   "phase": "CLOSING",
-  "last_update": "2026-09-22T16:20:00Z",
+  "last_update": "2026-09-22T16:22:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
-    "run_id": 35752222099,
-    "head_sha": "2d2d2e30aa586f2f14d57e19105ec5a1b4e97512",
-    "status": "completed",
-    "conclusion": "failure",
-    "job_id": 106828999285,
-    "summary": "Combined SUCCESS; Final physical/DXF SUCCESS; candidate #45 1 PASS/1 FAIL and frozen-base #45 1 PASS/1 FAIL with identical result_door_w_var == '-' assertion; config.ini invariant GREEN. Classified as pre-existing baseline debt, not #517 regression."
+    "run_id": 35753592968,
+    "head_sha": "b91e36cf3fac023897ef328b662f4f5b79c0d577",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "canonical finalization authorize+verify"
   },
-  "next_action": "Run canonical continuity_controller authorize-finalization + verify-finalization-proof on delegated closure-guard branch without changing owning work branch/head; then close/readback #517 and release claim.",
+  "next_action": "Poll exact closure-guard run 35753592968 to terminal; on success write completion evidence, close/readback #517, release claim.",
   "blocker": null,
   "delegated_branches": [
     "qa/issue517-finalization-guard-20260922"
