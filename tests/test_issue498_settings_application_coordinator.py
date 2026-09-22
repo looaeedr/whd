@@ -167,3 +167,45 @@ def test_issue498_existing_composition_owns_single_settings_coordinator_factory(
     assert first is second
     assert first.transactions is tx
     assert first.ports is ports
+
+
+def test_issue498_port_specs_classify_role_owner_direction_and_bootstrap():
+    from gui_modules.application.fold_designer_settings_coordinator import (
+        SETTINGS_APPLICATION_PORT_SPECS,
+        Phase6SettingsApplicationPortRole,
+    )
+
+    assert tuple(SETTINGS_APPLICATION_PORT_SPECS) == EXPECTED_PORT_FIELDS
+    assert {
+        name: spec.role for name, spec in SETTINGS_APPLICATION_PORT_SPECS.items()
+    } == {
+        "read_settings_snapshot": Phase6SettingsApplicationPortRole.READ,
+        "read_profile_snapshot": Phase6SettingsApplicationPortRole.READ,
+        "save_current_part": Phase6SettingsApplicationPortRole.EFFECT,
+        "apply_profile_plan": Phase6SettingsApplicationPortRole.MUTATION,
+        "sync_derived_parts": Phase6SettingsApplicationPortRole.MUTATION,
+        "project_ui_values": Phase6SettingsApplicationPortRole.EFFECT,
+        "render_bending": Phase6SettingsApplicationPortRole.EFFECT,
+        "refresh_settings_panel": Phase6SettingsApplicationPortRole.EFFECT,
+        "refresh_topology": Phase6SettingsApplicationPortRole.EFFECT,
+        "refresh_persistent_controls": Phase6SettingsApplicationPortRole.EFFECT,
+        "submit_update_intent": Phase6SettingsApplicationPortRole.EFFECT,
+        "publish_live_state": Phase6SettingsApplicationPortRole.EFFECT,
+        "project_status": Phase6SettingsApplicationPortRole.EFFECT,
+    }
+
+    for name, spec in SETTINGS_APPLICATION_PORT_SPECS.items():
+        assert spec.canonical_owner.strip(), name
+        assert spec.callback_direction in {
+            "owner_to_coordinator",
+            "coordinator_to_owner",
+        }
+        assert isinstance(spec.bootstrap_required, bool)
+        assert isinstance(spec.compatibility_only, bool)
+
+    assert SETTINGS_APPLICATION_PORT_SPECS["save_current_part"].compatibility_only
+    assert not any(
+        spec.compatibility_only
+        for name, spec in SETTINGS_APPLICATION_PORT_SPECS.items()
+        if name != "save_current_part"
+    )
