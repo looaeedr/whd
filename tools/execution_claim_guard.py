@@ -183,7 +183,7 @@ def _timestamp_epoch(label: str, value: object) -> float:
 def _assert_takeover_evidence(
     evidence_path: Path | None,
     *,
-    claim: ExecutionClaim,
+    claim: "ExecutionClaim",
     raw_claim: dict[str, object],
     expected_live_head_sha: str,
 ) -> None:
