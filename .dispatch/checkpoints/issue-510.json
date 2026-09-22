@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "510",
+  "branch": "feature/issue510-receiving-back-panel-modes-20260922",
+  "head_sha": "1ad212fb62c30914ed8739fdd9b0108981417f6c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35741934489,
+  "job_id": 106793630925,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "RED run 35739424515 @ f11623d95c1082d213e12870d9de9202b3dfdd6e: expected 7 FAIL; claim guard GREEN; config invariant GREEN",
+    "Core GREEN run 35740871294",
+    "Expanded GREEN run 35741344966",
+    "Final acceptance run 35741934489 @ df385d0ccc2c8c6e97f70dae00260e9c25d8dca4: focused 15 PASS / 1 SKIP; broader 37 PASS / 18 SKIP; Xvfb 3 PASS; config invariant GREEN",
+    "Closing head 1ad212fb62c30914ed8739fdd9b0108981417f6c differs from tested head only by deleting temporary QA workflow; production/test drift 0",
+    "PR #516 merged non-force into cleanup/2d-3d-sync as fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
+    "Post-integration readback: cleanup/2d-3d-sync == fe6e7350bd1b8e207285c0faf30defd6839cbb2e"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
