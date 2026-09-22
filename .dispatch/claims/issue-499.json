@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,13 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "9b18b80928649977044ea3da2c66b96741034f93",
-  "last_update": "2026-09-22T21:58:00+08:00",
+  "last_update": "2026-09-22T22:01:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_ACCEPTANCE",
+    "status": "GREEN",
     "run_id": 35732305573,
     "head_sha": "9b18b80928649977044ea3da2c66b96741034f93",
-    "workflow": "qa-issue499-t2-acceptance.yml"
+    "workflow": "qa-issue499-t2-acceptance.yml",
+    "result": "T2 contract GREEN; legacy focused A/B candidate-only failures=[]; architecture/facade ratchet GREEN."
   },
-  "next_action": "Poll exact acceptance run 35732305573 on head 9b18b809 to terminal; on GREEN perform workflow cleanup, tested-to-cleaned drift audit, terminal checkpoint/finalization proof, close #499, then start #500.",
+  "next_action": "Delete all five T2 one-shot QA workflows in one cleanup commit; verify tested 9b18b809 -> cleaned diff is workflow-delete-only; then finalize #499 with next child #500.",
   "blocker": null
 }
