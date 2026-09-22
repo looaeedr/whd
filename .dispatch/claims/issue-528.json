@@ -6,15 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T04:57:20+08:00",
   "base_sha": "3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba",
-  "head_sha": "3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-23T04:57:20+08:00",
+  "head_sha": "9d15c242e10440b961cd7ac82c7d5deb1c2750f3",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T05:00:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B3",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run B3 preflight and formal Deletion-Test for the Settings exact-six against current panel/coordinator/profile-projection owners.",
+  "remote_qa": {
+    "run_id": 35783860498,
+    "head_sha": "9d15c242e10440b961cd7ac82c7d5deb1c2750f3",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "formal B3 Settings exact-six Deletion-Test"
+  },
+  "next_action": "Poll exact RUN 35783860498 @ 9d15c242e10440b961cd7ac82c7d5deb1c2750f3 to terminal; on RED fetch failed step/log and remediate.",
   "blocker": null
 }
