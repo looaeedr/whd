@@ -1,0 +1,19 @@
+{
+  "issue": 496,
+  "issue_url": "https://github.com/looaeedr/whd/issues/496",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "skill/issue496-remote-execution-guard-20260922",
+  "claimed_at": "2026-09-22T19:13:30+08:00",
+  "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "head_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "phase": "CLAIMED",
+  "action_mode": "EXECUTE_NOW",
+  "delegated_branches": [],
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "last_update": "2026-09-22T19:13:30+08:00",
+  "next_action": "Obtain WHD Remote Guard GREEN for branch-create, then create skill/issue496-remote-execution-guard-20260922 from exact frozen X base.",
+  "blocker": null
+}
