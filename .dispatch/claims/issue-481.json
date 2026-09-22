@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T08:22:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "CLEANUP",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -18,17 +18,32 @@
   "remote_qa": {
     "run_id": 35672095974,
     "head_sha": "1c628cabf223945f526257e35184dfdfceac46bf",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": {
+      "ownership_and_linked_endcap": {
+        "conclusion": "success",
+        "summary": "74 passed / 50 warnings"
+      },
+      "identity_and_state": {
+        "conclusion": "success",
+        "summary": "80 passed / 817 warnings"
+      },
+      "persistence_dxf_protected": {
+        "conclusion": "success",
+        "summary": "54 passed / 4 warnings"
+      }
+    },
+    "protected_invariants": "GREEN"
   },
-  "next_action": "Poll locked T3 final acceptance run 35672095974 @ 1c628cabf223945f526257e35184dfdfceac46bf to terminal; on GREEN cleanup workflows, drift-audit, checkpoint/proof, close #481, then continue #482.",
+  "next_action": "Delete temporary Issue481 RED/acceptance workflows, audit tested head 1c628cabf223945f526257e35184dfdfceac46bf to cleaned head for workflow-only drift, create terminal checkpoint/proof, close #481, release claim, continue #482.",
   "blocker": null,
   "predecessor": {
     "issue": 480,
     "accepted_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
     "checkpoint": ".dispatch/checkpoints/issue-480.json"
   },
-  "last_update": "2026-09-22T08:38:00+08:00",
+  "last_update": "2026-09-22T08:40:00+08:00",
   "characterization": {
     "linked_endcap_decision": "KEEP_COMPATIBILITY",
     "derivation_owner": "phase6_fold_profiles.build_linked_endcap_xy_profiles",
