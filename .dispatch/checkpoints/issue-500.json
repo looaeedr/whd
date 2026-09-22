@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "issue": "#500",
+  "branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "head_sha": "6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35735472804,
+  "job_id": 106771474375,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Owning issue #500",
+    "Accepted T2 base eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
+    "T3 preflight commit b39a7d0cb492b53619534416fbc427bdbcdaba33",
+    "T3 RED test commit 5341e88798780ee91cd59b727ca103bcb34040d4",
+    "Expected R2 RED run 35734358907 SUCCESS (expected test failure confirmed)",
+    "Pure planner commit 77258fb06947c864d9a717d2dbd1222d8b902ac2",
+    "Bridge cutover commit a7be3e1d12dd2bef8ece837fc562d4d67ffc4f0f",
+    "T3 GREEN run 35735472804 SUCCESS: 48 passed, 2 skipped; FACADE_BINDING_COUNT=69; ISSUE500_T3_ARCH_GREEN=1",
+    "Tested head 064dc88745cf0f52b23f8680bdebaf8de205e2d6",
+    "Cleaned head 6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+    "tested->cleaned diff contains only removal of T3 RED/GREEN one-shot workflows",
+    "production/test drift = 0"
+  ],
+  "master_issue": "#506",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#501",
+  "chain_next_action": "Claim and execute #501/T4 from accepted T3 cleaned head 6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49.",
+  "chain_reason": null
+}
