@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,13 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
-  "last_update": "2026-09-22T21:40:00+08:00",
+  "last_update": "2026-09-22T21:43:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS",
+    "status": "DIAGNOSTIC_FAILURE",
     "run_id": 35731884812,
     "head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
-    "workflow": "qa-issue499-t2-diagnostic.yml"
+    "workflow": "qa-issue499-t2-diagnostic.yml",
+    "result": "Candidate matrix terminal: 6 PASS / 6 FAIL. Issue499 focused contract itself PASS."
   },
-  "next_action": "Poll exact diagnostic run 35731884812 on ff8d7d48 to terminal; classify failing matrix jobs only.",
+  "next_action": "Run identical per-file baseline matrix against accepted T1 head 87e5c47e; compute candidate-only failing-file difference and repair only that delta.",
   "blocker": null
 }
