@@ -1,0 +1,16 @@
+{
+  "issue": 510,
+  "issue_url": "https://github.com/looaeedr/whd/issues/510",
+  "worker": "chatgpt",
+  "work_branch": "feature/issue510-receiving-back-panel-modes-20260922",
+  "claimed_at": "2026-09-22T14:22:00Z",
+  "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
+  "head_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-22T14:22:00Z",
+  "target_x": "cleanup/2d-3d-sync",
+  "remote_qa": null,
+  "next_action": "Create guarded work branch, run Phase6 preflight, and write RED for Receiving back-panel mode state/manufacturing/UI/persistence.",
+  "blocker": null,
+  "delegated_branches": []
+}
