@@ -7,11 +7,20 @@
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
   "head_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-23T06:45:20+08:00",
+  "phase": "RED",
+  "last_update": "2026-09-23T06:46:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Remote Guard, create feature branch, add RED tests for 600-second stale takeover evaluator and claim-takeover guard action before implementation.",
-  "blocker": null
+  "next_action": "Add RED behavior tests and a Traditional-Chinese one-shot QA workflow for executable 600-second stale takeover and claim-takeover guard action.",
+  "blocker": null,
+  "remote_guard": {
+    "branch_create": {
+      "request_comment_id": 5785487004,
+      "result_comment_id": 5785489858,
+      "run_id": 35794064014,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    }
+  }
 }
