@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T21:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
@@ -14,14 +14,15 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "3ea720ba2d04d6d0f33a381e341943f3d7fe2f0c",
-  "last_update": "2026-09-22T21:48:00+08:00",
+  "last_update": "2026-09-22T21:52:00+08:00",
   "remote_qa": {
-    "status": "IN_PROGRESS_BASELINE",
-    "run_id": 35732090162,
-    "head_sha": "3ea720ba2d04d6d0f33a381e341943f3d7fe2f0c",
-    "workflow": "qa-issue499-t2-baseline-matrix.yml",
-    "compared_candidate_run_id": 35731884812
+    "status": "AB_CLASSIFIED",
+    "candidate_run_id": 35731884812,
+    "baseline_run_id": 35732090162,
+    "candidate_head_sha": "ff8d7d4815697dfff11e70aec1f6ba65f05e35f0",
+    "baseline_checkout_sha": "87e5c47e3fcb68729d1d266e85cec85bd45ae4ff",
+    "result": "Legacy focused candidate-only failing-file delta = []; new issue499 focused contract PASS."
   },
-  "next_action": "Poll exact baseline run 35732090162 to terminal; compute candidate-only failing-file delta versus candidate matrix run 35731884812.",
+  "next_action": "Run final T2 acceptance workflow: issue499 contract GREEN, architecture ratchet GREEN, and legacy focused A/B classifier requiring candidate-only failures=[]; then cleanup one-shot workflows and close T2.",
   "blocker": null
 }
