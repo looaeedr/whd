@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "#501",
+  "branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "head_sha": "c62e895059f1c583a9e5958ee81c9a8755c80255",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35737558172,
+  "job_id": 106778610462,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Owning issue #501",
+    "Accepted T3 base 6d6cb7ef7c0147fe33413ffbbbf4c2c877abac49",
+    "Expected R3/R4 RED run 35736678370 SUCCESS",
+    "Coordinator sequencing commit bb009a2a395145a4c4201383a7b442f542bc2948",
+    "Pure planner reset-all extension commit 6235858cb0fb91f957fb3230c79228b668d100aa",
+    "Bridge baseline/reset cutover commit 34efeaca95ff7739c89ae8ef5f1440ed888b508c",
+    "T4 final GREEN run 35737558172: Headless 30 passed; Xvfb 15 passed",
+    "Tested head 654eb54b8f4bab5839ebbe10720d1f6d552be1d7",
+    "Cleaned head c62e895059f1c583a9e5958ee81c9a8755c80255",
+    "tested->cleaned diff contains only removal of T4 RED/GREEN one-shot workflows",
+    "production/test drift = 0"
+  ],
+  "master_issue": "#506",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "#502",
+  "chain_next_action": "Claim and execute #502/T5 from accepted T4 cleaned head c62e895059f1c583a9e5958ee81c9a8755c80255.",
+  "chain_reason": null
+}
