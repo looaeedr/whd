@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "71121d4b82ee2cb7be73f3ccb50a97d55f4800ba",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T15:39:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T15:45:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35747065581,
     "head_sha": "71121d4b82ee2cb7be73f3ccb50a97d55f4800ba",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106811315175,
+    "summary": "2 PASS / 2 FAIL. Assembly MARKING slice GREEN; live-switch current probe PASS. Remaining product REDs: selector settings surface unmapped; GUI DXF actual 5 vs canonical 14. config invariant GREEN."
   },
-  "next_action": "Poll exact run 35747065581 at head 71121d4b82ee2cb7be73f3ccb50a97d55f4800ba to terminal; do not mutate further while active.",
+  "next_action": "Vertical slice 2: replace legacy GUI DXF physical-file enumeration with canonical resolved manufacturing inventory filtered only by existing export intention; preserve #187 presence/visibility/intention separation.",
   "blocker": null,
   "delegated_branches": []
 }
