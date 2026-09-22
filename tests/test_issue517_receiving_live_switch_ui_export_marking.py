@@ -135,19 +135,20 @@ def test_structure_tree_selecting_back_panel_exposes_mapped_back_panel_mode_sele
         selector = selectors[0]
         assert str(selector.get()) == "全板"
 
-        # Mapped is not enough inside a Canvas: selecting 後面板 must bring the
-        # selector into the user's current settings viewport without requiring
-        # them to discover a hidden scroll position.
-        canvas = designer.settings_panel.settings_scroll_canvas
-        assert canvas is not None and bool(canvas.winfo_ismapped())
-        selector_top = selector.winfo_rooty()
-        selector_bottom = selector_top + max(1, selector.winfo_height())
-        viewport_top = canvas.winfo_rooty()
-        viewport_bottom = viewport_top + max(1, canvas.winfo_height())
-        assert selector_bottom > viewport_top and selector_top < viewport_bottom, (
-            "後面板形式 selector exists but is outside the visible settings viewport: "
-            f"selector=({selector_top},{selector_bottom}) "
-            f"viewport=({viewport_top},{viewport_bottom})"
+        # This is a normal product choice, not an advanced parameter.  When the
+        # operator selects 後面板 it must live in the same normal input surface
+        # as the Fold editor; parameter unlock must not own its reachability.
+        input_host = designer.input_content_host
+        assert bool(input_host.winfo_ismapped())
+        parent = selector
+        inside_input = False
+        while parent is not None:
+            if parent is input_host:
+                inside_input = True
+                break
+            parent = getattr(parent, "master", None)
+        assert inside_input, (
+            "後面板形式 is mapped, but not inside the operator's normal input region"
         )
     finally:
         _close(tk, root, designer)
