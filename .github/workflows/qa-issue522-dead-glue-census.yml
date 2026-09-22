@@ -1,0 +1,204 @@
+name: Issue 522 Dead Glue Census
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue522-dead-glue-census.yml
+
+permissions:
+  contents: read
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Exact tracked-file caller census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          candidates = [
+              "_phase6_is_door_part_key",
+              "_phase6_is_base_plate_part_key",
+              "_phase6_final_scene_renderer",
+              "_phase6_final_scene_scene_query",
+              "_phase6_final_scene_corner_text_sink",
+              "_phase6_final_scene_operator_dimensions",
+              "_phase6_final_scene_part_text_sink",
+              "_phase6_final_scene_visibility",
+              "_phase6_final_scene_render_committed",
+              "_phase6_final_scene_refresh_preview",
+              "_profile_value",
+              "_phase6_set_endcap_fw_follow",
+              "_phase6_toggle_box_structure_lock",
+              "_phase6_sync_joint_state_for_intent",
+              "_phase6_registry_candidate_form_is_current",
+              "_phase6_registry_require_current_candidate",
+              "_phase6_configure_floating_surface",
+              "_phase6_active_mesh_profiles",
+              "_phase6_make_assembly_scene_render_data",
+              "_phase6_refresh_box_body_piece_info_rows",
+              "_phase6_query_assembly_render_data",
+              "_phase6_assembly_unfolded_blank_text",
+              "_phase6_final_scene_view_request",
+              "_phase6_render_true_cutting_mesh",
+              "_phase6_corner_policy_for",
+              "_phase6_draw_operator_dimensions",
+              "_phase6_format_formed_size_text",
+              "_phase6_current_unfolded_size",
+              "_phase6_update_unfolded_size_label",
+              "_phase6_selected_joint_diagnostic",
+              "_phase6_scroll_assembly_parts",
+              "_phase6_bind_assembly_scroll",
+              "_phase6_assembly_presentation_groups",
+              "_phase6_set_assembly_part_details_open",
+              "_phase6_toggle_assembly_part_details",
+              "_phase6_set_assembly_presentation_group_open",
+              "_phase6_toggle_assembly_presentation_group",
+              "_phase6_set_box_body_piece_details_open",
+              "_phase6_toggle_box_body_piece_details",
+              "_phase6_show_input_content",
+              "_phase6_corner_data_unfold_projections",
+          ]
+          if len(candidates) != 41 or len(set(candidates)) != 41:
+              raise SystemExit("candidate inventory mismatch")
+
+          excluded_paths = {
+              ".github/workflows/qa-issue522-dead-glue-census.yml",
+              "docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json",
+              "docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.md",
+              "logs/preflight/issue521-a0-preflight.txt",
+              "logs/preflight/issue522-a1-preflight.txt",
+          }
+          raw = subprocess.check_output(["git", "ls-files", "-z"])
+          paths = [Path(p.decode("utf-8", "surrogateescape")) for p in raw.split(b"\0") if p]
+
+          def category(path: Path) -> str:
+              p = path.as_posix()
+              if p.startswith("tests/"):
+                  return "tests"
+              if (
+                  p.startswith("docs/")
+                  or p.startswith("logs/")
+                  or p.startswith(".dispatch/")
+                  or p.endswith(".md")
+                  or p.endswith(".rst")
+                  or p.endswith(".txt")
+              ):
+                  return "docs_evidence"
+              if p.endswith(".py"):
+                  return "production_py"
+              if p.endswith((".json", ".toml", ".ini", ".yml", ".yaml")):
+                  return "runtime_text"
+              return "other_tracked_text"
+
+          rows = {}
+          for name in candidates:
+              pat = re.compile(rf"\b{re.escape(name)}\b")
+              definition_pat = re.compile(rf"^\s*(?:async\s+)?(?:def|class)\s+{re.escape(name)}\b")
+              refs = []
+              definitions = []
+              for path in paths:
+                  p = path.as_posix()
+                  if p in excluded_paths:
+                      continue
+                  try:
+                      data = path.read_bytes()
+                  except OSError:
+                      continue
+                  if b"\x00" in data[:4096]:
+                      continue
+                  try:
+                      text = data.decode("utf-8", "surrogateescape")
+                  except UnicodeDecodeError:
+                      continue
+                  for lineno, line in enumerate(text.splitlines(), 1):
+                      if not pat.search(line):
+                          continue
+                      if p == "fold_designer_bridge.py" and definition_pat.search(line):
+                          definitions.append({"path": p, "line": lineno})
+                          continue
+                      refs.append({
+                          "path": p,
+                          "line": lineno,
+                          "category": category(path),
+                          "snippet": line.strip()[:240],
+                      })
+              runtime_refs = [
+                  r for r in refs
+                  if r["category"] in {"production_py", "tests", "runtime_text", "other_tracked_text"}
+              ]
+              rows[name] = {
+                  "definitions": definitions,
+                  "references": refs,
+                  "runtime_references": runtime_refs,
+                  "runtime_reference_count": len(runtime_refs),
+                  "docs_evidence_reference_count": sum(r["category"] == "docs_evidence" for r in refs),
+                  "dead_candidate": len(definitions) == 1 and len(runtime_refs) == 0,
+              }
+
+          dead = sorted(name for name, row in rows.items() if row["dead_candidate"])
+          payload = {
+              "schema": "WHD_ISSUE522_DEAD_GLUE_CENSUS_V1",
+              "head_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+              "candidate_count": len(candidates),
+              "dead_candidate_count": len(dead),
+              "dead_candidates": dead,
+              "rows": rows,
+          }
+          Path("issue522-dead-glue-census.json").write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          md = [
+              "# Issue 522 exact-branch dead-glue census",
+              "",
+              f"- HEAD: \`{payload['head_sha']}\`",
+              f"- candidates: {len(candidates)}",
+              f"- dead candidates: {len(dead)}",
+              "",
+              "## Dead candidates",
+              "",
+              *([f"- \`{x}\`" for x in dead] or ["- none"]),
+              "",
+              "## Runtime references",
+              "",
+              "| symbol | runtime refs | docs/evidence refs |",
+              "|---|---:|---:|",
+          ]
+          for name in candidates:
+              row = rows[name]
+              md.append(
+                  f"| \`{name}\` | {row['runtime_reference_count']} | "
+                  f"{row['docs_evidence_reference_count']} |"
+              )
+          Path("issue522-dead-glue-census.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+          print(f"CANDIDATE_COUNT={len(candidates)}")
+          print(f"DEAD_CANDIDATE_COUNT={len(dead)}")
+          print("DEAD_CANDIDATES=" + ",".join(dead))
+          print("ISSUE522_DEAD_GLUE_CENSUS=GREEN")
+          PY
+
+      - name: Upload census artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue522-dead-glue-census
+          path: |
+            issue522-dead-glue-census.json
+            issue522-dead-glue-census.md
+          if-no-files-found: error
+          retention-days: 14
