@@ -1,0 +1,21 @@
+Issue #542 B6-2 Phase6 Knowledge Preflight
+TASK: Facade Audit Batch 2 — exact repo-wide consumer/dynamic/string/property/public compatibility classification for 12 fold_designer_bridge facade entries; no deletion before caller proof.
+TARGET: cleanup/2d-3d-sync
+WORK_ORDER_BRANCH: work/issue520-phase6-bridge-residual-reduction-20260923
+PARENT_ACCEPTED_HEAD: 2c5bcd5784501c892a2e5f3fc1da318374aaec22
+
+REQUIRED SKILLS
+✓ phase6-corner-3d-model-integrity
+✓ monitoring-remote-qa
+✓ long-log-context-safe-execution
+✓ executable-continuity-controller
+
+REQUIRED REFERENCES
+✓ 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+✓ 基準檔/截角資料庫/README_母規則說明.md
+✓ 基準檔/截角資料庫/certified_relief_rules.json
+✓ 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+✓ 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+✓ 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PREFLIGHT_DECISION=GREEN
