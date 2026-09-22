@@ -6,15 +6,37 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T02:02:10+08:00",
   "base_sha": "65eff72ec7a9b0b9542468454a5b4e9012d6be86",
-  "head_sha": "2cfb561bd83415676b1e0713733cef2606cf4521",
+  "head_sha": "e34963a8ab767322749ca3c4ab05c6bcfea43c0b",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T02:03:00+08:00",
+  "last_update": "2026-09-23T02:08:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "A3",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create exact-branch 69/69 facade consumer census; classify obvious NO_CALLER/PROPERTY/PUBLIC/LEGACY entries before production changes.",
+  "remote_qa": {
+    "run_id": 35764899441,
+    "head_sha": "e34963a8ab767322749ca3c4ab05c6bcfea43c0b",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "69/69 facade exact tracked-tree consumer audit",
+    "evidence": {
+      "facade_accounted": 69,
+      "unclassified": 0,
+      "no_caller_count": 1,
+      "no_caller_names": [
+        "__getattr__"
+      ],
+      "class_counts": {
+        "LEGACY_REQUIRED": 15,
+        "NO_CALLER": 1,
+        "PROPERTY_COMPAT": 16,
+        "PUBLIC_REQUIRED": 37
+      },
+      "simple_return_wrapper_count": 58,
+      "artifact_id": 10712080995
+    }
+  },
+  "next_action": "Validate __getattr__ dynamic-protocol semantics and inspect installer; then classify direct-alias candidates before any bridge mutation.",
   "blocker": null
 }
