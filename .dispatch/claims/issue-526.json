@@ -6,15 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T04:29:10+08:00",
   "base_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
-  "head_sha": "770adff1c32d2df7a67f8fa98fc2e83a6c1f5ca9",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T04:31:40+08:00",
+  "head_sha": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T04:35:55+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B1",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Write one-shot B1 Deletion-Test workflow; run DT-0..DT-6 in disposable worktrees; poll exact run to terminal.",
+  "remote_qa": {
+    "run_id": 35781297993,
+    "head_sha": "0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "formal B1 DT-0..DT-6 Deletion-Test with disposable K/E worktrees"
+  },
+  "next_action": "Poll exact RUN 35781297993 @ 0b8126f5b016fc0b1eaa58aad821d79a88b6f1f7 to terminal; on failure fetch failed-step log and recover.",
   "blocker": null
 }
