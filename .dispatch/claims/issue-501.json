@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "6562d68e4424c983e7ec72f4753644ddbd639886",
-  "last_update": "2026-09-22T23:18:00+08:00",
+  "head_sha": "0ab7d1bda71d8d8fa3d582b772e9efe1a740a71d",
+  "last_update": "2026-09-22T23:20:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Create one-shot focused T4 RED workflow on exact head 6562d68e; confirm R3/R4 RED markers, then deepen coordinator baseline/reset sequencing.",
+  "next_action": "Lock exact T4 expected-RED run triggered by 0ab7d1bd; poll same run to terminal; on expected RED implement coordinator baseline/reset sequencing and narrow bridge delegates.",
   "blocker": null
 }
