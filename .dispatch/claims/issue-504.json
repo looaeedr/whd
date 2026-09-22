@@ -1,0 +1,23 @@
+{
+  "issue": 504,
+  "issue_url": "https://github.com/looaeedr/whd/issues/504",
+  "master_issue": 506,
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "claimed_at": "2026-09-22T22:44:00+08:00",
+  "phase": "CLAIMED",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+  "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
+  "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "delegated_branches": [
+    "coord/dispatch-claims"
+  ],
+  "head_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
+  "last_update": "2026-09-22T22:44:00+08:00",
+  "remote_qa": {
+    "status": "RUN_NOT_CREATED"
+  },
+  "next_action": "Fresh-read T7 Combined Acceptance issue requirements and current work-order tree; create one-shot fixed-baseline Headless/Xvfb + structural/protected-object acceptance workflow from accepted T6 cleaned head.",
+  "blocker": null
+}
