@@ -13,15 +13,14 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "2024f965b65d5af4f19e981626d336a4ca71c4de",
-  "last_update": "2026-09-22T23:16:00+08:00",
+  "head_sha": "7293097bdcae4e94ce2a7193c89c0ff9d8b10ee4",
+  "last_update": "2026-09-22T23:18:00+08:00",
   "remote_qa": {
-    "status": "FAILURE_CLASSIFIED",
-    "run_id": 35742730733,
-    "head_sha": "059489988ac24b157a844bf659c882b7483d810b",
-    "workflow": "qa-issue504-t7-combined.yml",
-    "result": "Exactly two Xvfb candidate-only failures: stale structural Corner Data owner assertion and unchanged W/D UI projection during Head/Tail save."
+    "status": "IN_PROGRESS_FOCUSED",
+    "run_id": 35745531878,
+    "head_sha": "7293097bdcae4e94ce2a7193c89c0ff9d8b10ee4",
+    "workflow": "qa-issue504-t7-two-regression-fix.yml"
   },
-  "next_action": "Run exact focused Xvfb regression for the two candidate-only failures on head 2024f965; on GREEN immediately re-run T7 Combined Acceptance.",
+  "next_action": "Poll exact focused run 35745531878 to terminal; on GREEN immediately re-run T7 Combined Acceptance on the same fixed lineage.",
   "blocker": null
 }
