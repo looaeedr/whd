@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -13,8 +13,8 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "b184cd1579bc319e33ef7f959b73733d77b22642",
-  "last_update": "2026-09-22T22:42:00+08:00",
+  "head_sha": "a70d6f95e082c406801c3d1678d7f81f001aa690",
+  "last_update": "2026-09-22T22:45:00+08:00",
   "remote_qa": {
     "status": "HARNESS_DEPENDENCY_FAILURE",
     "run_id": 35735055376,
@@ -22,6 +22,6 @@
     "workflow": "qa-issue500-t3-green.yml",
     "result": "Focused pytest collection blocked by missing shapely; requirements.txt contains ezdxf and shapely."
   },
-  "next_action": "Patch only T3 GREEN harness to install -r requirements.txt plus pytest; rerun the same focused suite and classify implementation failures only after collection succeeds.",
+  "next_action": "Lock exact T3 GREEN run triggered by a70d6f95 with project requirements installed; poll same run to terminal and inspect only implementation failures.",
   "blocker": null
 }
