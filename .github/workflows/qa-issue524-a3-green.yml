@@ -1,0 +1,72 @@
+name: Issue 524 A3 GREEN
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue524-a3-green.yml
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Compile bridge
+        run: python -m py_compile fold_designer_bridge.py
+
+      - name: Run A3 GREEN and ownership regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue524_a3_facade_ratchet.py             tests/test_phase6_bridge_domain_ownership.py             tests/test_dm7_part_navigation.py             tests/test_issue445_settings_presentation_owner.py             tests/test_issue446_registry_diagnostics_presentation_owner.py             tests/test_issue479_final_scene_composition_owner.py             tests/test_issue480_derived_part_projection_plan.py             tests/test_phase6_diagnostics_ownership.py             tests/test_phase6_final_scene_view_ownership.py             | tee /tmp/issue524-a3-green.log
+          grep -E '[0-9]+ passed' /tmp/issue524-a3-green.log | tail -1
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          tree = ast.parse(source)
+          calls = [
+              node for node in ast.walk(tree)
+              if isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Name)
+              and node.func.id == "install_fold_designer_bridge_facade"
+          ]
+          assert len(calls) == 1
+          mapping = next(arg for arg in calls[0].args if isinstance(arg, ast.Dict))
+          assert len(mapping.keys) == 69
+          keys = [key.value for key in mapping.keys if isinstance(key, ast.Constant)]
+          assert "__getattr__" in keys
+          print("FACADE_BINDING_COUNT=69")
+          print("DYNAMIC_GETATTR_RETAINED=1")
+          print("ISSUE524_A3_GREEN=GREEN")
+          PY
+
+      - name: Upload GREEN evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue524-a3-green
+          path: /tmp/issue524-a3-green.log
+          if-no-files-found: warn
+          retention-days: 14
