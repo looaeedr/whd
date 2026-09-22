@@ -4,15 +4,27 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-23T02:05:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "work_branch": "feature/issue538-actions-chinese-contract-20260923",
   "delegated_branches": [],
   "head_sha": "ab898a270534e6610f7a284be570092e1359ba9c",
-  "last_update": "2026-09-23T02:14:00+08:00",
-  "remote_qa": null,
-  "next_action": "Lock replacement #538 focused QA run at ab898a27, poll to terminal, verify outer Traditional-Chinese title and all contract checks.",
+  "last_update": "2026-09-23T02:15:00+08:00",
+  "remote_qa": {
+    "run_id": 35765684155,
+    "head_sha": "ab898a270534e6610f7a284be570092e1359ba9c",
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "Actions 繁中顯示命名契約 replacement QA",
+    "evidence": {
+      "unit_tests": "GREEN",
+      "self_naming_guard": "GREEN",
+      "skill_contract_marker": "FAIL",
+      "missing_marker": "禁止 fallback 到英文 commit message"
+    }
+  },
+  "next_action": "Patch monitoring-remote-qa Skill wording to the exact canonical marker `禁止 fallback 到英文 commit message`, then rerun focused QA.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
