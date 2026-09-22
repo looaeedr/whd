@@ -1,0 +1,25 @@
+FROZEN_X_BASE_SHA=ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa
+T4_ACCEPTED_BASE_SHA=c62e895059f1c583a9e5958ee81c9a8755c80255
+TASK=Phase 5 T5 Editor-value Settings commit seam; move canonical Settings normalize/diff/commit out of Part Editor bridge implementation while preserving #448 compatibility, EndCap FW semantic owner, linked Endcap KEEP, and partial-host-notify behavior.
+
+READ_SKILL: 派工
+READ_SKILL: issue-closure-gate
+READ_SKILL: phase6-corner-3d-model-integrity
+READ_SKILL: phase6-gui-performance-integrity
+
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/09_X第二主分支與獨立工單鏈治理規格.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/issue_closure_completion_pitfalls.md
+
+PLANNED_CHANGED_FILE=logs/preflight/issue502-t5-preflight.txt
+PLANNED_CHANGED_FILE=tests/test_issue502_editor_settings_commit_seam.py
+PLANNED_CHANGED_FILE=gui_modules/application/fold_designer_settings_coordinator.py
+PLANNED_CHANGED_FILE=fold_designer_bridge.py
+
+R5_CURRENT=_phase6_store_editor_values directly normalizes/diffs Settings, calls commit_box_fw, mutates input_snapshot/settings/box_whd, projects left-global vars, recalculates dimensions, refreshes linked profiles, and emits partial host callback.
+PROTECTED=#448 Part Editor C_KEEP_BRIDGE_COMPATIBILITY; Linked Endcap KEEP_COMPATIBILITY; exact 13 Settings application ports remain unchanged.
+PREFLIGHT_EXIT=0

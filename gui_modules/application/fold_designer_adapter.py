@@ -47,6 +47,10 @@ from phase6_final_scene_contracts import (
 from phase6_final_scene_renderer import Phase6FinalSceneRenderer
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
+from gui_modules.application.fold_designer_settings_coordinator import (
+    Phase6FoldDesignerSettingsCoordinator,
+    Phase6SettingsApplicationPorts,
+)
 from gui_modules.parts.panels.divider import collect_divider_input
 from gui_modules.parts.panels.door import collect_door_input
 from gui_modules.parts.panels.indicator_box import collect_indicator_box_input
@@ -919,6 +923,7 @@ class Phase6FoldDesignerComposition:
         self.app = app
         self._settings_service = None
         self._settings_transactions = None
+        self._settings_coordinator = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
 
@@ -954,6 +959,15 @@ class Phase6FoldDesignerComposition:
                 orchestration=self.settings_service(),
             )
         return self._settings_transactions
+
+    def settings_coordinator(self, ports: Phase6SettingsApplicationPorts):
+        """Return the single Phase 5 Settings application sequencing owner."""
+        if self._settings_coordinator is None:
+            self._settings_coordinator = Phase6FoldDesignerSettingsCoordinator(
+                transactions=self.settings_transactions(),
+                ports=ports,
+            )
+        return self._settings_coordinator
 
     def final_scene_renderer(self, *, number_text):
         if self._final_scene_renderer is None:

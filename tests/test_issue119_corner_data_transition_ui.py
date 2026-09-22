@@ -123,9 +123,15 @@ def test_red_119_2_first_vault_to_receiving_switch_refreshes_visible_boxbody_chi
 
 
 def test_red_119_2b_family_switch_has_one_corner_data_refresh_owner():
-    source = inspect.getsource(bridge._phase6_on_baseline_model_changed)
-    assert source.count("_phase6_refresh_corner_data_parts_panel(self)") == 1, (
-        "family transaction must refresh Corner Data exactly once after the authoritative commit"
+    delegate_source = inspect.getsource(bridge._phase6_on_baseline_model_changed)
+    effect_source = inspect.getsource(
+        bridge._phase6_settings_application_project_ui_values
+    )
+    assert "_phase6_refresh_corner_data_parts_panel(self)" not in delegate_source, (
+        "family transition bridge delegate must not reacquire Corner Data refresh ownership"
+    )
+    assert effect_source.count("_phase6_refresh_corner_data_parts_panel(self)") == 1, (
+        "family transaction must refresh Corner Data exactly once through the bounded finalize effect owner"
     )
 
 

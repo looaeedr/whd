@@ -4,6 +4,9 @@ import inspect
 
 import fold_designer_bridge as bridge
 import phase6_part_navigation as nav
+from gui_modules.application.fold_designer_settings_coordinator import (
+    Phase6FoldDesignerSettingsCoordinator,
+)
 from phase6_designer_workspace import Phase6DesignerWorkspace
 from phase6_part_navigation import (
     NavigationIntent,
@@ -137,10 +140,18 @@ def test_save_reload_rebuilds_navigation_from_authoritative_project_state_not_vi
 
 
 def test_family_switch_commits_derived_topology_before_visible_navigation_refresh():
-    source = inspect.getsource(bridge._phase6_on_baseline_model_changed)
-    sync_at = source.index("_phase6_sync_authoritative_derived_parts")
-    refresh_at = source.index("refresh_parts")
+    # Phase 5 T4 moved baseline effect ordering behind the application
+    # coordinator.  The behavioral invariant remains sync-derived first,
+    # refresh-visible-topology second; bridge must only delegate.
+    source = inspect.getsource(
+        Phase6FoldDesignerSettingsCoordinator.apply_baseline_transition
+    )
+    sync_at = source.index("self._ports.sync_derived_parts()")
+    refresh_at = source.index("self._ports.refresh_topology")
     assert sync_at < refresh_at
+
+    bridge_source = inspect.getsource(bridge._phase6_on_baseline_model_changed)
+    assert "_phase6_settings_coordinator(self).apply_baseline_transition" in bridge_source
 
 
 def test_source_guard_navigation_core_has_no_forbidden_identity_reconstruction():

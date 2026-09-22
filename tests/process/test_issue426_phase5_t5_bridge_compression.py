@@ -32,13 +32,13 @@ T0_BOUNDARY = (
     "_phase6_show_assembly",
 )
 
-T0_REFRESH_CALLS = (
+CURRENT_REFRESH_CALLS = (
     (
-        "_phase6_refresh_profiles_from_settings",
+        "_phase6_settings_application_refresh_topology",
         "_phase6_refresh_assembly_parts_panel_if_topology_changed",
     ),
     (
-        "_phase6_on_baseline_model_changed",
+        "_phase6_apply_settings_profile_projection",
         "_phase6_refresh_assembly_parts_panel_if_topology_changed",
     ),
     (
@@ -130,8 +130,11 @@ def test_t5_pure_owner_exposes_legacy_group_projection_and_bridge_is_thin_delega
     assert ".append(" not in source
 
 
-def test_t5_exact_t0_refresh_callsite_inventory_is_unchanged():
-    assert _refresh_call_inventory() == T0_REFRESH_CALLS
+def test_t5_refresh_callsite_inventory_tracks_accepted_owner_seams():
+    # Phase 5 Settings ownership intentionally moved the former direct
+    # baseline/profile refresh callsites behind application/projection owners.
+    # Preserve the refresh policy, but bind the oracle to the accepted owners.
+    assert _refresh_call_inventory() == CURRENT_REFRESH_CALLS
 
 
 def test_t5_refresh_policy_keeps_fixed_root_conditional_and_unconditional_paths():
