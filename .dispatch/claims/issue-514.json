@@ -6,16 +6,19 @@
   "claimed_at": "2026-09-22T14:07:23Z",
   "base_sha": "5170c8539102ca176dc3a0b4a65157678f692326",
   "head_sha": "9ee9b20999a17a2d2208a2ec9228121d27e0da9a",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T14:09:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-22T14:12:10Z",
   "target_branch": "main",
   "remote_qa": {
-    "status": "REGRESSION_REPRODUCED",
-    "failing_run_id": 35738231236,
-    "failure": "required skill unavailable or ambiguous: 遠端執行守門: []",
-    "local_equivalent_guard": "GREEN before self-repair mutation"
+    "status": "GREEN_CLEANED",
+    "regression_run_id": 35738231236,
+    "regression_result": "FAIL: required skill unavailable or ambiguous: 遠端執行守門: []",
+    "integration_pr": 515,
+    "integration_sha": "03c764ba8d06acee5e94bc49c66e65a8cf367f04",
+    "post_merge_smoke_run_id": 35738566637,
+    "post_merge_result": "GREEN: required skill 遠端執行守門 resolved by frontmatter name"
   },
-  "next_action": "Guarded pr-write, merge to main, then changed-file commit-request regression smoke",
+  "next_action": null,
   "blocker": null,
   "delegated_branches": []
 }
