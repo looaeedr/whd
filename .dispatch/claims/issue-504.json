@@ -5,24 +5,33 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:44:00+08:00",
-  "phase": "REMOTE_QA",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "8b468f96c435f300acb6e855b354ba872fa37cf1",
   "work_branch": "work/issue506-phase5-settings-dataflow-20260922",
-  "delegated_branches": [
-    "coord/dispatch-claims"
-  ],
+  "delegated_branches": [],
   "head_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
-  "last_update": "2026-09-22T23:18:49+08:00",
+  "last_update": "2026-09-23T00:39:00+08:00",
   "remote_qa": {
-    "status": "QUEUED_COMBINED",
+    "status": "COMPLETED",
     "run_id": 35746442145,
     "head_sha": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
     "workflow": "qa-issue504-t7-combined.yml",
+    "conclusion": "success",
     "prior_focused_run_id": 35745531878,
     "prior_focused_conclusion": "success"
   },
-  "next_action": "Poll exact T7 Combined Acceptance run 35746442145 on head 65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce to terminal; on GREEN continue T7 cleanup, drift audit, durable writeback, and closure without stopping.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-22T15:58:40Z",
+    "final_acceptance_run": 35746442145,
+    "final_acceptance_conclusion": "success",
+    "tested_head": "65d670285a7f5bfb1a4b0ae9fb9ffb4815d601ce",
+    "terminal_evidence_comment_id": 5779695238,
+    "master_issue": 506
+  }
 }
