@@ -5,19 +5,12 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "a54125ee57ad778eefc08555ec2296d4f986b37c",
-  "phase": "CLOSING",
-  "last_update": "2026-09-22T14:09:00Z",
+  "head_sha": "9012a2871d0da75cbb95c6c061b88ccb329794c4",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-22T14:12:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": {
-    "run_id": 35736445559,
-    "head_sha": "2d55f3d048807db747a16607add26ca412acbf9f",
-    "status": "completed",
-    "conclusion": "success",
-    "job_id": 106774799398,
-    "summary": "focused 6 passed; broader part/DXF/persistence 24 passed"
-  },
-  "next_action": "Run #509 governance/Skill contract QA on durable writeback head, then remove temporary workflow.",
+  "remote_qa": null,
+  "next_action": "Poll exact #509 governance+part/DXF QA run for head 9012a2871d0da75cbb95c6c061b88ccb329794c4 to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
