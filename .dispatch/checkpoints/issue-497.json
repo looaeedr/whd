@@ -1,0 +1,27 @@
+{
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "branch": "work/issue506-phase5-settings-dataflow-20260922",
+  "chain_next_action": "Claim #498 on shared coordination ref, verify predecessor e072f052298f3dea2aba4e9de4d5f1b17f06850e as T1 base, then start T1 coordinator/ports RED-to-GREEN implementation.",
+  "chain_reason": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "evidence": [
+    "Preflight evidence commit fe319a1618079c90abe9ab47f7ec0dfd78a6ce8a",
+    "T0 census commit e072f052298f3dea2aba4e9de4d5f1b17f06850e",
+    "Frozen X base ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
+    "Bridge blob 9b119a4af2101d4fc9cd197bfb4cef4bb7f090e1; 7929 LOC; 334 top-level symbols",
+    "Facade binding count 69; listed owner reverse-import bridge count 0",
+    "config.ini blob 3165d9f4192ac80fcfdca54fbbe7d1a22900a0d1; DXF baseline count 10",
+    "Frozen-base diff contains evidence only: issue497 T0 preflight + census"
+  ],
+  "head_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
+  "issue": "#497",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": "#506",
+  "next_action": null,
+  "next_issue": "#498",
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
+}
