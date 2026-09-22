@@ -39,29 +39,52 @@ def test_r06_outer_door_has_authoritative_placement_contract():
 
 
 def test_r06_panel_and_top_left_right_frames_share_outer_door_datum():
-    panel = resolve_assembly_placement(_snapshot(), "inner_door:upper:panel")
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from ae_engine.inner_door_frames import derive_all_inner_door_frames
+
+    snapshot = _snapshot()
+    panel = resolve_assembly_placement(snapshot, "inner_door:upper:panel")
     assert panel.relationship == "INNER_DOOR_PANEL"
     assert panel.mate_target == "door_c1_r1"
     assert panel.placement_kind == "inner_door_panel"
     assert panel.world_offset == pytest.approx((0.0, 225.0, 95.0))
 
-    # Receiving operator FW=29 is formed outside occupation; the Door engine
-    # consumes material FW=25 at T=2.  Therefore the upper outer-door finished
-    # face is 735 x 1064, the 50/50/50/0 inset inner panel is 635 x 1014,
-    # centered at (0,225,95), and these are its true frame-center datums.
-    expected = {
-        "inner_door:upper:top_frame": ("inner_door_frame_top", (0.0, 732.0, 95.0)),
-        "inner_door:upper:left_frame": ("inner_door_frame_left", (-317.5, 225.0, 95.0)),
-        "inner_door:upper:right_frame": ("inner_door_frame_right", (317.5, 225.0, 95.0)),
+    # Top frame remains on the canonical inner-door top datum.  Left/right
+    # frames keep the same X/Z panel datums but their longitudinal center/span
+    # are now owned by the two real terminal faces: top inset and the exact
+    # shared horizontal Divider support skin.
+    top = resolve_assembly_placement(snapshot, "inner_door:upper:top_frame")
+    assert top.world_offset == pytest.approx((0.0, 732.0, 95.0))
+
+    vertical = cabinet_family_policy.inner_door_vertical_frame_contract(
+        snapshot, "upper"
+    )
+    assert vertical is not None
+    frame_sets = cabinet_family_policy.derive_inner_door_frame_sets(snapshot)
+    frames = {
+        row.stable_id: row
+        for row in derive_all_inner_door_frames(frame_sets)
     }
-    for stable_id, (kind, offset) in expected.items():
-        placement = resolve_assembly_placement(_snapshot(), stable_id)
+    expected_x = {
+        "inner_door:upper:left_frame": -317.5,
+        "inner_door:upper:right_frame": 317.5,
+    }
+    for stable_id, x in expected_x.items():
+        placement = resolve_assembly_placement(snapshot, stable_id)
+        frame = frames[stable_id]
         assert placement.stable_id == stable_id
         assert placement.parent_assembly_node == "box_body:door_layout:inner_door"
         assert placement.relationship == "INNER_DOOR_FRAME"
-        assert placement.placement_kind == kind
-        assert placement.world_offset == pytest.approx(offset)
-
+        assert placement.world_offset[0] == pytest.approx(x)
+        assert placement.world_offset[1] == pytest.approx(vertical["center_y"])
+        assert placement.world_offset[2] == pytest.approx(95.0)
+        assert frame.span == pytest.approx(vertical["span"])
+        assert placement.world_offset[1] + frame.span / 2.0 == pytest.approx(
+            vertical["top_terminal_y"]
+        )
+        assert placement.world_offset[1] - frame.span / 2.0 == pytest.approx(
+            vertical["lower_terminal_y"]
+        )
 
 def test_r06_divider_guard_stays_authoritative_and_repeatable():
     stable_id = "box_body:divider:receiving-main:HORIZONTAL:C0_R0|R1"

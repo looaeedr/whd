@@ -371,6 +371,10 @@ class ManufacturingDiagnosticsResult:
     joint_diagnostics: Any = ()
     rule_traces: Any = ()
     interference_probe_parts: Any = ()
+    joint_marking_foundation: Any = None
+    joint_marking_status: Any = None
+    joint_marking_results: Any = ()
+    joint_marking_export_summary: Any = ()
     warnings: Any = ()
 
     def __post_init__(self) -> None:
@@ -390,6 +394,16 @@ class ManufacturingDiagnosticsResult:
             self,
             "interference_probe_parts",
             tuple(self.interference_probe_parts or ()),
+        )
+        object.__setattr__(
+            self,
+            "joint_marking_results",
+            tuple(self.joint_marking_results or ()),
+        )
+        object.__setattr__(
+            self,
+            "joint_marking_export_summary",
+            tuple(dict(item) for item in tuple(self.joint_marking_export_summary or ())),
         )
         object.__setattr__(
             self,

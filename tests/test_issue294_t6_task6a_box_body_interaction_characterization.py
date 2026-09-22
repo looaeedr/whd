@@ -111,3 +111,62 @@ def test_task6a_box_body_press_miss_clears_pending_click():
         SimpleNamespace(x=50.0, y=50.0, time=500)
     ) == "break"
     assert host._box_body_face_last_click is None
+
+
+def test_primary_box_body_hole_editor_cancel_refreshes_phase6_view_without_canvas_z():
+    from gui_modules.editors.hole_editor import HoleEditorModalLifecycle
+
+    app = gui.Phase6PrimaryApplication.__new__(gui.Phase6PrimaryApplication)
+    app._phase6_primary_workspace = True
+    app.box_body_face_selected_var = Var()
+    app.box_body_face_features = {"left": []}
+    app.baseline_var = Var("受電箱")
+    app.get_float_values = lambda: {
+        "w": 800.0, "h": 1600.0, "d": 350.0, "t": 2.0, "fw": 29.0,
+    }
+    app._box_body_corner_policies = lambda _fw: (None, None)
+    app._box_body_face_baseline_scene = lambda _face_key, _val: None
+
+    captured = {}
+    app._open_unified_hole_editor = (
+        lambda *args, **kwargs: captured.update(kwargs) or "EDITOR"
+    )
+    preview_calls = []
+    app.draw_preview = lambda: preview_calls.append("preview")
+    app.draw_box_body = lambda *_a, **_k: (_ for _ in ()).throw(
+        AssertionError("primary lifecycle must not call legacy canvas_z refresh")
+    )
+
+    assert not hasattr(app, "canvas_z")
+    assert app.open_box_body_face_editor("left") == "EDITOR"
+    assert callable(captured["on_close"])
+
+    session_finish = []
+    editor_destroy = []
+    lifecycle = HoleEditorModalLifecycle(
+        hole_session=SimpleNamespace(
+            finish=lambda *, commit: session_finish.append(commit),
+            has_active_edit=False,
+        ),
+        has_selected_feature=lambda: False,
+        position_authority=["direct"],
+        commit_active_edit=lambda **_kwargs: None,
+        sync_all=lambda: None,
+        validate_current_indicator_fit=lambda **_kwargs: True,
+        door_indicator_state=None,
+        collect_indicator_state=lambda: None,
+        door_indicator_commit=None,
+        editor_closed=[False],
+        editor=SimpleNamespace(destroy=lambda: editor_destroy.append(True)),
+        on_close=captured["on_close"],
+        insert_mode=[False],
+        set_insert_mode=lambda _enabled: None,
+        cancel_active_edit=lambda: None,
+    )
+
+    lifecycle.cancel_all()
+
+    assert session_finish == [False]
+    assert editor_destroy == [True]
+    assert preview_calls == ["preview"]
+

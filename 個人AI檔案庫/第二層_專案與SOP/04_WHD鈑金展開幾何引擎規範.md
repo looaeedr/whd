@@ -185,6 +185,14 @@ Receiving Divider 的 current 例子是既有 `CornerType=CROSS + 參數`；Regi
 
 Preflight / test evidence 只能證明這些 authority 被遵守，不能反過來成為製造公式來源。
 
+### 9. Joint Placement MARKING ownership contract
+
+Joint Placement MARKING 的 production authority 必須沿 physical mating-region/contact ownership 傳遞，不得由 renderer、UI、fixture 或量測差值反推。Inner Door Frame 的接合端由 authoritative `LOWER_TERMINAL_FACE` 提供 mating-region；Receiving 的 shared horizontal Divider 以 `CORE_PHYSICAL_SEGMENT` physical skin 作接觸面。合法接觸使用 contact-local boundary frame 與 locator-only backprojection；工程 coplanar tolerance 屬幾何判定 authority，不得為了 fixture 通過而放寬。
+
+Joint marking policy/diagnostics 由 engine registry/orchestration 擁有；production activation 的 accepted disposition 是 `ALLOW_EXPORT_WITH_DIAGNOSTIC`。Gate A 可保留 dormant foundation，但 Receiving Gate B 只有在 product disposition 已解決後才能啟用。2D、3D、DXF 與 Save→Reload 必須消費同一份 enriched manufacturing geometry/result，不得各自建立第二套 marking 幾何或 placement 規則。
+
+Validation 維持單向：contact probe、collision、fixture expected、pytest tolerance、rendered result 與 QA artifact 只能驗證上述 authority，不得成為 production formula、offset、placement 或 marking policy 的來源。
+
 ---
 
 ## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes

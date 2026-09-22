@@ -22,7 +22,7 @@ def triangle_bounds(triangles):
     )
 
 
-def thicken_triangle_surface(triangles, thickness, *, tolerance=1e-7):
+def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     """Turn a zero-thickness folded triangle surface into a sharp-bend sheet solid.
 
     The folded surface remains the geometric mid-surface.  Two skins are offset by
@@ -36,6 +36,11 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=1e-7):
     import math
     from collections import defaultdict
 
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = (
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+        )
     source = [tuple(tuple(float(v) for v in point) for point in tri[:3])
               for tri in (triangles or ()) if len(tuple(tri)) >= 3]
     t = max(0.0, float(thickness or 0.0))
@@ -403,6 +408,36 @@ def folded_profile_segment_center_from_envelope(profile, segment_index: int) -> 
     return (
         (float(u0) + float(u1)) / 2.0 - envelope_mid_u,
         (float(z0) + float(z1)) / 2.0,
+    )
+
+def folded_profile_segment_center_from_full_envelope(
+    profile,
+    segment_index: int,
+) -> tuple[float, float]:
+    """Return one semantic folded segment midpoint in the same centered local frame as assembly placement.
+
+    place_assembly_points recenters the full folded strip mesh in both folded
+    U and folded Z before applying the authoritative placement offset. Contact
+    owners that already know the semantic segment identity may use this helper
+    to reproduce that exact local frame without selecting a face from a bbox.
+    The envelope is therefore a placement-transform detail, not contact authority.
+    """
+    segs = list(profile or ())
+    index = int(segment_index)
+    if index < 0 or index >= len(segs):
+        raise ValueError("folded profile segment index is outside the fold chain")
+    _boundaries, folded = _profile_geometry(segs)
+    if len(folded) != len(segs) + 1:
+        raise ValueError("folded profile geometry is incomplete")
+    u0, z0 = folded[index]
+    u1, z1 = folded[index + 1]
+    min_u = min(float(point[0]) for point in folded)
+    max_u = max(float(point[0]) for point in folded)
+    min_z = min(float(point[1]) for point in folded)
+    max_z = max(float(point[1]) for point in folded)
+    return (
+        (float(u0) + float(u1)) / 2.0 - (min_u + max_u) / 2.0,
+        (float(z0) + float(z1)) / 2.0 - (min_z + max_z) / 2.0,
     )
 
 def _profile_segment_index(position, boundaries):
@@ -940,6 +975,285 @@ def world_skin_with_flat_uv(
             out.append(MappedSkinTriangle(flat=mapped.flat, world=world, side=side))
     return tuple(out)
 
+
+
+def _mating_vec_sub(a, b):
+    return tuple(float(a[i]) - float(b[i]) for i in range(3))
+
+
+def _mating_vec_add(a, b):
+    return tuple(float(a[i]) + float(b[i]) for i in range(3))
+
+
+def _mating_vec_scale(v, k):
+    return tuple(float(v[i]) * float(k) for i in range(3))
+
+
+def _mating_dot(a, b):
+    return sum(float(a[i]) * float(b[i]) for i in range(3))
+
+
+def _mating_cross(a, b):
+    return (
+        float(a[1]) * float(b[2]) - float(a[2]) * float(b[1]),
+        float(a[2]) * float(b[0]) - float(a[0]) * float(b[2]),
+        float(a[0]) * float(b[1]) - float(a[1]) * float(b[0]),
+    )
+
+
+def _mating_normalize(v):
+    import math
+
+    mag = math.sqrt(sum(float(value) * float(value) for value in v))
+    if mag <= 1e-12:
+        raise ValueError("physical mating-region direction is degenerate")
+    return tuple(float(value) / mag for value in v)
+
+
+def _physical_face_plane_section_polygon(
+    triangles,
+    *,
+    plane_point,
+    plane_normal,
+    numerical_tolerance=None,
+):
+    """Section a true-solid surface on one semantic plane into one bounded face.
+
+    The plane itself comes from owner semantics plus authoritative placement.
+    This helper only performs numerical surface/plane sectioning; its tolerance
+    comes from the canonical T1 assembly-geometry owner and is not a product clearance.
+    """
+    from shapely.geometry import LineString
+    from shapely.ops import polygonize, unary_union
+
+    if numerical_tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        numerical_tolerance = (
+            PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+        )
+    tol = max(float(numerical_tolerance), 1e-12)
+    origin = tuple(float(v) for v in plane_point)
+    normal = _mating_normalize(plane_normal)
+    segments = []
+
+    def signed_distance(point):
+        return _mating_dot(_mating_vec_sub(point, origin), normal)
+
+    def close(a, b):
+        return all(abs(float(a[i]) - float(b[i])) <= tol for i in range(3))
+
+    for raw in tuple(triangles or ()):
+        tri = tuple(tuple(float(v) for v in p) for p in raw[:3])
+        if len(tri) != 3:
+            continue
+        distances = tuple(signed_distance(p) for p in tri)
+        if all(abs(value) <= tol for value in distances):
+            segments.extend(((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])))
+            continue
+
+        intersections = []
+        for index in range(3):
+            a = tri[index]
+            b = tri[(index + 1) % 3]
+            da = distances[index]
+            db = distances[(index + 1) % 3]
+            if abs(da) <= tol and abs(db) <= tol:
+                segments.append((a, b))
+                continue
+            if abs(da) <= tol:
+                intersections.append(a)
+            if abs(db) <= tol:
+                intersections.append(b)
+            if da * db < 0.0:
+                ratio = da / (da - db)
+                intersections.append(tuple(
+                    float(a[i]) + ratio * (float(b[i]) - float(a[i]))
+                    for i in range(3)
+                ))
+
+        unique = []
+        for point in intersections:
+            if not any(close(point, seen) for seen in unique):
+                unique.append(point)
+        if len(unique) == 2 and not close(unique[0], unique[1]):
+            segments.append((unique[0], unique[1]))
+
+    nonzero = [
+        pair for pair in segments
+        if not close(pair[0], pair[1])
+    ]
+    if not nonzero:
+        raise ValueError("semantic mating plane does not section the true-thickness solid")
+
+    axis_u = _mating_normalize(_mating_vec_sub(nonzero[0][1], nonzero[0][0]))
+    axis_v = _mating_normalize(_mating_cross(normal, axis_u))
+
+    def project(point):
+        delta = _mating_vec_sub(point, origin)
+        return (_mating_dot(delta, axis_u), _mating_dot(delta, axis_v))
+
+    lines = [LineString((project(a), project(b))) for a, b in nonzero]
+    polygons = tuple(polygonize(unary_union(lines)))
+    if not polygons:
+        raise ValueError("semantic mating plane section did not produce a bounded physical face")
+
+    face = unary_union(polygons)
+    if str(getattr(face, "geom_type", "")) != "Polygon":
+        raise ValueError(
+            "semantic mating region must resolve to exactly one connected physical face"
+        )
+    if float(getattr(face, "area", 0.0)) <= tol * tol:
+        raise ValueError("semantic mating region physical face has zero area")
+
+    coords = tuple(face.exterior.coords)
+    world = []
+    for x, y in coords[:-1]:
+        point = _mating_vec_add(
+            origin,
+            _mating_vec_add(
+                _mating_vec_scale(axis_u, float(x)),
+                _mating_vec_scale(axis_v, float(y)),
+            ),
+        )
+        world.append(tuple(float(v) for v in point))
+    if len(world) < 3:
+        raise ValueError("semantic mating region polygon is degenerate")
+    return tuple(world)
+
+
+def resolve_physical_mating_region(
+    *,
+    part_id,
+    semantic,
+    render_data,
+    x_profile,
+    y_profile,
+    placement,
+    dimensions,
+    offset=(0.0, 0.0, 0.0),
+    sheet_thickness,
+):
+    """Resolve an owner-published semantic region to its actual world physical face.
+
+    T0 deliberately supports the first required neutral case: a longitudinal-Y
+    terminal boundary wall such as Inner Door Frame LOWER_TERMINAL_FACE.  The
+    face is sectioned from the real true-thickness solid.  No bbox extrema,
+    renderer coordinates, collision probes, or fixture values select the region.
+    """
+    from .contracts import ResolvedPhysicalMatingRegion
+
+    stable_id = str(part_id or "").strip()
+    if not stable_id:
+        raise ValueError("physical mating region requires stable part_id")
+    if semantic is None:
+        raise ValueError("physical mating region requires owner-published semantic")
+    t = float(sheet_thickness or 0.0)
+    if t <= 0.0:
+        raise ValueError("physical mating region requires true sheet thickness > 0")
+
+    axis = str(getattr(semantic, "flat_boundary_axis", "") or "").strip().upper()
+    side = str(getattr(semantic, "flat_boundary_side", "") or "").strip().upper()
+    face_kind = str(getattr(semantic, "physical_face_kind", "") or "").strip()
+    if face_kind != "TERMINAL_BOUNDARY_WALL":
+        raise ValueError(f"unsupported physical mating face kind: {face_kind!r}")
+    if axis != "Y":
+        raise ValueError("T0 terminal boundary-wall resolver currently requires flat Y ownership")
+    if side not in {"MIN", "MAX"}:
+        raise ValueError(f"unsupported terminal boundary side: {side!r}")
+
+    mapped = tuple(folded_mesh_with_flat_uv_from_polygon(
+        render_data.material,
+        x_profile,
+        y_profile,
+        fold_guides=tuple(getattr(render_data, "fold_guides", ()) or ()),
+    ))
+    if not mapped:
+        raise ValueError("physical mating region cannot resolve empty folded material")
+    mid_triangles = tuple(tuple(row.local) for row in mapped)
+
+    total_y = sum(float(_segment_value(row, "len", 0.0) or 0.0) for row in tuple(y_profile or ()))
+    boundary_value = 0.0 if side == "MIN" else float(total_y)
+    from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    numerical_tolerance = (
+        PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    )
+
+    witnesses = []
+    for row in mapped:
+        for flat, local in zip(tuple(row.flat), tuple(row.local)):
+            if abs(float(flat[1]) - boundary_value) <= numerical_tolerance:
+                witnesses.append(tuple(float(v) for v in local))
+    if not witnesses:
+        raise ValueError("owner semantic terminal boundary is absent from canonical folded topology")
+    witness_local = witnesses[0]
+
+    flat_normal = tuple(float(v) for v in getattr(semantic, "flat_outward_normal", ()))
+    if len(flat_normal) != 2 or abs(flat_normal[0]) > numerical_tolerance:
+        raise ValueError("T0 Y-terminal semantic requires flat outward normal parallel to Y")
+    if abs(flat_normal[1]) <= numerical_tolerance:
+        raise ValueError("owner semantic terminal outward normal is degenerate")
+    expected_sign = -1.0 if side == "MIN" else 1.0
+    if flat_normal[1] * expected_sign <= 0.0:
+        raise ValueError("owner semantic terminal outward normal disagrees with boundary side")
+
+    local_normal = (0.0, expected_sign, 0.0)
+    normal_probe = (
+        witness_local,
+        _mating_vec_add(witness_local, local_normal),
+    )
+    world_probe = place_assembly_points(
+        normal_probe,
+        mid_triangles,
+        placement,
+        dimensions,
+        offset,
+    )
+    if len(world_probe) != 2:
+        raise ValueError("authoritative placement could not resolve mating-region normal")
+    world_normal = _mating_normalize(_mating_vec_sub(world_probe[1], world_probe[0]))
+    plane_point = tuple(float(v) for v in world_probe[0])
+
+    solid_local = tuple(thicken_triangle_surface(
+        mid_triangles, t, tolerance=numerical_tolerance
+    ))
+    solid_points = [point for tri in solid_local for point in tri[:3]]
+    placed_points = place_assembly_points(
+        solid_points,
+        mid_triangles,
+        placement,
+        dimensions,
+        offset,
+    )
+    solid_world = tuple(
+        tuple(placed_points[index:index + 3])
+        for index in range(0, len(placed_points), 3)
+    )
+    world_polygon = _physical_face_plane_section_polygon(
+        solid_world,
+        plane_point=plane_point,
+        plane_normal=world_normal,
+        numerical_tolerance=numerical_tolerance,
+    )
+
+    return ResolvedPhysicalMatingRegion(
+        part_id=stable_id,
+        region_id=str(getattr(semantic, "region_id", "") or ""),
+        region_role=str(getattr(semantic, "region_role", "") or ""),
+        physical_face_kind=face_kind,
+        supporting_plane=(plane_point, world_normal),
+        outward_normal=world_normal,
+        world_polygon=world_polygon,
+        flat_mapping=None,
+        provenance={
+            "source": "OWNER_SEMANTIC_FINAL_MATERIAL_TRUE_SOLID_ASSEMBLY_PLACEMENT",
+            "semantic_owner": str(getattr(type(semantic), "__module__", "") or ""),
+            "semantic_type": str(getattr(type(semantic), "__name__", "") or ""),
+            "flat_boundary_axis": axis,
+            "flat_boundary_side": side,
+            "true_thickness": t,
+            "mapping_status": "BOUNDARY_WALL_WORLD_FACE_ONLY",
+        },
+    )
 
 def endcap_world_skin_with_flat_uv(
     mapped_triangles,

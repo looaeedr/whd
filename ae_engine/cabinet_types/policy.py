@@ -83,6 +83,11 @@ def derive_inner_door_frame_sets(snapshot) -> tuple[object, ...]:
     return tuple(result or ())
 
 
+def inner_door_vertical_frame_contract(source, inner_door_id: object) -> dict[str, object] | None:
+    result = _call(source, "inner_door_vertical_frame_contract", None, source, inner_door_id)
+    return None if result is None else dict(result)
+
+
 def derive_inner_door_panels(snapshot) -> tuple[object, ...]:
     result = _call(snapshot, "derive_inner_door_panels", (), snapshot)
     return tuple(result or ())

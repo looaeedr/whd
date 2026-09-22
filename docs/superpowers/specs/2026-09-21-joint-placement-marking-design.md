@@ -1027,38 +1027,30 @@ Headless：
 
 ---
 
-## OPEN / Engineering Decision
+## Product Decision
 
-### OPEN-1 / ED-1 — marking failure 是否阻斷 DXF export
+### OPEN-1 / ED-1 — marking failure DXF export disposition（RESOLVED）
 
-產品尚未明確確認：
+產品 authority 於 2026-09-21 明確選定：
 
-A. `BLOCK_EXPORT`
+`ALLOW_EXPORT_WITH_DIAGNOSTIC`
 
-或
-
-B. `ALLOW_EXPORT_WITH_DIAGNOSTIC`
-
-v1.3 不選邊。
-
-實作要求建立獨立 integration contract，例如：
+正式 production contract：
 
 ```text
 JointMarkingFailurePolicy
-- disposition: BLOCK_EXPORT | ALLOW_EXPORT_WITH_DIAGNOSTIC
+- disposition: ALLOW_EXPORT_WITH_DIAGNOSTIC
 ```
 
-但 production default 在取得產品決策前保持：
+語意：
 
-`UNRESOLVED`
-
-因此：
-
-- geometry resolver可先完成；
-- diagnostics / report可先完成；
-- A/B兩種 disposition均可寫 contract tests；
-- **不得由實作者把 non-blocking 或 blocking硬編成產品預設**；
-- final production activation / acceptance 必須在 owning product authority決定後鎖定。
+- expected Joint Placement MARKING 若 fail closed，該失敗 policy 不得猜線、補線或用 fallback geometry；
+- CUTTING / BEND / holes / relief / material 仍正確時，DXF **允許輸出**；
+- export / manufacturing summary **必須**包含 machine-readable marking failure diagnostics；
+- summary 至少保留 policy_id、policy_revision、locator_part_id、attached_part_id、status、diagnostic_code、export_disposition；
+- 不得靜默輸出「少了應有 MARKING」的 DXF；
+- `BLOCK_EXPORT` 不再是 v1.3 production default；
+- T6 / Gate B 必須以本決策建立 focused regression，正式 activation 才可解鎖。
 
 ---
 
@@ -1515,18 +1507,18 @@ OPEN-1 決定後，另開 activation RED/GREEN，才驗正式 MARKING output與�
 
 ## Out of Scope / Open Items
 
-### OPEN-1 — export disposition
+### OPEN-1 — export disposition（RESOLVED）
 
-`BLOCK_EXPORT` 或 `ALLOW_EXPORT_WITH_DIAGNOSTIC` 待產品確認。
+產品 authority 已選定：
 
-這是本 v1.3 唯一刻意保留的產品決策，不由工程實作偷選。
+`ALLOW_EXPORT_WITH_DIAGNOSTIC`
 
-**Scope of block：**
+因此：
 
-- OPEN-1 **不阻擋 Foundation Merge**；
-- OPEN-1 **阻擋 Production Activation**；
-- 可部署包含 dormant foundation 的版本，前提是 production manufacturing path 尚未呼叫 marking enrichment、DXF output 無行為變更；
-- 不得把「程式已 merge／已部署」寫成「Joint Placement Marking 已啟用」。
+- OPEN-1 對 Production Activation 的產品決策 blocker 已解除；
+- expected marking fail closed 時，DXF 可繼續輸出，但 failure summary 必須 machine-readable 且不可靜默；
+- production activation 仍須通過 Gate B 其餘工程與驗收條件；
+- 在 T6 / Gate B GREEN 前，不得把 dormant foundation 寫成「Joint Placement Marking 已啟用」。
 
 ### OUT-1 — CAM process parameters
 
@@ -1724,7 +1716,7 @@ Gate A GREEN 的狀態名稱只能是：
 
 只有下列全部成立才能正式啟用 marking：
 
-- [ ] OPEN-1 已由產品 authority選定 `BLOCK_EXPORT` 或 `ALLOW_EXPORT_WITH_DIAGNOSTIC`；
+- [x] OPEN-1 已由產品 authority選定 `ALLOW_EXPORT_WITH_DIAGNOSTIC`；
 - [ ] Gate A 已 GREEN；
 - [ ] first Receiving policy正式接入 resolved manufacturing orchestration；
 - [ ] locator Divider support region與 frame terminal region均來自 authoritative region contract；
@@ -1748,4 +1740,4 @@ Gate B GREEN 後才可標：
 
 ## 一句話 Source of Truth
 
-> **接合定位打標不是「在圖上補兩條線」：physical-part owner 先發布可命名的真實 mating region，neutral resolver 以 authoritative placement + true thickness 建立 actual physical mating faces；marking policy 再對這些 faces 求 legal coplanar contact、以 canonical flat basis穩定定義兩側 role並反投影到 locator Final Material，最後才把 MARKING 寫回同一份 PartRenderData / FinalScene。OPEN-1 不阻擋 foundation merge，但在 export disposition 明確前不得改變正式製造輸出；DXF只序列化，validation tolerance不回灌 production，任何應有 marking 的 fail-closed 都必須可見且不可靜默。**
+> **接合定位打標不是「在圖上補兩條線」：physical-part owner 先發布可命名的真實 mating region，neutral resolver 以 authoritative placement + true thickness 建立 actual physical mating faces；marking policy 再對這些 faces 求 legal coplanar contact、以 canonical flat basis穩定定義兩側 role並反投影到 locator Final Material，最後才把 MARKING 寫回同一份 PartRenderData / FinalScene。OPEN-1 已決議為 `ALLOW_EXPORT_WITH_DIAGNOSTIC`：應有 marking fail-closed 時不得猜線，但在其餘製造幾何正確時 DXF 可輸出，且 machine-readable failure summary 必須可見、不可靜默；DXF只序列化，validation tolerance不回灌 production。**
