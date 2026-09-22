@@ -62,6 +62,8 @@ jobs:
 
           def category(path):
               p=path.as_posix()
+              if p.startswith("BACKUP/") or p.startswith(".agents/"):
+                  return "excluded_nonruntime"
               if p.startswith("tests/"): return "tests"
               if p.startswith("docs/") or p.startswith("logs/") or p.startswith(".dispatch/") or p.endswith(".md"):
                   return "docs_evidence"
@@ -104,7 +106,10 @@ jobs:
                           "kinds":kinds,
                           "snippet":line.strip()[:260],
                       })
-              runtime=[r for r in refs if r["category"] in {"production_py","tests","other"}]
+              runtime=[
+                  r for r in refs
+                  if r["category"] in {"production_py","tests","other"}
+              ]
               prod=[r for r in refs if r["category"]=="production_py"]
               tests=[r for r in refs if r["category"]=="tests"]
               dynamic=[r for r in refs if "dynamic_attr" in r["kinds"]]
@@ -136,6 +141,10 @@ jobs:
                   candidate[key]="PROPERTY_COMPAT"
               elif key in {"__getattr__","__init__"}:
                   candidate[key]="LEGACY_REQUIRED"
+              elif key.startswith("_refresh_") and (
+                  row["production_ref_count"] or row["dynamic_ref_count"]
+              ):
+                  candidate[key]="LEGACY_REQUIRED"
               elif row["production_ref_count"] or row["dynamic_ref_count"]:
                   candidate[key]="LEGACY_REQUIRED"
               elif row["test_ref_count"]:
@@ -143,7 +152,7 @@ jobs:
               else:
                   candidate[key]="NO_CALLER"
           payload={
-              "schema":"WHD_ISSUE541_B6_1_FACADE_AUDIT_V1",
+              "schema":"WHD_ISSUE541_B6_1_FACADE_AUDIT_V2",
               "head_sha":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
               "keys":keys,
               "rows":rows,
@@ -157,7 +166,7 @@ jobs:
           print("B6_1_ACCOUNTED="+str(len(rows)))
           print("B6_1_UNCLASSIFIED=0")
           print("B6_1_CANDIDATE_CLASSIFICATION="+json.dumps(candidate,ensure_ascii=False,sort_keys=True))
-          print("ISSUE541_B6_1_AUDIT=GREEN")
+          print("ISSUE541_B6_1_AUDIT_V2=GREEN")
           PY
 
       - name: 上傳 B6-1 稽核證據
