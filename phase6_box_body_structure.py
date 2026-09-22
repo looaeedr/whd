@@ -16,6 +16,14 @@ class BoxBodyStructureType(str, Enum):
     THREE_PIECE_SIDE_BACK_SPLIT = "three_piece_side_back_split"
 
 
+class BackPanelMode(str, Enum):
+    """Receiving side/back-split rear-panel manufacturing mode."""
+
+    FULL = "FULL"
+    HALF = "HALF"
+    BACK_OPENING = "BACK_OPENING"
+
+
 DEFAULT_STRUCTURE_TYPE = BoxBodyStructureType.INTEGRAL
 
 
@@ -54,6 +62,7 @@ def default_box_body_structure_state() -> dict:
             BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value: {
                 "side_rear_bend": 15.0,
                 "back_width_comp_t": 0.5,
+                "back_panel_mode": BackPanelMode.FULL.value,
                 # Physical-piece Fold editors persist here. The aggregate
                 # box_body Fold Chain remains the source for shared D/FW/W
                 # dimensions; piece profiles own piece-local topology/angles.
@@ -160,6 +169,36 @@ def set_structure_locked(state: Mapping[str, object] | None, locked: bool) -> di
     result = normalize_box_body_structure_state(state)
     result["locked"] = bool(locked)
     return result
+
+
+def _back_panel_mode(value) -> BackPanelMode:
+    if isinstance(value, BackPanelMode):
+        return value
+    text = str(value or "").strip().upper()
+    try:
+        return BackPanelMode(text)
+    except ValueError:
+        return BackPanelMode.FULL
+
+
+def back_panel_mode(state: Mapping[str, object] | None) -> BackPanelMode:
+    """Return the canonical Receiving rear-panel mode; legacy projects are FULL."""
+    normalized = normalize_box_body_structure_state(state)
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    return _back_panel_mode(cfg.get("back_panel_mode"))
+
+
+def set_side_back_back_panel_mode(
+    state: Mapping[str, object] | None,
+    mode,
+) -> dict:
+    """Persist one of the three mutually-exclusive rear-panel modes."""
+    resolved = _back_panel_mode(mode)
+    return update_structure_config(
+        state,
+        BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT,
+        {"back_panel_mode": resolved.value},
+    )
 
 
 def update_structure_config(
