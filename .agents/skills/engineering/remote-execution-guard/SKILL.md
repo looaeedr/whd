@@ -76,7 +76,7 @@ Issue comment 第一行固定：
 必要欄位：
 - `issue=<positive issue number>`
 - `worker=<claim owner identity>`
-- `action=<branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
+- `action=<branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
 - `branch=<exact claimed/delegated branch>`
 - `base_sha=<40-char claim base SHA>`
 - `head_sha=<40-char current claimed HEAD>`
@@ -102,6 +102,23 @@ Request 前：
 - pre-branch state 可為 `base_sha == head_sha`。
 
 GREEN receipt 只授權建立該 exact branch 一次。
+
+### claim-takeover
+
+<!-- REMOTE_GUARD_CLAIM_TAKEOVER_V1 -->
+
+只允許 scheduler stale-owner recovery 使用；一般聊天室 executor 不需要用此 action 把自己轉成自己。
+
+Request 前必須 fresh-read：
+- exact active claim blob；
+- exact work branch observed live HEAD 與該 HEAD commit time；
+- claim 有 `remote_qa.run_id` 時的 exact remote run fresh status/updated_at。
+
+trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。只有 machine decision 為 `EXECUTOR_STUCK` 才能再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt。
+
+`RUN_LIVE`、`WAIT_ON_FOREIGN_RUNTIME`、`ALREADY_SCHEDULER`、`TERMINAL` 或 evaluator error 一律 Remote Guard FAIL；不得 mutation claim。
+
+GREEN receipt 必須額外讓 bounded evidence 可讀到 observed live HEAD、stale seconds 與 previous executor source。receipt 仍只授權**一次** CAS claim ownership transition；claim/blob/head 在 mutation 前漂移就失效。
 
 ### write / commit
 Request 前：

@@ -210,3 +210,25 @@ def test_cli_require_actionable_uses_same_600_second_boundary(tmp_path: Path):
     assert stale.returncode == 0, stale.stdout + stale.stderr
     assert "EXECUTOR_STUCK" in stale.stdout
     assert "STALE_CLAIM_TAKEOVER_GREEN" in stale.stdout
+
+
+def test_durable_skill_bridges_reference_executable_stale_takeover_authority():
+    root = Path(__file__).resolve().parents[2]
+    dispatch = (root / ".agents/skills/engineering/派工/SKILL.md").read_text(encoding="utf-8")
+    remote = (root / ".agents/skills/engineering/remote-execution-guard/SKILL.md").read_text(encoding="utf-8")
+    continuity = (root / ".agents/skills/engineering/executable-continuity-controller/SKILL.md").read_text(encoding="utf-8")
+    pitfalls = (root / "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md").read_text(encoding="utf-8")
+
+    assert "STALE_CLAIM_EXECUTABLE_TAKEOVER_V1" in dispatch
+    assert "tools/stale_claim_takeover.py" in dispatch
+    assert "claim-takeover" in dispatch
+
+    assert "REMOTE_GUARD_CLAIM_TAKEOVER_V1" in remote
+    assert "tools/stale_claim_takeover.py --require-actionable" in remote
+    assert "action=claim-takeover" in remote
+
+    assert "SCHEDULED_STALE_CLAIM_TAKEOVER_V1" in continuity
+    assert "600 秒" in continuity
+    assert "tools/stale_claim_takeover.py" in continuity
+
+    assert "ISSUE540_STALE_CLAIM_TAKEOVER_PITFALL" in pitfalls
