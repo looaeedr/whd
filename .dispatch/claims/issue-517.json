@@ -5,19 +5,19 @@
   "work_branch": "hotfix/issue517-receiving-live-switch-ui-dxf-20260922",
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
-  "head_sha": "01830730af3cd39aa9005a1dea1c4ed7b5d1fb85",
+  "head_sha": "2d2d2e30aa586f2f14d57e19105ec5a1b4e97512",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T16:18:00Z",
+  "last_update": "2026-09-22T16:09:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
-    "run_id": 35751219754,
-    "head_sha": "824ca78c34a39406063701dd3c45d63066fbdb11",
+    "run_id": 35751750321,
+    "head_sha": "01830730af3cd39aa9005a1dea1c4ed7b5d1fb85",
     "status": "completed",
     "conclusion": "failure",
-    "job_id": 106825548313,
-    "summary": "Combined GREEN; final physical/DXF acceptance 75 PASS / 1 FAIL. Only unchanged #45 dynamic-parts Tk test failed result_door_w_var == '-'; config.ini invariant GREEN. Classify with fresh-process exact node before production mutation."
+    "job_id": 106827377720,
+    "summary": "Combined passed; dynamic-parts exact #45 still fails result_door_w_var == '-'. Added frozen-base A/B classifier before any production mutation."
   },
-  "next_action": "Observe auto-triggered #517 final acceptance replacement at head 01830730af3cd39aa9005a1dea1c4ed7b5d1fb85; lock exact run_id+head_sha and poll to terminal.",
+  "next_action": "Observe auto-triggered #517 A/B classifier run at head 2d2d2e30aa586f2f14d57e19105ec5a1b4e97512; lock exact run_id+head_sha and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
