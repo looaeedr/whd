@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T22:10:00+08:00",
-  "phase": "RED",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "eb1b574dda5635a9b0f3da19aecec7ca1453fa26",
@@ -14,10 +14,14 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "84a36af1a4750251819f2ec387c2a69d44448c06",
-  "last_update": "2026-09-22T22:19:00+08:00",
+  "last_update": "2026-09-22T22:22:00+08:00",
   "remote_qa": {
-    "status": "RUN_NOT_CREATED"
+    "status": "EXPECTED_RED_GREEN",
+    "run_id": 35734358907,
+    "head_sha": "84a36af1a4750251819f2ec387c2a69d44448c06",
+    "workflow": "qa-issue500-t3-red.yml",
+    "result": "R2 expected RED confirmed: pure projection owner missing and bridge remains deep mixed projection/apply implementation."
   },
-  "next_action": "Lock exact T3 expected-RED run on head 84a36af1; poll same run to terminal; on expected RED implement pure projection owner.",
+  "next_action": "Implement phase6_settings_profile_projection.py as pure immutable planner, then cut bridge recalculate/refresh functions to narrow delegate/apply boundary and run focused GREEN.",
   "blocker": null
 }
