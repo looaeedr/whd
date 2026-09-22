@@ -7,7 +7,7 @@
   "base_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
   "head_sha": "1ad212fb62c30914ed8739fdd9b0108981417f6c",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-22T15:15:00Z",
+  "last_update": "2026-09-22T14:45:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35741934489,
@@ -17,7 +17,7 @@
     "job_id": 106793630925,
     "summary": "Final acceptance GREEN: focused 15 PASS/1 SKIP; broader 37 PASS/18 SKIP; Xvfb 3 PASS; config.ini invariant GREEN."
   },
-  "next_action": "Audit df385d0ccc2c8c6e97f70dae00260e9c25d8dca4 -> 1ad212fb62c30914ed8739fdd9b0108981417f6c; require workflow-only cleanup drift, then create/merge PR to cleanup/2d-3d-sync.",
+  "next_action": "Create/fresh-read PR from closing head 1ad212fb62c30914ed8739fdd9b0108981417f6c to cleanup/2d-3d-sync, merge non-force, post-integration readback, finalize checkpoint/proof, close #510, release claim.",
   "blocker": null,
   "delegated_branches": []
 }
