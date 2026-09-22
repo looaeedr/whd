@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:18:00+08:00",
-  "phase": "CLAIMED",
+  "phase": "IMPLEMENTING",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
@@ -14,10 +14,10 @@
     "coord/dispatch-claims"
   ],
   "head_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T19:18:00+08:00",
+  "last_update": "2026-09-22T19:22:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Run execution_claim_guard for work-order branch creation, create the work-order branch from the exact frozen X base, then persist T0 preflight/census evidence.",
+  "next_action": "Persist canonical preflight evidence on the work-order branch, then generate and persist the exact-source T0 ownership/effect-order census.",
   "blocker": null
 }
