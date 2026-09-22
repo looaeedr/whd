@@ -1,0 +1,126 @@
+name: Issue 525 Stage A Combined
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue525-stage-a-combined.yml
+
+permissions:
+  contents: read
+
+jobs:
+  stage-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Identity and fixed A0 authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ISSUE=525"
+          echo "MASTER=520"
+          echo "CANDIDATE=$(git rev-parse HEAD)"
+          test -f docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json
+
+      - name: Stage A Combined architecture regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue524_a3_facade_ratchet.py             tests/test_phase6_bridge_domain_ownership.py             tests/test_phase6_diagnostics_ownership.py             tests/test_phase6_final_scene_view_ownership.py             tests/test_dm7_part_navigation.py             tests/test_issue445_settings_presentation_owner.py             tests/test_issue446_registry_diagnostics_presentation_owner.py             tests/test_issue479_final_scene_composition_owner.py             tests/test_issue480_derived_part_projection_plan.py             tests/test_issue481_derived_apply_linked_endcap_owner.py             tests/test_issue498_settings_application_coordinator.py             tests/test_issue502_editor_settings_commit_seam.py             tests/process/test_issue426_phase5_t5_bridge_compression.py             | tee /tmp/issue525-stage-a-tests.log
+          grep -E '[0-9]+ passed' /tmp/issue525-stage-a-tests.log | tail -1
+
+      - name: Compute mandatory reduction gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          a0_path = Path("docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json")
+          a0 = json.loads(a0_path.read_text(encoding="utf-8"))
+          bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+
+          baseline_loc = int(a0["source"]["line_count_newlines"])
+          final_loc = bridge.count("\n")
+          reduction = baseline_loc - final_loc
+          minimum = int(a0["budget"]["MIN_REDUCTION"])
+          ceiling = int(a0["budget"]["EFFECTIVE_FINAL_CEILING"])
+          stage_b_required = reduction < minimum or final_loc > ceiling
+
+          result = {
+              "schema": "WHD_ISSUE525_STAGE_A_GATE_V1",
+              "head_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+              "baseline_sha": a0["frozen_x_base_sha"],
+              "bridge_blob_baseline": a0["source"]["bridge_blob_sha"],
+              "baseline_loc": baseline_loc,
+              "final_loc": final_loc,
+              "stage_a_reduction": reduction,
+              "MIN_REDUCTION": minimum,
+              "EFFECTIVE_FINAL_CEILING": ceiling,
+              "reduction_gate_green": reduction >= minimum,
+              "ceiling_gate_green": final_loc <= ceiling,
+              "STAGE_B_REQUIRED": stage_b_required,
+          }
+          Path("issue525-stage-a-gate.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          Path("issue525-stage-a-gate.md").write_text(
+              "\n".join([
+                  "# Issue 525 Stage A Gate",
+                  "",
+                  f"- HEAD: \`{result['head_sha']}\`",
+                  f"- baseline LOC: {baseline_loc}",
+                  f"- Stage A final LOC: {final_loc}",
+                  f"- Stage A reduction: {reduction}",
+                  f"- MIN_REDUCTION: {minimum}",
+                  f"- EFFECTIVE_FINAL_CEILING: {ceiling}",
+                  f"- reduction gate green: {result['reduction_gate_green']}",
+                  f"- ceiling gate green: {result['ceiling_gate_green']}",
+                  f"- STAGE_B_REQUIRED: {str(stage_b_required).lower()}",
+                  "",
+              ]) + "\n",
+              encoding="utf-8",
+          )
+          print(f"BASELINE_LOC={baseline_loc}")
+          print(f"STAGE_A_FINAL_LOC={final_loc}")
+          print(f"STAGE_A_REDUCTION={reduction}")
+          print(f"MIN_REDUCTION={minimum}")
+          print(f"EFFECTIVE_FINAL_CEILING={ceiling}")
+          print(f"REDUCTION_GATE_GREEN={str(reduction >= minimum).lower()}")
+          print(f"CEILING_GATE_GREEN={str(final_loc <= ceiling).lower()}")
+          print(f"STAGE_B_REQUIRED={str(stage_b_required).lower()}")
+          print("ISSUE525_STAGE_A_GATE=GREEN")
+          PY
+
+      - name: Upload Stage A evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue525-stage-a-gate
+          path: |
+            issue525-stage-a-gate.json
+            issue525-stage-a-gate.md
+            /tmp/issue525-stage-a-tests.log
+          if-no-files-found: error
+          retention-days: 14
