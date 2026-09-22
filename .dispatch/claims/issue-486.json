@@ -5,24 +5,24 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T13:27:00+08:00",
-  "phase": "RECOVERING",
+  "phase": "REMOTE_QA",
   "production_target": "cleanup/2d-3d-sync",
   "production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
   "work_branch": "work/issue486-phase4-ownership-20260922",
-  "head_sha": "f54493ad2c9b994c61ea5f3c8af08b6b3dc29455",
+  "head_sha": "759b3688ccba1f82ce7633974a9cb4354480fa6c",
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
   "remote_qa": {
     "status": "RUN_NOT_CREATED",
     "run_id": null,
-    "head_sha": null,
+    "head_sha": "759b3688ccba1f82ce7633974a9cb4354480fa6c",
     "tested_production_sha": "c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8"
   },
-  "next_action": "Run exact-production Master shared-content gate classifier on #430-#435 tests against c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8 to determine whether shared-content duplicate region/tree/binding=0 is currently GREEN or a true regression. Do not close Master until classified.",
+  "next_action": "Resolve push-triggered Issue486 Master Shared Content Gate run for orchestrator head 759b3688ccba1f82ce7633974a9cb4354480fa6c; lock exact run_id+tested production SHA c48f650fd68f6f5cb96bcb6d04a3627c8ce7a2a8; poll to terminal; if GREEN cleanup orchestrator and finalize Master; if RED classify exact remaining blocker.",
   "blocker": null,
-  "last_update": "2026-09-22T13:27:00+08:00",
+  "last_update": "2026-09-22T13:30:00+08:00",
   "children_readback": "#478-#485 all CLOSED/completed",
   "phase4_temporary_workflow_residue": 0
 }
