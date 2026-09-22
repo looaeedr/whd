@@ -1,0 +1,57 @@
+name: "Finalize #501 via canonical continuity guard"
+
+on:
+  push:
+    branches:
+      - coord/dispatch-claims
+    paths:
+      - '.github/workflows/qa-issue501-finalize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source owner
+        uses: actions/checkout@v4
+        with:
+          ref: work/issue506-phase5-settings-dataflow-20260922
+          path: source
+
+      - name: Checkout coordination branch
+        uses: actions/checkout@v4
+        with:
+          ref: coord/dispatch-claims
+          path: coord
+
+      - name: Authorize and verify finalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python source/tools/continuity_controller.py authorize-finalization \
+            coord/.dispatch/checkpoints/issue-501.json \
+            --issue '#501' \
+            --branch work/issue506-phase5-settings-dataflow-20260922 \
+            --head-sha c62e895059f1c583a9e5958ee81c9a8755c80255 \
+            --proof-out coord/.dispatch/checkpoints/issue-501.finalization-proof.json
+
+          python source/tools/continuity_controller.py verify-finalization-proof \
+            coord/.dispatch/checkpoints/issue-501.json \
+            coord/.dispatch/checkpoints/issue-501.finalization-proof.json \
+            --issue '#501' \
+            --branch work/issue506-phase5-settings-dataflow-20260922 \
+            --head-sha c62e895059f1c583a9e5958ee81c9a8755c80255
+
+      - name: Commit finalization proof
+        working-directory: coord
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .dispatch/checkpoints/issue-501.finalization-proof.json
+          git diff --cached --quiet && exit 0
+          git commit -m "continuity: finalize issue 501 proof"
+          git push origin HEAD:coord/dispatch-claims
