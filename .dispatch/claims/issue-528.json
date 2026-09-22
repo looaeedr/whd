@@ -1,0 +1,20 @@
+{
+  "issue": 528,
+  "issue_url": "https://github.com/looaeedr/whd/issues/528",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T04:57:20+08:00",
+  "base_sha": "3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba",
+  "head_sha": "3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T04:57:20+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "B3",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run B3 preflight and formal Deletion-Test for the Settings exact-six against current panel/coordinator/profile-projection owners.",
+  "blocker": null
+}
