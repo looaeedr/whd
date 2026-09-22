@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T07:51:00+08:00",
-  "phase": "CLOSING",
+  "phase": "RELEASED",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "02a58dfe1102db0d3a97ed04f12f5ec1286a68b9",
   "work_order_branch": "work/issue486-phase4-ownership-20260922",
@@ -36,7 +36,7 @@
     },
     "protected_invariants": "GREEN"
   },
-  "next_action": "Persist issue480 TERMINAL_SUCCESS checkpoint and finalization proof bound to closing head 5179fbfade246776e1376aaf0cb51dee6f1b145c; fresh-verify owner identity; write completion evidence; close/readback #480; release claim; immediately acquire/start #481.",
+  "next_action": null,
   "blocker": null,
   "preflight": {
     "frozen_parent": "539728f9986ac55fcc0d9ac68d84ce9231fd1475",
@@ -102,7 +102,7 @@
     "owning_issue": 480,
     "action": "fresh-read exact run 35669129897 terminal success; reconcile stale queued remote-QA snapshot and advance exact next_action to T2 integration"
   },
-  "last_update": "2026-09-22T08:19:00+08:00",
+  "last_update": "2026-09-22T08:21:00+08:00",
   "cleanup": {
     "tested_head": "19a517012d071a342762dab3f668a085d33d9092",
     "closing_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
@@ -112,5 +112,18 @@
     ],
     "drift_class": "QA_WORKFLOW_DELETION_ONLY",
     "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closing_head": "5179fbfade246776e1376aaf0cb51dee6f1b145c",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "finalization_proof_fingerprint": "4f648c8b0db2f88d0de34da2839b05a21bd1f0b270d9dc781af848bc9d07c518",
+    "final_acceptance_run": 35671138946,
+    "projection_and_identity": "88 PASS",
+    "physical_persistence": "21 PASS",
+    "protected_architecture": "32 PASS / 1 SKIP",
+    "production_test_drift": 0,
+    "next_issue": 481
   }
 }
