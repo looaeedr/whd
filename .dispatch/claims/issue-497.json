@@ -5,7 +5,7 @@
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
   "claimed_at": "2026-09-22T19:18:00+08:00",
-  "phase": "IMPLEMENTING",
+  "phase": "GREEN",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
@@ -13,11 +13,11 @@
   "delegated_branches": [
     "coord/dispatch-claims"
   ],
-  "head_sha": "fe319a1618079c90abe9ab47f7ec0dfd78a6ce8a",
-  "last_update": "2026-09-22T19:24:00+08:00",
+  "head_sha": "e072f052298f3dea2aba4e9de4d5f1b17f06850e",
+  "last_update": "2026-09-22T19:29:00+08:00",
   "remote_qa": {
     "status": "RUN_NOT_CREATED"
   },
-  "next_action": "Generate exact-source T0 ownership/effect-order census from frozen SHA and persist durable checkpoint evidence; then review T0 diff and close.",
+  "next_action": "Persist terminal T0 checkpoint with Master handoff to #498, authorize/verify finalization, close #497, then immediately claim/start #498.",
   "blocker": null
 }
