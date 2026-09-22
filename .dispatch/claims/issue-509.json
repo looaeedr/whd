@@ -6,8 +6,8 @@
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
   "head_sha": "044b5eca938c197752cf9410c5f2c2ac396a6017",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-22T14:16:00Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-22T14:20:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35737274103,
@@ -17,7 +17,16 @@
     "job_id": 106777646336,
     "summary": "focused 6 passed; part/DXF/persistence 24 passed; durable governance 27 passed"
   },
-  "next_action": "Final review and non-force integration of closing head 044b5eca938c197752cf9410c5f2c2ac396a6017 into current X; then post-integration readback, issue close, release claim.",
+  "next_action": null,
   "blocker": null,
-  "delegated_branches": []
+  "delegated_branches": [],
+  "production_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "integration_pr": 513,
+    "merge_sha": "faf93f13804cb15f8f590c3296869980dadae46b",
+    "final_run": 35737274103,
+    "final_run_conclusion": "success"
+  }
 }
