@@ -21,10 +21,6 @@ class WorkspaceShellState:
     root: Any
     left: Any
     right: Any
-    left_global_controls: Any
-    left_global_cells: dict[str, Any]
-    settings_panel: Any
-    ui_text_size_var: Any
     ui_text_size_values: tuple[str, ...]
     v_a_bend: Any
     v_a_face: Any
@@ -51,6 +47,10 @@ class WorkspaceShellActions:
     reset_initial_values: Callable[[], Any]
     build_settings_global_controls: Callable[[Any], Any]
     sync_settings_panel_compat: Callable[[], Any]
+    get_left_global_controls: Callable[[], Any]
+    get_left_global_cells: Callable[[], dict[str, Any]]
+    get_ui_text_size_var: Callable[[], Any]
+    set_ui_text_size_combo: Callable[[Any], Any]
     toggle_parameter_panel: Callable[[], Any]
     select_structure_type: Callable[[Any], Any]
     select_assembly_type: Callable[[], Any]
@@ -162,7 +162,7 @@ class WorkspaceShellOwner:
         return self.transaction_buttons
 
     def build_global_persistent_controls(self):
-        host = self.state.left_global_controls
+        host = self.actions.get_left_global_controls()
         self.parameter_lock_button = original.ttk.Button(
             host,
             text="參數鎖定",
@@ -173,7 +173,7 @@ class WorkspaceShellOwner:
 
         structure_cell = original.ttk.Frame(host)
         structure_cell.grid(row=1, column=4, sticky="ew", padx=2, pady=2)
-        self.state.left_global_cells["structure"] = structure_cell
+        self.actions.get_left_global_cells()["structure"] = structure_cell
         original.ttk.Label(structure_cell, text="結構").pack(anchor=original.tk.W)
         self.structure_type_var = original.tk.StringVar(value=self.state.structure_label)
         self.structure_choice_button = build_choice_menubutton(
@@ -189,7 +189,7 @@ class WorkspaceShellOwner:
 
         assembly_cell = original.ttk.Frame(host)
         assembly_cell.grid(row=1, column=5, sticky="ew", padx=2, pady=2)
-        self.state.left_global_cells["assembly"] = assembly_cell
+        self.actions.get_left_global_cells()["assembly"] = assembly_cell
         original.ttk.Label(assembly_cell, text="組合方式").pack(anchor=original.tk.W)
         self.assembly_type_var = original.tk.StringVar(value=self.state.assembly_label)
         self.assembly_choice_button = build_choice_menubutton(
@@ -279,12 +279,12 @@ class WorkspaceShellOwner:
         )
         self.ui_text_size_combo = build_choice_menubutton(
             self.visual_controls,
-            variable=self.state.ui_text_size_var,
+            variable=self.actions.get_ui_text_size_var(),
             values=self.state.ui_text_size_values,
             width=5,
         )
         self.ui_text_size_combo.grid(row=0, column=1, sticky="w", padx=(4, 10))
-        self.state.settings_panel.ui_text_size_combo = self.ui_text_size_combo
+        self.actions.set_ui_text_size_combo(self.ui_text_size_combo)
 
         original.ttk.Label(self.visual_controls, text="折彎透視").grid(
             row=0, column=2, sticky="w"
