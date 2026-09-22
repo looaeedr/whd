@@ -253,50 +253,41 @@ jobs:
           )
           start=source.index("    remove_part_keys = []", source.index("def _phase6_sync_authoritative_derived_parts"))
           end=source.index("    plan = build_derived_part_sync_plan(request)", start)
-          replacement='''    single_door_profiles = (
-              build_standard_part_profiles(snapshot, "door")
-              if not door_rows and "door" in source_parts and "door" not in available_parts
-              else None
-          )
-          single_base_plate_profiles = (
-              build_standard_part_profiles(snapshot, "base_plate")
-              if (
-                  not door_rows
-                  and "base_plate" in source_parts
-                  and "base_plate" not in available_parts
-              )
-              else None
-          )
-          request = build_derived_part_projection_request(
-              DerivedPartRequestAssemblyInput(
-                  door_part_keys=tuple(row.part_key for row in door_rows),
-                  door_profiles=door_profiles,
-                  base_plate_profiles=base_plate_profiles,
-                  divider_profiles=divider_profiles,
-                  inner_profiles=inner_profiles,
-                  box_piece_profiles=box_piece_profiles,
-                  current_piece_keys=tuple(current_piece_keys),
-                  source_parts=source_parts,
-                  available_parts=available_parts,
-                  source_part_features=source_part_features,
-                  known_feature_keys=tuple(known_feature_keys),
-                  single_door_profiles=single_door_profiles,
-                  single_base_plate_profiles=single_base_plate_profiles,
-                  active_part=workspace.active_part,
-                  selected_part=workspace.selected_part,
-              )
-          )
-          '''
-          replacement_lines=replacement.splitlines()
-          replacement=(
-              replacement_lines[0]
-              + "\n"
-              + "\n".join(
-                  line[6:] if line.startswith("      ") else line
-                  for line in replacement_lines[1:]
-              )
-              + "\n"
-          )
+          replacement="\n".join([
+              "    single_door_profiles = (",
+              "        build_standard_part_profiles(snapshot, \"door\")",
+              "        if not door_rows and \"door\" in source_parts and \"door\" not in available_parts",
+              "        else None",
+              "    )",
+              "    single_base_plate_profiles = (",
+              "        build_standard_part_profiles(snapshot, \"base_plate\")",
+              "        if (",
+              "            not door_rows",
+              "            and \"base_plate\" in source_parts",
+              "            and \"base_plate\" not in available_parts",
+              "        )",
+              "        else None",
+              "    )",
+              "    request = build_derived_part_projection_request(",
+              "        DerivedPartRequestAssemblyInput(",
+              "            door_part_keys=tuple(row.part_key for row in door_rows),",
+              "            door_profiles=door_profiles,",
+              "            base_plate_profiles=base_plate_profiles,",
+              "            divider_profiles=divider_profiles,",
+              "            inner_profiles=inner_profiles,",
+              "            box_piece_profiles=box_piece_profiles,",
+              "            current_piece_keys=tuple(current_piece_keys),",
+              "            source_parts=source_parts,",
+              "            available_parts=available_parts,",
+              "            source_part_features=source_part_features,",
+              "            known_feature_keys=tuple(known_feature_keys),",
+              "            single_door_profiles=single_door_profiles,",
+              "            single_base_plate_profiles=single_base_plate_profiles,",
+              "            active_part=workspace.active_part,",
+              "            selected_part=workspace.selected_part,",
+              "        )",
+              "    )",
+          ])+"\n"
           source=source[:start]+replacement+source[end:]
           path.write_text(source,encoding="utf-8")
           PY
