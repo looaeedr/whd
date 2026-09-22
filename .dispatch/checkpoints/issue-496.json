@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "#496",
+  "branch": "skill/issue496-remote-guard-chinese-name-20260922",
+  "head_sha": "61e08cb0399c1c7abaa0f039dc796831154d04e8",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35731255907,
+  "job_id": 106757096120,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User-requested Remote Execution Guard workflow was persisted as a canonical Skill and later renamed to Chinese display name 遠端執行守門 while preserving path, route id, whd_contract, request schema, and receipt schema.",
+    "Initial Skill integration PR #507 merged non-force into cleanup/2d-3d-sync as 9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005.",
+    "Chinese-name follow-up branch-create Remote Guard RUN 35730305732 completed SUCCESS.",
+    "Chinese-name commit Remote Guard RUN 35730558391 completed SUCCESS with exact changed files: Skill, registry, focused contract test.",
+    "Candidate 61e08cb0399c1c7abaa0f039dc796831154d04e8 exact readback confirmed name: 遠端執行守門, registry required_skills uses 遠端執行守門, and machine contracts remain unchanged.",
+    "PR #508 contained exactly 1 commit / 3 files; Knowledge Governance Bootstrap RUN 35731141230 completed SUCCESS.",
+    "QA #414 Phase 5 T0 bridge census RUN 35731141244 remained the pre-existing unrelated production drift census with BASELINE_SHA_EXACT=1 and PRODUCTION_SOURCE_DRIFT=169; it did not introduce a Skill-registry regression.",
+    "Merge Remote Guard RUN 35731255907 completed SUCCESS and PR #508 merged non-force into cleanup/2d-3d-sync as b82d6114a6258853819d6cb7683f06d427ceb9f8.",
+    "Fresh production readback confirmed cleanup/2d-3d-sync HEAD b82d6114a6258853819d6cb7683f06d427ceb9f8 and PR #508 merged.",
+    "Finalization harness branch qa/issue496-finalization-20260922 was created from exact production HEAD b82d6114a6258853819d6cb7683f06d427ceb9f8 under Remote Guard RUN 35732770781."
+  ]
+}
