@@ -74,6 +74,10 @@ from phase6_settings_center import (
 )
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_settings_service import Phase6SettingsTransactionService
+from phase6_settings_contracts import SettingsStateSnapshot
+from gui_modules.application.fold_designer_settings_coordinator import (
+    Phase6SettingsApplicationPorts,
+)
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 from phase6_registry_diagnostics_panel import (
@@ -540,6 +544,197 @@ def _phase6_settings_service(self):
 
 def _phase6_settings_transactions(self):
     return _phase6_composition(self).settings_transactions()
+
+
+def _phase6_settings_application_read_snapshot(self):
+    return SettingsStateSnapshot(
+        settings_values=getattr(self, "_settings_values", {}),
+        input_snapshot=getattr(self, "_phase6_input_snapshot", {}),
+        box_whd=getattr(self, "_phase6_box_whd", {}),
+    )
+
+
+def _phase6_settings_application_read_profile_snapshot(self):
+    workspace = getattr(self, "designer_workspace", None)
+    snapshot = getattr(workspace, "part_profiles_snapshot", None)
+    return snapshot() if callable(snapshot) else {}
+
+
+def _phase6_settings_application_save_current_part(self):
+    self._phase6_applying_settings = True
+    try:
+        return self._save_current_part()
+    finally:
+        self._phase6_applying_settings = False
+
+
+def _phase6_settings_application_apply_profile_plan(self, committed):
+    committed = dict(committed or {})
+    if "t" in committed:
+        self.state.phase6_thickness = float(committed["t"])
+    self._phase6_settings_guard = True
+    try:
+        return _phase6_refresh_profiles_from_settings(self)
+    finally:
+        self._phase6_settings_guard = False
+
+
+def _phase6_settings_application_project_ui_values(
+    self,
+    values,
+    *,
+    rejected_key=None,
+    error=None,
+):
+    values = dict(values or {})
+    if rejected_key == "w":
+        if error is not None:
+            _phase6_box_structure_error(self, ValueError(str(error)))
+        self._phase6_settings_guard = True
+        try:
+            previous_w = values.get("w")
+            if previous_w is not None and hasattr(self, "v_w"):
+                self.v_w.set(_setting_number_text(previous_w))
+            var = getattr(self, "left_global_vars", {}).get("w")
+            if previous_w is not None and var is not None:
+                var.set(_setting_number_text(previous_w))
+        finally:
+            self._phase6_settings_guard = False
+        return
+
+    if "ui_text_size" in values:
+        key = values["ui_text_size"]
+        if hasattr(self, "_ui_text_controller"):
+            self._ui_text_controller.apply(key)
+        self.state.ui_text_scale = (
+            getattr(self, "_ui_text_controller", None).factor
+            if hasattr(self, "_ui_text_controller")
+            else 1.0
+        )
+        var = getattr(self, "ui_text_size_var", None)
+        if var is not None and var.get() != ui_text_size_label(key):
+            var.set(ui_text_size_label(key))
+
+    self._phase6_settings_guard = True
+    try:
+        if "w" in values:
+            self.v_w.set(_setting_number_text(values["w"]))
+        if "h" in values:
+            self.v_h.set(_setting_number_text(values["h"]))
+        if "d" in values:
+            self.v_d.set(_setting_number_text(values["d"]))
+        for key, var in getattr(self, "left_global_vars", {}).items():
+            if key not in values:
+                continue
+            if key == "ui_text_size":
+                var.set(ui_text_size_label(values[key]))
+            elif isinstance(var, original.tk.BooleanVar):
+                var.set(bool(values[key]))
+            else:
+                var.set(_setting_number_text(values[key]))
+        for key, var in getattr(self, "setting_vars", {}).items():
+            if key not in values:
+                continue
+            if key == "ui_text_size":
+                var.set(ui_text_size_label(values[key]))
+            elif isinstance(var, original.tk.BooleanVar):
+                var.set(bool(values[key]))
+            else:
+                var.set(_setting_number_text(values[key]))
+    finally:
+        self._phase6_settings_guard = False
+
+
+def _phase6_settings_application_submit_update_intent(self, _committed):
+    legacy_job = getattr(self, "_job", None)
+    if legacy_job is not None:
+        try:
+            self.root.after_cancel(legacy_job)
+        except Exception:
+            pass
+        self._job = None
+    try:
+        return self.do_update()
+    except Exception:
+        return None
+
+
+def _phase6_settings_application_publish_live_state(self, _committed):
+    if (
+        not getattr(self, "_phase6_transactional_mode", False)
+        and self._settings_change_callback is not None
+    ):
+        self._settings_change_callback(dict(self._settings_values))
+
+
+def _phase6_settings_application_render_bending(self):
+    bend_ui = getattr(self, "bend_ui", None)
+    render = getattr(bend_ui, "render", None)
+    return render() if callable(render) else None
+
+
+def _phase6_settings_application_refresh_settings_panel(self):
+    panel = getattr(self, "settings_panel", None)
+    refresh = getattr(panel, "refresh_baseline_data", None)
+    return refresh() if callable(refresh) else None
+
+
+def _phase6_settings_application_refresh_topology(self):
+    return _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
+
+
+def _phase6_settings_application_refresh_persistent_controls(self):
+    return _phase6_refresh_persistent_structure_controls(self)
+
+
+def _phase6_settings_application_project_status(self, *args, **kwargs):
+    message = kwargs.get("message")
+    if message is None and args:
+        message = args[0]
+    status_var = getattr(self, "_phase6_status_var", None)
+    setter = getattr(status_var, "set", None)
+    if callable(setter) and message is not None:
+        setter(str(message))
+
+
+def _phase6_settings_application_ports(self):
+    return Phase6SettingsApplicationPorts(
+        read_settings_snapshot=lambda: _phase6_settings_application_read_snapshot(self),
+        read_profile_snapshot=lambda: _phase6_settings_application_read_profile_snapshot(self),
+        save_current_part=lambda: _phase6_settings_application_save_current_part(self),
+        apply_profile_plan=lambda committed: _phase6_settings_application_apply_profile_plan(
+            self, committed
+        ),
+        sync_derived_parts=lambda *args, **kwargs: _phase6_sync_authoritative_derived_parts(
+            self
+        ),
+        project_ui_values=lambda values, **kwargs: _phase6_settings_application_project_ui_values(
+            self, values, **kwargs
+        ),
+        render_bending=lambda: _phase6_settings_application_render_bending(self),
+        refresh_settings_panel=lambda: _phase6_settings_application_refresh_settings_panel(
+            self
+        ),
+        refresh_topology=lambda: _phase6_settings_application_refresh_topology(self),
+        refresh_persistent_controls=lambda: _phase6_settings_application_refresh_persistent_controls(
+            self
+        ),
+        submit_update_intent=lambda committed: _phase6_settings_application_submit_update_intent(
+            self, committed
+        ),
+        publish_live_state=lambda committed: _phase6_settings_application_publish_live_state(
+            self, committed
+        ),
+        project_status=lambda *args, **kwargs: _phase6_settings_application_project_status(
+            self, *args, **kwargs
+        ),
+    )
+
+
+def _phase6_settings_coordinator(self):
+    return _phase6_composition(self).settings_coordinator(
+        _phase6_settings_application_ports(self)
+    )
 
 def _phase6_registry_diagnostics(self):
     controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
@@ -1666,105 +1861,13 @@ def _phase6_refresh_profiles_from_settings(self, *, reset_box_profile=False):
 
 
 def _phase6_apply_setting_updates(self, updates, *, notify=True):
-    transactions = _phase6_settings_transactions(self)
-    clean = transactions.normalize_updates(
+    return _phase6_settings_coordinator(self).apply_updates(
         updates,
-        external_apply_guard=bool(getattr(self, "_phase6_external_apply_guard", False)),
+        notify=bool(notify),
+        external_apply_guard=bool(
+            getattr(self, "_phase6_external_apply_guard", False)
+        ),
     )
-    if not clean:
-        return {}
-
-    # A legitimate global W edit is a commit seam, not a geometry-resolver
-    # repair path. Preserve the operator's last W-split driver and derive the
-    # complementary widths here; if the new W cannot produce a legal split,
-    # reject/revert W while leaving the strict resolver fail-closed.
-    if "w" in clean:
-        previous_w = float((getattr(self, "_phase6_box_whd", {}) or {}).get(
-            "w", getattr(getattr(self, "state", None), "w", clean["w"])
-        ))
-        try:
-            transactions.commit_reconciled_width_structure(clean["w"])
-        except Exception as exc:
-            clean.pop("w", None)
-            transactions.restore_setting("w", previous_w)
-            _phase6_box_structure_error(self, exc)
-            self._phase6_settings_guard = True
-            try:
-                if hasattr(self, "v_w"):
-                    self.v_w.set(_setting_number_text(previous_w))
-                var = getattr(self, "left_global_vars", {}).get("w")
-                if var is not None:
-                    var.set(_setting_number_text(previous_w))
-            finally:
-                self._phase6_settings_guard = False
-            if not clean:
-                return {}
-        else:
-            pass
-
-    self._phase6_applying_settings = True
-    try:
-        try:
-            self._save_current_part()
-        except Exception:
-            pass
-    finally:
-        self._phase6_applying_settings = False
-    clean = transactions.commit_settings(clean)
-    if "t" in clean:
-        self.state.phase6_thickness = float(clean["t"])
-    if "ui_text_size" in clean:
-        key = clean["ui_text_size"]
-        if hasattr(self, "_ui_text_controller"):
-            self._ui_text_controller.apply(key)
-        self.state.ui_text_scale = getattr(self, "_ui_text_controller", None).factor if hasattr(self, "_ui_text_controller") else 1.0
-        var = getattr(self, "ui_text_size_var", None)
-        if var is not None and var.get() != ui_text_size_label(key):
-            var.set(ui_text_size_label(key))
-    self._phase6_settings_guard = True
-    try:
-        if "w" in clean: self.v_w.set(_setting_number_text(clean["w"]))
-        if "h" in clean: self.v_h.set(_setting_number_text(clean["h"]))
-        if "d" in clean: self.v_d.set(_setting_number_text(clean["d"]))
-        for key, var in getattr(self, "left_global_vars", {}).items():
-            if key not in clean:
-                continue
-            if key == "ui_text_size":
-                var.set(ui_text_size_label(clean[key]))
-            elif isinstance(var, original.tk.BooleanVar):
-                var.set(bool(clean[key]))
-            else:
-                var.set(_setting_number_text(clean[key]))
-        _phase6_refresh_profiles_from_settings(self)
-        for key, var in getattr(self, "setting_vars", {}).items():
-            if key in clean:
-                if key == "ui_text_size":
-                    var.set(ui_text_size_label(clean[key]))
-                elif isinstance(var, original.tk.BooleanVar):
-                    var.set(bool(clean[key]))
-                else:
-                    var.set(_setting_number_text(clean[key]))
-    finally:
-        self._phase6_settings_guard = False
-    legacy_job = getattr(self, "_job", None)
-    if legacy_job is not None:
-        try:
-            self.root.after_cancel(legacy_job)
-        except Exception:
-            pass
-        self._job = None
-    try:
-        self.do_update()
-    except Exception:
-        pass
-    if (
-        notify
-        and not getattr(self, "_phase6_transactional_mode", False)
-        and self._settings_change_callback is not None
-    ):
-        self._settings_change_callback(dict(self._settings_values))
-    return clean
-
 
 def _phase6_flush_pending_settings(self):
     service = _phase6_settings_service(self)
