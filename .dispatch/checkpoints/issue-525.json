@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "525",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "4d085c4d2daf172bf55684c87e6086572d9d818c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35766956819,
+  "job_id": 106878810436,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Approved RED R1,R2,R3,R4.",
+    "Parent accepted HEAD 144577021f407e4cc0e52dc0a6d433f01c603489.",
+    "First Stage-A Combined RUN 35766572872 failed only on stale #426 FunctionDef-shape oracle.",
+    "Stale test remediated to recognize FunctionDef or direct alias assignment; production unchanged.",
+    "Replacement Stage-A Combined RUN 35766956819 @ d4f2d0139ef022e8586b2cc292a1e87bd642fd2d SUCCESS: 84 passed, 1 skipped.",
+    "BASELINE_LOC=7806; STAGE_A_FINAL_LOC=7796; STAGE_A_REDUCTION=10.",
+    "MIN_REDUCTION=1000; EFFECTIVE_FINAL_CEILING=6500.",
+    "REDUCTION_GATE_GREEN=false; CEILING_GATE_GREEN=false.",
+    "STAGE_B_REQUIRED=true.",
+    "One-shot Stage-A workflow removed.",
+    "Tested-head d4f2d013 -> closing-head 4d085c4d production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "526",
+  "chain_next_action": "Atomically claim #526/B1 Part Editor Deletion-Test / Boundary Reconsideration from accepted HEAD 4d085c4d2daf172bf55684c87e6086572d9d818c and continue mandatory Stage B.",
+  "chain_reason": "STAGE_B_REQUIRED=true"
+}
