@@ -5,10 +5,10 @@
   "executor_source": "chatgpt_interactive",
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:11:00+08:00",
-  "base_sha": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
-  "head_sha": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
+  "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
+  "head_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
   "phase": "CLAIMED",
-  "last_update": "2026-09-23T07:11:00+08:00",
+  "last_update": "2026-09-23T07:12:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,6 +16,15 @@
   "task_id": "B6-2",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run B6-2 preflight and exact repo-wide consumer audit for its 12 facade entries from B6-1 accepted HEAD.",
-  "blocker": null
+  "next_action": "Run B6-2 preflight from current clean work-order lineage head 2c5bcd57, then exact 12-key facade audit.",
+  "blocker": null,
+  "recovery_evidence": {
+    "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
+    "adopted_descendant": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
+    "production_test_drift": 0,
+    "only_changes": [
+      "remove duplicate docs/superpowers/checkpoints/issue541-b6-1-facade-final.json",
+      "remove duplicate docs/superpowers/checkpoints/issue541-b6-1-facade-final.md"
+    ]
+  }
 }
