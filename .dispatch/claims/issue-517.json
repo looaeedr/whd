@@ -6,16 +6,18 @@
   "claimed_at": "2026-09-22T14:55:00Z",
   "base_sha": "fe6e7350bd1b8e207285c0faf30defd6839cbb2e",
   "head_sha": "824ca78c34a39406063701dd3c45d63066fbdb11",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-22T16:13:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-22T16:16:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35751219754,
     "head_sha": "824ca78c34a39406063701dd3c45d63066fbdb11",
-    "status": "in_progress",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 106825548313,
+    "summary": "Combined GREEN; final physical/DXF acceptance 75 PASS / 1 FAIL. Only unchanged #45 dynamic-parts Tk test failed result_door_w_var == '-'; config.ini invariant GREEN. Classify with fresh-process exact node before production mutation."
   },
-  "next_action": "Poll exact final product acceptance run 35751219754 at head 824ca78c34a39406063701dd3c45d63066fbdb11 to terminal; no mutation while active.",
+  "next_action": "Test-order diagnosis: run the exact failing #45 node in its own fresh Xvfb process, while keeping the remaining physical/DXF acceptance in a separate process. If fresh candidate still fails, run the same node on exact production base fe6e7350... before any production fix.",
   "blocker": null,
   "delegated_branches": []
 }
