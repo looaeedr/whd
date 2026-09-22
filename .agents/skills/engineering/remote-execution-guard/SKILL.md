@@ -1,5 +1,5 @@
 ---
-name: remote-execution-guard
+name: 遠端執行守門
 description: WHD 排程／automation 已取得 shared execution claim，但目前 runtime 沒有 repository command execution、shell 或無法本機執行 tools/execution_claim_guard.py 時使用；透過 trusted default-branch GitHub Actions Remote Guard 取得 canonical prewrite guard receipt，驗證後才允許單次 repository mutation。若本機 guard 可執行，優先使用本機 guard。
 whd_doc_role: CURRENT
 whd_contract: remote-execution-guard
@@ -7,7 +7,7 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-# Remote Execution Guard
+# 遠端執行守門
 
 本 Skill 把「scheduler 沒有 shell，因此不能跑 canonical execution claim guard」從永久 blocker 變成可驗證的遠端 guard 路徑。它不放寬 `派工` 的 claim/prewrite hard gate；它要求 GitHub Actions 在 exact identity 上真正執行同一支 `tools/execution_claim_guard.py`，再回傳 machine-readable receipt。
 
