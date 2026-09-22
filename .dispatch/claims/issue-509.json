@@ -5,12 +5,12 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-22T13:29:12Z",
+  "head_sha": "7878357182681e4fe32c6d759600aad79fa2e3ac",
+  "phase": "RED",
+  "last_update": "2026-09-22T13:34:00Z",
   "target_x": "cleanup/2d-3d-sync",
   "remote_qa": null,
-  "next_action": "Run Phase6 preflight, create guarded work branch, write RED for corrected horizontal marking contract.",
+  "next_action": "Run #509 RED on the work branch, then implement upper-horizontal per-frame MARKING.",
   "blocker": null,
   "delegated_branches": []
 }
