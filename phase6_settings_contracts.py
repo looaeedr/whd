@@ -212,6 +212,52 @@ class SettingsEffect:
         )
 
 
+class SettingsApplicationEffectKind(str, Enum):
+    """Bounded application-effect identities for Phase 5 Settings orchestration."""
+
+    SAVE_CURRENT_PART = "save_current_part"
+    APPLY_PROFILE_PLAN = "apply_profile_plan"
+    SYNC_DERIVED_PARTS = "sync_derived_parts"
+    PROJECT_UI_VALUES = "project_ui_values"
+    RENDER_BENDING = "render_bending"
+    REFRESH_SETTINGS_PANEL = "refresh_settings_panel"
+    REFRESH_TOPOLOGY = "refresh_topology"
+    REFRESH_PERSISTENT_CONTROLS = "refresh_persistent_controls"
+    SUBMIT_UPDATE_INTENT = "submit_update_intent"
+    PUBLISH_LIVE_STATE = "publish_live_state"
+    PROJECT_STATUS = "project_status"
+    MARK_WORKSPACE_DIRTY = "mark_workspace_dirty"
+
+
+@dataclass(frozen=True)
+class SettingsApplicationEffect:
+    """Immutable, fail-closed application effect request.
+
+    This contract carries only bounded effect identity plus frozen payload data.
+    Runtime callables, Tk objects, bridge/app instances, and manufacturing objects
+    remain outside this pure contract.
+    """
+
+    kind: SettingsApplicationEffectKind | str
+    payload: Any = None
+
+    def __post_init__(self) -> None:
+        try:
+            kind = (
+                self.kind
+                if isinstance(self.kind, SettingsApplicationEffectKind)
+                else SettingsApplicationEffectKind(str(self.kind or "").strip())
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"unknown Settings application effect kind: {self.kind!r}"
+            ) from exc
+        object.__setattr__(self, "kind", kind)
+        object.__setattr__(
+            self, "payload", _as_mapping(self.payload, field_name="payload")
+        )
+
+
 @dataclass(frozen=True)
 class SettingsMutationResult:
     state: SettingsStateSnapshot
@@ -304,6 +350,8 @@ __all__ = [
     "SettingsStateSnapshot",
     "SettingsMutationResult",
     "SettingsEffect",
+    "SettingsApplicationEffectKind",
+    "SettingsApplicationEffect",
     "SettingsStageRequest",
     "SettingsCommitRequest",
     "ExternalSettingsSyncRequest",
