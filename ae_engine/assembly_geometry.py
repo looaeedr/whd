@@ -311,6 +311,7 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
     t = max(0.0, float(thickness or 0.0))
     w_material_half = max(0.0, (total - 2.0 * t) / 2.0)
     role = str(getattr(piece, "role", "") or "")
+    formed_y_offset = float(getattr(piece, "formed_y_offset", 0.0) or 0.0)
 
     if role in {"left", "middle", "right", "integral", "back"}:
         center = (
@@ -322,8 +323,8 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
             # outer layer.  The flat back panel is the inner WRAP target, so
             # its mid-plane sits one sheet thickness inward.  This preserves
             # face-to-face contact without placing both solids on one mid-plane.
-            return tuple((float(p[0]) + center, float(p[1]), t) for p in (points or ()))
-        return tuple((float(p[0]) + center, float(p[1]), float(p[2])) for p in (points or ()))
+            return tuple((float(p[0]) + center, float(p[1]) + formed_y_offset, t) for p in (points or ()))
+        return tuple((float(p[0]) + center, float(p[1]) + formed_y_offset, float(p[2])) for p in (points or ()))
 
     if role in {"left_side", "right_side"}:
         base_index = _profile_base_index(x_profile)
@@ -332,10 +333,10 @@ def place_box_body_structure_points(points, piece, *, total_w, thickness, x_prof
         d_half = base_len / 2.0
         if role == "left_side":
             return tuple((
-                -w_material_half + float(p[2]), float(p[1]), d_half - float(p[0])
+                -w_material_half + float(p[2]), float(p[1]) + formed_y_offset, d_half - float(p[0])
             ) for p in (points or ()))
         return tuple((
-            w_material_half - float(p[2]), float(p[1]), float(p[0]) + d_half
+            w_material_half - float(p[2]), float(p[1]) + formed_y_offset, float(p[0]) + d_half
         ) for p in (points or ()))
 
     return tuple(tuple(float(v) for v in p) for p in (points or ()))
