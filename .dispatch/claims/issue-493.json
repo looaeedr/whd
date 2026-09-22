@@ -3,18 +3,18 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/493",
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "infra/issue493-remote-guard-20260922",
+  "work_branch": "hotfix/issue493-remote-guard-smoke-20260922",
   "claimed_at": "2026-09-22T18:45:20+08:00",
-  "base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "head_sha": "2dedfe89c7de6e5c405ffcb5d7eaa5b3c62a03da",
-  "phase": "REMOTE_QA",
-  "action_mode": "REMOTE_QA_ACTIVE",
+  "base_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
+  "head_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
+  "phase": "IMPLEMENTING",
+  "action_mode": "EXECUTE_NOW",
   "delegated_branches": [],
   "production_target": "main",
   "frozen_main_base_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
   "expected_parent_sha": "134739610d15a7d7549e70f0006a8e3e51b90774",
-  "last_update": "2026-09-22T19:05:00+08:00",
-  "next_action": "Poll exact Remote Guard smoke run 35719476112 to terminal; on success verify machine-readable receipt identity and close #493; on failure read exact failed-step evidence and repair.",
+  "last_update": "2026-09-22T19:08:00+08:00",
+  "next_action": "Create fresh recovery branch from actual main bc72ef1..., fix hidden artifact path and make inner validation fail-fast outside if-condition errexit suppression, then run second issue_comment smoke.",
   "blocker": null,
   "evidence": {
     "branch_head": "402ca47e1c4578f102a6859b8e6ddd44a35bf5ac",
@@ -27,9 +27,19 @@
   },
   "remote_qa": {
     "run_id": 35719476112,
-    "status": "in_progress",
+    "status": "completed",
+    "conclusion": "failure",
     "orchestrator_head_sha": "bc72ef117614dd06b913cd75ba15a2dabc0220e4",
     "tested_target_sha": "2dedfe89c7de6e5c405ffcb5d7eaa5b3c62a03da",
-    "request_comment_id": 5775336907
+    "request_comment_id": 5775336907,
+    "receipt_comment_id": 5775339923,
+    "receipt_result": "GREEN",
+    "acceptance_valid": false,
+    "failure_classification": "HARNESS_ARTIFACT_PUBLISH_FAILURE"
+  },
+  "recovery": {
+    "from_branch": "infra/issue493-remote-guard-20260922",
+    "failed_run_id": 35719476112,
+    "reason": "Post-integration smoke job failed because upload-artifact excluded hidden .remote-guard directory; also harden fail-fast semantics before second smoke."
   }
 }
