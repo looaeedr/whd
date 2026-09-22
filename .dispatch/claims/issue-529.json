@@ -1,0 +1,20 @@
+{
+  "issue": 529,
+  "issue_url": "https://github.com/looaeedr/whd/issues/529",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T06:35:30+08:00",
+  "base_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
+  "head_sha": "f06309c0741a4a4ab22ec43cfad4405cc1264ec2",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T06:35:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "B4",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run B4 formal Deletion-Test for Linked Endcap compatibility orchestration; keep fold derivation authority in phase6_fold_profiles and workspace mutation outside Fold owner.",
+  "blocker": null
+}
