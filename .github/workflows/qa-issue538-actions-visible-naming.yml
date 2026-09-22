@@ -29,6 +29,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+
       - name: 執行命名守門單元測試
         shell: bash
         run: |
