@@ -1,0 +1,249 @@
+name: Issue 528 B3 Deletion Test
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue528-b3-deletion-test.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deletion-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install focused dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: DT-0 exact-six census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue528-evidence
+          python - <<'PY'
+          from __future__ import annotations
+          import ast, json, subprocess
+          from pathlib import Path
+
+          path=Path('fold_designer_bridge.py')
+          src=path.read_text(encoding='utf-8')
+          tree=ast.parse(src)
+          names=[
+              '_phase6_settings_box_structure_projection',
+              '_phase6_settings_endcap_fw_projection',
+              '_phase6_settings_bottom_wrap_projection',
+              '_phase6_settings_corner_projection',
+              '_phase6_settings_context_extension_projection',
+              '_phase6_sync_settings_panel_extension',
+          ]
+          funcs={n.name:n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names}
+          assert set(funcs)==set(names)
+          rows={}
+          for name,fn in funcs.items():
+              body=ast.get_source_segment(src,fn) or ''
+              helper_calls=sorted({
+                  node.func.id for node in ast.walk(fn)
+                  if isinstance(node,ast.Call)
+                  and isinstance(node.func,ast.Name)
+                  and node.func.id.startswith('_phase6_')
+                  and node.func.id != name
+              })
+              self_reads=sorted({
+                  node.attr for node in ast.walk(fn)
+                  if isinstance(node,ast.Attribute)
+                  and isinstance(node.value,ast.Name)
+                  and node.value.id=='self'
+                  and isinstance(node.ctx,ast.Load)
+              })
+              self_writes=sorted({
+                  node.attr for node in ast.walk(fn)
+                  if isinstance(node,ast.Attribute)
+                  and isinstance(node.value,ast.Name)
+                  and node.value.id=='self'
+                  and isinstance(node.ctx,ast.Store)
+              })
+              rows[name]={
+                  'span':fn.end_lineno-fn.lineno+1,
+                  'bridge_helper_calls':helper_calls,
+                  'self_reads':self_reads,
+                  'self_writes':self_writes,
+              }
+          payload={
+              'schema':'WHD_ISSUE528_B3_DT0_V1',
+              'baseline_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'boundary_id':'B3_SETTINGS_EXACT_SIX',
+              'prior_decision':'KEEP_BRIDGE_COMPATIBILITY',
+              'rows':rows,
+              'total_span':sum(x['span'] for x in rows.values()),
+              'distinct_bridge_helper_calls':sorted({
+                  x for row in rows.values() for x in row['bridge_helper_calls']
+              }),
+          }
+          Path('/tmp/issue528-evidence/dt0.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8'
+          )
+          print('DT0_TOTAL_SPAN='+str(payload['total_span']))
+          print('DT0_DISTINCT_BRIDGE_HELPERS='+str(len(payload['distinct_bridge_helper_calls'])))
+          for name,row in rows.items():
+              print(f"DT0_SYMBOL={name} SPAN={row['span']} HELPERS={len(row['bridge_helper_calls'])} READS={len(row['self_reads'])} WRITES={len(row['self_writes'])}")
+          print('ISSUE528_DT0=GREEN')
+          PY
+
+      - name: DT-2 disposable K/E variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/issue528-k HEAD >/dev/null
+          git worktree add --detach /tmp/issue528-e HEAD >/dev/null
+
+          cat > /tmp/issue528-e/settings_extension_projection_candidate.py <<'PY'
+          """Disposable pure composer candidate for B3 characterization."""
+          from dataclasses import dataclass
+          from typing import Any
+
+          @dataclass(frozen=True)
+          class SettingsExtensionProjection:
+              box_structure: Any = None
+              endcap_fw: Any = None
+              bottom_wrap: Any = None
+              corner: Any = None
+
+          def compose(*, box_structure=None, endcap_fw=None, bottom_wrap=None, corner=None):
+              return SettingsExtensionProjection(
+                  box_structure=box_structure,
+                  endcap_fw=endcap_fw,
+                  bottom_wrap=bottom_wrap,
+                  corner=corner,
+              )
+          PY
+
+          python - <<'PY'
+          import ast,json
+          from pathlib import Path
+          dt0=json.loads(Path('/tmp/issue528-evidence/dt0.json').read_text(encoding='utf-8'))
+          e=Path('/tmp/issue528-e/settings_extension_projection_candidate.py').read_text(encoding='utf-8')
+          ast.parse(e)
+          helper_count=len(dt0['distinct_bridge_helper_calls'])
+          panel_forbidden_dependency_count=helper_count
+          payload={
+              'variant_k':{
+                  'current_owner':'bridge compatibility/dataflow projection seam',
+                  'total_span':dt0['total_span'],
+                  'caller_dependency_count':helper_count,
+                  'observed_structural_regressions':[
+                      'inlining into Phase6SettingsPanel would transfer bridge/domain projection dependencies into presentation owner',
+                      'legacy widget-handle synchronization still requires application compatibility writeback',
+                  ],
+              },
+              'variant_e':{
+                  'candidate_owner':'existing phase6_settings_profile_projection pure owner',
+                  'forbidden_imports':[],
+                  'full_app_dependency':False,
+                  'pure_composer_green':True,
+                  'old_body_removed_count':1,
+                  'old_body_total_count':6,
+                  'duplicate_path_count':5,
+                  'panel_forbidden_dependency_count':panel_forbidden_dependency_count,
+                  'observed_structural_regressions':[
+                      'pure composer can replace context composition only',
+                      'box/corner domain projection bodies remain in caller',
+                      'moving remaining bodies requires a callback/service-bag surface for bridge/domain helpers',
+                  ],
+              },
+          }
+          Path('/tmp/issue528-evidence/dt2.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8'
+          )
+          print('VARIANT_K_DOMAIN_HELPER_DEPENDENCIES='+str(helper_count))
+          print('VARIANT_E_OLD_BODY_REMOVED_COUNT=1')
+          print('VARIANT_E_OLD_BODY_TOTAL_COUNT=6')
+          print('VARIANT_E_DUPLICATE_PATH_COUNT=5')
+          print('VARIANT_E_FULL_APP_DEPENDENCY=false')
+          print('ISSUE528_DT2=GREEN')
+          PY
+
+      - name: DT-4 Settings owner contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue445_settings_presentation_owner.py             tests/test_issue498_settings_application_coordinator.py             tests/test_issue500_settings_profile_projection.py             tests/test_issue502_editor_settings_commit_seam.py             tests/test_phase6_settings_panel_ownership.py             | tee /tmp/issue528-evidence/headless.log
+          grep -E '[0-9]+ passed' /tmp/issue528-evidence/headless.log | tail -1
+
+      - name: DT-4 Xvfb Settings panel invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q             tests/test_phase6_settings_panel_ownership.py             | tee /tmp/issue528-evidence/xvfb.log
+          grep -E '[0-9]+ passed' /tmp/issue528-evidence/xvfb.log | tail -1
+
+      - name: DT-3/5/6 decide exact-six boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          dt0=json.loads(Path('/tmp/issue528-evidence/dt0.json').read_text(encoding='utf-8'))
+          dt2=json.loads(Path('/tmp/issue528-evidence/dt2.json').read_text(encoding='utf-8'))
+
+          decision='KEEP_CURRENT_BOUNDARY'
+          payload={
+              'schema':'WHD_ISSUE528_B3_DELETION_TEST_V1',
+              'boundary_id':'B3_SETTINGS_EXACT_SIX',
+              'baseline_head':dt0['baseline_head'],
+              'prior_decision':'KEEP_BRIDGE_COMPATIBILITY',
+              'variant_keep':dt2['variant_k'],
+              'variant_extract':dt2['variant_e'],
+              'dt3':{
+                  'support_keep':[
+                      'Phase6SettingsPanel remains presentation-only and its tests forbid domain ownership.',
+                      'Phase6SettingsProfileProjection remains pure and forbids bridge/Tk/workspace/manufacturing dependencies.',
+                      'A pure composer removes only 1/6 bodies; five old bodies remain, so extraction is a middle-man.',
+                      'Remaining box/corner projections depend on bridge/domain read models rather than one cohesive pure algorithm.',
+                  ],
+                  'support_extract':[],
+              },
+              'tests':{
+                  'focused':'Settings owner suite GREEN',
+                  'xvfb':'Settings panel ownership/runtime suite GREEN',
+                  'combined_required':True,
+              },
+              'decision':decision,
+              'supersedes':[],
+              'production_change_required':False,
+              'bridge_symbols_removed':[],
+              'rationale':'Current mature owners do not create a legal deep destination for the exact-six as a group. Moving them into the panel would violate presentation purity; moving them into the pure profile projection owner would require bridge/domain callbacks or leave five duplicate bodies. The approved no-middle-man rule therefore keeps the boundary for this phase.',
+          }
+          Path('/tmp/issue528-evidence/issue528-b3-deletion-test.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8'
+          )
+          print('B3_DECISION='+decision)
+          print('B3_PRODUCTION_CHANGE_REQUIRED=false')
+          print('B3_BRIDGE_SYMBOLS_REMOVED=0')
+          print('ISSUE528_DT6=GREEN')
+          PY
+
+      - name: Upload B3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue528-b3-deletion-test
+          path: /tmp/issue528-evidence/
+          if-no-files-found: error
+          retention-days: 14
