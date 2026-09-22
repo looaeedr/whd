@@ -1,0 +1,92 @@
+name: Issue 481 T3 Final Acceptance
+
+on:
+  push:
+    branches:
+      - work/issue486-phase4-ownership-20260922
+    paths:
+      - '.github/workflows/qa-issue481-t3-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ownership-and-linked-endcap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run T3 ownership and linked EndCap regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue481/owner
+          xvfb-run -a python -m pytest -q -ra --tb=short             tests/test_issue481_derived_apply_linked_endcap_owner.py             tests/test_issue480_derived_part_projection_plan.py             tests/test_issue365_t1_workspace_navigation_controller.py             tests/test_phase6_linked_fold_chain_and_parts.py             tests/test_endcap_regression_and_text_scale.py             tests/test_endcap_resolved_geometry_ownership.py             2>&1 | tee .scratch/issue481/owner/pytest.log
+
+  identity-and-state:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Run derived identity and workspace-state regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue481/identity
+          xvfb-run -a python -m pytest -q -ra --tb=short             tests/test_phase6_designer_workspace.py             tests/test_phase6_workspace_projection.py             tests/test_phase6_workspace_state.py             tests/test_issue44_box_body_physical_piece_identity.py             tests/test_issue45_dynamic_parts_2d_roundtrip.py             tests/test_multi_door_layout.py             tests/test_phase6_receiving_multipart_integration.py             tests/test_phase6_t04_inner_door_frames.py             tests/test_phase6_t05_box_body_dividers.py             tests/test_phase6_t13_receiving_base_plate_55.py             tests/test_phase6_t15_inner_door_panels.py             2>&1 | tee .scratch/issue481/identity/pytest.log
+
+  persistence-dxf-protected:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: Snapshot protected Git objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .scratch/issue481/persistence
+          find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'             > .scratch/issue481/persistence/before.digest
+      - name: Run persistence DXF and protected architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q -ra --tb=short             tests/test_issue41_persistence_parity.py             tests/test_dm7_topology_persistence.py             tests/test_issue99_dual_view_parity_persistence.py             tests/test_multipart_dxf_acceptance.py             tests/test_receiving_door_dxf_roundtrip.py             tests/test_issue396_phase4_composition_root.py             tests/test_issue447_workspace_shell_owner.py             tests/test_issue448_part_editor_owner_decision.py             tests/test_issue449_fix11_init_bootstrap_owner.py             tests/test_issue479_final_scene_composition_owner.py             2>&1 | tee .scratch/issue481/persistence/pytest.log
+      - name: Verify protected Git objects
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f \( -name config.ini -o -iname '*.dxf' \)             -not -path './.git/*' -not -path './.scratch/*'             -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'             > .scratch/issue481/persistence/after.digest
+          cmp .scratch/issue481/persistence/before.digest .scratch/issue481/persistence/after.digest
+          git diff --exit-code
