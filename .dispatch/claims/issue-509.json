@@ -5,20 +5,12 @@
   "work_branch": "hotfix/issue509-horizontal-marking-20260922",
   "claimed_at": "2026-09-22T13:29:12Z",
   "base_sha": "b82d6114a6258853819d6cb7683f06d427ceb9f8",
-  "head_sha": "f475cedc10a94576af2ed7d1fa793c4d5e73818b",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-22T13:50:00Z",
+  "head_sha": "dcb50bf9f58d367ffae3287f5f984b44f91d97fa",
+  "phase": "GREEN",
+  "last_update": "2026-09-22T13:53:00Z",
   "target_x": "cleanup/2d-3d-sync",
-  "remote_qa": {
-    "run_id": 35735981777,
-    "head_sha": "f475cedc10a94576af2ed7d1fa793c4d5e73818b",
-    "status": "completed",
-    "conclusion": "failure",
-    "classification": "STALE_V1_ORACLE_AFTER_USER_SUPERSESSION",
-    "job_id": 106773214261,
-    "summary": "new #509 test PASS; legacy #471 5 FAIL on V1 policy-id/Divider-side assumptions"
-  },
-  "next_action": "Update #471 stale V1 regression to V2 per-frame UPPER_HORIZONTAL semantics, then rerun focused QA.",
+  "remote_qa": null,
+  "next_action": "Lock the #509 focused QA run for head dcb50bf9f58d367ffae3287f5f984b44f91d97fa and poll to terminal.",
   "blocker": null,
   "delegated_branches": []
 }
