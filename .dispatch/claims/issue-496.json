@@ -13,8 +13,8 @@
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
   "expected_parent_sha": "ba9cda2e1eed30d4702a2e2e4cebbd001bbf56aa",
-  "last_update": "2026-09-22T20:55:00+08:00",
-  "next_action": "Rename Skill display/frontmatter name to 遠端執行守門, update skill_registry required_skills and focused contract test on a fresh branch from X@9cbfd1ba..., validate, non-force merge, then run finalization closure.",
+  "last_update": "2026-09-22T20:58:00+08:00",
+  "next_action": "Obtain one Remote Guard commit receipt for the exact 3-file Chinese Skill rename, then create one atomic commit on skill/issue496-remote-guard-chinese-name-20260922.",
   "blocker": null,
   "evidence": {
     "branch_create_remote_guard": {
@@ -89,6 +89,14 @@
       "local_clone_attempt": "FAILED_DNS_Could_not_resolve_host_github.com",
       "existing_remote_finalization_workflow_search": "NO_MATCH",
       "proof_status": "NOT_RUN_FAIL_CLOSED"
+    },
+    "chinese_name_branch_create": {
+      "run_id": 35730305732,
+      "request_comment_id": 5776916182,
+      "receipt_comment_id": 5776920137,
+      "result": "GREEN",
+      "orchestrator_head_sha": "876d3a3f1aa30b8109a43e5aa5ee50bc52892c1e",
+      "tested_target_sha": "9cbfd1ba3bf98036caccd5c46fd0f49fb9f2a005"
     }
   },
   "remote_guard": {
