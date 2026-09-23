@@ -7,8 +7,12 @@ snapshot as ownership.
 """
 
 import argparse
+import hashlib
 import json
+import os
 import re
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Iterable
@@ -232,6 +236,296 @@ def _assert_takeover_evidence(
         raise ExecutionClaimError("claim-takeover evidence claim last_update mismatch")
 
 
+
+def _git_blob_sha(path: Path) -> str:
+    data = Path(path).read_bytes()
+    header = f"blob {len(data)}\0".encode("utf-8")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def _github_api_json(path: str) -> object:
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
+    if repository != "looaeedr/whd":
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation requires GITHUB_REPOSITORY=looaeedr/whd"
+        )
+    if not token:
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation requires authenticated GitHub API access"
+        )
+    url = f"https://api.github.com/repos/{repository}/{path.lstrip('/')}"
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read().decode("utf-8")
+    except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
+        raise ExecutionClaimError(
+            f"post-commit claim-head reconciliation GitHub API read failed: {exc}"
+        ) from exc
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation GitHub API returned invalid JSON"
+        ) from exc
+
+
+def _github_issue_comments(issue: int) -> list[dict[str, object]]:
+    comments: list[dict[str, object]] = []
+    for page in range(1, 21):
+        payload = _github_api_json(f"issues/{issue}/comments?per_page=100&page={page}")
+        if not isinstance(payload, list):
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation issue-comments response is not a list"
+            )
+        page_items = [item for item in payload if isinstance(item, dict)]
+        comments.extend(page_items)
+        if len(payload) < 100:
+            return comments
+    raise ExecutionClaimError(
+        "post-commit claim-head reconciliation exceeded issue-comment pagination limit"
+    )
+
+
+def _github_commit(sha: str) -> dict[str, object]:
+    payload = _github_api_json(f"commits/{sha}")
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation commit response is not an object"
+        )
+    return payload
+
+
+def _parse_remote_guard_request_comment(
+    comment: dict[str, object],
+) -> dict[str, object] | None:
+    user = comment.get("user")
+    if not isinstance(user, dict) or user.get("login") != "looaeedr":
+        return None
+    body = comment.get("body")
+    if not isinstance(body, str):
+        return None
+    lines = body.replace("\r\n", "\n").split("\n")
+    if not lines or lines[0].strip() != "WHD_REMOTE_GUARD_REQUEST_V1":
+        return None
+    singles: dict[str, str] = {}
+    changed_files: list[str] = []
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            return None
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key == "changed_file":
+            changed_files.append(value)
+        elif key in singles:
+            return None
+        else:
+            singles[key] = value
+    payload: dict[str, object] = dict(singles)
+    payload["changed_files"] = changed_files
+    payload["comment_id"] = comment.get("id")
+    return payload
+
+
+def _parse_remote_guard_receipt_comment(
+    comment: dict[str, object],
+) -> dict[str, object] | None:
+    user = comment.get("user")
+    if not isinstance(user, dict) or user.get("login") != "github-actions[bot]":
+        return None
+    body = comment.get("body")
+    if not isinstance(body, str) or not body.startswith("WHD_REMOTE_GUARD_RESULT_V1"):
+        return None
+    match = re.search(r"~~~json\s*(\{.*?\})\s*~~~", body, re.DOTALL)
+    if match is None:
+        return None
+    try:
+        payload = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _reconcile_timestamp_epoch(label: str, value: object) -> float:
+    from datetime import datetime
+
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ExecutionClaimError(
+            f"post-commit claim-head reconciliation {label} timestamp invalid"
+        ) from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ExecutionClaimError(
+            f"post-commit claim-head reconciliation {label} timestamp must be timezone-aware"
+        )
+    return parsed.timestamp()
+
+
+def _load_raw_claim_payload(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(
+            Path(path).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(f"cannot re-read execution claim: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError("execution claim root must be object")
+    return payload
+
+
+def _assert_post_commit_claim_head_reconciliation(
+    path: Path,
+    *,
+    claim: "ExecutionClaim",
+    raw_claim: dict[str, object],
+    issue: int,
+    worker: str,
+    branch: str,
+    expected_live_head_sha: str,
+    changed_files: tuple[str, ...],
+) -> None:
+    expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+    if changed_files != (expected_claim_path,):
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation may write only the exact shared claim path"
+        )
+
+    commit = _github_commit(expected_live_head_sha)
+    if str(commit.get("sha") or "") != expected_live_head_sha:
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation live commit SHA mismatch"
+        )
+    parents = commit.get("parents")
+    if (
+        not isinstance(parents, list)
+        or len(parents) != 1
+        or not isinstance(parents[0], dict)
+        or str(parents[0].get("sha") or "") != claim.head_sha
+    ):
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation requires live HEAD to be a single direct child of claim HEAD"
+        )
+
+    files = commit.get("files")
+    if not isinstance(files, list) or not files:
+        raise ExecutionClaimError(
+            "post-commit claim-head reconciliation commit changed-file evidence missing"
+        )
+    commit_files: list[str] = []
+    for item in files:
+        if not isinstance(item, dict) or not isinstance(item.get("filename"), str):
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation commit changed-file evidence malformed"
+            )
+        filename = str(item["filename"])
+        if filename in commit_files:
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation commit changed-file evidence is ambiguous"
+            )
+        commit_files.append(filename)
+    commit_file_set = tuple(sorted(commit_files))
+
+    metadata = commit.get("commit")
+    committer = metadata.get("committer") if isinstance(metadata, dict) else None
+    committed_at = committer.get("date") if isinstance(committer, dict) else None
+    commit_epoch = _reconcile_timestamp_epoch("commit", committed_at)
+
+    comments = _github_issue_comments(issue)
+    requests_by_id: dict[int, dict[str, object]] = {}
+    for comment in comments:
+        request = _parse_remote_guard_request_comment(comment)
+        comment_id = request.get("comment_id") if request else None
+        if request is not None and isinstance(comment_id, int):
+            requests_by_id[comment_id] = request
+
+    current_claim_blob = _git_blob_sha(path)
+    raw_source = str(raw_claim.get("executor_source") or "").strip()
+    expected_executor_source = "scheduler" if raw_source == "scheduler" else "chat"
+
+    for comment in comments:
+        receipt = _parse_remote_guard_receipt_comment(comment)
+        if receipt is None:
+            continue
+        if receipt.get("schema") != "WHD_REMOTE_GUARD_RECEIPT_V1":
+            continue
+        if receipt.get("result") != "GREEN" or receipt.get("reason") != "EXECUTION_CLAIM_GUARD_GREEN":
+            continue
+        if receipt.get("action") not in {"write", "commit"}:
+            continue
+        if receipt.get("issue") != issue:
+            continue
+        if str(receipt.get("worker") or "") != worker:
+            continue
+        if str(receipt.get("executor_source") or "") != expected_executor_source:
+            continue
+        if str(receipt.get("branch") or "") != branch:
+            continue
+        if str(receipt.get("base_sha") or "") != claim.base_sha:
+            continue
+        if str(receipt.get("head_sha") or "") != claim.head_sha:
+            continue
+        if str(receipt.get("tested_target_sha") or "") != claim.head_sha:
+            continue
+        if str(receipt.get("claim_blob_sha") or "") != current_claim_blob:
+            continue
+
+        receipt_files = receipt.get("changed_files")
+        if not isinstance(receipt_files, list):
+            continue
+        if tuple(sorted(str(item) for item in receipt_files)) != commit_file_set:
+            continue
+
+        request_comment_id = receipt.get("request_comment_id")
+        if isinstance(request_comment_id, bool) or not isinstance(request_comment_id, int):
+            continue
+        request = requests_by_id.get(request_comment_id)
+        if request is None:
+            continue
+        fixed_keys = (
+            "issue",
+            "worker",
+            "executor_source",
+            "action",
+            "branch",
+            "base_sha",
+            "head_sha",
+            "claim_blob_sha",
+            "guard_authority_sha",
+            "tested_target_sha",
+        )
+        if any(str(request.get(key) or "") != str(receipt.get(key) or "") for key in fixed_keys):
+            continue
+        request_files = request.get("changed_files")
+        if not isinstance(request_files, list):
+            continue
+        if tuple(sorted(str(item) for item in request_files)) != commit_file_set:
+            continue
+
+        issued_epoch = _reconcile_timestamp_epoch("receipt issued_at", receipt.get("issued_at"))
+        expires_epoch = _reconcile_timestamp_epoch("receipt expires_at", receipt.get("expires_at"))
+        if issued_epoch <= commit_epoch <= expires_epoch:
+            return
+
+    raise ExecutionClaimError(
+        "post-commit claim-head reconciliation lacks a matching prior GREEN mutation receipt "
+        "bound to the current claim blob, direct child commit, changed-file set, and receipt window"
+    )
+
+
+
 def _normalize_delegated(payload: dict[str, object]) -> tuple[str, ...]:
     raw = payload.get("delegated_branches", [])
     if raw is None:
@@ -370,11 +664,6 @@ def assert_execution_claim(
         raise ExecutionClaimError(
             f"base SHA mismatch: expected={expected_base_sha}, claim={claim.base_sha}"
         )
-    if action != "claim-takeover" and claim.head_sha != expected_head_sha:
-        raise ExecutionClaimError(
-            f"stale claim head SHA: expected={expected_head_sha}, claim={claim.head_sha}"
-        )
-
     allowed_branches = {claim.work_branch, *claim.delegated_branches}
     if branch not in allowed_branches:
         raise ExecutionClaimError(
@@ -382,16 +671,28 @@ def assert_execution_claim(
             f"owner_branch={claim.work_branch!r}; delegated={claim.delegated_branches!r}"
         )
 
-    if action == "claim-takeover":
-        try:
-            raw_claim = json.loads(
-                Path(path).read_text(encoding="utf-8"),
-                object_pairs_hook=_reject_duplicate_keys,
+    raw_claim: dict[str, object] | None = None
+    if action != "claim-takeover" and claim.head_sha != expected_head_sha:
+        expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+        if action == "write" and normalized_changed_files == (expected_claim_path,):
+            raw_claim = _load_raw_claim_payload(path)
+            _assert_post_commit_claim_head_reconciliation(
+                path,
+                claim=claim,
+                raw_claim=raw_claim,
+                issue=issue,
+                worker=worker,
+                branch=branch,
+                expected_live_head_sha=expected_head_sha,
+                changed_files=normalized_changed_files,
             )
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ExecutionClaimError(f"claim-takeover cannot re-read claim: {exc}") from exc
-        if not isinstance(raw_claim, dict):
-            raise ExecutionClaimError("claim-takeover claim root must be object")
+        else:
+            raise ExecutionClaimError(
+                f"stale claim head SHA: expected={expected_head_sha}, claim={claim.head_sha}"
+            )
+
+    if action == "claim-takeover":
+        raw_claim = raw_claim or _load_raw_claim_payload(path)
         _assert_takeover_evidence(
             takeover_evidence,
             claim=claim,
