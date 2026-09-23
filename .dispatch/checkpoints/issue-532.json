@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "issue": "#532",
+  "issue": "532",
   "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "head_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "state": "TERMINAL_SUCCESS",
@@ -20,9 +20,9 @@
     "Tested-to-closing drift is evidence-only: 10 issue532 workflow deletions + final classification; no production/test drift",
     "Final classification: docs/superpowers/checkpoints/issue532-c0-final-classification.json"
   ],
-  "master_issue": "#520",
+  "master_issue": "520",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
-  "next_issue": "#533",
+  "next_issue": "533",
   "chain_next_action": "Claim and execute #533 / C1 Permanent Bridge Regression Guard from accepted C0 closing head b256e4cef91b66bd5dd8e4ee371d886f2b0fe473 on the shared work-order branch.",
   "chain_reason": null
 }
