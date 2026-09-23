@@ -54,7 +54,7 @@ jobs:
               "guard_authority_sha",
               "tested_target_sha",
           }
-          allowed_single = required_single | {"executor_source"}
+          allowed_single = required_single | {"executor_source", "takeover_worker"}
           allowed_multi = {"changed_file"}
           singles = {}
           changed_files = []
@@ -91,8 +91,19 @@ jobs:
               executor_source = "unknown"
           elif executor_source not in {"chat", "scheduler"}:
               raise SystemExit("invalid executor_source")
-          if singles["action"] == "claim-takeover" and executor_source != "scheduler":
-              raise SystemExit("claim-takeover requires executor_source=scheduler")
+          takeover_worker = singles.get("takeover_worker")
+          if singles["action"] == "claim-takeover":
+              if executor_source != "scheduler":
+                  raise SystemExit("claim-takeover requires executor_source=scheduler")
+              if takeover_worker is None:
+                  raise SystemExit("claim-takeover requires takeover_worker")
+              if (
+                  not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", takeover_worker)
+                  or not takeover_worker.startswith("scheduler.")
+              ):
+                  raise SystemExit("invalid takeover_worker")
+          elif takeover_worker is not None:
+              raise SystemExit("takeover_worker is only valid for claim-takeover")
 
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
@@ -252,6 +263,7 @@ jobs:
                 --claim /tmp/execution-claim.json \
                 --live-head-sha "$current_branch_sha" \
                 --live-head-committed-at "$takeover_live_commit_at" \
+                --requesting-worker "$RG_TAKEOVER_WORKER" \
                 "${remote_arg[@]}" \
                 --require-actionable \
                 --decision-out /tmp/stale-takeover-decision.json 2>&1 | tee /tmp/stale-takeover.log
@@ -364,6 +376,7 @@ jobs:
               "request_comment_id": request["request_comment_id"],
               "issue": request["issue"],
               "worker": request["worker"],
+              "takeover_worker": request.get("takeover_worker"),
               "executor_source": request["executor_source"],
               "action": request["action"],
               "branch": request["branch"],
