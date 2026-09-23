@@ -304,6 +304,15 @@ def _github_commit(sha: str) -> dict[str, object]:
     return payload
 
 
+def _github_issue(issue: int) -> dict[str, object]:
+    payload = _github_api_json(f"issues/{issue}")
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery issue response is not an object"
+        )
+    return payload
+
+
 def _parse_remote_guard_request_comment(
     comment: dict[str, object],
 ) -> dict[str, object] | None:
@@ -526,6 +535,125 @@ def _assert_post_commit_claim_head_reconciliation(
 
 
 
+def _assert_reopened_released_claim_reactivation(
+    path: Path,
+    *,
+    claim: "ExecutionClaim",
+    raw_claim: dict[str, object],
+    issue: int,
+    worker: str,
+    branch: str,
+    changed_files: tuple[str, ...],
+) -> None:
+    expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+    if changed_files != (expected_claim_path,):
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery may write only the exact shared claim path"
+        )
+    if claim.phase != "RELEASED":
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery requires phase=RELEASED"
+        )
+    if str(raw_claim.get("executor_source") or "").strip() != "scheduler":
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery is restricted to scheduler-owned claims"
+        )
+    if not worker.startswith("scheduler."):
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery requires a unique scheduler lane identity"
+        )
+    if branch != claim.work_branch:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery cannot use a delegated branch"
+        )
+
+    live_issue = _github_issue(issue)
+    if str(live_issue.get("state") or "").lower() != "open":
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery requires the owning Issue to be open"
+        )
+    if str(live_issue.get("state_reason") or "").lower() != "reopened":
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery requires state_reason=reopened"
+        )
+
+    pointer: dict[str, str] | None = None
+    for comment in _github_issue_comments(issue):
+        user = comment.get("user")
+        body = comment.get("body")
+        if not isinstance(user, dict) or user.get("login") != "looaeedr":
+            continue
+        if not isinstance(body, str):
+            continue
+        lines = body.replace("\r\n", "\n").split("\n")
+        if not lines or lines[0].strip() != "WHD_PROCESS_RECOVERY_POINTER_V1":
+            continue
+        fields: dict[str, str] = {}
+        malformed = False
+        for raw in lines[1:]:
+            if not raw.strip():
+                continue
+            if "=" not in raw:
+                malformed = True
+                break
+            key, value = raw.split("=", 1)
+            key, value = key.strip(), value.strip()
+            if not key or not value or key in fields:
+                malformed = True
+                break
+            fields[key] = value
+        if malformed:
+            continue
+        if fields.get("process_state") != "REOPENED_INVALID_FINALIZATION_EVIDENCE":
+            continue
+        if fields.get("resume_condition") != "TRUSTED_REMOTE_FINALIZATION_EXECUTOR_INTEGRATED":
+            continue
+        if fields.get("resume_action") != "RUN_MACHINE_FINALIZATION_PROOF_THEN_CLOSE_READBACK_RELEASE":
+            continue
+        pointer = fields
+
+    if pointer is None:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery lacks owner-authored WHD_PROCESS_RECOVERY_POINTER_V1"
+        )
+
+    try:
+        blocking_issue = int(pointer["blocking_repair_issue"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery pointer has invalid blocking_repair_issue"
+        ) from exc
+    if blocking_issue <= 0 or blocking_issue == issue:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery pointer blocking issue is invalid"
+        )
+
+    repair = _github_issue(blocking_issue)
+    repair_body = str(repair.get("body") or "")
+    if f"#{issue}" not in repair_body:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery blocking issue is not bound to the owning Issue"
+        )
+    lowered = repair_body.lower()
+    if "trusted" not in lowered or "finalization" not in lowered:
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery blocking issue does not describe trusted finalization repair"
+        )
+
+    workflow = _github_api_json(
+        "contents/.github/workflows/whd-remote-finalization.yml?ref=main"
+    )
+    if not isinstance(workflow, dict) or workflow.get("type") != "file":
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery requires trusted finalization workflow on main"
+        )
+    workflow_sha = str(workflow.get("sha") or "")
+    if not _SHA_RE.fullmatch(workflow_sha):
+        raise ExecutionClaimError(
+            "reopened RELEASED-claim recovery trusted workflow identity is malformed"
+        )
+
+
 def _normalize_delegated(payload: dict[str, object]) -> tuple[str, ...]:
     raw = payload.get("delegated_branches", [])
     if raw is None:
@@ -557,7 +685,9 @@ class ExecutionClaim:
     delegated_branches: tuple[str, ...] = ()
 
 
-def load_execution_claim(path: Path) -> ExecutionClaim:
+def load_execution_claim(
+    path: Path, *, allow_released_recovery: bool = False
+) -> ExecutionClaim:
     path = Path(path)
     try:
         payload = json.loads(
@@ -593,8 +723,9 @@ def load_execution_claim(path: Path) -> ExecutionClaim:
             f"claim issue_url mismatch: expected {expected_url!r}, got {issue_url!r}"
         )
     if phase in INACTIVE_PHASES:
-        raise ExecutionClaimError(f"execution claim is inactive: phase={phase}")
-    if phase not in ACTIVE_PHASES:
+        if not (allow_released_recovery and phase == "RELEASED"):
+            raise ExecutionClaimError(f"execution claim is inactive: phase={phase}")
+    elif phase not in ACTIVE_PHASES:
         raise ExecutionClaimError(f"ambiguous execution claim state: unknown phase={phase}")
 
     return ExecutionClaim(
@@ -646,7 +777,13 @@ def assert_execution_claim(
             f"changed-file identity is required for guarded action {action!r}"
         )
 
-    claim = load_execution_claim(path)
+    expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+    allow_released_recovery = (
+        action == "write" and normalized_changed_files == (expected_claim_path,)
+    )
+    claim = load_execution_claim(
+        path, allow_released_recovery=allow_released_recovery
+    )
     if claim.issue != issue:
         raise ExecutionClaimError(
             f"issue mismatch: requested #{issue}, claim owns #{claim.issue}"
@@ -672,8 +809,19 @@ def assert_execution_claim(
         )
 
     raw_claim: dict[str, object] | None = None
+    if claim.phase == "RELEASED":
+        raw_claim = _load_raw_claim_payload(path)
+        _assert_reopened_released_claim_reactivation(
+            path,
+            claim=claim,
+            raw_claim=raw_claim,
+            issue=issue,
+            worker=worker,
+            branch=branch,
+            changed_files=normalized_changed_files,
+        )
+
     if action != "claim-takeover" and claim.head_sha != expected_head_sha:
-        expected_claim_path = f".dispatch/claims/issue-{issue}.json"
         if action == "write" and normalized_changed_files == (expected_claim_path,):
             raw_claim = _load_raw_claim_payload(path)
             _assert_post_commit_claim_head_reconciliation(
