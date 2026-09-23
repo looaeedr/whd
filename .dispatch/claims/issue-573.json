@@ -6,26 +6,26 @@
   "work_branch": "governance/issue573-sibling-scheduler-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "445e0fe89392c5829935b35e181b234e7d138f73",
+  "head_sha": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
   "phase": "GREEN",
-  "last_update": "2026-09-24T02:10:01+08:00",
+  "last_update": "2026-09-24T02:12:03+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35900535938,
-    "head_sha": "445e0fe89392c5829935b35e181b234e7d138f73",
+    "run_id": 35900775751,
+    "head_sha": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
     "status": "completed",
     "conclusion": "success",
     "workflow": "WHD｜#573｜Sibling Scheduler 接手 RED/GREEN",
     "pr": 574,
     "evidence": {
-      "tests": "28 passed",
+      "tests": "27 passed",
       "failures": 0
     }
   },
-  "next_action": "Integrate the code-side lane-aware takeover repair, then integrate the trusted default-branch Remote Guard schema so claim-takeover requests can carry takeover_worker; E2E re-run the original foreign sibling takeover before closing #573.",
+  "next_action": "Remove the temporary #573 focused workflow, reconcile closing HEAD, verify tested-to-closing drift is only that workflow deletion, then guarded-merge PR #574 into cleanup/2d-3d-sync. After code integration, create/complete the trusted-main transport child.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -49,6 +49,10 @@
     "implementation_commit": "445e0fe89392c5829935b35e181b234e7d138f73",
     "implementation_commit_guard_run": 35900272454,
     "implementation_head_reconcile_guard_run": 35900556867,
-    "green_run": 35900535938
+    "green_run": 35900535938,
+    "cleanup_scope_commit": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
+    "cleanup_scope_guard_run": 35900697740,
+    "cleanup_scope_reconcile_guard_run": 35900789026,
+    "cleanup_scope_green_run": 35900775751
   }
 }
