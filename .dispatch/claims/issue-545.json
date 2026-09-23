@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T10:41:00+08:00",
   "base_sha": "f7179554c448a4af5b271d251290912efe115a38",
-  "head_sha": "839d264e85a5be8a96680af72972563d01fafdb0",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T11:55:00+08:00",
+  "head_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
+  "phase": "FINALIZING",
+  "last_update": "2026-09-23T11:57:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,36 +18,36 @@
     "qa/issue545-b6-5-xvfb-baseline-20260923"
   ],
   "remote_qa": {
-    "run_id": 35815867302,
-    "head_sha": "54797c37b1cdae0c6b05cff3f7f0c71fa7f8e9db",
+    "run_id": 35816292956,
+    "head_sha": "c23d0b7154c246145c58059617f67018ba993270",
     "status": "completed",
-    "conclusion": "failure",
-    "purpose": "B6-5 final GREEN candidate",
+    "conclusion": "success",
+    "purpose": "B6-5 architecture acceptance",
     "evidence": {
+      "accounted": 12,
+      "unclassified": 0,
+      "dynamic_ref_unreviewed": 0,
+      "removed": 8,
+      "direct_owner_migrated": 7,
+      "facade_count": 52,
+      "artifact_id": 10731333032,
       "headless": "7 passed",
-      "xvfb": "11 failed / 49 passed",
-      "candidate_only_fail_count": 0,
-      "candidate_failure_count": 11
+      "xvfb_candidate_only_fail_count": 0
     },
-    "audit_run": 35811547955,
+    "candidate_green_run": 35815867302,
+    "baseline_run": 35816036734,
     "replacement_red_run": 35811700857,
-    "baseline_run": {
-      "run_id": 35816036734,
-      "head_sha": "d90d835545944a29181ed3bcd30bc43facb42a91",
-      "status": "completed",
-      "conclusion": "success",
-      "parent_accepted_head": "f7179554c448a4af5b271d251290912efe115a38",
-      "xvfb": "11 failed / 49 passed",
-      "candidate_only_fail_count": 0
-    },
-    "architecture_run": {
+    "audit_run": 35811547955,
+    "initial_architecture_run": {
       "run_id": 35816207486,
-      "head_sha": "839d264e85a5be8a96680af72972563d01fafdb0",
-      "status": "queued",
-      "conclusion": null,
-      "purpose": "B6-5 architecture acceptance after Xvfb A/B candidate-only=0"
+      "classification": "HARNESS_DEPENDENCY_ERROR_MISSING_EZDXF"
     }
   },
-  "next_action": "Poll exact architecture RUN 35816207486 to terminal; on GREEN cleanup one-shot workflows, durable classification, drift/finalization.",
-  "blocker": null
+  "next_action": "Run executable finalization guard/proof for #545, close/readback, release claim, then claim #546/B6-6.",
+  "blocker": null,
+  "drift_audit": {
+    "tested_head": "c23d0b7154c246145c58059617f67018ba993270",
+    "closing_head": "c06f5fb976b96e0db58452438ed8977b9d86e800",
+    "production_test_drift": 0
+  }
 }
