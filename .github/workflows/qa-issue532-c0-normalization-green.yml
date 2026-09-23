@@ -17,6 +17,8 @@ on:
       - tests/test_phase6_tail_native_orientation_and_save.py
       - tests/test_phase6_four_regressions.py
       - tests/test_phase6_corner_transaction.py
+      - tests/test_fold_designer_joint_state.py
+      - tests/test_joint_editor_backend.py
 
 permissions:
   contents: read
@@ -83,6 +85,8 @@ jobs:
             tests/test_issue386_default_assembly_collapsed.py \
             tests/test_joint_diagnostics_contract.py \
             tests/test_phase6_tail_native_orientation_and_save.py \
+            tests/test_fold_designer_joint_state.py \
+            tests/test_joint_editor_backend.py \
             | tee /tmp/issue532-c0-dead-wrapper-headless.log
 
       - name: Xvfb presentation smoke
@@ -154,10 +158,16 @@ jobs:
               "_phase6_make_assembly_scene_render_data",
               "_phase6_export_workspace_state_if_dirty",
               "_phase6_scene_query_payload",
+              "_phase6_apply_settings_delta",
+              "_phase6_switch_active_part",
+              "_phase6_publish_if_changed",
+              "_phase6_flush_update_intents",
+              "_phase6_refresh_3d_preview",
+              "_phase6_sync_joint_state_for_intent",
           }
           assert removed.isdisjoint(defs), sorted(removed & defs)
           loc=len(source.splitlines())
-          assert loc <= 7005, loc
+          assert loc <= 6959, loc
           call=next(
               n for n in ast.walk(tree)
               if isinstance(n,ast.Call)
@@ -171,7 +181,7 @@ jobs:
           )
           assert facade_count==45, facade_count
           print(f"C0_BRIDGE_LOC={loc}")
-          print("C0_ZERO_CONSUMER_WRAPPERS_REMOVED=35")
+          print("C0_ZERO_CONSUMER_WRAPPERS_REMOVED=41")
           print("C0_FACADE_COUNT=45")
           print("ISSUE532_C0_DEAD_WRAPPER_GREEN=GREEN")
           PY

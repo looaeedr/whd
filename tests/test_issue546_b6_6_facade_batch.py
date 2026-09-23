@@ -57,18 +57,21 @@ def test_b6_6_public_runtime_entries_remain():
     assert bindings["set_3d_preview_enabled"] == "_phase6_set_3d_preview_enabled"
 
 
-def test_b6_6_direct_module_owners_remain_callable():
+def test_b6_6_direct_module_owner_peel_removes_stale_bridge_wrappers():
     for name in (
         "_phase6_render_endcap_edge_controls",
         "_phase6_commit_base_plate_edge_shrink",
+    ):
+        assert callable(getattr(bridge, name)), name
+
+    for name in (
         "_phase6_apply_settings_delta",
         "_phase6_switch_active_part",
         "_phase6_publish_if_changed",
         "_phase6_flush_update_intents",
         "_phase6_refresh_3d_preview",
     ):
-        assert callable(getattr(bridge, name)), name
-
+        assert not hasattr(bridge, name), name
 
 def test_b6_6_legacy_class_orchestration_surface_is_reduced():
     cls = bridge.Phase6FoldDesignerApp

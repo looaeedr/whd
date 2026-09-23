@@ -2741,22 +2741,6 @@ def _phase6_delete_user_joint(self, joint_id):
     return True
 
 
-def _phase6_sync_joint_state_for_intent(self, type_id):
-    snapshot = deepcopy(dict(getattr(self, "_phase6_input_snapshot", {}) or {}))
-    workspace = getattr(self, "designer_workspace", None)
-    parts = tuple(getattr(workspace, "available_parts", ()) or snapshot.get("existing_parts", ()) or ())
-    if parts:
-        snapshot["existing_parts"] = list(parts)
-    snapshot = migrate_legacy_snapshot_joints(snapshot)
-    snapshot = sync_snapshot_intent_joints(snapshot, type_id)
-    self._phase6_input_snapshot.update({
-        "assembly_joint_schema_version": snapshot["assembly_joint_schema_version"],
-        "assembly_joints": deepcopy(snapshot["assembly_joints"]),
-        "assembly_type": snapshot["assembly_type"],
-    })
-    return tuple(snapshot["assembly_joints"])
-
-
 def _phase6_on_assembly_type_selected(self, *_args):
     if getattr(self, "_phase6_settings_rendering", False):
         return
@@ -6884,10 +6868,6 @@ _PHASE6_RENDERING_DO_UPDATE = _fix11_do_update
 _PHASE6_FULL_UPDATE_REASONS = frozenset({"geometry", "assembly", "baseline"})
 _PHASE6_DISPLAY_UPDATE_REASONS = frozenset({"display", "annotation", "camera"})
 
-def _phase6_publish_if_changed(self):
-    return _phase6_publish_live_state(self)
-
-
 def _phase6_render_committed_view(self):
     return _phase6_final_scene_adapter(self).render_committed()
 
@@ -6902,13 +6882,6 @@ def _phase6_execute_update_intents(self, reasons):
     )
 
 
-def _phase6_flush_update_intents(self):
-    return flush_fold_designer_update_intents(
-        self,
-        executor=lambda reasons: _phase6_execute_update_intents(self, reasons),
-    )
-
-
 def _phase6_submit_update_intent(self, reason, *, commit=False):
     return submit_fold_designer_update_intent(
         self,
@@ -6918,21 +6891,6 @@ def _phase6_submit_update_intent(self, reason, *, commit=False):
     )
 
 
-def _phase6_apply_settings_delta(self, delta, transaction_id):
-    return apply_fold_designer_settings_delta(
-        delta,
-        transaction_id,
-        transactions=_phase6_settings_service(self),
-        apply_updates=lambda updates: _phase6_apply_setting_updates(
-            self, updates, notify=True
-        ),
-    )
-
-def _phase6_switch_active_part(self, part_key, *, commit=True):
-    # ``activate_part`` owns the legacy editor wiring; its final action now
-    # classifies geometry-vs-display and submits exactly one orchestration intent.
-    return self.activate_part(str(part_key), initial=False)
-
 def _phase6_preview_aware_do_update(self):
     """Legacy compatibility wrapper: submit intent, never execute update/render."""
     return self.submit_update_intent("geometry", commit=True)
@@ -6940,10 +6898,6 @@ def _phase6_preview_aware_do_update(self):
 
 def _phase6_set_3d_preview_enabled(self, enabled):
     return _phase6_final_scene_adapter(self).set_preview_enabled(enabled)
-
-
-def _phase6_refresh_3d_preview(self):
-    return _phase6_final_scene_adapter(self).refresh_preview()
 
 
 def _phase6_queue_update(self, *args):

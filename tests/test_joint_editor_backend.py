@@ -3,7 +3,10 @@ from types import SimpleNamespace
 import pytest
 
 import fold_designer_bridge as bridge
-from ae_engine.assembly_joint import AssemblyJointRelation
+from ae_engine.assembly_joint import (
+    AssemblyJointRelation, migrate_legacy_snapshot_joints,
+    sync_snapshot_intent_joints,
+)
 
 
 def _app():
@@ -39,8 +42,17 @@ def test_delete_joint_allows_only_user_added():
         subject_region="rear_edge", target_region="rear_mating",
     )
     assert bridge._phase6_delete_user_joint(app, user["joint_id"]) is True
-    bridge._phase6_sync_joint_state_for_intent(app, "INSERT")
-    derived = next(j for j in app._phase6_input_snapshot["assembly_joints"] if j["source"] == "INTENT_DERIVED")
+    snapshot = migrate_legacy_snapshot_joints(app._phase6_input_snapshot)
+    snapshot = sync_snapshot_intent_joints(snapshot, "INSERT")
+    app._phase6_input_snapshot.update({
+        "assembly_joint_schema_version": snapshot["assembly_joint_schema_version"],
+        "assembly_joints": snapshot["assembly_joints"],
+        "assembly_type": snapshot["assembly_type"],
+    })
+    derived = next(
+        j for j in app._phase6_input_snapshot["assembly_joints"]
+        if j["source"] == "INTENT_DERIVED"
+    )
     with pytest.raises(ValueError, match="USER_ADDED"):
         bridge._phase6_delete_user_joint(app, derived["joint_id"])
 
