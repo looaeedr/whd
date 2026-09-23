@@ -6,21 +6,24 @@
   "work_branch": "governance/issue572-sibling-scheduler-stale-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:02+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "65f425fed3b2bf0e2375d6c0dc49974666f80a4b",
+  "head_sha": "5a84d5eb4953cb37176eab9510156e887a3755fa",
   "phase": "RED",
-  "last_update": "2026-09-24T02:01:57+08:00",
+  "last_update": "2026-09-24T02:03:47+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
   "master_issue": 520,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run focused RED evidence for the sibling-scheduler stale takeover tests; current authority must fail scheduler-source stale takeover before implementation.",
+  "next_action": "Create/verify PR for #572 and lock the focused pull_request run at head 5a84d5eb4953cb37176eab9510156e887a3755fa; expect RED from scheduler-source stale takeover tests.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35899160772,
     "red_test_commit": "65f425fed3b2bf0e2375d6c0dc49974666f80a4b",
     "red_write_guard_run": 35899518176,
-    "red_head_reconcile_guard_run": 35899649157
+    "red_head_reconcile_guard_run": 35899649157,
+    "focused_workflow_commit": "5a84d5eb4953cb37176eab9510156e887a3755fa",
+    "focused_workflow_guard_run": 35899751046,
+    "focused_workflow_head_reconcile_guard_run": 35899864448
   }
 }
