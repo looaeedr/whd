@@ -455,3 +455,9 @@ WAITING_REMOTE 只有在存在一個可獨立於目前 ChatGPT Runtime 持續推
 - exact run terminal 立即離開 WAITING_REMOTE；輪詢 terminal 狀態本身不會產生下一步。
 - status-only loop、反覆 refresh 同一靜止狀態、等待使用者再輸入「輪／繼續」都屬 continuity regression。
 - 使用者不是 scheduler，也不是 progress producer。
+
+## TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1
+
+`OWNING_FINALIZATION_GUARD_V2` 的 remote execution 唯一允許窄路徑：`.github/workflows/whd-remote-finalization.yml`。它必須 checkout exact trusted authority，fresh 驗 owning work HEAD 與 coordination checkpoint/claim blob，執行 canonical `tools/continuity_controller.py authorize-finalization`，立即執行 `verify-finalization-proof`，並上傳 bound proof + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` artifact。
+
+只有 machine receipt `result=GREEN / reason=FINALIZATION_PROOF_VALID` 且 artifact identity exact match，才可把 proof帶到不可逆 closure boundary。Issue marker、stdout 摘錄、聊天聲明、人工計算 fingerprint 全部不是 proof execution authority。

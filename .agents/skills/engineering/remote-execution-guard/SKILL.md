@@ -321,3 +321,11 @@ Remote Guard bootstrap：
 - receipt schema `WHD_REMOTE_GUARD_RECEIPT_V1`
 
 這些只證明 workflow 已建立；未來每次 mutation 仍要 fresh receipt。
+
+## TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1
+
+Remote Guard receipt 只授權 repository mutation；它不會把文字 marker 變成 finalization proof。當 closure runtime 無 command capability時，必須路由到專用 `.github/workflows/whd-remote-finalization.yml`，不得新增 generic shell action。
+
+該 executor 的 authority 是 machine run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded `finalization-proof.json`。固定輸入只包含 issue、worker、owning branch/head、checkpoint path/blob/fingerprint、claim blob、trusted authority SHA。任何 identity/blob/fingerprint drift 都 fail closed。
+
+`FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 若只存在 Issue comment、聊天文字或手工檔案而沒有 trusted executor run/artifact，分類 `INVALID_FINALIZATION_EVIDENCE`，禁止 close。

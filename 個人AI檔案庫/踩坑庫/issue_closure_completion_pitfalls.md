@@ -138,3 +138,9 @@ Executable owner：`tools/continuity_controller.py`；regression：`tests/proces
 - Canonical executable guard 是 `tools/branch_cleanup_ref_guard.py`；刪除候選必須先經 `assert_delete_candidates_safe`。
 - Primary regression 是 `tests/process/test_branch_cleanup_ref_guard.py`，其中必須保留「base ref deletion 被拒絕」案例。文字 marker 不是 runtime protection。
 - 若誤刪 OPEN PR ref，修復必須使用該 PR remote metadata 記錄的 exact ref + SHA；不得猜 branch tip、不得從 current X 重建冒充原 base。
+
+## INVALID_FINALIZATION_EVIDENCE_PITFALL
+
+2026-09-23 發生 marker-only false finalization：terminal checkpoint 與 code integration 本身有效，但 scheduler 在沒有 trusted executor run / proof artifact 的情況下，把手寫 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 留在 Issue comment後直接關單。這不符合 `OWNING_FINALIZATION_GUARD_V2`。
+
+永久規則：no-shell scheduler 必須使用窄作用域 `.github/workflows/whd-remote-finalization.yml`；workflow fixed-schema 綁 issue/worker/branch/head/checkpoint blob+fingerprint/claim blob/authority，只能跑 canonical authorize+verify。合法 closure evidence 是 terminal workflow run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded proof artifact。marker/comment-only 一律分類 `INVALID_FINALIZATION_EVIDENCE`；誤關票必須 reopen → repair capability/process-state → fresh proof → close/readback。
