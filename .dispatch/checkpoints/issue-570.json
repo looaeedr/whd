@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "570",
+  "branch": "governance/issue570-merge-head-claim-reconcile-20260924",
+  "head_sha": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35896635565,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Focused validation run 35896635565 completed success with 7 passed and 0 failures on hardened head 9edb3ff3a1880fad90cf37a2730b4664b402787b.",
+    "Cleanup drift from tested head to closing head 9e2ef76f9b8737c3add5289953fbcd693417d0db removed only .github/workflows/qa-issue570-focused.yml.",
+    "PR #571 merged into cleanup/2d-3d-sync at 7b3e8997ca651b0e9c85220506faf7151c8a2133.",
+    "The evidence-bound two-parent merge-head claim reconciliation capability is integrated and #557 may resume."
+  ],
+  "master_issue": "557",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "557",
+  "chain_next_action": "Resume #557, reconcile its claim HEAD across the already-created two-parent sync using the newly integrated #570 authority, then continue PR #569 integration/finalization.",
+  "chain_reason": "Blocking governance capability repair is integrated; parent #557 is executable again."
+}
