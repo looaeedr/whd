@@ -8,7 +8,7 @@
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
   "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T12:29:10+08:00",
+  "last_update": "2026-09-23T12:30:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -20,12 +20,14 @@
   "remote_qa": {
     "run_id": 35818513020,
     "head_sha": "76cff8c6b1de9224f8e137aca5ba10359073748b",
-    "status": "queued",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "B6-6 executable finalization proof",
-    "owner_closing_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033"
+    "owner_closing_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+    "proof_artifact_id": 10732252633,
+    "proof_sha256": "66093e46968531ee5d0a4c7fbf87650f7d6dde9db9d3980c62f66e01453f07f9"
   },
-  "next_action": "Poll finalization run 35818513020 to terminal; on success close #546, release claim, then atomically claim #531 aggregate acceptance.",
+  "next_action": "Close #546 completed; then atomically claim #531/B6 aggregate acceptance from accepted HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033.",
   "blocker": null,
   "drift_audit": {
     "from_head": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
