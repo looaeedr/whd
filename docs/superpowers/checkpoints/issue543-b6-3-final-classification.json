@@ -1,0 +1,57 @@
+{
+  "schema": "WHD_ISSUE543_B6_3_FINAL_CLASSIFICATION_V1",
+  "issue": 543,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+  "audit": {
+    "run_id": 35801179888,
+    "head_sha": "13adff5e2f054b695a2f90d34a7ecc2d6a857ba7",
+    "artifact_id": 10725618952
+  },
+  "replacement_red": {
+    "run_id": 35801296639,
+    "head_sha": "90030cbb3aaf76fe83b249714fd343ccdf55015d",
+    "result": "2 failed / 1 passed as expected"
+  },
+  "green": {
+    "run_id": 35801394151,
+    "head_sha": "f8e006c466f91e5dd174d6c8cadc05473ba5baaa",
+    "artifact_id": 10725897098,
+    "result": "31 passed / 9 skipped"
+  },
+  "facade_count_before": 64,
+  "facade_count_after": 62,
+  "accounted": 12,
+  "unclassified": 0,
+  "dynamic_ref_unreviewed": 0,
+  "removed": [
+    "show_global_settings",
+    "save_settings_context_as_defaults"
+  ],
+  "classification": {
+    "selected_part_key": "PROPERTY_COMPAT",
+    "_phase6_part_profiles": "PROPERTY_COMPAT",
+    "_phase6_part_features": "PROPERTY_COMPAT",
+    "_phase6_part_face_features": "PROPERTY_COMPAT",
+    "_phase6_workspace_dirty": "PROPERTY_COMPAT",
+    "_phase6_switching_part": "PROPERTY_COMPAT",
+    "_phase6_box_body_active_piece_key": "PROPERTY_COMPAT",
+    "apply_external_assembly_type": "PUBLIC_REQUIRED",
+    "export_phase6_snapshot": "PUBLIC_REQUIRED",
+    "show_global_settings": "NO_CALLER",
+    "toggle_baseline_data": "PUBLIC_REQUIRED",
+    "save_settings_context_as_defaults": "NO_CALLER"
+  },
+  "evidence_rules": {
+    "backup_tooling_docs_workflows_excluded_from_runtime_consumer_evidence": true,
+    "facade_map_row_is_inventory_not_external_consumer": true,
+    "removal_only_changes_facade_exposure": true,
+    "implementation_bodies_retained": true
+  }
+}
