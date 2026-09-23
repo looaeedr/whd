@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T08:20:30+08:00",
   "base_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
   "head_sha": "f7179554c448a4af5b271d251290912efe115a38",
-  "phase": "FINALIZING",
-  "last_update": "2026-09-23T10:38:00+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T10:39:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -39,7 +39,7 @@
     "replacement_red_run": 35801927028,
     "audit_run": 35801778565
   },
-  "next_action": "Run executable finalization guard/proof for #544; close/readback; release claim; claim #545/B6-5.",
+  "next_action": "Run guarded finalization branch creation and executable finalization proof for #544.",
   "blocker": null,
   "drift_audit": {
     "tested_head": "8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed",
