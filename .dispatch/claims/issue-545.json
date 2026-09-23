@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T10:41:00+08:00",
   "base_sha": "f7179554c448a4af5b271d251290912efe115a38",
-  "head_sha": "54797c37b1cdae0c6b05cff3f7f0c71fa7f8e9db",
-  "phase": "GREEN",
-  "last_update": "2026-09-23T11:54:10+08:00",
+  "head_sha": "839d264e85a5be8a96680af72972563d01fafdb0",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T11:55:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -39,8 +39,15 @@
       "parent_accepted_head": "f7179554c448a4af5b271d251290912efe115a38",
       "xvfb": "11 failed / 49 passed",
       "candidate_only_fail_count": 0
+    },
+    "architecture_run": {
+      "run_id": 35816207486,
+      "head_sha": "839d264e85a5be8a96680af72972563d01fafdb0",
+      "status": "queued",
+      "conclusion": null,
+      "purpose": "B6-5 architecture acceptance after Xvfb A/B candidate-only=0"
     }
   },
-  "next_action": "Run B6-5 architecture gate on current work-order head; accept Xvfb A/B because candidate-only fail count is 0.",
+  "next_action": "Poll exact architecture RUN 35816207486 to terminal; on GREEN cleanup one-shot workflows, durable classification, drift/finalization.",
   "blocker": null
 }
