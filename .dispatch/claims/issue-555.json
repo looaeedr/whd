@@ -6,22 +6,12 @@
   "work_branch": "governance/issue555-execution-instance-identity-20260923",
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
-  "head_sha": "335952ef394fb0ba17941dd919c98e8b9034621d",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T12:55:00+08:00",
+  "head_sha": "ba1389892f51967dc63c592ef506b0761ff9cd0b",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T12:57:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "remote_qa": {
-    "run_id": 35820207407,
-    "head_sha": "335952ef394fb0ba17941dd919c98e8b9034621d",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "RED harness attempt INVALID - pytest missing",
-    "evidence": {
-      "classification": "HARNESS_FAILURE",
-      "error": "No module named pytest"
-    }
-  },
-  "next_action": "Repair issue555 one-shot workflow to install pytest, rerun exact RED, and require assertion failure before Skill mutation.",
+  "remote_qa": null,
+  "next_action": "Lock the exact issue555 contract run for ba1389892f51967dc63c592ef506b0761ff9cd0b; require pytest assertion failure as genuine RED before Skill mutation.",
   "blocker": null
 }
