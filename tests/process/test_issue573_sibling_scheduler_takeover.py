@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from datetime import datetime, timezone
+from pathlib import Path
 
 UTC = timezone.utc
 CURRENT_LANE = "scheduler.6ab13f881c34819180cee63f5dd9446b"
@@ -59,6 +60,8 @@ def test_stale_foreign_sibling_scheduler_is_actionable():
     )
     assert result.classification.value == "EXECUTOR_STUCK"
     assert result.actionable is True
+    assert result.previous_worker == SIBLING_LANE
+    assert result.requesting_worker == CURRENT_LANE
 
 
 def test_active_foreign_sibling_scheduler_run_blocks_takeover():
@@ -103,3 +106,14 @@ def test_scheduler_claim_without_requesting_lane_stays_fail_closed():
     )
     assert result.classification.value == "ALREADY_SCHEDULER"
     assert result.actionable is False
+
+
+def test_trusted_remote_guard_schema_binds_takeover_worker():
+    root = Path(__file__).resolve().parents[2]
+    workflow = (root / ".github/workflows/whd-remote-execution-guard.yml").read_text(
+        encoding="utf-8"
+    )
+    assert '"takeover_worker"' in workflow
+    assert "claim-takeover requires takeover_worker" in workflow
+    assert '--requesting-worker "$RG_TAKEOVER_WORKER"' in workflow
+    assert '"takeover_worker": request.get("takeover_worker")' in workflow
