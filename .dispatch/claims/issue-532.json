@@ -6,30 +6,34 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "1749ba43208b2b8451afb1db4f66064065c49a94",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T15:22:30+08:00",
+  "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T15:57:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35831085182,
-    "head_sha": "1749ba43208b2b8451afb1db4f66064065c49a94",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "C0 dead-wrapper GREEN after stale ownership contract retirement",
-    "evidence": {
-      "compile_import": "GREEN",
-      "headless": "GREEN",
-      "xvfb": "20 failed, 16 passed",
-      "root_cause": "C0 audit false-zero: Phase6FoldDesignerComposition.final_scene_ports uses bridge namespace required(\"...\") runtime ports that residual audit did not count",
-      "missing_first": "AssemblyScenePart",
-      "missing_runtime_port_count": 12
-    }
+    "runs": [
+      {
+        "run_id": 35834404732,
+        "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
+        "status": "in_progress",
+        "conclusion": null,
+        "purpose": "C0 normalization GREEN"
+      },
+      {
+        "run_id": 35834404782,
+        "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
+        "status": "in_progress",
+        "conclusion": null,
+        "purpose": "C0 residual def audit"
+      }
+    ],
+    "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9"
   },
-  "next_action": "Migrate deleted FinalScene namespace ports to direct Phase6FoldDesignerComposition owner wiring, harden residual audit to count composition required() consumers, then rerun exact C0 GREEN.",
+  "next_action": "Poll exact C0 runs 35834404732 and 35834404782 to terminal; remediate any candidate-only failures immediately.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
