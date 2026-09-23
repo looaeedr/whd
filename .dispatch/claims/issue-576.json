@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-24T02:17:46+08:00",
   "base_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
   "head_sha": "76fc78b6c1539017aa510b012fbe556881400bf5",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T02:23:44+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T02:26:44+08:00",
   "production_target": "main",
   "task_id": "GOV-TRUSTED-TAKEOVER-WORKER-TRANSPORT",
   "parent_issue": 573,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Write terminal checkpoint for #576, obtain trusted finalization proof, close/readback #576, release claim, then resume parent #573 and E2E retry #533.",
+  "next_action": null,
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35901532692,
@@ -36,5 +36,23 @@
     "production_head": "36585528eaeb345212065b33f768293e3ac7feb2",
     "trusted_workflow_blob_sha": "e4f30bf59e0d3a5354919e7d0e068e4e64b01a6c",
     "trusted_transport_readback_guard_run": 35902061814
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-576.json",
+    "checkpoint_blob_sha": "1bc723ea0efba97a1f1145fe02d682deb4bfab05",
+    "checkpoint_fingerprint": "9bb5a7a7f98afef7f3d76685edc1544825bb27c0bb9beaf8365f05022525a737",
+    "trusted_run_id": 35902372580,
+    "artifact_id": 10769597218,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "release": {
+    "guard_request_comment_id": 5800536261,
+    "guard_result_comment_id": 5800540171,
+    "guard_run_id": 35902483478,
+    "result": "GREEN",
+    "released_at": "2026-09-24T02:26:44+08:00"
   }
 }
