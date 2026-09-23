@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "557",
+  "branch": "docs/issue557-whd-scheduler-usage-20260923",
+  "head_sha": "81294d6bbb69340305a817feb8be6ee312d5ab39",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35895091668,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Scheduler takeover usage documentation and canonical 派工 / Remote Guard Skill updates are integrated.",
+    "Exact PR validation run 35895091668 completed success on head 81294d6bbb69340305a817feb8be6ee312d5ab39.",
+    "Blocking merge-head reconciliation repair #570 completed with 7 focused tests passing and was read back closed/completed.",
+    "Production drift after the original #557 validation touched only #570 guard/test files and did not overlap the three #557 documentation/Skill paths.",
+    "PR #569 merged into cleanup/2d-3d-sync at 84a0ef9e6d74ba8762de8586c72ec38bcba2daba."
+  ],
+  "master_issue": "557",
+  "chain_state": "CHAIN_COMPLETE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": "Standalone scheduler-usage governance work is integrated and no further child is required."
+}
