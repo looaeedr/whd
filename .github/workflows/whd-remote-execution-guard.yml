@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   issues: write
+  actions: read
 
 jobs:
   guard:
@@ -90,11 +91,14 @@ jobs:
               executor_source = "unknown"
           elif executor_source not in {"chat", "scheduler"}:
               raise SystemExit("invalid executor_source")
+          if singles["action"] == "claim-takeover" and executor_source != "scheduler":
+              raise SystemExit("claim-takeover requires executor_source=scheduler")
 
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", singles["worker"]):
               raise SystemExit("invalid worker")
           if singles["action"] not in {
               "branch-create",
+              "claim-takeover",
               "write",
               "commit",
               "qa-dispatch",
@@ -125,8 +129,8 @@ jobs:
               if not re.fullmatch(r"[0-9a-f]{40}", singles[key]):
                   raise SystemExit(f"invalid SHA: {key}")
 
-          if singles["tested_target_sha"] != singles["head_sha"]:
-              raise SystemExit("tested_target_sha must equal guarded head_sha")
+          if singles["action"] != "claim-takeover" and singles["tested_target_sha"] != singles["head_sha"]:
+              raise SystemExit("tested_target_sha must equal guarded head_sha for non-takeover actions")
 
           normalized = []
           for value in changed_files:
@@ -139,6 +143,8 @@ jobs:
                   normalized.append(value)
           if singles["action"] in {"write", "commit"} and not normalized:
               raise SystemExit("write/commit requires at least one changed_file")
+          if singles["action"] == "claim-takeover" and normalized:
+              raise SystemExit("claim-takeover must not carry changed_file")
 
           request = {
               **singles,
@@ -166,6 +172,8 @@ jobs:
       - name: Execute canonical remote guard
         id: remote_guard
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -u -o pipefail
           result="FAIL"
@@ -192,8 +200,61 @@ jobs:
 
             git check-ref-format --branch "$RG_BRANCH" >/dev/null
             current_branch_sha="$(git ls-remote origin "refs/heads/${RG_BRANCH}" | awk '{print $1}')"
+            takeover_live_commit_at=""
+            rm -f /tmp/remote-run.json /tmp/remote-run-api.json /tmp/remote-run.err /tmp/stale-takeover-decision.json /tmp/stale-takeover.log
+            remote_arg=()
+
             if [ "$RG_ACTION" = "branch-create" ]; then
               test -z "$current_branch_sha"
+            elif [ "$RG_ACTION" = "claim-takeover" ]; then
+              test -n "$current_branch_sha"
+              test "$current_branch_sha" = "$RG_TESTED_TARGET_SHA"
+              test "$RG_EXECUTOR_SOURCE" = "scheduler"
+
+              git fetch --no-tags origin "$current_branch_sha"
+              takeover_live_commit_at="$(git show -s --format=%cI "$current_branch_sha")"
+
+              run_id="$(python -c 'import json; p=json.load(open("/tmp/execution-claim.json", encoding="utf-8")); r=p.get("remote_qa"); print(r.get("run_id", "") if isinstance(r, dict) else "")')"
+              if [ -n "$run_id" ]; then
+                set +e
+                gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" > /tmp/remote-run-api.json 2> /tmp/remote-run.err
+                gh_rc=$?
+                set -e
+                if [ "$gh_rc" -eq 0 ]; then
+                  python - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = json.loads(Path("/tmp/remote-run-api.json").read_text(encoding="utf-8"))
+          payload = {
+              "found": True,
+              "run_id": int(raw["id"]),
+              "head_sha": raw["head_sha"],
+              "status": raw.get("status"),
+              "conclusion": raw.get("conclusion"),
+              "updated_at": raw.get("updated_at"),
+          }
+          Path("/tmp/remote-run.json").write_text(
+              json.dumps(payload, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+                elif grep -Eqi '404|Not Found' /tmp/remote-run.err; then
+                  printf '{"found":false,"run_id":%s}\n' "$run_id" > /tmp/remote-run.json
+                else
+                  cat /tmp/remote-run.err >&2
+                  exit "$gh_rc"
+                fi
+                remote_arg=(--remote-run-json /tmp/remote-run.json)
+              fi
+
+              python tools/stale_claim_takeover.py \
+                --claim /tmp/execution-claim.json \
+                --live-head-sha "$current_branch_sha" \
+                --live-head-committed-at "$takeover_live_commit_at" \
+                "${remote_arg[@]}" \
+                --require-actionable \
+                --decision-out /tmp/stale-takeover-decision.json 2>&1 | tee /tmp/stale-takeover.log
             else
               test -n "$current_branch_sha"
               test "$current_branch_sha" = "$RG_HEAD_SHA"
@@ -261,9 +322,16 @@ jobs:
               --branch "$RG_BRANCH"
               --action "$RG_ACTION"
               --base-sha "$RG_BASE_SHA"
-              --head-sha "$RG_HEAD_SHA"
-              --preflight-evidence /tmp/preflight-evidence.txt
             )
+            if [ "$RG_ACTION" = "claim-takeover" ]; then
+              guard_args+=(
+                --head-sha "$RG_TESTED_TARGET_SHA"
+                --takeover-evidence /tmp/stale-takeover-decision.json
+              )
+            else
+              guard_args+=(--head-sha "$RG_HEAD_SHA")
+            fi
+            guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
@@ -287,6 +355,10 @@ jobs:
 
           request = json.loads(Path("/tmp/remote-guard-request.json").read_text(encoding="utf-8"))
           now = dt.datetime.now(dt.timezone.utc)
+          takeover_evidence = None
+          decision_path = Path("/tmp/stale-takeover-decision.json")
+          if decision_path.is_file():
+              takeover_evidence = json.loads(decision_path.read_text(encoding="utf-8"))
           receipt = {
               "schema": "WHD_REMOTE_GUARD_RECEIPT_V1",
               "request_comment_id": request["request_comment_id"],
@@ -307,6 +379,7 @@ jobs:
               "expires_at": (now + dt.timedelta(minutes=20)).isoformat().replace("+00:00", "Z"),
               "result": os.environ["RG_RESULT"],
               "reason": os.environ["RG_REASON"],
+              "takeover_evidence": takeover_evidence,
           }
           Path("/tmp/remote-guard-receipt.json").write_text(
               json.dumps(receipt, indent=2, sort_keys=True) + "\n",
@@ -319,6 +392,12 @@ jobs:
           cp /tmp/remote-guard-receipt.json "$GITHUB_WORKSPACE/remote-guard-artifact/remote-guard-receipt.json"
           cp /tmp/preflight-evidence.txt "$GITHUB_WORKSPACE/remote-guard-artifact/preflight-evidence.txt"
           cp /tmp/remote-guard.log "$GITHUB_WORKSPACE/remote-guard-artifact/remote-guard.log"
+          if [ -f /tmp/stale-takeover-decision.json ]; then
+            cp /tmp/stale-takeover-decision.json "$GITHUB_WORKSPACE/remote-guard-artifact/stale-takeover-decision.json"
+          fi
+          if [ -f /tmp/stale-takeover.log ]; then
+            cp /tmp/stale-takeover.log "$GITHUB_WORKSPACE/remote-guard-artifact/stale-takeover.log"
+          fi
 
           {
             echo "result=$result"
