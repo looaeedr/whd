@@ -1,0 +1,142 @@
+name: WHD｜#532｜C0 表面正規化 GREEN
+run-name: "WHD｜#532｜C0 表面正規化 GREEN｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue532-c0-normalization-green.yml
+
+permissions:
+  contents: read
+
+jobs:
+  green:
+    name: C0 Import／Owner／相容面聚焦驗收
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝聚焦依賴
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf shapely
+
+      - name: 編譯與 Bridge import smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile fold_designer_bridge.py
+          python - <<'PY'
+          import fold_designer_bridge as bridge
+          assert bridge.Phase6FoldDesignerApp
+          print("C0_BRIDGE_IMPORT_SMOKE=GREEN")
+          PY
+
+      - name: 聚焦 ownership／compatibility regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_issue524_a3_facade_ratchet.py \
+            tests/test_issue347_manufacturing_helper_extraction.py \
+            tests/test_issue348_joint_world_geometry_extraction.py \
+            tests/test_issue349_explicit_joint_relief_extraction.py \
+            tests/test_issue351_t6_compatibility_gate.py \
+            tests/test_phase6_bridge_domain_ownership.py \
+            tests/test_phase6_diagnostics_ownership.py \
+            tests/test_phase6_final_scene_view_ownership.py \
+            tests/test_issue445_settings_presentation_owner.py \
+            | tee /tmp/issue532-c0-focused.log
+
+      - name: Surface normalization architecture gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue532-c0-architecture.log
+          import ast
+          from pathlib import Path
+
+          path=Path("fold_designer_bridge.py")
+          source=path.read_text(encoding="utf-8")
+          tree=ast.parse(source)
+          removed={
+              "datetime","Sequence","WHD_SEMANTIC_COLORS",
+              "resolve_operator_finished_dimensions","DoorFrameEdges",
+              "calculate_door_finished_size","set_active_structure",
+              "activate_structure_with_defaults","set_structure_locked",
+              "set_two_piece_width","set_three_piece_width",
+              "reconcile_box_body_structure_for_total_w_change",
+              "set_join_seam_bend","update_structure_config",
+              "ui_text_size_factor","Phase6SettingsTransactionController",
+              "DoorPartProjection","SettingsPanelExtensionResult",
+              "ResolvedAssemblyGraph","set_part_edge_relation",
+              "box_body_height_from_corner_policies","commit_endcap_bottom_wrap",
+              "legacy_corner_projection_for_intent","AssemblyScenePart",
+              "FinalSceneDependencies","_phase6_fold_mask_for_cross_coordinate",
+              "_phase6_scene_fold_boundaries","_phase6_profile_to_scene_boundaries",
+              "_phase6_folded_outside_envelope","_phase6_profile_operator_fold_values",
+              "Phase6FinalSceneRenderer","_PHASE6_ZOOM_STEP",
+              "Phase6FinalSceneViewAdapter","_phase6_remove_original_bend_surfaces",
+              "_phase6_draw_scene_bends","_phase6_scale_current_3d_limits",
+              "_phase6_legacy_symmetry_widgets","_phase6_set_legacy_symmetry_visibility",
+          }
+          imported=set()
+          for node in tree.body:
+              if isinstance(node, ast.Import):
+                  imported.update(a.asname or a.name.split(".")[0] for a in node.names)
+              elif isinstance(node, ast.ImportFrom):
+                  imported.update(a.asname or a.name for a in node.names if a.name!="*")
+          assert removed.isdisjoint(imported), sorted(removed & imported)
+          assigned={
+              t.id
+              for node in tree.body
+              if isinstance(node,(ast.Assign,ast.AnnAssign))
+              for t in (node.targets if isinstance(node,ast.Assign) else [node.target])
+              if isinstance(t,ast.Name)
+          }
+          assert "_PHASE6_ORCHESTRATION_DEBOUNCE_MS" not in assigned
+
+          loc=len(source.splitlines())
+          assert loc <= 7431, loc
+          call=next(
+              n for n in ast.walk(tree)
+              if isinstance(n,ast.Call)
+              and isinstance(n.func,ast.Name)
+              and n.func.id=="install_fold_designer_bridge_facade"
+          )
+          mapping=next(a for a in call.args if isinstance(a,ast.Dict))
+          facade_count=sum(
+              isinstance(k,ast.Constant) and isinstance(k.value,str)
+              for k in mapping.keys
+          )
+          assert facade_count==45, facade_count
+          print(f"C0_BRIDGE_LOC={loc}")
+          print("C0_NORMALIZED_UNUSED_IMPORTS=38")
+          print("C0_REMOVED_DEAD_CONSTANTS=1")
+          print("C0_FACADE_COUNT=45")
+          print("ISSUE532_C0_NORMALIZATION_GREEN=GREEN")
+          PY
+
+      - name: 上傳 GREEN 證據
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-c0-normalization-green
+          path: |
+            /tmp/issue532-c0-focused.log
+            /tmp/issue532-c0-architecture.log
+          if-no-files-found: warn
+          retention-days: 14
