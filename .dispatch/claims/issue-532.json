@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "b16e2e6c734bd734bee0a2fdaa740bf65ca087d1",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T16:06:50+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T16:09:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,11 +17,23 @@
   "remote_qa": {
     "run_id": 35835282501,
     "head_sha": "b16e2e6c734bd734bee0a2fdaa740bf65ca087d1",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "C0 final GREEN after scoped #384 correction"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "C0 normalization GREEN",
+    "evidence": {
+      "bridge_loc": 7121,
+      "a0_baseline_loc": 7806,
+      "total_reduction": 685,
+      "final_ceiling": 6500,
+      "remaining_to_ceiling": 621,
+      "headless": "81 passed / 18 skipped",
+      "xvfb": "35 passed / 1 skipped",
+      "facade_count": 45,
+      "zero_consumer_wrappers_removed": 30,
+      "artifact_id": 10738803259
+    }
   },
-  "next_action": "Poll exact run 35835282501 to terminal; if GREEN, write final residual attribution and complete C0 cleanup/finalization.",
+  "next_action": "C0 budget remains RED (7121 > 6500). Peel first 6 largest bridge-internal-zero-caller compat functions to canonical owners/tests (182 span), rerun residual audit + GREEN, then continue cascading until <=6500.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
