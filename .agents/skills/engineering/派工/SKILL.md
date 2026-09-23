@@ -524,3 +524,16 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 - workflow run / artifact identity 必須 fresh 綁 issue + worker + branch + HEAD + checkpoint blob/fingerprint + claim blob + trusted authority SHA。
 - Issue comment 中單獨出現 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 文字一律不是 closure authority。
 - executor terminal GREEN 後仍要 fresh-read artifact receipt，exact match 後才可 close Issue；close 後 remote readback，再 release claim。
+
+### SCHEDULER_TAKEOVER_OPERATIONAL_USAGE_V1
+
+Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeover_usage.md` 為 durable 使用手冊；本 Skill 保留 canonical execution contract。scheduler 必須遵守：
+
+1. **wake-up trigger != execution owner**：每輪從 `coord/dispatch-claims`、Issue、checkpoint、branch、exact run fresh reconstruct，不得硬編 issue/branch/SHA/run_id。
+2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時直接 resume，不做 stale takeover。`ACTIVE_WITHIN_10M` 對 same-lane 只表示不用 takeover，不是 stop condition。
+3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
+4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
+7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
+8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
