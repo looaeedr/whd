@@ -7,20 +7,32 @@
   "claimed_at": "2026-09-23T23:44:48+08:00",
   "base_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
   "head_sha": "7397a79deadc103896235b5cb633b555aca11b4d",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T23:47:38+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T23:53:54+08:00",
   "production_target": "main",
   "task_id": "GOV-MAIN-REMOTE-FINALIZATION-BACKPORT",
   "parent_issue": 560,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Open the guarded PR to main for the single workflow backport, lock validation, merge, verify the workflow is readable/dispatchable from main, then return to parent #560.",
-  "blocker": null,
+  "next_action": "From a runtime that exposes trusted GitHub workflow_dispatch, dispatch main:.github/workflows/whd-remote-finalization.yml with fresh exact issue/worker/branch/head/checkpoint blob+fingerprint/claim blob/authority; lock that exact run to terminal, validate WHD_REMOTE_FINALIZATION_RECEIPT_V1 + proof artifact, then close/read back this child, release its claim, and resume parent repair.",
+  "blocker": "RUNTIME_CAPABILITY_BLOCKER: trusted narrow WHD Remote Finalization workflow is integrated and readable on main, but this invocation exposes no GitHub workflow_dispatch mutation primitive; container has no authenticated gh/GitHub credential. Do not create duplicate PR/Guard or use generic shell/marker-only proof.",
   "progress": {
     "backport_commit": "7397a79deadc103896235b5cb633b555aca11b4d",
     "branch_create_guard_run": 35883896679,
     "write_guard_run": 35884009286,
     "head_reconcile_guard_run": 35884132865,
-    "source_workflow_blob": "7ad1e3ec8e6a955bbaf19621954f72174110c9c1"
+    "source_workflow_blob": "7ad1e3ec8e6a955bbaf19621954f72174110c9c1",
+    "pr": 563,
+    "merge_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
+    "main_workflow_verified": true,
+    "capability_blocker_guard_run": 35884870873
+  },
+  "integration": {
+    "pr": 563,
+    "merge_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
+    "production_target": "main",
+    "production_head": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
+    "workflow_path": ".github/workflows/whd-remote-finalization.yml",
+    "workflow_blob_sha": "7ad1e3ec8e6a955bbaf19621954f72174110c9c1"
   }
 }
