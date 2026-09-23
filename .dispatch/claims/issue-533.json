@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T21:20:00+08:00",
   "base_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T03:31:30+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T04:29:16+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,7 +30,7 @@
       "tested_head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c"
     }
   },
-  "next_action": "Write C1 terminal checkpoint with canonical next child #534/C2, obtain trusted finalization proof, close/readback #533, release claim, then atomically claim/start #534 from accepted C1 closing head fb5443215b36e4ab6a5b2d57a72600e621df83d6.",
+  "next_action": null,
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -56,7 +56,7 @@
   "scheduler_progress": {
     "executor_identity": "scheduler.6ab13fa557fc8191935c671214b865e2",
     "takeover_guard_run": 35909879763,
-    "action": "resume-stale-sibling-closing"
+    "action": "completed-and-released"
   },
   "acceptance": {
     "requirement": "Permanent Anti-Regrowth Machine Guards",
@@ -77,5 +77,11 @@
       "classification": "required AI Library writeback only"
     },
     "integration_policy": "No child-level X integration; Master #520 integrates entire chain once after C3."
+  },
+  "release": {
+    "guard_request_comment_id": 5802404858,
+    "guard_run_id": 35916252136,
+    "result": "GREEN",
+    "released_at": "2026-09-24T04:29:16+08:00"
   }
 }
