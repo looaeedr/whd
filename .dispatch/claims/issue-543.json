@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T08:13:00+08:00",
   "base_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
-  "head_sha": "f8e006c466f91e5dd174d6c8cadc05473ba5baaa",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T08:17:30+08:00",
+  "head_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
+  "phase": "FINALIZING",
+  "last_update": "2026-09-23T08:20:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,18 +18,24 @@
   "remote_qa": {
     "run_id": 35801394151,
     "head_sha": "f8e006c466f91e5dd174d6c8cadc05473ba5baaa",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "B6-3 final GREEN",
     "evidence": {
-      "removed": [
-        "show_global_settings",
-        "save_settings_context_as_defaults"
-      ]
+      "passed": 31,
+      "skipped": 9,
+      "facade_count": 62,
+      "removed": 2,
+      "artifact_id": 10725897098
     },
     "replacement_red_run": 35801296639,
     "audit_run": 35801179888
   },
-  "next_action": "Poll exact RUN 35801394151 to terminal; on success cleanup one-shot workflows and finalize #543.",
-  "blocker": null
+  "next_action": "Run executable finalization guard/proof for #543, close/readback, release claim, then claim #544/B6-4.",
+  "blocker": null,
+  "drift_audit": {
+    "tested_head": "f8e006c466f91e5dd174d6c8cadc05473ba5baaa",
+    "closing_head": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
+    "production_test_drift": 0
+  }
 }
