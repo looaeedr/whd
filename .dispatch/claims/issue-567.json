@@ -6,14 +6,21 @@
   "work_branch": "governance/issue567-reopened-released-claim-recovery-20260924",
   "claimed_at": "2026-09-24T00:25:20+08:00",
   "base_sha": "fe24fa024fe88467ec0432c803a6344148331d38",
-  "head_sha": "fe24fa024fe88467ec0432c803a6344148331d38",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T00:25:20+08:00",
+  "head_sha": "2bdd502e5cd32b85c8826aa7d094b2112884c599",
+  "phase": "RED",
+  "last_update": "2026-09-24T00:27:08+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-REOPENED-RELEASED-CLAIM-RECOVERY",
   "parent_issue": 560,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the guarded repair branch, add RED for inactive RELEASED-claim process-state recovery, then implement the narrow machine-authorized recovery path.",
-  "blocker": null
+  "next_action": "Run the focused #567 RED, then implement a narrow fixed-schema claim-reactivate authority without weakening ordinary inactive-claim rejection.",
+  "blocker": null,
+  "progress": {
+    "branch_create_guard_run": 35888615088,
+    "red_write_guard_run": 35888730464,
+    "red_commit": "2bdd502e5cd32b85c8826aa7d094b2112884c599",
+    "red_test": "tests/process/test_issue567_reopened_released_claim_recovery.py",
+    "head_reconcile_guard_run": 35888816745
+  }
 }
