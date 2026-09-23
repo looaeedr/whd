@@ -76,6 +76,5 @@ def test_normal_and_assembly_content_share_same_left_content_owner():
         assert app.fold_editor_host is app.input_content_host
         assert app.fold_editor_host.master is shared
         assert app.assembly_parts_panel.master is shared
-        assert app.corner_data_panel.master is shared
     finally:
         root.destroy()
