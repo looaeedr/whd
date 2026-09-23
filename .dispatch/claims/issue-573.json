@@ -6,9 +6,9 @@
   "work_branch": "governance/issue573-sibling-scheduler-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T02:12:03+08:00",
+  "head_sha": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T02:13:42+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Remove the temporary #573 focused workflow, reconcile closing HEAD, verify tested-to-closing drift is only that workflow deletion, then guarded-merge PR #574 into cleanup/2d-3d-sync. After code integration, create/complete the trusted-main transport child.",
+  "next_action": "Guard-merge PR #574 at cleaned head f2c0095bf879ee1f75f0799705f8884aa335cf43; read back cleanup/2d-3d-sync; then create a trusted-main transport child to integrate takeover_worker schema before E2E retry of #533.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -53,6 +53,14 @@
     "cleanup_scope_commit": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
     "cleanup_scope_guard_run": 35900697740,
     "cleanup_scope_reconcile_guard_run": 35900789026,
-    "cleanup_scope_green_run": 35900775751
+    "cleanup_scope_green_run": 35900775751,
+    "cleanup_commit": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
+    "cleanup_guard_run": 35900895076,
+    "cleanup_head_reconcile_guard_run": 35900975635,
+    "drift": {
+      "tested_head": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
+      "closing_head": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
+      "only_change": ".github/workflows/qa-issue573-focused.yml removed"
+    }
   }
 }
