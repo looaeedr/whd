@@ -6,15 +6,15 @@
   "work_branch": "governance/issue573-sibling-scheduler-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "871ffc85c5018d25126d35ee576ffaf088c2448d",
+  "head_sha": "1baa9ee0dfbfa21d096ab80df6777a3ccfcf0141",
   "phase": "RED",
-  "last_update": "2026-09-24T02:02:09+08:00",
+  "last_update": "2026-09-24T02:03:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run the focused RED contract for sibling scheduler lane semantics; after expected RED, implement a fixed-schema requesting-lane identity path through stale takeover evaluation and trusted Remote Guard without weakening same-lane rejection.",
+  "next_action": "Open the guarded PR and lock the focused RED run for tests/process/test_issue573_sibling_scheduler_takeover.py; after expected RED, implement the fixed-schema requesting-lane identity.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -29,6 +29,9 @@
     "red_test_commit": "871ffc85c5018d25126d35ee576ffaf088c2448d",
     "red_test_write_guard_run": 35899460373,
     "red_head_reconcile_guard_run": 35899596409,
-    "red_test_path": "tests/process/test_issue573_sibling_scheduler_takeover.py"
+    "red_test_path": "tests/process/test_issue573_sibling_scheduler_takeover.py",
+    "focused_workflow_commit": "1baa9ee0dfbfa21d096ab80df6777a3ccfcf0141",
+    "focused_workflow_guard_run": 35899761853,
+    "focused_workflow_head_reconcile_guard_run": 35899851069
   }
 }
