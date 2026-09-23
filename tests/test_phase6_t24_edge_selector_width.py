@@ -16,6 +16,7 @@ def _pump(root):
 def test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still_apply(part):
     import tkinter as tk
     import gui
+    import fold_designer_bridge as bridge
     from ae_engine.assembly_joint import edge_relation_for_part
 
     root=tk.Tk(); root.withdraw()
@@ -45,7 +46,7 @@ def test_endcap_four_direction_selectors_are_width_5_or_less_and_semantics_still
         alt=next(v for v in designer.endcap_joint_allowed[edge] if v != current)
         before=dict(designer._phase6_input_snapshot)
         designer.endcap_joint_vars[edge].set(alt)
-        relation=designer._phase6_on_endcap_edge_relation_selected(part,edge)
+        relation=bridge._phase6_on_endcap_edge_relation_selected(designer, part, edge)
         assert relation is not None
         assert edge_relation_for_part(designer._phase6_input_snapshot,part,edge)==relation
 

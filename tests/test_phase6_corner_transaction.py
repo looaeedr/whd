@@ -62,7 +62,7 @@ def test_corner_pair_edit_publishes_live_without_confirm(monkeypatch):
     )
     try:
         app.baseline_model_var.set("未知類型")
-        app.on_baseline_model_changed()
+        bridge._phase6_on_baseline_model_changed(app)
         app._phase6_parameters_unlocked = True
         app.activate_part("door")
         root.update_idletasks()
@@ -92,7 +92,7 @@ def test_cancel_does_not_confirm_corner_transaction(monkeypatch):
     try:
         app.baseline_model_var.set("未知類型")
         root.update()
-        assert app.cancel_corner_transaction() is True
+        assert bridge._phase6_cancel_corner_transaction(app) is True
         assert confirmed == []
         assert cancelled == [True]
     finally:
@@ -109,7 +109,7 @@ def test_unmodified_workspace_close_path_skips_even_lightweight_save(monkeypatch
         app.queue_update()
         root.update_idletasks()
         assert app._phase6_workspace_dirty is False
-        assert app.export_workspace_state_if_dirty() is None
+        assert bridge._phase6_export_workspace_state_if_dirty(app) is None
         assert calls == []
     finally:
         root.destroy()

@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import fold_designer_bridge as bridge
+
 import phase6_settings_center as settings
 
 
@@ -166,7 +168,7 @@ def test_3d_draft_cancel_keeps_committed_settings_service_and_ae():
         assert app.settings_service.snapshot()["w"] == pytest.approx(400.0)
         assert ae.W == pytest.approx(400.0)
 
-        designer.cancel_corner_transaction()
+        bridge._phase6_cancel_corner_transaction(designer)
         root.update_idletasks(); root.update()
 
         assert app.settings_service.snapshot()["w"] == pytest.approx(400.0)

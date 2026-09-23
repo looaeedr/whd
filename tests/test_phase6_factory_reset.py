@@ -119,7 +119,7 @@ def test_reset_initial_values_is_local_and_restores_factory_profiles(monkeypatch
         # Baseline selection is not part of ae.default_config and must not be invented/reset.
         assert app.baseline_model_var.get() == '金庫型'
 
-        assert app.confirm_corner_transaction() is True
+        assert bridge._phase6_confirm_corner_transaction(app) is True
         assert len(confirmed) == 1
         assert confirmed[0]['settings']['w'] == 400.0
         assert confirmed[0]['settings']['z_comp'] == 2.0
