@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:00:20+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "head_sha": "bdf189cd402b4a33a67c6f9d279549bcc34be0bd",
+  "head_sha": "d471ef555e8a0b6a50373f2967941e8ffa4fcfec",
   "phase": "CLEANUP",
-  "last_update": "2026-09-23T12:37:30+08:00",
+  "last_update": "2026-09-23T12:39:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -33,7 +33,7 @@
       "artifact_id": 10732303057
     }
   },
-  "next_action": "Write #531 durable aggregate classification, remove aggregate one-shot workflow, verify tested-head to closing-head production/test drift=0, persist terminal checkpoint with NEXT_CHILD_EXECUTABLE -> #532, run finalization, close #531.",
+  "next_action": "Remove non-authoritative pending-head placeholder from #531 aggregate JSON, then perform tested-head -> final closing-head drift audit and persist terminal checkpoint.",
   "blocker": null,
   "child_chain": {
     "final_batch_issue": 546,
