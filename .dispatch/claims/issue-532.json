@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "728c72f13df0353f2a54955d3d47221cdd641357",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T16:36:45+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T16:38:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -19,21 +19,35 @@
       {
         "run_id": 35838090468,
         "head_sha": "728c72f13df0353f2a54955d3d47221cdd641357",
-        "status": "in_progress",
-        "conclusion": null,
-        "purpose": "C0 GREEN after four compat-only owner peel"
+        "status": "completed",
+        "conclusion": "failure",
+        "purpose": "C0 GREEN after four compat-only owner peel",
+        "evidence": {
+          "failure_kind": "STALE_OWNER_CONTRACT_TESTS",
+          "failures": [
+            "tests/test_issue394_final_scene_projection.py::test_issue394_adapter_and_bridge_delegate_assembly_dto_projection",
+            "tests/test_issue370_t6_final_scene_view_owner.py::test_issue370_bridge_delegates_3d_render_orchestration"
+          ]
+        }
       },
       {
         "run_id": 35838090472,
         "head_sha": "728c72f13df0353f2a54955d3d47221cdd641357",
-        "status": "in_progress",
-        "conclusion": null,
-        "purpose": "C0 residual def audit after four compat-only owner peel"
+        "status": "completed",
+        "conclusion": "success",
+        "purpose": "C0 residual def audit",
+        "evidence": {
+          "zero_consumer_count": 1,
+          "zero_consumer_span": 6,
+          "compat_only_count": 21,
+          "compat_only_span": 233,
+          "runtime_consumer_count": 5
+        }
       }
     ],
     "head_sha": "728c72f13df0353f2a54955d3d47221cdd641357"
   },
-  "next_action": "Poll exact runs 35838090468 and 35838090472 to terminal; classify failures immediately, then continue residual peeling until <=6500.",
+  "next_action": "Retire stale #394/#370 requirement for _phase6_make_assembly_scene_render_data bridge wrapper; remove newly exposed zero-consumer _phase6_scene_query_payload; rerun C0 GREEN + residual audit.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
