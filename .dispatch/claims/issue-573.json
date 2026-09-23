@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
   "head_sha": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T02:13:42+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T02:15:39+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Guard-merge PR #574 at cleaned head f2c0095bf879ee1f75f0799705f8884aa335cf43; read back cleanup/2d-3d-sync; then create a trusted-main transport child to integrate takeover_worker schema before E2E retry of #533.",
+  "next_action": "Create and complete a trusted-main transport child that adds fixed-schema takeover_worker handling to whd-remote-execution-guard.yml, then E2E retry the original #533 foreign sibling scheduler takeover.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -61,6 +61,17 @@
       "tested_head": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18",
       "closing_head": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
       "only_change": ".github/workflows/qa-issue573-focused.yml removed"
-    }
+    },
+    "integration_guard_run": 35901198283,
+    "merge_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538"
+  },
+  "integration": {
+    "pr": 574,
+    "merge_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+    "remote_qa_run_id": 35900775751,
+    "remote_qa_conclusion": "success",
+    "tested_head_sha": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18"
   }
 }
