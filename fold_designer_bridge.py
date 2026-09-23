@@ -19,18 +19,14 @@ from phase6_sync_envelope import (
     plan_live_sync_envelope,
     stable_fingerprint,
 )
-from datetime import datetime
 from pathlib import Path
 import re
 import logging
-from typing import Mapping, MutableMapping, Sequence
-from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme, configure_tk_menu
+from typing import Mapping, MutableMapping
+from whd_theme import WHD_THEME, apply_ttk_dark_theme, configure_tk_menu
 
 from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    calculate_door_finished_size,
     derive_door_layout_cells,
     door_layout_part_key,
 )
@@ -57,25 +53,19 @@ from phase6_assembly_presentation import (
 )
 from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
-    BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state, set_active_structure,
-    activate_structure_with_defaults,
-    set_structure_locked, set_two_piece_width, set_three_piece_width,
-    reconcile_box_body_structure_for_total_w_change,
-    set_join_seam_bend, set_side_back_geometry, set_side_back_piece_profile,
+    BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state,
+    set_side_back_geometry, set_side_back_piece_profile,
     set_side_back_back_panel_mode, back_panel_mode, side_rear_bend_outside_length,
-    update_structure_config,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
 
 from phase6_settings_center import (
     GLOBAL_CONTEXT, settings_for_context, UI_TEXT_SIZE_LABELS,
-    normalize_ui_text_size, ui_text_size_label, ui_text_size_factor,
+    normalize_ui_text_size, ui_text_size_label,
 )
-from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_settings_contracts import SettingsStateSnapshot
 from phase6_settings_profile_projection import (
-    DoorPartProjection,
     SettingsProfileProjectionRequest,
     build_settings_profile_projection,
     build_standard_part_profiles,
@@ -116,21 +106,20 @@ from gui_modules.application.fold_designer_adapter import (
 )
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
-    Phase6SettingsPanel, SettingsPanelExtensionResult,
+    Phase6SettingsPanel,
     setting_number_text as _setting_number_text,
     build_choice_menubutton,
 )
 from ui_text_scale import TextScaleController
 from ae_engine.assembly_joint import (
-    AssemblyJoint, AssemblyJointRelation, AssemblyJointSource, ResolvedAssemblyGraph,
+    AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
     sync_snapshot_intent_joints, migrate_legacy_snapshot_joints,
-    edge_relation_for_part, set_part_edge_relation,
+    edge_relation_for_part,
 )
 from ae_engine.assembly_intent import get_assembly_intent
 from ae_engine.sheetmetal_geometry import (
-    CornerTypeId, CornerTypeSelection, CrossCornerMode, CornerDirection,
+    CornerTypeId, CrossCornerMode, CornerDirection,
     FourCornerTypePolicy, EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
-    box_body_height_from_corner_policies,
 )
 
 from ae_engine.corner_type_ui import (
@@ -142,9 +131,8 @@ from phase6_endcap_semantics import (
     ASSEMBLY_TYPE_LABELS, ASSEMBLY_LABEL_TO_TYPE, ENDCAP_FW_PARTS,
     normalize_endcap_fw_state, resolve_endcap_fw, set_endcap_fw_follow, set_endcap_fw_override,
     commit_box_fw, commit_endcap_fw,
-    normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap, commit_endcap_bottom_wrap,
+    normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
     resolve_box_assembly_type, apply_box_assembly_type_to_raw_state, assembly_intent_value,
-    legacy_corner_projection_for_intent,
     selection_to_raw as _phase6_selection_to_raw,
     selection_from_raw as _phase6_selection_from_raw,
 )
@@ -170,44 +158,31 @@ from phase6_diagnostics import (
 )
 
 from phase6_final_scene_contracts import (
-    AssemblyScenePart,
     AssemblySceneRenderData,
-    FinalSceneDependencies,
     FinalSceneViewRequest,
 )
 from phase6_final_scene_projection import (
     make_assembly_scene_render_data as _project_assembly_scene_render_data,
     _phase6_profile_base_index,
     _phase6_profile_geometry,
-    _phase6_fold_mask_for_cross_coordinate,
     _phase6_profile_map_with_guides,
     _phase6_profile_map,
     _phase6_profile_flat_map,
     _phase6_folded_mesh_from_polygon,
     _phase6_fitted_limits_from_vertices,
-    _phase6_scene_fold_boundaries,
-    _phase6_profile_to_scene_boundaries,
     _phase6_fold_ownership_exemptions,
-    _phase6_folded_outside_envelope,
-    _phase6_profile_operator_fold_values,
     format_operator_info_text,
 )
 from phase6_final_scene_renderer import (
-    Phase6FinalSceneRenderer,
     Phase6FinalSceneView,
     _PHASE6_DEFAULT_VIEW,
     _PHASE6_ZOOM_MIN,
     _PHASE6_ZOOM_MAX,
-    _PHASE6_ZOOM_STEP,
 )
 from phase6_final_scene_view import (
-    Phase6FinalSceneViewAdapter,
-    _phase6_remove_original_bend_surfaces,
     _phase6_add_mesh_boundary_lines,
-    _phase6_draw_scene_bends,
     _phase6_draw_scene_markings,
     _phase6_configure_3d_only_figure,
-    _phase6_scale_current_3d_limits,
     _phase6_adjust_zoom_scale,
 )
 
@@ -1412,8 +1387,6 @@ from phase6_bending_ui import (
     Phase6BendingUI,
     resolve_profile_key as _phase6_resolve_profile_key,
     _phase6_box_symmetry_allowed,
-    _phase6_legacy_symmetry_widgets,
-    _phase6_set_legacy_symmetry_visibility,
     _phase6_apply_box_symmetry_policy,
 )
 
@@ -7336,7 +7309,6 @@ _PHASE6_RENDERING_DO_UPDATE = _fix11_do_update
 
 _PHASE6_FULL_UPDATE_REASONS = frozenset({"geometry", "assembly", "baseline"})
 _PHASE6_DISPLAY_UPDATE_REASONS = frozenset({"display", "annotation", "camera"})
-_PHASE6_ORCHESTRATION_DEBOUNCE_MS = 75
 
 def _phase6_publish_if_changed(self):
     return _phase6_publish_live_state(self)
