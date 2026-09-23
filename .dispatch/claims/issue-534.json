@@ -1,0 +1,26 @@
+{
+  "issue": 534,
+  "issue_url": "https://github.com/looaeedr/whd/issues/534",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-24T04:29:30+08:00",
+  "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
+  "head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T04:29:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "C2",
+  "parent_issue": 520,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run fixed-T0 baseline vs final candidate Headless/Xvfb A/B on accepted C1 closing head fb5443215b36e4ab6a5b2d57a72600e621df83d6, then required final gates and candidate-only diff classification.",
+  "blocker": null,
+  "lineage": {
+    "predecessor_issue": 533,
+    "predecessor_checkpoint_blob_sha": "7c08ac6eab513ea95cf801a0e311e2291f8fd755",
+    "accepted_parent_head": "fb5443215b36e4ab6a5b2d57a72600e621df83d6"
+  }
+}
