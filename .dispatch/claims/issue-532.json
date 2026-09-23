@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T15:57:20+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T15:59:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -19,21 +19,32 @@
       {
         "run_id": 35834404732,
         "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
-        "status": "in_progress",
-        "conclusion": null,
-        "purpose": "C0 normalization GREEN"
+        "status": "completed",
+        "conclusion": "failure",
+        "purpose": "C0 normalization GREEN",
+        "evidence": {
+          "compile_import": "GREEN",
+          "headless": "GREEN",
+          "xvfb": "1 failed, 34 passed, 1 skipped",
+          "failure": "tests/test_issue384_assembly_only_function_presentation.py::test_normal_and_assembly_content_share_same_left_content_owner"
+        }
       },
       {
         "run_id": 35834404782,
         "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9",
-        "status": "in_progress",
-        "conclusion": null,
-        "purpose": "C0 residual def audit"
+        "status": "completed",
+        "conclusion": "success",
+        "purpose": "C0 residual def audit",
+        "evidence": {
+          "zero_consumer_count": 0,
+          "compat_only_count": 25,
+          "runtime_consumer_count": 5
+        }
       }
     ],
     "head_sha": "ff4a0dc9476cbf4c164d1ca078e16d3c9dffb6a9"
   },
-  "next_action": "Poll exact C0 runs 35834404732 and 35834404782 to terminal; remediate any candidate-only failures immediately.",
+  "next_action": "Retire stale #384 wrapper-parent assertion per accepted #440/#527 direct-sibling contract; add #384 to C0 GREEN trigger; rerun exact GREEN.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
