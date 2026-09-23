@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T06:53:15+08:00",
   "base_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
   "head_sha": "d559e89a6aa48dbe2dab23597d73f03ae030aba4",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T07:05:48+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T07:10:55+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-RECOVERING-CLAIM-PHASE",
   "parent_issue": 534,
@@ -20,14 +20,26 @@
     "conclusion": "success",
     "workflow": "WHD｜#579｜RECOVERING claim 回歸"
   },
-  "next_action": "Create the guarded PR from governance/issue579-recovering-claim-phase-20260924 to cleanup/2d-3d-sync, validate exact PR head, merge non-force, fresh-read production HEAD, then complete owning finalization and return to #534.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35931787581,
-    "request_comment_id": 5804409746,
+    "run_id": 35932238778,
+    "request_comment_id": 5804464132,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
+  },
+  "integration": {
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
+    "pr": 580
+  },
+  "finalization": {
+    "run_id": 35932152195,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "fb8f0b2acef426aca3cf46de04cc5ca14ba8e1d6",
+    "checkpoint_fingerprint": "6b59298d72cadac85d49be7dcf9b6233e2d247496e5d76c4f095c56c448577a8"
   }
 }
