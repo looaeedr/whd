@@ -8,7 +8,7 @@
   "base_sha": "fe24fa024fe88467ec0432c803a6344148331d38",
   "head_sha": "39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T00:49:16+08:00",
+  "last_update": "2026-09-24T00:53:01+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-REOPENED-RELEASED-CLAIM-RECOVERY",
   "parent_issue": 560,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Audit tested head ae6a6506b267ef2f1811e5328435a2c0e1c6677b to closing head 39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6; if drift is only temporary workflow deletion, obtain fresh pr-write authority and merge PR #568 non-force.",
+  "next_action": "Write terminal success checkpoint for #567, obtain trusted finalization proof, close/readback #567, then release claim.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35888615088,
@@ -45,6 +45,18 @@
     "pr": 568,
     "cleanup_commit": "39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6",
     "cleanup_guard_run": 35891292647,
-    "cleanup_head_reconcile_guard_run": 35891363965
+    "cleanup_head_reconcile_guard_run": 35891363965,
+    "integration_claim_guard_run": 35891796273
+  },
+  "integration": {
+    "pr": 568,
+    "merge_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
+    "remote_qa_run_id": 35891064628,
+    "remote_qa_conclusion": "success",
+    "tested_head_sha": "ae6a6506b267ef2f1811e5328435a2c0e1c6677b",
+    "closing_head_sha": "39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6",
+    "drift": "temporary QA workflow deletion only"
   }
 }
