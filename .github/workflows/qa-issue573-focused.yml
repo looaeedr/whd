@@ -1,0 +1,32 @@
+name: WHD｜#573｜Sibling Scheduler 接手 focused 驗收
+run-name: "WHD｜#573｜Sibling Scheduler 接手 RED/GREEN"
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - tools/stale_claim_takeover.py
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue573_sibling_scheduler_takeover.py
+      - .github/workflows/whd-remote-execution-guard.yml
+      - .github/workflows/qa-issue573-focused.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#573 Sibling Scheduler lane 語意"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "取出 PR 程式碼"
+        uses: actions/checkout@v4
+      - name: "設定 Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "安裝 pytest"
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: "執行 #573 focused 測試"
+        run: python -m pytest -q tests/process/test_issue573_sibling_scheduler_takeover.py tests/process/test_issue540_stale_claim_takeover.py
