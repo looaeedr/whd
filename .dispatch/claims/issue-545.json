@@ -8,22 +8,35 @@
   "base_sha": "f7179554c448a4af5b271d251290912efe115a38",
   "head_sha": "54797c37b1cdae0c6b05cff3f7f0c71fa7f8e9db",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T11:50:00+08:00",
+  "last_update": "2026-09-23T11:52:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "parent_issue": 531,
   "task_id": "B6-5",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue545-b6-5-xvfb-baseline-20260923"
+  ],
   "remote_qa": {
     "run_id": 35815867302,
     "head_sha": "54797c37b1cdae0c6b05cff3f7f0c71fa7f8e9db",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "B6-5 final GREEN: facade contracts + 10 affected Xvfb caller files + architecture count",
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "B6-5 final GREEN candidate",
+    "evidence": {
+      "headless": "GREEN",
+      "xvfb": "11 failed / 49 passed",
+      "architecture": "skipped"
+    },
     "audit_run": 35811547955,
-    "replacement_red_run": 35811700857
+    "replacement_red_run": 35811700857,
+    "baseline_run": {
+      "run_id": 35816036734,
+      "head_sha": "d90d835545944a29181ed3bcd30bc43facb42a91",
+      "status": "queued",
+      "purpose": "same affected Xvfb suite on parent accepted HEAD f7179554"
+    }
   },
-  "next_action": "Poll exact RUN 35815867302 to terminal; on Xvfb RED classify candidate-only delta before remediation.",
+  "next_action": "Poll baseline RUN 35816036734, compare exact failing node IDs with candidate RUN 35815867302, then remediate only candidate-only failures.",
   "blocker": null
 }
