@@ -8,7 +8,7 @@
   "base_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
   "head_sha": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T01:42:03+08:00",
+  "last_update": "2026-09-24T01:44:18+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-HEAD-CLAIM-RECONCILIATION",
   "parent_issue": 557,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Guard-merge PR #571 at cleaned HEAD 9e2ef76f9b8737c3add5289953fbcd693417d0db, read back cleanup/2d-3d-sync, write terminal checkpoint, run trusted finalization, then return to parent #557.",
+  "next_action": "Write terminal checkpoint for #570 with NEXT_CHILD_EXECUTABLE back to #557, obtain trusted finalization proof, close/readback #570, release claim, then resume #557.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35895253007,
@@ -51,6 +51,18 @@
       "tested_head": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
       "closing_head": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
       "only_change": ".github/workflows/qa-issue570-focused.yml removed"
-    }
+    },
+    "integration_claim_guard_run": 35897629251
+  },
+  "integration": {
+    "pr": 571,
+    "merge_sha": "7b3e8997ca651b0e9c85220506faf7151c8a2133",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "7b3e8997ca651b0e9c85220506faf7151c8a2133",
+    "remote_qa_run_id": 35896635565,
+    "remote_qa_conclusion": "success",
+    "tested_head_sha": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
+    "closing_head_sha": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
+    "drift": "temporary QA workflow deletion only"
   }
 }
