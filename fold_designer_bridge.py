@@ -393,18 +393,6 @@ PART_LABELS = {
 KNOWN_PARTS = tuple(PART_LABELS)
 
 
-def _phase6_is_door_part_key(value) -> bool:
-    key = str(value or "")
-    return key == "door" or re.fullmatch(r"door_c\d+_r\d+", key) is not None
-
-
-def _phase6_is_base_plate_part_key(value) -> bool:
-    key = str(value or "")
-    return key == "base_plate" or re.fullmatch(r"base_plate_c\d+_r\d+", key) is not None
-
-
-
-
 def normalize_part_selection(part_keys, active_part=None):
     """Preserve the Phase6 part order and choose a safe initial part.
 
@@ -899,82 +887,6 @@ def _phase6_final_scene_renderer(self):
         number_text=_setting_number_text
     )
 
-def _phase6_final_scene_scene_query(self, key, payload):
-    callback = getattr(self, "_scene_query_callback", None)
-    if callback is None:
-        raise RuntimeError("3D final-scene provider is not connected")
-    return callback(key, payload)
-
-
-def _phase6_final_scene_corner_text_sink(self, values):
-    values = {str(key): str(value) for key, value in dict(values or {}).items()}
-    # Retain the fixed-root compatibility snapshot; Tk mutation is panel-owned.
-    self._phase6_last_assembly_corner_dimension_texts = dict(values)
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        owner.set_corner_texts(values)
-
-
-def _phase6_final_scene_operator_dimensions(self, part_key=None):
-    """Call the operator-dimension provider across legacy/new callable shapes."""
-    provider = _phase6_operator_finished_dimensions
-    try:
-        import inspect
-        parameters = tuple(inspect.signature(provider).parameters.values())
-        positional = tuple(
-            p for p in parameters
-            if p.kind in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            )
-        )
-        accepts_varargs = any(
-            p.kind is inspect.Parameter.VAR_POSITIONAL
-            for p in parameters
-        )
-    except (TypeError, ValueError):
-        positional = ()
-        accepts_varargs = True
-
-    if part_key is None or (not accepts_varargs and len(positional) <= 1):
-        return provider(self)
-    return provider(self, part_key)
-
-
-def _phase6_final_scene_part_text_sink(self, kind, part_key, value):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        owner.set_part_text(kind, part_key, value)
-
-
-def _phase6_final_scene_visibility(self, parts):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        return owner.resolve_visibility(parts)
-    # Construction-time fail-safe: preserve fixed-root missing-var defaults
-    # without creating a second visibility store in Bridge.
-    return Phase6AssemblyPanel._resolve_visibility_with_vars(parts, {}, {})
-
-
-def _phase6_final_scene_render_committed(self):
-    if not getattr(self, "preview_3d_enabled", True):
-        return None
-    canvas = self.renderer.canvas
-    draw = getattr(canvas, "draw", None)
-    draw_idle = getattr(canvas, "draw_idle", None)
-    if (
-        callable(draw)
-        and callable(draw_idle)
-        and not getattr(self, "_phase6_force_sync_preview", False)
-    ):
-        canvas.draw = draw_idle
-        try:
-            return self.renderer.render()
-        finally:
-            canvas.draw = draw
-    return self.renderer.render()
-
-
 def _phase6_final_scene_set_preview_enabled(self, enabled):
     enabled = bool(enabled)
     self.preview_3d_enabled = enabled
@@ -989,16 +901,6 @@ def _phase6_final_scene_set_preview_enabled(self, enabled):
     elif widget.winfo_manager() == "pack":
         widget.pack_forget()
     return enabled
-
-
-def _phase6_final_scene_refresh_preview(self):
-    if not getattr(self, "preview_3d_enabled", True):
-        return _phase6_final_scene_set_preview_enabled(self, True)
-    self._phase6_force_sync_preview = True
-    try:
-        return self.submit_update_intent("display", commit=True)
-    finally:
-        self._phase6_force_sync_preview = False
 
 
 def _phase6_final_scene_adapter(self):
@@ -1578,13 +1480,6 @@ class Phase6FoldDesignerApp(original.MainApp):
 # FIX11 multi-part bundle helpers. These adapt data only; original Renderer is
 # deliberately untouched.
 # ---------------------------------------------------------------------------
-
-def _profile_value(profile, key, default=0):
-    for seg in profile or ():
-        if seg.get("phase6_key") == key:
-            return _ui_len(seg.get("len"))
-    return _ui_len(default)
-
 
 def read_standard_part_profiles(part_key, profiles, original_snapshot):
     """Compatibility wrapper for adapter-owned standard profile reverse mapping."""
@@ -2440,51 +2335,6 @@ def _phase6_build_project_snapshot(self):
         final_geometry=final_geometry,
     )
 
-def _phase6_save_diagnostic_file(self):
-    """儲存 staged 折彎診斷工作區，但不提交 main GUI transaction。"""
-    from tkinter import filedialog, messagebox
-
-    if getattr(self, "_phase6_pending_settings", None):
-        try:
-            self.flush_pending_settings()
-        except Exception:
-            pass
-    try:
-        self._save_current_part(notify=False)
-    except Exception:
-        pass
-
-    model_var = getattr(self, "baseline_model_var", None)
-    model = str(model_var.get() if model_var is not None else "").strip() or "自訂"
-    part = PART_LABELS.get(getattr(self, "active_part_key", None), "工作區")
-    safe_model = "".join(ch if ch not in '\\/:*?"<>|' else "_" for ch in model)
-    initial = f"Phase6折彎_{safe_model}_{part}.json"
-    path = filedialog.asksaveasfilename(
-        parent=self.root,
-        title="存檔：折彎診斷工作檔",
-        defaultextension=".json",
-        filetypes=[("Phase6 折彎診斷 JSON", "*.json"), ("所有檔案", "*.*")],
-        initialfile=initial,
-    )
-    if not path:
-        return None
-    try:
-        target = Phase6ProjectController.write_diagnostic(
-            path,
-            _phase6_build_diagnostic_snapshot(self),
-            _phase6_write_diagnostic_json,
-        )
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(
-                f"已存檔：{Path(target).name}（未提交主畫面）"
-            )
-        return target
-    except Exception as exc:
-        messagebox.showerror(
-            "存檔失敗", f"無法儲存折彎診斷檔：\n{exc}", parent=self.root
-        )
-        return None
-
 def _phase6_load_project_file(self):
     """透過 parent GUI 載入 .p6fold，並建立新的 3D 工作區。"""
     from tkinter import filedialog, messagebox
@@ -2750,12 +2600,6 @@ def _phase6_box_structure_error(self, exc):
     var = getattr(self, "settings_status_var", None)
     if var is not None:
         var.set(f"箱身結構設定無效：{exc}")
-
-
-def _phase6_toggle_box_structure_lock(self):
-    state = _phase6_box_structure_state(self)
-    committed = _phase6_settings_transactions(self).toggle_box_structure_lock(state)
-    _phase6_after_box_structure_commit(self, committed, rebuild=True)
 
 
 def _phase6_select_box_structure_type(self, var):
@@ -3680,11 +3524,6 @@ def _phase6_settings_panel_toggle_baseline(self):
     _phase6_sync_settings_panel_compat(self)
 
 
-def _phase6_settings_panel_toggle_advanced(self):
-    self.settings_panel.toggle_advanced()
-    _phase6_sync_settings_panel_compat(self)
-
-
 def _phase6_invalidate_settings_page(self, context):
     self.settings_panel.invalidate_context(str(context))
     _phase6_sync_settings_panel_compat(self)
@@ -3710,14 +3549,6 @@ def _phase6_render_settings_context(self, context):
         return page
     finally:
         self._phase6_settings_rendering = False
-
-
-def _phase6_show_global_settings(self):
-    # Backwards-compatible API: global controls now live permanently at left.
-    if hasattr(self, "settings_status_var"):
-        self.settings_status_var.set("全域設定固定在左側")
-    return getattr(self, "left_global_controls", None)
-
 
 
 def _phase6_save_current_settings_as_defaults(self):
@@ -4232,11 +4063,6 @@ def _phase6_registry_candidate_form_is_current(self):
         return False
     return _phase6_registry_diagnostics(self).candidate_is_current(current)
 
-def _phase6_registry_require_current_candidate(self):
-    return _phase6_registry_diagnostics(self).require_current_candidate(
-        _phase6_registry_collect_rule_form(self)
-    )
-
 def _phase6_registry_save_candidate_form(self):
     from ae_engine.certified_relief_registry import save_relief_rule_candidate
     result = _phase6_registry_validate_formula_form(self)
@@ -4595,12 +4421,6 @@ def _phase6_build_project_toolbar(self, parent=None):
     _phase6_apply_workspace_shell_bindings(self, owner)
     return result
 
-def _phase6_build_transaction_buttons(self, parent=None):
-    owner = _phase6_workspace_shell_owner(self)
-    result = owner.build_transaction_buttons(parent)
-    _phase6_apply_workspace_shell_bindings(self, owner)
-    return result
-
 def _phase6_hide_original_visual_controls(root_widget):
     for child in root_widget.winfo_children():
         try:
@@ -4617,12 +4437,6 @@ def _phase6_hide_original_visual_controls(root_widget):
     return False
 
 
-def _phase6_build_visual_controls(self, parent):
-    owner = _phase6_workspace_shell_owner(self)
-    result = owner.build_visual_controls(parent)
-    _phase6_apply_workspace_shell_bindings(self, owner)
-    return result
-
 def _phase6_toggle_fullscreen(self):
     enabled, geometry = _workspace_shell_toggle_fullscreen(
         self.root,
@@ -4633,12 +4447,6 @@ def _phase6_toggle_fullscreen(self):
     self._phase6_fullscreen = bool(enabled)
     self._phase6_restore_geometry = geometry
     return self._phase6_fullscreen
-
-def _phase6_build_global_persistent_controls(self):
-    owner = _phase6_workspace_shell_owner(self)
-    result = owner.build_global_persistent_controls()
-    _phase6_apply_workspace_shell_bindings(self, owner)
-    return result
 
 def _phase6_refresh_sticky_structure_tree(self):
     """Keep the retired Structure Tree compatibility object out of operator layout.
@@ -4685,12 +4493,6 @@ def _phase6_export_selected_dxf_from_3d(self):
         getattr(self, "_phase6_export_selected_dxf_callback", None),
         self.flush_pending_settings,
     )
-
-def _phase6_build_output_controls(self, parent=None):
-    owner = _phase6_workspace_shell_owner(self)
-    result = owner.build_output_controls(parent)
-    _phase6_apply_workspace_shell_bindings(self, owner)
-    return result
 
 def _phase6_workspace_shell_owner(self):
     owner = getattr(self, "_phase6_workspace_shell_owner", None)
@@ -4868,34 +4670,9 @@ def _phase6_make_assembly_scene_render_data(
         render_data_cls=AssemblySceneRenderData,
     )
 
-def _phase6_refresh_box_body_piece_info_rows(self, render_data) -> None:
-    """Compatibility delegate to the Phase 5 Assembly panel owner."""
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is None:
-        return ()
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    return owner.refresh_box_body_piece_info(
-        render_data,
-        label_for=lambda key: _phase6_part_label(key, snapshot=snapshot),
-        number_text=_setting_number_text,
-        corner_text_for_render_data=_phase6_render_data_corner_dimension_text,
-    )
-
-
 def _phase6_query_assembly_render_data(self):
     """Compatibility delegate to authoritative T6 assembly projection."""
     return _phase6_final_scene_adapter(self).query_assembly_render_data()
-
-
-def _phase6_assembly_unfolded_blank_text(render_data, *, snapshot=None):
-    rows = []
-    for part in tuple(getattr(render_data, "assembly_parts", ()) or ()):
-        text = _phase6_format_unfolded_blank_text(part.render_data, part_key=part.part_key)
-        if text.startswith("展開料："):
-            text = text[len("展開料："):]
-        rows.append(f"{_phase6_part_label(part.part_key, snapshot=snapshot)}：{text}")
-    return "展開尺寸：\n" + "\n".join(rows) if rows else "展開尺寸：-"
-
 
 
 def _phase6_final_scene_view_request(self):
@@ -4999,14 +4776,6 @@ def _phase6_render_data_for_blank(self, part_key=None):
     return callback(key, _phase6_scene_query_payload_for_part(self, key))
 
 
-def _phase6_format_formed_size_text(
-    render_data,
-    *,
-    part_key: str = "",
-    x_profile=(),
-    y_profile=(),
-    thickness: float = 0.0,
-    finished_dimensions=(),
 ) -> str:
     """Format already-authoritative formed dimensions; never reconstruct geometry."""
     dimensions = tuple(finished_dimensions or ())
@@ -5040,25 +4809,6 @@ def _phase6_current_unfolded_size(self, part_key=None):
         part_key=key,
         measurer=measure_unfolded_blanks,
     )
-
-def _phase6_update_unfolded_size_label(self):
-    var = getattr(self, "unfolded_size_var", None)
-    if var is None:
-        return
-    key = str(getattr(getattr(self, "designer_workspace", None), "active_part", "") or "")
-    try:
-        if getattr(self, "_phase6_initializing", False):
-            # The authoritative startup render already attempted the canonical
-            # manufacturing resolve. Annotation must consume that committed
-            # result if available; it must not start a second startup solve.
-            resolved = getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-            render_data = resolved.part(key).render_data if (resolved is not None and key) else None
-        else:
-            render_data = _phase6_render_data_for_blank(self, key) if key else None
-    except Exception:
-        render_data = None
-    var.set(_phase6_format_unfolded_blank_text(render_data, part_key=key))
-
 
 _PHASE6_DEFAULT_VIEW = (50.0, -90.0)
 
@@ -5121,22 +4871,6 @@ def _phase6_create_relief_promotion_candidates(self):
         else:
             status_var.set("認證候選：目前沒有已驗證的立體暫定結果")
     return candidates
-
-def _phase6_selected_joint_diagnostic(self):
-    resolved = getattr(
-        self, "_phase6_last_resolved_manufacturing_geometry", None
-    )
-    joint_id = str(
-        getattr(
-            getattr(self, "assembly_joint_diag_var", None),
-            "get",
-            lambda: "",
-        )()
-        or ""
-    )
-    return _phase6_registry_diagnostics(self).selected_diagnostic(
-        resolved, joint_id
-    )
 
 def _phase6_update_assembly_diagnostic_status(self):
     status_var = getattr(self, "assembly_collision_status_var", None)
@@ -5302,12 +5036,6 @@ def _phase6_scroll_assembly_parts(self, event):
     return owner.scroll(event) if owner is not None else "break"
 
 
-def _phase6_bind_assembly_scroll(widget, self):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    if owner is not None:
-        owner.bind_scroll(widget)
-
-
 _phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
@@ -5332,31 +5060,6 @@ def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
 def _phase6_set_assembly_part_details_open(self, key, is_open):
     owner = getattr(self, "_phase6_assembly_panel_owner", None)
     return owner.set_part_details_open(key, is_open) if owner is not None else False
-
-
-def _phase6_toggle_assembly_part_details(self, key):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.toggle_part_details(key) if owner is not None else False
-
-
-def _phase6_set_assembly_presentation_group_open(self, key, is_open):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.set_group_open(key, is_open) if owner is not None else False
-
-
-def _phase6_toggle_assembly_presentation_group(self, key):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.toggle_group(key) if owner is not None else False
-
-
-def _phase6_set_box_body_piece_details_open(self, key, is_open):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.set_box_piece_details_open(key, is_open) if owner is not None else False
-
-
-def _phase6_toggle_box_body_piece_details(self, key):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.toggle_box_piece_details(key) if owner is not None else False
 
 
 def _phase6_refresh_assembly_parts_panel(self):
