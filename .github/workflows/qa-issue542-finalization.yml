@@ -50,3 +50,5 @@ jobs:
           path: issue-542.finalization-proof.json
           if-no-files-found: error
           retention-days: 14
+
+# replacement after checkpoint schema fix
