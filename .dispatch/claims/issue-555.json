@@ -7,13 +7,10 @@
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T17:36:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T17:38:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
-  "delegated_branches": [
-    "qa/issue555-finalization-20260923",
-    "qa/issue555-finalization-v2-20260923"
-  ],
+  "delegated_branches": [],
   "remote_qa": {
     "run_id": 35820582387,
     "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
@@ -27,7 +24,7 @@
       "tested_to_cleaned_drift": "temporary QA workflow deletion only"
     }
   },
-  "next_action": "Use fresh delegated v2 finalization branch from owner HEAD; run finalization proof, canonical cleanup of v1+v2 refs, close/readback #555, then RELEASE claim.",
+  "next_action": null,
   "blocker": null,
   "pr": {
     "number": 556,
@@ -70,5 +67,20 @@
     "classification": "WORKFLOW_YAML_PARSE_FAILURE",
     "mutation_started": false,
     "issue_closed": false
+  },
+  "closure": {
+    "finalization_run_id": 35844008637,
+    "finalization_head_sha": "9cdefcb7b8a34c4f01f62440313d348b0b917196",
+    "finalization_conclusion": "success",
+    "finalization_proof_artifact_id": 10741524966,
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-23T09:37:26Z",
+    "production_head": "75eaffac799d0dcf164a135591ec00754969fcc6",
+    "qa_branches_cleaned": [
+      "qa/issue555-finalization-20260923",
+      "qa/issue555-finalization-v2-20260923"
+    ],
+    "result": "ISSUE555_FINALIZATION_GREEN"
   }
 }
