@@ -1,0 +1,223 @@
+name: WHD｜#532｜C0 Import Alias 消費者稽核
+run-name: "WHD｜#532｜C0 Import Alias 消費者稽核｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue532-c0-import-alias-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: C0 unused import / direct alias repo-wide 稽核
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 掃描 bridge import / alias 外部 consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue532
+          python - <<'PY' | tee /tmp/issue532/import-alias-audit.log
+          from __future__ import annotations
+          import ast, json, subprocess
+          from pathlib import Path
+
+          bridge=Path("fold_designer_bridge.py")
+          source=bridge.read_text(encoding="utf-8")
+          tree=ast.parse(source)
+
+          loads={}
+          for node in ast.walk(tree):
+              if isinstance(node,ast.Name) and isinstance(node.ctx,ast.Load):
+                  loads[node.id]=loads.get(node.id,0)+1
+
+          imports=[]
+          for node in tree.body:
+              if isinstance(node,ast.Import):
+                  for a in node.names:
+                      bound=a.asname or a.name.split(".")[0]
+                      if loads.get(bound,0)==0:
+                          imports.append({
+                              "kind":"import","module":a.name,"name":a.name,
+                              "bound":bound,"line":node.lineno,
+                          })
+              elif isinstance(node,ast.ImportFrom):
+                  for a in node.names:
+                      bound=a.asname or a.name
+                      if loads.get(bound,0)==0:
+                          imports.append({
+                              "kind":"from","module":node.module or "",
+                              "name":a.name,"bound":bound,"line":node.lineno,
+                          })
+          imports=[
+              row for row in imports
+              if not (row["module"]=="__future__" and row["name"]=="annotations")
+          ]
+
+          aliases=[]
+          for node in tree.body:
+              if (
+                  isinstance(node,ast.Assign)
+                  and len(node.targets)==1
+                  and isinstance(node.targets[0],ast.Name)
+                  and isinstance(node.value,ast.Name)
+              ):
+                  name=node.targets[0].id
+                  target=node.value.id
+                  aliases.append({
+                      "name":name,"target":target,"line":node.lineno,
+                      "local_load_count":loads.get(name,0),
+                  })
+
+          tracked=[
+              Path(p.decode("utf-8","surrogateescape"))
+              for p in subprocess.check_output(["git","ls-files","-z"]).split(b"\0")
+              if p
+          ]
+
+          candidates={row["bound"] for row in imports}|{row["name"] for row in aliases}
+          refs={name:[] for name in candidates}
+          unreadable=[]
+
+          def category(path):
+              s=path.as_posix()
+              if s.startswith("tests/"): return "tests"
+              if s.startswith("tools/"): return "tools"
+              if s.startswith(".agents/"): return "skills"
+              if s.startswith("docs/") or s.startswith("logs/") or s.startswith(".dispatch/"):
+                  return "docs_evidence"
+              return "production"
+
+          for path in tracked:
+              s=path.as_posix()
+              if path==bridge or not s.endswith(".py"):
+                  continue
+              if s.startswith("BACKUP/") or s.startswith("基準檔/"):
+                  continue
+              try:
+                  text=path.read_text(encoding="utf-8")
+                  mod=ast.parse(text,filename=s)
+              except Exception as exc:
+                  unreadable.append({"path":s,"error":type(exc).__name__})
+                  continue
+
+              module_aliases=set()
+              for node in ast.walk(mod):
+                  if isinstance(node,ast.Import):
+                      for a in node.names:
+                          if a.name=="fold_designer_bridge":
+                              module_aliases.add(a.asname or "fold_designer_bridge")
+                  elif isinstance(node,ast.ImportFrom) and node.module=="fold_designer_bridge":
+                      for a in node.names:
+                          if a.name in candidates:
+                              refs[a.name].append({
+                                  "path":s,"line":node.lineno,
+                                  "kind":"from_import","category":category(path),
+                              })
+
+              for node in ast.walk(mod):
+                  if (
+                      isinstance(node,ast.Attribute)
+                      and isinstance(node.value,ast.Name)
+                      and node.value.id in module_aliases
+                      and node.attr in candidates
+                  ):
+                      refs[node.attr].append({
+                          "path":s,"line":node.lineno,
+                          "kind":"module_attribute","category":category(path),
+                      })
+                  if (
+                      isinstance(node,ast.Call)
+                      and isinstance(node.func,ast.Name)
+                      and node.func.id in {"getattr","hasattr","setattr"}
+                      and len(node.args)>=2
+                      and isinstance(node.args[0],ast.Name)
+                      and node.args[0].id in module_aliases
+                      and isinstance(node.args[1],ast.Constant)
+                      and isinstance(node.args[1].value,str)
+                      and node.args[1].value in candidates
+                  ):
+                      refs[node.args[1].value].append({
+                          "path":s,"line":node.lineno,
+                          "kind":"dynamic_exact","category":category(path),
+                      })
+
+          def classify(name):
+              ev=refs[name]
+              prod=[r for r in ev if r["category"]=="production"]
+              tests=[r for r in ev if r["category"]=="tests"]
+              tools=[r for r in ev if r["category"]=="tools"]
+              dyn=[r for r in ev if r["kind"]=="dynamic_exact"]
+              if prod or dyn:
+                  decision="RETAIN_RUNTIME_REEXPORT"
+              elif tests or tools:
+                  decision="MIGRATE_TEST_TOOL_COMPAT"
+              else:
+                  decision="DELETE_ZERO_EXTERNAL_CONSUMER"
+              return decision,prod,tests,tools,dyn
+
+          import_rows=[]
+          for row in imports:
+              decision,prod,tests,tools,dyn=classify(row["bound"])
+              item={**row,"decision":decision,"production_refs":prod,
+                    "test_refs":tests,"tool_refs":tools,"dynamic_refs":dyn}
+              import_rows.append(item)
+
+          alias_rows=[]
+          for row in aliases:
+              decision,prod,tests,tools,dyn=classify(row["name"])
+              if row["local_load_count"]>0 and decision=="DELETE_ZERO_EXTERNAL_CONSUMER":
+                  decision="REPLACE_LOCAL_USES_THEN_DELETE_ALIAS"
+              item={**row,"decision":decision,"production_refs":prod,
+                    "test_refs":tests,"tool_refs":tools,"dynamic_refs":dyn}
+              alias_rows.append(item)
+
+          report={
+              "schema":"WHD_ISSUE532_C0_IMPORT_ALIAS_AUDIT_V1",
+              "head_sha":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+              "bridge_loc":len(source.splitlines()),
+              "unreadable_current_python":unreadable,
+              "unused_imports":import_rows,
+              "direct_aliases":alias_rows,
+          }
+          Path("/tmp/issue532/import-alias-audit.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8"
+          )
+
+          print("C0_UNUSED_IMPORT_COUNT="+str(len(import_rows)))
+          for row in import_rows:
+              print("C0_IMPORT="+json.dumps({
+                  "bound":row["bound"],"module":row["module"],"name":row["name"],
+                  "line":row["line"],"decision":row["decision"],
+                  "prod":len(row["production_refs"]),"tests":len(row["test_refs"]),
+                  "tools":len(row["tool_refs"]),"dynamic":len(row["dynamic_refs"]),
+              },ensure_ascii=False,sort_keys=True))
+          print("C0_DIRECT_ALIAS_COUNT="+str(len(alias_rows)))
+          for row in alias_rows:
+              print("C0_ALIAS="+json.dumps({
+                  "name":row["name"],"target":row["target"],"line":row["line"],
+                  "local_load_count":row["local_load_count"],"decision":row["decision"],
+                  "prod":len(row["production_refs"]),"tests":len(row["test_refs"]),
+                  "tools":len(row["tool_refs"]),"dynamic":len(row["dynamic_refs"]),
+              },ensure_ascii=False,sort_keys=True))
+          print("C0_UNREADABLE_CURRENT_PYTHON="+str(len(unreadable)))
+          print("ISSUE532_C0_IMPORT_ALIAS_AUDIT=GREEN")
+          PY
+
+      - name: 上傳 audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-c0-import-alias-audit
+          path: /tmp/issue532/
+          if-no-files-found: error
+          retention-days: 14
