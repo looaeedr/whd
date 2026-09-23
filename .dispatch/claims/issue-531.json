@@ -8,7 +8,7 @@
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
   "head_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T12:41:30+08:00",
+  "last_update": "2026-09-23T12:40:25+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,25 +17,14 @@
     "qa/issue531-finalization-20260923"
   ],
   "remote_qa": {
-    "run_id": 35818980516,
-    "head_sha": "bdf189cd402b4a33a67c6f9d279549bcc34be0bd",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B6 controller 69/69 aggregate acceptance",
-    "evidence": {
-      "facade_accounted": 69,
-      "unclassified": 0,
-      "dynamic_ref_unreviewed": 0,
-      "facade_baseline": 69,
-      "facade_final": 45,
-      "facade_removed": 24,
-      "focused": "46 passed",
-      "reverse_bridge_imports": 0,
-      "second_composition_root": 0,
-      "artifact_id": 10732303057
-    }
+    "run_id": 35819270968,
+    "head_sha": "fc8ab53bd10ab19f360ca4a6a3e61e8fa01c9b51",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B6 controller executable finalization proof",
+    "owner_closing_head": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3"
   },
-  "next_action": "Create delegated qa/issue531-finalization-20260923 from exact closing HEAD 64c930fd9d520cf55e365dc24ee027abc9e0e1a3, run continuity finalization proof, close #531, release claim, then atomically claim #532/C0.",
+  "next_action": "Poll exact finalization run 35819270968 to terminal; on success close #531, release claim, then atomically claim #532/C0 from accepted HEAD 64c930fd9d520cf55e365dc24ee027abc9e0e1a3.",
   "blocker": null,
   "child_chain": {
     "final_batch_issue": 546,
