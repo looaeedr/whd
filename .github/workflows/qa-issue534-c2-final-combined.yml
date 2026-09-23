@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - work/issue520-phase6-bridge-residual-reduction-20260923
-    paths:
-      - '.github/workflows/qa-issue534-c2-final-combined.yml'
 
 permissions:
   contents: read
@@ -18,7 +16,7 @@ concurrency:
 
 env:
   T0_SHA: adbfa95092a35183b3b64d0d38ea8cb68be64b65
-  CANDIDATE_SHA: fb5443215b36e4ab6a5b2d57a72600e621df83d6
+  CANDIDATE_SHA: ${{ github.sha }}
 
 jobs:
   ab:
@@ -34,7 +32,7 @@ jobs:
             mode: headless
             report: baseline-headless.xml
           - label: 候選｜Headless
-            ref: fb5443215b36e4ab6a5b2d57a72600e621df83d6
+            ref: ${{ github.sha }}
             mode: headless
             report: candidate-headless.xml
           - label: 基準｜Xvfb
@@ -42,7 +40,7 @@ jobs:
             mode: xvfb
             report: baseline-xvfb.xml
           - label: 候選｜Xvfb
-            ref: fb5443215b36e4ab6a5b2d57a72600e621df83d6
+            ref: ${{ github.sha }}
             mode: xvfb
             report: candidate-xvfb.xml
     steps:
