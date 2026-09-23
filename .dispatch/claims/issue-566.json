@@ -7,13 +7,22 @@
   "claimed_at": "2026-09-24T00:04:30+08:00",
   "base_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
   "head_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T00:04:30+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T00:06:30+08:00",
   "production_target": "main",
   "task_id": "GOV-REMOTE-GUARD-SELF-DISPATCH",
   "parent_issue": 562,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Guard branch creation from fresh main, add RED contract for purpose-bound self-consumed workflow-dispatch, implement the narrow Remote Guard consume path, validate, and integrate to main.",
-  "blocker": null
+  "next_action": null,
+  "blocker": "SUPERSEDED_BY_ISSUE_564: the scheduler independently implemented the narrower fixed Issue-comment transport for WHD Remote Finalization, merged it to main, and produced a successful E2E finalization run. No production implementation from #566 is required.",
+  "progress": {
+    "branch_create_guard_run": 35886187885,
+    "branch_created_at_head": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+    "release_guard_run": 35886366827,
+    "superseded_by_issue": 564,
+    "superseding_merge_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+    "superseding_e2e_finalization_run": 35886203420,
+    "production_mutation_performed": false
+  }
 }
