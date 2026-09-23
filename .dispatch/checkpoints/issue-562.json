@@ -13,8 +13,8 @@
     "Code-state acceptance is complete; process closure still requires trusted WHD Remote Finalization machine proof."
   ],
   "master_issue": 560,
-  "chain_state": "NEXT_CHILD_BLOCKED",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 560,
   "chain_next_action": "After #562 receives valid WHD_REMOTE_FINALIZATION_RECEIPT_V1 and closes/releases, resume parent #560 to finish integration/acceptance and repair reopened #558.",
-  "chain_reason": "Current execution runtime lacks a GitHub workflow_dispatch mutation primitive; do not substitute marker-only proof."
+  "chain_reason": "Trusted WHD Remote Finalization issue-comment transport is available on main; after #562 closes, resume parent #560."
 }
