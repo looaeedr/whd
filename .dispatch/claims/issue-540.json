@@ -8,7 +8,7 @@
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
   "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T09:36:00+08:00",
+  "last_update": "2026-09-23T09:41:30+08:00",
   "production_target": "main",
   "delegated_branches": [
     "qa/issue540-finalization-proof-20260923"
@@ -247,8 +247,8 @@
   "runtime_lease": {
     "schema": "WHD_RUNTIME_LEASE_V1",
     "holder": "chatgpt_interactive",
-    "renewed_at": "2026-09-23T09:36:00+08:00",
-    "expires_at": "2026-09-23T09:46:00+08:00",
+    "renewed_at": "2026-09-23T09:41:30+08:00",
+    "expires_at": "2026-09-23T09:51:30+08:00",
     "purpose": "active interactive execution; scheduler must not take over while unexpired"
   }
 }
