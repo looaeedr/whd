@@ -6,36 +6,31 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "1bbb4784c6c67da585a891b7e0f1bfa0d1f974ae",
+  "head_sha": "ec412eb4f0c67f98c68b2c4c763d3095ad624c64",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T18:36:55+08:00",
+  "last_update": "2026-09-23T18:44:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35849655161,
-    "head_sha": "1bbb4784c6c67da585a891b7e0f1bfa0d1f974ae",
+    "run_id": 35850499023,
+    "head_sha": "ec412eb4f0c67f98c68b2c4c763d3095ad624c64",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "C0 GREEN after stale ownership-oracle retirement",
+    "purpose": "Fresh C0 surface census",
     "evidence": {
       "bridge_loc": 6782,
-      "headless": "94 passed / 18 skipped",
-      "xvfb": "47 passed / 1 skipped",
-      "facade_count": 45,
-      "zero_consumer_wrappers_removed": 41
-    },
-    "residual_audit": {
-      "run_id": 35843797923,
-      "compat_only_count": 0,
-      "zero_consumer_count": 0,
-      "runtime_consumer_count": 5,
-      "runtime_consumer_span": 39
+      "total_reduction": 1024,
+      "remaining_reduction_to_min": 0,
+      "over_ceiling_by": 282,
+      "unused_import_candidates": 56,
+      "direct_alias_candidates": 9,
+      "dead_literal_constant_candidates": 0
     }
   },
-  "next_action": "Run fresh C0 surface census at 6782 LOC for unused imports/direct aliases/dead constants. If insufficient for remaining 282 LOC, normalize only already-decided owner projection sections; no code-golf or helper monolith.",
+  "next_action": "Normalize existing application composition wiring into the single Phase6FoldDesignerComposition root; retain thin bridge delegates; update C0 GREEN to read EFFECTIVE_FINAL_CEILING from A0 budget and rerun full C0 GREEN.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
