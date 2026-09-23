@@ -1,0 +1,75 @@
+{
+  "schema": "WHD_ISSUE531_B6_CONTROLLER_AGGREGATE_V1",
+  "issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "accepted_head_before_cleanup": "bdf189cd402b4a33a67c6f9d279549bcc34be0bd",
+  "source_inventory": {
+    "issue": 521,
+    "path": "docs/superpowers/checkpoints/issue521-a0-residual-ownership-census.json",
+    "facade_count": 69
+  },
+  "batches": [
+    {
+      "issue": 541,
+      "accounted": 12,
+      "facade_before": 69,
+      "facade_after": 65
+    },
+    {
+      "issue": 542,
+      "accounted": 12,
+      "facade_before": 65,
+      "facade_after": 64
+    },
+    {
+      "issue": 543,
+      "accounted": 12,
+      "facade_before": 64,
+      "facade_after": 62
+    },
+    {
+      "issue": 544,
+      "accounted": 12,
+      "facade_before": 62,
+      "facade_after": 60
+    },
+    {
+      "issue": 545,
+      "accounted": 12,
+      "facade_before": 60,
+      "facade_after": 52
+    },
+    {
+      "issue": 546,
+      "accounted": 9,
+      "facade_before": 52,
+      "facade_after": 45
+    }
+  ],
+  "aggregate": {
+    "facade_accounted": 69,
+    "unclassified_facade": 0,
+    "dynamic_ref_unreviewed": 0,
+    "facade_count_baseline": 69,
+    "facade_count_final": 45,
+    "facade_removed": 24,
+    "exact_keyset": true,
+    "reverse_bridge_imports": 0,
+    "second_composition_root": 0,
+    "facade_non_growth": true
+  },
+  "acceptance_run": {
+    "run_id": 35818980516,
+    "head_sha": "bdf189cd402b4a33a67c6f9d279549bcc34be0bd",
+    "conclusion": "success",
+    "focused_regression": "46 passed",
+    "artifact_id": 10732303057
+  },
+  "next_stage": {
+    "issue": 532,
+    "task_id": "C0",
+    "action": "Bridge Final Compression / Surface Normalization",
+    "parent_accepted_head": "PENDING_CLEANUP_HEAD"
+  }
+}
