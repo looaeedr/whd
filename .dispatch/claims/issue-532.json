@@ -1,0 +1,20 @@
+{
+  "issue": 532,
+  "issue_url": "https://github.com/looaeedr/whd/issues/532",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T12:42:00+08:00",
+  "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+  "head_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T12:42:00+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "task_id": "C0",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run C0 fresh residual census on exact accepted #531 head; normalize only proven dead/duplicate imports, aliases, constants, and compatibility sections; report residual attribution before C1.",
+  "blocker": null
+}
