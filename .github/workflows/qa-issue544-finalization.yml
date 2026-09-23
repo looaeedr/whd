@@ -1,0 +1,50 @@
+name: 工單544 可執行收尾驗證
+run-name: "工單 #544 B6-4｜可執行收尾證明｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - qa/issue544-finalization-20260923
+    paths:
+      - .github/workflows/qa-issue544-finalization.yml
+
+permissions:
+  contents: read
+
+jobs:
+  finalization:
+    name: 驗證 #544 canonical checkpoint 與收尾證明
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 取得 coordination checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-544.json > /tmp/issue-544.json
+
+      - name: 授權可執行收尾
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller authorize-finalization             /tmp/issue-544.json             --issue 544             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha f7179554c448a4af5b271d251290912efe115a38             --proof-out /tmp/issue-544.finalization-proof.json
+
+      - name: 驗證收尾證明
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller verify-finalization-proof             /tmp/issue-544.json             /tmp/issue-544.finalization-proof.json             --issue 544             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha f7179554c448a4af5b271d251290912efe115a38
+          sha256sum /tmp/issue-544.finalization-proof.json
+          cp /tmp/issue-544.finalization-proof.json issue-544.finalization-proof.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue544-finalization-proof
+          path: issue-544.finalization-proof.json
+          if-no-files-found: error
+          retention-days: 14
