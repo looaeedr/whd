@@ -77,10 +77,7 @@ from gui_modules.application.fold_designer_settings_coordinator import (
     Phase6SettingsApplicationPorts,
 )
 from phase6_project_controller import Phase6ProjectController
-from phase6_registry_diagnostics_panel import (
-    Phase6RegistryDiagnosticsPanel,
-    build_registry_choice,
-)
+from phase6_registry_diagnostics_panel import build_registry_choice
 from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
@@ -90,9 +87,6 @@ from gui_modules.application.command_router import (
     install_fold_designer_keyboard_shortcuts,
 )
 from phase6_workspace_shell import (
-    WorkspaceShellActions,
-    WorkspaceShellOwner,
-    WorkspaceShellState,
     mount_shared_content as _workspace_shell_mount_shared_content,
     toggle_fullscreen as _workspace_shell_toggle_fullscreen,
 )
@@ -102,7 +96,6 @@ from gui_modules.application.fold_designer_adapter import (
 )
 import phase6_project_file as _phase6_project_file
 from phase6_settings_panel import (
-    Phase6SettingsPanel,
     setting_number_text as _setting_number_text,
     build_choice_menubutton,
 )
@@ -770,59 +763,10 @@ def _phase6_registry_preview_payload(self):
 
 
 def _phase6_registry_panel(self):
-    panel = getattr(self, "registry_diagnostics_panel", None)
-    if panel is not None:
-        return panel
-
-    panel = Phase6RegistryDiagnosticsPanel(
-        owner=self,
-        present_token=lambda value, **kwargs: _phase6_registry_present_token(
-            value, **kwargs
-        ),
-        formula_display=lambda value, presentation_field="formula": _phase6_registry_formula_display(
-            value, presentation_field=presentation_field
-        ),
-        formula_raw=_phase6_formula_raw,
-        preconditions_display=_phase6_preconditions_display,
-        preconditions_raw=_phase6_preconditions_raw,
-        source_display=lambda value, presentation_field="source": _phase6_registry_source_display(
-            value, presentation_field=presentation_field
-        ),
-        source_raw=_phase6_source_raw,
-        validate_formula=lambda: _phase6_registry_validate_formula_form(self),
-        preview_payload=lambda: _phase6_registry_preview_payload(self),
-        preview_assembly_3d=lambda: _phase6_registry_preview_assembly_3d(self),
-        save_candidate=lambda: _phase6_registry_save_candidate_form(self),
-        run_formula_matrix=lambda: _phase6_registry_run_formula_matrix(self),
-        promote_candidate=lambda: _phase6_registry_promote_form(self),
-        load_rule_rows=lambda: _phase6_registry_load_rule_rows(self),
-        rule_record=lambda key: _phase6_registry_diagnostics(self).rule_record(key),
-        joint_rows=lambda: _phase6_joint_rows(self),
-        add_joint=lambda: _phase6_joint_form_add(self),
-        delete_joint=lambda: _phase6_joint_form_delete(self),
-        on_diagnostic_changed=lambda: _phase6_on_assembly_diagnostic_changed(self),
-        create_promotion_candidates=lambda: _phase6_create_relief_promotion_candidates(self),
-        diagnostic_ids=lambda resolved=None: _phase6_registry_diagnostics(self).diagnostic_ids(
-            resolved
-            or getattr(self, "_phase6_last_resolved_manufacturing_geometry", None)
-        ),
-    )
-    self.registry_diagnostics_panel = panel
-    return panel
-
-
+    return _phase6_composition(self).registry_panel(globals())
 
 def _phase6_corner_data_view(self):
-    adapter = getattr(self, "_phase6_corner_data_view_adapter", None)
-    if adapter is None:
-        adapter = Phase6CornerDataViewAdapter(
-            selected_part_key=getattr(
-                self, "_phase6_corner_data_selected_part_key", None
-            )
-        )
-        self._phase6_corner_data_view_adapter = adapter
-    return adapter
-
+    return _phase6_composition(self).corner_data_view()
 
 def _phase6_sync_corner_data_view_compatibility_mirrors(
     self, adapter=None
@@ -3294,40 +3238,7 @@ def _phase6_sync_settings_panel_extension(self, state, context):
 
 
 def _phase6_ensure_settings_panel(self):
-    panel = getattr(self, "settings_panel", None)
-    if panel is not None:
-        return panel
-    panel = Phase6SettingsPanel(
-        values_snapshot=lambda: dict(self._settings_values),
-        stage_setting_update=lambda key, value: _phase6_stage_setting_update(self, key, value),
-        flush_settings=lambda: _phase6_flush_pending_settings(self),
-        save_defaults=lambda context: _phase6_save_settings_context_as_defaults(self, context),
-        query_baseline_rows=(
-            (lambda context, model, values: self._baseline_data_query_callback(context, model, values))
-            if self._baseline_data_query_callback is not None else None
-        ),
-        is_unknown_baseline=lambda model: _phase6_is_unknown_baseline(self, model),
-        should_show_baseline_data=lambda context, specs: _phase6_should_show_baseline_data(self, context, specs),
-        part_labels=PART_LABELS,
-        context_extension_projection=lambda context: _phase6_settings_context_extension_projection(self, context),
-        endcap_fw_value_selected=lambda part_key, value_var: _phase6_on_endcap_fw_value_selected(self, part_key, value_var),
-        box_structure_numeric_changed=lambda type_id, field, value_var: _phase6_apply_box_structure_numeric(self, type_id, field, value_var),
-        box_back_panel_mode_changed=lambda value_var: _phase6_select_back_panel_mode(self, value_var),
-        box_structure_toggle_advanced=lambda type_id: _phase6_toggle_structure_advanced(self, type_id),
-        bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: _phase6_commit_receiving_bottom_wrap_controls(
-            self, part_key, reserve_u_var, reserve_v_var
-        ),
-        corner_pair_changed=lambda part_key, pair_key, var: _phase6_corner_pair_var_changed(self, part_key, pair_key, var),
-        corner_type_selected=lambda part_key, target_key: _phase6_corner_type_selected(self, part_key, target_key),
-        corner_mode_selected=lambda part_key, target_key: _phase6_corner_mode_selected(self, part_key, target_key),
-        corner_target_changed=lambda part_key, target_key: _phase6_corner_target_var_changed(self, part_key, target_key),
-        sync_context_extension=lambda state, context: _phase6_sync_settings_panel_extension(self, state, context),
-        baseline_model_changed=lambda: _phase6_on_baseline_model_changed(self),
-        ui_text_size_changed=lambda key: _phase6_apply_ui_text_size(self, key),
-    )
-    self.settings_panel = panel
-    return panel
-
+    return _phase6_composition(self).settings_panel(globals())
 
 def _phase6_sync_settings_panel_compat(self):
     panel = self.settings_panel
@@ -4271,72 +4182,7 @@ def _phase6_export_selected_dxf_from_3d(self):
     )
 
 def _phase6_workspace_shell_owner(self):
-    owner = getattr(self, "_phase6_workspace_shell_owner", None)
-    if owner is not None:
-        return owner
-    panel = _phase6_ensure_settings_panel(self)
-    structure_state = _phase6_box_structure_state(self)
-    active_structure = BoxBodyStructureType(structure_state["active_type"])
-    shell_state = WorkspaceShellState(
-        root=self.root,
-        left=self.left,
-        right=self.right,
-        ui_text_size_values=tuple(UI_TEXT_SIZE_LABELS.values()),
-        v_a_bend=self.v_a_bend,
-        v_a_face=self.v_a_face,
-        baseline_models=tuple(self._baseline_models),
-        initial_model=self._phase6_baseline_initial_model,
-        structure_label=_BOX_STRUCTURE_LABELS[active_structure],
-        structure_choices=tuple(_BOX_STRUCTURE_LABELS.values()),
-        assembly_label=ASSEMBLY_TYPE_LABELS[
-            getattr(self, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
-        ],
-        assembly_choices=tuple(ASSEMBLY_TYPE_LABELS.values()),
-        settings_values=dict(self._settings_values),
-        external_draw_stock_var=getattr(self, "_phase6_external_draw_stock_var", None),
-        external_export_vars=dict(
-            getattr(self, "_phase6_external_export_vars", {}) or {}
-        ),
-        left_workspace_width=_phase6_left_workspace_width(
-            self._settings_values.get("ui_text_size", "small")
-        ),
-        theme_background=WHD_THEME["background"],
-    )
-    actions = WorkspaceShellActions(
-        status_projection=lambda: _phase6_status_projection(self),
-        load_project_file=self.load_project_file,
-        save_project_file=self.save_project_file,
-        save_project_file_as=self.save_project_file_as,
-        open_relief_registry=lambda: _phase6_open_relief_registry_form(self),
-        reset_initial_values=self.reset_initial_values,
-        build_settings_global_controls=lambda host: panel.build_left_global_controls(
-            host,
-            baseline_models=tuple(self._baseline_models),
-            initial_model=self._phase6_baseline_initial_model,
-        ),
-        sync_settings_panel_compat=lambda: _phase6_sync_settings_panel_compat(self),
-        get_left_global_controls=lambda: self.left_global_controls,
-        get_left_global_cells=lambda: self.left_global_cells,
-        get_ui_text_size_var=lambda: self.ui_text_size_var,
-        set_ui_text_size_combo=lambda combo: setattr(
-            self.settings_panel, "ui_text_size_combo", combo
-        ),
-        toggle_parameter_panel=lambda: _phase6_toggle_parameter_panel(self),
-        select_structure_type=lambda var: _phase6_select_box_structure_type(self, var),
-        select_assembly_type=lambda: _phase6_on_assembly_type_selected(self),
-        refresh_persistent_structure_controls=lambda: _phase6_refresh_persistent_structure_controls(self),
-        commit_output_draw_stock=lambda: _phase6_commit_output_draw_stock(self),
-        export_selected_dxf=lambda: _phase6_export_selected_dxf_from_3d(self),
-        queue_update=self.queue_update,
-        pack_right_panel=lambda widget: _phase6_pack_right_panel_above_canvas(self, widget),
-        refresh_sticky_structure_tree=lambda: _phase6_refresh_sticky_structure_tree(self),
-        install_keyboard_shortcuts=lambda: _phase6_install_keyboard_shortcuts(self),
-        toggle_fullscreen=lambda: _phase6_toggle_fullscreen(self),
-    )
-    owner = WorkspaceShellOwner(shell_state, actions)
-    self._phase6_workspace_shell_owner = owner
-    return owner
-
+    return _phase6_composition(self).workspace_shell_owner(globals())
 
 def _phase6_apply_workspace_shell_bindings(self, owner):
     for name, value in owner.compatibility_bindings().items():
