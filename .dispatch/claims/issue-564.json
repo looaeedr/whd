@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-23T23:51:28+08:00",
   "base_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
   "head_sha": "48b43d4006ad11bb3add2a052b0c10eaeeade314",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T00:02:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T00:06:30+08:00",
   "production_target": "main",
   "task_id": "GOV-FINALIZATION-COMMENT-TRANSPORT",
   "parent_issue": 562,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the terminal continuity checkpoint with NEXT_CHILD_EXECUTABLE to parent #562, run trusted remote finalization, close/read back this leaf, release its claim, then resume #562.",
+  "next_action": null,
   "blocker": null,
   "progress": {
     "transport_commit": "48b43d4006ad11bb3add2a052b0c10eaeeade314",
@@ -34,5 +34,23 @@
     "workflow_path": ".github/workflows/whd-remote-finalization.yml",
     "transport": "issue_comment:created",
     "e2e_run": 35885553442
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-564.json",
+    "checkpoint_blob_sha": "657598a8e10671a856f988eaeb5b03fe5e9ae026",
+    "checkpoint_fingerprint": "bbd45bcc4b406ecdd27852743c20986f40cbe692d4adad4a04111b56497381eb",
+    "trusted_run_id": 35886203420,
+    "artifact_id": 10761704646,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "release": {
+    "guard_request_comment_id": 5798269295,
+    "guard_result_comment_id": 5798272721,
+    "guard_run_id": 35886390277,
+    "result": "GREEN",
+    "released_at": "2026-09-24T00:06:30+08:00"
   }
 }
