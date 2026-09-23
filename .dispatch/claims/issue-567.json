@@ -6,15 +6,15 @@
   "work_branch": "governance/issue567-reopened-released-claim-recovery-20260924",
   "claimed_at": "2026-09-24T00:25:20+08:00",
   "base_sha": "fe24fa024fe88467ec0432c803a6344148331d38",
-  "head_sha": "25b37909260f0dc2afc7426cfc5d85a19d7d95cd",
+  "head_sha": "ae6a6506b267ef2f1811e5328435a2c0e1c6677b",
   "phase": "GREEN",
-  "last_update": "2026-09-24T00:31:52+08:00",
+  "last_update": "2026-09-24T00:46:45+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-REOPENED-RELEASED-CLAIM-RECOVERY",
   "parent_issue": 560,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Open a guarded PR to cleanup/2d-3d-sync and use the exact PR validation run to verify #567 behavior before integration.",
+  "next_action": "Lock the exact PR #568 validation run on head ae6a6506b267ef2f1811e5328435a2c0e1c6677b and poll it to terminal; on GREEN remove the temporary focused workflow, reconcile closing HEAD, then integrate non-force.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35888615088,
@@ -27,6 +27,10 @@
     "implementation_head_reconcile_guard_run": 35889178585,
     "test_commit": "25b37909260f0dc2afc7426cfc5d85a19d7d95cd",
     "test_write_guard_run": 35889273614,
-    "test_head_reconcile_guard_run": 35889368829
+    "test_head_reconcile_guard_run": 35889368829,
+    "focused_workflow_commit": "ae6a6506b267ef2f1811e5328435a2c0e1c6677b",
+    "focused_workflow_guard_run": 35889750346,
+    "focused_workflow_head_reconcile_guard_run": 35891081731,
+    "pr": 568
   }
 }
