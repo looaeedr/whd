@@ -2,13 +2,13 @@
   "issue": 555,
   "issue_url": "https://github.com/looaeedr/whd/issues/555",
   "worker": "chatgpt.issue555.20260923T1249",
-  "executor_source": "chatgpt_interactive",
+  "executor_source": "scheduler",
   "work_branch": "governance/issue555-execution-instance-identity-20260923",
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T14:09:00+08:00",
+  "last_update": "2026-09-23T14:30:27+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -37,5 +37,29 @@
     "merge_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
     "production_target": "cleanup/2d-3d-sync",
     "production_head": "75eaffac799d0dcf164a135591ec00754969fcc6"
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_stale_minutes": 21.4333333333,
+    "stale_seconds": 1286,
+    "observed_live_head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
+    "taken_over_at": "2026-09-23T14:30:27+08:00",
+    "evidence": "no active exact run and no durable progress for 1286s; exact remote run 35820582387 completed/success"
+  },
+  "remote_guard": {
+    "schema": "WHD_REMOTE_GUARD_RECEIPT_V1",
+    "request_comment_id": 5790184774,
+    "result_comment_id": 5790186781,
+    "run_id": 35827052001,
+    "orchestrator_head_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
+    "tested_target_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
+    "claim_blob_sha": "a1520f1c26178da0440649298603ee3df1f78642",
+    "guard_authority_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+    "action": "claim-takeover",
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "expires_at": "2026-09-23T06:50:26.537011Z",
+    "consumed": true
   }
 }
