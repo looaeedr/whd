@@ -6,15 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "f99106fffb711a29b3c28d5b6bc8a105a7cd7333",
-  "phase": "GREEN",
-  "last_update": "2026-09-23T14:36:00+08:00",
+  "head_sha": "bab9a28100c8d41e0200b9ab46a6d11e5dd070ee",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T14:37:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run C0 dead-wrapper GREEN on exact head f99106fffb711a29b3c28d5b6bc8a105a7cd7333; compile/import, focused ownership/GUI source contracts, residual-def absence, then continue compat-only migration.",
+  "remote_qa": {
+    "run_id": 35827614471,
+    "head_sha": "bab9a28100c8d41e0200b9ab46a6d11e5dd070ee",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "C0 zero-consumer wrapper GREEN"
+  },
+  "next_action": "Poll exact run 35827614471 to terminal; on GREEN continue compat-only residual migration.",
   "blocker": null
 }
