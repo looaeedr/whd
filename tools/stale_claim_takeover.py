@@ -18,6 +18,7 @@ from typing import Mapping
 
 DEFAULT_STALE_AFTER_SECONDS = 600
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+_WORKER_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _ACTIVE_PHASES = frozenset(
     {
         "CLAIMED",
@@ -56,6 +57,8 @@ class StaleTakeoverEvaluation:
     actionable: bool
     stale_seconds: int
     latest_progress_at: datetime
+    previous_worker: str
+    requesting_worker: str | None
     previous_executor_source: str
     observed_live_head_sha: str
     reason: str
@@ -175,6 +178,7 @@ def evaluate_stale_claim_takeover(
     live_head_committed_at: datetime | str,
     remote_run: Mapping[str, object] | None = None,
     stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
+    requesting_worker: str | None = None,
 ) -> StaleTakeoverEvaluation:
     """Classify whether a scheduler may take over one active WHD execution claim."""
 
@@ -194,6 +198,17 @@ def evaluate_stale_claim_takeover(
     claim_head = _require_sha("claim head_sha", claim.get("head_sha"))
     last_update = _as_utc("claim last_update", claim.get("last_update"))
     previous_source = str(claim.get("executor_source") or "unknown").strip() or "unknown"
+    previous_worker = str(claim.get("worker") or "").strip()
+    if not _WORKER_RE.fullmatch(previous_worker):
+        raise StaleTakeoverError("claim worker identity is missing or malformed")
+
+    requester: str | None = None
+    if requesting_worker is not None:
+        requester = str(requesting_worker).strip()
+        if not _WORKER_RE.fullmatch(requester):
+            raise StaleTakeoverError("requesting_worker identity is malformed")
+        if not requester.startswith("scheduler."):
+            raise StaleTakeoverError("requesting_worker must be a scheduler lane identity")
 
     remote_active, remote_updated_at, remote_reason = _remote_progress(claim, remote_run)
     progress_points = [last_update, live_commit_at]
@@ -217,6 +232,8 @@ def evaluate_stale_claim_takeover(
             actionable=actionable,
             stale_seconds=stale_seconds,
             latest_progress_at=latest_progress,
+            previous_worker=previous_worker,
+            requesting_worker=requester,
             previous_executor_source=previous_source,
             observed_live_head_sha=live_head,
             reason=reason,
@@ -234,11 +251,18 @@ def evaluate_stale_claim_takeover(
         )
 
     if previous_source == "scheduler":
-        return result(
-            TakeoverClassification.ALREADY_SCHEDULER,
-            False,
-            "claim is already owned by scheduler executor_source",
-        )
+        if requester is None:
+            return result(
+                TakeoverClassification.ALREADY_SCHEDULER,
+                False,
+                "scheduler-owned claim requires requesting_worker to distinguish lane identity",
+            )
+        if requester == previous_worker:
+            return result(
+                TakeoverClassification.ALREADY_SCHEDULER,
+                False,
+                "claim is already owned by the requesting scheduler lane",
+            )
 
     if remote_active:
         return result(
@@ -291,6 +315,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_STALE_AFTER_SECONDS,
     )
     parser.add_argument("--now")
+    parser.add_argument("--requesting-worker")
     parser.add_argument("--require-actionable", action="store_true")
     parser.add_argument("--decision-out", type=Path)
     return parser
@@ -313,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
             live_head_committed_at=args.live_head_committed_at,
             remote_run=remote,
             stale_after_seconds=args.stale_after_seconds,
+            requesting_worker=args.requesting_worker,
         )
     except StaleTakeoverError as exc:
         print(f"STALE_CLAIM_TAKEOVER_ERROR: {exc}")

@@ -222,10 +222,27 @@ def _assert_takeover_evidence(
             f"claim-takeover evidence claim head mismatch expected={claim.head_sha} evidence={evidence_claim_head}"
         )
     expected_source = str(raw_claim.get("executor_source") or "unknown").strip() or "unknown"
-    if expected_source == "scheduler":
-        raise ExecutionClaimError("claim-takeover cannot take over an already scheduler-owned claim")
     if str(evidence.get("previous_executor_source") or "") != expected_source:
         raise ExecutionClaimError("claim-takeover previous executor source mismatch")
+
+    evidence_previous_worker = str(evidence.get("previous_worker") or "").strip()
+    evidence_requesting_worker = str(evidence.get("requesting_worker") or "").strip()
+    if evidence_previous_worker and evidence_previous_worker != claim.worker:
+        raise ExecutionClaimError("claim-takeover previous worker mismatch")
+    if expected_source == "scheduler":
+        if evidence_previous_worker != claim.worker:
+            raise ExecutionClaimError(
+                "scheduler claim-takeover requires evidence bound to the previous worker"
+            )
+        if (
+            not evidence_requesting_worker.startswith("scheduler.")
+            or evidence_requesting_worker == claim.worker
+        ):
+            raise ExecutionClaimError(
+                "scheduler claim-takeover requires a distinct requesting scheduler lane"
+            )
+    elif evidence_requesting_worker and not evidence_requesting_worker.startswith("scheduler."):
+        raise ExecutionClaimError("claim-takeover requesting worker must be a scheduler lane")
     if str(evidence.get("claim_phase") or "").upper() != claim.phase:
         raise ExecutionClaimError("claim-takeover evidence claim phase mismatch")
     claim_last_update = raw_claim.get("last_update")
