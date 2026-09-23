@@ -4776,18 +4776,6 @@ def _phase6_render_data_for_blank(self, part_key=None):
     return callback(key, _phase6_scene_query_payload_for_part(self, key))
 
 
-) -> str:
-    """Format already-authoritative formed dimensions; never reconstruct geometry."""
-    dimensions = tuple(finished_dimensions or ())
-    if not dimensions:
-        dimensions = tuple(
-            getattr(render_data, "formed_outer_dimensions", ()) or ()
-        )
-    return Phase6CornerDataViewAdapter.formed_size_text(
-        dimensions,
-        number_text=_setting_number_text,
-    )
-
 def _phase6_format_unfolded_blank_text(render_data, *, part_key=""):
     from ae_engine.manufacturing_api import measure_unfolded_blanks
 
