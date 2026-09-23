@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T08:20:30+08:00",
   "base_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
-  "head_sha": "eb1ec45f24786bd197530cba18e9671735d85244",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T10:27:00+08:00",
+  "head_sha": "8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T10:29:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,23 +16,14 @@
   "task_id": "B6-4",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35801927028,
-    "head_sha": "476678276f19b465103a05b7a2267bb7653f91ac",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B6-4 replacement RED",
-    "evidence": {
-      "failures": 3,
-      "passes": 1,
-      "no_caller": [
-        "toggle_advanced_settings"
-      ],
-      "can_direct_owner": [
-        "_phase6_corner_parameters_unlocked"
-      ]
-    },
+    "run_id": 35810494194,
+    "head_sha": "8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "B6-4 final GREEN",
+    "replacement_red_run": 35801927028,
     "audit_run": 35801778565
   },
-  "next_action": "Run B6-4 GREEN: facade batch contract + corner parameter direct-owner tests + Settings/manufacturing compatibility; verify facade count 60.",
+  "next_action": "Poll exact RUN 35810494194 @ 8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed to terminal; on RED fetch exact failed step/log and remediate.",
   "blocker": null
 }
