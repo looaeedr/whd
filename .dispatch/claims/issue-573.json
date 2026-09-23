@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
   "head_sha": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T02:15:39+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T02:29:11+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Create and complete a trusted-main transport child that adds fixed-schema takeover_worker handling to whd-remote-execution-guard.yml, then E2E retry the original #533 foreign sibling scheduler takeover.",
+  "next_action": "Write terminal checkpoint for #573, obtain trusted finalization proof, close/readback #573, release claim, then continue #533 C1 under the successfully transferred claim.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -63,7 +63,9 @@
       "only_change": ".github/workflows/qa-issue573-focused.yml removed"
     },
     "integration_guard_run": 35901198283,
-    "merge_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538"
+    "merge_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+    "parent_evidence_guard_run": 35902776847,
+    "e2e_takeover_run": 35902661211
   },
   "integration": {
     "pr": 574,
@@ -73,5 +75,25 @@
     "remote_qa_run_id": 35900775751,
     "remote_qa_conclusion": "success",
     "tested_head_sha": "aeb4e997b8d91d556ed06c6573067bf6ec3fae18"
+  },
+  "transport_child": {
+    "issue": 576,
+    "state": "closed/completed",
+    "main_merge_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
+    "trusted_workflow_blob_sha": "e4f30bf59e0d3a5354919e7d0e068e4e64b01a6c",
+    "finalization_run": 35902372580,
+    "finalization_artifact": 10769597218
+  },
+  "e2e_takeover": {
+    "issue": 533,
+    "guard_run": 35902661211,
+    "result": "GREEN",
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "requesting_worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+    "old_claim_head": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
+    "live_head": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
+    "claim_cas_readback_blob": "4346c2d78fd3be8613ef72d4c4e8254a786ef197"
   }
 }
