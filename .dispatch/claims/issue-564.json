@@ -7,19 +7,32 @@
   "claimed_at": "2026-09-23T23:51:28+08:00",
   "base_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
   "head_sha": "48b43d4006ad11bb3add2a052b0c10eaeeade314",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T23:56:05+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T00:02:00+08:00",
   "production_target": "main",
   "task_id": "GOV-FINALIZATION-COMMENT-TRANSPORT",
   "parent_issue": 562,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Open the guarded PR to main for the fixed-schema issue_comment transport, merge after exact validation, then immediately trigger the trusted finalization executor on reopened parent repair target.",
+  "next_action": "Create the terminal continuity checkpoint with NEXT_CHILD_EXECUTABLE to parent #562, run trusted remote finalization, close/read back this leaf, release its claim, then resume #562.",
   "blocker": null,
   "progress": {
     "transport_commit": "48b43d4006ad11bb3add2a052b0c10eaeeade314",
     "branch_create_guard_run": 35884730061,
     "write_guard_run": 35884985493,
-    "head_reconcile_guard_run": 35885143980
+    "head_reconcile_guard_run": 35885143980,
+    "pr": 565,
+    "merge_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+    "e2e_finalization_run": 35885553442,
+    "claim_write_guard_run": 35885887549
+  },
+  "integration": {
+    "pr": 565,
+    "merge_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+    "production_target": "main",
+    "production_head": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+    "workflow_path": ".github/workflows/whd-remote-finalization.yml",
+    "transport": "issue_comment:created",
+    "e2e_run": 35885553442
   }
 }
