@@ -25,7 +25,6 @@ EXPECTED_DELEGATES = {
     "_phase6_query_final_render_data": "query_final_render_data",
     "_phase6_query_assembly_render_data": "query_assembly_render_data",
     "_phase6_final_scene_view_request": "build_request",
-    "_phase6_render_true_cutting_mesh": "render_cutting_mesh",
     "_phase6_on_3d_scroll": "on_scroll",
     "_phase6_install_renderer_view": "install_renderer",
     "_phase6_render_committed_view": "render_committed",
@@ -86,6 +85,7 @@ def test_issue370_bridge_delegates_3d_render_orchestration():
     funcs = _functions(_tree(BRIDGE))
     missing = sorted(set(EXPECTED_DELEGATES) - set(funcs))
     assert missing == []
+    assert "_phase6_render_true_cutting_mesh" not in funcs
 
     violations = []
     for name, delegate in EXPECTED_DELEGATES.items():

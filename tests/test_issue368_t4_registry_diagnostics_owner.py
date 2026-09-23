@@ -10,7 +10,6 @@ PANEL = Path("phase6_registry_diagnostics_panel.py")
 
 TARGETS = {
     "_phase6_registry_validate_formula_form",
-    "_phase6_registry_candidate_form_is_current",
     "_phase6_registry_save_candidate_form",
     "_phase6_registry_run_formula_matrix",
     "_phase6_registry_preview_assembly_3d",
@@ -24,6 +23,7 @@ TARGETS = {
 ZERO_CONSUMER_REMOVED = {
     "_phase6_registry_require_current_candidate",
     "_phase6_selected_joint_diagnostic",
+    "_phase6_registry_candidate_form_is_current",
 }
 
 REQUIRED_METHODS = {
@@ -126,7 +126,6 @@ def test_issue368_bridge_commands_delegate_to_registry_controller():
     assert ZERO_CONSUMER_REMOVED.isdisjoint(funcs)
     expected = {
         "_phase6_registry_validate_formula_form": "validate_formula",
-        "_phase6_registry_candidate_form_is_current": "candidate_is_current",
         "_phase6_registry_save_candidate_form": "save_candidate",
         "_phase6_registry_run_formula_matrix": "run_formula_matrix",
         "_phase6_registry_preview_assembly_3d": "merge_3d_evidence",
@@ -198,7 +197,6 @@ def test_issue446_bridge_keeps_semantic_registry_callbacks_but_not_selected_tk_c
     assert not (selected_presentation & set(funcs))
     semantic_callbacks = {
         "_phase6_registry_validate_formula_form",
-        "_phase6_registry_candidate_form_is_current",
         "_phase6_registry_save_candidate_form",
         "_phase6_registry_run_formula_matrix",
         "_phase6_registry_preview_assembly_3d",

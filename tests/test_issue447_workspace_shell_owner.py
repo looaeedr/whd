@@ -18,7 +18,6 @@ SHELL = ROOT / "phase6_workspace_shell.py"
 
 SHELL_COMPAT_FUNCTIONS = {
     "_phase6_build_persistent_top_area",
-    "_phase6_build_project_toolbar",
     "_phase6_toggle_fullscreen",
     "_phase6_mount_shared_content",
 }
@@ -27,6 +26,7 @@ C0_ZERO_CONSUMER_REMOVED = {
     "_phase6_build_global_persistent_controls": "build_global_persistent_controls",
     "_phase6_build_output_controls": "build_output_controls",
     "_phase6_build_visual_controls": "build_visual_controls",
+    "_phase6_build_project_toolbar": "build_project_toolbar",
 }
 MAX_COMPAT_SPAN = 36
 
