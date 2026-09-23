@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
-  "head_sha": "b14bbe4cadb332235d3ea249b121d38bca07c47f",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T07:19:30+08:00",
+  "head_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+  "phase": "FINALIZING",
+  "last_update": "2026-09-23T08:08:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -31,7 +31,7 @@
     "replacement_red_run": 35796616236,
     "audit_run": 35796289899
   },
-  "next_action": "Remove B6-2 one-shot audit/RED/GREEN workflows, then tested-head→closing-head production/test drift audit and finalization.",
+  "next_action": "Run executable finalization guard/proof for #542, close/readback, release claim, then claim #543/B6-3.",
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
@@ -41,5 +41,10 @@
       "remove duplicate docs/superpowers/checkpoints/issue541-b6-1-facade-final.json",
       "remove duplicate docs/superpowers/checkpoints/issue541-b6-1-facade-final.md"
     ]
+  },
+  "drift_audit": {
+    "tested_head": "46f7cc0eb5137cd88e8669e400b31417d82d968a",
+    "closing_head": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+    "production_test_drift": 0
   }
 }
