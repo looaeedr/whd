@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "issue": "540",
+  "branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
+  "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "evidence": [
+    "cleanup PR #553 merged at 8e24b3e463768b05083eedf7cb22782f53dcacfa",
+    "cleanup acceptance run 35795817863 SUCCESS; 38 passed; 599s blocked; 600s EXECUTOR_STUCK",
+    "main RED run 35801211191 PROVEN; 5 expected contract failures",
+    "main GREEN run 35801610660 SUCCESS; 5 passed",
+    "main PR #554 merged at 7b8d84645870d40118c9691ae80cc0f07e05454d",
+    "post-merge scheduler smoke 35802089413 expected FAIL; parser+execute success; WAIT_ON_FOREIGN_RUNTIME stale=28s; unsupported-action regression absent",
+    "one-shot RED/GREEN workflows cleaned before integration"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
