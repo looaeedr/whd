@@ -25,12 +25,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 安裝 pytest
+      - name: 安裝聚焦驗證依賴
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          python -m pip install pytest
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
 
       - name: Headless contracts
         shell: bash
