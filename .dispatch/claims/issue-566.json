@@ -1,0 +1,19 @@
+{
+  "issue": 566,
+  "issue_url": "https://github.com/looaeedr/whd/issues/566",
+  "worker": "chatgpt.sol260924.rgdispatch1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue566-remote-guard-self-dispatch-20260924",
+  "claimed_at": "2026-09-24T00:04:30+08:00",
+  "base_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+  "head_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T00:04:30+08:00",
+  "production_target": "main",
+  "task_id": "GOV-REMOTE-GUARD-SELF-DISPATCH",
+  "parent_issue": 562,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Guard branch creation from fresh main, add RED contract for purpose-bound self-consumed workflow-dispatch, implement the narrow Remote Guard consume path, validate, and integrate to main.",
+  "blocker": null
+}
