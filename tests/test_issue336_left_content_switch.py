@@ -34,8 +34,6 @@ def _func(name: str) -> str:
 def test_t3_source_contract_separates_part_selector_from_content_modes():
     refresh = _func("_fix11_refresh_part_buttons")
     builder = _func("_phase6_build_content_switch")
-    input_switch = _func("_phase6_show_input_content")
-
     assert 'label="組合體"' in refresh
     assert 'label="截角資料"' in refresh
     assert "command=lambda: _phase6_show_assembly(self)" in refresh
@@ -45,7 +43,7 @@ def test_t3_source_contract_separates_part_selector_from_content_modes():
     assert "self.corner_data_content_button = None" in builder
     assert 'text="輸入區"' not in builder
     assert 'text="顯示區"' not in builder
-    assert "designer_workspace" in input_switch or "_designer_workspace" in input_switch
+    assert "_phase6_show_input_content" not in _source()
 
 
 def test_t3_authority_guard_keeps_existing_workspace_navigation():
@@ -113,7 +111,7 @@ def test_t3_controls_are_reachable_and_modes_are_exclusive(ui_text_size):
         assert designer.fold_editor_host.winfo_manager() == ""
         assert designer.designer_workspace.active_part == active_before
 
-        bridge._phase6_show_input_content(designer)
+        designer.activate_part(active_before)
         root.update_idletasks(); root.update()
         assert designer._phase6_3d_display_mode == "single"
         assert designer.fold_editor_host.winfo_manager() == "pack"

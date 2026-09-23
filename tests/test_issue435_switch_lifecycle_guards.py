@@ -63,7 +63,7 @@ def _cycle_modes(app, root):
     _pump(root)
     bridge._phase6_show_corner_data(app)
     _pump(root)
-    bridge._phase6_show_input_content(app)
+    app.activate_part(app.designer_workspace.active_part)
     _pump(root)
 
 

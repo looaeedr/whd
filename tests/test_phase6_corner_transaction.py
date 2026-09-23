@@ -81,7 +81,8 @@ def test_corner_pair_edit_publishes_live_without_confirm(monkeypatch):
             pass
 
 
-def test_cancel_does_not_confirm_corner_transaction(monkeypatch):
+
+def test_legacy_cancel_callback_has_no_runtime_control(monkeypatch):
     confirmed = []
     cancelled = []
     root, win, app = _make_app(
@@ -92,12 +93,11 @@ def test_cancel_does_not_confirm_corner_transaction(monkeypatch):
     try:
         app.baseline_model_var.set("未知類型")
         root.update()
-        assert bridge._phase6_cancel_corner_transaction(app) is True
         assert confirmed == []
-        assert cancelled == [True]
+        assert cancelled == []
+        assert not hasattr(app, "cancel_transaction_button")
     finally:
         root.destroy()
-
 
 def test_preview_queue_does_not_mark_workspace_dirty(monkeypatch):
     root, win, app = _make_app(monkeypatch)

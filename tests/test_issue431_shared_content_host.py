@@ -87,7 +87,7 @@ def test_t1_existing_workspace_and_display_mode_authorities_are_preserved():
         assert app.designer_workspace.active_part == active
         assert app.part_var.get() == "截角資料"
 
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
         assert app._phase6_3d_display_mode == "single"
         assert app.designer_workspace.active_part == active
@@ -121,7 +121,7 @@ def test_t1_mode_controller_mounts_exactly_one_existing_content_tree():
             ("single", lambda: app.activate_part("head"), app.input_content_host),
             ("assembly", lambda: bridge._phase6_show_assembly(app), app.assembly_parts_panel),
             ("corner_data", lambda: bridge._phase6_show_corner_data(app), app.corner_data_panel),
-            ("single", lambda: bridge._phase6_show_input_content(app), app.input_content_host),
+            ("single", lambda: app.activate_part(app.designer_workspace.active_part), app.input_content_host),
         )
         surfaces = (
             app.input_content_host,

@@ -2410,38 +2410,6 @@ def _phase6_save_project_file_as(self):
     return _phase6_save_project_file(self, save_as=True)
 
 
-def _phase6_confirm_corner_transaction(self):
-    self.flush_pending_settings()
-    # Capture the visible fold editor only after a part has actually been selected.
-    # Confirming directly from the landing view must not fabricate a Box Body edit.
-    if getattr(self, "active_part_key", None) is not None:
-        self._save_current_part(notify=False)
-    if _phase6_is_unknown_baseline(self, self.baseline_model_var.get()):
-        self._corner_transaction_unknown_state = deepcopy(self._phase6_corner_state)
-        self._corner_transaction_unknown_pairs = deepcopy(self._phase6_corner_pair_same)
-    callback = getattr(self, "_transaction_confirm_callback", None)
-    if callback is None:
-        return False
-    try:
-        callback(_phase6_corner_transaction_payload(self))
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"確定失敗：{exc}")
-        return False
-    return True
-
-
-def _phase6_cancel_corner_transaction(self):
-    callback = getattr(self, "_transaction_cancel_callback", None)
-    if callback is None:
-        return False
-    try:
-        callback()
-    except Exception as exc:
-        if hasattr(self, "settings_status_var"):
-            self.settings_status_var.set(f"取消失敗：{exc}")
-        return False
-    return True
 
 
 def _phase6_refresh_active_endcap_from_linked(self, linked):
@@ -4227,55 +4195,6 @@ def _phase6_joint_form_delete(self):
         self.relief_joint_status_var.set(f"不可刪除：{exc}")
         return False
 
-def _phase6_configure_floating_surface(window, owner, *, modal=False):
-    """Apply shared foreground/focus behavior without owning domain state."""
-    try:
-        return_focus = owner.focus_get()
-    except Exception:
-        return_focus = None
-    if return_focus is None:
-        return_focus = owner
-    window._phase6_return_focus = return_focus
-
-    def close_surface(_event=None):
-        try:
-            window.grab_release()
-        except Exception:
-            pass
-        try:
-            window.destroy()
-        finally:
-            try:
-                if bool(return_focus.winfo_exists()):
-                    return_focus.after_idle(return_focus.focus_set)
-            except Exception:
-                pass
-        return "break"
-
-    window._phase6_close_surface = close_surface
-    try:
-        window.transient(owner)
-    except Exception:
-        pass
-    try:
-        window.configure(takefocus=True)
-    except Exception:
-        pass
-    window._phase6_foreground_role = "floating_surface"
-    try:
-        window.bind("<Escape>", close_surface, add="+")
-        window.protocol("WM_DELETE_WINDOW", close_surface)
-        window.lift()
-        window.after_idle(window.focus_set)
-    except Exception:
-        pass
-    if modal:
-        try:
-            window.grab_set()
-        except Exception:
-            pass
-    return window
-
 
 def _phase6_status_projection(self):
     """Project existing cabinet/part/view owners into one low-noise status line."""
@@ -4602,24 +4521,6 @@ def _phase6_install_renderer_view(self):
 
 
 
-def _phase6_draw_operator_dimensions(self, x_profile, y_profile, *, triangles=None):
-    """Legacy adapter to the FinalSceneView dimension drawing implementation."""
-    view = getattr(self, "final_scene_view", None)
-    if view is None:
-        view = Phase6FinalSceneView(self.renderer, number_text=_setting_number_text)
-    snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
-    settings = getattr(self, "_settings_values", {}) or {}
-    request = FinalSceneViewRequest(
-        render_data=None,
-        x_profile=tuple(dict(seg) for seg in (x_profile or ())),
-        y_profile=tuple(dict(seg) for seg in (y_profile or ())),
-        part_key=str(getattr(self, "active_part_key", "") or ""),
-        alpha_bend=float(getattr(getattr(self, "state", None), "alpha_bend", 0.85)),
-        finished_dimensions=_phase6_operator_finished_dimensions(self),
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-    )
-    return view._draw_operator_dimensions(request, list(triangles or ()))
-
 
 def _phase6_render_data_for_blank(self, part_key=None):
     """Return canonical final material for blank reporting without a second geometry path."""
@@ -4653,17 +4554,6 @@ def _phase6_format_unfolded_blank_text(render_data, *, part_key=""):
         number_text=_setting_number_text,
     )
 
-def _phase6_current_unfolded_size(self, part_key=None):
-    """Compatibility tuple measured only from canonical final material."""
-    from ae_engine.manufacturing_api import measure_unfolded_blanks
-
-    key = str(part_key or self.designer_workspace.active_part or "")
-    render_data = _phase6_render_data_for_blank(self, key)
-    return _phase6_corner_data_view(self).current_unfolded_size(
-        render_data,
-        part_key=key,
-        measurer=measure_unfolded_blanks,
-    )
 
 _PHASE6_DEFAULT_VIEW = (50.0, -90.0)
 
@@ -5351,20 +5241,6 @@ def _phase6_refresh_content_switch(self):
             pass
     return active
 
-
-def _phase6_show_input_content(self):
-    """Return to the editor for the workspace's existing authoritative active part."""
-    _phase6_clear_navigation_residue(self)
-    workspace = _designer_workspace(self)
-    available = tuple(getattr(workspace, "available_parts", ()) or ())
-    key = str(getattr(workspace, "active_part", "") or "")
-    if key not in available:
-        key = "box_body" if "box_body" in available else (available[0] if available else "")
-    if not key:
-        return None
-    result = self.activate_part(key)
-    _phase6_refresh_content_switch(self)
-    return result
 
 
 def _phase6_build_content_switch(self):

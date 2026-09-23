@@ -88,7 +88,7 @@ def test_440_same_slot_mutual_exclusion_without_fixed_height_shell():
         _pump(root)
         assert _mapped_mode_surfaces(app) == (app.corner_data_panel,)
 
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
         assert _mapped_mode_surfaces(app) == (app.input_content_host,)
     finally:

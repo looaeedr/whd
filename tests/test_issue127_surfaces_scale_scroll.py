@@ -122,27 +122,6 @@ def test_dropdown_has_explicit_foreground_role_and_keyboard_focus():
         root.destroy()
 
 
-def test_floating_surface_is_transient_focusable_and_escape_reachable_without_forcing_modal():
-    root = tk.Tk()
-    try:
-        win = tk.Toplevel(root)
-        configure = getattr(bridge, "_phase6_configure_floating_surface", None)
-        assert callable(configure), "#127 requires one shared floating-surface foreground contract"
-        configure(win, root, modal=False)
-        root.update_idletasks(); root.update()
-
-        assert str(win.transient()) == str(root)
-        assert getattr(win, "_phase6_foreground_role", None) == "floating_surface"
-        assert win.bind("<Escape>")
-        assert win.grab_current() is None
-    finally:
-        for widget in tuple(root.winfo_children()):
-            try:
-                widget.destroy()
-            except tk.TclError:
-                pass
-        root.destroy()
-
 
 def test_status_bar_widget_is_projection_only_and_does_not_create_state_owner():
     import gui
