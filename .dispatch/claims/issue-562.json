@@ -8,7 +8,7 @@
   "base_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
   "head_sha": "7397a79deadc103896235b5cb633b555aca11b4d",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T23:53:54+08:00",
+  "last_update": "2026-09-23T23:56:55+08:00",
   "production_target": "main",
   "task_id": "GOV-MAIN-REMOTE-FINALIZATION-BACKPORT",
   "parent_issue": 560,
@@ -25,7 +25,10 @@
     "pr": 563,
     "merge_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
     "main_workflow_verified": true,
-    "capability_blocker_guard_run": 35884870873
+    "capability_blocker_guard_run": 35884870873,
+    "checkpoint_guard_run": 35885016949,
+    "checkpoint_commit": "05695457e5f23a7c531c108ea47beefbcba7adb8",
+    "handoff_guard_run": 35885205819
   },
   "integration": {
     "pr": 563,
@@ -34,5 +37,15 @@
     "production_head": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
     "workflow_path": ".github/workflows/whd-remote-finalization.yml",
     "workflow_blob_sha": "7ad1e3ec8e6a955bbaf19621954f72174110c9c1"
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-562.json",
+    "checkpoint_blob_sha": "241ea5b4dbbb89132b8e828a2b6e1c347d1e7262",
+    "checkpoint_fingerprint": "080224a6ff29317b737056a57de519a8b7272aa6f00709851c057d7c98126514",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "trusted_workflow": ".github/workflows/whd-remote-finalization.yml",
+    "trusted_workflow_main_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
+    "proof_status": "AWAITING_TRUSTED_WORKFLOW_DISPATCH",
+    "dispatch_blocker": "CURRENT_RUNTIME_NO_WORKFLOW_DISPATCH_PRIMITIVE"
   }
 }
