@@ -13,6 +13,7 @@ on:
       - tests/test_issue368_t4_registry_diagnostics_owner.py
       - tests/test_issue384_assembly_only_function_presentation.py
       - tests/test_issue447_workspace_shell_owner.py
+      - tests/test_issue532_c0_presentation_composition.py
       - tests/test_joint_diagnostics_contract.py
       - tests/test_phase6_tail_native_orientation_and_save.py
       - tests/test_phase6_four_regressions.py
@@ -78,6 +79,7 @@ jobs:
             tests/test_issue370_t6_final_scene_view_owner.py \
             tests/test_issue479_final_scene_composition_owner.py \
             tests/test_issue396_phase4_composition_root.py \
+            tests/test_issue532_c0_presentation_composition.py \
             tests/test_phase6_final_scene_view_ownership.py \
             tests/test_issue445_settings_presentation_owner.py \
             tests/test_issue447_workspace_shell_owner.py \
