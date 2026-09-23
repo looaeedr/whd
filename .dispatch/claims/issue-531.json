@@ -8,7 +8,7 @@
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
   "head_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T12:40:25+08:00",
+  "last_update": "2026-09-23T12:41:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -19,12 +19,14 @@
   "remote_qa": {
     "run_id": 35819270968,
     "head_sha": "fc8ab53bd10ab19f360ca4a6a3e61e8fa01c9b51",
-    "status": "queued",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "B6 controller executable finalization proof",
-    "owner_closing_head": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3"
+    "owner_closing_head": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+    "proof_artifact_id": 10733170052,
+    "proof_sha256": "80e58facd07c162194926bbb40c71970ef82a5755bc64e8d342351ad1773cc37"
   },
-  "next_action": "Poll exact finalization run 35819270968 to terminal; on success close #531, release claim, then atomically claim #532/C0 from accepted HEAD 64c930fd9d520cf55e365dc24ee027abc9e0e1a3.",
+  "next_action": "Close #531 completed; then atomically claim #532/C0 from accepted HEAD 64c930fd9d520cf55e365dc24ee027abc9e0e1a3.",
   "blocker": null,
   "child_chain": {
     "final_batch_issue": 546,
