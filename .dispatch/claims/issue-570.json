@@ -6,9 +6,9 @@
   "work_branch": "governance/issue570-merge-head-claim-reconcile-20260924",
   "claimed_at": "2026-09-24T01:23:20+08:00",
   "base_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
-  "head_sha": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T01:35:46+08:00",
+  "head_sha": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T01:42:03+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-HEAD-CLAIM-RECONCILIATION",
   "parent_issue": 557,
@@ -19,9 +19,13 @@
     "status": "completed",
     "conclusion": "success",
     "workflow": "WHD｜#570｜merge-head claim reconcile focused",
-    "pr": 571
+    "pr": 571,
+    "evidence": {
+      "tests": "7 passed",
+      "failures": 0
+    }
   },
-  "next_action": "Verify expanded focused GREEN evidence, remove the temporary qa-issue570-focused workflow, reconcile the cleaned HEAD, drift-audit against tested head, then guarded-merge PR #571.",
+  "next_action": "Guard-merge PR #571 at cleaned HEAD 9e2ef76f9b8737c3add5289953fbcd693417d0db, read back cleanup/2d-3d-sync, write terminal checkpoint, run trusted finalization, then return to parent #557.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35895253007,
@@ -39,6 +43,14 @@
     "hardened_commit": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
     "hardened_commit_guard_run": 35896479083,
     "hardened_head_reconcile_guard_run": 35896657671,
-    "hardened_green_run": 35896635565
+    "hardened_green_run": 35896635565,
+    "cleanup_commit": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
+    "cleanup_guard_run": 35897305491,
+    "cleanup_head_reconcile_guard_run": 35897382157,
+    "drift": {
+      "tested_head": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
+      "closing_head": "9e2ef76f9b8737c3add5289953fbcd693417d0db",
+      "only_change": ".github/workflows/qa-issue570-focused.yml removed"
+    }
   }
 }
