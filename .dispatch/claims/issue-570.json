@@ -1,0 +1,19 @@
+{
+  "issue": 570,
+  "issue_url": "https://github.com/looaeedr/whd/issues/570",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue570-merge-head-claim-reconcile-20260924",
+  "claimed_at": "2026-09-24T01:23:20+08:00",
+  "base_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
+  "head_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T01:23:20+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-MERGE-HEAD-CLAIM-RECONCILIATION",
+  "parent_issue": 557,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the guarded work branch from current cleanup/2d-3d-sync, add RED behavior coverage for evidence-bound two-parent claim-head reconciliation, then implement the narrow guard path without weakening ordinary stale-head protection.",
+  "blocker": null
+}
