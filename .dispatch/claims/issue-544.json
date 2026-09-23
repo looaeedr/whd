@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T08:20:30+08:00",
   "base_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
   "head_sha": "7f151937db4abc8d661fec27311b36e25e72350f",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T08:22:45+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T08:24:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,10 +18,22 @@
   "remote_qa": {
     "run_id": 35801778565,
     "head_sha": "7f151937db4abc8d661fec27311b36e25e72350f",
-    "status": "queued",
-    "conclusion": null,
-    "purpose": "B6-4 exact-branch consumer-normalized facade audit"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-4 consumer-normalized facade audit",
+    "evidence": {
+      "artifact_id": 10726285754,
+      "accounted": 12,
+      "unclassified": 0,
+      "dynamic_ref_unreviewed": 0,
+      "no_caller": [
+        "toggle_advanced_settings"
+      ],
+      "can_direct_owner": [
+        "_phase6_corner_parameters_unlocked"
+      ]
+    }
   },
-  "next_action": "Poll exact RUN 35801778565 to terminal; classify all 12 keys and continue RED→GREEN only for proven removable entries.",
+  "next_action": "Add replacement RED requiring toggle_advanced_settings removal and migration of test-only _phase6_corner_parameters_unlocked callers to module owner; then remove both facade exposures and run GREEN.",
   "blocker": null
 }
