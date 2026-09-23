@@ -7,11 +7,22 @@
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "ba1389892f51967dc63c592ef506b0761ff9cd0b",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T12:57:20+08:00",
+  "phase": "RED",
+  "last_update": "2026-09-23T12:58:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock the exact issue555 contract run for ba1389892f51967dc63c592ef506b0761ff9cd0b; require pytest assertion failure as genuine RED before Skill mutation.",
+  "remote_qa": {
+    "run_id": 35820424505,
+    "head_sha": "ba1389892f51967dc63c592ef506b0761ff9cd0b",
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "Issue555 genuine RED execution-instance identity contract",
+    "evidence": {
+      "classification": "REQUIREMENT_RED",
+      "failures": 2,
+      "reason": "派工 Skill and global pitfall lack EXECUTION_INSTANCE_IDENTITY_V1"
+    }
+  },
+  "next_action": "Add EXECUTION_INSTANCE_IDENTITY_V1 to canonical 派工 Skill and global pitfall, preserving active legacy claims; rerun exact issue555 contract to GREEN.",
   "blocker": null
 }
