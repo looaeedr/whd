@@ -1,0 +1,190 @@
+name: WHD｜#532｜C0 精確引用刪除稽核
+run-name: "WHD｜#532｜C0 精確引用刪除稽核｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue532-c0-exact-ref-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: C0 tracked Python 精確引用稽核
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 逐候選掃描 Bridge 外精確引用
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue532-c0-exact-ref-audit.log
+          import ast
+          import json
+          import subprocess
+          from collections import Counter
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py")
+          source = bridge.read_text(encoding="utf-8")
+          tree = ast.parse(source, filename=str(bridge))
+          loads = Counter(
+              n.id for n in ast.walk(tree)
+              if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
+          )
+
+          candidates = []
+          seen = set()
+
+          def add(kind, name, line, **extra):
+              key = (kind, name, line)
+              if key in seen:
+                  return
+              seen.add(key)
+              candidates.append({
+                  "kind": kind,
+                  "name": name,
+                  "line": line,
+                  **extra,
+              })
+
+          for node in tree.body:
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      bound = alias.asname or alias.name.split(".")[0]
+                      if loads[bound] == 0:
+                          add("import", bound, node.lineno, module=alias.name, special=False)
+              elif isinstance(node, ast.ImportFrom):
+                  module = node.module or ""
+                  for alias in node.names:
+                      if alias.name == "*":
+                          continue
+                      bound = alias.asname or alias.name
+                      if loads[bound] == 0:
+                          add(
+                              "import",
+                              bound,
+                              node.lineno,
+                              module=module,
+                              imported_name=alias.name,
+                              special=(module == "__future__"),
+                          )
+              elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                  targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                  value = node.value
+                  for target in targets:
+                      if not isinstance(target, ast.Name):
+                          continue
+                      name = target.id
+                      if isinstance(value, (ast.Name, ast.Attribute)) and loads[name] == 0:
+                          add("alias", name, node.lineno, target=ast.unparse(value), special=False)
+                      if name.isupper() and isinstance(value, ast.Constant) and loads[name] == 0:
+                          add("constant", name, node.lineno, value=repr(value.value), special=False)
+
+          raw = subprocess.check_output(["git", "ls-files", "-z"])
+          paths = [
+              Path(p.decode("utf-8", errors="surrogateescape"))
+              for p in raw.split(b"\0")
+              if p and p.decode("utf-8", errors="surrogateescape").endswith(".py")
+          ]
+
+          texts = {}
+          unreadable = []
+          for path in paths:
+              if path == bridge:
+                  continue
+              try:
+                  texts[str(path)] = path.read_text(encoding="utf-8")
+              except Exception as exc:
+                  unreadable.append({
+                      "path": str(path),
+                      "error": type(exc).__name__,
+                  })
+
+          results = []
+          safe = []
+          for row in candidates:
+              name = row["name"]
+              refs = []
+              for path, text in texts.items():
+                  if name in text:
+                      refs.append({
+                          "path": path,
+                          "category": (
+                              "tests" if path.startswith("tests/")
+                              else "tools" if path.startswith("tools/")
+                              else "production"
+                          ),
+                      })
+
+              if row.get("special"):
+                  decision = "PROTECTED_SPECIAL_IMPORT"
+              elif unreadable:
+                  decision = "BLOCKED_UNREADABLE_TRACKED_PYTHON"
+              elif refs:
+                  decision = "RETAIN_OR_MIGRATE_EXTERNAL_REFERENCE"
+              else:
+                  decision = "DELETE_PROVEN_ZERO_EXTERNAL_EXACT_REFERENCE"
+                  safe.append([row["kind"], name, row["line"]])
+
+              results.append({
+                  **row,
+                  "decision": decision,
+                  "external_refs": refs,
+              })
+
+          report = {
+              "schema": "WHD_ISSUE532_C0_EXACT_REF_AUDIT_V1",
+              "issue": 532,
+              "candidate_count": len(candidates),
+              "tracked_python_count": len(paths),
+              "unreadable_tracked_python": unreadable,
+              "safe_deletions": safe,
+              "results": results,
+              "rule": "zero exact name occurrence outside fold_designer_bridge.py across all tracked Python files",
+          }
+          Path("/tmp/issue532-c0-exact-ref-audit.json").write_text(
+              json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+
+          print("C0_EXACT_REF_CANDIDATES=" + str(len(candidates)))
+          print("C0_TRACKED_PYTHON=" + str(len(paths)))
+          print("C0_UNREADABLE_TRACKED_PYTHON=" + str(len(unreadable)))
+          print("C0_EXACT_SAFE_DELETE_COUNT=" + str(len(safe)))
+          for item in safe:
+              print("C0_EXACT_SAFE_DELETE=" + json.dumps(item, ensure_ascii=False))
+          for row in results:
+              if row["decision"] == "RETAIN_OR_MIGRATE_EXTERNAL_REFERENCE":
+                  print("C0_EXTERNAL_REF=" + json.dumps({
+                      "kind": row["kind"],
+                      "name": row["name"],
+                      "line": row["line"],
+                      "ref_count": len(row["external_refs"]),
+                      "refs": row["external_refs"][:12],
+                  }, ensure_ascii=False, sort_keys=True))
+          print("ISSUE532_C0_EXACT_REF_AUDIT=GREEN")
+          PY
+
+      - name: 上傳 C0 精確引用稽核證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-c0-exact-ref-audit
+          path: |
+            /tmp/issue532-c0-exact-ref-audit.log
+            /tmp/issue532-c0-exact-ref-audit.json
+          if-no-files-found: error
+          retention-days: 14
