@@ -8,10 +8,10 @@
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "phase": "CLAIMED",
-  "last_update": "2026-09-23T12:49:50+08:00",
+  "last_update": "2026-09-23T12:51:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain Remote Guard GREEN for branch-create, create exact work branch, then add RED contract test before Skill mutation.",
+  "next_action": "Add RED contract test + one-shot QA workflow on work branch; run exact RED before modifying dispatch Skill.",
   "blocker": null
 }
