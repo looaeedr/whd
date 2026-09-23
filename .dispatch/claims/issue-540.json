@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
   "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T09:41:30+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T11:10:05+08:00",
   "production_target": "main",
   "delegated_branches": [
     "qa/issue540-finalization-proof-20260923"
@@ -26,7 +26,7 @@
       "same_head_invalid_workflow_run": "none"
     }
   },
-  "next_action": "Create delegated finalization-proof QA branch from cleanup authority, run canonical continuity_controller authorize-finalization + verify-finalization-proof, close #540 and read back completed state in the same runner, then release claim.",
+  "next_action": null,
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -244,11 +244,18 @@
     "owner_head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
     "state": "TERMINAL_SUCCESS"
   },
-  "runtime_lease": {
-    "schema": "WHD_RUNTIME_LEASE_V1",
-    "holder": "chatgpt_interactive",
-    "renewed_at": "2026-09-23T09:41:30+08:00",
-    "expires_at": "2026-09-23T09:51:30+08:00",
-    "purpose": "active interactive execution; scheduler must not take over while unexpired"
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-23T11:10:05+08:00",
+    "canonical_checkpoint": ".dispatch/checkpoints/issue-540.json",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "checkpoint_next_action": null,
+    "cleanup_merge_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
+    "main_merge_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
+    "cleanup_acceptance_run": 35795817863,
+    "main_green_run": 35801610660,
+    "post_merge_smoke_run": 35802089413,
+    "scheduler_prompt_fix": "2026-09-23 owning-claim selection + fixed-schema takeover request"
   }
 }
