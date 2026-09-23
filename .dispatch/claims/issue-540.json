@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
   "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-23T08:24:30+08:00",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T08:26:30+08:00",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,7 +24,7 @@
       "same_head_invalid_workflow_run": "none"
     }
   },
-  "next_action": "Obtain fresh pr-write Remote Guard receipt for merging PR #554 at exact head 11f5c6d6 into main; after merge run scheduler-style claim-takeover negative smoke against updated default branch, then finalize #540.",
+  "next_action": "Run controlled scheduler-mode negative smoke against main@7b8d8464 using this fresh claim. Expected: request parses, stale evaluator runs, classification WAIT_ON_FOREIGN_RUNTIME, Remote Guard terminal FAIL by design; any unsupported-action/parser failure is regression.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -138,6 +138,13 @@
       "run_id": 35801820161,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "main_merge": {
+      "request_comment_id": 5786807235,
+      "result_comment_id": 5786810049,
+      "run_id": 35801942210,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
   },
   "cleanup_evidence": {
@@ -189,6 +196,16 @@
       "merge_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
       "acceptance_run": 35795817863,
       "focused_tests": "38 passed"
+    },
+    "main_remote_guard": {
+      "production_target": "main",
+      "frozen_base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
+      "work_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
+      "work_head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
+      "pr_number": 554,
+      "merge_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
+      "acceptance_run": 35801610660,
+      "contract_tests": "5 passed"
     }
   },
   "cleanup_evidence_main": {
