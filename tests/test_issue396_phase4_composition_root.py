@@ -16,6 +16,11 @@ DIRECT_CONSTRUCTION_TOKENS = (
     "FinalSceneDependencies(",
 )
 
+APPLICATION_CONTROLLER_TOKENS = (
+    "Phase6WorkspaceNavigationController(",
+    "Phase6RegistryDiagnosticsController(",
+)
+
 DEEP_MODULES = (
     Path("phase6_settings_contracts.py"),
     Path("phase6_settings_transitions.py"),
@@ -93,6 +98,28 @@ def test_issue396_composition_root_owns_all_deep_construction():
     assert missing == [], (
         "RED: composition root does not own required construction: "
         f"{missing}"
+    )
+
+
+def test_c0_bridge_no_longer_constructs_application_controllers():
+    bridge = BRIDGE.read_text(encoding="utf-8")
+    violations = [
+        token for token in APPLICATION_CONTROLLER_TOKENS if token in bridge
+    ]
+    assert violations == [], (
+        "C0 RED: bridge still constructs application controllers outside the "
+        f"single Phase6FoldDesignerComposition root: {violations}"
+    )
+
+
+def test_c0_single_composition_root_constructs_application_controllers():
+    source = COMPOSITION.read_text(encoding="utf-8")
+    missing = [
+        token for token in APPLICATION_CONTROLLER_TOKENS if token not in source
+    ]
+    assert missing == [], (
+        "C0 RED: existing Phase6FoldDesignerComposition has not absorbed "
+        f"application controller construction: {missing}"
     )
 
 
