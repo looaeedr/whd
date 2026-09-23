@@ -7,13 +7,20 @@
   "claimed_at": "2026-09-23T22:22:30+08:00",
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "81294d6bbb69340305a817feb8be6ee312d5ab39",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T01:48:43+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T01:48:52+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SCHEDULER-USAGE",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Re-evaluate PR #569 against current cleanup/2d-3d-sync after #570 integration; verify no overlapping drift, obtain/lock current-base validation if required, then guarded-merge and finalize #557.",
+  "remote_qa": {
+    "run_id": 35895091668,
+    "head_sha": "81294d6bbb69340305a817feb8be6ee312d5ab39",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap",
+    "pr": 569
+  },
+  "next_action": "Guard-merge PR #569 at head 81294d6bbb69340305a817feb8be6ee312d5ab39; read back cleanup/2d-3d-sync, write terminal checkpoint, run trusted finalization, close/readback #557, then release claim.",
   "blocker": null,
   "scheduler_usage_doc_progress": {
     "branch_created": true,
@@ -30,7 +37,24 @@
     "merge_sync_commit": "81294d6bbb69340305a817feb8be6ee312d5ab39",
     "merge_sync_reconcile_guard_run": 35898138883,
     "governance_repair_issue": 570,
-    "governance_repair_merge_sha": "7b3e8997ca651b0e9c85220506faf7151c8a2133"
+    "governance_repair_merge_sha": "7b3e8997ca651b0e9c85220506faf7151c8a2133",
+    "pr": 569,
+    "merge_head_reconcile_guard_runs": [
+      35898138883,
+      35898153739
+    ],
+    "validation_run": 35895091668,
+    "blocking_repair_issue": 570,
+    "blocking_repair_state": "closed/completed",
+    "production_drift_after_validation": {
+      "from": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
+      "to": "7b3e8997ca651b0e9c85220506faf7151c8a2133",
+      "files": [
+        "tests/process/test_issue570_merge_head_claim_reconciliation.py",
+        "tools/execution_claim_guard.py"
+      ],
+      "overlaps_issue557_changed_files": false
+    }
   },
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
