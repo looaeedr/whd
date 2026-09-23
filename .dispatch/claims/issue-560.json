@@ -1,0 +1,19 @@
+{
+  "issue": 560,
+  "issue_url": "https://github.com/looaeedr/whd/issues/560",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue560-trusted-remote-finalization-20260923",
+  "claimed_at": "2026-09-23T23:33:41+08:00",
+  "base_sha": "c586584a0b6ddf242177246079a52b6884c6e2a6",
+  "head_sha": "c586584a0b6ddf242177246079a52b6884c6e2a6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T23:33:41+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-TRUSTED-REMOTE-FINALIZATION",
+  "parent_issue": 558,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the guarded work branch from the fresh production authority, then establish RED regression evidence that marker/comment-only finalization is rejected before implementing the narrow trusted remote finalization executor.",
+  "blocker": null
+}
