@@ -19,6 +19,8 @@ on:
       - tests/test_phase6_corner_transaction.py
       - tests/test_fold_designer_joint_state.py
       - tests/test_joint_editor_backend.py
+      - tests/test_phase6_bridge_domain_ownership.py
+      - tests/test_issue370_t6_final_scene_view_owner.py
 
 permissions:
   contents: read

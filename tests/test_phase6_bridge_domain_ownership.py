@@ -142,8 +142,13 @@ def test_bridge_exposes_only_runtime_required_orchestration_class_seam():
         "publish_if_changed",
     ):
         assert not hasattr(bridge.Phase6FoldDesignerApp, name), name
-        assert callable(getattr(bridge, f"_phase6_{name}")), name
 
+    for name in (
+        "_phase6_apply_settings_delta",
+        "_phase6_switch_active_part",
+        "_phase6_publish_if_changed",
+    ):
+        assert not hasattr(bridge, name), name
 
 def test_preview_aware_legacy_wrapper_only_submits_intent():
     import inspect

@@ -30,7 +30,6 @@ EXPECTED_DELEGATES = {
     "_phase6_install_renderer_view": "install_renderer",
     "_phase6_render_committed_view": "render_committed",
     "_phase6_set_3d_preview_enabled": "set_preview_enabled",
-    "_phase6_refresh_3d_preview": "refresh_preview",
 }
 
 FORBIDDEN_ADAPTER_TOKENS = (
