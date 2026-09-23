@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
-  "phase": "GREEN",
-  "last_update": "2026-09-23T14:02:30+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T14:05:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -22,6 +22,6 @@
       "failures": 0
     }
   },
-  "next_action": "Open guarded PR from governance/issue555-execution-instance-identity-20260923 to cleanup/2d-3d-sync, integrate after review/CI, then cleanup/readback and release claim.",
+  "next_action": "Remove temporary .github/workflows/qa-issue555-execution-instance-identity.yml, verify cleaned head differs from tested a5d66c05... only by workflow deletion, then obtain fresh pr-write guard.",
   "blocker": null
 }
