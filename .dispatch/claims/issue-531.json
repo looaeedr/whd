@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:00:20+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "head_sha": "d471ef555e8a0b6a50373f2967941e8ffa4fcfec",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T12:39:10+08:00",
+  "head_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T12:40:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -33,11 +33,20 @@
       "artifact_id": 10732303057
     }
   },
-  "next_action": "Remove non-authoritative pending-head placeholder from #531 aggregate JSON, then perform tested-head -> final closing-head drift audit and persist terminal checkpoint.",
+  "next_action": "Persist #531 TERMINAL_SUCCESS checkpoint at 64c930fd9d520cf55e365dc24ee027abc9e0e1a3 with NEXT_CHILD_EXECUTABLE -> #532/C0, then run executable finalization proof.",
   "blocker": null,
   "child_chain": {
     "final_batch_issue": 546,
     "final_batch_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
     "accounted": "69/69"
+  },
+  "drift_audit": {
+    "from_head": "bdf189cd402b4a33a67c6f9d279549bcc34be0bd",
+    "to_head": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+    "production_test_drift": 0,
+    "allowed_only": [
+      "remove #531 aggregate one-shot workflow",
+      "add/update #531 durable aggregate classification"
+    ]
   }
 }
