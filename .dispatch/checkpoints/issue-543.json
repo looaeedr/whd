@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "issue": "543",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35801394151,
+  "job_id": 106992303404,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; B6 controller #531.",
+    "Parent accepted HEAD 90bce030feed775fc852d9bd8f8ef21482471a4a.",
+    "B6-3 consumer audit RUN 35801179888 SUCCESS: 12/12 accounted; UNCLASSIFIED=0; DYNAMIC_REF_UNREVIEWED=0.",
+    "NO_CALLER: show_global_settings and save_settings_context_as_defaults.",
+    "Replacement RED RUN 35801296639 SUCCESS: 2 failed / 1 passed as expected.",
+    "Final GREEN RUN 35801394151 @ f8e006c466f91e5dd174d6c8cadc05473ba5baaa SUCCESS.",
+    "GREEN 31 passed / 9 skipped.",
+    "Facade count 64 -> 62; exactly two facade bindings removed.",
+    "Underlying implementation functions retained.",
+    "One-shot audit/RED/GREEN workflows removed.",
+    "Canonical durable classification: docs/superpowers/checkpoints/issue543-b6-3-final-classification.json/md.",
+    "Tested-head -> closing-head production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "544",
+  "chain_next_action": "Atomically claim #544/B6-4 from accepted HEAD 4b2bf0174c59dabf487a430c4dc49cddd47ce410 and continue facade audit.",
+  "chain_reason": "B6-3 terminal GREEN; B6 controller aggregate now 36/69 accounted."
+}
