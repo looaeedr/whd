@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
-  "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T12:22:30+08:00",
+  "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T12:24:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,6 +30,15 @@
       "artifact_id": 10731144611
     }
   },
-  "next_action": "Write B6-6 final classification, remove all issue546 one-shot workflows, verify tested-head to closing-head production/test drift=0, persist terminal checkpoint, run finalization.",
-  "blocker": null
+  "next_action": "Persist terminal checkpoint for #546 at closing HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033 with NEXT_CHILD_EXECUTABLE -> #531, then run finalization proof.",
+  "blocker": null,
+  "drift_audit": {
+    "from_head": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
+    "to_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+    "production_test_drift": 0,
+    "allowed_only": [
+      "remove issue546 one-shot workflows",
+      "add issue546 durable final classification"
+    ]
+  }
 }
