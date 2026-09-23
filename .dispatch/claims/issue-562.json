@@ -7,15 +7,15 @@
   "claimed_at": "2026-09-23T23:44:48+08:00",
   "base_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
   "head_sha": "7397a79deadc103896235b5cb633b555aca11b4d",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T23:56:55+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T00:20:33+08:00",
   "production_target": "main",
   "task_id": "GOV-MAIN-REMOTE-FINALIZATION-BACKPORT",
   "parent_issue": 560,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "From a runtime that exposes trusted GitHub workflow_dispatch, dispatch main:.github/workflows/whd-remote-finalization.yml with fresh exact issue/worker/branch/head/checkpoint blob+fingerprint/claim blob/authority; lock that exact run to terminal, validate WHD_REMOTE_FINALIZATION_RECEIPT_V1 + proof artifact, then close/read back this child, release its claim, and resume parent repair.",
-  "blocker": "RUNTIME_CAPABILITY_BLOCKER: trusted narrow WHD Remote Finalization workflow is integrated and readable on main, but this invocation exposes no GitHub workflow_dispatch mutation primitive; container has no authenticated gh/GitHub credential. Do not create duplicate PR/Guard or use generic shell/marker-only proof.",
+  "next_action": null,
+  "blocker": null,
   "progress": {
     "backport_commit": "7397a79deadc103896235b5cb633b555aca11b4d",
     "branch_create_guard_run": 35883896679,
@@ -40,12 +40,20 @@
   },
   "finalization": {
     "checkpoint": ".dispatch/checkpoints/issue-562.json",
-    "checkpoint_blob_sha": "241ea5b4dbbb89132b8e828a2b6e1c347d1e7262",
-    "checkpoint_fingerprint": "080224a6ff29317b737056a57de519a8b7272aa6f00709851c057d7c98126514",
-    "checkpoint_state": "TERMINAL_SUCCESS",
-    "trusted_workflow": ".github/workflows/whd-remote-finalization.yml",
-    "trusted_workflow_main_sha": "f18851096c483cb5f23c5c7c86bb9853d89c0e29",
-    "proof_status": "AWAITING_TRUSTED_WORKFLOW_DISPATCH",
-    "dispatch_blocker": "CURRENT_RUNTIME_NO_WORKFLOW_DISPATCH_PRIMITIVE"
+    "checkpoint_blob_sha": "04f241e87d10d7c0e7262d6e3984002d8e133093",
+    "checkpoint_fingerprint": "5d5aa24d074e007aab5686f2e78ffcd1a88cf76e3781e1216fdcab0e2c31c8ef",
+    "trusted_run_id": 35887939521,
+    "artifact_id": 10764125984,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "release": {
+    "guard_request_comment_id": 5798486316,
+    "guard_result_comment_id": 5798491146,
+    "guard_run_id": 35888038801,
+    "result": "GREEN",
+    "released_at": "2026-09-24T00:20:33+08:00"
   }
 }
