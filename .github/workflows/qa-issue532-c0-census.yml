@@ -1,0 +1,196 @@
+name: WHD｜#532｜C0 殘餘表面盤點
+run-name: "WHD｜#532｜C0 殘餘表面盤點｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue532-c0-census.yml
+
+permissions:
+  contents: read
+
+jobs:
+  census:
+    name: C0 Bridge 殘餘責任與可清理表面盤點
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 建立 C0 fresh residual census
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue532-c0-census.log
+          import ast
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py")
+          source = bridge.read_text(encoding="utf-8")
+          tree = ast.parse(source, filename=str(bridge))
+
+          BASELINE_LOC = 7806
+          MIN_REDUCTION = 1000
+          EFFECTIVE_FINAL_CEILING = 6500
+
+          loc_newlines = source.count("\n")
+          loc_splitlines = len(source.splitlines())
+          reduction = BASELINE_LOC - loc_newlines
+          remaining_reduction = max(0, MIN_REDUCTION - reduction)
+          over_ceiling = max(0, loc_newlines - EFFECTIVE_FINAL_CEILING)
+
+          top = [
+              node for node in tree.body
+              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+          ]
+
+          loads = Counter(
+              node.id for node in ast.walk(tree)
+              if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+          )
+
+          imports = []
+          for node in tree.body:
+              if isinstance(node, ast.Import):
+                  for alias in node.names:
+                      bound = alias.asname or alias.name.split(".")[0]
+                      imports.append({
+                          "kind": "import",
+                          "module": alias.name,
+                          "bound": bound,
+                          "line": node.lineno,
+                          "load_count": loads[bound],
+                      })
+              elif isinstance(node, ast.ImportFrom):
+                  module = node.module or ""
+                  for alias in node.names:
+                      if alias.name == "*":
+                          continue
+                      bound = alias.asname or alias.name
+                      imports.append({
+                          "kind": "from",
+                          "module": module,
+                          "name": alias.name,
+                          "bound": bound,
+                          "line": node.lineno,
+                          "load_count": loads[bound],
+                      })
+
+          unused_imports = [row for row in imports if row["load_count"] == 0]
+
+          direct_aliases = []
+          constants = []
+          for node in tree.body:
+              if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                  continue
+              targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+              value = node.value
+              for target in targets:
+                  if not isinstance(target, ast.Name):
+                      continue
+                  name = target.id
+                  if isinstance(value, (ast.Name, ast.Attribute)):
+                      direct_aliases.append({
+                          "name": name,
+                          "line": node.lineno,
+                          "target": ast.unparse(value),
+                          "load_count": loads[name],
+                      })
+                  if name.isupper() and isinstance(value, ast.Constant):
+                      constants.append({
+                          "name": name,
+                          "line": node.lineno,
+                          "value": repr(value.value),
+                          "load_count": loads[name],
+                      })
+
+          dead_constants = [row for row in constants if row["load_count"] == 0]
+
+          facade_call = next(
+              node for node in ast.walk(tree)
+              if isinstance(node, ast.Call)
+              and isinstance(node.func, ast.Name)
+              and node.func.id == "install_fold_designer_bridge_facade"
+          )
+          facade_dict = next(arg for arg in facade_call.args if isinstance(arg, ast.Dict))
+          facade_keys = [
+              key.value for key in facade_dict.keys
+              if isinstance(key, ast.Constant) and isinstance(key.value, str)
+          ]
+
+          report = {
+              "schema": "WHD_ISSUE532_C0_RESIDUAL_CENSUS_V1",
+              "issue": 532,
+              "master_issue": 520,
+              "bridge": {
+                  "path": str(bridge),
+                  "loc_newlines": loc_newlines,
+                  "loc_splitlines": loc_splitlines,
+                  "top_level_def_class_count": len(top),
+                  "facade_binding_count": len(facade_keys),
+              },
+              "budget": {
+                  "baseline_loc": BASELINE_LOC,
+                  "MIN_REDUCTION": MIN_REDUCTION,
+                  "EFFECTIVE_FINAL_CEILING": EFFECTIVE_FINAL_CEILING,
+                  "current_reduction": reduction,
+                  "remaining_reduction_to_min": remaining_reduction,
+                  "over_ceiling_by": over_ceiling,
+              },
+              "candidates": {
+                  "unused_imports": unused_imports,
+                  "direct_aliases": direct_aliases,
+                  "dead_literal_constants": dead_constants,
+              },
+              "facade_keys": facade_keys,
+              "rules": {
+                  "candidate_is_not_deletion_authority": True,
+                  "require_caller_or_deletion_evidence": True,
+                  "no_code_golf": True,
+                  "no_helper_monolith": True,
+              },
+          }
+
+          out = Path("/tmp/issue532-c0-residual-census.json")
+          out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+          print(f"C0_BRIDGE_LOC={loc_newlines}")
+          print(f"C0_BRIDGE_SPLITLINES={loc_splitlines}")
+          print(f"C0_TOTAL_REDUCTION={reduction}")
+          print(f"C0_REMAINING_REDUCTION_TO_MIN={remaining_reduction}")
+          print(f"C0_OVER_CEILING_BY={over_ceiling}")
+          print(f"C0_TOP_LEVEL_DEF_CLASS={len(top)}")
+          print(f"C0_FACADE_COUNT={len(facade_keys)}")
+          print(f"C0_UNUSED_IMPORT_CANDIDATES={len(unused_imports)}")
+          print(f"C0_DIRECT_ALIAS_CANDIDATES={len(direct_aliases)}")
+          print(f"C0_DEAD_LITERAL_CONSTANT_CANDIDATES={len(dead_constants)}")
+          for row in unused_imports:
+              print("UNUSED_IMPORT_CANDIDATE=" + json.dumps(row, ensure_ascii=False, sort_keys=True))
+          for row in dead_constants:
+              print("DEAD_CONSTANT_CANDIDATE=" + json.dumps(row, ensure_ascii=False, sort_keys=True))
+          for row in direct_aliases:
+              print("DIRECT_ALIAS_CANDIDATE=" + json.dumps(row, ensure_ascii=False, sort_keys=True))
+          print("ISSUE532_C0_CENSUS=GREEN")
+          PY
+
+      - name: 上傳 C0 盤點證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-c0-residual-census
+          path: |
+            /tmp/issue532-c0-census.log
+            /tmp/issue532-c0-residual-census.json
+          if-no-files-found: error
+          retention-days: 14
