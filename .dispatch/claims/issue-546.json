@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
-  "head_sha": "b9dd61041f43d91c3c083cba6e4ad206cc4c8c79",
-  "phase": "GREEN",
-  "last_update": "2026-09-23T12:18:30+08:00",
+  "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T12:18:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,17 +16,12 @@
   "task_id": "B6-6",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35817570889,
-    "head_sha": "b9dd61041f43d91c3c083cba6e4ad206cc4c8c79",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "B6-6 final facade GREEN",
-    "evidence": {
-      "headless": "24 passed",
-      "xvfb": "3 failed / 28 passed",
-      "failed_file": "tests/test_phase6_receiving_edge_controls_gui.py"
-    }
+    "run_id": 35817807414,
+    "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B6-6 immutable parent-vs-candidate Xvfb A/B"
   },
-  "next_action": "Run immutable parent-vs-candidate Xvfb A/B on identical affected suite: parent c06f5fb976b96e0db58452438ed8977b9d86e800 vs production candidate fb2d5c5cdc10f3a32f0e466fa78377a9a606829c.",
+  "next_action": "Poll exact run 35817807414 to terminal; if candidate-only failures=0, proceed to cleanup/final classification/finalization.",
   "blocker": null
 }
