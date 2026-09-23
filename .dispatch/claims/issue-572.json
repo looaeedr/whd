@@ -1,0 +1,20 @@
+{
+  "issue": 572,
+  "issue_url": "https://github.com/looaeedr/whd/issues/572",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue572-sibling-scheduler-stale-takeover-20260924",
+  "claimed_at": "2026-09-24T01:57:02+08:00",
+  "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
+  "head_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T01:57:02+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
+  "parent_issue": 533,
+  "master_issue": 520,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the guarded repair branch from current cleanup/2d-3d-sync, add focused RED coverage for stale foreign sibling scheduler takeover, then implement the narrow evaluator/guard fix and validate it remotely.",
+  "blocker": null
+}
