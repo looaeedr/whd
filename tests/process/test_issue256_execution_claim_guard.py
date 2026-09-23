@@ -74,6 +74,13 @@ def test_owner_on_claimed_branch_is_allowed(tmp_path: Path) -> None:
     assert claim.worker == "chatgpt"
     assert claim.work_branch == WORK_BRANCH
 
+def test_recovering_phase_is_active_for_same_owner(tmp_path: Path) -> None:
+    guard = _load_guard()
+    path = _write_claim(tmp_path, _claim(phase="RECOVERING"))
+    claim = _assert_claim(guard, path)
+    assert claim.phase == "RECOVERING"
+
+
 
 def test_missing_claim_fails_closed(tmp_path: Path) -> None:
     guard = _load_guard()

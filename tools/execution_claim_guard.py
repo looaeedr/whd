@@ -38,6 +38,7 @@ ACTIVE_PHASES = frozenset(
         "IMPLEMENTING",
         "GREEN",
         "REMOTE_QA",
+        "RECOVERING",
         "CLEANUP",
         "DRIFT_AUDIT",
         "CLOSING",
