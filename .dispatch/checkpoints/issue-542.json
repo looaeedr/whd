@@ -25,7 +25,6 @@
     "Tested-head -> closing-head production/test drift=0."
   ],
   "master_issue": "520",
-  "parent_issue": "531",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "543",
   "chain_next_action": "Atomically claim #543/B6-3 from accepted HEAD 90bce030feed775fc852d9bd8f8ef21482471a4a and continue facade audit.",
