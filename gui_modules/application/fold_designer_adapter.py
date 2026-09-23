@@ -35,12 +35,25 @@ from ae_engine.sheetmetal_part_adapters import (
 )
 from phase6_fold_profiles import formed_box_body_fw_widths
 from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
-from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bottom_wrap_state
-from phase6_settings_center import load_factory_defaults_from_ae
+from phase6_endcap_semantics import (
+    ASSEMBLY_TYPE_LABELS,
+    assembly_intent_value,
+    normalize_endcap_bottom_wrap_state,
+)
+from phase6_settings_center import UI_TEXT_SIZE_LABELS, load_factory_defaults_from_ae
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+from phase6_registry_diagnostics_panel import Phase6RegistryDiagnosticsPanel
+from phase6_settings_panel import Phase6SettingsPanel
+from phase6_workspace_shell import (
+    WorkspaceShellActions,
+    WorkspaceShellOwner,
+    WorkspaceShellState,
+)
+from phase6_box_body_structure import BoxBodyStructureType
+from whd_theme import WHD_THEME
 from phase6_final_scene_contracts import (
     AssemblyScenePart,
     AssemblySceneRenderData,
@@ -931,8 +944,273 @@ class Phase6FoldDesignerComposition:
         self._settings_coordinator = None
         self._workspace_navigation_controller = None
         self._registry_diagnostics_controller = None
+        self._settings_panel = None
+        self._registry_panel = None
+        self._corner_data_view = None
+        self._workspace_shell_owner = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
+
+    @staticmethod
+    def _required(namespace, name):
+        try:
+            return namespace[name]
+        except KeyError as exc:
+            raise RuntimeError(
+                f"Fold Designer composition port is unavailable: {name}"
+            ) from exc
+
+    def settings_panel(self, namespace):
+        """Construct the Settings presentation owner through the composition root."""
+        app = self.app
+        current = getattr(app, "settings_panel", None)
+        if current is not None:
+            self._settings_panel = current
+            return current
+        if self._settings_panel is not None:
+            return self._settings_panel
+
+        required = lambda name: self._required(namespace, name)
+        query = getattr(app, "_baseline_data_query_callback", None)
+        panel = Phase6SettingsPanel(
+            values_snapshot=lambda: dict(app._settings_values),
+            stage_setting_update=lambda key, value: required(
+                "_phase6_stage_setting_update"
+            )(app, key, value),
+            flush_settings=lambda: required("_phase6_flush_pending_settings")(app),
+            save_defaults=lambda context: required(
+                "_phase6_save_settings_context_as_defaults"
+            )(app, context),
+            query_baseline_rows=(
+                (lambda context, model, values: query(context, model, values))
+                if query is not None
+                else None
+            ),
+            is_unknown_baseline=lambda model: required(
+                "_phase6_is_unknown_baseline"
+            )(app, model),
+            should_show_baseline_data=lambda context, specs: required(
+                "_phase6_should_show_baseline_data"
+            )(app, context, specs),
+            part_labels=required("PART_LABELS"),
+            context_extension_projection=lambda context: required(
+                "_phase6_settings_context_extension_projection"
+            )(app, context),
+            endcap_fw_value_selected=lambda part_key, value_var: required(
+                "_phase6_on_endcap_fw_value_selected"
+            )(app, part_key, value_var),
+            box_structure_numeric_changed=lambda type_id, field, value_var: required(
+                "_phase6_apply_box_structure_numeric"
+            )(app, type_id, field, value_var),
+            box_back_panel_mode_changed=lambda value_var: required(
+                "_phase6_select_back_panel_mode"
+            )(app, value_var),
+            box_structure_toggle_advanced=lambda type_id: required(
+                "_phase6_toggle_structure_advanced"
+            )(app, type_id),
+            bottom_wrap_commit=lambda part_key, reserve_u_var, reserve_v_var: required(
+                "_phase6_commit_receiving_bottom_wrap_controls"
+            )(app, part_key, reserve_u_var, reserve_v_var),
+            corner_pair_changed=lambda part_key, pair_key, var: required(
+                "_phase6_corner_pair_var_changed"
+            )(app, part_key, pair_key, var),
+            corner_type_selected=lambda part_key, target_key: required(
+                "_phase6_corner_type_selected"
+            )(app, part_key, target_key),
+            corner_mode_selected=lambda part_key, target_key: required(
+                "_phase6_corner_mode_selected"
+            )(app, part_key, target_key),
+            corner_target_changed=lambda part_key, target_key: required(
+                "_phase6_corner_target_var_changed"
+            )(app, part_key, target_key),
+            sync_context_extension=lambda state, context: required(
+                "_phase6_sync_settings_panel_extension"
+            )(app, state, context),
+            baseline_model_changed=lambda: required(
+                "_phase6_on_baseline_model_changed"
+            )(app),
+            ui_text_size_changed=lambda key: required(
+                "_phase6_apply_ui_text_size"
+            )(app, key),
+        )
+        self._settings_panel = panel
+        app.settings_panel = panel
+        return panel
+
+    def registry_panel(self, namespace):
+        """Construct Registry diagnostics presentation through composition."""
+        app = self.app
+        current = getattr(app, "registry_diagnostics_panel", None)
+        if current is not None:
+            self._registry_panel = current
+            return current
+        if self._registry_panel is not None:
+            return self._registry_panel
+
+        required = lambda name: self._required(namespace, name)
+        panel = Phase6RegistryDiagnosticsPanel(
+            owner=app,
+            present_token=lambda value, **kwargs: required(
+                "_phase6_registry_present_token"
+            )(value, **kwargs),
+            formula_display=lambda value, presentation_field="formula": required(
+                "_phase6_registry_formula_display"
+            )(value, presentation_field=presentation_field),
+            formula_raw=required("_phase6_formula_raw"),
+            preconditions_display=required("_phase6_preconditions_display"),
+            preconditions_raw=required("_phase6_preconditions_raw"),
+            source_display=lambda value, presentation_field="source": required(
+                "_phase6_registry_source_display"
+            )(value, presentation_field=presentation_field),
+            source_raw=required("_phase6_source_raw"),
+            validate_formula=lambda: required(
+                "_phase6_registry_validate_formula_form"
+            )(app),
+            preview_payload=lambda: required("_phase6_registry_preview_payload")(app),
+            preview_assembly_3d=lambda: required(
+                "_phase6_registry_preview_assembly_3d"
+            )(app),
+            save_candidate=lambda: required("_phase6_registry_save_candidate_form")(app),
+            run_formula_matrix=lambda: required(
+                "_phase6_registry_run_formula_matrix"
+            )(app),
+            promote_candidate=lambda: required("_phase6_registry_promote_form")(app),
+            load_rule_rows=lambda: required("_phase6_registry_load_rule_rows")(app),
+            rule_record=lambda key: self.registry_diagnostics().rule_record(key),
+            joint_rows=lambda: required("_phase6_joint_rows")(app),
+            add_joint=lambda: required("_phase6_joint_form_add")(app),
+            delete_joint=lambda: required("_phase6_joint_form_delete")(app),
+            on_diagnostic_changed=lambda: required(
+                "_phase6_on_assembly_diagnostic_changed"
+            )(app),
+            create_promotion_candidates=lambda: required(
+                "_phase6_create_relief_promotion_candidates"
+            )(app),
+            diagnostic_ids=lambda resolved=None: self.registry_diagnostics().diagnostic_ids(
+                resolved
+                or getattr(app, "_phase6_last_resolved_manufacturing_geometry", None)
+            ),
+        )
+        self._registry_panel = panel
+        app.registry_diagnostics_panel = panel
+        return panel
+
+    def corner_data_view(self):
+        """Construct the Corner Data presentation adapter through composition."""
+        app = self.app
+        current = getattr(app, "_phase6_corner_data_view_adapter", None)
+        if current is not None:
+            self._corner_data_view = current
+            return current
+        if self._corner_data_view is None:
+            self._corner_data_view = Phase6CornerDataViewAdapter(
+                selected_part_key=getattr(
+                    app, "_phase6_corner_data_selected_part_key", None
+                )
+            )
+            app._phase6_corner_data_view_adapter = self._corner_data_view
+        return self._corner_data_view
+
+    def workspace_shell_owner(self, namespace):
+        """Compose WorkspaceShell state/actions without moving presentation ownership."""
+        app = self.app
+        current = getattr(app, "__dict__", {}).get("_phase6_workspace_shell_owner")
+        if isinstance(current, WorkspaceShellOwner):
+            self._workspace_shell_owner = current
+            return current
+        if self._workspace_shell_owner is not None:
+            return self._workspace_shell_owner
+
+        required = lambda name: self._required(namespace, name)
+        panel = self.settings_panel(namespace)
+        structure_state = required("_phase6_box_structure_state")(app)
+        active_structure = BoxBodyStructureType(structure_state["active_type"])
+        structure_labels = required("_BOX_STRUCTURE_LABELS")
+
+        shell_state = WorkspaceShellState(
+            root=app.root,
+            left=app.left,
+            right=app.right,
+            ui_text_size_values=tuple(UI_TEXT_SIZE_LABELS.values()),
+            v_a_bend=app.v_a_bend,
+            v_a_face=app.v_a_face,
+            baseline_models=tuple(app._baseline_models),
+            initial_model=app._phase6_baseline_initial_model,
+            structure_label=structure_labels[active_structure],
+            structure_choices=tuple(structure_labels.values()),
+            assembly_label=ASSEMBLY_TYPE_LABELS[
+                getattr(app, "_phase6_assembly_type", CornerTypeId.INSERT_OVERLAY)
+            ],
+            assembly_choices=tuple(ASSEMBLY_TYPE_LABELS.values()),
+            settings_values=dict(app._settings_values),
+            external_draw_stock_var=getattr(
+                app, "_phase6_external_draw_stock_var", None
+            ),
+            external_export_vars=dict(
+                getattr(app, "_phase6_external_export_vars", {}) or {}
+            ),
+            left_workspace_width=required("_phase6_left_workspace_width")(
+                app._settings_values.get("ui_text_size", "small")
+            ),
+            theme_background=WHD_THEME["background"],
+        )
+        actions = WorkspaceShellActions(
+            status_projection=lambda: required("_phase6_status_projection")(app),
+            load_project_file=app.load_project_file,
+            save_project_file=app.save_project_file,
+            save_project_file_as=app.save_project_file_as,
+            open_relief_registry=lambda: required(
+                "_phase6_open_relief_registry_form"
+            )(app),
+            reset_initial_values=app.reset_initial_values,
+            build_settings_global_controls=lambda host: panel.build_left_global_controls(
+                host,
+                baseline_models=tuple(app._baseline_models),
+                initial_model=app._phase6_baseline_initial_model,
+            ),
+            sync_settings_panel_compat=lambda: required(
+                "_phase6_sync_settings_panel_compat"
+            )(app),
+            get_left_global_controls=lambda: app.left_global_controls,
+            get_left_global_cells=lambda: app.left_global_cells,
+            get_ui_text_size_var=lambda: app.ui_text_size_var,
+            set_ui_text_size_combo=lambda combo: setattr(
+                app.settings_panel, "ui_text_size_combo", combo
+            ),
+            toggle_parameter_panel=lambda: required(
+                "_phase6_toggle_parameter_panel"
+            )(app),
+            select_structure_type=lambda var: required(
+                "_phase6_select_box_structure_type"
+            )(app, var),
+            select_assembly_type=lambda: required(
+                "_phase6_on_assembly_type_selected"
+            )(app),
+            refresh_persistent_structure_controls=lambda: required(
+                "_phase6_refresh_persistent_structure_controls"
+            )(app),
+            commit_output_draw_stock=lambda: required(
+                "_phase6_commit_output_draw_stock"
+            )(app),
+            export_selected_dxf=lambda: required(
+                "_phase6_export_selected_dxf_from_3d"
+            )(app),
+            queue_update=app.queue_update,
+            pack_right_panel=lambda widget: required(
+                "_phase6_pack_right_panel_above_canvas"
+            )(app, widget),
+            refresh_sticky_structure_tree=lambda: required(
+                "_phase6_refresh_sticky_structure_tree"
+            )(app),
+            install_keyboard_shortcuts=lambda: required(
+                "_phase6_install_keyboard_shortcuts"
+            )(app),
+            toggle_fullscreen=lambda: required("_phase6_toggle_fullscreen")(app),
+        )
+        owner = WorkspaceShellOwner(shell_state, actions)
+        self._workspace_shell_owner = owner
+        app._phase6_workspace_shell_owner = owner
+        return owner
 
     def workspace_navigation(self):
         """Return the single workspace/navigation application controller."""
