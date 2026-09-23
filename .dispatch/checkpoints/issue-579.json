@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "579",
+  "branch": "governance/issue579-recovering-claim-phase-20260924",
+  "head_sha": "d559e89a6aa48dbe2dab23597d73f03ae030aba4",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35931588541,
+  "evidence": [
+    "Requirement RED reproduced on run 35931193961: unknown phase=RECOVERING.",
+    "Minimal fix adds RECOVERING to execution claim ACTIVE_PHASES.",
+    "Focused regression run 35931588541 completed success across ordinary claim guard, reopened RELEASED recovery, merge-head reconciliation, and sibling scheduler takeover.",
+    "Closing-head drift from tested b88c6efd9f05017216acad978524a443fafb8158 to d559e89a6aa48dbe2dab23597d73f03ae030aba4 removes only the temporary QA workflow.",
+    "PR #580 merged non-force to cleanup/2d-3d-sync at fe7c1f1d1caebd49197f5445b90836f9b20aa138."
+  ],
+  "master_issue": "534",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 534,
+  "chain_next_action": "Resume #534 C2 RECOVERING state and retry the bounded Remote Guard mutation that was previously rejected solely because RECOVERING was not an active claim phase.",
+  "chain_reason": "Governance capability blocker is integrated into production X; parent #534 recovery can legally continue."
+}
