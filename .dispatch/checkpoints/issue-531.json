@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "issue": "531",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35818980516,
+  "job_id": 107046550043,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; Master #520.",
+    "A0 exact facade inventory count=69 from issue521 residual census.",
+    "Canonical B6 batch chain #541 -> #542 -> #543 -> #544 -> #545 -> #546 completed serially.",
+    "Aggregate RUN 35818980516 SUCCESS at bdf189cd402b4a33a67c6f9d279549bcc34be0bd.",
+    "FACADE_ACCOUNTED=69; UNCLASSIFIED_FACADE=0; DYNAMIC_REF_UNREVIEWED=0.",
+    "B6 aggregate exact keyset matches A0 69-entry inventory.",
+    "Facade count 69 -> 45; 24 facade exposures removed with no growth.",
+    "Focused facade/ownership regressions: 46 passed.",
+    "REVERSE_BRIDGE_IMPORTS=0; SECOND_COMPOSITION_ROOT=0.",
+    "Durable aggregate: docs/superpowers/checkpoints/issue531-b6-controller-aggregate.json/md.",
+    "Aggregate one-shot workflow removed.",
+    "Tested-head bdf189cd402b4a33a67c6f9d279549bcc34be0bd -> closing-head 64c930fd9d520cf55e365dc24ee027abc9e0e1a3 production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "532",
+  "chain_next_action": "Atomically claim #532/C0 from accepted HEAD 64c930fd9d520cf55e365dc24ee027abc9e0e1a3 and perform Bridge Final Compression / Surface Normalization without merging partial work to X.",
+  "chain_reason": "B6 controller terminal GREEN with 69/69 facade accounting; C0 is now executable."
+}
