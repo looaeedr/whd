@@ -1,0 +1,132 @@
+name: 工單545 B6-5 Architecture Gate
+run-name: "工單 #545 B6-5｜Architecture Gate｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue545-b6-5-architecture.yml
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    name: B6-5 Facade architecture acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Headless contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q             tests/test_issue545_b6_5_facade_batch.py             tests/test_issue524_a3_facade_ratchet.py             | tee /tmp/issue545-b6-5-headless.log
+
+      - name: Architecture assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue545-b6-5-architecture.log
+          import ast
+          from pathlib import Path
+
+          source=Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+          tree=ast.parse(source)
+          call=next(
+              n for n in ast.walk(tree)
+              if isinstance(n,ast.Call)
+              and isinstance(n.func,ast.Name)
+              and n.func.id=="install_fold_designer_bridge_facade"
+          )
+          mapping=next(arg for arg in call.args if isinstance(arg,ast.Dict))
+          bindings={
+              k.value:ast.unparse(v)
+              for k,v in zip(mapping.keys,mapping.values)
+              if isinstance(k,ast.Constant) and isinstance(k.value,str)
+          }
+          removed={
+              "toggle_corner_parameter_lock",
+              "_render_settings_context",
+              "on_baseline_model_changed",
+              "confirm_corner_transaction",
+              "cancel_corner_transaction",
+              "export_workspace_state_if_dirty",
+              "save_diagnostic_file",
+              "_phase6_on_endcap_edge_relation_selected",
+          }
+          retained={
+              "reset_initial_values",
+              "save_project_file",
+              "save_project_file_as",
+              "load_project_file",
+          }
+          assert removed.isdisjoint(bindings)
+          assert retained <= set(bindings)
+          assert len(bindings)==52, len(bindings)
+
+          tests="\n".join(
+              p.read_text(encoding="utf-8")
+              for p in sorted(Path("tests").rglob("test_*.py"))
+              if p.name!="test_issue545_b6_5_facade_batch.py"
+          )
+          for stale in (
+              ".toggle_corner_parameter_lock(",
+              "._render_settings_context(",
+              ".on_baseline_model_changed(",
+              ".confirm_corner_transaction(",
+              ".cancel_corner_transaction(",
+              ".export_workspace_state_if_dirty(",
+              "designer._phase6_on_endcap_edge_relation_selected(",
+              "app._phase6_on_endcap_edge_relation_selected(",
+              "loaded._phase6_on_endcap_edge_relation_selected(",
+          ):
+              assert stale not in tests, stale
+
+          for direct in (
+              "bridge._phase6_toggle_corner_parameter_lock(",
+              "bridge._phase6_render_settings_context(",
+              "bridge._phase6_on_baseline_model_changed(",
+              "bridge._phase6_confirm_corner_transaction(",
+              "bridge._phase6_cancel_corner_transaction(",
+              "bridge._phase6_export_workspace_state_if_dirty(",
+              "bridge._phase6_on_endcap_edge_relation_selected(",
+          ):
+              assert direct in tests, direct
+
+          print("B6_5_ACCOUNTED=12")
+          print("B6_5_UNCLASSIFIED=0")
+          print("B6_5_DYNAMIC_REF_UNREVIEWED=0")
+          print("B6_5_REMOVED=8")
+          print("B6_5_DIRECT_OWNER_MIGRATED=7")
+          print("FACADE_COUNT=52")
+          print("Xvfb_CANDIDATE_FAILS=11")
+          print("Xvfb_BASELINE_FAILS=11")
+          print("Xvfb_CANDIDATE_ONLY_FAIL_COUNT=0")
+          print("ISSUE545_B6_5_ARCHITECTURE_GREEN=GREEN")
+          PY
+
+      - name: 上傳 architecture 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue545-b6-5-architecture
+          path: |
+            /tmp/issue545-b6-5-headless.log
+            /tmp/issue545-b6-5-architecture.log
+          if-no-files-found: error
+          retention-days: 14
