@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T08:13:00+08:00",
   "base_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
   "head_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
-  "phase": "FINALIZING",
-  "last_update": "2026-09-23T08:20:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T08:20:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -31,11 +31,24 @@
     "replacement_red_run": 35801296639,
     "audit_run": 35801179888
   },
-  "next_action": "Run executable finalization guard/proof for #543, close/readback, release claim, then claim #544/B6-4.",
+  "next_action": null,
   "blocker": null,
   "drift_audit": {
     "tested_head": "f8e006c466f91e5dd174d6c8cadc05473ba5baaa",
     "closing_head": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
     "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
+    "accounted": 12,
+    "facade_count": 62,
+    "finalization_run": 35801576505,
+    "finalization_artifact": 10726066936,
+    "proof_sha256": "9ddce037aed2de1183c95d503f2f1eac5347ff48d83d78ee2106423161e68a66",
+    "checkpoint": ".dispatch/checkpoints/issue-543.json",
+    "temp_finalization_branch": "qa/issue543-finalization-20260923",
+    "temp_branch_cleanup_deferred_to_chain_cleanup": true
   }
 }
