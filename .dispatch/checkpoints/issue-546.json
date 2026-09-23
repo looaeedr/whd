@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "issue": "546",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35817807414,
+  "job_id": 107043011925,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user-approved Phase 6 v1.4; B6 controller #531.",
+    "Parent accepted HEAD c06f5fb976b96e0db58452438ed8977b9d86e800.",
+    "B6-6 consumer audit RUN 35816653419 SUCCESS: 9/9 accounted; UNCLASSIFIED=0; DYNAMIC_REF_UNREVIEWED=0.",
+    "Replacement RED RUN 35816829506 SUCCESS: 4 failed / 9 passed as expected.",
+    "Production migration commit fb2d5c5cdc10f3a32f0e466fa78377a9a606829c removed exactly seven facade bindings while retaining underlying module-owner functions and two public seams.",
+    "Candidate GREEN RUN 35817570889: Headless 24 passed; Xvfb 3 failed / 28 passed.",
+    "Immutable Xvfb A/B RUN 35817807414 SUCCESS: baseline 3 failed / 28 passed; candidate 3 failed / 28 passed; candidate-only failures=0.",
+    "Architecture gate in RUN 35817807414 GREEN: B6_6_ACCOUNTED=9; UNCLASSIFIED=0; DYNAMIC_REF_UNREVIEWED=0; facade count 52 -> 45.",
+    "Canonical durable classification: docs/superpowers/checkpoints/issue546-b6-6-final-classification.json/md.",
+    "One-shot audit/RED/GREEN/A-B workflows removed.",
+    "Tested-head 12f0c6bdc962c003f0b7c6862d8d455f0574dd87 -> closing-head befa490f8f4a974e6ecd5f896d720c24d8ee5033 production/test drift=0."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "531",
+  "chain_next_action": "Atomically claim #531/B6 controller from accepted HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033 and run aggregate 69/69 controller acceptance before continuing to C0.",
+  "chain_reason": "B6-6 terminal GREEN; B6 controller aggregate is now 69/69 accounted."
+}
