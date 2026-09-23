@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-  "head_sha": "7482ba33628a4bc0302bd1c5c54ea3aec45d1150",
+  "head_sha": "a7d66eafdf752dd733ae8cf5b7a9eea8838e23e5",
   "phase": "RECOVERING",
-  "last_update": "2026-09-24T06:30:20+08:00",
+  "last_update": "2026-09-24T07:14:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,7 +30,7 @@
     "baseline_xvfb_red": 55,
     "candidate_xvfb_red": 93
   },
-  "next_action": "Classify the exact candidate-only RED set from run 35922979384 against the accepted C1/C2 authority. Determine stale historical source-contract tests versus true runtime regressions, then apply the smallest authorized repair on the work-order branch and rerun a fresh fixed-T0 Headless/Xvfb A/B without weakening the C2 candidate-only-zero gate.",
+  "next_action": "Fresh-read the C2 fixed-T0 A/B workflow and ensure it tests the actual current work-order HEAD rather than the stale accepted C1 SHA. Then run a fresh fixed-T0 Headless/Xvfb A/B, inspect the exact remaining candidate-only RED set, and continue authority-backed stale-contract remediation without weakening the candidate-only-zero gate.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -39,13 +39,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35928674977,
-    "request_comment_id": 5804021771,
+    "run_id": 35932448987,
+    "request_comment_id": 5804489074,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "issued_at": "2026-09-23T22:30:15.515198Z",
-    "expires_at": "2026-09-23T22:50:15.515198Z",
-    "guard_authority_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+    "guard_authority_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
     "consumed": true
   }
 }
