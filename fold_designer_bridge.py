@@ -85,10 +85,8 @@ from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 from gui_modules.application.command_router import (
     execute_fold_designer_update_reasons,
     submit_fold_designer_update_intent,
-    flush_fold_designer_update_intents,
     queue_fold_designer_update,
     cancel_fold_designer_update_intents,
-    apply_fold_designer_settings_delta,
     install_fold_designer_keyboard_shortcuts,
 )
 from phase6_workspace_shell import (
@@ -111,18 +109,17 @@ from phase6_settings_panel import (
 from ui_text_scale import TextScaleController
 from ae_engine.assembly_joint import (
     AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
-    sync_snapshot_intent_joints, migrate_legacy_snapshot_joints,
-    edge_relation_for_part,
+    migrate_legacy_snapshot_joints, edge_relation_for_part,
 )
 from ae_engine.assembly_intent import get_assembly_intent
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
-    FourCornerTypePolicy, EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
+    EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
 )
 
 from ae_engine.corner_type_ui import (
     CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES, known_model_corner_state,
-    normalize_custom_model_name, policy_from_corner_state,
+    normalize_custom_model_name,
 )
 
 from phase6_endcap_semantics import (
@@ -146,7 +143,6 @@ from phase6_fold_profiles import (
 )
 
 from phase6_diagnostics import (
-    DiagnosticSnapshotContext, build_active_diagnostic_snapshot,
     collect_final_geometry_diagnostics,
     json_safe as _phase6_json_safe,
     serialize_scene as _phase6_serialize_scene,
@@ -155,12 +151,8 @@ from phase6_diagnostics import (
     write_diagnostic_json as _phase6_write_diagnostic_json,
 )
 
-from phase6_final_scene_contracts import (
-    AssemblySceneRenderData,
-    FinalSceneViewRequest,
-)
+from phase6_final_scene_contracts import FinalSceneViewRequest
 from phase6_final_scene_projection import (
-    make_assembly_scene_render_data as _project_assembly_scene_render_data,
     _phase6_profile_base_index,
     _phase6_profile_geometry,
     _phase6_profile_map_with_guides,
@@ -194,14 +186,7 @@ from phase6_manufacturing_geometry import (
     _phase6_current_cabinet_family,
     _phase6_solution_is_committable,
     _phase6_apply_resolved_cut_to_part,
-    _phase6_apply_resolved_cut_to_owner,
-    _phase6_side_wrap_target_corners,
     _phase6_box_body_piece_solver_key,
-    _phase6_expand_box_body_fw_world_mid,
-    _phase6_shift_multistage_terminal_fold_world_mid,
-    _phase6_joint_relief_state_item_matches,
-    _phase6_cut_geometry_from_state_item,
-    _phase6_signature_canonical_value,
     _phase6_manufacturing_state_signature,
     _phase6_joint_registry_diagnostic_info,
     _phase6_build_joint_world_geometry,
