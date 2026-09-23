@@ -1,0 +1,18 @@
+{
+  "issue": 557,
+  "issue_url": "https://github.com/looaeedr/whd/issues/557",
+  "worker": "chatgpt.sol260923.issue557",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "docs/issue557-whd-scheduler-usage-20260923",
+  "claimed_at": "2026-09-23T22:22:30+08:00",
+  "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+  "head_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T22:22:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-SCHEDULER-USAGE",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain Remote Guard branch-create GREEN for docs/issue557-whd-scheduler-usage-20260923 from cleanup/2d-3d-sync@75eaffac..., then create the work branch and re-read it before any docs/Skill write.",
+  "blocker": null
+}
