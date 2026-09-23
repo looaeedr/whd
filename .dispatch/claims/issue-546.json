@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
   "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T12:18:50+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T12:22:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,10 +18,18 @@
   "remote_qa": {
     "run_id": 35817807414,
     "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
-    "status": "queued",
-    "conclusion": null,
-    "purpose": "B6-6 immutable parent-vs-candidate Xvfb A/B"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-6 immutable parent-vs-candidate Xvfb A/B",
+    "evidence": {
+      "baseline": "3 failed / 28 passed",
+      "candidate": "3 failed / 28 passed",
+      "candidate_only_failures": [],
+      "architecture": "GREEN",
+      "facade_count": 45,
+      "artifact_id": 10731144611
+    }
   },
-  "next_action": "Poll exact run 35817807414 to terminal; if candidate-only failures=0, proceed to cleanup/final classification/finalization.",
+  "next_action": "Write B6-6 final classification, remove all issue546 one-shot workflows, verify tested-head to closing-head production/test drift=0, persist terminal checkpoint, run finalization.",
   "blocker": null
 }
