@@ -6,9 +6,9 @@
   "work_branch": "governance/issue555-execution-instance-identity-20260923",
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
-  "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T14:05:30+08:00",
+  "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T14:06:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -16,12 +16,14 @@
     "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "Issue555 execution-instance identity GREEN",
+    "purpose": "Issue555 tested Skill content GREEN",
     "evidence": {
       "tests": 2,
-      "failures": 0
+      "failures": 0,
+      "cleaned_head": "4474dcfccb2fa2b751843ef7124c572860813471",
+      "tested_to_cleaned_drift": "temporary QA workflow deletion only"
     }
   },
-  "next_action": "Remove temporary .github/workflows/qa-issue555-execution-instance-identity.yml, verify cleaned head differs from tested a5d66c05... only by workflow deletion, then obtain fresh pr-write guard.",
+  "next_action": "Fresh pr-write guard on cleaned head 4474dcfc..., open PR to cleanup/2d-3d-sync, merge with exact head pin, then production readback and release claim.",
   "blocker": null
 }
