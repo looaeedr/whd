@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "576",
+  "branch": "governance/issue576-takeover-worker-main-20260924",
+  "head_sha": "76fc78b6c1539017aa510b012fbe556881400bf5",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35902061814,
+  "evidence": [
+    "PR #577 changed only .github/workflows/whd-remote-execution-guard.yml.",
+    "PR #577 merged to main at 36585528eaeb345212065b33f768293e3ac7feb2.",
+    "Fresh main workflow blob e4f30bf59e0d3a5354919e7d0e068e4e64b01a6c accepts fixed-schema takeover_worker only for claim-takeover.",
+    "The trusted workflow passes takeover_worker to --requesting-worker and binds it into the machine receipt.",
+    "Post-merge trusted Guard run 35902061814 completed success using the new main workflow."
+  ],
+  "master_issue": "573",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 573,
+  "chain_next_action": "Resume #573 and E2E retry the stale foreign sibling scheduler takeover for the currently executable leaf.",
+  "chain_reason": "Trusted main transport is integrated; parent #573 can now exercise the real takeover path."
+}
