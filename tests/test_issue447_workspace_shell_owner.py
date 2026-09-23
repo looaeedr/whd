@@ -15,6 +15,7 @@ BRIDGE = ROOT / "fold_designer_bridge.py"
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
 PRIOR_CENSUS = ROOT / "docs" / "superpowers" / "checkpoints" / "issue447-t5-workspace-shell-census.md"
 SHELL = ROOT / "phase6_workspace_shell.py"
+ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
 
 SHELL_COMPAT_FUNCTIONS = {
     "_phase6_build_persistent_top_area",
@@ -120,7 +121,10 @@ def test_b2_fullscreen_routes_to_shell_owner_without_second_binding_loop():
     shell = SHELL.read_text(encoding="utf-8")
     router = ROUTER.read_text(encoding="utf-8")
     assert "toggle_fullscreen(" in shell
-    assert _name_call_count(BRIDGE, "_phase6_toggle_fullscreen") == 2
+    composition = ADAPTER.read_text(encoding="utf-8")
+    assert _name_call_count(BRIDGE, "_phase6_toggle_fullscreen") == 1
+    assert "WorkspaceShellActions(" in composition
+    assert '"_phase6_toggle_fullscreen"' in composition
     assert router.count('root.bind("<F11>", on_fullscreen, add="+")') == 1
     assert router.count('root.bind(sequence, on_save, add="+")') == 1
     assert router.count('root.bind(sequence, on_open, add="+")') == 1
