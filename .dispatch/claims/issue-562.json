@@ -6,14 +6,21 @@
   "work_branch": "governance/issue562-main-remote-finalization-20260923",
   "claimed_at": "2026-09-23T23:44:48+08:00",
   "base_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
-  "head_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-23T23:44:48+08:00",
+  "head_sha": "7397a79deadc103896235b5cb633b555aca11b4d",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T23:47:38+08:00",
   "production_target": "main",
   "task_id": "GOV-MAIN-REMOTE-FINALIZATION-BACKPORT",
   "parent_issue": 560,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the guarded main-based branch, backport only the accepted whd-remote-finalization workflow, validate, merge to main, then return to parent #560.",
-  "blocker": null
+  "next_action": "Open the guarded PR to main for the single workflow backport, lock validation, merge, verify the workflow is readable/dispatchable from main, then return to parent #560.",
+  "blocker": null,
+  "progress": {
+    "backport_commit": "7397a79deadc103896235b5cb633b555aca11b4d",
+    "branch_create_guard_run": 35883896679,
+    "write_guard_run": 35884009286,
+    "head_reconcile_guard_run": 35884132865,
+    "source_workflow_blob": "7ad1e3ec8e6a955bbaf19621954f72174110c9c1"
+  }
 }
