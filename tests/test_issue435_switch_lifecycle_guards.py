@@ -244,12 +244,12 @@ def test_t5_current_panel_owner_mousewheel_wrapper_has_no_exception_or_direction
         )
         for event, expected in cases:
             calls.clear()
-            assert bridge._phase6_scroll_assembly_parts(app, event) == "break"
+            assert app._phase6_assembly_panel_owner.scroll(event) == "break"
             assert calls == [expected]
 
         calls.clear()
-        assert bridge._phase6_scroll_assembly_parts(
-            app, SimpleNamespace(delta="", num=None)
+        assert app._phase6_assembly_panel_owner.scroll(
+            SimpleNamespace(delta="", num=None)
         ) == "break"
         assert calls == []
     finally:

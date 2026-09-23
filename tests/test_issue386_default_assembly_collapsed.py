@@ -134,7 +134,7 @@ def test_collapsing_and_visibility_are_independent_presentation_states():
             app.assembly_part_corner_vars[key].get(),
         )
 
-        bridge._phase6_set_assembly_part_details_open(app, key, False)
+        app._phase6_assembly_panel_owner.set_part_details_open(key, False)
         visible.set(False)
         bridge._phase6_on_assembly_part_visibility_changed(app)
         _pump(root, 2)
@@ -147,7 +147,7 @@ def test_collapsing_and_visibility_are_independent_presentation_states():
             app.assembly_part_corner_vars[key].get(),
         ) == texts
 
-        bridge._phase6_set_assembly_part_details_open(app, key, True)
+        app._phase6_assembly_panel_owner.set_part_details_open(key, True)
         _pump(root)
         assert details.winfo_manager() == "pack"
         assert bool(visible.get()) is False
@@ -159,7 +159,7 @@ def test_explicit_collapse_state_survives_panel_rebuild_without_domain_mutation(
     root, app = _open_simple()
     try:
         key = "tail"
-        bridge._phase6_set_assembly_part_details_open(app, key, False)
+        app._phase6_assembly_panel_owner.set_part_details_open(key, False)
         app.assembly_part_visible_vars[key].set(False)
         text_before = (
             app.assembly_part_formed_vars[key].get(),

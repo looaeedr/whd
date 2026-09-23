@@ -495,7 +495,8 @@ def test_phase6_fw_detach_and_override_refreshes_active_endcap_without_changing_
     }
     monkeypatch.setattr(bridge, "_phase6_rebuild_linked_endcaps", lambda self: linked)
 
-    bridge._phase6_set_endcap_fw_follow(holder, "head", False)
+    bridge._phase6_settings_transactions(holder).commit_endcap_fw_follow("head", False)
+    bridge._phase6_commit_endcap_fw_state(holder)
     bridge._phase6_set_endcap_fw_override(holder, "head", 31.0)
 
     assert holder._phase6_input_snapshot["fw"] == pytest.approx(30.0)

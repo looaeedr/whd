@@ -33,7 +33,7 @@ def test_fold_designer_locked_corner_ui_shows_lock_and_collapses_detail_area():
         # Pair-symmetry toggles are part of advanced editing and must also collapse.
         assert all(cb.winfo_manager() == "" for cb in designer.corner_pair_checkbuttons.values())
 
-        bridge._phase6_toggle_corner_parameter_lock(designer)
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         assert "解鎖" in designer.parameter_lock_button.cget("text")
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
@@ -69,7 +69,7 @@ def test_3d_locked_corner_ui_shows_lock_collapses_detail_and_has_global_project_
         labels = [designer.project_file_menu.entrycget(i, "label") for i in range(designer.project_file_menu.index("end") + 1)]
         assert labels == ["開啟", "儲存", "另存新檔"]
 
-        bridge._phase6_toggle_corner_parameter_lock(designer)
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         assert "解鎖" in designer.parameter_lock_button.cget("text")
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())

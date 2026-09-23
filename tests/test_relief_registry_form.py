@@ -4,6 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 import fold_designer_bridge as bridge
+from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
+from phase6_workspace_shell import WorkspaceShellOwner
 
 
 def test_registry_form_opens_rules_and_joints_tabs_with_wrap_relation():
@@ -42,31 +44,29 @@ def test_project_toolbar_has_registry_entry_button():
     tk = bridge.original.tk
     root = tk.Tk(); root.withdraw()
     frame = bridge.original.ttk.Frame(root); frame.pack()
-    app = SimpleNamespace(
-        root=root,
-        left=frame,
+    owner = WorkspaceShellOwner.__new__(WorkspaceShellOwner)
+    owner.state = SimpleNamespace(left=frame)
+    owner.actions = SimpleNamespace(
         load_project_file=lambda: None,
         save_project_file=lambda: None,
         save_project_file_as=lambda: None,
+        open_relief_registry=lambda: None,
     )
     try:
-        bridge._phase6_build_project_toolbar(app, frame)
+        owner.build_project_toolbar(frame)
         root.update_idletasks()
-        assert app.relief_registry_button.cget("text") == "截角資料庫"
+        assert owner.relief_registry_button.cget("text") == "截角資料庫"
     finally:
         root.destroy()
 
 
-def test_saved_candidate_record_must_match_current_form_before_reusing_evidence(monkeypatch):
-    app = SimpleNamespace(
-        _phase6_registry_candidate_id="candidate-1",
-        _phase6_registry_candidate_record={"rule_id": "R", "formula": {"primary_u": "FW"}},
+def test_saved_candidate_record_must_match_current_form_before_reusing_evidence():
+    controller = Phase6RegistryDiagnosticsController(
+        candidate_id="candidate-1",
+        candidate_record={"rule_id": "R", "formula": {"primary_u": "FW"}},
     )
-    monkeypatch.setattr(
-        bridge, "_phase6_registry_collect_rule_form",
-        lambda _self: {"rule_id": "R", "formula": {"primary_u": "FW + T"}},
-    )
-    assert bridge._phase6_registry_candidate_form_is_current(app) is False
+    current = {"rule_id": "R", "formula": {"primary_u": "FW + T"}}
+    assert controller.candidate_is_current(current) is False
 
 
 def test_candidate_3d_preview_records_evidence_for_exact_saved_candidate(monkeypatch):

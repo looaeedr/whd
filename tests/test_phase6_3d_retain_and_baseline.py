@@ -117,9 +117,10 @@ def test_true_mesh_renderer_uses_exact_final_scene_without_baseline_merge(monkey
     monkeypatch.setattr(bridge, "_phase6_draw_scene_bends", lambda *args, **kwargs: None)
     monkeypatch.setattr(bridge, "_phase6_draw_scene_markings", lambda *args, **kwargs: None)
 
-    bridge._phase6_render_true_cutting_mesh(app)
+    adapter = bridge._phase6_final_scene_adapter(app)
+    adapter.render_cutting_mesh()
 
-    renderer = bridge._phase6_final_scene_renderer(app)
+    renderer = adapter.renderer
     assert renderer.last_cutting_material is not None
     assert not renderer.last_cutting_material.contains(Point(50, 30))
 

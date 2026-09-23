@@ -882,11 +882,6 @@ def _phase6_sync_corner_data_view_compatibility_mirrors(
     return adapter
 
 
-def _phase6_final_scene_renderer(self):
-    return _phase6_composition(self).final_scene_renderer(
-        number_text=_setting_number_text
-    )
-
 def _phase6_final_scene_set_preview_enabled(self, enabled):
     enabled = bool(enabled)
     self.preview_3d_enabled = enabled
@@ -1710,10 +1705,6 @@ def _phase6_corner_parameter_summary(selection):
     )
 
 
-def _phase6_toggle_corner_parameter_lock(self):
-    return _phase6_toggle_parameter_panel(self)
-
-
 def _phase6_corner_pair_var_changed(self, part_key, pair_key, var):
     if getattr(self, "_phase6_corner_guard", False) or getattr(self, "_phase6_settings_rendering", False):
         return
@@ -2436,13 +2427,6 @@ def _phase6_commit_endcap_fw_state(self):
     except Exception:
         pass
     return linked
-
-
-def _phase6_set_endcap_fw_follow(self, part_key, follow_box):
-    _phase6_settings_transactions(self).commit_endcap_fw_follow(
-        str(part_key), bool(follow_box)
-    )
-    return _phase6_commit_endcap_fw_state(self)
 
 
 def _phase6_set_endcap_fw_override(self, part_key, value):
@@ -3959,13 +3943,6 @@ def _phase6_registry_validate_formula_form(self):
         self._phase6_last_rule_form_result = None
         return None
 
-def _phase6_registry_candidate_form_is_current(self):
-    try:
-        current = _phase6_registry_collect_rule_form(self)
-    except Exception:
-        return False
-    return _phase6_registry_diagnostics(self).candidate_is_current(current)
-
 def _phase6_registry_save_candidate_form(self):
     from ae_engine.certified_relief_registry import save_relief_rule_candidate
     result = _phase6_registry_validate_formula_form(self)
@@ -4269,12 +4246,6 @@ def _phase6_install_keyboard_shortcuts(self):
         on_fullscreen=lambda event: _phase6_keyboard_fullscreen(self, event),
     )
 
-def _phase6_build_project_toolbar(self, parent=None):
-    owner = _phase6_workspace_shell_owner(self)
-    result = owner.build_project_toolbar(parent)
-    _phase6_apply_workspace_shell_bindings(self, owner)
-    return result
-
 def _phase6_hide_original_visual_controls(root_widget):
     for child in root_widget.winfo_children():
         try:
@@ -4500,11 +4471,6 @@ def _phase6_query_assembly_render_data(self):
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
     return _phase6_final_scene_adapter(self).build_request()
-
-
-def _phase6_render_true_cutting_mesh(self):
-    """Compatibility delegate; deep rendering remains Phase6FinalSceneView-owned."""
-    return _phase6_final_scene_adapter(self).render_cutting_mesh()
 
 
 def _phase6_on_3d_scroll(self, event):
@@ -4776,11 +4742,6 @@ def _phase6_install_assembly_panel_aliases(self, owner):
     self._phase6_box_body_piece_detail_open_stash = owner.box_piece_detail_open_stash
 
 
-def _phase6_scroll_assembly_parts(self, event):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.scroll(event) if owner is not None else "break"
-
-
 _phase6_assembly_presentation_groups = legacy_assembly_presentation_groups
 
 def _phase6_current_assembly_panel_part_keys(self) -> tuple[str, ...]:
@@ -4800,11 +4761,6 @@ def _phase6_refresh_assembly_parts_panel_if_topology_changed(self) -> bool:
         return False
     _phase6_refresh_assembly_parts_panel(self)
     return True
-
-
-def _phase6_set_assembly_part_details_open(self, key, is_open):
-    owner = getattr(self, "_phase6_assembly_panel_owner", None)
-    return owner.set_part_details_open(key, is_open) if owner is not None else False
 
 
 def _phase6_refresh_assembly_parts_panel(self):
@@ -5941,14 +5897,6 @@ def _fix11_select_part(self, key):
             )
     self._refresh_part_button_states()
     _phase6_refresh_box_body_piece_selector(self)
-    return True
-
-
-def _fix11_activate_selected_part(self):
-    key = getattr(self, "selected_part_key", None)
-    if key not in self.available_parts:
-        return False
-    _phase6_activate_operator_part(self, key)
     return True
 
 

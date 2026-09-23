@@ -74,7 +74,7 @@ def test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking()
         assert bridge._phase6_corner_type_editable(designer, 'door') is False
         before = deepcopy(designer._phase6_corner_state['door'])
 
-        bridge._phase6_toggle_corner_parameter_lock(designer)
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         assert bridge._phase6_corner_parameters_unlocked(designer, 'door') is True
         assert designer.corner_type_vars
@@ -97,7 +97,7 @@ def test_corner_panel_is_visible_for_known_and_custom_models_with_type_locking()
         assert not hasattr(app, 'notebook')
         assert bridge._phase6_corner_type_editable(designer, 'door') is True
         assert designer._phase6_corner_pair_same['door'] == {'top': True, 'bottom': True}
-        bridge._phase6_toggle_corner_parameter_lock(designer)
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         assert designer.corner_pair_vars['top'].get() is True
         assert designer.corner_pair_vars['bottom'].get() is True
@@ -116,7 +116,7 @@ def test_unknown_gui_defaults_to_top_bottom_pair_edit_and_splits_only_on_request
     root, app, designer = _open_fold_designer(UNKNOWN_MODEL_NAME)
     try:
         assert not hasattr(app, 'notebook')
-        bridge._phase6_toggle_corner_parameter_lock(designer)
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
 
         state = designer._phase6_corner_state['door']
