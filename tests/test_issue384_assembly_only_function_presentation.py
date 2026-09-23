@@ -68,9 +68,14 @@ def test_assembly_uses_single_assembly_content_without_structure_tree_overlay():
 def test_normal_and_assembly_content_share_same_left_content_owner():
     root, app = _open()
     try:
+        # #440 superseded the old wrapper-host model: the shared mount owner is
+        # self.left itself, and all mode surfaces are direct siblings. Keeping an
+        # extra Frame here would reintroduce the rejected "大框包小框" layout.
         shared = app.shared_content_host
-        assert shared.master is app.left
+        assert shared is app.left
+        assert app.fold_editor_host is app.input_content_host
         assert app.fold_editor_host.master is shared
         assert app.assembly_parts_panel.master is shared
+        assert app.corner_data_panel.master is shared
     finally:
         root.destroy()
