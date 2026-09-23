@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
-  "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
-  "phase": "CLOSED",
-  "last_update": "2026-09-23T12:31:30+08:00",
+  "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T14:04:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,16 +18,21 @@
     "qa/issue546-finalization-20260923"
   ],
   "remote_qa": {
-    "run_id": 35818513020,
-    "head_sha": "76cff8c6b1de9224f8e137aca5ba10359073748b",
+    "run_id": 35817807414,
+    "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "B6-6 executable finalization proof",
-    "owner_closing_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
-    "proof_artifact_id": 10732252633,
-    "proof_sha256": "66093e46968531ee5d0a4c7fbf87650f7d6dde9db9d3980c62f66e01453f07f9"
+    "purpose": "B6-6 immutable parent-vs-candidate Xvfb A/B",
+    "evidence": {
+      "baseline_failures": 3,
+      "candidate_failures": 3,
+      "candidate_only_failures": 0,
+      "architecture": "GREEN",
+      "facade_count": 45,
+      "artifact_id": 10731144611
+    }
   },
-  "next_action": null,
+  "next_action": "Write canonical B6-6 final classification; remove one-shot audit/RED/GREEN/A-B workflows; verify tested-to-closing production/test drift=0; then finalization.",
   "blocker": null,
   "drift_audit": {
     "from_head": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
