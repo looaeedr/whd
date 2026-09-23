@@ -8,7 +8,7 @@
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
   "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T12:25:00+08:00",
+  "last_update": "2026-09-23T12:29:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,21 +18,14 @@
     "qa/issue546-finalization-20260923"
   ],
   "remote_qa": {
-    "run_id": 35817807414,
-    "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B6-6 immutable parent-vs-candidate Xvfb A/B",
-    "evidence": {
-      "baseline": "3 failed / 28 passed",
-      "candidate": "3 failed / 28 passed",
-      "candidate_only_failures": [],
-      "architecture": "GREEN",
-      "facade_count": 45,
-      "artifact_id": 10731144611
-    }
+    "run_id": 35818513020,
+    "head_sha": "76cff8c6b1de9224f8e137aca5ba10359073748b",
+    "status": "queued",
+    "conclusion": null,
+    "purpose": "B6-6 executable finalization proof",
+    "owner_closing_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033"
   },
-  "next_action": "Create delegated qa/issue546-finalization-20260923 from exact closing HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033, run continuity finalization proof, then close #546 and hand off to #531.",
+  "next_action": "Poll finalization run 35818513020 to terminal; on success close #546, release claim, then atomically claim #531 aggregate acceptance.",
   "blocker": null,
   "drift_audit": {
     "from_head": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
