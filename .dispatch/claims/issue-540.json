@@ -8,9 +8,11 @@
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
   "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T08:27:30+08:00",
+  "last_update": "2026-09-23T08:29:00+08:00",
   "production_target": "main",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue540-finalization-proof-20260923"
+  ],
   "remote_qa": {
     "run_id": 35801610660,
     "head_sha": "6fc9c4071c76e8c60c3023fb31591dddc3d488bd",
@@ -24,7 +26,7 @@
       "same_head_invalid_workflow_run": "none"
     }
   },
-  "next_action": "Publish #540 terminal evidence, close owning Issue, then set shared claim phase RELEASED with final cleanup/main integration identities.",
+  "next_action": "Create delegated finalization-proof QA branch from cleanup authority, run canonical continuity_controller authorize-finalization + verify-finalization-proof, close #540 and read back completed state in the same runner, then release claim.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -233,5 +235,13 @@
     "threshold_seconds": 600,
     "evidence_schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
     "regression_absent": "unsupported action / parser failure"
+  },
+  "checkpoint": {
+    "ref": "coord/dispatch-claims",
+    "path": ".dispatch/checkpoints/issue-540.json",
+    "owner_issue": "540",
+    "owner_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
+    "owner_head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
+    "state": "TERMINAL_SUCCESS"
   }
 }
