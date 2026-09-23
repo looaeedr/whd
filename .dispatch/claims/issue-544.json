@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T08:20:30+08:00",
   "base_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
-  "head_sha": "7f151937db4abc8d661fec27311b36e25e72350f",
+  "head_sha": "476678276f19b465103a05b7a2267bb7653f91ac",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T08:24:00+08:00",
+  "last_update": "2026-09-23T08:25:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,24 +16,23 @@
   "task_id": "B6-4",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35801778565,
-    "head_sha": "7f151937db4abc8d661fec27311b36e25e72350f",
+    "run_id": 35801927028,
+    "head_sha": "476678276f19b465103a05b7a2267bb7653f91ac",
     "status": "completed",
     "conclusion": "success",
-    "purpose": "B6-4 consumer-normalized facade audit",
+    "purpose": "B6-4 replacement RED",
     "evidence": {
-      "artifact_id": 10726285754,
-      "accounted": 12,
-      "unclassified": 0,
-      "dynamic_ref_unreviewed": 0,
+      "failures": 3,
+      "passes": 1,
       "no_caller": [
         "toggle_advanced_settings"
       ],
       "can_direct_owner": [
         "_phase6_corner_parameters_unlocked"
       ]
-    }
+    },
+    "audit_run": 35801778565
   },
-  "next_action": "Add replacement RED requiring toggle_advanced_settings removal and migration of test-only _phase6_corner_parameters_unlocked callers to module owner; then remove both facade exposures and run GREEN.",
+  "next_action": "Migrate test-only _phase6_corner_parameters_unlocked callers to bridge module owner, remove two facade entries, run B6-4 GREEN.",
   "blocker": null
 }
