@@ -222,8 +222,6 @@ def _assert_takeover_evidence(
             f"claim-takeover evidence claim head mismatch expected={claim.head_sha} evidence={evidence_claim_head}"
         )
     expected_source = str(raw_claim.get("executor_source") or "unknown").strip() or "unknown"
-    if expected_source == "scheduler":
-        raise ExecutionClaimError("claim-takeover cannot take over an already scheduler-owned claim")
     if str(evidence.get("previous_executor_source") or "") != expected_source:
         raise ExecutionClaimError("claim-takeover previous executor source mismatch")
     if str(evidence.get("claim_phase") or "").upper() != claim.phase:

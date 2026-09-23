@@ -121,7 +121,7 @@ def test_old_advanced_branch_can_be_taken_over_at_observed_live_head():
     assert result.stale_seconds == 660
 
 
-def test_scheduler_owned_claim_does_not_require_takeover():
+def test_stale_scheduler_owned_claim_uses_normal_stale_evidence_rules():
     now = datetime(2026, 9, 23, 7, 0, 0, tzinfo=UTC)
     result = _evaluate(
         now=now,
@@ -130,8 +130,9 @@ def test_scheduler_owned_claim_does_not_require_takeover():
             last_update="2026-09-23T05:00:00Z",
         ),
     )
-    assert result.classification.value == "ALREADY_SCHEDULER"
-    assert result.actionable is False
+    assert result.classification.value == "EXECUTOR_STUCK"
+    assert result.actionable is True
+    assert result.previous_executor_source == "scheduler"
 
 
 def test_inactive_claim_is_terminal_not_takeover():

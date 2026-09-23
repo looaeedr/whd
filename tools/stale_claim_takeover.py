@@ -233,13 +233,10 @@ def evaluate_stale_claim_takeover(
             f"claim phase={phase} is terminal/inactive",
         )
 
-    if previous_source == "scheduler":
-        return result(
-            TakeoverClassification.ALREADY_SCHEDULER,
-            False,
-            "claim is already owned by scheduler executor_source",
-        )
-
+    # executor_source records the previous runtime class, not the identity of
+    # the scheduler lane requesting recovery. Same-lane schedulers must avoid
+    # self-takeover in orchestration; a foreign sibling scheduler is evaluated
+    # by the same active-run and stale-age evidence as any other foreign owner.
     if remote_active:
         return result(
             TakeoverClassification.RUN_LIVE,
