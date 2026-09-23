@@ -8,6 +8,8 @@ on:
     paths:
       - .github/workflows/qa-issue532-c0-normalization-green.yml
       - fold_designer_bridge.py
+      - tests/test_issue368_t4_registry_diagnostics_owner.py
+      - tests/test_issue447_workspace_shell_owner.py
 
 permissions:
   contents: read
