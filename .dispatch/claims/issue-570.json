@@ -6,20 +6,23 @@
   "work_branch": "governance/issue570-merge-head-claim-reconcile-20260924",
   "claimed_at": "2026-09-24T01:23:20+08:00",
   "base_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
-  "head_sha": "7de57cf36da915ae270b6f3c30c0da080a3b49a3",
+  "head_sha": "6292d6fe138cb31452316e6bc2b33f7bfc18b87d",
   "phase": "RED",
-  "last_update": "2026-09-24T01:26:38+08:00",
+  "last_update": "2026-09-24T01:29:24+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-HEAD-CLAIM-RECONCILIATION",
   "parent_issue": 557,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create a temporary focused PR workflow for tests/process/test_issue570_merge_head_claim_reconciliation.py, open the guarded PR, lock the exact RED run, then implement the narrow merge-head reconciliation path.",
+  "next_action": "Open the guarded PR to cleanup/2d-3d-sync, lock the exact focused RED run on head 6292d6fe138cb31452316e6bc2b33f7bfc18b87d, confirm current guard rejects the valid two-parent case, then implement the narrow reconciliation capability.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35895253007,
     "red_test_commit": "7de57cf36da915ae270b6f3c30c0da080a3b49a3",
     "red_write_guard_run": 35895379941,
-    "red_head_reconcile_guard_run": 35895544823
+    "red_head_reconcile_guard_run": 35895544823,
+    "focused_workflow_commit": "6292d6fe138cb31452316e6bc2b33f7bfc18b87d",
+    "focused_workflow_guard_run": 35895696483,
+    "focused_workflow_head_reconcile_guard_run": 35895925945
   }
 }
