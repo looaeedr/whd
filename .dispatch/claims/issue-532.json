@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "1f4f618e4c3bece8272d3bd37d19a993dc84ede6",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T16:03:45+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T16:05:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,11 +17,18 @@
   "remote_qa": {
     "run_id": 35834994752,
     "head_sha": "1f4f618e4c3bece8272d3bd37d19a993dc84ede6",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "C0 normalization GREEN after #440/#527 stale-test retirement"
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "C0 normalization GREEN after #440/#527 stale-test retirement",
+    "evidence": {
+      "compile_import": "GREEN",
+      "headless": "GREEN",
+      "xvfb": "1 failed; stale-test correction itself passed until extra corner_data_panel assertion",
+      "failure": "AttributeError: corner_data_panel",
+      "classification": "TEST_PATCH_OVERSCOPE"
+    }
   },
-  "next_action": "Poll exact run 35834994752 to terminal; if GREEN, record final residual attribution, cleanup one-shot workflows, drift audit, finalization, and close #532.",
+  "next_action": "Remove overscoped corner_data_panel assertion from #384; rerun exact C0 GREEN.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
