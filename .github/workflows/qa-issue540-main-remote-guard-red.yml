@@ -1,0 +1,42 @@
+name: WHD #540 main 遠端守門 claim-takeover RED
+run-name: "WHD｜#540｜main 遠端守門 claim-takeover RED"
+
+on:
+  push:
+    branches:
+      - hotfix/issue540-main-remote-guard-takeover-20260923
+    paths:
+      - tests/process/test_issue540_main_remote_guard_contract.py
+      - .github/workflows/qa-issue540-main-remote-guard-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: 證明 main 遠端守門尚未接上 claim-takeover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        run: python -m pip install --disable-pip-version-check pytest
+
+      - name: 執行 claim-takeover RED contract
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q tests/process/test_issue540_main_remote_guard_contract.py > /tmp/red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/red.log
+          test "$rc" -ne 0
+          grep -Eq 'failed|AssertionError' /tmp/red.log
+          echo "ISSUE540_MAIN_REMOTE_GUARD_RED=PROVEN"
