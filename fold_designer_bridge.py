@@ -63,7 +63,6 @@ from phase6_settings_center import (
     normalize_ui_text_size, ui_text_size_label,
 )
 from phase6_settings_service import Phase6SettingsTransactionService
-from phase6_settings_contracts import SettingsStateSnapshot
 from phase6_settings_profile_projection import (
     SettingsProfileProjectionRequest,
     build_settings_profile_projection,
@@ -72,9 +71,6 @@ from phase6_settings_profile_projection import (
     materialize_settings_profile_value,
     merge_keyed_profiles as _merge_keyed_profiles,
     project_part_dimensions,
-)
-from gui_modules.application.fold_designer_settings_coordinator import (
-    Phase6SettingsApplicationPorts,
 )
 from phase6_project_controller import Phase6ProjectController
 from phase6_registry_diagnostics_panel import build_registry_choice
@@ -422,28 +418,6 @@ def _phase6_settings_transactions(self):
     return _phase6_composition(self).settings_transactions()
 
 
-def _phase6_settings_application_read_snapshot(self):
-    return SettingsStateSnapshot(
-        settings_values=getattr(self, "_settings_values", {}),
-        input_snapshot=getattr(self, "_phase6_input_snapshot", {}),
-        box_whd=getattr(self, "_phase6_box_whd", {}),
-    )
-
-
-def _phase6_settings_application_read_profile_snapshot(self):
-    workspace = getattr(self, "designer_workspace", None)
-    snapshot = getattr(workspace, "part_profiles_snapshot", None)
-    return snapshot() if callable(snapshot) else {}
-
-
-def _phase6_settings_application_save_current_part(self):
-    self._phase6_applying_settings = True
-    try:
-        return self._save_current_part()
-    finally:
-        self._phase6_applying_settings = False
-
-
 def _phase6_settings_application_apply_profile_plan(
     self,
     committed,
@@ -645,87 +619,10 @@ def _phase6_settings_application_publish_live_state(self, committed, *, partial=
             self._settings_change_callback(payload)
 
 
-def _phase6_settings_application_render_bending(self):
-    bend_ui = getattr(self, "bend_ui", None)
-    render = getattr(bend_ui, "render", None)
-    if not callable(render):
-        return None
-    try:
-        return render()
-    except Exception:
-        return None
-
-def _phase6_settings_application_refresh_settings_panel(self):
-    panel = getattr(self, "settings_panel", None)
-    refresh = getattr(panel, "refresh_baseline_data", None)
-    if not callable(refresh):
-        return None
-    try:
-        return refresh()
-    except Exception:
-        return None
-
-def _phase6_settings_application_refresh_topology(self, *args, **kwargs):
-    if kwargs.get("reason") == "baseline":
-        refresh_parts = getattr(self, "_refresh_part_buttons", None)
-        if (
-            callable(refresh_parts)
-            and getattr(self, "part_choice_menu", None) is not None
-        ):
-            return refresh_parts()
-    return _phase6_refresh_assembly_parts_panel_if_topology_changed(self)
-
-def _phase6_settings_application_refresh_persistent_controls(self):
-    return _phase6_refresh_persistent_structure_controls(self)
-
-
-def _phase6_settings_application_project_status(self, *args, **kwargs):
-    message = kwargs.get("message")
-    if message is None and args:
-        message = args[0]
-    status_name = "settings_status_var" if kwargs.get("settings") else "_phase6_status_var"
-    status_var = getattr(self, status_name, None)
-    setter = getattr(status_var, "set", None)
-    if callable(setter) and message is not None:
-        setter(str(message))
-
-def _phase6_settings_application_ports(self):
-    return Phase6SettingsApplicationPorts(
-        read_settings_snapshot=lambda: _phase6_settings_application_read_snapshot(self),
-        read_profile_snapshot=lambda: _phase6_settings_application_read_profile_snapshot(self),
-        save_current_part=lambda: _phase6_settings_application_save_current_part(self),
-        apply_profile_plan=lambda committed, **kwargs: _phase6_settings_application_apply_profile_plan(
-            self, committed, **kwargs
-        ),
-        sync_derived_parts=lambda *args, **kwargs: _phase6_sync_authoritative_derived_parts(
-            self
-        ),
-        project_ui_values=lambda values, **kwargs: _phase6_settings_application_project_ui_values(
-            self, values, **kwargs
-        ),
-        render_bending=lambda: _phase6_settings_application_render_bending(self),
-        refresh_settings_panel=lambda: _phase6_settings_application_refresh_settings_panel(
-            self
-        ),
-        refresh_topology=lambda *args, **kwargs: _phase6_settings_application_refresh_topology(
-            self, *args, **kwargs
-        ),
-        refresh_persistent_controls=lambda: _phase6_settings_application_refresh_persistent_controls(
-            self
-        ),
-        submit_update_intent=lambda committed: _phase6_settings_application_submit_update_intent(
-            self, committed
-        ),
-        publish_live_state=lambda committed, **kwargs: _phase6_settings_application_publish_live_state(
-            self, committed, **kwargs
-        ),
-        project_status=lambda *args, **kwargs: _phase6_settings_application_project_status(
-            self, *args, **kwargs
-        ),
-    )
 def _phase6_settings_coordinator(self):
-    return _phase6_composition(self).settings_coordinator(
-        _phase6_settings_application_ports(self)
+    composition = _phase6_composition(self)
+    return composition.settings_coordinator(
+        composition.settings_application_ports(globals())
     )
 
 def _phase6_registry_diagnostics(self):

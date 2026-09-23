@@ -42,6 +42,7 @@ from phase6_endcap_semantics import (
 )
 from phase6_settings_center import UI_TEXT_SIZE_LABELS, load_factory_defaults_from_ae
 from phase6_settings_service import Phase6SettingsTransactionService
+from phase6_settings_contracts import SettingsStateSnapshot
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
 from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
@@ -1294,6 +1295,104 @@ class Phase6FoldDesignerComposition:
                 orchestration=self.settings_service(),
             )
         return self._settings_transactions
+
+    def settings_application_ports(self, namespace):
+        """Compose shallow Settings application ports at the application root."""
+        app = self.app
+        required = lambda name: self._required(namespace, name)
+
+        def read_settings_snapshot():
+            return SettingsStateSnapshot(
+                settings_values=getattr(app, "_settings_values", {}),
+                input_snapshot=getattr(app, "_phase6_input_snapshot", {}),
+                box_whd=getattr(app, "_phase6_box_whd", {}),
+            )
+
+        def read_profile_snapshot():
+            workspace = getattr(app, "designer_workspace", None)
+            snapshot = getattr(workspace, "part_profiles_snapshot", None)
+            return snapshot() if callable(snapshot) else {}
+
+        def save_current_part():
+            app._phase6_applying_settings = True
+            try:
+                return app._save_current_part()
+            finally:
+                app._phase6_applying_settings = False
+
+        def render_bending():
+            bend_ui = getattr(app, "bend_ui", None)
+            render = getattr(bend_ui, "render", None)
+            if not callable(render):
+                return None
+            try:
+                return render()
+            except Exception:
+                return None
+
+        def refresh_settings_panel():
+            panel = getattr(app, "settings_panel", None)
+            refresh = getattr(panel, "refresh_baseline_data", None)
+            if not callable(refresh):
+                return None
+            try:
+                return refresh()
+            except Exception:
+                return None
+
+        def refresh_topology(*args, **kwargs):
+            if kwargs.get("reason") == "baseline":
+                refresh_parts = getattr(app, "_refresh_part_buttons", None)
+                if (
+                    callable(refresh_parts)
+                    and getattr(app, "part_choice_menu", None) is not None
+                ):
+                    return refresh_parts()
+            return required(
+                "_phase6_refresh_assembly_parts_panel_if_topology_changed"
+            )(app)
+
+        def project_status(*args, **kwargs):
+            message = kwargs.get("message")
+            if message is None and args:
+                message = args[0]
+            status_name = (
+                "settings_status_var"
+                if kwargs.get("settings")
+                else "_phase6_status_var"
+            )
+            status_var = getattr(app, status_name, None)
+            setter = getattr(status_var, "set", None)
+            if callable(setter) and message is not None:
+                setter(str(message))
+
+        return Phase6SettingsApplicationPorts(
+            read_settings_snapshot=read_settings_snapshot,
+            read_profile_snapshot=read_profile_snapshot,
+            save_current_part=save_current_part,
+            apply_profile_plan=lambda committed, **kwargs: required(
+                "_phase6_settings_application_apply_profile_plan"
+            )(app, committed, **kwargs),
+            sync_derived_parts=lambda *args, **kwargs: required(
+                "_phase6_sync_authoritative_derived_parts"
+            )(app),
+            project_ui_values=lambda values, **kwargs: required(
+                "_phase6_settings_application_project_ui_values"
+            )(app, values, **kwargs),
+            render_bending=render_bending,
+            refresh_settings_panel=refresh_settings_panel,
+            refresh_topology=refresh_topology,
+            refresh_persistent_controls=lambda: required(
+                "_phase6_refresh_persistent_structure_controls"
+            )(app),
+            submit_update_intent=lambda committed: required(
+                "_phase6_settings_application_submit_update_intent"
+            )(app, committed),
+            publish_live_state=lambda committed, **kwargs: required(
+                "_phase6_settings_application_publish_live_state"
+            )(app, committed, **kwargs),
+            project_status=project_status,
+        )
 
     def settings_coordinator(self, ports: Phase6SettingsApplicationPorts):
         """Return the single Phase 5 Settings application sequencing owner."""
