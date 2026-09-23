@@ -39,45 +39,142 @@ on:
         description: Trusted SHA containing canonical continuity controller
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
 
 jobs:
   finalize:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.comment.body, 'WHD_REMOTE_FINALIZATION_REQUEST_V1')
     runs-on: ubuntu-latest
     steps:
+      - name: Normalize fixed request
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body || '' }}
+          COMMENT_ID: ${{ github.event.comment.id || 0 }}
+          COMMENT_USER: ${{ github.event.comment.user.login || '' }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          EVENT_ISSUE: ${{ github.event.issue.number || 0 }}
+          INPUT_ISSUE: ${{ inputs.issue || '' }}
+          INPUT_WORKER: ${{ inputs.worker || '' }}
+          INPUT_BRANCH: ${{ inputs.branch || '' }}
+          INPUT_HEAD_SHA: ${{ inputs.head_sha || '' }}
+          INPUT_CHECKPOINT_PATH: ${{ inputs.checkpoint_path || '' }}
+          INPUT_CHECKPOINT_BLOB_SHA: ${{ inputs.checkpoint_blob_sha || '' }}
+          INPUT_CHECKPOINT_FINGERPRINT: ${{ inputs.checkpoint_fingerprint || '' }}
+          INPUT_CLAIM_BLOB_SHA: ${{ inputs.claim_blob_sha || '' }}
+          INPUT_GUARD_AUTHORITY_SHA: ${{ inputs.guard_authority_sha || '' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import re
+
+          allowed = (
+              "issue",
+              "worker",
+              "branch",
+              "head_sha",
+              "checkpoint_path",
+              "checkpoint_blob_sha",
+              "checkpoint_fingerprint",
+              "claim_blob_sha",
+              "guard_authority_sha",
+          )
+          event = os.environ["EVENT_NAME"]
+          request_comment_id = "0"
+
+          if event == "issue_comment":
+              if os.environ["COMMENT_USER"] != os.environ["REPOSITORY_OWNER"]:
+                  raise SystemExit("remote finalization request must be authored by repository owner")
+              lines = os.environ["COMMENT_BODY"].replace("\r\n", "\n").split("\n")
+              if not lines or lines[0].strip() != "WHD_REMOTE_FINALIZATION_REQUEST_V1":
+                  raise SystemExit("invalid remote finalization marker")
+              values = {}
+              for raw in lines[1:]:
+                  if not raw.strip():
+                      continue
+                  if "=" not in raw:
+                      raise SystemExit("malformed remote finalization request line")
+                  key, value = raw.split("=", 1)
+                  key, value = key.strip(), value.strip()
+                  if key not in allowed:
+                      raise SystemExit(f"unsupported remote finalization key: {key}")
+                  if key in values:
+                      raise SystemExit(f"duplicate remote finalization key: {key}")
+                  if not value:
+                      raise SystemExit(f"blank remote finalization value: {key}")
+                  values[key] = value
+              if set(values) != set(allowed):
+                  missing = sorted(set(allowed) - set(values))
+                  raise SystemExit(f"missing remote finalization keys: {missing}")
+              if values["issue"] != os.environ["EVENT_ISSUE"]:
+                  raise SystemExit("request issue does not match owning Issue")
+              request_comment_id = os.environ["COMMENT_ID"]
+          elif event == "workflow_dispatch":
+              values = {
+                  "issue": os.environ["INPUT_ISSUE"],
+                  "worker": os.environ["INPUT_WORKER"],
+                  "branch": os.environ["INPUT_BRANCH"],
+                  "head_sha": os.environ["INPUT_HEAD_SHA"],
+                  "checkpoint_path": os.environ["INPUT_CHECKPOINT_PATH"],
+                  "checkpoint_blob_sha": os.environ["INPUT_CHECKPOINT_BLOB_SHA"],
+                  "checkpoint_fingerprint": os.environ["INPUT_CHECKPOINT_FINGERPRINT"],
+                  "claim_blob_sha": os.environ["INPUT_CLAIM_BLOB_SHA"],
+                  "guard_authority_sha": os.environ["INPUT_GUARD_AUTHORITY_SHA"],
+              }
+              if any(not value for value in values.values()):
+                  raise SystemExit("workflow_dispatch inputs must all be nonblank")
+          else:
+              raise SystemExit("unsupported trigger")
+
+          if not re.fullmatch(r"[1-9][0-9]*", values["issue"]):
+              raise SystemExit("invalid issue")
+          if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", values["worker"]):
+              raise SystemExit("invalid worker")
+          for key in ("head_sha", "checkpoint_blob_sha", "claim_blob_sha", "guard_authority_sha"):
+              if not re.fullmatch(r"[0-9a-f]{40}", values[key]):
+                  raise SystemExit(f"invalid SHA field: {key}")
+          if not re.fullmatch(r"[0-9a-f]{64}", values["checkpoint_fingerprint"]):
+              raise SystemExit("invalid checkpoint fingerprint")
+          expected_checkpoint = f'.dispatch/checkpoints/issue-{values["issue"]}.json'
+          if values["checkpoint_path"] != expected_checkpoint:
+              raise SystemExit("checkpoint path mismatch")
+
+          out = os.environ["GITHUB_OUTPUT"]
+          with open(out, "a", encoding="utf-8") as handle:
+              for key in allowed:
+                  handle.write(f"{key}={values[key]}\n")
+              handle.write(f"request_comment_id={request_comment_id}\n")
+          PY
+
       - name: Checkout trusted authority
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.guard_authority_sha }}
+          ref: ${{ steps.request.outputs.guard_authority_sha }}
           fetch-depth: 0
 
       - name: Verify fixed finalization identity
         shell: bash
         env:
-          ISSUE: ${{ inputs.issue }}
-          WORKER: ${{ inputs.worker }}
-          BRANCH: ${{ inputs.branch }}
-          HEAD_SHA: ${{ inputs.head_sha }}
-          CHECKPOINT_PATH: ${{ inputs.checkpoint_path }}
-          CHECKPOINT_BLOB_SHA: ${{ inputs.checkpoint_blob_sha }}
-          CLAIM_BLOB_SHA: ${{ inputs.claim_blob_sha }}
-          GUARD_AUTHORITY_SHA: ${{ inputs.guard_authority_sha }}
+          ISSUE: ${{ steps.request.outputs.issue }}
+          WORKER: ${{ steps.request.outputs.worker }}
+          BRANCH: ${{ steps.request.outputs.branch }}
+          HEAD_SHA: ${{ steps.request.outputs.head_sha }}
+          CHECKPOINT_PATH: ${{ steps.request.outputs.checkpoint_path }}
+          CHECKPOINT_BLOB_SHA: ${{ steps.request.outputs.checkpoint_blob_sha }}
+          CLAIM_BLOB_SHA: ${{ steps.request.outputs.claim_blob_sha }}
+          GUARD_AUTHORITY_SHA: ${{ steps.request.outputs.guard_authority_sha }}
         run: |
           set -euo pipefail
-          [[ "$ISSUE" =~ ^[1-9][0-9]*$ ]]
-          [[ "$WORKER" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$CHECKPOINT_BLOB_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$CLAIM_BLOB_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$GUARD_AUTHORITY_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$CHECKPOINT_PATH" == ".dispatch/checkpoints/issue-${ISSUE}.json" ]]
           [[ "$(git rev-parse HEAD)" == "$GUARD_AUTHORITY_SHA" ]]
-
           git fetch --no-tags origin "$BRANCH"
           [[ "$(git rev-parse FETCH_HEAD)" == "$HEAD_SHA" ]]
-
           git fetch --no-tags origin coord/dispatch-claims
           COORD_SHA="$(git rev-parse FETCH_HEAD)"
           ACTUAL_CHECKPOINT_BLOB="$(git rev-parse "${COORD_SHA}:${CHECKPOINT_PATH}")"
@@ -89,10 +186,10 @@ jobs:
       - name: Authorize finalization
         shell: bash
         env:
-          ISSUE: ${{ inputs.issue }}
-          BRANCH: ${{ inputs.branch }}
-          HEAD_SHA: ${{ inputs.head_sha }}
-          CHECKPOINT_FINGERPRINT: ${{ inputs.checkpoint_fingerprint }}
+          ISSUE: ${{ steps.request.outputs.issue }}
+          BRANCH: ${{ steps.request.outputs.branch }}
+          HEAD_SHA: ${{ steps.request.outputs.head_sha }}
+          CHECKPOINT_FINGERPRINT: ${{ steps.request.outputs.checkpoint_fingerprint }}
         run: |
           set -euo pipefail
           python tools/continuity_controller.py authorize-finalization             /tmp/continuity.json             --issue "$ISSUE"             --branch "$BRANCH"             --head-sha "$HEAD_SHA"             --proof-out /tmp/finalization-proof.json
@@ -107,9 +204,9 @@ jobs:
       - name: Verify finalization proof
         shell: bash
         env:
-          ISSUE: ${{ inputs.issue }}
-          BRANCH: ${{ inputs.branch }}
-          HEAD_SHA: ${{ inputs.head_sha }}
+          ISSUE: ${{ steps.request.outputs.issue }}
+          BRANCH: ${{ steps.request.outputs.branch }}
+          HEAD_SHA: ${{ steps.request.outputs.head_sha }}
         run: |
           set -euo pipefail
           python tools/continuity_controller.py verify-finalization-proof             /tmp/continuity.json             /tmp/finalization-proof.json             --issue "$ISSUE"             --branch "$BRANCH"             --head-sha "$HEAD_SHA"
@@ -117,14 +214,16 @@ jobs:
       - name: Emit machine receipt
         shell: bash
         env:
-          ISSUE: ${{ inputs.issue }}
-          WORKER: ${{ inputs.worker }}
-          BRANCH: ${{ inputs.branch }}
-          HEAD_SHA: ${{ inputs.head_sha }}
-          CHECKPOINT_PATH: ${{ inputs.checkpoint_path }}
-          CHECKPOINT_BLOB_SHA: ${{ inputs.checkpoint_blob_sha }}
-          CLAIM_BLOB_SHA: ${{ inputs.claim_blob_sha }}
-          GUARD_AUTHORITY_SHA: ${{ inputs.guard_authority_sha }}
+          ISSUE: ${{ steps.request.outputs.issue }}
+          WORKER: ${{ steps.request.outputs.worker }}
+          BRANCH: ${{ steps.request.outputs.branch }}
+          HEAD_SHA: ${{ steps.request.outputs.head_sha }}
+          CHECKPOINT_PATH: ${{ steps.request.outputs.checkpoint_path }}
+          CHECKPOINT_BLOB_SHA: ${{ steps.request.outputs.checkpoint_blob_sha }}
+          CHECKPOINT_FINGERPRINT: ${{ steps.request.outputs.checkpoint_fingerprint }}
+          CLAIM_BLOB_SHA: ${{ steps.request.outputs.claim_blob_sha }}
+          GUARD_AUTHORITY_SHA: ${{ steps.request.outputs.guard_authority_sha }}
+          REQUEST_COMMENT_ID: ${{ steps.request.outputs.request_comment_id }}
           RUN_ID: ${{ github.run_id }}
           ORCHESTRATOR_HEAD_SHA: ${{ github.sha }}
         run: |
@@ -137,6 +236,7 @@ jobs:
               "schema": "WHD_REMOTE_FINALIZATION_RECEIPT_V1",
               "result": "GREEN",
               "reason": "FINALIZATION_PROOF_VALID",
+              "request_comment_id": int(os.environ["REQUEST_COMMENT_ID"]),
               "issue": int(os.environ["ISSUE"]),
               "worker": os.environ["WORKER"],
               "branch": os.environ["BRANCH"],
@@ -149,6 +249,8 @@ jobs:
               "run_id": int(os.environ["RUN_ID"]),
               "orchestrator_head_sha": os.environ["ORCHESTRATOR_HEAD_SHA"],
           }
+          if receipt["checkpoint_fingerprint"] != os.environ["CHECKPOINT_FINGERPRINT"]:
+              raise SystemExit("receipt fingerprint mismatch")
           with open("/tmp/remote-finalization-receipt.json", "w", encoding="utf-8") as handle:
               json.dump(receipt, handle, ensure_ascii=False, indent=2, sort_keys=True)
               handle.write("\n")
@@ -159,7 +261,7 @@ jobs:
       - name: Upload bound proof artifact
         uses: actions/upload-artifact@v4
         with:
-          name: whd-remote-finalization-${{ inputs.issue }}-${{ github.run_id }}
+          name: whd-remote-finalization-${{ steps.request.outputs.issue }}-${{ github.run_id }}
           path: |
             /tmp/finalization-proof.json
             /tmp/remote-finalization-receipt.json
