@@ -132,16 +132,17 @@ def test_bridge_does_not_redefine_extracted_domain_functions():
         assert f"def {name}(" not in source
 
 
-def test_bridge_exposes_one_orchestration_seam_for_legacy_wrappers():
+def test_bridge_exposes_only_runtime_required_orchestration_class_seam():
     import fold_designer_bridge as bridge
 
+    assert hasattr(bridge.Phase6FoldDesignerApp, "submit_update_intent")
     for name in (
-        "submit_update_intent",
         "apply_settings_delta",
         "switch_active_part",
         "publish_if_changed",
     ):
-        assert hasattr(bridge.Phase6FoldDesignerApp, name), name
+        assert not hasattr(bridge.Phase6FoldDesignerApp, name), name
+        assert callable(getattr(bridge, f"_phase6_{name}")), name
 
 
 def test_preview_aware_legacy_wrapper_only_submits_intent():
