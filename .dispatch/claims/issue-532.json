@@ -6,31 +6,15 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "a2502475021247ddf3c9ef40fe036393c3d47e2b",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T14:34:00+08:00",
+  "head_sha": "f99106fffb711a29b3c28d5b6bc8a105a7cd7333",
+  "phase": "GREEN",
+  "last_update": "2026-09-23T14:36:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
-  "remote_qa": {
-    "run_id": 35827199891,
-    "head_sha": "a2502475021247ddf3c9ef40fe036393c3d47e2b",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "C0 residual top-level definition caller audit",
-    "evidence": {
-      "candidates": 58,
-      "unreadable_current_python": 0,
-      "zero_consumer_count": 30,
-      "zero_consumer_span": 314,
-      "compat_only_count": 27,
-      "compat_only_span": 327,
-      "runtime_consumer_count": 1,
-      "runtime_consumer_span": 9
-    }
-  },
-  "next_action": "Delete 30 zero-consumer residual top-level bridge functions (314 span); no test/tool migration needed; then run C0 dead-wrapper GREEN.",
+  "remote_qa": null,
+  "next_action": "Run C0 dead-wrapper GREEN on exact head f99106fffb711a29b3c28d5b6bc8a105a7cd7333; compile/import, focused ownership/GUI source contracts, residual-def absence, then continue compat-only migration.",
   "blocker": null
 }
