@@ -1,0 +1,52 @@
+name: WHD｜#532｜C0 可執行收尾驗證
+run-name: "WHD｜#532｜C0 Finalization Proof｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - qa/issue532-finalization-20260923
+    paths:
+      - .github/workflows/qa-issue532-finalization.yml
+
+permissions:
+  contents: read
+
+jobs:
+  finalization:
+    name: 驗證 #532 canonical checkpoint 與收尾證明
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出收尾分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 取得 coordination checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-532.json > /tmp/issue-532.json
+
+      - name: 授權可執行收尾
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller authorize-finalization             /tmp/issue-532.json             --issue 532             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha b256e4cef91b66bd5dd8e4ee371d886f2b0fe473             --proof-out /tmp/issue-532.finalization-proof.json
+
+      - name: 驗證收尾證明
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller verify-finalization-proof             /tmp/issue-532.json             /tmp/issue-532.finalization-proof.json             --issue 532             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha b256e4cef91b66bd5dd8e4ee371d886f2b0fe473
+          sha256sum /tmp/issue-532.finalization-proof.json
+          cp /tmp/issue-532.finalization-proof.json issue-532.finalization-proof.json
+
+      - name: 上傳收尾證明
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-finalization-proof
+          path: issue-532.finalization-proof.json
+          if-no-files-found: error
+          retention-days: 14
