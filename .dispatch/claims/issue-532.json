@@ -6,28 +6,38 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "5e04e4c48ae92c1e460739258d688bf1c653e444",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T20:09:00+08:00",
+  "head_sha": "320db9fdb08301cfa539ad2a48cc3d59cdd06839",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T20:12:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35858632417,
-    "head_sha": "5e04e4c48ae92c1e460739258d688bf1c653e444",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "C0 Settings application ports replacement RED",
+    "runs": [
+      {
+        "run_id": 35858929083,
+        "head_sha": "320db9fdb08301cfa539ad2a48cc3d59cdd06839",
+        "status": "in_progress",
+        "conclusion": null,
+        "purpose": "C0 final GREEN at 6477 LOC"
+      },
+      {
+        "run_id": 35858929075,
+        "head_sha": "320db9fdb08301cfa539ad2a48cc3d59cdd06839",
+        "status": "completed",
+        "conclusion": "success",
+        "purpose": "C0 residual def audit"
+      }
+    ],
+    "head_sha": "320db9fdb08301cfa539ad2a48cc3d59cdd06839",
     "evidence": {
-      "result": "RED_PROVEN",
-      "functional_baseline_head": "bf3b0021ad7871a05391b74d85d32518d3311483",
-      "baseline_bridge_loc": 6579,
-      "over_ceiling_by": 79
+      "bridge_loc": 6477,
+      "effective_final_ceiling": 6500
     }
   },
-  "next_action": "Move shallow Settings application port assembly/read/effect wiring into Phase6FoldDesignerComposition; retain substantive apply_profile_plan/project_ui_values/submit_update_intent/publish_live_state in Bridge; rerun exact C0 GREEN.",
+  "next_action": "Poll exact C0 GREEN run 35858929083 to terminal; if GREEN, enter cleanup/drift/finalization. Do not reopen budget work.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
