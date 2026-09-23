@@ -1,5 +1,5 @@
-name: WHD｜#532｜C0 表面正規化 GREEN
-run-name: "WHD｜#532｜C0 表面正規化 GREEN｜${{ github.sha }}"
+name: WHD｜#532｜C0 Dead Wrapper GREEN
+run-name: "WHD｜#532｜C0 Dead Wrapper GREEN｜${{ github.sha }}"
 
 on:
   push:
@@ -13,9 +13,9 @@ permissions:
 
 jobs:
   green:
-    name: C0 Import／Owner／相容面聚焦驗收
+    name: C0 零 caller wrapper 跨 owner 驗收
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: 取出精確工單分支
         uses: actions/checkout@v4
@@ -31,6 +31,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest matplotlib ezdxf shapely
 
@@ -45,72 +47,98 @@ jobs:
           print("C0_BRIDGE_IMPORT_SMOKE=GREEN")
           PY
 
-      - name: 聚焦 ownership／compatibility regressions
+      - name: Headless ownership／compatibility matrix
         shell: bash
         run: |
           set -euo pipefail
           python -m pytest -q \
             tests/test_issue524_a3_facade_ratchet.py \
-            tests/test_issue347_manufacturing_helper_extraction.py \
-            tests/test_issue348_joint_world_geometry_extraction.py \
-            tests/test_issue349_explicit_joint_relief_extraction.py \
-            tests/test_issue351_t6_compatibility_gate.py \
+            tests/test_issue546_b6_6_facade_batch.py \
             tests/test_phase6_bridge_domain_ownership.py \
             tests/test_phase6_diagnostics_ownership.py \
+            tests/test_issue368_t4_registry_diagnostics_owner.py \
+            tests/test_issue446_registry_diagnostics_presentation_owner.py \
+            tests/test_issue393_final_scene_contracts.py \
+            tests/test_issue394_final_scene_projection.py \
+            tests/test_issue395_final_scene_renderer.py \
+            tests/test_issue370_t6_final_scene_view_owner.py \
+            tests/test_issue479_final_scene_composition_owner.py \
             tests/test_phase6_final_scene_view_ownership.py \
             tests/test_issue445_settings_presentation_owner.py \
-            | tee /tmp/issue532-c0-focused.log
+            tests/test_issue447_workspace_shell_owner.py \
+            tests/test_issue433_assembly_shared_host.py \
+            tests/test_issue376_assembly_collapsible_data.py \
+            tests/test_issue384_assembly_only_function_presentation.py \
+            tests/test_issue385_assembly_parent_child_groups.py \
+            tests/test_issue386_default_assembly_collapsed.py \
+            | tee /tmp/issue532-c0-dead-wrapper-headless.log
 
-      - name: Surface normalization architecture gate
+      - name: Xvfb presentation smoke
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY' | tee /tmp/issue532-c0-architecture.log
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue376_assembly_collapsible_data.py \
+            tests/test_issue378_assembly_mousewheel.py \
+            tests/test_issue384_assembly_only_function_presentation.py \
+            tests/test_issue385_assembly_parent_child_groups.py \
+            tests/test_issue386_default_assembly_collapsed.py \
+            tests/test_issue433_assembly_shared_host.py \
+            tests/test_issue440_assembly_content_height.py \
+            tests/test_issue447_workspace_shell_owner.py \
+            tests/test_issue446_registry_diagnostics_presentation_owner.py \
+            | tee /tmp/issue532-c0-dead-wrapper-xvfb.log
+
+      - name: Residual definition architecture gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue532-c0-dead-wrapper-architecture.log
           import ast
           from pathlib import Path
 
           path=Path("fold_designer_bridge.py")
           source=path.read_text(encoding="utf-8")
           tree=ast.parse(source)
+          defs={
+              n.name for n in tree.body
+              if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))
+          }
           removed={
-              "datetime","Sequence","WHD_SEMANTIC_COLORS",
-              "resolve_operator_finished_dimensions","DoorFrameEdges",
-              "calculate_door_finished_size","set_active_structure",
-              "activate_structure_with_defaults","set_structure_locked",
-              "set_two_piece_width","set_three_piece_width",
-              "reconcile_box_body_structure_for_total_w_change",
-              "set_join_seam_bend","update_structure_config",
-              "ui_text_size_factor","Phase6SettingsTransactionController",
-              "DoorPartProjection","SettingsPanelExtensionResult",
-              "ResolvedAssemblyGraph","set_part_edge_relation",
-              "box_body_height_from_corner_policies","commit_endcap_bottom_wrap",
-              "legacy_corner_projection_for_intent","AssemblyScenePart",
-              "FinalSceneDependencies","_phase6_fold_mask_for_cross_coordinate",
-              "_phase6_scene_fold_boundaries","_phase6_profile_to_scene_boundaries",
-              "_phase6_folded_outside_envelope","_phase6_profile_operator_fold_values",
-              "Phase6FinalSceneRenderer","_PHASE6_ZOOM_STEP",
-              "Phase6FinalSceneViewAdapter","_phase6_remove_original_bend_surfaces",
-              "_phase6_draw_scene_bends","_phase6_scale_current_3d_limits",
-              "_phase6_legacy_symmetry_widgets","_phase6_set_legacy_symmetry_visibility",
+              "_phase6_save_diagnostic_file",
+              "_phase6_final_scene_operator_dimensions",
+              "_phase6_update_unfolded_size_label",
+              "_phase6_format_formed_size_text",
+              "_phase6_final_scene_render_committed",
+              "_phase6_selected_joint_diagnostic",
+              "_phase6_refresh_box_body_piece_info_rows",
+              "_phase6_assembly_unfolded_blank_text",
+              "_phase6_final_scene_refresh_preview",
+              "_phase6_final_scene_corner_text_sink",
+              "_phase6_final_scene_visibility",
+              "_phase6_bind_assembly_scroll",
+              "_phase6_show_global_settings",
+              "_phase6_final_scene_scene_query",
+              "_phase6_is_base_plate_part_key",
+              "_profile_value",
+              "_phase6_build_global_persistent_controls",
+              "_phase6_build_output_controls",
+              "_phase6_build_transaction_buttons",
+              "_phase6_build_visual_controls",
+              "_phase6_final_scene_part_text_sink",
+              "_phase6_toggle_box_structure_lock",
+              "_phase6_is_door_part_key",
+              "_phase6_registry_require_current_candidate",
+              "_phase6_set_assembly_presentation_group_open",
+              "_phase6_set_box_body_piece_details_open",
+              "_phase6_settings_panel_toggle_advanced",
+              "_phase6_toggle_assembly_part_details",
+              "_phase6_toggle_assembly_presentation_group",
+              "_phase6_toggle_box_body_piece_details",
           }
-          imported=set()
-          for node in tree.body:
-              if isinstance(node, ast.Import):
-                  imported.update(a.asname or a.name.split(".")[0] for a in node.names)
-              elif isinstance(node, ast.ImportFrom):
-                  imported.update(a.asname or a.name for a in node.names if a.name!="*")
-          assert removed.isdisjoint(imported), sorted(removed & imported)
-          assigned={
-              t.id
-              for node in tree.body
-              if isinstance(node,(ast.Assign,ast.AnnAssign))
-              for t in (node.targets if isinstance(node,ast.Assign) else [node.target])
-              if isinstance(t,ast.Name)
-          }
-          assert "_PHASE6_ORCHESTRATION_DEBOUNCE_MS" not in assigned
-
+          assert removed.isdisjoint(defs), sorted(removed & defs)
           loc=len(source.splitlines())
-          assert loc <= 7431, loc
+          assert loc <= 7134, loc
           call=next(
               n for n in ast.walk(tree)
               if isinstance(n,ast.Call)
@@ -124,19 +152,19 @@ jobs:
           )
           assert facade_count==45, facade_count
           print(f"C0_BRIDGE_LOC={loc}")
-          print("C0_NORMALIZED_UNUSED_IMPORTS=38")
-          print("C0_REMOVED_DEAD_CONSTANTS=1")
+          print("C0_ZERO_CONSUMER_WRAPPERS_REMOVED=30")
           print("C0_FACADE_COUNT=45")
-          print("ISSUE532_C0_NORMALIZATION_GREEN=GREEN")
+          print("ISSUE532_C0_DEAD_WRAPPER_GREEN=GREEN")
           PY
 
       - name: 上傳 GREEN 證據
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue532-c0-normalization-green
+          name: issue532-c0-dead-wrapper-green
           path: |
-            /tmp/issue532-c0-focused.log
-            /tmp/issue532-c0-architecture.log
+            /tmp/issue532-c0-dead-wrapper-headless.log
+            /tmp/issue532-c0-dead-wrapper-xvfb.log
+            /tmp/issue532-c0-dead-wrapper-architecture.log
           if-no-files-found: warn
           retention-days: 14
