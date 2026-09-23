@@ -1,0 +1,19 @@
+{
+  "issue": 576,
+  "issue_url": "https://github.com/looaeedr/whd/issues/576",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue576-takeover-worker-main-20260924",
+  "claimed_at": "2026-09-24T02:17:46+08:00",
+  "base_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+  "head_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T02:17:46+08:00",
+  "production_target": "main",
+  "task_id": "GOV-TRUSTED-TAKEOVER-WORKER-TRANSPORT",
+  "parent_issue": 573,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the guarded main-based work branch, change only the trusted Remote Guard fixed schema for takeover_worker, validate exact diff, then guarded-merge to main and fresh-read the trusted workflow.",
+  "blocker": null
+}
