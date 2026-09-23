@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "560",
+  "branch": "governance/issue560-trusted-remote-finalization-20260923",
+  "head_sha": "94e74b321884411454a4782487bce69d56a2e788",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35883494264,
+  "evidence": [
+    "PR #561 merged into cleanup/2d-3d-sync at fe24fa024fe88467ec0432c803a6344148331d38.",
+    "Exact validation run 35883494264 completed success on 94e74b321884411454a4782487bce69d56a2e788.",
+    "Trusted narrow remote finalization executor, canonical Skill routing, regression coverage, and AI Library pitfall writeback are integrated.",
+    "Repair target #558 received fresh trusted finalization run 35890385610 with FINALIZATION_PROOF_VALID and was read back closed/completed."
+  ],
+  "master_issue": "558",
+  "chain_state": "CHAIN_COMPLETE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": "Governance repair chain complete; parent #558 is closed/completed after fresh trusted machine finalization."
+}
