@@ -6,37 +6,24 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "f87c37bf8a7cc780e1c62d26e7389c5e3ae80793",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T17:12:00+08:00",
+  "head_sha": "5d4318a21205b94347805409131b4f23b215a33e",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T17:18:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35839660884,
-    "head_sha": "f87c37bf8a7cc780e1c62d26e7389c5e3ae80793",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "C0 GREEN after stale wrapper ownership assertions retired",
-    "evidence": {
-      "headless": "94 passed / 18 skipped",
-      "xvfb": "47 passed / 1 skipped",
-      "bridge_loc": 6958,
-      "zero_consumer_wrappers_removed": 41,
-      "facade_count": 45
-    },
-    "residual_audit": {
-      "run_id": 35839252196,
-      "status": "completed",
-      "conclusion": "success",
-      "compat_only_count": 15,
-      "compat_only_span": 187,
-      "zero_consumer_count": 0
-    }
+    "run_id": null,
+    "head_sha": "5d4318a21205b94347805409131b4f23b215a33e",
+    "status": "RUN_NOT_CREATED",
+    "conclusion": null,
+    "purpose": "C0 GREEN + residual audit after peeling six largest current compat-only wrappers",
+    "previous_green_run": 35839660884,
+    "previous_residual_audit_run": 35839252196
   },
-  "next_action": "Peel next six largest current compat-only wrappers (133 LOC), migrate tests to direct owners/production path, then rerun GREEN + residual audit and continue until bridge <=6500.",
+  "next_action": "Lock exact GREEN and residual-audit runs for 5d4318a2; if not auto-created, trigger via existing issue532 workflow contract. Poll both to terminal, then continue peeling until bridge <=6500.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
