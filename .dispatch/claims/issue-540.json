@@ -6,26 +6,25 @@
   "work_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
-  "head_sha": "5a3de28769cf26eafc4a4d53b592f5f87b481bee",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T08:18:30+08:00",
+  "head_sha": "6fc9c4071c76e8c60c3023fb31591dddc3d488bd",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T08:21:00+08:00",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35801418320,
-    "head_sha": "5a3de28769cf26eafc4a4d53b592f5f87b481bee",
+    "run_id": 35801610660,
+    "head_sha": "6fc9c4071c76e8c60c3023fb31591dddc3d488bd",
     "status": "completed",
-    "conclusion": "failure",
-    "purpose": "Issue #540 main Remote Guard GREEN contract",
+    "conclusion": "success",
+    "purpose": "Issue #540 main trusted Remote Guard claim-takeover GREEN",
     "evidence": {
-      "static_contract": "4 passed, 1 failed",
-      "failed_assertion": "takeover must pass --head-sha \"$RG_TESTED_TARGET_SHA\" explicitly",
-      "workflow_parse_run": 35801417478,
-      "workflow_parse_conclusion": "failure",
-      "syntax_root_cause": "inner Python heredoc body not indented as YAML literal-block content"
+      "contract_tests": "5 passed",
+      "prior_yaml_parser_run": 35801417478,
+      "prior_yaml_parser_failure": "repaired",
+      "same_head_invalid_workflow_run": "none"
     }
   },
-  "next_action": "Fix trusted workflow only: YAML-indent inner Python heredoc and make claim-takeover guard path pass --head-sha \"$RG_TESTED_TARGET_SHA\" explicitly; rerun same GREEN contract unchanged.",
+  "next_action": "Remove one-shot main RED/GREEN workflows under fresh commit guard; audit final two-file durable diff; open PR to main and merge; then run scheduler-style negative smoke on the updated default-branch workflow.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -116,6 +115,13 @@
       "request_comment_id": 5786691465,
       "result_comment_id": 5786693304,
       "run_id": 35801279427,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "main_yaml_fix": {
+      "request_comment_id": 5786729915,
+      "result_comment_id": 5786732234,
+      "run_id": 35801528743,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
