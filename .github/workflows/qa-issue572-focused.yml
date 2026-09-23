@@ -1,0 +1,31 @@
+name: WHD｜#572｜兄弟排程接手窄版驗收
+run-name: "WHD｜#572｜兄弟排程 stale takeover 窄版驗收"
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - tools/stale_claim_takeover.py
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue572_sibling_scheduler_stale_takeover.py
+      - .github/workflows/qa-issue572-focused.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#572 兄弟排程接手行為驗收"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "取出 PR 程式碼"
+        uses: actions/checkout@v4
+      - name: "設定 Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "安裝 pytest"
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: "執行 #572 focused 測試"
+        run: python -m pytest -q tests/process/test_issue572_sibling_scheduler_stale_takeover.py
