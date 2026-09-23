@@ -7,13 +7,20 @@
   "claimed_at": "2026-09-23T22:25:30+08:00",
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
-  "phase": "RED",
-  "last_update": "2026-09-23T22:54:29+08:00",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T22:57:18+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-POST-COMMIT-CLAIM-HEAD-RECONCILE",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Create guarded work branch from cleanup/2d-3d-sync@75eaffac..., add RED contract for H0→H1 post-commit claim-head reconciliation, then implement the narrow evidence-bound authority path.",
+  "remote_qa": {
+    "run_id": 35877873228,
+    "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "Knowledge Governance Bootstrap",
+    "pr": 559
+  },
+  "next_action": "Finalize PR #559 / Issue #558 from exact successful remote QA, merge the governance repair into cleanup/2d-3d-sync, then continue the live-derived master chain.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -29,5 +36,11 @@
     "receipt_result": "GREEN",
     "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "taken_over_at": "2026-09-23T22:54:29+08:00"
+  },
+  "claim_write_guard": {
+    "request_comment_id": 5797159881,
+    "run_id": 35877914538,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN"
   }
 }
