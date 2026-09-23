@@ -1,0 +1,54 @@
+name: 工單545 B6-5 Xvfb Baseline
+run-name: "工單 #545 B6-5｜Xvfb Baseline｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - qa/issue545-b6-5-xvfb-baseline-20260923
+    paths:
+      - .github/workflows/qa-issue545-b6-5-xvfb-baseline.yml
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: B6-5 Parent accepted Xvfb baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: 取出 baseline
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝依賴
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+
+      - name: Xvfb affected caller baseline
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a python -m pytest -q             tests/test_corner_lock_visual_contract.py             tests/test_corner_parameter_lock.py             tests/test_corner_type_phase6_integration.py             tests/test_phase6_corner_transaction.py             tests/test_phase6_factory_reset.py             tests/test_phase6_live_canonical_sync.py             tests/test_phase6_outside_advanced_perf.py             tests/test_phase6_settings_service.py             tests/test_phase6_t08_ui_text_and_edge_selectors.py             tests/test_phase6_t24_edge_selector_width.py             | tee /tmp/issue545-b6-5-xvfb-baseline.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "PYTEST_RC=${rc}"
+          grep -E 'FAILED |ERROR |[0-9]+ failed|[0-9]+ passed|[0-9]+ skipped' /tmp/issue545-b6-5-xvfb-baseline.log || true
+          exit 0
+
+      - name: 上傳 baseline 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue545-b6-5-xvfb-baseline
+          path: /tmp/issue545-b6-5-xvfb-baseline.log
+          if-no-files-found: error
+          retention-days: 14
