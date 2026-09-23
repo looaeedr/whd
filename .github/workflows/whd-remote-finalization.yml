@@ -1,0 +1,167 @@
+name: WHD Remote Finalization
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Owning GitHub Issue number
+        required: true
+        type: string
+      worker:
+        description: Exact shared-claim worker identity
+        required: true
+        type: string
+      branch:
+        description: Exact owning work branch
+        required: true
+        type: string
+      head_sha:
+        description: Exact owning work-branch HEAD
+        required: true
+        type: string
+      checkpoint_path:
+        description: Exact coordination checkpoint path
+        required: true
+        type: string
+      checkpoint_blob_sha:
+        description: Exact checkpoint blob SHA
+        required: true
+        type: string
+      checkpoint_fingerprint:
+        description: Expected canonical checkpoint fingerprint
+        required: true
+        type: string
+      claim_blob_sha:
+        description: Exact shared claim blob SHA
+        required: true
+        type: string
+      guard_authority_sha:
+        description: Trusted SHA containing canonical continuity controller
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted authority
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.guard_authority_sha }}
+          fetch-depth: 0
+
+      - name: Verify fixed finalization identity
+        shell: bash
+        env:
+          ISSUE: ${{ inputs.issue }}
+          WORKER: ${{ inputs.worker }}
+          BRANCH: ${{ inputs.branch }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          CHECKPOINT_PATH: ${{ inputs.checkpoint_path }}
+          CHECKPOINT_BLOB_SHA: ${{ inputs.checkpoint_blob_sha }}
+          CLAIM_BLOB_SHA: ${{ inputs.claim_blob_sha }}
+          GUARD_AUTHORITY_SHA: ${{ inputs.guard_authority_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$ISSUE" =~ ^[1-9][0-9]*$ ]]
+          [[ "$WORKER" =~ ^[A-Za-z0-9_.-]{1,64}$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CHECKPOINT_BLOB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CLAIM_BLOB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GUARD_AUTHORITY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$CHECKPOINT_PATH" == ".dispatch/checkpoints/issue-${ISSUE}.json" ]]
+          [[ "$(git rev-parse HEAD)" == "$GUARD_AUTHORITY_SHA" ]]
+
+          git fetch --no-tags origin "$BRANCH"
+          [[ "$(git rev-parse FETCH_HEAD)" == "$HEAD_SHA" ]]
+
+          git fetch --no-tags origin coord/dispatch-claims
+          COORD_SHA="$(git rev-parse FETCH_HEAD)"
+          ACTUAL_CHECKPOINT_BLOB="$(git rev-parse "${COORD_SHA}:${CHECKPOINT_PATH}")"
+          ACTUAL_CLAIM_BLOB="$(git rev-parse "${COORD_SHA}:.dispatch/claims/issue-${ISSUE}.json")"
+          [[ "$ACTUAL_CHECKPOINT_BLOB" == "$CHECKPOINT_BLOB_SHA" ]]
+          [[ "$ACTUAL_CLAIM_BLOB" == "$CLAIM_BLOB_SHA" ]]
+          git show "${COORD_SHA}:${CHECKPOINT_PATH}" > /tmp/continuity.json
+
+      - name: Authorize finalization
+        shell: bash
+        env:
+          ISSUE: ${{ inputs.issue }}
+          BRANCH: ${{ inputs.branch }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          CHECKPOINT_FINGERPRINT: ${{ inputs.checkpoint_fingerprint }}
+        run: |
+          set -euo pipefail
+          python tools/continuity_controller.py authorize-finalization             /tmp/continuity.json             --issue "$ISSUE"             --branch "$BRANCH"             --head-sha "$HEAD_SHA"             --proof-out /tmp/finalization-proof.json
+          python - "$CHECKPOINT_FINGERPRINT" <<'PY'
+          import json
+          import sys
+          proof = json.load(open("/tmp/finalization-proof.json", encoding="utf-8"))
+          if proof["checkpoint_fingerprint"] != sys.argv[1]:
+              raise SystemExit("checkpoint fingerprint mismatch")
+          PY
+
+      - name: Verify finalization proof
+        shell: bash
+        env:
+          ISSUE: ${{ inputs.issue }}
+          BRANCH: ${{ inputs.branch }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          set -euo pipefail
+          python tools/continuity_controller.py verify-finalization-proof             /tmp/continuity.json             /tmp/finalization-proof.json             --issue "$ISSUE"             --branch "$BRANCH"             --head-sha "$HEAD_SHA"
+
+      - name: Emit machine receipt
+        shell: bash
+        env:
+          ISSUE: ${{ inputs.issue }}
+          WORKER: ${{ inputs.worker }}
+          BRANCH: ${{ inputs.branch }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          CHECKPOINT_PATH: ${{ inputs.checkpoint_path }}
+          CHECKPOINT_BLOB_SHA: ${{ inputs.checkpoint_blob_sha }}
+          CLAIM_BLOB_SHA: ${{ inputs.claim_blob_sha }}
+          GUARD_AUTHORITY_SHA: ${{ inputs.guard_authority_sha }}
+          RUN_ID: ${{ github.run_id }}
+          ORCHESTRATOR_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          proof = json.load(open("/tmp/finalization-proof.json", encoding="utf-8"))
+          receipt = {
+              "schema": "WHD_REMOTE_FINALIZATION_RECEIPT_V1",
+              "result": "GREEN",
+              "reason": "FINALIZATION_PROOF_VALID",
+              "issue": int(os.environ["ISSUE"]),
+              "worker": os.environ["WORKER"],
+              "branch": os.environ["BRANCH"],
+              "head_sha": os.environ["HEAD_SHA"],
+              "checkpoint_path": os.environ["CHECKPOINT_PATH"],
+              "checkpoint_blob_sha": os.environ["CHECKPOINT_BLOB_SHA"],
+              "checkpoint_fingerprint": proof["checkpoint_fingerprint"],
+              "claim_blob_sha": os.environ["CLAIM_BLOB_SHA"],
+              "guard_authority_sha": os.environ["GUARD_AUTHORITY_SHA"],
+              "run_id": int(os.environ["RUN_ID"]),
+              "orchestrator_head_sha": os.environ["ORCHESTRATOR_HEAD_SHA"],
+          }
+          with open("/tmp/remote-finalization-receipt.json", "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, ensure_ascii=False, indent=2, sort_keys=True)
+              handle.write("\n")
+          print("WHD_REMOTE_FINALIZATION_RESULT_V1")
+          print(json.dumps(receipt, ensure_ascii=False, sort_keys=True))
+          PY
+
+      - name: Upload bound proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whd-remote-finalization-${{ inputs.issue }}-${{ github.run_id }}
+          path: |
+            /tmp/finalization-proof.json
+            /tmp/remote-finalization-receipt.json
+          if-no-files-found: error
+          retention-days: 30
