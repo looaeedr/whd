@@ -13,6 +13,10 @@ on:
       - tests/test_issue368_t4_registry_diagnostics_owner.py
       - tests/test_issue384_assembly_only_function_presentation.py
       - tests/test_issue447_workspace_shell_owner.py
+      - tests/test_joint_diagnostics_contract.py
+      - tests/test_phase6_tail_native_orientation_and_save.py
+      - tests/test_phase6_four_regressions.py
+      - tests/test_phase6_corner_transaction.py
 
 permissions:
   contents: read
@@ -77,6 +81,8 @@ jobs:
             tests/test_issue384_assembly_only_function_presentation.py \
             tests/test_issue385_assembly_parent_child_groups.py \
             tests/test_issue386_default_assembly_collapsed.py \
+            tests/test_joint_diagnostics_contract.py \
+            tests/test_phase6_tail_native_orientation_and_save.py \
             | tee /tmp/issue532-c0-dead-wrapper-headless.log
 
       - name: Xvfb presentation smoke
@@ -93,6 +99,8 @@ jobs:
             tests/test_issue440_assembly_content_height.py \
             tests/test_issue447_workspace_shell_owner.py \
             tests/test_issue446_registry_diagnostics_presentation_owner.py \
+            tests/test_phase6_four_regressions.py \
+            tests/test_phase6_corner_transaction.py \
             | tee /tmp/issue532-c0-dead-wrapper-xvfb.log
 
       - name: Residual definition architecture gate
@@ -141,10 +149,14 @@ jobs:
               "_phase6_toggle_assembly_part_details",
               "_phase6_toggle_assembly_presentation_group",
               "_phase6_toggle_box_body_piece_details",
+              "_phase6_corner_policy_for",
+              "_phase6_build_diagnostic_snapshot",
+              "_phase6_make_assembly_scene_render_data",
+              "_phase6_export_workspace_state_if_dirty",
           }
           assert removed.isdisjoint(defs), sorted(removed & defs)
           loc=len(source.splitlines())
-          assert loc <= 7134, loc
+          assert loc <= 7011, loc
           call=next(
               n for n in ast.walk(tree)
               if isinstance(n,ast.Call)
@@ -158,7 +170,7 @@ jobs:
           )
           assert facade_count==45, facade_count
           print(f"C0_BRIDGE_LOC={loc}")
-          print("C0_ZERO_CONSUMER_WRAPPERS_REMOVED=30")
+          print("C0_ZERO_CONSUMER_WRAPPERS_REMOVED=34")
           print("C0_FACADE_COUNT=45")
           print("ISSUE532_C0_DEAD_WRAPPER_GREEN=GREEN")
           PY

@@ -21,11 +21,12 @@ def test_resolved_joint_diagnostic_is_queryable_by_joint_id():
 
 
 def test_assembly_scene_bundle_carries_joint_diagnostics_and_selection():
-    import fold_designer_bridge as bridge
+    from phase6_final_scene_projection import make_assembly_scene_render_data
+
     diag = ResolvedJointDiagnostic(
         joint_id="j", subject_part="head", target_part="box_body", relation="WRAP"
     )
-    bundle = bridge._phase6_make_assembly_scene_render_data(
+    bundle = make_assembly_scene_render_data(
         assembly_parts=(), joint_diagnostics=(diag,), selected_joint_id="j"
     )
     assert bundle.joint_diagnostics == (diag,)

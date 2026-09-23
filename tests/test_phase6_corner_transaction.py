@@ -99,21 +99,18 @@ def test_cancel_does_not_confirm_corner_transaction(monkeypatch):
         root.destroy()
 
 
-def test_unmodified_workspace_close_path_skips_even_lightweight_save(monkeypatch):
+def test_preview_queue_does_not_mark_workspace_dirty(monkeypatch):
     root, win, app = _make_app(monkeypatch)
     try:
-        calls = []
-        app._save_current_part = lambda *a, **k: calls.append(True)
+        app.designer_workspace.mark_clean()
         app._phase6_workspace_dirty = False
         # Viewing another bend tab may queue a preview update, but is not a data edit.
         app.queue_update()
         root.update_idletasks()
+        assert app.designer_workspace.dirty is False
         assert app._phase6_workspace_dirty is False
-        assert bridge._phase6_export_workspace_state_if_dirty(app) is None
-        assert calls == []
     finally:
         root.destroy()
-
 
 def test_real_fold_entry_edit_marks_workspace_dirty(monkeypatch):
     root, win, app = _make_app(monkeypatch)

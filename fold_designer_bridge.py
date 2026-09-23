@@ -2264,32 +2264,6 @@ def _phase6_publish_live_state(self, *, force=False):
     return True
 
 
-def _phase6_build_diagnostic_snapshot(self):
-    """Capture the exact draft + Final Part Geometry currently used by 3D."""
-    model_var = getattr(self, "baseline_model_var", None)
-    model = str(
-        model_var.get() if model_var is not None
-        else getattr(self, "_phase6_baseline_initial_model", "") or ""
-    ).strip()
-    active_part = self.designer_workspace.active_part
-    payload = _phase6_scene_query_payload(self) if active_part else {}
-    settings = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    settings.update(dict(getattr(self, "_settings_values", {}) or {}))
-    settings.update(dict(getattr(self, "_phase6_box_whd", {}) or {}))
-    provider = (lambda: _phase6_query_final_render_data(self)) if active_part else None
-    return Phase6ProjectController.build_diagnostic_payload(
-        model=model,
-        active_part=active_part,
-        settings=settings,
-        corner_state=getattr(self, "_phase6_corner_state", {}) or {},
-        corner_pair_same=getattr(self, "_phase6_corner_pair_same", {}) or {},
-        workspace=_phase6_collect_workspace_state(self),
-        active_part_payload=payload,
-        final_geometry_provider=provider,
-        context_factory=DiagnosticSnapshotContext,
-        builder=build_active_diagnostic_snapshot,
-    )
-
 def _phase6_build_project_snapshot(self):
     """Capture one complete, reloadable Phase6 workspace plus all-part diagnostics."""
     try:
@@ -2469,29 +2443,6 @@ def _phase6_cancel_corner_transaction(self):
         return False
     return True
 
-
-def _phase6_export_workspace_state_if_dirty(self):
-    """只在折彎工作區結構真的改變時保存結構。"""
-    if not bool(getattr(self, "_phase6_workspace_dirty", False)):
-        return None
-    pending = getattr(self, "_job", None)
-    if pending:
-        try:
-            self.root.after_cancel(pending)
-        except Exception:
-            pass
-        self._job = None
-    self._save_current_part(notify=False)
-    owner = self.designer_workspace.snapshot()
-    result = Phase6ProjectController.build_workspace_export(
-        owner_workspace=owner,
-        box_body_profile=clone_profile(
-            self.state.profiles_vault.get("箱身", [])
-        ),
-        structure_state=self.designer_workspace.box_body_structure_state(),
-    )
-    self.designer_workspace.mark_clean()
-    return result
 
 def _phase6_refresh_active_endcap_from_linked(self, linked):
     key = str(self.designer_workspace.active_part or "")
@@ -4644,32 +4595,6 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
 
 
 
-def _phase6_make_assembly_scene_render_data(
-    *,
-    assembly_parts,
-    visible_part_keys=None,
-    visible_box_body_piece_keys=None,
-    show_interference=False,
-    ignore_fixed_corner_relief=False,
-    interference_probe_parts=(),
-    joint_diagnostics=(),
-    selected_joint_id=None,
-    preserve_endcap_core_origin=False,
-):
-    """Compatibility delegate for assembly-scene bundle construction."""
-    return _project_assembly_scene_render_data(
-        assembly_parts=assembly_parts,
-        visible_part_keys=visible_part_keys,
-        visible_box_body_piece_keys=visible_box_body_piece_keys,
-        show_interference=show_interference,
-        ignore_fixed_corner_relief=ignore_fixed_corner_relief,
-        interference_probe_parts=interference_probe_parts,
-        joint_diagnostics=joint_diagnostics,
-        selected_joint_id=selected_joint_id,
-        preserve_endcap_core_origin=preserve_endcap_core_origin,
-        render_data_cls=AssemblySceneRenderData,
-    )
-
 def _phase6_query_assembly_render_data(self):
     """Compatibility delegate to authoritative T6 assembly projection."""
     return _phase6_final_scene_adapter(self).query_assembly_render_data()
@@ -4697,42 +4622,6 @@ def _phase6_install_renderer_view(self):
         pass
     return result
 
-
-
-def _phase6_corner_policy_for(self, part_key):
-    raw_state = dict((getattr(self, "_phase6_corner_state", {}) or {}).get(part_key, {}) or {})
-    if not all(key in raw_state for key in _CORNER_KEYS):
-        return None
-    selections = {key: _phase6_selection_from_raw(raw_state[key]) for key in _CORNER_KEYS}
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    snapshot.update(dict(getattr(self, "_settings_values", {}) or {}))
-    snapshot["endcap_fw"] = deepcopy(getattr(self, "_phase6_endcap_fw_state", normalize_endcap_fw_state(snapshot)))
-    fw = resolve_endcap_fw(snapshot, part_key) if str(part_key) in ENDCAP_FW_PARTS else _num(snapshot.get("fw", 25), 25)
-
-    # 受電箱下方的等價 FW 不是封頭/尾名義 FW，而是「側板後折 + 1T」。
-    # 保留目前四角 selection（使用者仍可調截角方式/T 倍數），只把 family
-    # geometry Source of Truth 注入 bottom_fw，讓 2D/3D/輸出共用同一 policy。
-    try:
-        if cabinet_family_policy.supports_bottom_wrap_controls(snapshot) and str(part_key) in ENDCAP_FW_PARTS:
-            thickness = _num(snapshot.get("t", 2.0), 2.0)
-            return FourCornerTypePolicy(
-                bottom_left=selections["bottom_left"],
-                bottom_right=selections["bottom_right"],
-                top_left=selections["top_left"],
-                top_right=selections["top_right"],
-                fw=float(fw),
-                bottom_fw=cabinet_family_policy.effective_endcap_bottom_fw(
-                    snapshot,
-                    snapshot.get("box_body_structure"),
-                    thickness=thickness,
-                    default_fw=float(fw),
-                ),
-            )
-    except Exception:
-        # 非受電箱與舊 snapshot 仍沿用既有通用 policy；真正的幾何錯誤會在
-        # downstream manufacturing resolver fail closed，不在 UI adapter 猜值。
-        pass
-    return policy_from_corner_state(selections, fw=fw)
 
 
 def _phase6_draw_operator_dimensions(self, x_profile, y_profile, *, triangles=None):
