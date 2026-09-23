@@ -329,3 +329,33 @@ Remote Guard receipt 只授權 repository mutation；它不會把文字 marker �
 該 executor 的 authority 是 machine run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded `finalization-proof.json`。固定輸入只包含 issue、worker、owning branch/head、checkpoint path/blob/fingerprint、claim blob、trusted authority SHA。任何 identity/blob/fingerprint drift 都 fail closed。
 
 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 若只存在 Issue comment、聊天文字或手工檔案而沒有 trusted executor run/artifact，分類 `INVALID_FINALIZATION_EVIDENCE`，禁止 close。
+
+## SCHEDULER_GREEN_CONSUMPTION_OPERATIONAL_V1
+
+scheduler 使用 Remote Guard 時，固定操作閉環如下：
+
+```text
+fresh identity
+→ post WHD_REMOTE_GUARD_REQUEST_V1
+→ lock newly-triggered exact Guard run
+→ poll terminal
+→ validate WHD_REMOTE_GUARD_RESULT_V1
+→ result=GREEN + exact identity + unexpired
+→ execute the one authorized mutation immediately
+→ fresh readback
+→ durable claim/checkpoint reconcile
+→ continue next_action in the same cycle
+```
+
+額外硬規則：
+
+- GREEN receipt 是 **single-use**；不能只當進度訊息。
+- 新 invocation 先尋找上一輪同 lane 未 consume GREEN；仍 exact valid 就先 consume，不得重發。
+- same-lane active claim 不套 600 秒 stale takeover；600 秒只判斷 foreign owner。
+- exact run queued/in_progress 時鎖同一 run，不 duplicate Guard。
+- `pr-write` GREEN 要真正 create/update/merge/close PR；`write` GREEN 要真正寫 exact changed path；`commit` GREEN 只准一個 exact changed-file set 的 atomic commit。
+- mutation 前 identity drift 時 fail closed；fresh-read 後只有在舊 receipt 已失效或不匹配時才可重送。
+- finalization 不使用一般 Remote Guard marker代替 proof；若 main trusted finalization workflow支援 `issue_comment: created`，改送 fixed `WHD_REMOTE_FINALIZATION_REQUEST_V1` 並鎖 exact finalization run。
+- recurring scheduler 的 blocked/foreign-active 狀態不代表 automation terminal；Remote Guard 不得成為停用 recurring lane 的理由。
+
+完整操作與排查範例見 `docs/governance/whd_scheduler_takeover_usage.md`。
