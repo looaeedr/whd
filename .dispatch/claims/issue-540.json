@@ -6,13 +6,23 @@
   "work_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
-  "head_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
-  "phase": "RED",
-  "last_update": "2026-09-23T08:13:00+08:00",
+  "head_sha": "e73208cf6af9993e89d5d05a7dac06d7c8e575b6",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T08:15:30+08:00",
   "production_target": "main",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Add main-only Remote Guard wiring contract test plus one-shot RED workflow; prove current default-branch workflow rejects/misses claim-takeover wiring before implementation.",
+  "remote_qa": {
+    "run_id": 35801211191,
+    "head_sha": "e73208cf6af9993e89d5d05a7dac06d7c8e575b6",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "Issue #540 main Remote Guard claim-takeover RED proof",
+    "evidence": {
+      "contract_failures": 5,
+      "marker": "ISSUE540_MAIN_REMOTE_GUARD_RED=PROVEN"
+    }
+  },
+  "next_action": "Implement trusted default-branch Remote Guard claim-takeover wiring and add one-shot GREEN workflow; preserve the 5-case RED oracle unchanged.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -89,6 +99,13 @@
       "request_comment_id": 5786644573,
       "result_comment_id": 5786647419,
       "run_id": 35800979631,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "main_red_write": {
+      "request_comment_id": 5786663913,
+      "result_comment_id": 5786666627,
+      "run_id": 35801102944,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
