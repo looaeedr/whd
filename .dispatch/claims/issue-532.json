@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T20:20:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T21:20:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -34,7 +34,7 @@
       "runtime_consumer_count": 43
     }
   },
-  "next_action": "Create TERMINAL_SUCCESS owning checkpoint for #532 on coord branch with NEXT_CHILD_EXECUTABLE #533; run authorize-finalization + verify-finalization-proof against exact closing head; close/readback #532; immediately claim/start #533.",
+  "next_action": null,
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
@@ -45,5 +45,14 @@
     "closing_head": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
     "drift": "evidence-only: 10 issue532 workflow deletions + final classification; no production/test drift",
     "one_shot_workflows_remaining": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
+    "finalization_run": 35865307634,
+    "finalization_artifact": 10751467401,
+    "proof_sha256": "8695d01103cc8947bda665ca3f7363ff90c82a66459699ff8d51b884bba44a7f",
+    "checkpoint": ".dispatch/checkpoints/issue-532.json"
   }
 }
