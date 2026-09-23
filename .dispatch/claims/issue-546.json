@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
   "head_sha": "b9dd61041f43d91c3c083cba6e4ad206cc4c8c79",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T12:15:30+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-23T12:17:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,10 +18,15 @@
   "remote_qa": {
     "run_id": 35817570889,
     "head_sha": "b9dd61041f43d91c3c083cba6e4ad206cc4c8c79",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "B6-6 final facade GREEN"
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "B6-6 final facade GREEN",
+    "evidence": {
+      "headless": "24 passed",
+      "xvfb": "3 failed / 28 passed",
+      "failed_file": "tests/test_phase6_receiving_edge_controls_gui.py"
+    }
   },
-  "next_action": "Poll exact run 35817570889 to terminal; on failure classify failed step, on success capture counts then continue cleanup/architecture/finalization.",
+  "next_action": "Run immutable parent-vs-candidate Xvfb A/B on identical affected suite: parent c06f5fb976b96e0db58452438ed8977b9d86e800 vs production candidate fb2d5c5cdc10f3a32f0e466fa78377a9a606829c.",
   "blocker": null
 }
