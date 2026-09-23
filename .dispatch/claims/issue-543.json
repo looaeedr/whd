@@ -1,0 +1,21 @@
+{
+  "issue": 543,
+  "issue_url": "https://github.com/looaeedr/whd/issues/543",
+  "worker": "chatgpt",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-23T08:13:00+08:00",
+  "base_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+  "head_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T08:13:00+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "master_issue": 520,
+  "parent_issue": 531,
+  "task_id": "B6-3",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run B6-3 exact-branch consumer audit for its 12 A0 facade keys, classify all direct/dynamic/property/public evidence, then apply RED→GREEN only for proven NO_CALLER/SUPERSEDED/CAN_DIRECT_OWNER entries.",
+  "blocker": null
+}
