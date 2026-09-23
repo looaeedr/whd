@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "77ebd5d081fa5e2f0d4867a0131c415c41b3bf22",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T16:42:20+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T16:44:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -19,21 +19,28 @@
       {
         "run_id": 35838613943,
         "head_sha": "77ebd5d081fa5e2f0d4867a0131c415c41b3bf22",
-        "status": "in_progress",
-        "conclusion": null,
-        "purpose": "C0 GREEN after stale projection contract retirement"
+        "status": "completed",
+        "conclusion": "success",
+        "purpose": "C0 GREEN at 7005 LOC"
       },
       {
         "run_id": 35838614005,
         "head_sha": "77ebd5d081fa5e2f0d4867a0131c415c41b3bf22",
         "status": "completed",
         "conclusion": "success",
-        "purpose": "C0 residual def audit after stale projection contract retirement"
+        "purpose": "C0 residual def audit at 7005 LOC",
+        "evidence": {
+          "zero_consumer_count": 0,
+          "compat_only_count": 21,
+          "compat_only_span": 233,
+          "runtime_consumer_count": 5,
+          "runtime_consumer_span": 39
+        }
       }
     ],
     "head_sha": "77ebd5d081fa5e2f0d4867a0131c415c41b3bf22"
   },
-  "next_action": "Poll exact GREEN run 35838613943 to terminal; inspect residual audit 35838614005 and continue peeling until <=6500.",
+  "next_action": "Remove six bridge-internal-zero-caller compat wrappers: five B6 top-level wrappers plus _phase6_sync_joint_state_for_intent; rewrite tests to canonical owners; rerun GREEN + residual audit.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
