@@ -127,7 +127,7 @@ def test_issue394_projection_smoke_keeps_profile_mapping_contract():
     assert z == 0.0
 
 
-def test_issue394_adapter_and_bridge_delegate_assembly_dto_projection():
+def test_issue394_adapter_owns_assembly_dto_projection_without_bridge_wrapper():
     bridge = Path("fold_designer_bridge.py")
     view_tree = _tree(VIEW)
     bridge_tree = _tree(bridge)
@@ -149,8 +149,5 @@ def test_issue394_adapter_and_bridge_delegate_assembly_dto_projection():
         for node in bridge_tree.body
         if isinstance(node, ast.FunctionDef)
     }
-    helper = ast.unparse(
-        bridge_funcs["_phase6_make_assembly_scene_render_data"]
-    )
-    assert "_project_assembly_scene_render_data" in helper
-    assert "Phase6FinalSceneViewAdapter(" not in helper
+    assert "_phase6_make_assembly_scene_render_data" not in bridge_funcs
+

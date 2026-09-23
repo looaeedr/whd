@@ -23,7 +23,6 @@ REQUIRED_METHODS = {
 
 EXPECTED_DELEGATES = {
     "_phase6_query_final_render_data": "query_final_render_data",
-    "_phase6_make_assembly_scene_render_data": "make_assembly_scene_render_data",
     "_phase6_query_assembly_render_data": "query_assembly_render_data",
     "_phase6_final_scene_view_request": "build_request",
     "_phase6_render_true_cutting_mesh": "render_cutting_mesh",

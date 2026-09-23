@@ -4559,12 +4559,6 @@ def _phase6_save_settings_context_as_defaults(self, context):
 def _phase6_scene_query_payload_for_part(self, part_key):
     """Compatibility wrapper for the manufacturing adapter-owned payload builder."""
     return build_scene_payload_for_app(self, part_key)
-def _phase6_scene_query_payload(self):
-    """Return only current draft PartSpec inputs; no geometry is built here."""
-    return _phase6_scene_query_payload_for_part(self, self.designer_workspace.active_part)
-
-
-
 def _phase6_query_final_render_data(self):
     """Compatibility delegate to the T6 final-scene view adapter."""
     return _phase6_final_scene_adapter(self).query_final_render_data()
