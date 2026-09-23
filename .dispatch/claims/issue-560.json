@@ -6,21 +6,23 @@
   "work_branch": "governance/issue560-trusted-remote-finalization-20260923",
   "claimed_at": "2026-09-23T23:33:41+08:00",
   "base_sha": "c586584a0b6ddf242177246079a52b6884c6e2a6",
-  "head_sha": "e17daf2911f607c53d35269db5fc3d96788ab396",
-  "phase": "RED",
-  "last_update": "2026-09-23T23:36:30+08:00",
+  "head_sha": "94e74b321884411454a4782487bce69d56a2e788",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T23:40:59+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-TRUSTED-REMOTE-FINALIZATION",
   "parent_issue": 558,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement the narrow trusted remote finalization executor and closure routing required by the RED contract without introducing a generic shell path; then run focused GREEN and repair #558 with fresh machine finalization evidence.",
+  "next_action": "Open the guarded PR to cleanup/2d-3d-sync, lock the exact validation run on the implementation HEAD, and drive failures to GREEN before integration.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35882526177,
     "red_guard_run": 35882661986,
     "red_commit": "e17daf2911f607c53d35269db5fc3d96788ab396",
     "red_test": "tests/process/test_issue560_remote_finalization_executor.py",
-    "head_reconcile_guard_run": 35882771340
+    "head_reconcile_guard_run": 35883318469,
+    "implementation_commit": "94e74b321884411454a4782487bce69d56a2e788",
+    "implementation_guard_run": 35883028218
   }
 }
