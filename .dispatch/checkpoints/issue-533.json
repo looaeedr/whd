@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "533",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35867336375,
+  "job_id": 107202174194,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "C1 permanent anti-regrowth run 35867336375 completed SUCCESS at tested HEAD 09e19c06cffcee6521483eb84b16d47cf7d5ad3c.",
+    "Permanent ARG behavior tests and Bridge anti-regrowth machine guard both completed success; artifact 10753165481 preserves acceptance evidence.",
+    "Tested HEAD 09e19c06cffcee6521483eb84b16d47cf7d5ad3c -> closing HEAD fb5443215b36e4ab6a5b2d57a72600e621df83d6 is exactly one commit with production/test drift=0.",
+    "Closing drift modifies only the two required AI Library writeback documents: 06_踩坑記錄與防錯經驗庫.md and 12_WHD_FoldDesignerBridgeOwnership規則.md.",
+    "The durable writeback records the permanent anti-regrowth machine guard as CURRENT authority and explicitly states structural GREEN does not replace domain acceptance.",
+    "Master #520 forbids child-level integration to X; the entire accepted chain integrates once after C3.",
+    "Sibling scheduler takeover governance repair #573 is closed/completed and #533 claim is now owned by scheduler.6ab13f881c34819180cee63f5dd9446b at closing HEAD fb5443215b36e4ab6a5b2d57a72600e621df83d6."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 534,
+  "chain_next_action": "Atomically claim #534/C2 Final Combined Acceptance from accepted C1 closing head fb5443215b36e4ab6a5b2d57a72600e621df83d6 on the shared work-order branch; run fixed-T0 baseline vs final candidate Headless/Xvfb A/B and required final gates.",
+  "chain_reason": "C1 permanent anti-regrowth guard is terminal GREEN with required AI Library writeback complete; C2 is the next canonical Phase 6 child."
+}
