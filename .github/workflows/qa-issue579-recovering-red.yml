@@ -1,5 +1,5 @@
-name: WHD｜#579｜RECOVERING claim RED
-run-name: "WHD｜#579｜RECOVERING claim RED｜${{ github.sha }}"
+name: WHD｜#579｜RECOVERING claim 回歸
+run-name: "WHD｜#579｜RECOVERING claim 回歸｜${{ github.sha }}"
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   red:
-    name: "RED｜RECOVERING 應被視為 active claim phase"
+    name: "回歸｜execution claim phase 安全契約"
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout exact branch"
@@ -22,5 +22,10 @@ jobs:
           sudo apt-get install -y python3-tk
       - name: "安裝 pytest"
         run: python -m pip install pytest
-      - name: "執行 focused RED"
-        run: python -m pytest -q tests/process/test_issue256_execution_claim_guard.py::test_recovering_phase_is_active_for_same_owner
+      - name: "執行 focused claim guard 回歸"
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue256_execution_claim_guard.py
+          tests/process/test_issue567_reopened_released_claim_recovery.py
+          tests/process/test_issue570_merge_head_claim_reconciliation.py
+          tests/process/test_issue573_sibling_scheduler_takeover.py
