@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "564",
+  "branch": "governance/issue564-finalization-comment-transport-20260923",
+  "head_sha": "48b43d4006ad11bb3add2a052b0c10eaeeade314",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "evidence": [
+    "PR #565 merged to main at 091016dbb51194a41f4b5a891be2d01fa11c58de.",
+    "Trusted finalization comment transport is fixed-schema only and preserves workflow_dispatch.",
+    "End-to-end trusted finalization run 35885553442 SUCCESS produced bound proof artifact for reopened Issue #558."
+  ],
+  "master_issue": "562",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "562",
+  "chain_next_action": "Resume parent #562: replace obsolete workflow_dispatch capability blocker with the deployed issue-comment transport, run trusted finalization, close/read back, release claim, then continue #560.",
+  "chain_reason": "Issue-comment transport is integrated on main and proven by end-to-end run 35885553442."
+}
