@@ -8,10 +8,11 @@
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T17:30:00+08:00",
+  "last_update": "2026-09-23T17:36:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [
-    "qa/issue555-finalization-20260923"
+    "qa/issue555-finalization-20260923",
+    "qa/issue555-finalization-v2-20260923"
   ],
   "remote_qa": {
     "run_id": 35820582387,
@@ -26,7 +27,7 @@
       "tested_to_cleaned_drift": "temporary QA workflow deletion only"
     }
   },
-  "next_action": "Run OWNING_FINALIZATION_GUARD_V2 on delegated finalization runner, clean runner ref, close #555 completed with remote readback, then RELEASE claim.",
+  "next_action": "Use fresh delegated v2 finalization branch from owner HEAD; run finalization proof, canonical cleanup of v1+v2 refs, close/readback #555, then RELEASE claim.",
   "blocker": null,
   "pr": {
     "number": 556,
@@ -63,5 +64,11 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "expires_at": "2026-09-23T06:50:26.537011Z",
     "consumed": true
+  },
+  "finalization_recovery": {
+    "failed_run": 35843764796,
+    "classification": "WORKFLOW_YAML_PARSE_FAILURE",
+    "mutation_started": false,
+    "issue_closed": false
   }
 }
