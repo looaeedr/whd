@@ -6,27 +6,26 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "da131163c0620526bfa7bd0e90d98c0759dd4055",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T15:10:30+08:00",
+  "head_sha": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T15:12:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35827614471,
-    "head_sha": "bab9a28100c8d41e0200b9ab46a6d11e5dd070ee",
-    "status": "completed",
-    "conclusion": "failure",
-    "purpose": "C0 zero-consumer wrapper GREEN",
+    "run_id": 35830471121,
+    "head_sha": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "C0 zero-consumer wrapper GREEN replacement after syntax repair",
     "evidence": {
-      "classification": "PRODUCTION_SYNTAX_REGRESSION",
-      "failing_step": "編譯與 Bridge import smoke",
-      "error": "fold_designer_bridge.py:4779 SyntaxError: unmatched ')'",
-      "repair_commit": "da131163c0620526bfa7bd0e90d98c0759dd4055"
+      "repair_commit": "da131163c0620526bfa7bd0e90d98c0759dd4055",
+      "trigger_commit": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
+      "replaces_run": 35827614471
     }
   },
-  "next_action": "Trigger replacement C0 Dead Wrapper GREEN on repair head da131163c0620526bfa7bd0e90d98c0759dd4055; lock exact replacement run to terminal.",
+  "next_action": "Poll exact replacement run 35830471121 to terminal; on GREEN continue compat-only residual migration; on FAIL read exact failing step/log before any new mutation.",
   "blocker": null
 }
