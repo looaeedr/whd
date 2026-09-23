@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
   "head_sha": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T02:29:11+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T02:32:36+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
@@ -25,7 +25,7 @@
       "failures": 0
     }
   },
-  "next_action": "Write terminal checkpoint for #573, obtain trusted finalization proof, close/readback #573, release claim, then continue #533 C1 under the successfully transferred claim.",
+  "next_action": null,
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -95,5 +95,23 @@
     "old_claim_head": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
     "live_head": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
     "claim_cas_readback_blob": "4346c2d78fd3be8613ef72d4c4e8254a786ef197"
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-573.json",
+    "checkpoint_blob_sha": "6b79790b3e08966d81f43decec1c419ff84c40c2",
+    "checkpoint_fingerprint": "70b19b854c8174933fff7d71ec2b7351228db982b3f8b9182c879a9acd558418",
+    "trusted_run_id": 35903065965,
+    "artifact_id": 10769638133,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "release": {
+    "guard_request_comment_id": 5800621820,
+    "guard_result_comment_id": 5800625196,
+    "guard_run_id": 35903176238,
+    "result": "GREEN",
+    "released_at": "2026-09-24T02:32:36+08:00"
   }
 }
