@@ -6,23 +6,22 @@
   "work_branch": "governance/issue555-execution-instance-identity-20260923",
   "claimed_at": "2026-09-23T12:49:50+08:00",
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
-  "head_sha": "ba1389892f51967dc63c592ef506b0761ff9cd0b",
-  "phase": "RED",
-  "last_update": "2026-09-23T12:58:00+08:00",
+  "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
+  "phase": "GREEN",
+  "last_update": "2026-09-23T14:02:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35820424505,
-    "head_sha": "ba1389892f51967dc63c592ef506b0761ff9cd0b",
+    "run_id": 35820582387,
+    "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
     "status": "completed",
-    "conclusion": "failure",
-    "purpose": "Issue555 genuine RED execution-instance identity contract",
+    "conclusion": "success",
+    "purpose": "Issue555 execution-instance identity GREEN",
     "evidence": {
-      "classification": "REQUIREMENT_RED",
-      "failures": 2,
-      "reason": "派工 Skill and global pitfall lack EXECUTION_INSTANCE_IDENTITY_V1"
+      "tests": 2,
+      "failures": 0
     }
   },
-  "next_action": "Add EXECUTION_INSTANCE_IDENTITY_V1 to canonical 派工 Skill and global pitfall, preserving active legacy claims; rerun exact issue555 contract to GREEN.",
+  "next_action": "Open guarded PR from governance/issue555-execution-instance-identity-20260923 to cleanup/2d-3d-sync, integrate after review/CI, then cleanup/readback and release claim.",
   "blocker": null
 }
