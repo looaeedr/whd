@@ -6,36 +6,16 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
-  "head_sha": "87da454f3c6bab8dee33d2e8233e7972cd632bbe",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T12:05:00+08:00",
+  "head_sha": "fb2d5c5cdc10f3a32f0e466fa78377a9a606829c",
+  "phase": "GREEN",
+  "last_update": "2026-09-23T12:10:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "parent_issue": 531,
   "task_id": "B6-6",
   "delegated_branches": [],
-  "remote_qa": {
-    "run_id": 35816829506,
-    "head_sha": "87da454f3c6bab8dee33d2e8233e7972cd632bbe",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "B6-6 replacement RED",
-    "evidence": {
-      "failures": 4,
-      "passes": 9,
-      "removable": [
-        "_phase6_render_endcap_edge_controls",
-        "_phase6_commit_base_plate_edge_shrink",
-        "apply_settings_delta",
-        "switch_active_part",
-        "publish_if_changed",
-        "_phase6_flush_update_intents",
-        "refresh_3d_preview"
-      ]
-    },
-    "audit_run": 35816653419
-  },
-  "next_action": "Remove exactly seven facade bindings; retain module implementations and public submit_update_intent/set_3d_preview_enabled; then run B6-6 GREEN.",
+  "remote_qa": null,
+  "next_action": "Run B6-6 focused GREEN on exact HEAD fb2d5c5cdc10f3a32f0e466fa78377a9a606829c; then classify any Xvfb failures against parent baseline.",
   "blocker": null
 }
