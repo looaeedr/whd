@@ -189,6 +189,18 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
 
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+`commit/write` 在合法 GREEN prewrite guard 後把 work branch 從 claim HEAD `H0` 推進到 `H1` 時，shared claim 會短暫仍記 H0。此時禁止把它誤判成普通 stale claim，也禁止直接無 guard 改 claim。
+
+固定做法：
+1. fresh-read shared claim blob 與 live work branch H1；
+2. 用 Remote Guard 送一張新的 `action=write` request，`head_sha/tested_target_sha=H1`，且 `changed_file` 只能是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+3. canonical guard 必須 machine-verify H1 是 H0 的單一直接子 commit，並反查同 Issue 上 prior exact GREEN `write|commit` request/receipt；owner/branch/base/H0/current claim blob、commit changed-file set、receipt window 全部綁定；
+4. 新 reconcile receipt GREEN 後，才以 current claim blob SHA 做 optimistic CAS，把 claim `head_sha` 更新為 H1；
+5. CAS 後立即 fresh-read verify，再為下一個 repo mutation 重新取得新的 single-use guard。
+
+prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
+
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
 
@@ -503,3 +515,26 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
 `BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
+
+### TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1_BRIDGE
+
+當 scheduler / automation 已有 terminal owning checkpoint，但目前 execution runtime 無法直接執行 canonical continuity controller 時，closure 不得退化成 Issue comment marker。固定 remote path 是專用窄 executor `.github/workflows/whd-remote-finalization.yml`，只接受 fixed identity fields，執行 `authorize-finalization` → `verify-finalization-proof`，並產生 `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + bound proof artifact。
+
+- 禁止 arbitrary command / shell payload input；generic executor 不得替代。
+- workflow run / artifact identity 必須 fresh 綁 issue + worker + branch + HEAD + checkpoint blob/fingerprint + claim blob + trusted authority SHA。
+- Issue comment 中單獨出現 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 文字一律不是 closure authority。
+- executor terminal GREEN 後仍要 fresh-read artifact receipt，exact match 後才可 close Issue；close 後 remote readback，再 release claim。
+
+
+### SCHEDULER_TAKEOVER_OPERATIONAL_USAGE_V1
+
+Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeover_usage.md` 為 durable 使用手冊；本 Skill 保留 canonical execution contract。scheduler 必須遵守：
+
+1. **wake-up trigger != execution owner**：每輪從 `coord/dispatch-claims`、Issue、checkpoint、branch、exact run fresh reconstruct，不得硬編 issue/branch/SHA/run_id。
+2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時直接 resume，不做 stale takeover。`ACTIVE_WITHIN_10M` 對 same-lane 只表示不用 takeover，不是 stop condition。
+3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
+4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
+7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
+8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。

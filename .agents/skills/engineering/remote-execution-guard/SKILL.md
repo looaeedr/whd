@@ -129,6 +129,25 @@ Request 前：
 
 若 GitHub primitive 支援 atomic multi-file commit，優先用一張 `commit` receipt 綁完整 changed-file set，做單一 tree/commit/ref transition；不要把一張 receipt 拆成多次獨立 write。
 
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+
+合法 `write/commit` receipt 會先綁 pre-mutation claim/work HEAD `H0`；mutation 成功後 work branch 可能前進成 `H1`，而 shared claim 尚仍是 `H0`。這不是一般 stale write，也不得直接繞過 guard 改 claim。
+
+固定 recovery path 仍使用既有 `action=write`，但只有下列窄條件全部成立時，canonical `tools/execution_claim_guard.py` 才可接受 `claim.head_sha != request head_sha`：
+
+- request 的 `head_sha == tested_target_sha == live work-branch H1`；
+- `changed_file` **唯一**是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+- current claim issue/worker/branch/base/blob 仍與 prior mutation 時一致；
+- live `H1` 是 claim `H0` 的**單一直接子 commit**，禁止 merge / multi-hop 漂移；
+- GitHub Issue 上存在 repository-owner 發出的 prior `WHD_REMOTE_GUARD_REQUEST_V1` 與 `github-actions[bot]` 發出的 exact GREEN `WHD_REMOTE_GUARD_RECEIPT_V1`；
+- prior receipt action 只能是 `write|commit`，其 issue/worker/source/branch/base/H0/current claim blob/request_comment_id 全部 exact match；
+- `H1` 的 changed-file set 與 prior GREEN receipt 的 `changed_files` **完全相同**；
+- `H1` commit timestamp 落在 prior receipt 的 `issued_at..expires_at` 內。
+
+此 special case 的新 GREEN `write` receipt **只授權一次 shared claim CAS**：把 `head_sha` 從 H0 推到 live H1，並同步 `last_update/phase/next_action/evidence`。不得拿它修改 production/Skill/AI Library，也不得把 prior commit receipt 直接重用成第二次 mutation。
+
+任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
+
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
 
@@ -302,3 +321,42 @@ Remote Guard bootstrap：
 - receipt schema `WHD_REMOTE_GUARD_RECEIPT_V1`
 
 這些只證明 workflow 已建立；未來每次 mutation 仍要 fresh receipt。
+
+## TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1
+
+Remote Guard receipt 只授權 repository mutation；它不會把文字 marker 變成 finalization proof。當 closure runtime 無 command capability時，必須路由到專用 `.github/workflows/whd-remote-finalization.yml`，不得新增 generic shell action。
+
+該 executor 的 authority 是 machine run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded `finalization-proof.json`。固定輸入只包含 issue、worker、owning branch/head、checkpoint path/blob/fingerprint、claim blob、trusted authority SHA。任何 identity/blob/fingerprint drift 都 fail closed。
+
+`FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 若只存在 Issue comment、聊天文字或手工檔案而沒有 trusted executor run/artifact，分類 `INVALID_FINALIZATION_EVIDENCE`，禁止 close。
+
+
+## SCHEDULER_GREEN_CONSUMPTION_OPERATIONAL_V1
+
+scheduler 使用 Remote Guard 時，固定操作閉環如下：
+
+```text
+fresh identity
+→ post WHD_REMOTE_GUARD_REQUEST_V1
+→ lock newly-triggered exact Guard run
+→ poll terminal
+→ validate WHD_REMOTE_GUARD_RESULT_V1
+→ result=GREEN + exact identity + unexpired
+→ execute the one authorized mutation immediately
+→ fresh readback
+→ durable claim/checkpoint reconcile
+→ continue next_action in the same cycle
+```
+
+額外硬規則：
+
+- GREEN receipt 是 **single-use**；不能只當進度訊息。
+- 新 invocation 先尋找上一輪同 lane 未 consume GREEN；仍 exact valid 就先 consume，不得重發。
+- same-lane active claim 不套 600 秒 stale takeover；600 秒只判斷 foreign owner。
+- exact run queued/in_progress 時鎖同一 run，不 duplicate Guard。
+- `pr-write` GREEN 要真正 create/update/merge/close PR；`write` GREEN 要真正寫 exact changed path；`commit` GREEN 只准一個 exact changed-file set 的 atomic commit。
+- mutation 前 identity drift 時 fail closed；fresh-read 後只有在舊 receipt 已失效或不匹配時才可重送。
+- finalization 不使用一般 Remote Guard marker代替 proof；若 main trusted finalization workflow支援 `issue_comment: created`，改送 fixed `WHD_REMOTE_FINALIZATION_REQUEST_V1` 並鎖 exact finalization run。
+- recurring scheduler 的 blocked/foreign-active 狀態不代表 automation terminal；Remote Guard 不得成為停用 recurring lane 的理由。
+
+完整操作與排查範例見 `docs/governance/whd_scheduler_takeover_usage.md`。
