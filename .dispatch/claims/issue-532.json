@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T15:12:10+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T15:13:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,15 +17,20 @@
   "remote_qa": {
     "run_id": 35830471121,
     "head_sha": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "failure",
     "purpose": "C0 zero-consumer wrapper GREEN replacement after syntax repair",
     "evidence": {
-      "repair_commit": "da131163c0620526bfa7bd0e90d98c0759dd4055",
-      "trigger_commit": "df7443e8b3348bc6dd25908fc157331ab6207d0b",
-      "replaces_run": 35827614471
+      "import_smoke": "GREEN",
+      "headless": "4 failed, 77 passed, 18 skipped",
+      "classification": "STALE_OWNERSHIP_TEST_CONTRACTS",
+      "stale_tests": [
+        "tests/test_issue368_t4_registry_diagnostics_owner.py",
+        "tests/test_issue447_workspace_shell_owner.py"
+      ],
+      "audit_run": 35827199891
     }
   },
-  "next_action": "Poll exact replacement run 35830471121 to terminal; on GREEN continue compat-only residual migration; on FAIL read exact failing step/log before any new mutation.",
+  "next_action": "Update stale registry/workspace ownership tests so six DELETE_PROVEN_ZERO_CONSUMER wrappers are required absent while real owner methods remain required; rerun exact C0 GREEN.",
   "blocker": null
 }
