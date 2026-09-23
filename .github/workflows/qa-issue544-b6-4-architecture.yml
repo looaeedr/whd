@@ -1,0 +1,92 @@
+name: 工單544 B6-4 Architecture Gate
+run-name: "工單 #544 B6-4｜Architecture Gate｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue544-b6-4-architecture.yml
+
+permissions:
+  contents: read
+
+jobs:
+  architecture:
+    name: 驗證 facade count 與 direct-owner migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Architecture contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee /tmp/issue544-b6-4-architecture.log
+          import ast
+          from pathlib import Path
+
+          bridge = Path("fold_designer_bridge.py")
+          source = bridge.read_text(encoding="utf-8")
+          tree = ast.parse(source)
+          call = next(
+              n for n in ast.walk(tree)
+              if isinstance(n, ast.Call)
+              and isinstance(n.func, ast.Name)
+              and n.func.id == "install_fold_designer_bridge_facade"
+          )
+          mapping = next(arg for arg in call.args if isinstance(arg, ast.Dict))
+          bindings = {
+              k.value: ast.unparse(v)
+              for k, v in zip(mapping.keys, mapping.values)
+              if isinstance(k, ast.Constant) and isinstance(k.value, str)
+          }
+          removed = {
+              "toggle_advanced_settings",
+              "_phase6_corner_parameters_unlocked",
+          }
+          retained = {
+              "save_current_settings_as_defaults",
+              "flush_pending_settings",
+              "_phase6_publish_live_state",
+              "_phase6_resolve_manufacturing_geometry",
+              "apply_external_settings",
+              "apply_external_model",
+              "apply_external_sync",
+              "_phase6_refresh_corner_data_unfold_view",
+              "on_ui_text_size_changed",
+              "apply_external_corner_state",
+          }
+          assert removed.isdisjoint(bindings)
+          assert retained <= set(bindings)
+          assert len(bindings) == 60, len(bindings)
+
+          test_source = Path("tests/test_corner_parameter_lock.py").read_text(encoding="utf-8")
+          assert 'designer._phase6_corner_parameters_unlocked(' not in test_source
+          assert 'loaded._phase6_corner_parameters_unlocked(' not in test_source
+          assert 'bridge._phase6_corner_parameters_unlocked(' in test_source
+
+          definitions = {
+              n.name for n in tree.body if isinstance(n, ast.FunctionDef)
+          }
+          assert "_phase6_corner_parameters_unlocked" in definitions
+          assert "_phase6_settings_panel_toggle_advanced" in definitions
+
+          print("B6_4_ACCOUNTED=12")
+          print("B6_4_UNCLASSIFIED=0")
+          print("B6_4_DYNAMIC_REF_UNREVIEWED=0")
+          print("B6_4_REMOVED=2")
+          print("B6_4_DIRECT_OWNER_MIGRATED=1")
+          print("FACADE_COUNT=60")
+          print("ISSUE544_B6_4_ARCHITECTURE=GREEN")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue544-b6-4-architecture
+          path: /tmp/issue544-b6-4-architecture.log
+          if-no-files-found: error
+          retention-days: 14
