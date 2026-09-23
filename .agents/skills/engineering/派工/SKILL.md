@@ -189,6 +189,18 @@ python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --
 
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
 
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+`commit/write` 在合法 GREEN prewrite guard 後把 work branch 從 claim HEAD `H0` 推進到 `H1` 時，shared claim 會短暫仍記 H0。此時禁止把它誤判成普通 stale claim，也禁止直接無 guard 改 claim。
+
+固定做法：
+1. fresh-read shared claim blob 與 live work branch H1；
+2. 用 Remote Guard 送一張新的 `action=write` request，`head_sha/tested_target_sha=H1`，且 `changed_file` 只能是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+3. canonical guard 必須 machine-verify H1 是 H0 的單一直接子 commit，並反查同 Issue 上 prior exact GREEN `write|commit` request/receipt；owner/branch/base/H0/current claim blob、commit changed-file set、receipt window 全部綁定；
+4. 新 reconcile receipt GREEN 後，才以 current claim blob SHA 做 optimistic CAS，把 claim `head_sha` 更新為 H1；
+5. CAS 後立即 fresh-read verify，再為下一個 repo mutation 重新取得新的 single-use guard。
+
+prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
+
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
 

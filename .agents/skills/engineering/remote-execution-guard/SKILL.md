@@ -129,6 +129,25 @@ Request 前：
 
 若 GitHub primitive 支援 atomic multi-file commit，優先用一張 `commit` receipt 綁完整 changed-file set，做單一 tree/commit/ref transition；不要把一張 receipt 拆成多次獨立 write。
 
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+
+合法 `write/commit` receipt 會先綁 pre-mutation claim/work HEAD `H0`；mutation 成功後 work branch 可能前進成 `H1`，而 shared claim 尚仍是 `H0`。這不是一般 stale write，也不得直接繞過 guard 改 claim。
+
+固定 recovery path 仍使用既有 `action=write`，但只有下列窄條件全部成立時，canonical `tools/execution_claim_guard.py` 才可接受 `claim.head_sha != request head_sha`：
+
+- request 的 `head_sha == tested_target_sha == live work-branch H1`；
+- `changed_file` **唯一**是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+- current claim issue/worker/branch/base/blob 仍與 prior mutation 時一致；
+- live `H1` 是 claim `H0` 的**單一直接子 commit**，禁止 merge / multi-hop 漂移；
+- GitHub Issue 上存在 repository-owner 發出的 prior `WHD_REMOTE_GUARD_REQUEST_V1` 與 `github-actions[bot]` 發出的 exact GREEN `WHD_REMOTE_GUARD_RECEIPT_V1`；
+- prior receipt action 只能是 `write|commit`，其 issue/worker/source/branch/base/H0/current claim blob/request_comment_id 全部 exact match；
+- `H1` 的 changed-file set 與 prior GREEN receipt 的 `changed_files` **完全相同**；
+- `H1` commit timestamp 落在 prior receipt 的 `issued_at..expires_at` 內。
+
+此 special case 的新 GREEN `write` receipt **只授權一次 shared claim CAS**：把 `head_sha` 從 H0 推到 live H1，並同步 `last_update/phase/next_action/evidence`。不得拿它修改 production/Skill/AI Library，也不得把 prior commit receipt 直接重用成第二次 mutation。
+
+任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
+
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
 
