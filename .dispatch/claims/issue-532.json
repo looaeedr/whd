@@ -6,29 +6,21 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
-  "head_sha": "af1e6993e6ee5c278a1409a2861b1daf96e111f9",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T14:16:00+08:00",
+  "head_sha": "2e0e0db95b0feb316ca703b46fcb587a8d4b2506",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-23T14:19:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35825789832,
-    "head_sha": "af1e6993e6ee5c278a1409a2861b1daf96e111f9",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "C0 repo-wide deletion audit",
-    "evidence": {
-      "generic_dynamic_bridge_access": 7,
-      "parse_errors": 4,
-      "safe_deletion_count": 0,
-      "artifact_id": 10735082423,
-      "artifact_sha256": "d429c8accd4ae26dfd15532ea3274d3cda9d007a3b340b1a2c8ef82cfe84d9c7",
-      "classification": "HARNESS_OVERCONSERVATIVE"
-    }
+    "run_id": 35826154369,
+    "head_sha": "2e0e0db95b0feb316ca703b46fcb587a8d4b2506",
+    "status": "in_progress",
+    "conclusion": null,
+    "purpose": "C0 exact external reference audit"
   },
-  "next_action": "Run refined exact-text repo-wide deletion audit using git ls-files -z; only zero external exact identifier/string occurrence may be deleted.",
+  "next_action": "Poll exact run 35826154369 to terminal; only DELETE_PROVEN_ZERO_EXTERNAL_EXACT_REFERENCE candidates may enter guarded cleanup.",
   "blocker": null
 }
