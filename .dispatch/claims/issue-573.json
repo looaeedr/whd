@@ -6,15 +6,26 @@
   "work_branch": "governance/issue573-sibling-scheduler-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:50+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "1baa9ee0dfbfa21d096ab80df6777a3ccfcf0141",
-  "phase": "RED",
-  "last_update": "2026-09-24T02:03:40+08:00",
+  "head_sha": "445e0fe89392c5829935b35e181b234e7d138f73",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T02:10:01+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Open the guarded PR and lock the focused RED run for tests/process/test_issue573_sibling_scheduler_takeover.py; after expected RED, implement the fixed-schema requesting-lane identity.",
+  "remote_qa": {
+    "run_id": 35900535938,
+    "head_sha": "445e0fe89392c5829935b35e181b234e7d138f73",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "WHD｜#573｜Sibling Scheduler 接手 RED/GREEN",
+    "pr": 574,
+    "evidence": {
+      "tests": "28 passed",
+      "failures": 0
+    }
+  },
+  "next_action": "Integrate the code-side lane-aware takeover repair, then integrate the trusted default-branch Remote Guard schema so claim-takeover requests can carry takeover_worker; E2E re-run the original foreign sibling takeover before closing #573.",
   "blocker": null,
   "blocking_evidence": {
     "issue": 533,
@@ -32,6 +43,12 @@
     "red_test_path": "tests/process/test_issue573_sibling_scheduler_takeover.py",
     "focused_workflow_commit": "1baa9ee0dfbfa21d096ab80df6777a3ccfcf0141",
     "focused_workflow_guard_run": 35899761853,
-    "focused_workflow_head_reconcile_guard_run": 35899851069
+    "focused_workflow_head_reconcile_guard_run": 35899851069,
+    "red_run": 35899973061,
+    "red_evidence": "4 failed / 23 passed: requesting_worker unsupported",
+    "implementation_commit": "445e0fe89392c5829935b35e181b234e7d138f73",
+    "implementation_commit_guard_run": 35900272454,
+    "implementation_head_reconcile_guard_run": 35900556867,
+    "green_run": 35900535938
   }
 }
