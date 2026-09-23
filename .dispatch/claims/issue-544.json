@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T08:20:30+08:00",
   "base_sha": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
-  "head_sha": "476678276f19b465103a05b7a2267bb7653f91ac",
+  "head_sha": "eb1ec45f24786bd197530cba18e9671735d85244",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-23T08:25:00+08:00",
+  "last_update": "2026-09-23T10:27:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -33,6 +33,6 @@
     },
     "audit_run": 35801778565
   },
-  "next_action": "Migrate test-only _phase6_corner_parameters_unlocked callers to bridge module owner, remove two facade entries, run B6-4 GREEN.",
+  "next_action": "Run B6-4 GREEN: facade batch contract + corner parameter direct-owner tests + Settings/manufacturing compatibility; verify facade count 60.",
   "blocker": null
 }
