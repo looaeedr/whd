@@ -71,7 +71,9 @@ def _request(comment_id: int, claim_blob: str) -> dict:
     return {"id": comment_id, "user": {"login": "looaeedr"}, "body": body}
 
 
-def _receipt(comment_id: int, request_id: int, claim_blob: str) -> dict:
+def _receipt(
+    comment_id: int, request_id: int, claim_blob: str, **overrides
+) -> dict:
     payload = {
         "schema": "WHD_REMOTE_GUARD_RECEIPT_V1",
         "result": "GREEN",
@@ -91,6 +93,7 @@ def _receipt(comment_id: int, request_id: int, claim_blob: str) -> dict:
         "issued_at": "2026-09-23T17:20:00Z",
         "expires_at": "2026-09-23T17:40:00Z",
     }
+    payload.update(overrides)
     return {
         "id": comment_id,
         "user": {"login": "github-actions[bot]"},
@@ -100,7 +103,16 @@ def _receipt(comment_id: int, request_id: int, claim_blob: str) -> dict:
     }
 
 
-def _install(monkeypatch, guard, claim_path: Path, *, parents=None, files=None):
+def _install(
+    monkeypatch,
+    guard,
+    claim_path: Path,
+    *,
+    parents=None,
+    files=None,
+    current_production_head=PRODUCTION_HEAD,
+    receipt_overrides=None,
+):
     claim_blob = guard._git_blob_sha(claim_path)
     monkeypatch.setattr(
         guard,
@@ -122,16 +134,29 @@ def _install(monkeypatch, guard, claim_path: Path, *, parents=None, files=None):
         "_github_issue_comments",
         lambda issue: [
             _request(request_id, claim_blob),
-            _receipt(1002, request_id, claim_blob),
+            _receipt(
+                1002,
+                request_id,
+                claim_blob,
+                **(receipt_overrides or {}),
+            ),
         ],
     )
-    monkeypatch.setattr(
-        guard,
-        "_github_api_json",
-        lambda path: {"name": PRODUCTION_TARGET, "commit": {"sha": PRODUCTION_HEAD}}
-        if path.startswith("branches/")
-        else (_ for _ in ()).throw(AssertionError(f"unexpected API path: {path}")),
-    )
+
+    def fake_api(path: str):
+        if path.startswith("branches/"):
+            return {
+                "name": PRODUCTION_TARGET,
+                "commit": {"sha": current_production_head},
+            }
+        if path.startswith("compare/"):
+            return {
+                "status": "ahead",
+                "merge_base_commit": {"sha": PRODUCTION_HEAD},
+            }
+        raise AssertionError(f"unexpected API path: {path}")
+
+    monkeypatch.setattr(guard, "_github_api_json", fake_api)
 
 
 def test_merge_sync_reconciliation_accepts_exact_production_first_parent(
@@ -150,6 +175,101 @@ def test_merge_sync_reconciliation_accepts_exact_production_first_parent(
         expected_live_head_sha=MERGE_HEAD,
         changed_files=(CLAIM_PATH,),
     )
+
+
+def test_merge_sync_reconciliation_allows_production_target_to_advance(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        current_production_head="f" * 40,
+    )
+
+    guard._assert_post_commit_claim_head_reconciliation(
+        claim_path,
+        claim=claim,
+        raw_claim=raw,
+        issue=ISSUE,
+        worker=WORKER,
+        branch=BRANCH,
+        expected_live_head_sha=MERGE_HEAD,
+        changed_files=(CLAIM_PATH,),
+    )
+
+
+def test_merge_sync_reconciliation_rejects_wrong_guard_authority_receipt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        receipt_overrides={"guard_authority_sha": "e" * 40},
+    )
+
+    with pytest.raises(guard.ExecutionClaimError, match="matching prior GREEN"):
+        guard._assert_post_commit_claim_head_reconciliation(
+            claim_path,
+            claim=claim,
+            raw_claim=raw,
+            issue=ISSUE,
+            worker=WORKER,
+            branch=BRANCH,
+            expected_live_head_sha=MERGE_HEAD,
+            changed_files=(CLAIM_PATH,),
+        )
+
+
+def test_merge_sync_reconciliation_rejects_wrong_claim_blob_receipt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        receipt_overrides={"claim_blob_sha": "e" * 40},
+    )
+
+    with pytest.raises(guard.ExecutionClaimError, match="matching prior GREEN"):
+        guard._assert_post_commit_claim_head_reconciliation(
+            claim_path,
+            claim=claim,
+            raw_claim=raw,
+            issue=ISSUE,
+            worker=WORKER,
+            branch=BRANCH,
+            expected_live_head_sha=MERGE_HEAD,
+            changed_files=(CLAIM_PATH,),
+        )
+
+
+def test_merge_sync_reconciliation_rejects_foreign_receipt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        receipt_overrides={"worker": "scheduler.foreign-lane"},
+    )
+
+    with pytest.raises(guard.ExecutionClaimError, match="matching prior GREEN"):
+        guard._assert_post_commit_claim_head_reconciliation(
+            claim_path,
+            claim=claim,
+            raw_claim=raw,
+            issue=ISSUE,
+            worker=WORKER,
+            branch=BRANCH,
+            expected_live_head_sha=MERGE_HEAD,
+            changed_files=(CLAIM_PATH,),
+        )
 
 
 def test_merge_sync_reconciliation_rejects_unrelated_other_parent(

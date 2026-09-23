@@ -424,6 +424,7 @@ def _assert_post_commit_claim_head_reconciliation(
             "post-commit claim-head reconciliation commit parent evidence is malformed"
         )
 
+    merge_production_parent: str | None = None
     is_direct_child = (
         len(parents) == 1
         and isinstance(parents[0], dict)
@@ -435,6 +436,23 @@ def _assert_post_commit_claim_head_reconciliation(
             raise ExecutionClaimError(
                 "post-commit claim-head reconciliation merge sync requires production_target"
             )
+        if (
+            len(parents) != 2
+            or not isinstance(parents[0], dict)
+            or not isinstance(parents[1], dict)
+            or str(parents[1].get("sha") or "") != claim.head_sha
+        ):
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation merge sync requires second parent "
+                "to match claim HEAD"
+            )
+
+        merge_production_parent = str(parents[0].get("sha") or "")
+        if not _SHA_RE.fullmatch(merge_production_parent):
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation production parent SHA is malformed"
+            )
+
         encoded_target = urllib.parse.quote(production_target, safe="")
         production = _github_api_json(f"branches/{encoded_target}")
         if not isinstance(production, dict):
@@ -447,18 +465,29 @@ def _assert_post_commit_claim_head_reconciliation(
             if isinstance(production_commit, dict)
             else ""
         )
-        merge_sync = (
-            len(parents) == 2
-            and isinstance(parents[0], dict)
-            and isinstance(parents[1], dict)
-            and str(parents[0].get("sha") or "") == production_head
-            and str(parents[1].get("sha") or "") == claim.head_sha
-        )
-        if not merge_sync:
+        if not _SHA_RE.fullmatch(production_head):
             raise ExecutionClaimError(
-                "post-commit claim-head reconciliation merge sync requires first parent "
-                "to match the exact production target HEAD and second parent to match claim HEAD"
+                "post-commit claim-head reconciliation production target HEAD is malformed"
             )
+        if production_head != merge_production_parent:
+            comparison = _github_api_json(
+                f"compare/{merge_production_parent}...{production_head}"
+            )
+            merge_base = (
+                comparison.get("merge_base_commit")
+                if isinstance(comparison, dict)
+                else None
+            )
+            if (
+                not isinstance(comparison, dict)
+                or str(comparison.get("status") or "") not in {"ahead", "identical"}
+                or not isinstance(merge_base, dict)
+                or str(merge_base.get("sha") or "") != merge_production_parent
+            ):
+                raise ExecutionClaimError(
+                    "post-commit claim-head reconciliation production parent is not "
+                    "the exact target HEAD used for sync or an ancestor of current production"
+                )
 
     files = commit.get("files")
     if not isinstance(files, list) or not files:
@@ -521,6 +550,12 @@ def _assert_post_commit_claim_head_reconciliation(
         if str(receipt.get("tested_target_sha") or "") != claim.head_sha:
             continue
         if str(receipt.get("claim_blob_sha") or "") != current_claim_blob:
+            continue
+        if (
+            merge_production_parent is not None
+            and str(receipt.get("guard_authority_sha") or "")
+            != merge_production_parent
+        ):
             continue
 
         receipt_files = receipt.get("changed_files")
