@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "573",
+  "branch": "governance/issue573-sibling-scheduler-takeover-20260924",
+  "head_sha": "f2c0095bf879ee1f75f0799705f8884aa335cf43",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35902661211,
+  "evidence": [
+    "Code-side sibling scheduler lane-aware takeover repair merged via PR #574 to cleanup/2d-3d-sync at 585a41b0ee6a2a56eaa150a27ffd2fa5c2476538.",
+    "Focused code-side acceptance run 35900775751 completed success with 27 passed and 0 failed.",
+    "Trusted main transport child #576 closed/completed after PR #577 merged main at 36585528eaeb345212065b33f768293e3ac7feb2 and trusted finalization run 35902372580.",
+    "Real #533 E2E takeover run 35902661211 returned GREEN classification EXECUTOR_STUCK actionable=true with exact previous_worker and requesting_worker.",
+    "#533 shared claim CAS was consumed and fresh-read with owner scheduler.6ab13f881c34819180cee63f5dd9446b and live head fb5443215b36e4ab6a5b2d57a72600e621df83d6."
+  ],
+  "master_issue": "533",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 533,
+  "chain_next_action": "Resume #533 C1 under the successfully transferred scheduler claim and complete its terminal acceptance/writeback/checkpoint/finalization.",
+  "chain_reason": "Sibling scheduler takeover capability is repaired end-to-end; the previously blocked executable leaf is now owned by this lane."
+}
