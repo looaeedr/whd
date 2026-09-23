@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "2e0e0db95b0feb316ca703b46fcb587a8d4b2506",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T14:19:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T14:21:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,10 +17,19 @@
   "remote_qa": {
     "run_id": 35826154369,
     "head_sha": "2e0e0db95b0feb316ca703b46fcb587a8d4b2506",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "C0 exact external reference audit"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "C0 exact external reference audit",
+    "evidence": {
+      "candidate_count": 86,
+      "tracked_python": 786,
+      "unreadable_tracked_python": 0,
+      "zero_external_exact_reference": 0,
+      "refined_ast_safe_import_reexports": 38,
+      "refined_ast_safe_dead_constants": 1,
+      "note": "exact-text audit over-retains same-name owner symbols; refined against AST bridge-consumer evidence + finite dynamic target sets"
+    }
   },
-  "next_action": "Poll exact run 35826154369 to terminal; only DELETE_PROVEN_ZERO_EXTERNAL_EXACT_REFERENCE candidates may enter guarded cleanup.",
+  "next_action": "Remove 38 proven unused/no-current-bridge-consumer imports plus dead _PHASE6_ORCHESTRATION_DEBOUNCE_MS; run compile + focused ownership regressions.",
   "blocker": null
 }
