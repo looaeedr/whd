@@ -6,15 +6,20 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T07:00:20+08:00",
   "base_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "head_sha": "b04310c426ccb07dbc18a09b451a27e54fd2d24f",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-23T07:00:20+08:00",
+  "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+  "phase": "GREEN",
+  "last_update": "2026-09-23T12:31:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "B6",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Read A0 69-entry facade inventory, create bounded <=12-entry B6 child audit issues, then execute repo-wide consumer classification batches until 69/69 accounted.",
-  "blocker": null
+  "next_action": "Run B6 controller aggregate acceptance over canonical A0 facade inventory and B6-1..B6-6 final classifications; require 69/69 unique accounted, UNCLASSIFIED=0, DYNAMIC_REF_UNREVIEWED=0, facade non-growth, reverse-import=0, second composition root=0.",
+  "blocker": null,
+  "child_chain": {
+    "final_batch_issue": 546,
+    "final_batch_head": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
+    "accounted": "69/69"
+  }
 }
