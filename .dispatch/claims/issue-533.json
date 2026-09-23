@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T21:20:00+08:00",
   "base_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-24T02:28:12+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T02:35:03+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,7 +30,7 @@
       "tested_head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c"
     }
   },
-  "next_action": "Persist C1 terminal acceptance evidence from the successful permanent anti-regrowth run; complete the required AI Library writeback for the durable architecture/pitfall guard; verify tested-head to closing-head drift and cleanup state; then create the live-derived chain checkpoint and run owned finalization.",
+  "next_action": "Write C1 terminal checkpoint with canonical next child #534/C2, obtain trusted finalization proof, close/readback #533, release claim, then atomically claim/start #534 from accepted C1 closing head fb5443215b36e4ab6a5b2d57a72600e621df83d6.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -58,6 +58,28 @@
   "scheduler_progress": {
     "executor_identity": "scheduler.6ab13f881c34819180cee63f5dd9446b",
     "takeover_guard_run": 35902661211,
-    "action": "resume-stale-sibling-after-governance-repair"
+    "action": "resume-stale-sibling-after-governance-repair",
+    "closing_claim_guard_run": 35903460171,
+    "blocking_repair_573": "closed/completed"
+  },
+  "acceptance": {
+    "requirement": "Permanent Anti-Regrowth Machine Guards",
+    "green_run": 35867336375,
+    "tested_head": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
+    "closing_head": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
+    "artifact_id": 10753165481,
+    "permanent_arg_tests": "success",
+    "permanent_anti_regrowth_guard": "success",
+    "required_ai_library_writeback": "complete",
+    "tested_to_closing_drift": {
+      "commits": 1,
+      "production_test_drift": 0,
+      "changed_files": [
+        "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+        "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+      ],
+      "classification": "required AI Library writeback only"
+    },
+    "integration_policy": "No child-level X integration; Master #520 integrates entire chain once after C3."
   }
 }
