@@ -1,0 +1,54 @@
+name: WHD｜#532｜C0 Composition Root RED
+run-name: "WHD｜#532｜C0 Composition Root RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue532-c0-composition-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: C0 單一 Composition Root Requirement RED
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 新 composition requirement 必須先 RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q tests/test_issue396_phase4_composition_root.py > /tmp/issue532-c0-composition-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue532-c0-composition-red.log
+          test "$rc" -ne 0
+          grep -E "C0 RED: bridge still constructs application controllers|C0 RED: existing Phase6FoldDesignerComposition" /tmp/issue532-c0-composition-red.log
+          echo "ISSUE532_C0_COMPOSITION_RED=GREEN"
+
+      - name: 上傳 RED 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue532-c0-composition-red
+          path: /tmp/issue532-c0-composition-red.log
+          if-no-files-found: error
+          retention-days: 14
