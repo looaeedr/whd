@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "567",
+  "branch": "governance/issue567-reopened-released-claim-recovery-20260924",
+  "head_sha": "39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35891064628,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "PR #568 merged into cleanup/2d-3d-sync at 3ec1152323cf9048718783ca7e8654c7b04cae1a.",
+    "Exact focused PR validation run 35891064628 completed success with 4 passed / 0 failed on tested head ae6a6506b267ef2f1811e5328435a2c0e1c6677b.",
+    "Tested-to-closing drift is one commit removing only .github/workflows/qa-issue567-focused.yml; closing head is 39dc6033b2ca9c2b18d54948a6b9d44d1f04d7a6.",
+    "Narrow reopened RELEASED-claim recovery is integrated while ordinary inactive-claim writes and same-lane self-takeover remain fail-closed.",
+    "Repair targets #558 and #560 were already read back closed/completed after fresh trusted finalization."
+  ],
+  "master_issue": "560",
+  "chain_state": "CHAIN_COMPLETE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": "Governance recovery capability integrated; parent repair chain #560 and target #558 are closed/completed."
+}
