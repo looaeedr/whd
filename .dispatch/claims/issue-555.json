@@ -8,9 +8,11 @@
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T14:30:27+08:00",
+  "last_update": "2026-09-23T17:30:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue555-finalization-20260923"
+  ],
   "remote_qa": {
     "run_id": 35820582387,
     "head_sha": "a5d66c05c6250fa2439752b3cb6a4b2a993e4cb9",
@@ -24,7 +26,7 @@
       "tested_to_cleaned_drift": "temporary QA workflow deletion only"
     }
   },
-  "next_action": "Run owning finalization/closure guard for #555, close issue with completed reason, remote-readback, then RELEASE claim.",
+  "next_action": "Run OWNING_FINALIZATION_GUARD_V2 on delegated finalization runner, clean runner ref, close #555 completed with remote readback, then RELEASE claim.",
   "blocker": null,
   "pr": {
     "number": 556,
