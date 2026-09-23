@@ -7,23 +7,43 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "158b0e3820312cf67a3f74dac73522408cfbc8a8",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T17:31:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T17:38:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C0",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": null,
+    "run_id": 35843797932,
     "head_sha": "158b0e3820312cf67a3f74dac73522408cfbc8a8",
-    "status": "RUN_NOT_CREATED",
-    "conclusion": null,
-    "purpose": "C0 GREEN + residual audit after peeling all nine remaining compat-only wrappers",
-    "previous_green_run": 35842379701,
-    "previous_residual_audit_run": 35842379671
+    "status": "completed",
+    "conclusion": "failure",
+    "purpose": "C0 GREEN after peeling all nine remaining compat-only wrappers",
+    "classification": "STALE_OWNERSHIP_ORACLES_ONLY",
+    "evidence": {
+      "bridge_import_smoke": "GREEN",
+      "headless": "5 failed / 89 passed / 18 skipped",
+      "failed_tests": [
+        "tests/test_issue368_t4_registry_diagnostics_owner.py::test_issue368_bridge_has_no_registry_state_machine_or_backend_ownership",
+        "tests/test_issue368_t4_registry_diagnostics_owner.py::test_issue368_bridge_commands_delegate_to_registry_controller",
+        "tests/test_issue368_t4_registry_diagnostics_owner.py::test_issue446_bridge_keeps_semantic_registry_callbacks_but_not_selected_tk_constructors",
+        "tests/test_issue370_t6_final_scene_view_owner.py::test_issue370_bridge_delegates_3d_render_orchestration",
+        "tests/test_issue447_workspace_shell_owner.py::test_b2_bridge_shell_compatibility_surface_is_thin"
+      ]
+    },
+    "residual_audit": {
+      "run_id": 35843797923,
+      "status": "completed",
+      "conclusion": "success",
+      "candidates": 5,
+      "compat_only_count": 0,
+      "zero_consumer_count": 0,
+      "runtime_consumer_count": 5,
+      "runtime_consumer_span": 39
+    }
   },
-  "next_action": "Lock exact GREEN and residual-audit runs for 158b0e38, poll both to terminal, classify newly exposed dead glue, and continue compression until bridge <=6500.",
+  "next_action": "Retire three stale ownership-oracle assertions that require removed compat wrappers; do not restore wrappers. Rerun exact GREEN at same production state.",
   "blocker": null,
   "trigger_recovery": {
     "no_op_commit": "a714e9e21f77096e730a2c85b5a36f2cba36c228",
