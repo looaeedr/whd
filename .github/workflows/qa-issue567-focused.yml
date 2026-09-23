@@ -1,0 +1,30 @@
+name: WHD｜#567 窄版驗收
+run-name: "WHD｜#567｜RELEASED claim 恢復 focused 驗收"
+
+on:
+  pull_request:
+    branches:
+      - cleanup/2d-3d-sync
+    paths:
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue567_reopened_released_claim_recovery.py
+      - .github/workflows/qa-issue567-focused.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#567 窄版行為驗收"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "取出 PR 程式碼"
+        uses: actions/checkout@v4
+      - name: "設定 Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "安裝 pytest"
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: "執行 #567 focused 測試"
+        run: python -m pytest -q tests/process/test_issue567_reopened_released_claim_recovery.py
