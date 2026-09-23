@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T22:25:30+08:00",
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
-  "phase": "CLOSING",
-  "last_update": "2026-09-23T23:15:39+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T23:23:59+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-POST-COMMIT-CLAIM-HEAD-RECONCILE",
   "delegated_branches": [],
@@ -20,8 +20,8 @@
     "workflow": "Knowledge Governance Bootstrap",
     "pr": 559
   },
-  "next_action": "Execute canonical tools/continuity_controller.py authorize-finalization and verify-finalization-proof for the terminal owning checkpoint using exact issue/branch/head; only after FINALIZATION_PROOF_VALID close/read back the Issue, release the shared claim, and continue the live-derived dependent chain.",
-  "blocker": "CAPABILITY_BLOCKER: current scheduler runtime has no repository command-execution primitive and no trusted generic remote finalization executor to actually run tools/continuity_controller.py authorize-finalization + verify-finalization-proof against the fresh terminal checkpoint; closure gate forbids handwritten/prose proof or direct Issue close.",
+  "next_action": null,
+  "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
     "previous_worker": "chatgpt.sol260923.issue558",
@@ -56,7 +56,19 @@
     "checkpoint": ".dispatch/checkpoints/issue-558.json",
     "checkpoint_commit": "c7741aee875492120c5f30e46387658b4ac4e13f",
     "checkpoint_state": "TERMINAL_SUCCESS",
-    "proof_status": "NOT_CREATED_CAPABILITY_BLOCKED",
-    "blocker_class": "FINALIZATION_EXECUTION_CAPABILITY_BLOCKER"
+    "proof_status": "FINALIZATION_PROOF_VALID",
+    "blocker_class": "FINALIZATION_EXECUTION_CAPABILITY_BLOCKER",
+    "checkpoint_fingerprint": "5b6e83fb0e8bebaf88ed1a17777f517b08fa9c4dc1e4649edb0f4a086b7cc0e0",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "closed_at": "2026-09-23T15:22:55Z"
+  },
+  "release": {
+    "released_at": "2026-09-23T23:23:59+08:00",
+    "guard_request_comment_id": 5797590767,
+    "guard_result_comment_id": 5797594648,
+    "guard_run_id": 35881194040,
+    "guard_result": "GREEN",
+    "guard_reason": "EXECUTION_CLAIM_GUARD_GREEN"
   }
 }
