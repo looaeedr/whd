@@ -39,6 +39,8 @@ from phase6_endcap_semantics import assembly_intent_value, normalize_endcap_bott
 from phase6_settings_center import load_factory_defaults_from_ae
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
+from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 from phase6_final_scene_contracts import (
     AssemblyScenePart,
     AssemblySceneRenderData,
@@ -927,8 +929,60 @@ class Phase6FoldDesignerComposition:
         self._settings_service = None
         self._settings_transactions = None
         self._settings_coordinator = None
+        self._workspace_navigation_controller = None
+        self._registry_diagnostics_controller = None
         self._final_scene_renderer = None
         self._final_scene_adapter = None
+
+    def workspace_navigation(self):
+        """Return the single workspace/navigation application controller."""
+        app = self.app
+        workspace = getattr(app, "designer_workspace", None)
+        controller = self._workspace_navigation_controller
+        if controller is None or getattr(controller, "workspace", None) is not workspace:
+            current = getattr(app, "_phase6_workspace_navigation_controller", None)
+            if (
+                isinstance(current, Phase6WorkspaceNavigationController)
+                and getattr(current, "workspace", None) is workspace
+            ):
+                controller = current
+            else:
+                legacy_memory = getattr(app, "__dict__", {}).get(
+                    "_phase6_box_body_active_piece_key"
+                )
+                controller = Phase6WorkspaceNavigationController(
+                    workspace,
+                    remembered_box_body_child=legacy_memory,
+                )
+            self._workspace_navigation_controller = controller
+            app._phase6_workspace_navigation_controller = controller
+        return controller
+
+    def registry_diagnostics(self):
+        """Return the single Registry diagnostics application controller."""
+        app = self.app
+        controller = self._registry_diagnostics_controller
+        if controller is None:
+            current = getattr(app, "_phase6_registry_diagnostics_controller", None)
+            if isinstance(current, Phase6RegistryDiagnosticsController):
+                controller = current
+            else:
+                controller = Phase6RegistryDiagnosticsController(
+                    candidate_id=getattr(app, "_phase6_registry_candidate_id", ""),
+                    candidate_record=getattr(
+                        app, "_phase6_registry_candidate_record", {}
+                    ),
+                    regression_evidence=getattr(
+                        app, "_phase6_registry_regression_evidence", {}
+                    ),
+                    rule_records=getattr(app, "_phase6_registry_rule_records", {}),
+                    promotion_candidates=getattr(
+                        app, "_phase6_last_relief_promotion_candidates", {}
+                    ),
+                )
+            self._registry_diagnostics_controller = controller
+            app._phase6_registry_diagnostics_controller = controller
+        return controller
 
     def settings_service(self):
         if self._settings_service is None:
