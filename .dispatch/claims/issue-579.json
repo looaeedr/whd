@@ -1,0 +1,19 @@
+{
+  "issue": 579,
+  "issue_url": "https://github.com/looaeedr/whd/issues/579",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue579-recovering-claim-phase-20260924",
+  "claimed_at": "2026-09-24T06:53:15+08:00",
+  "base_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+  "head_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T06:53:15+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-RECOVERING-CLAIM-PHASE",
+  "parent_issue": 534,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the guarded governance work branch from exact cleanup/2d-3d-sync HEAD, reproduce RECOVERING claim rejection in a focused RED behavior test, minimally teach execution_claim_guard that RECOVERING is an active non-terminal phase, run focused GREEN, integrate non-force, then return to #534 and prove its previously rejected guarded write can proceed.",
+  "blocker": null
+}
