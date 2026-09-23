@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T21:20:00+08:00",
   "base_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T22:16:09+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-23T22:17:38+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,12 +17,20 @@
   "remote_qa": {
     "run_id": 35867336375,
     "head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "purpose": "Permanent Phase 6 Bridge anti-regrowth GREEN acceptance",
-    "requirement_red_run": 35866174976
+    "requirement_red_run": 35866174976,
+    "live_updated_at": "2026-09-23T13:29:01Z",
+    "artifact_id": 10753165481,
+    "evidence": {
+      "permanent_arg_tests": "success",
+      "permanent_anti_regrowth_guard": "success",
+      "workflow_run_id": 35867336375,
+      "tested_head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c"
+    }
   },
-  "next_action": "Poll exact RUN 35867336375 @ 09e19c06cffcee6521483eb84b16d47cf7d5ad3c to terminal; classify any ARG violation before remediation.",
+  "next_action": "Persist C1 terminal acceptance evidence from the successful permanent anti-regrowth run; complete the required AI Library writeback for the durable architecture/pitfall guard; verify tested-head to closing-head drift and cleanup state; then create the live-derived chain checkpoint and run owned finalization.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -45,5 +53,12 @@
       "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN",
       "expires_at": "2026-09-23T14:36:09.556705Z"
     }
+  },
+  "scheduler_progress": {
+    "executor_identity": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "guard_request_comment_id": 5796495062,
+    "guard_result_comment_id": 5796499322,
+    "guard_run_id": 35873091351,
+    "action": "reconcile-terminal-remote-qa"
   }
 }
