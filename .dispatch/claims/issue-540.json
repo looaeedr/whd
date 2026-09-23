@@ -6,9 +6,9 @@
   "work_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
   "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
-  "head_sha": "6fc9c4071c76e8c60c3023fb31591dddc3d488bd",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-23T08:21:00+08:00",
+  "head_sha": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-23T08:22:30+08:00",
   "production_target": "main",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,7 +24,7 @@
       "same_head_invalid_workflow_run": "none"
     }
   },
-  "next_action": "Remove one-shot main RED/GREEN workflows under fresh commit guard; audit final two-file durable diff; open PR to main and merge; then run scheduler-style negative smoke on the updated default-branch workflow.",
+  "next_action": "Obtain fresh pr-write Remote Guard, open main PR for the 2-file durable diff, merge with expected hotfix head, then run scheduler-style claim-takeover negative smoke on default branch to prove parser/evaluator wiring.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -124,6 +124,13 @@
       "run_id": 35801528743,
       "result": "GREEN",
       "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+    },
+    "main_cleanup": {
+      "request_comment_id": 5786761023,
+      "result_comment_id": 5786763432,
+      "run_id": 35801697686,
+      "result": "GREEN",
+      "reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
   },
   "cleanup_evidence": {
@@ -176,5 +183,15 @@
       "acceptance_run": 35795817863,
       "focused_tests": "38 passed"
     }
+  },
+  "cleanup_evidence_main": {
+    "tested_head": "6fc9c4071c76e8c60c3023fb31591dddc3d488bd",
+    "cleanup_head": "11f5c6d65037bbd46bfb0d6f0191e399027cfba0",
+    "tested_to_cleanup_drift": "one-shot RED/GREEN workflow deletion only",
+    "durable_files": [
+      ".github/workflows/whd-remote-execution-guard.yml",
+      "tests/process/test_issue540_main_remote_guard_contract.py"
+    ],
+    "final_diff_files": 2
   }
 }
