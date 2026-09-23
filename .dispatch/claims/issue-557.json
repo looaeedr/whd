@@ -8,7 +8,7 @@
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "81294d6bbb69340305a817feb8be6ee312d5ab39",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T01:48:52+08:00",
+  "last_update": "2026-09-24T01:50:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SCHEDULER-USAGE",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "workflow": "Knowledge Governance Bootstrap",
     "pr": 569
   },
-  "next_action": "Guard-merge PR #569 at head 81294d6bbb69340305a817feb8be6ee312d5ab39; read back cleanup/2d-3d-sync, write terminal checkpoint, run trusted finalization, close/readback #557, then release claim.",
+  "next_action": "Write terminal checkpoint for #557, obtain trusted finalization proof, close/readback #557, then release claim.",
   "blocker": null,
   "scheduler_usage_doc_progress": {
     "branch_created": true,
@@ -54,7 +54,9 @@
         "tools/execution_claim_guard.py"
       ],
       "overlaps_issue557_changed_files": false
-    }
+    },
+    "integration_guard_run": 35898349443,
+    "merge_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba"
   },
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -70,5 +72,14 @@
     "guard_result": "GREEN",
     "guard_reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "taken_over_at": "2026-09-23T23:26:22+08:00"
+  },
+  "integration": {
+    "pr": 569,
+    "merge_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
+    "remote_qa_run_id": 35895091668,
+    "remote_qa_conclusion": "success",
+    "tested_head_sha": "81294d6bbb69340305a817feb8be6ee312d5ab39"
   }
 }
