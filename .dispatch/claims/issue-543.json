@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T08:13:00+08:00",
   "base_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
   "head_sha": "13adff5e2f054b695a2f90d34a7ecc2d6a857ba7",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T08:15:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T08:16:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,10 +18,20 @@
   "remote_qa": {
     "run_id": 35801179888,
     "head_sha": "13adff5e2f054b695a2f90d34a7ecc2d6a857ba7",
-    "status": "queued",
-    "conclusion": null,
-    "purpose": "B6-3 exact-branch consumer-normalized facade audit"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-3 exact-branch consumer-normalized facade audit",
+    "evidence": {
+      "artifact_id": 10725618952,
+      "accounted": 12,
+      "unclassified": 0,
+      "dynamic_ref_unreviewed": 0,
+      "no_caller": [
+        "show_global_settings",
+        "save_settings_context_as_defaults"
+      ]
+    }
   },
-  "next_action": "Poll exact RUN 35801179888 to terminal; classify all 12 keys, then RED→GREEN only for proven removable entries.",
+  "next_action": "Add replacement RED for the two NO_CALLER facade bindings, prove RED, then remove only facade exposures and run GREEN.",
   "blocker": null
 }
