@@ -3,29 +3,16 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/540",
   "worker": "chatgpt",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "feature/issue540-stale-takeover-20260923",
+  "work_branch": "hotfix/issue540-main-remote-guard-takeover-20260923",
   "claimed_at": "2026-09-23T06:45:20+08:00",
-  "base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
-  "head_sha": "3f25ad3e429bc4969d31a8a46ac82254be69bd91",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-23T08:09:30+08:00",
-  "production_target": "cleanup/2d-3d-sync",
+  "base_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
+  "head_sha": "c380b221dc519a6b537502b84bc585cff10012ff",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T08:11:00+08:00",
+  "production_target": "main",
   "delegated_branches": [],
-  "remote_qa": {
-    "run_id": 35795817863,
-    "head_sha": "47b92f6ba05914d9084d60213a82d5ecdf948080",
-    "status": "completed",
-    "conclusion": "success",
-    "purpose": "Issue #540 machine-bound stale takeover evidence GREEN",
-    "evidence": {
-      "focused_tests": "38 passed",
-      "actions_naming": "GREEN",
-      "boundary_599": "WAIT_ON_FOREIGN_RUNTIME / blocked",
-      "boundary_600": "EXECUTOR_STUCK / actionable",
-      "evidence_schema": "WHD_STALE_CLAIM_TAKEOVER_V1"
-    }
-  },
-  "next_action": "Obtain a fresh pr-write Remote Guard receipt for merging PR #553 at exact head 3f25ad3e; merge non-force into cleanup/2d-3d-sync; then bootstrap the main-only trusted Remote Guard claim-takeover path.",
+  "remote_qa": null,
+  "next_action": "Create exact main-based hotfix branch under branch-create Remote Guard; implement trusted Remote Guard claim-takeover parser/evaluator path using cleanup HEAD 8e24b3e4 as guard authority; validate scheduler request contract and merge to main.",
   "blocker": null,
   "remote_guard": {
     "branch_create": {
@@ -137,5 +124,17 @@
       "stage": "parse request",
       "reason": "main Remote Guard parser lacks claim-takeover support"
     }
-  ]
+  ],
+  "completed_segments": {
+    "cleanup_authority": {
+      "production_target": "cleanup/2d-3d-sync",
+      "frozen_base_sha": "a8be8a41dc56ed1af9eee50bc6177e10b5fc0a04",
+      "work_branch": "feature/issue540-stale-takeover-20260923",
+      "work_head_sha": "3f25ad3e429bc4969d31a8a46ac82254be69bd91",
+      "pr_number": 553,
+      "merge_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
+      "acceptance_run": 35795817863,
+      "focused_tests": "38 passed"
+    }
+  }
 }
