@@ -1,0 +1,54 @@
+name: WHD｜#533｜C1 Anti-Regrowth Requirement RED
+run-name: "WHD｜#533｜C1 永久防回長 Requirement RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue533-c1-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: 驗證永久 anti-regrowth guard 尚未實作
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 新 requirement 必須 assertion-level RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q tests/process/test_issue533_c1_anti_regrowth.py > /tmp/issue533-c1-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue533-c1-red.log
+          test "$rc" -ne 0
+          grep -E "C1 RED: permanent anti-regrowth executable guard is missing|C1 RED: accepted architecture baseline manifest is missing" /tmp/issue533-c1-red.log
+          echo "ISSUE533_C1_REQUIREMENT_RED=GREEN"
+
+      - name: 上傳 RED 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue533-c1-red
+          path: /tmp/issue533-c1-red.log
+          if-no-files-found: error
+          retention-days: 14
