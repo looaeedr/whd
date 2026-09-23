@@ -1,0 +1,22 @@
+name: WHD｜#579｜RECOVERING claim RED
+run-name: "WHD｜#579｜RECOVERING claim RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - governance/issue579-recovering-claim-phase-20260924
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: "RED｜RECOVERING 應被視為 active claim phase"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout exact branch"
+        uses: actions/checkout@v4
+      - name: "安裝 pytest"
+        run: python -m pip install pytest
+      - name: "執行 focused RED"
+        run: python -m pytest -q tests/process/test_issue256_execution_claim_guard.py::test_recovering_phase_is_active_for_same_owner
