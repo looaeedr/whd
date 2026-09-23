@@ -76,6 +76,32 @@ jobs:
           unreadable=[]
           names=set(refs)
 
+          # Count application-composition required("...") bridge namespace ports
+          # as real runtime consumers. Without this, string-bound FinalScene
+          # ports can be misclassified as zero-caller and deleted.
+          composition_path=Path("gui_modules/application/fold_designer_adapter.py")
+          composition_source=composition_path.read_text(encoding="utf-8")
+          composition_tree=ast.parse(
+              composition_source,
+              filename=str(composition_path),
+          )
+          for node in ast.walk(composition_tree):
+              if (
+                  isinstance(node,ast.Call)
+                  and isinstance(node.func,ast.Name)
+                  and node.func.id=="required"
+                  and node.args
+                  and isinstance(node.args[0],ast.Constant)
+                  and isinstance(node.args[0].value,str)
+                  and node.args[0].value in names
+              ):
+                  refs[node.args[0].value].append({
+                      "path":str(composition_path),
+                      "line":node.lineno,
+                      "kind":"composition_required_namespace",
+                      "category":"production",
+                  })
+
           def category(path):
               s=str(path).replace("\\","/")
               if s.startswith("tests/"):

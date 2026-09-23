@@ -45,6 +45,9 @@ from phase6_final_scene_contracts import (
     FinalSceneDependencies,
 )
 from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
+from phase6_assembly_panel import Phase6AssemblyPanel
+from phase6_manufacturing_adapter import operator_finished_dimensions_for_app
 from phase6_final_scene_view import Phase6FinalSceneViewAdapter
 from gui_modules.application.state_sync import Phase6DerivedCacheOwner
 from gui_modules.application.fold_designer_settings_coordinator import (
@@ -989,9 +992,10 @@ class Phase6FoldDesignerComposition:
     def final_scene_ports(self, namespace):
         """Compose the fixed 35-port FinalScene application boundary.
 
-        The bridge passes its compatibility namespace as a narrow bootstrap
-        input; this application composition owner owns the actual wiring.
-        No manufacturing or renderer ownership moves here.
+        The bridge namespace remains only for compatibility callbacks that still
+        belong to the bridge boundary. FinalScene owner classes and callbacks
+        removed from the bridge are wired directly here so composition cannot
+        accidentally depend on deleted bridge re-exports.
         """
         app = self.app
 
@@ -1003,8 +1007,138 @@ class Phase6FoldDesignerComposition:
                     f"Fold Designer FinalScene composition port is unavailable: {name}"
                 ) from exc
 
+        number_text = required("_setting_number_text")
+        part_label = required("_phase6_part_label")
+        blank_text = required("_phase6_format_unfolded_blank_text")
+        corner_text = required("_phase6_render_data_corner_dimension_text")
+
+        def formed_size_text(render_data, **kwargs):
+            dimensions = tuple(kwargs.get("finished_dimensions") or ())
+            if not dimensions:
+                dimensions = tuple(
+                    getattr(render_data, "formed_outer_dimensions", ()) or ()
+                )
+            return Phase6CornerDataViewAdapter.formed_size_text(
+                dimensions,
+                number_text=number_text,
+            )
+
+        def refresh_box_body_piece_info(render_data):
+            owner = getattr(app, "_phase6_assembly_panel_owner", None)
+            if owner is None:
+                return ()
+            snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+            return owner.refresh_box_body_piece_info(
+                render_data,
+                label_for=lambda key: part_label(key, snapshot=snapshot),
+                number_text=number_text,
+                corner_text_for_render_data=corner_text,
+            )
+
+        def assembly_blank_text(render_data):
+            snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+            rows = []
+            for part in tuple(getattr(render_data, "assembly_parts", ()) or ()):
+                text = blank_text(part.render_data, part_key=part.part_key)
+                if text.startswith("展開料："):
+                    text = text[len("展開料："):]
+                rows.append(
+                    f"{part_label(part.part_key, snapshot=snapshot)}：{text}"
+                )
+            return "展開尺寸：\n" + "\n".join(rows) if rows else "展開尺寸：-"
+
+        def update_unfolded_size_label():
+            var = getattr(app, "unfolded_size_var", None)
+            if var is None:
+                return None
+            key = str(
+                getattr(
+                    getattr(app, "designer_workspace", None),
+                    "active_part",
+                    "",
+                )
+                or ""
+            )
+            try:
+                if getattr(app, "_phase6_initializing", False):
+                    resolved = getattr(
+                        app,
+                        "_phase6_last_resolved_manufacturing_geometry",
+                        None,
+                    )
+                    render_data = (
+                        resolved.part(key).render_data
+                        if resolved is not None and key
+                        else None
+                    )
+                else:
+                    render_data = required("_phase6_render_data_for_blank")(
+                        app, key
+                    ) if key else None
+            except Exception:
+                render_data = None
+            return var.set(blank_text(render_data, part_key=key))
+
+        def scene_query(key, payload):
+            callback = getattr(app, "_scene_query_callback", None)
+            if callback is None:
+                raise RuntimeError("3D final-scene provider is not connected")
+            return callback(key, payload)
+
+        def corner_text_sink(values):
+            values = {
+                str(key): str(value)
+                for key, value in dict(values or {}).items()
+            }
+            app._phase6_last_assembly_corner_dimension_texts = dict(values)
+            owner = getattr(app, "_phase6_assembly_panel_owner", None)
+            if owner is not None:
+                owner.set_corner_texts(values)
+
+        def part_text_sink(kind, part_key, value):
+            owner = getattr(app, "_phase6_assembly_panel_owner", None)
+            if owner is not None:
+                owner.set_part_text(kind, part_key, value)
+
+        def assembly_visibility(parts):
+            owner = getattr(app, "_phase6_assembly_panel_owner", None)
+            if owner is not None:
+                return owner.resolve_visibility(parts)
+            return Phase6AssemblyPanel._resolve_visibility_with_vars(
+                parts, {}, {}
+            )
+
+        def render_committed():
+            if not getattr(app, "preview_3d_enabled", True):
+                return None
+            canvas = app.renderer.canvas
+            draw = getattr(canvas, "draw", None)
+            draw_idle = getattr(canvas, "draw_idle", None)
+            if (
+                callable(draw)
+                and callable(draw_idle)
+                and not getattr(app, "_phase6_force_sync_preview", False)
+            ):
+                canvas.draw = draw_idle
+                try:
+                    return app.renderer.render()
+                finally:
+                    canvas.draw = draw
+            return app.renderer.render()
+
+        def refresh_preview():
+            if not getattr(app, "preview_3d_enabled", True):
+                return required("_phase6_final_scene_set_preview_enabled")(
+                    app, True
+                )
+            app._phase6_force_sync_preview = True
+            try:
+                return app.submit_update_intent("display", commit=True)
+            finally:
+                app._phase6_force_sync_preview = False
+
         return FinalSceneCompositionPorts(
-            number_text=required("_setting_number_text"),
+            number_text=number_text,
             is_physical_piece_key=required("_phase6_is_box_body_physical_piece_key"),
             physical_piece_render_data=lambda key: required(
                 "_phase6_box_body_piece_render_data"
@@ -1029,33 +1163,20 @@ class Phase6FoldDesignerComposition:
             publish_live_state=lambda **kwargs: required(
                 "_phase6_publish_live_state"
             )(app, **kwargs),
-            corner_dimension_text=required(
-                "_phase6_render_data_corner_dimension_text"
+            corner_dimension_text=corner_text,
+            formed_size_text=formed_size_text,
+            blank_text=blank_text,
+            refresh_box_body_piece_info=refresh_box_body_piece_info,
+            operator_dimensions=lambda part_key=None: operator_finished_dimensions_for_app(
+                app, part_key
             ),
-            formed_size_text=lambda render_data, **kwargs: required(
-                "_phase6_format_formed_size_text"
-            )(render_data, **kwargs),
-            blank_text=lambda render_data, *, part_key="": required(
-                "_phase6_format_unfolded_blank_text"
-            )(render_data, part_key=part_key),
-            refresh_box_body_piece_info=lambda render_data: required(
-                "_phase6_refresh_box_body_piece_info_rows"
-            )(app, render_data),
-            operator_dimensions=lambda part_key=None: required(
-                "_phase6_final_scene_operator_dimensions"
-            )(app, part_key),
             cabinet_family=lambda: required("_phase6_current_cabinet_family")(app),
-            assembly_blank_text=lambda render_data: required(
-                "_phase6_assembly_unfolded_blank_text"
-            )(
-                render_data,
-                snapshot=getattr(app, "_phase6_input_snapshot", {}),
-            ),
+            assembly_blank_text=assembly_blank_text,
             active_mesh_profiles=lambda material: required(
                 "_phase6_active_mesh_profiles"
             )(app, material),
-            assembly_render_data_cls=required("AssemblySceneRenderData"),
-            assembly_part_cls=required("AssemblyScenePart"),
+            assembly_render_data_cls=AssemblySceneRenderData,
+            assembly_part_cls=AssemblyScenePart,
             final_render_provider=lambda: required(
                 "_phase6_query_final_render_data"
             )(app),
@@ -1064,7 +1185,7 @@ class Phase6FoldDesignerComposition:
             )(app),
             request_provider=lambda: required("_phase6_final_scene_view_request")(app),
             after_render=lambda: (
-                required("_phase6_update_unfolded_size_label")(app),
+                update_unfolded_size_label(),
                 required("_phase6_update_assembly_diagnostic_status")(app),
             ),
             active_part=lambda: str(
@@ -1075,9 +1196,7 @@ class Phase6FoldDesignerComposition:
                 )
                 or ""
             ),
-            scene_query=lambda key, payload: required(
-                "_phase6_final_scene_scene_query"
-            )(app, key, payload),
+            scene_query=scene_query,
             input_snapshot=lambda: dict(
                 getattr(app, "_phase6_input_snapshot", {}) or {}
             ),
@@ -1090,15 +1209,9 @@ class Phase6FoldDesignerComposition:
             display_mode=lambda: str(
                 getattr(app, "_phase6_3d_display_mode", "single") or "single"
             ),
-            assembly_corner_text_sink=lambda values: required(
-                "_phase6_final_scene_corner_text_sink"
-            )(app, values),
-            assembly_part_text_sink=lambda kind, key, value: required(
-                "_phase6_final_scene_part_text_sink"
-            )(app, kind, key, value),
-            assembly_visibility=lambda parts: required(
-                "_phase6_final_scene_visibility"
-            )(app, parts),
+            assembly_corner_text_sink=corner_text_sink,
+            assembly_part_text_sink=part_text_sink,
+            assembly_visibility=assembly_visibility,
             interference_probe_parts=lambda: tuple(
                 getattr(app, "_phase6_last_interference_probe_parts", ()) or ()
             ),
@@ -1109,15 +1222,11 @@ class Phase6FoldDesignerComposition:
                     lambda: True,
                 )()
             ),
-            render_committed=lambda: required(
-                "_phase6_final_scene_render_committed"
-            )(app),
+            render_committed=render_committed,
             set_preview_enabled=lambda enabled: required(
                 "_phase6_final_scene_set_preview_enabled"
             )(app, enabled),
-            refresh_preview=lambda: required(
-                "_phase6_final_scene_refresh_preview"
-            )(app),
+            refresh_preview=refresh_preview,
         )
 
     def final_scene_adapter(self, ports: FinalSceneCompositionPorts):
