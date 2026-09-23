@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "558",
+  "branch": "fix/issue558-post-commit-claim-head-reconcile-20260923",
+  "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35877873228,
+  "evidence": [
+    "PR #559 merged into cleanup/2d-3d-sync at c586584a0b6ddf242177246079a52b6884c6e2a6.",
+    "Exact PR validation run 35877873228 completed success on df756e8c5a0b5143bd7a2062a080a80dc98dbee0.",
+    "Post-commit claim-head reconciliation authority landed with ordinary stale-head writes remaining fail-closed.",
+    "Shared claim owner is scheduler.6ab13f881c34819180cee63f5dd9446b and integration state is CLOSING."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
