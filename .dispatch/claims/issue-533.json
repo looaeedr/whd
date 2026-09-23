@@ -1,14 +1,14 @@
 {
   "issue": 533,
   "issue_url": "https://github.com/looaeedr/whd/issues/533",
-  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
   "executor_source": "scheduler",
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T21:20:00+08:00",
   "base_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T02:35:03+08:00",
+  "last_update": "2026-09-24T03:31:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -34,33 +34,29 @@
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
-    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "previous_worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
     "previous_executor_source": "scheduler",
-    "observed_stale_seconds": 14863,
+    "observed_stale_seconds": 3387,
     "observed_live_head_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-    "previous_last_update": "2026-09-23T22:17:38+08:00",
+    "previous_last_update": "2026-09-24T02:35:03+08:00",
     "exact_remote_run_id": 35867336375,
     "exact_remote_run_status": "completed",
     "exact_remote_run_conclusion": "success",
-    "requesting_worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
-    "taken_over_at": "2026-09-24T02:28:12+08:00",
+    "requesting_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "taken_over_at": "2026-09-24T03:31:30+08:00",
     "guard": {
-      "request_comment_id": 5800558555,
-      "result_comment_id": 5800561379,
-      "run_id": 35902661211,
+      "request_comment_id": 5801515367,
+      "run_id": 35909879763,
       "orchestrator_head_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
       "tested_target_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
       "receipt_result": "GREEN",
-      "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN",
-      "expires_at": "2026-09-23T18:48:12.943215Z"
+      "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN"
     }
   },
   "scheduler_progress": {
-    "executor_identity": "scheduler.6ab13f881c34819180cee63f5dd9446b",
-    "takeover_guard_run": 35902661211,
-    "action": "resume-stale-sibling-after-governance-repair",
-    "closing_claim_guard_run": 35903460171,
-    "blocking_repair_573": "closed/completed"
+    "executor_identity": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "takeover_guard_run": 35909879763,
+    "action": "resume-stale-sibling-closing"
   },
   "acceptance": {
     "requirement": "Permanent Anti-Regrowth Machine Guards",
