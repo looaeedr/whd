@@ -1,18 +1,33 @@
 {
   "issue": 558,
   "issue_url": "https://github.com/looaeedr/whd/issues/558",
-  "worker": "chatgpt.sol260923.issue558",
-  "executor_source": "chatgpt_interactive",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
   "work_branch": "fix/issue558-post-commit-claim-head-reconcile-20260923",
   "claimed_at": "2026-09-23T22:25:30+08:00",
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
-  "head_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+  "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
   "phase": "RED",
-  "last_update": "2026-09-23T22:25:30+08:00",
+  "last_update": "2026-09-23T22:54:29+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-POST-COMMIT-CLAIM-HEAD-RECONCILE",
   "delegated_branches": [],
   "remote_qa": null,
   "next_action": "Create guarded work branch from cleanup/2d-3d-sync@75eaffac..., add RED contract for H0→H1 post-commit claim-head reconciliation, then implement the narrow evidence-bound authority path.",
-  "blocker": null
+  "blocker": null,
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260923.issue558",
+    "previous_executor_source": "chatgpt_interactive",
+    "previous_claim_head_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+    "observed_live_head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
+    "stale_seconds": 883,
+    "classification": "EXECUTOR_STUCK",
+    "request_comment_id": 5797014252,
+    "result_comment_id": 5797017272,
+    "guard_run_id": 35876865918,
+    "receipt_result": "GREEN",
+    "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "taken_over_at": "2026-09-23T22:54:29+08:00"
+  }
 }
