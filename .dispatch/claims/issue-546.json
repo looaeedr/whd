@@ -7,14 +7,16 @@
   "claimed_at": "2026-09-23T11:59:30+08:00",
   "base_sha": "c06f5fb976b96e0db58452438ed8977b9d86e800",
   "head_sha": "befa490f8f4a974e6ecd5f896d720c24d8ee5033",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-23T12:24:00+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T12:25:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "parent_issue": 531,
   "task_id": "B6-6",
-  "delegated_branches": [],
+  "delegated_branches": [
+    "qa/issue546-finalization-20260923"
+  ],
   "remote_qa": {
     "run_id": 35817807414,
     "head_sha": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
@@ -30,7 +32,7 @@
       "artifact_id": 10731144611
     }
   },
-  "next_action": "Persist terminal checkpoint for #546 at closing HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033 with NEXT_CHILD_EXECUTABLE -> #531, then run finalization proof.",
+  "next_action": "Create delegated qa/issue546-finalization-20260923 from exact closing HEAD befa490f8f4a974e6ecd5f896d720c24d8ee5033, run continuity finalization proof, then close #546 and hand off to #531.",
   "blocker": null,
   "drift_audit": {
     "from_head": "12f0c6bdc962c003f0b7c6862d8d455f0574dd87",
