@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T12:42:00+08:00",
   "base_sha": "64c930fd9d520cf55e365dc24ee027abc9e0e1a3",
   "head_sha": "705e37001cb215e1a556899ad33389cda974fd8d",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T14:10:00+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T14:12:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -17,10 +17,20 @@
   "remote_qa": {
     "run_id": 35825494723,
     "head_sha": "705e37001cb215e1a556899ad33389cda974fd8d",
-    "status": "in_progress",
-    "conclusion": null,
-    "purpose": "C0 fresh residual census"
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "C0 fresh residual census",
+    "evidence": {
+      "bridge_loc": 7458,
+      "total_reduction": 348,
+      "remaining_reduction_to_min": 652,
+      "over_ceiling_by": 958,
+      "facade_count": 45,
+      "unused_import_candidates": 84,
+      "direct_alias_candidates": 9,
+      "dead_literal_constant_candidates": 1
+    }
   },
-  "next_action": "Poll exact run 35825494723 to terminal; inspect residual candidates; only then request guarded mutation for proven cleanup.",
+  "next_action": "Run repo-wide bridge-consumer deletion audit for C0 residual import/alias/constant candidates; do not delete based on local unused status alone.",
   "blocker": null
 }
