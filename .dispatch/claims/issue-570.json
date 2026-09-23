@@ -6,22 +6,22 @@
   "work_branch": "governance/issue570-merge-head-claim-reconcile-20260924",
   "claimed_at": "2026-09-24T01:23:20+08:00",
   "base_sha": "3ec1152323cf9048718783ca7e8654c7b04cae1a",
-  "head_sha": "d5e82ad596393c53a5fd414ee1c53aeada33ac00",
+  "head_sha": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
   "phase": "GREEN",
-  "last_update": "2026-09-24T01:32:26+08:00",
+  "last_update": "2026-09-24T01:35:46+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-HEAD-CLAIM-RECONCILIATION",
   "parent_issue": 557,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35896267818,
-    "head_sha": "d5e82ad596393c53a5fd414ee1c53aeada33ac00",
+    "run_id": 35896635565,
+    "head_sha": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
     "status": "completed",
     "conclusion": "success",
     "workflow": "WHD｜#570｜merge-head claim reconcile focused",
     "pr": 571
   },
-  "next_action": "Verify exact focused GREEN evidence, remove the temporary qa-issue570-focused workflow, reconcile the cleaned HEAD, then guarded-merge PR #571 into cleanup/2d-3d-sync.",
+  "next_action": "Verify expanded focused GREEN evidence, remove the temporary qa-issue570-focused workflow, reconcile the cleaned HEAD, drift-audit against tested head, then guarded-merge PR #571.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35895253007,
@@ -35,6 +35,10 @@
     "implementation_guard_run": 35896179975,
     "implementation_head_reconcile_guard_run": 35896281557,
     "green_run": 35896267818,
-    "pr": 571
+    "pr": 571,
+    "hardened_commit": "9edb3ff3a1880fad90cf37a2730b4664b402787b",
+    "hardened_commit_guard_run": 35896479083,
+    "hardened_head_reconcile_guard_run": 35896657671,
+    "hardened_green_run": 35896635565
   }
 }
