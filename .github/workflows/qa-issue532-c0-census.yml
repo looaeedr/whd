@@ -1,5 +1,6 @@
 name: WHD｜#532｜C0 殘餘表面盤點
 run-name: "WHD｜#532｜C0 殘餘表面盤點｜${{ github.sha }}"
+# fresh-head-census: 1bbb4784c6c67da585a891b7e0f1bfa0d1f974ae
 
 on:
   push:
