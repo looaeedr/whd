@@ -169,7 +169,7 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 CLI precondition 形式：
 
 ```text
-python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD> [--changed-file <repo-relative-path>] [--preflight-evidence <phase6-evidence>]
+python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD> [--changed-file <repo-relative-path>] [--preflight-evidence <phase6-evidence>]
 ```
 
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
@@ -195,6 +195,21 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 - `尚未認領`：可由下一個 Worker 嘗試 atomic claim。
 
 ### 3.6 STALE_CLAIM_RECOVERY / stale owner 接管
+
+<!-- STALE_CLAIM_EXECUTABLE_TAKEOVER_V1 -->
+
+stale owner 接管的 canonical machine authority 是 `tools/stale_claim_takeover.py`；scheduler 不得靠 prompt、聊天時間感或單看 claim 未更新自行宣告卡住。
+
+- 預設 stale threshold 固定為 **600 秒（10 分鐘）**。
+- fresh evidence 至少帶：claim `last_update`、live work-branch HEAD + HEAD commit timestamp、claim 綁定的 exact remote run fresh status/updated_at（若有 run_id）。
+- exact run 為 `queued/in_progress/waiting/requested/pending` 時固定分類 `RUN_LIVE`，禁止 takeover，即使 claim 本身已超過 10 分鐘。
+- 最近 durable progress 未滿 600 秒固定 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
+- live branch 已前進時，以 **observed live HEAD** 作 resume/takeover identity；recent commit 會重置 stale age，舊 commit 超過 threshold 才可接。
+- evaluator malformed/missing evidence 必須 fail closed。
+- 真正 ownership 轉移使用 Remote Guard 單次 action `claim-takeover`，取得 fresh GREEN receipt 後才能 CAS 更新 shared claim；不得拿一般 `commit` receipt 或舊 receipt 代替。
+- CAS writeback 必須保留既有 evidence，寫入 `executor_source=scheduler` 與 `stale_takeover.previous_executor_source / observed_stale_seconds / observed_live_head_sha / evidence / taken_over_at`。
+- takeover 後下一次 repository mutation 仍要重新取得對應 action 的 fresh guard；`claim-takeover` receipt 不是 session token。
+
 「很久沒更新」不等於可以偷鎖。stale claim recovery 必須先查 owning branch、目前 HEAD、checkpoint/journal、`last_update`、remote QA run/status、Issue 最新活動與既有 owner 是否仍有 non-terminal work。
 
 - **不得直接搶鎖**、覆蓋 owner 或刪除 claim。

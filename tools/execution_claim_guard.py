@@ -1,7 +1,7 @@
 """Fail-closed execution-claim ownership guard for WHD development actions.
 
-This module does not acquire, transfer, or release claims. It validates an already
-acquired shared coordination claim immediately before a branch/write/QA action so a
+This module does not acquire, mutate, or release claims. It validates an already
+acquired shared coordination claim immediately before a branch/write/QA/takeover action so a
 second worker cannot treat comments, branch names, stale chat state, or a stale claim
 snapshot as ownership.
 """
@@ -18,6 +18,7 @@ _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_ACTIONS = frozenset(
     {
         "branch-create",
+        "claim-takeover",
         "write",
         "commit",
         "qa-dispatch",
@@ -156,6 +157,81 @@ def _assert_skill_authoring_preflight(
         )
 
 
+def _load_takeover_evidence(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ExecutionClaimError(f"claim-takeover evidence not found: {path}") from exc
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExecutionClaimError(f"claim-takeover evidence invalid: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ExecutionClaimError("claim-takeover evidence root must be an object")
+    return payload
+
+
+def _timestamp_epoch(label: str, value: object) -> float:
+    from datetime import datetime
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ExecutionClaimError(f"claim-takeover {label} timestamp invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ExecutionClaimError(f"claim-takeover {label} timestamp must be timezone-aware")
+    return parsed.timestamp()
+
+
+def _assert_takeover_evidence(
+    evidence_path: Path | None,
+    *,
+    claim: "ExecutionClaim",
+    raw_claim: dict[str, object],
+    expected_live_head_sha: str,
+) -> None:
+    if evidence_path is None:
+        raise ExecutionClaimError("claim-takeover requires machine stale takeover evidence")
+    evidence = _load_takeover_evidence(evidence_path)
+    if evidence.get("schema") != "WHD_STALE_CLAIM_TAKEOVER_V1":
+        raise ExecutionClaimError("claim-takeover evidence schema mismatch")
+    if evidence.get("classification") != "EXECUTOR_STUCK" or evidence.get("actionable") is not True:
+        raise ExecutionClaimError("claim-takeover evidence is not actionable EXECUTOR_STUCK")
+    stale_seconds = evidence.get("stale_seconds")
+    threshold = evidence.get("stale_after_seconds")
+    if isinstance(stale_seconds, bool) or not isinstance(stale_seconds, int) or stale_seconds < 600:
+        raise ExecutionClaimError("claim-takeover stale evidence is below 600 seconds")
+    if threshold != 600:
+        raise ExecutionClaimError("claim-takeover stale threshold must be exactly 600 seconds")
+    observed = _validate_sha(
+        str(evidence.get("observed_live_head_sha") or ""),
+        "takeover observed live head SHA",
+    )
+    if observed != expected_live_head_sha:
+        raise ExecutionClaimError(
+            f"claim-takeover observed live head mismatch expected={expected_live_head_sha} evidence={observed}"
+        )
+    evidence_claim_head = _validate_sha(
+        str(evidence.get("claim_head_sha") or ""),
+        "takeover evidence claim head SHA",
+    )
+    if evidence_claim_head != claim.head_sha:
+        raise ExecutionClaimError(
+            f"claim-takeover evidence claim head mismatch expected={claim.head_sha} evidence={evidence_claim_head}"
+        )
+    expected_source = str(raw_claim.get("executor_source") or "unknown").strip() or "unknown"
+    if expected_source == "scheduler":
+        raise ExecutionClaimError("claim-takeover cannot take over an already scheduler-owned claim")
+    if str(evidence.get("previous_executor_source") or "") != expected_source:
+        raise ExecutionClaimError("claim-takeover previous executor source mismatch")
+    if str(evidence.get("claim_phase") or "").upper() != claim.phase:
+        raise ExecutionClaimError("claim-takeover evidence claim phase mismatch")
+    claim_last_update = raw_claim.get("last_update")
+    if claim_last_update is None:
+        raise ExecutionClaimError("claim-takeover claim last_update missing")
+    if _timestamp_epoch("claim last_update", claim_last_update) != _timestamp_epoch(
+        "evidence claim_last_update", evidence.get("claim_last_update")
+    ):
+        raise ExecutionClaimError("claim-takeover evidence claim last_update mismatch")
+
+
 def _normalize_delegated(payload: dict[str, object]) -> tuple[str, ...]:
     raw = payload.get("delegated_branches", [])
     if raw is None:
@@ -251,6 +327,7 @@ def assert_execution_claim(
     expected_head_sha: str,
     changed_files: Iterable[str] = (),
     preflight_evidence: Iterable[str] = (),
+    takeover_evidence: Path | None = None,
 ) -> ExecutionClaim:
     """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
@@ -293,7 +370,7 @@ def assert_execution_claim(
         raise ExecutionClaimError(
             f"base SHA mismatch: expected={expected_base_sha}, claim={claim.base_sha}"
         )
-    if claim.head_sha != expected_head_sha:
+    if action != "claim-takeover" and claim.head_sha != expected_head_sha:
         raise ExecutionClaimError(
             f"stale claim head SHA: expected={expected_head_sha}, claim={claim.head_sha}"
         )
@@ -303,6 +380,23 @@ def assert_execution_claim(
         raise ExecutionClaimError(
             f"branch is not authorized by execution claim: {branch!r}; "
             f"owner_branch={claim.work_branch!r}; delegated={claim.delegated_branches!r}"
+        )
+
+    if action == "claim-takeover":
+        try:
+            raw_claim = json.loads(
+                Path(path).read_text(encoding="utf-8"),
+                object_pairs_hook=_reject_duplicate_keys,
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ExecutionClaimError(f"claim-takeover cannot re-read claim: {exc}") from exc
+        if not isinstance(raw_claim, dict):
+            raise ExecutionClaimError("claim-takeover claim root must be object")
+        _assert_takeover_evidence(
+            takeover_evidence,
+            claim=claim,
+            raw_claim=raw_claim,
+            expected_live_head_sha=expected_head_sha,
         )
 
     if action in FILE_MUTATION_ACTIONS:
@@ -336,6 +430,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Phase6 Preflight evidence file; required when a changed file is a Skill SKILL.md",
     )
+    parser.add_argument(
+        "--takeover-evidence",
+        type=Path,
+        help="machine evidence emitted by tools/stale_claim_takeover.py; required for claim-takeover",
+    )
     return parser
 
 
@@ -352,6 +451,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             expected_head_sha=args.expected_head_sha,
             changed_files=args.changed_file,
             preflight_evidence=args.preflight_evidence,
+            takeover_evidence=args.takeover_evidence,
         )
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")

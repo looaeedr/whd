@@ -352,6 +352,31 @@ Canonical `ChainContinuationState`：
 
 Primary machine regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py`。這個 gate 專門防止「#467 已關 → #468 可做，但 assistant 把 child terminal 當 Master terminal 而停工」類事故。
 
+## SCHEDULED_STALE_CLAIM_TAKEOVER_V1
+
+<!-- SCHEDULED_STALE_CLAIM_TAKEOVER_V1 -->
+
+scheduled re-entry 遇到 foreign/manual/chat active claim 時，不得把「claim 未 RELEASE」當成永久 no-op authority，也不得自行用 prompt 猜 stale。
+
+Canonical executable authority：`tools/stale_claim_takeover.py`。
+
+固定流程：
+
+```text
+fresh claim + live branch HEAD/commit time + exact remote run
+→ stale evaluator
+→ RUN_LIVE / <600s progress = wait
+→ EXECUTOR_STUCK (>=600s, no active run) = actionable
+→ Remote Guard action=claim-takeover
+→ exact GREEN receipt
+→ CAS shared claim to executor_source=scheduler + stale_takeover evidence
+→ continue stored/recomputed exact next_action
+```
+
+這個 **600 秒 claim-owner stale threshold** 與 `WAITING_REMOTE` 長跑 remote job 的小時級 stale policy 是不同問題：前者判斷 executor 是否消失，後者判斷一顆已存在的 remote progress producer 是否異常。只要 exact remote run 還 active，就先服從 `RUN_LIVE`，不能用 600 秒 owner threshold 搶跑。
+
+Machine behavior authority：`tests/process/test_issue540_stale_claim_takeover.py`。9m59s 必須 wait，10m00s 才可 `EXECUTOR_STUCK`；active exact run 永遠先阻擋 takeover。
+
 ## CHATGPT_SCHEDULED_REENTRY_V1
 
 WHD 的 primary autonomous resume executor 是 **ChatGPT scheduled re-entry**。Hourly ChatGPT Automation 只負責重新喚醒新的 ChatGPT Runtime；被喚醒後仍必須回到本 Skill 與 `tools/continuity_controller.py` 的 canonical durable state。
