@@ -1,0 +1,49 @@
+name: 工單545 B6-5 Replacement RED
+run-name: "工單 #545 B6-5｜Eight Facade Migration RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - .github/workflows/qa-issue545-b6-5-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: 驗證 NO_CALLER + test-only direct-owner requirement 先紅
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 新 requirement 必須先 RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q tests/test_issue545_b6_5_facade_batch.py > /tmp/issue545-b6-5-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue545-b6-5-red.log
+          test "$rc" -ne 0
+          grep -E "B6-5 RED|removable facade entries|test-only instance callers|direct module owner call missing|endcap relation" /tmp/issue545-b6-5-red.log
+          echo "ISSUE545_B6_5_REPLACEMENT_RED=GREEN"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: issue545-b6-5-replacement-red
+          path: /tmp/issue545-b6-5-red.log
+          if-no-files-found: error
+          retention-days: 14
