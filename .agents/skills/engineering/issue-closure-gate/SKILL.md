@@ -217,3 +217,14 @@ Issue Closure owner 的責任不是只 merge code，而是把 acceptance evidenc
 - branch cleanup 只處理 ref hygiene，不會自動形成 integration / acceptance / issue-completion evidence。
 
 Primary behavior guard：`tests/process/test_branch_cleanup_ref_guard.py`。文件 marker 只能保護 routing/知識不漂移，不能取代 executable guard。
+
+## REMOTE_FINALIZATION_EVIDENCE_HARD_GATE
+
+當 closure 由 scheduler/no-shell runtime 執行時，`OWNING_FINALIZATION_GUARD_V2` 必須由 trusted narrow executor `.github/workflows/whd-remote-finalization.yml` 真正執行。合法 evidence 至少同時包含：
+
+- exact trusted workflow run terminal success；
+- `WHD_REMOTE_FINALIZATION_RECEIPT_V1`，`result=GREEN` / `reason=FINALIZATION_PROOF_VALID`；
+- uploaded `finalization-proof.json` artifact；
+- receipt/proof 的 issue、worker、branch、HEAD、checkpoint blob/fingerprint、claim blob、authority SHA 全部與 closure 前 fresh identity exact match。
+
+只有 Issue comment / chat / markdown 出現 `FINALIZATION_GUARD_PASS` 或 `FINALIZATION_PROOF_VALID`，但沒有上述 run + artifact，固定分類 `INVALID_FINALIZATION_EVIDENCE`。若 Issue 已因此誤關，必須 reopen，保留有效 code/integration evidence，先完成 process-state repair，再 fresh machine proof → close/readback；禁止直接再關一次。

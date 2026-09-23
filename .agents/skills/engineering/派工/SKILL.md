@@ -515,3 +515,12 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
 `BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
+
+### TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1_BRIDGE
+
+當 scheduler / automation 已有 terminal owning checkpoint，但目前 execution runtime 無法直接執行 canonical continuity controller 時，closure 不得退化成 Issue comment marker。固定 remote path 是專用窄 executor `.github/workflows/whd-remote-finalization.yml`，只接受 fixed identity fields，執行 `authorize-finalization` → `verify-finalization-proof`，並產生 `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + bound proof artifact。
+
+- 禁止 arbitrary command / shell payload input；generic executor 不得替代。
+- workflow run / artifact identity 必須 fresh 綁 issue + worker + branch + HEAD + checkpoint blob/fingerprint + claim blob + trusted authority SHA。
+- Issue comment 中單獨出現 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 文字一律不是 closure authority。
+- executor terminal GREEN 後仍要 fresh-read artifact receipt，exact match 後才可 close Issue；close 後 remote readback，再 release claim。
