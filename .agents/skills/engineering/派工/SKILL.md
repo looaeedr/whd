@@ -155,6 +155,21 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 6. **claim 失敗**、shared authority 已顯示其他 owner、或 atomic compare-and-swap 衝突時，必須 fail closed：**禁止施工該 Issue**、禁止另開平行實作來繞過 claim。若 dispatch pool 尚有可執行的未認領工單，依 `NON_TERMINAL_CONTINUE` 立即轉往下一張，而不是停在「已被鎖定」。
 7. 若目前環境沒有任何可提供 shared + atomic ownership 的能力，必須把它記成 capability blocker；不得把 branch-local 檔案或 comment 假裝成安全鎖。
 
+#### EXECUTION_INSTANCE_IDENTITY_V1
+
+新取得 execution claim 時，`worker` 必須是**唯一 execution-instance 的 ownership identity**，不得再用所有聊天室共用的裸 `worker=chatgpt`，也不得用裸 `worker=scheduler` 當新 claim owner。
+
+- interactive ChatGPT 新 claim 的 canonical 形式：`chatgpt.<instance-token>`。
+- scheduler / automation 新 claim 的 canonical 形式：`scheduler.<automation-id-or-token>`。
+- identity 必須相容 trusted Remote Guard 現行 parser：`[A-Za-z0-9_.-]{1,64}`；不得使用冒號、空白或超出 parser contract 的字元。
+- `<instance-token>` 必須在該 execution instance 建立時產生並保持穩定，且要能區分同時存在的其他 ChatGPT / scheduler invocation。不得把固定字串 `chatgpt` 當成 token。
+- `executor_source` 只屬 coarse provenance / routing classification；它**不是 ownership identity**、不是 claim authority，也不得因 `executor_source=chatgpt_interactive` 或 `scheduler` 相同就把兩個 execution instance 視為同一 owner。
+- 新 claim atomic acquisition 成功後，必須立刻在 user-visible CHECKPOINT / claim report 回顯 exact `worker` identity；之後使用者看到 shared claim 時，才能把 repository provenance 對回實際聊天／排程 execution instance。只有 GitHub 使用者名稱或 `executor_source` 不足以完成這個對應。
+- `tools/execution_claim_guard.py` 與 Remote Guard 仍以 claim 中 exact `worker` 做 owner equality gate；呼叫 guard 時必須帶同一個 exact identity，不得降級只比對 `executor_source`。
+- claim acquisition path 對**新 claim**看到 generic `worker=chatgpt` / `worker=scheduler` 時必須 fail closed，而不是建立不可追溯的新 ownership。
+- legacy migration：已經 active 的 legacy claim（例如既有 `worker=chatgpt`）**不得只為升級格式而中途改 owner**。它保持原 owner 到正常 terminal/release，或依 canonical stale takeover 流程合法轉移；terminal/release 後建立的 successor / new claim 才強制使用 unique execution-instance identity。
+- stale takeover 寫回 scheduler owner 時，同樣必須使用該 scheduler invocation 的 unique `scheduler.<automation-id-or-token>` identity；`stale_takeover.previous_executor_source` 可保留 coarse provenance，但不能取代 previous exact worker evidence。
+
 ### EXECUTION_CLAIM_PREWRITE_HARD_GATE
 成功取得 atomic claim **不等於已獲准寫入**。在每一次會建立或改動 repository state 的動作前，必須立即執行 `tools/execution_claim_guard.py`，以 shared coordination claim 的最新內容作唯一 authority；不得只相信 Issue comment、branch 名稱、聊天記憶或先前一次 guard 結果。
 
