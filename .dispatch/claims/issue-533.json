@@ -1,14 +1,14 @@
 {
   "issue": 533,
   "issue_url": "https://github.com/looaeedr/whd/issues/533",
-  "worker": "chatgpt.sol260923.c1a",
-  "executor_source": "chatgpt_interactive",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T21:20:00+08:00",
   "base_sha": "b256e4cef91b66bd5dd8e4ee371d886f2b0fe473",
   "head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T21:31:00+08:00",
+  "last_update": "2026-09-23T22:16:09+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -23,5 +23,27 @@
     "requirement_red_run": 35866174976
   },
   "next_action": "Poll exact RUN 35867336375 @ 09e19c06cffcee6521483eb84b16d47cf7d5ad3c to terminal; classify any ARG violation before remediation.",
-  "blocker": null
+  "blocker": null,
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260923.c1a",
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_stale_seconds": 2709,
+    "observed_live_head_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
+    "previous_last_update": "2026-09-23T21:31:00+08:00",
+    "exact_remote_run_id": 35867336375,
+    "exact_remote_run_status": "completed",
+    "exact_remote_run_conclusion": "success",
+    "taken_over_at": "2026-09-23T22:16:09+08:00",
+    "guard": {
+      "request_comment_id": 5796467189,
+      "result_comment_id": 5796471142,
+      "run_id": 35872914470,
+      "orchestrator_head_sha": "7b8d84645870d40118c9691ae80cc0f07e05454d",
+      "tested_target_sha": "09e19c06cffcee6521483eb84b16d47cf7d5ad3c",
+      "receipt_result": "GREEN",
+      "receipt_reason": "EXECUTION_CLAIM_GUARD_GREEN",
+      "expires_at": "2026-09-23T14:36:09.556705Z"
+    }
+  }
 }
