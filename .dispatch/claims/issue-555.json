@@ -1,0 +1,17 @@
+{
+  "issue": 555,
+  "issue_url": "https://github.com/looaeedr/whd/issues/555",
+  "worker": "chatgpt.issue555.20260923T1249",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue555-execution-instance-identity-20260923",
+  "claimed_at": "2026-09-23T12:49:50+08:00",
+  "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
+  "head_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-23T12:49:50+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain Remote Guard GREEN for branch-create, create exact work branch, then add RED contract test before Skill mutation.",
+  "blocker": null
+}
