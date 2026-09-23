@@ -6,16 +6,40 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-23T10:41:00+08:00",
   "base_sha": "f7179554c448a4af5b271d251290912efe115a38",
-  "head_sha": "f7179554c448a4af5b271d251290912efe115a38",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-23T10:41:00+08:00",
+  "head_sha": "4dcdbd07241988738374b506abd57e3818a07559",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-23T10:45:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "parent_issue": 531,
   "task_id": "B6-5",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run B6-5 exact-branch consumer-normalized audit for its 12 A0 facade keys; RED→GREEN only for proven removable/direct-owner entries.",
+  "remote_qa": {
+    "run_id": 35811547955,
+    "head_sha": "4dcdbd07241988738374b506abd57e3818a07559",
+    "status": "completed",
+    "conclusion": "success",
+    "purpose": "B6-5 consumer-normalized facade audit",
+    "evidence": {
+      "artifact_id": 10730155653,
+      "accounted": 12,
+      "unclassified": 0,
+      "dynamic_ref_unreviewed": 0,
+      "no_caller": [
+        "save_diagnostic_file"
+      ],
+      "test_only_review": [
+        "toggle_corner_parameter_lock",
+        "_render_settings_context",
+        "on_baseline_model_changed",
+        "confirm_corner_transaction",
+        "cancel_corner_transaction",
+        "export_workspace_state_if_dirty",
+        "_phase6_on_endcap_edge_relation_selected"
+      ]
+    }
+  },
+  "next_action": "Add replacement RED proving one NO_CALLER + seven test-only direct-owner facade entries must leave facade after caller migration; facade target 52.",
   "blocker": null
 }
