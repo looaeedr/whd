@@ -286,3 +286,17 @@ CURRENT pure publication-plan owner：`phase6_sync_envelope.py`。
 
 以上 ticket / RUN 只提供 provenance；本節定義的 stable ownership boundary 才是後續 routing 要沿用的 CURRENT contract。
 
+
+
+## Phase 6 C1 — Permanent Bridge anti-regrowth machine guard
+
+CURRENT permanent structural ratchet for the accepted Phase 6 Bridge surface:
+
+- The anti-regrowth gate is a **permanent machine guard**, not a one-shot acceptance workflow. It must remain runnable after C1 acceptance and must continue protecting later changes.
+- Bridge LOC/facade limits must read their accepted durable record/symbol authority; do not duplicate stale numeric literals in a second policy source.
+- Any net-new top-level Bridge body greater than 40 lines requires explicit architecture review/evidence before acceptance.
+- Facade compatibility surface is non-growth by default; new bindings require explicit compatibility authority and must not silently restore removed wrapper ownership.
+- Extracted-domain implementation must not be redefined in `fold_designer_bridge.py`; reverse-import Bridge count must remain 0; second composition root count must remain 0; full-app owner/service-bag interfaces remain prohibited.
+- A GREEN anti-regrowth run validates structural invariants only. It does not become geometry/manufacturing/persistence domain truth and does not replace domain-specific final acceptance when those domains change.
+
+Accepted C1 provenance: owning Issue #533, tested HEAD `09e19c06cffcee6521483eb84b16d47cf7d5ad3c`, permanent anti-regrowth RUN `35867336375` GREEN. Provenance identifies the accepted ratchet; the rules above are the durable authority.
