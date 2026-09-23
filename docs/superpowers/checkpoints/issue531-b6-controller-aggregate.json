@@ -70,6 +70,6 @@
     "issue": 532,
     "task_id": "C0",
     "action": "Bridge Final Compression / Surface Normalization",
-    "parent_accepted_head": "PENDING_CLEANUP_HEAD"
+    "authority": "Final accepted closing HEAD is recorded by the canonical coordination checkpoint after cleanup."
   }
 }
