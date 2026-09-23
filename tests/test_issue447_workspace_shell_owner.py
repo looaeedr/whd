@@ -19,12 +19,14 @@ SHELL = ROOT / "phase6_workspace_shell.py"
 SHELL_COMPAT_FUNCTIONS = {
     "_phase6_build_persistent_top_area",
     "_phase6_build_project_toolbar",
-    "_phase6_build_transaction_buttons",
-    "_phase6_build_global_persistent_controls",
-    "_phase6_build_output_controls",
-    "_phase6_build_visual_controls",
     "_phase6_toggle_fullscreen",
     "_phase6_mount_shared_content",
+}
+C0_ZERO_CONSUMER_REMOVED = {
+    "_phase6_build_transaction_buttons": "build_transaction_buttons",
+    "_phase6_build_global_persistent_controls": "build_global_persistent_controls",
+    "_phase6_build_output_controls": "build_output_controls",
+    "_phase6_build_visual_controls": "build_visual_controls",
 }
 MAX_COMPAT_SPAN = 36
 
@@ -91,12 +93,26 @@ def test_b2_bridge_shell_compatibility_surface_is_thin():
     funcs = _top_level_functions(BRIDGE)
     missing = sorted(SHELL_COMPAT_FUNCTIONS - set(funcs))
     assert not missing
+    assert C0_ZERO_CONSUMER_REMOVED.keys().isdisjoint(funcs)
     oversized = {
         name: _span(funcs[name])
         for name in sorted(SHELL_COMPAT_FUNCTIONS)
         if _span(funcs[name]) > MAX_COMPAT_SPAN
     }
     assert oversized == {}, f"B2 RED: bridge still owns deep shell bodies: {oversized}"
+
+    shell_tree = _tree(SHELL)
+    owner = next(
+        node
+        for node in shell_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WorkspaceShellOwner"
+    )
+    owner_methods = {
+        node.name
+        for node in owner.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert set(C0_ZERO_CONSUMER_REMOVED.values()) <= owner_methods
 
 
 def test_b2_fullscreen_routes_to_shell_owner_without_second_binding_loop():
