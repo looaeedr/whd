@@ -8,7 +8,7 @@
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T23:12:12+08:00",
+  "last_update": "2026-09-23T23:15:39+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-POST-COMMIT-CLAIM-HEAD-RECONCILE",
   "delegated_branches": [],
@@ -20,8 +20,8 @@
     "workflow": "Knowledge Governance Bootstrap",
     "pr": 559
   },
-  "next_action": "Run owned finalization for this governance issue against the fresh merged production state, close/read back the Issue, release the shared claim, then continue the live-derived dependent chain.",
-  "blocker": null,
+  "next_action": "Execute canonical tools/continuity_controller.py authorize-finalization and verify-finalization-proof for the terminal owning checkpoint using exact issue/branch/head; only after FINALIZATION_PROOF_VALID close/read back the Issue, release the shared claim, and continue the live-derived dependent chain.",
+  "blocker": "CAPABILITY_BLOCKER: current scheduler runtime has no repository command-execution primitive and no trusted generic remote finalization executor to actually run tools/continuity_controller.py authorize-finalization + verify-finalization-proof against the fresh terminal checkpoint; closure gate forbids handwritten/prose proof or direct Issue close.",
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
     "previous_worker": "chatgpt.sol260923.issue558",
@@ -38,9 +38,9 @@
     "taken_over_at": "2026-09-23T22:54:29+08:00"
   },
   "claim_write_guard": {
-    "request_comment_id": 5797406033,
-    "result_comment_id": 5797409436,
-    "run_id": 35879761345,
+    "request_comment_id": 5797460431,
+    "result_comment_id": 5797463704,
+    "run_id": 35880182577,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN"
   },
@@ -51,5 +51,12 @@
     "production_head": "c586584a0b6ddf242177246079a52b6884c6e2a6",
     "remote_qa_run_id": 35877873228,
     "remote_qa_conclusion": "success"
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-558.json",
+    "checkpoint_commit": "c7741aee875492120c5f30e46387658b4ac4e13f",
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "proof_status": "NOT_CREATED_CAPABILITY_BLOCKED",
+    "blocker_class": "FINALIZATION_EXECUTION_CAPABILITY_BLOCKER"
   }
 }
