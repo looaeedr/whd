@@ -31,7 +31,6 @@ from ae_engine.sheetmetal_part_adapters import (
     door_layout_part_key,
 )
 from phase6_designer_workspace import Phase6DesignerWorkspace
-from phase6_workspace_navigation_controller import Phase6WorkspaceNavigationController
 from phase6_derived_part_projection import (
     DerivedPartRequestAssemblyInput,
     build_derived_part_projection_request,
@@ -78,7 +77,6 @@ from gui_modules.application.fold_designer_settings_coordinator import (
     Phase6SettingsApplicationPorts,
 )
 from phase6_project_controller import Phase6ProjectController
-from phase6_registry_diagnostics_controller import Phase6RegistryDiagnosticsController
 from phase6_registry_diagnostics_panel import (
     Phase6RegistryDiagnosticsPanel,
     build_registry_choice,
@@ -428,25 +426,8 @@ def _designer_workspace(self) -> Phase6DesignerWorkspace:
     return self.designer_workspace
 
 
-def _phase6_workspace_navigation(self) -> Phase6WorkspaceNavigationController:
-    workspace = _designer_workspace(self)
-    controller = getattr(self, "_phase6_workspace_navigation_controller", None)
-    if controller is None or getattr(controller, "workspace", None) is not workspace:
-        # Seed only from a real instance field.  Phase6FoldDesignerApp exposes
-        # _phase6_box_body_active_piece_key as a property backed by this
-        # controller, so getattr(self, ...) here would recurse through the
-        # descriptor.  Lightweight compatibility/test owners may still carry
-        # the legacy value directly in __dict__.
-        legacy_memory = getattr(self, "__dict__", {}).get(
-            "_phase6_box_body_active_piece_key"
-        )
-        controller = Phase6WorkspaceNavigationController(
-            workspace,
-            remembered_box_body_child=legacy_memory,
-        )
-        self._phase6_workspace_navigation_controller = controller
-    return controller
-
+def _phase6_workspace_navigation(self):
+    return _phase6_composition(self).workspace_navigation()
 
 def _phase6_composition(self) -> Phase6FoldDesignerComposition:
     composition = getattr(self, "_phase6_composition_owner", None)
@@ -770,22 +751,7 @@ def _phase6_settings_coordinator(self):
     )
 
 def _phase6_registry_diagnostics(self):
-    controller = getattr(self, "_phase6_registry_diagnostics_controller", None)
-    if controller is None:
-        controller = Phase6RegistryDiagnosticsController(
-            candidate_id=getattr(self, "_phase6_registry_candidate_id", ""),
-            candidate_record=getattr(self, "_phase6_registry_candidate_record", {}),
-            regression_evidence=getattr(
-                self, "_phase6_registry_regression_evidence", {}
-            ),
-            rule_records=getattr(self, "_phase6_registry_rule_records", {}),
-            promotion_candidates=getattr(
-                self, "_phase6_last_relief_promotion_candidates", {}
-            ),
-        )
-        self._phase6_registry_diagnostics_controller = controller
-    return controller
-
+    return _phase6_composition(self).registry_diagnostics()
 
 def _phase6_sync_registry_diagnostics_compatibility_mirrors(
     self, controller=None
