@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "head_sha": "7482ba33628a4bc0302bd1c5c54ea3aec45d1150",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T05:32:20+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T06:30:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,17 +18,34 @@
   "remote_qa": {
     "run_id": 35922979384,
     "head_sha": "7482ba33628a4bc0302bd1c5c54ea3aec45d1150",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "failure",
     "workflow": "WHD｜#534｜C2 最終整合驗收",
     "tested_candidate_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65"
+    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+    "failed_job_id": 107397799789,
+    "failure_class": "CANDIDATE_ONLY_RED",
+    "baseline_headless_red": 10,
+    "candidate_headless_red": 49,
+    "baseline_xvfb_red": 55,
+    "candidate_xvfb_red": 93
   },
-  "next_action": "Poll exact C2 A/B run 35922979384 to terminal; on success inspect candidate-only Headless/Xvfb diff artifact and continue required final gates; on failure read exact failed-job evidence and repair without duplicate dispatch.",
+  "next_action": "Classify the exact candidate-only RED set from run 35922979384 against the accepted C1/C2 authority. Determine stale historical source-contract tests versus true runtime regressions, then apply the smallest authorized repair on the work-order branch and rerun a fresh fixed-T0 Headless/Xvfb A/B without weakening the C2 candidate-only-zero gate.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
     "predecessor_checkpoint_blob_sha": "7c08ac6eab513ea95cf801a0e311e2291f8fd755",
     "accepted_parent_head": "fb5443215b36e4ab6a5b2d57a72600e621df83d6"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35928674977,
+    "request_comment_id": 5804021771,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "issued_at": "2026-09-23T22:30:15.515198Z",
+    "expires_at": "2026-09-23T22:50:15.515198Z",
+    "guard_authority_sha": "585a41b0ee6a2a56eaa150a27ffd2fa5c2476538",
+    "consumed": true
   }
 }
