@@ -8,7 +8,7 @@
   "base_sha": "8e24b3e463768b05083eedf7cb22782f53dcacfa",
   "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
   "phase": "CLOSING",
-  "last_update": "2026-09-23T14:07:30+08:00",
+  "last_update": "2026-09-23T14:09:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "remote_qa": {
@@ -24,12 +24,18 @@
       "tested_to_cleaned_drift": "temporary QA workflow deletion only"
     }
   },
-  "next_action": "Fresh-read PR #556 mergeability/checks; if mergeable, obtain new pr-write Remote Guard receipt pinned to cleaned head and merge PR #556, then production readback and finalization.",
+  "next_action": "Run owning finalization/closure guard for #555, close issue with completed reason, remote-readback, then RELEASE claim.",
   "blocker": null,
   "pr": {
     "number": 556,
     "url": "https://github.com/looaeedr/whd/pull/556",
     "head_sha": "4474dcfccb2fa2b751843ef7124c572860813471",
     "base": "cleanup/2d-3d-sync"
+  },
+  "integration": {
+    "pr": 556,
+    "merge_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "75eaffac799d0dcf164a135591ec00754969fcc6"
   }
 }
