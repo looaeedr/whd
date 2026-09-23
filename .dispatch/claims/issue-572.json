@@ -6,30 +6,31 @@
   "work_branch": "governance/issue572-sibling-scheduler-stale-takeover-20260924",
   "claimed_at": "2026-09-24T01:57:02+08:00",
   "base_sha": "84a0ef9e6d74ba8762de8586c72ec38bcba2daba",
-  "head_sha": "5a84d5eb4953cb37176eab9510156e887a3755fa",
-  "phase": "RED",
-  "last_update": "2026-09-24T02:06:46+08:00",
+  "head_sha": "77feb5ed10668b7357bde49c7cbed9b313d1de60",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T02:09:05+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-SIBLING-SCHEDULER-STALE-TAKEOVER",
   "parent_issue": 533,
   "master_issue": 520,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 35900036468,
-    "head_sha": "5a84d5eb4953cb37176eab9510156e887a3755fa",
+    "run_id": 35900438034,
+    "head_sha": "77feb5ed10668b7357bde49c7cbed9b313d1de60",
     "status": "completed",
-    "conclusion": "failure",
+    "conclusion": "success",
     "workflow": "WHD｜#572｜兄弟排程 stale takeover 窄版驗收",
     "pr": 575,
     "evidence": {
-      "tests": "1 passed / 4 failed",
-      "root_cause": [
-        "ALREADY_SCHEDULER blanket evaluator classification",
-        "execution guard rejects executor_source=scheduler takeover evidence"
+      "tests": "27 passed",
+      "failures": 0,
+      "includes": [
+        "tests/process/test_issue540_stale_claim_takeover.py",
+        "tests/process/test_issue572_sibling_scheduler_stale_takeover.py"
       ]
     }
   },
-  "next_action": "Implement the narrow scheduler-source stale takeover repair in stale_claim_takeover.py and execution_claim_guard.py, update historical #540 expectation, and expand focused workflow to run both #540 and #572 tests.",
+  "next_action": "Synchronize canonical Remote Guard Skill wording with the new foreign-sibling scheduler takeover semantics, then rerun focused QA and clean up the temporary workflow before integration.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35899160772,
@@ -41,6 +42,10 @@
     "focused_workflow_head_reconcile_guard_run": 35899864448,
     "red_run": 35900036468,
     "pr": 575,
-    "red_claim_guard_run": 35900202559
+    "red_claim_guard_run": 35900202559,
+    "implementation_commit": "77feb5ed10668b7357bde49c7cbed9b313d1de60",
+    "implementation_guard_run": 35900289390,
+    "implementation_head_reconcile_guard_run": 35900457984,
+    "green_run": 35900438034
   }
 }
