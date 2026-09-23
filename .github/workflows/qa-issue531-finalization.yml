@@ -1,0 +1,52 @@
+name: WHD｜#531｜B6 Controller 可執行收尾驗證
+run-name: "WHD｜#531｜B6 Controller 可執行收尾證明｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - qa/issue531-finalization-20260923
+    paths:
+      - .github/workflows/qa-issue531-finalization.yml
+
+permissions:
+  contents: read
+
+jobs:
+  finalization:
+    name: 驗證 #531 canonical checkpoint 與收尾證明
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出收尾分支
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 取得 shared coordination checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          git show origin/coord/dispatch-claims:.dispatch/checkpoints/issue-531.json > /tmp/issue-531.json
+
+      - name: 授權可執行收尾
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller authorize-finalization             /tmp/issue-531.json             --issue 531             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha 64c930fd9d520cf55e365dc24ee027abc9e0e1a3             --proof-out /tmp/issue-531.finalization-proof.json
+
+      - name: 驗證收尾證明
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.continuity_controller verify-finalization-proof             /tmp/issue-531.json             /tmp/issue-531.finalization-proof.json             --issue 531             --branch work/issue520-phase6-bridge-residual-reduction-20260923             --head-sha 64c930fd9d520cf55e365dc24ee027abc9e0e1a3
+          sha256sum /tmp/issue-531.finalization-proof.json
+          cp /tmp/issue-531.finalization-proof.json issue-531.finalization-proof.json
+
+      - name: 上傳收尾證明
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue531-finalization-proof
+          path: issue-531.finalization-proof.json
+          if-no-files-found: error
+          retention-days: 14
