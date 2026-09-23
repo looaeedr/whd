@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T22:25:30+08:00",
   "base_sha": "75eaffac799d0dcf164a135591ec00754969fcc6",
   "head_sha": "df756e8c5a0b5143bd7a2062a080a80dc98dbee0",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-23T22:57:18+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-23T23:12:12+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-POST-COMMIT-CLAIM-HEAD-RECONCILE",
   "delegated_branches": [],
@@ -20,7 +20,7 @@
     "workflow": "Knowledge Governance Bootstrap",
     "pr": 559
   },
-  "next_action": "Finalize PR #559 / Issue #558 from exact successful remote QA, merge the governance repair into cleanup/2d-3d-sync, then continue the live-derived master chain.",
+  "next_action": "Run owned finalization for this governance issue against the fresh merged production state, close/read back the Issue, release the shared claim, then continue the live-derived dependent chain.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -38,9 +38,18 @@
     "taken_over_at": "2026-09-23T22:54:29+08:00"
   },
   "claim_write_guard": {
-    "request_comment_id": 5797159881,
-    "run_id": 35877914538,
+    "request_comment_id": 5797406033,
+    "result_comment_id": 5797409436,
+    "run_id": 35879761345,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN"
+  },
+  "integration": {
+    "pr": 559,
+    "merge_sha": "c586584a0b6ddf242177246079a52b6884c6e2a6",
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "c586584a0b6ddf242177246079a52b6884c6e2a6",
+    "remote_qa_run_id": 35877873228,
+    "remote_qa_conclusion": "success"
   }
 }
