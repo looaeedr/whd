@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T23:33:41+08:00",
   "base_sha": "c586584a0b6ddf242177246079a52b6884c6e2a6",
   "head_sha": "94e74b321884411454a4782487bce69d56a2e788",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T00:41:56+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T00:44:12+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-TRUSTED-REMOTE-FINALIZATION",
   "parent_issue": 558,
@@ -21,7 +21,7 @@
     "workflow": "Knowledge Governance Bootstrap",
     "pr": 561
   },
-  "next_action": "Write terminal success checkpoint for #560, obtain trusted finalization proof, close/readback #560, then release claim.",
+  "next_action": null,
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35882526177,
@@ -46,5 +46,23 @@
     "trusted_finalization_run": 35890385610,
     "artifact_id": 10764870512,
     "reason": "FINALIZATION_PROOF_VALID"
+  },
+  "finalization": {
+    "checkpoint": ".dispatch/checkpoints/issue-560.json",
+    "checkpoint_blob_sha": "d209ae1c2a12b4915c301911f97d49307d8dc5f7",
+    "checkpoint_fingerprint": "2928eb9ae5f007d25397fb96cba8ec4aef29ace8cf10b60de872cfad455d4f68",
+    "trusted_run_id": 35890712455,
+    "artifact_id": 10765140734,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "issue_state": "closed",
+    "issue_state_reason": "completed"
+  },
+  "release": {
+    "guard_request_comment_id": 5798835691,
+    "guard_result_comment_id": 5798838774,
+    "guard_run_id": 35890788361,
+    "result": "GREEN",
+    "released_at": "2026-09-24T00:44:12+08:00"
   }
 }
