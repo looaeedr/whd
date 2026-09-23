@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-24T02:17:46+08:00",
   "base_sha": "091016dbb51194a41f4b5a891be2d01fa11c58de",
   "head_sha": "76fc78b6c1539017aa510b012fbe556881400bf5",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T02:20:09+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T02:23:44+08:00",
   "production_target": "main",
   "task_id": "GOV-TRUSTED-TAKEOVER-WORKER-TRANSPORT",
   "parent_issue": 573,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Open a guarded PR to main for the single trusted Remote Guard workflow change, verify the exact one-file diff, guarded-merge it, fresh-read main workflow, then return to parent #573 for the real #533 E2E retry.",
+  "next_action": "Write terminal checkpoint for #576, obtain trusted finalization proof, close/readback #576, release claim, then resume parent #573 and E2E retry #533.",
   "blocker": null,
   "progress": {
     "branch_create_guard_run": 35901532692,
@@ -23,6 +23,18 @@
     "head_reconcile_guard_run": 35901708785,
     "changed_files": [
       ".github/workflows/whd-remote-execution-guard.yml"
-    ]
+    ],
+    "pr": 577,
+    "merge_guard_run": 35901934127,
+    "merge_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
+    "main_readback_guard_run": 35902061814
+  },
+  "integration": {
+    "pr": 577,
+    "merge_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
+    "production_target": "main",
+    "production_head": "36585528eaeb345212065b33f768293e3ac7feb2",
+    "trusted_workflow_blob_sha": "e4f30bf59e0d3a5354919e7d0e068e4e64b01a6c",
+    "trusted_transport_readback_guard_run": 35902061814
   }
 }
