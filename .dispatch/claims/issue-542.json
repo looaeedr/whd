@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T07:11:00+08:00",
   "base_sha": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
   "head_sha": "90bce030feed775fc852d9bd8f8ef21482471a4a",
-  "phase": "FINALIZING",
-  "last_update": "2026-09-23T08:08:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-23T08:13:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -31,7 +31,7 @@
     "replacement_red_run": 35796616236,
     "audit_run": 35796289899
   },
-  "next_action": "Run executable finalization guard/proof for #542, close/readback, release claim, then claim #543/B6-3.",
+  "next_action": null,
   "blocker": null,
   "recovery_evidence": {
     "prior_parent": "a0b79dcd8a72d1d2e3488102cbd11b75a0b5bb29",
@@ -46,5 +46,22 @@
     "tested_head": "46f7cc0eb5137cd88e8669e400b31417d82d968a",
     "closing_head": "90bce030feed775fc852d9bd8f8ef21482471a4a",
     "production_test_drift": 0
+  },
+  "release_evidence": {
+    "issue_state": "closed",
+    "state_reason": "completed",
+    "accepted_head": "90bce030feed775fc852d9bd8f8ef21482471a4a",
+    "accounted": 12,
+    "facade_count": 64,
+    "finalization_run": 35800996583,
+    "finalization_artifact": 10725663709,
+    "proof_sha256": "6f34fd1c0c05a9414531c75c3a55ab37761d0ce3b66282cfaa8d1d68129da4a9",
+    "checkpoint": ".dispatch/checkpoints/issue-542.json",
+    "initial_finalization_run": {
+      "run_id": 35800935089,
+      "classification": "HARNESS_CHECKPOINT_SCHEMA_ERROR"
+    },
+    "temp_finalization_branch": "qa/issue542-finalization-20260923",
+    "temp_branch_cleanup_deferred_to_chain_cleanup": true
   }
 }
