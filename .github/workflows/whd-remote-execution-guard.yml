@@ -222,23 +222,23 @@ jobs:
                 set -e
                 if [ "$gh_rc" -eq 0 ]; then
                   python - <<'PY'
-import json
-from pathlib import Path
+          import json
+          from pathlib import Path
 
-raw = json.loads(Path("/tmp/remote-run-api.json").read_text(encoding="utf-8"))
-payload = {
-    "found": True,
-    "run_id": int(raw["id"]),
-    "head_sha": raw["head_sha"],
-    "status": raw.get("status"),
-    "conclusion": raw.get("conclusion"),
-    "updated_at": raw.get("updated_at"),
-}
-Path("/tmp/remote-run.json").write_text(
-    json.dumps(payload, sort_keys=True) + "\n",
-    encoding="utf-8",
-)
-PY
+          raw = json.loads(Path("/tmp/remote-run-api.json").read_text(encoding="utf-8"))
+          payload = {
+              "found": True,
+              "run_id": int(raw["id"]),
+              "head_sha": raw["head_sha"],
+              "status": raw.get("status"),
+              "conclusion": raw.get("conclusion"),
+              "updated_at": raw.get("updated_at"),
+          }
+          Path("/tmp/remote-run.json").write_text(
+              json.dumps(payload, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
                 elif grep -Eqi '404|Not Found' /tmp/remote-run.err; then
                   printf '{"found":false,"run_id":%s}\n' "$run_id" > /tmp/remote-run.json
                 else
@@ -314,11 +314,6 @@ PY
             done < /tmp/remote-guard-changed-files.txt
             "${preflight_args[@]}"
 
-            guard_head_sha="$RG_HEAD_SHA"
-            if [ "$RG_ACTION" = "claim-takeover" ]; then
-              guard_head_sha="$RG_TESTED_TARGET_SHA"
-            fi
-
             guard_args=(
               python tools/execution_claim_guard.py
               --claim /tmp/execution-claim.json
@@ -327,15 +322,19 @@ PY
               --branch "$RG_BRANCH"
               --action "$RG_ACTION"
               --base-sha "$RG_BASE_SHA"
-              --head-sha "$guard_head_sha"
-              --preflight-evidence /tmp/preflight-evidence.txt
             )
+            if [ "$RG_ACTION" = "claim-takeover" ]; then
+              guard_args+=(
+                --head-sha "$RG_TESTED_TARGET_SHA"
+                --takeover-evidence /tmp/stale-takeover-decision.json
+              )
+            else
+              guard_args+=(--head-sha "$RG_HEAD_SHA")
+            fi
+            guard_args+=(--preflight-evidence /tmp/preflight-evidence.txt)
             while IFS= read -r changed_file; do
               [ -z "$changed_file" ] || guard_args+=(--changed-file "$changed_file")
             done < /tmp/remote-guard-changed-files.txt
-            if [ "$RG_ACTION" = "claim-takeover" ]; then
-              guard_args+=(--takeover-evidence /tmp/stale-takeover-decision.json)
-            fi
             "${guard_args[@]}"
           ) > /tmp/remote-guard.log 2>&1
           rc=$?
