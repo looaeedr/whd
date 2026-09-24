@@ -308,3 +308,66 @@ def test_activation_transaction_rejects_missing_checkpoint_even_when_claim_chang
                 ".dispatch/checkpoints/issue-256.json",
             ),
         )
+
+
+@pytest.mark.parametrize("transition", ["takeover", "reactivate"])
+def test_activation_transaction_must_actively_read_checkpoint_missing_file_fails(
+    tmp_path: Path,
+    transition: str,
+) -> None:
+    guard = _load_guard()
+    gate = getattr(guard, "assert_active_claim_activation_transaction", None)
+    assert callable(gate), (
+        "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: activation transaction gate is missing"
+    )
+
+    claim_path = _write_json(
+        tmp_path / "claim.json",
+        _claim(phase="RECOVERING"),
+    )
+    claim = guard.load_execution_claim(claim_path)
+
+    with pytest.raises(
+        guard.ExecutionClaimError,
+        match="ACTIVE_CLAIM_REQUIRES_CHECKPOINT",
+    ):
+        gate(
+            claim,
+            tmp_path / "checkpoint-does-not-exist.json",
+            transition=transition,
+            changed_files=(".dispatch/claims/issue-256.json",),
+        )
+
+
+@pytest.mark.parametrize("transition", ["takeover", "reactivate"])
+def test_activation_transaction_must_parse_checkpoint_not_just_assume_or_exists_check(
+    tmp_path: Path,
+    transition: str,
+) -> None:
+    guard = _load_guard()
+    gate = getattr(guard, "assert_active_claim_activation_transaction", None)
+    assert callable(gate), (
+        "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: activation transaction gate is missing"
+    )
+
+    claim_path = _write_json(
+        tmp_path / "claim.json",
+        _claim(phase="RECOVERING"),
+    )
+    malformed_checkpoint = tmp_path / "checkpoint.json"
+    malformed_checkpoint.write_text(
+        "{\"issue\": \"256\", \"branch\": ",
+        encoding="utf-8",
+    )
+    claim = guard.load_execution_claim(claim_path)
+
+    with pytest.raises(
+        guard.ExecutionClaimError,
+        match="ACTIVE_CLAIM_REQUIRES_CHECKPOINT",
+    ):
+        gate(
+            claim,
+            malformed_checkpoint,
+            transition=transition,
+            changed_files=(".dispatch/claims/issue-256.json",),
+        )
