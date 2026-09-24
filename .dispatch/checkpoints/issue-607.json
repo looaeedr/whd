@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "607",
+  "branch": "governance/issue607-dispatch-heartbeat-20260924",
+  "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35991980558,
+  "job_id": 107607973814,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User requirement 2026-09-24: scheduler same-lane liveness must use heartbeat freshness + normal END; fixed 10-minute lease is not the primary invocation-liveness signal.",
+    "Skill commit 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c modifies only .agents/skills/engineering/派工/SKILL.md.",
+    "Skill-authoring Remote Guard GREEN run 35991562448 read 寫技能 + 派工 + issue-closure-gate and required references.",
+    "PR #608 merged to cleanup/2d-3d-sync as b61db24e4428100b7e7d627ae946a04f93ca0f8b.",
+    "Production readback blob caf5c5de90ff1cb905b9b87a804c6e36284be009 contains WHD_SCHEDULER_RUNTIME_END_V1, heartbeat_age 420-second active/stale split, parser-compatible emitted_at and active_run_id+active_run_head_sha fields, and explicit rule that 600-second claim stale threshold is not same-lane invocation liveness.",
+    "Knowledge Governance Bootstrap run 35991980558 completed success; log: bootstrap governance GREEN changed=1.",
+    "Process-state repair: accidental unsupported claim phase PR_OPEN was recovered through exact claim-path Guard GREEN run 35992135944 to canonical CLOSING before merge."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
