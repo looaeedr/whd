@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-24T19:56:40.367394Z",
   "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
-  "head_sha": "9f054ec5a5c7c5165bb6668ff3d3531b7fe446ec",
+  "head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
   "phase": "RED",
-  "last_update": "2026-09-24T20:03:48.008870Z",
+  "last_update": "2026-09-24T20:31:13.653482Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T2",
   "expected_parent_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "9f054ec5a5c7c5165bb6668ff3d3531b7fe446ec",
+  "chain_head": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-01"
@@ -23,7 +23,7 @@
   "breakdown_approved": true,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Extend #642 RED to cover active-claim activation transaction paths (fresh/successor create and takeover) plus prewrite checkpoint backstop; then run exact RED QA.",
+  "next_action": "Before any further repo mutation, reconcile .dispatch/checkpoints/issue-642.json head_sha to 964e7f8b20c2f34b5542ba400eb58e1ab15c2371; then lock exact T2 activation+backstop RED run.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-642.json",
   "predecessor": {
@@ -38,6 +38,13 @@
     "new_head_sha": "9f054ec5a5c7c5165bb6668ff3d3531b7fe446ec",
     "guard_request_comment_id": 5821347908,
     "guard_run_id": 36052306395,
+    "result": "GREEN"
+  },
+  "reconcile_after_activation_red_commit": {
+    "prior_head_sha": "9f054ec5a5c7c5165bb6668ff3d3531b7fe446ec",
+    "new_head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
+    "guard_request_comment_id": 5821759219,
+    "guard_run_id": 36055396009,
     "result": "GREEN"
   }
 }
