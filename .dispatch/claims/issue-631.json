@@ -6,14 +6,14 @@
   "work_branch": "work/issue631-finalization-hard-gate-20260925",
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
-  "head_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T01:14:20+08:00",
+  "head_sha": "637da8ea4968d502887567d14a4b2f4edf93e5e8",
+  "phase": "RED",
+  "last_update": "2026-09-25T01:17:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Remote Guard branch-create for work/issue631-finalization-hard-gate-20260925, then create the work branch from frozen X base and begin RED contract tests.",
+  "next_action": "Run focused RED QA for tests/process/test_continuity_controller.py and confirm the new half-terminal closure contract fails against the current controller.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -27,6 +27,18 @@
       "tools/continuity_controller.py",
       "tests/process/test_continuity_controller.py",
       "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
-    ]
+    ],
+    "red_test_commit": "637da8ea4968d502887567d14a4b2f4edf93e5e8",
+    "red_commit_guard_run_id": 36033091835,
+    "red_claim_reconcile_guard_run_id": 36033200713
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36033200713,
+    "request_comment_id": 5818766014,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+    "consumed": true
   }
 }
