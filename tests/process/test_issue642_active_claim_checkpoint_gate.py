@@ -371,3 +371,32 @@ def test_activation_transaction_must_parse_checkpoint_not_just_assume_or_exists_
             transition=transition,
             changed_files=(".dispatch/claims/issue-256.json",),
         )
+
+
+CLAIM_ACTIVATION_WORKFLOW = (
+    ROOT / ".github" / "workflows" / "whd-remote-claim-activation.yml"
+)
+
+
+def test_trusted_remote_claim_activation_workflow_exists() -> None:
+    assert CLAIM_ACTIVATION_WORKFLOW.is_file(), (
+        "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: trusted remote claim-activation "
+        "workflow is missing"
+    )
+
+
+def test_trusted_remote_claim_activation_workflow_binds_fixed_transaction_identity() -> None:
+    text = CLAIM_ACTIVATION_WORKFLOW.read_text(encoding="utf-8")
+    required_tokens = (
+        "coord_parent_sha",
+        "candidate_claim_blob_sha",
+        "candidate_checkpoint_blob_sha",
+        "claim_path",
+        "checkpoint_path",
+        "tools/execution_claim_guard.py",
+    )
+    missing = [token for token in required_tokens if token not in text]
+    assert not missing, (
+        "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: trusted remote claim-activation "
+        f"workflow is missing fixed transaction identity tokens: {missing}"
+    )
