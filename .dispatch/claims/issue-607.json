@@ -1,0 +1,16 @@
+{
+  "issue": 607,
+  "issue_url": "https://github.com/looaeedr/whd/issues/607",
+  "worker": "chatgpt.sol260924.skillheartbeat.a1",
+  "executor_source": "chat",
+  "work_branch": "governance/issue607-dispatch-heartbeat-20260924",
+  "claimed_at": "2026-09-24T11:07:00Z",
+  "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+  "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T11:07:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Remote Guard GREEN for governance/issue607-dispatch-heartbeat-20260924 from cleanup/2d-3d-sync HEAD, create and verify the branch, then obtain Skill write guard for .agents/skills/engineering/派工/SKILL.md.",
+  "blocker": null
+}
