@@ -19,7 +19,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TARGET_ISSUE: "586"
       REQUESTING_WORKER: "chatgpt.sol260924.issue586.takeover"
-      AUTHORITY_COMMENT_ID: "5807534586"
+      AUTHORITY_COMMENT_ID: "5807604785"
     steps:
       - name: "Checkout #587 proof branch"
         uses: actions/checkout@v4
