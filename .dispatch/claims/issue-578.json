@@ -6,11 +6,31 @@
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
   "claimed_at": "2026-09-24T10:19:00+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "head_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T10:19:00+08:00",
+  "head_sha": "69507e8b61cb455d589d0e5292cb24f8c8721e08",
+  "phase": "RED",
+  "last_update": "2026-09-24T10:26:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain exact Remote Guard GREEN for branch-create, create governance/issue578-scheduler-runtime-liveness-20260924 from base 4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0, then build focused RED for orphaned scheduler owner continuity.",
-  "blocker": null
+  "next_action": "Implement scheduler runtime heartbeat/lease validation and ORPHANED_SCHEDULER_OWNER guarded takeover while preserving active exact-run lock, same-lane resume, and ordinary 600-second stale behavior; rerun exact focused QA.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35947219344,
+    "request_comment_id": 5806350716,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
+    "consumed": true
+  },
+  "remote_qa": {
+    "run_id": 35947181217,
+    "head_sha": "69507e8b61cb455d589d0e5292cb24f8c8721e08",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow": "WHD｜#578｜排程 runtime liveness 驗收",
+    "failure_class": "REQUIREMENT_RED",
+    "pass_count": 9,
+    "fail_count": 12,
+    "red_reason": "evaluate_stale_claim_takeover lacks claim_blob_sha/runtime_liveness/orphan_grace support"
+  }
 }
