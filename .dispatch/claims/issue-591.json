@@ -6,13 +6,13 @@
   "work_branch": "governance/issue591-live-issue578-takeover-proof-20260924",
   "claimed_at": "2026-09-24T12:52:32+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "7f0e21fbc7f7d7a03d40c4b736f38dc5092cbb27",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T12:55:45+08:00",
+  "head_sha": "a8cc0831a8780bb80a9b649c30ed641a7d2f7a55",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T12:57:48+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Delete temporary proof workflow, record helper completion, close Issue #591, and release this helper claim.",
+  "next_action": null,
   "blocker": null,
   "proof": {
     "run_id": 35957612159,
@@ -27,11 +27,18 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35957712664,
-    "request_comment_id": 5807945582,
+    "run_id": 35957850063,
+    "request_comment_id": 5807963180,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
     "consumed": true
+  },
+  "completion": {
+    "proof_run_id": 35957612159,
+    "proof_job_id": 107499149154,
+    "proof_consumed_by_issue578_claim_commit": "465ba9d2e0e451648465272ac263114a6c4a7e0a",
+    "temporary_workflow_removed": true,
+    "closing_head": "a8cc0831a8780bb80a9b649c30ed641a7d2f7a55"
   }
 }
