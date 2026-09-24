@@ -94,15 +94,51 @@ whd_schema: WHD_DOC_META_V1
 - 驗證 canonical name / contract；
 - live authority 與 prompt 衝突時，live authority 優先。
 
-### 4.2 UNCONSUMED_GREEN_FIRST_RECOVERY
+### 4.2 LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY
 
-上一 invocation 若留下仍 exact-valid 的 `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN`，但授權 mutation 尚未發生：
+<!-- LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY -->
 
-- 下一 wake 第一個 repo-side substantive action就是依《遠端執行守門》驗證並 single-use consume；
+每次 wake 在處理 pending Guard 或照 claim.next_action 施工前，先 fresh-read：
+
+- active owning Issue；
+- exact shared claim + claim blob；
+- work branch live HEAD；
+- canonical checkpoint（若有）；
+- latest Guard receipt / exact run evidence。
+
+若 `claim.head_sha != live branch HEAD`、claim.next_action 已被 branch/checkpoint durable evidence 完成、或 claim/checkpoint phase 已落後，固定分類為 `DURABLE_MUTATION_ALREADY_HAPPENED`：
+
+- **禁止重播**已完成 commit / checkpoint / workflow cleanup / finalization mutation；
+- 先依 live《派工》+《遠端執行守門》取得 fresh exact Guard，把 claim/checkpoint reconcile 到 live HEAD、current phase 與新的 exact next_action；
+- reconcile 後 fresh-read確認，再往下施工；
+- claim metadata 是 durable coordination snapshot，不得凌駕已存在的 branch/checkpoint live evidence。
+
+### 4.3 GREEN_EXPIRY_HARD_GATE
+
+<!-- GREEN_EXPIRY_HARD_GATE -->
+
+任何 `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN` 在 consume 前都必須重新驗證 live receipt identity，並檢查 **current UTC time < receipt.expires_at**。
+
+固定 fail-closed：
+
+- `now >= expires_at` → 分類 `STALE_GUARD_RECEIPT`；
+- `STALE_GUARD_RECEIPT` 永久禁止 consume、禁止授權 mutation、禁止算 substantive progress；
+- mutation 尚未發生 → fresh reconcile claim/branch/blob/authority 後重新申請 Guard；
+- durable branch/checkpoint 已證明 mutation 發生 → 走 `LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`，**不得重播 mutation**；
+- 不得把 GREEN 當跨 invocation session token；single-use 之外，還必須在 receipt 的 live 有效窗內使用。
+
+Guard TTL / parser schema 仍由 live《遠端執行守門》擁有；本 Skill 只要求每次 consume 都驗 `expires_at`，不硬編秒數。
+
+### 4.4 UNCONSUMED_GREEN_FIRST_RECOVERY
+
+上一 invocation 若留下 **仍 exact-valid 且尚未過期** 的 `WHD_REMOTE_GUARD_RESULT_V1 result=GREEN`，但授權 mutation 尚未發生：
+
+- 下一 wake 第一個 repo-side substantive action就是依《遠端執行守門》驗證 identity + `expires_at` 後 single-use consume；
 - consume → exact mutation → fresh readback 完成前，禁止新 Guard、禁止跳去別票、禁止正常 return；
-- identity drift 先 reconcile，禁止盲 consume。
+- identity drift 先走 `LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY`；
+- receipt 已過期則走 `GREEN_EXPIRY_HARD_GATE`，禁止盲 consume。
 
-### 4.3 HEARTBEAT_IS_NOT_WORK
+### 4.5 HEARTBEAT_IS_NOT_WORK
 
 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` 只是 runtime lease / liveness evidence。
 
@@ -119,7 +155,7 @@ whd_schema: WHD_DOC_META_V1
 
 若存在 pending unconsumed GREEN，應先 consume transaction，再發布新的 heartbeat；避免 heartbeat 變成假進度終點。
 
-### 4.4 BLOCKED_IS_NOT_AN_ESCAPE_HATCH
+### 4.6 BLOCKED_IS_NOT_AN_ESCAPE_HATCH
 
 `BLOCKED` 只允許 genuine external authority / capability / dependency blocker，且必須有 fresh durable evidence。
 
@@ -137,7 +173,7 @@ whd_schema: WHD_DOC_META_V1
 
 「尚未找到 run」不等於 `RUN_NOT_CREATED`；先 fresh-query exact branch/head。存在 run 就鎖 exact `run_id + head_sha`。
 
-### 4.5 EXACT_REMOTE_RUN_LOCK
+### 4.7 EXACT_REMOTE_RUN_LOCK
 
 一旦 exact remote QA / Guard run 存在：
 
@@ -148,7 +184,7 @@ whd_schema: WHD_DOC_META_V1
 - terminal failure 同輪抓 exact evidence → recovery；
 - stale durable snapshot 不能壓過 live run。
 
-### 4.6 TURN_EXIT_MACHINE_GATE
+### 4.8 TURN_EXIT_MACHINE_GATE
 
 正常 return 前不能只「文字判斷可以停」。
 
@@ -156,7 +192,8 @@ whd_schema: WHD_DOC_META_V1
 
 下列任一存在，都禁止正常 return：
 
-- unconsumed GREEN
+- unconsumed **且未過期** GREEN
+- claim/live branch/checkpoint drift 尚未 reconcile
 - 可執行 `next_action != null`
 - `RUNNING / WAITING_REMOTE / RECOVERING`
 - terminal child 仍有 `NEXT_CHILD_EXECUTABLE`
@@ -214,6 +251,8 @@ Scheduler prompt 不得硬編：
    - entrypoint
    - `派工`
    - `遠端執行守門`
+   - LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY
+   - GREEN_EXPIRY_HARD_GATE / STALE_GUARD_RECEIPT
    - UNCONSUMED GREEN responsibility
    - HEARTBEAT_IS_NOT_WORK
    - BLOCKED legality
@@ -241,13 +280,13 @@ Remote Guard request / receipt schema 完全由 live《遠端執行守門》擁�
 - 送 request 前必須 fresh-read live Skill / workflow parser；
 - 遇到 parser FAIL，讀 exact log 修 schema，不得繞過 Guard；
 - Actions job success 本身不等於 Guard GREEN；
-- GREEN 是 single-use transaction，不是 session token。
+- GREEN 是 single-use transaction，不是 session token；consume 前另須 fresh 驗證 `now < expires_at`，過期固定 `STALE_GUARD_RECEIPT`。
 
 ## 8. RED → GREEN 驗證
 
 建立或修改本 Skill / scheduler contract 時：
 
-1. 先建立 contract RED，能抓到「缺遠端執行守門」「heartbeat-only」「BLOCKED escape」「沒有 machine turn-exit」其中至少一項。
+1. 先建立 contract RED，能抓到「缺遠端執行守門」「expired GREEN 仍被 consume」「claim/live HEAD drift 未 reconcile」「heartbeat-only」「BLOCKED escape」「沒有 machine turn-exit」其中至少一項。
 2. 最小修改。
 3. 跑 targeted contract GREEN。
 4. Registry / Preflight route 驗證。
