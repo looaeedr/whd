@@ -40,13 +40,14 @@
     "Claim reconciled to final tested HEAD under Remote Guard run 36070399158.",
     "Checkpoint reconciled to final tested HEAD under Remote Guard run 36070489648.",
     "Authority resolution comment 5823680850 records that latest user-approved #647 Integration Acceptance owns default-branch trusted workflow deployment/readback; #642 Task Acceptance closes only the work-order child and does not waive the #647 live deployment gate.",
-    "Terminal-entry Remote Guard run 36070896551 GREEN at exact accepted HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13."
+    "Terminal-entry Remote Guard run 36070896551 GREEN at exact accepted HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13.",
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36070977678."
   ],
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 643,
   "chain_next_action": "After #642 closure reaches CLOSED + RELEASED, atomically claim #643/T3 from accepted closing head 876311cc0091dc556f59cac6a4bd3572cca92f13 on the same work-order branch.",
   "chain_reason": "T2 ACTIVE_CLAIM_REQUIRES_CHECKPOINT implementation is Task Accepted at exact GREEN HEAD; #643 is the next canonical child.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #642 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, then mint and verify an exact bound finalization proof before closing Issue #642."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify the exact bound Remote Finalization proof for #642 at HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13, then close Issue #642 and fresh-read closed/completed before advancing to RELEASE_HANDOFF_PENDING."
 }
