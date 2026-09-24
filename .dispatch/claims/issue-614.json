@@ -6,22 +6,29 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "259879ae35d0407a943697ba804d5c180ac5deb6",
+  "head_sha": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
   "phase": "RED",
-  "last_update": "2026-09-24T21:22:24+08:00",
+  "last_update": "2026-09-24T21:27:59+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
   "task_id": "B1",
   "parent_issue": 628,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run exact Xvfb RED on tests/test_issue614_receiving_back_panel_selector_reachability.py at HEAD 259879ae35d0407a943697ba804d5c180ac5deb6; preserve failure evidence; then implement the smallest canonical normal-input selector reachability fix.",
+  "remote_qa": {
+    "run_id": 36005537284,
+    "head_sha": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "next_action": "Implement the minimal canonical normal-input reachability fix in fold_designer_bridge.py: Receiving side/back BoxBody aggregate must map the existing 後面板形式 control without requiring hidden box_body:back activation; preserve canonical BackPanelMode callback/state and compatibility child path. Then lock the same focused Xvfb workflow run at the new HEAD to terminal GREEN.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
-    "test_path": "tests/test_issue614_receiving_back_panel_selector_reachability.py",
-    "guard_run": 36004925748,
-    "status": "PENDING_RUN"
+    "orchestration_commit": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
+    "run_id": 36005537284,
+    "preflight": "GREEN",
+    "outcome": "2 failed",
+    "failure": "受電箱 → 箱身 leaves back_panel_mode_control/back_panel_mode_selector unmapped unless hidden box_body:back is activated"
   }
 }
