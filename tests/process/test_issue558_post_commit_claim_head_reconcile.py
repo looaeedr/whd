@@ -166,6 +166,74 @@ def test_post_commit_claim_head_reconcile_accepts_bound_direct_child(tmp_path: P
     assert claim.head_sha == H0
 
 
+
+def test_post_commit_reconcile_accepts_authorized_noop_scope_superset(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard = _guard()
+    claim_path = _write_claim(tmp_path)
+    blob = guard._git_blob_sha(claim_path)
+    authorized = ["docs/example.md", "tests/noop.py"]
+    comments = [
+        _request_comment(blob=blob, changed_files=authorized),
+        _result_comment(blob=blob, changed_files=authorized),
+    ]
+    monkeypatch.setattr(guard, "_github_issue_comments", lambda issue: comments)
+    monkeypatch.setattr(
+        guard,
+        "_github_commit",
+        lambda sha: _commit(files=["docs/example.md"]),
+    )
+
+    claim = guard.assert_execution_claim(
+        claim_path,
+        issue=ISSUE,
+        worker=WORKER,
+        branch=BRANCH,
+        action="write",
+        expected_base_sha=BASE,
+        expected_head_sha=H1,
+        changed_files=(CLAIM_PATH,),
+    )
+    assert claim.head_sha == H0
+
+
+def test_post_commit_reconcile_rejects_request_receipt_scope_mismatch(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard = _guard()
+    claim_path = _write_claim(tmp_path)
+    blob = guard._git_blob_sha(claim_path)
+    comments = [
+        _request_comment(
+            blob=blob,
+            changed_files=["docs/example.md", "tests/noop.py"],
+        ),
+        _result_comment(blob=blob, changed_files=["docs/example.md"]),
+    ]
+    monkeypatch.setattr(guard, "_github_issue_comments", lambda issue: comments)
+    monkeypatch.setattr(
+        guard,
+        "_github_commit",
+        lambda sha: _commit(files=["docs/example.md"]),
+    )
+
+    with pytest.raises(
+        guard.ExecutionClaimError,
+        match="matching prior GREEN mutation receipt",
+    ):
+        guard.assert_execution_claim(
+            claim_path,
+            issue=ISSUE,
+            worker=WORKER,
+            branch=BRANCH,
+            action="write",
+            expected_base_sha=BASE,
+            expected_head_sha=H1,
+            changed_files=(CLAIM_PATH,),
+        )
+
+
 def test_post_commit_reconcile_rejects_non_direct_child(tmp_path: Path, monkeypatch) -> None:
     guard = _guard()
     claim_path = _write_claim(tmp_path)
