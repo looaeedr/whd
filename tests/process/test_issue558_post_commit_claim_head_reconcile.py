@@ -238,7 +238,10 @@ def test_post_commit_reconcile_rejects_non_direct_child(tmp_path: Path, monkeypa
     guard = _guard()
     claim_path = _write_claim(tmp_path)
     _install_remote_evidence(monkeypatch, guard, claim_path, parent="f" * 40)
-    with pytest.raises(guard.ExecutionClaimError, match="single direct child"):
+    with pytest.raises(
+        guard.ExecutionClaimError,
+        match="merge sync requires production_target",
+    ):
         guard.assert_execution_claim(
             claim_path,
             issue=ISSUE,
