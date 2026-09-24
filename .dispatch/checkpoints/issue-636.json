@@ -22,6 +22,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance the durable checkpoint to ISSUE_CLOSE_PENDING, then mint and verify exact finalization proof without further checkpoint mutation before closing #636."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify exact finalization proof for this unchanged checkpoint, close/readback #636, then atomically persist closure_state=CLOSED with claim phase=RELEASED."
 }
