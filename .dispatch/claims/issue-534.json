@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "head_sha": "dbd999794205cb33759805221be42b636ca27eed",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T17:34:05+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T17:38:55+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -29,7 +29,7 @@
     "visual_3d_artifact": "issue534-final-integrity-3d.png",
     "visual_3d_review": "PASS"
   },
-  "next_action": "Fresh-validate the reconciled work head dbd999794205cb33759805221be42b636ca27eed against current cleanup/2d-3d-sync, obtain a fresh guarded pr-write authority, create/update the exact PR, validate clean non-force integration, merge, then terminal checkpoint + machine finalization + close/readback.",
+  "next_action": null,
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -38,11 +38,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35981992378,
-    "request_comment_id": 5811589528,
+    "run_id": 35982477179,
+    "request_comment_id": 5811659305,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "22600198fc45cff3c2072cc0a20035e483786f05",
+    "guard_authority_sha": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
     "consumed": true
   },
   "stale_takeover": {
@@ -75,5 +75,14 @@
       603
     ],
     "guard_run": 35981992378
+  },
+  "closing": {
+    "pr": 600,
+    "merged": true,
+    "production_head": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
+    "finalization_run": 35982369517,
+    "finalization_result": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "5651aa8c00e603b4ce42a18617e2f4dba62ade29",
+    "checkpoint_fingerprint": "1011de00359311d6cad31fa431018508a8400cfbf885c132d80f2e2ff83b8761"
   }
 }
