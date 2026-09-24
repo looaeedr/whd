@@ -1,0 +1,17 @@
+{
+  "issue": 598,
+  "issue_url": "https://github.com/looaeedr/whd/issues/598",
+  "worker": "chatgpt.sol260924.issue598",
+  "executor_source": "chat",
+  "work_branch": "governance/issue598-invalid-phase-stale-takeover-20260924",
+  "claimed_at": "2026-09-24T13:36:51+08:00",
+  "base_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+  "head_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T13:36:51+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "parent_issue": 578,
+  "delegated_branches": [],
+  "next_action": "Create guarded governance branch; implement explicit user-authorized stale invalid-phase interactive takeover in evaluator + claim guard with focused fail-closed tests/docs; integrate to X; immediately use it to take over #578 and normalize its phase.",
+  "blocker": null
+}
