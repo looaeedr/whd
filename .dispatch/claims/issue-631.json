@@ -1,14 +1,14 @@
 {
   "issue": 631,
   "issue_url": "https://github.com/looaeedr/whd/issues/631",
-  "worker": "chatgpt.sol260925.finalization-hard-gate",
+  "worker": "chatgpt.sol260925.close631.a1",
   "executor_source": "chatgpt_interactive",
   "work_branch": "work/issue631-finalization-hard-gate-20260925",
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T01:37:05+08:00",
+  "last_update": "2026-09-25T02:24:48+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
@@ -19,11 +19,8 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Blocking process repair #633 must integrate first. Then write #631 terminal checkpoint, enter ISSUE_CLOSE_PENDING before minting the exact finalization proof, close/readback #631, and atomically persist checkpoint CLOSED + claim RELEASED.",
-  "blocker": {
-    "issue": 633,
-    "reason": "Merged #632 closure text orders proof before ISSUE_CLOSE_PENDING, which would stale the proof before irreversible Issue close."
-  },
+  "next_action": "Write #631 terminal checkpoint with closure_state=FINALIZATION_PENDING, advance to ISSUE_CLOSE_PENDING, mint/verify exact finalization proof without further checkpoint mutation, close/readback #631, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "blocker": null,
   "evidence": {
     "live_examples": [
       "#614 terminal checkpoint + open Issue + active RECOVERING claim",
@@ -86,7 +83,12 @@
     "pr_merge_guard_run_id": 36035111249,
     "production_integration": "PR #632 merged; cleanup/2d-3d-sync read back at d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
     "blocking_repair_issue": 633,
-    "blocking_repair_reason": "Finalization proof must be minted after entering ISSUE_CLOSE_PENDING so checkpoint fingerprint stays unchanged through Issue close."
+    "blocking_repair_reason": "Finalization proof must be minted after entering ISSUE_CLOSE_PENDING so checkpoint fingerprint stays unchanged through Issue close.",
+    "blocking_repair_status": "CLOSED_COMPLETED_INTEGRATED",
+    "blocking_repair_integration_head": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "takeover_proof_run_id": 36040997722,
+    "takeover_proof_comment_id": 5819788569,
+    "takeover_user_authority_comment_id": 5819679412
   },
   "last_guard": {
     "action": "write",
@@ -110,5 +112,20 @@
     "production_target": "cleanup/2d-3d-sync",
     "production_head": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
     "readback": true
+  },
+  "stale_takeover": {
+    "previous_worker": "chatgpt.sol260925.finalization-hard-gate",
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_stale_seconds": 2849,
+    "observed_live_head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+    "user_authority_comment_id": 5819679412,
+    "proof_issue": 636,
+    "proof_run_id": 36040997722,
+    "proof_head_sha": "07cef90f8e9d7e268213f18f2496d69d6050e67e",
+    "proof_manifest_comment_id": 5819788569,
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "evidence": "WHD_USER_DIRECTED_LIVE_TAKEOVER_PROOF_V1 + canonical stale evaluator + canonical execution claim guard GREEN",
+    "taken_over_at": "2026-09-25T02:24:48+08:00"
   }
 }
