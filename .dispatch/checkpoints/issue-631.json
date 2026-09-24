@@ -17,13 +17,14 @@
     "tested-head 201afbc3645c82d9c454d4586632c1337868ddee to closing-head drift PASS: workflow deletion only",
     "PR #632 merged and production integration read back",
     "blocking repair #633 / PR #634 integrated; production readback 3ffe415b10099d52bc6c39f02463e3483c43f10b",
-    "user-directed stale takeover proof run 36040997722 GREEN: EXECUTOR_STUCK/actionable with canonical claim guard GREEN"
+    "user-directed stale takeover proof run 36040997722 GREEN: EXECUTOR_STUCK/actionable with canonical claim guard GREEN",
+    "closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING after #633 proof-order repair integration"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING before minting bound finalization proof."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify bound finalization proof on this exact unchanged checkpoint, then close and fresh-read Issue #631."
 }
