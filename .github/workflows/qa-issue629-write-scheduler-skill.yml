@@ -55,3 +55,5 @@ jobs:
             --changed-file ".agents/skills/skill_registry.json" \
             --changed-file "tests/process/test_write_scheduler_skill_contract.py" \
             --changed-file "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+
+# rerun-after-test-fix: issue629
