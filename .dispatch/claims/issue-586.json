@@ -1,0 +1,17 @@
+{
+  "issue": 586,
+  "issue_url": "https://github.com/looaeedr/whd/issues/586",
+  "worker": "chatgpt.sol260924.issue586",
+  "executor_source": "chat",
+  "work_branch": "governance/issue586-runtime-liveness-main-20260924",
+  "claimed_at": "2026-09-24T11:32:00+08:00",
+  "base_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
+  "head_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T11:32:00+08:00",
+  "production_target": "main",
+  "parent_issue": 578,
+  "delegated_branches": [],
+  "next_action": "Obtain Remote Guard GREEN for branch-create, create the main backport branch, update the trusted Remote Guard transport to auto-discover scheduler runtime liveness comments, then run focused transport QA.",
+  "blocker": null
+}
