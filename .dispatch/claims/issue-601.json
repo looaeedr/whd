@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T16:12:30+08:00",
   "base_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
   "head_sha": "32aab21556f46bfd43613c311817adcc4c6b2163",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T16:24:30+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T16:37:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-PARENT-ORDER",
   "parent_issue": 534,
@@ -20,15 +20,15 @@
     "conclusion": "success",
     "workflow": "WHD｜#601｜Merge parent-order RED／GREEN"
   },
-  "next_action": "Create a guarded PR for closing head 32aab21556f46bfd43613c311817adcc4c6b2163 to cleanup/2d-3d-sync, validate exact head/base, merge non-force, fresh-read production HEAD, write terminal checkpoint, execute trusted finalization proof, close/release #601, then return to #534.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35975006437,
-    "request_comment_id": 5810579839,
+    "run_id": 35976308306,
+    "request_comment_id": 5810751983,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+    "guard_authority_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
     "consumed": true
   },
   "closing": {
@@ -38,6 +38,13 @@
       ".github/workflows/qa-issue601-parent-order.yml removed"
     ],
     "focused_run": 35974783189,
-    "focused_result": "9 passed"
+    "focused_result": "9 passed",
+    "pr": 602,
+    "merged": true,
+    "production_head": "39e12afc46a7bfcb94720e83195651fc4257f26d",
+    "finalization_run": 35976131315,
+    "finalization_result": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "65f66d2cb578749a9388c31223d77645a6c71ac8",
+    "checkpoint_fingerprint": "74990cfaf47c9fb153a1acb9cb746a8ca9739fe766b5e63b68c63df1bf91e61f"
   }
 }
