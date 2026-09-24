@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "head_sha": "df94d7483f742cea5796017c1a730312ec3eecfd",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T15:39:30+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T16:05:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,19 +18,18 @@
   "remote_qa": {
     "run_id": 35970738509,
     "head_sha": "df94d7483f742cea5796017c1a730312ec3eecfd",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "workflow": "WHD｜#534｜C2 最終整合驗收",
     "tested_candidate_sha": "df94d7483f742cea5796017c1a730312ec3eecfd",
     "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
-    "required_jobs": [
-      "候選｜Headless",
-      "候選｜Xvfb",
-      "比對｜候選新增失敗必須為零",
-      "最終完整性｜DXF／2D-3D／組合圖／Save-Reload"
-    ]
+    "candidate_only_headless": 0,
+    "candidate_only_xvfb": 0,
+    "final_integrity": "GREEN",
+    "visual_3d_artifact": "issue534-final-integrity-3d.png",
+    "visual_3d_review": "PASS"
   },
-  "next_action": "Poll exact C2 run 35970738509 at head df94d7483f742cea5796017c1a730312ec3eecfd to terminal without duplicate dispatch. Require candidate-only zero AND final-integrity job GREEN; inspect the 3D artifact before terminal checkpoint.",
+  "next_action": "Create a guarded PR from the exact work-order head df94d7483f742cea5796017c1a730312ec3eecfd to cleanup/2d-3d-sync, require clean merge identity, merge non-force, fresh-read production HEAD, then write terminal checkpoint and run owning finalization proof before closing #534.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -39,8 +38,8 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35970766820,
-    "request_comment_id": 5809903795,
+    "run_id": 35973176954,
+    "request_comment_id": 5810294670,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
