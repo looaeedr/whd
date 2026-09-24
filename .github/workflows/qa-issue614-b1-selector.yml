@@ -7,6 +7,7 @@ on:
       - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
     paths:
       - 'tests/test_issue614_receiving_back_panel_selector_reachability.py'
+      - 'tests/test_issue510_receiving_back_panel_modes.py'
       - 'fold_designer_bridge.py'
       - '.github/workflows/qa-issue614-b1-selector.yml'
   workflow_dispatch:
@@ -16,7 +17,7 @@ permissions:
 
 jobs:
   focused:
-    name: "B1 真實操作路徑與 BACK_OPENING"
+    name: "B1 selector + #510 BACK_OPENING/FinalScene/DXF/project round-trip"
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -70,5 +71,6 @@ jobs:
           mkdir -p /tmp/issue614
           xvfb-run -a python -m pytest -q \
             tests/test_issue614_receiving_back_panel_selector_reachability.py \
+            tests/test_issue510_receiving_back_panel_modes.py \
             --tb=short \
             --json-report --json-report-file=/tmp/issue614/report.json
