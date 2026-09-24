@@ -6,13 +6,13 @@
   "work_branch": "governance/issue595-invalid-phase-recovery-20260924",
   "claimed_at": "2026-09-24T13:12:20+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "3bb69ae9867e413506ec3cf7bc4de2dbd0e21f45",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T13:30:19+08:00",
+  "head_sha": "7b7e846d474382932a9e4010deade10f55f56f59",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T13:32:51+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Delete temporary QA workflow under Guard; reconcile closing head; guarded PR/merge exact closing head to cleanup/2d-3d-sync; production readback; then use integrated exact-claim-path recovery authority to normalize #578 claim from E2E_WAITING to a canonical phase before final takeover/finalization.",
+  "next_action": "Create guarded PR from exact closing head 7b7e846d474382932a9e4010deade10f55f56f59 to cleanup/2d-3d-sync; merge non-force only if X still has expected ancestry; fresh-read production authority; close/release #595 after parent #578 normalization capability is proven available.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -41,8 +41,8 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35960218380,
-    "request_comment_id": 5808280352,
+    "run_id": 35960418675,
+    "request_comment_id": 5808307632,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
@@ -56,5 +56,10 @@
     "workflow": "WHD｜#595｜invalid phase recovery QA",
     "pass_count": 40,
     "fail_count": 0
+  },
+  "closing_drift": {
+    "from": "3bb69ae9867e413506ec3cf7bc4de2dbd0e21f45",
+    "to": "7b7e846d474382932a9e4010deade10f55f56f59",
+    "only_change": "delete temporary .github/workflows/qa-issue595-invalid-phase-recovery.yml"
   }
 }
