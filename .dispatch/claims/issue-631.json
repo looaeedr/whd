@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T01:31:05+08:00",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T01:30:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync, create and merge the guarded PR for closing head 5428dedf4592cd5e227fa31e18764c22c99e7cb2, read back production integration, then enter the terminal closure lifecycle.",
+  "next_action": "Fresh-read production target cleanup/2d-3d-sync, create and merge the guarded PR, verify production readback, then write the terminal checkpoint in FINALIZATION_PENDING.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -66,6 +66,17 @@
         ".github/workflows/qa-issue631-finalization-hard-gate.yml"
       ],
       "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+    },
+    "drift_audit": {
+      "from": "201afbc3645c82d9c454d4586632c1337868ddee",
+      "to": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+      "result": "PASS",
+      "files": [
+        {
+          "path": ".github/workflows/qa-issue631-finalization-hard-gate.yml",
+          "status": "removed"
+        }
+      ]
     }
   },
   "last_guard": {
