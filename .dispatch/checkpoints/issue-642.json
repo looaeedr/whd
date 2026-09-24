@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "642",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "b6ee02e2c226e868b009cd6f770dcf026a587477",
+  "head_sha": "694d76f1d7280024c4aef233889c119303952853",
   "state": "RUNNING",
-  "next_action": "Run the #642 trusted Remote Claim Activation workflow contract RED at b6ee02e2c226e868b009cd6f770dcf026a587477, capture the intended missing-workflow failure, then implement activation validator + trusted workflow + prewrite backstop.",
+  "next_action": "Run focused GREEN for #642 ACTIVE_CLAIM_REQUIRES_CHECKPOINT, trusted Remote Claim Activation workflow contract, and existing execution-claim regressions at 694d76f1d7280024c4aef233889c119303952853.",
   "run_id": 36055758248,
   "job_id": 107822119631,
   "log_cursor": null,
@@ -22,7 +22,10 @@
     "Trusted Remote Claim Activation workflow contract RED committed at b6ee02e2c226e868b009cd6f770dcf026a587477 under Remote Guard run 36068293413.",
     "Post-commit claim reconciliation to b6ee02e2c226e868b009cd6f770dcf026a587477 authorized by Remote Guard run 36068387814.",
     "Future V2 observation: when a known GREEN receipt should not be consumed, Remote Guard V1 has no canonical revoke/cancel/invalidate path; the two conflicting GREEN receipts had to become unusable by expiry before a fresh transaction could start. Observation only; #642→#643 dependency order remains unchanged.",
-    "Checkpoint reconciliation to b6ee02e2c226e868b009cd6f770dcf026a587477 authorized by Remote Guard run 36068472352."
+    "Checkpoint reconciliation to b6ee02e2c226e868b009cd6f770dcf026a587477 authorized by Remote Guard run 36068472352.",
+    "T2 implementation commit 694d76f1d7280024c4aef233889c119303952853 atomically changed tools/execution_claim_guard.py, whd-remote-execution-guard.yml, and whd-remote-claim-activation.yml under Remote Guard run 36068825461.",
+    "Post-implementation claim reconciliation to 694d76f1d7280024c4aef233889c119303952853 authorized by Remote Guard run 36069424181.",
+    "Checkpoint reconciliation to 694d76f1d7280024c4aef233889c119303952853 authorized by Remote Guard run 36069505474."
   ],
   "master_issue": null,
   "chain_state": "NONE",
