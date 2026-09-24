@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "611",
+  "branch": "hotfix/issue611-left-menu-selection-20260924",
+  "head_sha": "0ad67880881bd18aa143faceb84cf2ea9afff14e",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36002150120,
+  "job_id": 107641162467,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User requirement: Fold Designer left main menu must make the current logical selection immediately visible.",
+    "Root cause RED: classic Tk Menu default selectcolor #000000 was visually unclear on WHD dark menu background #1e1e24; state variable remained correct.",
+    "Implementation commit 9e9069ebf2d8942a65f7955b134c6d3024bcc73e adds only shared Menu selectcolor=action plus two real-Tk regression assertions.",
+    "Focused Xvfb run 36002150120 @ 2be6230e88f2e6b6495e7444ff3a44e811afc522 completed success: 5 passed, 0 failed in 6.62s.",
+    "Xvfb acceptance preserved config.ini/DXF hashes and git diff --exit-code was GREEN.",
+    "Temporary QA workflow was removed; tested 2be6230e88f2e6b6495e7444ff3a44e811afc522 -> closing 0ad67880881bd18aa143faceb84cf2ea9afff14e drift contains only workflow deletion.",
+    "Code review: final production diff is presentation-only (whd_theme.py +1; tests/test_issue334_shared_menu_theme.py +2), with no callback/state/navigation/geometry/manufacturing/DXF scope creep.",
+    "PR #612 merged to cleanup/2d-3d-sync as 2ec51eb8f777cbfd8c3485efd68487d264854eba; work-head -> target merge comparison has zero changed files.",
+    "Issue #611 remained open after integration so process-state finalization can run independently of code-state integration."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
