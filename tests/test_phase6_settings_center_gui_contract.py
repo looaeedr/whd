@@ -98,7 +98,8 @@ def test_corner_type_and_settings_use_live_canonical_sync_while_defaults_are_exp
 def test_runtime_requires_shared_settings_module_without_reintroducing_global_3d_page():
     source = Path("gui.py").read_text(encoding="utf-8")
     bridge_source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    panel_source = Path("phase6_settings_panel.py").read_text(encoding="utf-8")
     assert "from phase6_settings_center import" in source
     assert "SettingsService" in source
-    assert "Phase6SettingsPanel" in bridge_source
+    assert "class Phase6SettingsPanel" in panel_source
     assert "self.global_settings_button =" not in bridge_source

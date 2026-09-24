@@ -88,17 +88,27 @@ def test_b6_5_test_only_callers_use_direct_module_owner():
             + pattern
         )
 
-    required_module_calls = (
-        "bridge._phase6_toggle_corner_parameter_lock(",
-        "bridge._phase6_render_settings_context(",
-        "bridge._phase6_on_baseline_model_changed(",
-        "bridge._phase6_confirm_corner_transaction(",
-        "bridge._phase6_cancel_corner_transaction(",
-        "bridge._phase6_export_workspace_state_if_dirty(",
-        "bridge._phase6_on_endcap_edge_relation_selected(",
-    )
-    for call in required_module_calls:
-        assert call in source, f"B6-5 RED: direct module owner call missing: {call}"
+    # Later accepted owner extractions move several former bridge module
+    # helpers into controller/adapter owners. Keep the anti-regrowth contract:
+    # callers may not return to instance facades, and current semantic owners
+    # must expose the replacement command surface.
+    from phase6_project_controller import Phase6ProjectController
+    from phase6_settings_transaction_controller import Phase6SettingsTransactionController
+
+    assert callable(getattr(Phase6SettingsTransactionController, "commit_endcap_edge_relation", None))
+    assert callable(getattr(Phase6ProjectController, "build_workspace_export", None))
+    assert callable(getattr(Phase6ProjectController, "write_diagnostic", None))
+
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    for retired in (
+        "_phase6_toggle_corner_parameter_lock",
+        "_phase6_confirm_corner_transaction",
+        "_phase6_cancel_corner_transaction",
+        "_phase6_export_workspace_state_if_dirty",
+    ):
+        assert f"def {retired}(" not in bridge_source, (
+            f"B6-5 RED: extracted helper regrew in bridge: {retired}"
+        )
 
 
 def test_b6_5_live_public_entries_remain():

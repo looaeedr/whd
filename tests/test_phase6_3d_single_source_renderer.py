@@ -373,7 +373,6 @@ def test_3d_view_never_calls_legacy_geometry_renderer(monkeypatch):
 
     monkeypatch.setattr(bridge, "_phase6_final_scene_view_request", lambda self: object())
     monkeypatch.setattr(bridge.Phase6FinalSceneView, "render", lambda self, request: calls.append("final-material") or [])
-    monkeypatch.setattr(bridge, "_phase6_update_unfolded_size_label", lambda self: None)
 
     bridge._phase6_install_renderer_view(app)
     app.renderer.render()

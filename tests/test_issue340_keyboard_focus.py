@@ -25,7 +25,6 @@ def test_t7_source_contract_installs_authoritative_shortcuts_and_focus_guards():
         "self.load_project_file()",
         "_phase6_toggle_fullscreen(self)",
         "takefocus=False",
-        "_phase6_return_focus",
     )
     router_required = (
         '("<Control-s>", "<Control-S>")',
