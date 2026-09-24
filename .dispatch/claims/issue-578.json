@@ -7,19 +7,19 @@
   "claimed_at": "2026-09-24T12:54:19+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
   "head_sha": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T12:54:19+08:00",
+  "phase": "E2E_WAITING",
+  "last_update": "2026-09-24T13:04:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Complete #578's remaining real sibling-scheduler E2E: prove a foreign scheduler owner with no active exact run and missing/expired runtime liveness can be taken over by the sibling lane after the 90-second orphan grace but before 600 seconds, with Remote Guard GREEN -> claim CAS -> readback -> same-invocation substantive continuation; then close/release #578.",
+  "next_action": "Observe #592 owner lane durable claim/heartbeat, then consume #592 requester-lane ORPHANED_SCHEDULER_OWNER proof only if 90 < stale_seconds < 600, no active exact run, expired/missing runtime liveness, Remote Guard GREEN, claim CAS/readback, and same-invocation substantive continuation are all durable. Then close/release #592, update #578 acceptance evidence, and finalize #578.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35951602443,
-    "request_comment_id": 5806986371,
+    "run_id": 35958314590,
+    "request_comment_id": 5808018777,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
+    "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
     "consumed": true
   },
   "remote_qa": {
@@ -61,5 +61,10 @@
       "authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
       "claim_blob_sha": "046d91e933be5a744a904f3786da9f16c2749121"
     }
-  }
+  },
+  "e2e_child_issue": 592,
+  "e2e_owner_lane": "scheduler.6ab4af0141b48191a1ecd0e64b63ff4d",
+  "e2e_requester_lane": "scheduler.6ab4af226cf48191bd86f0387d14463e",
+  "e2e_owner_schedule": "2026-09-24T13:05:00+08:00",
+  "e2e_requester_schedule": "2026-09-24T13:14:00+08:00"
 }
