@@ -6,20 +6,29 @@
   "work_branch": "governance/issue581-interactive-stale-takeover-20260924",
   "claimed_at": "2026-09-24T08:11:30+08:00",
   "base_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
-  "head_sha": "0bff50ba58a80ff5edf939c0ee732de7c754377d",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T08:18:35+08:00",
+  "head_sha": "13266395c401ed257eea35e156c810de3388395a",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T08:21:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run focused issue581 interactive takeover + existing scheduler takeover regression tests on head 0bff50ba58a80ff5edf939c0ee732de7c754377d, then guarded PR/integration to cleanup/2d-3d-sync and use the merged authority for #534 interactive takeover.",
+  "next_action": "Add RECOVERING to tools/stale_claim_takeover.py active phases, preserving all other takeover semantics, then rerun the same focused regression workflow.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35937796645,
-    "request_comment_id": 5805137989,
+    "run_id": 35938013339,
+    "request_comment_id": 5805163419,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
     "consumed": true
+  },
+  "remote_qa": {
+    "run_id": 35937990068,
+    "head_sha": "13266395c401ed257eea35e156c810de3388395a",
+    "status": "completed",
+    "conclusion": "failure",
+    "failure_class": "RECOVERING_PHASE_MISSING_IN_STALE_EVALUATOR",
+    "pass_count": 44,
+    "fail_count": 4
   }
 }
