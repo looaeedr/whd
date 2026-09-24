@@ -1,0 +1,23 @@
+{
+  "issue": 638,
+  "issue_url": "https://github.com/looaeedr/whd/issues/638",
+  "worker": "chatgpt.sol260925.helper-aware-takeover",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue638-helper-aware-takeover-20260925",
+  "claimed_at": "2026-09-25T02:31:39+08:00",
+  "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "head_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T02:31:39+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Guard, create the repair branch, add RED regression for active delegated helper/proof work, then implement the canonical stale-takeover hard gate and helper dedupe.",
+  "blocker": null,
+  "evidence": {
+    "requirement_authority": "User instruction 2026-09-25: 補啊",
+    "regression_parent_issue": 631,
+    "regression_helper_issue": 636
+  }
+}
