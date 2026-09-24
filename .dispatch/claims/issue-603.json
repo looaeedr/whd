@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T16:44:00+08:00",
   "base_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
   "head_sha": "c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T16:53:20+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T17:32:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-WORK-DELTA",
   "parent_issue": 534,
@@ -20,15 +20,15 @@
     "conclusion": "success",
     "workflow": "WHD｜#603｜work-delta focused"
   },
-  "next_action": "Create guarded PR from exact closing head c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec to current cleanup/2d-3d-sync, validate/merge non-force, write terminal checkpoint, run machine finalization, release, then return to #534.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35977846350,
-    "request_comment_id": 5810980033,
+    "run_id": 35981868082,
+    "request_comment_id": 5811571078,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
+    "guard_authority_sha": "22600198fc45cff3c2072cc0a20035e483786f05",
     "consumed": true
   },
   "implementation": {
@@ -54,6 +54,13 @@
         "status": "modified"
       }
     ],
-    "drift_classification": "workflow cleanup + AI Library writeback only"
+    "drift_classification": "workflow cleanup + AI Library writeback only",
+    "pr": 604,
+    "merged": true,
+    "production_head": "22600198fc45cff3c2072cc0a20035e483786f05",
+    "finalization_run": 35981226849,
+    "finalization_result": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "9d135ef4fc0c4216a32db5014b2743499a7626fc",
+    "checkpoint_fingerprint": "97ab512811f85774dc32c80600581ad3425e41a4228bc9829bee66be82e12a73"
   }
 }
