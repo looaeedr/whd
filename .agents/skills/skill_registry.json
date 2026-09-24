@@ -24,6 +24,38 @@
       ]
     },
     {
+      "id": "scheduler-authoring",
+      "keywords": [
+        "寫排程",
+        "新增排程",
+        "修改排程",
+        "建立排程",
+        "排程技能",
+        "排程 prompt",
+        "scheduler prompt",
+        "recurring automation",
+        "automation prompt",
+        "排程一直停",
+        "排程又停了",
+        "排程硬閘門"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/寫排程/**"
+      ],
+      "required_skills": [
+        "寫排程",
+        "派工",
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "deterministic-repo-migration",
       "keywords": [
         "deterministic repo migration",
