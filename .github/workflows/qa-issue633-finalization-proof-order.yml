@@ -9,6 +9,9 @@ on:
       - .github/workflows/qa-issue633-finalization-proof-order.yml
       - tools/continuity_controller.py
       - tests/process/test_finalization_owner_guard.py
+      - tests/process/test_continuity_controller.py
+      - tests/process/test_issue321_turn_exit_enforcement.py
+      - tests/process/test_issue473_master_chain_turn_exit_gate.py
       - .agents/skills/engineering/派工/SKILL.md
       - .agents/skills/engineering/executable-continuity-controller/SKILL.md
       - 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
@@ -20,7 +23,7 @@ permissions:
 
 jobs:
   contract:
-    name: finalization proof order contract
+    name: finalization proof order broader contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,11 +39,15 @@ jobs:
           set -euo pipefail
           python -m pip install --upgrade pip
           python -m pip install pytest
-      - name: Finalization proof order RED GREEN contract
+      - name: Broader continuity finalization turn-exit Master-chain regressions
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q tests/process/test_finalization_owner_guard.py
+          python -m pytest -q \
+            tests/process/test_finalization_owner_guard.py \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_issue321_turn_exit_enforcement.py \
+            tests/process/test_issue473_master_chain_turn_exit_gate.py
       - name: Publish exact QA identity
         if: always()
         uses: actions/github-script@v7
@@ -54,5 +61,5 @@ jobs:
                 'WHD_ISSUE633_QA_RESULT_V1',
                 'run_id=' + context.runId,
                 'head_sha=' + context.sha,
-              ].join('\n'),
+              ].join('\\n'),
             });
