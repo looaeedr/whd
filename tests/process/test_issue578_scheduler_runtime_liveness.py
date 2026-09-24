@@ -58,17 +58,26 @@ def _heartbeat(*, lane=SIBLING_LANE, claim_blob=CLAIM_BLOB, branch=BRANCH, head=
     }
 
 
-def _evaluate(*, claim=None, now=None, heartbeat=None, remote_run=None, requester=CURRENT_LANE):
+def _evaluate(
+    *,
+    claim=None,
+    now=None,
+    heartbeat=None,
+    remote_run=None,
+    requester=CURRENT_LANE,
+    live_commit_at="2026-09-24T00:00:00Z",
+    claim_blob=CLAIM_BLOB,
+):
     return _module().evaluate_stale_claim_takeover(
         claim or _claim(),
         now=now or datetime(2026, 9, 24, 0, 5, tzinfo=UTC),
         live_head_sha=HEAD,
-        live_head_committed_at="2026-09-24T00:00:00Z",
+        live_head_committed_at=live_commit_at,
         remote_run=remote_run,
         stale_after_seconds=600,
         requesting_worker=requester,
         requesting_executor_source="scheduler",
-        claim_blob_sha=CLAIM_BLOB,
+        claim_blob_sha=claim_blob,
         runtime_liveness=heartbeat,
         orphan_grace_seconds=90,
     )
@@ -164,6 +173,7 @@ def test_ordinary_foreign_owner_keeps_existing_600_second_threshold():
             last_update="2026-09-23T23:50:00Z",
         ),
         heartbeat=None,
+        live_commit_at="2026-09-23T23:50:00Z",
     )
     assert stale.classification.value == "EXECUTOR_STUCK"
     assert stale.actionable is True
@@ -175,7 +185,11 @@ def test_claim_guard_accepts_orphaned_scheduler_evidence_below_600_seconds(tmp_p
     claim_path = tmp_path / "claim.json"
     claim_path.write_text(json.dumps(claim), encoding="utf-8")
 
-    result = _evaluate(heartbeat=_heartbeat())
+    actual_claim_blob = guard._git_blob_sha(claim_path)
+    result = _evaluate(
+        heartbeat=_heartbeat(claim_blob=actual_claim_blob),
+        claim_blob=actual_claim_blob,
+    )
     evidence_path = tmp_path / "decision.json"
     evidence_path.write_text(json.dumps(result.to_payload()), encoding="utf-8")
 
