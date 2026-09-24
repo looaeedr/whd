@@ -6,14 +6,14 @@
   "work_branch": "work/issue633-finalization-proof-order-20260925",
   "claimed_at": "2026-09-25T01:38:00+08:00",
   "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
-  "head_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T01:38:00+08:00",
+  "head_sha": "e13db80a4d890d1fbb7fd50eda2d914cd30dee50",
+  "phase": "RED",
+  "last_update": "2026-09-25T01:40:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Run Remote Guard branch-create, then add RED proving authorize_finalization must reject FINALIZATION_PENDING and accept exact unchanged ISSUE_CLOSE_PENDING.",
+  "next_action": "Create temporary #633 QA workflow under fresh Guard and run RED on exact head; expected failure is authorize_finalization accepting FINALIZATION_PENDING.",
   "blocker": null,
   "evidence": {
     "parent_repair_issue": 631,
@@ -25,6 +25,18 @@
       ".agents/skills/engineering/派工/SKILL.md",
       ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
       "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
-    ]
+    ],
+    "red_test_commit": "e13db80a4d890d1fbb7fd50eda2d914cd30dee50",
+    "red_commit_guard_run_id": 36035713522,
+    "red_claim_reconcile_guard_run_id": 36035796879
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36035796879,
+    "request_comment_id": 5819085962,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+    "consumed": true
   }
 }
