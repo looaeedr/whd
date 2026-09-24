@@ -7,14 +7,14 @@
   "claimed_at": "2026-09-24T19:40:55+08:00",
   "base_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
   "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T19:40:55+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T19:55:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "MASTER-FINAL-CLOSURE",
   "parent_issue": null,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Verify the published Phase 6 child chain is terminal through C3, consume #535 terminal/finalization evidence, verify current production ancestry and quantitative/ownership acceptance evidence, then write Master terminal checkpoint, run trusted finalization, close/readback #520, and release the Master claim without replaying integration.",
+  "next_action": null,
   "blocker": null,
   "lineage": {
     "terminal_child": 535,
@@ -22,5 +22,24 @@
     "accepted_c3_head": "c6556139957f3bbf104aa001d9b151ee542b8b60",
     "c3_finalization_run": 35993836482,
     "c3_release_claim_blob_sha": "c1810c4c3e1e09d58bfd33a3423c81ca2126d442"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "checkpoint_blob_sha": "3f90107920ef01c1e7645d3627a500c2e83cd4d5",
+    "checkpoint_fingerprint": "ebc8e70e5ccbad0e660ae6fa23f9e5f70814d163b47911b6ae7265044ae04a03",
+    "finalization_run": 35995772733,
+    "finalization_result": "FINALIZATION_PROOF_VALID",
+    "finalization_artifact": 10806695019,
+    "claim_release_guard_run": 35995869539
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35995869539,
+    "request_comment_id": 5813578391,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+    "consumed": true
   }
 }
