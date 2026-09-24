@@ -1,26 +1,43 @@
 {
   "issue": 598,
   "issue_url": "https://github.com/looaeedr/whd/issues/598",
-  "worker": "chatgpt.sol260924.issue598",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
   "work_branch": "governance/issue598-invalid-phase-stale-takeover-20260924",
   "claimed_at": "2026-09-24T13:36:51+08:00",
   "base_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
-  "head_sha": "811c0ffdee7fecb412af1f1333d315dfeabd6781",
+  "head_sha": "a1d8b059b0f1c1799d28f3f1992d06eb8d883782",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T13:40:39+08:00",
+  "last_update": "2026-09-24T14:00:29+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Run focused regression for explicit invalid-phase stale takeover plus existing #581/#589/#578/#595 claim/takeover gates; on GREEN cleanup QA, integrate to X, then immediately use the integrated authority to take over #578.",
+  "next_action": "Focused invalid-phase stale-takeover regression run 35961082526 is GREEN at a1d8b059b0f1c1799d28f3f1992d06eb8d883782. Continue integration readiness and non-force integration to X under current guard authority, then resume parent #578 using the integrated authority.",
   "blocker": null,
   "last_guard": {
-    "action": "write",
-    "run_id": 35960988198,
-    "request_comment_id": 5808381181,
+    "action": "claim-takeover",
+    "run_id": 35962445789,
+    "request_comment_id": 5808597972,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
     "consumed": true
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260924.issue598",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+    "requesting_executor_source": "scheduler",
+    "observed_live_head_sha": "a1d8b059b0f1c1799d28f3f1992d06eb8d883782",
+    "previous_last_update": "2026-09-24T13:40:39+08:00",
+    "taken_over_at": "2026-09-24T14:00:29+08:00",
+    "proof": {
+      "workflow_run_id": 35962445789,
+      "classification": "EXECUTOR_STUCK",
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+      "authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96"
+    }
   }
 }
