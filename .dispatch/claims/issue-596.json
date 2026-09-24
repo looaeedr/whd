@@ -1,0 +1,17 @@
+{
+  "issue": 596,
+  "issue_url": "https://github.com/looaeedr/whd/issues/596",
+  "worker": "chatgpt.sol260924.issue596.proof",
+  "executor_source": "chat",
+  "work_branch": "governance/issue596-final-issue578-takeover-proof-20260924",
+  "claimed_at": "2026-09-24T13:21:34+08:00",
+  "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T13:21:34+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "parent_issue": 578,
+  "delegated_branches": [],
+  "next_action": "Create guarded proof branch and temporary workflow to machine-validate user-directed stale interactive takeover of #578; consume proof via #578 claim CAS, continue final acceptance, then remove workflow and close/release #596.",
+  "blocker": null
+}
