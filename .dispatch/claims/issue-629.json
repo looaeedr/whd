@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "head_sha": "33b845c90061576a6c5a7d81250eff3918663b8c",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T00:49:17+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T17:02:54.886Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue629-write-scheduler-skill.yml"
   },
-  "next_action": "Create PR from work/issue629-write-scheduler-skill-20260924 at head 33b845c90061576a6c5a7d81250eff3918663b8c to cleanup/2d-3d-sync under a fresh pr-write Guard; then obtain a second fresh pr-write Guard to merge. Production readback must follow before terminal checkpoint/finalization.",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -82,5 +82,43 @@
       },
       "invalid_phase_recovery_guard_run_id": 36029995571
     }
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36031481073,
+    "request_comment_id": 5818553448,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+    "consumed": true
+  },
+  "pr": {
+    "number": 630,
+    "url": "https://github.com/looaeedr/whd/pull/630",
+    "head_sha": "33b845c90061576a6c5a7d81250eff3918663b8c",
+    "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+    "state": "closed",
+    "merged": true,
+    "merge_commit_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e"
+  },
+  "integration": {
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+    "readback": true
+  },
+  "issue_terminal": {
+    "state": "closed",
+    "state_reason": "completed"
+  },
+  "finalization": {
+    "mode": "local_canonical_continuity_controller",
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+    "controller_blob_sha": "30b0ed85b3af3bdf93dded845cb7fadd3846c13e",
+    "checkpoint_path": ".dispatch/checkpoints/issue-629.json",
+    "checkpoint_blob_sha": "70ee2ba3c1605741d0fe1fd54c2b1bbb71798fcd",
+    "checkpoint_fingerprint": "5ad1c738eefb4770baf14976c57c90e585ca6a3c3dafafa28348580b4391d834",
+    "claim_blob_sha_before_release": "839cf8c72e38b3e4f780aa1dd930461211710481"
   }
 }
