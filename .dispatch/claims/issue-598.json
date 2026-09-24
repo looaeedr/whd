@@ -6,12 +6,21 @@
   "work_branch": "governance/issue598-invalid-phase-stale-takeover-20260924",
   "claimed_at": "2026-09-24T13:36:51+08:00",
   "base_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
-  "head_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T13:36:51+08:00",
+  "head_sha": "811c0ffdee7fecb412af1f1333d315dfeabd6781",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T13:40:39+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create guarded governance branch; implement explicit user-authorized stale invalid-phase interactive takeover in evaluator + claim guard with focused fail-closed tests/docs; integrate to X; immediately use it to take over #578 and normalize its phase.",
-  "blocker": null
+  "next_action": "Run focused regression for explicit invalid-phase stale takeover plus existing #581/#589/#578/#595 claim/takeover gates; on GREEN cleanup QA, integrate to X, then immediately use the integrated authority to take over #578.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35960988198,
+    "request_comment_id": 5808381181,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+    "consumed": true
+  }
 }
