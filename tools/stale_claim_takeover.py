@@ -8,13 +8,18 @@ request a guarded claim takeover only when this module returns EXECUTOR_STUCK.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import os
 import re
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Sequence
 
 DEFAULT_STALE_AFTER_SECONDS = 600
 DEFAULT_ORPHAN_GRACE_SECONDS = 90
@@ -40,6 +45,16 @@ _INACTIVE_PHASES = frozenset(
 _ACTIVE_REMOTE_STATUSES = frozenset(
     {"queued", "in_progress", "waiting", "requested", "pending"}
 )
+_DELEGATION_KEYS = {
+    "proof_issue": "proof",
+    "blocking_repair_issue": "blocking-repair",
+    "helper_issue": "helper",
+    "dependency_issue": "dependency",
+}
+_ALLOWED_DELEGATED_RELATIONSHIPS = frozenset(
+    {"proof", "blocking-repair", "helper", "dependency", "repair"}
+)
+_HELPER_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 
 
 class StaleTakeoverError(RuntimeError):
@@ -48,6 +63,7 @@ class StaleTakeoverError(RuntimeError):
 
 class TakeoverClassification(str, Enum):
     RUN_LIVE = "RUN_LIVE"
+    ACTIVE_DELEGATED_WORK = "ACTIVE_DELEGATED_WORK"
     WAIT_ON_FOREIGN_RUNTIME = "WAIT_ON_FOREIGN_RUNTIME"
     EXECUTOR_STUCK = "EXECUTOR_STUCK"
     ORPHANED_SCHEDULER_OWNER = "ORPHANED_SCHEDULER_OWNER"
@@ -78,6 +94,10 @@ class StaleTakeoverEvaluation:
     runtime_invocation_identity: str | None
     runtime_liveness_emitted_at: datetime | None
     runtime_liveness_expires_at: datetime | None
+    active_delegated_issue: int | None
+    active_delegated_helper_key: str | None
+    active_delegated_relationship: str | None
+    active_delegated_latest_progress_at: datetime | None
 
     def to_payload(self) -> dict[str, object]:
         payload = asdict(self)
@@ -92,6 +112,10 @@ class StaleTakeoverEvaluation:
         if self.runtime_liveness_expires_at is not None:
             payload["runtime_liveness_expires_at"] = _iso_utc(
                 self.runtime_liveness_expires_at
+            )
+        if self.active_delegated_latest_progress_at is not None:
+            payload["active_delegated_latest_progress_at"] = _iso_utc(
+                self.active_delegated_latest_progress_at
             )
         return payload
 
@@ -190,6 +214,411 @@ def _user_directed_authority_comment_id(
     if int((now - created_at).total_seconds()) > 3600:
         raise StaleTakeoverError("user authority comment is older than 3600 seconds")
     return comment_id
+
+
+
+@dataclass(frozen=True)
+class _DelegatedWorkObservation:
+    parent_issue: int
+    child_issue: int
+    relationship: str
+    helper_key: str
+    issue_state: str
+    claim_phase: str | None
+    child_worker: str | None
+    claim_blob_sha: str | None
+    live_head_sha: str | None
+    latest_progress_at: datetime | None
+    active: bool
+
+
+def _require_helper_key(value: object) -> str:
+    text = str(value or "").strip()
+    if not _HELPER_KEY_RE.fullmatch(text):
+        raise StaleTakeoverError("delegated helper_key is missing or malformed")
+    return text
+
+
+def _declared_delegations(claim: Mapping[str, object]) -> dict[int, dict[str, object]]:
+    parent_issue = _positive_int("claim issue", claim.get("issue"))
+    result: dict[int, dict[str, object]] = {}
+    canonical = claim.get("delegated_work")
+    if canonical is not None:
+        if not isinstance(canonical, list):
+            raise StaleTakeoverError("claim delegated_work must be a list")
+        for index, item in enumerate(canonical):
+            if not isinstance(item, Mapping):
+                raise StaleTakeoverError(f"claim delegated_work[{index}] must be an object")
+            child_issue = _positive_int(
+                f"claim delegated_work[{index}].child_issue", item.get("child_issue")
+            )
+            if child_issue == parent_issue:
+                raise StaleTakeoverError("delegated child issue must differ from parent")
+            relationship = str(item.get("relationship") or "").strip()
+            if relationship not in _ALLOWED_DELEGATED_RELATIONSHIPS:
+                raise StaleTakeoverError(
+                    f"claim delegated_work[{index}] relationship is invalid"
+                )
+            helper_key = _require_helper_key(item.get("helper_key"))
+            if child_issue in result:
+                raise StaleTakeoverError(
+                    f"duplicate delegated child issue declaration: {child_issue}"
+                )
+            result[child_issue] = {
+                "relationship": relationship,
+                "helper_key": helper_key,
+                "canonical": True,
+            }
+
+    def scan(node: object) -> None:
+        if isinstance(node, Mapping):
+            for key, value in node.items():
+                if key in _DELEGATION_KEYS and value is not None:
+                    child_issue = _positive_int(f"claim {key}", value)
+                    if child_issue == parent_issue:
+                        raise StaleTakeoverError(
+                            "delegated child issue must differ from parent"
+                        )
+                    if child_issue not in result:
+                        relationship = _DELEGATION_KEYS[key]
+                        result[child_issue] = {
+                            "relationship": relationship,
+                            "helper_key": f"legacy:{relationship}:{child_issue}",
+                            "canonical": False,
+                        }
+                if isinstance(value, (Mapping, list)):
+                    scan(value)
+        elif isinstance(node, list):
+            for item in node:
+                if isinstance(item, (Mapping, list)):
+                    scan(item)
+
+    scan(claim)
+    return result
+
+
+def _normalize_delegated_work(
+    claim: Mapping[str, object],
+    delegated_work: Sequence[Mapping[str, object]] | None,
+    *,
+    now: datetime,
+) -> tuple[_DelegatedWorkObservation, ...]:
+    parent_issue = _positive_int("claim issue", claim.get("issue"))
+    observations: list[_DelegatedWorkObservation] = []
+    seen_children: set[int] = set()
+    seen_helper_keys: set[str] = set()
+    for index, raw in enumerate(delegated_work or ()):
+        if not isinstance(raw, Mapping):
+            raise StaleTakeoverError(f"delegated work evidence[{index}] must be an object")
+        if raw.get("schema") != "WHD_DELEGATED_WORK_V1":
+            raise StaleTakeoverError(f"delegated work evidence[{index}] schema mismatch")
+        observed_parent = _positive_int(
+            f"delegated work evidence[{index}] parent_issue", raw.get("parent_issue")
+        )
+        if observed_parent != parent_issue:
+            raise StaleTakeoverError("delegated work parent issue mismatch")
+        child_issue = _positive_int(
+            f"delegated work evidence[{index}] child_issue", raw.get("child_issue")
+        )
+        if child_issue == parent_issue:
+            raise StaleTakeoverError("delegated child issue must differ from parent")
+        if child_issue in seen_children:
+            raise StaleTakeoverError(
+                f"duplicate delegated work evidence for child issue {child_issue}"
+            )
+        seen_children.add(child_issue)
+        relationship = str(raw.get("relationship") or "").strip()
+        if relationship not in _ALLOWED_DELEGATED_RELATIONSHIPS:
+            raise StaleTakeoverError(
+                f"delegated work evidence[{index}] relationship is invalid"
+            )
+        helper_key = _require_helper_key(raw.get("helper_key"))
+        if helper_key in seen_helper_keys:
+            raise StaleTakeoverError(
+                f"duplicate delegated helper_key evidence: {helper_key}"
+            )
+        seen_helper_keys.add(helper_key)
+        issue_state = str(raw.get("issue_state") or "").strip().lower()
+        if issue_state not in {"open", "closed"}:
+            raise StaleTakeoverError(
+                f"delegated work evidence[{index}] issue_state must be open|closed"
+            )
+        issue_updated_at = None
+        if raw.get("issue_updated_at") is not None:
+            issue_updated_at = _as_utc(
+                f"delegated work evidence[{index}] issue_updated_at",
+                raw.get("issue_updated_at"),
+            )
+            if issue_updated_at > now:
+                raise StaleTakeoverError("delegated issue updated_at is in the future")
+        child_claim = raw.get("claim")
+        if child_claim is None:
+            if issue_state != "closed":
+                raise StaleTakeoverError(
+                    f"open delegated child issue {child_issue} requires a fresh claim"
+                )
+            observations.append(
+                _DelegatedWorkObservation(
+                    parent_issue, child_issue, relationship, helper_key, issue_state,
+                    None, None, None, None, issue_updated_at, False
+                )
+            )
+            continue
+        if not isinstance(child_claim, Mapping):
+            raise StaleTakeoverError(
+                f"delegated work evidence[{index}] claim must be an object"
+            )
+        if _positive_int(
+            f"delegated child claim[{index}] issue", child_claim.get("issue")
+        ) != child_issue:
+            raise StaleTakeoverError("delegated child claim issue mismatch")
+        child_worker = str(child_claim.get("worker") or "").strip()
+        if not _WORKER_RE.fullmatch(child_worker):
+            raise StaleTakeoverError(
+                "delegated child claim worker identity is missing or malformed"
+            )
+        claim_phase = str(child_claim.get("phase") or "").strip().upper()
+        if claim_phase not in _ACTIVE_PHASES and claim_phase not in _INACTIVE_PHASES:
+            raise StaleTakeoverError(f"unknown delegated child claim phase={claim_phase}")
+        claim_blob_sha = _require_sha(
+            f"delegated work evidence[{index}] claim_blob_sha", raw.get("claim_blob_sha")
+        )
+        child_head = _require_sha(
+            f"delegated child claim[{index}] head_sha", child_claim.get("head_sha")
+        )
+        child_last_update = _as_utc(
+            f"delegated child claim[{index}] last_update", child_claim.get("last_update")
+        )
+        if child_last_update > now:
+            raise StaleTakeoverError("delegated child claim last_update is in the future")
+        latest_points = [child_last_update]
+        if issue_updated_at is not None:
+            latest_points.append(issue_updated_at)
+        if issue_state == "open":
+            if claim_phase not in _ACTIVE_PHASES:
+                raise StaleTakeoverError(
+                    f"open delegated child issue {child_issue} has inactive claim phase={claim_phase}"
+                )
+            live_head = _require_sha(
+                f"delegated work evidence[{index}] live_head_sha", raw.get("live_head_sha")
+            )
+            if live_head != child_head:
+                raise StaleTakeoverError(
+                    f"delegated child issue {child_issue} claim/live head mismatch"
+                )
+            live_commit_at = _as_utc(
+                f"delegated work evidence[{index}] live_head_committed_at",
+                raw.get("live_head_committed_at"),
+            )
+            if live_commit_at > now:
+                raise StaleTakeoverError(
+                    "delegated child live commit timestamp is in the future"
+                )
+            latest_points.append(live_commit_at)
+            observations.append(
+                _DelegatedWorkObservation(
+                    parent_issue, child_issue, relationship, helper_key, issue_state,
+                    claim_phase, child_worker, claim_blob_sha, live_head,
+                    max(latest_points), True
+                )
+            )
+        else:
+            if claim_phase not in _INACTIVE_PHASES:
+                raise StaleTakeoverError(
+                    f"closed delegated child issue {child_issue} still has active claim phase={claim_phase}"
+                )
+            observations.append(
+                _DelegatedWorkObservation(
+                    parent_issue, child_issue, relationship, helper_key, issue_state,
+                    claim_phase, child_worker, claim_blob_sha, child_head,
+                    max(latest_points), False
+                )
+            )
+
+    declared = _declared_delegations(claim)
+    by_issue = {item.child_issue: item for item in observations}
+    for child_issue, declaration in declared.items():
+        observed = by_issue.get(child_issue)
+        if observed is None:
+            raise StaleTakeoverError(
+                f"delegated work evidence required for child issue {child_issue}"
+            )
+        if declaration.get("canonical") is True and (
+            observed.relationship != declaration["relationship"]
+            or observed.helper_key != declaration["helper_key"]
+        ):
+            raise StaleTakeoverError(
+                f"delegated child issue {child_issue} canonical relationship/helper_key mismatch"
+            )
+        if (
+            declaration.get("canonical") is not True
+            and observed.relationship != declaration["relationship"]
+        ):
+            raise StaleTakeoverError(
+                f"delegated child issue {child_issue} relationship mismatch"
+            )
+    return tuple(observations)
+
+
+def assert_helper_creation_allowed(
+    parent_claim: Mapping[str, object],
+    *,
+    helper_key: str,
+    delegated_work: Sequence[Mapping[str, object]] | None,
+    now: datetime,
+    stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
+) -> None:
+    _positive_int("stale_after_seconds", stale_after_seconds)
+    now_utc = _as_utc("now", now)
+    candidate_key = _require_helper_key(helper_key)
+    observations = _normalize_delegated_work(
+        parent_claim, delegated_work, now=now_utc
+    )
+    for item in observations:
+        if item.active and item.helper_key == candidate_key:
+            raise StaleTakeoverError(
+                "ACTIVE_HELPER_DUPLICATE "
+                f"helper_key={candidate_key} child_issue={item.child_issue}"
+            )
+
+
+def _github_api_json(path: str, *, allow_not_found: bool = False) -> object | None:
+    repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if repository != "looaeedr/whd":
+        raise StaleTakeoverError(
+            "fresh delegated-work discovery requires GITHUB_REPOSITORY=looaeedr/whd"
+        )
+    token = (os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or "").strip()
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repository}/{path.lstrip('/')}",
+        headers=headers,
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        if allow_not_found and exc.code == 404:
+            return None
+        raise StaleTakeoverError(
+            f"delegated-work GitHub API read failed status={exc.code}"
+        ) from exc
+    except (urllib.error.URLError, TimeoutError, UnicodeDecodeError) as exc:
+        raise StaleTakeoverError(f"delegated-work GitHub API read failed: {exc}") from exc
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise StaleTakeoverError(
+            "delegated-work GitHub API returned invalid JSON"
+        ) from exc
+
+
+def _github_claim_for_issue(issue: int) -> tuple[dict[str, object] | None, str | None]:
+    path = urllib.parse.quote(f".dispatch/claims/issue-{issue}.json", safe="/")
+    query = urllib.parse.urlencode({"ref": "coord/dispatch-claims"})
+    payload = _github_api_json(f"contents/{path}?{query}", allow_not_found=True)
+    if payload is None:
+        return None, None
+    if not isinstance(payload, Mapping):
+        raise StaleTakeoverError(
+            f"delegated child issue {issue} claim contents response is invalid"
+        )
+    blob_sha = _require_sha(
+        f"delegated child issue {issue} claim blob SHA", payload.get("sha")
+    )
+    encoded = payload.get("content")
+    if not isinstance(encoded, str):
+        raise StaleTakeoverError(
+            f"delegated child issue {issue} claim content is missing"
+        )
+    try:
+        child_claim = json.loads(base64.b64decode(encoded).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise StaleTakeoverError(
+            f"delegated child issue {issue} claim content is invalid"
+        ) from exc
+    if not isinstance(child_claim, dict):
+        raise StaleTakeoverError(
+            f"delegated child issue {issue} claim root must be an object"
+        )
+    return child_claim, blob_sha
+
+
+def _discover_github_delegated_work(
+    claim: Mapping[str, object],
+) -> list[dict[str, object]]:
+    declarations = _declared_delegations(claim)
+    observations: list[dict[str, object]] = []
+    for child_issue, declaration in sorted(declarations.items()):
+        issue_payload = _github_api_json(f"issues/{child_issue}")
+        if not isinstance(issue_payload, Mapping):
+            raise StaleTakeoverError(
+                f"delegated child issue {child_issue} response is invalid"
+            )
+        issue_state = str(issue_payload.get("state") or "").strip().lower()
+        child_claim, blob_sha = _github_claim_for_issue(child_issue)
+        observation = {
+            "schema": "WHD_DELEGATED_WORK_V1",
+            "parent_issue": _positive_int("claim issue", claim.get("issue")),
+            "child_issue": child_issue,
+            "relationship": declaration["relationship"],
+            "helper_key": declaration["helper_key"],
+            "issue_state": issue_state,
+            "issue_updated_at": issue_payload.get("updated_at"),
+            "claim": child_claim,
+            "claim_blob_sha": blob_sha,
+        }
+        if child_claim is not None:
+            phase = str(child_claim.get("phase") or "").strip().upper()
+            if issue_state == "open" or phase in _ACTIVE_PHASES:
+                branch = str(child_claim.get("work_branch") or "").strip()
+                if not branch:
+                    raise StaleTakeoverError(
+                        f"delegated child issue {child_issue} work_branch is missing"
+                    )
+                branch_payload = _github_api_json(
+                    "branches/" + urllib.parse.quote(branch, safe="")
+                )
+                if not isinstance(branch_payload, Mapping):
+                    raise StaleTakeoverError(
+                        f"delegated child issue {child_issue} branch response is invalid"
+                    )
+                commit_ref = branch_payload.get("commit")
+                if not isinstance(commit_ref, Mapping):
+                    raise StaleTakeoverError(
+                        f"delegated child issue {child_issue} branch commit is missing"
+                    )
+                live_head = _require_sha(
+                    f"delegated child issue {child_issue} live head",
+                    commit_ref.get("sha"),
+                )
+                commit_payload = _github_api_json(f"commits/{live_head}")
+                if not isinstance(commit_payload, Mapping):
+                    raise StaleTakeoverError(
+                        f"delegated child issue {child_issue} commit response is invalid"
+                    )
+                commit_meta = commit_payload.get("commit")
+                if not isinstance(commit_meta, Mapping):
+                    raise StaleTakeoverError(
+                        f"delegated child issue {child_issue} commit metadata is missing"
+                    )
+                committer = commit_meta.get("committer")
+                author = commit_meta.get("author")
+                committed_at = (
+                    committer.get("date") if isinstance(committer, Mapping) else None
+                )
+                if committed_at is None and isinstance(author, Mapping):
+                    committed_at = author.get("date")
+                observation["live_head_sha"] = live_head
+                observation["live_head_committed_at"] = committed_at
+        observations.append(observation)
+    return observations
+
 
 
 def _remote_progress(
@@ -364,6 +793,7 @@ def evaluate_stale_claim_takeover(
     claim_blob_sha: str | None = None,
     runtime_liveness: Mapping[str, object] | None = None,
     orphan_grace_seconds: int = DEFAULT_ORPHAN_GRACE_SECONDS,
+    delegated_work: Sequence[Mapping[str, object]] | None = None,
 ) -> StaleTakeoverEvaluation:
     """Classify whether one authorized requester may take over an active WHD claim."""
 
@@ -421,6 +851,12 @@ def evaluate_stale_claim_takeover(
         )
 
     remote_active, remote_updated_at, remote_reason = _remote_progress(claim, remote_run)
+    delegated_observations = _normalize_delegated_work(
+        claim, delegated_work, now=now_utc
+    )
+    active_delegated = next(
+        (item for item in delegated_observations if item.active), None
+    )
 
     runtime_status = "NOT_APPLICABLE"
     runtime_invocation: str | None = None
@@ -492,6 +928,18 @@ def evaluate_stale_claim_takeover(
             runtime_invocation_identity=runtime_invocation,
             runtime_liveness_emitted_at=runtime_emitted_at,
             runtime_liveness_expires_at=runtime_expires_at,
+            active_delegated_issue=(
+                None if active_delegated is None else active_delegated.child_issue
+            ),
+            active_delegated_helper_key=(
+                None if active_delegated is None else active_delegated.helper_key
+            ),
+            active_delegated_relationship=(
+                None if active_delegated is None else active_delegated.relationship
+            ),
+            active_delegated_latest_progress_at=(
+                None if active_delegated is None else active_delegated.latest_progress_at
+            ),
         )
 
     if phase in _INACTIVE_PHASES:
@@ -520,6 +968,19 @@ def evaluate_stale_claim_takeover(
             TakeoverClassification.RUN_LIVE,
             False,
             remote_reason,
+        )
+
+    if active_delegated is not None:
+        return result(
+            TakeoverClassification.ACTIVE_DELEGATED_WORK,
+            False,
+            (
+                "parent has active delegated work "
+                f"child_issue={active_delegated.child_issue} "
+                f"relationship={active_delegated.relationship} "
+                f"helper_key={active_delegated.helper_key}; "
+                "evaluate/resume the delegated leaf instead of taking over the parent"
+            ),
         )
 
     if previous_source == "scheduler" and requester != previous_worker:
@@ -598,6 +1059,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--live-head-committed-at", required=True)
     parser.add_argument("--remote-run-json", type=Path)
     parser.add_argument("--runtime-liveness-json", type=Path)
+    parser.add_argument(
+        "--delegated-work-json", action="append", type=Path, default=[]
+    )
+    parser.add_argument("--candidate-helper-key")
     parser.add_argument("--claim-blob-sha")
     parser.add_argument(
         "--orphan-grace-seconds",
@@ -640,6 +1105,27 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         now = datetime.now(timezone.utc) if args.now is None else _as_utc("now", args.now)
+        if args.delegated_work_json:
+            delegated_work = [
+                _load_json_object(path, label="delegated work")
+                for path in args.delegated_work_json
+            ]
+        elif _declared_delegations(claim):
+            delegated_work = _discover_github_delegated_work(claim)
+        else:
+            delegated_work = []
+        if args.candidate_helper_key is not None:
+            assert_helper_creation_allowed(
+                claim,
+                helper_key=args.candidate_helper_key,
+                delegated_work=delegated_work,
+                now=now,
+                stale_after_seconds=args.stale_after_seconds,
+            )
+            print(
+                "HELPER_CREATION_GUARD_GREEN "
+                f"helper_key={args.candidate_helper_key}"
+            )
         result = evaluate_stale_claim_takeover(
             claim,
             now=now,
@@ -653,6 +1139,7 @@ def main(argv: list[str] | None = None) -> int:
             claim_blob_sha=args.claim_blob_sha,
             runtime_liveness=runtime_liveness,
             orphan_grace_seconds=args.orphan_grace_seconds,
+            delegated_work=delegated_work,
         )
     except StaleTakeoverError as exc:
         print(f"STALE_CLAIM_TAKEOVER_ERROR: {exc}")
