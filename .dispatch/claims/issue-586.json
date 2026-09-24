@@ -6,18 +6,18 @@
   "work_branch": "governance/issue586-runtime-liveness-main-20260924",
   "claimed_at": "2026-09-24T12:26:23+08:00",
   "base_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
-  "head_sha": "a882953fb1a3381ac9ab7729efc1615c85f93662",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T12:26:23+08:00",
+  "head_sha": "819faba7f5e5660fd018cf9d0e03f7d91d7f124f",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T12:28:12+08:00",
   "production_target": "main",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Consume existing focused QA run 35952054409 (5 PASS / 0 FAIL) at exact head a882953fb1a3381ac9ab7729efc1615c85f93662, remove the temporary qa-issue586 workflow under guard, reconcile claim HEAD, then guarded PR-write/merge the trusted Remote Guard transport to main and fresh-read main.",
+  "next_action": "Create guarded PR from closing head 819faba7f5e5660fd018cf9d0e03f7d91d7f124f to main, merge only with exact expected head, fresh-read main integration, then run trusted finalization/closure and release this claim. Parent #578 remains open for real sibling-scheduler E2E.",
   "blocker": null,
   "last_guard": {
-    "action": "claim-takeover",
-    "run_id": 35955154691,
-    "request_comment_id": 5807591876,
+    "action": "write",
+    "run_id": 35955763763,
+    "request_comment_id": 5807695788,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
@@ -62,5 +62,11 @@
     "executor_identity": "chatgpt.sol260924.issue586.takeover",
     "takeover_proof_run": 35955636448,
     "action": "focused-qa-consume-cleanup-main-integration"
+  },
+  "tested_head_sha": "a882953fb1a3381ac9ab7729efc1615c85f93662",
+  "closing_drift": {
+    "from": "a882953fb1a3381ac9ab7729efc1615c85f93662",
+    "to": "819faba7f5e5660fd018cf9d0e03f7d91d7f124f",
+    "only_change": "delete temporary .github/workflows/qa-issue586-remote-guard-liveness-transport.yml"
   }
 }
