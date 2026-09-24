@@ -1,0 +1,18 @@
+{
+  "issue": 629,
+  "issue_url": "https://github.com/looaeedr/whd/issues/629",
+  "worker": "chatgpt.sol260924.write-scheduler-skill",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue629-write-scheduler-skill-20260924",
+  "claimed_at": "2026-09-24T22:11:55+08:00",
+  "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+  "head_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T22:11:55+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded work branch, then add 寫排程 Skill + registry route + contract test + scheduler continuity pitfall writeback.",
+  "blocker": null
+}
