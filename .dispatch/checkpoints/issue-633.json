@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "633",
+  "branch": "work/issue633-finalization-proof-order-20260925",
+  "head_sha": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36038550269,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "broader QA run 36038550269 completed success: 54 passed, 0 failed",
+    "temporary QA workflow removed at closing head 24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+    "tested-head 162e697ef1e469197fc8a41df4cdd605f4766eeb to closing-head drift PASS: workflow deletion only",
+    "PR #634 merged non-force into cleanup/2d-3d-sync",
+    "production readback cleanup/2d-3d-sync = 3ffe415b10099d52bc6c39f02463e3483c43f10b"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance durable checkpoint to ISSUE_CLOSE_PENDING, then authorize and verify bound finalization proof before closing Issue #633"
+}
