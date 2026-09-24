@@ -362,15 +362,28 @@ def test_legacy_persisted_terminal_without_closure_metadata_recovers_as_pending(
     assert "finalization proof" in recovered.closure_next_action
 
 
-def test_pending_terminal_remains_authorizable_for_bound_finalization_proof():
+def test_pending_terminal_requires_issue_close_pending_before_bound_finalization_proof():
     checkpoint = _running(
         state=ContinuityState.TERMINAL_SUCCESS,
         next_action=None,
         closure_state=continuity.ClosureState.FINALIZATION_PENDING,
-        closure_next_action="run bound finalization proof",
+        closure_next_action="advance to ISSUE_CLOSE_PENDING",
     )
 
     assert_finalizable(checkpoint)
+    with pytest.raises(continuity.FinalizationBlocked, match="ISSUE_CLOSE_PENDING"):
+        continuity.authorize_finalization(
+            checkpoint,
+            expected_issue=checkpoint.issue,
+            expected_branch=checkpoint.branch,
+            expected_head_sha=checkpoint.head_sha,
+        )
+
+    checkpoint = continuity.advance_closure(
+        checkpoint,
+        state=continuity.ClosureState.ISSUE_CLOSE_PENDING,
+        next_action="run bound finalization proof",
+    )
     proof = continuity.authorize_finalization(
         checkpoint,
         expected_issue=checkpoint.issue,

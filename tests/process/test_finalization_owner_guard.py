@@ -23,6 +23,8 @@ def _terminal(**overrides) -> Checkpoint:
         head_sha=HEAD,
         state=ContinuityState.TERMINAL_SUCCESS,
         next_action=None,
+        closure_state=continuity.ClosureState.ISSUE_CLOSE_PENDING,
+        closure_next_action="verify bound proof then close owning Issue without checkpoint mutation",
         evidence=("acceptance green", "cleanup complete"),
     )
     values.update(overrides)
@@ -37,6 +39,39 @@ def _owner(**overrides):
     )
     values.update(overrides)
     return values
+
+
+def test_owned_finalization_guard_rejects_proof_before_issue_close_pending():
+    guard = getattr(continuity, "authorize_finalization", None)
+    assert callable(guard)
+
+    checkpoint = _terminal(
+        closure_state=continuity.ClosureState.FINALIZATION_PENDING,
+        closure_next_action="advance to ISSUE_CLOSE_PENDING before minting proof",
+    )
+
+    with pytest.raises(FinalizationBlocked, match="ISSUE_CLOSE_PENDING"):
+        guard(checkpoint, **_owner())
+
+
+def test_bound_proof_becomes_stale_if_checkpoint_advances_after_authorization():
+    guard = getattr(continuity, "authorize_finalization", None)
+    verify = getattr(continuity, "assert_finalization_proof", None)
+    assert callable(guard)
+    assert callable(verify)
+
+    checkpoint = _terminal()
+    proof = guard(checkpoint, **_owner())
+    verify(checkpoint, proof, **_owner())
+
+    advanced = continuity.advance_closure(
+        checkpoint,
+        state=continuity.ClosureState.RELEASE_HANDOFF_PENDING,
+        next_action="atomically close checkpoint and release claim after Issue readback",
+        evidence=("owning Issue closed/completed readback verified",),
+    )
+    with pytest.raises(FinalizationBlocked, match="stale finalization proof"):
+        verify(advanced, proof, **_owner())
 
 
 def test_owned_finalization_guard_requires_explicit_owner_identity():

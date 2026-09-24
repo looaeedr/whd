@@ -753,6 +753,12 @@ def authorize_finalization(
         expected_head_sha=expected_head_sha,
     )
     assert_finalizable(checkpoint)
+    if checkpoint.closure_state is not ClosureState.ISSUE_CLOSE_PENDING:
+        raise FinalizationBlocked(
+            "finalization proof authorization requires "
+            "closure_state=ISSUE_CLOSE_PENDING; "
+            f"actual={checkpoint.closure_state.value}"
+        )
     return FinalizationProof(
         version=FINALIZATION_PROOF_VERSION,
         issue=issue,

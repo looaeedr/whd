@@ -53,12 +53,14 @@ FINALIZATION_PENDING
 → CLOSED
 ```
 
-- `FINALIZATION_PENDING`：跑 exact owning checkpoint 的 bound finalization proof；`authorize-finalization / verify-finalization-proof` 仍允許 terminal checkpoint，不能因 closure pending 反向死鎖 proof。
-- `ISSUE_CLOSE_PENDING`：執行 owning Issue close，立即 fresh-read 驗 `closed/completed`；沒有 readback 不得前進。
+- `FINALIZATION_PENDING`：**先**把 terminal checkpoint durable 推進到 `ISSUE_CLOSE_PENDING`；此階段禁止提前 mint finalization proof。
+- `ISSUE_CLOSE_PENDING`：在這個 exact、之後不再改寫的 checkpoint 上執行 `authorize-finalization → verify-finalization-proof`。proof GREEN 後到 owning Issue close 完成前，**禁止任何 checkpoint mutation**；直接 close Issue，立即 fresh-read 驗 `closed/completed`，readback 成功後才推進 `RELEASE_HANDOFF_PENDING`。
 - `RELEASE_HANDOFF_PENDING`：最後一個 coordination mutation 必須把 **checkpoint `closure_state=CLOSED` + shared claim `phase=RELEASED` + successor/chain handoff** 放在同一個 durable coordination commit；禁止先 release claim 再另補 checkpoint，因 release 後 owner 已失去 active mutation authority。
 - `CLOSED`：只代表本 child 的 closure transaction 已完整落盤；若 `chain_state=NEXT_CHILD_EXECUTABLE`，Master continuity 仍必須立即前進下一 child，不得把 child CLOSED 當 Master terminal。
 - 任一 pending closure state 都必須有非空 `closure_next_action`；`assert_turn_exitable` 必須拒絕 normal return。scheduler/interactive executor 都不得以「checkpoint 已 terminal」「Issue 已 close」「PR 已 merge」單項證據繞過。
 - 舊 terminal checkpoint 若缺 closure metadata，canonical loader 必須 fail-safe recovery 成 `FINALIZATION_PENDING`，由 durable evidence 重建 closure；不得默認成已 CLOSED。
+- `authorize_finalization()` 的 machine gate 必須直接拒絕 `closure_state != ISSUE_CLOSE_PENDING`；這不是只靠文件順序提醒。
+- finalization proof 綁 checkpoint fingerprint；proof 產生後若又 advance closure、補 evidence 或重寫 checkpoint，proof 立即 stale，必須重新回到 current `ISSUE_CLOSE_PENDING` checkpoint 產生新 proof。
 - 本節只定義派工責任；狀態 schema、合法 transition、resume/turn-exit machine enforcement 由 `executable-continuity-controller` 唯一擁有，禁止在 prompt/Skill 複製第二套 parser。
 
 ## 1. 啟動與能力邊界
