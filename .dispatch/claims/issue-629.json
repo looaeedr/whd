@@ -6,19 +6,19 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T22:24:55+08:00",
+  "head_sha": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-24T22:27:02+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36012569776,
-    "head_sha": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
+    "run_id": 36012838280,
+    "head_sha": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Fix only the #629 QA workflow Preflight step: assert required_skills_for/required_references_for route contents instead of invoking the CLI without evidence; retrigger focused QA on the new exact HEAD.",
+  "next_action": "Remove temporary .github/workflows/qa-issue629-write-scheduler-skill.yml, reconcile claim to closing HEAD, then verify tested-head→closing-head diff is workflow deletion only before integration/finalization.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -34,6 +34,10 @@
     "qa_retry_run_id": 36012569776,
     "qa_retry_failure": "contract 4/4 PASS; workflow Preflight step incorrectly invoked phase6_skill_preflight.py without evidence, producing expected missing-evidence exit 1",
     "rerun_workflow_commit": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
-    "rerun_claim_reconcile_guard_run_id": 36012606490
+    "rerun_claim_reconcile_guard_run_id": 36012606490,
+    "accepted_qa_run_id": 36012838280,
+    "accepted_qa_head": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
+    "accepted_qa": "scheduler-authoring contract 4/4 PASS; canonical preflight route assertion GREEN; all job steps success",
+    "accepted_qa_claim_reconcile_guard_run_id": 36012868724
   }
 }
