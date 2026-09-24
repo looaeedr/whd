@@ -1,0 +1,17 @@
+{
+  "issue": 593,
+  "issue_url": "https://github.com/looaeedr/whd/issues/593",
+  "worker": "chatgpt.sol260924.issue593",
+  "executor_source": "chat",
+  "work_branch": "governance/issue593-e2e-phases-20260924",
+  "claimed_at": "2026-09-24T13:07:31+08:00",
+  "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T13:07:31+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "parent_issue": 578,
+  "delegated_branches": [],
+  "next_action": "Create guarded branch; add E2E_OWNER/E2E_TAKEN_OVER/E2E_PROVEN to canonical active-phase allowlists with focused fail-closed regression; integrate to X; resume #592 owner setup.",
+  "blocker": null
+}
