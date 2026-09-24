@@ -1,0 +1,16 @@
+{
+  "issue": 581,
+  "issue_url": "https://github.com/looaeedr/whd/issues/581",
+  "worker": "chatgpt.sol260924.interactive581",
+  "executor_source": "chat",
+  "work_branch": "governance/issue581-interactive-stale-takeover-20260924",
+  "claimed_at": "2026-09-24T08:11:30+08:00",
+  "base_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
+  "head_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T08:11:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Create the governance repair branch under Remote Guard, implement explicit user-directed interactive stale takeover fail-closed support with focused tests and docs, run focused QA, integrate non-force, then use the new authority to take over #534.",
+  "blocker": null
+}
