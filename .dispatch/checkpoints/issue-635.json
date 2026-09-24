@@ -16,13 +16,15 @@
     "main readback 3058f1756acba8522f55bc6d78283c195e79d34a",
     "live Remote Guard smoke run 36041107488 GREEN",
     "live receipt issued_at 2026-09-24T18:25:29.629064Z expires_at 2026-09-24T19:05:29.629064Z = 40 minutes",
-    "scheduler heartbeat/stale/orphan timing unchanged"
+    "scheduler heartbeat/stale/orphan timing unchanged",
+    "remote finalization run 36041510253 GREEN: FINALIZATION_PROOF_VALID; artifact 10826439322",
+    "GitHub Issue #635 fresh readback: closed/completed"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "authorize and verify bound finalization proof on this exact checkpoint, then close Issue #635 without checkpoint mutation and fresh-read closed/completed"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED"
 }
