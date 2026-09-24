@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T20:47:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "0ad67880881bd18aa143faceb84cf2ea9afff14e",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-24T20:58:00+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T21:09:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "UI-REGRESSION",
   "parent_issue": null,
@@ -19,6 +19,43 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Run code review and tested-head→closing-head drift audit; fresh-read production target; if clean, integrate through guarded PR path, then execute finalization/closure gate and release claim.",
-  "blocker": null
+  "next_action": null,
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 36003673686,
+    "request_comment_id": 5814739130,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+    "consumed": true
+  },
+  "pr": {
+    "number": 612,
+    "url": "https://github.com/looaeedr/whd/pull/612",
+    "head_sha": "0ad67880881bd18aa143faceb84cf2ea9afff14e",
+    "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+    "state": "closed",
+    "merged": true,
+    "merge_commit_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba"
+  },
+  "integration": {
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+    "readback": true,
+    "work_to_production_changed_files": 0
+  },
+  "issue_terminal": {
+    "state": "closed",
+    "state_reason": "completed"
+  },
+  "finalization": {
+    "run_id": 36003499043,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_path": ".dispatch/checkpoints/issue-611.json",
+    "checkpoint_blob_sha": "b741424003b61900ee39605f0f68b493ba5b6041",
+    "checkpoint_fingerprint": "4b54745aa32433d025c2abf40708fa047e51b234e69bd8a7661d8b949017469f",
+    "claim_blob_sha_before_release": "9786fe6ec1ed37c03ac3e80cdcf1fd492377f703"
+  }
 }
