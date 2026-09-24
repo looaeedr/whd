@@ -1,17 +1,33 @@
 {
   "issue": 594,
   "issue_url": "https://github.com/looaeedr/whd/issues/594",
-  "worker": "scheduler.6ab4b035203c81918bfcdbf3a08dd2b8",
+  "worker": "scheduler.6ab4b04f1c9c8191ab6af0bd8cd1b815",
   "executor_source": "scheduler",
   "work_branch": "governance/issue594-sibling-orphan-e2e-20260924",
   "claimed_at": "2026-09-24T05:08:43Z",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
   "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T05:08:43Z",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T05:17:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Sibling scheduler must take over after orphan grace with ORPHANED_SCHEDULER_OWNER and continue same invocation.",
+  "next_action": "Perform same-invocation guarded substantive continuation for #594.",
   "blocker": null,
-  "remote_qa": null
+  "remote_qa": null,
+  "stale_takeover": {
+    "guard_run_id": 35959289819,
+    "request_comment_id": 5808161897,
+    "classification": "ORPHANED_SCHEDULER_OWNER",
+    "stale_seconds": 537,
+    "runtime_liveness_status": "EXPIRED",
+    "previous_worker": "scheduler.6ab4b035203c81918bfcdbf3a08dd2b8",
+    "previous_executor_source": "scheduler",
+    "requesting_worker": "scheduler.6ab4b04f1c9c8191ab6af0bd8cd1b815",
+    "claim_blob_sha_before": "123bdafc4e5ed6b17a72ec01d0ac73818eca7b93",
+    "observed_live_head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "runtime_invocation_identity": "owner-594-20260924T050942Z-6ab4b035203c8191",
+    "runtime_liveness_emitted_at": "2026-09-24T05:09:42Z",
+    "runtime_liveness_expires_at": "2026-09-24T05:11:42Z",
+    "taken_over_at": "2026-09-24T05:17:40Z"
+  }
 }
