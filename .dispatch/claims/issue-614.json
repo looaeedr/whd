@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T21:58:30+08:00",
+  "phase": "BLOCKED",
+  "last_update": "2026-09-24T22:00:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -21,8 +21,8 @@
     "status": "RUN_NOT_CREATED",
     "conclusion": null
   },
-  "next_action": "Fresh-discover the exact expanded B1 acceptance run for HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c; if non-terminal lock and poll the same run_id+head_sha, if terminal success extract #614+#510 counts then perform drift/protected-invariant audit, if no run exists request qa-dispatch guard before any manual dispatch.",
-  "blocker": null,
+  "next_action": "On the next scheduler wake, fresh-read this claim and issue comments first; if an exact push run for HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c is discoverable, lock that run_id+head_sha and poll to terminal. Only if live evidence proves no run exists may a qa-dispatch Guard be requested before manual dispatch.",
+  "blocker": "RUNTIME_CAPABILITY_BLOCKER: current GitHub connector exposes no repository/workflow push-run listing endpoint; exact expanded B1 run_id for HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c cannot be safely discovered. Manual dispatch is prohibited because it could duplicate an auto-triggered push run.",
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
     "orchestration_commit": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
@@ -51,6 +51,7 @@
       "tests/test_issue510_receiving_back_panel_modes.py"
     ],
     "guard_receipt_run_id": 36008010111,
-    "guard_reconciliation_run_id": 36009379576
+    "guard_reconciliation_run_id": 36009379576,
+    "guard_blocker_update_run_id": 36009527024
   }
 }
