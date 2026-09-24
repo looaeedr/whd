@@ -660,7 +660,10 @@ def _assert_post_commit_claim_head_reconciliation(
         receipt_files = receipt.get("changed_files")
         if not isinstance(receipt_files, list):
             continue
-        if tuple(sorted(str(item) for item in receipt_files)) != commit_file_set:
+        receipt_file_set = tuple(sorted(str(item) for item in receipt_files))
+        if len(receipt_file_set) != len(set(receipt_file_set)):
+            continue
+        if not set(commit_file_set).issubset(receipt_file_set):
             continue
 
         request_comment_id = receipt.get("request_comment_id")
@@ -686,7 +689,8 @@ def _assert_post_commit_claim_head_reconciliation(
         request_files = request.get("changed_files")
         if not isinstance(request_files, list):
             continue
-        if tuple(sorted(str(item) for item in request_files)) != commit_file_set:
+        request_file_set = tuple(sorted(str(item) for item in request_files))
+        if request_file_set != receipt_file_set:
             continue
 
         issued_epoch = _reconcile_timestamp_epoch("receipt issued_at", receipt.get("issued_at"))
