@@ -20,13 +20,14 @@
     "user-directed stale takeover proof run 36040997722 GREEN: EXECUTOR_STUCK/actionable with canonical claim guard GREEN",
     "closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING after #633 proof-order repair integration",
     "remote finalization run 36041503012 GREEN: FINALIZATION_PROOF_VALID; artifact 10826529073",
-    "GitHub Issue #631 fresh readback: closed/completed at 2026-09-24T18:30:41Z"
+    "GitHub Issue #631 fresh readback: closed/completed at 2026-09-24T18:30:41Z",
+    "atomic coordination closure: checkpoint CLOSED + claim RELEASED; no successor handoff required"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

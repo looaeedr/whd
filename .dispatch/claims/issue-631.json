@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T02:24:48+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T02:33:07+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Write #631 terminal checkpoint with closure_state=FINALIZATION_PENDING, advance to ISSUE_CLOSE_PENDING, mint/verify exact finalization proof without further checkpoint mutation, close/readback #631, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -88,15 +88,22 @@
     "blocking_repair_integration_head": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "takeover_proof_run_id": 36040997722,
     "takeover_proof_comment_id": 5819788569,
-    "takeover_user_authority_comment_id": 5819679412
+    "takeover_user_authority_comment_id": 5819679412,
+    "finalization_run_id": 36041503012,
+    "finalization_artifact_id": 10826529073,
+    "finalization_checkpoint_blob_sha": "454c27433df22309251340258d728dd307560162",
+    "finalization_checkpoint_fingerprint": "e266989e77e2f5aceecd053c38493f8505eec87d4ac1893cfe992f9d130eb662",
+    "issue_close_readback": "closed/completed at 2026-09-24T18:30:41Z",
+    "release_handoff_guard_run_id": 36041770876,
+    "final_atomic_closure_guard_run_id": 36041878561
   },
   "last_guard": {
-    "action": "write",
-    "run_id": 36035350803,
-    "request_comment_id": 5819030606,
+    "action": "commit",
+    "run_id": 36041878561,
+    "request_comment_id": 5819892294,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+    "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "consumed": true
   },
   "pr": {
@@ -110,7 +117,7 @@
   },
   "integration": {
     "production_target": "cleanup/2d-3d-sync",
-    "production_head": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+    "production_head": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "readback": true
   },
   "stale_takeover": {
@@ -127,5 +134,14 @@
     "actionable": true,
     "evidence": "WHD_USER_DIRECTED_LIVE_TAKEOVER_PROOF_V1 + canonical stale evaluator + canonical execution claim guard GREEN",
     "taken_over_at": "2026-09-25T02:24:48+08:00"
+  },
+  "finalization": {
+    "run_id": 36041503012,
+    "artifact_id": 10826529073,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "454c27433df22309251340258d728dd307560162",
+    "checkpoint_fingerprint": "e266989e77e2f5aceecd053c38493f8505eec87d4ac1893cfe992f9d130eb662",
+    "issue_state_readback": "closed/completed"
   }
 }
