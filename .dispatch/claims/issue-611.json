@@ -1,0 +1,19 @@
+{
+  "issue": 611,
+  "issue_url": "https://github.com/looaeedr/whd/issues/611",
+  "worker": "chatgpt.sol260924.issue611.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "hotfix/issue611-left-menu-selection-20260924",
+  "claimed_at": "2026-09-24T20:47:30+08:00",
+  "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "head_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "phase": "RED",
+  "last_update": "2026-09-24T20:47:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "UI-REGRESSION",
+  "parent_issue": null,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Obtain branch-create Remote Guard GREEN; create work branch; add focused real-Tk/Xvfb regression for Menu selected indicator visibility; apply presentation-only selectcolor fix; run focused + #334 regression.",
+  "blocker": null
+}
