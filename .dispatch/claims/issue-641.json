@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T19:36:26Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "head_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T19:36:26Z",
+  "phase": "RED",
+  "last_update": "2026-09-24T19:39:11.883579Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -27,7 +27,19 @@
   "breakdown_approved": true,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain exact branch-create Remote Guard for workorder/issue640-guard-turn-exit-helper-hardening-20260925 at frozen base 2bf5969aba8c8aa033b314f0d6f92165239f67c0; create/read back branch; then implement #641 versioned regression fixtures without changing production semantics.",
+  "next_action": "Create #641 versioned regression tests for active-claim/checkpoint, Guard transaction turn-exit, #638/#639 durable-mutation reconciliation, and helper reservation race; add temporary RED workflow; run exact RED QA.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-641.json"
+  "checkpoint": ".dispatch/checkpoints/issue-641.json",
+  "branch_create_guard": {
+    "request_comment_id": 5820925782,
+    "run_id": 36049479086,
+    "result": "GREEN",
+    "consumed": true,
+    "branch_readback_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0"
+  },
+  "reconcile_guard": {
+    "request_comment_id": 5820938007,
+    "run_id": 36049576766,
+    "result": "GREEN"
+  }
 }

@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "state": "RUNNING",
-  "next_action": "Obtain exact branch-create Remote Guard for workorder/issue640-guard-turn-exit-helper-hardening-20260925 at frozen base 2bf5969aba8c8aa033b314f0d6f92165239f67c0; create/read back branch; then implement #641 versioned regression fixtures without changing production semantics.",
+  "next_action": "Create #641 versioned regression tests for active-claim/checkpoint, Guard transaction turn-exit, #638/#639 durable-mutation reconciliation, and helper reservation race; add temporary RED workflow; run exact RED QA.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Requirement RED IDs RED-CLOSE-01/02/03 and RED-HELPER-01/02 approved by user on 2026-09-25.",
     "Breakdown #641→#647 approved by user on 2026-09-25.",
     "Master #640 frozen X base is 2bf5969aba8c8aa033b314f0d6f92165239f67c0; active chain must not chase newer X.",
-    "Claim and checkpoint are created atomically in the same coord/dispatch-claims commit before branch creation."
+    "Claim and checkpoint are created atomically in the same coord/dispatch-claims commit before branch creation.",
+    "Branch-create Remote Guard run 36049479086 GREEN and exact work-order branch read back at frozen base 2bf5969aba8c8aa033b314f0d6f92165239f67c0.",
+    "Coordination reconciliation Remote Guard run 36049576766 GREEN before advancing #641 durable next_action."
   ],
   "master_issue": "640",
   "chain_state": "NONE",
