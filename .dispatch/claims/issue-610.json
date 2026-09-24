@@ -1,0 +1,19 @@
+{
+  "issue": 610,
+  "issue_url": "https://github.com/looaeedr/whd/issues/610",
+  "worker": "chatgpt.sol260924.issue610.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "hotfix/issue610-left-menu-selection-20260924",
+  "claimed_at": "2026-09-24T20:38:47+08:00",
+  "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "head_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "phase": "RED",
+  "last_update": "2026-09-24T20:38:47+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "REGRESSION",
+  "parent_issue": null,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create hotfix branch after Remote Guard GREEN; add focused RED for visible selected radiobutton state in the left main selector; implement presentation-only fix; run #334 + focused Xvfb regression.",
+  "blocker": null
+}
