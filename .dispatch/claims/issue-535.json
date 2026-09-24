@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T17:39:10+08:00",
   "base_sha": "dbd999794205cb33759805221be42b636ca27eed",
   "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
-  "phase": "POST_INTEGRATION_READBACK",
-  "last_update": "2026-09-24T19:03:05+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T19:32:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -22,7 +22,7 @@
     "conclusion": "failure",
     "classification": "post-C3-doc-writeback push reran C2 A/B; candidate-only failures are governance process tests test_issue540_stale_claim_takeover (2), while candidate/base Headless and Xvfb suites themselves completed"
   },
-  "next_action": "Live GitHub already merged PR #605 non-force; do not replay integration. Fresh-read production be299d40a8d79c211d1bf8cc28938fcfbcad4179, verify C3 writeback exact readback and required final smoke/structural invariants on production, then create terminal checkpoint and run trusted finalization before closing #535 and Master #520.",
+  "next_action": "Live GitHub already merged PR #605 non-force; do not replay integration. Fresh-read current cleanup/2d-3d-sync, verify merge commit be299d40a8d79c211d1bf8cc28938fcfbcad4179 remains ancestor and C3 ownership writeback is unchanged, then write terminal checkpoint under current authority, run trusted finalization, close/release #535, and continue Master #520.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 534,
@@ -34,11 +34,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35990741047,
-    "request_comment_id": 5812828429,
+    "run_id": 35993471764,
+    "request_comment_id": 5813207406,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+    "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
     "consumed": true
   },
   "audit": {
@@ -69,5 +69,16 @@
     "classification": "CURRENT ownership/supersession writeback only",
     "integration_pr": 605,
     "merge_commit": "be299d40a8d79c211d1bf8cc28938fcfbcad4179"
+  },
+  "process_recovery": {
+    "issue": 606,
+    "classification": "UNSUPPORTED_SELF_OWNED_PHASE_RECOVERY",
+    "from_phase": "POST_INTEGRATION_READBACK",
+    "to_phase": "CLOSING",
+    "guard_run": 35993471764,
+    "guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+    "recovered_at": "2026-09-24T19:32:10+08:00",
+    "integration_replay": false
   }
 }
