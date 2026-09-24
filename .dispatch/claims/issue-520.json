@@ -1,0 +1,26 @@
+{
+  "issue": 520,
+  "issue_url": "https://github.com/looaeedr/whd/issues/520",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "claimed_at": "2026-09-24T19:40:55+08:00",
+  "base_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+  "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T19:40:55+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "MASTER-FINAL-CLOSURE",
+  "parent_issue": null,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Verify the published Phase 6 child chain is terminal through C3, consume #535 terminal/finalization evidence, verify current production ancestry and quantitative/ownership acceptance evidence, then write Master terminal checkpoint, run trusted finalization, close/readback #520, and release the Master claim without replaying integration.",
+  "blocker": null,
+  "lineage": {
+    "terminal_child": 535,
+    "terminal_child_checkpoint_blob_sha": "ef9e81fbc9655c00c03c77d32a94fa711ab2e2f0",
+    "accepted_c3_head": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+    "c3_finalization_run": 35993836482,
+    "c3_release_claim_blob_sha": "c1810c4c3e1e09d58bfd33a3423c81ca2126d442"
+  }
+}
