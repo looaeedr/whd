@@ -1,17 +1,42 @@
 {
   "issue": 595,
   "issue_url": "https://github.com/looaeedr/whd/issues/595",
-  "worker": "chatgpt.sol260924.issue595",
+  "worker": "chatgpt.sol260924.issue595.recovery",
   "executor_source": "chat",
   "work_branch": "governance/issue595-invalid-phase-recovery-20260924",
   "claimed_at": "2026-09-24T13:12:20+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
   "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T13:12:20+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T13:26:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create guarded governance branch; implement exact-claim-path invalid-phase write recovery with focused tests/docs/Skill; integrate to cleanup/2d-3d-sync; then normalize #578 claim phase.",
-  "blocker": null
+  "next_action": "Consume #595 implementation scope under the new owner: fresh Guard, implement exact-claim-path invalid-phase write recovery with focused tests/docs/Skill, integrate to cleanup/2d-3d-sync, normalize #578 claim to canonical phase, then return to #596 final takeover proof.",
+  "blocker": null,
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260924.issue595",
+    "previous_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260924.issue595.recovery",
+    "requesting_executor_source": "chat",
+    "user_authority_comment_id": 5808232657,
+    "observed_stale_seconds": 820,
+    "observed_live_head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "previous_last_update": "2026-09-24T13:12:20+08:00",
+    "exact_remote_run_id": null,
+    "exact_remote_run_status": null,
+    "exact_remote_run_conclusion": null,
+    "taken_over_at": "2026-09-24T13:26:00+08:00",
+    "proof": {
+      "workflow_run_id": 35959902291,
+      "job_id": 107506046045,
+      "proof_head_sha": "08da23c64de09237a5d0fb024ae24e6c840dc192",
+      "classification": "EXECUTOR_STUCK",
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+      "authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+      "claim_blob_sha": "c7c9d0cdcb677787fa6cd0bf098d4fbaaf303198"
+    }
+  }
 }
