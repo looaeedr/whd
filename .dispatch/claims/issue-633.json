@@ -1,0 +1,30 @@
+{
+  "issue": 633,
+  "issue_url": "https://github.com/looaeedr/whd/issues/633",
+  "worker": "chatgpt.sol260925.finalization-proof-order",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue633-finalization-proof-order-20260925",
+  "claimed_at": "2026-09-25T01:38:00+08:00",
+  "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+  "head_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T01:38:00+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run Remote Guard branch-create, then add RED proving authorize_finalization must reject FINALIZATION_PENDING and accept exact unchanged ISSUE_CLOSE_PENDING.",
+  "blocker": null,
+  "evidence": {
+    "parent_repair_issue": 631,
+    "production_regression_source_pr": 632,
+    "invariant": "Finalization proof must be minted after entering ISSUE_CLOSE_PENDING and checkpoint must remain unchanged through irreversible Issue close.",
+    "planned_changed_files": [
+      "tools/continuity_controller.py",
+      "tests/process/test_finalization_owner_guard.py",
+      ".agents/skills/engineering/派工/SKILL.md",
+      ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+    ]
+  }
+}
