@@ -1,0 +1,34 @@
+name: WHD｜#581｜聊天室接手治理回歸
+run-name: "WHD｜#581｜聊天室接手治理回歸｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - governance/issue581-interactive-stale-takeover-20260924
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "回歸｜互動接手與既有 scheduler claim 安全契約"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout exact branch"
+        uses: actions/checkout@v4
+      - name: "設定 Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "安裝 Tk 與 pytest"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          python -m pip install pytest
+      - name: "執行 focused takeover／claim guard 回歸"
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue581_interactive_stale_takeover.py
+          tests/process/test_issue573_sibling_scheduler_takeover.py
+          tests/process/test_issue540_stale_claim_takeover.py
+          tests/process/test_issue256_execution_claim_guard.py
