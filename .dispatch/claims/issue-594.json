@@ -7,11 +7,11 @@
   "claimed_at": "2026-09-24T05:08:43Z",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
   "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T05:17:40Z",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T05:18:13Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Perform same-invocation guarded substantive continuation for #594.",
+  "next_action": "Parent #578 may consume this proof and close #594",
   "blocker": null,
   "remote_qa": null,
   "stale_takeover": {
@@ -24,10 +24,22 @@
     "previous_executor_source": "scheduler",
     "requesting_worker": "scheduler.6ab4b04f1c9c8191ab6af0bd8cd1b815",
     "claim_blob_sha_before": "123bdafc4e5ed6b17a72ec01d0ac73818eca7b93",
+    "claim_blob_sha_after_takeover": "8d8bc9f2755e179a2d29bd7e270a48925da6b6c2",
     "observed_live_head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
     "runtime_invocation_identity": "owner-594-20260924T050942Z-6ab4b035203c8191",
     "runtime_liveness_emitted_at": "2026-09-24T05:09:42Z",
     "runtime_liveness_expires_at": "2026-09-24T05:11:42Z",
     "taken_over_at": "2026-09-24T05:17:40Z"
+  },
+  "continuation_evidence": {
+    "takeover_guard_run_id": 35959289819,
+    "continuation_guard_run_id": 35959324227,
+    "continuation_request_comment_id": 5808166175,
+    "old_lane": "scheduler.6ab4b035203c81918bfcdbf3a08dd2b8",
+    "new_lane": "scheduler.6ab4b04f1c9c8191ab6af0bd8cd1b815",
+    "classification": "ORPHANED_SCHEDULER_OWNER",
+    "stale_seconds": 537,
+    "runtime_liveness_status": "EXPIRED",
+    "same_invocation_continuation": true
   }
 }
