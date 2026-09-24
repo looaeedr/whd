@@ -7,15 +7,15 @@
   "claimed_at": "2026-09-24T19:06:10+08:00",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
   "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T19:37:20+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T19:39:45+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "master_issue": 520,
   "task_id": "GOV-CLAIM-PHASE-RECOVERY",
   "parent_issue": 535,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Write terminal checkpoint proving #535 unsupported-phase recovery completed legally through the existing exact claim-file write path; run trusted finalization, close/release #606, then return to #535 final closure.",
+  "next_action": null,
   "blocker": null,
   "repair_result": {
     "classification": "EXISTING_NARROW_RECOVERY_CAPABILITY_SUFFICIENT",
@@ -29,11 +29,20 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35994050706,
-    "request_comment_id": 5813317529,
+    "run_id": 35994282056,
+    "request_comment_id": 5813355533,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
     "consumed": true
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "accepted_comment_id": 5813352059,
+    "checkpoint_blob_sha": "9110b8d65475f5d0ba663e69f9e26d1b0897e422",
+    "finalization_run": 35994197980,
+    "finalization_result": "FINALIZATION_PROOF_VALID",
+    "claim_release_guard_run": 35994282056
   }
 }
