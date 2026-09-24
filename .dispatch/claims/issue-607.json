@@ -7,16 +7,16 @@
   "claimed_at": "2026-09-24T11:07:00Z",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
   "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
-  "phase": "PR_OPEN",
-  "last_update": "2026-09-24T11:16:05Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T11:17:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "remote_qa": null,
-  "next_action": "Fresh-read PR #608 and production HEAD. If PR remains mergeable with exact head 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c and base be299d40a8d79c211d1bf8cc28938fcfbcad4179, obtain a fresh single-use pr-write Remote Guard bound to current claim blob, merge non-force, then read back production and reconcile durable state.",
+  "next_action": "Fresh-read PR #608 and production HEAD. Obtain a fresh single-use pr-write Remote Guard bound to the repaired CLOSING claim, merge PR #608 non-force at exact head 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c, then read back production and reconcile integration.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35991997110,
-    "request_comment_id": 5812998770,
+    "run_id": 35992135944,
+    "request_comment_id": 5813018502,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -28,5 +28,12 @@
     "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
     "state": "open",
     "merged": false
+  },
+  "process_state_repair": {
+    "from_phase": "PR_OPEN",
+    "to_phase": "CLOSING",
+    "reason": "execution_claim_guard ACTIVE_PHASES does not include PR_OPEN",
+    "failed_guard_run_id": 35992077217,
+    "recovery_guard_run_id": 35992135944
   }
 }
