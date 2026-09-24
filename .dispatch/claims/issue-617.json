@@ -6,9 +6,9 @@
   "work_branch": "work/issue627-phase7-large-module-decomposition-20260924",
   "claimed_at": "2026-09-24T22:13:28+08:00",
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
-  "head_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T22:13:28+08:00",
+  "head_sha": "0f5274c33315e2ee8a77ef0a86ea6fe2e7d09a7f",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T22:17:14+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -17,6 +17,16 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Use #613 P7-B DT-0 characterization to identify concrete Phase6ApplicationHost responsibility clusters and complete DT-1 through DT-6 evidence before any runtime extraction.",
-  "blocker": null
+  "next_action": "Implement the DT-approved Door Layout bounded application controller on the existing work-order branch, convert the selected Phase6ApplicationHost state/transaction bodies to thin delegates, add structural/behavior tests, then run focused Headless/Xvfb acceptance.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 36011634178,
+    "request_comment_id": 5815855562,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+    "consumed": true
+  },
+  "decision_artifact": "docs/superpowers/checkpoints/issue617-a2-decision.json"
 }
