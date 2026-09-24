@@ -210,6 +210,31 @@ assert_finalization_proof(
 
 Bare `assert_finalizable(checkpoint)` must never be cited as proof that issue closure or workflow finalization was actually authorized.
 
+## TERMINAL_CLOSURE_TRANSACTION_HARD_GATE_V1
+
+A terminal child checkpoint records acceptance outcome; it does **not** by itself mean process closure is complete. Canonical machine authority is the `ClosureState` carried by `tools/continuity_controller.py`:
+
+```text
+FINALIZATION_PENDING
+→ ISSUE_CLOSE_PENDING
+→ RELEASE_HANDOFF_PENDING
+→ CLOSED
+```
+
+Contract:
+
+- canonical nonterminal → terminal transition automatically enters `FINALIZATION_PENDING` with a durable `closure_next_action`;
+- a persisted legacy terminal checkpoint missing closure metadata is recovered as `FINALIZATION_PENDING`, never silently treated as closed;
+- `assert_finalizable` / `authorize-finalization` continue to accept a terminal checkpoint while closure is pending, because the bound proof is the first closure step;
+- `advance_closure(...)` is terminal-only and adjacent/monotonic; backward transitions, skipping stages, or advancing an already `CLOSED` transaction fail closed;
+- `assert_turn_exitable` rejects every terminal checkpoint whose `closure_state != CLOSED` and surfaces its exact `closure_next_action`;
+- CLI `resume` returns `closure_next_action` before any Master successor handoff while closure remains pending;
+- after finalization proof is verified, advance to `ISSUE_CLOSE_PENDING`; after Issue close + fresh `closed/completed` readback, advance to `RELEASE_HANDOFF_PENDING`;
+- the final coordination mutation MUST atomically persist all three facts: checkpoint `closure_state=CLOSED`, execution claim `phase=RELEASED`, and successor/chain handoff. This avoids an impossible post-release checkpoint write and closes the half-terminal gap.
+- `CLOSED` only completes the current child closure. Existing `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1` still rejects exit when `chain_state=NEXT_CHILD_EXECUTABLE`.
+
+Turn-exit proof payloads bind `closure_state` in addition to owner/master/checkpoint digest, so a proof minted before closure progression becomes stale after the checkpoint changes.
+
 ## Resume gate
 
 For a persisted non-terminal checkpoint:

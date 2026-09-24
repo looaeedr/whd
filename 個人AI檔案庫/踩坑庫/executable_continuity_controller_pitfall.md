@@ -79,3 +79,34 @@ WHD 已經有 `NONTERMINAL_NEXT_ACTION_GATE`、`REMOTE_QA_ACTIVE_LOCK`、`STALE_
 Primary regression：`tests/process/test_issue473_master_chain_turn_exit_gate.py`。判斷式固定為：
 
 `run terminal != child terminal != Master-chain terminal`
+
+
+## TERMINAL_CLOSURE_HALF_STATE_PITFALL_V1
+
+### 症狀
+- child checkpoint 已 `TERMINAL_SUCCESS`，但 owning Issue 還 open、claim 還在 `RECOVERING/CLOSING`；
+- 或 Issue/PR 已 close/merge，但 shared claim 還 active、next_action 還停在舊的 pre-merge 動作；
+- scheduler 把「terminal checkpoint」誤當成「整個 process 可以停」。
+
+### 根因
+acceptance terminal 與 process closure 被拆成不同 transaction，但舊 `assert_turn_exitable` 只看 continuity state / Master handoff，沒有 machine-readable closure lifecycle。
+
+### 永久防線
+`tools/continuity_controller.py` 的 canonical closure progression 是：
+
+```text
+FINALIZATION_PENDING
+→ ISSUE_CLOSE_PENDING
+→ RELEASE_HANDOFF_PENDING
+→ CLOSED
+```
+
+terminal 但 `closure_state != CLOSED` 一律拒絕 turn exit，並由 `closure_next_action` 繼續。舊 terminal JSON 缺 closure metadata 時 fail-safe 回復成 `FINALIZATION_PENDING`。
+
+最後一步不可「先 claim RELEASED，再補 checkpoint CLOSED」，因 release 後已失去 active owner。必須在**同一個 coordination closure commit**原子寫入：
+
+1. checkpoint `closure_state=CLOSED`；
+2. shared claim `phase=RELEASED`；
+3. successor / Master chain handoff。
+
+即使 child CLOSED，`NEXT_CHILD_EXECUTABLE` 仍由 Master chain gate 阻擋 turn exit並直接續下一票。
