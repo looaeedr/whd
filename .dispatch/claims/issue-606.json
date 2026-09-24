@@ -1,0 +1,20 @@
+{
+  "issue": 606,
+  "issue_url": "https://github.com/looaeedr/whd/issues/606",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue606-claim-phase-recovery-20260924",
+  "claimed_at": "2026-09-24T19:06:10+08:00",
+  "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+  "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T19:06:10+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "master_issue": 520,
+  "task_id": "GOV-CLAIM-PHASE-RECOVERY",
+  "parent_issue": 535,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create the repair branch from exact production be299d40a8d79c211d1bf8cc28938fcfbcad4179 under Guard authority, then add a narrow recovery capability/test that permits canonical repair of an unsupported self-owned claim phase without bypassing ownership checks.",
+  "blocker": null
+}
