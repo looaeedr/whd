@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "head_sha": "33b845c90061576a6c5a7d81250eff3918663b8c",
-  "phase": "INTEGRATING",
-  "last_update": "2026-09-25T00:46:15+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T00:49:17+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue629-write-scheduler-skill.yml"
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync current HEAD; perform integration overlap/conflict audit from frozen/base 2ec51eb8f777cbfd8c3485efd68487d264854eba to closing head 33b845c90061576a6c5a7d81250eff3918663b8c versus current production. If safe, obtain exact integration/finalization authority, non-force integrate, production readback, close #629, then release claim.",
+  "next_action": "Create PR from work/issue629-write-scheduler-skill-20260924 at head 33b845c90061576a6c5a7d81250eff3918663b8c to cleanup/2d-3d-sync under a fresh pr-write Guard; then obtain a second fresh pr-write Guard to merge. Production readback must follow before terminal checkpoint/finalization.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -79,7 +79,8 @@
           ".github/workflows/qa-issue629-write-scheduler-skill.yml"
         ],
         "verdict": "PASS_WORKFLOW_DELETION_ONLY"
-      }
+      },
+      "invalid_phase_recovery_guard_run_id": 36029995571
     }
   }
 }
