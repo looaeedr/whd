@@ -6,14 +6,20 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T00:42:11+08:00",
+  "head_sha": "507db4e6d8ce27a50f66ee42e61307962caa8acb",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-25T00:44:32+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock the exact #629 scheduler-authoring QA push run for RED head b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51 to terminal; confirm the new GREEN expiry/live-drift contract assertions fail against the pre-amendment Skill, then implement the minimal Skill + pitfall change.",
+  "remote_qa": {
+    "run_id": 36029416709,
+    "head_sha": "507db4e6d8ce27a50f66ee42e61307962caa8acb",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_path": ".github/workflows/qa-issue629-write-scheduler-skill.yml"
+  },
+  "next_action": "Delete the one-shot #629 QA workflow under a fresh unexpired Guard, reconcile claim HEAD, then prove tested-head 507db4e6d8ce27a50f66ee42e61307962caa8acb -> closing-head delta is workflow deletion only before integration.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -54,7 +60,14 @@
         "LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY"
       ],
       "red_contract_commit": "b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51",
-      "red_claim_reconcile_guard_run_id": 36029178554
+      "red_claim_reconcile_guard_run_id": 36029178554,
+      "red_qa_run_id": 36029153136,
+      "red_result": "2 failed, 2 passed; intended missing GREEN_EXPIRY_HARD_GATE / LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY / STALE_GUARD_RECEIPT",
+      "green_commit": "507db4e6d8ce27a50f66ee42e61307962caa8acb",
+      "green_commit_guard_run_id": 36029294467,
+      "green_claim_reconcile_guard_run_id": 36029440247,
+      "green_qa_run_id": 36029416709,
+      "green_qa_result": "success"
     }
   }
 }
