@@ -21,6 +21,9 @@ MANDATORY_SKILL_MARKERS = (
     "TURN_EXIT_MACHINE_GATE",
     "RECURRING_STAYS_ENABLED",
     "POST_UPDATE_READBACK",
+    "GREEN_EXPIRY_HARD_GATE",
+    "LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY",
+    "STALE_GUARD_RECEIPT",
     "WHD_SCHEDULER_RUNTIME_END_V1",
 )
 
@@ -46,6 +49,8 @@ def test_contract_would_reject_old_shortened_prompt_shape() -> None:
     assert "HEARTBEAT_IS_NOT_WORK" in missing
     assert "BLOCKED_IS_NOT_AN_ESCAPE_HATCH" in missing
     assert "TURN_EXIT_MACHINE_GATE" in missing
+    assert "GREEN_EXPIRY_HARD_GATE" in missing
+    assert "LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY" in missing
 
 
 def test_scheduler_authoring_registry_route() -> None:
@@ -85,5 +90,9 @@ def test_scheduler_authoring_pitfall_records_guard_and_exit_regressions() -> Non
         "unconsumed GREEN",
         "machine turn-exit",
         "post-update readback",
+        "expired GREEN",
+        "STALE_GUARD_RECEIPT",
+        "claim.head_sha",
+        "live branch HEAD",
     ):
         assert marker in text

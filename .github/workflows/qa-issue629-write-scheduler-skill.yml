@@ -1,0 +1,92 @@
+name: WHD｜#629｜寫排程 Skill 驗收
+run-name: "WHD｜#629｜寫排程 Skill 驗收｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue629-write-scheduler-skill-20260924
+    paths:
+      - .github/workflows/qa-issue629-write-scheduler-skill.yml
+      - .agents/skills/engineering/寫排程/SKILL.md
+      - tests/process/test_write_scheduler_skill_contract.py
+      - 個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: scheduler-authoring contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Registry JSON 必須可解析
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool .agents/skills/skill_registry.json >/dev/null
+
+      - name: 寫排程 Skill contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_write_scheduler_skill_contract.py
+
+      - name: Canonical Preflight route
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from tools.phase6_skill_preflight import required_references_for, required_skills_for
+
+          task = "新增 寫排程技能，建立 scheduler prompt authoring hard gates"
+          changed = [
+              ".agents/skills/engineering/寫排程/SKILL.md",
+              ".agents/skills/skill_registry.json",
+              "tests/process/test_write_scheduler_skill_contract.py",
+              "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+          ]
+          skills = required_skills_for(task=task, changed_files=changed)
+          refs = required_references_for(task=task, changed_files=changed)
+
+          required_skills = {
+              "寫技能",
+              "寫排程",
+              "派工",
+              "遠端執行守門",
+              "monitoring-remote-qa",
+              "executable-continuity-controller",
+              "Python測試實務",
+              "phase6-release-packaging",
+          }
+          missing_skills = sorted(required_skills - set(skills))
+          assert not missing_skills, missing_skills
+
+          required_refs = {
+              "個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md",
+              "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+              "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+              "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md",
+          }
+          missing_refs = sorted(required_refs - set(refs))
+          assert not missing_refs, missing_refs
+          print("SCHEDULER_AUTHORING_PREFLIGHT_ROUTE=GREEN")
+          PY
+
+# red-green-amendment: stale-guard-and-live-drift
