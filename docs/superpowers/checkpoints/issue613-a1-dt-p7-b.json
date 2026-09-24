@@ -2,32 +2,70 @@
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
   "issue": 613,
   "master_issue": 627,
-  "target_id": "P7-B",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-B",
   "source": {
     "path": "gui.py",
     "blob_sha": "2a31fe7f1bf2008cd6aee083bc938cdb2a3b8eab",
     "loc": 2426,
     "top_level_symbol_count": 14,
     "largest_symbols": [
-      "Phase6ApplicationHost:1873"
+      "Phase6ApplicationHost:1873",
+      "_phase6_2d_material_viewport:190"
     ]
   },
+  "current_owner_map": [
+    "gui.py::Phase6ApplicationHost application host"
+  ],
   "current_tests": [
     "tests/test_gui_startup_contract.py",
     "tests/test_gui_fold_designer_transaction_contract.py"
   ],
   "dt_0_characterization": {
-    "status": "IN_PROGRESS",
-    "required": [
-      "direct callers",
-      "dynamic callers",
-      "imports/reverse imports",
-      "state reads",
-      "state writes",
-      "largest spans",
-      "current owner map",
-      "current tests"
+    "status": "COMPLETE",
+    "direct_callers": [
+      "Phase6PrimaryApplication subclasses Phase6ApplicationHost",
+      "main/application startup constructs primary application"
+    ],
+    "dynamic_callers": [
+      "Tk command/event callbacks",
+      "controller callback ports"
+    ],
+    "imports": [
+      "fold_designer_bridge.Phase6FoldDesignerApp",
+      "gui_modules.application.*",
+      "ae_engine.manufacturing_api",
+      "phase6_project_controller",
+      "phase6_workspace_controller"
+    ],
+    "reverse_imports": [
+      "application startup surface within gui.py"
+    ],
+    "state_reads": [
+      "workspace_controller",
+      "project_controller",
+      "settings_service",
+      "manual_corner_state",
+      "baseline/UI vars"
+    ],
+    "state_writes": [
+      "workspace/project/settings controller calls",
+      "presentation vars",
+      "assembly/endcap application state"
+    ],
+    "largest_spans": [
+      "Phase6ApplicationHost:1873",
+      "_phase6_2d_material_viewport:190"
+    ],
+    "current_owner_map": [
+      "gui.py::Phase6ApplicationHost application host"
+    ],
+    "current_tests": [
+      "tests/test_gui_startup_contract.py",
+      "tests/test_gui_fold_designer_transaction_contract.py"
     ]
   },
   "dt_1_remove_or_inline": {
@@ -51,6 +89,5 @@
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
     ]
-  },
-  "production_behavior_change": 0
+  }
 }

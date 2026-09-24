@@ -2,32 +2,66 @@
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
   "issue": 613,
   "master_issue": 627,
-  "target_id": "P7-F",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-F",
   "source": {
     "path": "phase6_manufacturing_geometry.py",
     "blob_sha": "e8359f0f92fb3901acc1c1485db0075e9039700e",
     "loc": 1356,
     "top_level_symbol_count": 22,
     "largest_symbols": [
-      "_phase6_resolve_explicit_joint_reliefs:494"
+      "_phase6_resolve_explicit_joint_reliefs:494",
+      "_phase6_build_joint_world_geometry:139",
+      "_phase6_shift_multistage_terminal_fold_world_mid:119"
     ]
   },
+  "current_owner_map": [
+    "explicit-joint manufacturing geometry pipeline"
+  ],
   "current_tests": [
     "tests/test_issue349_explicit_joint_relief_extraction.py",
     "tests/test_resolved_manufacturing_geometry.py"
   ],
   "dt_0_characterization": {
-    "status": "IN_PROGRESS",
-    "required": [
-      "direct callers",
-      "dynamic callers",
-      "imports/reverse imports",
-      "state reads",
-      "state writes",
-      "largest spans",
-      "current owner map",
-      "current tests"
+    "status": "COMPLETE",
+    "direct_callers": [
+      "phase6_manufacturing_service.py imports and calls _phase6_resolve_explicit_joint_reliefs"
+    ],
+    "dynamic_callers": [
+      "joint registry/solver decisions driven by request payload"
+    ],
+    "imports": [
+      "cabinet_types",
+      "sheetmetal_part_adapters",
+      "phase6_endcap_semantics",
+      "phase6_final_scene_view",
+      "phase6_sync_envelope",
+      "ae_engine.assembly_joint",
+      "phase6_manufacturing_contracts"
+    ],
+    "reverse_imports": [
+      "phase6_manufacturing_service.py"
+    ],
+    "state_reads": [
+      "manufacturing request/parts/joints/registry evidence"
+    ],
+    "state_writes": [
+      "returns resolved parts/diagnostics/state; applies cuts to local resolved owner structures"
+    ],
+    "largest_spans": [
+      "_phase6_resolve_explicit_joint_reliefs:494",
+      "_phase6_build_joint_world_geometry:139",
+      "_phase6_shift_multistage_terminal_fold_world_mid:119"
+    ],
+    "current_owner_map": [
+      "explicit-joint manufacturing geometry pipeline"
+    ],
+    "current_tests": [
+      "tests/test_issue349_explicit_joint_relief_extraction.py",
+      "tests/test_resolved_manufacturing_geometry.py"
     ]
   },
   "dt_1_remove_or_inline": {
@@ -51,6 +85,5 @@
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
     ]
-  },
-  "production_behavior_change": 0
+  }
 }

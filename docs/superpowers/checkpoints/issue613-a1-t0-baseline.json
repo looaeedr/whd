@@ -3,7 +3,15 @@
   "issue": 613,
   "master_issue": 627,
   "requirement_authority": "User-approved WHD Phase 7 Large Module Decomposition v1.2 + approved RED/breakdown",
-  "approved_red_ids": ["P7-R-A","P7-R-B","P7-R-C","P7-R-D","P7-R-E","P7-R-F","P7-R-G"],
+  "approved_red_ids": [
+    "P7-R-A",
+    "P7-R-B",
+    "P7-R-C",
+    "P7-R-D",
+    "P7-R-E",
+    "P7-R-F",
+    "P7-R-G"
+  ],
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
@@ -11,21 +19,103 @@
   "evidence_only": true,
   "production_behavior_change": 0,
   "source_metrics": [
-    {"target_id":"P7-A","path":"fold_designer_bridge.py","blob_sha":"0bd6b1c412dc2aeff7ce1e389ca2aeecb11d6217","loc":6477,"top_level_symbol_count":279,"owner":"composition/bootstrap compatibility root","largest_symbol":{"name":"_fix11_activate_part","span":221}},
-    {"target_id":"P7-B","path":"gui.py","blob_sha":"2a31fe7f1bf2008cd6aee083bc938cdb2a3b8eab","loc":2426,"top_level_symbol_count":14,"owner":"gui.py::Phase6ApplicationHost application host","largest_symbol":{"name":"Phase6ApplicationHost","span":1873}},
-    {"target_id":"P7-C","path":"ae_engine/ae.py","blob_sha":"06cdec4eceab2d8989bc050d98a3963d81a96fa3","loc":3135,"top_level_symbol_count":74,"owner":"ae_engine baseline/resource/legacy scene/DXF surface","largest_symbol":{"name":"get_stretched_door_data","span":388}},
-    {"target_id":"P7-D","path":"ae_engine/manufacturing_api.py","blob_sha":"92f028ed420a935731687bf629509ffcc5fe3ba8","loc":2607,"top_level_symbol_count":82,"owner":"public manufacturing facade","largest_symbol":{"name":"build_part_scene","span":217}},
-    {"target_id":"P7-E","path":"ae_engine/assembly_collision.py","blob_sha":"fc8080986c462370cdc90cc8c528d10c0151946b","loc":2891,"top_level_symbol_count":64,"owner":"collision/backprojection and part-specific solvers","largest_symbol":{"name":"solve_world_backprojected_endcap_relief","span":513}},
-    {"target_id":"P7-F","path":"phase6_manufacturing_geometry.py","blob_sha":"e8359f0f92fb3901acc1c1485db0075e9039700e","loc":1356,"top_level_symbol_count":22,"owner":"explicit-joint manufacturing geometry pipeline","largest_symbol":{"name":"_phase6_resolve_explicit_joint_reliefs","span":494,"start_line":770},"known_direct_caller":"phase6_manufacturing_service.py::_phase6_resolve_manufacturing_geometry"},
-    {"target_id":"P7-G","path":"phase6_settings_panel.py","blob_sha":"8f786022bf71a12d3263e688ef12d2bd5aad004f","loc":1279,"top_level_symbol_count":8,"owner":"Phase6SettingsPanel Settings presentation","largest_symbol":{"name":"Phase6SettingsPanel","span":1120}}
+    {
+      "target_id": "P7-A",
+      "path": "fold_designer_bridge.py",
+      "blob_sha": "0bd6b1c412dc2aeff7ce1e389ca2aeecb11d6217",
+      "loc": 6477,
+      "top_level_symbol_count": 279,
+      "owner": "composition/bootstrap compatibility root; deep owners remain external",
+      "largest_symbols": [
+        " _fix11_activate_part:221",
+        "_phase6_sync_authoritative_derived_parts:194",
+        "Phase6FoldDesignerApp:167"
+      ]
+    },
+    {
+      "target_id": "P7-B",
+      "path": "gui.py",
+      "blob_sha": "2a31fe7f1bf2008cd6aee083bc938cdb2a3b8eab",
+      "loc": 2426,
+      "top_level_symbol_count": 14,
+      "owner": "gui.py::Phase6ApplicationHost application host",
+      "largest_symbols": [
+        "Phase6ApplicationHost:1873",
+        "_phase6_2d_material_viewport:190"
+      ]
+    },
+    {
+      "target_id": "P7-C",
+      "path": "ae_engine/ae.py",
+      "blob_sha": "06cdec4eceab2d8989bc050d98a3963d81a96fa3",
+      "loc": 3135,
+      "top_level_symbol_count": 74,
+      "owner": "ae_engine baseline/resource + legacy scene/DXF compatibility surface",
+      "largest_symbols": [
+        "get_stretched_door_data:388",
+        "get_stretched_end_cap_data:265",
+        "get_resource_path:185"
+      ]
+    },
+    {
+      "target_id": "P7-D",
+      "path": "ae_engine/manufacturing_api.py",
+      "blob_sha": "92f028ed420a935731687bf629509ffcc5fe3ba8",
+      "loc": 2607,
+      "top_level_symbol_count": 82,
+      "owner": "public manufacturing facade",
+      "largest_symbols": [
+        "build_part_scene:217",
+        "build_box_body_divider_render_data:121",
+        "build_part_render_data:96"
+      ]
+    },
+    {
+      "target_id": "P7-E",
+      "path": "ae_engine/assembly_collision.py",
+      "blob_sha": "fc8080986c462370cdc90cc8c528d10c0151946b",
+      "loc": 2891,
+      "top_level_symbol_count": 64,
+      "owner": "collision/backprojection and part-specific solver owner",
+      "largest_symbols": [
+        "solve_world_backprojected_endcap_relief:513",
+        "_divider_physical_target_solid_cut:198",
+        "classify_source_fold_true_thickness_interference:180"
+      ]
+    },
+    {
+      "target_id": "P7-F",
+      "path": "phase6_manufacturing_geometry.py",
+      "blob_sha": "e8359f0f92fb3901acc1c1485db0075e9039700e",
+      "loc": 1356,
+      "top_level_symbol_count": 22,
+      "owner": "explicit-joint manufacturing geometry pipeline",
+      "largest_symbols": [
+        "_phase6_resolve_explicit_joint_reliefs:494",
+        "_phase6_build_joint_world_geometry:139",
+        "_phase6_shift_multistage_terminal_fold_world_mid:119"
+      ]
+    },
+    {
+      "target_id": "P7-G",
+      "path": "phase6_settings_panel.py",
+      "blob_sha": "8f786022bf71a12d3263e688ef12d2bd5aad004f",
+      "loc": 1279,
+      "top_level_symbol_count": 8,
+      "owner": "Phase6SettingsPanel Settings presentation",
+      "largest_symbols": [
+        "Phase6SettingsPanel:1120",
+        "build_choice_menubutton:37"
+      ]
+    }
   ],
   "inventory_status": {
     "source_metrics": "FROZEN",
-    "current_owner_map": "FROZEN_FROM_CURRENT_AI_LIBRARY_AND_ISSUE_AUTHORITY",
-    "current_test_path_inventory": "FROZEN_BY_REPOSITORY_TREE",
-    "exact_direct_dynamic_caller_scan": "PENDING",
-    "exact_state_read_write_scan": "PENDING",
-    "exact_import_reverse_import_scan": "PENDING"
+    "current_owner_map": "FROZEN",
+    "current_test_path_inventory": "FROZEN",
+    "exact_direct_dynamic_caller_scan": "COMPLETE_STATIC_AND_RUNTIME_SEAM_INVENTORY",
+    "exact_state_read_write_scan": "COMPLETE_OWNER_BOUNDARY_INVENTORY",
+    "exact_import_reverse_import_scan": "COMPLETE_TARGET_BOUNDARY_INVENTORY"
   },
-  "next_action": "Complete exact caller/import/state inventories for all seven targets, then mark each DT skeleton DT-0 complete without changing runtime behavior."
+  "next_action": "Use these DT-0 baselines as authoritative input for downstream Phase 7 target deletion tests; no runtime behavior changed in A1."
 }

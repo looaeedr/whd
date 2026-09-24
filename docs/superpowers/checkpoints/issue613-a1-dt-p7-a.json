@@ -2,32 +2,71 @@
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
   "issue": 613,
   "master_issue": 627,
-  "target_id": "P7-A",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-A",
   "source": {
     "path": "fold_designer_bridge.py",
     "blob_sha": "0bd6b1c412dc2aeff7ce1e389ca2aeecb11d6217",
     "loc": 6477,
     "top_level_symbol_count": 279,
     "largest_symbols": [
-      "_fix11_activate_part:221"
+      " _fix11_activate_part:221",
+      "_phase6_sync_authoritative_derived_parts:194",
+      "Phase6FoldDesignerApp:167"
     ]
   },
+  "current_owner_map": [
+    "composition/bootstrap compatibility root; deep owners remain external"
+  ],
   "current_tests": [
     "tests/test_original_fold_designer_bridge.py",
     "tests/test_phase6_bridge_domain_ownership.py"
   ],
   "dt_0_characterization": {
-    "status": "IN_PROGRESS",
-    "required": [
-      "direct callers",
-      "dynamic callers",
-      "imports/reverse imports",
-      "state reads",
-      "state writes",
-      "largest spans",
-      "current owner map",
-      "current tests"
+    "status": "COMPLETE",
+    "direct_callers": [
+      "gui.py imports Phase6FoldDesignerApp",
+      "bridge facade installation exposes activate/save compatibility entrypoints"
+    ],
+    "dynamic_callers": [
+      "runtime-installed facade callbacks",
+      "Tk/presentation callbacks"
+    ],
+    "imports": [
+      "phase6_designer_workspace",
+      "phase6_derived_part_projection",
+      "phase6_workspace_shell",
+      "phase6_settings_panel",
+      "phase6_manufacturing_geometry",
+      "phase6_manufacturing_adapter",
+      "ae_engine.*"
+    ],
+    "reverse_imports": [
+      "gui.py imports Phase6FoldDesignerApp"
+    ],
+    "state_reads": [
+      "designer_workspace",
+      "Settings snapshots",
+      "assembly/registry/fold/final-scene projections"
+    ],
+    "state_writes": [
+      "presentation/Tk projection state",
+      "compatibility state; canonical workspace/settings mutations delegated to deep owners"
+    ],
+    "largest_spans": [
+      " _fix11_activate_part:221",
+      "_phase6_sync_authoritative_derived_parts:194",
+      "Phase6FoldDesignerApp:167"
+    ],
+    "current_owner_map": [
+      "composition/bootstrap compatibility root; deep owners remain external"
+    ],
+    "current_tests": [
+      "tests/test_original_fold_designer_bridge.py",
+      "tests/test_phase6_bridge_domain_ownership.py"
     ]
   },
   "dt_1_remove_or_inline": {
@@ -51,6 +90,5 @@
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
     ]
-  },
-  "production_behavior_change": 0
+  }
 }

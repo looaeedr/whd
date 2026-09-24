@@ -2,32 +2,63 @@
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
   "issue": 613,
   "master_issue": 627,
-  "target_id": "P7-G",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-G",
   "source": {
     "path": "phase6_settings_panel.py",
     "blob_sha": "8f786022bf71a12d3263e688ef12d2bd5aad004f",
     "loc": 1279,
     "top_level_symbol_count": 8,
     "largest_symbols": [
-      "Phase6SettingsPanel:1120"
+      "Phase6SettingsPanel:1120",
+      "build_choice_menubutton:37"
     ]
   },
+  "current_owner_map": [
+    "Phase6SettingsPanel Settings presentation"
+  ],
   "current_tests": [
     "tests/test_phase6_settings_panel_ownership.py",
     "tests/test_phase6_settings_center_gui_contract.py"
   ],
   "dt_0_characterization": {
-    "status": "IN_PROGRESS",
-    "required": [
-      "direct callers",
-      "dynamic callers",
-      "imports/reverse imports",
-      "state reads",
-      "state writes",
-      "largest spans",
-      "current owner map",
-      "current tests"
+    "status": "COMPLETE",
+    "direct_callers": [
+      "fold_designer_bridge.py imports Phase6SettingsPanel/settings helpers",
+      "application composition supplies callback ports"
+    ],
+    "dynamic_callers": [
+      "Tk widget commands and callback ports"
+    ],
+    "imports": [
+      "phase6_settings_center",
+      "tkinter",
+      "ttk",
+      "whd_theme"
+    ],
+    "reverse_imports": [
+      "fold_designer_bridge.py"
+    ],
+    "state_reads": [
+      "values_snapshot/specs/context/baseline getters",
+      "presentation page/cache state"
+    ],
+    "state_writes": [
+      "Tk variables/page cache/presentation state; domain commits delegated through callback ports"
+    ],
+    "largest_spans": [
+      "Phase6SettingsPanel:1120",
+      "build_choice_menubutton:37"
+    ],
+    "current_owner_map": [
+      "Phase6SettingsPanel Settings presentation"
+    ],
+    "current_tests": [
+      "tests/test_phase6_settings_panel_ownership.py",
+      "tests/test_phase6_settings_center_gui_contract.py"
     ]
   },
   "dt_1_remove_or_inline": {
@@ -51,6 +82,5 @@
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
     ]
-  },
-  "production_behavior_change": 0
+  }
 }

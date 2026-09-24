@@ -2,32 +2,65 @@
   "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
   "issue": 613,
   "master_issue": 627,
-  "target_id": "P7-E",
   "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "work_order_branch": "work/issue627-phase7-large-module-decomposition-20260924",
+  "production_target": "cleanup/2d-3d-sync",
+  "production_behavior_change": 0,
+  "target_id": "P7-E",
   "source": {
     "path": "ae_engine/assembly_collision.py",
     "blob_sha": "fc8080986c462370cdc90cc8c528d10c0151946b",
     "loc": 2891,
     "top_level_symbol_count": 64,
     "largest_symbols": [
-      "solve_world_backprojected_endcap_relief:513"
+      "solve_world_backprojected_endcap_relief:513",
+      "_divider_physical_target_solid_cut:198",
+      "classify_source_fold_true_thickness_interference:180"
     ]
   },
+  "current_owner_map": [
+    "collision/backprojection and part-specific solver owner"
+  ],
   "current_tests": [
     "tests/test_assembly_collision.py",
     "tests/test_assembly_collision_integration.py"
   ],
   "dt_0_characterization": {
-    "status": "IN_PROGRESS",
-    "required": [
-      "direct callers",
-      "dynamic callers",
-      "imports/reverse imports",
-      "state reads",
-      "state writes",
-      "largest spans",
-      "current owner map",
-      "current tests"
+    "status": "COMPLETE",
+    "direct_callers": [
+      "manufacturing geometry/service collision integration paths",
+      "tests/test_assembly_collision.py"
+    ],
+    "dynamic_callers": [
+      "solver selection from joint/family manufacturing flow"
+    ],
+    "imports": [
+      "dataclasses",
+      "enum",
+      "shapely.geometry.base",
+      "ae_engine.assembly_geometry"
+    ],
+    "reverse_imports": [
+      "phase6 manufacturing integration paths",
+      "tests/test_assembly_collision.py"
+    ],
+    "state_reads": [
+      "immutable geometry/fold/joint inputs"
+    ],
+    "state_writes": [
+      "returns collision/backprojection/relief results; no UI/project state"
+    ],
+    "largest_spans": [
+      "solve_world_backprojected_endcap_relief:513",
+      "_divider_physical_target_solid_cut:198",
+      "classify_source_fold_true_thickness_interference:180"
+    ],
+    "current_owner_map": [
+      "collision/backprojection and part-specific solver owner"
+    ],
+    "current_tests": [
+      "tests/test_assembly_collision.py",
+      "tests/test_assembly_collision_integration.py"
     ]
   },
   "dt_1_remove_or_inline": {
@@ -51,6 +84,5 @@
       "DEEPEN_EXISTING_OWNER",
       "KEEP_CURRENT_BOUNDARY"
     ]
-  },
-  "production_behavior_change": 0
+  }
 }
