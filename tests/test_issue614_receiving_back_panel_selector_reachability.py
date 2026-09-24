@@ -119,17 +119,8 @@ def test_receiving_direct_selector_commits_existing_back_opening_contract():
             designer.designer_workspace.box_body_structure_state()
         ) is BackPanelMode.BACK_OPENING
 
-        resolved = designer._phase6_resolve_manufacturing_geometry()
-        rendered = resolved.part("box_body").render_data
-        back = next(piece for piece in rendered.pieces if piece.role == "back")
-        closed_cutting = [
-            primitive
-            for primitive in tuple(back.scene.primitives or ())
-            if str(getattr(primitive, "layer", "")).upper() == "CUTTING"
-            and bool(getattr(primitive, "closed", False))
-        ]
-        # BACK_OPENING adds one closed CUTTING loop to the existing rear-panel
-        # manufacturing geometry.  Exact dimensions remain owned by Receiving.
-        assert len(closed_cutting) >= 2
+        # This GUI regression test owns only the operator path and canonical
+        # state commit.  BACK_OPENING manufacturing/DXF geometry is already
+        # certified by the focused #510 tests and is run beside this test in CI.
     finally:
         _close(tk, root, designer)
