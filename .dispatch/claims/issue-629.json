@@ -7,18 +7,13 @@
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "head_sha": "0aff433337ae80b8043754c878556a30570756d3",
-  "phase": "INTEGRATING",
-  "last_update": "2026-09-24T22:28:48+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T00:37:33+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
-  "remote_qa": {
-    "run_id": 36012838280,
-    "head_sha": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
-    "status": "completed",
-    "conclusion": "success"
-  },
-  "next_action": "Open guarded non-force integration PR from work/issue629-write-scheduler-skill-20260924 @ 0aff433337ae80b8043754c878556a30570756d3 to cleanup/2d-3d-sync @ 2ec51eb8f777cbfd8c3485efd68487d264854eba; merge only if exact head/base remain unchanged.",
+  "remote_qa": null,
+  "next_action": "Amend 寫排程 Skill + contract test + scheduler_prompt_authoring_pitfall with GREEN expiry validation and live branch/claim drift reconciliation; rerun focused QA before integration.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -51,16 +46,12 @@
       ],
       "verdict": "PASS_WORKFLOW_DELETION_ONLY"
     },
-    "integration_readiness": {
-      "frozen_base": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-      "current_target": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-      "closing_head": "0aff433337ae80b8043754c878556a30570756d3",
-      "target_drift": "NONE",
-      "work_files": [
-        ".agents/skills/engineering/寫排程/SKILL.md",
-        ".agents/skills/skill_registry.json",
-        "tests/process/test_write_scheduler_skill_contract.py",
-        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+    "post_qa_amendment": {
+      "reason": "New scheduler failures observed after initial QA: stale/expired Guard receipts were consumed after expires_at, and durable branch/checkpoint progress drifted ahead of claim metadata.",
+      "claim_recovery_guard_run_id": 36028633740,
+      "required_rules": [
+        "GREEN_EXPIRY_HARD_GATE",
+        "LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY"
       ]
     }
   }
