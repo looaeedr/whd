@@ -6,20 +6,20 @@
   "work_branch": "work/issue631-finalization-hard-gate-20260925",
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
-  "head_sha": "dc8bb46cf4248b26ba4a9275105ceee6193c53b3",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T01:22:10+08:00",
+  "head_sha": "917f4f3d406195be07f065afcf2fe9b41e54d8c9",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T01:26:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36033740745,
-    "head_sha": "dc8bb46cf4248b26ba4a9275105ceee6193c53b3",
+    "run_id": 36034288090,
+    "head_sha": "917f4f3d406195be07f065afcf2fe9b41e54d8c9",
     "status": "completed",
-    "conclusion": "failure",
+    "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Implement machine-readable terminal closure lifecycle in tools/continuity_controller.py and update behavior tests; preserve terminal finalization proof authorization while blocking turn exit until closure is complete.",
+  "next_action": "Run broader continuity/finalization/Master-chain regressions on exact GREEN head, then delete the temporary QA workflow and audit tested-head to closing-head drift.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -45,12 +45,17 @@
     "workflow_claim_reconcile_guard_run_id": 36033555072,
     "qa_workflow_commit": "7221483d343bd327ce4ab479370b60adcbd751ab",
     "qa_workflow_commit_guard_run_id": 36033324495,
-    "instrumentation_claim_reconcile_guard_run_id": 36033762993
+    "instrumentation_claim_reconcile_guard_run_id": 36033762993,
+    "green_commit": "917f4f3d406195be07f065afcf2fe9b41e54d8c9",
+    "green_commit_guard_run_id": 36033889799,
+    "green_qa_run_id": 36034288090,
+    "green_qa_result": "23 passed, 0 failed in tests/process/test_continuity_controller.py",
+    "green_claim_reconcile_guard_run_id": 36034305124
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36033762993,
-    "request_comment_id": 5818836972,
+    "run_id": 36034305124,
+    "request_comment_id": 5818903455,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
