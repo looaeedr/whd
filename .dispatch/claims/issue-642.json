@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-24T19:56:40.367394Z",
   "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
-  "head_sha": "694d76f1d7280024c4aef233889c119303952853",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T22:48:12.737099Z",
+  "head_sha": "ad6d65e785b899ce85a36218fe02893a1d293771",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T22:52:28.579822Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T2",
   "expected_parent_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "694d76f1d7280024c4aef233889c119303952853",
+  "chain_head": "ad6d65e785b899ce85a36218fe02893a1d293771",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-01"
@@ -23,19 +23,23 @@
   "breakdown_approved": true,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36055758248,
-    "head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
+    "run_id": 36069742592,
+    "head_sha": "ad6d65e785b899ce85a36218fe02893a1d293771",
     "status": "completed",
-    "conclusion": "success",
-    "job_id": 107822119631,
-    "artifact_id": 10832407058,
-    "purpose": "T2 activation transaction + active checkpoint read + prewrite backstop RED",
+    "conclusion": "failure",
+    "job_id": 107867661371,
+    "artifact_id": 10836829908,
+    "purpose": "T2 focused GREEN attempt 1",
     "evidence": {
-      "pytest": "17 intended failures",
-      "marker": "ISSUE642_T2_RED=GREEN"
+      "pytest": "67 passed / 2 failed",
+      "failures": [
+        "test_cli_write_requires_changed_file_identity_and_owner",
+        "test_cli_skill_write_requires_canonical_writing_skill_preflight_evidence"
+      ],
+      "activation_workflow_parse_run_id": 36069741238
     }
   },
-  "next_action": "Reconcile #642 checkpoint to implementation HEAD 694d76f1d7280024c4aef233889c119303952853, then run focused GREEN for ACTIVE_CLAIM_REQUIRES_CHECKPOINT + trusted activation workflow contract.",
+  "next_action": "Reconcile checkpoint to ad6d65e785b899ce85a36218fe02893a1d293771, then repair whd-remote-claim-activation expression escaping, update the focused GREEN trigger paths, and adapt legacy CLI tests to supply the required checkpoint without changing assert_execution_claim() function contract.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-642.json",
   "predecessor": {
@@ -81,6 +85,16 @@
     "implementation_commit_sha": "694d76f1d7280024c4aef233889c119303952853",
     "reconcile_guard_request_comment_id": 5823493646,
     "reconcile_guard_run_id": 36069424181,
+    "result": "GREEN"
+  },
+  "reconcile_after_green_runner_commit": {
+    "prior_head_sha": "694d76f1d7280024c4aef233889c119303952853",
+    "new_head_sha": "ad6d65e785b899ce85a36218fe02893a1d293771",
+    "green_runner_guard_request_comment_id": 5823525941,
+    "green_runner_guard_run_id": 36069696764,
+    "green_runner_commit_sha": "ad6d65e785b899ce85a36218fe02893a1d293771",
+    "reconcile_guard_request_comment_id": 5823538577,
+    "reconcile_guard_run_id": 36069802880,
     "result": "GREEN"
   }
 }
