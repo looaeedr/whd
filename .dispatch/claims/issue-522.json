@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-23T01:26:59+08:00",
   "base_sha": "23fd989edfa35583af8e3435ca86fc08835e4260",
   "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T19:44:20+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T19:44:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -30,7 +30,7 @@
       "artifact_id": 10710820254
     }
   },
-  "next_action": "Issue #522 is already closed/completed with durable finalization evidence; release this stale historical claim and return to Master #520 closure.",
+  "next_action": null,
   "blocker": null,
   "release_evidence": {
     "issue_state": "closed",
@@ -57,5 +57,21 @@
     "exact_remote_run_conclusion": "success",
     "guard_run": 35994642596,
     "taken_over_at": "2026-09-24T19:44:20+08:00"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "legacy_finalization_run": 35763538479,
+    "cleanup_takeover_run": 35994642596,
+    "claim_release_guard_run": 35994749097
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35994749097,
+    "request_comment_id": 5813423133,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+    "consumed": true
   }
 }
