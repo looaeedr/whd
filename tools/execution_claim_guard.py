@@ -891,7 +891,10 @@ class ExecutionClaim:
 
 
 def load_execution_claim(
-    path: Path, *, allow_released_recovery: bool = False
+    path: Path,
+    *,
+    allow_released_recovery: bool = False,
+    allow_unknown_phase_recovery: bool = False,
 ) -> ExecutionClaim:
     path = Path(path)
     try:
@@ -931,7 +934,10 @@ def load_execution_claim(
         if not (allow_released_recovery and phase == "RELEASED"):
             raise ExecutionClaimError(f"execution claim is inactive: phase={phase}")
     elif phase not in ACTIVE_PHASES:
-        raise ExecutionClaimError(f"ambiguous execution claim state: unknown phase={phase}")
+        if not allow_unknown_phase_recovery:
+            raise ExecutionClaimError(
+                f"ambiguous execution claim state: unknown phase={phase}"
+            )
 
     return ExecutionClaim(
         issue=issue,
@@ -984,11 +990,13 @@ def assert_execution_claim(
         )
 
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
-    allow_released_recovery = (
+    exact_claim_write = (
         action == "write" and normalized_changed_files == (expected_claim_path,)
     )
     claim = load_execution_claim(
-        path, allow_released_recovery=allow_released_recovery
+        path,
+        allow_released_recovery=exact_claim_write,
+        allow_unknown_phase_recovery=exact_claim_write,
     )
     if claim.issue != issue:
         raise ExecutionClaimError(

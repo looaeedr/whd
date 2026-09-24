@@ -371,3 +371,8 @@ trusted workflow固定順序：
 `fresh claim/blob → exact run read → Issue comments fresh-read → scheduler_runtime_liveness selector → stale_claim_takeover → execution_claim_guard → receipt`。
 
 Active exact run仍是絕對鎖；有效 runtime lease仍 backoff；missing/expired lease只有在90秒 grace與所有 identity gate成立時才可 `ORPHANED_SCHEDULER_OWNER`。
+
+
+### INVALID_PHASE_EXACT_CLAIM_WRITE_RECOVERY_V1
+
+若 shared claim 已被寫成 canonical allowlist 之外的 phase，Guard 不得全面放寬 phase parser。只允許窄 recovery：`action=write` 且 `changed_file` 唯一為該 owning Issue 自己的 exact claim path。此時仍須逐一驗 issue/worker/branch/base/head；授權只可把 process-state 正規化回 canonical phase。任何其他 action/path、錯 owner/branch/SHA、terminal/inactive 語意都維持 fail closed。
