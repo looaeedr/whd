@@ -6,12 +6,29 @@
   "work_branch": "governance/issue587-proof-takeover586-20260924",
   "claimed_at": "2026-09-24T12:16:45+08:00",
   "base_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "head_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T12:16:45+08:00",
+  "head_sha": "340a67eb7c5a5eacc90e9f6b7520392746a1a9e5",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T12:20:47+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 586,
   "delegated_branches": [],
-  "next_action": "Obtain Remote Guard GREEN for branch-create, create one-shot proof branch, add temporary Actions proof workflow that fresh-validates user-directed interactive takeover of stalled #586, and run it to terminal.",
-  "blocker": null
+  "next_action": "Update the temporary proof workflow to use authority comment 5807604785 now that #586 is scheduler-owned; rerun exact proof to GREEN, then CAS #586 to chatgpt.sol260924.issue586.takeover.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35955242579,
+    "request_comment_id": 5807607237,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
+    "consumed": true
+  },
+  "proof_attempt": {
+    "run_id": 35955076957,
+    "job_id": 107491567167,
+    "evaluator_result": "GREEN",
+    "claim_guard_result": "FAIL",
+    "reason": "non-scheduler previous owner takeover remains scheduler-only",
+    "artifact_id": 10790341195
+  }
 }
