@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
-  "head_sha": "df94d7483f742cea5796017c1a730312ec3eecfd",
+  "head_sha": "dbd999794205cb33759805221be42b636ca27eed",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T16:05:30+08:00",
+  "last_update": "2026-09-24T17:34:05+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -29,7 +29,7 @@
     "visual_3d_artifact": "issue534-final-integrity-3d.png",
     "visual_3d_review": "PASS"
   },
-  "next_action": "Create a guarded PR from the exact work-order head df94d7483f742cea5796017c1a730312ec3eecfd to cleanup/2d-3d-sync, require clean merge identity, merge non-force, fresh-read production HEAD, then write terminal checkpoint and run owning finalization proof before closing #534.",
+  "next_action": "Fresh-validate the reconciled work head dbd999794205cb33759805221be42b636ca27eed against current cleanup/2d-3d-sync, obtain a fresh guarded pr-write authority, create/update the exact PR, validate clean non-force integration, merge, then terminal checkpoint + machine finalization + close/readback.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -38,11 +38,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35973176954,
-    "request_comment_id": 5810294670,
+    "run_id": 35981992378,
+    "request_comment_id": 5811589528,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+    "guard_authority_sha": "22600198fc45cff3c2072cc0a20035e483786f05",
     "consumed": true
   },
   "stale_takeover": {
@@ -65,5 +65,15 @@
       "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
       "authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50"
     }
+  },
+  "reconciliation": {
+    "from_head": "df94d7483f742cea5796017c1a730312ec3eecfd",
+    "to_head": "dbd999794205cb33759805221be42b636ca27eed",
+    "merge_production_parent": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+    "repairs": [
+      601,
+      603
+    ],
+    "guard_run": 35981992378
   }
 }
