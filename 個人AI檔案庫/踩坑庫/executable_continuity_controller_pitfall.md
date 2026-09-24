@@ -130,3 +130,16 @@ FINALIZATION_PENDING
 ```
 
 Machine 防線：`tools/continuity_controller.py::authorize_finalization` 必須拒絕任何 `closure_state != ISSUE_CLOSE_PENDING`。proof 產生後若 checkpoint evidence、closure state 或任何 serialized field 被改動，舊 proof 一律 stale；不得用舊 proof 關單。
+
+
+## ACTIVE_DELEGATED_WORK_FALSE_STALE_PITFALL_V1
+#631 → #636 證明 parent 可安靜但 delegated helper 仍在合法工作。
+
+1. stale evaluator 先解析 parent structured delegated pointers。
+2. open + active child = `ACTIVE_DELEGATED_WORK`、non-actionable；沿鏈到 child leaf。
+3. child stale 才接 child；不得 takeover parent 再開 helper。
+4. parent 宣告 child但 evidence missing/malformed → fail closed。
+5. 同 `parent_issue + helper_key` 只能一個 active helper，已有就 resume/reuse。
+6. child terminal = Issue closed + claim terminal/released；half-terminal 先 reconciliation。
+
+Canonical machine owner：`tools/stale_claim_takeover.py`。

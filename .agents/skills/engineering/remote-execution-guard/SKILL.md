@@ -376,3 +376,14 @@ Active exact run仍是絕對鎖；有效 runtime lease仍 backoff；missing/expi
 ### INVALID_PHASE_EXACT_CLAIM_WRITE_RECOVERY_V1
 
 若 shared claim 已被寫成 canonical allowlist 之外的 phase，Guard 不得全面放寬 phase parser。只允許窄 recovery：`action=write` 且 `changed_file` 唯一為該 owning Issue 自己的 exact claim path。此時仍須逐一驗 issue/worker/branch/base/head；授權只可把 process-state 正規化回 canonical phase。任何其他 action/path、錯 owner/branch/SHA、terminal/inactive 語意都維持 fail closed。
+
+
+## REMOTE_GUARD_ACTIVE_DELEGATED_WORK_V1
+
+`claim-takeover` 的 trusted workflow 仍以 production authority 的 `tools/stale_claim_takeover.py --require-actionable` 為唯一 stale owner。parent 宣告 delegated pointer 時，CLI fresh-discover child Issue + claim/blob + branch HEAD。
+
+- open + active child → `ACTIVE_DELEGATED_WORK`，不得 mint takeover GREEN。
+- child evidence missing、claim/live drift、Issue/claim half-terminal mismatch → fail closed。
+- child stale → 對 child leaf 申請 guarded takeover。
+- child closed + terminal/released 後 parent 才回既有 RUN_LIVE / 600s / runtime-liveness 判定。
+- helper dedupe 由同一 module 的 `assert_helper_creation_allowed` / `--candidate-helper-key` 擁有。

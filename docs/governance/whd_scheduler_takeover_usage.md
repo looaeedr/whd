@@ -229,3 +229,18 @@ active_run_head_sha=<optional>
 - 這個例外只允許載入 unknown phase 以正規化 claim，不授權其他 repository mutation；
 - `commit`、`pr-write`、`claim-takeover`、dispatch、其他 changed path 仍因 unknown phase fail closed；
 - terminal / RELEASED 語意不因此放寬，仍依既有 reopened-released 專用規則。
+
+
+## Active delegated/helper/proof chain — takeover 前先追到底
+<!-- ACTIVE_DELEGATED_WORK_TAKEOVER_GATE_V1 -->
+
+父工單安靜不等於 executor 停滯。stale/takeover 前必須 fresh-read parent 的 `delegated_work[] / proof_issue / blocking_repair_issue / helper_issue / dependency_issue`，以及 child Issue、shared claim/blob、work branch live HEAD。
+
+1. open + active child → parent = `ACTIVE_DELEGATED_WORK`，禁止 takeover parent。
+2. child stale → 只對 child leaf 跑 stale evaluator。
+3. parent 宣告 child 但 fresh child evidence 缺失 → fail closed。
+4. child closed + claim terminal/released 才解除 delegated lock。
+5. 同 `parent_issue + helper_key` active helper 只能一個；建立前跑 `assert_helper_creation_allowed`／`--candidate-helper-key`，已有就 resume/reuse。
+6. helper 建立後第一個 coordination write 必須把 `delegated_work=[{child_issue, relationship, helper_key}]` 寫回 parent claim。
+
+Trusted Remote Guard 執行同一 `tools/stale_claim_takeover.py`；CLI 會對 parent 已宣告 child pointer fresh-discover GitHub durable evidence，不建立第二套 stale parser。

@@ -602,3 +602,18 @@ foreign scheduler ownership 仍由 `tools/scheduler_runtime_liveness.py` + `tool
 - same-lane stuck/gone resume 與 foreign scheduler claim-takeover 是兩條不同路徑；不得因 same-lane heartbeat stale 就 self-takeover。
 - platform hard boundary 若來不及寫 END，heartbeat 會停止刷新；下一 sibling wake 在 freshness > 420 秒後即可 same-lane 接續，不必等 600 秒 claim stale。
 - durable comment parser/selector authority：`tools/scheduler_runtime_liveness.py`；foreign takeover decision authority：`tools/stale_claim_takeover.py`。
+
+
+## ACTIVE_DELEGATED_WORK_TAKEOVER_GATE_V1 — helper/proof/dependency 是 parent liveness
+
+父 Issue/claim 或 branch 安靜不得直接判 stale。只要 parent durable state 指向 helper/proof/blocking repair/dependency，takeover 前沿 pointer 讀到 executable leaf；machine authority 是 `tools/stale_claim_takeover.py`。
+
+- canonical link：`delegated_work[] = {child_issue, relationship, helper_key}`；legacy `proof_issue / blocking_repair_issue / helper_issue / dependency_issue` 仍辨識。
+- open + active child → `ACTIVE_DELEGATED_WORK`、`actionable=false`；禁止 takeover parent、禁止再開 helper。
+- child stale → 接 child leaf，不得反向搶 parent。
+- pointer 存在但 child Issue/claim/blob/live HEAD evidence 缺失或 half-terminal mismatch → fail closed。
+- child 必須 Issue closed + claim terminal/released 才解除 parent delegated lock。
+- helper 建立前用 stable `helper_key` 跑 `assert_helper_creation_allowed`／CLI `--candidate-helper-key`；`ACTIVE_HELPER_DUPLICATE` 固定 resume/reuse。
+- helper Issue 建立後第一個 durable coordination write 必須把 canonical `delegated_work[]` 寫回 parent claim，pointer 未落盤不得開始 helper substantive work。
+
+禁止循環：parent 看似安靜 → 誤判 stale → takeover → 再開 helper → 無限 helper/takeover。

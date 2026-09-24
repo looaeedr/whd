@@ -158,6 +158,10 @@ def _write_takeover_evidence(tmp_path: Path, **overrides) -> Path:
         "stale_seconds": 600,
         "stale_after_seconds": 600,
         "previous_executor_source": "chatgpt_interactive",
+        "previous_worker": "chatgpt",
+        "requesting_worker": "scheduler.test",
+        "requesting_executor_source": "scheduler",
+        "user_authority_comment_id": None,
         "observed_live_head_sha": LIVE_HEAD,
         "claim_head_sha": CLAIM_HEAD,
         "claim_last_update": "2026-09-23T05:00:00Z",
@@ -338,6 +342,7 @@ def test_evaluator_decision_out_is_bound_guard_evidence(tmp_path: Path):
             "--live-head-committed-at", "2026-09-23T05:50:00Z",
             "--now", "2026-09-23T06:00:00Z",
             "--require-actionable",
+            "--requesting-worker", "scheduler.test",
             "--decision-out", str(evidence),
         ],
         capture_output=True,
@@ -381,3 +386,178 @@ def test_remote_run_head_mismatch_fails_closed():
     )
     with pytest.raises(Exception, match="remote run head mismatch"):
         _evaluate(now=now, claim=claim, remote=remote)
+
+
+DELEGATED_CHILD_ISSUE = 636
+DELEGATED_CHILD_BRANCH = "governance/issue636-live-issue631-takeover-proof-20260925"
+DELEGATED_CHILD_HEAD = "c" * 40
+
+
+def _delegated_work(
+    *,
+    parent_issue=ISSUE,
+    child_issue=DELEGATED_CHILD_ISSUE,
+    helper_key="interactive-takeover-proof",
+    relationship="proof",
+    issue_state="open",
+    phase="CLAIMED",
+    last_update="2026-09-23T06:19:00Z",
+):
+    child_claim = {
+        "issue": child_issue,
+        "issue_url": f"https://github.com/looaeedr/whd/issues/{child_issue}",
+        "worker": "chatgpt.sol260925.issue636.proof",
+        "executor_source": "chatgpt_interactive",
+        "work_branch": DELEGATED_CHILD_BRANCH,
+        "claimed_at": "2026-09-23T06:00:00Z",
+        "base_sha": BASE_SHA,
+        "head_sha": DELEGATED_CHILD_HEAD,
+        "phase": phase,
+        "last_update": last_update,
+        "remote_qa": None,
+        "next_action": "complete helper proof",
+        "blocker": None,
+    }
+    return {
+        "schema": "WHD_DELEGATED_WORK_V1",
+        "parent_issue": parent_issue,
+        "child_issue": child_issue,
+        "relationship": relationship,
+        "helper_key": helper_key,
+        "issue_state": issue_state,
+        "claim_blob_sha": "d" * 40,
+        "claim": child_claim,
+        "live_head_sha": DELEGATED_CHILD_HEAD,
+        "live_head_committed_at": last_update,
+    }
+
+
+def test_active_bound_delegated_proof_blocks_parent_takeover():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        evidence={"proof_issue": DELEGATED_CHILD_ISSUE},
+    )
+    result = module.evaluate_stale_claim_takeover(
+        parent,
+        now=now,
+        live_head_sha=CLAIM_HEAD,
+        live_head_committed_at="2026-09-23T05:00:00Z",
+        delegated_work=[_delegated_work()],
+        stale_after_seconds=600,
+    )
+    assert result.classification.value == "ACTIVE_DELEGATED_WORK"
+    assert result.actionable is False
+    assert result.active_delegated_issue == DELEGATED_CHILD_ISSUE
+    assert result.active_delegated_helper_key == "interactive-takeover-proof"
+
+
+def test_parent_with_declared_helper_requires_fresh_delegated_evidence():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        evidence={"proof_issue": DELEGATED_CHILD_ISSUE},
+    )
+    with pytest.raises(module.StaleTakeoverError, match="delegated work evidence.*636"):
+        module.evaluate_stale_claim_takeover(
+            parent,
+            now=now,
+            live_head_sha=CLAIM_HEAD,
+            live_head_committed_at="2026-09-23T05:00:00Z",
+            delegated_work=[],
+            stale_after_seconds=600,
+        )
+
+
+def test_terminal_delegated_helper_no_longer_blocks_parent_takeover():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        evidence={"proof_issue": DELEGATED_CHILD_ISSUE},
+    )
+    result = module.evaluate_stale_claim_takeover(
+        parent,
+        now=now,
+        live_head_sha=CLAIM_HEAD,
+        live_head_committed_at="2026-09-23T05:00:00Z",
+        delegated_work=[
+            _delegated_work(issue_state="closed", phase="RELEASED")
+        ],
+        stale_after_seconds=600,
+    )
+    assert result.classification.value == "EXECUTOR_STUCK"
+    assert result.actionable is True
+
+
+def test_delegated_work_parent_binding_mismatch_fails_closed():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    with pytest.raises(module.StaleTakeoverError, match="parent issue mismatch"):
+        module.evaluate_stale_claim_takeover(
+            _claim(last_update="2026-09-23T05:00:00Z"),
+            now=now,
+            live_head_sha=CLAIM_HEAD,
+            live_head_committed_at="2026-09-23T05:00:00Z",
+            delegated_work=[_delegated_work(parent_issue=999)],
+            stale_after_seconds=600,
+        )
+
+
+def test_active_helper_key_is_machine_deduped_before_new_helper_creation():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        evidence={"proof_issue": DELEGATED_CHILD_ISSUE},
+    )
+    with pytest.raises(module.StaleTakeoverError, match="ACTIVE_HELPER_DUPLICATE"):
+        module.assert_helper_creation_allowed(
+            parent,
+            helper_key="interactive-takeover-proof",
+            delegated_work=[_delegated_work()],
+            now=now,
+            stale_after_seconds=600,
+        )
+
+
+def test_canonical_delegated_link_requires_exact_relationship_and_helper_key():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        delegated_work=[{
+            "child_issue": DELEGATED_CHILD_ISSUE,
+            "relationship": "proof",
+            "helper_key": "interactive-takeover-proof",
+        }],
+    )
+    with pytest.raises(module.StaleTakeoverError, match="canonical relationship/helper_key mismatch"):
+        module.evaluate_stale_claim_takeover(
+            parent,
+            now=now,
+            live_head_sha=CLAIM_HEAD,
+            live_head_committed_at="2026-09-23T05:00:00Z",
+            delegated_work=[_delegated_work(helper_key="different-helper")],
+            stale_after_seconds=600,
+        )
+
+
+def test_closed_delegated_issue_with_active_claim_fails_closed():
+    module = _module()
+    now = datetime(2026, 9, 23, 6, 20, 0, tzinfo=UTC)
+    parent = _claim(
+        last_update="2026-09-23T05:00:00Z",
+        evidence={"proof_issue": DELEGATED_CHILD_ISSUE},
+    )
+    with pytest.raises(module.StaleTakeoverError, match="closed delegated child issue.*active claim"):
+        module.evaluate_stale_claim_takeover(
+            parent,
+            now=now,
+            live_head_sha=CLAIM_HEAD,
+            live_head_committed_at="2026-09-23T05:00:00Z",
+            delegated_work=[_delegated_work(issue_state="closed", phase="IMPLEMENTING")],
+            stale_after_seconds=600,
+        )
