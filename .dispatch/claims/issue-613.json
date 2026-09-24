@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T21:06:00+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T22:08:20+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T22:13:28+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 627,
@@ -16,15 +16,24 @@
   "parent_issue": 627,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-verify the eight A1 DT-0 artifacts are machine-readable, complete, and the commit changed no production/runtime files; then transition to closing/finalization and hand off the next executable Phase 7 child.",
+  "next_action": null,
   "blocker": null,
+  "released_at": "2026-09-24T22:13:28+08:00",
   "last_guard": {
     "action": "write",
-    "run_id": 36010565811,
-    "request_comment_id": 5815703177,
+    "run_id": 36011014546,
+    "request_comment_id": 5815766745,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
     "consumed": true
+  },
+  "finalization": {
+    "run_id": 36010901194,
+    "artifact_id": 10812701729,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "9b4a36f22ceab428c9dd851ba3327d4727ac6562",
+    "checkpoint_fingerprint": "87748e4116ab0c357d68e7f23e4ac99ac48193b4f844ae43e187dc534e5c1b9f"
   }
 }
