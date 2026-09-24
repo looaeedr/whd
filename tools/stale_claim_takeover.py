@@ -59,6 +59,8 @@ class StaleTakeoverEvaluation:
     latest_progress_at: datetime
     previous_worker: str
     requesting_worker: str | None
+    requesting_executor_source: str | None
+    user_authority_comment_id: int | None
     previous_executor_source: str
     observed_live_head_sha: str
     reason: str
@@ -117,6 +119,59 @@ def _positive_int(label: str, value: object) -> int:
     if number <= 0:
         raise StaleTakeoverError(f"{label} must be a positive integer")
     return number
+
+
+def _user_directed_authority_comment_id(
+    payload: Mapping[str, object] | None,
+    *,
+    claim_issue: int,
+    previous_worker: str,
+    requesting_worker: str,
+    now: datetime,
+) -> int:
+    if not isinstance(payload, Mapping):
+        raise StaleTakeoverError(
+            "interactive requesting_worker requires owner-authored user authority evidence"
+        )
+    comment_id = _positive_int("user authority comment id", payload.get("id"))
+    user = payload.get("user")
+    if not isinstance(user, Mapping) or str(user.get("login") or "") != "looaeedr":
+        raise StaleTakeoverError("user authority comment must be authored by repository owner")
+    body = payload.get("body")
+    if not isinstance(body, str):
+        raise StaleTakeoverError("user authority comment body is missing")
+    lines = body.replace("\r\n", "\n").split("\n")
+    if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
+        raise StaleTakeoverError("user authority comment marker mismatch")
+    singles: dict[str, str] = {}
+    allowed = {"issue", "requesting_worker", "previous_worker", "executor_source"}
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            raise StaleTakeoverError("user authority comment contains malformed line")
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key not in allowed or key in singles:
+            raise StaleTakeoverError("user authority comment contains unsupported/duplicate key")
+        singles[key] = value
+    if set(singles) != allowed:
+        raise StaleTakeoverError("user authority comment is missing required keys")
+    if _positive_int("user authority issue", singles["issue"]) != claim_issue:
+        raise StaleTakeoverError("user authority issue mismatch")
+    if singles["requesting_worker"] != requesting_worker:
+        raise StaleTakeoverError("user authority requesting_worker mismatch")
+    if singles["previous_worker"] != previous_worker:
+        raise StaleTakeoverError("user authority previous_worker mismatch")
+    if singles["executor_source"] != "chat":
+        raise StaleTakeoverError("user authority executor_source must be chat")
+    created_at = _as_utc("user authority created_at", payload.get("created_at"))
+    if created_at > now:
+        raise StaleTakeoverError("user authority timestamp is in the future")
+    if int((now - created_at).total_seconds()) > 3600:
+        raise StaleTakeoverError("user authority comment is older than 3600 seconds")
+    return comment_id
 
 
 def _remote_progress(
@@ -179,8 +234,10 @@ def evaluate_stale_claim_takeover(
     remote_run: Mapping[str, object] | None = None,
     stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
     requesting_worker: str | None = None,
+    requesting_executor_source: str | None = None,
+    user_authority: Mapping[str, object] | None = None,
 ) -> StaleTakeoverEvaluation:
-    """Classify whether a scheduler may take over one active WHD execution claim."""
+    """Classify whether one authorized requester may take over an active WHD claim."""
 
     if not isinstance(claim, Mapping):
         raise StaleTakeoverError("claim must be a mapping")
@@ -203,12 +260,36 @@ def evaluate_stale_claim_takeover(
         raise StaleTakeoverError("claim worker identity is missing or malformed")
 
     requester: str | None = None
+    requester_source: str | None = None
+    authority_comment_id: int | None = None
     if requesting_worker is not None:
         requester = str(requesting_worker).strip()
         if not _WORKER_RE.fullmatch(requester):
             raise StaleTakeoverError("requesting_worker identity is malformed")
-        if not requester.startswith("scheduler."):
-            raise StaleTakeoverError("requesting_worker must be a scheduler lane identity")
+        source = str(requesting_executor_source or "").strip().lower()
+        if requester.startswith("scheduler."):
+            if source not in {"", "scheduler"}:
+                raise StaleTakeoverError("scheduler requesting_worker requires scheduler source")
+            requester_source = "scheduler"
+            if user_authority is not None:
+                raise StaleTakeoverError("scheduler takeover must not carry user authority evidence")
+        else:
+            if source != "chat":
+                raise StaleTakeoverError(
+                    "interactive requesting_worker requires requesting_executor_source=chat"
+                )
+            authority_comment_id = _user_directed_authority_comment_id(
+                user_authority,
+                claim_issue=_positive_int("claim issue", claim.get("issue")),
+                previous_worker=previous_worker,
+                requesting_worker=requester,
+                now=now_utc,
+            )
+            requester_source = "chat"
+    elif requesting_executor_source is not None or user_authority is not None:
+        raise StaleTakeoverError(
+            "requesting executor source/user authority require requesting_worker"
+        )
 
     remote_active, remote_updated_at, remote_reason = _remote_progress(claim, remote_run)
     progress_points = [last_update, live_commit_at]
@@ -234,6 +315,8 @@ def evaluate_stale_claim_takeover(
             latest_progress_at=latest_progress,
             previous_worker=previous_worker,
             requesting_worker=requester,
+            requesting_executor_source=requester_source,
+            user_authority_comment_id=authority_comment_id,
             previous_executor_source=previous_source,
             observed_live_head_sha=live_head,
             reason=reason,
@@ -261,7 +344,7 @@ def evaluate_stale_claim_takeover(
             return result(
                 TakeoverClassification.ALREADY_SCHEDULER,
                 False,
-                "claim is already owned by the requesting scheduler lane",
+                "claim is already owned by the requesting worker",
             )
 
     if remote_active:
@@ -316,6 +399,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--now")
     parser.add_argument("--requesting-worker")
+    parser.add_argument("--requesting-executor-source")
+    parser.add_argument("--user-authority-json", type=Path)
     parser.add_argument("--require-actionable", action="store_true")
     parser.add_argument("--decision-out", type=Path)
     return parser
@@ -330,6 +415,11 @@ def main(argv: list[str] | None = None) -> int:
             if args.remote_run_json is None
             else _load_json_object(args.remote_run_json, label="remote run")
         )
+        user_authority = (
+            None
+            if args.user_authority_json is None
+            else _load_json_object(args.user_authority_json, label="user authority")
+        )
         now = datetime.now(timezone.utc) if args.now is None else _as_utc("now", args.now)
         result = evaluate_stale_claim_takeover(
             claim,
@@ -339,6 +429,8 @@ def main(argv: list[str] | None = None) -> int:
             remote_run=remote,
             stale_after_seconds=args.stale_after_seconds,
             requesting_worker=args.requesting_worker,
+            requesting_executor_source=args.requesting_executor_source,
+            user_authority=user_authority,
         )
     except StaleTakeoverError as exc:
         print(f"STALE_CLAIM_TAKEOVER_ERROR: {exc}")
