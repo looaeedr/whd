@@ -7,17 +7,17 @@
   "claimed_at": "2026-09-24T12:16:45+08:00",
   "base_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
   "head_sha": "97b5d5ec6c7581212f06a84d753d15d5b8945e4f",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T12:37:09+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T12:38:29+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 586,
   "delegated_branches": [],
-  "next_action": "Write completion evidence for #587, close Issue #587 as completed, then mark shared claim RELEASED with next_action=null.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35956400499,
-    "request_comment_id": 5807773509,
+    "run_id": 35956496865,
+    "request_comment_id": 5807785526,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
@@ -46,5 +46,16 @@
     "from": "efc4be6f8ec72f3875e66ce233292f327107f534",
     "to": "97b5d5ec6c7581212f06a84d753d15d5b8945e4f",
     "only_change": "delete temporary .github/workflows/qa-issue587-live-issue586-takeover-proof.yml"
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "completion_comment_id": 5807783123,
+    "closing_head": "97b5d5ec6c7581212f06a84d753d15d5b8945e4f",
+    "parent_issue": 586,
+    "parent_completed": true,
+    "takeover_worker": "chatgpt.sol260924.issue586.takeover",
+    "successful_parent_takeover_proof_run": 35955636448,
+    "temporary_workflow_removed": true
   }
 }
