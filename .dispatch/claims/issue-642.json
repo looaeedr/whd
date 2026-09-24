@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-24T19:56:40.367394Z",
   "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
-  "head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
+  "head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
   "phase": "RED",
-  "last_update": "2026-09-24T20:31:13.653482Z",
+  "last_update": "2026-09-24T20:35:24.363540Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T2",
   "expected_parent_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
+  "chain_head": "98cc5ae60979bc665db3e716dbc960557b340fbd",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-01"
@@ -23,7 +23,7 @@
   "breakdown_approved": true,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Before any further repo mutation, reconcile .dispatch/checkpoints/issue-642.json head_sha to 964e7f8b20c2f34b5542ba400eb58e1ab15c2371; then lock exact T2 activation+backstop RED run.",
+  "next_action": "Reconcile exact checkpoint head to 98cc5ae60979bc665db3e716dbc960557b340fbd; no further repository mutation until claim/checkpoint match.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-642.json",
   "predecessor": {
@@ -45,6 +45,13 @@
     "new_head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
     "guard_request_comment_id": 5821759219,
     "guard_run_id": 36055396009,
+    "result": "GREEN"
+  },
+  "reconcile_after_active_read_red_commit": {
+    "prior_head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
+    "new_head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
+    "guard_request_comment_id": 5821816933,
+    "guard_run_id": 36055875952,
     "result": "GREEN"
   }
 }
