@@ -1,5 +1,5 @@
-name: WHD｜#596｜#578 最終聊天室接手實證
-run-name: "WHD｜#596｜#578 final takeover proof｜${{ github.sha }}"
+name: WHD｜#596｜#595 blocker takeover proof
+run-name: "WHD｜#596｜#595 takeover proof｜${{ github.sha }}"
 
 on:
   push:
@@ -9,11 +9,10 @@ on:
 permissions:
   contents: read
   issues: read
-  actions: read
 
 jobs:
   proof:
-    name: "#578｜stale chat→chat machine proof"
+    name: "#595｜stale chat→chat machine proof"
     runs-on: ubuntu-latest
     steps:
       - name: 取出 #596 proof branch
@@ -21,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fresh-read #578 durable authority
+      - name: Fresh-read #595 durable authority
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -30,30 +29,16 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin coord/dispatch-claims
           COORD_SHA="$(git rev-parse FETCH_HEAD)"
-          CLAIM_PATH=".dispatch/claims/issue-578.json"
+          CLAIM_PATH=".dispatch/claims/issue-595.json"
           CLAIM_BLOB="$(git rev-parse "${COORD_SHA}:${CLAIM_PATH}")"
-          git show "${COORD_SHA}:${CLAIM_PATH}" > /tmp/claim578.json
+          git show "${COORD_SHA}:${CLAIM_PATH}" > /tmp/claim595.json
 
-          git fetch --no-tags origin governance/issue578-scheduler-runtime-liveness-20260924
+          git fetch --no-tags origin governance/issue595-invalid-phase-recovery-20260924
           LIVE_HEAD="$(git rev-parse FETCH_HEAD)"
-          test "$LIVE_HEAD" = "b8766048aaed79405f7e54e28bcf0eb736aa4012"
+          test "$LIVE_HEAD" = "615fc75378487ce929d69cee2b693b409d35b130"
           LIVE_COMMIT_AT="$(git show -s --format=%cI FETCH_HEAD)"
 
-          gh api "/repos/${REPO}/issues/comments/5808199011" > /tmp/user-authority.json
-          gh api "/repos/${REPO}/actions/runs/35951451111" > /tmp/run-full.json
-          python - <<'PY'
-          import json
-          src=json.load(open('/tmp/run-full.json', encoding='utf-8'))
-          out={
-              'found': True,
-              'run_id': src['id'],
-              'head_sha': src['head_sha'],
-              'status': src['status'],
-              'conclusion': src['conclusion'],
-              'updated_at': src['updated_at'],
-          }
-          json.dump(out, open('/tmp/remote-run.json','w',encoding='utf-8'), indent=2, sort_keys=True)
-          PY
+          gh api "/repos/${REPO}/issues/comments/5808232657" > /tmp/user-authority.json
 
           printf '%s' "$CLAIM_BLOB" > /tmp/claim-blob.txt
           printf '%s' "$LIVE_HEAD" > /tmp/live-head.txt
@@ -64,12 +49,11 @@ jobs:
         run: |
           set -euo pipefail
           python tools/stale_claim_takeover.py \
-            --claim /tmp/claim578.json \
+            --claim /tmp/claim595.json \
             --live-head-sha "$(cat /tmp/live-head.txt)" \
             --live-head-committed-at "$(cat /tmp/live-commit-at.txt)" \
-            --remote-run-json /tmp/remote-run.json \
             --claim-blob-sha "$(cat /tmp/claim-blob.txt)" \
-            --requesting-worker chatgpt.sol260924.issue578.final \
+            --requesting-worker chatgpt.sol260924.issue595.recovery \
             --requesting-executor-source chat \
             --user-authority-json /tmp/user-authority.json \
             --stale-after-seconds 600 \
@@ -81,12 +65,12 @@ jobs:
         run: |
           set -euo pipefail
           python tools/execution_claim_guard.py \
-            --claim /tmp/claim578.json \
-            --issue 578 \
-            --worker chatgpt.sol260924.issue578.recovery \
-            --branch governance/issue578-scheduler-runtime-liveness-20260924 \
+            --claim /tmp/claim595.json \
+            --issue 595 \
+            --worker chatgpt.sol260924.issue595 \
+            --branch governance/issue595-invalid-phase-recovery-20260924 \
             --action claim-takeover \
-            --base-sha 4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0 \
+            --base-sha 615fc75378487ce929d69cee2b693b409d35b130 \
             --head-sha "$(cat /tmp/live-head.txt)" \
             --takeover-evidence /tmp/takeover-decision.json \
             --user-authority-evidence /tmp/user-authority.json
@@ -104,16 +88,16 @@ jobs:
           authority=json.load(open('/tmp/user-authority.json', encoding='utf-8'))
           manifest={
               'schema':'WHD_USER_DIRECTED_LIVE_TAKEOVER_PROOF_V1',
-              'issue':578,
-              'previous_worker':'chatgpt.sol260924.issue578.recovery',
-              'requesting_worker':'chatgpt.sol260924.issue578.final',
+              'issue':595,
+              'previous_worker':'chatgpt.sol260924.issue595',
+              'requesting_worker':'chatgpt.sol260924.issue595.recovery',
               'claim_blob_sha':open('/tmp/claim-blob.txt').read().strip(),
               'observed_live_head_sha':open('/tmp/live-head.txt').read().strip(),
               'authority_comment_id':authority['id'],
               'classification':decision['classification'],
               'actionable':decision['actionable'],
               'stale_seconds':decision['stale_seconds'],
-              'exact_remote_run_id':35951451111,
+              'exact_remote_run_id':None,
               'proof_run_id':int(os.environ['RUN_ID']),
               'proof_head_sha':os.environ['PROOF_HEAD'],
               'claim_guard_result':'EXECUTION_CLAIM_GUARD_GREEN',
@@ -126,14 +110,13 @@ jobs:
       - name: Upload exact proof
         uses: actions/upload-artifact@v4
         with:
-          name: issue596-final-issue578-takeover-proof-${{ github.run_id }}
+          name: issue596-live-issue595-takeover-proof-${{ github.run_id }}
           path: |
-            /tmp/claim578.json
+            /tmp/claim595.json
             /tmp/claim-blob.txt
             /tmp/live-head.txt
             /tmp/live-commit-at.txt
             /tmp/user-authority.json
-            /tmp/remote-run.json
             /tmp/takeover-decision.json
             /tmp/proof-manifest.json
           if-no-files-found: error
