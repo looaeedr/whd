@@ -15,13 +15,15 @@
     "temporary QA workflow removed at closing head 24c6cd28e185d054838adc7ce5894c8dbc8d9599",
     "tested-head 162e697ef1e469197fc8a41df4cdd605f4766eeb to closing-head drift PASS: workflow deletion only",
     "PR #634 merged non-force into cleanup/2d-3d-sync",
-    "production readback cleanup/2d-3d-sync = 3ffe415b10099d52bc6c39f02463e3483c43f10b"
+    "production readback cleanup/2d-3d-sync = 3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "remote finalization run 36039459555 GREEN: FINALIZATION_PROOF_VALID; artifact 10825781276",
+    "GitHub Issue #633 fresh readback: closed/completed"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "authorize and verify bound finalization proof on this exact checkpoint, then close Issue #633 without checkpoint mutation and fresh-read closed/completed"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED + durable handoff that blocker #633 is cleared for existing #631 owner"
 }
