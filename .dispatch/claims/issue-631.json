@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T01:30:50+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T01:31:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Fresh-read production target cleanup/2d-3d-sync, create and merge the guarded PR, verify production readback, then write the terminal checkpoint in FINALIZATION_PENDING.",
+  "next_action": "Create the guarded PR from work/issue631-finalization-hard-gate-20260925 into cleanup/2d-3d-sync, merge after guarded readback, then verify production and write terminal checkpoint FINALIZATION_PENDING.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -77,12 +77,13 @@
           "status": "removed"
         }
       ]
-    }
+    },
+    "closing_phase_guard_run_id": 36034911224
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36034778559,
-    "request_comment_id": 5818961697,
+    "run_id": 36034911224,
+    "request_comment_id": 5818977118,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
