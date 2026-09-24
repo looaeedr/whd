@@ -32,6 +32,9 @@ _ACTIVE_PHASES = frozenset(
         "CLEANUP",
         "DRIFT_AUDIT",
         "CLOSING",
+        "E2E_OWNER",
+        "E2E_TAKEN_OVER",
+        "E2E_PROVEN",
     }
 )
 _INACTIVE_PHASES = frozenset(
