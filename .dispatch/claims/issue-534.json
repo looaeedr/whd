@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "head_sha": "e472e4b862d5ae4e2ea8614c9b10fe39da3579bc",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T12:46:00+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T15:06:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,13 +18,22 @@
   "remote_qa": {
     "run_id": 35956988196,
     "head_sha": "e472e4b862d5ae4e2ea8614c9b10fe39da3579bc",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "failure",
     "workflow": "WHD｜#534｜C2 最終整合驗收",
     "tested_candidate_sha": "e472e4b862d5ae4e2ea8614c9b10fe39da3579bc",
-    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65"
+    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+    "failure_class": "CANDIDATE_ONLY_RED",
+    "baseline_headless_red": 10,
+    "candidate_headless_red": 11,
+    "baseline_xvfb_red": 55,
+    "candidate_xvfb_red": 55,
+    "candidate_only_unique": 1,
+    "candidate_only": [
+      "tests.test_phase6_assembly_3d_view::test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contract"
+    ]
   },
-  "next_action": "Poll exact C2 run 35956988196 at head e472e4b862d5ae4e2ea8614c9b10fe39da3579bc to terminal without duplicate dispatch. Candidate-only RED must be zero; otherwise inspect exact residual evidence and recover.",
+  "next_action": "Fix the single residual C2 candidate-only RED: tests/test_phase6_assembly_3d_view.py is missing the local application_adapter import required by its migrated legacy AssemblySceneRenderData monkeypatch. Make only that bounded test repair under commit guard, reconcile claim HEAD, then rerun exact fixed-T0 C2 A/B and require candidate-only zero.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -33,11 +42,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35957000988,
-    "request_comment_id": 5807848348,
+    "run_id": 35967789077,
+    "request_comment_id": 5809438483,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
+    "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
     "consumed": true
   },
   "stale_takeover": {
