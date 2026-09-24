@@ -7,19 +7,19 @@
   "claimed_at": "2026-09-25T01:38:00+08:00",
   "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "head_sha": "29f7e0efa4bc6d8aeb90bf1310a8875257262d0f",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-25T01:44:00+08:00",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T01:45:05+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "delegated_branches": [],
   "remote_qa": {
     "run_id": 36036224149,
     "head_sha": "29f7e0efa4bc6d8aeb90bf1310a8875257262d0f",
-    "status": "queued",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue633-finalization-proof-order.yml"
   },
-  "next_action": "Poll exact QA run 36036224149 @ 29f7e0efa4bc6d8aeb90bf1310a8875257262d0f to terminal; on success expand broader process regressions, then cleanup/drift audit.",
+  "next_action": "Expand temporary QA workflow to broader continuity/finalization/turn-exit/Master-chain process regressions, run exact broader QA, then cleanup and drift audit.",
   "blocker": null,
   "evidence": {
     "parent_repair_issue": 631,
@@ -42,12 +42,15 @@
     "red_qa_result": "1 failed, 10 passed; intended failure: authorize_finalization accepted FINALIZATION_PENDING instead of requiring ISSUE_CLOSE_PENDING.",
     "green_commit": "29f7e0efa4bc6d8aeb90bf1310a8875257262d0f",
     "green_commit_guard_run_id": 36036065841,
-    "green_claim_reconcile_guard_run_id": 36036246032
+    "green_claim_reconcile_guard_run_id": 36036246032,
+    "focused_green_qa_run_id": 36036224149,
+    "focused_green_qa_result": "11 passed, 0 failed in tests/process/test_finalization_owner_guard.py",
+    "focused_green_claim_reconcile_guard_run_id": 36036381585
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36036246032,
-    "request_comment_id": 5819144213,
+    "run_id": 36036381585,
+    "request_comment_id": 5819162174,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
