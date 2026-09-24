@@ -7,25 +7,39 @@
   "claimed_at": "2026-09-25T02:21:00+08:00",
   "base_sha": "c276fd7b673f80e0522208896eaa0f4a92e094a0",
   "head_sha": "793d352a09564d41ef24f61128a296b3560f1722",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T02:23:10+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T02:25:40+08:00",
   "production_target": "main",
   "frozen_x_base_sha": "c276fd7b673f80e0522208896eaa0f4a92e094a0",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Fresh-read exact TTL diff/regression, then guarded PR create+merge into main; after merge trigger one harmless Guard request and verify expires_at-issued_at=40 minutes.",
+  "next_action": "Record terminal checkpoint, complete finalization/Issue close readback, and release claim.",
   "blocker": null,
   "evidence": {
     "user_request": "Change Remote Guard GREEN receipt TTL from 20 minutes to 40 minutes.",
     "scope_guard": "Do not change scheduler heartbeat TTL, 420s same-lane freshness, 600s foreign stale threshold, or 90s orphan grace.",
     "ttl40_commit": "793d352a09564d41ef24f61128a296b3560f1722",
     "commit_guard_run_id": 36040665114,
-    "claim_reconcile_guard_run_id": 36040803456
+    "claim_reconcile_guard_run_id": 36040803456,
+    "pr": {
+      "number": 637,
+      "merged": true,
+      "merge_commit_sha": "3058f1756acba8522f55bc6d78283c195e79d34a"
+    },
+    "production_main_readback": "3058f1756acba8522f55bc6d78283c195e79d34a",
+    "live_ttl40_smoke": {
+      "run_id": 36041107488,
+      "orchestrator_head_sha": "3058f1756acba8522f55bc6d78283c195e79d34a",
+      "issued_at": "2026-09-24T18:25:29.629064Z",
+      "expires_at": "2026-09-24T19:05:29.629064Z",
+      "ttl_minutes": 40,
+      "result": "GREEN"
+    }
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36040803456,
-    "request_comment_id": 5819760184,
+    "run_id": 36041107488,
+    "request_comment_id": 5819798671,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
