@@ -1,0 +1,4587 @@
+{
+  "schema": "WHD_PHASE6_RESIDUAL_A0_CENSUS_V1",
+  "issue": 521,
+  "master_issue": 520,
+  "requirement_authority": "WHD Fold Designer Bridge Ownership Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R2",
+    "R3",
+    "R4"
+  ],
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+  "work_order_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "work_order_head_at_census": "2a1bdc0a1ba59f1c9c7de28a56afdbef748ecf54",
+  "evidence_only": true,
+  "production_behavior_change": 0,
+  "source": {
+    "bridge_path": "fold_designer_bridge.py",
+    "bridge_blob_sha": "17c4254c6aac960980c8ecfadfcd7e0ca03fc0d6",
+    "line_count_newlines": 7806,
+    "line_count_splitlines": 7807,
+    "top_level_def_class_count": 347,
+    "facade_binding_count": 69,
+    "accepted_spec_blob_sha": "0dc7d48ca6e392da8c4835dbe2fbc19099b22839",
+    "preflight_blob_sha": "e0946d94862af4b88afe1716ca6121e4b301ac30"
+  },
+  "budget": {
+    "policy": {
+      "MIN_REDUCTION_RATIO": 0.125,
+      "PROTECTED_REVIEW_RESERVE_RATIO": 0.1,
+      "ABSOLUTE_MIN_REDUCTION_FLOOR": 1000,
+      "ABSOLUTE_FINAL_CEILING_CAP": 6500
+    },
+    "prior_protected_loc": 1194,
+    "protected_review_budget": 1314,
+    "MIN_REDUCTION": 1000,
+    "CALCULATED_FINAL_CEILING": 6500,
+    "EFFECTIVE_FINAL_CEILING": 6500
+  },
+  "classification": {
+    "allowed": [
+      "BRIDGE_ROOT_BOOTSTRAP",
+      "PROTECTED_COMPATIBILITY_PRIOR",
+      "NARROW_DELEGATE_OR_ALIAS",
+      "OWNER_VIOLATION",
+      "DEAD_OR_DUPLICATE_GLUE",
+      "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "UNKNOWN"
+    ],
+    "counts": {
+      "BOUNDARY_RECONSIDERATION_CANDIDATE": 327,
+      "PROTECTED_COMPATIBILITY_PRIOR": 18,
+      "BRIDGE_ROOT_BOOTSTRAP": 2
+    },
+    "UNKNOWN": 0,
+    "note": "A0 refuses to invent DEAD/OWNER_VIOLATION from LOC/name alone. Unproven residuals are BOUNDARY_RECONSIDERATION_CANDIDATE for A/B evidence."
+  },
+  "owner_map": [
+    {
+      "responsibility": "Settings presentation",
+      "owner": "phase6_settings_panel.py::Phase6SettingsPanel"
+    },
+    {
+      "responsibility": "Settings application sequencing",
+      "owner": "gui_modules/application/fold_designer_settings_coordinator.py::Phase6FoldDesignerSettingsCoordinator"
+    },
+    {
+      "responsibility": "Settings profile pure planning",
+      "owner": "phase6_settings_profile_projection.py"
+    },
+    {
+      "responsibility": "Settings transaction/service",
+      "owner": "phase6_settings_transaction_controller.py + phase6_settings_service.py"
+    },
+    {
+      "responsibility": "Workspace/navigation mutation",
+      "owner": "phase6_workspace_navigation_controller.py + phase6_designer_workspace.py"
+    },
+    {
+      "responsibility": "Derived-part immutable planning",
+      "owner": "phase6_derived_part_projection.py"
+    },
+    {
+      "responsibility": "FinalScene composition",
+      "owner": "Phase6FoldDesignerComposition"
+    },
+    {
+      "responsibility": "Diagnostics serialization",
+      "owner": "phase6_diagnostics.py"
+    },
+    {
+      "responsibility": "Registry diagnostics presentation",
+      "owner": "phase6_registry_diagnostics_panel.py"
+    },
+    {
+      "responsibility": "Registry diagnostics semantic/controller",
+      "owner": "phase6_registry_diagnostics_controller.py"
+    },
+    {
+      "responsibility": "Fold/endcap semantics",
+      "owner": "phase6_fold_profiles.py + phase6_endcap_semantics.py"
+    },
+    {
+      "responsibility": "Manufacturing/certified relief",
+      "owner": "ae_engine canonical manufacturing + certified registry"
+    }
+  ],
+  "prior_decisions": [
+    {
+      "issue": 447,
+      "boundary": "Workspace Shell",
+      "decision": "NO_EXTRACTION",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    },
+    {
+      "issue": 448,
+      "boundary": "Part Editor",
+      "decision": "C_KEEP_BRIDGE_COMPATIBILITY",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    },
+    {
+      "issue": 481,
+      "boundary": "Linked Endcap",
+      "decision": "KEEP_COMPATIBILITY",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    },
+    {
+      "issue": 482,
+      "boundary": "Settings exact-six",
+      "decision": "KEEP_BRIDGE_COMPATIBILITY",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    },
+    {
+      "issue": 483,
+      "boundary": "Dead-glue cleanup",
+      "decision": "PROTECTED_KEEP",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    },
+    {
+      "issue": 502,
+      "boundary": "Part Editor Settings commit seam",
+      "decision": "FIX11_LOCATION_GUARD",
+      "status": "PRIOR_ACCEPTED_RECONSIDERABLE_UNDER_V1_4"
+    }
+  ],
+  "top_level_symbols": [
+    {
+      "kind": "def",
+      "name": "_phase6_resolve_manufacturing_geometry",
+      "start_line": 245,
+      "end_line": 250,
+      "span": 6,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "class",
+      "name": "Phase6DrawingEdgeHosts",
+      "start_line": 251,
+      "end_line": 259,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "class",
+      "name": "Phase6PartDimensionProjection",
+      "start_line": 260,
+      "end_line": 269,
+      "span": 10,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "class",
+      "name": "Phase6CornerDataUnfoldProjection",
+      "start_line": 270,
+      "end_line": 275,
+      "span": 6,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_body_piece_dimension_projections",
+      "start_line": 276,
+      "end_line": 292,
+      "span": 17,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_box_body_physical_piece_key",
+      "start_line": 293,
+      "end_line": 297,
+      "span": 5,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_side_back_editable_piece_key",
+      "start_line": 298,
+      "end_line": 306,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_operator_part_selector_keys",
+      "start_line": 307,
+      "end_line": 311,
+      "span": 5,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_body_piece_keys",
+      "start_line": 312,
+      "end_line": 316,
+      "span": 5,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_structure_tree_rows",
+      "start_line": 317,
+      "end_line": 321,
+      "span": 5,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_reverse_fold_traversal",
+      "start_line": 322,
+      "end_line": 337,
+      "span": 16,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_body_piece_part_profiles",
+      "start_line": 338,
+      "end_line": 380,
+      "span": 43,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_body_structure_render_data",
+      "start_line": 381,
+      "end_line": 392,
+      "span": 12,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_body_piece_render_data",
+      "start_line": 393,
+      "end_line": 426,
+      "span": 34,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_door_part_key",
+      "start_line": 427,
+      "end_line": 431,
+      "span": 5,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_base_plate_part_key",
+      "start_line": 432,
+      "end_line": 438,
+      "span": 7,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "normalize_part_selection",
+      "start_line": 439,
+      "end_line": 457,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_replace_mapping",
+      "start_line": 458,
+      "end_line": 469,
+      "span": 12,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_designer_workspace",
+      "start_line": 470,
+      "end_line": 473,
+      "span": 4,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_workspace_navigation",
+      "start_line": 474,
+      "end_line": 493,
+      "span": 20,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_composition",
+      "start_line": 494,
+      "end_line": 501,
+      "span": 8,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_service",
+      "start_line": 502,
+      "end_line": 504,
+      "span": 3,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_transactions",
+      "start_line": 505,
+      "end_line": 508,
+      "span": 4,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_read_snapshot",
+      "start_line": 509,
+      "end_line": 516,
+      "span": 8,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_read_profile_snapshot",
+      "start_line": 517,
+      "end_line": 522,
+      "span": 6,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_save_current_part",
+      "start_line": 523,
+      "end_line": 530,
+      "span": 8,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_apply_profile_plan",
+      "start_line": 531,
+      "end_line": 560,
+      "span": 30,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_project_ui_values",
+      "start_line": 561,
+      "end_line": 701,
+      "span": 141,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_submit_update_intent",
+      "start_line": 702,
+      "end_line": 721,
+      "span": 20,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_publish_live_state",
+      "start_line": 722,
+      "end_line": 731,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_render_bending",
+      "start_line": 732,
+      "end_line": 741,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_refresh_settings_panel",
+      "start_line": 742,
+      "end_line": 751,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_refresh_topology",
+      "start_line": 752,
+      "end_line": 761,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_refresh_persistent_controls",
+      "start_line": 762,
+      "end_line": 765,
+      "span": 4,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_project_status",
+      "start_line": 766,
+      "end_line": 775,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_application_ports",
+      "start_line": 776,
+      "end_line": 809,
+      "span": 34,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_coordinator",
+      "start_line": 810,
+      "end_line": 814,
+      "span": 5,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_diagnostics",
+      "start_line": 815,
+      "end_line": 832,
+      "span": 18,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_registry_diagnostics_compatibility_mirrors",
+      "start_line": 833,
+      "end_line": 846,
+      "span": 14,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_load_rule_rows",
+      "start_line": 847,
+      "end_line": 856,
+      "span": 10,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_preview_payload",
+      "start_line": 857,
+      "end_line": 863,
+      "span": 7,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_panel",
+      "start_line": 864,
+      "end_line": 906,
+      "span": 43,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_view",
+      "start_line": 907,
+      "end_line": 918,
+      "span": 12,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_corner_data_view_compatibility_mirrors",
+      "start_line": 919,
+      "end_line": 927,
+      "span": 9,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_renderer",
+      "start_line": 928,
+      "end_line": 932,
+      "span": 5,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_scene_query",
+      "start_line": 933,
+      "end_line": 939,
+      "span": 7,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_corner_text_sink",
+      "start_line": 940,
+      "end_line": 948,
+      "span": 9,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_operator_dimensions",
+      "start_line": 949,
+      "end_line": 974,
+      "span": 26,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_part_text_sink",
+      "start_line": 975,
+      "end_line": 980,
+      "span": 6,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_visibility",
+      "start_line": 981,
+      "end_line": 989,
+      "span": 9,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_render_committed",
+      "start_line": 990,
+      "end_line": 1008,
+      "span": 19,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_set_preview_enabled",
+      "start_line": 1009,
+      "end_line": 1024,
+      "span": 16,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_refresh_preview",
+      "start_line": 1025,
+      "end_line": 1034,
+      "span": 10,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_adapter",
+      "start_line": 1035,
+      "end_line": 1040,
+      "span": 6,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_authoritative_derived_parts",
+      "start_line": 1041,
+      "end_line": 1286,
+      "span": 246,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_available_parts_get",
+      "start_line": 1287,
+      "end_line": 1289,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_available_parts_set",
+      "start_line": 1290,
+      "end_line": 1293,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_active_part_get",
+      "start_line": 1294,
+      "end_line": 1296,
+      "span": 3,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_active_part_set",
+      "start_line": 1297,
+      "end_line": 1300,
+      "span": 4,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_selected_part_get",
+      "start_line": 1301,
+      "end_line": 1303,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_selected_part_set",
+      "start_line": 1304,
+      "end_line": 1307,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_profiles_get",
+      "start_line": 1308,
+      "end_line": 1310,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_profiles_set",
+      "start_line": 1311,
+      "end_line": 1314,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_features_get",
+      "start_line": 1315,
+      "end_line": 1317,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_features_set",
+      "start_line": 1318,
+      "end_line": 1321,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_face_features_get",
+      "start_line": 1322,
+      "end_line": 1324,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_part_face_features_set",
+      "start_line": 1325,
+      "end_line": 1328,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_workspace_dirty_get",
+      "start_line": 1329,
+      "end_line": 1331,
+      "span": 3,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_workspace_dirty_set",
+      "start_line": 1332,
+      "end_line": 1335,
+      "span": 4,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_switching_part_get",
+      "start_line": 1336,
+      "end_line": 1338,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_switching_part_set",
+      "start_line": 1339,
+      "end_line": 1342,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_box_body_active_piece_get",
+      "start_line": 1343,
+      "end_line": 1346,
+      "span": 4,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_box_body_active_piece_set",
+      "start_line": 1347,
+      "end_line": 1350,
+      "span": 4,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_settings_assembly_type_get",
+      "start_line": 1351,
+      "end_line": 1353,
+      "span": 3,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_settings_last_external_revision_get",
+      "start_line": 1354,
+      "end_line": 1356,
+      "span": 3,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_settings_last_external_transaction_id_get",
+      "start_line": 1357,
+      "end_line": 1359,
+      "span": 3,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_legacy_settings_active_transaction_id_get",
+      "start_line": 1360,
+      "end_line": 1362,
+      "span": 3,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_legacy_getattr",
+      "start_line": 1363,
+      "end_line": 1375,
+      "span": 13,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "project_features_to_original_holes",
+      "start_line": 1376,
+      "end_line": 1405,
+      "span": 30,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_rebuild_linked_endcaps",
+      "start_line": 1406,
+      "end_line": 1483,
+      "span": 78,
+      "bucket": "derived_topology",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_snapshot_with_settings_fallback",
+      "start_line": 1484,
+      "end_line": 1499,
+      "span": 16,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "class",
+      "name": "Phase6FoldDesignerApp",
+      "start_line": 1500,
+      "end_line": 1666,
+      "span": 167,
+      "bucket": "other_bridge",
+      "classification": "BRIDGE_ROOT_BOOTSTRAP",
+      "reason": "Explicit bridge/application bootstrap or predecessor handoff root."
+    },
+    {
+      "kind": "def",
+      "name": "_profile_value",
+      "start_line": 1667,
+      "end_line": 1673,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "read_standard_part_profiles",
+      "start_line": 1674,
+      "end_line": 1676,
+      "span": 3,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_part_preview_size",
+      "start_line": 1677,
+      "end_line": 1684,
+      "span": 8,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_copy_features",
+      "start_line": 1685,
+      "end_line": 1691,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_hide_original_global_dimension_controls",
+      "start_line": 1692,
+      "end_line": 1708,
+      "span": 17,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_recalculate_part_dimensions",
+      "start_line": 1709,
+      "end_line": 1719,
+      "span": 11,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_settings_profile_projection",
+      "start_line": 1720,
+      "end_line": 1755,
+      "span": 36,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_profiles_from_settings",
+      "start_line": 1756,
+      "end_line": 1781,
+      "span": 26,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_setting_updates",
+      "start_line": 1782,
+      "end_line": 1790,
+      "span": 9,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_flush_pending_settings",
+      "start_line": 1791,
+      "end_line": 1802,
+      "span": 12,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_stage_setting_update",
+      "start_line": 1803,
+      "end_line": 1854,
+      "span": 52,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_ensure_corner_part",
+      "start_line": 1855,
+      "end_line": 1857,
+      "span": 3,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_notify_corner_change",
+      "start_line": 1858,
+      "end_line": 1865,
+      "span": 8,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_type_editable",
+      "start_line": 1866,
+      "end_line": 1869,
+      "span": 4,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_parameters_unlockable",
+      "start_line": 1870,
+      "end_line": 1873,
+      "span": 4,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_parameters_unlocked",
+      "start_line": 1874,
+      "end_line": 1879,
+      "span": 6,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_parameters_editable",
+      "start_line": 1880,
+      "end_line": 1883,
+      "span": 4,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_parameter_summary",
+      "start_line": 1884,
+      "end_line": 1902,
+      "span": 19,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_corner_parameter_lock",
+      "start_line": 1903,
+      "end_line": 1906,
+      "span": 4,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_pair_var_changed",
+      "start_line": 1907,
+      "end_line": 1920,
+      "span": 14,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_type_selected",
+      "start_line": 1921,
+      "end_line": 1938,
+      "span": 18,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_mode_selected",
+      "start_line": 1939,
+      "end_line": 1956,
+      "span": 18,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_target_var_changed",
+      "start_line": 1957,
+      "end_line": 2004,
+      "span": 48,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_unknown_baseline",
+      "start_line": 2005,
+      "end_line": 2014,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_should_show_baseline_data",
+      "start_line": 2015,
+      "end_line": 2029,
+      "span": 15,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_invalidate_corner_pages",
+      "start_line": 2030,
+      "end_line": 2037,
+      "span": 8,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_known_model_corner_state",
+      "start_line": 2038,
+      "end_line": 2058,
+      "span": 21,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_baseline_model_changed",
+      "start_line": 2059,
+      "end_line": 2102,
+      "span": 44,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_collect_workspace_state",
+      "start_line": 2103,
+      "end_line": 2154,
+      "span": 52,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_relief_profile_fingerprint",
+      "start_line": 2155,
+      "end_line": 2174,
+      "span": 20,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_current_relief_source_signature",
+      "start_line": 2175,
+      "end_line": 2218,
+      "span": 44,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_relief_source_matches_current",
+      "start_line": 2219,
+      "end_line": 2292,
+      "span": 74,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_serialize_assembly_relief_state",
+      "start_line": 2293,
+      "end_line": 2362,
+      "span": 70,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_transaction_payload",
+      "start_line": 2363,
+      "end_line": 2395,
+      "span": 33,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_publish_live_state",
+      "start_line": 2396,
+      "end_line": 2456,
+      "span": 61,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_diagnostic_snapshot",
+      "start_line": 2457,
+      "end_line": 2482,
+      "span": 26,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_project_snapshot",
+      "start_line": 2483,
+      "end_line": 2527,
+      "span": 45,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_save_diagnostic_file",
+      "start_line": 2528,
+      "end_line": 2572,
+      "span": 45,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_load_project_file",
+      "start_line": 2573,
+      "end_line": 2613,
+      "span": 41,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_save_project_file",
+      "start_line": 2614,
+      "end_line": 2669,
+      "span": 56,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_save_project_file_as",
+      "start_line": 2670,
+      "end_line": 2673,
+      "span": 4,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_confirm_corner_transaction",
+      "start_line": 2674,
+      "end_line": 2694,
+      "span": 21,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_cancel_corner_transaction",
+      "start_line": 2695,
+      "end_line": 2707,
+      "span": 13,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_export_workspace_state_if_dirty",
+      "start_line": 2708,
+      "end_line": 2730,
+      "span": 23,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_active_endcap_from_linked",
+      "start_line": 2731,
+      "end_line": 2745,
+      "span": 15,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_endcap_fw_state",
+      "start_line": 2746,
+      "end_line": 2756,
+      "span": 11,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_endcap_fw_follow",
+      "start_line": 2757,
+      "end_line": 2763,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_endcap_fw_override",
+      "start_line": 2764,
+      "end_line": 2772,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_endcap_fw_value_selected",
+      "start_line": 2773,
+      "end_line": 2799,
+      "span": 27,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_structure_state",
+      "start_line": 2800,
+      "end_line": 2803,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_after_box_structure_commit",
+      "start_line": 2804,
+      "end_line": 2828,
+      "span": 25,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_box_structure_state",
+      "start_line": 2829,
+      "end_line": 2833,
+      "span": 5,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_structure_error",
+      "start_line": 2834,
+      "end_line": 2839,
+      "span": 6,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_box_structure_lock",
+      "start_line": 2840,
+      "end_line": 2845,
+      "span": 6,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_select_box_structure_type",
+      "start_line": 2846,
+      "end_line": 2870,
+      "span": 25,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_structure_w",
+      "start_line": 2871,
+      "end_line": 2876,
+      "span": 6,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_box_structure_d",
+      "start_line": 2877,
+      "end_line": 2882,
+      "span": 6,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_structure_advanced",
+      "start_line": 2883,
+      "end_line": 2891,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_back_panel_mode_control_is_applicable",
+      "start_line": 2892,
+      "end_line": 2907,
+      "span": 16,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_back_panel_mode_control",
+      "start_line": 2908,
+      "end_line": 2937,
+      "span": 30,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_select_back_panel_mode",
+      "start_line": 2938,
+      "end_line": 2956,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_box_structure_numeric",
+      "start_line": 2957,
+      "end_line": 2978,
+      "span": 22,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_joint_rows",
+      "start_line": 2979,
+      "end_line": 2987,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_add_user_joint",
+      "start_line": 2988,
+      "end_line": 3016,
+      "span": 29,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_delete_user_joint",
+      "start_line": 3017,
+      "end_line": 3033,
+      "span": 17,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_joint_state_for_intent",
+      "start_line": 3034,
+      "end_line": 3049,
+      "span": 16,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_assembly_type_selected",
+      "start_line": 3050,
+      "end_line": 3098,
+      "span": 49,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_endcap_joint_policy_rows",
+      "start_line": 3099,
+      "end_line": 3124,
+      "span": 26,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_endcap_edge_relation_selected",
+      "start_line": 3125,
+      "end_line": 3143,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_ensure_drawing_edge_hosts",
+      "start_line": 3144,
+      "end_line": 3164,
+      "span": 21,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_clear_drawing_edge_controls",
+      "start_line": 3165,
+      "end_line": 3176,
+      "span": 12,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_place_drawing_edge_host",
+      "start_line": 3177,
+      "end_line": 3181,
+      "span": 5,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_endcap_edge_controls",
+      "start_line": 3182,
+      "end_line": 3214,
+      "span": 33,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_base_plate_edge_shrink",
+      "start_line": 3215,
+      "end_line": 3235,
+      "span": 21,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_base_plate_edge_controls",
+      "start_line": 3236,
+      "end_line": 3272,
+      "span": 37,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_active_drawing_edge_controls",
+      "start_line": 3273,
+      "end_line": 3297,
+      "span": 25,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_box_symmetry_changed",
+      "start_line": 3298,
+      "end_line": 3331,
+      "span": 34,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_receiving_bottom_wrap_controls",
+      "start_line": 3332,
+      "end_line": 3362,
+      "span": 31,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_external_assembly_type",
+      "start_line": 3363,
+      "end_line": 3381,
+      "span": 19,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_external_corner_state",
+      "start_line": 3382,
+      "end_line": 3395,
+      "span": 14,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_endcap_fw_projection",
+      "start_line": 3396,
+      "end_line": 3410,
+      "span": 15,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_box_structure_projection",
+      "start_line": 3411,
+      "end_line": 3520,
+      "span": 110,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_bottom_wrap_projection",
+      "start_line": 3521,
+      "end_line": 3544,
+      "span": 24,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_corner_projection",
+      "start_line": 3545,
+      "end_line": 3635,
+      "span": 91,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_context_extension_projection",
+      "start_line": 3636,
+      "end_line": 3667,
+      "span": 32,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_settings_panel_extension",
+      "start_line": 3668,
+      "end_line": 3698,
+      "span": 31,
+      "bucket": "settings",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_ensure_settings_panel",
+      "start_line": 3699,
+      "end_line": 3734,
+      "span": 36,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_sync_settings_panel_compat",
+      "start_line": 3735,
+      "end_line": 3762,
+      "span": 28,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_panel_toggle_baseline",
+      "start_line": 3763,
+      "end_line": 3767,
+      "span": 5,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_settings_panel_toggle_advanced",
+      "start_line": 3768,
+      "end_line": 3772,
+      "span": 5,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_invalidate_settings_page",
+      "start_line": 3773,
+      "end_line": 3789,
+      "span": 17,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_settings_context",
+      "start_line": 3790,
+      "end_line": 3799,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_show_global_settings",
+      "start_line": 3800,
+      "end_line": 3807,
+      "span": 8,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_save_current_settings_as_defaults",
+      "start_line": 3808,
+      "end_line": 3812,
+      "span": 5,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_external_settings",
+      "start_line": 3813,
+      "end_line": 3820,
+      "span": 8,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_external_model",
+      "start_line": 3821,
+      "end_line": 3842,
+      "span": 22,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_external_sync",
+      "start_line": 3843,
+      "end_line": 3856,
+      "span": 14,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_left_workspace_width",
+      "start_line": 3857,
+      "end_line": 3862,
+      "span": 6,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_update_left_workspace_width",
+      "start_line": 3863,
+      "end_line": 3876,
+      "span": 14,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_ui_text_size",
+      "start_line": 3877,
+      "end_line": 3898,
+      "span": 22,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_ui_text_size_changed",
+      "start_line": 3899,
+      "end_line": 3963,
+      "span": 65,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_is_derived_physical_part_key",
+      "start_line": 3964,
+      "end_line": 3975,
+      "span": 12,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_part_label",
+      "start_line": 3976,
+      "end_line": 4027,
+      "span": 52,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_operator_label",
+      "start_line": 4028,
+      "end_line": 4035,
+      "span": 8,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_operator_text",
+      "start_line": 4036,
+      "end_line": 4051,
+      "span": 16,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_fail_closed_visible_text",
+      "start_line": 4052,
+      "end_line": 4074,
+      "span": 23,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_present_token",
+      "start_line": 4075,
+      "end_line": 4111,
+      "span": 37,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_formula_display",
+      "start_line": 4112,
+      "end_line": 4118,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_formula_raw",
+      "start_line": 4119,
+      "end_line": 4125,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_formula_display",
+      "start_line": 4126,
+      "end_line": 4136,
+      "span": 11,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_preconditions_display",
+      "start_line": 4137,
+      "end_line": 4148,
+      "span": 12,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_preconditions_raw",
+      "start_line": 4149,
+      "end_line": 4180,
+      "span": 32,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_source_display",
+      "start_line": 4181,
+      "end_line": 4189,
+      "span": 9,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_source_raw",
+      "start_line": 4190,
+      "end_line": 4210,
+      "span": 21,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_source_display",
+      "start_line": 4211,
+      "end_line": 4223,
+      "span": 13,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_collect_rule_form",
+      "start_line": 4224,
+      "end_line": 4267,
+      "span": 44,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_sample_variables",
+      "start_line": 4268,
+      "end_line": 4285,
+      "span": 18,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_validate_formula_form",
+      "start_line": 4286,
+      "end_line": 4312,
+      "span": 27,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_candidate_form_is_current",
+      "start_line": 4313,
+      "end_line": 4319,
+      "span": 7,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_require_current_candidate",
+      "start_line": 4320,
+      "end_line": 4324,
+      "span": 5,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_save_candidate_form",
+      "start_line": 4325,
+      "end_line": 4345,
+      "span": 21,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_run_formula_matrix",
+      "start_line": 4346,
+      "end_line": 4370,
+      "span": 25,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_validate_candidate_3d",
+      "start_line": 4371,
+      "end_line": 4456,
+      "span": 86,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_preview_assembly_3d",
+      "start_line": 4457,
+      "end_line": 4480,
+      "span": 24,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_registry_promote_form",
+      "start_line": 4481,
+      "end_line": 4504,
+      "span": 24,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_joint_form_add",
+      "start_line": 4505,
+      "end_line": 4533,
+      "span": 29,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_joint_form_delete",
+      "start_line": 4534,
+      "end_line": 4553,
+      "span": 20,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_configure_floating_surface",
+      "start_line": 4554,
+      "end_line": 4603,
+      "span": 50,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_status_projection",
+      "start_line": 4604,
+      "end_line": 4621,
+      "span": 18,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_status_bar",
+      "start_line": 4622,
+      "end_line": 4648,
+      "span": 27,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_keyboard_save",
+      "start_line": 4649,
+      "end_line": 4654,
+      "span": 6,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_keyboard_open",
+      "start_line": 4655,
+      "end_line": 4660,
+      "span": 6,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_keyboard_fullscreen",
+      "start_line": 4661,
+      "end_line": 4667,
+      "span": 7,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_keyboard_shortcuts",
+      "start_line": 4668,
+      "end_line": 4676,
+      "span": 9,
+      "bucket": "ui_shell",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_project_toolbar",
+      "start_line": 4677,
+      "end_line": 4696,
+      "span": 20,
+      "bucket": "project_persistence",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_transaction_buttons",
+      "start_line": 4697,
+      "end_line": 4708,
+      "span": 12,
+      "bucket": "ui_shell",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_hide_original_visual_controls",
+      "start_line": 4709,
+      "end_line": 4724,
+      "span": 16,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_visual_controls",
+      "start_line": 4725,
+      "end_line": 4752,
+      "span": 28,
+      "bucket": "ui_shell",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_fullscreen",
+      "start_line": 4753,
+      "end_line": 4807,
+      "span": 55,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_global_persistent_controls",
+      "start_line": 4808,
+      "end_line": 4857,
+      "span": 50,
+      "bucket": "project_persistence",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_sticky_structure_tree",
+      "start_line": 4858,
+      "end_line": 4889,
+      "span": 32,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_output_draw_stock",
+      "start_line": 4890,
+      "end_line": 4896,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_export_selected_dxf_from_3d",
+      "start_line": 4897,
+      "end_line": 4903,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_output_controls",
+      "start_line": 4904,
+      "end_line": 4964,
+      "span": 61,
+      "bucket": "ui_shell",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_persistent_top_area",
+      "start_line": 4965,
+      "end_line": 5093,
+      "span": 129,
+      "bucket": "project_persistence",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_reset_initial_values",
+      "start_line": 5094,
+      "end_line": 5100,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_save_settings_context_as_defaults",
+      "start_line": 5101,
+      "end_line": 5126,
+      "span": 26,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_scene_query_payload_for_part",
+      "start_line": 5127,
+      "end_line": 5129,
+      "span": 3,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_scene_query_payload",
+      "start_line": 5130,
+      "end_line": 5135,
+      "span": 6,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_query_final_render_data",
+      "start_line": 5136,
+      "end_line": 5139,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_active_mesh_profiles",
+      "start_line": 5140,
+      "end_line": 5143,
+      "span": 4,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_mesh_profiles_for_part",
+      "start_line": 5144,
+      "end_line": 5165,
+      "span": 22,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_make_assembly_scene_render_data",
+      "start_line": 5166,
+      "end_line": 5191,
+      "span": 26,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_box_body_piece_info_rows",
+      "start_line": 5192,
+      "end_line": 5205,
+      "span": 14,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_query_assembly_render_data",
+      "start_line": 5206,
+      "end_line": 5210,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_assembly_unfolded_blank_text",
+      "start_line": 5211,
+      "end_line": 5221,
+      "span": 11,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_final_scene_view_request",
+      "start_line": 5222,
+      "end_line": 5226,
+      "span": 5,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_true_cutting_mesh",
+      "start_line": 5227,
+      "end_line": 5231,
+      "span": 5,
+      "bucket": "final_scene_view",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_3d_scroll",
+      "start_line": 5232,
+      "end_line": 5235,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_renderer_view",
+      "start_line": 5236,
+      "end_line": 5245,
+      "span": 10,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_policy_for",
+      "start_line": 5246,
+      "end_line": 5281,
+      "span": 36,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_draw_operator_dimensions",
+      "start_line": 5282,
+      "end_line": 5300,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_data_for_blank",
+      "start_line": 5301,
+      "end_line": 5322,
+      "span": 22,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_format_formed_size_text",
+      "start_line": 5323,
+      "end_line": 5342,
+      "span": 20,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_format_unfolded_blank_text",
+      "start_line": 5343,
+      "end_line": 5352,
+      "span": 10,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_current_unfolded_size",
+      "start_line": 5353,
+      "end_line": 5364,
+      "span": 12,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_update_unfolded_size_label",
+      "start_line": 5365,
+      "end_line": 5386,
+      "span": 22,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_prepare_text_scale_controller",
+      "start_line": 5387,
+      "end_line": 5400,
+      "span": 14,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_operator_finished_dimensions",
+      "start_line": 5401,
+      "end_line": 5407,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_assembly_diagnostic_changed",
+      "start_line": 5408,
+      "end_line": 5413,
+      "span": 6,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_create_relief_promotion_candidates",
+      "start_line": 5414,
+      "end_line": 5445,
+      "span": 32,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_selected_joint_diagnostic",
+      "start_line": 5446,
+      "end_line": 5461,
+      "span": 16,
+      "bucket": "registry_diagnostics",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_update_assembly_diagnostic_status",
+      "start_line": 5462,
+      "end_line": 5479,
+      "span": 18,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_settings_center",
+      "start_line": 5480,
+      "end_line": 5489,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_persistent_structure_controls",
+      "start_line": 5490,
+      "end_line": 5511,
+      "span": 22,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_pack_right_panel_above_canvas",
+      "start_line": 5512,
+      "end_line": 5529,
+      "span": 18,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_parameter_panel",
+      "start_line": 5530,
+      "end_line": 5561,
+      "span": 32,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_hide_original_structure_mode_controls",
+      "start_line": 5562,
+      "end_line": 5580,
+      "span": 19,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_assembly_part_visibility_changed",
+      "start_line": 5581,
+      "end_line": 5585,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_assembly_panel_aliases",
+      "start_line": 5586,
+      "end_line": 5620,
+      "span": 35,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_scroll_assembly_parts",
+      "start_line": 5621,
+      "end_line": 5625,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_bind_assembly_scroll",
+      "start_line": 5626,
+      "end_line": 5631,
+      "span": 6,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_assembly_presentation_groups",
+      "start_line": 5632,
+      "end_line": 5635,
+      "span": 4,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_current_assembly_panel_part_keys",
+      "start_line": 5636,
+      "end_line": 5640,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_assembly_parts_panel_if_topology_changed",
+      "start_line": 5641,
+      "end_line": 5654,
+      "span": 14,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_assembly_part_details_open",
+      "start_line": 5655,
+      "end_line": 5659,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_assembly_part_details",
+      "start_line": 5660,
+      "end_line": 5664,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_assembly_presentation_group_open",
+      "start_line": 5665,
+      "end_line": 5669,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_assembly_presentation_group",
+      "start_line": 5670,
+      "end_line": 5674,
+      "span": 5,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_box_body_piece_details_open",
+      "start_line": 5675,
+      "end_line": 5679,
+      "span": 5,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_toggle_box_body_piece_details",
+      "start_line": 5680,
+      "end_line": 5684,
+      "span": 5,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_assembly_parts_panel",
+      "start_line": 5685,
+      "end_line": 5706,
+      "span": 22,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_bootstrap_authoritative_state",
+      "start_line": 5707,
+      "end_line": 5743,
+      "span": 37,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_runtime_ports",
+      "start_line": 5744,
+      "end_line": 5770,
+      "span": 27,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_prepare_predecessor_init",
+      "start_line": 5771,
+      "end_line": 5835,
+      "span": 65,
+      "bucket": "other_bridge",
+      "classification": "BRIDGE_ROOT_BOOTSTRAP",
+      "reason": "Explicit bridge/application bootstrap or predecessor handoff root."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_finish_legacy_host_compatibility",
+      "start_line": 5836,
+      "end_line": 5871,
+      "span": 36,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_bootstrap_workspace_profiles",
+      "start_line": 5872,
+      "end_line": 5902,
+      "span": 31,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_part_editor_compatibility",
+      "start_line": 5903,
+      "end_line": 6021,
+      "span": 119,
+      "bucket": "other_bridge",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_install_initial_owner_views",
+      "start_line": 6022,
+      "end_line": 6035,
+      "span": 14,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_select_initial_mode",
+      "start_line": 6036,
+      "end_line": 6040,
+      "span": 5,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_mark_ready",
+      "start_line": 6041,
+      "end_line": 6054,
+      "span": 14,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_init",
+      "start_line": 6055,
+      "end_line": 6088,
+      "span": 34,
+      "bucket": "legacy_fix11",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_clear_navigation_residue",
+      "start_line": 6089,
+      "end_line": 6100,
+      "span": 12,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_content_switch",
+      "start_line": 6101,
+      "end_line": 6119,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_show_input_content",
+      "start_line": 6120,
+      "end_line": 6134,
+      "span": 15,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_build_content_switch",
+      "start_line": 6135,
+      "end_line": 6149,
+      "span": 15,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_mount_shared_content",
+      "start_line": 6150,
+      "end_line": 6186,
+      "span": 37,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_structure_tree_visibility_var",
+      "start_line": 6187,
+      "end_line": 6198,
+      "span": 12,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_structure_tree",
+      "start_line": 6199,
+      "end_line": 6252,
+      "span": 54,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_structure_tree_select",
+      "start_line": 6253,
+      "end_line": 6271,
+      "span": 19,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_structure_tree_visibility",
+      "start_line": 6272,
+      "end_line": 6285,
+      "span": 14,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_structure_tree_click",
+      "start_line": 6286,
+      "end_line": 6299,
+      "span": 14,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_box_body_piece_selector",
+      "start_line": 6300,
+      "end_line": 6367,
+      "span": 68,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_box_body_piece_tab_changed",
+      "start_line": 6368,
+      "end_line": 6387,
+      "span": 20,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_resolve_operator_part_key",
+      "start_line": 6388,
+      "end_line": 6398,
+      "span": 11,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_activate_operator_part",
+      "start_line": 6399,
+      "end_line": 6408,
+      "span": 10,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_refresh_part_buttons",
+      "start_line": 6409,
+      "end_line": 6457,
+      "span": 49,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_refresh_part_button_states",
+      "start_line": 6458,
+      "end_line": 6468,
+      "span": 11,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_part_keys",
+      "start_line": 6469,
+      "end_line": 6474,
+      "span": 6,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_navigation_rows",
+      "start_line": 6475,
+      "end_line": 6481,
+      "span": 7,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_select_corner_data_part",
+      "start_line": 6482,
+      "end_line": 6511,
+      "span": 30,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_info_request_for_key",
+      "start_line": 6512,
+      "end_line": 6535,
+      "span": 24,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_info_text_for_key",
+      "start_line": 6536,
+      "end_line": 6542,
+      "span": 7,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_unfold_projection_for_key",
+      "start_line": 6543,
+      "end_line": 6556,
+      "span": 14,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_unfold_projections",
+      "start_line": 6557,
+      "end_line": 6565,
+      "span": 9,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_corner_data_unfold_projection",
+      "start_line": 6566,
+      "end_line": 6573,
+      "span": 8,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_corner_data_unfold_view",
+      "start_line": 6574,
+      "end_line": 6598,
+      "span": 25,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_corner_data_parts_panel",
+      "start_line": 6599,
+      "end_line": 6631,
+      "span": 33,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_on_corner_data_mousewheel",
+      "start_line": 6632,
+      "end_line": 6648,
+      "span": 17,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_prepare_corner_data_canvas",
+      "start_line": 6649,
+      "end_line": 6719,
+      "span": 71,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_hide_corner_data_canvas",
+      "start_line": 6720,
+      "end_line": 6746,
+      "span": 27,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_show_corner_data",
+      "start_line": 6747,
+      "end_line": 6785,
+      "span": 39,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_show_assembly",
+      "start_line": 6786,
+      "end_line": 6847,
+      "span": 62,
+      "bucket": "assembly_corner_relief",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_select_part",
+      "start_line": 6848,
+      "end_line": 6863,
+      "span": 16,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_activate_selected_part",
+      "start_line": 6864,
+      "end_line": 6871,
+      "span": 8,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_remove_selected_part",
+      "start_line": 6872,
+      "end_line": 6881,
+      "span": 10,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_refresh_add_part_menu",
+      "start_line": 6882,
+      "end_line": 6891,
+      "span": 10,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_linked_part_profiles",
+      "start_line": 6892,
+      "end_line": 6936,
+      "span": 45,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_store_editor_values",
+      "start_line": 6937,
+      "end_line": 6944,
+      "span": 8,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_commit_box_body_physical_piece_profile",
+      "start_line": 6945,
+      "end_line": 7028,
+      "span": 84,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_save_current_part",
+      "start_line": 7029,
+      "end_line": 7158,
+      "span": 130,
+      "bucket": "project_persistence",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_load_part_holes",
+      "start_line": 7159,
+      "end_line": 7192,
+      "span": 34,
+      "bucket": "project_persistence",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_show_home",
+      "start_line": 7193,
+      "end_line": 7197,
+      "span": 5,
+      "bucket": "ui_shell",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_activate_part",
+      "start_line": 7198,
+      "end_line": 7418,
+      "span": 221,
+      "bucket": "legacy_fix11",
+      "classification": "PROTECTED_COMPATIBILITY_PRIOR",
+      "reason": "Explicit prior accepted KEEP/NO_EXTRACTION/bootstrap compatibility surface; v1.4 permits reconsideration only through Stage B Deletion-Test."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_add_part",
+      "start_line": 7419,
+      "end_line": 7443,
+      "span": 25,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_remove_part",
+      "start_line": 7444,
+      "end_line": 7460,
+      "span": 17,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_export",
+      "start_line": 7461,
+      "end_line": 7531,
+      "span": 71,
+      "bucket": "legacy_fix11",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_view_property",
+      "start_line": 7532,
+      "end_line": 7547,
+      "span": 16,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_set_profile_phase6_len",
+      "start_line": 7548,
+      "end_line": 7555,
+      "span": 8,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_get_profile_phase6_len",
+      "start_line": 7556,
+      "end_line": 7562,
+      "span": 7,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_endcap_depth_comp_t",
+      "start_line": 7563,
+      "end_line": 7567,
+      "span": 5,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_propagate_endcap_derived_cores",
+      "start_line": 7568,
+      "end_line": 7581,
+      "span": 14,
+      "bucket": "derived_topology",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_sync_active_endcap_and_global_whd",
+      "start_line": 7582,
+      "end_line": 7622,
+      "span": 41,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_fix11_do_update",
+      "start_line": 7623,
+      "end_line": 7664,
+      "span": 42,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_publish_if_changed",
+      "start_line": 7665,
+      "end_line": 7668,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_render_committed_view",
+      "start_line": 7669,
+      "end_line": 7672,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_execute_update_intents",
+      "start_line": 7673,
+      "end_line": 7682,
+      "span": 10,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_flush_update_intents",
+      "start_line": 7683,
+      "end_line": 7689,
+      "span": 7,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_submit_update_intent",
+      "start_line": 7690,
+      "end_line": 7698,
+      "span": 9,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_apply_settings_delta",
+      "start_line": 7699,
+      "end_line": 7708,
+      "span": 10,
+      "bucket": "settings",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_switch_active_part",
+      "start_line": 7709,
+      "end_line": 7713,
+      "span": 5,
+      "bucket": "workspace_navigation",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_preview_aware_do_update",
+      "start_line": 7714,
+      "end_line": 7718,
+      "span": 5,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_set_3d_preview_enabled",
+      "start_line": 7719,
+      "end_line": 7722,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_refresh_3d_preview",
+      "start_line": 7723,
+      "end_line": 7726,
+      "span": 4,
+      "bucket": "other_bridge",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    },
+    {
+      "kind": "def",
+      "name": "_phase6_queue_update",
+      "start_line": 7727,
+      "end_line": 7807,
+      "span": 81,
+      "bucket": "lifecycle_update",
+      "classification": "BOUNDARY_RECONSIDERATION_CANDIDATE",
+      "reason": "Not proven dead/duplicate or owner-violating at A0; retained for evidence-driven A/B characterization rather than guessed extraction."
+    }
+  ],
+  "buckets": {
+    "other_bridge": {
+      "count": 110,
+      "span": 1899
+    },
+    "project_persistence": {
+      "count": 26,
+      "span": 774
+    },
+    "derived_topology": {
+      "count": 20,
+      "span": 655
+    },
+    "workspace_navigation": {
+      "count": 16,
+      "span": 261
+    },
+    "settings": {
+      "count": 48,
+      "span": 1050
+    },
+    "registry_diagnostics": {
+      "count": 16,
+      "span": 414
+    },
+    "assembly_corner_relief": {
+      "count": 57,
+      "span": 1148
+    },
+    "final_scene_view": {
+      "count": 13,
+      "span": 140
+    },
+    "ui_shell": {
+      "count": 20,
+      "span": 451
+    },
+    "lifecycle_update": {
+      "count": 10,
+      "span": 299
+    },
+    "legacy_fix11": {
+      "count": 11,
+      "span": 472
+    }
+  },
+  "facade": {
+    "total": 69,
+    "accounted": 69,
+    "unaccounted": 0,
+    "current_class_counts": {
+      "LEGACY_REQUIRED": 16,
+      "PROPERTY_COMPAT": 16,
+      "PUBLIC_REQUIRED": 37
+    },
+    "inventory": [
+      {
+        "name": "__getattr__",
+        "map_line": 7736,
+        "value_expression": "_phase6_legacy_getattr",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_last_cutting_mesh",
+        "map_line": 7737,
+        "value_expression": "_phase6_view_property(\"last_cutting_mesh\", [])",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_last_cutting_material",
+        "map_line": 7738,
+        "value_expression": "_phase6_view_property(\"last_cutting_material\", None)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_cutting_mesh_error",
+        "map_line": 7739,
+        "value_expression": "_phase6_view_property(\"cutting_mesh_error\", None)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_zoom_scale",
+        "map_line": 7740,
+        "value_expression": "_phase6_view_property(\"zoom_scale\", 1.0)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_view_initialized",
+        "map_line": 7741,
+        "value_expression": "_phase6_view_property(\"view_initialized\", False)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_base_renderer_render",
+        "map_line": 7742,
+        "value_expression": "_phase6_view_property(\"base_renderer_render\", None)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_scroll_cid",
+        "map_line": 7743,
+        "value_expression": "_phase6_view_property(\"scroll_cid\", None)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "__init__",
+        "map_line": 7744,
+        "value_expression": "_fix11_init",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_refresh_part_buttons",
+        "map_line": 7745,
+        "value_expression": "_fix11_refresh_part_buttons",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 7,
+        "bridge_getattr_occurrences": 1,
+        "bridge_exact_string_occurrences": 2,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_refresh_part_button_states",
+        "map_line": 7746,
+        "value_expression": "_fix11_refresh_part_button_states",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 8,
+        "bridge_getattr_occurrences": 1,
+        "bridge_exact_string_occurrences": 2,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_refresh_add_part_menu",
+        "map_line": 7747,
+        "value_expression": "_fix11_refresh_add_part_menu",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 6,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_save_current_part",
+        "map_line": 7748,
+        "value_expression": "_fix11_save_current_part",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 13,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_load_part_holes",
+        "map_line": 7749,
+        "value_expression": "_fix11_load_part_holes",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "activate_part",
+        "map_line": 7750,
+        "value_expression": "_fix11_activate_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 11,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "show_home",
+        "map_line": 7751,
+        "value_expression": "_phase6_show_home",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "on_3d_scroll",
+        "map_line": 7752,
+        "value_expression": "_phase6_on_3d_scroll",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "add_part",
+        "map_line": 7753,
+        "value_expression": "_fix11_add_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 27,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "select_part",
+        "map_line": 7754,
+        "value_expression": "_fix11_select_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "activate_selected_part",
+        "map_line": 7755,
+        "value_expression": "_fix11_activate_selected_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "remove_selected_part",
+        "map_line": 7756,
+        "value_expression": "_fix11_remove_selected_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "remove_part",
+        "map_line": 7757,
+        "value_expression": "_fix11_remove_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 17,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "available_parts",
+        "map_line": 7758,
+        "value_expression": "property(_legacy_available_parts_get, _legacy_available_parts_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": true,
+        "property_compat": true,
+        "bridge_raw_occurrences": 45,
+        "bridge_getattr_occurrences": 13,
+        "bridge_exact_string_occurrences": 14,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "active_part_key",
+        "map_line": 7759,
+        "value_expression": "property(_legacy_active_part_get, _legacy_active_part_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": true,
+        "property_compat": true,
+        "bridge_raw_occurrences": 17,
+        "bridge_getattr_occurrences": 14,
+        "bridge_exact_string_occurrences": 15,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "selected_part_key",
+        "map_line": 7760,
+        "value_expression": "property(_legacy_selected_part_get, _legacy_selected_part_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": true,
+        "property_compat": true,
+        "bridge_raw_occurrences": 10,
+        "bridge_getattr_occurrences": 2,
+        "bridge_exact_string_occurrences": 3,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_part_profiles",
+        "map_line": 7761,
+        "value_expression": "property(_legacy_part_profiles_get, _legacy_part_profiles_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 2,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_part_features",
+        "map_line": 7762,
+        "value_expression": "property(_legacy_part_features_get, _legacy_part_features_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_part_face_features",
+        "map_line": 7763,
+        "value_expression": "property(_legacy_part_face_features_get, _legacy_part_face_features_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 2,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_workspace_dirty",
+        "map_line": 7764,
+        "value_expression": "property(_legacy_workspace_dirty_get, _legacy_workspace_dirty_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 2,
+        "bridge_getattr_occurrences": 1,
+        "bridge_exact_string_occurrences": 2,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_switching_part",
+        "map_line": 7765,
+        "value_expression": "property(_legacy_switching_part_get, _legacy_switching_part_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_box_body_active_piece_key",
+        "map_line": 7766,
+        "value_expression": "property(_legacy_box_body_active_piece_get, _legacy_box_body_active_piece_set)",
+        "current_compatibility_class": "PROPERTY_COMPAT",
+        "public_surface": false,
+        "property_compat": true,
+        "bridge_raw_occurrences": 9,
+        "bridge_getattr_occurrences": 1,
+        "bridge_exact_string_occurrences": 3,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_external_assembly_type",
+        "map_line": 7767,
+        "value_expression": "_phase6_apply_external_assembly_type",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "export_phase6_snapshot",
+        "map_line": 7768,
+        "value_expression": "_fix11_export",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "show_global_settings",
+        "map_line": 7769,
+        "value_expression": "_phase6_show_global_settings",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "toggle_baseline_data",
+        "map_line": 7770,
+        "value_expression": "_phase6_settings_panel_toggle_baseline",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 2,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "save_settings_context_as_defaults",
+        "map_line": 7771,
+        "value_expression": "_phase6_save_settings_context_as_defaults",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "save_current_settings_as_defaults",
+        "map_line": 7772,
+        "value_expression": "_phase6_save_current_settings_as_defaults",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "flush_pending_settings",
+        "map_line": 7773,
+        "value_expression": "_phase6_flush_pending_settings",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 14,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_publish_live_state",
+        "map_line": 7774,
+        "value_expression": "_phase6_publish_live_state",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 8,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_resolve_manufacturing_geometry",
+        "map_line": 7775,
+        "value_expression": "_phase6_resolve_manufacturing_geometry",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "toggle_advanced_settings",
+        "map_line": 7776,
+        "value_expression": "_phase6_settings_panel_toggle_advanced",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 1,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_external_settings",
+        "map_line": 7777,
+        "value_expression": "_phase6_apply_external_settings",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_external_model",
+        "map_line": 7778,
+        "value_expression": "_phase6_apply_external_model",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_external_sync",
+        "map_line": 7779,
+        "value_expression": "_phase6_apply_external_sync",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_refresh_corner_data_unfold_view",
+        "map_line": 7780,
+        "value_expression": "_phase6_refresh_corner_data_unfold_view",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 9,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "on_ui_text_size_changed",
+        "map_line": 7781,
+        "value_expression": "_phase6_on_ui_text_size_changed",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_external_corner_state",
+        "map_line": 7782,
+        "value_expression": "_phase6_apply_external_corner_state",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_corner_parameters_unlocked",
+        "map_line": 7783,
+        "value_expression": "_phase6_corner_parameters_unlocked",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "toggle_corner_parameter_lock",
+        "map_line": 7784,
+        "value_expression": "_phase6_toggle_corner_parameter_lock",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_render_settings_context",
+        "map_line": 7785,
+        "value_expression": "_phase6_render_settings_context",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 13,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "on_baseline_model_changed",
+        "map_line": 7786,
+        "value_expression": "_phase6_on_baseline_model_changed",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "confirm_corner_transaction",
+        "map_line": 7787,
+        "value_expression": "_phase6_confirm_corner_transaction",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "cancel_corner_transaction",
+        "map_line": 7788,
+        "value_expression": "_phase6_cancel_corner_transaction",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "reset_initial_values",
+        "map_line": 7789,
+        "value_expression": "_phase6_reset_initial_values",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "export_workspace_state_if_dirty",
+        "map_line": 7790,
+        "value_expression": "_phase6_export_workspace_state_if_dirty",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "save_diagnostic_file",
+        "map_line": 7791,
+        "value_expression": "_phase6_save_diagnostic_file",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "save_project_file",
+        "map_line": 7792,
+        "value_expression": "_phase6_save_project_file",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 10,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "save_project_file_as",
+        "map_line": 7793,
+        "value_expression": "_phase6_save_project_file_as",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "load_project_file",
+        "map_line": 7794,
+        "value_expression": "_phase6_load_project_file",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_on_endcap_edge_relation_selected",
+        "map_line": 7795,
+        "value_expression": "_phase6_on_endcap_edge_relation_selected",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_render_endcap_edge_controls",
+        "map_line": 7796,
+        "value_expression": "_phase6_render_endcap_edge_controls",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_commit_base_plate_edge_shrink",
+        "map_line": 7797,
+        "value_expression": "_phase6_commit_base_plate_edge_shrink",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 5,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "submit_update_intent",
+        "map_line": 7798,
+        "value_expression": "_phase6_submit_update_intent",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 12,
+        "bridge_getattr_occurrences": 3,
+        "bridge_exact_string_occurrences": 4,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "apply_settings_delta",
+        "map_line": 7799,
+        "value_expression": "_phase6_apply_settings_delta",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "switch_active_part",
+        "map_line": 7800,
+        "value_expression": "_phase6_switch_active_part",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "publish_if_changed",
+        "map_line": 7801,
+        "value_expression": "_phase6_publish_if_changed",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 4,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "_phase6_flush_update_intents",
+        "map_line": 7802,
+        "value_expression": "_phase6_flush_update_intents",
+        "current_compatibility_class": "LEGACY_REQUIRED",
+        "public_surface": false,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "set_3d_preview_enabled",
+        "map_line": 7803,
+        "value_expression": "_phase6_set_3d_preview_enabled",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      },
+      {
+        "name": "refresh_3d_preview",
+        "map_line": 7804,
+        "value_expression": "_phase6_refresh_3d_preview",
+        "current_compatibility_class": "PUBLIC_REQUIRED",
+        "public_surface": true,
+        "property_compat": false,
+        "bridge_raw_occurrences": 3,
+        "bridge_getattr_occurrences": 0,
+        "bridge_exact_string_occurrences": 1,
+        "repo_wide_consumer_audit": "B6_REQUIRED",
+        "accounted": true
+      }
+    ],
+    "note": "Current compatibility class records today's exposure, not B6 final retention decision. Repo-wide caller/dynamic audit remains mandatory before deletion."
+  },
+  "gates": {
+    "UNKNOWN_EQ_0": true,
+    "FACADE_ACCOUNTED_EQ_TOTAL": true,
+    "FACADE_COUNT_EQ_69": true,
+    "PRODUCTION_BEHAVIOR_CHANGE_EQ_0": true
+  },
+  "next_stage_handoff": {
+    "A1": "Only census-proven DEAD_OR_DUPLICATE_GLUE may be deleted; A0 currently proves none solely from static name/span evidence.",
+    "A2": "Only explicit OWNER_VIOLATION entries may be moved to existing owner; A0 currently proves none solely from static name/span evidence.",
+    "A3": "Facade/direct-alias ratchet uses 69/69 inventory; deletions require caller evidence.",
+    "A4": "After A1-A3, evaluate MRG from frozen budget symbols; insufficient reduction forces Stage B."
+  }
+}

@@ -83,6 +83,7 @@ def test_final_scene_view_can_render_multiple_authoritative_parts_as_one_assembl
 
 def test_bridge_assembly_display_request_includes_all_available_sheet_parts(monkeypatch):
     import fold_designer_bridge as bridge
+    import gui_modules.application.fold_designer_adapter as application_adapter
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -606,6 +607,7 @@ def test_assembly_diagnostic_status_reports_actual_corner_dimensions_and_verific
 def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contract(monkeypatch):
     """Mixed UPDATE installs must not crash on legacy AssemblySceneRenderData."""
     import fold_designer_bridge as bridge
+    import gui_modules.application.fold_designer_adapter as application_adapter
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
@@ -642,7 +644,7 @@ def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contrac
         assembly_ignore_fixed_corner_var=SimpleNamespace(get=lambda: False),
         assembly_show_interference_var=SimpleNamespace(get=lambda: True),
     )
-    monkeypatch.setattr(bridge, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
+    monkeypatch.setattr(application_adapter, "AssemblySceneRenderData", LegacyAssemblySceneRenderData)
 
     bundle = bridge._phase6_query_assembly_render_data(app)
 
@@ -1041,7 +1043,6 @@ def test_bridge_keeps_hidden_box_body_as_assembly_geometry_reference(monkeypatch
     )
     monkeypatch.setattr(bridge, "_phase6_publish_live_state", lambda self, force=False: None)
     monkeypatch.setattr(bridge, "_phase6_render_data_corner_dimension_text", lambda render_data: "")
-    monkeypatch.setattr(bridge, "_phase6_refresh_box_body_piece_info_rows", lambda self, render_data: None)
 
     app = SimpleNamespace(
         _phase6_input_snapshot={"model": "受電箱", "t": 2.0},

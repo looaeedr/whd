@@ -1,0 +1,35 @@
+Issue #533 C1 Phase6 Knowledge Preflight
+TASK: Permanent anti-regrowth architecture guards after accepted C0.
+TARGET: cleanup/2d-3d-sync
+WORK_ORDER_BRANCH: work/issue520-phase6-bridge-residual-reduction-20260923
+PARENT_ACCEPTED_HEAD: b256e4cef91b66bd5dd8e4ee371d886f2b0fe473
+EXECUTION_OWNER: chatgpt.sol260923.c1a
+
+REQUIRED SKILLS
+✓ 派工
+✓ Python測試實務
+✓ monitoring-remote-qa
+✓ long-log-context-safe-execution
+✓ executable-continuity-controller
+
+REQUIRED REFERENCES / AUTHORITIES
+✓ AGENTS.md
+✓ docs/specs/WHD_Fold_Designer_Bridge_Ownership_Phase6_Residual_Reduction_Spec_v1.4_2026-09-23.md
+✓ docs/superpowers/checkpoints/issue532-c0-final-classification.json
+✓ 個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md
+✓ 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+✓ 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+✓ 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+NORMATIVE C1 INPUTS
+- accepted C0 bridge LOC comes only from issue532-c0-final-classification.json
+- accepted C0 facade count comes only from issue532-c0-final-classification.json
+- anti-regrowth size limit = min(accepted_final_loc + 25, accepted effective final ceiling)
+- >40 net-new top-level bridge body requires explicit architecture review/allowlist evidence
+- extracted-owner reverse import bridge = 0
+- second composition root = 0
+- facade non-growth
+- extracted direct-owner aliases must not be redefined as Bridge function bodies
+- new full-app owner interfaces prohibited unless explicitly allowlisted with owner rationale and follow-up plan
+
+PREFLIGHT_DECISION=GREEN

@@ -1,0 +1,34 @@
+{
+  "schema": "WHD_ISSUE528_B3_DELETION_TEST_V1",
+  "issue": 528,
+  "master_issue": 520,
+  "boundary_id": "B3_SETTINGS_EXACT_SIX",
+  "baseline_head": "3d6709b3e6aafe5549e92ce6dac93a9dc5ab25ba",
+  "tested_head": "9d15c242e10440b961cd7ac82c7d5deb1c2750f3",
+  "prior_decision": "KEEP_BRIDGE_COMPATIBILITY",
+  "final_decision": "KEEP_CURRENT_BOUNDARY",
+  "supersedes": [],
+  "total_span": 277,
+  "distinct_bridge_helper_count": 16,
+  "variant_keep": {
+    "domain_helper_dependencies": 16,
+    "rationale": "Moving read-only projection glue into Phase6SettingsPanel would transfer domain/bridge dependencies into the presentation owner."
+  },
+  "variant_extract": {
+    "candidate_owner": "existing phase6_settings_profile_projection pure owner",
+    "full_app_dependency": false,
+    "old_body_removed_count": 1,
+    "old_body_total_count": 6,
+    "duplicate_path_count": 5,
+    "rationale": "Pure composition can replace only context composition; the remaining five bodies require bridge/domain inputs and would remain duplicate or become a service-bag."
+  },
+  "tests": {
+    "run_id": 35783860498,
+    "headless": "26 passed, 6 skipped",
+    "xvfb": "11 passed",
+    "artifact_id": 10719556532
+  },
+  "production_change_required": false,
+  "bridge_symbols_removed": [],
+  "rationale": "Current mature Settings owners still do not provide a legal deep destination for the exact-six as a group. Panel purity and pure projection-owner constraints remain valid; no shallow extraction is permitted."
+}

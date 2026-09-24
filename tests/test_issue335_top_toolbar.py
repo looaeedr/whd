@@ -12,6 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
+SHELL = ROOT / "phase6_workspace_shell.py"
 
 
 def _source() -> str:
@@ -27,13 +28,26 @@ def _function_source(name: str) -> str:
     )
     return ast.get_source_segment(source, node) or ""
 
+def _owner_method_source(name: str) -> str:
+    source = SHELL.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    owner = next(
+        item for item in tree.body
+        if isinstance(item, ast.ClassDef) and item.name == "WorkspaceShellOwner"
+    )
+    node = next(
+        item for item in owner.body
+        if isinstance(item, ast.FunctionDef) and item.name == name
+    )
+    return ast.get_source_segment(source, node) or ""
+
 
 def test_v3_top_toolbar_source_contract():
-    persistent = _function_source("_phase6_build_persistent_top_area")
-    output = _function_source("_phase6_build_output_controls")
-    visual = _function_source("_phase6_build_visual_controls")
+    persistent = _owner_method_source("build_persistent_top_area")
+    output = _owner_method_source("build_output_controls")
+    visual = _owner_method_source("build_visual_controls")
 
-    assert "_phase6_build_output_controls(self, self.top_command_row)" in persistent, (
+    assert "self.build_output_controls(self.top_command_row)" in persistent, (
         "#335 EXPECTED RED: DXF/STOCK output controls must share top_command_row "
         "with File/Corner Data instead of consuming the right workspace."
     )

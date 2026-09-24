@@ -1,0 +1,172 @@
+{
+  "schema": "WHD_ISSUE544_B6_4_FINAL_CLASSIFICATION_V1",
+  "issue": 544,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "4b2bf0174c59dabf487a430c4dc49cddd47ce410",
+  "audit": {
+    "run_id": 35801778565,
+    "head_sha": "7f151937db4abc8d661fec27311b36e25e72350f",
+    "artifacts": [
+      {
+        "id": 10726285754,
+        "name": "issue544-b6-4-facade-audit"
+      }
+    ]
+  },
+  "replacement_red": {
+    "run_id": 35801927028,
+    "head_sha": "476678276f19b465103a05b7a2267bb7653f91ac",
+    "result": "3 failed / 1 passed as expected",
+    "artifacts": [
+      {
+        "id": 10726072402,
+        "name": "issue544-b6-4-replacement-red"
+      }
+    ]
+  },
+  "initial_green": {
+    "run_id": 35810494194,
+    "head_sha": "8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed",
+    "headless": "30 passed / 6 skipped",
+    "xvfb": "5 failed / 12 passed",
+    "classification": "Xvfb failures require A/B baseline classification",
+    "artifacts": []
+  },
+  "xvfb_ab": {
+    "run_id": 35810672744,
+    "head_sha": "5ea6ad53a95be038677b08c0243a8932c77235cf",
+    "baseline_head": "476678276f19b465103a05b7a2267bb7653f91ac",
+    "candidate_head": "8a5411f03d4f6e4f2a826be09df7c6f4e5bd6bed",
+    "baseline_fail_count": 5,
+    "candidate_fail_count": 5,
+    "candidate_only_fail_count": 0,
+    "artifacts": [
+      {
+        "id": 10728979505,
+        "name": "issue544-b6-4-xvfb-ab"
+      }
+    ]
+  },
+  "architecture": {
+    "run_id": 35810925170,
+    "head_sha": "ed1d3b441a2467800c274c613c8078b459e48761",
+    "result": "GREEN",
+    "artifacts": [
+      {
+        "id": 10729268126,
+        "name": "issue544-b6-4-architecture"
+      }
+    ]
+  },
+  "accounted": 12,
+  "unclassified": 0,
+  "dynamic_ref_unreviewed": 0,
+  "facade_count_before": 62,
+  "facade_count_after": 60,
+  "removed_facade_entries": [
+    "toggle_advanced_settings",
+    "_phase6_corner_parameters_unlocked"
+  ],
+  "direct_owner_migration": {
+    "key": "_phase6_corner_parameters_unlocked",
+    "from": "Phase6FoldDesignerApp facade",
+    "to": "fold_designer_bridge._phase6_corner_parameters_unlocked(designer, part_key)",
+    "migrated_file": "tests/test_corner_parameter_lock.py",
+    "production_callers": 0,
+    "test_callers_migrated": 9,
+    "external_module_test_callers_already_direct": 1,
+    "implementation_body_retained": true
+  },
+  "final_classifications": [
+    {
+      "key": "save_current_settings_as_defaults",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 2,
+      "tests": 1,
+      "dynamic": 0
+    },
+    {
+      "key": "flush_pending_settings",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 11,
+      "tests": 17,
+      "dynamic": 0
+    },
+    {
+      "key": "_phase6_publish_live_state",
+      "classification": "LEGACY_REQUIRED",
+      "prod": 7,
+      "tests": 20,
+      "dynamic": 6
+    },
+    {
+      "key": "_phase6_resolve_manufacturing_geometry",
+      "classification": "LEGACY_REQUIRED",
+      "prod": 6,
+      "tests": 24,
+      "dynamic": 3
+    },
+    {
+      "key": "toggle_advanced_settings",
+      "classification": "NO_CALLER",
+      "prod": 0,
+      "tests": 0,
+      "dynamic": 0
+    },
+    {
+      "key": "apply_external_settings",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 4,
+      "tests": 8,
+      "dynamic": 14
+    },
+    {
+      "key": "apply_external_model",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 2,
+      "tests": 0,
+      "dynamic": 1
+    },
+    {
+      "key": "apply_external_sync",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 2,
+      "tests": 3,
+      "dynamic": 7
+    },
+    {
+      "key": "_phase6_refresh_corner_data_unfold_view",
+      "classification": "LEGACY_REQUIRED",
+      "prod": 1,
+      "tests": 13,
+      "dynamic": 3
+    },
+    {
+      "key": "on_ui_text_size_changed",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 1,
+      "tests": 2,
+      "dynamic": 0
+    },
+    {
+      "key": "apply_external_corner_state",
+      "classification": "PUBLIC_REQUIRED",
+      "prod": 2,
+      "tests": 0,
+      "dynamic": 7
+    },
+    {
+      "key": "_phase6_corner_parameters_unlocked",
+      "classification": "CAN_DIRECT_OWNER",
+      "prod": 0,
+      "tests": 10,
+      "dynamic": 0
+    }
+  ]
+}

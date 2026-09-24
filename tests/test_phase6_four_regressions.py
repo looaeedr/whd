@@ -81,7 +81,8 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         pytest.skip("需要 Tk 顯示環境")
     import tkinter as tk
     import gui
-    import fold_designer_bridge as bridge
+    from ae_engine.cabinet_types import policy as cabinet_family_policy
+    from phase6_endcap_semantics import resolve_endcap_fw
 
     root = tk.Tk(); root.withdraw()
     app = gui.BoxCalculatorGUI(root)
@@ -91,11 +92,21 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         designer = app.open_original_fold_designer()
         designer.activate_part("head")
         root.update_idletasks(); root.update()
-        policy = bridge._phase6_corner_policy_for(designer, "head")
+
+        snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(designer, "_settings_values", {}) or {}))
+        fw = resolve_endcap_fw(snapshot, "head")
+        bottom_fw = cabinet_family_policy.effective_endcap_bottom_fw(
+            snapshot,
+            snapshot.get("box_body_structure"),
+            thickness=float(snapshot.get("t", 2.0) or 2.0),
+            default_fw=float(fw),
+        )
+
         # #84 fresh Receiving rear flange is 18 OUTSIDE. At T=2 it is
         # 16 MATERIAL and bottom_effective_fw adds 1T once => 18.
-        assert policy.bottom_fw == pytest.approx(18.0)
-        assert policy.fw == pytest.approx(29.0)
+        assert bottom_fw == pytest.approx(18.0)
+        assert fw == pytest.approx(29.0)
     finally:
         try:
             if app.fold_designer_window is not None:
@@ -103,7 +114,6 @@ def test_receiving_phase6_policy_keeps_family_specific_bottom_effective_fw():
         except Exception:
             pass
         root.destroy()
-
 
 def test_relief_registry_form_is_traditional_chinese_and_explains_internal_terms():
     import os

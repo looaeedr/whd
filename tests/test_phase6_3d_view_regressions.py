@@ -12,30 +12,23 @@ def test_home_no_longer_exposes_duplicate_relief_or_legacy_notch_controls():
     assert "left_advanced_settings_frame" not in source
 
 
-def test_unfolded_size_uses_canonical_final_material_not_raw_profiles(monkeypatch):
+
+def test_unfolded_size_uses_canonical_final_material_not_raw_profiles():
     from shapely.geometry import box
-    from ae_engine.manufacturing_api import PartRenderData
+    from ae_engine.manufacturing_api import PartRenderData, measure_unfolded_blanks
+    from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 
-    holder = SimpleNamespace(
-        designer_workspace=SimpleNamespace(active_part="door"),
-        active_part_key="door",
-        state=SimpleNamespace(
-            profiles={"X": [{"len": 999}], "Y": [{"len": 999}]},
-            profiles_vault={"箱身": [{"len": 999}]},
-        ),
-        _phase6_part_profiles={},
-        _settings_values={"h": 600, "t": 2, "fw": 25, "z_comp": 6},
-        _phase6_corner_state={},
-    )
     render = PartRenderData(scene=object(), material=box(-10, -20, 120, 220))
-    monkeypatch.setattr(bridge, "_phase6_query_final_render_data", lambda _self: render)
 
-    assert bridge._phase6_current_unfolded_size(holder, "door") == (130.0, 240.0)
+    assert Phase6CornerDataViewAdapter.current_unfolded_size(
+        render,
+        part_key="door",
+        measurer=measure_unfolded_blanks,
+    ) == (130.0, 240.0)
     assert bridge._phase6_format_unfolded_blank_text(render, part_key="door").startswith(
         "展開料：130 × 240 mm"
     )
     assert "淨面積" not in bridge._phase6_format_unfolded_blank_text(render, part_key="door")
-
 
 def test_scroll_zoom_changes_only_view_scale_and_is_bounded():
     holder = SimpleNamespace(_phase6_zoom_scale=1.0)

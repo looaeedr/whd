@@ -95,7 +95,7 @@ def test_collapsed_state_survives_topology_panel_rebuild_without_hiding_or_delet
             app.assembly_part_blank_vars[target].get(),
             app.assembly_part_corner_vars[target].get(),
         )
-        bridge._phase6_set_assembly_part_details_open(app, target, False)
+        app._phase6_assembly_panel_owner.set_part_details_open(target, False)
         _pump(root)
         assert app.assembly_part_detail_frames[target].winfo_manager() == ""
 

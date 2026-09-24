@@ -297,18 +297,17 @@ def test_t3_panel_source_uses_pure_projection_without_dm7_or_settings_import():
     assert "fold_designer_bridge" not in source
 
 
+
 def test_t3_bridge_piece_refresh_is_thin_delegate_with_existing_formatters():
     source = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_refresh_box_body_piece_info_rows",
+        "phase6_assembly_panel.py",
+        "refresh_box_body_piece_info",
     )
-    assert ".refresh_box_body_piece_info(" in source
-    assert "_setting_number_text" in source
-    assert "_phase6_render_data_corner_dimension_text" in source
-    assert "_phase6_part_label" in source
-    for forbidden in ("ttk.Frame", "BooleanVar", "StringVar", 'getattr(render_data, "pieces"'):
-        assert forbidden not in source
-
+    assert "label_for" in source
+    assert "number_text" in source
+    assert "corner_text_for_render_data" in source
+    bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    assert "def _phase6_refresh_box_body_piece_info_rows(" not in bridge
 
 def test_t3_bridge_legacy_piece_aliases_point_to_panel_registries():
     source = _function_source(

@@ -96,7 +96,7 @@ def test_registered_assembly_intent_gui_2d_3d_collision_and_reload_matrix(intent
         # Actual assembly renderer must show the pre-solve collision evidence,
         # even though the displayed EndCaps are already the verified solved parts.
         designer._phase6_3d_display_mode = "assembly"
-        bridge._phase6_render_true_cutting_mesh(designer)
+        bridge._phase6_final_scene_adapter(designer).render_cutting_mesh()
         diagnostic = designer.final_scene_view.last_interference_diagnostic
         assert diagnostic.has_interference is True
         assert len(diagnostic.intersection_segments) > 0

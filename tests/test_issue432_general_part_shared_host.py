@@ -84,7 +84,7 @@ def test_t2_part_display_roundtrip_preserves_active_part_and_editor_identity():
         _pump(root)
         bridge._phase6_show_corner_data(app)
         _pump(root)
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
 
         assert app.designer_workspace.active_part == before_active
@@ -120,7 +120,7 @@ def test_t2_part_input_callback_bindings_survive_mode_roundtrip():
         _pump(root)
         bridge._phase6_show_corner_data(app)
         _pump(root)
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
 
         after = {name: getattr(app, name) for name in before}
@@ -135,7 +135,7 @@ def test_t2_add_delete_part_keeps_normal_part_on_shared_host():
     try:
         bridge._phase6_show_corner_data(app)
         _pump(root)
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
 
         assert "door" not in app.designer_workspace.available_parts

@@ -110,10 +110,14 @@ def test_fix10_predecessor_has_exactly_one_lifecycle_call_site():
     assert callers == [("_fix11_init", 1)]
 
 
-def test_t7_does_not_invent_second_shell_or_part_editor_root():
-    assert not WORKSPACE_SHELL.exists()
-    assert not PART_EDITOR_SESSION.exists()
 
+def test_t7_does_not_invent_second_shell_or_part_editor_root():
+    assert WORKSPACE_SHELL.is_file()
+    assert not PART_EDITOR_SESSION.exists()
+    bridge_source = BRIDGE.read_text(encoding="utf-8")
+    shell_source = WORKSPACE_SHELL.read_text(encoding="utf-8")
+    assert "from phase6_workspace_shell import" in bridge_source
+    assert "mount_shared_content" in shell_source
 
 def test_t7_accepted_owner_modules_remain_external_and_no_reverse_import():
     bridge_tree = _tree(BRIDGE)

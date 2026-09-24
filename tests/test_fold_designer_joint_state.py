@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from types import SimpleNamespace
 
-import fold_designer_bridge as bridge
-from ae_engine.assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJointSource
+from ae_engine.assembly_joint import (
+    AssemblyJoint, AssemblyJointRelation, AssemblyJointSource,
+    migrate_legacy_snapshot_joints, sync_snapshot_intent_joints,
+)
 from ae_engine.sheetmetal_geometry import CornerTypeId
 
 
@@ -25,8 +27,10 @@ def test_bridge_sync_joint_state_updates_intent_and_preserves_user_wrap():
         },
         designer_workspace=SimpleNamespace(available_parts=("box_body", "head", "tail")),
     )
-    bridge._phase6_sync_joint_state_for_intent(app, CornerTypeId.OVERLAY)
-    rows = app._phase6_input_snapshot["assembly_joints"]
+    snapshot = migrate_legacy_snapshot_joints(app._phase6_input_snapshot)
+    snapshot["existing_parts"] = list(app.designer_workspace.available_parts)
+    snapshot = sync_snapshot_intent_joints(snapshot, CornerTypeId.OVERLAY)
+    rows = snapshot["assembly_joints"]
     assert any(row["relation"] == "WRAP" and row["source"] == "USER_ADDED" for row in rows)
     derived = [row for row in rows if row["source"] == "INTENT_DERIVED"]
     assert len(derived) == 8

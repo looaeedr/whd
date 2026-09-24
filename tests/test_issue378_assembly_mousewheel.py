@@ -20,11 +20,7 @@ def _run(delta=0, num=0):
     # logic are exercised together without inventing a second scroll authority.
     owner = Phase6AssemblyPanel.__new__(Phase6AssemblyPanel)
     owner.canvas = _FakeCanvas()
-    app = SimpleNamespace(_phase6_assembly_panel_owner=owner)
-    result = bridge._phase6_scroll_assembly_parts(
-        app,
-        SimpleNamespace(delta=delta, num=num),
-    )
+    result = owner.scroll(SimpleNamespace(delta=delta, num=num))
     return result, owner.canvas.calls
 
 

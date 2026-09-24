@@ -92,7 +92,33 @@ def test_r2_projection_values_are_deeply_frozen_and_materialize_detached_copies(
     assert second["X"][0]["len"] == 12.0
 
 
-def test_r2_bridge_builds_immutable_plan_before_first_navigation_mutation():
+def test_r2_existing_projection_owner_assembles_immutable_request_without_domain_derivation():
+    from pathlib import Path
+
+    module = _projection_module()
+    assert hasattr(module, "DerivedPartRequestAssemblyInput"), (
+        "B5 RED: existing derived projection owner lacks bounded request-assembly input"
+    )
+    assert callable(getattr(module, "build_derived_part_projection_request", None)), (
+        "B5 RED: existing derived projection owner lacks request-assembly owner"
+    )
+
+    source = Path(module.__file__).read_text(encoding="utf-8")
+    forbidden = (
+        "fold_designer_bridge",
+        "tkinter",
+        "DesignerWorkspace",
+        "phase6_manufacturing_geometry",
+        "manufacturing_api",
+        "derive_box_body_dividers",
+        "derive_all_inner_door_frames",
+        "derive_inner_door_panels",
+        "build_standard_part_profiles",
+    )
+    assert not [token for token in forbidden if token in source]
+
+
+def test_r2_bridge_derives_domains_then_delegates_request_assembly_and_plan_apply():
     from pathlib import Path
 
     source = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
@@ -104,23 +130,33 @@ def test_r2_bridge_builds_immutable_plan_before_first_navigation_mutation():
         and node.name == "_phase6_sync_authoritative_derived_parts"
     )
     body = ast.get_source_segment(source, fn) or ""
-    assert "DerivedPartProjectionRequest(" in body
-    assert "build_derived_part_sync_plan(request)" in body
 
-    plan_pos = body.index("build_derived_part_sync_plan(request)")
-    mutation_tokens = (
-        "navigation.remove_part(",
-        "navigation.sync_derived_parts(",
-        "navigation.stash_features(",
-        "navigation.add_part(",
-        "navigation.stash_profiles(",
-        "navigation.set_active_part(",
-        "navigation.set_selected_part(",
-    )
-    positions = [body.index(token) for token in mutation_tokens if token in body]
-    if positions:
-        assert plan_pos < min(positions)
-    else:
-        delegate = "navigation.apply_derived_sync_plan(plan)"
-        assert delegate in body
-        assert plan_pos < body.index(delegate)
+    # Canonical domain derivation stays in the application seam/current domain owners.
+    for token in (
+        "_phase6_door_part_projections",
+        "derive_door_layout_cells",
+        "_phase6_box_body_piece_part_profiles",
+        "derive_box_body_dividers",
+        "derive_all_inner_door_frames",
+    ):
+        assert token in body
+
+    # Request topology/add-remove-stash/repair policy moves to the existing
+    # pure derived projection owner.
+    assert "DerivedPartRequestAssemblyInput(" in body
+    assert "build_derived_part_projection_request(" in body
+    for stale_local in (
+        "remove_part_keys = []",
+        "add_parts = []",
+        "stash_profiles = []",
+        "stash_features = []",
+        "active_repair = None",
+        "selected_repair = None",
+    ):
+        assert stale_local not in body, f"B5 RED: bridge still owns request assembly: {stale_local}"
+
+    assert "build_derived_part_sync_plan(request)" in body
+    assert "navigation.apply_derived_sync_plan(plan)" in body
+    assert body.index("build_derived_part_projection_request(") < body.index(
+        "build_derived_part_sync_plan(request)"
+    ) < body.index("navigation.apply_derived_sync_plan(plan)")

@@ -1,0 +1,56 @@
+{
+  "schema": "WHD_ISSUE542_B6_2_FINAL_CLASSIFICATION_V1",
+  "issue": 542,
+  "controller_issue": 531,
+  "master_issue": 520,
+  "requirement_authority": "Phase 6 v1.4",
+  "approved_red_ids": [
+    "R1",
+    "R3"
+  ],
+  "parent_accepted_head": "2c5bcd5784501c892a2e5f3fc1da318374aaec22",
+  "audit": {
+    "run_id": 35796289899,
+    "head_sha": "61f75b16a5f358eba0609fcd2ac6616d1485e452",
+    "artifact_id": 10723972833
+  },
+  "replacement_red": {
+    "run_id": 35796616236,
+    "head_sha": "58b8150e99ed4b147b617f3764dcd72471be30b4",
+    "artifact_id": 10724600373,
+    "result": "2 failed / 1 passed as expected"
+  },
+  "green": {
+    "run_id": 35796724897,
+    "head_sha": "46f7cc0eb5137cd88e8669e400b31417d82d968a",
+    "artifact_id": 10724111058,
+    "result": "25 passed / 3 skipped"
+  },
+  "facade_count_before": 65,
+  "facade_count_after": 64,
+  "accounted": 12,
+  "unclassified": 0,
+  "dynamic_ref_unreviewed": 0,
+  "removed": [
+    "activate_selected_part"
+  ],
+  "classification": {
+    "_save_current_part": "LEGACY_REQUIRED",
+    "_load_part_holes": "LEGACY_REQUIRED",
+    "activate_part": "PUBLIC_REQUIRED",
+    "show_home": "PUBLIC_REQUIRED",
+    "on_3d_scroll": "PUBLIC_REQUIRED",
+    "add_part": "PUBLIC_REQUIRED",
+    "select_part": "PUBLIC_REQUIRED",
+    "activate_selected_part": "NO_CALLER",
+    "remove_selected_part": "PUBLIC_REQUIRED",
+    "remove_part": "PUBLIC_REQUIRED",
+    "available_parts": "PROPERTY_COMPAT",
+    "active_part_key": "PROPERTY_COMPAT"
+  },
+  "evidence_rules": {
+    "backup_tooling_docs_workflows_excluded_from_runtime_consumer_evidence": true,
+    "facade_map_row_is_inventory_not_external_consumer": true,
+    "removal_did_not_delete_fix11_activate_selected_part_implementation": true
+  }
+}

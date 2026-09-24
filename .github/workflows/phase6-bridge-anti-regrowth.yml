@@ -1,0 +1,77 @@
+name: WHD｜Phase 6｜Bridge Anti-Regrowth
+run-name: "WHD｜Phase 6｜Bridge 防回長｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - cleanup/2d-3d-sync
+      - work/issue520-phase6-bridge-residual-reduction-20260923
+    paths:
+      - fold_designer_bridge.py
+      - 'phase6_*.py'
+      - 'gui_modules/application/fold_designer_*.py'
+      - tools/phase6_bridge_anti_regrowth_guard.py
+      - docs/architecture/phase6_bridge_anti_regrowth_baseline.json
+      - docs/superpowers/checkpoints/issue532-c0-final-classification.json
+      - tests/process/test_issue533_c1_anti_regrowth.py
+      - .github/workflows/phase6-bridge-anti-regrowth.yml
+  pull_request:
+    paths:
+      - fold_designer_bridge.py
+      - 'phase6_*.py'
+      - 'gui_modules/application/fold_designer_*.py'
+      - tools/phase6_bridge_anti_regrowth_guard.py
+      - docs/architecture/phase6_bridge_anti_regrowth_baseline.json
+      - docs/superpowers/checkpoints/issue532-c0-final-classification.json
+      - tests/process/test_issue533_c1_anti_regrowth.py
+      - .github/workflows/phase6-bridge-anti-regrowth.yml
+
+permissions:
+  contents: read
+
+jobs:
+  anti-regrowth:
+    name: 驗證 Bridge 永久架構防回長
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 取出完整歷史
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 執行 ARG-1 到 ARG-7 行為測試
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_issue533_c1_anti_regrowth.py | tee /tmp/phase6-bridge-anti-regrowth-pytest.log
+
+      - name: 執行永久 Bridge anti-regrowth guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_bridge_anti_regrowth_guard.py             --root .             --baseline docs/architecture/phase6_bridge_anti_regrowth_baseline.json             --c0-record docs/superpowers/checkpoints/issue532-c0-final-classification.json             --json-out /tmp/phase6-bridge-anti-regrowth.json             | tee /tmp/phase6-bridge-anti-regrowth.log
+          grep -F "PHASE6_BRIDGE_ANTI_REGROWTH_GREEN" /tmp/phase6-bridge-anti-regrowth.log
+
+      - name: 上傳永久 guard 證據
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-bridge-anti-regrowth
+          path: |
+            /tmp/phase6-bridge-anti-regrowth.json
+            /tmp/phase6-bridge-anti-regrowth.log
+            /tmp/phase6-bridge-anti-regrowth-pytest.log
+          if-no-files-found: error
+          retention-days: 14

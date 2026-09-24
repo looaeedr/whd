@@ -88,7 +88,8 @@ def test_activate_selected_part_delegates_to_central_operator_navigation(monkeyp
         lambda owner, key: calls.append((owner, key)) or True,
     )
 
-    assert bridge._fix11_activate_selected_part(app) is True
+    assert app.selected_part_key in app.available_parts
+    assert bridge._phase6_activate_operator_part(app, app.selected_part_key) is True
     assert calls == [(app, "head")]
 
 

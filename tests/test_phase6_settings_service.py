@@ -7,6 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import fold_designer_bridge as bridge
+
 import phase6_settings_center as settings
 
 
@@ -143,7 +145,7 @@ def test_main_gui_save_3d_draft_as_defaults_does_not_commit_runtime(fake_ae, mon
     assert fake_ae.W == pytest.approx(400.0)
 
 
-def test_3d_draft_cancel_keeps_committed_settings_service_and_ae():
+def test_3d_draft_state_keeps_committed_settings_service_and_ae_without_flush():
     import os
     if not os.environ.get("DISPLAY"):
         pytest.skip("需要 Tk 顯示環境")
@@ -165,9 +167,6 @@ def test_3d_draft_cancel_keeps_committed_settings_service_and_ae():
 
         assert app.settings_service.snapshot()["w"] == pytest.approx(400.0)
         assert ae.W == pytest.approx(400.0)
-
-        designer.cancel_corner_transaction()
-        root.update_idletasks(); root.update()
 
         assert app.settings_service.snapshot()["w"] == pytest.approx(400.0)
         assert ae.W == pytest.approx(400.0)

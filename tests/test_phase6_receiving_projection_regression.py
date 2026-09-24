@@ -218,6 +218,8 @@ def test_receiving_formal_door_parts_activate_with_independent_cell_dimensions()
     import tkinter as tk
     import gui
     import fold_designer_bridge as bridge
+    from ae_engine.manufacturing_api import measure_unfolded_blanks
+    from phase6_corner_data_view_adapter import Phase6CornerDataViewAdapter
 
     root = tk.Tk(); root.withdraw(); app = gui.BoxCalculatorGUI(root)
     designer = None
@@ -235,13 +237,21 @@ def test_receiving_formal_door_parts_activate_with_independent_cell_dimensions()
         designer.activate_part("door_c1_r1")
         root.update_idletasks(); root.update()
         r1 = bridge._phase6_query_final_render_data(designer)
-        r1_blank = bridge._phase6_current_unfolded_size(designer, "door_c1_r1")
+        r1_blank = Phase6CornerDataViewAdapter.current_unfolded_size(
+            r1,
+            part_key="door_c1_r1",
+            measurer=measure_unfolded_blanks,
+        )
         assert designer.designer_workspace.active_part == "door_c1_r1"
 
         designer.activate_part("door_c1_r2")
         root.update_idletasks(); root.update()
         r2 = bridge._phase6_query_final_render_data(designer)
-        r2_blank = bridge._phase6_current_unfolded_size(designer, "door_c1_r2")
+        r2_blank = Phase6CornerDataViewAdapter.current_unfolded_size(
+            r2,
+            part_key="door_c1_r2",
+            measurer=measure_unfolded_blanks,
+        )
         assert designer.designer_workspace.active_part == "door_c1_r2"
 
         assert r1 is not None and r2 is not None

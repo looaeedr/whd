@@ -1,0 +1,26 @@
+Issue #526 B1 Phase6 Knowledge Preflight
+TASK: Part Editor Deletion-Test DT-0..DT-6 using disposable worktrees, exact operator invariants, workspace/navigation/settings/scheduler ownership, remote GitHub Actions characterization.
+TARGET: cleanup/2d-3d-sync
+WORK_ORDER_BRANCH: work/issue520-phase6-bridge-residual-reduction-20260923
+PARENT_ACCEPTED_HEAD: 4d085c4d2daf172bf55684c87e6086572d9d818c
+
+REQUIRED SKILLS
+✓ phase6-gui-performance-integrity
+✓ monitoring-remote-qa
+✓ long-log-context-safe-execution
+✓ executable-continuity-controller
+
+REQUIRED REFERENCES
+✓ 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+✓ 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+✓ 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+READ_SKILL: phase6-gui-performance-integrity
+READ_SKILL: monitoring-remote-qa
+READ_SKILL: long-log-context-safe-execution
+READ_SKILL: executable-continuity-controller
+READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+
+PREFLIGHT_DECISION=GREEN

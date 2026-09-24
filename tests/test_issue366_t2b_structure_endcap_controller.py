@@ -144,17 +144,16 @@ def test_t2b_controller_and_bridge_keep_semantics_and_effects_separate():
         for node in tree.body
         if isinstance(node, ast.FunctionDef)
     }
-    assert "commit_endcap_fw_follow" in funcs["_phase6_set_endcap_fw_follow"]
-    fw_follow = next(
-        node for node in tree.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_phase6_set_endcap_fw_follow"
-    )
-    direct_follow_calls = {
-        node.func.id
-        for node in ast.walk(fw_follow)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    controller_methods = {
+        node.name
+        for cls in ast.parse(controller).body
+        if isinstance(cls, ast.ClassDef) and cls.name == "Phase6SettingsTransactionController"
+        for node in cls.body
+        if isinstance(node, ast.FunctionDef)
     }
-    assert "set_endcap_fw_follow" not in direct_follow_calls
+    assert "commit_endcap_fw_follow" in controller_methods
+    if "_phase6_set_endcap_fw_follow" in funcs:
+        assert "commit_endcap_fw_follow" in funcs["_phase6_set_endcap_fw_follow"]
     assert "commit_endcap_fw_override" in funcs["_phase6_set_endcap_fw_override"]
     assert "commit_box_structure_state" in funcs["_phase6_commit_box_structure_state"]
     assert "set_box_body_structure_state" not in funcs["_phase6_commit_box_structure_state"]

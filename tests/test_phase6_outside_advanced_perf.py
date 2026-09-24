@@ -96,7 +96,7 @@ def test_legacy_relief_and_notch_are_hidden_from_live_settings_panel(monkeypatch
         assert not hasattr(app, "left_advanced_vars")
         assert app.advanced_settings_visible is True
         assert app.advanced_toggle_button is None
-        app._render_settings_context("global")
+        bridge._phase6_render_settings_context(app, "global")
         page = app.settings_panel.page_cache["global"]
         assert "relief_top_secondary_x_factor" not in page["setting_vars"]
         assert "notch_bottom_gap" not in page["setting_vars"]

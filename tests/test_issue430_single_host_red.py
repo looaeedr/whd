@@ -111,7 +111,7 @@ def test_t0_mode_authority_stays_workspace_plus_existing_display_mode():
         assert app._phase6_3d_display_mode == "corner_data"
         assert app.designer_workspace.active_part == active
 
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
         assert app._phase6_3d_display_mode == "single"
         assert app.designer_workspace.active_part == active

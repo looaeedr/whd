@@ -82,7 +82,7 @@ def test_issue439_440_same_slot_switches_one_direct_surface_without_fixed_shell(
         _pump(root)
         assert _mapped(app) == (app.corner_data_panel,)
 
-        bridge._phase6_show_input_content(app)
+        app.activate_part(app.designer_workspace.active_part)
         _pump(root)
         assert _mapped(app) == (app.input_content_host,)
     finally:

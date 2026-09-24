@@ -1,0 +1,73 @@
+{
+  "schema": "WHD_ISSUE527_B2_DELETION_TEST_V1",
+  "issue": 527,
+  "master_issue": 520,
+  "boundary_id": "B2_WORKSPACE_SHELL",
+  "baseline_head": "185991276c57fa3aeecace562daf89fa7be5b5ae",
+  "characterization_head": "abf990193d7e5edb8a82dbb2f09bbdbf129f5ab8",
+  "replacement_red_head": "864b67455365e6c489563a66e1a9e31fd8b5e675",
+  "tested_green_head": "d370d5d155feff0ee06af7402d774a8b5b36faa2",
+  "prior_decision": "NO_EXTRACTION",
+  "candidate_decision": "B2_EXTRACT_DEEP_SHELL_OWNER",
+  "final_decision": "B2_EXTRACT_DEEP_SHELL_OWNER",
+  "supersedes": [
+    "#447"
+  ],
+  "candidate_symbols": [
+    "_phase6_build_persistent_top_area",
+    "_phase6_build_project_toolbar",
+    "_phase6_build_transaction_buttons",
+    "_phase6_build_global_persistent_controls",
+    "_phase6_build_output_controls",
+    "_phase6_build_visual_controls",
+    "_phase6_toggle_fullscreen",
+    "_phase6_mount_shared_content"
+  ],
+  "variant_keep": {
+    "expanded_loc": 391,
+    "structural_regressions": [
+      "caller regains shell layout/effect policy",
+      "caller regains fullscreen/shared-slot presentation knowledge",
+      "large cohesive Tk presentation body remains in bridge"
+    ]
+  },
+  "variant_extract": {
+    "candidate_owner": "phase6_workspace_shell.py::WorkspaceShellOwner",
+    "forbidden_imports": [],
+    "full_app_dependency": false,
+    "reverse_import_count": 0,
+    "active_mode_surface_count": 1,
+    "xvfb": "GREEN"
+  },
+  "replacement_red": {
+    "run_id": 35782822918,
+    "result": "EXPECTED_RED_CONFIRMED",
+    "pytest": "4 failed, 1 skipped",
+    "failures": [
+      "phase6_workspace_shell.py absent",
+      "bridge shell bodies oversized"
+    ]
+  },
+  "green": {
+    "run_id": 35783183790,
+    "headless": "34 passed, 4 skipped",
+    "xvfb": "6 passed",
+    "bridge_loc": 7539,
+    "stage_a_loc": 7796,
+    "reduction_from_stage_a": 257,
+    "max_shell_compat_span": 10,
+    "reverse_import_bridge": 0,
+    "artifact_id": 10719300664
+  },
+  "invariants": [
+    "ACTIVE_MODE_SURFACE_COUNT=1",
+    "no second Assembly region",
+    "no second Corner Data region",
+    "single keyboard binding loop",
+    "no full-app owner dependency",
+    "no manufacturing/geometry ownership",
+    "bridge shell compatibility surface thin"
+  ],
+  "production_change": true,
+  "rationale": "The old NO_EXTRACTION decision is superseded because the current shell cluster is now demonstrably a deep cohesive Tk presentation owner. Variant K pushes 391 lines of layout/effect policy into the caller; Variant E proved a bridge-independent shell owner with bounded ports and preserved single-slot behavior."
+}

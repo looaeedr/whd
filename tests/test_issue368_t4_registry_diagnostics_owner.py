@@ -10,8 +10,6 @@ PANEL = Path("phase6_registry_diagnostics_panel.py")
 
 TARGETS = {
     "_phase6_registry_validate_formula_form",
-    "_phase6_registry_candidate_form_is_current",
-    "_phase6_registry_require_current_candidate",
     "_phase6_registry_save_candidate_form",
     "_phase6_registry_run_formula_matrix",
     "_phase6_registry_preview_assembly_3d",
@@ -19,8 +17,13 @@ TARGETS = {
     "_phase6_joint_form_add",
     "_phase6_joint_form_delete",
     "_phase6_create_relief_promotion_candidates",
-    "_phase6_selected_joint_diagnostic",
     "_phase6_update_assembly_diagnostic_status",
+}
+
+ZERO_CONSUMER_REMOVED = {
+    "_phase6_registry_require_current_candidate",
+    "_phase6_selected_joint_diagnostic",
+    "_phase6_registry_candidate_form_is_current",
 }
 
 REQUIRED_METHODS = {
@@ -95,6 +98,7 @@ def test_issue368_bridge_has_no_registry_state_machine_or_backend_ownership():
     funcs = _functions(_tree(BRIDGE))
     missing = sorted(TARGETS - set(funcs))
     assert missing == []
+    assert ZERO_CONSUMER_REMOVED.isdisjoint(funcs)
 
     violations = []
     for name in sorted(TARGETS):
@@ -119,10 +123,9 @@ def test_issue368_bridge_has_no_registry_state_machine_or_backend_ownership():
 
 def test_issue368_bridge_commands_delegate_to_registry_controller():
     funcs = _functions(_tree(BRIDGE))
+    assert ZERO_CONSUMER_REMOVED.isdisjoint(funcs)
     expected = {
         "_phase6_registry_validate_formula_form": "validate_formula",
-        "_phase6_registry_candidate_form_is_current": "candidate_is_current",
-        "_phase6_registry_require_current_candidate": "require_current_candidate",
         "_phase6_registry_save_candidate_form": "save_candidate",
         "_phase6_registry_run_formula_matrix": "run_formula_matrix",
         "_phase6_registry_preview_assembly_3d": "merge_3d_evidence",
@@ -130,7 +133,6 @@ def test_issue368_bridge_commands_delegate_to_registry_controller():
         "_phase6_joint_form_add": "route_joint_add",
         "_phase6_joint_form_delete": "route_joint_delete",
         "_phase6_create_relief_promotion_candidates": "build_promotion_candidates",
-        "_phase6_selected_joint_diagnostic": "selected_diagnostic",
         "_phase6_update_assembly_diagnostic_status": "diagnostic_status",
     }
     missing=[]
@@ -195,8 +197,6 @@ def test_issue446_bridge_keeps_semantic_registry_callbacks_but_not_selected_tk_c
     assert not (selected_presentation & set(funcs))
     semantic_callbacks = {
         "_phase6_registry_validate_formula_form",
-        "_phase6_registry_candidate_form_is_current",
-        "_phase6_registry_require_current_candidate",
         "_phase6_registry_save_candidate_form",
         "_phase6_registry_run_formula_matrix",
         "_phase6_registry_preview_assembly_3d",
@@ -204,8 +204,8 @@ def test_issue446_bridge_keeps_semantic_registry_callbacks_but_not_selected_tk_c
         "_phase6_joint_form_add",
         "_phase6_joint_form_delete",
         "_phase6_create_relief_promotion_candidates",
-        "_phase6_selected_joint_diagnostic",
         "_phase6_update_assembly_diagnostic_status",
     }
     assert semantic_callbacks <= set(funcs)
+    assert ZERO_CONSUMER_REMOVED.isdisjoint(funcs)
 

@@ -38,18 +38,18 @@ def test_fold_designer_corner_parameters_default_locked_and_unlock_does_not_muta
         before = deepcopy(designer._phase6_corner_state)
 
         assert not hasattr(app, "notebook")
-        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is False
         assert designer.corner_detail_frames == {}
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is True
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
         assert designer._phase6_corner_state == before
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is False
         assert designer._phase6_corner_state == before
     finally:
         try:
@@ -77,11 +77,11 @@ def test_known_model_corner_type_stays_readonly_but_parameters_can_unlock():
 
         assert bridge._phase6_corner_type_editable(designer, "head") is False
         assert bridge._phase6_corner_parameters_unlockable(designer, "head") is True
-        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is False
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is True
         assert bridge._phase6_corner_type_editable(designer, "head") is False
         assert designer._phase6_corner_state["head"] == before
     finally:
@@ -124,15 +124,15 @@ def test_3d_corner_parameters_default_locked_for_known_model_and_unlock_without_
         root.update_idletasks(); root.update()
         before = deepcopy(designer._phase6_corner_state)
 
-        assert designer._phase6_corner_parameters_unlocked("head") is False
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is False
         assert designer.corner_param_lock_button is None
         assert "鎖定" in designer.parameter_lock_button.cget("text")
         # Locked 3D keeps only the fixed summary; advanced corner widgets are built on unlock.
         assert designer.corner_detail_frames == {}
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is True
         assert "解鎖" in designer.parameter_lock_button.cget("text")
         assert any(frame.winfo_manager() == "grid" for frame in designer.corner_detail_frames.values())
         assert designer._phase6_corner_state == before
@@ -160,9 +160,9 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
         designer = app.open_original_fold_designer()
         designer.activate_part("head")
         root.update_idletasks(); root.update()
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
-        assert designer._phase6_corner_parameters_unlocked("head") is True
+        assert bridge._phase6_corner_parameters_unlocked(designer, "head") is True
 
         snapshot = app._make_original_fold_designer_snapshot()
         payload = {"schema": project.PROJECT_SCHEMA, "saved_at": "now", "snapshot": snapshot, "final_geometry": {}}
@@ -181,7 +181,7 @@ def test_project_load_does_not_restore_transient_corner_parameter_locks(tmp_path
         loaded.activate_part("head")
         loaded_root.update_idletasks(); loaded_root.update()
 
-        assert loaded._phase6_corner_parameters_unlocked("head") is False
+        assert bridge._phase6_corner_parameters_unlocked(loaded, "head") is False
         assert loaded.corner_detail_frames == {}
     finally:
         for owner in (loaded_app, app):
@@ -217,7 +217,7 @@ def test_fold_designer_locked_parameters_have_no_hidden_editor_and_unlocked_can_
         assert designer.corner_amount_vars == {}
         assert designer._phase6_corner_state["head"]["bottom_left"] == before
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         target = "bottom" if "bottom" in designer.corner_amount_vars else "bottom_left"
         designer.corner_amount_vars[target].set("1.75")
@@ -253,7 +253,7 @@ def test_3d_known_model_locked_guard_and_unlocked_parameter_edit_preserves_type(
         assert designer.corner_amount_vars == {}
         assert designer._phase6_corner_state["head"]["bottom_left"] == before
 
-        designer.toggle_corner_parameter_lock()
+        bridge._phase6_toggle_parameter_panel(designer)
         root.update_idletasks(); root.update()
         target = "bottom" if "bottom" in designer.corner_amount_vars else "bottom_left"
         designer.corner_amount_vars[target].set("1.75")

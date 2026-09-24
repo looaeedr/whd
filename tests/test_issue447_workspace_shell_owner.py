@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Issue #447 / T5 Workspace Shell deletion-test contracts."""
+"""Issue #447 superseded by Phase 6 v1.4 / #527 B2 Workspace Shell contracts."""
 from __future__ import annotations
 
 import ast
@@ -13,18 +13,23 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / "fold_designer_bridge.py"
 ROUTER = ROOT / "gui_modules" / "application" / "command_router.py"
-CENSUS = ROOT / "docs" / "superpowers" / "checkpoints" / "issue447-t5-workspace-shell-census.md"
-PROSPECTIVE_SHELL = ROOT / "phase6_workspace_shell.py"
+PRIOR_CENSUS = ROOT / "docs" / "superpowers" / "checkpoints" / "issue447-t5-workspace-shell-census.md"
+SHELL = ROOT / "phase6_workspace_shell.py"
+ADAPTER = ROOT / "gui_modules" / "application" / "fold_designer_adapter.py"
 
-SINGLE_CALLER_BUILDERS = {
+SHELL_COMPAT_FUNCTIONS = {
     "_phase6_build_persistent_top_area",
-    "_phase6_build_project_toolbar",
-    "_phase6_build_transaction_buttons",
-    "_phase6_build_global_persistent_controls",
-    "_phase6_build_output_controls",
-    "_phase6_build_visual_controls",
-    "_phase6_install_keyboard_shortcuts",
+    "_phase6_toggle_fullscreen",
+    "_phase6_mount_shared_content",
 }
+C0_ZERO_CONSUMER_REMOVED = {
+    "_phase6_build_transaction_buttons": "build_transaction_buttons",
+    "_phase6_build_global_persistent_controls": "build_global_persistent_controls",
+    "_phase6_build_output_controls": "build_output_controls",
+    "_phase6_build_visual_controls": "build_visual_controls",
+    "_phase6_build_project_toolbar": "build_project_toolbar",
+}
+MAX_COMPAT_SPAN = 36
 
 
 def _tree(path: Path) -> ast.Module:
@@ -50,58 +55,98 @@ def _name_call_count(path: Path, name: str) -> int:
     )
 
 
-def test_t5_deletion_test_accepts_no_extraction_instead_of_shallow_wrapper():
-    text = CENSUS.read_text(encoding="utf-8")
-    assert "DECISION=NO_EXTRACTION" in text
-    assert not PROSPECTIVE_SHELL.exists(), (
-        "T5 decision forbids creating a shallow phase6_workspace_shell.py wrapper"
+def _imports(path: Path) -> set[str]:
+    result: set[str] = set()
+    for node in ast.walk(_tree(path)):
+        if isinstance(node, ast.Import):
+            result.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            result.add(node.module)
+    return result
+
+
+def _span(node: ast.AST) -> int:
+    return int(node.end_lineno) - int(node.lineno) + 1
+
+
+def test_b2_supersedes_no_extraction_with_deep_shell_owner():
+    prior = PRIOR_CENSUS.read_text(encoding="utf-8")
+    assert "DECISION=NO_EXTRACTION" in prior  # provenance remains historical
+    assert SHELL.is_file(), (
+        "B2 RED: v1.4 Deletion-Test selected B2_EXTRACT_DEEP_SHELL_OWNER"
     )
+    imports = _imports(SHELL)
+    forbidden = {
+        "fold_designer_bridge",
+        "phase6_manufacturing_geometry",
+        "phase6_manufacturing_service",
+        "ae_engine.manufacturing",
+    }
+    assert not (imports & forbidden)
+    source = SHELL.read_text(encoding="utf-8")
+    assert "class WorkspaceShellOwner" in source
+    assert "WorkspaceShellActions" in source
+    assert "self.app" not in source
+    assert "full_app" not in source.lower()
 
 
-def test_t5_shell_composition_and_subbuilders_remain_single_caller():
+def test_b2_bridge_shell_compatibility_surface_is_thin():
     funcs = _top_level_functions(BRIDGE)
-    missing = sorted(SINGLE_CALLER_BUILDERS - set(funcs))
-    assert not missing, f"accepted shell composition functions disappeared: {missing}"
-    counts = {name: _name_call_count(BRIDGE, name) for name in SINGLE_CALLER_BUILDERS}
-    assert counts == {name: 1 for name in SINGLE_CALLER_BUILDERS}, (
-        f"shell callback/build multiplication detected: {counts}"
+    missing = sorted(SHELL_COMPAT_FUNCTIONS - set(funcs))
+    assert not missing
+    assert C0_ZERO_CONSUMER_REMOVED.keys().isdisjoint(funcs)
+    oversized = {
+        name: _span(funcs[name])
+        for name in sorted(SHELL_COMPAT_FUNCTIONS)
+        if _span(funcs[name]) > MAX_COMPAT_SPAN
+    }
+    assert oversized == {}, f"B2 RED: bridge still owns deep shell bodies: {oversized}"
+
+    shell_tree = _tree(SHELL)
+    owner = next(
+        node
+        for node in shell_tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WorkspaceShellOwner"
     )
+    owner_methods = {
+        node.name
+        for node in owner.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert set(C0_ZERO_CONSUMER_REMOVED.values()) <= owner_methods
 
 
-def test_t5_fullscreen_has_one_state_owner_and_two_routes_only():
-    source = BRIDGE.read_text(encoding="utf-8")
-    funcs = _top_level_functions(BRIDGE)
-    assert "_phase6_toggle_fullscreen" in funcs
-    # One direct F11 adapter route + one button route. Definition is not counted here.
-    assert _name_call_count(BRIDGE, "_phase6_toggle_fullscreen") == 2
-    assert source.count("self._phase6_fullscreen =") >= 2
-    assert "phase6_workspace_shell" not in source
-
-
-def test_t5_keyboard_binding_loop_has_one_bridge_installer():
+def test_b2_fullscreen_routes_to_shell_owner_without_second_binding_loop():
     bridge = BRIDGE.read_text(encoding="utf-8")
+    shell = SHELL.read_text(encoding="utf-8")
     router = ROUTER.read_text(encoding="utf-8")
-    assert bridge.count("install_fold_designer_keyboard_shortcuts(") == 1
+    assert "toggle_fullscreen(" in shell
+    composition = ADAPTER.read_text(encoding="utf-8")
+    assert _name_call_count(BRIDGE, "_phase6_toggle_fullscreen") == 1
+    assert "WorkspaceShellActions(" in composition
+    assert '"_phase6_toggle_fullscreen"' in composition
     assert router.count('root.bind("<F11>", on_fullscreen, add="+")') == 1
     assert router.count('root.bind(sequence, on_save, add="+")') == 1
     assert router.count('root.bind(sequence, on_open, add="+")') == 1
+    assert "phase6_workspace_shell" in bridge
 
 
-def test_t5_shared_content_source_keeps_direct_single_slot_mounting():
-    funcs = _top_level_functions(BRIDGE)
+def test_b2_shared_content_policy_moves_to_shell_owner():
+    bridge_funcs = _top_level_functions(BRIDGE)
     mount = ast.get_source_segment(
         BRIDGE.read_text(encoding="utf-8"),
-        funcs["_phase6_mount_shared_content"],
+        bridge_funcs["_phase6_mount_shared_content"],
     ) or ""
-    assert '"single": getattr(self, "input_content_host", None)' in mount
-    assert '"assembly": getattr(self, "assembly_parts_panel", None)' in mount
-    assert '"corner_data": getattr(self, "corner_data_panel", None)' in mount
-    assert "widget.pack_forget()" in mount
+    shell = SHELL.read_text(encoding="utf-8")
+    assert "mount_shared_content" in shell
+    assert "input_content_host" in mount
+    assert "assembly_parts_panel" in mount
+    assert "corner_data_panel" in mount
     assert "shared_content_host = self.left" in BRIDGE.read_text(encoding="utf-8")
 
 
-@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="#447 runtime shell contract requires real Tk/Xvfb")
-def test_t5_runtime_active_mode_surface_count_is_exactly_one_without_separate_regions():
+@pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="#527 runtime shell contract requires real Tk/Xvfb")
+def test_b2_runtime_active_mode_surface_count_is_exactly_one_without_separate_regions():
     import fold_designer_bridge as bridge
 
     snapshot = {

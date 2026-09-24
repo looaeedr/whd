@@ -97,7 +97,7 @@ def test_baseline_change_publishes_live(monkeypatch):
     try:
         published.clear()
         app.baseline_model_var.set("未知類型")
-        app.on_baseline_model_changed()
+        bridge._phase6_on_baseline_model_changed(app)
         root.update_idletasks()
         assert published
         assert published[-1]["model"] == "未知類型"

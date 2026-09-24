@@ -39,25 +39,27 @@ def test_v2_width_floor_after_manual_screenshot_review():
     )
 
 
+
 def test_red_adaptive_left_workspace_and_cjk_theme_contract_exist():
     bridge = _text("fold_designer_bridge.py")
     theme = _text("whd_theme.py")
+    text_scale = _text("ui_text_scale.py")
     required = (
         "def _phase6_left_workspace_width",
         "def _phase6_update_left_workspace_width",
-        'ui_text_size_factor',
-        'canvas.configure(width=target)',
+        "canvas.configure(width=target)",
         '"Microsoft JhengHei"',
         '"Noto Sans CJK TC"',
         '"Noto Sans CJK SC"',
-        'axes.unicode_minus',
+        "axes.unicode_minus",
     )
-    missing = [token for token in required if token not in bridge + "\n" + theme]
+    combined = bridge + "\n" + theme
+    missing = [token for token in required if token not in combined]
+    assert "ui_text_size_factor" in text_scale
     assert not missing, (
-        "#343 EXPECTED RED: T8 visual remediation is missing adaptive width/CJK "
-        f"presentation contracts; missing={missing!r}"
+        "#343 adaptive width/CJK presentation contracts drifted: "
+        f"missing={missing!r}"
     )
-
 
 @pytest.mark.skipif(not os.environ.get("DISPLAY"), reason="requires real Tk/Xvfb")
 @pytest.mark.parametrize("scale", ("small", "medium", "large"))

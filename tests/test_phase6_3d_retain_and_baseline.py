@@ -112,14 +112,16 @@ def test_true_mesh_renderer_uses_exact_final_scene_without_baseline_merge(monkey
         [{"len":20.0},{"len":60.0},{"len":20.0}],
         [{"len":15.0},{"len":30.0},{"len":15.0}],
     ))
-    monkeypatch.setattr(bridge, "_phase6_remove_original_bend_surfaces", lambda self: None)
-    monkeypatch.setattr(bridge, "_phase6_add_mesh_boundary_lines", lambda *args, **kwargs: None)
-    monkeypatch.setattr(bridge, "_phase6_draw_scene_bends", lambda *args, **kwargs: None)
-    monkeypatch.setattr(bridge, "_phase6_draw_scene_markings", lambda *args, **kwargs: None)
+    import phase6_final_scene_renderer as final_renderer
+    monkeypatch.setattr(final_renderer.Phase6FinalSceneRenderer, "_remove_original_bend_surfaces", lambda self: None)
+    monkeypatch.setattr(final_renderer.Phase6FinalSceneRenderer, "_add_mesh_boundary_lines", lambda *args, **kwargs: None)
+    monkeypatch.setattr(final_renderer.Phase6FinalSceneRenderer, "_draw_scene_bends", lambda *args, **kwargs: None)
+    monkeypatch.setattr(final_renderer.Phase6FinalSceneRenderer, "_draw_scene_markings", lambda *args, **kwargs: None)
 
-    bridge._phase6_render_true_cutting_mesh(app)
+    adapter = bridge._phase6_final_scene_adapter(app)
+    adapter.render_cutting_mesh()
 
-    renderer = bridge._phase6_final_scene_renderer(app)
+    renderer = adapter.renderer
     assert renderer.last_cutting_material is not None
     assert not renderer.last_cutting_material.contains(Point(50, 30))
 
