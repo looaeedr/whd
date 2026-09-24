@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "631",
+  "branch": "work/issue631-finalization-hard-gate-20260925",
+  "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36034515015,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "focused QA run 36034288090 completed success: 23 passed, 0 failed",
+    "broader QA run 36034515015 completed success: 52 passed, 0 failed",
+    "temporary QA workflow removed at closing head 5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+    "tested-head 201afbc3645c82d9c454d4586632c1337868ddee to closing-head drift PASS: workflow deletion only",
+    "PR #632 merged and production integration read back",
+    "blocking repair #633 / PR #634 integrated; production readback 3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "user-directed stale takeover proof run 36040997722 GREEN: EXECUTOR_STUCK/actionable with canonical claim guard GREEN"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING before minting bound finalization proof."
+}
