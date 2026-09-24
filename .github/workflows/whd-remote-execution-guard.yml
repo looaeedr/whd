@@ -259,12 +259,35 @@ jobs:
                 remote_arg=(--remote-run-json /tmp/remote-run.json)
               fi
 
+              liveness_arg=(--claim-blob-sha "$RG_CLAIM_BLOB_SHA")
+              if [[ "$RG_WORKER" == scheduler.* ]]; then
+                rm -f /tmp/runtime-liveness.json /tmp/runtime-liveness.log /tmp/issue-comments.json
+                gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/issue-comments.json
+                set +e
+                python tools/scheduler_runtime_liveness.py \
+                  --comments-json /tmp/issue-comments.json \
+                  --issue "$RG_ISSUE" \
+                  --scheduler-lane "$RG_WORKER" \
+                  --out /tmp/runtime-liveness.json > /tmp/runtime-liveness.log 2>&1
+                liveness_rc=$?
+                set -e
+                if [ "$liveness_rc" -eq 0 ]; then
+                  liveness_arg+=(--runtime-liveness-json /tmp/runtime-liveness.json)
+                elif [ "$liveness_rc" -eq 3 ]; then
+                  cat /tmp/runtime-liveness.log
+                else
+                  cat /tmp/runtime-liveness.log >&2
+                  exit "$liveness_rc"
+                fi
+              fi
+
               python tools/stale_claim_takeover.py \
                 --claim /tmp/execution-claim.json \
                 --live-head-sha "$current_branch_sha" \
                 --live-head-committed-at "$takeover_live_commit_at" \
                 --requesting-worker "$RG_TAKEOVER_WORKER" \
                 "${remote_arg[@]}" \
+                "${liveness_arg[@]}" \
                 --require-actionable \
                 --decision-out /tmp/stale-takeover-decision.json 2>&1 | tee /tmp/stale-takeover.log
             else
