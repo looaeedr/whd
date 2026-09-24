@@ -39,6 +39,8 @@ jobs:
             tests/process/test_issue256_execution_claim_guard.py \
             tests/process/test_issue567_reopened_released_claim_recovery.py \
             tests/process/test_issue540_stale_claim_takeover.py \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_finalization_owner_guard.py \
             > /tmp/issue642-t2-green.log 2>&1
           cat /tmp/issue642-t2-green.log
           grep -q "passed" /tmp/issue642-t2-green.log
