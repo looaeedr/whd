@@ -17,13 +17,14 @@
     "PR #634 merged non-force into cleanup/2d-3d-sync",
     "production readback cleanup/2d-3d-sync = 3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "remote finalization run 36039459555 GREEN: FINALIZATION_PROOF_VALID; artifact 10825781276",
-    "GitHub Issue #633 fresh readback: closed/completed"
+    "GitHub Issue #633 fresh readback: closed/completed",
+    "atomic closure commit: checkpoint CLOSED + claim RELEASED + durable handoff to existing #631 owner"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED + durable handoff that blocker #633 is cleared for existing #631 owner"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

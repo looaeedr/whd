@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T01:38:00+08:00",
   "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "head_sha": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T02:06:20+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T02:13:30+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue633-finalization-proof-order.yml"
   },
-  "next_action": "Fresh-read cleanup/2d-3d-sync, create and merge the guarded PR for closing head 24c6cd28e185d054838adc7ce5894c8dbc8d9599, verify production readback, then write terminal checkpoint FINALIZATION_PENDING and complete closure transaction.",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "parent_repair_issue": 631,
@@ -68,15 +68,46 @@
         ".github/workflows/qa-issue633-finalization-proof-order.yml"
       ],
       "verdict": "PASS_WORKFLOW_DELETION_ONLY"
-    }
+    },
+    "successor_handoff": {
+      "issue": 631,
+      "status": "UNBLOCKED",
+      "existing_owner": "chatgpt.sol260925.finalization-hard-gate",
+      "existing_claim_blob_sha": "bc029be7899ffe30838a0f25bc8204cd45506de6",
+      "action": "Existing #631 owner may resume its own terminal closure; #633 performs no ownership transfer."
+    },
+    "final_atomic_closure_guard_run_id": 36039687036
   },
   "last_guard": {
-    "action": "write",
-    "run_id": 36038851116,
-    "request_comment_id": 5819474834,
+    "action": "commit",
+    "run_id": 36039687036,
+    "request_comment_id": 5819585353,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+    "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "consumed": true
+  },
+  "pr": {
+    "number": 634,
+    "url": "https://github.com/looaeedr/whd/pull/634",
+    "head_sha": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+    "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
+    "state": "closed",
+    "merged": true,
+    "merge_commit_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b"
+  },
+  "integration": {
+    "production_target": "cleanup/2d-3d-sync",
+    "production_head": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "readback": true
+  },
+  "finalization": {
+    "run_id": 36039459555,
+    "artifact_id": 10825781276,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "cc04e45cc2e122172588997cbdfc022cad9cb7e1",
+    "checkpoint_fingerprint": "55834fc05043a396c3c823145a6b923ebe7993dc2af801718ae32cfa73ec30af",
+    "issue_state_readback": "closed/completed"
   }
 }
