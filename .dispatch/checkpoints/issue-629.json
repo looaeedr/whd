@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "629",
+  "branch": "work/issue629-write-scheduler-skill-20260924",
+  "head_sha": "33b845c90061576a6c5a7d81250eff3918663b8c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36029416709,
+  "job_id": 107734084359,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User requirement: add a formal 寫排程 Skill and make scheduler prompt authoring preserve 派工/遠端執行守門, continuity, Guard consumption, and recurring-lane invariants.",
+    "Initial scheduler-authoring Skill/registry/pitfall implementation was previously QA-accepted, then reopened for two newly observed runtime regressions: expired Guard reuse and live branch/checkpoint progress drifting ahead of claim metadata.",
+    "RED commit b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51; exact QA run 36029153136 failed as intended with 2 failed / 2 passed because GREEN_EXPIRY_HARD_GATE, LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY, STALE_GUARD_RECEIPT and matching pitfall evidence were absent.",
+    "GREEN implementation commit 507db4e6d8ce27a50f66ee42e61307962caa8acb adds fail-closed receipt expiry validation (current UTC < expires_at), STALE_GUARD_RECEIPT handling, durable-mutation live drift reconciliation, and no-replay rules in 寫排程 Skill + scheduler authoring pitfall.",
+    "Exact QA run 36029416709 at 507db4e6d8ce27a50f66ee42e61307962caa8acb completed success; scheduler-authoring contract and canonical preflight route passed.",
+    "One-shot QA workflow was removed in closing commit 33b845c90061576a6c5a7d81250eff3918663b8c; tested 507db4e6d8ce27a50f66ee42e61307962caa8acb -> closing 33b845c90061576a6c5a7d81250eff3918663b8c drift is exactly one removed .github/workflows/qa-issue629-write-scheduler-skill.yml file.",
+    "Process-state repair: unsupported claim phase INTEGRATING was fail-closed by Remote Guard run 36029918426 and normalized through exact-claim-path recovery Guard run 36029995571 to canonical CLOSING before integration.",
+    "PR #630 merged work head 33b845c90061576a6c5a7d81250eff3918663b8c into cleanup/2d-3d-sync; production readback is merge commit 44367ff6243f2a8db71abb4e042d753ba6311d7e.",
+    "Production integration used two independent pr-write Guard transactions: create-PR Guard run 36030096666 and merge Guard run 36030241055; both were fresh GREEN single-use receipts."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null
+}
