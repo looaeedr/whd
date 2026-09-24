@@ -8,7 +8,7 @@
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "head_sha": "3ea1f75cada6ef8079528ca60122fcc81d226124",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T03:06:00+08:00",
+  "last_update": "2026-09-25T03:10:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue638-helper-aware-takeover.yml"
   },
-  "next_action": "Dispatch trusted Remote Finalization for the exact ISSUE_CLOSE_PENDING checkpoint, verify FINALIZATION_PROOF_VALID, then close/readback #638 without any checkpoint mutation before closure.",
+  "next_action": "Persist the final coordination transaction atomically: checkpoint closure_state=CLOSED + claim phase=RELEASED; no successor handoff exists for standalone #638.",
   "blocker": null,
   "evidence": {
     "requirement_authority": "User instruction 2026-09-25: 補啊",
@@ -57,12 +57,16 @@
     "pr_create_readback": true,
     "pr_merge_guard_run_id": 36045231355,
     "production_integration": "PR #639 merged; cleanup/2d-3d-sync read back at 2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-    "terminal_checkpoint_issue_close_pending_guard_run_id": 36045749159
+    "terminal_checkpoint_issue_close_pending_guard_run_id": 36045749159,
+    "release_handoff_pending_guard_run_id": 36046214272,
+    "finalization_run_id": 36046066963,
+    "finalization_receipt_reason": "FINALIZATION_PROOF_VALID",
+    "issue_close_readback": "closed/completed"
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36045749159,
-    "request_comment_id": 5820423834,
+    "run_id": 36046214272,
+    "request_comment_id": 5820484348,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
