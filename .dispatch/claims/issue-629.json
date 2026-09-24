@@ -6,9 +6,9 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "507db4e6d8ce27a50f66ee42e61307962caa8acb",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T00:44:32+08:00",
+  "head_sha": "33b845c90061576a6c5a7d81250eff3918663b8c",
+  "phase": "INTEGRATING",
+  "last_update": "2026-09-25T00:46:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue629-write-scheduler-skill.yml"
   },
-  "next_action": "Delete the one-shot #629 QA workflow under a fresh unexpired Guard, reconcile claim HEAD, then prove tested-head 507db4e6d8ce27a50f66ee42e61307962caa8acb -> closing-head delta is workflow deletion only before integration.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync current HEAD; perform integration overlap/conflict audit from frozen/base 2ec51eb8f777cbfd8c3485efd68487d264854eba to closing head 33b845c90061576a6c5a7d81250eff3918663b8c versus current production. If safe, obtain exact integration/finalization authority, non-force integrate, production readback, close #629, then release claim.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -67,7 +67,19 @@
       "green_commit_guard_run_id": 36029294467,
       "green_claim_reconcile_guard_run_id": 36029440247,
       "green_qa_run_id": 36029416709,
-      "green_qa_result": "success"
+      "green_qa_result": "success",
+      "cleanup_commit": "33b845c90061576a6c5a7d81250eff3918663b8c",
+      "cleanup_guard_run_id": 36029543233,
+      "cleanup_claim_reconcile_guard_run_id": 36029642262,
+      "tested_to_closing_drift": {
+        "tested_head": "507db4e6d8ce27a50f66ee42e61307962caa8acb",
+        "closing_head": "33b845c90061576a6c5a7d81250eff3918663b8c",
+        "ahead_by": 1,
+        "files": [
+          ".github/workflows/qa-issue629-write-scheduler-skill.yml"
+        ],
+        "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+      }
     }
   }
 }
