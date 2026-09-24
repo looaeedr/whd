@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
-  "phase": "RUNNING",
-  "last_update": "2026-09-24T22:15:04+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T22:44:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -21,7 +21,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Record B1 acceptance against exact successful run 36009308143, close/readback Issue #614, then advance Master #628 to the next executable child using work-order HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c.",
+  "next_action": "Create canonical terminal checkpoint .dispatch/checkpoints/issue-614.json for exact head 920608d87de7d7ccb3a31eebb628cec2fc437c8c, then run WHD Remote Finalization authorize+verify proof before closing/readback Issue #614; after closure advance Master #628 to its next executable child.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -56,5 +56,14 @@
     "guard_reconciliation_run_id": 36009379576,
     "guard_blocker_update_run_id": 36009527024,
     "blocker_cleared_by_live_discovery": true
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36014927971,
+    "request_comment_id": 5816347065,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+    "consumed": true
   }
 }
