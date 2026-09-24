@@ -2347,7 +2347,10 @@ def _phase6_back_panel_mode_control_is_applicable(self):
     """Normal-input visibility contract for the Receiving rear-panel product choice."""
     workspace = getattr(self, "designer_workspace", None)
     active_part = str(getattr(workspace, "active_part", "") or "")
-    if active_part != "box_body:back":
+    # #614: this product choice belongs to the logical BoxBody input surface.
+    # Hidden physical-child activation must never be required for reachability;
+    # retain box_body:back only as compatibility for older internal callers.
+    if active_part not in {"box_body", "box_body:back"}:
         return False
     snapshot = getattr(self, "_phase6_input_snapshot", {}) or {}
     if cabinet_family_policy.canonical_family_name(snapshot) != "受電箱":
