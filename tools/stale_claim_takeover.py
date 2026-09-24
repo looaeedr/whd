@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Mapping
 
 DEFAULT_STALE_AFTER_SECONDS = 600
+DEFAULT_ORPHAN_GRACE_SECONDS = 90
+MAX_RUNTIME_LIVENESS_SECONDS = 300
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _WORKER_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 _ACTIVE_PHASES = frozenset(
@@ -48,6 +50,7 @@ class TakeoverClassification(str, Enum):
     RUN_LIVE = "RUN_LIVE"
     WAIT_ON_FOREIGN_RUNTIME = "WAIT_ON_FOREIGN_RUNTIME"
     EXECUTOR_STUCK = "EXECUTOR_STUCK"
+    ORPHANED_SCHEDULER_OWNER = "ORPHANED_SCHEDULER_OWNER"
     ALREADY_SCHEDULER = "ALREADY_SCHEDULER"
     TERMINAL = "TERMINAL"
 
@@ -69,6 +72,12 @@ class StaleTakeoverEvaluation:
     claim_head_sha: str
     claim_last_update: datetime
     claim_phase: str
+    orphan_grace_seconds: int
+    claim_blob_sha: str | None
+    runtime_liveness_status: str
+    runtime_invocation_identity: str | None
+    runtime_liveness_emitted_at: datetime | None
+    runtime_liveness_expires_at: datetime | None
 
     def to_payload(self) -> dict[str, object]:
         payload = asdict(self)
@@ -76,6 +85,14 @@ class StaleTakeoverEvaluation:
         payload["classification"] = self.classification.value
         payload["latest_progress_at"] = _iso_utc(self.latest_progress_at)
         payload["claim_last_update"] = _iso_utc(self.claim_last_update)
+        if self.runtime_liveness_emitted_at is not None:
+            payload["runtime_liveness_emitted_at"] = _iso_utc(
+                self.runtime_liveness_emitted_at
+            )
+        if self.runtime_liveness_expires_at is not None:
+            payload["runtime_liveness_expires_at"] = _iso_utc(
+                self.runtime_liveness_expires_at
+            )
         return payload
 
 
@@ -226,6 +243,113 @@ def _remote_progress(
         f"exact remote run {observed_run_id} is not active "
         f"status={status or 'unknown'} conclusion={conclusion or 'none'}"
     )
+
+
+def _scheduler_runtime_liveness(
+    runtime_liveness: Mapping[str, object] | None,
+    *,
+    claim: Mapping[str, object],
+    claim_blob_sha: str | None,
+    previous_worker: str,
+    live_head_sha: str,
+    now: datetime,
+    remote_run: Mapping[str, object] | None,
+) -> tuple[str, str | None, datetime | None, datetime | None]:
+    """Validate scheduler invocation liveness bound to the exact claim identity."""
+
+    if claim_blob_sha is None:
+        if runtime_liveness is not None:
+            raise StaleTakeoverError(
+                "runtime liveness evidence requires exact claim blob SHA"
+            )
+        return "NOT_APPLICABLE", None, None, None
+
+    blob_sha = _require_sha("claim_blob_sha", claim_blob_sha)
+    if runtime_liveness is None:
+        return "MISSING", None, None, None
+    if not isinstance(runtime_liveness, Mapping):
+        raise StaleTakeoverError("runtime liveness heartbeat must be a mapping")
+    if runtime_liveness.get("schema") != "WHD_SCHEDULER_RUNTIME_LIVENESS_V1":
+        raise StaleTakeoverError("runtime liveness heartbeat schema mismatch")
+
+    claim_issue = _positive_int("claim issue", claim.get("issue"))
+    if _positive_int("runtime liveness issue", runtime_liveness.get("issue")) != claim_issue:
+        raise StaleTakeoverError("runtime liveness heartbeat issue mismatch")
+
+    lane = str(runtime_liveness.get("scheduler_lane") or "").strip()
+    if lane != previous_worker:
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat scheduler lane does not match claim owner"
+        )
+    invocation = str(runtime_liveness.get("invocation_identity") or "").strip()
+    if not _WORKER_RE.fullmatch(invocation):
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat invocation identity is missing or malformed"
+        )
+
+    heartbeat_blob = _require_sha(
+        "runtime liveness claim blob SHA", runtime_liveness.get("claim_blob_sha")
+    )
+    if heartbeat_blob != blob_sha:
+        raise StaleTakeoverError("runtime liveness heartbeat claim blob mismatch")
+
+    branch = str(runtime_liveness.get("branch") or "").strip()
+    if branch != str(claim.get("work_branch") or "").strip():
+        raise StaleTakeoverError("runtime liveness heartbeat branch mismatch")
+    heartbeat_head = _require_sha(
+        "runtime liveness head SHA", runtime_liveness.get("head_sha")
+    )
+    if heartbeat_head != live_head_sha:
+        raise StaleTakeoverError("runtime liveness heartbeat head mismatch")
+    if str(runtime_liveness.get("executor_source") or "").strip() != "scheduler":
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat executor source must be scheduler"
+        )
+
+    emitted_at = _as_utc(
+        "runtime liveness emitted_at", runtime_liveness.get("emitted_at")
+    )
+    expires_at = _as_utc(
+        "runtime liveness expires_at", runtime_liveness.get("expires_at")
+    )
+    if emitted_at > now:
+        raise StaleTakeoverError("runtime liveness heartbeat emitted_at is in the future")
+    if expires_at <= emitted_at:
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat expires_at must be after emitted_at"
+        )
+    ttl_seconds = int((expires_at - emitted_at).total_seconds())
+    if ttl_seconds > MAX_RUNTIME_LIVENESS_SECONDS:
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat TTL exceeds fail-closed maximum"
+        )
+
+    active_run_id = runtime_liveness.get("active_run_id")
+    active_run_head = runtime_liveness.get("active_run_head_sha")
+    if (active_run_id is None) != (active_run_head is None):
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat active run id/head must be present together"
+        )
+    if active_run_id is not None:
+        heartbeat_run_id = _positive_int(
+            "runtime liveness active_run_id", active_run_id
+        )
+        heartbeat_run_head = _require_sha(
+            "runtime liveness active_run_head_sha", active_run_head
+        )
+        if remote_run is not None and remote_run.get("found", True):
+            if _positive_int("remote_run.run_id", remote_run.get("run_id")) != heartbeat_run_id:
+                raise StaleTakeoverError(
+                    "runtime liveness heartbeat active run id mismatch"
+                )
+            if _require_sha("remote_run.head_sha", remote_run.get("head_sha")) != heartbeat_run_head:
+                raise StaleTakeoverError(
+                    "runtime liveness heartbeat active run head mismatch"
+                )
+
+    status = "ACTIVE" if now < expires_at else "EXPIRED"
+    return status, invocation, emitted_at, expires_at
+
 def evaluate_stale_claim_takeover(
     claim: Mapping[str, object],
     *,
@@ -237,6 +361,9 @@ def evaluate_stale_claim_takeover(
     requesting_worker: str | None = None,
     requesting_executor_source: str | None = None,
     user_authority: Mapping[str, object] | None = None,
+    claim_blob_sha: str | None = None,
+    runtime_liveness: Mapping[str, object] | None = None,
+    orphan_grace_seconds: int = DEFAULT_ORPHAN_GRACE_SECONDS,
 ) -> StaleTakeoverEvaluation:
     """Classify whether one authorized requester may take over an active WHD claim."""
 
@@ -246,6 +373,7 @@ def evaluate_stale_claim_takeover(
     live_head = _require_sha("live_head_sha", live_head_sha)
     live_commit_at = _as_utc("live_head_committed_at", live_head_committed_at)
     threshold = _positive_int("stale_after_seconds", stale_after_seconds)
+    orphan_grace = _positive_int("orphan_grace_seconds", orphan_grace_seconds)
 
     phase = str(claim.get("phase") or "").strip().upper()
     if not phase:
@@ -293,6 +421,39 @@ def evaluate_stale_claim_takeover(
         )
 
     remote_active, remote_updated_at, remote_reason = _remote_progress(claim, remote_run)
+
+    runtime_status = "NOT_APPLICABLE"
+    runtime_invocation: str | None = None
+    runtime_emitted_at: datetime | None = None
+    runtime_expires_at: datetime | None = None
+    normalized_claim_blob: str | None = None
+    if claim_blob_sha is not None:
+        normalized_claim_blob = _require_sha("claim_blob_sha", claim_blob_sha)
+
+    if (
+        previous_source == "scheduler"
+        and requester is not None
+        and requester != previous_worker
+    ):
+        (
+            runtime_status,
+            runtime_invocation,
+            runtime_emitted_at,
+            runtime_expires_at,
+        ) = _scheduler_runtime_liveness(
+            runtime_liveness,
+            claim=claim,
+            claim_blob_sha=normalized_claim_blob,
+            previous_worker=previous_worker,
+            live_head_sha=live_head,
+            now=now_utc,
+            remote_run=remote_run,
+        )
+    elif runtime_liveness is not None:
+        raise StaleTakeoverError(
+            "runtime liveness heartbeat is only valid for a foreign scheduler owner"
+        )
+
     progress_points = [last_update, live_commit_at]
     if remote_updated_at is not None:
         progress_points.append(remote_updated_at)
@@ -325,6 +486,12 @@ def evaluate_stale_claim_takeover(
             claim_head_sha=claim_head,
             claim_last_update=last_update,
             claim_phase=phase,
+            orphan_grace_seconds=orphan_grace,
+            claim_blob_sha=normalized_claim_blob,
+            runtime_liveness_status=runtime_status,
+            runtime_invocation_identity=runtime_invocation,
+            runtime_liveness_emitted_at=runtime_emitted_at,
+            runtime_liveness_expires_at=runtime_expires_at,
         )
 
     if phase in _INACTIVE_PHASES:
@@ -354,6 +521,43 @@ def evaluate_stale_claim_takeover(
             False,
             remote_reason,
         )
+
+    if previous_source == "scheduler" and requester != previous_worker:
+        if runtime_status == "ACTIVE":
+            return result(
+                TakeoverClassification.WAIT_ON_FOREIGN_RUNTIME,
+                False,
+                (
+                    "foreign scheduler invocation has a valid runtime heartbeat; "
+                    f"{remote_reason}"
+                ),
+            )
+
+        if stale_seconds >= threshold:
+            return result(
+                TakeoverClassification.EXECUTOR_STUCK,
+                True,
+                (
+                    f"no active exact run and no durable progress for {stale_seconds}s "
+                    f"(threshold={threshold}s); {remote_reason}"
+                ),
+            )
+
+        if (
+            normalized_claim_blob is not None
+            and runtime_status in {"MISSING", "EXPIRED"}
+            and stale_seconds >= orphan_grace
+        ):
+            return result(
+                TakeoverClassification.ORPHANED_SCHEDULER_OWNER,
+                True,
+                (
+                    f"foreign scheduler runtime liveness={runtime_status.lower()} "
+                    f"after grace={orphan_grace}s while durable progress age="
+                    f"{stale_seconds}s remains below stale threshold={threshold}s; "
+                    f"{remote_reason}"
+                ),
+            )
 
     if stale_seconds >= threshold:
         return result(
@@ -393,6 +597,13 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--live-head-sha", required=True)
     parser.add_argument("--live-head-committed-at", required=True)
     parser.add_argument("--remote-run-json", type=Path)
+    parser.add_argument("--runtime-liveness-json", type=Path)
+    parser.add_argument("--claim-blob-sha")
+    parser.add_argument(
+        "--orphan-grace-seconds",
+        type=int,
+        default=DEFAULT_ORPHAN_GRACE_SECONDS,
+    )
     parser.add_argument(
         "--stale-after-seconds",
         type=int,
@@ -421,6 +632,13 @@ def main(argv: list[str] | None = None) -> int:
             if args.user_authority_json is None
             else _load_json_object(args.user_authority_json, label="user authority")
         )
+        runtime_liveness = (
+            None
+            if args.runtime_liveness_json is None
+            else _load_json_object(
+                args.runtime_liveness_json, label="runtime liveness heartbeat"
+            )
+        )
         now = datetime.now(timezone.utc) if args.now is None else _as_utc("now", args.now)
         result = evaluate_stale_claim_takeover(
             claim,
@@ -432,6 +650,9 @@ def main(argv: list[str] | None = None) -> int:
             requesting_worker=args.requesting_worker,
             requesting_executor_source=args.requesting_executor_source,
             user_authority=user_authority,
+            claim_blob_sha=args.claim_blob_sha,
+            runtime_liveness=runtime_liveness,
+            orphan_grace_seconds=args.orphan_grace_seconds,
         )
     except StaleTakeoverError as exc:
         print(f"STALE_CLAIM_TAKEOVER_ERROR: {exc}")

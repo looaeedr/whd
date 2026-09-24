@@ -243,6 +243,7 @@ def _assert_user_directed_takeover_authority(
 def _assert_takeover_evidence(
     evidence_path: Path | None,
     *,
+    claim_path: Path,
     claim: "ExecutionClaim",
     raw_claim: dict[str, object],
     expected_live_head_sha: str,
@@ -253,14 +254,45 @@ def _assert_takeover_evidence(
     evidence = _load_takeover_evidence(evidence_path)
     if evidence.get("schema") != "WHD_STALE_CLAIM_TAKEOVER_V1":
         raise ExecutionClaimError("claim-takeover evidence schema mismatch")
-    if evidence.get("classification") != "EXECUTOR_STUCK" or evidence.get("actionable") is not True:
-        raise ExecutionClaimError("claim-takeover evidence is not actionable EXECUTOR_STUCK")
+    classification = str(evidence.get("classification") or "")
+    if classification not in {"EXECUTOR_STUCK", "ORPHANED_SCHEDULER_OWNER"}:
+        raise ExecutionClaimError(
+            "claim-takeover evidence is not actionable stale/orphaned scheduler evidence"
+        )
+    if evidence.get("actionable") is not True:
+        raise ExecutionClaimError("claim-takeover evidence is not actionable")
     stale_seconds = evidence.get("stale_seconds")
     threshold = evidence.get("stale_after_seconds")
-    if isinstance(stale_seconds, bool) or not isinstance(stale_seconds, int) or stale_seconds < 600:
-        raise ExecutionClaimError("claim-takeover stale evidence is below 600 seconds")
+    if isinstance(stale_seconds, bool) or not isinstance(stale_seconds, int):
+        raise ExecutionClaimError("claim-takeover stale seconds are invalid")
     if threshold != 600:
         raise ExecutionClaimError("claim-takeover stale threshold must be exactly 600 seconds")
+    if classification == "EXECUTOR_STUCK":
+        if stale_seconds < 600:
+            raise ExecutionClaimError("claim-takeover stale evidence is below 600 seconds")
+    else:
+        grace = evidence.get("orphan_grace_seconds")
+        if grace != 90:
+            raise ExecutionClaimError(
+                "orphaned scheduler takeover grace must be exactly 90 seconds"
+            )
+        if stale_seconds < grace or stale_seconds >= 600:
+            raise ExecutionClaimError(
+                "orphaned scheduler takeover evidence is outside the 90..599 second window"
+            )
+        if evidence.get("runtime_liveness_status") not in {"MISSING", "EXPIRED"}:
+            raise ExecutionClaimError(
+                "orphaned scheduler takeover requires missing/expired runtime liveness"
+            )
+        evidence_blob = _validate_sha(
+            str(evidence.get("claim_blob_sha") or ""),
+            "orphaned scheduler claim blob SHA",
+        )
+        actual_blob = _git_blob_sha(claim_path)
+        if evidence_blob != actual_blob:
+            raise ExecutionClaimError(
+                "orphaned scheduler takeover claim blob evidence mismatch"
+            )
     observed = _validate_sha(
         str(evidence.get("observed_live_head_sha") or ""),
         "takeover observed live head SHA",
@@ -278,6 +310,10 @@ def _assert_takeover_evidence(
             f"claim-takeover evidence claim head mismatch expected={claim.head_sha} evidence={evidence_claim_head}"
         )
     expected_source = str(raw_claim.get("executor_source") or "unknown").strip() or "unknown"
+    if classification == "ORPHANED_SCHEDULER_OWNER" and expected_source != "scheduler":
+        raise ExecutionClaimError(
+            "orphaned scheduler takeover requires scheduler previous executor source"
+        )
     if str(evidence.get("previous_executor_source") or "") != expected_source:
         raise ExecutionClaimError("claim-takeover previous executor source mismatch")
 
@@ -1014,6 +1050,7 @@ def assert_execution_claim(
         raw_claim = raw_claim or _load_raw_claim_payload(path)
         _assert_takeover_evidence(
             takeover_evidence,
+            claim_path=path,
             claim=claim,
             raw_claim=raw_claim,
             expected_live_head_sha=expected_head_sha,
