@@ -1,0 +1,16 @@
+{
+  "issue": 578,
+  "issue_url": "https://github.com/looaeedr/whd/issues/578",
+  "worker": "chatgpt.sol260924.issue578",
+  "executor_source": "chat",
+  "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
+  "claimed_at": "2026-09-24T10:19:00+08:00",
+  "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
+  "head_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T10:19:00+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Obtain exact Remote Guard GREEN for branch-create, create governance/issue578-scheduler-runtime-liveness-20260924 from base 4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0, then build focused RED for orphaned scheduler owner continuity.",
+  "blocker": null
+}
