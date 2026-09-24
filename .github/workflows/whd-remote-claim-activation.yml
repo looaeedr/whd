@@ -1,0 +1,315 @@
+name: WHD Remote Claim Activation
+run-name: "WHD｜工單 #\${{ github.event.issue.number }}｜Claim Activation"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  activate:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_REMOTE_CLAIM_ACTIVATION_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout trusted workflow repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse fixed activation request
+        env:
+          COMMENT_BODY: \${{ github.event.comment.body }}
+          EVENT_ISSUE: \${{ github.event.issue.number }}
+          COMMENT_ID: \${{ github.event.comment.id }}
+          COMMENT_AUTHOR: \${{ github.event.comment.user.login }}
+          REPOSITORY_OWNER: \${{ github.repository_owner }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          body = os.environ["COMMENT_BODY"].replace("\r\n", "\n")
+          lines = body.split("\n")
+          if not lines or lines[0].strip() != "WHD_REMOTE_CLAIM_ACTIVATION_REQUEST_V1":
+              raise SystemExit("invalid activation marker")
+
+          required = {
+              "issue", "worker", "executor_source", "transition", "branch",
+              "head_sha", "coord_parent_sha", "claim_path", "checkpoint_path",
+              "candidate_claim_blob_sha", "candidate_checkpoint_blob_sha",
+              "guard_authority_sha",
+          }
+          values = {}
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed activation line: {raw!r}")
+              key, value = raw.split("=", 1)
+              key, value = key.strip(), value.strip()
+              if key not in required or key in values:
+                  raise SystemExit(f"unsupported/duplicate activation key: {key}")
+              values[key] = value
+
+          missing = sorted(required - set(values))
+          if missing:
+              raise SystemExit(f"missing activation keys: {missing}")
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("activation requests are restricted to repository owner")
+
+          issue = int(values["issue"])
+          if issue != int(os.environ["EVENT_ISSUE"]):
+              raise SystemExit("activation issue mismatch")
+          if values["executor_source"] not in {"chat", "scheduler"}:
+              raise SystemExit("invalid executor_source")
+          if values["transition"] not in {
+              "fresh-create", "successor-create", "takeover", "reactivate"
+          }:
+              raise SystemExit("invalid transition")
+          if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", values["worker"]):
+              raise SystemExit("invalid worker")
+
+          expected_claim = f".dispatch/claims/issue-{issue}.json"
+          expected_checkpoint = f".dispatch/checkpoints/issue-{issue}.json"
+          if values["claim_path"] != expected_claim:
+              raise SystemExit("claim_path is not exact")
+          if values["checkpoint_path"] != expected_checkpoint:
+              raise SystemExit("checkpoint_path is not exact")
+
+          for key in (
+              "head_sha", "coord_parent_sha", "candidate_claim_blob_sha",
+              "candidate_checkpoint_blob_sha", "guard_authority_sha",
+          ):
+              if not re.fullmatch(r"[0-9a-f]{40}", values[key]):
+                  raise SystemExit(f"invalid SHA: {key}")
+
+          request = {
+              **values,
+              "issue": issue,
+              "request_comment_id": int(os.environ["COMMENT_ID"]),
+          }
+          Path("claim-activation-request.json").write_text(
+              json.dumps(request, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              for key, value in values.items():
+                  fh.write(f"RA_{key.upper()}={value}\n")
+              fh.write(f"RA_ISSUE={issue}\n")
+          PY
+
+      - name: Validate pair and commit exact coordination CAS
+        id: cas
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$RA_GUARD_AUTHORITY_SHA"
+          git checkout --detach "$RA_GUARD_AUTHORITY_SHA"
+          test "$(git rev-parse HEAD)" = "$RA_GUARD_AUTHORITY_SHA"
+          test -f tools/execution_claim_guard.py
+
+          git fetch --no-tags origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          current_coord="$(git rev-parse refs/remotes/origin/coord/dispatch-claims)"
+          test "$current_coord" = "$RA_COORD_PARENT_SHA"
+
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$RA_CANDIDATE_CLAIM_BLOB_SHA" > /tmp/candidate-claim-blob.json
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$RA_CANDIDATE_CHECKPOINT_BLOB_SHA" > /tmp/candidate-checkpoint-blob.json
+
+          python - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          def materialize(source: str, target: str, expected: str) -> None:
+              raw = json.loads(Path(source).read_text(encoding="utf-8"))
+              if raw.get("sha") != expected:
+                  raise SystemExit(f"candidate blob SHA mismatch: {target}")
+              data = base64.b64decode(raw["content"])
+              actual = hashlib.sha1(
+                  f"blob {len(data)}\0".encode("utf-8") + data
+              ).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f"candidate blob hash mismatch: {target}")
+              Path(target).write_bytes(data)
+
+          materialize(
+              "/tmp/candidate-claim-blob.json",
+              "/tmp/candidate-claim.json",
+              os.environ["RA_CANDIDATE_CLAIM_BLOB_SHA"],
+          )
+          materialize(
+              "/tmp/candidate-checkpoint-blob.json",
+              "/tmp/candidate-checkpoint.json",
+              os.environ["RA_CANDIDATE_CHECKPOINT_BLOB_SHA"],
+          )
+          PY
+
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+          from tools.execution_claim_guard import (
+              ExecutionClaimError,
+              assert_active_claim_activation_transaction,
+              load_execution_claim,
+          )
+
+          request = json.loads(
+              Path("claim-activation-request.json").read_text(encoding="utf-8")
+          )
+          claim = load_execution_claim(Path("/tmp/candidate-claim.json"))
+          if claim.issue != request["issue"]:
+              raise ExecutionClaimError("activation candidate issue mismatch")
+          if claim.worker != request["worker"]:
+              raise ExecutionClaimError("activation candidate worker mismatch")
+          if claim.work_branch != request["branch"]:
+              raise ExecutionClaimError("activation candidate branch mismatch")
+          if claim.head_sha != request["head_sha"]:
+              raise ExecutionClaimError("activation candidate head mismatch")
+
+          assert_active_claim_activation_transaction(
+              claim,
+              Path("/tmp/candidate-checkpoint.json"),
+              transition=request["transition"],
+              changed_files=(request["claim_path"], request["checkpoint_path"]),
+          )
+
+          parent = request["coord_parent_sha"]
+          def prior_blob(path: str):
+              p = subprocess.run(
+                  ["git", "rev-parse", f"{parent}:{path}"],
+                  capture_output=True, text=True, check=False,
+              )
+              return p.stdout.strip() if p.returncode == 0 else None
+
+          prior_claim = prior_blob(request["claim_path"])
+          prior_checkpoint = prior_blob(request["checkpoint_path"])
+          if request["transition"] in {"fresh-create", "successor-create"}:
+              if prior_claim is not None or prior_checkpoint is not None:
+                  raise ExecutionClaimError(
+                      "duplicate activation: prior coordination state exists"
+                  )
+          else:
+              if prior_claim is None or prior_checkpoint is None:
+                  raise ExecutionClaimError(
+                      "takeover/reactivation requires prior claim+checkpoint"
+                  )
+          if (
+              prior_claim == request["candidate_claim_blob_sha"]
+              and prior_checkpoint == request["candidate_checkpoint_blob_sha"]
+          ):
+              raise ExecutionClaimError(
+                  "duplicate activation: candidate pair already current"
+              )
+          PY
+
+          parent_tree="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$RA_COORD_PARENT_SHA" --jq '.tree.sha')"
+          PARENT_TREE="$parent_tree" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          payload = {
+              "base_tree": os.environ["PARENT_TREE"],
+              "tree": [
+                  {
+                      "path": os.environ["RA_CLAIM_PATH"],
+                      "mode": "100644",
+                      "type": "blob",
+                      "sha": os.environ["RA_CANDIDATE_CLAIM_BLOB_SHA"],
+                  },
+                  {
+                      "path": os.environ["RA_CHECKPOINT_PATH"],
+                      "mode": "100644",
+                      "type": "blob",
+                      "sha": os.environ["RA_CANDIDATE_CHECKPOINT_BLOB_SHA"],
+                  },
+              ],
+          }
+          Path("/tmp/tree-request.json").write_text(
+              json.dumps(payload) + "\n", encoding="utf-8"
+          )
+          PY
+          tree_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/trees" --input /tmp/tree-request.json --jq '.sha')"
+
+          TREE_SHA="$tree_sha" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          request = json.loads(
+              Path("claim-activation-request.json").read_text(encoding="utf-8")
+          )
+          payload = {
+              "message": (
+                  f"coord(#{request['issue']}): "
+                  f"{request['transition']} active claim with checkpoint"
+              ),
+              "tree": os.environ["TREE_SHA"],
+              "parents": [request["coord_parent_sha"]],
+          }
+          Path("/tmp/commit-request.json").write_text(
+              json.dumps(payload) + "\n", encoding="utf-8"
+          )
+          PY
+          commit_sha="$(gh api -X POST "repos/$GITHUB_REPOSITORY/git/commits" --input /tmp/commit-request.json --jq '.sha')"
+
+          COMMIT_SHA="$commit_sha" python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          Path("/tmp/ref-request.json").write_text(
+              json.dumps({"sha": os.environ["COMMIT_SHA"], "force": False}) + "\n",
+              encoding="utf-8",
+          )
+          PY
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/coord/dispatch-claims" --input /tmp/ref-request.json >/dev/null
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/coord/dispatch-claims" --jq '.object.sha')" = "$commit_sha"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Publish machine-readable activation receipt
+        if: always() && hashFiles('claim-activation-request.json') != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const req = JSON.parse(fs.readFileSync('claim-activation-request.json', 'utf8'));
+            const commitSha = '\${{ steps.cas.outputs.commit_sha }}';
+            const result = '\${{ steps.cas.outcome }}' === 'success' && commitSha ? 'GREEN' : 'FAIL';
+            const receipt = {
+              schema: 'WHD_REMOTE_CLAIM_ACTIVATION_RESULT_V1',
+              request_comment_id: req.request_comment_id,
+              issue: req.issue,
+              worker: req.worker,
+              transition: req.transition,
+              coord_parent_sha: req.coord_parent_sha,
+              claim_path: req.claim_path,
+              checkpoint_path: req.checkpoint_path,
+              candidate_claim_blob_sha: req.candidate_claim_blob_sha,
+              candidate_checkpoint_blob_sha: req.candidate_checkpoint_blob_sha,
+              guard_authority_sha: req.guard_authority_sha,
+              commit_sha: commitSha || null,
+              result,
+            };
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                'WHD_REMOTE_CLAIM_ACTIVATION_RESULT_V1',
+                '~~~json',
+                JSON.stringify(receipt, null, 2),
+                '~~~',
+              ].join('\n'),
+            });

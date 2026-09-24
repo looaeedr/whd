@@ -542,9 +542,16 @@ def _assert_post_commit_claim_head_reconciliation(
     changed_files: tuple[str, ...],
 ) -> None:
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
-    if changed_files != (expected_claim_path,):
+    expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
+    allowed_scopes = {
+        (expected_claim_path,),
+        (expected_claim_path, expected_checkpoint_path),
+        (expected_checkpoint_path, expected_claim_path),
+    }
+    if changed_files not in allowed_scopes:
         raise ExecutionClaimError(
-            "post-commit claim-head reconciliation may write only the exact shared claim path"
+            "post-commit claim-head reconciliation may write only the exact shared "
+            "claim path or exact claim+checkpoint pair"
         )
 
     commit = _github_commit(expected_live_head_sha)
@@ -984,6 +991,97 @@ def load_execution_claim(
     )
 
 
+
+def _load_active_claim_checkpoint(path: Path):
+    try:
+        from tools.continuity_controller import CheckpointError, load_checkpoint
+    except ModuleNotFoundError:
+        from continuity_controller import CheckpointError, load_checkpoint  # type: ignore[no-redef]
+
+    try:
+        return load_checkpoint(Path(path))
+    except CheckpointError as exc:
+        raise ExecutionClaimError(
+            f"ACTIVE_CLAIM_REQUIRES_CHECKPOINT: {exc}"
+        ) from exc
+
+
+def assert_active_claim_requires_checkpoint(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+):
+    """Validate the exact non-terminal checkpoint paired with one active claim."""
+
+    if claim.phase not in ACTIVE_PHASES:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: "
+            f"claim is not active: phase={claim.phase}"
+        )
+
+    checkpoint = _load_active_claim_checkpoint(checkpoint_path)
+    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
+    if str(checkpoint.issue) != str(claim.issue):
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint issue mismatch "
+            f"expected={claim.issue} actual={checkpoint.issue}"
+        )
+    if checkpoint.branch != claim.work_branch:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint branch mismatch "
+            f"expected={claim.work_branch!r} actual={checkpoint.branch!r}"
+        )
+    if checkpoint.head_sha != claim.head_sha:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint head mismatch "
+            f"expected={claim.head_sha} actual={checkpoint.head_sha}"
+        )
+    if state_value in {"TERMINAL_SUCCESS", "TERMINAL_FAILURE"}:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: active claim cannot use "
+            f"terminal checkpoint state={state_value}"
+        )
+    return checkpoint
+
+
+def assert_active_claim_activation_transaction(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+    *,
+    transition: str,
+    changed_files: Iterable[str],
+):
+    """Validate one active-claim activation/re-activation transaction."""
+
+    transition = str(transition).strip()
+    allowed = {"fresh-create", "successor-create", "takeover", "reactivate"}
+    if transition not in allowed:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: unsupported activation transition "
+            f"{transition!r}"
+        )
+
+    checkpoint = assert_active_claim_requires_checkpoint(claim, checkpoint_path)
+    normalized = _normalize_changed_files(changed_files)
+    claim_path = f".dispatch/claims/issue-{claim.issue}.json"
+    checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
+
+    if transition in {"fresh-create", "successor-create"}:
+        if len(normalized) != 2 or set(normalized) != {
+            claim_path,
+            checkpoint_repo_path,
+        }:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: fresh/successor activation "
+                "must atomically create the exact claim+checkpoint pair"
+            )
+    elif claim_path not in normalized:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: takeover/reactivation must "
+            "include the exact claim path and actively validate the checkpoint"
+        )
+
+    return checkpoint
+
 def assert_execution_claim(
     path: Path,
     *,
@@ -1022,9 +1120,15 @@ def assert_execution_claim(
         )
 
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+    expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
     exact_claim_write = (
         action == "write" and normalized_changed_files == (expected_claim_path,)
     )
+    post_commit_reconcile_scopes = {
+        (expected_claim_path,),
+        (expected_claim_path, expected_checkpoint_path),
+        (expected_checkpoint_path, expected_claim_path),
+    }
     claim = load_execution_claim(
         path,
         allow_released_recovery=exact_claim_write,
@@ -1068,7 +1172,7 @@ def assert_execution_claim(
         )
 
     if action != "claim-takeover" and claim.head_sha != expected_head_sha:
-        if action == "write" and normalized_changed_files == (expected_claim_path,):
+        if action == "write" and normalized_changed_files in post_commit_reconcile_scopes:
             raw_claim = _load_raw_claim_payload(path)
             _assert_post_commit_claim_head_reconciliation(
                 path,
@@ -1122,6 +1226,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="repository-relative file mutated by write/commit; repeat for multiple files",
     )
     parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="exact continuity checkpoint required by ACTIVE_CLAIM_REQUIRES_CHECKPOINT",
+    )
+    parser.add_argument(
         "--preflight-evidence",
         action="append",
         default=[],
@@ -1156,6 +1265,28 @@ def main(argv: Iterable[str] | None = None) -> int:
             takeover_evidence=args.takeover_evidence,
             user_authority_evidence=args.user_authority_evidence,
         )
+
+        normalized_changed_files = _normalize_changed_files(args.changed_file)
+        if claim.head_sha != args.expected_head_sha and args.action == "write":
+            expected_pair = {
+                f".dispatch/claims/issue-{args.issue}.json",
+                f".dispatch/checkpoints/issue-{args.issue}.json",
+            }
+            if (
+                len(normalized_changed_files) != 2
+                or set(normalized_changed_files) != expected_pair
+            ):
+                raise ExecutionClaimError(
+                    "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: post-commit reconciliation "
+                    "must atomically update the exact claim+checkpoint pair"
+                )
+
+        if args.checkpoint is None:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: --checkpoint is required "
+                "for every trusted prewrite action"
+            )
+        assert_active_claim_requires_checkpoint(claim, args.checkpoint)
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")
         return 2
