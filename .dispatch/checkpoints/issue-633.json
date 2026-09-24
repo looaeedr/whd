@@ -22,6 +22,6 @@
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance durable checkpoint to ISSUE_CLOSE_PENDING, then authorize and verify bound finalization proof before closing Issue #633"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "authorize and verify bound finalization proof on this exact checkpoint, then close Issue #633 without checkpoint mutation and fresh-read closed/completed"
 }
