@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T22:13:28+08:00",
   "base_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
   "head_sha": "5039d99208e247b6470581839308b3e89bf46674",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T22:26:55+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-24T22:29:15+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "expected_parent_sha": "587218f67b4b37c9fd8597aa9395800c1f51354e",
@@ -19,17 +19,23 @@
   "remote_qa": {
     "run_id": 36012764771,
     "head_sha": "5039d99208e247b6470581839308b3e89bf46674",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue617-a2.yml",
-    "replaces_run_id": 36012377270
+    "replaces_run_id": 36012377270,
+    "evidence": {
+      "headless_job_id": 107677405923,
+      "headless": "20 passed in 1.40s",
+      "xvfb_job_id": 107677405533,
+      "xvfb": "29 passed in 2.63s"
+    }
   },
-  "next_action": "Poll exact replacement QA run 36012764771 at head 5039d99208e247b6470581839308b3e89bf46674 to terminal; on success clean one-shot workflow and complete drift/structural acceptance, on failure read exact logs and repair.",
+  "next_action": "Remove the one-shot qa-issue617-a2.yml from the work-order branch, reconcile the cleaned HEAD, then run tested-head→cleaned-head drift and structural acceptance.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 36012799277,
-    "request_comment_id": 5816052032,
+    "run_id": 36013133222,
+    "request_comment_id": 5816103668,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
