@@ -1,0 +1,63 @@
+name: WHD｜#581｜#534 聊天室接手實證
+run-name: "WHD｜#581｜#534 聊天室接手實證｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - governance/issue581-interactive-stale-takeover-20260924
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+jobs:
+  proof:
+    name: "實證｜fresh #534 stale takeover evaluator + claim guard"
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TARGET_ISSUE: "534"
+      REQUESTING_WORKER: "chatgpt.sol260924.issue534"
+      AUTHORITY_COMMENT_ID: "5805258285"
+    steps:
+      - name: "Checkout #581 proof branch"
+        uses: actions/checkout@v4
+
+      - name: "Fresh-read #534 durable authority"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/takeover-proof
+          gh api "repos/${GITHUB_REPOSITORY}/contents/.dispatch/claims/issue-534.json?ref=coord/dispatch-claims"             --jq .content | tr -d '\n' | base64 -d > /tmp/takeover-proof/claim.json
+          gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${AUTHORITY_COMMENT_ID}"             > /tmp/takeover-proof/authority.json
+
+          WORK_BRANCH="$(jq -r '.work_branch' /tmp/takeover-proof/claim.json)"
+          CLAIM_HEAD="$(jq -r '.head_sha' /tmp/takeover-proof/claim.json)"
+          RUN_ID="$(jq -r '.remote_qa.run_id' /tmp/takeover-proof/claim.json)"
+
+          LIVE_HEAD="$(git ls-remote "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/heads/${WORK_BRANCH}" | awk '{print $1}')"
+          test -n "${LIVE_HEAD}"
+          test "${LIVE_HEAD}" = "${CLAIM_HEAD}"
+
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${LIVE_HEAD}"             --jq '.commit.committer.date' > /tmp/takeover-proof/commit_at.txt
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}"             | jq '{run_id:.id, found:true, head_sha:.head_sha, status:.status, conclusion:.conclusion, updated_at:.updated_at}'             > /tmp/takeover-proof/remote.json
+
+          echo "WORK_BRANCH=${WORK_BRANCH}" >> "${GITHUB_ENV}"
+          echo "LIVE_HEAD=${LIVE_HEAD}" >> "${GITHUB_ENV}"
+          echo "BASE_SHA=$(jq -r '.base_sha' /tmp/takeover-proof/claim.json)" >> "${GITHUB_ENV}"
+          echo "OLD_WORKER=$(jq -r '.worker' /tmp/takeover-proof/claim.json)" >> "${GITHUB_ENV}"
+
+      - name: "Run canonical stale takeover evaluator"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/stale_claim_takeover.py             --claim /tmp/takeover-proof/claim.json             --live-head-sha "${LIVE_HEAD}"             --live-head-committed-at "$(cat /tmp/takeover-proof/commit_at.txt)"             --remote-run-json /tmp/takeover-proof/remote.json             --stale-after-seconds 600             --requesting-worker "${REQUESTING_WORKER}"             --requesting-executor-source chat             --user-authority-json /tmp/takeover-proof/authority.json             --require-actionable             --decision-out /tmp/takeover-proof/decision.json
+          cat /tmp/takeover-proof/decision.json
+
+      - name: "Run canonical execution claim guard"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/execution_claim_guard.py             --claim /tmp/takeover-proof/claim.json             --issue "${TARGET_ISSUE}"             --worker "${OLD_WORKER}"             --branch "${WORK_BRANCH}"             --action claim-takeover             --base-sha "${BASE_SHA}"             --head-sha "${LIVE_HEAD}"             --takeover-evidence /tmp/takeover-proof/decision.json             --user-authority-evidence /tmp/takeover-proof/authority.json
+          echo "INTERACTIVE_TAKEOVER_PROOF_GREEN issue=${TARGET_ISSUE} previous_worker=${OLD_WORKER} requesting_worker=${REQUESTING_WORKER} live_head=${LIVE_HEAD}"
