@@ -6,14 +6,31 @@
   "work_branch": "governance/issue603-merge-work-delta-reconciliation-20260924",
   "claimed_at": "2026-09-24T16:44:00+08:00",
   "base_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
-  "head_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T16:44:00+08:00",
+  "head_sha": "255a4b0b1becd029e92ee4337812e90e344b5d3f",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T16:47:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-WORK-DELTA",
   "parent_issue": 534,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Guard-create the owning branch from exact production HEAD, reproduce the merge work-delta RED, then implement the narrow #570-compatible reconciliation repair and focused tests.",
-  "blocker": null
+  "next_action": "Run focused remote QA for the merge work-delta reconciliation regression; if GREEN, clean temporary QA workflow if created, drift-audit, integrate repair non-force, terminal checkpoint/finalization, release, then return to #534.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35977273442,
+    "request_comment_id": 5810885679,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
+    "consumed": true
+  },
+  "implementation": {
+    "commit": "255a4b0b1becd029e92ee4337812e90e344b5d3f",
+    "changed_files": [
+      "tools/execution_claim_guard.py",
+      "tests/process/test_issue570_merge_head_claim_reconciliation.py"
+    ],
+    "root_cause": "merge reconciliation must evaluate work delta against production parent rather than generic merge-commit files"
+  }
 }
