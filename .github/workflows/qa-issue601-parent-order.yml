@@ -16,6 +16,10 @@ jobs:
     steps:
       - name: "Checkout exact branch"
         uses: actions/checkout@v4
+      - name: "安裝 Tk 測試環境"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
       - name: "安裝 pytest"
         run: python -m pip install pytest
       - name: "執行 parent-order focused tests"
