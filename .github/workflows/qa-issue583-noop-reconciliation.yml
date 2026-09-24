@@ -1,0 +1,28 @@
+name: WHD｜#583｜no-op reconciliation focused QA
+run-name: "WHD｜#583｜no-op reconciliation｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - governance/issue583-noop-reconciliation-20260924
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "Focused｜claim-head reconcile"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run focused governance regression
+        run: |
+          python -m pytest -q \
+            tests/process/test_issue558_post_commit_claim_head_reconcile.py \
+            tests/process/test_issue570_merge_head_claim_reconciliation.py \
+            tests/process/test_issue256_execution_claim_guard.py
