@@ -1,0 +1,19 @@
+{
+  "issue": 603,
+  "issue_url": "https://github.com/looaeedr/whd/issues/603",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue603-merge-work-delta-reconciliation-20260924",
+  "claimed_at": "2026-09-24T16:44:00+08:00",
+  "base_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
+  "head_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T16:44:00+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "task_id": "GOV-MERGE-WORK-DELTA",
+  "parent_issue": 534,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Guard-create the owning branch from exact production HEAD, reproduce the merge work-delta RED, then implement the narrow #570-compatible reconciliation repair and focused tests.",
+  "blocker": null
+}
