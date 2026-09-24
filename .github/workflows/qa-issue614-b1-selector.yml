@@ -1,0 +1,74 @@
+name: "WHD｜#614｜B1 後面板選單 Xvfb"
+run-name: "WHD｜#614｜B1 後面板選單 Xvfb"
+
+on:
+  push:
+    branches:
+      - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
+    paths:
+      - 'tests/test_issue614_receiving_back_panel_selector_reachability.py'
+      - 'fold_designer_bridge.py'
+      - '.github/workflows/qa-issue614-b1-selector.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "B1 真實操作路徑與 BACK_OPENING"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: "Checkout exact candidate"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "安裝 Xvfb 與 Python 相依"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -q pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+
+      - name: "Phase6 Knowledge Preflight"
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/issue614-preflight.txt <<'EOF'
+          phase6-gui-performance-integrity
+          monitoring-remote-qa
+          long-log-context-safe-execution
+          executable-continuity-controller
+          Python測試實務
+          UI設計與去AI味
+          diagnosing-bugs
+          tdd
+          phase6-corner-3d-model-integrity
+          驗證板件與DXF
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md
+          READ_REFERENCE: 個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/long_log_context_safe_execution.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+          READ_REFERENCE: 個人AI檔案庫/踩坑庫/phase6_assembly_relief_pitfalls.md
+          READ_REFERENCE: 基準檔/截角資料庫/README_母規則說明.md
+          READ_REFERENCE: 基準檔/截角資料庫/certified_relief_rules.json
+          EOF
+          python tools/phase6_skill_preflight.py \
+            --task "Receiving rear-panel selector GUI regression BACK_OPENING DXF" \
+            --changed-file tests/test_issue614_receiving_back_panel_selector_reachability.py \
+            --changed-file fold_designer_bridge.py \
+            --evidence /tmp/issue614-preflight.txt
+
+      - name: "執行 #614 focused Xvfb"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue614
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue614_receiving_back_panel_selector_reachability.py \
+            --tb=short \
+            --json-report --json-report-file=/tmp/issue614/report.json
