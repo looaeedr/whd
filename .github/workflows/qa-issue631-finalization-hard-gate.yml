@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   contract:
@@ -43,3 +44,19 @@ jobs:
         run: |
           set -euo pipefail
           python -m pytest -q tests/process/test_continuity_controller.py
+
+      - name: Publish exact QA identity
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 631,
+              body: [
+                'WHD_ISSUE631_QA_RESULT_V1',
+                'run_id=' + context.runId,
+                'head_sha=' + context.sha,
+              ].join('\\n'),
+            });
