@@ -1,0 +1,76 @@
+name: WHD｜#617 A2｜Door Layout 深 owner 驗收
+run-name: WHD｜#617 A2｜Door Layout Headless／Xvfb focused acceptance
+
+on:
+  push:
+    branches:
+      - work/issue627-phase7-large-module-decomposition-20260924
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: issue617-a2-focused
+  cancel-in-progress: false
+
+jobs:
+  headless:
+    name: Headless｜controller／owner structural
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 反讀 exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: 設定 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安裝 focused 驗收相依套件
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: 執行 Door Layout controller 與既有 owner structural tests
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          pytest -q             tests/test_issue617_phase7_a2_door_layout_controller.py             tests/test_issue294_t6_task4a_indicator_extraction.py             tests/test_issue294_t6_task6a_box_body_interaction_extraction.py             tests/test_issue294_t6_task6c_box_body_aggregate_extraction.py             tests/test_issue293_t5_part_editor_routing.py
+
+  xvfb:
+    name: Xvfb｜Door Layout exact user paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 反讀 exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: 設定 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 安裝 Xvfb 驗收相依套件
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest matplotlib ezdxf
+      - name: 執行 Door Layout 使用者路徑
+        shell: bash
+        env:
+          PYTHONPATH: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          xvfb-run -a pytest -q             tests/test_multi_door_layout.py             tests/test_door_layout_asymmetric_contract.py             tests/test_door_layout_remainder_completion.py
