@@ -7,13 +7,19 @@
   "claimed_at": "2026-09-25T02:31:39+08:00",
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "head_sha": "bd5653e088ac0d8ab41c32005819cfff8ae7c2f9",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-25T02:52:13+08:00",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-25T02:53:33+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock the push-triggered #638 QA run whose head_sha is bd5653e088ac0d8ab41c32005819cfff8ae7c2f9; monitor the same run to terminal; if GREEN, remove the one-shot workflow and perform tested-head→closing-head drift audit.",
+  "remote_qa": {
+    "run_id": 36044183379,
+    "head_sha": "bd5653e088ac0d8ab41c32005819cfff8ae7c2f9",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow_path": ".github/workflows/qa-issue638-helper-aware-takeover.yml"
+  },
+  "next_action": "Remove only .github/workflows/qa-issue638-helper-aware-takeover.yml under a fresh exact commit Guard, reconcile claim to the cleaned head, then prove tested-head→closing-head drift is workflow-deletion-only.",
   "blocker": null,
   "evidence": {
     "requirement_authority": "User instruction 2026-09-25: 補啊",
@@ -25,12 +31,15 @@
     "red_qa_run_id": 36042591223,
     "green_commit": "bd5653e088ac0d8ab41c32005819cfff8ae7c2f9",
     "green_commit_guard_run_id": 36043207028,
-    "green_claim_reconcile_guard_run_id": 36044206152
+    "green_claim_reconcile_guard_run_id": 36044206152,
+    "green_qa_run_id": 36044183379,
+    "green_qa_result": "29 passed, 0 failed",
+    "green_qa_claim_writeback_guard_run_id": 36044341521
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36044206152,
-    "request_comment_id": 5820213122,
+    "run_id": 36044341521,
+    "request_comment_id": 5820230904,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
