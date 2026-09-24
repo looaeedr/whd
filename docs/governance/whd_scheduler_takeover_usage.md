@@ -217,3 +217,15 @@ active_run_head_sha=<optional>
 `active_run_id/head`必須成對；沒有 active exact run時兩欄都省略。Canonical selector是 `tools/scheduler_runtime_liveness.py`，只接受 repository owner authored comment並選 exact issue/lane最新一筆；takeover evaluator再驗 claim blob/branch/head/TTL。
 
 判斷優先序：same-lane direct resume → active exact run `RUN_LIVE` → foreign scheduler valid lease wait → missing/expired lease + >=90s grace `ORPHANED_SCHEDULER_OWNER` → 一般 foreign owner >=600s `EXECUTOR_STUCK`。任何 actionable結果仍需 Remote Guard GREEN → CAS → fresh readback → 同輪繼續。
+
+
+## 15. Invalid-phase exact claim write recovery
+
+當 shared claim 因舊/錯誤 process-state 寫入未知 phase，canonical Guard 仍 fail closed；唯一 recovery 例外是：
+
+- `action=write`；
+- `changed_file` 唯一且 exact 等於該 Issue 自己的 `.dispatch/claims/issue-N.json`；
+- worker / issue / branch / base / head identity 仍必須 exact；
+- 這個例外只允許載入 unknown phase 以正規化 claim，不授權其他 repository mutation；
+- `commit`、`pr-write`、`claim-takeover`、dispatch、其他 changed path 仍因 unknown phase fail closed；
+- terminal / RELEASED 語意不因此放寬，仍依既有 reopened-released 專用規則。
