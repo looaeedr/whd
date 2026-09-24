@@ -41,7 +41,7 @@ def test_contract_would_reject_old_shortened_prompt_shape() -> None:
     有 next_action 就繼續。
     """
     missing = _missing_markers(broken)
-    assert "遠端執行守門" in missing
+    assert "派工 + 遠端執行守門" in missing
     assert "UNCONSUMED_GREEN_FIRST_RECOVERY" in missing
     assert "HEARTBEAT_IS_NOT_WORK" in missing
     assert "BLOCKED_IS_NOT_AN_ESCAPE_HATCH" in missing
