@@ -1,0 +1,21 @@
+{
+  "issue": 614,
+  "issue_url": "https://github.com/looaeedr/whd/issues/614",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "claimed_at": "2026-09-24T21:11:30+08:00",
+  "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "head_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T21:11:30+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "master_issue": 628,
+  "task_id": "B1",
+  "parent_issue": 628,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create Master work-order branch from exact frozen X base b61db24e4428100b7e7d627ae946a04f93ca0f8b, run Phase6 Knowledge Preflight for #614, reproduce the real user path RED without hidden box_body:back activation, then implement the smallest canonical selector restoration.",
+  "blocker": null
+}
