@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "638",
+  "branch": "work/issue638-helper-aware-takeover-20260925",
+  "head_sha": "3ea1f75cada6ef8079528ca60122fcc81d226124",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36044183379,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "RED QA run 36042591223 reproduced missing delegated/helper takeover protection",
+    "GREEN QA run 36044183379 completed success: 29 passed, 0 failed",
+    "temporary QA workflow removed at closing head 3ea1f75cada6ef8079528ca60122fcc81d226124",
+    "tested-head bd5653e088ac0d8ab41c32005819cfff8ae7c2f9 to closing-head drift PASS: workflow deletion only",
+    "PR #639 merged and production integration read back at 2bf5969aba8c8aa033b314f0d6f92165239f67c0"
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance terminal checkpoint to ISSUE_CLOSE_PENDING before minting any finalization proof"
+}
