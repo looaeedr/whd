@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-24T19:56:40.367394Z",
   "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
-  "head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T20:37:50.497531Z",
+  "head_sha": "b6ee02e2c226e868b009cd6f770dcf026a587477",
+  "phase": "RED",
+  "last_update": "2026-09-24T22:36:40.869479Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T2",
   "expected_parent_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "98cc5ae60979bc665db3e716dbc960557b340fbd",
+  "chain_head": "b6ee02e2c226e868b009cd6f770dcf026a587477",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-01"
@@ -35,7 +35,7 @@
       "marker": "ISSUE642_T2_RED=GREEN"
     }
   },
-  "next_action": "Implement ACTIVE_CLAIM_REQUIRES_CHECKPOINT activation transaction validator + prewrite backstop in canonical execution-claim guard; preserve narrow assert_execution_claim contract; run focused GREEN.",
+  "next_action": "Run the #642 trusted Remote Claim Activation workflow contract RED at b6ee02e2c226e868b009cd6f770dcf026a587477, capture the intended missing-workflow failure, then implement activation validator + trusted workflow + prewrite backstop.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-642.json",
   "predecessor": {
@@ -64,6 +64,13 @@
     "new_head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
     "guard_request_comment_id": 5821816933,
     "guard_run_id": 36055875952,
+    "result": "GREEN"
+  },
+  "reconcile_after_trusted_activation_contract_red_commit": {
+    "prior_head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
+    "new_head_sha": "b6ee02e2c226e868b009cd6f770dcf026a587477",
+    "guard_request_comment_id": 5823365844,
+    "guard_run_id": 36068387814,
     "result": "GREEN"
   }
 }
