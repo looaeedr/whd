@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "606",
+  "branch": "governance/issue606-claim-phase-recovery-20260924",
+  "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Issue #606 restored legal process continuity for parent #535 without replaying PR #605 or rewriting production history.",
+    "The current guard already provides a narrow exact-claim-file unknown-phase recovery path; no production/guard code weakening was required.",
+    "Guard run 35993471764 authorized the exact .dispatch/claims/issue-535.json recovery from POST_INTEGRATION_READBACK to canonical CLOSING under the same shared-lane owner.",
+    "Fresh readback confirmed #535 claim blob 42fe06ad63480fe3aed2eec56f1cca1156699541 phase=CLOSING and integration_replay=false.",
+    "Parent #535 then wrote terminal checkpoint ef9e81fbc9655c00c03c77d32a94fa711ab2e2f0 and trusted finalization run 35993836482 produced WHD_REMOTE_FINALIZATION_RECEIPT_V1 GREEN / FINALIZATION_PROOF_VALID."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "535",
+  "chain_next_action": "Consume #535 trusted finalization proof, close/readback #535, release its claim, then continue Master #520 final closure.",
+  "chain_reason": "Governance repair is complete; parent #535 is legally back on canonical CLOSING and has valid terminal finalization proof."
+}
