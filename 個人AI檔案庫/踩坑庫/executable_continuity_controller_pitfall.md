@@ -110,3 +110,23 @@ terminal 但 `closure_state != CLOSED` 一律拒絕 turn exit，並由 `closure_
 3. successor / Master chain handoff。
 
 即使 child CLOSED，`NEXT_CHILD_EXECUTABLE` 仍由 Master chain gate 阻擋 turn exit並直接續下一票。
+
+
+## ISSUE633_FINALIZATION_PROOF_ORDER_PITFALL — proof 前先進 ISSUE_CLOSE_PENDING
+
+2026-09-25 在 #632 整合後 fresh-read closure contract 發現：若流程採「`FINALIZATION_PENDING` 先 authorize/verify proof → 再把 checkpoint 改成 `ISSUE_CLOSE_PENDING` → close Issue」，第二步會改變 checkpoint fingerprint，導致剛取得的 proof 在真正 close 前立即 stale。
+
+永久順序只有一個：
+
+```text
+FINALIZATION_PENDING
+→ durable advance to ISSUE_CLOSE_PENDING
+→ authorize-finalization + verify-finalization-proof on exact current checkpoint
+→ NO CHECKPOINT MUTATION
+→ close owning Issue
+→ fresh readback closed/completed
+→ advance RELEASE_HANDOFF_PENDING
+→ atomic CLOSED + RELEASED + successor handoff
+```
+
+Machine 防線：`tools/continuity_controller.py::authorize_finalization` 必須拒絕任何 `closure_state != ISSUE_CLOSE_PENDING`。proof 產生後若 checkpoint evidence、closure state 或任何 serialized field 被改動，舊 proof 一律 stale；不得用舊 proof 關單。

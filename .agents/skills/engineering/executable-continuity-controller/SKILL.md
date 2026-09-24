@@ -225,15 +225,15 @@ Contract:
 
 - canonical nonterminal → terminal transition automatically enters `FINALIZATION_PENDING` with a durable `closure_next_action`;
 - a persisted legacy terminal checkpoint missing closure metadata is recovered as `FINALIZATION_PENDING`, never silently treated as closed;
-- `assert_finalizable` / `authorize-finalization` continue to accept a terminal checkpoint while closure is pending, because the bound proof is the first closure step;
+- `assert_finalizable` remains a terminal-only state predicate, but `authorize-finalization` MUST additionally require `closure_state=ISSUE_CLOSE_PENDING`; proof cannot be minted in `FINALIZATION_PENDING`;
 - `advance_closure(...)` is terminal-only and adjacent/monotonic; backward transitions, skipping stages, or advancing an already `CLOSED` transaction fail closed;
 - `assert_turn_exitable` rejects every terminal checkpoint whose `closure_state != CLOSED` and surfaces its exact `closure_next_action`;
 - CLI `resume` returns `closure_next_action` before any Master successor handoff while closure remains pending;
-- after finalization proof is verified, advance to `ISSUE_CLOSE_PENDING`; after Issue close + fresh `closed/completed` readback, advance to `RELEASE_HANDOFF_PENDING`;
+- first advance `FINALIZATION_PENDING → ISSUE_CLOSE_PENDING`; then authorize + verify the bound proof on that exact checkpoint and do not mutate the checkpoint again before Issue close; after Issue close + fresh `closed/completed` readback, advance to `RELEASE_HANDOFF_PENDING`;
 - the final coordination mutation MUST atomically persist all three facts: checkpoint `closure_state=CLOSED`, execution claim `phase=RELEASED`, and successor/chain handoff. This avoids an impossible post-release checkpoint write and closes the half-terminal gap.
 - `CLOSED` only completes the current child closure. Existing `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1` still rejects exit when `chain_state=NEXT_CHILD_EXECUTABLE`.
 
-Turn-exit proof payloads bind `closure_state` in addition to owner/master/checkpoint digest, so a proof minted before closure progression becomes stale after the checkpoint changes.
+Turn-exit proof payloads bind `closure_state` in addition to owner/master/checkpoint digest. Finalization proof also binds the complete checkpoint fingerprint: enter `ISSUE_CLOSE_PENDING` first, mint/verify proof second, then keep that checkpoint byte-for-byte unchanged until the irreversible Issue close + readback boundary.
 
 ## Resume gate
 
@@ -257,7 +257,7 @@ When remote QA is submitted, transition and persist:
 
 The remote runner itself must continue independently to terminal. Chat polling is observation, not the scheduler. A runtime cut must not create a new run merely to recover context.
 
-On terminal success, transition out of `WAITING_REMOTE`; if acceptance/cleanup remains, use `RUNNING` with the next exact action. Only after all required acceptance/invariant/cleanup/closure gates are satisfied may the workflow transition to `TERMINAL_SUCCESS` and pass the owned finalization authorization flow above.
+On terminal success, transition out of `WAITING_REMOTE`; if acceptance/cleanup remains, use `RUNNING` with the next exact action. Only after required acceptance/invariant/cleanup gates are satisfied may the child acceptance checkpoint transition to `TERMINAL_SUCCESS`. Process closure then continues through the terminal `ClosureState` lifecycle; terminal acceptance never skips finalization proof, Issue close/readback, claim release, or successor handoff.
 
 On terminal failure, use `RECOVERING` with the concrete evidence/root-cause action. Only a genuine irrecoverable/authoritative failure that ends the workflow may become `TERMINAL_FAILURE`.
 
