@@ -1,0 +1,17 @@
+{
+  "issue": 592,
+  "issue_url": "https://github.com/looaeedr/whd/issues/592",
+  "worker": "scheduler.6ab4af0141b48191a1ecd0e64b63ff4d",
+  "executor_source": "scheduler",
+  "work_branch": "governance/issue592-sibling-orphan-e2e-20260924",
+  "claimed_at": "2026-09-24T13:05:11+08:00",
+  "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "phase": "E2E_OWNER",
+  "last_update": "2026-09-24T13:05:11+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Wait for sibling scheduler after orphan grace to take over with ORPHANED_SCHEDULER_OWNER evidence and perform same-invocation substantive continuation.",
+  "blocker": null,
+  "remote_qa": null
+}
