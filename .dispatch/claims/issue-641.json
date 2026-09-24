@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-24T19:36:26Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-  "head_sha": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
+  "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "phase": "CLEANUP",
-  "last_update": "2026-09-24T19:46:07.030159Z",
+  "last_update": "2026-09-24T19:47:55.637647Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T1",
   "expected_parent_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
+  "chain_head": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -45,7 +45,7 @@
       "pytest": "6 failed in 0.23s (all intended requirement gaps); wrapper ISSUE641_T1_REQUIREMENT_RED=GREEN"
     }
   },
-  "next_action": "Remove only .github/workflows/qa-issue641-t1-red.yml under fresh exact commit Guard; reconcile claim HEAD; prove tested-head→closing-head drift is workflow-deletion-only; then finalize/close/release #641 and hand off #642.",
+  "next_action": "Prove tested-head eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f → closing-head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 is workflow-deletion-only; then enter canonical terminal closure for #641 and hand off #642.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-641.json",
   "branch_create_guard": {
@@ -71,5 +71,14 @@
     "request_comment_id": 5821049740,
     "run_id": 36050344667,
     "result": "GREEN"
+  },
+  "cleanup_evidence": {
+    "tested_head": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
+    "closing_head": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+    "workflow_removed": ".github/workflows/qa-issue641-t1-red.yml",
+    "cleanup_guard_request_comment_id": 5821068929,
+    "cleanup_guard_run_id": 36050471265,
+    "reconcile_guard_request_comment_id": 5821079429,
+    "reconcile_guard_run_id": 36050548779
   }
 }
