@@ -40,6 +40,27 @@ claim/checkpoint 的 remote QA 狀態只是 durable snapshot；只要存在 exac
 - 「不假報完成」與「持續施工」是兩個獨立義務：前者禁止假綠，後者禁止非終態自行停工。
 - 任何 user-visible progress/checkpoint 後，只要沒有合法 stop condition，就必須接續下一個 tool/action；不得輸出狀態後直接結束回合。
 
+### FINALIZATION_TRANSACTION_HARD_GATE_V1
+
+Child acceptance terminal 與 process closure 是兩件事。任何 child 進入 `TERMINAL_SUCCESS / TERMINAL_FAILURE` 後，仍必須服從 `tools/continuity_controller.py` 的 canonical `ClosureState`；terminal checkpoint **不是** turn-exit authority。
+
+固定 durable closure progression：
+
+```text
+FINALIZATION_PENDING
+→ ISSUE_CLOSE_PENDING
+→ RELEASE_HANDOFF_PENDING
+→ CLOSED
+```
+
+- `FINALIZATION_PENDING`：跑 exact owning checkpoint 的 bound finalization proof；`authorize-finalization / verify-finalization-proof` 仍允許 terminal checkpoint，不能因 closure pending 反向死鎖 proof。
+- `ISSUE_CLOSE_PENDING`：執行 owning Issue close，立即 fresh-read 驗 `closed/completed`；沒有 readback 不得前進。
+- `RELEASE_HANDOFF_PENDING`：最後一個 coordination mutation 必須把 **checkpoint `closure_state=CLOSED` + shared claim `phase=RELEASED` + successor/chain handoff** 放在同一個 durable coordination commit；禁止先 release claim 再另補 checkpoint，因 release 後 owner 已失去 active mutation authority。
+- `CLOSED`：只代表本 child 的 closure transaction 已完整落盤；若 `chain_state=NEXT_CHILD_EXECUTABLE`，Master continuity 仍必須立即前進下一 child，不得把 child CLOSED 當 Master terminal。
+- 任一 pending closure state 都必須有非空 `closure_next_action`；`assert_turn_exitable` 必須拒絕 normal return。scheduler/interactive executor 都不得以「checkpoint 已 terminal」「Issue 已 close」「PR 已 merge」單項證據繞過。
+- 舊 terminal checkpoint 若缺 closure metadata，canonical loader 必須 fail-safe recovery 成 `FINALIZATION_PENDING`，由 durable evidence 重建 closure；不得默認成已 CLOSED。
+- 本節只定義派工責任；狀態 schema、合法 transition、resume/turn-exit machine enforcement 由 `executable-continuity-controller` 唯一擁有，禁止在 prompt/Skill 複製第二套 parser。
+
 ## 1. 啟動與能力邊界
 ### 1.1 先遵守專案啟動鏈
 任何實質派工、production/test/Skill/SOP 修改前，先依 `AGENTS.md` 執行 Phase6 Knowledge Preflight，讀完 required Skills / required references 並留下 evidence。預計修改檔已知後，再依專案規則帶 `--changed-file` 重跑。

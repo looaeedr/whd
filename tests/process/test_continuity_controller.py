@@ -298,3 +298,142 @@ def test_assert_turn_exitable_cli_blocks_running_checkpoint(tmp_path: Path, caps
     assert exit_code == 2
     assert "TURN_EXIT_GUARD_ERROR" in output
     assert "close issue after cleanup" in output
+
+
+def _closure_state_api():
+    closure_state = getattr(continuity, "ClosureState", None)
+    assert isinstance(closure_state, type), "continuity controller is missing ClosureState"
+    return closure_state
+
+
+def test_terminal_checkpoint_with_pending_closure_cannot_exit_turn():
+    closure_state = _closure_state_api()
+    guard, blocked_error = _turn_exit_api()
+    checkpoint = _running(
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+        closure_state=closure_state.FINALIZATION_PENDING,
+        closure_next_action="run bound finalization proof then close/readback/release",
+    )
+
+    with pytest.raises(blocked_error, match="finalization proof"):
+        guard(checkpoint)
+
+
+def test_terminal_checkpoint_can_exit_only_after_closure_is_complete():
+    closure_state = _closure_state_api()
+    guard, _blocked_error = _turn_exit_api()
+    checkpoint = _running(
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+        closure_state=closure_state.CLOSED,
+        closure_next_action=None,
+    )
+
+    guard(checkpoint)
+
+
+def test_terminal_transition_enters_closure_transaction_by_default():
+    guard, blocked_error = _turn_exit_api()
+    terminal = transition_checkpoint(
+        _running(),
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+    )
+
+    assert terminal.closure_state is continuity.ClosureState.FINALIZATION_PENDING
+    assert "finalization proof" in terminal.closure_next_action
+    with pytest.raises(blocked_error, match="FINALIZATION_PENDING"):
+        guard(terminal)
+
+
+def test_legacy_persisted_terminal_without_closure_metadata_recovers_as_pending(tmp_path: Path):
+    path = tmp_path / "legacy-terminal.json"
+    payload = continuity.checkpoint_to_payload(
+        _running(state=ContinuityState.TERMINAL_SUCCESS, next_action=None)
+    )
+    payload.pop("closure_state")
+    payload.pop("closure_next_action")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    recovered = load_checkpoint(path)
+
+    assert recovered.closure_state is continuity.ClosureState.FINALIZATION_PENDING
+    assert "finalization proof" in recovered.closure_next_action
+
+
+def test_pending_terminal_remains_authorizable_for_bound_finalization_proof():
+    checkpoint = _running(
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+        closure_state=continuity.ClosureState.FINALIZATION_PENDING,
+        closure_next_action="run bound finalization proof",
+    )
+
+    assert_finalizable(checkpoint)
+    proof = continuity.authorize_finalization(
+        checkpoint,
+        expected_issue=checkpoint.issue,
+        expected_branch=checkpoint.branch,
+        expected_head_sha=checkpoint.head_sha,
+    )
+    assert proof.checkpoint_fingerprint
+
+
+def test_closure_lifecycle_is_monotonic_and_only_closed_terminal_can_exit():
+    guard, blocked_error = _turn_exit_api()
+    checkpoint = transition_checkpoint(
+        _running(),
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+    )
+    checkpoint = continuity.advance_closure(
+        checkpoint,
+        state=continuity.ClosureState.ISSUE_CLOSE_PENDING,
+        next_action="close owning Issue and read it back",
+        evidence=("bound finalization proof verified",),
+    )
+    with pytest.raises(blocked_error, match="close owning Issue"):
+        guard(checkpoint)
+
+    checkpoint = continuity.advance_closure(
+        checkpoint,
+        state=continuity.ClosureState.RELEASE_HANDOFF_PENDING,
+        next_action=(
+            "atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+        ),
+        evidence=("Issue closed/completed readback verified",),
+    )
+    with pytest.raises(blocked_error, match="claim RELEASED"):
+        guard(checkpoint)
+
+    checkpoint = continuity.advance_closure(
+        checkpoint,
+        state=continuity.ClosureState.CLOSED,
+        next_action=None,
+        evidence=("atomic release/handoff closure commit read back",),
+    )
+    guard(checkpoint)
+
+    with pytest.raises(CheckpointError, match="already CLOSED"):
+        continuity.advance_closure(
+            checkpoint,
+            state=continuity.ClosureState.CLOSED,
+            next_action=None,
+        )
+
+
+def test_terminal_resume_returns_closure_next_action_before_master_handoff(tmp_path: Path, capsys):
+    path = tmp_path / "closing.json"
+    checkpoint = transition_checkpoint(
+        _running(),
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+    )
+    save_checkpoint(path, checkpoint)
+
+    exit_code = continuity.main(["resume", str(path)])
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert "finalization proof" in output

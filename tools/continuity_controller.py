@@ -56,6 +56,28 @@ class ChainContinuationState(str, Enum):
     USER_STOPPED = "USER_STOPPED"
 
 
+class ClosureState(str, Enum):
+    """Durable process-closure state after child acceptance becomes terminal."""
+
+    FINALIZATION_PENDING = "FINALIZATION_PENDING"
+    ISSUE_CLOSE_PENDING = "ISSUE_CLOSE_PENDING"
+    RELEASE_HANDOFF_PENDING = "RELEASE_HANDOFF_PENDING"
+    CLOSED = "CLOSED"
+
+
+DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION = (
+    "run bound finalization proof, close/read back the owning Issue, then atomically "
+    "persist checkpoint CLOSED + claim RELEASED + successor handoff"
+)
+
+_CLOSURE_ORDER = (
+    ClosureState.FINALIZATION_PENDING,
+    ClosureState.ISSUE_CLOSE_PENDING,
+    ClosureState.RELEASE_HANDOFF_PENDING,
+    ClosureState.CLOSED,
+)
+
+
 NONTERMINAL_STATES = frozenset(
     {
         ContinuityState.RUNNING,
@@ -150,6 +172,8 @@ class Checkpoint:
     next_issue: str | None = None
     chain_next_action: str | None = None
     chain_reason: str | None = None
+    closure_state: ClosureState = ClosureState.CLOSED
+    closure_next_action: str | None = None
 
     def __post_init__(self) -> None:
         issue = _require_text("issue", self.issue)
@@ -167,6 +191,17 @@ class Checkpoint:
         next_issue = _normalize_optional_text(self.next_issue)
         chain_next_action = _normalize_optional_text(self.chain_next_action)
         chain_reason = _normalize_optional_text(self.chain_reason)
+        closure_next_action = _normalize_optional_text(self.closure_next_action)
+        try:
+            closure_state = (
+                self.closure_state
+                if isinstance(self.closure_state, ClosureState)
+                else ClosureState(self.closure_state)
+            )
+        except (TypeError, ValueError) as exc:
+            raise CheckpointError(
+                f"invalid closure state: {self.closure_state!r}"
+            ) from exc
         try:
             chain_state = (
                 self.chain_state
@@ -199,6 +234,25 @@ class Checkpoint:
             if self.run_id is None:
                 raise CheckpointError("run_id is required for WAITING_REMOTE")
             _require_text("head_sha", head_sha)
+
+        if state in NONTERMINAL_STATES and closure_state is not ClosureState.CLOSED:
+            raise CheckpointError(
+                "closure lifecycle is only valid on terminal checkpoints"
+            )
+        if closure_state is ClosureState.CLOSED:
+            if closure_next_action is not None:
+                raise CheckpointError(
+                    "closure_next_action must be None when closure_state=CLOSED"
+                )
+        else:
+            if state not in TERMINAL_STATES:
+                raise CheckpointError(
+                    "pending closure state requires a terminal checkpoint"
+                )
+            if closure_next_action is None:
+                raise CheckpointError(
+                    f"closure_next_action is required for closure_state={closure_state.value}"
+                )
 
         if master_issue is None:
             if chain_state is not ChainContinuationState.NONE or any(
@@ -259,6 +313,8 @@ class Checkpoint:
         object.__setattr__(self, "next_issue", next_issue)
         object.__setattr__(self, "chain_next_action", chain_next_action)
         object.__setattr__(self, "chain_reason", chain_reason)
+        object.__setattr__(self, "closure_state", closure_state)
+        object.__setattr__(self, "closure_next_action", closure_next_action)
         object.__setattr__(self, "blocked_last_notified_at", blocked_last_notified_at)
         object.__setattr__(self, "evidence", tuple(normalized_evidence))
 
@@ -274,6 +330,8 @@ def scheduled_resume_action(checkpoint: Checkpoint) -> ScheduledResumeAction:
     the checkpoint and therefore cannot become a second workflow state machine.
     """
 
+    if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
+        return ScheduledResumeAction.CLOSING_HANDOFF
     if (
         checkpoint.is_terminal
         and checkpoint.chain_state is ChainContinuationState.NEXT_CHILD_EXECUTABLE
@@ -316,6 +374,7 @@ def _to_payload(checkpoint: Checkpoint) -> dict[str, object]:
     data = asdict(checkpoint)
     data["state"] = checkpoint.state.value
     data["chain_state"] = checkpoint.chain_state.value
+    data["closure_state"] = checkpoint.closure_state.value
     data["evidence"] = list(checkpoint.evidence)
     return {"version": CHECKPOINT_VERSION, **data}
 
@@ -407,6 +466,8 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
         "next_issue",
         "chain_next_action",
         "chain_reason",
+        "closure_state",
+        "closure_next_action",
     }
     unknown = set(payload) - allowed
     if unknown:
@@ -418,6 +479,15 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
 
     try:
         state = ContinuityState(payload["state"])
+        if "closure_state" in payload:
+            closure_state = ClosureState(payload["closure_state"])
+            closure_next_action = payload.get("closure_next_action")
+        elif state in TERMINAL_STATES:
+            closure_state = ClosureState.FINALIZATION_PENDING
+            closure_next_action = DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION
+        else:
+            closure_state = ClosureState.CLOSED
+            closure_next_action = None
         return Checkpoint(
             issue=payload["issue"],
             branch=payload["branch"],
@@ -437,6 +507,8 @@ def checkpoint_from_payload(payload: object) -> Checkpoint:
             next_issue=payload.get("next_issue"),
             chain_next_action=payload.get("chain_next_action"),
             chain_reason=payload.get("chain_reason"),
+            closure_state=closure_state,
+            closure_next_action=closure_next_action,
         )
     except KeyError as exc:
         raise CheckpointError(f"missing checkpoint field: {exc.args[0]}") from exc
@@ -472,6 +544,8 @@ def transition_checkpoint(
     next_issue: str | None | object = _UNSET,
     chain_next_action: str | None | object = _UNSET,
     chain_reason: str | None | object = _UNSET,
+    closure_state: ClosureState | str | object = _UNSET,
+    closure_next_action: str | None | object = _UNSET,
 ) -> Checkpoint:
     """Return a validated next checkpoint without reusing stale remote ownership."""
 
@@ -521,6 +595,28 @@ def transition_checkpoint(
         next_blocked_count = 0
         next_blocked_last_notified_at = None
 
+    if state in TERMINAL_STATES:
+        next_closure_state = (
+            ClosureState.FINALIZATION_PENDING
+            if closure_state is _UNSET
+            else closure_state
+        )
+        if closure_next_action is _UNSET:
+            next_closure_next_action = (
+                None
+                if next_closure_state is ClosureState.CLOSED
+                else DEFAULT_TERMINAL_CLOSURE_NEXT_ACTION
+            )
+        else:
+            next_closure_next_action = closure_next_action
+    else:
+        next_closure_state = (
+            ClosureState.CLOSED if closure_state is _UNSET else closure_state
+        )
+        next_closure_next_action = (
+            None if closure_next_action is _UNSET else closure_next_action
+        )
+
     merged_evidence = checkpoint.evidence + (() if evidence is None else tuple(evidence))
     return replace(
         checkpoint,
@@ -542,6 +638,43 @@ def transition_checkpoint(
             else chain_next_action
         ),
         chain_reason=checkpoint.chain_reason if chain_reason is _UNSET else chain_reason,
+        closure_state=next_closure_state,
+        closure_next_action=next_closure_next_action,
+    )
+
+
+def advance_closure(
+    checkpoint: Checkpoint,
+    *,
+    state: ClosureState | str,
+    next_action: str | None,
+    evidence: tuple[str, ...] | None = None,
+) -> Checkpoint:
+    """Advance a terminal checkpoint through the closure transaction monotonically."""
+
+    if not checkpoint.is_terminal:
+        raise CheckpointError("closure lifecycle requires a terminal checkpoint")
+    if checkpoint.closure_state is ClosureState.CLOSED:
+        raise CheckpointError("closure transaction is already CLOSED")
+    try:
+        target = state if isinstance(state, ClosureState) else ClosureState(state)
+    except (TypeError, ValueError) as exc:
+        raise CheckpointError(f"invalid closure state: {state!r}") from exc
+
+    current_index = _CLOSURE_ORDER.index(checkpoint.closure_state)
+    expected = _CLOSURE_ORDER[current_index + 1]
+    if target is not expected:
+        raise CheckpointError(
+            "closure transition must be monotonic and adjacent: "
+            f"{checkpoint.closure_state.value} -> {expected.value}; got {target.value}"
+        )
+
+    merged_evidence = checkpoint.evidence + (() if evidence is None else tuple(evidence))
+    return replace(
+        checkpoint,
+        closure_state=target,
+        closure_next_action=next_action,
+        evidence=merged_evidence,
     )
 
 
@@ -738,6 +871,13 @@ def assert_turn_exitable(
             f"next_action={checkpoint.next_action!r}"
         )
 
+    if checkpoint.is_terminal and checkpoint.closure_state is not ClosureState.CLOSED:
+        raise TurnExitBlocked(
+            "turn exit blocked: child acceptance is terminal but closure transaction remains "
+            f"{checkpoint.closure_state.value}; "
+            f"next_action={checkpoint.closure_next_action!r}"
+        )
+
     if (
         checkpoint.is_terminal
         and checkpoint.chain_state is ChainContinuationState.NEXT_CHILD_EXECUTABLE
@@ -810,6 +950,7 @@ def _turn_exit_proof_payload(
         "branch": checkpoint.branch,
         "head_sha": checkpoint.head_sha,
         "master_issue": checkpoint.master_issue,
+        "closure_state": checkpoint.closure_state.value,
         "checkpoint_digest": checkpoint_digest,
         "guard": "assert_turn_exitable",
     }
@@ -898,6 +1039,8 @@ def assert_turn_exit_permitted(
         raise TurnExitBlocked("guard invocation proof stale: owner mismatch")
     if payload.get("master_issue") != checkpoint.master_issue:
         raise TurnExitBlocked("guard invocation proof stale: Master-chain owner mismatch")
+    if payload.get("closure_state") != checkpoint.closure_state.value:
+        raise TurnExitBlocked("guard invocation proof stale: closure state mismatch")
 
     current_digest = _checkpoint_digest(checkpoint_path)
     if payload.get("checkpoint_digest") != current_digest:
@@ -1008,6 +1151,9 @@ def main(argv: Iterable[str] | None = None) -> int:
             return 0
         if args.command == "resume":
             if checkpoint.is_terminal:
+                if checkpoint.closure_state is not ClosureState.CLOSED:
+                    print(checkpoint.closure_next_action)
+                    return 0
                 if (
                     checkpoint.chain_state
                     is ChainContinuationState.NEXT_CHILD_EXECUTABLE
