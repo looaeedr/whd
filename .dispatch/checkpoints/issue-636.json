@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "issue": "636",
+  "branch": "governance/issue636-live-issue631-takeover-proof-20260925",
+  "head_sha": "c1aa435eeee8c036aaeef356a20c0fc039bdebf3",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 36040997722,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Helper purpose complete: one-shot machine takeover proof for #631 produced actionable EXECUTOR_STUCK evidence.",
+    "Takeover proof run 36040997722 completed success at proof head 07cef90f8e9d7e268213f18f2496d69d6050e67e.",
+    "#631 consumed the proof and is closed/completed.",
+    "Temporary proof workflow removed in cleanup commit c1aa435eeee8c036aaeef356a20c0fc039bdebf3.",
+    "Shared claim reconciled to cleanup head before closure."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance the durable checkpoint to ISSUE_CLOSE_PENDING, then mint and verify exact finalization proof without further checkpoint mutation before closing #636."
+}
