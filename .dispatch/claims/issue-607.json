@@ -7,19 +7,26 @@
   "claimed_at": "2026-09-24T11:07:00Z",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
   "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T11:14:20Z",
+  "phase": "PR_OPEN",
+  "last_update": "2026-09-24T11:16:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "remote_qa": null,
-  "next_action": "Fresh-read production cleanup/2d-3d-sync and work HEAD. Obtain pr-write Remote Guard for exact head 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c, create a PR containing only the 派工 Skill heartbeat-freshness correction, verify diff, then non-force merge and read back production.",
+  "next_action": "Fresh-read PR #608 and production HEAD. If PR remains mergeable with exact head 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c and base be299d40a8d79c211d1bf8cc28938fcfbcad4179, obtain a fresh single-use pr-write Remote Guard bound to current claim blob, merge non-force, then read back production and reconcile durable state.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35991816699,
-    "request_comment_id": 5812974619,
+    "run_id": 35991997110,
+    "request_comment_id": 5812998770,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
     "consumed": true
+  },
+  "pr": {
+    "number": 608,
+    "url": "https://github.com/looaeedr/whd/pull/608",
+    "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
+    "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+    "state": "open",
+    "merged": false
   }
 }
