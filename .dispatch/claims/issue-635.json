@@ -7,13 +7,13 @@
   "claimed_at": "2026-09-25T02:21:00+08:00",
   "base_sha": "c276fd7b673f80e0522208896eaa0f4a92e094a0",
   "head_sha": "793d352a09564d41ef24f61128a296b3560f1722",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T02:25:40+08:00",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T02:31:00+08:00",
   "production_target": "main",
   "frozen_x_base_sha": "c276fd7b673f80e0522208896eaa0f4a92e094a0",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Record terminal checkpoint, complete finalization/Issue close readback, and release claim.",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "user_request": "Change Remote Guard GREEN receipt TTL from 20 minutes to 40 minutes.",
@@ -34,15 +34,39 @@
       "expires_at": "2026-09-24T19:05:29.629064Z",
       "ttl_minutes": 40,
       "result": "GREEN"
-    }
+    },
+    "final_atomic_closure_guard_run_id": 36041719631
   },
   "last_guard": {
-    "action": "write",
-    "run_id": 36041107488,
-    "request_comment_id": 5819798671,
+    "action": "commit",
+    "run_id": 36041719631,
+    "request_comment_id": 5819872301,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "consumed": true
+  },
+  "pr": {
+    "number": 637,
+    "url": "https://github.com/looaeedr/whd/pull/637",
+    "head_sha": "793d352a09564d41ef24f61128a296b3560f1722",
+    "base_sha": "c276fd7b673f80e0522208896eaa0f4a92e094a0",
+    "state": "closed",
+    "merged": true,
+    "merge_commit_sha": "3058f1756acba8522f55bc6d78283c195e79d34a"
+  },
+  "integration": {
+    "production_target": "main",
+    "production_head": "3058f1756acba8522f55bc6d78283c195e79d34a",
+    "readback": true
+  },
+  "finalization": {
+    "run_id": 36041510253,
+    "artifact_id": 10826439322,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "bec2976f3389808e479b0042d43498a35cee32fe",
+    "checkpoint_fingerprint": "45741ea225239fd58bcdd2b830924daf11c46d578a03e417c74d878bb422d032",
+    "issue_state_readback": "closed/completed"
   }
 }

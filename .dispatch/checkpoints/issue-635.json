@@ -18,13 +18,14 @@
     "live receipt issued_at 2026-09-24T18:25:29.629064Z expires_at 2026-09-24T19:05:29.629064Z = 40 minutes",
     "scheduler heartbeat/stale/orphan timing unchanged",
     "remote finalization run 36041510253 GREEN: FINALIZATION_PROOF_VALID; artifact 10826439322",
-    "GitHub Issue #635 fresh readback: closed/completed"
+    "GitHub Issue #635 fresh readback: closed/completed",
+    "atomic closure commit: checkpoint CLOSED + claim RELEASED"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED"
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
