@@ -1,0 +1,23 @@
+{
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "branch": "governance/issue603-merge-work-delta-reconciliation-20260924",
+  "chain_next_action": "Resume #534 C2 closing from its durable claim; reconcile the existing legal merge-sync head under the integrated #603 production authority, then continue owning finalization.",
+  "chain_reason": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "evidence": [
+    "focused_remote_qa run_id=35977625804 tested_head=9c138dd580f7817addce88edf7fe86d545d36435 conclusion=success result=10 passed",
+    "tested_to_closing_drift=.github/workflows/qa-issue603-work-delta.yml removed + AI Library writeback closing_head=c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec",
+    "pr=604 merged_non_force=true production_head=22600198fc45cff3c2072cc0a20035e483786f05"
+  ],
+  "head_sha": "c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec",
+  "issue": "603",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": "534",
+  "next_action": null,
+  "next_issue": "534",
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
+}
