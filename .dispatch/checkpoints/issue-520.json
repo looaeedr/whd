@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "issue": "520",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35970738509,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Published Phase 6 chain A0 #521 through C3 #535 is closed/completed; all child claims are terminal after cleanup, including legacy #522 claim release.",
+    "C0 #532 final classification: Bridge LOC 6476 <= EFFECTIVE_FINAL_CEILING 6500 and total reduction 1330 >= MIN_REDUCTION 1000; Headless 106 passed/18 skipped and Xvfb 47 passed/1 skipped.",
+    "B6 #531 aggregate: facade inventory 69/69 accounted, unclassified=0, dynamic-ref-unreviewed=0, facade 69→45 with 24 removed, reverse bridge imports=0, second composition root=0.",
+    "C1 #533 permanent anti-regrowth run 35867336375 completed success and durable AI Library writeback established CURRENT machine guard authority.",
+    "C2 #534 Final Combined Acceptance run 35970738509 completed success with candidate-only Headless/Xvfb RED=0, final integrity GREEN, visual 3D PASS, and protected config/DXF invariants unchanged.",
+    "C3 #535 ownership/writeback commit c6556139957f3bbf104aa001d9b151ee542b8b60 integrated non-force via PR #605; trusted finalization run 35993836482 produced FINALIZATION_PROOF_VALID and #535 claim is RELEASED.",
+    "Current production b61db24e4428100b7e7d627ae946a04f93ca0f8b retains C3 merge be299d40a8d79c211d1bf8cc28938fcfbcad4179 as ancestor; subsequent production drift is scheduler-heartbeat governance Skill only, not Phase 6 ownership/production regression.",
+    "Governance repair #606 is closed/completed and RELEASED; it restored #535 unsupported self-owned claim phase through existing narrow claim-file recovery without production code weakening or integration replay.",
+    "Legacy A1 #522 stale CLEANUP claim was guarded-taken-over under run 35994642596 and released under run 35994749097; no non-terminal child ownership remains."
+  ],
+  "master_issue": "520",
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": "Phase 6 Master completion contract is fully satisfied; no executable child remains."
+}
