@@ -8,7 +8,7 @@
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "head_sha": "3ea1f75cada6ef8079528ca60122fcc81d226124",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T02:57:55+08:00",
+  "last_update": "2026-09-25T03:00:01+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue638-helper-aware-takeover.yml"
   },
-  "next_action": "Obtain exact pr-write Guard for work/issue638-helper-aware-takeover-20260925 @ 3ea1f75cada6ef8079528ca60122fcc81d226124 → cleanup/2d-3d-sync @ 3ffe415b10099d52bc6c39f02463e3483c43f10b, create/read back the PR, then integrate under fresh exact Guard.",
+  "next_action": "Obtain a fresh exact pr-write Guard for merging PR #639 at head 3ea1f75cada6ef8079528ca60122fcc81d226124 into cleanup/2d-3d-sync still at 3ffe415b10099d52bc6c39f02463e3483c43f10b; merge once, then fresh-read production integration before terminal closure.",
   "blocker": null,
   "evidence": {
     "requirement_authority": "User instruction 2026-09-25: 補啊",
@@ -51,15 +51,26 @@
       ],
       "verdict": "PASS_WORKFLOW_DELETION_ONLY"
     },
-    "drift_audit_claim_writeback_guard_run_id": 36044845827
+    "drift_audit_claim_writeback_guard_run_id": 36044845827,
+    "pr_create_guard_run_id": 36044946267,
+    "pr_number": 639,
+    "pr_create_readback": true
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36044845827,
-    "request_comment_id": 5820303537,
+    "run_id": 36045068935,
+    "request_comment_id": 5820331908,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "consumed": true
+  },
+  "pr": {
+    "number": 639,
+    "url": "https://github.com/looaeedr/whd/pull/639",
+    "head_sha": "3ea1f75cada6ef8079528ca60122fcc81d226124",
+    "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "state": "open",
+    "merged": false
   }
 }
