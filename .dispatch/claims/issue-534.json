@@ -1,14 +1,14 @@
 {
   "issue": 534,
   "issue_url": "https://github.com/looaeedr/whd/issues/534",
-  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "executor_source": "scheduler",
+  "worker": "chatgpt.sol260924.issue534",
+  "executor_source": "chat",
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-24T04:29:30+08:00",
   "base_sha": "fb5443215b36e4ab6a5b2d57a72600e621df83d6",
   "head_sha": "597b492361c3ff44878045da8b76157e7fc90fe7",
-  "phase": "REMOTE_QA",
-  "last_update": "2026-09-24T07:16:18+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T08:33:08+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -18,13 +18,19 @@
   "remote_qa": {
     "run_id": 35932690396,
     "head_sha": "597b492361c3ff44878045da8b76157e7fc90fe7",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "failure",
     "workflow": "WHD｜#534｜C2 最終整合驗收",
     "tested_candidate_sha": "597b492361c3ff44878045da8b76157e7fc90fe7",
-    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65"
+    "tested_baseline_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
+    "live_updated_at": "2026-09-24T07:36:02+08:00",
+    "failure_class": "CANDIDATE_ONLY_RED",
+    "baseline_headless_red": 10,
+    "candidate_headless_red": 49,
+    "baseline_xvfb_red": 55,
+    "candidate_xvfb_red": 93
   },
-  "next_action": "Poll exact C2 run 35932690396 at head 597b492361c3ff44878045da8b76157e7fc90fe7 to terminal without duplicate dispatch. On failure, inspect exact candidate-only RED evidence and continue smallest authority-backed remediation; on success, continue final C2 gates.",
+  "next_action": "Classify the exact candidate-only RED set from run 35932690396 against accepted post-T0 ownership/governance authority, update only proven stale historical source-contract/knowledge tests or true runtime regressions as appropriate, then rerun fixed-T0 Headless/Xvfb A/B without weakening the candidate-only-zero gate.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 533,
@@ -39,5 +45,34 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
     "consumed": true
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "previous_executor_source": "scheduler",
+    "requesting_worker": "chatgpt.sol260924.issue534",
+    "requesting_executor_source": "chat",
+    "user_authority_comment_id": 5805258285,
+    "observed_stale_seconds": 3397,
+    "observed_live_head_sha": "597b492361c3ff44878045da8b76157e7fc90fe7",
+    "previous_last_update": "2026-09-24T07:16:18+08:00",
+    "exact_remote_run_id": 35932690396,
+    "exact_remote_run_status": "completed",
+    "exact_remote_run_conclusion": "failure",
+    "taken_over_at": "2026-09-24T08:33:08+08:00",
+    "proof": {
+      "workflow_run_id": 35938880202,
+      "job_id": 107442100294,
+      "classification": "EXECUTOR_STUCK",
+      "stale_seconds": 3397,
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+      "authority_sha": "611665f151ec569b71fb533a7ce2752070037bf7"
+    }
+  },
+  "interactive_progress": {
+    "executor_identity": "chatgpt.sol260924.issue534",
+    "takeover_proof_run": 35938880202,
+    "action": "candidate-only-red-recovery"
   }
 }
