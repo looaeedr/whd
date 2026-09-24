@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T11:07:00Z",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
   "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T11:19:05Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T11:23:25Z",
   "production_target": "cleanup/2d-3d-sync",
   "remote_qa": {
     "run_id": 35991980558,
@@ -18,12 +18,12 @@
     "name": "Knowledge Governance Bootstrap",
     "evidence": "bootstrap governance GREEN changed=1"
   },
-  "next_action": "Create canonical terminal checkpoint .dispatch/checkpoints/issue-607.json on coord/dispatch-claims with exact owning branch/head and integration/bootstrap evidence; then run trusted remote finalization proof before Issue close/release.",
+  "next_action": null,
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35992285369,
-    "request_comment_id": 5813040202,
+    "run_id": 35992711667,
+    "request_comment_id": 5813099718,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
@@ -50,5 +50,18 @@
     "production_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
     "skill_blob_sha": "caf5c5de90ff1cb905b9b87a804c6e36284be009",
     "readback": true
+  },
+  "issue_terminal": {
+    "state": "closed",
+    "state_reason": "completed"
+  },
+  "finalization": {
+    "run_id": 35992568306,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_path": ".dispatch/checkpoints/issue-607.json",
+    "checkpoint_blob_sha": "c8571b58a81a7e4cb9c20959dd0ee560c7beb4ae",
+    "checkpoint_fingerprint": "ff59c4be9f3397e48ea83f405e7f9d1ba045d7809f7e8a686a7eb7876e96a809",
+    "claim_blob_sha_before_release": "aa146fe1ff23439e77fcb3b7b46768741cd6a167"
   }
 }
