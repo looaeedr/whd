@@ -6,12 +6,21 @@
   "work_branch": "governance/issue589-user-directed-chat-takeover-20260924",
   "claimed_at": "2026-09-24T12:40:54+08:00",
   "base_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "head_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T12:40:54+08:00",
+  "head_sha": "ace300ad00e284ba32468276090268432cd38a66",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T12:44:26+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create the guarded governance branch and implement owner-authorized stale interactive-to-interactive takeover support with focused regression tests, integrate to cleanup/2d-3d-sync, then use it to take over and finish #578.",
-  "blocker": null
+  "next_action": "Run focused regression for #589 plus existing #581/#573/#578 takeover suites; if GREEN, remove the temporary QA workflow, integrate to cleanup/2d-3d-sync, then use the new authority to take over and finish #578.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35956915970,
+    "request_comment_id": 5807837901,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
+    "consumed": true
+  }
 }
