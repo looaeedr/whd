@@ -6,31 +6,30 @@
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
   "claimed_at": "2026-09-24T10:19:00+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "head_sha": "69507e8b61cb455d589d0e5292cb24f8c8721e08",
-  "phase": "RED",
-  "last_update": "2026-09-24T10:26:20+08:00",
+  "head_sha": "906e1c3cf5dd128658f86f2b4830611a1f380a21",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T10:32:55+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Implement scheduler runtime heartbeat/lease validation and ORPHANED_SCHEDULER_OWNER guarded takeover while preserving active exact-run lock, same-lane resume, and ordinary 600-second stale behavior; rerun exact focused QA.",
+  "next_action": "Repair two focused-test fixture defects without weakening production guard: make ordinary stale case use an actually stale live commit, and bind guard test to the real temp claim git-blob SHA; rerun exact focused QA.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35947219344,
-    "request_comment_id": 5806350716,
+    "run_id": 35947690743,
+    "request_comment_id": 5806408591,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
     "consumed": true
   },
   "remote_qa": {
-    "run_id": 35947181217,
-    "head_sha": "69507e8b61cb455d589d0e5292cb24f8c8721e08",
+    "run_id": 35947649125,
+    "head_sha": "906e1c3cf5dd128658f86f2b4830611a1f380a21",
     "status": "completed",
     "conclusion": "failure",
     "workflow": "WHD｜#578｜排程 runtime liveness 驗收",
-    "failure_class": "REQUIREMENT_RED",
-    "pass_count": 9,
-    "fail_count": 12,
-    "red_reason": "evaluate_stale_claim_takeover lacks claim_blob_sha/runtime_liveness/orphan_grace support"
+    "failure_class": "TEST_FIXTURE_DEFECT",
+    "pass_count": 19,
+    "fail_count": 2
   }
 }
