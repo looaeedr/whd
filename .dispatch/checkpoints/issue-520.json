@@ -22,7 +22,7 @@
     "Legacy A1 #522 stale CLEANUP claim was guarded-taken-over under run 35994642596 and released under run 35994749097; no non-terminal child ownership remains."
   ],
   "master_issue": "520",
-  "chain_state": "NONE",
+  "chain_state": "CHAIN_COMPLETE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": "Phase 6 Master completion contract is fully satisfied; no executable child remains."
