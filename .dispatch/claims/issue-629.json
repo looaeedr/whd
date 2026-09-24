@@ -6,13 +6,18 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T22:11:55+08:00",
+  "head_sha": "706112ef52eb5f94b21646b73f025010a860ec5f",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T22:18:45+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded work branch, then add 寫排程 Skill + registry route + contract test + scheduler continuity pitfall writeback.",
-  "blocker": null
+  "next_action": "Run scheduler-authoring contract test and canonical Phase6 preflight/registry validation on exact HEAD 706112ef52eb5f94b21646b73f025010a860ec5f; then reconcile claim and finalize #629 if GREEN.",
+  "blocker": null,
+  "evidence": {
+    "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
+    "commit_guard_run_id": 36011392096,
+    "claim_head_reconcile_guard_run_id": 36011848404
+  }
 }
