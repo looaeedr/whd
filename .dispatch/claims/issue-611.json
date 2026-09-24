@@ -6,14 +6,14 @@
   "work_branch": "hotfix/issue611-left-menu-selection-20260924",
   "claimed_at": "2026-09-24T20:47:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "phase": "RED",
-  "last_update": "2026-09-24T20:47:30+08:00",
+  "head_sha": "9e9069ebf2d8942a65f7955b134c6d3024bcc73e",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T20:51:09+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "UI-REGRESSION",
   "parent_issue": null,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Obtain branch-create Remote Guard GREEN; create work branch; add focused real-Tk/Xvfb regression for Menu selected indicator visibility; apply presentation-only selectcolor fix; run focused + #334 regression.",
+  "next_action": "Run focused real-Tk/Xvfb menu-theme regression and visual probe on exact work HEAD; then perform code review, protected drift/config checks, integration readiness, and closure.",
   "blocker": null
 }
