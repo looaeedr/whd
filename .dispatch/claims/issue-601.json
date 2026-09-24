@@ -6,14 +6,23 @@
   "work_branch": "governance/issue601-parent-order-reconciliation-20260924",
   "claimed_at": "2026-09-24T16:12:30+08:00",
   "base_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
-  "head_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T16:12:30+08:00",
+  "head_sha": "e5d21d7d74a75d8d32a7986df26c20b79f4e14e4",
+  "phase": "RED",
+  "last_update": "2026-09-24T16:16:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-PARENT-ORDER",
   "parent_issue": 534,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the guarded governance branch from exact current X, add a focused RED proving valid [claim-H0, production-X] merge sync is rejected only by parent order, minimally make reconciliation parent-order neutral while preserving all other evidence checks, run focused GREEN, integrate non-force, then return to #534 and reconcile its existing merge head without rewriting history.",
-  "blocker": null
+  "next_action": "Run focused merge-head reconciliation tests and require the new claim-first-parent case to fail on current production authority while existing production-first-parent behavior remains GREEN; then minimally make the two-parent detection parent-order neutral.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35974217577,
+    "request_comment_id": 5810449781,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "ae3d2e4fce6772f81ba7c56042c2ec07c49e2a96",
+    "consumed": true
+  }
 }
