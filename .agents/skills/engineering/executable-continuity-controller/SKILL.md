@@ -363,17 +363,19 @@ Canonical executable authority：`tools/stale_claim_takeover.py`。
 固定流程：
 
 ```text
-fresh claim + live branch HEAD/commit time + exact remote run
-→ stale evaluator
-→ RUN_LIVE / <600s progress = wait
-→ EXECUTOR_STUCK (>=600s, no active run) = actionable
+fresh claim/blob + live branch HEAD/commit time + exact remote run
+→ same lane: direct durable resume（不 takeover）
+→ foreign scheduler: fresh owner-authored runtime liveness lease
+→ RUN_LIVE / valid lease = wait
+→ missing/expired lease + >=90s grace = ORPHANED_SCHEDULER_OWNER actionable
+→ ordinary foreign owner >=600s, no active run = EXECUTOR_STUCK actionable
 → Remote Guard action=claim-takeover
 → exact GREEN receipt
 → CAS shared claim to executor_source=scheduler + stale_takeover evidence
 → continue stored/recomputed exact next_action
 ```
 
-這個 **600 秒 claim-owner stale threshold** 與 `WAITING_REMOTE` 長跑 remote job 的小時級 stale policy 是不同問題：前者判斷 executor 是否消失，後者判斷一顆已存在的 remote progress producer 是否異常。只要 exact remote run 還 active，就先服從 `RUN_LIVE`，不能用 600 秒 owner threshold 搶跑。
+這個 **600 秒 claim-owner stale threshold** 仍保留給一般 foreign owner；foreign scheduler 另有 runtime-liveness orphan path，canonical grace 為 90 秒。兩者都不能繞過 active exact run：只要 exact remote run 還 active，就先服從 `RUN_LIVE`。scheduler lane 是 durable owner key，不等於上一輪 invocation 還活著；same-lane 新 invocation直接 resume，foreign sibling則以 owner-authored短效 lease判斷 runtime liveness。
 
 Machine behavior authority：`tests/process/test_issue540_stale_claim_takeover.py`。9m59s 必須 wait，10m00s 才可 `EXECUTOR_STUCK`；active exact run 永遠先阻擋 takeover。
 
@@ -461,3 +463,14 @@ WAITING_REMOTE 只有在存在一個可獨立於目前 ChatGPT Runtime 持續推
 `OWNING_FINALIZATION_GUARD_V2` 的 remote execution 唯一允許窄路徑：`.github/workflows/whd-remote-finalization.yml`。它必須 checkout exact trusted authority，fresh 驗 owning work HEAD 與 coordination checkpoint/claim blob，執行 canonical `tools/continuity_controller.py authorize-finalization`，立即執行 `verify-finalization-proof`，並上傳 bound proof + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` artifact。
 
 只有 machine receipt `result=GREEN / reason=FINALIZATION_PROOF_VALID` 且 artifact identity exact match，才可把 proof帶到不可逆 closure boundary。Issue marker、stdout 摘錄、聊天聲明、人工計算 fingerprint 全部不是 proof execution authority。
+
+
+## SCHEDULER_INVOCATION_LIVENESS_LEASE_V1
+
+Scheduled wake每一輪都是 fresh AI execution runtime；`scheduler.<lane>`只表示 durable lane owner。當該 invocation實際持有 active claim時，必須建立/刷新 owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` short lease，綁 exact issue、lane、invocation identity、claim blob、branch、HEAD與可選 active run。
+
+- canonical lease TTL <=300秒；orphan grace=90秒。
+- same-lane cross-cycle resume忽略上一 invocation lease是否過期，直接讀 durable next_action。
+- foreign sibling + valid lease：backoff；foreign sibling + active exact run：絕對 backoff。
+- foreign sibling + no active run + missing/expired lease + grace satisfied：交給 `tools/stale_claim_takeover.py`分類 `ORPHANED_SCHEDULER_OWNER`，仍須 Remote Guard GREEN → single-use CAS → same-invocation first substantive action。
+- platform runtime hard-cut時不得留下長達600秒的假 liveness；停止刷新即可讓 lease自然失效。

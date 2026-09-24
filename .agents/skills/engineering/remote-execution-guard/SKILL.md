@@ -114,7 +114,9 @@ Request 前必須 fresh-read：
 - exact work branch observed live HEAD 與該 HEAD commit time；
 - claim 有 `remote_qa.run_id` 時的 exact remote run fresh status/updated_at。
 
-trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。只有 machine decision 為 `EXECUTOR_STUCK` 才能再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt；Remote Guard request 的 exact machine syntax 是 `action=claim-takeover`。
+trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。machine decision 只有 `EXECUTOR_STUCK` 或 `ORPHANED_SCHEDULER_OWNER` 可再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt；Remote Guard request 的 exact machine syntax 是 `action=claim-takeover`。
+
+對 foreign scheduler claim，trusted workflow 在 evaluator 前必須 fresh-read owning Issue comments，使用 `tools/scheduler_runtime_liveness.py` 選出 repository-owner authored、exact `issue + scheduler_lane` 的最新 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment，並把 current exact `claim_blob_sha` 一起傳給 stale evaluator。selector 回 MISSING 可進 orphan grace 判定；malformed relevant heartbeat、claim/blob/branch/head identity drift一律 fail closed。
 
 `RUN_LIVE`、`WAIT_ON_FOREIGN_RUNTIME`、`ALREADY_SCHEDULER`、`TERMINAL` 或 evaluator error 一律 Remote Guard FAIL；不得 mutation claim。
 
@@ -359,3 +361,13 @@ fresh identity
 - recurring scheduler 的 blocked/foreign-active 狀態不代表 automation terminal；Remote Guard 不得成為停用 recurring lane 的理由。
 
 完整操作與排查範例見 `docs/governance/whd_scheduler_takeover_usage.md`。
+
+
+### REMOTE_GUARD_SCHEDULER_RUNTIME_LIVENESS_V1
+
+Remote Guard 不得自行用「comment 最近有更新」推論 runtime 活著。唯一可供 orphaned-scheduler path 使用的 liveness evidence是 owner-authored fixed-schema `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment。
+
+trusted workflow固定順序：
+`fresh claim/blob → exact run read → Issue comments fresh-read → scheduler_runtime_liveness selector → stale_claim_takeover → execution_claim_guard → receipt`。
+
+Active exact run仍是絕對鎖；有效 runtime lease仍 backoff；missing/expired lease只有在90秒 grace與所有 identity gate成立時才可 `ORPHANED_SCHEDULER_OWNER`。

@@ -204,3 +204,84 @@ def test_claim_guard_accepts_orphaned_scheduler_evidence_below_600_seconds(tmp_p
         takeover_evidence=evidence_path,
     )
     assert claimed.worker == SIBLING_LANE
+
+
+def _liveness_selector():
+    return importlib.import_module("tools.scheduler_runtime_liveness")
+
+
+def _liveness_comment(
+    *,
+    comment_id: int = 100,
+    lane: str = SIBLING_LANE,
+    issue: int = ISSUE,
+    user: str = "looaeedr",
+    emitted_at: str = "2026-09-24T00:01:00Z",
+    expires_at: str = "2026-09-24T00:04:00Z",
+):
+    return {
+        "id": comment_id,
+        "created_at": emitted_at,
+        "user": {"login": user},
+        "body": (
+            "WHD_SCHEDULER_RUNTIME_LIVENESS_V1\n"
+            f"issue={issue}\n"
+            f"scheduler_lane={lane}\n"
+            f"invocation_identity=invocation.{comment_id}\n"
+            f"claim_blob_sha={CLAIM_BLOB}\n"
+            f"branch={BRANCH}\n"
+            f"head_sha={HEAD}\n"
+            "executor_source=scheduler\n"
+            f"emitted_at={emitted_at}\n"
+            f"expires_at={expires_at}"
+        ),
+    }
+
+
+def test_runtime_liveness_selector_chooses_latest_owner_authored_matching_lane():
+    selector = _liveness_selector()
+    selected = selector.select_runtime_liveness_comment(
+        [
+            _liveness_comment(comment_id=100),
+            _liveness_comment(comment_id=101, user="github-actions[bot]"),
+            _liveness_comment(comment_id=102, lane=CURRENT_LANE),
+            _liveness_comment(
+                comment_id=103,
+                emitted_at="2026-09-24T00:02:00Z",
+                expires_at="2026-09-24T00:05:00Z",
+            ),
+        ],
+        issue=ISSUE,
+        scheduler_lane=SIBLING_LANE,
+    )
+    assert selected is not None
+    assert selected["schema"] == "WHD_SCHEDULER_RUNTIME_LIVENESS_V1"
+    assert selected["source_comment_id"] == 103
+    assert selected["scheduler_lane"] == SIBLING_LANE
+
+
+def test_runtime_liveness_selector_missing_is_not_fake_liveness():
+    selector = _liveness_selector()
+    selected = selector.select_runtime_liveness_comment(
+        [_liveness_comment(comment_id=100, lane=CURRENT_LANE)],
+        issue=ISSUE,
+        scheduler_lane=SIBLING_LANE,
+    )
+    assert selected is None
+
+
+def test_runtime_liveness_selector_malformed_relevant_comment_fails_closed():
+    selector = _liveness_selector()
+    comment = _liveness_comment()
+    comment["body"] = comment["body"].replace(
+        f"head_sha={HEAD}", "head_sha=not-a-sha"
+    )
+    with pytest.raises(
+        selector.RuntimeLivenessCommentError,
+        match="head_sha|runtime liveness",
+    ):
+        selector.select_runtime_liveness_comment(
+            [comment],
+            issue=ISSUE,
+            scheduler_lane=SIBLING_LANE,
+        )

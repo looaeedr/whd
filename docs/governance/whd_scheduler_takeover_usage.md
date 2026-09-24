@@ -54,9 +54,10 @@ wake
 
 若 `claim.worker != 本 lane`：
 
-- newest durable progress < 600 秒，或 exact run 為 queued / in_progress / waiting / pending / requested：分類 `FOREIGN_OWNER_ACTIVE`，本輪退讓，不 mutation、不 duplicate Guard。
-- 只有沒有 active exact run 且 durable progress age >= 600 秒，才可走 canonical stale takeover。
-- sibling scheduler 也是 foreign owner，沒有特權。
+- exact run 為 queued / in_progress / waiting / pending / requested：永遠是 active lock，本輪退讓，不 mutation、不 duplicate Guard。
+- 一般 foreign owner仍使用 600 秒 stale threshold。
+- sibling scheduler不是靠 claim freshness判活：必須 fresh-read owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` short lease。有效 lease就退讓；沒有 active run且 lease missing/expired、durable progress age >=90秒時，可 machine-classify `ORPHANED_SCHEDULER_OWNER`。
+- same-lane新 invocation不 self-takeover；直接從 claim/checkpoint/exact run resume。
 
 ## 4. Stale takeover：request → GREEN → CAS → continue
 
@@ -191,3 +192,27 @@ terminal checkpoint 不能靠手寫 marker 關票。
 - canonical `tools/execution_claim_guard.py` 在 `claim-takeover` 時必須同時讀 machine stale evidence 與同一份 owner-authored authority comment JSON。
 - interactive takeover 成功後，claim CAS 才能把 worker 改成該 `requesting_worker`、`executor_source=chat`；CAS 前後都要 fresh-read blob/HEAD。
 - Remote Guard 的 scheduler claim-takeover transport 保持 scheduler-only；interactive takeover 優先使用可執行 canonical local guard，不得把 chat 偽裝成 `scheduler.*`。
+
+
+## 14. Scheduler runtime heartbeat / orphaned-owner 接續
+
+每次 scheduler invocation若已成為某 active claim的實際 owner，應在 owning Issue發出 owner-authored top-level comment：
+
+```text
+WHD_SCHEDULER_RUNTIME_LIVENESS_V1
+issue=<issue>
+scheduler_lane=scheduler.<lane>
+invocation_identity=<本輪唯一 identity>
+claim_blob_sha=<fresh claim blob>
+branch=<work branch>
+head_sha=<fresh work HEAD>
+executor_source=scheduler
+emitted_at=<ISO-8601>
+expires_at=<ISO-8601, TTL <=300s>
+active_run_id=<optional>
+active_run_head_sha=<optional>
+```
+
+`active_run_id/head`必須成對；沒有 active exact run時兩欄都省略。Canonical selector是 `tools/scheduler_runtime_liveness.py`，只接受 repository owner authored comment並選 exact issue/lane最新一筆；takeover evaluator再驗 claim blob/branch/head/TTL。
+
+判斷優先序：same-lane direct resume → active exact run `RUN_LIVE` → foreign scheduler valid lease wait → missing/expired lease + >=90s grace `ORPHANED_SCHEDULER_OWNER` → 一般 foreign owner >=600s `EXECUTOR_STUCK`。任何 actionable結果仍需 Remote Guard GREEN → CAS → fresh readback → 同輪繼續。
