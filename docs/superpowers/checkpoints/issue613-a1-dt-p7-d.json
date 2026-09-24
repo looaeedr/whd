@@ -1,0 +1,56 @@
+{
+  "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
+  "issue": 613,
+  "master_issue": 627,
+  "target_id": "P7-D",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "source": {
+    "path": "ae_engine/manufacturing_api.py",
+    "blob_sha": "92f028ed420a935731687bf629509ffcc5fe3ba8",
+    "loc": 2607,
+    "top_level_symbol_count": 82,
+    "largest_symbols": [
+      "build_part_scene:217"
+    ]
+  },
+  "current_tests": [
+    "tests/test_manufacturing_api.py",
+    "tests/test_manufacturing_policy_boundary.py"
+  ],
+  "dt_0_characterization": {
+    "status": "IN_PROGRESS",
+    "required": [
+      "direct callers",
+      "dynamic callers",
+      "imports/reverse imports",
+      "state reads",
+      "state writes",
+      "largest spans",
+      "current owner map",
+      "current tests"
+    ]
+  },
+  "dt_1_remove_or_inline": {
+    "status": "PENDING"
+  },
+  "dt_2_existing_owner_candidate": {
+    "status": "PENDING"
+  },
+  "dt_3_bounded_owner_ports": {
+    "status": "PENDING"
+  },
+  "dt_4_variant_k": {
+    "status": "PENDING"
+  },
+  "dt_5_variant_e": {
+    "status": "PENDING"
+  },
+  "dt_6_decision": {
+    "status": "PENDING",
+    "allowed_decisions": [
+      "DEEPEN_EXISTING_OWNER",
+      "KEEP_CURRENT_BOUNDARY"
+    ]
+  },
+  "production_behavior_change": 0
+}

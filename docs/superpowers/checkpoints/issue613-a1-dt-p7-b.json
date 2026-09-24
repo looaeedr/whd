@@ -1,0 +1,56 @@
+{
+  "schema": "WHD_PHASE7_CANONICAL_DT_SKELETON_V1",
+  "issue": 613,
+  "master_issue": 627,
+  "target_id": "P7-B",
+  "baseline_head": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "source": {
+    "path": "gui.py",
+    "blob_sha": "2a31fe7f1bf2008cd6aee083bc938cdb2a3b8eab",
+    "loc": 2426,
+    "top_level_symbol_count": 14,
+    "largest_symbols": [
+      "Phase6ApplicationHost:1873"
+    ]
+  },
+  "current_tests": [
+    "tests/test_gui_startup_contract.py",
+    "tests/test_gui_fold_designer_transaction_contract.py"
+  ],
+  "dt_0_characterization": {
+    "status": "IN_PROGRESS",
+    "required": [
+      "direct callers",
+      "dynamic callers",
+      "imports/reverse imports",
+      "state reads",
+      "state writes",
+      "largest spans",
+      "current owner map",
+      "current tests"
+    ]
+  },
+  "dt_1_remove_or_inline": {
+    "status": "PENDING"
+  },
+  "dt_2_existing_owner_candidate": {
+    "status": "PENDING"
+  },
+  "dt_3_bounded_owner_ports": {
+    "status": "PENDING"
+  },
+  "dt_4_variant_k": {
+    "status": "PENDING"
+  },
+  "dt_5_variant_e": {
+    "status": "PENDING"
+  },
+  "dt_6_decision": {
+    "status": "PENDING",
+    "allowed_decisions": [
+      "DEEPEN_EXISTING_OWNER",
+      "KEEP_CURRENT_BOUNDARY"
+    ]
+  },
+  "production_behavior_change": 0
+}
