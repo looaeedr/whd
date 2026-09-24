@@ -298,3 +298,36 @@ def test_assert_turn_exitable_cli_blocks_running_checkpoint(tmp_path: Path, caps
     assert exit_code == 2
     assert "TURN_EXIT_GUARD_ERROR" in output
     assert "close issue after cleanup" in output
+
+
+def _closure_state_api():
+    closure_state = getattr(continuity, "ClosureState", None)
+    assert isinstance(closure_state, type), "continuity controller is missing ClosureState"
+    return closure_state
+
+
+def test_terminal_checkpoint_with_pending_closure_cannot_exit_turn():
+    closure_state = _closure_state_api()
+    guard, blocked_error = _turn_exit_api()
+    checkpoint = _running(
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+        closure_state=closure_state.FINALIZATION_PENDING,
+        closure_next_action="run bound finalization proof then close/readback/release",
+    )
+
+    with pytest.raises(blocked_error, match="finalization proof"):
+        guard(checkpoint)
+
+
+def test_terminal_checkpoint_can_exit_only_after_closure_is_complete():
+    closure_state = _closure_state_api()
+    guard, _blocked_error = _turn_exit_api()
+    checkpoint = _running(
+        state=ContinuityState.TERMINAL_SUCCESS,
+        next_action=None,
+        closure_state=closure_state.CLOSED,
+        closure_next_action=None,
+    )
+
+    guard(checkpoint)
