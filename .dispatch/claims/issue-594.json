@@ -7,11 +7,11 @@
   "claimed_at": "2026-09-24T05:08:43Z",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
   "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T05:18:13Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T05:26:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Parent #578 may consume this proof and close #594",
+  "next_action": null,
   "blocker": null,
   "remote_qa": null,
   "stale_takeover": {
@@ -41,5 +41,11 @@
     "stale_seconds": 537,
     "runtime_liveness_status": "EXPIRED",
     "same_invocation_continuation": true
+  },
+  "completion": {
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "accepted_comment_id": 5808189170,
+    "claim_release_guard_run": 35959887385
   }
 }
