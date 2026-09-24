@@ -6,9 +6,9 @@
   "work_branch": "work/issue633-finalization-proof-order-20260925",
   "claimed_at": "2026-09-25T01:38:00+08:00",
   "base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
-  "head_sha": "162e697ef1e469197fc8a41df4cdd605f4766eeb",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T02:03:57+08:00",
+  "head_sha": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T02:06:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue633-finalization-proof-order.yml"
   },
-  "next_action": "Delete temporary #633 QA workflow under fresh Guard, then perform tested-head→closing-head drift audit and proceed to PR/integration.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync, create and merge the guarded PR for closing head 24c6cd28e185d054838adc7ce5894c8dbc8d9599, verify production readback, then write terminal checkpoint FINALIZATION_PENDING and complete closure transaction.",
   "blocker": null,
   "evidence": {
     "parent_repair_issue": 631,
@@ -56,12 +56,24 @@
     "broader_green_fix_guard_run_id": 36038480971,
     "broader_green_qa_run_id": 36038550269,
     "broader_green_qa_result": "54 passed, 0 failed across finalization-owner, continuity, turn-exit, and Master-chain regressions.",
-    "broader_green_claim_reconcile_guard_run_id": 36038587391
+    "broader_green_claim_reconcile_guard_run_id": 36038587391,
+    "cleanup_commit": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+    "cleanup_guard_run_id": 36038699222,
+    "cleanup_claim_reconcile_guard_run_id": 36038851116,
+    "tested_to_closing_drift": {
+      "tested_head": "162e697ef1e469197fc8a41df4cdd605f4766eeb",
+      "closing_head": "24c6cd28e185d054838adc7ce5894c8dbc8d9599",
+      "ahead_by": 1,
+      "files": [
+        ".github/workflows/qa-issue633-finalization-proof-order.yml"
+      ],
+      "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+    }
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36038587391,
-    "request_comment_id": 5819442875,
+    "run_id": 36038851116,
+    "request_comment_id": 5819474834,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "d2ce492f1b74ca9fbdaffec680ef7f9c62bdd623",
