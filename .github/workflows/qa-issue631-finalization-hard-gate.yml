@@ -43,7 +43,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pytest -q tests/process/test_continuity_controller.py
+          python -m pytest -q \
+            tests/process/test_continuity_controller.py \
+            tests/process/test_finalization_owner_guard.py \
+            tests/process/test_issue321_turn_exit_enforcement.py \
+            tests/process/test_issue473_master_chain_turn_exit_gate.py
 
       - name: Publish exact QA identity
         if: always()
