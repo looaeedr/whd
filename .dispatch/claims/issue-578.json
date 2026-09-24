@@ -6,30 +6,29 @@
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
   "claimed_at": "2026-09-24T10:19:00+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "head_sha": "906e1c3cf5dd128658f86f2b4830611a1f380a21",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T10:32:55+08:00",
+  "head_sha": "728b6458aee288b55d6efab88e679633856ad9da",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T10:36:25+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Repair two focused-test fixture defects without weakening production guard: make ordinary stale case use an actually stale live commit, and bind guard test to the real temp claim git-blob SHA; rerun exact focused QA.",
+  "next_action": "Wire owner-authored scheduler runtime liveness comments into trusted Remote Guard CLI auto-discovery; update canonical Skills/docs; then rerun focused regression and integration.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35947690743,
-    "request_comment_id": 5806408591,
+    "run_id": 35947936840,
+    "request_comment_id": 5806442813,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
     "consumed": true
   },
   "remote_qa": {
-    "run_id": 35947649125,
-    "head_sha": "906e1c3cf5dd128658f86f2b4830611a1f380a21",
+    "run_id": 35947795822,
+    "head_sha": "728b6458aee288b55d6efab88e679633856ad9da",
     "status": "completed",
-    "conclusion": "failure",
+    "conclusion": "success",
     "workflow": "WHD｜#578｜排程 runtime liveness 驗收",
-    "failure_class": "TEST_FIXTURE_DEFECT",
-    "pass_count": 19,
-    "fail_count": 2
+    "pass_count": 21,
+    "fail_count": 0
   }
 }
