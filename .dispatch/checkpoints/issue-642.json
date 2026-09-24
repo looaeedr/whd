@@ -3,8 +3,8 @@
   "issue": "642",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "state": "RUNNING",
-  "next_action": "Resolve the #642/#647 live-deployment ownership text conflict using the latest user-approved #647 Integration Acceptance boundary, record Task Acceptance evidence for exact HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13, then enter terminal closure transaction and hand off #643.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36070382218,
   "job_id": 107869718436,
   "log_cursor": null,
@@ -38,13 +38,15 @@
     "Checkpoint reconciled to tested GREEN HEAD under Remote Guard run 36070243977.",
     "Final acceptance GREEN run 36070382218 at exact HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13 completed success: 103 passed in 0.85s; artifact 10837996232; includes continuity_controller and finalization_owner_guard regressions.",
     "Claim reconciled to final tested HEAD under Remote Guard run 36070399158.",
-    "Checkpoint reconciled to final tested HEAD under Remote Guard run 36070489648."
+    "Checkpoint reconciled to final tested HEAD under Remote Guard run 36070489648.",
+    "Authority resolution comment 5823680850 records that latest user-approved #647 Integration Acceptance owns default-branch trusted workflow deployment/readback; #642 Task Acceptance closes only the work-order child and does not waive the #647 live deployment gate.",
+    "Terminal-entry Remote Guard run 36070896551 GREEN at exact accepted HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13."
   ],
-  "master_issue": null,
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": null,
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "master_issue": "640",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 643,
+  "chain_next_action": "After #642 closure reaches CLOSED + RELEASED, atomically claim #643/T3 from accepted closing head 876311cc0091dc556f59cac6a4bd3572cca92f13 on the same work-order branch.",
+  "chain_reason": "T2 ACTIVE_CLAIM_REQUIRES_CHECKPOINT implementation is Task Accepted at exact GREEN HEAD; #643 is the next canonical child.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #642 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, then mint and verify an exact bound finalization proof before closing Issue #642."
 }
