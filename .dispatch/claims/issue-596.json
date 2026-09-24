@@ -6,12 +6,21 @@
   "work_branch": "governance/issue596-final-issue578-takeover-proof-20260924",
   "claimed_at": "2026-09-24T13:21:34+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T13:21:34+08:00",
+  "head_sha": "5a8ca708ff06e81a5acadb4446864804411427c9",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T13:24:24+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create guarded proof branch and temporary workflow to machine-validate user-directed stale interactive takeover of #578; consume proof via #578 claim CAS, continue final acceptance, then remove workflow and close/release #596.",
-  "blocker": null
+  "next_action": "Blocking #595 must be legally taken over and completed first because #578 claim phase=E2E_WAITING is non-canonical. Reuse this proof branch to machine-prove stale chat takeover of #595, integrate #595 recovery to X, normalize #578, then rerun final #578 takeover proof.",
+  "blocker": "issue-595 invalid-phase exact-claim-path recovery",
+  "last_guard": {
+    "action": "write",
+    "run_id": 35959784022,
+    "request_comment_id": 5808225328,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "consumed": true
+  }
 }
