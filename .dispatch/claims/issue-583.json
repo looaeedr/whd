@@ -6,20 +6,29 @@
   "work_branch": "governance/issue583-noop-reconciliation-20260924",
   "claimed_at": "2026-09-24T09:15:41+08:00",
   "base_sha": "611665f151ec569b71fb533a7ce2752070037bf7",
-  "head_sha": "d7f72186f6f99c1fdc688b2b6a1990949158a1c0",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T09:18:22+08:00",
+  "head_sha": "9707fc70e5144e51bda301f7ac44fcaccb6361f8",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T09:21:08+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run focused regression for post-commit claim-head reconciliation exact-set, no-op-superset, unauthorized-extra-file, request/receipt-scope-mismatch, and merge-head compatibility; then close governance repair through guarded PR/merge.",
+  "next_action": "Update the single stale #558 expected error assertion to the accepted #570 merge-head reconciliation fail-closed message, rerun the same focused 32-test suite, then cleanup temporary QA workflow and integrate.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35942317591,
-    "request_comment_id": 5805719694,
+    "run_id": 35942516011,
+    "request_comment_id": 5805743828,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "611665f151ec569b71fb533a7ce2752070037bf7",
     "consumed": true
+  },
+  "remote_qa": {
+    "run_id": 35942503030,
+    "head_sha": "9707fc70e5144e51bda301f7ac44fcaccb6361f8",
+    "status": "completed",
+    "conclusion": "failure",
+    "pass_count": 31,
+    "fail_count": 1,
+    "failure_class": "STALE_ASSERTION_AFTER_ISSUE570_MERGE_RECONCILIATION"
   }
 }
