@@ -92,11 +92,23 @@ def test_issue369_requires_corner_data_view_adapter_without_solver_ownership():
 
 def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
     funcs = _functions(_tree(BRIDGE))
+    moved_to_adapter = {"_phase6_current_unfolded_size", "_phase6_format_formed_size_text"}
     missing = sorted(set(EXPECTED_DELEGATES) - set(funcs))
-    assert missing == []
+    assert set(missing) <= moved_to_adapter
+
+    adapter_methods = {
+        n.name
+        for cls in _tree(ADAPTER).body
+        if isinstance(cls, ast.ClassDef) and cls.name == "Phase6CornerDataViewAdapter"
+        for n in cls.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    assert {"current_unfolded_size", "formed_size_text"} <= adapter_methods
 
     violations = []
     for name, delegate in EXPECTED_DELEGATES.items():
+        if name not in funcs:
+            continue
         source = ast.unparse(funcs[name])
         if delegate not in source:
             violations.append((name, "MISSING_DELEGATE", delegate))
@@ -134,7 +146,10 @@ def test_issue369_bridge_delegates_authoritative_2d_projection_and_view_state():
 
 def test_issue369_view_layer_does_not_reconstruct_formed_geometry():
     funcs = _functions(_tree(BRIDGE))
-    source = ast.unparse(funcs["_phase6_format_formed_size_text"])
+    if "_phase6_format_formed_size_text" in funcs:
+        source = ast.unparse(funcs["_phase6_format_formed_size_text"])
+    else:
+        source = ADAPTER.read_text(encoding="utf-8")
     bad = [token for token in VIEW_RECONSTRUCTION_TOKENS if token in source]
     assert bad == [], (
         "RED: view layer still reconstructs formed geometry instead of consuming "

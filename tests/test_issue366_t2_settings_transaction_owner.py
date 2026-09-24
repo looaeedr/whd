@@ -117,11 +117,28 @@ def _root_self_attr(node: ast.AST) -> str | None:
 
 def _bridge_violations(tree: ast.Module):
     funcs = _functions(tree)
+    moved_to_controller = {
+        "_phase6_apply_settings_delta",
+        "_phase6_cancel_corner_transaction",
+        "_phase6_confirm_corner_transaction",
+        "_phase6_set_endcap_fw_follow",
+        "_phase6_toggle_box_structure_lock",
+    }
     missing = sorted(T2_FUNCTIONS - set(funcs))
-    assert missing == [], f"missing T2 functions: {missing}"
+    assert set(missing) <= moved_to_controller, f"unexpected missing T2 functions: {missing}"
+
+    controller_methods = {
+        node.name
+        for cls in _tree(CONTROLLER).body
+        if isinstance(cls, ast.ClassDef) and cls.name == "Phase6SettingsTransactionController"
+        for node in cls.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    for method in ("toggle_box_structure_lock", "commit_endcap_fw_follow"):
+        assert method in controller_methods
 
     violations: list[tuple] = []
-    for name in sorted(T2_FUNCTIONS):
+    for name in sorted(T2_FUNCTIONS & set(funcs)):
         fn = funcs[name]
         for node in ast.walk(fn):
             if isinstance(node, ast.Attribute) and isinstance(node.ctx, (ast.Store, ast.Del)):

@@ -83,11 +83,16 @@ def test_issue367_requires_project_controller_command_surface():
 
 def test_issue367_bridge_has_no_project_serialization_or_direct_io_ownership():
     funcs = _functions(_tree(BRIDGE))
+    moved_to_controller = {
+        "_phase6_build_diagnostic_snapshot",
+        "_phase6_export_workspace_state_if_dirty",
+        "_phase6_save_diagnostic_file",
+    }
     missing = sorted(T3_BRIDGE_FUNCTIONS - set(funcs))
-    assert missing == []
+    assert set(missing) <= moved_to_controller
 
     violations = []
-    for name in sorted(T3_BRIDGE_FUNCTIONS):
+    for name in sorted(T3_BRIDGE_FUNCTIONS & set(funcs)):
         node = funcs[name]
         source = ast.unparse(node)
 
@@ -126,8 +131,13 @@ def test_issue367_bridge_commands_delegate_to_project_controller():
         "_phase6_commit_output_draw_stock": "commit_output_stock",
         "_phase6_export_selected_dxf_from_3d": "route_selected_dxf_export",
     }
+    controller_methods = _controller_methods()
     violations = []
     for name, method in expected.items():
+        if name not in funcs:
+            if method not in controller_methods:
+                violations.append((name, method))
+            continue
         source = ast.unparse(funcs[name])
         if method not in source:
             violations.append((name, method))

@@ -94,11 +94,12 @@ def test_issue365_requires_explicit_workspace_navigation_controller_owner():
 def test_issue365_bridge_has_no_direct_workspace_mutation_in_t1_state_machine_functions():
     tree = _tree(BRIDGE)
     funcs = _functions(tree)
+    moved_to_owner = {"_fix11_activate_selected_part"}
     missing = sorted(T1_STATE_MACHINE_FUNCTIONS - set(funcs))
-    assert missing == []
+    assert set(missing) <= moved_to_owner
 
     violations = []
-    for name in sorted(T1_STATE_MACHINE_FUNCTIONS):
+    for name in sorted(T1_STATE_MACHINE_FUNCTIONS & set(funcs)):
         fn = funcs[name]
         for node in ast.walk(fn):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
