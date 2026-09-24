@@ -29,6 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/takeover-proof
+          CLAIM_BLOB_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.dispatch/claims/issue-${TARGET_ISSUE}.json?ref=coord/dispatch-claims" --jq .sha)"
           gh api "repos/${GITHUB_REPOSITORY}/contents/.dispatch/claims/issue-${TARGET_ISSUE}.json?ref=coord/dispatch-claims" \
             --jq .content | tr -d '\n' | base64 -d > /tmp/takeover-proof/claim.json
           gh api "repos/${GITHUB_REPOSITORY}/issues/comments/${AUTHORITY_COMMENT_ID}" \
@@ -54,6 +55,7 @@ jobs:
           echo "LIVE_HEAD=${LIVE_HEAD}" >> "${GITHUB_ENV}"
           echo "BASE_SHA=$(jq -r '.base_sha' /tmp/takeover-proof/claim.json)" >> "${GITHUB_ENV}"
           echo "OLD_WORKER=$(jq -r '.worker' /tmp/takeover-proof/claim.json)" >> "${GITHUB_ENV}"
+          echo "CLAIM_BLOB_SHA=${CLAIM_BLOB_SHA}" >> "${GITHUB_ENV}"
 
       - name: "執行 canonical stale takeover evaluator"
         shell: bash
@@ -69,6 +71,7 @@ jobs:
             --live-head-committed-at "$(cat /tmp/takeover-proof/commit_at.txt)" \
             "${remote_args[@]}" \
             --stale-after-seconds 600 \
+            --claim-blob-sha "${CLAIM_BLOB_SHA}" \
             --requesting-worker "${REQUESTING_WORKER}" \
             --requesting-executor-source chat \
             --user-authority-json /tmp/takeover-proof/authority.json \
