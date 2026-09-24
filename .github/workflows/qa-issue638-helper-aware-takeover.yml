@@ -1,0 +1,24 @@
+name: WHD｜#638｜委派鏈停滯接手驗收
+run-name: WHD｜#638｜委派鏈停滯接手 RED／GREEN
+
+on:
+  push:
+    branches:
+      - work/issue638-helper-aware-takeover-20260925
+  workflow_dispatch:
+
+jobs:
+  delegated-takeover:
+    name: 委派／Helper 停滯接手行為測試
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 #638 工作分支
+        uses: actions/checkout@v4
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 安裝 pytest
+        run: python -m pip install -q pytest
+      - name: 執行 stale takeover 聚焦測試
+        run: python -m pytest -q tests/process/test_issue540_stale_claim_takeover.py
