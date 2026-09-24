@@ -7,14 +7,33 @@
   "claimed_at": "2026-09-24T19:06:10+08:00",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
   "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T19:06:10+08:00",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T19:37:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "master_issue": 520,
   "task_id": "GOV-CLAIM-PHASE-RECOVERY",
   "parent_issue": 535,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create the repair branch from exact production be299d40a8d79c211d1bf8cc28938fcfbcad4179 under Guard authority, then add a narrow recovery capability/test that permits canonical repair of an unsupported self-owned claim phase without bypassing ownership checks.",
-  "blocker": null
+  "next_action": "Write terminal checkpoint proving #535 unsupported-phase recovery completed legally through the existing exact claim-file write path; run trusted finalization, close/release #606, then return to #535 final closure.",
+  "blocker": null,
+  "repair_result": {
+    "classification": "EXISTING_NARROW_RECOVERY_CAPABILITY_SUFFICIENT",
+    "parent_issue": 535,
+    "recovered_claim_blob_sha": "42fe06ad63480fe3aed2eec56f1cca1156699541",
+    "recovery_guard_run": 35993471764,
+    "from_phase": "POST_INTEGRATION_READBACK",
+    "to_phase": "CLOSING",
+    "production_code_change": false,
+    "ownership_bypass": false
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35994050706,
+    "request_comment_id": 5813317529,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+    "consumed": true
+  }
 }
