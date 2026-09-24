@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "641",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
-  "state": "RUNNING",
-  "next_action": "Remove only .github/workflows/qa-issue641-t1-red.yml under fresh exact commit Guard; reconcile claim HEAD; prove tested-head→closing-head drift is workflow-deletion-only; then finalize/close/release #641 and hand off #642.",
+  "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36049990135,
   "job_id": 107802859803,
   "log_cursor": null,
@@ -19,13 +19,15 @@
     "Coordination reconciliation Remote Guard run 36049576766 GREEN before advancing #641 durable next_action.",
     "Exact T1 RED run 36049990135 at eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f completed SUCCESS as a RED harness: 6 intended test failures, all five Approved RED markers present.",
     "RED artifact 10830051734 preserves the bounded pytest log.",
-    "Progress writeback Remote Guard run 36050344667 GREEN for exact claim+checkpoint update."
+    "Progress writeback Remote Guard run 36050344667 GREEN for exact claim+checkpoint update.",
+    "Tested-head eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f to closing-head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 drift PASS: exactly one commit deleting only .github/workflows/qa-issue641-t1-red.yml.",
+    "Terminal-entry Remote Guard run 36050741691 GREEN at exact closing head."
   ],
   "master_issue": "640",
-  "chain_state": "NONE",
-  "next_issue": null,
-  "chain_next_action": null,
-  "chain_reason": "T1 #641 is the first executable child of Master #640.",
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 642,
+  "chain_next_action": "After #641 closure is CLOSED + RELEASED, atomically claim #642/T2 from accepted closing head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 on the same work-order branch.",
+  "chain_reason": "T1 Requirement RED baseline is accepted; #642 is the next canonical child.",
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "advance closure to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
 }

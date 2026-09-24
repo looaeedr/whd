@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T19:36:26Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-24T19:47:55.637647Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T19:49:40.087725Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -45,7 +45,7 @@
       "pytest": "6 failed in 0.23s (all intended requirement gaps); wrapper ISSUE641_T1_REQUIREMENT_RED=GREEN"
     }
   },
-  "next_action": "Prove tested-head eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f → closing-head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 is workflow-deletion-only; then enter canonical terminal closure for #641 and hand off #642.",
+  "next_action": "Advance #641 terminal checkpoint FINALIZATION_PENDING → ISSUE_CLOSE_PENDING under fresh exact Guard, then obtain bound Remote Finalization proof; do not claim #642 before #641 close/release.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-641.json",
   "branch_create_guard": {
@@ -80,5 +80,21 @@
     "cleanup_guard_run_id": 36050471265,
     "reconcile_guard_request_comment_id": 5821079429,
     "reconcile_guard_run_id": 36050548779
+  },
+  "evidence": {
+    "tested_to_closing_drift": {
+      "tested_head": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
+      "closing_head": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+      "ahead_by": 1,
+      "behind_by": 0,
+      "files": [
+        {
+          "path": ".github/workflows/qa-issue641-t1-red.yml",
+          "status": "removed"
+        }
+      ],
+      "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+    },
+    "terminal_entry_guard_run_id": 36050741691
   }
 }
