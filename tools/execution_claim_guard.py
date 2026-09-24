@@ -631,21 +631,45 @@ def _assert_post_commit_claim_head_reconciliation(
                     "the exact target HEAD used for sync or an ancestor of current production"
                 )
 
-    files = commit.get("files")
+    if merge_production_parent is None:
+        files = commit.get("files")
+        file_evidence_label = "commit changed-file"
+    else:
+        work_delta = _github_api_json(
+            f"compare/{merge_production_parent}...{expected_live_head_sha}"
+        )
+        merge_base = (
+            work_delta.get("merge_base_commit")
+            if isinstance(work_delta, dict)
+            else None
+        )
+        if (
+            not isinstance(work_delta, dict)
+            or str(work_delta.get("status") or "") not in {"ahead", "identical"}
+            or not isinstance(merge_base, dict)
+            or str(merge_base.get("sha") or "") != merge_production_parent
+        ):
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation work-delta comparison is not "
+                "rooted at the production parent"
+            )
+        files = work_delta.get("files")
+        file_evidence_label = "work-delta"
+
     if not isinstance(files, list) or not files:
         raise ExecutionClaimError(
-            "post-commit claim-head reconciliation commit changed-file evidence missing"
+            f"post-commit claim-head reconciliation {file_evidence_label} evidence missing"
         )
     commit_files: list[str] = []
     for item in files:
         if not isinstance(item, dict) or not isinstance(item.get("filename"), str):
             raise ExecutionClaimError(
-                "post-commit claim-head reconciliation commit changed-file evidence malformed"
+                f"post-commit claim-head reconciliation {file_evidence_label} evidence malformed"
             )
         filename = str(item["filename"])
         if filename in commit_files:
             raise ExecutionClaimError(
-                "post-commit claim-head reconciliation commit changed-file evidence is ambiguous"
+                f"post-commit claim-head reconciliation {file_evidence_label} evidence is ambiguous"
             )
         commit_files.append(filename)
     commit_file_set = tuple(sorted(commit_files))
