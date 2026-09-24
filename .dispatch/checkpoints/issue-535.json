@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "535",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35983063139,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "C3 ownership writeback commit c6556139957f3bbf104aa001d9b151ee542b8b60 changes only 個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md and records the accepted Phase 6 v1.4 CURRENT ownership/supersession decisions.",
+    "PR #605 merged non-force; production merge commit be299d40a8d79c211d1bf8cc28938fcfbcad4179 contains the C3 writeback and was not replayed.",
+    "Current production b61db24e4428100b7e7d627ae946a04f93ca0f8b is ahead of be299d40a8d79c211d1bf8cc28938fcfbcad4179 by only the #607 scheduler-heartbeat governance Skill change; merge-base is exactly be299d40a8d79c211d1bf8cc28938fcfbcad4179.",
+    "C3 production readback confirms WorkspaceShellOwner CURRENT, Part Editor KEEP_COMPATIBILITY, Settings KEEP_CURRENT_BOUNDARY, Linked Endcap KEEP_COMPATIBILITY, Derived Projection CURRENT, and facade 69→45 with 24 removed / reverse-import 0 / second composition root 0.",
+    "Run 35983063139 completed failure only because candidate-only governance tests test_issue540_stale_claim_takeover were red; candidate/base Headless and Xvfb suites themselves completed. Process-state repair #606 restored the self-owned claim from unsupported POST_INTEGRATION_READBACK to canonical CLOSING under Guard run 35993471764."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "520",
+  "chain_next_action": "Finalize Master #520 from durable C3 terminal evidence: verify all child checkpoints/releases, perform Master completion writeback/closure, then release remaining coordination ownership without replaying production integration.",
+  "chain_reason": "C3 is terminal success after durable ownership writeback, non-force integration/readback, and legal recovery of the unsupported self-owned claim phase."
+}
