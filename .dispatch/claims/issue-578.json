@@ -6,17 +6,17 @@
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
   "claimed_at": "2026-09-24T10:19:00+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "head_sha": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T11:27:00+08:00",
+  "head_sha": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T11:29:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Delete the one-shot #578 QA workflow under a fresh commit guard, verify tested-head→closing-head drift is workflow deletion only, then integrate #578 core into cleanup/2d-3d-sync and complete the trusted main Remote Guard transport backport before E2E.",
+  "next_action": "Create and merge a guarded PR from the #578 closing head into cleanup/2d-3d-sync, then implement/backport the trusted default-main Remote Guard heartbeat auto-discovery transport and run the required sibling-scheduler E2E before closing #578.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35951466422,
-    "request_comment_id": 5806963354,
+    "run_id": 35951602443,
+    "request_comment_id": 5806986371,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
@@ -30,5 +30,11 @@
     "workflow": "WHD｜#578｜排程 runtime liveness 驗收",
     "pass_count": 24,
     "fail_count": 0
+  },
+  "tested_head_sha": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
+  "closing_drift": {
+    "from": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
+    "to": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
+    "only_change": "delete temporary .github/workflows/qa-issue578-scheduler-runtime-liveness.yml"
   }
 }
