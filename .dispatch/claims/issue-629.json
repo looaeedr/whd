@@ -6,14 +6,14 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "0aff433337ae80b8043754c878556a30570756d3",
+  "head_sha": "b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T00:37:33+08:00",
+  "last_update": "2026-09-25T00:42:11+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Amend 寫排程 Skill + contract test + scheduler_prompt_authoring_pitfall with GREEN expiry validation and live branch/claim drift reconciliation; rerun focused QA before integration.",
+  "next_action": "Lock the exact #629 scheduler-authoring QA push run for RED head b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51 to terminal; confirm the new GREEN expiry/live-drift contract assertions fail against the pre-amendment Skill, then implement the minimal Skill + pitfall change.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -52,7 +52,9 @@
       "required_rules": [
         "GREEN_EXPIRY_HARD_GATE",
         "LIVE_DRIFT_RECONCILIATION_FIRST_RECOVERY"
-      ]
+      ],
+      "red_contract_commit": "b624a8a03ef1da9eea44991c2b0fb8fc2b7b0f51",
+      "red_claim_reconcile_guard_run_id": 36029178554
     }
   }
 }
