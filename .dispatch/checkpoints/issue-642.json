@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "642",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "head_sha": "964e7f8b20c2f34b5542ba400eb58e1ab15c2371",
   "state": "RUNNING",
-  "next_action": "Inspect execution-claim lifecycle seams and implement ACTIVE_CLAIM_REQUIRES_CHECKPOINT with focused TDD; preserve current work-order lineage and do not chase newer production.",
+  "next_action": "Extend T2 RED to require active checkpoint read/confirm for takeover/reactivate and then run exact activation+backstop RED QA at 964e7f8b20c2f34b5542ba400eb58e1ab15c2371.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,8 @@
   "evidence": [
     "Predecessor #641 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
     "#641 canonical handoff points to #642 at accepted work-order head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8.",
-    "Claim and checkpoint for #642 are created atomically in the same coord/dispatch-claims commit."
+    "Claim and checkpoint for #642 are created atomically in the same coord/dispatch-claims commit.",
+    "Checkpoint head reconciled to 964e7f8b20c2f34b5542ba400eb58e1ab15c2371 under Remote Guard run 36055550617 before any further repo mutation."
   ],
   "master_issue": null,
   "chain_state": "NONE",
