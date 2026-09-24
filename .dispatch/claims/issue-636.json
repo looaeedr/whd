@@ -1,0 +1,24 @@
+{
+  "issue": 636,
+  "issue_url": "https://github.com/looaeedr/whd/issues/636",
+  "worker": "chatgpt.sol260925.issue636.proof",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue636-live-issue631-takeover-proof-20260925",
+  "claimed_at": "2026-09-25T02:21:02+08:00",
+  "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "head_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T02:21:02+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Create guarded helper branch, add one-shot proof workflow for #631 stale interactive takeover, run to terminal, consume proof, then cleanup/close helper.",
+  "blocker": null,
+  "evidence": {
+    "parent_issue": 631,
+    "user_takeover_comment_id": 5819679412,
+    "target_previous_worker": "chatgpt.sol260925.finalization-hard-gate",
+    "target_requesting_worker": "chatgpt.sol260925.close631.a1"
+  }
+}
