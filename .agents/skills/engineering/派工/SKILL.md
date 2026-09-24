@@ -230,7 +230,10 @@ stale owner 接管的 canonical machine authority 是 `tools/stale_claim_takeove
 - 預設 stale threshold 固定為 **600 秒（10 分鐘）**。
 - fresh evidence 至少帶：claim `last_update`、live work-branch HEAD + HEAD commit timestamp、claim 綁定的 exact remote run fresh status/updated_at（若有 run_id）。
 - exact run 為 `queued/in_progress/waiting/requested/pending` 時固定分類 `RUN_LIVE`，禁止 takeover，即使 claim 本身已超過 10 分鐘。
-- 最近 durable progress 未滿 600 秒固定 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
+- **一般 foreign owner（非 scheduler）**仍維持 600 秒規則：最近 durable progress 未滿 600 秒為 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
+- **foreign scheduler owner** 不得再用 claim freshness 冒充 runtime liveness：fresh-read exact claim blob 後，必須讀 owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` heartbeat/lease；有效 lease 固定 backoff。
+- foreign scheduler 在「無 active exact run + heartbeat missing/expired + exact claim/blob/branch/head identity 一致 + durable progress age >= 90 秒」時，可由 evaluator 分類 `ORPHANED_SCHEDULER_OWNER/actionable=true`，不必等滿一般 600 秒。
+- same-lane cross-cycle resume 不做 takeover；`claim.worker == current scheduler lane` 時直接從 durable next_action / exact run resume，不要求上一 invocation heartbeat 仍有效。
 - live branch 已前進時，以 **observed live HEAD** 作 resume/takeover identity；recent commit 會重置 stale age，舊 commit 超過 threshold 才可接。
 - evaluator malformed/missing evidence 必須 fail closed。
 - 真正 ownership 轉移使用 Remote Guard 單次 action `claim-takeover`，取得 fresh GREEN receipt 後才能 CAS 更新 shared claim；不得拿一般 `commit` receipt 或舊 receipt 代替。
@@ -537,3 +540,14 @@ Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeov
 6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
 7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
 8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
+
+
+### SCHEDULER_RUNTIME_LIVENESS_V1
+
+`scheduler lane identity != invocation identity`。每次 scheduler invocation 若持有 active claim，必須以 owning Issue top-level comment 投影短效 runtime lease，第一行固定 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1`，至少帶 `issue / scheduler_lane / invocation_identity / claim_blob_sha / branch / head_sha / executor_source=scheduler / emitted_at / expires_at`；若綁 active exact run，再成對帶 `active_run_id + active_run_head_sha`。
+
+- lease TTL 最長 300 秒；canonical orphan grace 為 90 秒。
+- heartbeat 只是 invocation liveness evidence，不取代 claim/checkpoint/next_action。
+- claim blob、branch、HEAD 任一 drift，舊 heartbeat 不可重用且 machine fail closed。
+- platform hard boundary 不需要修改 claim 來假裝 terminal；只要不再續發 heartbeat，lease自然過期，下一 sibling wake 可安全走 orphan takeover。
+- durable comment parser/selector authority：`tools/scheduler_runtime_liveness.py`；takeover decision authority仍為 `tools/stale_claim_takeover.py`。
