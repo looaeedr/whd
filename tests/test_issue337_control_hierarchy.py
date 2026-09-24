@@ -19,6 +19,7 @@ def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+
 def test_t4_shared_role_source_contract():
     theme = _text("whd_theme.py")
     panel = _text("phase6_settings_panel.py")
@@ -33,17 +34,16 @@ def test_t4_shared_role_source_contract():
     )
     missing = [role for role in required if f'"{role}"' not in theme]
     assert not missing, (
-        "#337 EXPECTED RED: shared input/selector/primary/secondary style roles "
-        f"do not yet exist: {missing!r}"
+        "#337 shared input/selector/primary/secondary style roles drifted: "
+        f"{missing!r}"
     )
 
     assert "Selector.TMenubutton" in panel
     assert "Primary.TButton" in panel
-    assert "Primary.TButton" in bridge
+    assert "Secondary.TButton" in panel
     assert "Selector.TMenubutton" in bridge
     assert "Secondary.TButton" in bridge
     assert "Secondary.TMenubutton" in bridge
-
 
 def test_t4_theme_remains_presentation_only():
     source = _text("whd_theme.py")

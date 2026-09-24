@@ -18,11 +18,21 @@ def _tree(path):
 
 
 def _defined(tree):
-    return {
+    names = {
         node.name
         for node in tree.body
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
     }
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            names.update(
+                target.id
+                for target in node.targets
+                if isinstance(target, ast.Name)
+            )
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names.add(node.target.id)
+    return names
 
 
 def _class_wiring_targets(tree):

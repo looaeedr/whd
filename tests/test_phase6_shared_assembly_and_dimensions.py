@@ -14,6 +14,7 @@ from ae_engine.corner_type_ui import (
 )
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId,
+    CornerTypeSelection,
     CrossCornerMode,
     CornerDirection,
     box_body_height_from_corner_policies,
@@ -167,11 +168,11 @@ def test_changing_box_assembly_type_preserves_existing_left_right_parameters_whe
     pairs = new_manual_corner_pair_same_state(["head", "tail"])
     apply_box_assembly_type(state, pairs, CornerTypeId.INSERT_OVERLAY)
     pairs["head"]["top"] = False
-    state["head"]["top_left"] = bridge.CornerTypeSelection(
+    state["head"]["top_left"] = CornerTypeSelection(
         CornerTypeId.INSERT_OVERLAY, amount_t=1.25,
         secondary_retain_t=0.75, secondary_depth_t=2.5,
     )
-    state["head"]["top_right"] = bridge.CornerTypeSelection(
+    state["head"]["top_right"] = CornerTypeSelection(
         CornerTypeId.INSERT_OVERLAY, amount_t=1.75,
         secondary_retain_t=0.25, secondary_depth_t=3.0,
     )
@@ -578,7 +579,7 @@ def test_overlay_bottom_manual_edit_survives_ordinary_refresh_without_reapplying
         state, pairs, CornerTypeId.OVERLAY, reset_bottom_defaults=True
     )
 
-    manual = bridge.CornerTypeSelection(
+    manual = CornerTypeSelection(
         CornerTypeId.CROSS,
         cross_mode=CrossCornerMode.EXTRA_CUT,
         direction=CornerDirection.HEIGHT,
@@ -602,7 +603,7 @@ def test_overlay_bottom_manual_standard_survives_ordinary_refresh_until_explicit
         state, pairs, CornerTypeId.OVERLAY, reset_bottom_defaults=True
     )
 
-    manual_standard = bridge.CornerTypeSelection(
+    manual_standard = CornerTypeSelection(
         CornerTypeId.CROSS,
         cross_mode=CrossCornerMode.STANDARD,
     )

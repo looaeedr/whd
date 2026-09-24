@@ -49,22 +49,21 @@ def _class_wiring(tree):
     return out
 
 
+
 def test_issue361_bridge_manufacturing_facade_is_one_line_adapter_call():
     tree = _tree("fold_designer_bridge.py")
-    fn = _function(tree, "_phase6_resolve_manufacturing_geometry")
-
-    body = list(fn.body)
-    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
-        body = body[1:]
-    assert len(body) == 1
-    assert isinstance(body[0], ast.Return)
-    call = body[0].value
-    assert isinstance(call, ast.Call)
-    assert isinstance(call.func, ast.Name)
-    assert call.func.id == "resolve_for_app"
-    assert len(call.args) == 1
-    assert isinstance(call.args[0], ast.Name) and call.args[0].id == "self"
-
+    assignment = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name)
+            and target.id == "_phase6_resolve_manufacturing_geometry"
+            for target in node.targets
+        )
+    )
+    assert isinstance(assignment.value, ast.Name)
+    assert assignment.value.id == "resolve_for_app"
 
 def test_issue361_adapter_owns_app_to_service_provider_wiring(monkeypatch):
     import phase6_manufacturing_adapter as adapter

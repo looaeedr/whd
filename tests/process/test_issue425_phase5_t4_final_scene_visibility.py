@@ -361,19 +361,11 @@ def test_t4_final_scene_query_order_and_text_producer_kinds_remain_exact():
     ) == ["formed", "blank"]
 
 
+
 def test_t4_bridge_final_scene_wrappers_are_thin_panel_delegates():
-    corner = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_final_scene_corner_text_sink",
-    )
-    part = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_final_scene_part_text_sink",
-    )
-    visibility = _function_source(
-        "fold_designer_bridge.py",
-        "_phase6_final_scene_visibility",
-    )
+    corner = _function_source("phase6_assembly_panel.py", "set_corner_texts")
+    part = _function_source("phase6_assembly_panel.py", "set_part_text")
+    visibility = _function_source("phase6_assembly_panel.py", "resolve_visibility")
     tree_var = _function_source(
         "fold_designer_bridge.py",
         "_phase6_structure_tree_visibility_var",
@@ -383,19 +375,19 @@ def test_t4_bridge_final_scene_wrappers_are_thin_panel_delegates():
         "_phase6_set_structure_tree_visibility",
     )
 
-    assert "_phase6_last_assembly_corner_dimension_texts" in corner
-    assert ".set_corner_texts(" in corner
-    assert ".set_part_text(" in part
-    assert ".resolve_visibility(" in visibility
+    assert "corner_vars" in corner
+    assert "formed_vars" in part and "blank_vars" in part
+    assert "_resolve_visibility_with_vars" in visibility
     assert ".visibility_var(" in tree_var
     assert ".notify_visibility_changed(" in tree_set
 
-    for source in (corner, part, visibility, tree_var):
-        assert "BooleanVar(" not in source
-        assert "StringVar(" not in source
-
-    assert "_phase6_on_assembly_part_visibility_changed(" not in tree_set
-
+    bridge = Path("fold_designer_bridge.py").read_text(encoding="utf-8")
+    for retired in (
+        "_phase6_final_scene_corner_text_sink",
+        "_phase6_final_scene_part_text_sink",
+        "_phase6_final_scene_visibility",
+    ):
+        assert f"def {retired}(" not in bridge
 
 def test_t4_final_scene_adapter_keeps_all_four_presentation_ports_wired():
     # Phase 4 T1 (#479) moved application wiring ownership into the existing

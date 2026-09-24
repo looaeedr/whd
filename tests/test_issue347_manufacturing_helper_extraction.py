@@ -41,6 +41,7 @@ def _top_level_defined_names(tree):
     return names
 
 
+
 def test_issue347_helpers_have_one_canonical_owner_and_zero_reverse_import():
     import phase6_manufacturing_geometry as owner
     import fold_designer_bridge as bridge
@@ -51,8 +52,9 @@ def test_issue347_helpers_have_one_canonical_owner_and_zero_reverse_import():
     owner_names = _top_level_defined_names(owner_tree)
     bridge_names = _top_level_defined_names(bridge_tree)
 
-    assert MOVED_FUNCTIONS | MOVED_CONSTANTS <= owner_names
-    assert not (MOVED_FUNCTIONS | MOVED_CONSTANTS) & bridge_names
+    all_moved = MOVED_FUNCTIONS | MOVED_CONSTANTS
+    assert all_moved <= owner_names
+    assert not all_moved & bridge_names
 
     reverse_imports = []
     for node in ast.walk(owner_tree):
@@ -64,9 +66,24 @@ def test_issue347_helpers_have_one_canonical_owner_and_zero_reverse_import():
             reverse_imports.append(node.module)
     assert reverse_imports == []
 
-    for name in MOVED_FUNCTIONS | MOVED_CONSTANTS:
+    retained_bridge_reexports = {
+        "_PHASE6_ASSEMBLY_PLACEMENTS",
+        "_phase6_door_part_assembly_placement",
+        "_phase6_assembly_placement_for_part",
+        "_phase6_relief_polygon_coords",
+        "_phase6_assembly_relief_clearance",
+        "_phase6_current_cabinet_family",
+        "_phase6_solution_is_committable",
+        "_phase6_apply_resolved_cut_to_part",
+        "_phase6_box_body_piece_solver_key",
+        "_phase6_manufacturing_state_signature",
+        "_phase6_joint_registry_diagnostic_info",
+    }
+    retired_reexports = all_moved - retained_bridge_reexports
+    for name in retained_bridge_reexports:
         assert getattr(bridge, name) is getattr(owner, name)
-
+    for name in retired_reexports:
+        assert not hasattr(bridge, name)
 
 def test_issue347_pure_helper_behavior_is_preserved():
     from types import SimpleNamespace

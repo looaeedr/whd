@@ -52,15 +52,16 @@ def test_menu_theme_provider_is_presentation_only():
     assert "manufacturing" not in source.lower()
 
 
+
 def test_menu_callback_authority_names_remain_existing_routes():
     bridge = _text("fold_designer_bridge.py")
     door = _text("gui_modules/parts/panels/door.py")
     editor = _text("gui_modules/editors/hole_editor_composition.py")
 
     for token in (
-        "command=self.load_project_file",
-        "command=self.save_project_file",
-        "command=self.save_project_file_as",
+        '"load_project_file": _phase6_load_project_file',
+        '"save_project_file": _phase6_save_project_file',
+        '"save_project_file_as": _phase6_save_project_file_as',
         "_phase6_activate_operator_part",
         "self.add_part",
         "self.remove_selected_part",
@@ -68,7 +69,6 @@ def test_menu_callback_authority_names_remain_existing_routes():
         assert token in bridge
     assert "command=lambda:" in door or "add_command" in door
     assert "menu_factory=" in editor
-
 
 def test_shared_menu_adapter_effective_palette_under_real_tk():
     if not os.environ.get("DISPLAY"):

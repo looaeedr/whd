@@ -59,11 +59,11 @@ def test_issue483_removes_only_census_proven_dead_glue():
     assert PROTECTED_KEEP <= funcs
 
 
+
 def test_issue483_protected_bridge_boundaries_remain_intact():
-    assert not (ROOT / "phase6_workspace_shell.py").exists()
+    assert (ROOT / "phase6_workspace_shell.py").is_file()
     assert not (ROOT / "phase6_part_editor_session.py").exists()
     assert _facade_binding_count() <= 69
-
 
 def test_issue483_no_second_composition_root_or_reverse_import():
     assert not (ROOT / "gui_modules" / "application" / "fold_designer_composition.py").exists()
