@@ -7,39 +7,47 @@
   "claimed_at": "2026-09-24T17:39:10+08:00",
   "base_sha": "dbd999794205cb33759805221be42b636ca27eed",
   "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
-  "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-24T17:44:50+08:00",
+  "phase": "POST_INTEGRATION_READBACK",
+  "last_update": "2026-09-24T19:03:05+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
   "task_id": "C3",
   "parent_issue": 520,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Fresh-compare closing head c6556139957f3bbf104aa001d9b151ee542b8b60 against current production. Verify the only C3 work delta is the CURRENT ownership writeback, observe the already-triggered exact branch QA run rather than dispatching a duplicate, then obtain fresh pr-write authority and integrate only the C3 closing writeback non-force.",
+  "remote_qa": {
+    "run_id": 35983063139,
+    "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+    "status": "completed",
+    "conclusion": "failure",
+    "classification": "post-C3-doc-writeback push reran C2 A/B; candidate-only failures are governance process tests test_issue540_stale_claim_takeover (2), while candidate/base Headless and Xvfb suites themselves completed"
+  },
+  "next_action": "Live GitHub already merged PR #605 non-force; do not replay integration. Fresh-read production be299d40a8d79c211d1bf8cc28938fcfbcad4179, verify C3 writeback exact readback and required final smoke/structural invariants on production, then create terminal checkpoint and run trusted finalization before closing #535 and Master #520.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 534,
     "predecessor_checkpoint_blob_sha": "5651aa8c00e603b4ce42a18617e2f4dba62ade29",
     "accepted_parent_head": "dbd999794205cb33759805221be42b636ca27eed",
     "existing_integration_pr": 600,
-    "existing_production_head": "69fb6c20c49c9e011ec0705df80ad3b197acf0da"
+    "c3_integration_pr": 605,
+    "production_head": "be299d40a8d79c211d1bf8cc28938fcfbcad4179"
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35983082128,
-    "request_comment_id": 5811739198,
+    "run_id": 35990741047,
+    "request_comment_id": 5812828429,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
+    "guard_authority_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
     "consumed": true
   },
   "audit": {
-    "production_head": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
+    "production_head": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
     "production_ancestry_verified": true,
     "predecessor_head_ancestor": true,
-    "existing_integration_pr": 600,
-    "existing_integration_must_not_be_duplicated": true,
+    "c3_head_ancestor_of_production": true,
+    "c3_integration_pr": 605,
+    "c3_integration_replayed": false,
     "required_writeback": {
       "workspace_shell": {
         "prior": "#447 NO_EXTRACTION",
@@ -58,6 +66,8 @@
     "changed_files": [
       "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
     ],
-    "classification": "CURRENT ownership/supersession writeback only"
+    "classification": "CURRENT ownership/supersession writeback only",
+    "integration_pr": 605,
+    "merge_commit": "be299d40a8d79c211d1bf8cc28938fcfbcad4179"
   }
 }
