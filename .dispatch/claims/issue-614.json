@@ -6,9 +6,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T21:11:30+08:00",
+  "head_sha": "259879ae35d0407a943697ba804d5c180ac5deb6",
+  "phase": "RED",
+  "last_update": "2026-09-24T21:22:24+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -16,6 +16,12 @@
   "parent_issue": 628,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create Master work-order branch from exact frozen X base b61db24e4428100b7e7d627ae946a04f93ca0f8b, run Phase6 Knowledge Preflight for #614, reproduce the real user path RED without hidden box_body:back activation, then implement the smallest canonical selector restoration.",
-  "blocker": null
+  "next_action": "Run exact Xvfb RED on tests/test_issue614_receiving_back_panel_selector_reachability.py at HEAD 259879ae35d0407a943697ba804d5c180ac5deb6; preserve failure evidence; then implement the smallest canonical normal-input selector reachability fix.",
+  "blocker": null,
+  "red_evidence": {
+    "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
+    "test_path": "tests/test_issue614_receiving_back_panel_selector_reachability.py",
+    "guard_run": 36004925748,
+    "status": "PENDING_RUN"
+  }
 }
