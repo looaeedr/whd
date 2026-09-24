@@ -6,19 +6,22 @@
   "work_branch": "governance/issue636-live-issue631-takeover-proof-20260925",
   "claimed_at": "2026-09-25T02:21:02+08:00",
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
-  "head_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+  "head_sha": "a4f751462c2272bdbdc4c486c73925d9465e8f51",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T02:21:02+08:00",
+  "last_update": "2026-09-25T02:23:03+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create guarded helper branch, add one-shot proof workflow for #631 stale interactive takeover, run to terminal, consume proof, then cleanup/close helper.",
+  "next_action": "Read the one-shot push workflow result for commit a4f751462c2272bdbdc4c486c73925d9465e8f51; on GREEN consume the #631 takeover proof, then cleanup/close helper.",
   "blocker": null,
   "evidence": {
     "parent_issue": 631,
     "user_takeover_comment_id": 5819679412,
     "target_previous_worker": "chatgpt.sol260925.finalization-hard-gate",
-    "target_requesting_worker": "chatgpt.sol260925.close631.a1"
+    "target_requesting_worker": "chatgpt.sol260925.close631.a1",
+    "proof_workflow_commit": "a4f751462c2272bdbdc4c486c73925d9465e8f51",
+    "proof_workflow_commit_guard_run_id": 36040722232,
+    "post_commit_claim_reconcile_guard_run_id": 36040817011
   }
 }
