@@ -6,12 +6,21 @@
   "work_branch": "governance/issue593-e2e-phases-20260924",
   "claimed_at": "2026-09-24T13:07:31+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T13:07:31+08:00",
+  "head_sha": "27bafdbb623d36ac6e0b3c735366a747d9fa3d77",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T13:09:51+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create guarded branch; add E2E_OWNER/E2E_TAKEN_OVER/E2E_PROVEN to canonical active-phase allowlists with focused fail-closed regression; integrate to X; resume #592 owner setup.",
-  "blocker": null
+  "next_action": "Superseded by #594 canonical-phase retry; do not merge this branch. Close #593 as not planned and release this claim.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35958717524,
+    "request_comment_id": 5808081718,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "consumed": true
+  }
 }
