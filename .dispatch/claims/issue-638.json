@@ -6,18 +6,37 @@
   "work_branch": "work/issue638-helper-aware-takeover-20260925",
   "claimed_at": "2026-09-25T02:31:39+08:00",
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
-  "head_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T02:31:39+08:00",
+  "head_sha": "e59941f8f1baa8eee3c6dc9c0925ed253c569161",
+  "phase": "RED",
+  "last_update": "2026-09-25T02:40:07+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Obtain branch-create Guard, create the repair branch, add RED regression for active delegated helper/proof work, then implement the canonical stale-takeover hard gate and helper dedupe.",
+  "remote_qa": {
+    "run_id": 36042591223,
+    "head_sha": "e59941f8f1baa8eee3c6dc9c0925ed253c569161",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow_path": ".github/workflows/qa-issue638-helper-aware-takeover.yml"
+  },
+  "next_action": "Inspect exact RED run 36042591223 and confirm only the new delegated/helper-awareness regressions fail; then implement ACTIVE_DELEGATED_WORK + helper-key dedupe in the canonical stale evaluator and durable dispatch guidance.",
   "blocker": null,
   "evidence": {
     "requirement_authority": "User instruction 2026-09-25: 補啊",
     "regression_parent_issue": 631,
-    "regression_helper_issue": 636
+    "regression_helper_issue": 636,
+    "red_commit": "e59941f8f1baa8eee3c6dc9c0925ed253c569161",
+    "red_commit_guard_run_id": 36042437782,
+    "red_claim_reconcile_guard_run_id": 36042776022,
+    "red_qa_run_id": 36042591223
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36042776022,
+    "request_comment_id": 5820002619,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
+    "consumed": true
   }
 }
