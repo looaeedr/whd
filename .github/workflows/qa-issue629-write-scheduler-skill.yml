@@ -1,0 +1,57 @@
+name: WHD｜#629｜寫排程 Skill 驗收
+run-name: "WHD｜#629｜寫排程 Skill 驗收｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue629-write-scheduler-skill-20260924
+    paths:
+      - .github/workflows/qa-issue629-write-scheduler-skill.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: scheduler-authoring contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出精確工單分支
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Registry JSON 必須可解析
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool .agents/skills/skill_registry.json >/dev/null
+
+      - name: 寫排程 Skill contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_write_scheduler_skill_contract.py
+
+      - name: Canonical Preflight route
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/phase6_skill_preflight.py \
+            --task "新增 寫排程技能，建立 scheduler prompt authoring hard gates" \
+            --changed-file ".agents/skills/engineering/寫排程/SKILL.md" \
+            --changed-file ".agents/skills/skill_registry.json" \
+            --changed-file "tests/process/test_write_scheduler_skill_contract.py" \
+            --changed-file "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
