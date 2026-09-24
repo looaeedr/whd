@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "534",
+  "branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
+  "head_sha": "dbd999794205cb33759805221be42b636ca27eed",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": 35970738509,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "C2 Final Combined Acceptance run 35970738509 completed success at tested candidate df94d7483f742cea5796017c1a730312ec3eecfd with candidate-only Headless/Xvfb RED=0, final integrity GREEN, visual 3D PASS, and protected config/DXF invariants unchanged.",
+    "Legally guarded merge-sync closing head dbd999794205cb33759805221be42b636ca27eed was reconciled after governance repairs #601 and #603 without rewriting history.",
+    "PR #600 merged non-force with exact head dbd999794205cb33759805221be42b636ca27eed; production cleanup/2d-3d-sync readback HEAD is 69fb6c20c49c9e011ec0705df80ad3b197acf0da.",
+    "Post-integration Phase 6 Bridge anti-regrowth workflow run 35982180554 completed success at production HEAD 69fb6c20c49c9e011ec0705df80ad3b197acf0da.",
+    "C3 #535 remains the canonical closing ownership/writeback child; existing PR #600 integration is durable evidence and must not be duplicated."
+  ],
+  "master_issue": "520",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "535",
+  "chain_next_action": "Atomically claim #535/C3 from the accepted C2 lineage. Perform required durable ownership/writeback, tested-to-closing and production drift audit, production ancestry/file readback, and final smoke. Reuse PR #600 / production HEAD 69fb6c20c49c9e011ec0705df80ad3b197acf0da as the already-completed single non-force integration; do not create a duplicate integration merge.",
+  "chain_reason": "C2 Final Combined Acceptance is terminal GREEN and production integration has completed; C3 is the published final closing child for durable writeback, drift audit, production readback, final smoke, and Master closure."
+}
