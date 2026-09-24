@@ -1,0 +1,34 @@
+{
+  "schema": "WHD_PHASE7_TARGET_COMPLETION_V1",
+  "issue": 617,
+  "master_issue": 627,
+  "target": "P7-B",
+  "task_id": "A2",
+  "result": "ACCEPTED",
+  "tested_head": "5039d99208e247b6470581839308b3e89bf46674",
+  "closing_head": "7127129081c21732d49aa07f37823fb0f708700d",
+  "remote_qa": {
+    "run_id": 36012764771,
+    "conclusion": "success",
+    "headless": "20 passed",
+    "xvfb": "29 passed"
+  },
+  "drift_audit": {
+    "ahead_by": 1,
+    "behind_by": 0,
+    "files": [
+      {
+        "path": ".github/workflows/qa-issue617-a2.yml",
+        "status": "removed"
+      }
+    ],
+    "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+  },
+  "invariants": {
+    "reverse_import": 0,
+    "duplicate_owner_path": 0,
+    "second_composition_root": 0,
+    "full_app_dependency": false
+  },
+  "next_action": "terminal checkpoint and finalization proof"
+}
