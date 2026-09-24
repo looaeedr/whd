@@ -6,19 +6,19 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "6152d43a2068aa5e9aad38c5de220d104cd90b22",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T22:23:06+08:00",
+  "head_sha": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T22:24:55+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36012122366,
-    "head_sha": "b0425d59e6810c4512a6c55ac0439cf51fb61f0b",
+    "run_id": 36012569776,
+    "head_sha": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Trigger a fresh #629 focused QA on exact HEAD 6152d43a2068aa5e9aad38c5de220d104cd90b22 after the test-only assertion fix; lock the new run to terminal.",
+  "next_action": "Fix only the #629 QA workflow Preflight step: assert required_skills_for/required_references_for route contents instead of invoking the CLI without evidence; retrigger focused QA on the new exact HEAD.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -30,6 +30,10 @@
     "workflow_claim_reconcile_guard_run_id": 36012161658,
     "test_fix_commit": "6152d43a2068aa5e9aad38c5de220d104cd90b22",
     "test_fix_guard_run_id": 36012271621,
-    "test_fix_claim_reconcile_guard_run_id": 36012379296
+    "test_fix_claim_reconcile_guard_run_id": 36012379296,
+    "qa_retry_run_id": 36012569776,
+    "qa_retry_failure": "contract 4/4 PASS; workflow Preflight step incorrectly invoked phase6_skill_preflight.py without evidence, producing expected missing-evidence exit 1",
+    "rerun_workflow_commit": "45b144d8d2e8e543bb0c03f43c044ce8f5325ec8",
+    "rerun_claim_reconcile_guard_run_id": 36012606490
   }
 }
