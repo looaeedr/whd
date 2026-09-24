@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
-  "phase": "BLOCKED",
-  "last_update": "2026-09-24T22:00:00+08:00",
+  "phase": "RUNNING",
+  "last_update": "2026-09-24T22:15:04+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -16,13 +16,13 @@
   "parent_issue": 628,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": null,
+    "run_id": 36009308143,
     "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
-    "status": "RUN_NOT_CREATED",
-    "conclusion": null
+    "status": "completed",
+    "conclusion": "success"
   },
-  "next_action": "On the next scheduler wake, fresh-read this claim and issue comments first; if an exact push run for HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c is discoverable, lock that run_id+head_sha and poll to terminal. Only if live evidence proves no run exists may a qa-dispatch Guard be requested before manual dispatch.",
-  "blocker": "RUNTIME_CAPABILITY_BLOCKER: current GitHub connector exposes no repository/workflow push-run listing endpoint; exact expanded B1 run_id for HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c cannot be safely discovered. Manual dispatch is prohibited because it could duplicate an auto-triggered push run.",
+  "next_action": "Record B1 acceptance against exact successful run 36009308143, close/readback Issue #614, then advance Master #628 to the next executable child using work-order HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c.",
+  "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
     "orchestration_commit": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
@@ -46,12 +46,15 @@
   "expanded_acceptance": {
     "workflow": ".github/workflows/qa-issue614-b1-selector.yml",
     "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+    "run_id": 36009308143,
+    "result": "SUCCESS",
     "includes": [
       "tests/test_issue614_receiving_back_panel_selector_reachability.py",
       "tests/test_issue510_receiving_back_panel_modes.py"
     ],
     "guard_receipt_run_id": 36008010111,
     "guard_reconciliation_run_id": 36009379576,
-    "guard_blocker_update_run_id": 36009527024
+    "guard_blocker_update_run_id": 36009527024,
+    "blocker_cleared_by_live_discovery": true
   }
 }
