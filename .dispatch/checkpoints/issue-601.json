@@ -1,0 +1,23 @@
+{
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "branch": "governance/issue601-parent-order-reconciliation-20260924",
+  "chain_next_action": "Resume #534 C2 closing from its durable claim; reconcile the existing legal merge-sync head with repaired parent-order-neutral guard authority, then continue owning finalization.",
+  "chain_reason": null,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "evidence": [
+    "focused_remote_qa run_id=35974783189 tested_head=3d4d41221f8cdfa2f5fe9c2860c95928c6373bf3 conclusion=success result=9 passed",
+    "tested_to_closing_drift=.github/workflows/qa-issue601-parent-order.yml removed closing_head=32aab21556f46bfd43613c311817adcc4c6b2163",
+    "pr=602 merged_non_force=true production_head=39e12afc46a7bfcb94720e83195651fc4257f26d"
+  ],
+  "head_sha": "32aab21556f46bfd43613c311817adcc4c6b2163",
+  "issue": "601",
+  "job_id": null,
+  "log_cursor": null,
+  "master_issue": "534",
+  "next_action": null,
+  "next_issue": "534",
+  "run_id": null,
+  "state": "TERMINAL_SUCCESS",
+  "version": 1
+}
