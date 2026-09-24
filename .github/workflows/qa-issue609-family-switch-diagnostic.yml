@@ -1,0 +1,41 @@
+name: "WHD #609 受電箱切換渲染診斷"
+run-name: "WHD｜工單 #609｜受電箱切換渲染診斷"
+
+on:
+  push:
+    branches:
+      - hotfix/issue609-receiving-selector-marking-20260924
+    paths:
+      - 'tests/test_issue609_family_switch_render_diagnostic.py'
+      - '.github/workflows/qa-issue609-family-switch-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    name: "真 GUI 切換追蹤"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "取出測試版本"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "安裝 Xvfb 與測試依賴"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -r requirements.txt pytest
+
+      - name: "執行金庫型到受電箱的實際渲染追蹤"
+        shell: bash
+        run: |
+          set -euo pipefail
+          xvfb-run -a python -m pytest -q -s \
+            tests/test_issue609_family_switch_render_diagnostic.py \
+            --tb=short
