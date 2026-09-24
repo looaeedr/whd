@@ -6,9 +6,9 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-24T22:27:02+08:00",
+  "head_sha": "0aff433337ae80b8043754c878556a30570756d3",
+  "phase": "INTEGRATING",
+  "last_update": "2026-09-24T22:28:48+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
@@ -18,7 +18,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Remove temporary .github/workflows/qa-issue629-write-scheduler-skill.yml, reconcile claim to closing HEAD, then verify tested-head→closing-head diff is workflow deletion only before integration/finalization.",
+  "next_action": "Open guarded non-force integration PR from work/issue629-write-scheduler-skill-20260924 @ 0aff433337ae80b8043754c878556a30570756d3 to cleanup/2d-3d-sync @ 2ec51eb8f777cbfd8c3485efd68487d264854eba; merge only if exact head/base remain unchanged.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -38,6 +38,30 @@
     "accepted_qa_run_id": 36012838280,
     "accepted_qa_head": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
     "accepted_qa": "scheduler-authoring contract 4/4 PASS; canonical preflight route assertion GREEN; all job steps success",
-    "accepted_qa_claim_reconcile_guard_run_id": 36012868724
+    "accepted_qa_claim_reconcile_guard_run_id": 36012868724,
+    "cleanup_commit": "0aff433337ae80b8043754c878556a30570756d3",
+    "cleanup_guard_run_id": 36012984590,
+    "cleanup_claim_reconcile_guard_run_id": 36013084988,
+    "tested_to_closing_drift": {
+      "tested_head": "7ab682a8e0ac5f7db1952bca78d3bc204c285521",
+      "closing_head": "0aff433337ae80b8043754c878556a30570756d3",
+      "ahead_by": 1,
+      "files": [
+        ".github/workflows/qa-issue629-write-scheduler-skill.yml"
+      ],
+      "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+    },
+    "integration_readiness": {
+      "frozen_base": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+      "current_target": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
+      "closing_head": "0aff433337ae80b8043754c878556a30570756d3",
+      "target_drift": "NONE",
+      "work_files": [
+        ".agents/skills/engineering/寫排程/SKILL.md",
+        ".agents/skills/skill_registry.json",
+        "tests/process/test_write_scheduler_skill_contract.py",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md"
+      ]
+    }
   }
 }
