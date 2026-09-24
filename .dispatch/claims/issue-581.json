@@ -6,29 +6,33 @@
   "work_branch": "governance/issue581-interactive-stale-takeover-20260924",
   "claimed_at": "2026-09-24T08:11:30+08:00",
   "base_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
-  "head_sha": "13266395c401ed257eea35e156c810de3388395a",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T08:21:30+08:00",
+  "head_sha": "015ca8d2ddc2b996082a87264f4bfa0663e7d84e",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T08:24:40+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Add RECOVERING to tools/stale_claim_takeover.py active phases, preserving all other takeover semantics, then rerun the same focused regression workflow.",
+  "next_action": "Remove temporary QA workflow only, reconcile closing head, then guarded PR create/merge to cleanup/2d-3d-sync. After production readback, execute user-directed interactive takeover of #534.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35938013339,
-    "request_comment_id": 5805163419,
+    "run_id": 35938257423,
+    "request_comment_id": 5805192696,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "fe7c1f1d1caebd49197f5445b90836f9b20aa138",
     "consumed": true
   },
   "remote_qa": {
-    "run_id": 35937990068,
-    "head_sha": "13266395c401ed257eea35e156c810de3388395a",
+    "run_id": 35938126473,
+    "head_sha": "015ca8d2ddc2b996082a87264f4bfa0663e7d84e",
     "status": "completed",
-    "conclusion": "failure",
-    "failure_class": "RECOVERING_PHASE_MISSING_IN_STALE_EVALUATOR",
-    "pass_count": 44,
-    "fail_count": 4
+    "conclusion": "success",
+    "pass_count": 48,
+    "fail_count": 0
+  },
+  "ignored_duplicate_guard": {
+    "run_id": 35938267540,
+    "request_comment_id": 5805178078,
+    "reason": "IDENTICAL_DUPLICATE_TRANSPORT_RECEIPT_INVALIDATED_BY_FIRST_CAS"
   }
 }
