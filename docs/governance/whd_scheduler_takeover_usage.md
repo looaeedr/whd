@@ -229,3 +229,17 @@ active_run_head_sha=<optional>
 - 這個例外只允許載入 unknown phase 以正規化 claim，不授權其他 repository mutation；
 - `commit`、`pr-write`、`claim-takeover`、dispatch、其他 changed path 仍因 unknown phase fail closed；
 - terminal / RELEASED 語意不因此放寬，仍依既有 reopened-released 專用規則。
+
+
+## 16. Explicit takeover of a stale invalid-phase claim
+
+Unknown/non-canonical claim phase remains fail-closed by default. The only takeover exception is a stale interactive owner with an exact, repository-owner-authored `WHD_USER_DIRECTED_TAKEOVER_V1` authorization.
+
+- previous owner must have `executor_source=chat`;
+- requester must be a distinct interactive `chatgpt.*` worker with `executor_source=chat`;
+- owner authority must bind exact issue / previous worker / requesting worker and remain within its validity window;
+- no active exact run may exist;
+- ordinary `stale_after_seconds=600` applies; the scheduler-only 90-second orphan grace is never available;
+- evaluator evidence must be `EXECUTOR_STUCK` and preserve the exact unknown phase as evidence;
+- claim guard may parse the unknown phase only because both machine takeover evidence and user-authority evidence are present, then it must fully validate both before GREEN;
+- this does not authorize unknown phase for scheduler takeover or any other repository action. #595's exact own-claim write normalization remains the only non-takeover recovery.

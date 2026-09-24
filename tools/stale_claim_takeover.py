@@ -378,8 +378,7 @@ def evaluate_stale_claim_takeover(
     phase = str(claim.get("phase") or "").strip().upper()
     if not phase:
         raise StaleTakeoverError("claim phase is required")
-    if phase not in _ACTIVE_PHASES and phase not in _INACTIVE_PHASES:
-        raise StaleTakeoverError(f"unknown claim phase={phase}")
+    unknown_phase = phase not in _ACTIVE_PHASES and phase not in _INACTIVE_PHASES
 
     claim_head = _require_sha("claim head_sha", claim.get("head_sha"))
     last_update = _as_utc("claim last_update", claim.get("last_update"))
@@ -419,6 +418,17 @@ def evaluate_stale_claim_takeover(
         raise StaleTakeoverError(
             "requesting executor source/user authority require requesting_worker"
         )
+
+    if unknown_phase:
+        authorized_invalid_phase_takeover = (
+            previous_source == "chat"
+            and requester is not None
+            and requester != previous_worker
+            and requester_source == "chat"
+            and authority_comment_id is not None
+        )
+        if not authorized_invalid_phase_takeover:
+            raise StaleTakeoverError(f"unknown claim phase={phase}")
 
     remote_active, remote_updated_at, remote_reason = _remote_progress(claim, remote_run)
 

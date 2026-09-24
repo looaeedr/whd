@@ -322,6 +322,20 @@ def _assert_takeover_evidence(
     evidence_requesting_source = str(
         evidence.get("requesting_executor_source") or ""
     ).strip()
+    if claim.phase not in ACTIVE_PHASES:
+        authority_id = evidence.get("user_authority_comment_id")
+        if (
+            classification != "EXECUTOR_STUCK"
+            or expected_source != "chat"
+            or evidence_requesting_source != "chat"
+            or isinstance(authority_id, bool)
+            or not isinstance(authority_id, int)
+            or authority_id <= 0
+        ):
+            raise ExecutionClaimError(
+                "invalid-phase claim-takeover requires stale explicit user-directed "
+                "interactive evidence"
+            )
     if evidence_previous_worker != claim.worker:
         raise ExecutionClaimError(
             "claim-takeover requires evidence bound to the previous worker"
@@ -993,10 +1007,17 @@ def assert_execution_claim(
     exact_claim_write = (
         action == "write" and normalized_changed_files == (expected_claim_path,)
     )
+    explicit_invalid_phase_takeover_parse = (
+        action == "claim-takeover"
+        and takeover_evidence is not None
+        and user_authority_evidence is not None
+    )
     claim = load_execution_claim(
         path,
         allow_released_recovery=exact_claim_write,
-        allow_unknown_phase_recovery=exact_claim_write,
+        allow_unknown_phase_recovery=(
+            exact_claim_write or explicit_invalid_phase_takeover_parse
+        ),
     )
     if claim.issue != issue:
         raise ExecutionClaimError(
