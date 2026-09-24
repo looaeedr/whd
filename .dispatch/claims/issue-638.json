@@ -6,9 +6,9 @@
   "work_branch": "work/issue638-helper-aware-takeover-20260925",
   "claimed_at": "2026-09-25T02:31:39+08:00",
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
-  "head_sha": "bd5653e088ac0d8ab41c32005819cfff8ae7c2f9",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T02:53:33+08:00",
+  "head_sha": "3ea1f75cada6ef8079528ca60122fcc81d226124",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T02:57:01+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue638-helper-aware-takeover.yml"
   },
-  "next_action": "Remove only .github/workflows/qa-issue638-helper-aware-takeover.yml under a fresh exact commit Guard, reconcile claim to the cleaned head, then prove tested-head→closing-head drift is workflow-deletion-only.",
+  "next_action": "Compare tested head bd5653e088ac0d8ab41c32005819cfff8ae7c2f9 to closing head 3ea1f75cada6ef8079528ca60122fcc81d226124; require exactly one removed file .github/workflows/qa-issue638-helper-aware-takeover.yml, persist the PASS, then enter CLOSING and create/integrate the PR under fresh exact Guard.",
   "blocker": null,
   "evidence": {
     "requirement_authority": "User instruction 2026-09-25: 補啊",
@@ -34,12 +34,15 @@
     "green_claim_reconcile_guard_run_id": 36044206152,
     "green_qa_run_id": 36044183379,
     "green_qa_result": "29 passed, 0 failed",
-    "green_qa_claim_writeback_guard_run_id": 36044341521
+    "green_qa_claim_writeback_guard_run_id": 36044341521,
+    "cleanup_commit": "3ea1f75cada6ef8079528ca60122fcc81d226124",
+    "cleanup_guard_run_id": 36044428294,
+    "cleanup_claim_reconcile_guard_run_id": 36044592112
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36044341521,
-    "request_comment_id": 5820230904,
+    "run_id": 36044592112,
+    "request_comment_id": 5820268553,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
