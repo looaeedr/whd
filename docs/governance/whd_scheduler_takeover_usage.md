@@ -181,7 +181,7 @@ terminal checkpoint 不能靠手寫 marker 關票。
 
 ## 13. 使用者明確要求的聊天室接手
 
-`WHD_USER_DIRECTED_TAKEOVER_V1` 是 scheduler-owned stale claim 的窄版 interactive takeover authority。它不是一般聊天室自動搶鎖。
+`WHD_USER_DIRECTED_TAKEOVER_V1` 是 stale scheduler 或 stale interactive claim 的窄版 user-directed interactive takeover authority。它不是一般聊天室自動搶鎖。
 
 固定條件：
 
@@ -189,6 +189,7 @@ terminal checkpoint 不能靠手寫 marker 關票。
 - comment 第一行固定 `WHD_USER_DIRECTED_TAKEOVER_V1`，欄位只允許 `issue`、`requesting_worker`、`previous_worker`、`executor_source=chat`。
 - canonical `tools/stale_claim_takeover.py` 必須讀取該 GitHub comment JSON；comment 超過 3600 秒、actor/issue/old worker/new worker 不吻合都 fail closed。
 - exact remote run active 時仍不得 takeover；沒有 active run且 durable progress >=600 秒才可 `EXECUTOR_STUCK`。
+- previous owner 可以是 `scheduler.*` 或另一個 interactive worker；chat → chat 仍只能走 `EXECUTOR_STUCK` 的一般 600 秒 stale gate，不能借用 scheduler 專屬的 90 秒 orphan grace。
 - canonical `tools/execution_claim_guard.py` 在 `claim-takeover` 時必須同時讀 machine stale evidence 與同一份 owner-authored authority comment JSON。
 - interactive takeover 成功後，claim CAS 才能把 worker 改成該 `requesting_worker`、`executor_source=chat`；CAS 前後都要 fresh-read blob/HEAD。
 - Remote Guard 的 scheduler claim-takeover transport 保持 scheduler-only；interactive takeover 優先使用可執行 canonical local guard，不得把 chat 偽裝成 `scheduler.*`。

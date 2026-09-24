@@ -107,7 +107,7 @@ GREEN receipt 只授權建立該 exact branch 一次。
 
 <!-- REMOTE_GUARD_CLAIM_TAKEOVER_V1 -->
 
-只允許 scheduler stale-owner recovery 使用；一般聊天室 executor 不需要用此 action 把自己轉成自己。
+trusted Remote Guard transport 仍只允許 scheduler stale-owner recovery；canonical local guard 另外支援 owner 明確授權的 stale scheduler/chat → interactive takeover。interactive self-takeover 永遠 fail closed。
 
 Request 前必須 fresh-read：
 - exact active claim blob；
