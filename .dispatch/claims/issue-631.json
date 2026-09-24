@@ -1,0 +1,32 @@
+{
+  "issue": 631,
+  "issue_url": "https://github.com/looaeedr/whd/issues/631",
+  "worker": "chatgpt.sol260925.finalization-hard-gate",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "work/issue631-finalization-hard-gate-20260925",
+  "claimed_at": "2026-09-25T01:14:20+08:00",
+  "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+  "head_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T01:14:20+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Run Remote Guard branch-create for work/issue631-finalization-hard-gate-20260925, then create the work branch from frozen X base and begin RED contract tests.",
+  "blocker": null,
+  "evidence": {
+    "live_examples": [
+      "#614 terminal checkpoint + open Issue + active RECOVERING claim",
+      "#629 closed/integrated Issue + stale CLOSING claim",
+      "#617 QA-success tail stopped in DRIFT_AUDIT"
+    ],
+    "planned_changed_files": [
+      ".agents/skills/engineering/派工/SKILL.md",
+      ".agents/skills/engineering/executable-continuity-controller/SKILL.md",
+      "tools/continuity_controller.py",
+      "tests/process/test_continuity_controller.py",
+      "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+    ]
+  }
+}
