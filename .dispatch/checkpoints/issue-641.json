@@ -21,13 +21,14 @@
     "RED artifact 10830051734 preserves the bounded pytest log.",
     "Progress writeback Remote Guard run 36050344667 GREEN for exact claim+checkpoint update.",
     "Tested-head eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f to closing-head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 drift PASS: exactly one commit deleting only .github/workflows/qa-issue641-t1-red.yml.",
-    "Terminal-entry Remote Guard run 36050741691 GREEN at exact closing head."
+    "Terminal-entry Remote Guard run 36050741691 GREEN at exact closing head.",
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36050896987."
   ],
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 642,
   "chain_next_action": "After #641 closure is CLOSED + RELEASED, atomically claim #642/T2 from accepted closing head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8 on the same work-order branch.",
   "chain_reason": "T1 Requirement RED baseline is accepted; #642 is the next canonical child.",
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance closure to ISSUE_CLOSE_PENDING, run bound finalization proof, close/read back owning Issue, then atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "mint and verify bound finalization proof on this exact checkpoint; keep checkpoint byte-for-byte unchanged until Issue close + readback"
 }

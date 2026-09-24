@@ -8,7 +8,7 @@
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T19:49:40.087725Z",
+  "last_update": "2026-09-24T19:51:00.078528Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -45,7 +45,7 @@
       "pytest": "6 failed in 0.23s (all intended requirement gaps); wrapper ISSUE641_T1_REQUIREMENT_RED=GREEN"
     }
   },
-  "next_action": "Advance #641 terminal checkpoint FINALIZATION_PENDING → ISSUE_CLOSE_PENDING under fresh exact Guard, then obtain bound Remote Finalization proof; do not claim #642 before #641 close/release.",
+  "next_action": "Mint and verify bound Remote Finalization proof against exact ISSUE_CLOSE_PENDING checkpoint; do not mutate checkpoint bytes before Issue close/readback.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-641.json",
   "branch_create_guard": {
@@ -95,6 +95,7 @@
       ],
       "verdict": "PASS_WORKFLOW_DELETION_ONLY"
     },
-    "terminal_entry_guard_run_id": 36050741691
+    "terminal_entry_guard_run_id": 36050741691,
+    "issue_close_pending_guard_run_id": 36050896987
   }
 }
