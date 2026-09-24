@@ -186,12 +186,67 @@ def _timestamp_epoch(label: str, value: object) -> float:
     return parsed.timestamp()
 
 
+def _assert_user_directed_takeover_authority(
+    path: Path | None,
+    *,
+    issue: int,
+    previous_worker: str,
+    requesting_worker: str,
+    expected_comment_id: int,
+) -> None:
+    if path is None:
+        raise ExecutionClaimError(
+            "interactive claim-takeover requires owner-authored user authority evidence"
+        )
+    payload = _load_takeover_evidence(path)
+    comment_id = payload.get("id")
+    if isinstance(comment_id, bool) or not isinstance(comment_id, int) or comment_id <= 0:
+        raise ExecutionClaimError("user authority comment id is invalid")
+    if comment_id != expected_comment_id:
+        raise ExecutionClaimError("user authority comment id mismatch")
+    user = payload.get("user")
+    if not isinstance(user, dict) or str(user.get("login") or "") != "looaeedr":
+        raise ExecutionClaimError("user authority comment must be authored by repository owner")
+    body = payload.get("body")
+    if not isinstance(body, str):
+        raise ExecutionClaimError("user authority comment body is missing")
+    lines = body.replace("\r\n", "\n").split("\n")
+    if not lines or lines[0].strip() != "WHD_USER_DIRECTED_TAKEOVER_V1":
+        raise ExecutionClaimError("user authority comment marker mismatch")
+    singles: dict[str, str] = {}
+    allowed = {"issue", "requesting_worker", "previous_worker", "executor_source"}
+    for raw in lines[1:]:
+        if not raw.strip():
+            continue
+        if "=" not in raw:
+            raise ExecutionClaimError("user authority comment contains malformed line")
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key not in allowed or key in singles:
+            raise ExecutionClaimError(
+                "user authority comment contains unsupported/duplicate key"
+            )
+        singles[key] = value
+    if set(singles) != allowed:
+        raise ExecutionClaimError("user authority comment is missing required keys")
+    if singles["issue"] != str(issue):
+        raise ExecutionClaimError("user authority issue mismatch")
+    if singles["requesting_worker"] != requesting_worker:
+        raise ExecutionClaimError("user authority requesting_worker mismatch")
+    if singles["previous_worker"] != previous_worker:
+        raise ExecutionClaimError("user authority previous_worker mismatch")
+    if singles["executor_source"] != "chat":
+        raise ExecutionClaimError("user authority executor_source must be chat")
+
+
 def _assert_takeover_evidence(
     evidence_path: Path | None,
     *,
     claim: "ExecutionClaim",
     raw_claim: dict[str, object],
     expected_live_head_sha: str,
+    user_authority_evidence: Path | None = None,
 ) -> None:
     if evidence_path is None:
         raise ExecutionClaimError("claim-takeover requires machine stale takeover evidence")
@@ -228,6 +283,9 @@ def _assert_takeover_evidence(
 
     evidence_previous_worker = str(evidence.get("previous_worker") or "").strip()
     evidence_requesting_worker = str(evidence.get("requesting_worker") or "").strip()
+    evidence_requesting_source = str(
+        evidence.get("requesting_executor_source") or ""
+    ).strip()
     if evidence_previous_worker and evidence_previous_worker != claim.worker:
         raise ExecutionClaimError("claim-takeover previous worker mismatch")
     if expected_source == "scheduler":
@@ -235,15 +293,38 @@ def _assert_takeover_evidence(
             raise ExecutionClaimError(
                 "scheduler claim-takeover requires evidence bound to the previous worker"
             )
-        if (
-            not evidence_requesting_worker.startswith("scheduler.")
-            or evidence_requesting_worker == claim.worker
-        ):
+        if not evidence_requesting_worker or evidence_requesting_worker == claim.worker:
             raise ExecutionClaimError(
-                "scheduler claim-takeover requires a distinct requesting scheduler lane"
+                "scheduler claim-takeover requires a distinct requesting worker"
+            )
+        if evidence_requesting_worker.startswith("scheduler."):
+            if evidence_requesting_source != "scheduler":
+                raise ExecutionClaimError(
+                    "scheduler requesting worker requires scheduler executor source"
+                )
+            if evidence.get("user_authority_comment_id") is not None:
+                raise ExecutionClaimError(
+                    "scheduler claim-takeover must not carry user authority evidence"
+                )
+        else:
+            if evidence_requesting_source != "chat":
+                raise ExecutionClaimError(
+                    "interactive claim-takeover requires chat executor source"
+                )
+            authority_id = evidence.get("user_authority_comment_id")
+            if isinstance(authority_id, bool) or not isinstance(authority_id, int) or authority_id <= 0:
+                raise ExecutionClaimError(
+                    "interactive claim-takeover requires user authority comment id"
+                )
+            _assert_user_directed_takeover_authority(
+                user_authority_evidence,
+                issue=claim.issue,
+                previous_worker=claim.worker,
+                requesting_worker=evidence_requesting_worker,
+                expected_comment_id=authority_id,
             )
     elif evidence_requesting_worker and not evidence_requesting_worker.startswith("scheduler."):
-        raise ExecutionClaimError("claim-takeover requesting worker must be a scheduler lane")
+        raise ExecutionClaimError("non-scheduler previous owner takeover remains scheduler-only")
     if str(evidence.get("claim_phase") or "").upper() != claim.phase:
         raise ExecutionClaimError("claim-takeover evidence claim phase mismatch")
     claim_last_update = raw_claim.get("last_update")
@@ -838,6 +919,7 @@ def assert_execution_claim(
     changed_files: Iterable[str] = (),
     preflight_evidence: Iterable[str] = (),
     takeover_evidence: Path | None = None,
+    user_authority_evidence: Path | None = None,
 ) -> ExecutionClaim:
     """Return the validated current claim or raise before one repository action."""
     if isinstance(issue, bool) or not isinstance(issue, int) or issue <= 0:
@@ -931,6 +1013,7 @@ def assert_execution_claim(
             claim=claim,
             raw_claim=raw_claim,
             expected_live_head_sha=expected_head_sha,
+            user_authority_evidence=user_authority_evidence,
         )
 
     if action in FILE_MUTATION_ACTIONS:
@@ -969,6 +1052,11 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="machine evidence emitted by tools/stale_claim_takeover.py; required for claim-takeover",
     )
+    parser.add_argument(
+        "--user-authority-evidence",
+        type=Path,
+        help="owner-authored WHD_USER_DIRECTED_TAKEOVER_V1 GitHub issue-comment JSON; required for interactive takeover",
+    )
     return parser
 
 
@@ -986,6 +1074,7 @@ def main(argv: Iterable[str] | None = None) -> int:
             changed_files=args.changed_file,
             preflight_evidence=args.preflight_evidence,
             takeover_evidence=args.takeover_evidence,
+            user_authority_evidence=args.user_authority_evidence,
         )
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")
