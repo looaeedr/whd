@@ -322,45 +322,44 @@ def _assert_takeover_evidence(
     evidence_requesting_source = str(
         evidence.get("requesting_executor_source") or ""
     ).strip()
-    if evidence_previous_worker and evidence_previous_worker != claim.worker:
-        raise ExecutionClaimError("claim-takeover previous worker mismatch")
-    if expected_source == "scheduler":
-        if evidence_previous_worker != claim.worker:
+    if evidence_previous_worker != claim.worker:
+        raise ExecutionClaimError(
+            "claim-takeover requires evidence bound to the previous worker"
+        )
+    if not evidence_requesting_worker or evidence_requesting_worker == claim.worker:
+        raise ExecutionClaimError(
+            "claim-takeover requires a distinct requesting worker"
+        )
+    if evidence_requesting_worker.startswith("scheduler."):
+        if evidence_requesting_source != "scheduler":
             raise ExecutionClaimError(
-                "scheduler claim-takeover requires evidence bound to the previous worker"
+                "scheduler requesting worker requires scheduler executor source"
             )
-        if not evidence_requesting_worker or evidence_requesting_worker == claim.worker:
+        if evidence.get("user_authority_comment_id") is not None:
             raise ExecutionClaimError(
-                "scheduler claim-takeover requires a distinct requesting worker"
+                "scheduler claim-takeover must not carry user authority evidence"
             )
-        if evidence_requesting_worker.startswith("scheduler."):
-            if evidence_requesting_source != "scheduler":
-                raise ExecutionClaimError(
-                    "scheduler requesting worker requires scheduler executor source"
-                )
-            if evidence.get("user_authority_comment_id") is not None:
-                raise ExecutionClaimError(
-                    "scheduler claim-takeover must not carry user authority evidence"
-                )
-        else:
-            if evidence_requesting_source != "chat":
-                raise ExecutionClaimError(
-                    "interactive claim-takeover requires chat executor source"
-                )
-            authority_id = evidence.get("user_authority_comment_id")
-            if isinstance(authority_id, bool) or not isinstance(authority_id, int) or authority_id <= 0:
-                raise ExecutionClaimError(
-                    "interactive claim-takeover requires user authority comment id"
-                )
-            _assert_user_directed_takeover_authority(
-                user_authority_evidence,
-                issue=claim.issue,
-                previous_worker=claim.worker,
-                requesting_worker=evidence_requesting_worker,
-                expected_comment_id=authority_id,
+    else:
+        if evidence_requesting_source != "chat":
+            raise ExecutionClaimError(
+                "interactive claim-takeover requires chat executor source"
             )
-    elif evidence_requesting_worker and not evidence_requesting_worker.startswith("scheduler."):
-        raise ExecutionClaimError("non-scheduler previous owner takeover remains scheduler-only")
+        authority_id = evidence.get("user_authority_comment_id")
+        if (
+            isinstance(authority_id, bool)
+            or not isinstance(authority_id, int)
+            or authority_id <= 0
+        ):
+            raise ExecutionClaimError(
+                "interactive claim-takeover requires user authority comment id"
+            )
+        _assert_user_directed_takeover_authority(
+            user_authority_evidence,
+            issue=claim.issue,
+            previous_worker=claim.worker,
+            requesting_worker=evidence_requesting_worker,
+            expected_comment_id=authority_id,
+        )
     if str(evidence.get("claim_phase") or "").upper() != claim.phase:
         raise ExecutionClaimError("claim-takeover evidence claim phase mismatch")
     claim_last_update = raw_claim.get("last_update")
