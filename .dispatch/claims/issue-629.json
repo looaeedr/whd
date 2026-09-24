@@ -6,9 +6,9 @@
   "work_branch": "work/issue629-write-scheduler-skill-20260924",
   "claimed_at": "2026-09-24T22:11:55+08:00",
   "base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-  "head_sha": "b0425d59e6810c4512a6c55ac0439cf51fb61f0b",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T22:21:19+08:00",
+  "head_sha": "6152d43a2068aa5e9aad38c5de220d104cd90b22",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T22:23:06+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
   "delegated_branches": [],
@@ -18,7 +18,7 @@
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Fix the single test-only negative assertion in tests/process/test_write_scheduler_skill_contract.py so it checks the canonical combined marker `派工 + 遠端執行守門`; rerun exact #629 focused QA without changing Skill behavior.",
+  "next_action": "Trigger a fresh #629 focused QA on exact HEAD 6152d43a2068aa5e9aad38c5de220d104cd90b22 after the test-only assertion fix; lock the new run to terminal.",
   "blocker": null,
   "evidence": {
     "skill_commit": "706112ef52eb5f94b21646b73f025010a860ec5f",
@@ -27,6 +27,9 @@
     "qa_run_id": 36012122366,
     "qa_failure": "test_contract_would_reject_old_shortened_prompt_shape asserted standalone `遠端執行守門` instead of canonical combined marker; 3 passed, 1 failed",
     "workflow_commit": "b0425d59e6810c4512a6c55ac0439cf51fb61f0b",
-    "workflow_claim_reconcile_guard_run_id": 36012161658
+    "workflow_claim_reconcile_guard_run_id": 36012161658,
+    "test_fix_commit": "6152d43a2068aa5e9aad38c5de220d104cd90b22",
+    "test_fix_guard_run_id": 36012271621,
+    "test_fix_claim_reconcile_guard_run_id": 36012379296
   }
 }
