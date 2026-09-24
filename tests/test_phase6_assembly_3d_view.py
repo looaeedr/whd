@@ -607,6 +607,7 @@ def test_assembly_diagnostic_status_reports_actual_corner_dimensions_and_verific
 def test_bridge_assembly_bundle_is_backward_compatible_with_legacy_scene_contract(monkeypatch):
     """Mixed UPDATE installs must not crash on legacy AssemblySceneRenderData."""
     import fold_designer_bridge as bridge
+    import gui_modules.application.fold_designer_adapter as application_adapter
     from ae_engine.sheetmetal_drawing import DrawingScene
     from phase6_designer_workspace import Phase6DesignerWorkspace
 
