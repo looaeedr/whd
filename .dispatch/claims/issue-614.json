@@ -6,9 +6,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
-  "phase": "RED",
-  "last_update": "2026-09-24T21:27:59+08:00",
+  "head_sha": "7061f0cfc8d9c35e61c777751506675f97b289eb",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T21:34:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -16,12 +16,12 @@
   "parent_issue": 628,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36005537284,
-    "head_sha": "ec85419d6a0b6fe92516be13be697e64f1ba73f2",
+    "run_id": 36006117561,
+    "head_sha": "7061f0cfc8d9c35e61c777751506675f97b289eb",
     "status": "completed",
     "conclusion": "failure"
   },
-  "next_action": "Implement the minimal canonical normal-input reachability fix in fold_designer_bridge.py: Receiving side/back BoxBody aggregate must map the existing 後面板形式 control without requiring hidden box_body:back activation; preserve canonical BackPanelMode callback/state and compatibility child path. Then lock the same focused Xvfb workflow run at the new HEAD to terminal GREEN.",
+  "next_action": "Correct the #614 validation-only BACK_OPENING readback: UI reachability is GREEN at 7061f0cfc8d9c35e61c777751506675f97b289eb; remaining failure is AttributeError because the test wrongly assumes BoxBodyPieceRenderData.scene. Reuse existing #510 canonical BACK_OPENING tests/helpers or assert canonical BackPanelMode here, then rerun focused Xvfb. Do not change production geometry.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -30,5 +30,11 @@
     "preflight": "GREEN",
     "outcome": "2 failed",
     "failure": "受電箱 → 箱身 leaves back_panel_mode_control/back_panel_mode_selector unmapped unless hidden box_body:back is activated"
+  },
+  "recovery_evidence": {
+    "run_id": 36006117561,
+    "ui_reachability": "PASS",
+    "remaining_failure": "validation instrumentation only: BoxBodyPieceRenderData has no .scene",
+    "production_fix_commit": "7061f0cfc8d9c35e61c777751506675f97b289eb"
   }
 }
