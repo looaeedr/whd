@@ -6,29 +6,40 @@
   "work_branch": "governance/issue587-proof-takeover586-20260924",
   "claimed_at": "2026-09-24T12:16:45+08:00",
   "base_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "head_sha": "340a67eb7c5a5eacc90e9f6b7520392746a1a9e5",
+  "head_sha": "e3ac476a1ef6e4fb7be54464be4f9705f02f42e8",
   "phase": "RECOVERING",
-  "last_update": "2026-09-24T12:20:47+08:00",
+  "last_update": "2026-09-24T12:23:57+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 586,
   "delegated_branches": [],
-  "next_action": "Update the temporary proof workflow to use authority comment 5807604785 now that #586 is scheduler-owned; rerun exact proof to GREEN, then CAS #586 to chatgpt.sol260924.issue586.takeover.",
-  "blocker": null,
+  "next_action": "Retry the exact #586 scheduler-to-chat machine proof only after the current scheduler-owned #586 claim reaches the canonical 600-second stale boundary with no active exact run; before then, only fresh-read/prepare and do not mutate #586.",
+  "blocker": "WAIT_ON_FOREIGN_RUNTIME until canonical 600-second stale threshold; second proof at run 35955327215 observed stale_seconds=145.",
   "last_guard": {
     "action": "write",
-    "run_id": 35955242579,
-    "request_comment_id": 5807607237,
+    "run_id": 35955462123,
+    "request_comment_id": 5807643903,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
     "consumed": true
   },
-  "proof_attempt": {
-    "run_id": 35955076957,
-    "job_id": 107491567167,
-    "evaluator_result": "GREEN",
-    "claim_guard_result": "FAIL",
-    "reason": "non-scheduler previous owner takeover remains scheduler-only",
-    "artifact_id": 10790341195
-  }
+  "proof_attempts": [
+    {
+      "run_id": 35955076957,
+      "job_id": 107491567167,
+      "artifact_id": 10790341195,
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "FAIL",
+      "reason": "non-scheduler previous owner takeover remains scheduler-only"
+    },
+    {
+      "run_id": 35955327215,
+      "job_id": 107492332313,
+      "artifact_id": 10790326709,
+      "evaluator_result": "WAIT_ON_FOREIGN_RUNTIME",
+      "claim_guard_result": "NOT_RUN",
+      "stale_seconds": 145,
+      "reason": "durable progress age below canonical 600-second interactive takeover threshold"
+    }
+  ]
 }
