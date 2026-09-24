@@ -6,29 +6,29 @@
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
   "claimed_at": "2026-09-24T10:19:00+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
-  "head_sha": "728b6458aee288b55d6efab88e679633856ad9da",
+  "head_sha": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
   "phase": "GREEN",
-  "last_update": "2026-09-24T10:36:25+08:00",
+  "last_update": "2026-09-24T11:27:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Wire owner-authored scheduler runtime liveness comments into trusted Remote Guard CLI auto-discovery; update canonical Skills/docs; then rerun focused regression and integration.",
+  "next_action": "Delete the one-shot #578 QA workflow under a fresh commit guard, verify tested-head→closing-head drift is workflow deletion only, then integrate #578 core into cleanup/2d-3d-sync and complete the trusted main Remote Guard transport backport before E2E.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35947936840,
-    "request_comment_id": 5806442813,
+    "run_id": 35951466422,
+    "request_comment_id": 5806963354,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
     "consumed": true
   },
   "remote_qa": {
-    "run_id": 35947795822,
-    "head_sha": "728b6458aee288b55d6efab88e679633856ad9da",
+    "run_id": 35951451111,
+    "head_sha": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
     "status": "completed",
     "conclusion": "success",
     "workflow": "WHD｜#578｜排程 runtime liveness 驗收",
-    "pass_count": 21,
+    "pass_count": 24,
     "fail_count": 0
   }
 }
