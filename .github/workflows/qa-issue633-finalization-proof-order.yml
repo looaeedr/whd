@@ -1,0 +1,58 @@
+name: WHD｜#633｜Finalization proof order
+run-name: "WHD｜#633｜Finalization proof order｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue633-finalization-proof-order-20260925
+    paths:
+      - .github/workflows/qa-issue633-finalization-proof-order.yml
+      - tools/continuity_controller.py
+      - tests/process/test_finalization_owner_guard.py
+      - .agents/skills/engineering/派工/SKILL.md
+      - .agents/skills/engineering/executable-continuity-controller/SKILL.md
+      - 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  contract:
+    name: finalization proof order contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact work branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Finalization proof order RED GREEN contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_finalization_owner_guard.py
+      - name: Publish exact QA identity
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 633,
+              body: [
+                'WHD_ISSUE633_QA_RESULT_V1',
+                'run_id=' + context.runId,
+                'head_sha=' + context.sha,
+              ].join('\n'),
+            });
