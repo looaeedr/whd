@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T17:39:10+08:00",
   "base_sha": "dbd999794205cb33759805221be42b636ca27eed",
   "head_sha": "dbd999794205cb33759805221be42b636ca27eed",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T17:39:10+08:00",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T17:42:00+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,7 +16,7 @@
   "parent_issue": 520,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Audit C3 closing obligations against accepted work head dbd999794205cb33759805221be42b636ca27eed and current production head 69fb6c20c49c9e011ec0705df80ad3b197acf0da: verify production ancestry/file readback, determine exact durable AI Library ownership/supersession writeback still required, and determine the minimal final smoke. Treat PR #600 as the already-completed single non-force integration and do not duplicate it.",
+  "next_action": "Guard and commit the narrow CURRENT ownership writeback: supersede historical Workspace Shell NO_EXTRACTION with Phase 6 v1.4 #527 WorkspaceShellOwner authority; record B1/B3/B4 revalidated KEEP, B5 deepened derived projection owner, and B6 facade 69→45 ratchet provenance. Then reconcile claim HEAD, verify docs-only drift, integrate only this C3 closing writeback to current production, run/read final smoke, and complete C3 then Master #520.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 534,
@@ -24,5 +24,33 @@
     "accepted_parent_head": "dbd999794205cb33759805221be42b636ca27eed",
     "existing_integration_pr": 600,
     "existing_production_head": "69fb6c20c49c9e011ec0705df80ad3b197acf0da"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35982780237,
+    "request_comment_id": 5811699842,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
+    "consumed": true
+  },
+  "audit": {
+    "production_head": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
+    "production_ancestry_verified": true,
+    "predecessor_head_ancestor": true,
+    "existing_integration_pr": 600,
+    "existing_integration_must_not_be_duplicated": true,
+    "required_writeback": {
+      "workspace_shell": {
+        "prior": "#447 NO_EXTRACTION",
+        "superseded_by": "#527 Phase 6 v1.4",
+        "current_owner": "phase6_workspace_shell.py::WorkspaceShellOwner"
+      },
+      "part_editor": "B1 #526 revalidated KEEP_COMPATIBILITY",
+      "settings_exact_six": "B3 #528 revalidated KEEP_CURRENT_BOUNDARY",
+      "linked_endcap": "B4 #529 revalidated KEEP_COMPATIBILITY",
+      "derived_request": "B5 #530 already CURRENT in ownership doc",
+      "facade": "B6 #531 baseline=69 final=45 removed=24; reverse_import=0; second_composition_root=0"
+    }
   }
 }
