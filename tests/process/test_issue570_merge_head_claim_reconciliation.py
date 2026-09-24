@@ -112,6 +112,7 @@ def _install(
     files=None,
     current_production_head=PRODUCTION_HEAD,
     receipt_overrides=None,
+    work_delta_files=None,
 ):
     claim_blob = guard._git_blob_sha(claim_path)
     monkeypatch.setattr(
@@ -124,7 +125,10 @@ def _install(
             else [{"sha": PRODUCTION_HEAD}, {"sha": CLAIM_HEAD}],
             "files": files
             if files is not None
-            else [{"filename": path} for path in MUTATED_FILES],
+            else [
+                {"filename": "production-parent-only-governance.md"},
+                *({"filename": path} for path in MUTATED_FILES),
+            ],
             "commit": {"committer": {"date": "2026-09-23T17:25:00Z"}},
         },
     )
@@ -149,10 +153,24 @@ def _install(
                 "name": PRODUCTION_TARGET,
                 "commit": {"sha": current_production_head},
             }
+        if path == f"compare/{PRODUCTION_HEAD}...{MERGE_HEAD}":
+            return {
+                "status": "ahead",
+                "merge_base_commit": {"sha": PRODUCTION_HEAD},
+                "files": [
+                    {"filename": item}
+                    for item in (
+                        work_delta_files
+                        if work_delta_files is not None
+                        else MUTATED_FILES
+                    )
+                ],
+            }
         if path.startswith("compare/"):
             return {
                 "status": "ahead",
                 "merge_base_commit": {"sha": PRODUCTION_HEAD},
+                "files": [],
             }
         raise AssertionError(f"unexpected API path: {path}")
 
@@ -164,6 +182,33 @@ def test_merge_sync_reconciliation_accepts_exact_production_first_parent(
 ) -> None:
     guard, claim_path, claim, raw = _claim(tmp_path)
     _install(monkeypatch, guard, claim_path)
+
+    guard._assert_post_commit_claim_head_reconciliation(
+        claim_path,
+        claim=claim,
+        raw_claim=raw,
+        issue=ISSUE,
+        worker=WORKER,
+        branch=BRANCH,
+        expected_live_head_sha=MERGE_HEAD,
+        changed_files=(CLAIM_PATH,),
+    )
+
+
+def test_merge_sync_reconciliation_ignores_production_parent_only_commit_files(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        files=[
+            {"filename": "production-parent-only-governance.md"},
+            *({"filename": path} for path in MUTATED_FILES),
+        ],
+        work_delta_files=MUTATED_FILES,
+    )
 
     guard._assert_post_commit_claim_head_reconciliation(
         claim_path,
@@ -351,7 +396,7 @@ def test_merge_sync_reconciliation_rejects_extra_tree_change(
         monkeypatch,
         guard,
         claim_path,
-        files=[{"filename": path} for path in (*MUTATED_FILES, "unexpected.txt")],
+        work_delta_files=(*MUTATED_FILES, "unexpected.txt"),
     )
 
     with pytest.raises(guard.ExecutionClaimError, match="matching prior GREEN"):

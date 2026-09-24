@@ -69,3 +69,18 @@ prewrite guard 的 `write/commit` 必然綁 mutation 前的 claim/work HEAD H0�
 
 ### 2026-09-23 live RED
 #533 在合法 commit Guard RUN `35873300186` GREEN 後，work branch `09e19c06… → fb544321…`，shared claim 仍記舊 HEAD；後續普通 claim-progress write Guard RUN `35873592503` 因 stale identity FAIL。此案例是本規則的 canonical regression。
+
+
+## MERGE_SYNC_WORK_DELTA_VS_PRODUCTION_PARENT_V1（2026-09-24）
+
+### 問題
+evidence-bound merge-sync 的 post-commit claim HEAD reconciliation 不能直接把 GitHub merge commit 的 generic `files` 清單當成 Worker mutation delta。當 H1 以 claim H0 與 production X 為兩個 parents 時，generic commit file evidence 可能包含「由 production parent 帶進來」的治理／流程檔；這些檔案不是 owning Issue 的 mutation，因此本來就不會出現在 prior GREEN receipt。
+
+### 永久規則
+- merge-sync 仍先證明 exactly one parent == claim H0，另一 parent 是合法 production parent。
+- authorized work delta 必須以 **production parent → H1** 的 compare file set 為準，而不是 H1 相對另一 parent 的 generic commit `files`。
+- production-parent-only files 不要求出現在 owning Issue prior mutation receipt。
+- production parent → H1 的 work delta 必須全部受 prior exact GREEN `write|commit` receipt 授權；任何額外 work-delta file 仍 fail closed。
+- issue/worker/source/branch/base/current claim blob/request/receipt/guard authority/receipt window 等既有 identity checks 不得放寬。
+- ordinary single-parent post-commit reconciliation 維持原本 direct-child commit-file evidence。
+- canonical regression：`tests/process/test_issue570_merge_head_claim_reconciliation.py`；governance repair owner：#603。
