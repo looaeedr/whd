@@ -1,17 +1,17 @@
 {
   "issue": 578,
   "issue_url": "https://github.com/looaeedr/whd/issues/578",
-  "worker": "chatgpt.sol260924.issue578",
+  "worker": "chatgpt.sol260924.issue578.recovery",
   "executor_source": "chat",
   "work_branch": "governance/issue578-scheduler-runtime-liveness-20260924",
-  "claimed_at": "2026-09-24T10:19:00+08:00",
+  "claimed_at": "2026-09-24T12:54:19+08:00",
   "base_sha": "4e24cd4ab36ccf32c12df3c8d20ea27b9e68f2a0",
   "head_sha": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T11:29:00+08:00",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T12:54:19+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Create and merge a guarded PR from the #578 closing head into cleanup/2d-3d-sync, then implement/backport the trusted default-main Remote Guard heartbeat auto-discovery transport and run the required sibling-scheduler E2E before closing #578.",
+  "next_action": "Complete #578's remaining real sibling-scheduler E2E: prove a foreign scheduler owner with no active exact run and missing/expired runtime liveness can be taken over by the sibling lane after the 90-second orphan grace but before 600 seconds, with Remote Guard GREEN -> claim CAS -> readback -> same-invocation substantive continuation; then close/release #578.",
   "blocker": null,
   "last_guard": {
     "action": "write",
@@ -36,5 +36,30 @@
     "from": "1e9fc5fbc20836f5bbea6b97635312a0932c60db",
     "to": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
     "only_change": "delete temporary .github/workflows/qa-issue578-scheduler-runtime-liveness.yml"
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260924.issue578",
+    "previous_executor_source": "chat",
+    "requesting_worker": "chatgpt.sol260924.issue578.recovery",
+    "requesting_executor_source": "chat",
+    "user_authority_comment_id": 5807907761,
+    "observed_stale_seconds": 5119,
+    "observed_live_head_sha": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
+    "previous_last_update": "2026-09-24T11:29:00+08:00",
+    "exact_remote_run_id": 35951451111,
+    "exact_remote_run_status": "completed",
+    "exact_remote_run_conclusion": "success",
+    "taken_over_at": "2026-09-24T12:54:19+08:00",
+    "proof": {
+      "workflow_run_id": 35957612159,
+      "job_id": 107499149154,
+      "proof_head_sha": "7f0e21fbc7f7d7a03d40c4b736f38dc5092cbb27",
+      "classification": "EXECUTOR_STUCK",
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+      "authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+      "claim_blob_sha": "046d91e933be5a744a904f3786da9f16c2749121"
+    }
   }
 }
