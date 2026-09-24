@@ -1,0 +1,36 @@
+{
+  "issue": 642,
+  "issue_url": "https://github.com/looaeedr/whd/issues/642",
+  "worker": "chatgpt.sol260925.issue640t2.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-24T19:56:40.367394Z",
+  "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T19:56:40.367394Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "master_issue": 640,
+  "task_id": "T2",
+  "expected_parent_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "approved_red_ids": [
+    "RED-CLOSE-01"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "remote_qa": null,
+  "next_action": "Inspect execution-claim lifecycle seams and implement ACTIVE_CLAIM_REQUIRES_CHECKPOINT with focused TDD; preserve current work-order lineage and do not chase newer production.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-642.json",
+  "predecessor": {
+    "issue": 641,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+    "handoff_guard_run_id": 36051521346
+  }
+}

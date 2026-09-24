@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "issue": "642",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
+  "state": "RUNNING",
+  "next_action": "Inspect execution-claim lifecycle seams and implement ACTIVE_CLAIM_REQUIRES_CHECKPOINT with focused TDD; preserve current work-order lineage and do not chase newer production.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Predecessor #641 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
+    "#641 canonical handoff points to #642 at accepted work-order head d3bd1cf17e20727fe805fd1203fa412b8bef5fa8.",
+    "Claim and checkpoint for #642 are created atomically in the same coord/dispatch-claims commit."
+  ],
+  "master_issue": null,
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
