@@ -6,9 +6,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "7061f0cfc8d9c35e61c777751506675f97b289eb",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T21:34:20+08:00",
+  "head_sha": "66c67031bc0b2411a12ba15332234e70190647e0",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-24T21:38:10+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -16,12 +16,12 @@
   "parent_issue": 628,
   "delegated_branches": [],
   "remote_qa": {
-    "run_id": 36006117561,
-    "head_sha": "7061f0cfc8d9c35e61c777751506675f97b289eb",
+    "run_id": 36006772873,
+    "head_sha": "66c67031bc0b2411a12ba15332234e70190647e0",
     "status": "completed",
-    "conclusion": "failure"
+    "conclusion": "success"
   },
-  "next_action": "Correct the #614 validation-only BACK_OPENING readback: UI reachability is GREEN at 7061f0cfc8d9c35e61c777751506675f97b289eb; remaining failure is AttributeError because the test wrongly assumes BoxBodyPieceRenderData.scene. Reuse existing #510 canonical BACK_OPENING tests/helpers or assert canonical BackPanelMode here, then rerun focused Xvfb. Do not change production geometry.",
+  "next_action": "Broaden #614 acceptance at the same candidate lineage: run existing #510 BACK_OPENING contract, FinalScene, DXF save→reopen/export, and project round-trip tests alongside the new GUI-path tests. If GREEN, perform drift/protected-invariant audit and B1 acceptance without merging partial child result to production.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -35,6 +35,12 @@
     "run_id": 36006117561,
     "ui_reachability": "PASS",
     "remaining_failure": "validation instrumentation only: BoxBodyPieceRenderData has no .scene",
+    "production_fix_commit": "7061f0cfc8d9c35e61c777751506675f97b289eb"
+  },
+  "green_candidate": {
+    "ui_run": 36006772873,
+    "head_sha": "66c67031bc0b2411a12ba15332234e70190647e0",
+    "result": "2 PASS",
     "production_fix_commit": "7061f0cfc8d9c35e61c777751506675f97b289eb"
   }
 }
