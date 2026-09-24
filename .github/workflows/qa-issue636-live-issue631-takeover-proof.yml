@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  issues: read
+  issues: write
   actions: read
 
 jobs:
@@ -122,6 +122,23 @@ jobs:
           print('WHD_USER_DIRECTED_LIVE_TAKEOVER_PROOF_GREEN')
           print(json.dumps(manifest, sort_keys=True))
           PY
+
+      - name: Post machine proof to #636
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'WHD_USER_DIRECTED_LIVE_TAKEOVER_PROOF_RESULT_V1'
+            echo 'target_issue=631'
+            echo "run_id=${RUN_ID}"
+            echo '~~~json'
+            cat /tmp/proof-manifest.json
+            echo '~~~'
+          } > /tmp/proof-comment.md
+          gh issue comment 636 --repo ${{ github.repository }} --body-file /tmp/proof-comment.md
 
       - name: Upload exact proof
         uses: actions/upload-artifact@v4
