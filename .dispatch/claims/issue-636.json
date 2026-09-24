@@ -7,13 +7,13 @@
   "claimed_at": "2026-09-25T02:21:02+08:00",
   "base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "head_sha": "c1aa435eeee8c036aaeef356a20c0fc039bdebf3",
-  "phase": "CLOSING",
-  "last_update": "2026-09-24T18:38:47.455Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-24T18:44:02.092Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Create #636 terminal checkpoint with closure_state=FINALIZATION_PENDING, advance it to ISSUE_CLOSE_PENDING, obtain exact Remote Finalization proof, close/readback #636, then atomically persist checkpoint CLOSED + claim RELEASED.",
+  "next_action": null,
   "blocker": null,
   "evidence": {
     "parent_issue": 631,
@@ -30,15 +30,34 @@
     "target_issue_631_state": "closed/completed",
     "cleanup_commit": "c1aa435eeee8c036aaeef356a20c0fc039bdebf3",
     "cleanup_guard_run_id": 36042499912,
-    "cleanup_claim_reconcile_guard_run_id": 36042604287
+    "cleanup_claim_reconcile_guard_run_id": 36042604287,
+    "finalization_run_id": 36042961089,
+    "finalization_artifact_id": 10828160513,
+    "finalization_checkpoint_blob_sha": "40df0a7567dd44f02b895aa5bb965da2017cd5d2",
+    "finalization_checkpoint_fingerprint": "678e82c7dd51b1599eedbe473b96ccc28f4250e82c19ed6782ffcb9d311e6c5d",
+    "issue_closed_readback": "closed/completed",
+    "final_atomic_closure_guard_run_id": 36043191428
   },
   "last_guard": {
-    "action": "write",
-    "run_id": 36042604287,
-    "request_comment_id": 5819981572,
+    "action": "commit",
+    "run_id": 36043191428,
+    "request_comment_id": 5820064206,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "consumed": true
+  },
+  "issue_terminal": {
+    "state": "closed",
+    "state_reason": "completed"
+  },
+  "finalization": {
+    "run_id": 36042961089,
+    "artifact_id": 10828160513,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "40df0a7567dd44f02b895aa5bb965da2017cd5d2",
+    "checkpoint_fingerprint": "678e82c7dd51b1599eedbe473b96ccc28f4250e82c19ed6782ffcb9d311e6c5d",
+    "claim_blob_sha_before_release": "7cb2ba6c2b0251e0ab51d64ae757bffa2a1dc4b0"
   }
 }

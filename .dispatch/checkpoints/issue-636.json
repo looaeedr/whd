@@ -17,13 +17,14 @@
     "Temporary proof workflow removed in cleanup commit c1aa435eeee8c036aaeef356a20c0fc039bdebf3.",
     "Shared claim reconciled to cleanup head before closure.",
     "Remote finalization run 36042961089 GREEN with artifact 10828160513 and exact checkpoint fingerprint 678e82c7dd51b1599eedbe473b96ccc28f4250e82c19ed6782ffcb9d311e6c5d.",
-    "GitHub Issue #636 fresh readback: closed/completed."
+    "GitHub Issue #636 fresh readback: closed/completed.",
+    "Atomic closure commit: checkpoint CLOSED + claim RELEASED."
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist this checkpoint as closure_state=CLOSED and the shared claim as phase=RELEASED in one coordination commit."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
