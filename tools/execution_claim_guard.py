@@ -574,14 +574,22 @@ def _assert_post_commit_claim_head_reconciliation(
             len(parents) != 2
             or not isinstance(parents[0], dict)
             or not isinstance(parents[1], dict)
-            or str(parents[1].get("sha") or "") != claim.head_sha
         ):
             raise ExecutionClaimError(
-                "post-commit claim-head reconciliation merge sync requires second parent "
-                "to match claim HEAD"
+                "post-commit claim-head reconciliation merge sync requires exactly two parents"
             )
 
-        merge_production_parent = str(parents[0].get("sha") or "")
+        parent_shas = [str(parent.get("sha") or "") for parent in parents]
+        claim_parent_indexes = [
+            index for index, sha in enumerate(parent_shas) if sha == claim.head_sha
+        ]
+        if len(claim_parent_indexes) != 1:
+            raise ExecutionClaimError(
+                "post-commit claim-head reconciliation merge sync requires exactly one "
+                "parent to match claim HEAD"
+            )
+
+        merge_production_parent = parent_shas[1 - claim_parent_indexes[0]]
         if not _SHA_RE.fullmatch(merge_production_parent):
             raise ExecutionClaimError(
                 "post-commit claim-head reconciliation production parent SHA is malformed"

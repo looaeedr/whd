@@ -177,6 +177,53 @@ def test_merge_sync_reconciliation_accepts_exact_production_first_parent(
     )
 
 
+def test_merge_sync_reconciliation_accepts_claim_first_parent(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        parents=[{"sha": CLAIM_HEAD}, {"sha": PRODUCTION_HEAD}],
+    )
+
+    guard._assert_post_commit_claim_head_reconciliation(
+        claim_path,
+        claim=claim,
+        raw_claim=raw,
+        issue=ISSUE,
+        worker=WORKER,
+        branch=BRANCH,
+        expected_live_head_sha=MERGE_HEAD,
+        changed_files=(CLAIM_PATH,),
+    )
+
+
+def test_merge_sync_reconciliation_rejects_duplicate_claim_parents(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard, claim_path, claim, raw = _claim(tmp_path)
+    _install(
+        monkeypatch,
+        guard,
+        claim_path,
+        parents=[{"sha": CLAIM_HEAD}, {"sha": CLAIM_HEAD}],
+    )
+
+    with pytest.raises(guard.ExecutionClaimError, match="production|parent"):
+        guard._assert_post_commit_claim_head_reconciliation(
+            claim_path,
+            claim=claim,
+            raw_claim=raw,
+            issue=ISSUE,
+            worker=WORKER,
+            branch=BRANCH,
+            expected_live_head_sha=MERGE_HEAD,
+            changed_files=(CLAIM_PATH,),
+        )
+
+
 def test_merge_sync_reconciliation_allows_production_target_to_advance(
     tmp_path: Path, monkeypatch
 ) -> None:
