@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "issue": "#614",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "remote": {
+    "run_id": 36009308143,
+    "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "evidence": {
+    "acceptance": "expanded selector + existing rear-panel modes suite passed",
+    "qa_run_id": 36009308143,
+    "guard_receipt_run_id": 36015000425
+  },
+  "master_issue": "#628",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": null,
+  "chain_next_action": "Fresh-read Master #628 accepted task graph and live claims, discover the next unblocked executable child after B1, then claim/execute it if parallel-safe.",
+  "chain_reason": null
+}
