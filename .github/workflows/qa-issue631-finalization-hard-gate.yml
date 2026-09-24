@@ -1,0 +1,45 @@
+name: WHD｜#631｜Finalization tail hard gate
+run-name: "WHD｜#631｜Finalization tail hard gate｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - work/issue631-finalization-hard-gate-20260925
+    paths:
+      - .github/workflows/qa-issue631-finalization-hard-gate.yml
+      - tools/continuity_controller.py
+      - tests/process/test_continuity_controller.py
+      - .agents/skills/engineering/派工/SKILL.md
+      - .agents/skills/engineering/executable-continuity-controller/SKILL.md
+      - 個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: finalization continuity contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact work branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Continuity behavior contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/process/test_continuity_controller.py
