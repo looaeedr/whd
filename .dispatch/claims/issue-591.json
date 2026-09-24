@@ -1,0 +1,17 @@
+{
+  "issue": 591,
+  "issue_url": "https://github.com/looaeedr/whd/issues/591",
+  "worker": "chatgpt.sol260924.issue591.proof",
+  "executor_source": "chat",
+  "work_branch": "governance/issue591-live-issue578-takeover-proof-20260924",
+  "claimed_at": "2026-09-24T12:52:32+08:00",
+  "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-24T12:52:32+08:00",
+  "production_target": "cleanup/2d-3d-sync",
+  "parent_issue": 578,
+  "delegated_branches": [],
+  "next_action": "Create guarded helper branch and one-shot live proof workflow for #578 stale interactive takeover; on GREEN, current execution consumes proof via optimistic CAS and continues #578.",
+  "blocker": null
+}
