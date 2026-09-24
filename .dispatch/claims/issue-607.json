@@ -6,11 +6,20 @@
   "work_branch": "governance/issue607-dispatch-heartbeat-20260924",
   "claimed_at": "2026-09-24T11:07:00Z",
   "base_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
-  "head_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T11:07:00Z",
+  "head_sha": "4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c",
+  "phase": "GREEN",
+  "last_update": "2026-09-24T11:14:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "remote_qa": null,
-  "next_action": "Obtain branch-create Remote Guard GREEN for governance/issue607-dispatch-heartbeat-20260924 from cleanup/2d-3d-sync HEAD, create and verify the branch, then obtain Skill write guard for .agents/skills/engineering/派工/SKILL.md.",
-  "blocker": null
+  "next_action": "Fresh-read production cleanup/2d-3d-sync and work HEAD. Obtain pr-write Remote Guard for exact head 4a959e11bfd8f63468ab1b2690d5e3c9f2b7065c, create a PR containing only the 派工 Skill heartbeat-freshness correction, verify diff, then non-force merge and read back production.",
+  "blocker": null,
+  "last_guard": {
+    "action": "write",
+    "run_id": 35991816699,
+    "request_comment_id": 5812974619,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "be299d40a8d79c211d1bf8cc28938fcfbcad4179",
+    "consumed": true
+  }
 }
