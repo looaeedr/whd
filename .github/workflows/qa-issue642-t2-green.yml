@@ -7,6 +7,11 @@ on:
       - workorder/issue640-guard-turn-exit-helper-hardening-20260925
     paths:
       - .github/workflows/qa-issue642-t2-green.yml
+      - .github/workflows/whd-remote-claim-activation.yml
+      - .github/workflows/whd-remote-execution-guard.yml
+      - tools/execution_claim_guard.py
+      - tests/process/test_issue642_active_claim_checkpoint_gate.py
+      - tests/process/test_issue256_execution_claim_guard.py
 
 permissions:
   contents: read

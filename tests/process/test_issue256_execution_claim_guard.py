@@ -53,6 +53,24 @@ def _write_claim(tmp_path: Path, payload: dict) -> Path:
     return path
 
 
+def _write_checkpoint(tmp_path: Path) -> Path:
+    path = tmp_path / "checkpoint.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "issue": "256",
+                "branch": WORK_BRANCH,
+                "head_sha": HEAD_SHA,
+                "state": "RUNNING",
+                "next_action": "continue",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _assert_claim(guard, path: Path, **overrides):
     kwargs = {
         "issue": 256,
@@ -162,6 +180,7 @@ def test_base_sha_mismatch_is_rejected(tmp_path: Path) -> None:
 
 def test_cli_write_requires_changed_file_identity_and_owner(tmp_path: Path) -> None:
     path = _write_claim(tmp_path, _claim())
+    checkpoint = _write_checkpoint(tmp_path)
     common = [
         sys.executable,
         str(GUARD),
@@ -190,7 +209,15 @@ def test_cli_write_requires_changed_file_identity_and_owner(tmp_path: Path) -> N
     assert "changed-file" in missing_path.stdout.lower()
 
     owner = subprocess.run(
-        [*common, "--worker", "chatgpt", "--changed-file", "tools/example.py"],
+        [
+            *common,
+            "--worker",
+            "chatgpt",
+            "--changed-file",
+            "tools/example.py",
+            "--checkpoint",
+            str(checkpoint),
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -210,6 +237,7 @@ def test_cli_write_requires_changed_file_identity_and_owner(tmp_path: Path) -> N
 
 def test_cli_skill_write_requires_canonical_writing_skill_preflight_evidence(tmp_path: Path) -> None:
     path = _write_claim(tmp_path, _claim())
+    checkpoint = _write_checkpoint(tmp_path)
     skill_path = ".agents/skills/engineering/派工/SKILL.md"
     common = [
         sys.executable,
@@ -277,7 +305,13 @@ def test_cli_skill_write_requires_canonical_writing_skill_preflight_evidence(tmp
         encoding="utf-8",
     )
     complete = subprocess.run(
-        [*common, "--preflight-evidence", str(complete_evidence)],
+        [
+            *common,
+            "--preflight-evidence",
+            str(complete_evidence),
+            "--checkpoint",
+            str(checkpoint),
+        ],
         capture_output=True,
         text=True,
         check=False,

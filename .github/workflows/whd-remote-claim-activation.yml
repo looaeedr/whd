@@ -1,5 +1,5 @@
 name: WHD Remote Claim Activation
-run-name: "WHD｜工單 #\${{ github.event.issue.number }}｜Claim Activation"
+run-name: "WHD｜工單 #${{ github.event.issue.number }}｜Claim Activation"
 
 on:
   issue_comment:
@@ -25,11 +25,11 @@ jobs:
 
       - name: Parse fixed activation request
         env:
-          COMMENT_BODY: \${{ github.event.comment.body }}
-          EVENT_ISSUE: \${{ github.event.issue.number }}
-          COMMENT_ID: \${{ github.event.comment.id }}
-          COMMENT_AUTHOR: \${{ github.event.comment.user.login }}
-          REPOSITORY_OWNER: \${{ github.repository_owner }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
         run: |
           python - <<'PY'
           import json
@@ -110,7 +110,7 @@ jobs:
       - name: Validate pair and commit exact coordination CAS
         id: cas
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin "$RA_GUARD_AUTHORITY_SHA"
@@ -285,8 +285,8 @@ jobs:
           script: |
             const fs = require('fs');
             const req = JSON.parse(fs.readFileSync('claim-activation-request.json', 'utf8'));
-            const commitSha = '\${{ steps.cas.outputs.commit_sha }}';
-            const result = '\${{ steps.cas.outcome }}' === 'success' && commitSha ? 'GREEN' : 'FAIL';
+            const commitSha = '${{ steps.cas.outputs.commit_sha }}';
+            const result = '${{ steps.cas.outcome }}' === 'success' && commitSha ? 'GREEN' : 'FAIL';
             const receipt = {
               schema: 'WHD_REMOTE_CLAIM_ACTIVATION_RESULT_V1',
               request_comment_id: req.request_comment_id,
