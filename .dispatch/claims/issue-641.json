@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T19:36:26Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "head_sha": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
-  "phase": "RED",
-  "last_update": "2026-09-24T19:44:00.965753Z",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-24T19:46:07.030159Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,8 +26,26 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Lock the exact #641 RED workflow run at head eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f; verify all five approved Requirement RED markers fail for the intended capability gaps; persist run evidence.",
+  "remote_qa": {
+    "run_id": 36049990135,
+    "head_sha": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 107802859803,
+    "artifact_id": 10830051734,
+    "purpose": "T1 Requirement RED characterization",
+    "evidence": {
+      "approved_markers": [
+        "RED-CLOSE-01",
+        "RED-CLOSE-02",
+        "RED-CLOSE-03",
+        "RED-HELPER-01",
+        "RED-HELPER-02"
+      ],
+      "pytest": "6 failed in 0.23s (all intended requirement gaps); wrapper ISSUE641_T1_REQUIREMENT_RED=GREEN"
+    }
+  },
+  "next_action": "Remove only .github/workflows/qa-issue641-t1-red.yml under fresh exact commit Guard; reconcile claim HEAD; prove tested-head→closing-head drift is workflow-deletion-only; then finalize/close/release #641 and hand off #642.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-641.json",
   "branch_create_guard": {
@@ -47,6 +65,11 @@
     "new_head_sha": "eb8f000f96bd75ec1d0d0d3cd031f5c8462fda9f",
     "guard_request_comment_id": 5821015823,
     "guard_run_id": 36050112096,
+    "result": "GREEN"
+  },
+  "red_evidence_writeback_guard": {
+    "request_comment_id": 5821049740,
+    "run_id": 36050344667,
     "result": "GREEN"
   }
 }
