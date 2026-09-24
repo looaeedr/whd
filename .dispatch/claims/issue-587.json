@@ -6,18 +6,18 @@
   "work_branch": "governance/issue587-proof-takeover586-20260924",
   "claimed_at": "2026-09-24T12:16:45+08:00",
   "base_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
-  "head_sha": "efc4be6f8ec72f3875e66ce233292f327107f534",
+  "head_sha": "97b5d5ec6c7581212f06a84d753d15d5b8945e4f",
   "phase": "CLOSING",
-  "last_update": "2026-09-24T12:31:40+08:00",
+  "last_update": "2026-09-24T12:37:09+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 586,
   "delegated_branches": [],
-  "next_action": "Delete the temporary #587 proof workflow under guard, reconcile the closing head, write completion evidence that #586 takeover succeeded and #586 is closed/completed, then close #587 and release this claim.",
+  "next_action": "Write completion evidence for #587, close Issue #587 as completed, then mark shared claim RELEASED with next_action=null.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35956013761,
-    "request_comment_id": 5807725521,
+    "run_id": 35956400499,
+    "request_comment_id": 5807773509,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
@@ -41,5 +41,10 @@
       "stale_seconds": 145,
       "reason": "durable progress age below canonical 600-second interactive takeover threshold"
     }
-  ]
+  ],
+  "closing_drift": {
+    "from": "efc4be6f8ec72f3875e66ce233292f327107f534",
+    "to": "97b5d5ec6c7581212f06a84d753d15d5b8945e4f",
+    "only_change": "delete temporary .github/workflows/qa-issue587-live-issue586-takeover-proof.yml"
+  }
 }
