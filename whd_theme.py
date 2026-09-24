@@ -248,6 +248,7 @@ def configure_tk_menu(menu):
         activebackground=colors["action"],
         activeforeground="#ffffff",
         disabledforeground=colors["muted_text"],
+        selectcolor=colors["action"],
         borderwidth=1,
         relief="solid",
     )

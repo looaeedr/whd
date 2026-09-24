@@ -83,6 +83,7 @@ def test_shared_menu_adapter_effective_palette_under_real_tk():
         assert str(menu.cget("activebackground")).lower() == whd_theme.WHD_THEME["action"]
         assert str(menu.cget("activeforeground")).lower() == "#ffffff"
         assert str(menu.cget("disabledforeground")).lower() == whd_theme.WHD_THEME["muted_text"]
+        assert str(menu.cget("selectcolor")).lower() == whd_theme.WHD_THEME["action"]
     finally:
         root.destroy()
 
@@ -112,6 +113,7 @@ def test_fold_designer_operator_menus_are_themed_and_postable():
             assert str(menu.cget("activebackground")).lower() == whd_theme.WHD_THEME["action"]
             assert str(menu.cget("activeforeground")).lower() == "#ffffff"
             assert str(menu.cget("disabledforeground")).lower() == whd_theme.WHD_THEME["muted_text"]
+            assert str(menu.cget("selectcolor")).lower() == whd_theme.WHD_THEME["action"]
 
         button = designer.part_choice_button
         x = button.winfo_rootx()
