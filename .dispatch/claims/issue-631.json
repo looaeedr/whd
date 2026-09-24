@@ -6,9 +6,9 @@
   "work_branch": "work/issue631-finalization-hard-gate-20260925",
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
-  "head_sha": "201afbc3645c82d9c454d4586632c1337868ddee",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T01:28:40+08:00",
+  "head_sha": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T01:31:05+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
@@ -19,7 +19,7 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue631-finalization-hard-gate.yml"
   },
-  "next_action": "Delete the temporary issue-631 QA workflow, reconcile the cleanup head, and prove tested-head to closing-head drift is workflow-deletion-only.",
+  "next_action": "Fresh-read cleanup/2d-3d-sync, create and merge the guarded PR for closing head 5428dedf4592cd5e227fa31e18764c22c99e7cb2, read back production integration, then enter the terminal closure lifecycle.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -54,12 +54,24 @@
     "broad_qa_run_id": 36034515015,
     "broad_qa_head": "201afbc3645c82d9c454d4586632c1337868ddee",
     "broad_qa_result": "52 passed, 0 failed across continuity, finalization-owner, turn-exit proof, and Master-chain regressions",
-    "broad_qa_claim_reconcile_guard_run_id": 36034532212
+    "broad_qa_claim_reconcile_guard_run_id": 36034532212,
+    "cleanup_commit": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+    "cleanup_guard_run_id": 36034684050,
+    "cleanup_claim_reconcile_guard_run_id": 36034778559,
+    "tested_to_closing_drift": {
+      "tested_head": "201afbc3645c82d9c454d4586632c1337868ddee",
+      "closing_head": "5428dedf4592cd5e227fa31e18764c22c99e7cb2",
+      "ahead_by": 1,
+      "files": [
+        ".github/workflows/qa-issue631-finalization-hard-gate.yml"
+      ],
+      "verdict": "PASS_WORKFLOW_DELETION_ONLY"
+    }
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36034532212,
-    "request_comment_id": 5818931777,
+    "run_id": 36034778559,
+    "request_comment_id": 5818961697,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
