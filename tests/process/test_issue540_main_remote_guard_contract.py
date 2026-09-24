@@ -42,3 +42,9 @@ def test_claim_takeover_receipt_and_artifact_include_machine_evidence():
     assert '"takeover_evidence": takeover_evidence' in text
     assert 'stale-takeover-decision.json' in text
     assert 'stale-takeover.log' in text
+
+
+def test_remote_guard_receipt_ttl_is_40_minutes():
+    text = _text()
+    assert "dt.timedelta(minutes=40)" in text
+    assert "dt.timedelta(minutes=20)" not in text

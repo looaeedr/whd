@@ -412,7 +412,7 @@ jobs:
               "run_id": int(os.environ["GITHUB_RUN_ID"]),
               "orchestrator_head_sha": os.environ["GITHUB_SHA"],
               "issued_at": now.isoformat().replace("+00:00", "Z"),
-              "expires_at": (now + dt.timedelta(minutes=20)).isoformat().replace("+00:00", "Z"),
+              "expires_at": (now + dt.timedelta(minutes=40)).isoformat().replace("+00:00", "Z"),
               "result": os.environ["RG_RESULT"],
               "reason": os.environ["RG_REASON"],
               "takeover_evidence": takeover_evidence,
