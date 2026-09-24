@@ -6,9 +6,9 @@
   "work_branch": "governance/issue603-merge-work-delta-reconciliation-20260924",
   "claimed_at": "2026-09-24T16:44:00+08:00",
   "base_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
-  "head_sha": "9c138dd580f7817addce88edf7fe86d545d36435",
-  "phase": "GREEN",
-  "last_update": "2026-09-24T16:51:15+08:00",
+  "head_sha": "c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T16:53:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-MERGE-WORK-DELTA",
   "parent_issue": 534,
@@ -20,12 +20,12 @@
     "conclusion": "success",
     "workflow": "WHD｜#603｜work-delta focused"
   },
-  "next_action": "Remove the one-shot QA workflow, write back the merge work-delta pitfall, drift-audit the closing head, then integrate non-force and finalize.",
+  "next_action": "Create guarded PR from exact closing head c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec to current cleanup/2d-3d-sync, validate/merge non-force, write terminal checkpoint, run machine finalization, release, then return to #534.",
   "blocker": null,
   "last_guard": {
     "action": "write",
-    "run_id": 35977643155,
-    "request_comment_id": 5810945081,
+    "run_id": 35977846350,
+    "request_comment_id": 5810980033,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "39e12afc46a7bfcb94720e83195651fc4257f26d",
@@ -38,5 +38,22 @@
       "tests/process/test_issue570_merge_head_claim_reconciliation.py"
     ],
     "root_cause": "merge reconciliation must evaluate work delta against production parent rather than generic merge-commit files"
+  },
+  "closing": {
+    "tested_head": "9c138dd580f7817addce88edf7fe86d545d36435",
+    "closing_head": "c49a47ae03a8a94cfe80dcb2d62f76f29d0624ec",
+    "focused_run": 35977625804,
+    "focused_result": "10 passed",
+    "drift_files": [
+      {
+        "path": ".github/workflows/qa-issue603-work-delta.yml",
+        "status": "removed"
+      },
+      {
+        "path": "個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md",
+        "status": "modified"
+      }
+    ],
+    "drift_classification": "workflow cleanup + AI Library writeback only"
   }
 }
