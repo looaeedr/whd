@@ -104,19 +104,31 @@ Presentation panel 不得擁有：
 
 ### Workspace shell
 
-**Decision：NO_EXTRACTION。**
+**CURRENT Phase 6 v1.4 owner：`phase6_workspace_shell.py::WorkspaceShellOwner`。**
 
-不得僅為縮 LOC 建立 `phase6_workspace_shell.py` 或其他 shallow forwarding wrapper。
+**Historical #447 decision：`NO_EXTRACTION` — `SUPERSEDED_BY_PHASE6_V1_4` via #527。**
 
-Fold Designer 左側仍維持**單一 shared content surface**；一般板件、組合體、截角資料在同一 physical slot 互斥呈現。不得新增：
+Phase 6 B2 / #527 的 Deletion-Test 證明 Workspace Shell 已形成可獨立驗證、無 full-app dependency、無 reverse-import Bridge 的深 presentation owner；舊「不得建立 `phase6_workspace_shell.py`」規則不再是 CURRENT authority。
 
-- 第二個 Assembly region；
-- 第二個 Corner Data region；
-- 永久 visible wrapper；
-- duplicate event binding；
-- callback multiplication。
+CURRENT responsibility boundary：
 
-Shared-content 呈現細節由
+- persistent top-area / project toolbar / transaction controls；
+- global / output / visual presentation controls；
+- fullscreen presentation behavior；
+- shared-content physical slot mount / presentation lifecycle；
+- shell-level Tk layout/effect policy。
+
+仍必須維持下列不變式：
+
+- Fold Designer 左側只有**單一 shared content surface**；
+- 一般板件、組合體、截角資料只在同一 physical slot 互斥呈現；
+- `ACTIVE_MODE_SURFACE_COUNT=1`；
+- 不得新增第二個 Assembly region / Corner Data region；
+- 不得建立 full-app owner、second composition root 或 reverse-import Bridge；
+- Workspace/navigation canonical mutation、manufacturing、geometry、project persistence authority不因 shell extraction 改變；
+- Bridge 只保留 thin compatibility/bootstrap handoff，不再持有大型 shell presentation body。
+
+Shared-content 呈現細節仍由
 `個人AI檔案庫/第二層_專案與SOP/11_WHD組合體SharedContent呈現規則.md`
 擁有。
 
@@ -203,8 +215,8 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 - Bending UI owner：#444；
 - Settings presentation owner：#445；
 - Registry diagnostics presentation owner：#446；
-- Workspace shell NO_EXTRACTION：#447；
-- Part Editor C_KEEP_BRIDGE_COMPATIBILITY：#448；
+- Workspace shell historical `NO_EXTRACTION`：#447（**SUPERSEDED_BY_PHASE6_V1_4**；CURRENT deep shell owner 由 #527 定義）；
+- Part Editor C_KEEP_BRIDGE_COMPATIBILITY：#448（Phase 6 B1 / #526 Deletion-Test 重新驗證後維持 KEEP）；
 - `_fix11_init` bootstrap-only：#449；
 - Combined invariant acceptance：#450。
 
@@ -212,8 +224,8 @@ Phase 4 #486 stable decisions：
 
 - FinalScene composition ports owner → existing `Phase6FoldDesignerComposition`：#479；
 - immutable derived-part projection planning → `phase6_derived_part_projection.py`：#480；
-- derived sync apply → `Phase6WorkspaceNavigationController.apply_derived_sync_plan`，linked endcap `KEEP_COMPATIBILITY`：#481；
-- Settings exact-six decision → `KEEP_BRIDGE_COMPATIBILITY`，existing `phase6_settings_panel.py` presentation owner unchanged：#482；
+- derived sync apply → `Phase6WorkspaceNavigationController.apply_derived_sync_plan`，linked endcap `KEEP_COMPATIBILITY`：#481；Phase 6 B4 / #529 重新審議後仍維持 KEEP；
+- Settings exact-six decision → `KEEP_BRIDGE_COMPATIBILITY`，existing `phase6_settings_panel.py` presentation owner unchanged：#482；Phase 6 B3 / #528 重新審議後仍維持 CURRENT boundary；
 - compatibility ratchet / dead-glue cleanup與 Combined Acceptance由 #483/#484 驗證，沒有建立新的 domain authority。
 
 以上 issue/run/commit 只提供 provenance；**本文件的 stable ownership contract 才是後續 routing 要讀的 CURRENT 規則**。
@@ -300,3 +312,17 @@ CURRENT permanent structural ratchet for the accepted Phase 6 Bridge surface:
 - A GREEN anti-regrowth run validates structural invariants only. It does not become geometry/manufacturing/persistence domain truth and does not replace domain-specific final acceptance when those domains change.
 
 Accepted C1 provenance: owning Issue #533, tested HEAD `09e19c06cffcee6521483eb84b16d47cf7d5ad3c`, permanent anti-regrowth RUN `35867336375` GREEN. Provenance identifies the accepted ratchet; the rules above are the durable authority.
+
+
+## Phase 6 v1.4 — Stage B / C3 CURRENT closing provenance
+
+The following decisions are CURRENT ownership-routing evidence after Phase 6 v1.4 reconsideration:
+
+- **B1 / #526 Part Editor**：Deletion-Test revalidated `B1_KEEP_COMPATIBILITY`; no new Part Editor domain/session owner was created.
+- **B2 / #527 Workspace Shell**：historical #447 `NO_EXTRACTION` is `SUPERSEDED_BY_PHASE6_V1_4`; CURRENT deep presentation owner is `phase6_workspace_shell.py::WorkspaceShellOwner`.
+- **B3 / #528 Settings exact-six**：revalidated `KEEP_CURRENT_BOUNDARY`; existing Settings presentation/application/pure-planning owners remain authoritative.
+- **B4 / #529 Linked Endcap**：revalidated `KEEP_COMPATIBILITY`; derivation remains in Fold Profiles and compatibility effects remain bounded.
+- **B5 / #530 Derived request assembly**：CURRENT pure request/planning owner is `phase6_derived_part_projection.py`; workspace mutation remains uniquely owned by `Phase6WorkspaceNavigationController.apply_derived_sync_plan`.
+- **B6 / #531 Facade compatibility audit**：all 69 baseline facade entries were accounted; accepted final facade count is **45** (24 removed), reverse-import Bridge count is 0, second composition root count is 0, and facade non-growth remains enforced.
+
+The facade counts above are **architecture ratchet/provenance evidence only**. They are not mechanical, manufacturing, persistence, Registry, or geometry truth. Later changes must continue to obey the permanent C1 machine guard rather than copy these numbers into a second policy source.
