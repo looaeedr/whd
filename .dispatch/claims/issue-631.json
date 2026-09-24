@@ -7,13 +7,13 @@
   "claimed_at": "2026-09-25T01:14:20+08:00",
   "base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "head_sha": "7221483d343bd327ce4ab479370b60adcbd751ab",
-  "phase": "IMPLEMENTING",
+  "phase": "RED",
   "last_update": "2026-09-25T01:20:20+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "44367ff6243f2a8db71abb4e042d753ba6311d7e",
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Implement ClosureState persistence/validation and make terminal turn-exit fail closed until closure_state=CLOSED; then update 派工/continuity Skill and pitfall guidance.",
+  "next_action": "Publish an exact RED QA run identity/result for the temporary issue-631 workflow, then implement the closure lifecycle only after RED is proven.",
   "blocker": null,
   "evidence": {
     "live_examples": [
@@ -36,7 +36,9 @@
     "red_qa_result": "2 failed, 16 passed; both new half-terminal closure tests fail because ClosureState is absent.",
     "workflow_commit": "7221483d343bd327ce4ab479370b60adcbd751ab",
     "workflow_commit_guard_run_id": 36033324495,
-    "workflow_claim_reconcile_guard_run_id": 36033555072
+    "workflow_claim_reconcile_guard_run_id": 36033555072,
+    "qa_workflow_commit": "7221483d343bd327ce4ab479370b60adcbd751ab",
+    "qa_workflow_commit_guard_run_id": 36033324495
   },
   "last_guard": {
     "action": "write",
