@@ -18,13 +18,15 @@
     "PR #632 merged and production integration read back",
     "blocking repair #633 / PR #634 integrated; production readback 3ffe415b10099d52bc6c39f02463e3483c43f10b",
     "user-directed stale takeover proof run 36040997722 GREEN: EXECUTOR_STUCK/actionable with canonical claim guard GREEN",
-    "closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING after #633 proof-order repair integration"
+    "closure advanced FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING after #633 proof-order repair integration",
+    "remote finalization run 36041503012 GREEN: FINALIZATION_PROOF_VALID; artifact 10826529073",
+    "GitHub Issue #631 fresh readback: closed/completed at 2026-09-24T18:30:41Z"
   ],
   "master_issue": null,
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify bound finalization proof on this exact unchanged checkpoint, then close and fresh-read Issue #631."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED."
 }
