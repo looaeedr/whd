@@ -6,9 +6,9 @@
   "work_branch": "work/issue520-phase6-bridge-residual-reduction-20260923",
   "claimed_at": "2026-09-24T17:39:10+08:00",
   "base_sha": "dbd999794205cb33759805221be42b636ca27eed",
-  "head_sha": "dbd999794205cb33759805221be42b636ca27eed",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-24T17:42:00+08:00",
+  "head_sha": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-24T17:44:50+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "adbfa95092a35183b3b64d0d38ea8cb68be64b65",
   "master_issue": 520,
@@ -16,7 +16,7 @@
   "parent_issue": 520,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Guard and commit the narrow CURRENT ownership writeback: supersede historical Workspace Shell NO_EXTRACTION with Phase 6 v1.4 #527 WorkspaceShellOwner authority; record B1/B3/B4 revalidated KEEP, B5 deepened derived projection owner, and B6 facade 69→45 ratchet provenance. Then reconcile claim HEAD, verify docs-only drift, integrate only this C3 closing writeback to current production, run/read final smoke, and complete C3 then Master #520.",
+  "next_action": "Fresh-compare closing head c6556139957f3bbf104aa001d9b151ee542b8b60 against current production. Verify the only C3 work delta is the CURRENT ownership writeback, observe the already-triggered exact branch QA run rather than dispatching a duplicate, then obtain fresh pr-write authority and integrate only the C3 closing writeback non-force.",
   "blocker": null,
   "lineage": {
     "predecessor_issue": 534,
@@ -27,8 +27,8 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 35982780237,
-    "request_comment_id": 5811699842,
+    "run_id": 35983082128,
+    "request_comment_id": 5811739198,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "69fb6c20c49c9e011ec0705df80ad3b197acf0da",
@@ -52,5 +52,12 @@
       "derived_request": "B5 #530 already CURRENT in ownership doc",
       "facade": "B6 #531 baseline=69 final=45 removed=24; reverse_import=0; second_composition_root=0"
     }
+  },
+  "writeback": {
+    "commit": "c6556139957f3bbf104aa001d9b151ee542b8b60",
+    "changed_files": [
+      "個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md"
+    ],
+    "classification": "CURRENT ownership/supersession writeback only"
   }
 }
