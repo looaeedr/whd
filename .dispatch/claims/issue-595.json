@@ -6,13 +6,13 @@
   "work_branch": "governance/issue595-invalid-phase-recovery-20260924",
   "claimed_at": "2026-09-24T13:12:20+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-24T13:26:00+08:00",
+  "head_sha": "dd800d93510cd169972d76462f455189bdf71832",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T13:28:27+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Consume #595 implementation scope under the new owner: fresh Guard, implement exact-claim-path invalid-phase write recovery with focused tests/docs/Skill, integrate to cleanup/2d-3d-sync, normalize #578 claim to canonical phase, then return to #596 final takeover proof.",
+  "next_action": "Run focused regression for invalid-phase exact-claim write recovery plus existing execution-claim guard/takeover regressions; on GREEN remove temporary QA workflow, integrate #595 to cleanup/2d-3d-sync, normalize #578 claim to canonical phase, then resume #596 final takeover proof.",
   "blocker": null,
   "stale_takeover": {
     "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
@@ -38,5 +38,14 @@
       "authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
       "claim_blob_sha": "c7c9d0cdcb677787fa6cd0bf098d4fbaaf303198"
     }
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35960082926,
+    "request_comment_id": 5808262520,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "consumed": true
   }
 }
