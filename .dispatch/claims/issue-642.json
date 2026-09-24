@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-24T19:56:40.367394Z",
   "base_sha": "d3bd1cf17e20727fe805fd1203fa412b8bef5fa8",
   "head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
-  "phase": "RED",
-  "last_update": "2026-09-24T20:35:24.363540Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-24T20:37:50.497531Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -22,8 +22,20 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Reconcile exact checkpoint head to 98cc5ae60979bc665db3e716dbc960557b340fbd; no further repository mutation until claim/checkpoint match.",
+  "remote_qa": {
+    "run_id": 36055758248,
+    "head_sha": "98cc5ae60979bc665db3e716dbc960557b340fbd",
+    "status": "completed",
+    "conclusion": "success",
+    "job_id": 107822119631,
+    "artifact_id": 10832407058,
+    "purpose": "T2 activation transaction + active checkpoint read + prewrite backstop RED",
+    "evidence": {
+      "pytest": "17 intended failures",
+      "marker": "ISSUE642_T2_RED=GREEN"
+    }
+  },
+  "next_action": "Implement ACTIVE_CLAIM_REQUIRES_CHECKPOINT activation transaction validator + prewrite backstop in canonical execution-claim guard; preserve narrow assert_execution_claim contract; run focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-642.json",
   "predecessor": {
