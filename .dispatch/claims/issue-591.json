@@ -6,12 +6,32 @@
   "work_branch": "governance/issue591-live-issue578-takeover-proof-20260924",
   "claimed_at": "2026-09-24T12:52:32+08:00",
   "base_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "head_sha": "615fc75378487ce929d69cee2b693b409d35b130",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T12:52:32+08:00",
+  "head_sha": "7f0e21fbc7f7d7a03d40c4b736f38dc5092cbb27",
+  "phase": "CLOSING",
+  "last_update": "2026-09-24T12:55:45+08:00",
   "production_target": "cleanup/2d-3d-sync",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Create guarded helper branch and one-shot live proof workflow for #578 stale interactive takeover; on GREEN, current execution consumes proof via optimistic CAS and continues #578.",
-  "blocker": null
+  "next_action": "Delete temporary proof workflow, record helper completion, close Issue #591, and release this helper claim.",
+  "blocker": null,
+  "proof": {
+    "run_id": 35957612159,
+    "job_id": 107499149154,
+    "classification": "EXECUTOR_STUCK",
+    "stale_seconds": 5119,
+    "claim_blob_sha": "046d91e933be5a744a904f3786da9f16c2749121",
+    "observed_live_head_sha": "b8766048aaed79405f7e54e28bcf0eb736aa4012",
+    "user_authority_comment_id": 5807907761,
+    "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed_by_issue578_claim_commit": "465ba9d2e0e451648465272ac263114a6c4a7e0a"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 35957712664,
+    "request_comment_id": 5807945582,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "615fc75378487ce929d69cee2b693b409d35b130",
+    "consumed": true
+  }
 }
