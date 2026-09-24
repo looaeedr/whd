@@ -1,0 +1,60 @@
+name: WHD｜#641｜T1 收尾硬閘門 Requirement RED
+run-name: "WHD｜#641｜T1 收尾／Guard／Helper Requirement RED｜${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - workorder/issue640-guard-turn-exit-helper-hardening-20260925
+    paths:
+      - tests/process/test_issue641_closing_turn_exit_red.py
+      - tests/process/test_issue641_helper_reservation_red.py
+      - .github/workflows/qa-issue641-t1-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  red:
+    name: 驗證五顆核准 Requirement 目前仍為 RED
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 取出 #640 work-order exact HEAD
+        uses: actions/checkout@v4
+
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安裝 pytest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: 實跑 requirement-level RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python -m pytest -q             tests/process/test_issue641_closing_turn_exit_red.py             tests/process/test_issue641_helper_reservation_red.py             > /tmp/issue641-t1-red.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue641-t1-red.log
+          test "$rc" -ne 0
+          for marker in             RED-CLOSE-01             RED-CLOSE-02             RED-CLOSE-03             RED-HELPER-01             RED-HELPER-02
+          do
+            grep -q "$marker" /tmp/issue641-t1-red.log
+          done
+          echo "ISSUE641_T1_REQUIREMENT_RED=GREEN"
+
+      - name: 上傳 RED 證據
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue641-t1-requirement-red-${{ github.sha }}
+          path: /tmp/issue641-t1-red.log
+          if-no-files-found: error
+          retention-days: 14
