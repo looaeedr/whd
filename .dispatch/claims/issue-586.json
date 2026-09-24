@@ -1,17 +1,47 @@
 {
   "issue": 586,
   "issue_url": "https://github.com/looaeedr/whd/issues/586",
-  "worker": "chatgpt.sol260924.issue586",
-  "executor_source": "chat",
+  "worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+  "executor_source": "scheduler",
   "work_branch": "governance/issue586-runtime-liveness-main-20260924",
-  "claimed_at": "2026-09-24T11:32:00+08:00",
+  "claimed_at": "2026-09-24T12:19:37+08:00",
   "base_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
-  "head_sha": "36585528eaeb345212065b33f768293e3ac7feb2",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-24T11:32:00+08:00",
+  "head_sha": "a882953fb1a3381ac9ab7729efc1615c85f93662",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-24T12:19:37+08:00",
   "production_target": "main",
   "parent_issue": 578,
   "delegated_branches": [],
-  "next_action": "Obtain Remote Guard GREEN for branch-create, create the main backport branch, update the trusted Remote Guard transport to auto-discover scheduler runtime liveness comments, then run focused transport QA.",
-  "blocker": null
+  "next_action": "Honor the user's explicit interactive takeover request: create owner-authored WHD_USER_DIRECTED_TAKEOVER_V1 bound to this scheduler owner, run canonical scheduler-to-chat takeover proof, CAS ownership to chatgpt.sol260924.issue586.takeover, then continue focused transport QA from live head a882953fb1a3381ac9ab7729efc1615c85f93662.",
+  "blocker": null,
+  "last_guard": {
+    "action": "claim-takeover",
+    "run_id": 35955154691,
+    "request_comment_id": 5807591876,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50",
+    "consumed": true
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "previous_worker": "chatgpt.sol260924.issue586",
+    "previous_executor_source": "chat",
+    "requesting_worker": "scheduler.6ab13f881c34819180cee63f5dd9446b",
+    "requesting_executor_source": "scheduler",
+    "observed_stale_seconds": 2679,
+    "observed_live_head_sha": "a882953fb1a3381ac9ab7729efc1615c85f93662",
+    "previous_last_update": "2026-09-24T11:32:00+08:00",
+    "exact_remote_run_id": null,
+    "exact_remote_run_status": null,
+    "exact_remote_run_conclusion": null,
+    "taken_over_at": "2026-09-24T12:19:37+08:00",
+    "proof": {
+      "workflow_run_id": 35955154691,
+      "classification": "EXECUTOR_STUCK",
+      "evaluator_result": "GREEN",
+      "claim_guard_result": "EXECUTION_CLAIM_GUARD_GREEN",
+      "authority_sha": "4b296c5ead273c5f4f710814cc7bf45bfda1bb50"
+    }
+  }
 }
