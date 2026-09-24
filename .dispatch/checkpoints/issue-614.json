@@ -1,0 +1,24 @@
+{
+  "schema": "WHD_EXECUTION_CHECKPOINT_V1",
+  "issue": 614,
+  "master_issue": 628,
+  "task_id": "B1",
+  "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
+  "executor_source": "scheduler",
+  "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
+  "tested_head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+  "phase": "TERMINAL_SUCCESS",
+  "remote_qa": {
+    "run_id": 36009308143,
+    "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "next_action": "Run WHD Remote Finalization authorize+verify proof, then close/readback Issue #614, release claim, and advance Master #628 to next executable child.",
+  "evidence": {
+    "guard_receipt_run_id": 36015000425,
+    "guard_request_comment_id": 5816356679,
+    "guard_result_comment_id": 5816362606
+  }
+}
