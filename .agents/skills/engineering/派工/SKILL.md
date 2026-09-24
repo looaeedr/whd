@@ -155,6 +155,21 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 6. **claim 失敗**、shared authority 已顯示其他 owner、或 atomic compare-and-swap 衝突時，必須 fail closed：**禁止施工該 Issue**、禁止另開平行實作來繞過 claim。若 dispatch pool 尚有可執行的未認領工單，依 `NON_TERMINAL_CONTINUE` 立即轉往下一張，而不是停在「已被鎖定」。
 7. 若目前環境沒有任何可提供 shared + atomic ownership 的能力，必須把它記成 capability blocker；不得把 branch-local 檔案或 comment 假裝成安全鎖。
 
+#### EXECUTION_INSTANCE_IDENTITY_V1
+
+新取得 execution claim 時，`worker` 必須是**唯一 execution-instance 的 ownership identity**，不得再用所有聊天室共用的裸 `worker=chatgpt`，也不得用裸 `worker=scheduler` 當新 claim owner。
+
+- interactive ChatGPT 新 claim 的 canonical 形式：`chatgpt.<instance-token>`。
+- scheduler / automation 新 claim 的 canonical 形式：`scheduler.<automation-id-or-token>`。
+- identity 必須相容 trusted Remote Guard 現行 parser：`[A-Za-z0-9_.-]{1,64}`；不得使用冒號、空白或超出 parser contract 的字元。
+- `<instance-token>` 必須在該 execution instance 建立時產生並保持穩定，且要能區分同時存在的其他 ChatGPT / scheduler invocation。不得把固定字串 `chatgpt` 當成 token。
+- `executor_source` 只屬 coarse provenance / routing classification；它**不是 ownership identity**、不是 claim authority，也不得因 `executor_source=chatgpt_interactive` 或 `scheduler` 相同就把兩個 execution instance 視為同一 owner。
+- 新 claim atomic acquisition 成功後，必須立刻在 user-visible CHECKPOINT / claim report 回顯 exact `worker` identity；之後使用者看到 shared claim 時，才能把 repository provenance 對回實際聊天／排程 execution instance。只有 GitHub 使用者名稱或 `executor_source` 不足以完成這個對應。
+- `tools/execution_claim_guard.py` 與 Remote Guard 仍以 claim 中 exact `worker` 做 owner equality gate；呼叫 guard 時必須帶同一個 exact identity，不得降級只比對 `executor_source`。
+- claim acquisition path 對**新 claim**看到 generic `worker=chatgpt` / `worker=scheduler` 時必須 fail closed，而不是建立不可追溯的新 ownership。
+- legacy migration：已經 active 的 legacy claim（例如既有 `worker=chatgpt`）**不得只為升級格式而中途改 owner**。它保持原 owner 到正常 terminal/release，或依 canonical stale takeover 流程合法轉移；terminal/release 後建立的 successor / new claim 才強制使用 unique execution-instance identity。
+- stale takeover 寫回 scheduler owner 時，同樣必須使用該 scheduler invocation 的 unique `scheduler.<automation-id-or-token>` identity；`stale_takeover.previous_executor_source` 可保留 coarse provenance，但不能取代 previous exact worker evidence。
+
 ### EXECUTION_CLAIM_PREWRITE_HARD_GATE
 成功取得 atomic claim **不等於已獲准寫入**。在每一次會建立或改動 repository state 的動作前，必須立即執行 `tools/execution_claim_guard.py`，以 shared coordination claim 的最新內容作唯一 authority；不得只相信 Issue comment、branch 名稱、聊天記憶或先前一次 guard 結果。
 
@@ -169,10 +184,22 @@ GitHub owning Issue 建立並反讀後，**還不能直接施工**。多 AI / Wo
 CLI precondition 形式：
 
 ```text
-python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD> [--changed-file <repo-relative-path>] [--preflight-evidence <phase6-evidence>]
+python tools/execution_claim_guard.py --claim <shared-claim-json> --issue <N> --worker <identity> --branch <branch> --action <branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write> --base-sha <base SHA> --head-sha <current HEAD> [--changed-file <repo-relative-path>] [--preflight-evidence <phase6-evidence>]
 ```
 
 只有 exit code 0 / `EXECUTION_CLAIM_GUARD_GREEN` 才能進行緊接著的單次 action。
+
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+`commit/write` 在合法 GREEN prewrite guard 後把 work branch 從 claim HEAD `H0` 推進到 `H1` 時，shared claim 會短暫仍記 H0。此時禁止把它誤判成普通 stale claim，也禁止直接無 guard 改 claim。
+
+固定做法：
+1. fresh-read shared claim blob 與 live work branch H1；
+2. 用 Remote Guard 送一張新的 `action=write` request，`head_sha/tested_target_sha=H1`，且 `changed_file` 只能是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+3. canonical guard 必須 machine-verify H1 是 H0 的單一直接子 commit，並反查同 Issue 上 prior exact GREEN `write|commit` request/receipt；owner/branch/base/H0/current claim blob、commit changed-file set、receipt window 全部綁定；
+4. 新 reconcile receipt GREEN 後，才以 current claim blob SHA 做 optimistic CAS，把 claim `head_sha` 更新為 H1；
+5. CAS 後立即 fresh-read verify，再為下一個 repo mutation 重新取得新的 single-use guard。
+
+prior receipt 不能直接重用成 claim write；一般 production/test/Skill `write` 也不能使用此 exception。驗證任一不符即 fail closed，分類 `REMOTE_GUARD_STALE_IDENTITY_AFTER_AUTHORIZED_COMMIT` 或更窄 root cause，禁止旁路。
 
 ### 3.5 CLAIM_PROGRESS_STATE / 工單進度共享
 execution claim 不只記「誰拿走」，同一 durable coordination state 必須讓其他 AI 看得出**做到哪裡**。至少保存：
@@ -195,6 +222,24 @@ execution claim 不只記「誰拿走」，同一 durable coordination state 必
 - `尚未認領`：可由下一個 Worker 嘗試 atomic claim。
 
 ### 3.6 STALE_CLAIM_RECOVERY / stale owner 接管
+
+<!-- STALE_CLAIM_EXECUTABLE_TAKEOVER_V1 -->
+
+stale owner 接管的 canonical machine authority 是 `tools/stale_claim_takeover.py`；scheduler 不得靠 prompt、聊天時間感或單看 claim 未更新自行宣告卡住。
+
+- 預設 stale threshold 固定為 **600 秒（10 分鐘）**。
+- fresh evidence 至少帶：claim `last_update`、live work-branch HEAD + HEAD commit timestamp、claim 綁定的 exact remote run fresh status/updated_at（若有 run_id）。
+- exact run 為 `queued/in_progress/waiting/requested/pending` 時固定分類 `RUN_LIVE`，禁止 takeover，即使 claim 本身已超過 10 分鐘。
+- **一般 foreign owner（非 scheduler）**仍維持 600 秒規則：最近 durable progress 未滿 600 秒為 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
+- **foreign scheduler owner** 不得再用 claim freshness 冒充 runtime liveness：fresh-read exact claim blob 後，必須讀 owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` heartbeat/lease；有效 lease 固定 backoff。
+- foreign scheduler 在「無 active exact run + heartbeat missing/expired + exact claim/blob/branch/head identity 一致 + durable progress age >= 90 秒」時，可由 evaluator 分類 `ORPHANED_SCHEDULER_OWNER/actionable=true`，不必等滿一般 600 秒。
+- same-lane cross-cycle resume 不做 takeover；`claim.worker == current scheduler lane` 時直接從 durable next_action / exact run resume，不要求上一 invocation heartbeat 仍有效。
+- live branch 已前進時，以 **observed live HEAD** 作 resume/takeover identity；recent commit 會重置 stale age，舊 commit 超過 threshold 才可接。
+- evaluator malformed/missing evidence 必須 fail closed。
+- 真正 ownership 轉移使用 Remote Guard 單次 action `claim-takeover`，取得 fresh GREEN receipt 後才能 CAS 更新 shared claim；不得拿一般 `commit` receipt 或舊 receipt 代替。
+- CAS writeback 必須保留既有 evidence，寫入 `executor_source=scheduler` 與 `stale_takeover.previous_executor_source / observed_stale_seconds / observed_live_head_sha / evidence / taken_over_at`。
+- takeover 後下一次 repository mutation 仍要重新取得對應 action 的 fresh guard；`claim-takeover` receipt 不是 session token。
+
 「很久沒更新」不等於可以偷鎖。stale claim recovery 必須先查 owning branch、目前 HEAD、checkpoint/journal、`last_update`、remote QA run/status、Issue 最新活動與既有 owner 是否仍有 non-terminal work。
 
 - **不得直接搶鎖**、覆蓋 owner 或刪除 claim。
@@ -473,3 +518,36 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 對 Master child closure，除了 child checkpoint state，還必須套用 `MASTER_CHAIN_TURN_EXIT_HARD_GATE_V1`；child terminal 若 `chain_state=NEXT_CHILD_EXECUTABLE`，仍視為本 turn 有 autonomous work，禁止退出。
 
 `BLOCKED` 只有既有 `BLOCKED_ALLOWED_REASONS` 類真正外部 authority/capability wait 才能合法 turn-exit；`BLOCKED` 仍不得冒充 workflow COMPLETE。
+
+### TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1_BRIDGE
+
+當 scheduler / automation 已有 terminal owning checkpoint，但目前 execution runtime 無法直接執行 canonical continuity controller 時，closure 不得退化成 Issue comment marker。固定 remote path 是專用窄 executor `.github/workflows/whd-remote-finalization.yml`，只接受 fixed identity fields，執行 `authorize-finalization` → `verify-finalization-proof`，並產生 `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + bound proof artifact。
+
+- 禁止 arbitrary command / shell payload input；generic executor 不得替代。
+- workflow run / artifact identity 必須 fresh 綁 issue + worker + branch + HEAD + checkpoint blob/fingerprint + claim blob + trusted authority SHA。
+- Issue comment 中單獨出現 `FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 文字一律不是 closure authority。
+- executor terminal GREEN 後仍要 fresh-read artifact receipt，exact match 後才可 close Issue；close 後 remote readback，再 release claim。
+
+### SCHEDULER_TAKEOVER_OPERATIONAL_USAGE_V1
+
+Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeover_usage.md` 為 durable 使用手冊；本 Skill 保留 canonical execution contract。scheduler 必須遵守：
+
+1. **wake-up trigger != execution owner**：每輪從 `coord/dispatch-claims`、Issue、checkpoint、branch、exact run fresh reconstruct，不得硬編 issue/branch/SHA/run_id。
+2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時直接 resume，不做 stale takeover。`ACTIVE_WITHIN_10M` 對 same-lane 只表示不用 takeover，不是 stop condition。
+3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
+4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
+5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
+6. work HEAD 因合法 commit `H0→H1` 而 claim 還在 H0 時，走 `POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1`，不得 self-takeover。
+7. terminal checkpoint 優先使用 trusted `WHD_REMOTE_FINALIZATION_REQUEST_V1` Issue-comment transport；machine receipt + proof artifact + `FINALIZATION_PROOF_VALID` 才能 close。
+8. recurring lane 的 cycle blocker 只允許結束當輪 invocation；不得因 foreign active、WAITING_REMOTE、capability blocker、platform boundary 或 fully blocked 自行 disable/刪除/重排 recurring automation。
+
+
+### SCHEDULER_RUNTIME_LIVENESS_V1
+
+`scheduler lane identity != invocation identity`。每次 scheduler invocation 若持有 active claim，必須以 owning Issue top-level comment 投影短效 runtime lease，第一行固定 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1`，至少帶 `issue / scheduler_lane / invocation_identity / claim_blob_sha / branch / head_sha / executor_source=scheduler / emitted_at / expires_at`；若綁 active exact run，再成對帶 `active_run_id + active_run_head_sha`。
+
+- lease TTL 最長 300 秒；canonical orphan grace 為 90 秒。
+- heartbeat 只是 invocation liveness evidence，不取代 claim/checkpoint/next_action。
+- claim blob、branch、HEAD 任一 drift，舊 heartbeat 不可重用且 machine fail closed。
+- platform hard boundary 不需要修改 claim 來假裝 terminal；只要不再續發 heartbeat，lease自然過期，下一 sibling wake 可安全走 orphan takeover。
+- durable comment parser/selector authority：`tools/scheduler_runtime_liveness.py`；takeover decision authority仍為 `tools/stale_claim_takeover.py`。

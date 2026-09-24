@@ -52,3 +52,20 @@ execution claim 只證明「誰可以寫」，不能證明「寫 Skill 的資格
 - Skill write target 命中 `.agents/skills/**/SKILL.md` 時，guard 必須驗 `preflight evidence`，至少證明 canonical registry 要求的 `寫技能`、其他 required Skills 與 required references 都完成。
 - 只在聊天中說「有讀寫技能」、只留 Issue comment、或只持有 atomic claim 都不是 Skill authoring authority。
 - scope 新增 Skill/AI Library/測試檔時，先重跑 changed-file Preflight，再進下一次 write。
+
+
+## POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1（2026-09-23）
+
+### 問題
+prewrite guard 的 `write/commit` 必然綁 mutation 前的 claim/work HEAD H0。合法 commit 完成後 branch 變 H1，但 shared claim 還是 H0；若下一張普通 `write` guard 同時要求 live branch==request HEAD 與 claim HEAD==request HEAD，就會形成「合法 commit 成功後反而永遠無法更新 claim HEAD」的 bootstrap deadlock。
+
+### 永久規則
+- **不得放寬一般 stale-head write。** ordinary write/commit 仍要求 claim HEAD exact 等於 guarded live HEAD。
+- 唯一例外是 exact shared claim path 的 post-commit reconciliation write。
+- reconcile 前必須反查 prior repository-owner request + github-actions bot GREEN receipt，並綁 current claim blob、owner、branch、base、H0。
+- live H1 必須是 H0 的單一直接子 commit；H1 changed-file set 必須與 prior GREEN receipt 完全一致；commit timestamp 必須位於 prior receipt issued/expires window。
+- reconcile receipt 只授權一次 optimistic CAS 把 shared claim head H0→H1；不得拿 prior commit receipt做第二次 mutation。
+- parent/file/blob/request/receipt/time 任一 drift 一律 fail closed，不得為了「只是更新進度」直接改 coordination claim。
+
+### 2026-09-23 live RED
+#533 在合法 commit Guard RUN `35873300186` GREEN 後，work branch `09e19c06… → fb544321…`，shared claim 仍記舊 HEAD；後續普通 claim-progress write Guard RUN `35873592503` 因 stale identity FAIL。此案例是本規則的 canonical regression。

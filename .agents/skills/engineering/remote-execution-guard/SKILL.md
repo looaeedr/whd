@@ -76,7 +76,7 @@ Issue comment 第一行固定：
 必要欄位：
 - `issue=<positive issue number>`
 - `worker=<claim owner identity>`
-- `action=<branch-create|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
+- `action=<branch-create|claim-takeover|write|commit|qa-dispatch|workflow-dispatch|pr-write>`
 - `branch=<exact claimed/delegated branch>`
 - `base_sha=<40-char claim base SHA>`
 - `head_sha=<40-char current claimed HEAD>`
@@ -103,6 +103,25 @@ Request 前：
 
 GREEN receipt 只授權建立該 exact branch 一次。
 
+### claim-takeover
+
+<!-- REMOTE_GUARD_CLAIM_TAKEOVER_V1 -->
+
+trusted Remote Guard transport 仍只允許 scheduler stale-owner recovery；canonical local guard 另外支援 owner 明確授權的 stale scheduler/chat → interactive takeover。interactive self-takeover 永遠 fail closed。
+
+Request 前必須 fresh-read：
+- exact active claim blob；
+- exact work branch observed live HEAD 與該 HEAD commit time；
+- claim 有 `remote_qa.run_id` 時的 exact remote run fresh status/updated_at。
+
+trusted workflow 必須先執行 `tools/stale_claim_takeover.py --require-actionable`。machine decision 只有 `EXECUTOR_STUCK` 或 `ORPHANED_SCHEDULER_OWNER` 可再執行 `tools/execution_claim_guard.py ... --action claim-takeover` 並發 GREEN receipt；Remote Guard request 的 exact machine syntax 是 `action=claim-takeover`。
+
+對 foreign scheduler claim，trusted workflow 在 evaluator 前必須 fresh-read owning Issue comments，使用 `tools/scheduler_runtime_liveness.py` 選出 repository-owner authored、exact `issue + scheduler_lane` 的最新 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment，並把 current exact `claim_blob_sha` 一起傳給 stale evaluator。selector 回 MISSING 可進 orphan grace 判定；malformed relevant heartbeat、claim/blob/branch/head identity drift一律 fail closed。
+
+`RUN_LIVE`、`WAIT_ON_FOREIGN_RUNTIME`、`ALREADY_SCHEDULER`、`TERMINAL` 或 evaluator error 一律 Remote Guard FAIL；不得 mutation claim。
+
+GREEN receipt 必須額外讓 bounded evidence 可讀到 observed live HEAD、stale seconds 與 previous executor source。receipt 仍只授權**一次** CAS claim ownership transition；claim/blob/head 在 mutation 前漂移就失效。
+
 ### write / commit
 Request 前：
 - branch 必須存在；
@@ -111,6 +130,25 @@ Request 前：
 - Skill target 必須讓 canonical Preflight evidence 包含 `寫技能` + required Skills/references。
 
 若 GitHub primitive 支援 atomic multi-file commit，優先用一張 `commit` receipt 綁完整 changed-file set，做單一 tree/commit/ref transition；不要把一張 receipt 拆成多次獨立 write。
+
+#### POST_COMMIT_CLAIM_HEAD_RECONCILIATION_V1
+
+合法 `write/commit` receipt 會先綁 pre-mutation claim/work HEAD `H0`；mutation 成功後 work branch 可能前進成 `H1`，而 shared claim 尚仍是 `H0`。這不是一般 stale write，也不得直接繞過 guard 改 claim。
+
+固定 recovery path 仍使用既有 `action=write`，但只有下列窄條件全部成立時，canonical `tools/execution_claim_guard.py` 才可接受 `claim.head_sha != request head_sha`：
+
+- request 的 `head_sha == tested_target_sha == live work-branch H1`；
+- `changed_file` **唯一**是 exact `.dispatch/claims/issue-<ISSUE>.json`；
+- current claim issue/worker/branch/base/blob 仍與 prior mutation 時一致；
+- live `H1` 是 claim `H0` 的**單一直接子 commit**，禁止 merge / multi-hop 漂移；
+- GitHub Issue 上存在 repository-owner 發出的 prior `WHD_REMOTE_GUARD_REQUEST_V1` 與 `github-actions[bot]` 發出的 exact GREEN `WHD_REMOTE_GUARD_RECEIPT_V1`；
+- prior receipt action 只能是 `write|commit`，其 issue/worker/source/branch/base/H0/current claim blob/request_comment_id 全部 exact match；
+- `H1` 的 changed-file set 與 prior GREEN receipt 的 `changed_files` **完全相同**；
+- `H1` commit timestamp 落在 prior receipt 的 `issued_at..expires_at` 內。
+
+此 special case 的新 GREEN `write` receipt **只授權一次 shared claim CAS**：把 `head_sha` 從 H0 推到 live H1，並同步 `last_update/phase/next_action/evidence`。不得拿它修改 production/Skill/AI Library，也不得把 prior commit receipt 直接重用成第二次 mutation。
+
+任一 receipt/request/claim blob/parent/file scope/time-window 不吻合 → `REMOTE_GUARD_FAILED`，維持 blocker，不得偷改 claim。
 
 ### qa-dispatch / workflow-dispatch / pr-write
 同樣要求 fresh claim/blob/branch/head identity。receipt 只授權 request 中那一種 action。
@@ -285,3 +323,56 @@ Remote Guard bootstrap：
 - receipt schema `WHD_REMOTE_GUARD_RECEIPT_V1`
 
 這些只證明 workflow 已建立；未來每次 mutation 仍要 fresh receipt。
+
+## TRUSTED_REMOTE_FINALIZATION_EXECUTOR_V1
+
+Remote Guard receipt 只授權 repository mutation；它不會把文字 marker 變成 finalization proof。當 closure runtime 無 command capability時，必須路由到專用 `.github/workflows/whd-remote-finalization.yml`，不得新增 generic shell action。
+
+該 executor 的 authority 是 machine run + `WHD_REMOTE_FINALIZATION_RECEIPT_V1` + uploaded `finalization-proof.json`。固定輸入只包含 issue、worker、owning branch/head、checkpoint path/blob/fingerprint、claim blob、trusted authority SHA。任何 identity/blob/fingerprint drift 都 fail closed。
+
+`FINALIZATION_GUARD_PASS` / `FINALIZATION_PROOF_VALID` 若只存在 Issue comment、聊天文字或手工檔案而沒有 trusted executor run/artifact，分類 `INVALID_FINALIZATION_EVIDENCE`，禁止 close。
+
+## SCHEDULER_GREEN_CONSUMPTION_OPERATIONAL_V1
+
+scheduler 使用 Remote Guard 時，固定操作閉環如下：
+
+```text
+fresh identity
+→ post WHD_REMOTE_GUARD_REQUEST_V1
+→ lock newly-triggered exact Guard run
+→ poll terminal
+→ validate WHD_REMOTE_GUARD_RESULT_V1
+→ result=GREEN + exact identity + unexpired
+→ execute the one authorized mutation immediately
+→ fresh readback
+→ durable claim/checkpoint reconcile
+→ continue next_action in the same cycle
+```
+
+額外硬規則：
+
+- GREEN receipt 是 **single-use**；不能只當進度訊息。
+- 新 invocation 先尋找上一輪同 lane 未 consume GREEN；仍 exact valid 就先 consume，不得重發。
+- same-lane active claim 不套 600 秒 stale takeover；600 秒只判斷 foreign owner。
+- exact run queued/in_progress 時鎖同一 run，不 duplicate Guard。
+- `pr-write` GREEN 要真正 create/update/merge/close PR；`write` GREEN 要真正寫 exact changed path；`commit` GREEN 只准一個 exact changed-file set 的 atomic commit。
+- mutation 前 identity drift 時 fail closed；fresh-read 後只有在舊 receipt 已失效或不匹配時才可重送。
+- finalization 不使用一般 Remote Guard marker代替 proof；若 main trusted finalization workflow支援 `issue_comment: created`，改送 fixed `WHD_REMOTE_FINALIZATION_REQUEST_V1` 並鎖 exact finalization run。
+- recurring scheduler 的 blocked/foreign-active 狀態不代表 automation terminal；Remote Guard 不得成為停用 recurring lane 的理由。
+
+完整操作與排查範例見 `docs/governance/whd_scheduler_takeover_usage.md`。
+
+
+### REMOTE_GUARD_SCHEDULER_RUNTIME_LIVENESS_V1
+
+Remote Guard 不得自行用「comment 最近有更新」推論 runtime 活著。唯一可供 orphaned-scheduler path 使用的 liveness evidence是 owner-authored fixed-schema `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` comment。
+
+trusted workflow固定順序：
+`fresh claim/blob → exact run read → Issue comments fresh-read → scheduler_runtime_liveness selector → stale_claim_takeover → execution_claim_guard → receipt`。
+
+Active exact run仍是絕對鎖；有效 runtime lease仍 backoff；missing/expired lease只有在90秒 grace與所有 identity gate成立時才可 `ORPHANED_SCHEDULER_OWNER`。
+
+
+### INVALID_PHASE_EXACT_CLAIM_WRITE_RECOVERY_V1
+
+若 shared claim 已被寫成 canonical allowlist 之外的 phase，Guard 不得全面放寬 phase parser。只允許窄 recovery：`action=write` 且 `changed_file` 唯一為該 owning Issue 自己的 exact claim path。此時仍須逐一驗 issue/worker/branch/base/head；授權只可把 process-state 正規化回 canonical phase。任何其他 action/path、錯 owner/branch/SHA、terminal/inactive 語意都維持 fail closed。
