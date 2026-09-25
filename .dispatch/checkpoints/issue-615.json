@@ -3,10 +3,10 @@
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock exact GitHub Actions run 36200056277 at head_sha 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 and poll it to terminal. If it fails at the UI-R2 assertion, record requirement RED evidence and implement the minimal WorkspaceShell-owned viewport overlay; if it fails in setup/harness, repair the harness without counting it as requirement RED.",
+  "state": "RUNNING",
+  "next_action": "Implement the minimal WorkspaceShell-owned viewport overlay on exact head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34. Settings and Assembly Diagnostics must share one overlay host positioned over the renderer without consuming pack geometry; retain existing Settings/Diagnostics state owners and callbacks, then run exact focused Xvfb GREEN.",
   "run_id": 36200056277,
-  "job_id": null,
+  "job_id": 108284554274,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -19,7 +19,8 @@
     "Post-commit canonical pair reconciliation authorized by Remote Guard run 36199926353.",
     "Focused #615 UI-R2 Xvfb workflow committed at 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 under Remote Guard run 36200024852.",
     "Exact push QA run 36200056277 created for head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34.",
-    "Post-commit pair reconciliation to QA head authorized by Remote Guard run 36200077895."
+    "Post-commit pair reconciliation to QA head authorized by Remote Guard run 36200077895.",
+    "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: missing single WorkspaceShell viewport overlay host; artifact 10891527330."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
