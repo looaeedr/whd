@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T02:22:28Z",
   "base_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
-  "head_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T06:16:12Z",
+  "head_sha": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T06:20:27.750208Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T5",
   "expected_parent_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "0eee910cfe2f121c6074911d9c9414b877f7003a",
+  "chain_head": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-HELPER-01",
@@ -23,7 +23,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Run T5 focused GREEN at 0eee910cfe2f121c6074911d9c9414b877f7003a for D-R9..D-R13 plus existing delegated/helper/takeover regressions; on GREEN, clean one-shot QA, drift-audit, finalization, close/release #645, then hand off #646.",
+  "next_action": "Remove one-shot #645 RED/GREEN QA workflows under fresh Guard, reconcile closing HEAD, drift-audit tested-to-closing changes, then finalization, close/release #645 and hand off #646.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-645.json",
   "predecessor": {
@@ -94,5 +94,26 @@
       "claim_phase": "RELEASED",
       "workorder_merge_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a"
     }
+  },
+  "remote_qa": {
+    "run_id": 36102361315,
+    "job_id": 107967390270,
+    "head_sha": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
+    "status": "completed",
+    "conclusion": "success",
+    "passed": 50,
+    "failed": 0,
+    "marker": "ISSUE645_T5_GREEN=PASS"
+  },
+  "qa": {
+    "green_workflow_commit_sha": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
+    "green_workflow_guard_run_id": 36102320202,
+    "green_run_id": 36102361315,
+    "green_job_id": 107967390270,
+    "result": "success",
+    "passed": 50,
+    "failed": 0,
+    "marker": "ISSUE645_T5_GREEN=PASS",
+    "reconcile_guard_run_id": 36102411132
   }
 }

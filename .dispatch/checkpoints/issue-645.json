@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "645",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "0eee910cfe2f121c6074911d9c9414b877f7003a",
-  "state": "RECOVERING",
-  "next_action": "Run T5 focused GREEN for D-R9..D-R13 plus delegated/helper/takeover regressions; if GREEN, clean QA workflow, drift-audit, finalization, close/release #645, then hand off #646.",
+  "head_sha": "2a05e159cd7661e24260abb7545b6d9eb6b04ee1",
+  "state": "RUNNING",
+  "next_action": "Remove one-shot #645 RED/GREEN QA workflows, reconcile closing HEAD, drift-audit, then finalization, close/release #645 and hand off #646.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,6 +16,9 @@
     "Blocking #649 trusted Remote Guard compatibility repair is closed/released.",
     "Governance repair #651 is closed/released; PR #652 legally merged it into this work-order at 0eee910cfe2f121c6074911d9c9414b877f7003a.",
     "User-directed #645 takeover authority is Issue comment 5827803045.",
-    "No #645 implementation replay is authorized; resume point is focused T5 GREEN."
+    "No #645 implementation replay is authorized; resume point is focused T5 GREEN.",
+    "Remote Guard run 36102320202 GREEN authorized one-shot T5 GREEN workflow commit 2a05e159cd7661e24260abb7545b6d9eb6b04ee1.",
+    "Exact T5 focused GREEN run 36102361315 at 2a05e159cd7661e24260abb7545b6d9eb6b04ee1: 50 passed / 0 failed; marker ISSUE645_T5_GREEN=PASS.",
+    "Post-commit reconcile Guard run 36102411132 GREEN authorized atomic claim/checkpoint alignment to tested HEAD 2a05e159cd7661e24260abb7545b6d9eb6b04ee1."
   ]
 }
