@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
   "state": "RUNNING",
-  "next_action": "Run tested-head→closing-head drift audit from 3967da33e35e26ba3973e5565af0defe65fa7e12 to 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156; require cleanup-only delta, then enter #647 finalization.",
+  "next_action": "Integration Acceptance: non-force integrate exact closing HEAD 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 into cleanup/2d-3d-sync, fresh-read production, then enter terminal finalization.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -51,6 +51,10 @@
     "Acceptance #9 cleanup census: remaining temporary workflows are qa-issue642-t2-red.yml, qa-issue642-t2-green.yml, qa-issue643-t3-red.yml, qa-issue643-t3-green.yml, qa-issue647-t7-combined.yml.",
     "Narrow metadata recovery after Remote Guard run 36133346281 failed closed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint contains invalid field values. Corrected checkpoint state CLEANUP -> RECOVERING only; claim phase remains CLEANUP and no work/head/ownership/acceptance data changed.",
     "Cleanup commit advanced work-order HEAD to 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 after authoritative acceptance tested head 3967da33e35e26ba3973e5565af0defe65fa7e12.",
-    "Post-cleanup claim+checkpoint reconciliation authorized by Remote Guard run 36133642284 / request 5832163924 and consumed exactly once."
+    "Post-cleanup claim+checkpoint reconciliation authorized by Remote Guard run 36133642284 / request 5832163924 and consumed exactly once.",
+    "Tested-head→closing-head drift audit PASS: 3967da33e35e26ba3973e5565af0defe65fa7e12 → 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 is exactly one commit.",
+    "Drift file set is exactly five temporary #640-chain QA/proof workflows and every delta is deletion-only; no other file changed.",
+    "Closing-head tree fresh-read confirms all five temporary workflows are absent.",
+    "Drift-audit durable writeback authorized by Remote Guard run 36136171111."
   ]
 }
