@@ -1,0 +1,50 @@
+name: "WHD｜#615｜B2 Workspace Overlay RED"
+run-name: "WHD｜#615｜B2 Workspace Overlay RED"
+
+on:
+  push:
+    branches:
+      - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
+    paths:
+      - 'tests/test_issue615_workspace_overlay.py'
+      - 'phase6_workspace_shell.py'
+      - 'fold_designer_bridge.py'
+      - '.github/workflows/qa-issue615-b2-overlay.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "UI-R2 Settings/Diagnostics single viewport overlay"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: "Checkout exact candidate"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Install Xvfb and Python dependencies"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -q pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+
+      - name: "Run #615 UI-R2 focused Xvfb"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue615
+          xvfb-run -a python -m pytest -q             tests/test_issue615_workspace_overlay.py             --tb=short             --json-report --json-report-file=/tmp/issue615/report.json
+
+      - name: "Upload focused report"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue615-ui-r2-report
+          path: /tmp/issue615/report.json
+          if-no-files-found: ignore
