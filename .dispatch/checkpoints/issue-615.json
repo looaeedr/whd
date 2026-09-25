@@ -3,8 +3,8 @@
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
-  "state": "RECOVERING",
-  "next_action": "Recover invalid terminal Master handoff metadata: under a fresh exact Remote Guard, write TERMINAL_SUCCESS with master_issue=628 and chain_state=NEXT_CHILD_EXECUTABLE pointing to fresh-discovered #616, then advance closure to ISSUE_CLOSE_PENDING and finalize.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": 36201380480,
   "job_id": null,
   "log_cursor": null,
@@ -35,8 +35,14 @@
     "Expanded B2 acceptance run 36201380480 completed SUCCESS on exact head 952fb35d185530feea5fce81069e6a48d980f12d; protected config.ini check GREEN.",
     "Closure transition to TERMINAL_SUCCESS / FINALIZATION_PENDING authorized by Remote Guard run 36201570369.",
     "Recovery reactivation required because prior terminal checkpoint omitted required Master-chain handoff state.",
-    "Fresh successor discovery selected #616 as NEXT_CHILD_EXECUTABLE; terminal metadata will be rebuilt under Remote Guard after reactivation."
+    "Fresh successor discovery selected #616 as NEXT_CHILD_EXECUTABLE; terminal metadata will be rebuilt under Remote Guard after reactivation.",
+    "Canonical terminal handoff repair authorized by Remote Guard run 36201799388: master #628 NEXT_CHILD_EXECUTABLE -> #616."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #615, release claim, then immediately start #616.",
+  "master_issue": "628",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "616",
+  "chain_next_action": "Create/activate #616 B3 claim on the shared work-order branch and execute its approved UI-R3 diagnostic RED after #615 closure/release.",
+  "chain_reason": "Fresh #628 discovery: #616 is open and dependency-unblocked with no existing claim/checkpoint; #619 is blocked by #616 and #622 remains blocked by #615/#619."
 }
