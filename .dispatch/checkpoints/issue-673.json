@@ -3,8 +3,8 @@
   "issue": "673",
   "branch": "governance/issue673-main-deploy-issue671-20260926",
   "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
-  "state": "RUNNING",
-  "next_action": "Persist terminal success checkpoint for helper #673, complete trusted finalization/closure/release, then terminalize parent #671 helper reservation and return to #617 legacy checkpoint repair.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -31,6 +31,14 @@
     "PR #674 fresh-read open on exact cleaned head 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 targeting main@156bc20e7b7c331eae2a24d2c46bd984c5959720.",
     "Merge Guard run 36198478344 GREEN consumed exactly once by merge of PR #674.",
     "PR #674 fresh-read merged/closed; main fresh-read HEAD=ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
-    "main trusted Claim Activation blob=757c04902e19b997ee3d4d3511793e19abba2e83 and execution_claim_guard.py blob=7a6f948c092e97f269f5af5473b3ab1a884d7cda; legacy-checkpoint-repair is live on default branch."
-  ]
+    "main trusted Claim Activation blob=757c04902e19b997ee3d4d3511793e19abba2e83 and execution_claim_guard.py blob=7a6f948c092e97f269f5af5473b3ab1a884d7cda; legacy-checkpoint-repair is live on default branch.",
+    "Helper #673 acceptance complete: PR #674 merged into main at ff2783c5c8243f1bd777b43f8c1da5db0e7226cb; main trusted legacy-checkpoint-repair readback GREEN.",
+    "Terminalization Guard run 36198685677 GREEN consumed exactly once to persist TERMINAL_SUCCESS / FINALIZATION_PENDING."
+  ],
+  "chain_state": "NONE",
+  "next_issue": null,
+  "chain_next_action": null,
+  "chain_reason": null,
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING under fresh write Guard; then authorize and verify finalization proof on the exact frozen checkpoint."
 }

@@ -11,10 +11,10 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T22:50:20Z",
+  "last_update": "2026-09-25T22:53:20Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Persist terminal success checkpoint for helper #673, complete trusted finalization/closure/release, then terminalize parent #671 helper reservation and return to #617 legacy checkpoint repair.",
+  "next_action": "Advance terminal checkpoint closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under fresh write Guard; then mint/verify trusted finalization proof on the frozen ISSUE_CLOSE_PENDING checkpoint.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
@@ -26,13 +26,13 @@
     "reservation_state": "ACTIVE"
   },
   "last_guard": {
-    "action": "pr-write",
-    "run_id": 36198478344,
-    "request_comment_id": 5840719295,
+    "action": "write",
+    "run_id": 36198685677,
+    "request_comment_id": 5840742785,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "merged PR #674"
+    "mutation": "persisted terminal success checkpoint"
   },
   "deployment_candidate": {
     "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
