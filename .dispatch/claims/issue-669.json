@@ -7,17 +7,17 @@
   "claimed_at": "2026-09-25T16:31:30Z",
   "base_sha": "68b920967c438679c0841123571230a66b013877",
   "head_sha": "863922638ea265d2913c95979c894b2794d97041",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T17:02:30Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T17:03:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED in one coordination commit; fresh-read both terminal states.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-669.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36164549924,
-    "request_comment_id": 5836272192,
+    "run_id": 36164643133,
+    "request_comment_id": 5836284288,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -62,5 +62,14 @@
     "state": "closed",
     "state_reason": "completed",
     "closed_at": "2026-09-25T17:01:42Z"
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "production_head": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
+    "pr": 670,
+    "finalization_run_id": 36164267644
   }
 }
