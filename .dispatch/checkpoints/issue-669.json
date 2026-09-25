@@ -4,7 +4,7 @@
   "branch": "governance/issue669-scheduler-exit-enable-20260926",
   "head_sha": "863922638ea265d2913c95979c894b2794d97041",
   "state": "RUNNING",
-  "next_action": "Verify cleaned final diff contains only the Skill + contract test, monitor cleanup-head governance run to terminal, then obtain exact merge authority for PR #670.",
+  "next_action": "Obtain a fresh exact merge pr-write Guard for PR #670, merge non-force, then fresh-read production and continue canonical closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,7 +28,12 @@
     "Focused QA run 36162681958 completed SUCCESS on exact head 70a249b69f0f16721486b6b3f601559801f18990; pytest evidence: 9 passed in 0.10s; Actions visible naming guard also SUCCESS.",
     "Knowledge Governance Bootstrap run 36162681813 completed SUCCESS on the same exact head.",
     "Cleanup Guard run 36162852224 GREEN consumed exactly once by commit 863922638ea265d2913c95979c894b2794d97041 deleting only .github/workflows/qa-issue669-scheduler-exit-enable.yml.",
-    "Post-cleanup reconciliation Guard run 36162915592 GREEN consumed for exact claim+checkpoint HEAD reconciliation to 863922638ea265d2913c95979c894b2794d97041."
+    "Post-cleanup reconciliation Guard run 36162915592 GREEN consumed for exact claim+checkpoint HEAD reconciliation to 863922638ea265d2913c95979c894b2794d97041.",
+    "Final diff audit at cleaned head 863922638ea265d2913c95979c894b2794d97041: exactly two files remain (.agents/skills/engineering/排程模擬/SKILL.md and tests/process/test_issue667_force_takeover_liveness.py).",
+    "Tested head 70a249b69f0f16721486b6b3f601559801f18990 -> cleaned head 863922638ea265d2913c95979c894b2794d97041 changed only by removal of .github/workflows/qa-issue669-scheduler-exit-enable.yml; accepted Skill/test blobs unchanged.",
+    "Cleanup-head Knowledge Governance Bootstrap run 36162899511 completed SUCCESS.",
+    "PR #670 fresh-read open/mergeable=true with exact base 68b920967c438679c0841123571230a66b013877 and exact head 863922638ea265d2913c95979c894b2794d97041.",
+    "Coordination Guard run 36163085679 GREEN consumed for this final pre-merge claim/checkpoint evidence write."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
