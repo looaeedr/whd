@@ -3,8 +3,8 @@
   "issue": "669",
   "branch": "governance/issue669-scheduler-exit-enable-20260926",
   "head_sha": "863922638ea265d2913c95979c894b2794d97041",
-  "state": "RUNNING",
-  "next_action": "Obtain a fresh exact merge pr-write Guard for PR #670, merge non-force, then fresh-read production and continue canonical closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -33,8 +33,12 @@
     "Tested head 70a249b69f0f16721486b6b3f601559801f18990 -> cleaned head 863922638ea265d2913c95979c894b2794d97041 changed only by removal of .github/workflows/qa-issue669-scheduler-exit-enable.yml; accepted Skill/test blobs unchanged.",
     "Cleanup-head Knowledge Governance Bootstrap run 36162899511 completed SUCCESS.",
     "PR #670 fresh-read open/mergeable=true with exact base 68b920967c438679c0841123571230a66b013877 and exact head 863922638ea265d2913c95979c894b2794d97041.",
-    "Coordination Guard run 36163085679 GREEN consumed for this final pre-merge claim/checkpoint evidence write."
+    "Coordination Guard run 36163085679 GREEN consumed for this final pre-merge claim/checkpoint evidence write.",
+    "Merge Guard run 36163655005 GREEN consumed exactly once by non-force merge of PR #670.",
+    "PR #670 fresh-read closed/merged; merge commit 6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
+    "Production cleanup/2d-3d-sync fresh-read HEAD=6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
+    "Production readback confirms Exit-time recurring automation enable, command activation enable prohibition, and final host-side automation control step rule."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Obtain exact coordination write Guard and advance this frozen terminal checkpoint to ISSUE_CLOSE_PENDING; then mint/verify trusted remote finalization proof without mutating the checkpoint until Issue close readback."
 }
