@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
 from pathlib import Path
 
 import pytest
@@ -249,3 +250,113 @@ def test_trusted_remote_guard_invokes_canonical_pending_transaction_gate():
     )
     missing = [token for token in required if token not in text]
     assert not missing, f"trusted Remote Guard is missing transaction gate tokens: {missing}"
+
+
+
+def _write_terminal_cli_state(tmp_path):
+    claim_path = tmp_path / "claim.json"
+    checkpoint_path = tmp_path / "checkpoint.json"
+    claim_path.write_text(
+        json.dumps(
+            {
+                "issue": ISSUE,
+                "issue_url": f"https://github.com/looaeedr/whd/issues/{ISSUE}",
+                "worker": WORKER,
+                "work_branch": BRANCH,
+                "claimed_at": "2026-09-25T00:00:00Z",
+                "base_sha": H0,
+                "head_sha": H0,
+                "phase": "GREEN",
+                "delegated_branches": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    checkpoint_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "issue": str(ISSUE),
+                "branch": BRANCH,
+                "head_sha": H0,
+                "state": "TERMINAL_SUCCESS",
+                "next_action": None,
+                "run_id": 123,
+                "job_id": 456,
+                "log_cursor": None,
+                "blocked_count": 0,
+                "blocked_last_notified_at": None,
+                "evidence": ["accepted"],
+                "closure_state": "FINALIZATION_PENDING",
+                "closure_next_action": "advance closure",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return claim_path, checkpoint_path
+
+
+@pytest.mark.parametrize(
+    "changed_files",
+    [
+        (".dispatch/checkpoints/issue-643.json",),
+        (
+            ".dispatch/claims/issue-643.json",
+            ".dispatch/checkpoints/issue-643.json",
+        ),
+    ],
+)
+def test_terminal_checkpoint_allows_exact_closure_coordination_write(
+    tmp_path, changed_files
+):
+    claim_path, checkpoint_path = _write_terminal_cli_state(tmp_path)
+    argv = [
+        "--claim",
+        str(claim_path),
+        "--checkpoint",
+        str(checkpoint_path),
+        "--issue",
+        str(ISSUE),
+        "--worker",
+        WORKER,
+        "--branch",
+        BRANCH,
+        "--action",
+        "write",
+        "--base-sha",
+        H0,
+        "--head-sha",
+        H0,
+    ]
+    for changed_file in changed_files:
+        argv.extend(["--changed-file", changed_file])
+    assert guard.main(argv) == 0
+
+
+def test_terminal_checkpoint_still_rejects_general_repository_write(tmp_path):
+    claim_path, checkpoint_path = _write_terminal_cli_state(tmp_path)
+    rc = guard.main(
+        [
+            "--claim",
+            str(claim_path),
+            "--checkpoint",
+            str(checkpoint_path),
+            "--issue",
+            str(ISSUE),
+            "--worker",
+            WORKER,
+            "--branch",
+            BRANCH,
+            "--action",
+            "write",
+            "--base-sha",
+            H0,
+            "--head-sha",
+            H0,
+            "--changed-file",
+            "tools/example.py",
+        ]
+    )
+    assert rc == 2
