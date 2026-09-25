@@ -4,23 +4,19 @@
   "branch": "governance/issue663-turn-exit-cleanup-20260925",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
   "state": "RUNNING",
-  "next_action": "Open guarded one-file PR to cleanup/2d-3d-sync, merge/readback, then preserve user-directed cleanup->main integration handoff.",
+  "next_action": "Obtain fresh pr-write Guard and merge clean one-file PR #666 into cleanup/2d-3d-sync; fresh-read cleanup workflow blob; then hand off cleanup->main merge to user.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Master #640 is already closed/completed with claim RELEASED and checkpoint CLOSED.",
-    "Trusted turn-exit run 36140206897 failed before canonical gate because TE_GUARD_AUTHORITY_SHA was written to GITHUB_ENV and read in the same step.",
-    "Remote Guard equality bootstrap regression was repaired and merged to main by PR #664 at 8597a08cb059ba235fc458e5ec7e4015d83df385.",
-    "Turn-exit fix commit a72e74afe356405ea2b0fef46d8c02e256e56ba7 was authorized by Remote Guard run 36145266678.",
-    "Post-commit reconciliation Guard run 36145388240 GREEN and consumed.",
-    "User directed integration target change: land the turn-exit repair in cleanup/2d-3d-sync first, then user will merge cleanup to main.",
-    "Main-based work branch cannot satisfy one-file cleanup PR: compare was 39 commits ahead / 4136 behind cleanup with 6-file delta.",
-    "Ownership reactivation targets governance/issue663-turn-exit-cleanup-20260925@0243600da28f82566694c9bb3fff6d0a95b2a35e so cleanup PR can remain one-file.",
-    "Cleanup-base branch exists exact at 0243600da28f82566694c9bb3fff6d0a95b2a35e; branch-create Guard run 36145961702 consumed.",
-    "Turn-exit cleanup-base fix commit f750d9d309bc947ae2195f0463b13c9abae94906 authorized by Remote Guard run 36146213163.",
-    "Equivalent reconciliation GREENs 36146409082 and 36146418201 deduped deterministically; earliest-issued 36146409082 consumed."
+    "Master #640 remains closed/completed with claim RELEASED and checkpoint CLOSED.",
+    "Cleanup repair branch head f750d9d309bc947ae2195f0463b13c9abae94906 is exactly one commit / one file ahead of cleanup.",
+    "PR #666 fresh readback: open, mergeable=true, mergeable_state=clean, 1 commit, 1 changed file.",
+    "PR-create pr-write Guard run 36146616435 GREEN and consumed by this durable PR readback.",
+    "Turn-exit repaired workflow blob is 647e8d663625c7f2056315fc820ffd92f8db5aaf.",
+    "PR #665 is superseded and must not be merged.",
+    "User directed: merge repair into cleanup/2d-3d-sync first; user will merge cleanup to main."
   ]
 }

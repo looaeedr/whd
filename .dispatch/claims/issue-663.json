@@ -8,59 +8,19 @@
   "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
   "phase": "GREEN",
-  "last_update": "2026-09-25T14:17:33.425Z",
+  "last_update": "2026-09-25T14:19:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Open a guarded one-file PR from governance/issue663-turn-exit-cleanup-20260925 to cleanup/2d-3d-sync, merge/readback, then preserve the user-directed cleanup->main handoff before rerunning #640 Turn Exit.",
+  "next_action": "Obtain a fresh pr-write Guard and merge clean one-file PR #666 into cleanup/2d-3d-sync; fresh-read cleanup exact workflow blob; then preserve user-directed cleanup->main handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
   "blocked_master_issue": 640,
-  "local_guard_recovery": {
-    "action": "commit",
-    "authority_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
-    "previous_head": "1cff61fc73e66e07bcb7364249402e2cd86db715",
-    "repaired_head": "ee4a91a5dc7084b8464af757c2def92d1d9f19b6",
-    "changed_files": [
-      ".github/workflows/whd-remote-execution-guard.yml"
-    ],
-    "reason": "restore split guard_authority_sha/tested_target_sha bootstrap semantics"
-  },
-  "last_guard": {
-    "action": "write",
-    "run_id": 36146409082,
-    "equivalent_run_ids": [
-      36146409082,
-      36146418201
-    ],
-    "request_comment_id": 5833904312,
-    "result": "GREEN",
-    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
-    "tested_target_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-    "consumed": true,
-    "dedupe": "earliest-issued equivalent GREEN canonical"
-  },
-  "turn_exit_fix": {
-    "commit": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
-    "changed_file": ".github/workflows/whd-turn-exit-gate.yml",
-    "commit_guard_run_id": 36145266678,
-    "reconcile_guard_run_id": 36145388240,
-    "fix": "source $GITHUB_ENV before same-step TE_* shell use"
-  },
-  "integration_target_change": {
-    "requested_by_user": true,
-    "target": "cleanup/2d-3d-sync",
-    "reason": "land repair in cleanup first; user will merge cleanup to main"
-  },
-  "cleanup_rebase_recovery": {
-    "source_branch": "governance/issue663-turn-exit-env-fix-20260925",
-    "source_head": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
-    "new_work_branch": "governance/issue663-turn-exit-cleanup-20260925",
-    "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
-    "reason": "previous main-based branch diverged 39 ahead / 4136 behind cleanup; re-home ownership to cleanup base to preserve one-file PR scope"
+  "equality_fix": {
+    "main_pr": 664,
+    "main_merge": "8597a08cb059ba235fc458e5ec7e4015d83df385"
   },
   "turn_exit_fix_cleanup": {
     "commit": "f750d9d309bc947ae2195f0463b13c9abae94906",
@@ -69,5 +29,34 @@
     "commit_guard_run_id": 36146213163,
     "reconcile_guard_run_id": 36146409082,
     "equivalent_reconcile_guard_run_id": 36146418201
+  },
+  "last_guard": {
+    "action": "pr-write",
+    "run_id": 36146616435,
+    "request_comment_id": 5833932248,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "durable_readback": {
+      "pr_number": 666,
+      "pr_readback": true,
+      "state": "open",
+      "base": "cleanup/2d-3d-sync",
+      "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+      "head": "governance/issue663-turn-exit-cleanup-20260925",
+      "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
+      "mergeable": true,
+      "mergeable_state": "clean",
+      "commits": 1,
+      "changed_files": 1
+    }
+  },
+  "superseded_pr": {
+    "number": 665,
+    "reason": "dirty main-based history; do not merge"
+  },
+  "integration_target_change": {
+    "requested_by_user": true,
+    "target": "cleanup/2d-3d-sync"
   }
 }
