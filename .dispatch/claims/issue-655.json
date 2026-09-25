@@ -1,0 +1,17 @@
+{
+  "issue": 655,
+  "issue_url": "https://github.com/looaeedr/whd/issues/655",
+  "worker": "chatgpt.sol260925.issue655.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue655-scheduler-simulation-skill-20260925",
+  "claimed_at": "2026-09-25T10:29:00Z",
+  "base_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "head_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T10:29:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Obtain exact branch-create Guard, create governance/issue655-scheduler-simulation-skill-20260925 from cleanup/2d-3d-sync HEAD, then run Skill-authoring Preflight and contract RED.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-655.json"
+}

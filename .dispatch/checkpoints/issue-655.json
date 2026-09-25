@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "655",
+  "branch": "governance/issue655-scheduler-simulation-skill-20260925",
+  "head_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Guard and create the declared work branch from the frozen cleanup/2d-3d-sync HEAD.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement authority: user requested /排程A and /排程B same-lane scheduler simulation/resume skill with post-takeover chat title/pin handoff.",
+    "Owning Issue #655 created and fresh-read open.",
+    "Frozen production target cleanup/2d-3d-sync HEAD=5822ab30360dfcf09e21408584c3da100baafd37."
+  ]
+}
