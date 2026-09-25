@@ -1,14 +1,14 @@
 {
   "issue": 653,
   "issue_url": "https://github.com/looaeedr/whd/issues/653",
-  "worker": "chatgpt.sol260925.issue653.a1",
+  "worker": "chatgpt.sol260925.issue653.force1",
   "executor_source": "chatgpt_interactive",
   "work_branch": "integration/issue653-main-turn-exit-gate-20260925",
   "claimed_at": "2026-09-25T09:23:22Z",
   "base_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
   "head_sha": "19927fcb5529386fb57d2dcfea0fa6650f8786e9",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T09:32:07Z",
+  "last_update": "2026-09-25T10:23:40Z",
   "production_target": "main",
   "master_issue": 640,
   "parent_issue": 647,
@@ -16,7 +16,7 @@
   "reservation_owner": "chatgpt.sol260925.issue647.a1",
   "reservation_token": "issue647-main-turn-exit-gate-deploy-a1",
   "delegated_branches": [],
-  "next_action": "Advance helper #653 terminal checkpoint from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, run trusted Remote Finalization, close/read back, then atomically RELEASE and terminalize parent #647 helper reservation.",
+  "next_action": "Resume helper #653 from ISSUE_CLOSE_PENDING: run trusted Remote Finalization on the exact current checkpoint, verify proof, close/read back Issue #653, then atomically RELEASE and terminalize parent #647 helper reservation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-653.json",
   "last_guard": {
@@ -27,5 +27,25 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
     "consumed": true
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "stale_seconds": 3003,
+    "stale_after_seconds": 600,
+    "previous_worker": "chatgpt.sol260925.issue653.a1",
+    "requesting_worker": "chatgpt.sol260925.issue653.force1",
+    "requesting_executor_source": "chat",
+    "user_authority_comment_id": 5830756015,
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_live_head_sha": "19927fcb5529386fb57d2dcfea0fa6650f8786e9",
+    "claim_head_sha": "19927fcb5529386fb57d2dcfea0fa6650f8786e9",
+    "claim_last_update": "2026-09-25T09:32:07Z",
+    "claim_phase": "CLOSING",
+    "reason": "no active exact run and no durable progress for 3003s (threshold=600s); no exact remote run is claimed",
+    "taken_over_at": "2026-09-25T10:23:40Z",
+    "canonical_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "local_execution_claim_guard_result": "GREEN"
   }
 }
