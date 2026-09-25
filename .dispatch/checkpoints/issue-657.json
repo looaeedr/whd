@@ -3,8 +3,8 @@
   "issue": "657",
   "branch": "integration/issue657-main-remote-guard-20260925",
   "head_sha": "53184c28ed1041558cd735817f4aae54f6c3af74",
-  "state": "RUNNING",
-  "next_action": "Open exactly one guarded PR to main from helper commit 53184c28ed1041558cd735817f4aae54f6c3af74, merge non-force, then fresh-read exact main Remote Guard blob.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,6 +19,12 @@
     "Workflow commit Guard run 36127088060 authorized changing only .github/workflows/whd-remote-execution-guard.yml.",
     "Helper commit 53184c28ed1041558cd735817f4aae54f6c3af74 has exact accepted workflow blob c6e96581c47b4d46704f719877174f9248928f5e.",
     "Post-commit child claim/checkpoint reconciliation authorized by Remote Guard run 36127183938.",
-    "Recovered active RUNNING checkpoint by removing stale closure_state=CLOSED / closure_next_action metadata inherited from malformed initial candidate."
-  ]
+    "Recovered active RUNNING checkpoint by removing stale closure_state=CLOSED / closure_next_action metadata inherited from malformed initial candidate.",
+    "Equivalent pr-write GREEN group runs 36127413413 / 36127510051 has exact mutation identity; canonical representative is 36127413413.",
+    "Durable PR readback: PR #659 closed/merged at merge commit 1cff61fc73e66e07bcb7364249402e2cd86db715.",
+    "Fresh main readback: .github/workflows/whd-remote-execution-guard.yml blob c6e96581c47b4d46704f719877174f9248928f5e exactly equals accepted work-order artifact.",
+    "Canonical Guard transaction classification recovery: MUTATION_DONE_RECONCILE_ONLY → reconciliation completed; PR mutation was not replayed."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof for helper #657, close/readback, then atomically CLOSED + RELEASED."
 }
