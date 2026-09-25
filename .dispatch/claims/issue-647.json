@@ -8,7 +8,7 @@
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T10:32:23.710059Z",
+  "last_update": "2026-09-25T10:35:46.693337Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Resume #647 Combined Acceptance: fresh-read main trusted turn-exit workflow against accepted blob, then continue remaining acceptance gates without treating helper deployment as work-order→cleanup integration.",
+  "next_action": "Create and run one guarded temporary #647 Combined Acceptance workflow over the accepted work-order HEAD, covering focused #641-#645 process tests, #638 delegated-work regression, finalization/closure/exact-run/scheduler regressions, and governance SSOT checks; do not integrate to cleanup/2d-3d-sync until this verification is GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -51,8 +51,8 @@
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36124513111,
-    "request_comment_id": 5830950222,
+    "run_id": 36124818636,
+    "request_comment_id": 5830990242,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
@@ -99,5 +99,14 @@
     "child_claim_blob_sha": "38f444b0c4f08937f14780a89b3720f3f74a9244",
     "child_checkpoint_blob_sha": "939f08512beef038bc0eb00c8ae934257ea92533",
     "helper_final_coord_commit": "1ba557c0b1c43f261c2f7120bca6fa125e3a1702"
+  },
+  "trusted_default_branch_readback": {
+    "observed_main_head": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
+    "claim_activation_blob_sha": "13d0b673a26a2912917df89234bd29428563cd10",
+    "claim_activation_exact_accepted": true,
+    "turn_exit_blob_sha": "41bf76f78c9af8246947939660daf05f525989d8",
+    "turn_exit_exact_accepted": true,
+    "helper_issue": 653,
+    "helper_reservation_state": "TERMINAL"
   }
 }
