@@ -128,6 +128,8 @@ actual_invocation_source = chatgpt_interactive
 
 same-lane latest heartbeat 無 matching END 且仍在 live window 時，新的 A/B invocation 只讀退讓；逾 live window才可依 live authority做 same-lane resume，仍不是 self-takeover。
 
+canonical same-lane liveness window = **300 秒**；matching END 可立即結束 exact invocation 活性。
+
 ## 4. A profile — /排程A
 
 A 模擬目前 `00` 的施工語意，且與 `20/40` 共用同一 lane owner。

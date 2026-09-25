@@ -1,6 +1,6 @@
 ---
 name: 強制接手
-description: 當使用者明確要求「強制接手／接手卡住的 WHD 工單」時使用；以 canonical stale evaluator、使用者授權、Remote/local Guard 與 single-use CAS 安全轉移 shared execution claim，禁止直接覆寫 foreign owner。
+description: 當使用者明確要求「強制接手／接手卡住的 WHD 工單」時使用；以 canonical stale evaluator、使用者授權、Remote/local Guard 與 single-use compare-and-swap 安全轉移 shared execution claim，禁止直接覆寫 foreign owner。
 disable-model-invocation: true
 whd_doc_role: CURRENT
 whd_contract: user-directed-force-takeover
