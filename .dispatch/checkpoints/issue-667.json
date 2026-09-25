@@ -35,8 +35,9 @@
     "Guard run 36156672082 GREEN consumed for adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted finalization run 36157020407 completed/success; FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID on exact frozen checkpoint fingerprint 90ed83ecab62d4f8e3aef0d4f94f3914219cf300a2913eec0def228e8bfc302c; artifact 10873494034.",
     "Owning Issue #667 fresh-read closed/completed at 2026-09-25T15:52:33Z; checkpoint blob remained exactly 3caf0f1f46ac6960bba1f7497034201acee620dd across proof -> Issue close boundary.",
-    "Guard run 36157148383 GREEN consumed for adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Guard run 36157148383 GREEN consumed for adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Final coordination Guard run 36157264763 GREEN consumed for the single atomic checkpoint CLOSED + claim RELEASED commit."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED; fresh-read both terminal states."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
