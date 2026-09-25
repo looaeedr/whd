@@ -3,7 +3,7 @@
   "issue": "660",
   "branch": "governance/issue660-live-issue657-takeover-proof-20260925",
   "head_sha": "979d7f64cc258bdc31f8cbd66c6d14d80c8833fa",
-  "state": "GREEN",
+  "state": "RECOVERING",
   "next_action": "Run one-shot canonical closure prewrite guard for taken-over #657 on unchanged TERMINAL_SUCCESS/FINALIZATION_PENDING checkpoint; on GREEN atomically advance #657 closure_state to ISSUE_CLOSE_PENDING without altering checkpoint state/head, then invoke bound Remote Finalization.",
   "run_id": 36129994477,
   "job_id": 108054812326,
@@ -23,6 +23,7 @@
     "Repair commit 979d7f64cc258bdc31f8cbd66c6d14d80c8833fa allows claim-takeover on terminal checkpoint only while closure_state is pending; CLOSED remains fail closed.",
     "Exact live proof run 36129994477 GREEN: stale_claim_takeover EXECUTOR_STUCK/actionable=true and execution_claim_guard.py --action claim-takeover GREEN.",
     "#657 optimistic owner CAS applied at coord commit 1cd38028b9a1ef260aa3d0455e1861d71ec31cb3; checkpoint blob f8215aaac5a23c032fa826803b95d606c478cb47 remained unchanged.",
-    "Post-repair commit reconciliation authorized by Remote Guard run 36130235997."
+    "Post-repair commit reconciliation authorized by Remote Guard run 36130235997.",
+    "Narrow coordination recovery: corrected invalid checkpoint state GREEN -> RECOVERING after Remote Guard run 36130350713 failed closed with 'checkpoint contains invalid field values'. No #657 state/ownership/content changed by this recovery."
   ]
 }
