@@ -8,16 +8,16 @@
   "base_sha": "68b920967c438679c0841123571230a66b013877",
   "head_sha": "863922638ea265d2913c95979c894b2794d97041",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T16:58:30Z",
+  "last_update": "2026-09-25T17:02:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Mint and verify trusted remote finalization proof on the frozen ISSUE_CLOSE_PENDING checkpoint; then close Issue #669 and fresh-read closed/completed before any checkpoint mutation.",
+  "next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED in one coordination commit; fresh-read both terminal states.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-669.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36164125478,
-    "request_comment_id": 5836216915,
+    "run_id": 36164549924,
+    "request_comment_id": 5836272192,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -47,5 +47,20 @@
     "temporary_workflow": ".github/workflows/qa-issue669-scheduler-exit-enable.yml",
     "cleaned_head": "863922638ea265d2913c95979c894b2794d97041",
     "temporary_workflow_removed": true
+  },
+  "finalization": {
+    "run_id": 36164267644,
+    "result": "success",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "artifact_id": 10876787460,
+    "checkpoint_blob_sha": "d4d8153143685b2d99e3294131a6ce012e764beb",
+    "checkpoint_fingerprint": "7e13b995cf639898cb0ce8519919e121b76cfd9fc8b320338bd2e5e6c228143a",
+    "claim_blob_sha": "8192b74165879469803a4423288aa6463df20566",
+    "request_comment_id": 5836236179
+  },
+  "issue_close": {
+    "state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-25T17:01:42Z"
   }
 }
