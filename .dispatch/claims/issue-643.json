@@ -1,0 +1,41 @@
+{
+  "issue": 643,
+  "issue_url": "https://github.com/looaeedr/whd/issues/643",
+  "worker": "chatgpt.sol260925.issue640t3.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-25T00:02:23Z",
+  "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "head_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T00:02:23Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "master_issue": 640,
+  "task_id": "T3",
+  "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "approved_red_ids": [
+    "RED-CLOSE-02"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Fresh-read #643 T3 authority and implement the canonical Guard transaction classifier + turn-exit blocks for PENDING, EXPIRED_UNCONSUMED, MUTATION_DONE_RECONCILE_ONLY, CONSUMED, and AMBIGUOUS; preserve #638/#639 no-replay regression.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-643.json",
+  "predecessor": {
+    "issue": 642,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+    "handoff_guard_run_id": 36071584121
+  },
+  "bootstrap_authority": {
+    "main_workflow_blob_sha": "13d0b673a26a2912917df89234bd29428563cd10",
+    "bootstrap_main_commit": "819f628fd06bac5a6792f09778005b223b8b107c",
+    "evidence_issue": 647,
+    "evidence_comment_id": 5824319790
+  }
+}
