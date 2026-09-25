@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "state": "RECOVERING",
-  "next_action": "Remove the five remaining temporary #640-chain QA/proof workflows in one guarded cleanup commit; then post-commit reconcile and perform tested-head→closing-head drift audit.",
-  "run_id": 36126332602,
-  "job_id": 108064668228,
-  "log_cursor": "Attempt 2 GREEN: focused 178 passed; governance/writeback 26 passed; three trusted default-branch exact artifacts GREEN; canonical fingerprint + turn-exit SSOT GREEN.",
+  "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "state": "RUNNING",
+  "next_action": "Run tested-head→closing-head drift audit from 3967da33e35e26ba3973e5565af0defe65fa7e12 to 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156; require cleanup-only delta, then enter #647 finalization.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -49,6 +49,8 @@
     "Workflow-dispatch Guard run 36133042624 GREEN consumed by rerunning authoritative Combined Acceptance run 36126332602 at exact head 3967da33e35e26ba3973e5565af0defe65fa7e12.",
     "Combined Acceptance run 36126332602 attempt 2 completed SUCCESS: focused 178 PASS; governance/writeback 26 PASS; main claim-activation/turn-exit/Remote-Guard exact accepted blobs; canonical fingerprint and turn-exit SSOT GREEN.",
     "Acceptance #9 cleanup census: remaining temporary workflows are qa-issue642-t2-red.yml, qa-issue642-t2-green.yml, qa-issue643-t3-red.yml, qa-issue643-t3-green.yml, qa-issue647-t7-combined.yml.",
-    "Narrow metadata recovery after Remote Guard run 36133346281 failed closed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint contains invalid field values. Corrected checkpoint state CLEANUP -> RECOVERING only; claim phase remains CLEANUP and no work/head/ownership/acceptance data changed."
+    "Narrow metadata recovery after Remote Guard run 36133346281 failed closed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint contains invalid field values. Corrected checkpoint state CLEANUP -> RECOVERING only; claim phase remains CLEANUP and no work/head/ownership/acceptance data changed.",
+    "Cleanup commit advanced work-order HEAD to 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 after authoritative acceptance tested head 3967da33e35e26ba3973e5565af0defe65fa7e12.",
+    "Post-cleanup claim+checkpoint reconciliation authorized by Remote Guard run 36133642284 / request 5832163924 and consumed exactly once."
   ]
 }

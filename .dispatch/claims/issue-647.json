@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T12:07:18Z",
+  "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T12:37:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T7",
   "expected_parent_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "chain_head": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Delete all remaining temporary #640-chain QA/proof workflows (#642 red/green, #643 red/green, #647 combined) under one guarded cleanup commit; then reconcile closing HEAD and run tested-head→closing-head drift audit.",
+  "next_action": "Run tested-head 3967da33e35e26ba3973e5565af0defe65fa7e12 → closing-head 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 drift audit; require cleanup-only delta and all temporary #640-chain workflows absent, then enter #647 finalization.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -60,12 +60,12 @@
     }
   ],
   "last_guard": {
-    "action": "workflow-dispatch",
-    "run_id": 36133042624,
-    "request_comment_id": 5832084254,
+    "action": "write",
+    "run_id": 36133642284,
+    "request_comment_id": 5832163924,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "guard_authority_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
     "consumed": true
   },
   "stale_takeover": {
@@ -161,5 +161,11 @@
     "main_remote_guard_exact_accepted": true,
     "final_dual_guard_run_id": 36132610537,
     "final_dual_guard_comment_id": 5832030657
+  },
+  "cleanup_reconciliation": {
+    "tested_head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "closing_head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+    "cleanup_guard_run_id": 36133509007,
+    "reconciliation_guard_run_id": 36133642284
   }
 }
