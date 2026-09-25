@@ -16,8 +16,11 @@
     "Unique recovery Guard run 36099073332 authorized PR integration.",
     "PR #650 merged into cleanup/2d-3d-sync at 5822ab30360dfcf09e21408584c3da100baafd37 and production readback matched.",
     "Remote Guard run 36099208015 authorized terminal checkpoint transition.",
-    "Remote Guard run 36099311098 authorized closure transition to ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36099311098 authorized closure transition to ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36099412874 completed success with FINALIZATION_PROOF_VALID on fingerprint 285765deb4e60778fe0dd86aa3e79d388ae745e0304368de584dd7b02ac673c6.",
+    "Issue #648 fresh readback confirmed closed/completed at 2026-09-25T05:39:20Z.",
+    "Remote Guard run 36099498680 authorized closure transition to RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the bound finalization proof on this frozen checkpoint, close/read back Issue #648, then persist CLOSED plus claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED plus claim RELEASED, then return to parent #645 recovery."
 }
