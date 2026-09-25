@@ -7,20 +7,20 @@
   "claimed_at": "2026-09-25T11:57:33Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T12:36:25.196350Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T12:37:11.750219Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Run final release Guard on exact RELEASE_HANDOFF_PENDING pair, then atomically persist checkpoint CLOSED + claim RELEASED + next_action=null.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-661.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36135880152,
-    "request_comment_id": 5832468767,
+    "run_id": 36135954259,
+    "request_comment_id": 5832479946,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
@@ -66,5 +66,11 @@
     "checkpoint_fingerprint": "83bb09f789898e9107b7e03b6ea9ac0cbfbb6d4df03ccc35ef5cd09a5f45e278",
     "issue_closed_completed": true,
     "issue_closed_at": "2026-09-25T12:35:53Z"
+  },
+  "final_release_guard": {
+    "run_id": 36135954259,
+    "request_comment_id": 5832479946,
+    "result": "GREEN",
+    "consumed": true
   }
 }
