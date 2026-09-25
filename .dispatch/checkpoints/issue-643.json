@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "head_sha": "ced52c7bc161a0d54ef16613638222442ea8498a",
   "state": "RUNNING",
-  "next_action": "Implement #643 T3 canonical Guard transaction classification and P-R1..P-R14 machine gates from accepted #642 HEAD.",
+  "next_action": "Implement #643 T3 P-R1..P-R14 machine gates from exact RED HEAD ced52c7bc161a0d54ef16613638222442ea8498a.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "Predecessor #642 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
     "#642 canonical handoff points to #643 at accepted work-order HEAD 876311cc0091dc556f59cac6a4bd3572cca92f13.",
-    "Trusted claim-activation bootstrap workflow was deployed to main as the exact accepted #642 artifact (blob 13d0b673a26a2912917df89234bd29428563cd10) under #647 bootstrap evidence comment 5824319790; #647 final deployment/readback gate remains mandatory."
+    "Trusted claim-activation bootstrap workflow was deployed to main as the exact accepted #642 artifact (blob 13d0b673a26a2912917df89234bd29428563cd10) under #647 bootstrap evidence comment 5824319790; #647 final deployment/readback gate remains mandatory.",
+    "T3 RED commit ced52c7bc161a0d54ef16613638222442ea8498a was authorized by Remote Guard run 36076145122.",
+    "Exact T3 RED run 36076252162 completed success as a RED harness: 14 approved P-R tests failed as intended; marker ISSUE643_T3_REQUIREMENT_RED=GREEN.",
+    "Post-commit atomic claim+checkpoint reconciliation to ced52c7bc161a0d54ef16613638222442ea8498a authorized by Remote Guard run 36076301116."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

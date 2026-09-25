@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T00:02:23Z",
+  "head_sha": "ced52c7bc161a0d54ef16613638222442ea8498a",
+  "phase": "RED",
+  "last_update": "2026-09-25T00:10:35.368848Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "876311cc0091dc556f59cac6a4bd3572cca92f13",
+  "chain_head": "ced52c7bc161a0d54ef16613638222442ea8498a",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read #643 T3 authority and implement the canonical Guard transaction classifier + turn-exit blocks for PENDING, EXPIRED_UNCONSUMED, MUTATION_DONE_RECONCILE_ONLY, CONSUMED, and AMBIGUOUS; preserve #638/#639 no-replay regression.",
+  "next_action": "Implement #643 T3 canonical Guard transaction classifier, pending/expired/reconciliation-only turn-exit gates, and second-Guard rejection; then run focused GREEN for P-R1..P-R14.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -37,5 +37,13 @@
     "bootstrap_main_commit": "819f628fd06bac5a6792f09778005b223b8b107c",
     "evidence_issue": 647,
     "evidence_comment_id": 5824319790
+  },
+  "red_evidence": {
+    "run_id": 36076252162,
+    "head_sha": "ced52c7bc161a0d54ef16613638222442ea8498a",
+    "result": "success",
+    "marker": "ISSUE643_T3_REQUIREMENT_RED=GREEN",
+    "expected_failures": 14,
+    "reconcile_guard_run_id": 36076301116
   }
 }
