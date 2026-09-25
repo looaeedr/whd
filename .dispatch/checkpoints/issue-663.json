@@ -17,8 +17,11 @@
     "Fresh main readback: Remote Guard keeps split authority fix; Remote Finalization keeps main newer version; Turn Exit workflow blob 67d6dd5f4009c962881485bea7d2179ce09abcc4 contains source $GITHUB_ENV and no literal backslash-n artifact.",
     "Trusted #640 Turn Exit rerun 36148382848 completed SUCCESS with result TURN_EXIT_PERMITTED and scheduler_end_allowed=true.",
     "Guard run 36148530716 GREEN authorizes this terminal coordination write.",
-    "Guard run 36148794183 GREEN authorizes FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Guard run 36148794183 GREEN authorizes FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36148956569 completed SUCCESS with FINALIZATION_PROOF_VALID; artifact 10870404585; fingerprint 4cf99dfc9df1dcb4b36f177a45b21bf70a192edc41fcf533c5e140b13ec7f8e0.",
+    "Issue #663 fresh-read confirmed closed/completed at 2026-09-25T14:40:20Z.",
+    "Guard run 36149095228 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "mint and verify bound finalization proof on this exact checkpoint, close/read back Issue #663 without mutating checkpoint, then advance to RELEASE_HANDOFF_PENDING"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED; no successor handoff required"
 }
