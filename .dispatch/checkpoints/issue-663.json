@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "663",
   "branch": "governance/issue663-turn-exit-cleanup-20260925",
-  "head_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
-  "state": "RECOVERING",
-  "next_action": "Add exactly .github/workflows/whd-turn-exit-gate.yml under a fresh commit Guard; then reconcile claim/checkpoint HEAD and open the one-file cleanup PR.",
+  "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
+  "state": "RUNNING",
+  "next_action": "Open guarded one-file PR to cleanup/2d-3d-sync, merge/readback, then preserve user-directed cleanup->main integration handoff.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,6 +19,8 @@
     "User directed integration target change: land the turn-exit repair in cleanup/2d-3d-sync first, then user will merge cleanup to main.",
     "Main-based work branch cannot satisfy one-file cleanup PR: compare was 39 commits ahead / 4136 behind cleanup with 6-file delta.",
     "Ownership reactivation targets governance/issue663-turn-exit-cleanup-20260925@0243600da28f82566694c9bb3fff6d0a95b2a35e so cleanup PR can remain one-file.",
-    "Cleanup-base branch exists exact at 0243600da28f82566694c9bb3fff6d0a95b2a35e; branch-create Guard run 36145961702 consumed."
+    "Cleanup-base branch exists exact at 0243600da28f82566694c9bb3fff6d0a95b2a35e; branch-create Guard run 36145961702 consumed.",
+    "Turn-exit cleanup-base fix commit f750d9d309bc947ae2195f0463b13c9abae94906 authorized by Remote Guard run 36146213163.",
+    "Equivalent reconciliation GREENs 36146409082 and 36146418201 deduped deterministically; earliest-issued 36146409082 consumed."
   ]
 }
