@@ -292,6 +292,35 @@ jobs:
                 "${liveness_arg[@]}" \
                 --require-actionable \
                 --decision-out /tmp/stale-takeover-decision.json 2>&1 | tee /tmp/stale-takeover.log
+
+              # Backward-compatibility bridge: old stale evaluators may serialize
+              # claim_last_update without fractional seconds. Preserve the exact raw
+              # claim timestamp identity while leaving classification/stale age intact.
+              python - <<'PY'
+          import datetime as dt
+          import json
+          from pathlib import Path
+
+          claim = json.loads(Path("/tmp/execution-claim.json").read_text(encoding="utf-8"))
+          decision_path = Path("/tmp/stale-takeover-decision.json")
+          decision = json.loads(decision_path.read_text(encoding="utf-8"))
+          raw_last_update = claim.get("last_update")
+          if not isinstance(raw_last_update, str) or not raw_last_update.strip():
+              raise SystemExit("claim last_update is missing")
+          try:
+              parsed = dt.datetime.fromisoformat(raw_last_update.replace("Z", "+00:00"))
+          except ValueError as exc:
+              raise SystemExit("claim last_update is invalid") from exc
+          if parsed.tzinfo is None or parsed.utcoffset() is None:
+              raise SystemExit("claim last_update must be timezone-aware")
+          if "claim_last_update" not in decision:
+              raise SystemExit("stale takeover decision missing claim_last_update")
+          decision["claim_last_update"] = raw_last_update
+          decision_path.write_text(
+              json.dumps(decision, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
             else
               test -n "$current_branch_sha"
               test "$current_branch_sha" = "$RG_HEAD_SHA"
@@ -351,6 +380,34 @@ jobs:
             done < /tmp/remote-guard-changed-files.txt
             "${preflight_args[@]}"
 
+            checkpoint_guard_arg=()
+            if python tools/execution_claim_guard.py --help 2>&1 | grep -q -- '--checkpoint'; then
+              checkpoint_guard_arg=(--checkpoint /tmp/execution-checkpoint.json)
+            else
+              # Older canonical guards predate the --checkpoint CLI. The trusted
+              # transport must enforce the same active-claim checkpoint invariant
+              # before invoking that older guard; missing/mismatch/terminal fails closed.
+              python - <<'PY'
+          import json
+          from pathlib import Path
+
+          claim = json.loads(Path("/tmp/execution-claim.json").read_text(encoding="utf-8"))
+          checkpoint = json.loads(Path("/tmp/execution-checkpoint.json").read_text(encoding="utf-8"))
+
+          required_claim = ("issue", "work_branch", "head_sha")
+          if any(key not in claim for key in required_claim):
+              raise SystemExit("active claim identity is incomplete")
+          if str(checkpoint.get("issue")) != str(claim["issue"]):
+              raise SystemExit("ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint issue mismatch")
+          if checkpoint.get("branch") != claim["work_branch"]:
+              raise SystemExit("ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint branch mismatch")
+          if checkpoint.get("head_sha") != claim["head_sha"]:
+              raise SystemExit("ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint head mismatch")
+          if checkpoint.get("state") not in {"RUNNING", "WAITING_REMOTE", "RECOVERING", "BLOCKED"}:
+              raise SystemExit("ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint must be non-terminal")
+          PY
+            fi
+
             guard_args=(
               python tools/execution_claim_guard.py
               --claim /tmp/execution-claim.json
@@ -359,8 +416,8 @@ jobs:
               --branch "$RG_BRANCH"
               --action "$RG_ACTION"
               --base-sha "$RG_BASE_SHA"
-              --checkpoint /tmp/execution-checkpoint.json
             )
+            guard_args+=("${checkpoint_guard_arg[@]}")
             if [ "$RG_ACTION" = "claim-takeover" ]; then
               guard_args+=(
                 --head-sha "$RG_TESTED_TARGET_SHA"
