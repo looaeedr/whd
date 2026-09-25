@@ -8,22 +8,22 @@
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
   "phase": "CLEANUP",
-  "last_update": "2026-09-25T12:10:00Z",
+  "last_update": "2026-09-25T12:15:00Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Create cleanup branch governance/issue660-cleanup-20260925 from exact legal head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323 under branch-create Guard; delete the sole temporary qa-issue660-live-issue657-takeover-proof.yml workflow under commit Guard; reconcile, then terminalize #660.",
+  "next_action": "Delete only .github/workflows/qa-issue660-live-issue657-takeover-proof.yml from cleanup branch under a fresh commit Guard, then reconcile and terminalize #660.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
-    "action": "commit",
-    "run_id": 36131422310,
-    "request_comment_id": 5831874537,
+    "action": "branch-create",
+    "run_id": 36133747601,
+    "request_comment_id": 5832177544,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "67545e829e9cec7567e92ffe65f21b63951b7b9e",
+    "guard_authority_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
     "consumed": true
   },
   "guard_transaction_recovery": {
@@ -73,6 +73,8 @@
     "prior_work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
     "prior_claim_head": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
     "contaminated_live_head": "48370003d620d024fb62a6e61b30e72367dc8a77",
-    "invariant": "Do not adopt contaminated live head; restart cleanup from exact legal claim head."
+    "invariant": "Do not adopt contaminated live head; restart cleanup from exact legal claim head.",
+    "branch_create_guard_run_id": 36133747601,
+    "cleanup_branch_head": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323"
   }
 }
