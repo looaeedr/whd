@@ -1,14 +1,14 @@
 {
   "issue": 657,
   "issue_url": "https://github.com/looaeedr/whd/issues/657",
-  "worker": "chatgpt.sol260925.issue657.a1",
+  "worker": "chatgpt.sol260925.issue657.force2",
   "executor_source": "chatgpt_interactive",
   "work_branch": "integration/issue657-main-remote-guard-20260925",
   "claimed_at": "2026-09-25T10:56:55Z",
   "base_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
   "head_sha": "53184c28ed1041558cd735817f4aae54f6c3af74",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T11:06:00Z",
+  "last_update": "2026-09-25T19:34:02+08:00",
   "production_target": "main",
   "master_issue": 640,
   "parent_issue": 647,
@@ -58,5 +58,20 @@
       "changed_files": []
     },
     "reconciled": true
+  },
+  "stale_takeover": {
+    "previous_worker": "chatgpt.sol260925.issue657.a1",
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_stale_seconds": 1633,
+    "observed_live_head_sha": "53184c28ed1041558cd735817f4aae54f6c3af74",
+    "user_authority_comment_id": 5831428688,
+    "proof_issue": 660,
+    "proof_run_id": 36129994477,
+    "proof_head_sha": "979d7f64cc258bdc31f8cbd66c6d14d80c8833fa",
+    "proof_manifest_comment_id": 5831695192,
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "evidence": "WHD_USER_DIRECTED_TAKEOVER_V1 + canonical stale_claim_takeover.py + canonical execution_claim_guard.py action=claim-takeover GREEN",
+    "taken_over_at": "2026-09-25T19:34:02+08:00"
   }
 }
