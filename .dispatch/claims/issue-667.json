@@ -6,18 +6,18 @@
   "work_branch": "governance/issue667-force-takeover-liveness-20260925",
   "claimed_at": "2026-09-25T15:08:30Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
-  "head_sha": "49dd1a64e925cb6fb9fbc281ea27b60db3057678",
+  "head_sha": "607110c9da614da7c4e340101a19c67118e077b0",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T15:21:00Z",
+  "last_update": "2026-09-25T15:39:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain one exact implementation commit Guard for the full Skill/machine/workflow/writeback scope, implement the accepted RED contract without changing RED assertions, then run focused GREEN.",
+  "next_action": "Fix the two focused failures (canonical-chain token ordering + literal 300 秒) and replace 派工 same-lane 420-second rule with canonical 300 seconds, then rerun focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-667.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36153474223,
-    "request_comment_id": 5834851249,
+    "run_id": 36155510444,
+    "request_comment_id": 5835109356,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -34,6 +34,16 @@
       "trusted Remote Guard interactive takeover transport missing",
       "排程模擬 activation-enable contract missing",
       "force-takeover registry route missing"
+    ]
+  },
+  "green_candidate": {
+    "head_sha": "607110c9da614da7c4e340101a19c67118e077b0",
+    "run_id": 36155416813,
+    "conclusion": "failure",
+    "summary": "2 failed, 27 passed",
+    "failures": [
+      "強制接手 canonical-chain first-token order",
+      "排程模擬 missing literal 300 秒"
     ]
   }
 }

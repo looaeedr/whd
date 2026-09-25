@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "667",
   "branch": "governance/issue667-force-takeover-liveness-20260925",
-  "head_sha": "49dd1a64e925cb6fb9fbc281ea27b60db3057678",
+  "head_sha": "607110c9da614da7c4e340101a19c67118e077b0",
   "state": "RUNNING",
-  "next_action": "Obtain one exact implementation commit Guard for the full Skill/machine/workflow/writeback scope, implement the accepted RED contract without changing RED assertions, then run focused GREEN.",
+  "next_action": "Fix two focused failures and unify 派工 same-lane liveness from 420 to 300 seconds, then rerun focused GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,6 +13,9 @@
   "evidence": [
     "RED harness naming fix commit 49dd1a64e925cb6fb9fbc281ea27b60db3057678.",
     "Focused RED run 36153385727 terminal failure with 8 failed / 1 passed; failures map to END, interactive takeover, 強制接手 Skill/registry, and 排程模擬 enable contracts.",
-    "Post-commit reconciliation Guard run 36153474223 GREEN, request 5834851249, consumed for exact claim+checkpoint HEAD reconciliation."
+    "Post-commit reconciliation Guard run 36153474223 GREEN, request 5834851249, consumed for exact claim+checkpoint HEAD reconciliation.",
+    "Implementation Guard run 36153768964 GREEN consumed by atomic commit 607110c9da614da7c4e340101a19c67118e077b0 (9 exact files).",
+    "Focused run 36155416813 terminal failure: 2 failed / 27 passed; END machine support, interactive Remote Guard transport, registry, and core takeover tests passed.",
+    "Post-commit reconciliation Guard run 36155510444 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }
