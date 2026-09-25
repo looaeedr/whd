@@ -23,8 +23,11 @@
     "Equivalent pr-write GREEN group runs 36127413413 / 36127510051 has exact mutation identity; canonical representative is 36127413413.",
     "Durable PR readback: PR #659 closed/merged at merge commit 1cff61fc73e66e07bcb7364249402e2cd86db715.",
     "Fresh main readback: .github/workflows/whd-remote-execution-guard.yml blob c6e96581c47b4d46704f719877174f9248928f5e exactly equals accepted work-order artifact.",
-    "Canonical Guard transaction classification recovery: MUTATION_DONE_RECONCILE_ONLY → reconciliation completed; PR mutation was not replayed."
+    "Canonical Guard transaction classification recovery: MUTATION_DONE_RECONCILE_ONLY → reconciliation completed; PR mutation was not replayed.",
+    "User-directed stale takeover proof run 36129994477 GREEN; ownership CAS changed claim owner only and preserved this checkpoint blob before closure progression.",
+    "Canonical closure prewrite guard run 36130629229 GREEN on exact claim blob 94869fb0d5916393477a91d318d70af5923f50c5 and checkpoint blob f8215aaac5a23c032fa826803b95d606c478cb47.",
+    "Closure advanced monotonically FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING; checkpoint state TERMINAL_SUCCESS and head 53184c28ed1041558cd735817f4aae54f6c3af74 remain unchanged."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof for helper #657, close/readback, then atomically CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound Remote Finalization proof on this exact checkpoint; after FINALIZATION_PROOF_VALID close/readback Issue #657, then advance RELEASE_HANDOFF_PENDING."
 }
