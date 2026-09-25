@@ -71,10 +71,11 @@
     "Remote Guard run 36137240178 GREEN authorized FINALIZATION_PENDING → ISSUE_CLOSE_PENDING for #647.",
     "Trusted Remote Finalization run 36137780741 completed SUCCESS with FINALIZATION_PROOF_VALID for canonical checkpoint fingerprint 3bb19dbf2af1aca4a25f66bd01315cfbc97706c308549ee3ad9cad844436f51e; artifact 10865543593.",
     "Issue #647 fresh readback confirmed closed/completed at 2026-09-25T12:56:30Z.",
-    "Remote Guard run 36137923453 GREEN authorized ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING for #647."
+    "Remote Guard run 36137923453 GREEN authorized ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING for #647.",
+    "Remote Guard run 36138037791 GREEN authorized final atomic #647 checkpoint CLOSED + claim RELEASED closure with CHAIN_COMPLETE retained."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Final atomic coordination mutation: set checkpoint CLOSED and claim RELEASED with CHAIN_COMPLETE retained; then fresh-read and continue Master #640 closure.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": 640,
   "chain_state": "CHAIN_COMPLETE"
 }
