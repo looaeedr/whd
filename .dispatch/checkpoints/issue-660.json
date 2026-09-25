@@ -39,8 +39,9 @@
     "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36134321571.",
     "Remote Finalization run 36134442235 GREEN / FINALIZATION_PROOF_VALID for exact checkpoint fingerprint 2390ffcc90fd10d01564e44fed9730194681dda387fbf4d57c7b3155269a5e04.",
     "Issue #660 fresh-read closed/completed at 2026-09-25T12:22:18Z.",
-    "Release-handoff transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36134612806."
+    "Release-handoff transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36134612806.",
+    "Final release Guard run 36134729744 GREEN consumed: #660 checkpoint CLOSED + claim RELEASED + next_action=null atomically."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically write checkpoint CLOSED + claim RELEASED + next_action=null; no parent handoff is required because #660 is a standalone proof/cleanup carrier."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

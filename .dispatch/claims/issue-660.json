@@ -7,20 +7,20 @@
   "claimed_at": "2026-09-25T11:17:27Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T12:23:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T12:24:40Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Perform final atomic #660 release: checkpoint CLOSED + claim RELEASED + next_action=null after one fresh exact write Guard.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36134612806,
-    "request_comment_id": 5832295443,
+    "run_id": 36134729744,
+    "request_comment_id": 5832311113,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
@@ -88,5 +88,11 @@
     "reason": "FINALIZATION_PROOF_VALID",
     "checkpoint_fingerprint": "2390ffcc90fd10d01564e44fed9730194681dda387fbf4d57c7b3155269a5e04",
     "issue_closed_completed": true
+  },
+  "final_release_guard": {
+    "run_id": 36134729744,
+    "request_comment_id": 5832311113,
+    "result": "GREEN",
+    "consumed": true
   }
 }
