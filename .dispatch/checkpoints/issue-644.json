@@ -3,8 +3,8 @@
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
-  "state": "RUNNING",
-  "next_action": "Enter terminal Task Acceptance checkpoint for #644 at cleanup-only closing HEAD, then complete canonical closure and handoff to #645.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -31,8 +31,15 @@
     "One-shot T4 RED/GREEN workflow cleanup commit 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085387817.",
     "Fresh readback confirms qa-issue644-t4-red.yml and qa-issue644-t4-green.yml are absent; permanent whd-turn-exit-gate.yml remains blob 41bf76f78c9af8246947939660daf05f525989d8.",
     "Tested-head → closing-head drift audit PASS: accba53d9a1695f0db8bb7add610648ad34d5e61 → 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 is exactly one commit removing only the two one-shot QA workflows.",
-    "Post-cleanup atomic claim+checkpoint reconciliation to 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085463763."
+    "Post-cleanup atomic claim+checkpoint reconciliation to 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085463763.",
+    "T4 Task Acceptance terminal-entry authorized by Remote Guard run 36085579239 at closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
+    "Accepted evidence: focused run 36085249106 = 54 passed / 0 failed, cleanup-only drift PASS, permanent whd-turn-exit-gate.yml retained, successor #645 fresh-read open."
   ],
-  "closure_state": "CLOSED",
-  "closure_next_action": null
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance #644 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint/verify exact bound finalization proof, close/read back Issue #644, then atomically persist RELEASE_HANDOFF_PENDING → CLOSED + claim RELEASED while preserving #645 handoff.",
+  "master_issue": "640",
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": "645",
+  "chain_next_action": "After #644 reaches CLOSED + RELEASED, atomically successor-create #645/T5 from accepted closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 on the same work-order branch.",
+  "chain_reason": "T4 Trusted Remote Turn-Exit Executor is Task Accepted at cleanup-only closing HEAD; #645 is the next canonical child."
 }
