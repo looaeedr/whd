@@ -30,8 +30,10 @@
     "Remote Finalization run 36130911881 returned GREEN / FINALIZATION_PROOF_VALID for exact checkpoint fingerprint 4d89b9edafcaf1c98dd24799cfdbd2e20f1222200452eb1b1c55c35d18ab9884.",
     "Issue #657 fresh-read closed/completed at 2026-09-25T11:44:15Z.",
     "Release-handoff canonical prewrite guard run 36131485797 GREEN on exact claim blob 1ae6453a201763a3c8c8788860b1b6489ebdf9b8 and checkpoint blob 43bb2bc82c455d70384a29a4af1fee186c79424e.",
-    "Closure advanced monotonically ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING; checkpoint state TERMINAL_SUCCESS and head remain unchanged."
+    "Closure advanced monotonically ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING; checkpoint state TERMINAL_SUCCESS and head remain unchanged.",
+    "Final dual canonical guard run 36132610537 GREEN on exact RELEASE_HANDOFF_PENDING child pair and exact #647 ACTIVE parent helper reservation.",
+    "Final closure transaction atomically writes #657 checkpoint CLOSED + claim RELEASED and terminalizes the #647 helper reservation in the same coordination commit."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED + claim RELEASED/next_action=null, then terminalize parent #647 helper reservation and resume Combined Acceptance."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "state": "RECOVERING",
-  "next_action": "Activate helper #657 using exact candidate claim b89fb336cadf9041a3b2318ea1cf3c761ea4edd8 + checkpoint 35918933012d204e123f1fb49f89a20563d5fb2f.",
+  "next_action": "Resume #647 Combined Acceptance immediately: re-run authoritative focused/governance/default-branch exact-artifact gates on current work-order HEAD; then closing-head drift audit and mandatory non-force integration to cleanup/2d-3d-sync.",
   "run_id": 36126332602,
   "job_id": 108043193100,
   "log_cursor": "Focused 178 passed; governance/writeback 26 passed; trusted default-branch step failed only on whd-remote-execution-guard.yml exact accepted blob check.",
@@ -41,6 +41,10 @@
     "Post-commit reconciliation to 3967da33e35e26ba3973e5565af0defe65fa7e12 authorized by Remote Guard run 36126374293.",
     "Remote Guard deployment helper reservation default-branch-remote-guard-deploy / issue647-main-remote-guard-deploy-force1 entered RESERVING under Remote Guard run 36126539960.",
     "Helper #657 created from parent reservation default-branch-remote-guard-deploy.",
-    "Parent reservation bound ACTIVE to child_issue=657 and candidate claim blob b89fb336cadf9041a3b2318ea1cf3c761ea4edd8 under Remote Guard run 36126808692."
+    "Parent reservation bound ACTIVE to child_issue=657 and candidate claim blob b89fb336cadf9041a3b2318ea1cf3c761ea4edd8 under Remote Guard run 36126808692.",
+    "Helper #657 terminalized atomically with child claim RELEASED + checkpoint CLOSED under dual canonical guard run 36132610537.",
+    "Helper #657 final claim blob f0a3ee218cbc1fd4b976da72ae436e3a5f39e384; checkpoint blob 748ea48c0e2e7665b786a38a3de11cc7757022e4.",
+    "Parent reservation default-branch-remote-guard-deploy transitioned ACTIVE -> TERMINAL in the same durable coordination commit.",
+    "Default-branch Remote Guard deployment is now exact accepted blob c6e96581c47b4d46704f719877174f9248928f5e; #647 Combined Acceptance may resume."
   ]
 }
