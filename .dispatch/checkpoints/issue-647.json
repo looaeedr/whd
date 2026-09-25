@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "state": "RECOVERING",
-  "next_action": "Helper reservation won for default-branch Remote Guard deployment; create exactly one helper Issue, bind it to the reservation, then deploy accepted blob through branch/PR.",
+  "next_action": "Activate helper #657 using exact candidate claim b89fb336cadf9041a3b2318ea1cf3c761ea4edd8 + checkpoint 35918933012d204e123f1fb49f89a20563d5fb2f.",
   "run_id": 36126332602,
   "job_id": 108043193100,
   "log_cursor": "Focused 178 passed; governance/writeback 26 passed; trusted default-branch step failed only on whd-remote-execution-guard.yml exact accepted blob check.",
@@ -39,6 +39,8 @@
     "Combined Acceptance run 36126332602: focused process gate GREEN (178 passed); governance/writeback readback GREEN (26 passed).",
     "Run 36126332602 failed only at trusted default-branch exact artifact gate: claim-activation and turn-exit matched accepted blobs, but main whd-remote-execution-guard.yml did not match accepted blob c6e96581c47b4d46704f719877174f9248928f5e.",
     "Post-commit reconciliation to 3967da33e35e26ba3973e5565af0defe65fa7e12 authorized by Remote Guard run 36126374293.",
-    "Remote Guard deployment helper reservation default-branch-remote-guard-deploy / issue647-main-remote-guard-deploy-force1 entered RESERVING under Remote Guard run 36126539960."
+    "Remote Guard deployment helper reservation default-branch-remote-guard-deploy / issue647-main-remote-guard-deploy-force1 entered RESERVING under Remote Guard run 36126539960.",
+    "Helper #657 created from parent reservation default-branch-remote-guard-deploy.",
+    "Parent reservation bound ACTIVE to child_issue=657 and candidate claim blob b89fb336cadf9041a3b2318ea1cf3c761ea4edd8 under Remote Guard run 36126808692."
   ]
 }

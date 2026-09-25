@@ -8,7 +8,7 @@
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "phase": "RECOVERING",
-  "last_update": "2026-09-25T10:55:38.370036Z",
+  "last_update": "2026-09-25T10:58:07.678873Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Create exactly one helper Issue for default-branch Remote Guard deployment using reservation default-branch-remote-guard-deploy / issue647-main-remote-guard-deploy-force1, then atomically bind child issue + candidate claim and proceed via guarded helper branch/PR.",
+  "next_action": "Activate helper #657 with exact candidate claim/checkpoint pair, then let #657 deploy the accepted Remote Guard workflow to main and return terminal proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -51,18 +51,18 @@
     {
       "relationship": "helper",
       "helper_key": "default-branch-remote-guard-deploy",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.sol260925.issue647.force1",
       "reservation_token": "issue647-main-remote-guard-deploy-force1",
       "reserved_at": "2026-09-25T10:55:38.370036Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 657,
+      "child_claim_blob_sha": "b89fb336cadf9041a3b2318ea1cf3c761ea4edd8"
     }
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36126539960,
-    "request_comment_id": 5831226519,
+    "run_id": 36126808692,
+    "request_comment_id": 5831260832,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
