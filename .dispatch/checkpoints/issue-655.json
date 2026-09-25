@@ -24,8 +24,9 @@
     "Guard run 36125393479 GREEN consumed for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
     "Trusted remote finalization run 36125493683 SUCCESS with bound proof artifact 10859653576.",
     "Owning Issue #655 fresh-read closed/completed at 2026-09-25T10:44:11Z.",
-    "Guard run 36125610449 GREEN consumed for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
+    "Guard run 36125610449 GREEN consumed for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Guard run 36125706546 GREEN consumed for final checkpoint CLOSED + claim RELEASED."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Persist final atomic checkpoint CLOSED + claim RELEASED, then fresh-read terminal state."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }

@@ -7,17 +7,17 @@
   "claimed_at": "2026-09-25T10:29:00Z",
   "base_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "head_sha": "4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T10:44:47Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T10:45:50Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Persist final atomic closure: checkpoint CLOSED + claim RELEASED after fresh close readback.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-655.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36125610449,
-    "request_comment_id": 5831099805,
+    "run_id": 36125706546,
+    "request_comment_id": 5831113338,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
@@ -36,6 +36,7 @@
       "state": "closed",
       "state_reason": "completed",
       "closed_at": "2026-09-25T10:44:11Z"
-    }
+    },
+    "final_release_guard_run_id": 36125706546
   }
 }
