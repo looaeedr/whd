@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "fc9412ed6a8943c1fb7a6582a18d2fe0e1074516",
+  "head_sha": "4e2658e75308e0ce8d40c3a3601d4d1010dc695e",
   "state": "RUNNING",
-  "next_action": "Run focused #643 P-R1..P-R14 GREEN at exact implementation HEAD fc9412ed6a8943c1fb7a6582a18d2fe0e1074516.",
+  "next_action": "Read back focused T3 GREEN run 36076909865 at exact HEAD 4e2658e75308e0ce8d40c3a3601d4d1010dc695e, then implement Remote Guard second-request rejection.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -18,7 +18,9 @@
     "Exact T3 RED run 36076252162 completed success as a RED harness: 14 approved P-R tests failed as intended; marker ISSUE643_T3_REQUIREMENT_RED=GREEN.",
     "Post-commit atomic claim+checkpoint reconciliation to ced52c7bc161a0d54ef16613638222442ea8498a authorized by Remote Guard run 36076301116.",
     "T3 core implementation commit fc9412ed6a8943c1fb7a6582a18d2fe0e1074516 authorized by Remote Guard run 36076486660.",
-    "Post-implementation atomic claim+checkpoint reconciliation to fc9412ed6a8943c1fb7a6582a18d2fe0e1074516 authorized by Remote Guard run 36076658509."
+    "Post-implementation atomic claim+checkpoint reconciliation to fc9412ed6a8943c1fb7a6582a18d2fe0e1074516 authorized by Remote Guard run 36076658509.",
+    "Focused GREEN runner commit 4e2658e75308e0ce8d40c3a3601d4d1010dc695e authorized by Remote Guard run 36076741942.",
+    "Post-runner atomic claim+checkpoint reconciliation to 4e2658e75308e0ce8d40c3a3601d4d1010dc695e authorized by Remote Guard run 36076939378."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
