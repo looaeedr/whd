@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T09:16:00Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T09:21:33Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read all accepted #641-#646 evidence and live trusted-workflow/default-branch state, then execute #647 Combined Acceptance from accepted work-order HEAD 8909143569bf1e23d3fd6ef563e57c3a20992638 without chasing X.",
+  "next_action": "Create the reserved default-branch trusted turn-exit deployment helper, atomically activate its main-based claim/checkpoint, deploy and read back the exact accepted whd-turn-exit-gate.yml, then terminalize the helper reservation and resume #647 Combined Acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -36,5 +36,26 @@
     "accepted_head": "8909143569bf1e23d3fd6ef563e57c3a20992638",
     "finalization_run_id": 36117063829,
     "final_release_guard_run_id": 36117369022
+  },
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "default-branch-turn-exit-gate-deploy",
+      "state": "RESERVING",
+      "reserved_by": "chatgpt.sol260925.issue647.a1",
+      "reservation_token": "issue647-main-turn-exit-gate-deploy-a1",
+      "reserved_at": "2026-09-25T09:21:33Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
+    }
+  ],
+  "last_guard": {
+    "action": "write",
+    "run_id": 36117966143,
+    "request_comment_id": 5830004214,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "consumed": true
   }
 }
