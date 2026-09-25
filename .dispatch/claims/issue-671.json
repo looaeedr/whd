@@ -9,9 +9,9 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "d5a749fc77ad0cb9459eef08907dc16fbcad11b4",
+  "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T23:56:30Z",
+  "last_update": "2026-09-25T23:58:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
@@ -19,12 +19,12 @@
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36202919416,
-    "request_comment_id": 5841251133,
+    "run_id": 36203041547,
+    "request_comment_id": 5841264380,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconciled exact tested QA head"
+    "mutation": "reconciled tested head to cleaned head after one-shot workflow removal"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -52,9 +52,10 @@
     "evidence": "37 passed in focused contract suite"
   },
   "cleanup_audit": {
-    "tested_head": "9e49b8b797415d561a661319e78d3d4029acf6b3",
-    "cleaned_head": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
-    "only_delta": ".github/workflows/qa-issue671-legacy-checkpoint-repair.yml deleted"
+    "tested_head": "d5a749fc77ad0cb9459eef08907dc16fbcad11b4",
+    "cleaned_head": "a2c81648be02c3b4710b6a80893e9cb890c95537",
+    "only_delta": ".github/workflows/qa-issue671-legacy-checkpoint-repair.yml deleted",
+    "implementation_tree_matches": "417d6ea39282c570fbf161b2333f6a065e58a634"
   },
   "phase_recovery": {
     "from": "INTEGRATION",

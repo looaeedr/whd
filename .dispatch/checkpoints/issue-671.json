@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
-  "head_sha": "d5a749fc77ad0cb9459eef08907dc16fbcad11b4",
+  "head_sha": "a2c81648be02c3b4710b6a80893e9cb890c95537",
   "state": "RUNNING",
   "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
   "run_id": null,
@@ -41,6 +41,9 @@
     "Guard run 36200231450 GREEN consumed to terminalize helper reservation and resume #617 legacy checkpoint repair.",
     "Post-commit reconciliation Guard run 36202744087 GREEN consumed to bind claim/checkpoint to implementation HEAD 417d6ea39282c570fbf161b2333f6a065e58a634.",
     "Focused QA run 36202879027 completed success on exact HEAD d5a749fc77ad0cb9459eef08907dc16fbcad11b4; 37 passed.",
-    "Post-commit reconciliation Guard run 36202919416 GREEN consumed to bind claim/checkpoint to exact tested HEAD."
+    "Post-commit reconciliation Guard run 36202919416 GREEN consumed to bind claim/checkpoint to exact tested HEAD.",
+    "Tested-to-cleaned compare d5a749fc77ad0cb9459eef08907dc16fbcad11b4..a2c81648be02c3b4710b6a80893e9cb890c95537 shows exactly one removed file: .github/workflows/qa-issue671-legacy-checkpoint-repair.yml.",
+    "Cleaned HEAD a2c81648be02c3b4710b6a80893e9cb890c95537 has no diff from implementation HEAD 417d6ea39282c570fbf161b2333f6a065e58a634.",
+    "Cleanup reconciliation Guard run 36203041547 GREEN consumed to bind claim/checkpoint to cleaned HEAD."
   ]
 }
