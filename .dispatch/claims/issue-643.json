@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T01:24:17.186097Z",
+  "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T01:26:54.089430Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
+  "chain_head": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Confirm closure-prewrite RED at HEAD 85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92, then repair only the canonical terminal-checkpoint closure exception in tools/execution_claim_guard.py.",
+  "next_action": "Re-enter canonical T3 terminal closure at exact GREEN HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341 and hand off #644.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -82,26 +82,26 @@
     "failed_green_run_id": 36077531240
   },
   "remote_qa": {
-    "run_id": 36077678699,
-    "head_sha": "cb3be0740424110dd5826e589f6d32e35023ee2c",
+    "run_id": 36082023995,
+    "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
     "status": "completed",
     "conclusion": "success",
-    "job_id": 107892460137,
-    "artifact_id": 10840900114,
-    "purpose": "T3 final focused GREEN + T1/T2 regressions",
+    "job_id": 107905845592,
+    "artifact_id": 10842098217,
+    "purpose": "T3 closure-prewrite repair final GREEN + T1/T2 regressions",
     "evidence": {
-      "pytest": "77 passed / 0 failed",
+      "pytest": "80 passed / 0 failed",
       "marker": "ISSUE643_T3_CORE_GREEN=PASS"
     }
   },
   "final_green": {
-    "run_id": 36077678699,
-    "head_sha": "cb3be0740424110dd5826e589f6d32e35023ee2c",
-    "artifact_id": 10840900114,
-    "pytest": "77 passed / 0 failed",
+    "run_id": 36082023995,
+    "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+    "artifact_id": 10842098217,
+    "pytest": "80 passed / 0 failed",
     "marker": "ISSUE643_T3_CORE_GREEN=PASS",
-    "prior_expired_reconcile_guard_run_id": 36077704140,
-    "recovery_reconcile_guard_run_id": 36081325330
+    "t2_regression_run_id": 36082023965,
+    "reconcile_guard_run_id": 36082039164
   },
   "recovery": {
     "reason": "T3 acceptance revoked after closure Guard run 36081509204 failed on valid TERMINAL_SUCCESS checkpoint",
@@ -111,6 +111,14 @@
     "red_commit_sha": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
     "red_commit_guard_run_id": 36081763415,
     "red_reconcile_guard_run_id": 36081845751,
-    "red_green_run_id": 36081820820
+    "red_green_run_id": 36081820820,
+    "fix_commit_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+    "fix_guard_run_id": 36081967857,
+    "fix_reconcile_guard_run_id": 36082039164,
+    "final_green_run_id": 36082023995,
+    "final_green_job_id": 107905845592,
+    "final_green_artifact_id": 10842098217,
+    "final_green_pytest": "80 passed / 0 failed",
+    "t2_regression_run_id": 36082023965
   }
 }
