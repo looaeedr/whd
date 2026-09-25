@@ -3,8 +3,8 @@
   "issue": "667",
   "branch": "governance/issue667-force-takeover-liveness-20260925",
   "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
-  "state": "RUNNING",
-  "next_action": "Obtain a fresh pr-write Guard bound to PR #668 / cleaned head, merge non-force into cleanup/2d-3d-sync, then fresh-read production and enter finalization transaction.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -27,6 +27,12 @@
     "Post-cleanup reconciliation Guard run 36156048014 GREEN consumed for exact claim+checkpoint HEAD reconciliation.",
     "PR-write Guard run 36156159373 GREEN consumed exactly once by creating PR #668 at cleaned head 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2 targeting cleanup/2d-3d-sync@156bc20e7b7c331eae2a24d2c46bd984c5959720.",
     "PR #668 fresh-read open, mergeable=true, exact head/base identities.",
-    "Knowledge Governance Bootstrap run 36156325494 completed/success on exact PR head 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2."
-  ]
+    "Knowledge Governance Bootstrap run 36156325494 completed/success on exact PR head 2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2.",
+    "Merge Guard run 36156459802 GREEN consumed exactly once by non-force merge of PR #668.",
+    "PR #668 fresh-read merged/closed; merge commit 68b920967c438679c0841123571230a66b013877.",
+    "Production cleanup/2d-3d-sync fresh-read HEAD=68b920967c438679c0841123571230a66b013877.",
+    "Production readback: 強制接手 Skill present; 排程模擬 SCHEDULER_ENABLE_ESTABLISHED/is_enabled=true present; 派工 420 occurrences=0; scheduler END support present; trusted interactive takeover transport present."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance exactly to ISSUE_CLOSE_PENDING, then run trusted authorize-finalization + verify-finalization-proof on the unchanged checkpoint."
 }

@@ -8,20 +8,20 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T15:46:00Z",
+  "last_update": "2026-09-25T15:48:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain a fresh pr-write Guard bound to PR #668 / cleaned head, then merge PR #668 non-force into cleanup/2d-3d-sync and fresh-read production target.",
+  "next_action": "Advance terminal checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under exact coordination Guard, then run trusted finalization proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-667.json",
   "last_guard": {
     "action": "pr-write",
-    "run_id": 36156159373,
-    "request_comment_id": 5835191298,
+    "run_id": 36156459802,
+    "request_comment_id": 5835235840,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "created PR #668"
+    "mutation": "merged PR #668"
   },
   "red_evidence": {
     "head_sha": "49dd1a64e925cb6fb9fbc281ea27b60db3057678",
@@ -67,6 +67,9 @@
     "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
     "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
     "governance_run_id": 36156325494,
-    "governance_result": "success"
+    "governance_result": "success",
+    "merged": true,
+    "merge_commit_sha": "68b920967c438679c0841123571230a66b013877",
+    "production_head": "68b920967c438679c0841123571230a66b013877"
   }
 }
