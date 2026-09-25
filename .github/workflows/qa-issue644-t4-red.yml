@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install focused test dependency
+        run: python -m pip install pytest
       - name: Prove exactly twelve approved T4 RED failures
         shell: bash
         run: |
