@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T12:03:20Z",
+  "phase": "CLEANUP",
+  "last_update": "2026-09-25T12:07:18Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Resume #647 Combined Acceptance immediately: fresh-read all three trusted default-branch workflow blobs, rerun the authoritative focused/governance/default-branch gate on current work-order HEAD, then perform tested-head→closing-head drift audit and the mandatory non-force work-order→cleanup/2d-3d-sync integration gate.",
+  "next_action": "Delete all remaining temporary #640-chain QA/proof workflows (#642 red/green, #643 red/green, #647 combined) under one guarded cleanup commit; then reconcile closing HEAD and run tested-head→closing-head drift audit.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -60,9 +60,9 @@
     }
   ],
   "last_guard": {
-    "action": "write",
-    "run_id": 36126808692,
-    "request_comment_id": 5831260832,
+    "action": "workflow-dispatch",
+    "run_id": 36133042624,
+    "request_comment_id": 5832084254,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
@@ -122,10 +122,10 @@
   "combined_acceptance": {
     "runner_commit_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
     "run_id": 36126332602,
-    "job_id": 108043193100,
-    "conclusion": "failure",
+    "job_id": 108064668228,
+    "conclusion": "success",
     "focused_result": "178 passed",
-    "classification": "LIVE_REMOTE_GUARD_DEPLOYMENT_GAP",
+    "classification": "GREEN",
     "reason": "full tests/process collection requires matplotlib; requirements.txt did not install it",
     "full_process_result": "1 failed, 512 passed, 33 errors",
     "errors": "33 Tk tests require DISPLAY/Xvfb",
@@ -134,8 +134,19 @@
     "governance_writeback_result": "26 passed",
     "main_claim_activation_exact": true,
     "main_turn_exit_exact": true,
-    "main_remote_guard_exact": false,
-    "expected_remote_guard_blob_sha": "c6e96581c47b4d46704f719877174f9248928f5e"
+    "main_remote_guard_exact": true,
+    "expected_remote_guard_blob_sha": "c6e96581c47b4d46704f719877174f9248928f5e",
+    "run_attempt": 2,
+    "governance_ssot": "GREEN",
+    "workflow_dispatch_guard_run_id": 36133042624,
+    "workflow_dispatch_readback": {
+      "run_created": true,
+      "rerun_existing_run": true,
+      "run_id": 36126332602,
+      "run_attempt": 2,
+      "run_head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+      "conclusion": "success"
+    }
   },
   "helper_terminal_evidence_657": {
     "helper_issue": 657,
