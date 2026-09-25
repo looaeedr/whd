@@ -1,0 +1,20 @@
+{
+  "issue": 661,
+  "issue_url": "https://github.com/looaeedr/whd/issues/661",
+  "worker": "chatgpt.sol260925.issue661.finalrelease",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue661-final-release-executor-20260925",
+  "claimed_at": "2026-09-25T11:57:33Z",
+  "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T11:57:33Z",
+  "production_target": "governance-proof",
+  "master_issue": 640,
+  "parent_issue": 647,
+  "proof_target_issue": 657,
+  "delegated_branches": [],
+  "next_action": "Create guarded one-shot executor branch, run canonical write guards for exact #657 final release pair and #647 parent handoff pair, then consume GREEN in one atomic four-file coordination commit.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-661.json"
+}

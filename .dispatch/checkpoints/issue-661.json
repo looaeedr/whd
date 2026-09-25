@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "661",
+  "branch": "governance/issue661-final-release-executor-20260925",
+  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "state": "RUNNING",
+  "next_action": "Create guarded one-shot executor branch and produce exact dual canonical guard manifest for #657 CLOSED+RELEASED + #647 helper reservation TERMINAL handoff.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "#657 is closed/completed with claim worker chatgpt.sol260925.issue657.force2 and checkpoint RELEASE_HANDOFF_PENDING.",
+    "#647 active helper reservation default-branch-remote-guard-deploy points to child #657.",
+    "Executor may mutate no product/main/X state; only proof generation before final coordination CAS."
+  ]
+}
