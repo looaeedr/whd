@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "673",
+  "branch": "governance/issue673-main-deploy-issue671-20260926",
+  "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "state": "RUNNING",
+  "next_action": "Activate parent #671 helper reservation, then obtain branch-create Guard and create the main deployment branch.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #671 reserved helper_key=main-governance-deploy-issue671 under A lane before helper Issue creation.",
+    "Default main fresh-read HEAD=156bc20e7b7c331eae2a24d2c46bd984c5959720.",
+    "Helper scope is narrow deployment of accepted #671 trusted governance only; no broad cleanup->main merge."
+  ]
+}

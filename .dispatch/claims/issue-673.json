@@ -1,0 +1,22 @@
+{
+  "issue": 673,
+  "issue_url": "https://github.com/looaeedr/whd/issues/673",
+  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+  "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.issue673.20260925T2224Z",
+  "conversation_identity": "UNAVAILABLE",
+  "work_branch": "governance/issue673-main-deploy-issue671-20260926",
+  "claimed_at": "2026-09-25T22:24:00Z",
+  "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T22:24:00Z",
+  "production_target": "main",
+  "delegated_branches": [],
+  "next_action": "Activate parent #671 helper reservation, obtain branch-create Guard, create main deployment branch, then sync only #671 accepted governance files and verify trusted main deployment.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-673.json",
+  "parent_issue": 671,
+  "helper_key": "main-governance-deploy-issue671"
+}
