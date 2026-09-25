@@ -17,8 +17,9 @@
     "Duplicate helper fail-closed evidence comment 5831292681: parent #647 durable ACTIVE reservation points only to canonical child #657 / claim b89fb336cadf9041a3b2318ea1cf3c761ea4edd8.",
     "#658 helper_key differs from the parent reserved helper_key and has no parent delegated_work pointer; substantive mutation is prohibited.",
     "Empty helper branch integration/issue658-main-remote-guard-20260925 created from exact main base bdb3da203c898d43898b092ff37b7fa9e0c93061 under branch-create Guard run 36127079997; no content commit occurred.",
-    "Duplicate/no-work terminal entry authorized by Remote Guard run 36127153714."
+    "Duplicate/no-work terminal entry authorized by Remote Guard run 36127153714.",
+    "Duplicate helper FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36127265351."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, obtain bound Remote Finalization proof, close duplicate helper #658, then atomically CLOSED + RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound Remote Finalization proof on this exact checkpoint; after GREEN close #658 as duplicate/no-work, fresh-read terminal state, then release."
 }
