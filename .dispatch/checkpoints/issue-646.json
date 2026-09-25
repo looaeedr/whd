@@ -19,12 +19,13 @@
     "Remote Guard run 36116927902 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING for #646.",
     "Trusted Remote Finalization run 36117063829 completed success with FINALIZATION_PROOF_VALID for checkpoint fingerprint 34d3091724aa47aef6ccee19536aa271f06ae6ac14ba923d513e041154b09c20; artifact 10855685941 uploaded.",
     "Issue #646 fresh readback confirmed closed/completed at 2026-09-25T09:12:19Z.",
-    "Remote Guard run 36117185007 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING for #646."
+    "Remote Guard run 36117185007 GREEN authorized ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING for #646.",
+    "Remote Guard run 36117369022 GREEN authorized final atomic checkpoint CLOSED + claim RELEASED handoff for #646."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED, claim RELEASED, and #647 successor handoff from accepted HEAD 8909143569bf1e23d3fd6ef563e57c3a20992638 under a fresh exact Guard.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": 640,
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 647,
-  "chain_next_action": "After #646 CLOSED + RELEASED, activate #647 Combined Acceptance from accepted work-order HEAD 8909143569bf1e23d3fd6ef563e57c3a20992638."
+  "chain_next_action": "Activate #647 Combined Acceptance from accepted work-order HEAD 8909143569bf1e23d3fd6ef563e57c3a20992638 using canonical successor claim/checkpoint activation."
 }
