@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T02:22:28Z",
   "base_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "head_sha": "b9b20a4b6fd985da2c850af10c86f053fbdc3749",
-  "phase": "RED",
-  "last_update": "2026-09-25T02:28:23.188805Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T02:29:48.394041Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -23,7 +23,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Lock exact D-R9..D-R13 Requirement RED at b9b20a4b6fd985da2c850af10c86f053fbdc3749; after exact RED runner terminal evidence, implement parent-claim reservation/CAS in tools/stale_claim_takeover.py.",
+  "next_action": "Implement parent-claim helper reservation/CAS in tools/stale_claim_takeover.py so D-R9..D-R13 turn GREEN; preserve existing #638 ACTIVE_DELEGATED_WORK and D-R1..D-R8 behavior.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-645.json",
   "predecessor": {
@@ -44,6 +44,13 @@
       "D-R11",
       "D-R12",
       "D-R13"
-    ]
+    ],
+    "run_id": 36086357033,
+    "result": "success",
+    "failed": 5,
+    "marker": "ISSUE645_T5_REQUIREMENT_RED=GREEN",
+    "artifact_id": 10843484916,
+    "artifact_digest": "sha256:1e64413769981a64dc90d341f4ffc93fc028a65461f204cace5a1d5b565091df",
+    "acceptance_guard_run_id": 36086478495
   }
 }

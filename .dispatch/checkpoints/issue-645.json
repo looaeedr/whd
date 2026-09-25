@@ -4,8 +4,8 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "b9b20a4b6fd985da2c850af10c86f053fbdc3749",
   "state": "RUNNING",
-  "next_action": "Poll exact T5 RED run 36086357033 to terminal; require exactly 5 intended D-R9..D-R13 failures with no collection/runtime errors before implementation.",
-  "run_id": 36086357033,
+  "next_action": "Implement T5 parent-claim RESERVING→ACTIVE→TERMINAL reservation/CAS and exact token/owner helper-create gate; preserve #638 helper-aware stale traversal.",
+  "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -15,7 +15,9 @@
     "#644 canonical handoff points to #645 at accepted closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
     "#644 final release was authorized by Remote Guard run 36085903906.",
     "T5 D-R9..D-R13 RED test+runner commit b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086269462.",
-    "Post-RED atomic claim+checkpoint reconciliation to b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086382498."
+    "Post-RED atomic claim+checkpoint reconciliation to b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086382498.",
+    "Exact T5 Requirement RED run 36086357033 at b9b20a4b6fd985da2c850af10c86f053fbdc3749: 5 failed / no collection errors; marker ISSUE645_T5_REQUIREMENT_RED=GREEN; artifact 10843484916.",
+    "T5 RED acceptance durable write authorized by Remote Guard run 36086478495."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
