@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
+  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "state": "RECOVERING",
-  "next_action": "Repair Combined Acceptance into correct headless/Xvfb and baseline-vs-closing regression lanes; classify the single source-contract failure as inherited or new before integration.",
-  "run_id": 36126066734,
-  "job_id": 108042359289,
-  "log_cursor": "Full process: 1 failed, 512 passed, 33 errors; 33 errors are TclError no $DISPLAY; single fail is test_issue423 source-contract project_box_body_piece_rows.",
+  "next_action": "Deploy exact accepted Remote Guard workflow blob c6e96581c47b4d46704f719877174f9248928f5e to main through canonical helper/PR flow, fresh-read, then rerun Combined Acceptance.",
+  "run_id": 36126332602,
+  "job_id": 108043193100,
+  "log_cursor": "Focused 178 passed; governance/writeback 26 passed; trusted default-branch step failed only on whd-remote-execution-guard.yml exact accepted blob check.",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -34,6 +34,10 @@
     "Post-commit reconciliation to f4720a1404e3c8685d7f2fdc4307045603ae9c23 authorized by Remote Guard run 36125945096.",
     "Combined Acceptance harness dependency repair committed at 1b6c19cff27a1ca22e8e7ff742669893c84f0bb3 under Remote Guard run 36126033350.",
     "Run 36126066734 focused set GREEN (178 passed); full tests/process reached 512 passed but produced 33 TclError no DISPLAY errors plus one source-contract failure in test_issue423_phase5_t2_assembly_panel.py.",
-    "Post-repair reconciliation to 1b6c19cff27a1ca22e8e7ff742669893c84f0bb3 authorized by Remote Guard run 36126094909."
+    "Post-repair reconciliation to 1b6c19cff27a1ca22e8e7ff742669893c84f0bb3 authorized by Remote Guard run 36126094909.",
+    "Authoritative-scope Combined Acceptance runner commit 3967da33e35e26ba3973e5565af0defe65fa7e12 authorized by Remote Guard run 36126291810.",
+    "Combined Acceptance run 36126332602: focused process gate GREEN (178 passed); governance/writeback readback GREEN (26 passed).",
+    "Run 36126332602 failed only at trusted default-branch exact artifact gate: claim-activation and turn-exit matched accepted blobs, but main whd-remote-execution-guard.yml did not match accepted blob c6e96581c47b4d46704f719877174f9248928f5e.",
+    "Post-commit reconciliation to 3967da33e35e26ba3973e5565af0defe65fa7e12 authorized by Remote Guard run 36126374293."
   ]
 }

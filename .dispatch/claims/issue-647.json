@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
-  "head_sha": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
+  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "phase": "RECOVERING",
-  "last_update": "2026-09-25T10:50:08.642758Z",
+  "last_update": "2026-09-25T10:53:11.231512Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T7",
   "expected_parent_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
+  "chain_head": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Repair #647 Combined Acceptance runner into proper headless/Xvfb or baseline-vs-closing regression lanes; current run 36126066734 has 512 passed, 33 no-DISPLAY errors, and one existing source-contract failure. Determine inherited-vs-new before any integration.",
+  "next_action": "Deploy the exact accepted work-order .github/workflows/whd-remote-execution-guard.yml blob c6e96581c47b4d46704f719877174f9248928f5e to default branch main through canonical helper/PR flow, fresh-read exact blob, then rerun #647 Combined Acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -51,11 +51,11 @@
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36126094909,
-    "request_comment_id": 5831169980,
+    "run_id": 36126374293,
+    "request_comment_id": 5831205302,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
+    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
     "consumed": true
   },
   "stale_takeover": {
@@ -110,16 +110,21 @@
     "helper_reservation_state": "TERMINAL"
   },
   "combined_acceptance": {
-    "runner_commit_sha": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
-    "run_id": 36126066734,
-    "job_id": 108042359289,
+    "runner_commit_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "run_id": 36126332602,
+    "job_id": 108043193100,
     "conclusion": "failure",
     "focused_result": "178 passed",
-    "classification": "HARNESS_DISPLAY_SPLIT_REQUIRED",
+    "classification": "LIVE_REMOTE_GUARD_DEPLOYMENT_GAP",
     "reason": "full tests/process collection requires matplotlib; requirements.txt did not install it",
     "full_process_result": "1 failed, 512 passed, 33 errors",
     "errors": "33 Tk tests require DISPLAY/Xvfb",
     "failed_test": "tests/process/test_issue423_phase5_t2_assembly_panel.py::test_t2_module_has_no_bridge_app_display_mode_or_manufacturing_authority",
-    "failure_detail": "phase6_assembly_panel source contains project_box_body_piece_rows; must determine inherited baseline vs new regression"
+    "failure_detail": "phase6_assembly_panel source contains project_box_body_piece_rows; must determine inherited baseline vs new regression",
+    "governance_writeback_result": "26 passed",
+    "main_claim_activation_exact": true,
+    "main_turn_exit_exact": true,
+    "main_remote_guard_exact": false,
+    "expected_remote_guard_blob_sha": "c6e96581c47b4d46704f719877174f9248928f5e"
   }
 }
