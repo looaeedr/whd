@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "646",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "4840a9e70fa74398c4dc884f4313ceca609f89c0",
+  "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "state": "RUNNING",
-  "next_action": "Remove the one-shot .github/workflows/qa-issue646-t6-green.yml under a fresh exact Guard, reconcile the cleanup HEAD, then enter the canonical #646 closure transaction and hand off to #647.",
+  "next_action": "Fresh-read cleanup HEAD and accepted QA evidence, then transition #646 to terminal acceptance / FINALIZATION_PENDING and execute the canonical closure transaction with #647 handoff.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -27,6 +27,8 @@
     "Post-QA-workflow claim/checkpoint reconciliation to 8fdf3f94d5af873575b2185cedd2327c191cb77f authorized by Remote Guard run 36111759340.",
     "Fix commit 4840a9e70fa74398c4dc884f4313ceca609f89c0 removed the last stale checkpoint-only assert_turn_exitable(checkpoint) call under Remote Guard run 36111873134.",
     "Focused GREEN run 36111931353 at 4840a9e70fa74398c4dc884f4313ceca609f89c0: 119 process tests PASS and ISSUE646_STATIC_WRITEBACK=PASS.",
-    "Post-fix claim/checkpoint reconciliation to 4840a9e70fa74398c4dc884f4313ceca609f89c0 authorized by Remote Guard run 36112063102."
+    "Post-fix claim/checkpoint reconciliation to 4840a9e70fa74398c4dc884f4313ceca609f89c0 authorized by Remote Guard run 36112063102.",
+    "One-shot #646 QA workflow removed in cleanup commit 8909143569bf1e23d3fd6ef563e57c3a20992638 under Remote Guard run 36112164165.",
+    "Post-cleanup atomic claim/checkpoint reconciliation to 8909143569bf1e23d3fd6ef563e57c3a20992638 authorized by Remote Guard run 36114010762."
   ]
 }
