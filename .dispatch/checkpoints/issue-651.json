@@ -23,8 +23,11 @@
     "Unique merge Guard run 36101526768 authorized PR #652 integration.",
     "PR #652 merged into workorder/issue640-guard-turn-exit-helper-hardening-20260925 at 0eee910cfe2f121c6074911d9c9414b877f7003a and target readback matched.",
     "Remote Guard run 36101637181 authorized this terminal checkpoint transition.",
-    "Remote Guard run 36101733028 authorized closure transition to ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36101733028 authorized closure transition to ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36101860673 completed success with FINALIZATION_PROOF_VALID on fingerprint 4c9923d92c60f9bc1cc3b786a5bbef9e1304599f9b7b7d15771263a9db9a79d8.",
+    "Issue #651 fresh readback confirmed closed/completed at 2026-09-25T06:13:27Z.",
+    "Remote Guard run 36101933923 authorized closure transition to RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the bound finalization proof on this frozen checkpoint, close/read back Issue #651, then persist CLOSED plus claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint CLOSED plus claim RELEASED, then return to #640 work-order continuity."
 }
