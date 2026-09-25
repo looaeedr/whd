@@ -213,3 +213,39 @@ def test_pr14_expired_receipt_with_proven_mutation_becomes_reconcile_only():
             claim_state={"phase": "CLAIMED"},
             transaction_state=decision,
         )
+
+
+REMOTE_GUARD_WORKFLOW = (
+    Path(__file__).resolve().parents[2]
+    / ".github"
+    / "workflows"
+    / "whd-remote-execution-guard.yml"
+)
+
+
+def test_remote_guard_request_machine_gate_rejects_pending_and_allows_expired_recovery():
+    assert_request = getattr(guard, "assert_remote_guard_request_permitted", None)
+    assert callable(assert_request)
+
+    with pytest.raises(
+        guard.ExecutionClaimError,
+        match="REMOTE_GUARD_REJECTED: PENDING_GUARD_TRANSACTION",
+    ):
+        assert_request(_classify())
+
+    expired = _classify(now="2026-09-25T00:50:00Z")
+    assert_request(expired)
+
+
+def test_trusted_remote_guard_invokes_canonical_pending_transaction_gate():
+    text = REMOTE_GUARD_WORKFLOW.read_text(encoding="utf-8")
+    required = (
+        "exact_remote_guard_receipts_from_comments",
+        "classify_guard_transaction",
+        "assert_remote_guard_request_permitted",
+        "REMOTE_GUARD_REJECTED: PENDING_GUARD_TRANSACTION",
+        "REMOTE_GUARD_RECONCILE_ONLY",
+        "--checkpoint /tmp/execution-checkpoint.json",
+    )
+    missing = [token for token in required if token not in text]
+    assert not missing, f"trusted Remote Guard is missing transaction gate tokens: {missing}"

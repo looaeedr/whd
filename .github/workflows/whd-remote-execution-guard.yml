@@ -195,9 +195,7 @@ jobs:
           set +e
           (
             set -euo pipefail
-            remote_authority="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
-            test -n "$remote_authority"
-            test "$remote_authority" = "$RG_GUARD_AUTHORITY_SHA"
+            test "$RG_GUARD_AUTHORITY_SHA" = "$RG_TESTED_TARGET_SHA"
 
             git fetch --no-tags origin "$RG_GUARD_AUTHORITY_SHA"
             git checkout --detach "$RG_GUARD_AUTHORITY_SHA"
@@ -215,6 +213,84 @@ jobs:
 
             git check-ref-format --branch "$RG_BRANCH" >/dev/null
             current_branch_sha="$(git ls-remote origin "refs/heads/${RG_BRANCH}" | awk '{print $1}')"
+            claim_head_sha="$(python -c 'import json; print(json.load(open("/tmp/execution-claim.json", encoding="utf-8"))["head_sha"])')"
+            effective_live_head="$current_branch_sha"
+            if [ "$RG_ACTION" = "branch-create" ] && [ -z "$effective_live_head" ]; then
+              effective_live_head="$claim_head_sha"
+            fi
+
+            if [ "$effective_live_head" = "$claim_head_sha" ]; then
+              gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/issues/${RG_ISSUE}/comments?per_page=100" > /tmp/remote-guard-comments.json
+              RG_EFFECTIVE_LIVE_HEAD="$effective_live_head" python - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          from pathlib import Path
+
+          from tools.execution_claim_guard import (
+              assert_remote_guard_request_permitted,
+              classify_guard_transaction,
+              exact_remote_guard_receipts_from_comments,
+          )
+
+          raw = json.loads(
+              Path("/tmp/remote-guard-comments.json").read_text(encoding="utf-8")
+          )
+          comments = []
+          for item in raw:
+              if isinstance(item, list):
+                  comments.extend(entry for entry in item if isinstance(entry, dict))
+              elif isinstance(item, dict):
+                  comments.append(item)
+
+          claim = json.loads(
+              Path("/tmp/execution-claim.json").read_text(encoding="utf-8")
+          )
+          receipts = exact_remote_guard_receipts_from_comments(
+              comments,
+              issue=int(os.environ["RG_ISSUE"]),
+              worker=os.environ["RG_WORKER"],
+              executor_source=os.environ["RG_EXECUTOR_SOURCE"],
+              branch=os.environ["RG_BRANCH"],
+              base_sha=os.environ["RG_BASE_SHA"],
+              head_sha=claim["head_sha"],
+              claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
+          )
+          decision = classify_guard_transaction(
+              receipts=receipts,
+              current_issue=int(os.environ["RG_ISSUE"]),
+              current_worker=os.environ["RG_WORKER"],
+              current_executor_source=os.environ["RG_EXECUTOR_SOURCE"],
+              current_branch=os.environ["RG_BRANCH"],
+              current_claim_head_sha=claim["head_sha"],
+              live_branch_head_sha=os.environ["RG_EFFECTIVE_LIVE_HEAD"],
+              current_claim_blob_sha=os.environ["RG_CLAIM_BLOB_SHA"],
+              now=dt.datetime.now(dt.timezone.utc),
+          )
+          assert_remote_guard_request_permitted(decision)
+          if decision.state.value == "EXPIRED_UNCONSUMED":
+              print(
+                  "REMOTE_GUARD_RECOVERY: expired receipt is unconsumable; "
+                  "fresh exact identity verified, minting one replacement Guard"
+              )
+          PY
+            else
+              mapfile -t requested_changed_files < /tmp/remote-guard-changed-files.txt
+              expected_claim=".dispatch/claims/issue-${RG_ISSUE}.json"
+              expected_checkpoint=".dispatch/checkpoints/issue-${RG_ISSUE}.json"
+              if [ "$RG_ACTION" != "write" ] || [ "${#requested_changed_files[@]}" -ne 2 ]; then
+                echo "REMOTE_GUARD_REJECTED: LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION" >&2
+                exit 42
+              fi
+              printf '%s\n' "${requested_changed_files[@]}" | sort -u > /tmp/requested-reconcile-files.txt
+              printf '%s\n' "$expected_claim" "$expected_checkpoint" | sort -u > /tmp/expected-reconcile-files.txt
+              cmp -s /tmp/requested-reconcile-files.txt /tmp/expected-reconcile-files.txt || {
+                echo "REMOTE_GUARD_REJECTED: LIVE_CLAIM_HEAD_DRIFT_NOT_RECONCILIATION" >&2
+                exit 42
+              }
+              echo "REMOTE_GUARD_RECONCILE_ONLY: live HEAD differs from claim HEAD; canonical pair reconciliation required"
+            fi
+
             takeover_live_commit_at=""
             rm -f /tmp/remote-run.json /tmp/remote-run-api.json /tmp/remote-run.err /tmp/stale-takeover-decision.json /tmp/stale-takeover.log
             remote_arg=()

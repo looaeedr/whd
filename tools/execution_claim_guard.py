@@ -843,6 +843,77 @@ def _parse_remote_guard_receipt_comment(
     return payload if isinstance(payload, dict) else None
 
 
+def exact_remote_guard_receipts_from_comments(
+    comments: Iterable[Mapping[str, object]],
+    *,
+    issue: int,
+    worker: str,
+    executor_source: str,
+    branch: str,
+    base_sha: str,
+    head_sha: str,
+    claim_blob_sha: str,
+) -> tuple[dict[str, object], ...]:
+    """Select only GREEN receipts bound to the current exact ownership identity."""
+
+    selected: list[dict[str, object]] = []
+    for raw in comments:
+        comment = dict(raw)
+        receipt = _parse_remote_guard_receipt_comment(comment)
+        if receipt is None or receipt.get("result") != "GREEN":
+            continue
+        fixed = (
+            receipt.get("issue") == issue,
+            str(receipt.get("worker") or "") == worker,
+            str(receipt.get("executor_source") or "") == executor_source,
+            str(receipt.get("branch") or "") == branch,
+            str(receipt.get("base_sha") or "") == base_sha,
+            str(receipt.get("head_sha") or "") == head_sha,
+            str(receipt.get("tested_target_sha") or "") == head_sha,
+            str(receipt.get("claim_blob_sha") or "") == claim_blob_sha,
+        )
+        if all(fixed):
+            selected.append(dict(receipt))
+    return tuple(selected)
+
+
+def assert_remote_guard_request_permitted(
+    decision: GuardTransactionDecision,
+    *,
+    reconciliation_request: bool = False,
+) -> None:
+    """Fail closed before minting a second Guard against unresolved current state."""
+
+    if decision.state is GuardTransactionState.PENDING:
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: PENDING_GUARD_TRANSACTION "
+            + _guard_tx_evidence(decision)
+        )
+    if decision.state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: AMBIGUOUS_GUARD_TRANSACTION "
+            f"guard_run_ids={decision.guard_run_ids}"
+        )
+    if decision.state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        if reconciliation_request:
+            return
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: DURABLE_MUTATION_ALREADY_HAPPENED "
+            "required_next_action=RECONCILE_ONLY"
+        )
+    # EXPIRED_UNCONSUMED is permanently unconsumable, but after this workflow has
+    # fresh-read the exact current identity it may mint the one fresh recovery Guard.
+    if decision.state in {
+        GuardTransactionState.NONE,
+        GuardTransactionState.CONSUMED,
+        GuardTransactionState.EXPIRED_UNCONSUMED,
+    }:
+        return
+    raise ExecutionClaimError(
+        f"REMOTE_GUARD_REJECTED: unsupported transaction state {decision.state.value}"
+    )
+
+
 def _reconcile_timestamp_epoch(label: str, value: object) -> float:
     from datetime import datetime
 
