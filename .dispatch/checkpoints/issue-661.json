@@ -2,18 +2,21 @@
   "version": 1,
   "issue": "661",
   "branch": "governance/issue661-final-release-executor-20260925",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "state": "RUNNING",
-  "next_action": "Commit and run one-shot dual canonical guard workflow for #657 CLOSED+RELEASED + #647 reservation TERMINAL handoff.",
-  "run_id": null,
-  "job_id": null,
-  "log_cursor": null,
+  "head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
+  "state": "GREEN",
+  "next_action": "Consume dual guard run 36132610537 to atomically close/release #657 and terminalize #647 helper reservation; then fresh-read and resume #647.",
+  "run_id": 36132610537,
+  "job_id": 108063127364,
+  "log_cursor": "dual child final-release + parent handoff canonical guards GREEN",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
     "#657 is closed/completed with claim worker chatgpt.sol260925.issue657.force2 and checkpoint RELEASE_HANDOFF_PENDING.",
     "#647 active helper reservation default-branch-remote-guard-deploy points to child #657.",
     "Executor may mutate no product/main/X state; only proof generation before final coordination CAS.",
-    "Branch-create Guard run 36132335468 GREEN consumed after fresh readback of governance/issue661-final-release-executor-20260925@3967da33e35e26ba3973e5565af0defe65fa7e12."
+    "Branch-create Guard run 36132335468 GREEN consumed after fresh readback of governance/issue661-final-release-executor-20260925@3967da33e35e26ba3973e5565af0defe65fa7e12.",
+    "One-shot dual guard workflow commit f8cd8dab0df00299433d7076849bfd60d2bb8570 was authorized by Remote Guard run 36132514389.",
+    "Dual canonical guard run 36132610537 GREEN: exact #657 RELEASE_HANDOFF_PENDING pair and exact #647 ACTIVE helper reservation pair both passed execution_claim_guard.py action=write.",
+    "Post-commit reconciliation to f8cd8dab0df00299433d7076849bfd60d2bb8570 authorized by Remote Guard run 36132683143."
   ]
 }

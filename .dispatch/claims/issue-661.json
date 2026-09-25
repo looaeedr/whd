@@ -6,24 +6,24 @@
   "work_branch": "governance/issue661-final-release-executor-20260925",
   "claimed_at": "2026-09-25T11:57:33Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T11:59:05Z",
+  "head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T12:02:40.215793Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Commit one-shot dual canonical guard workflow after fresh commit Guard; workflow must validate #657 final release pair and #647 parent handoff pair without mutating them.",
+  "next_action": "Consume dual canonical guard run 36132610537 in one atomic #657 final release + #647 parent helper terminal handoff coordination commit; then fresh-read both and resume #647 Combined Acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-661.json",
   "last_guard": {
-    "action": "branch-create",
-    "run_id": 36132335468,
-    "request_comment_id": 5831993736,
+    "action": "write",
+    "run_id": 36132683143,
+    "request_comment_id": 5832037362,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "guard_authority_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
     "consumed": true
   },
   "guard_transaction_recovery": {
@@ -39,5 +39,15 @@
       "reconciled": true
     },
     "reconciled": true
+  },
+  "dual_guard_evidence": {
+    "schema": "WHD_ISSUE657_FINAL_RELEASE_PARENT_HANDOFF_GUARD_V1",
+    "run_id": 36132610537,
+    "proof_comment_id": 5832030657,
+    "proof_head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
+    "child_claim_blob_sha": "6f3b2fa6702d80e7831363b7b3694a1c67714344",
+    "child_checkpoint_blob_sha": "92bb63cf3bb39ff74fcd73a8a0d1e44071b42b4f",
+    "parent_claim_blob_sha": "a95306b8eaa2626009085dc284588860755ea711",
+    "parent_checkpoint_blob_sha": "c8b9d2096ed1a9b0784cdc29122da36d7da675fa"
   }
 }
