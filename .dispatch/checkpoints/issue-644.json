@@ -37,10 +37,11 @@
     "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36085632145.",
     "Bound Remote Finalization run 36085751182 GREEN: FINALIZATION_PROOF_VALID; artifact 10843607078; fingerprint 3b80d169cb0b4fcff28a0b42d14e196f4652aa8beb3fc8f7230d0f9531e19856.",
     "Owning Issue #644 fresh-read closed/completed at 2026-09-25T02:19:40Z.",
-    "Closure transition ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36085835731."
+    "Closure transition ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36085835731.",
+    "Final atomic #644 closure authorized by Remote Guard run 36085903906: checkpoint CLOSED + claim RELEASED; successor handoff remains #645."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Final atomic closure: persist checkpoint CLOSED + claim RELEASED while preserving Master #640 successor #645 handoff.",
+  "closure_state": "CLOSED",
+  "closure_next_action": null,
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "645",
