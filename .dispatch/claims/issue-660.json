@@ -6,21 +6,21 @@
   "work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
   "claimed_at": "2026-09-25T11:17:27Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "head_sha": "67545e829e9cec7567e92ffe65f21b63951b7b9e",
+  "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
   "phase": "RECOVERING",
-  "last_update": "2026-09-25T11:46:59.819230Z",
+  "last_update": "2026-09-25T11:50:30Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Run one-shot canonical #657 release-handoff prewrite guard against current claim/checkpoint (ISSUE_CLOSE_PENDING after FINALIZATION_PROOF_VALID + Issue closed/completed), then atomically advance #657 checkpoint to RELEASE_HANDOFF_PENDING.",
+  "next_action": "Repair #660 closure-pair runner permission from issues:read to issues:write and rerun exact #657 RELEASE_HANDOFF_PENDING→CLOSED prewrite. Treat run 36131547470 as closure-logic GREEN with comment-publication permission failure only; do not classify it as logical RED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
-    "action": "write",
-    "run_id": 36131261064,
-    "request_comment_id": 5831853613,
+    "action": "commit",
+    "run_id": 36131422310,
+    "request_comment_id": 5831874537,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "67545e829e9cec7567e92ffe65f21b63951b7b9e",
@@ -28,14 +28,17 @@
   },
   "guard_transaction_recovery": {
     "classification": "MUTATION_DONE_RECONCILE_ONLY",
-    "canonical_guard_run_id": 36128821062,
+    "canonical_guard_run_id": 36131422310,
     "durable_readback": {
-      "guard_run_id": 36128821062,
-      "action": "branch-create",
+      "guard_run_id": 36131422310,
+      "action": "commit",
       "mutation_applied": true,
-      "branch_exists": true,
-      "branch_head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-      "changed_files": [],
+      "parent_sha": "67545e829e9cec7567e92ffe65f21b63951b7b9e",
+      "post_head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
+      "changed_files": [
+        ".github/workflows/qa-issue660-live-issue657-takeover-proof.yml"
+      ],
+      "committed_at": "2026-09-25T11:49:16Z",
       "reconciled": true
     },
     "reconciled": true
@@ -53,5 +56,16 @@
     "proof_head_sha": "979d7f64cc258bdc31f8cbd66c6d14d80c8833fa",
     "takeover_cas_coord_commit": "1cd38028b9a1ef260aa3d0455e1861d71ec31cb3",
     "takeover_claim_blob_sha": "94869fb0d5916393477a91d318d70af5923f50c5"
+  },
+  "closure_pair_runner_observation": {
+    "run_id": 36131547470,
+    "proof_head_sha": "48370003d620d024fb62a6e61b30e72367dc8a77",
+    "canonical_claim_guard": "EXECUTION_CLAIM_GUARD_GREEN",
+    "from_closure_state": "ISSUE_CLOSE_PENDING",
+    "to_closure_state": "RELEASE_HANDOFF_PENDING",
+    "conclusion": "failure",
+    "classification": "COMMENT_PERMISSION_FAILURE_ONLY",
+    "failure": "Resource not accessible by integration (addComment)",
+    "required_fix": "issues: write"
   }
 }
