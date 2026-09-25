@@ -14,17 +14,20 @@
     "Expanded B1 acceptance run 36009308143 completed SUCCESS on tested HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c.",
     "Live work branch HEAD c043e447afc0da533ef965fe82d175e75011d186 is the direct child of tested HEAD and changes only .dispatch/checkpoints/issue-614.json; production/test content is unchanged.",
     "Remote Guard reconciliation run 36166349785 correctly failed because that branch-side metadata commit occurred outside the matching prior GREEN receipt window; no retroactive Guard legalization is claimed.",
-    "Trusted Claim Activation reactivate request 5840699848 / result 5840702000 atomically restored active claim+checkpoint authority at live HEAD c043e447afc0da533ef965fe82d175e75011d186 via coord commit 91f6db1f47ece546db4deae330f891ba0bacd239.",
-    "Closure pair-write Guard run 36198390972 GREEN authorized the exact transition into CLOSING / TERMINAL_SUCCESS / FINALIZATION_PENDING.",
-    "Remote Finalization run 36198526592 verified exact identity successfully, then failed only because canonical authorization requires ISSUE_CLOSE_PENDING before proof generation.",
-    "Closure-state Guard run 36198679037 GREEN authorizes the adjacent FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING pair transition.",
-    "Master #628 fresh-read shows #615 and #616 open with no claims; chain order records #615 as the next executable child after B1 closure."
+    "Trusted Claim Activation reactivate request 5840699848 / result 5840702000 restored active claim+checkpoint authority at live HEAD via coord commit 91f6db1f47ece546db4deae330f891ba0bacd239.",
+    "Closure pair-write Guard run 36198390972 GREEN authorized CLOSING / FINALIZATION_PENDING.",
+    "Remote Finalization run 36198526592 failed only because canonical authorization requires ISSUE_CLOSE_PENDING.",
+    "Closure-state Guard run 36198679037 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36198788666 completed SUCCESS with FINALIZATION_PROOF_VALID and artifact 10891066995.",
+    "Issue #614 closure evidence comment 5840762760 was written; remote readback confirmed state=closed and state_reason=completed at 2026-09-25T22:54:33Z.",
+    "Post-close Guard run 36198872445 GREEN authorizes ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING.",
+    "Master #628 next executable child remains #615."
   ],
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "615",
-  "chain_next_action": "After #614 trusted finalization, Issue close/readback, and claim release, activate/claim #615 B2 under Master #628 using the accepted #614 lineage head c043e447afc0da533ef965fe82d175e75011d186.",
+  "chain_next_action": "After #614 checkpoint CLOSED + claim RELEASED, activate/claim #615 B2 under Master #628 using accepted lineage head c043e447afc0da533ef965fe82d175e75011d186.",
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "run bound finalization proof, close/read back Issue #614, then advance to RELEASE_HANDOFF_PENDING and atomically persist checkpoint CLOSED + claim RELEASED + successor handoff"
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "atomically persist checkpoint CLOSED + claim RELEASED, then activate/claim #615 B2 under Master #628"
 }
