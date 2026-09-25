@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "615",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
+  "state": "RUNNING",
+  "next_action": "Fresh-read #615 B2 authority and existing WorkspaceShell/shared-content ownership, then add the approved UI-R2 RED proving Settings/Diagnostics share one overlay host without reducing allocated canvas size; run the focused RED through the GitHub-only canonical QA path.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Predecessor #614 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
+    "#614 canonical handoff points to #615 at accepted shared work-order HEAD c043e447afc0da533ef965fe82d175e75011d186.",
+    "Master #628 fresh-read lists #615 B2 as open, dependency-unblocked, and required before #622.",
+    "B2 approved RED ID is UI-R2; frozen X base remains b61db24e4428100b7e7d627ae946a04f93ca0f8b."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
