@@ -16,8 +16,9 @@
     "User merged cleanup/2d-3d-sync into main at 156bc20e7b7c331eae2a24d2c46bd984c5959720.",
     "Fresh main readback: Remote Guard keeps split authority fix; Remote Finalization keeps main newer version; Turn Exit workflow blob 67d6dd5f4009c962881485bea7d2179ce09abcc4 contains source $GITHUB_ENV and no literal backslash-n artifact.",
     "Trusted #640 Turn Exit rerun 36148382848 completed SUCCESS with result TURN_EXIT_PERMITTED and scheduler_end_allowed=true.",
-    "Guard run 36148530716 GREEN authorizes this terminal coordination write."
+    "Guard run 36148530716 GREEN authorizes this terminal coordination write.",
+    "Guard run 36148794183 GREEN authorizes FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "advance to ISSUE_CLOSE_PENDING, then mint and verify bound finalization proof, close/read back Issue #663, then atomically persist RELEASED + CLOSED"
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "mint and verify bound finalization proof on this exact checkpoint, close/read back Issue #663 without mutating checkpoint, then advance to RELEASE_HANDOFF_PENDING"
 }
