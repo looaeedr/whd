@@ -37,8 +37,9 @@
     "Merge Guard run 36163655005 GREEN consumed exactly once by non-force merge of PR #670.",
     "PR #670 fresh-read closed/merged; merge commit 6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
     "Production cleanup/2d-3d-sync fresh-read HEAD=6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
-    "Production readback confirms Exit-time recurring automation enable, command activation enable prohibition, and final host-side automation control step rule."
+    "Production readback confirms Exit-time recurring automation enable, command activation enable prohibition, and final host-side automation control step rule.",
+    "Guard run 36164125478 GREEN consumed for adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Obtain exact coordination write Guard and advance this frozen terminal checkpoint to ISSUE_CLOSE_PENDING; then mint/verify trusted remote finalization proof without mutating the checkpoint until Issue close readback."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint/verify trusted remote finalization proof on this exact frozen checkpoint; close Issue #669; fresh-read closed/completed; only then advance to RELEASE_HANDOFF_PENDING."
 }
