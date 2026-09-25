@@ -8,7 +8,7 @@
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T10:31:20Z",
+  "last_update": "2026-09-25T10:32:23.710059Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Terminalize helper reservation default-branch-turn-exit-gate-deploy using complete #653 terminal proof, refresh #647 checkpoint, then resume Combined Acceptance without treating helper deployment as work-order→cleanup integration.",
+  "next_action": "Resume #647 Combined Acceptance: fresh-read main trusted turn-exit workflow against accepted blob, then continue remaining acceptance gates without treating helper deployment as work-order→cleanup integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -41,7 +41,7 @@
     {
       "relationship": "helper",
       "helper_key": "default-branch-turn-exit-gate-deploy",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "chatgpt.sol260925.issue647.a1",
       "reservation_token": "issue647-main-turn-exit-gate-deploy-a1",
       "reserved_at": "2026-09-25T09:21:33Z",
@@ -51,8 +51,8 @@
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36118235171,
-    "request_comment_id": 5830039509,
+    "run_id": 36124513111,
+    "request_comment_id": 5830950222,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
@@ -87,5 +87,17 @@
       "child_claim_blob_sha": "38f444b0c4f08937f14780a89b3720f3f74a9244",
       "child_checkpoint_blob_sha": "939f08512beef038bc0eb00c8ae934257ea92533"
     }
+  },
+  "helper_terminal_evidence": {
+    "helper_issue": 653,
+    "helper_key": "default-branch-turn-exit-gate-deploy",
+    "child_issue_closed_completed": true,
+    "child_claim_released": true,
+    "child_next_action_null": true,
+    "child_checkpoint_closed": true,
+    "child_no_active_run": true,
+    "child_claim_blob_sha": "38f444b0c4f08937f14780a89b3720f3f74a9244",
+    "child_checkpoint_blob_sha": "939f08512beef038bc0eb00c8ae934257ea92533",
+    "helper_final_coord_commit": "1ba557c0b1c43f261c2f7120bca6fa125e3a1702"
   }
 }
