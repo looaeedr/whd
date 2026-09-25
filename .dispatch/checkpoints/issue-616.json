@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "616",
+  "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
+  "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
+  "state": "RUNNING",
+  "next_action": "Fresh-read the authoritative visible scene-commit path and existing family live-switch callbacks on the shared work-order HEAD; add the approved UI-R3 diagnostic-only RED/instrumentation harness that records transition_id, sequence, scene fingerprint, cabinet family, physical inventory fingerprint, and transition stage, then run exact Xvfb reproduction from non-Receiving 3D-visible to Receiving without applying a production behavior fix.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Master #628 B3 authority fresh-read from Issue #616.",
+    "Predecessor #615 terminal handoff is NEXT_CHILD_EXECUTABLE -> #616.",
+    "#615 accepted/released lineage HEAD 952fb35d185530feea5fce81069e6a48d980f12d is the B3 starting authority.",
+    "B3 is diagnostic-only: identify the exact first bad visible commit; do not apply the B4 production behavior fix here."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
