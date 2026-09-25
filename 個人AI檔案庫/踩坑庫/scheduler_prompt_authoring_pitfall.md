@@ -70,3 +70,14 @@ Scheduler prompt 固定：Guard recovery → drift reconciliation → delegated/
 必須明寫 active delegated child = parent liveness、same helper key reuse、equivalent duplicate GREEN dedupe、expired unconsumed GREEN不可 replay、cadence/IDs/lane owner/recurring enabled policy不得因 writeback改動。
 
 Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；interactive counterpart後續必須保存 conversation/chat identity + invocation identity並補 heartbeat。
+
+
+<!-- ISSUE667_END_LIVENESS_V1 -->
+## #667 Scheduler END / unified liveness / interactive takeover
+
+- heartbeat 與 invocation 終態使用 `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` + exact matching `WHD_SCHEDULER_RUNTIME_END_V1`。
+- selector 綁 exact `issue + scheduler_lane + invocation_identity + claim_blob_sha + branch + head_sha`；identity drift fail closed。
+- matching END 後 machine status 是 `ENDED`；active exact remote run 仍是 absolute lock。
+- runtime heartbeat maximum TTL 與 same-lane mutex 統一為 **<=300 秒**；不得另造 420 秒 prompt-only 判斷。
+- user-directed interactive takeover 的 trusted Remote Guard 必須 fresh-read owner-authored `WHD_USER_DIRECTED_TAKEOVER_V1` 並傳給 canonical stale evaluator。
+- `/排程A` / `/排程B` activation 只 enable exact selected lane matching recurring entrypoints；post-update fresh readback，不改 cadence/prompt/title/owner，不碰另一 lane。
