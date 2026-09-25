@@ -33,10 +33,11 @@
     "Tested-head → closing-head drift audit PASS: accba53d9a1695f0db8bb7add610648ad34d5e61 → 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 is exactly one commit removing only the two one-shot QA workflows.",
     "Post-cleanup atomic claim+checkpoint reconciliation to 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085463763.",
     "T4 Task Acceptance terminal-entry authorized by Remote Guard run 36085579239 at closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
-    "Accepted evidence: focused run 36085249106 = 54 passed / 0 failed, cleanup-only drift PASS, permanent whd-turn-exit-gate.yml retained, successor #645 fresh-read open."
+    "Accepted evidence: focused run 36085249106 = 54 passed / 0 failed, cleanup-only drift PASS, permanent whd-turn-exit-gate.yml retained, successor #645 fresh-read open.",
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36085632145."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #644 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, mint/verify exact bound finalization proof, close/read back Issue #644, then atomically persist RELEASE_HANDOFF_PENDING → CLOSED + claim RELEASED while preserving #645 handoff.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify the exact bound Remote Finalization proof for #644 at HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4, then close Issue #644 and fresh-read closed/completed before advancing to RELEASE_HANDOFF_PENDING.",
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "645",
