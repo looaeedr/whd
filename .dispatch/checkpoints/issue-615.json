@@ -36,10 +36,11 @@
     "Closure transition to TERMINAL_SUCCESS / FINALIZATION_PENDING authorized by Remote Guard run 36201570369.",
     "Recovery reactivation required because prior terminal checkpoint omitted required Master-chain handoff state.",
     "Fresh successor discovery selected #616 as NEXT_CHILD_EXECUTABLE; terminal metadata will be rebuilt under Remote Guard after reactivation.",
-    "Canonical terminal handoff repair authorized by Remote Guard run 36201799388: master #628 NEXT_CHILD_EXECUTABLE -> #616."
+    "Canonical terminal handoff repair authorized by Remote Guard run 36201799388: master #628 NEXT_CHILD_EXECUTABLE -> #616.",
+    "Closure-state Guard run 36201875215 GREEN authorized adjacent FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #615, release claim, then immediately start #616.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "run bound trusted finalization proof, close/read back Issue #615, then advance to RELEASE_HANDOFF_PENDING, atomically persist checkpoint CLOSED + claim RELEASED, and activate #616",
   "master_issue": "628",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "616",

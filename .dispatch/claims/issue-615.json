@@ -11,7 +11,7 @@
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T23:38:55Z",
+  "last_update": "2026-09-25T23:40:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Advance canonical terminal checkpoint closure FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING under a fresh exact Remote Guard, then run trusted finalization proof and close/read back #615.",
+  "next_action": "Run trusted WHD Remote Finalization for exact ISSUE_CLOSE_PENDING checkpoint at live HEAD 952fb35d185530feea5fce81069e6a48d980f12d; require FINALIZATION_PROOF_VALID, then close/read back Issue #615, advance to RELEASE_HANDOFF_PENDING, release claim, and immediately activate #616.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -58,7 +58,8 @@
     "Closure transition to TERMINAL_SUCCESS / FINALIZATION_PENDING authorized by Remote Guard run 36201570369.",
     "Remote Guard run 36201623341 correctly FAILed: ACTIVE_CLAIM_REQUIRES_CHECKPOINT because terminal checkpoint had master_issue=628 with missing chain_state handoff.",
     "Fresh discovery: #616 is open, dependency-unblocked, and has no claim/checkpoint; #619 is blocked by #616; #622 remains blocked by #615/#619.",
-    "Canonical terminal handoff repair authorized by Remote Guard run 36201799388: successor #616 is NEXT_CHILD_EXECUTABLE."
+    "Canonical terminal handoff repair authorized by Remote Guard run 36201799388: successor #616 is NEXT_CHILD_EXECUTABLE.",
+    "Closure-state Guard run 36201875215 GREEN authorized adjacent FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
   "remote_qa": {
     "run_id": 36201380480,
@@ -66,5 +67,15 @@
     "status": "completed",
     "conclusion": "success",
     "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36201875215,
+    "request_comment_id": 5841132371,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
+    "consumed": true,
+    "mutation": "atomic claim+checkpoint closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   }
 }
