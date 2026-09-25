@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
-  "phase": "INTEGRATION",
-  "last_update": "2026-09-25T18:18:20Z",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T18:21:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
   "next_action": "Open guarded PR from cleaned #671 head a8093a2b70f817c74491467a2fca7e05f99ea37a into cleanup/2d-3d-sync; verify/merge non-force; then deploy the trusted Claim Activation capability to default branch main before using it to repair #617.",
@@ -54,5 +54,13 @@
     "tested_head": "9e49b8b797415d561a661319e78d3d4029acf6b3",
     "cleaned_head": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
     "only_delta": ".github/workflows/qa-issue671-legacy-checkpoint-repair.yml deleted"
+  },
+  "phase_recovery": {
+    "from": "INTEGRATION",
+    "reason": "INTEGRATION is not in canonical ACTIVE_PHASES; restored through trusted claim activation reactivate",
+    "failed_guard_runs": [
+      36172676362,
+      36172768117
+    ]
   }
 }
