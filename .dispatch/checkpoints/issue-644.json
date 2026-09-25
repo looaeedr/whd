@@ -34,10 +34,13 @@
     "Post-cleanup atomic claim+checkpoint reconciliation to 73ba4f025296b56aacbefe3cb5b8946f8054b2f4 authorized by Remote Guard run 36085463763.",
     "T4 Task Acceptance terminal-entry authorized by Remote Guard run 36085579239 at closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
     "Accepted evidence: focused run 36085249106 = 54 passed / 0 failed, cleanup-only drift PASS, permanent whd-turn-exit-gate.yml retained, successor #645 fresh-read open.",
-    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36085632145."
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36085632145.",
+    "Bound Remote Finalization run 36085751182 GREEN: FINALIZATION_PROOF_VALID; artifact 10843607078; fingerprint 3b80d169cb0b4fcff28a0b42d14e196f4652aa8beb3fc8f7230d0f9531e19856.",
+    "Owning Issue #644 fresh-read closed/completed at 2026-09-25T02:19:40Z.",
+    "Closure transition ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36085835731."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the exact bound Remote Finalization proof for #644 at HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4, then close Issue #644 and fresh-read closed/completed before advancing to RELEASE_HANDOFF_PENDING.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Final atomic closure: persist checkpoint CLOSED + claim RELEASED while preserving Master #640 successor #645 handoff.",
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": "645",

@@ -8,7 +8,7 @@
   "base_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T02:15:00.550344Z",
+  "last_update": "2026-09-25T02:20:20.993747Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -22,7 +22,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Enter #644 terminal Task Acceptance checkpoint at closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4, then follow FINALIZATION_PENDING → ISSUE_CLOSE_PENDING → proof → Issue close/readback → RELEASE_HANDOFF_PENDING → CLOSED+RELEASED with successor #645.",
+  "next_action": "Complete final atomic #644 closure: set checkpoint CLOSED + claim RELEASED while preserving successor #645 handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-644.json",
   "predecessor": {
@@ -94,5 +94,21 @@
       }
     ],
     "permanent_turn_exit_workflow_blob_sha": "41bf76f78c9af8246947939660daf05f525989d8"
-  }
+  },
+  "finalization": {
+    "request_comment_id": 5825603589,
+    "run_id": 36085751182,
+    "artifact_id": 10843607078,
+    "artifact_digest": "sha256:f88fc8c91fe485ebb5b8b8f40c0274ad0166565dbe5d8661c40c62ed5644e115",
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_blob_sha": "edb1f1f802f804c6f47298b3382f47d1bff6d156",
+    "checkpoint_fingerprint": "3b80d169cb0b4fcff28a0b42d14e196f4652aa8beb3fc8f7230d0f9531e19856"
+  },
+  "issue_close_readback": {
+    "state": "closed",
+    "state_reason": "completed",
+    "closed_at": "2026-09-25T02:19:40Z"
+  },
+  "release_handoff_guard_run_id": 36085835731
 }
