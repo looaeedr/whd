@@ -52,7 +52,7 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
         # Initial Phase6 presentation is Assembly. Enter a real part first so
         # unlocking exercises Settings, then switch back to Assembly to exercise
         # Diagnostics through the same overlay host.
-        app.activate_part("box_body")
+        app.activate_part("head")
         root.update_idletasks()
         root.update()
 
@@ -74,6 +74,40 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
             "UI-R2 RED: opening Settings reduced the allocated renderer viewport"
         )
 
+        scroll_canvas = app.settings_panel.settings_scroll_canvas
+        bbox = scroll_canvas.bbox("all")
+        assert bbox is not None
+        assert int(bbox[3] - bbox[1]) > int(scroll_canvas.winfo_height()) > 0
+        before_scroll = tuple(float(v) for v in scroll_canvas.yview())
+        scroll_canvas.yview_moveto(1.0)
+        root.update_idletasks()
+        root.update()
+        after_scroll = tuple(float(v) for v in scroll_canvas.yview())
+        assert after_scroll != before_scroll, (
+            "UI-R2: Settings overlay must preserve real scroll interaction"
+        )
+
+        def descendants(widget):
+            result = []
+            for child in widget.winfo_children():
+                result.append(child)
+                result.extend(descendants(child))
+            return result
+
+        settings_entry = next(
+            widget for widget in descendants(settings)
+            if widget.winfo_class() == "TEntry"
+        )
+        settings_entry.focus_force()
+        root.update_idletasks()
+        root.update()
+        assert root.focus_get() is settings_entry
+        sx = settings_entry.winfo_rootx() + max(1, settings_entry.winfo_width() // 2)
+        sy = settings_entry.winfo_rooty() + max(1, settings_entry.winfo_height() // 2)
+        assert root.winfo_containing(sx, sy) is settings_entry, (
+            "UI-R2: Settings overlay must receive hit-tests above the renderer"
+        )
+
         bridge._phase6_show_assembly(app)
         root.update_idletasks()
         root.update()
@@ -82,6 +116,17 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
         assert overlay.winfo_manager() == "place"
         assert (canvas.winfo_width(), canvas.winfo_height()) == baseline_size, (
             "UI-R2 RED: switching to Diagnostics reduced the allocated renderer viewport"
+        )
+
+        diagnostic_entry = app.assembly_relief_clearance_entry
+        diagnostic_entry.focus_force()
+        root.update_idletasks()
+        root.update()
+        assert root.focus_get() is diagnostic_entry
+        dx = diagnostic_entry.winfo_rootx() + max(1, diagnostic_entry.winfo_width() // 2)
+        dy = diagnostic_entry.winfo_rooty() + max(1, diagnostic_entry.winfo_height() // 2)
+        assert root.winfo_containing(dx, dy) is diagnostic_entry, (
+            "UI-R2: Diagnostics overlay must receive hit-tests above the renderer"
         )
     finally:
         root.destroy()
