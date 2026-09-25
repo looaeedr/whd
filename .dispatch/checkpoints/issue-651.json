@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "651",
   "branch": "governance/issue651-equivalent-duplicate-green-20260925",
-  "head_sha": "27396d0c8cf828b567529f01c74293ab2995861b",
+  "head_sha": "fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35",
   "state": "RUNNING",
-  "next_action": "Complete governance writeback, then final drift audit and non-force integration to the #640 work-order branch.",
+  "next_action": "Open #651 non-force integration PR to the fresh #640 work-order target under pr-write Guard.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -25,6 +25,9 @@
     "Post-fix coordination reconcile Guard run 36097476759 GREEN.",
     "Cleanup commit 27396d0c8cf828b567529f01c74293ab2995861b removes only .github/workflows/qa-issue651-red.yml.",
     "Tested-to-cleaned compare 6435ce37..27396d0: exactly one removed workflow file; production and process tests unchanged.",
-    "Cleanup coordination reconcile Guard run 36097585632 GREEN."
+    "Cleanup coordination reconcile Guard run 36097585632 GREEN.",
+    "AI Library writeback commit fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35 adds EQUIVALENT_DUPLICATE_GREEN_PITFALL_V1.",
+    "Final tested-to-closing drift: only one-shot workflow removal and AI pitfall writeback; production/test bytes remain the 23-pass GREEN version.",
+    "Closing-head coordination reconcile Guard run 36097743102 GREEN."
   ]
 }
