@@ -26,8 +26,9 @@
     "Remote Guard run 36101733028 authorized closure transition to ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36101860673 completed success with FINALIZATION_PROOF_VALID on fingerprint 4c9923d92c60f9bc1cc3b786a5bbef9e1304599f9b7b7d15771263a9db9a79d8.",
     "Issue #651 fresh readback confirmed closed/completed at 2026-09-25T06:13:27Z.",
-    "Remote Guard run 36101933923 authorized closure transition to RELEASE_HANDOFF_PENDING."
+    "Remote Guard run 36101933923 authorized closure transition to RELEASE_HANDOFF_PENDING.",
+    "Remote Guard run 36102008693 authorized final atomic checkpoint CLOSED + claim RELEASED handoff."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint CLOSED plus claim RELEASED, then return to #640 work-order continuity."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
