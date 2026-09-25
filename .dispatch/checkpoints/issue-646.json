@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "646",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "8fdf3f94d5af873575b2185cedd2327c191cb77f",
+  "head_sha": "4840a9e70fa74398c4dc884f4313ceca609f89c0",
   "state": "RUNNING",
-  "next_action": "Fix the single stale checkpoint-only assert_turn_exitable(checkpoint) prose/example in executable-continuity-controller Skill, rerun #646 focused QA, require process tests + static contract GREEN, then remove the one-shot QA workflow and enter closure/handoff.",
+  "next_action": "Remove the one-shot .github/workflows/qa-issue646-t6-green.yml under a fresh exact Guard, reconcile the cleanup HEAD, then enter the canonical #646 closure transaction and hand off to #647.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,6 +24,9 @@
     "Post-spec claim/checkpoint reconciliation to e117ae5581cdb74ab5c0189e8fc01785344eb1be authorized by Remote Guard run 36111424769.",
     "One-shot #646 focused QA workflow added in commit 8fdf3f94d5af873575b2185cedd2327c191cb77f under Guard run 36111621665.",
     "RED run 36111725175 at 8fdf3f94d5af873575b2185cedd2327c191cb77f: all 119 focused process tests PASS; static writeback gate FAIL only on stale checkpoint-only literal assert_turn_exitable(checkpoint) remaining in executable-continuity-controller Skill.",
-    "Post-QA-workflow claim/checkpoint reconciliation to 8fdf3f94d5af873575b2185cedd2327c191cb77f authorized by Remote Guard run 36111759340."
+    "Post-QA-workflow claim/checkpoint reconciliation to 8fdf3f94d5af873575b2185cedd2327c191cb77f authorized by Remote Guard run 36111759340.",
+    "Fix commit 4840a9e70fa74398c4dc884f4313ceca609f89c0 removed the last stale checkpoint-only assert_turn_exitable(checkpoint) call under Remote Guard run 36111873134.",
+    "Focused GREEN run 36111931353 at 4840a9e70fa74398c4dc884f4313ceca609f89c0: 119 process tests PASS and ISSUE646_STATIC_WRITEBACK=PASS.",
+    "Post-fix claim/checkpoint reconciliation to 4840a9e70fa74398c4dc884f4313ceca609f89c0 authorized by Remote Guard run 36112063102."
   ]
 }
