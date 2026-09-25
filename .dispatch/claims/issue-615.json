@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-25T22:57:00Z",
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "head_sha": "c68dc35074a12dcbaf1c75adcc248948142afe83",
-  "phase": "RED",
-  "last_update": "2026-09-25T23:10:45Z",
+  "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-25T23:12:54Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -19,13 +19,13 @@
   "parent_issue": 628,
   "expected_parent_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "chain_head": "c68dc35074a12dcbaf1c75adcc248948142afe83",
+  "chain_head": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
   "approved_red_ids": [
     "UI-R2"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Run the focused UI-R2 RED on exact HEAD c68dc35074a12dcbaf1c75adcc248948142afe83 through the GitHub-only canonical QA path; capture terminal RED evidence, then implement the minimal WorkspaceShell-owned viewport overlay without changing canonical settings/diagnostics state ownership.",
+  "next_action": "Lock exact GitHub Actions run 36200056277 at head_sha 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 and poll it to terminal. If it fails at the UI-R2 assertion, record requirement RED evidence and implement the minimal WorkspaceShell-owned viewport overlay; if it fails in setup/harness, repair the harness without counting it as requirement RED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -37,6 +37,16 @@
   },
   "evidence": [
     "UI-R2 requirement RED committed on work-order branch at c68dc35074a12dcbaf1c75adcc248948142afe83 under Remote Guard run 36199780292.",
-    "Post-commit canonical pair reconciliation authorized by Remote Guard run 36199926353."
-  ]
+    "Post-commit canonical pair reconciliation authorized by Remote Guard run 36199926353.",
+    "Focused #615 UI-R2 Xvfb workflow committed at 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 under Remote Guard run 36200024852.",
+    "Exact push QA run 36200056277 created for head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34.",
+    "Post-commit pair reconciliation to QA head authorized by Remote Guard run 36200077895."
+  ],
+  "remote_qa": {
+    "run_id": 36200056277,
+    "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
+    "status": "in_progress",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
+  }
 }
