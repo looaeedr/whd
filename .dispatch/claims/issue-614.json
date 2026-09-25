@@ -11,7 +11,7 @@
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T22:49:00Z",
+  "last_update": "2026-09-25T22:53:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -24,7 +24,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Run trusted WHD Remote Finalization for the exact TERMINAL_SUCCESS checkpoint at live HEAD c043e447afc0da533ef965fe82d175e75011d186; on valid machine proof close/read back Issue #614, persist RELEASE_HANDOFF_PENDING then atomic CLOSED + claim RELEASED, and hand off Master #628 to #615.",
+  "next_action": "Run trusted WHD Remote Finalization for the exact ISSUE_CLOSE_PENDING terminal checkpoint at live HEAD c043e447afc0da533ef965fe82d175e75011d186; require FINALIZATION_PROOF_VALID, then close/read back Issue #614, advance to RELEASE_HANDOFF_PENDING, atomically persist checkpoint CLOSED + claim RELEASED, and activate #615.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -51,6 +51,12 @@
       "activation_request_comment_id": 5840699848,
       "activation_result_comment_id": 5840702000,
       "activation_coord_commit": "91f6db1f47ece546db4deae330f891ba0bacd239"
+    },
+    "finalization_order_recovery": {
+      "failed_run_id": 36198526592,
+      "failed_step": "Authorize finalization",
+      "reason": "finalization proof authorization requires closure_state=ISSUE_CLOSE_PENDING; actual=FINALIZATION_PENDING",
+      "corrective_transition": "FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
     }
   },
   "green_candidate": {
@@ -75,12 +81,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36198390972,
-    "request_comment_id": 5840708943,
+    "run_id": 36198679037,
+    "request_comment_id": 5840742024,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+    "guard_authority_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
     "consumed": true,
-    "mutation": "atomic claim+checkpoint transition to CLOSING / FINALIZATION_PENDING"
+    "mutation": "atomic claim+checkpoint closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING"
   }
 }
