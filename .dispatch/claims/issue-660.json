@@ -1,0 +1,20 @@
+{
+  "issue": 660,
+  "issue_url": "https://github.com/looaeedr/whd/issues/660",
+  "worker": "chatgpt.sol260925.issue660.proof",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue660-live-issue657-takeover-proof-20260925",
+  "claimed_at": "2026-09-25T11:17:27Z",
+  "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T11:17:27Z",
+  "production_target": "governance-proof",
+  "master_issue": 640,
+  "parent_issue": 647,
+  "proof_target_issue": 657,
+  "delegated_branches": [],
+  "next_action": "Obtain branch-create Guard, create one-shot proof branch, commit the exact user-directed takeover proof workflow, run it to terminal, and use GREEN proof only for #657 optimistic claim CAS.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-660.json"
+}
