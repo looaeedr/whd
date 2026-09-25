@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issue": "648",
+  "branch": "governance/issue648-takeover-timestamp-precision-20260925",
+  "head_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "state": "RUNNING",
+  "next_action": "Guard-create governance repair branch from exact production HEAD; add fractional-second takeover evidence regression, preserve exact claim timestamp precision, run focused GREEN, non-force integrate, then return to #645 stale takeover.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Blocking #645 stale takeover run 36088862272 classified EXECUTOR_STUCK/actionable=true but failed only because fractional claim last_update precision was truncated in evaluator evidence.",
+    "Issue #648 owns the narrow governance capability repair."
+  ]
+}
