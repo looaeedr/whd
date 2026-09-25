@@ -197,10 +197,14 @@ def test_remote_guard_supports_user_directed_interactive_takeover() -> None:
     assert "WHD_USER_DIRECTED_TAKEOVER_V1" in remote_skill
 
 
-def test_scheduler_simulation_activation_enables_only_matching_lane() -> None:
+def test_scheduler_simulation_enables_only_matching_lane_at_turn_exit() -> None:
     skill = (
         ROOT / ".agents" / "skills" / "engineering" / "排程模擬" / "SKILL.md"
     ).read_text(encoding="utf-8")
+    assert "Exit-time recurring automation enable" in skill
+    assert "EXIT_TIME_SCHEDULER_ENABLE_GATE" in skill
+    assert "不得在 command activation 階段 enable" in skill
+    assert "允許的 turn exit 前最後一個 host-side automation control step" in skill
     assert "SCHEDULER_ENABLE_ESTABLISHED" in skill
     assert "is_enabled=true" in skill
     assert "00 / 20 / 40" in skill
@@ -208,7 +212,9 @@ def test_scheduler_simulation_activation_enables_only_matching_lane() -> None:
     assert "不得修改 cadence" in skill
     assert "300 秒" in skill
     assert "420" not in skill
-    assert "不自動 enable/disable/reschedule 任何 automation" not in skill
+    assert "Activation-time recurring automation enable" not in skill
+    assert "`/排程A` 啟動時只允許" not in skill
+    assert "`/排程B` 啟動時只允許" not in skill
 
 
 def test_registry_routes_explicit_force_takeover_skill() -> None:

@@ -51,17 +51,22 @@ B15 / B45 是同一 durable B lane；entrypoint 不是 owner。
 
 不得因本 Skill 已記 lane id 就跳過 fresh read。
 
-## 1.1 Activation-time recurring automation enable
+## 1.1 Exit-time recurring automation enable
 
-`/排程A` 或 `/排程B` 被使用者明確啟動時，先把對應 durable lane 的 recurring automations 打開，再進 ownership/resume。
+<!-- EXIT_TIME_SCHEDULER_ENABLE_GATE -->
 
-1. fresh-read/list live automations；不得只靠 title 猜 identity。
+`/排程A` 或 `/排程B` 被使用者明確啟動時，先確認所選 durable lane 的 live automation identity/profile，但**不得在 command activation 階段 enable**。互動式 ownership/resume/施工期間不因命令啟動而改變 recurring enable state；本 gate 的目的，是避免同一 lane 的 scheduled trigger 與本輪 interactive runtime 在施工中重疊，同時確保本輪結束後 recurring lane 重新可喚醒。
+
+1. command start fresh-read/list live automations；不得只靠 title 猜 identity。
 2. 依 exact `lane_owner` + entrypoint profile 找 matching set：A = `00 / 20 / 40`；B = `B15 / B45`。
-3. matching set 缺少、重複、lane owner 漂移或 prompt profile 不一致 → `SCHEDULER_PROFILE_DRIFT`，fail closed。
-4. 只把 matching set 中 `is_enabled=false` 的 entrypoint 更新成 `is_enabled=true`；已 enabled 則 no-op。
-5. **不得修改 cadence、timing_mode、prompt、title、entrypoint id、lane owner**；不得 enable 另一 lane。
-6. update 後 fresh-read matching set；全部 `is_enabled=true` 才成立 `SCHEDULER_ENABLE_ESTABLISHED`。
-7. automation control capability 不可用時回 `SCHEDULER_ENABLE_UNAVAILABLE`，不得假稱已開啟。
+3. matching set 缺少、重複、lane owner 漂移或 prompt profile 不一致 → `SCHEDULER_PROFILE_DRIFT`，fail closed；不得以猜測 title/entrypoint 補洞。
+4. command start 只記錄 matching set 的目前 `is_enabled` 狀態：已 enabled 不自動 disable，已 disabled 也不因 activation 自動 enable。
+5. 先完成本輪所有 GitHub durable work、Guard consume/readback、claim/checkpoint reconciliation、必要 QA/finalization、以及可執行的 Chat UI handoff；canonical turn-exit gate 未允許結束時，不得提前進入 enable step。
+6. 當 canonical authority 已允許本 invocation return / handoff，才執行 **允許的 turn exit 前最後一個 host-side automation control step**：只把所選 lane matching set 中仍為 `is_enabled=false` 的 entrypoint 更新成 `is_enabled=true`；已 enabled 則 no-op。
+7. **不得修改 cadence、timing_mode、prompt、title、entrypoint id、lane owner**；不得 enable、disable 或改寫另一 lane。
+8. update 後立即 fresh-read matching set；全部 `is_enabled=true` 才成立 `SCHEDULER_ENABLE_ESTABLISHED`。此 readback 是 exit gate 的一部分，不得只相信 update API 回傳。
+9. `SCHEDULER_ENABLE_ESTABLISHED` 後不得再做 repository/claim/checkpoint/Issue/PR/workflow/Chat UI mutation；只允許輸出最終狀態並 return。若在 return 前又發現新的 substantive next_action，回到施工流程，待下一次真正允許 exit 時重新執行本 gate。
+10. automation control capability 不可用時回 `SCHEDULER_ENABLE_UNAVAILABLE`，不得假稱已開啟；matching set identity 不成立時回 `SCHEDULER_PROFILE_DRIFT`。
 
 ## 2. Identity contract
 
@@ -146,7 +151,7 @@ A 模擬目前 `00` 的施工語意，且與 `20/40` 共用同一 lane owner。
 8. **SUBSTANTIVE CONTINUITY**：heartbeat/CHECKPOINT/Guard/QA PASS 都不是 substantive completion；exact next_action 可做就繼續。
 9. **TURN EXIT / FINALIZATION**：canonical turn-exit gate 未放行不得正常 return；terminal child 仍需 closure/release/successor handoff。
 
-`/排程A` 啟動時只允許把 exact A lane 的 00/20/40 設為 `is_enabled=true`；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
+`/排程A` 只有在本輪 canonical gate 已允許結束時，才於 exit-time final step 把 exact A lane 的 00/20/40 設為 `is_enabled=true`；command activation 不 enable；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
 
 ## 5. B profile — /排程B
 
@@ -159,7 +164,7 @@ B 保留 A 的全部核心 gate，另外必須保留 B lane 的平行施工限�
 - 已有 active owner、dependency blocked、共享不可平行 scope、exclusive integration/finalization gate 的候選一律跳過。
 - 不同 lane identity 絕不是搶同一 scope 的許可。
 
-`/排程B` 啟動時只允許把 exact B lane 的 B15/B45 設為 `is_enabled=true`；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
+`/排程B` 只有在本輪 canonical gate 已允許結束時，才於 exit-time final step 把 exact B lane 的 B15/B45 設為 `is_enabled=true`；command activation 不 enable；不得修改 cadence、timing_mode、prompt、automation id 或 lane owner。
 
 ## 6. Chat UI handoff
 
@@ -260,6 +265,7 @@ head_sha=<exact>
 guard_transaction=<exact classification>
 resume_mode=SAME_LANE_RESUME|NEW_CLAIM|GUARDED_TAKEOVER|BLOCKED
 chat_ui_handoff=COMPLETE|UNAVAILABLE|PARTIAL|NOT_STARTED
+scheduler_enable=UNCHANGED_DURING_RUN|SCHEDULER_ENABLE_ESTABLISHED|SCHEDULER_ENABLE_UNAVAILABLE|SCHEDULER_PROFILE_DRIFT
 next_action=<exact>
 ```
 
@@ -274,4 +280,5 @@ next_action=<exact>
 - 不用 `NEW排程A/B` 判斷 GitHub owner。
 - 不因 UI handoff 做不到就回滾已合法建立的 durable lane resume。
 - 不因 UI handoff 成功就宣稱 GitHub takeover 成功。
-- 除 activation-time 將所選 lane matching recurring entrypoints 設為 `is_enabled=true` 外，不自動 disable、reschedule 或改寫任何 automation；另一 lane絕不碰。
+- 禁止在 command activation 階段把所選 lane 從 disabled 改成 enabled；activation 只 fresh-read/verify identity/profile。
+- 除 exit-time final gate 將所選 lane matching recurring entrypoints 設為 `is_enabled=true` 外，不自動 enable、disable、reschedule 或改寫任何 automation；另一 lane 絕不碰。
