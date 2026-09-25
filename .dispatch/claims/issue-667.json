@@ -8,16 +8,16 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "2c6bb1e51f68dbcf62250edef49f3e4747dd5ef2",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T15:49:10Z",
+  "last_update": "2026-09-25T15:53:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run trusted finalization on the exact immutable ISSUE_CLOSE_PENDING checkpoint, then close/read back Issue #667 without mutating checkpoint.",
+  "next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED in one commit and fresh-read terminal state.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-667.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36156672082,
-    "request_comment_id": 5835263278,
+    "run_id": 36157148383,
+    "request_comment_id": 5835322981,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -70,5 +70,18 @@
     "merged": true,
     "merge_commit_sha": "68b920967c438679c0841123571230a66b013877",
     "production_head": "68b920967c438679c0841123571230a66b013877"
+  },
+  "finalization": {
+    "run_id": 36157020407,
+    "result": "success",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "artifact_id": 10873494034,
+    "checkpoint_blob_sha": "3caf0f1f46ac6960bba1f7497034201acee620dd",
+    "checkpoint_fingerprint": "90ed83ecab62d4f8e3aef0d4f94f3914219cf300a2913eec0def228e8bfc302c",
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-25T15:52:33Z"
+    }
   }
 }

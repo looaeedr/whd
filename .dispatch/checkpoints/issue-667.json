@@ -32,8 +32,11 @@
     "PR #668 fresh-read merged/closed; merge commit 68b920967c438679c0841123571230a66b013877.",
     "Production cleanup/2d-3d-sync fresh-read HEAD=68b920967c438679c0841123571230a66b013877.",
     "Production readback: 強制接手 Skill present; 排程模擬 SCHEDULER_ENABLE_ESTABLISHED/is_enabled=true present; 派工 420 occurrences=0; scheduler END support present; trusted interactive takeover transport present.",
-    "Guard run 36156672082 GREEN consumed for adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Guard run 36156672082 GREEN consumed for adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted finalization run 36157020407 completed/success; FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID on exact frozen checkpoint fingerprint 90ed83ecab62d4f8e3aef0d4f94f3914219cf300a2913eec0def228e8bfc302c; artifact 10873494034.",
+    "Owning Issue #667 fresh-read closed/completed at 2026-09-25T15:52:33Z; checkpoint blob remained exactly 3caf0f1f46ac6960bba1f7497034201acee620dd across proof -> Issue close boundary.",
+    "Guard run 36157148383 GREEN consumed for adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted authorize-finalization + verify-finalization-proof on this exact checkpoint; if GREEN, close Issue #667 and fresh-read closed/completed without checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED; fresh-read both terminal states."
 }
