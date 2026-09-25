@@ -1,0 +1,17 @@
+{
+  "issue": 667,
+  "issue_url": "https://github.com/looaeedr/whd/issues/667",
+  "worker": "chatgpt.sol260925.issue667.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue667-force-takeover-liveness-20260925",
+  "claimed_at": "2026-09-25T15:08:30Z",
+  "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T15:08:30Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "delegated_branches": [],
+  "next_action": "Obtain exact branch-create Guard, create work branch from frozen cleanup/2d-3d-sync HEAD, then run Skill mutation Preflight for the full planned changed-file set and establish RED.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-667.json"
+}
