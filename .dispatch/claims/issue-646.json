@@ -1,0 +1,40 @@
+{
+  "issue": 646,
+  "issue_url": "https://github.com/looaeedr/whd/issues/646",
+  "worker": "chatgpt.sol260925.issue646.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-25T07:03:13Z",
+  "base_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "head_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T07:03:13Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "master_issue": 640,
+  "task_id": "T6",
+  "expected_parent_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "approved_red_ids": [
+    "RED-CLOSE-01",
+    "RED-CLOSE-02",
+    "RED-CLOSE-03",
+    "RED-HELPER-01",
+    "RED-HELPER-02"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Fresh-read final accepted #641-#645 machine behavior plus current scheduler prompts/Skills/docs/AI Library; build the #646 writeback/readback matrix, then apply only governance-surface synchronization without changing cadence, automation IDs, lane owners, or machine ownership.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-646.json",
+  "predecessor": {
+    "issue": 645,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+    "finalization_run_id": 36103701082,
+    "final_release_guard_run_id": 36105575802
+  }
+}

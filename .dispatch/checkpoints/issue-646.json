@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "646",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "state": "RUNNING",
+  "next_action": "Fresh-read final accepted #641-#645 machine behavior plus current scheduler prompts/Skills/docs/AI Library; build the #646 writeback/readback matrix before the first governance mutation.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "#645 fresh readback: Issue closed/completed, checkpoint CLOSED, claim RELEASED.",
+    "#645 accepted work-order HEAD is d254729ec20f0d5da8542cf778c7cc0115abb776.",
+    "#645 finalization run 36103701082 succeeded; final atomic release Guard run 36105575802 GREEN.",
+    "Canonical successor handoff from #645 points to #646.",
+    "Current X observation only: cleanup/2d-3d-sync@5822ab30360dfcf09e21408584c3da100baafd37; #646 base remains the work-order accepted HEAD and does not chase X."
+  ]
+}
