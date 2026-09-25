@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-25T22:24:00Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T23:00:20Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T23:07:00Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED; fresh-read child terminal proof and terminalize parent #671 helper reservation.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
@@ -27,12 +27,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36199194557,
-    "request_comment_id": 5840808525,
+    "run_id": 36199309941,
+    "request_comment_id": 5840820896,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advanced closure to RELEASE_HANDOFF_PENDING"
+    "mutation": "final atomic checkpoint CLOSED + claim RELEASED"
   },
   "deployment_candidate": {
     "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
@@ -114,5 +114,14 @@
       "state_reason": "completed",
       "closed_at": "2026-09-25T22:59:17Z"
     }
+  },
+  "final_release": {
+    "checkpoint_state": "TERMINAL_SUCCESS",
+    "closure_state": "CLOSED",
+    "issue_state": "closed",
+    "issue_state_reason": "completed",
+    "production_head": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
+    "pr": 674,
+    "finalization_run_id": 36199023659
   }
 }
