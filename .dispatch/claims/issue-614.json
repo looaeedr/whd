@@ -3,12 +3,15 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/614",
   "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "executor_source": "scheduler",
+  "actual_invocation_source": "chatgpt_interactive",
+  "invocation_identity": "chat.scheduleB.20260925T2240Z",
+  "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
-  "head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+  "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "phase": "RECOVERING",
-  "last_update": "2026-09-24T22:44:20+08:00",
+  "last_update": "2026-09-25T22:40:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -21,7 +24,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Create canonical terminal checkpoint .dispatch/checkpoints/issue-614.json for exact head 920608d87de7d7ccb3a31eebb628cec2fc437c8c, then run WHD Remote Finalization authorize+verify proof before closing/readback Issue #614; after closure advance Master #628 to its next executable child.",
+  "next_action": "Use trusted Remote Guard at live HEAD c043e447afc0da533ef965fe82d175e75011d186 to persist the canonical terminal closure checkpoint/claim pair with closure_state=FINALIZATION_PENDING, preserving accepted QA evidence from tested HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c; then run trusted Remote Finalization, close/read back Issue #614, release the claim, and advance Master #628.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -35,7 +38,17 @@
     "run_id": 36006117561,
     "ui_reachability": "PASS",
     "remaining_failure": "validation instrumentation only: BoxBodyPieceRenderData has no .scene",
-    "production_fix_commit": "7061f0cfc8d9c35e61c777751506675f97b289eb"
+    "production_fix_commit": "7061f0cfc8d9c35e61c777751506675f97b289eb",
+    "authority_recovery": {
+      "live_head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
+      "prior_claim_head_sha": "920608d87de7d7ccb3a31eebb628cec2fc437c8c",
+      "drift_commit_scope": [
+        ".dispatch/checkpoints/issue-614.json"
+      ],
+      "failed_reconcile_guard_run": 36166349785,
+      "failed_reconcile_reason": "matching prior GREEN mutation receipt was outside the commit receipt window",
+      "recovery_path": "trusted Claim Activation transition=reactivate"
+    }
   },
   "green_candidate": {
     "ui_run": 36006772873,
@@ -59,11 +72,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36014927971,
-    "request_comment_id": 5816347065,
-    "result": "GREEN",
-    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "2ec51eb8f777cbfd8c3485efd68487d264854eba",
-    "consumed": true
+    "run_id": 36166349785,
+    "request_comment_id": 5836508740,
+    "result": "FAIL",
+    "reason": "REMOTE_GUARD_FAILED",
+    "guard_authority_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+    "consumed": false
   }
 }
