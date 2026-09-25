@@ -15,10 +15,11 @@
     "Cleanup commit 8909143569bf1e23d3fd6ef563e57c3a20992638 removed the one-shot #646 QA workflow.",
     "Tested-to-closing drift is limited to removal of .github/workflows/qa-issue646-t6-green.yml.",
     "Post-cleanup claim/checkpoint reconciliation was authorized by Remote Guard run 36114010762.",
-    "Remote Guard run 36114181466 GREEN authorized terminal checkpoint entry for #646."
+    "Remote Guard run 36114181466 GREEN authorized terminal checkpoint entry for #646.",
+    "Remote Guard run 36116927902 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING for #646."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #646 terminal checkpoint to ISSUE_CLOSE_PENDING; only then mint trusted Remote Finalization proof.",
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization for #646 on this exact checkpoint, verify the bound proof, then close Issue #646 and fresh-read closed/completed before RELEASE_HANDOFF_PENDING.",
   "master_issue": 640,
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 647,
