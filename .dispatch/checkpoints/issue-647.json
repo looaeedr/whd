@@ -68,10 +68,13 @@
     "Integration pr-write transaction run 36136772741 reconciled as MUTATION_DONE_RECONCILE_ONLY; integration was not replayed.",
     "Remote Guard run 36137057903 GREEN authorized #647 terminal checkpoint entry after Combined Acceptance, cleanup drift audit, final non-force integration, and production readback all passed.",
     "Master chain continuation set to CHAIN_COMPLETE because #647 is the final child of #640.",
-    "Remote Guard run 36137240178 GREEN authorized FINALIZATION_PENDING → ISSUE_CLOSE_PENDING for #647."
+    "Remote Guard run 36137240178 GREEN authorized FINALIZATION_PENDING → ISSUE_CLOSE_PENDING for #647.",
+    "Trusted Remote Finalization run 36137780741 completed SUCCESS with FINALIZATION_PROOF_VALID for canonical checkpoint fingerprint 3bb19dbf2af1aca4a25f66bd01315cfbc97706c308549ee3ad9cad844436f51e; artifact 10865543593.",
+    "Issue #647 fresh readback confirmed closed/completed at 2026-09-25T12:56:30Z.",
+    "Remote Guard run 36137923453 GREEN authorized ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING for #647."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization on this exact frozen checkpoint; after FINALIZATION_PROOF_VALID close Issue #647 without further checkpoint mutation.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Final atomic coordination mutation: set checkpoint CLOSED and claim RELEASED with CHAIN_COMPLETE retained; then fresh-read and continue Master #640 closure.",
   "master_issue": 640,
   "chain_state": "CHAIN_COMPLETE"
 }
