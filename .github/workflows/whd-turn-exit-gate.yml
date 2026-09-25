@@ -1,0 +1,273 @@
+name: WHD Remote Turn Exit Gate
+run-name: "WHD｜工單 #${{ github.event.issue.number }}｜Turn Exit Gate"
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  turn-exit:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, 'WHD_REMOTE_TURN_EXIT_REQUEST_V1')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted workflow repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fresh-read durable authority and execute canonical gate
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          EVENT_ISSUE: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          body = os.environ["COMMENT_BODY"].replace("\r\n", "\n")
+          lines = body.split("\n")
+          if not lines or lines[0].strip() != "WHD_REMOTE_TURN_EXIT_REQUEST_V1":
+              raise SystemExit("invalid turn-exit request marker")
+          required = {
+              "issue", "worker", "invocation_identity", "branch", "head_sha",
+              "claim_blob_sha", "checkpoint_blob_sha", "checkpoint_fingerprint",
+              "guard_authority_sha",
+          }
+          values = {}
+          for raw in lines[1:]:
+              if not raw.strip():
+                  continue
+              if "=" not in raw:
+                  raise SystemExit(f"malformed request line: {raw!r}")
+              key, value = raw.split("=", 1)
+              key, value = key.strip(), value.strip()
+              if key not in required or key in values:
+                  raise SystemExit(f"unsupported/duplicate request key: {key}")
+              values[key] = value
+          missing = sorted(required - set(values))
+          if missing:
+              raise SystemExit(f"missing turn-exit request keys: {missing}")
+          if os.environ["COMMENT_AUTHOR"] != os.environ["REPOSITORY_OWNER"]:
+              raise SystemExit("turn-exit requests are restricted to repository owner")
+          if int(values["issue"]) != int(os.environ["EVENT_ISSUE"]):
+              raise SystemExit("turn-exit issue mismatch")
+          for key in ("head_sha", "claim_blob_sha", "checkpoint_blob_sha", "guard_authority_sha"):
+              if not re.fullmatch(r"[0-9a-f]{40}", values[key]):
+                  raise SystemExit(f"invalid SHA: {key}")
+          if not re.fullmatch(r"[0-9a-f]{64}", values["checkpoint_fingerprint"]):
+              raise SystemExit("invalid checkpoint fingerprint")
+          Path("/tmp/turn-exit-request.json").write_text(
+              json.dumps({
+                  **values,
+                  "issue": int(values["issue"]),
+                  "request_comment_id": int(os.environ["COMMENT_ID"]),
+              }, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as fh:
+              for key, value in values.items():
+                  fh.write(f"TE_{key.upper()}={value}\n")
+          PY
+
+          git fetch --no-tags origin "$TE_GUARD_AUTHORITY_SHA"
+          git checkout --detach "$TE_GUARD_AUTHORITY_SHA"
+          test "$(git rev-parse HEAD)" = "$TE_GUARD_AUTHORITY_SHA"
+          test -f tools/continuity_controller.py
+          test -f tools/execution_claim_guard.py
+          test -f tools/stale_claim_takeover.py
+
+          git fetch --no-tags origin coord/dispatch-claims:refs/remotes/origin/coord/dispatch-claims
+          claim_path=".dispatch/claims/issue-${TE_ISSUE}.json"
+          checkpoint_path=".dispatch/checkpoints/issue-${TE_ISSUE}.json"
+          test "$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${claim_path}")" = "$TE_CLAIM_BLOB_SHA"
+          test "$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${checkpoint_path}")" = "$TE_CHECKPOINT_BLOB_SHA"
+          git show "refs/remotes/origin/coord/dispatch-claims:${claim_path}" > /tmp/claim.json
+          git show "refs/remotes/origin/coord/dispatch-claims:${checkpoint_path}" > /tmp/checkpoint.json
+
+          live_head="$(git ls-remote origin "refs/heads/${TE_BRANCH}" | awk '{print $1}')"
+          test -n "$live_head"
+          test "$live_head" = "$TE_HEAD_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$TE_ISSUE" > /tmp/issue.json
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/issues/$TE_ISSUE/comments?per_page=100" > /tmp/comments.json
+
+          LIVE_HEAD="$live_head" python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from tools.continuity_controller import (
+              TurnExitBlocked,
+              checkpoint_fingerprint,
+              evaluate_remote_turn_exit_from_durable_state,
+              load_checkpoint,
+          )
+          from tools.execution_claim_guard import (
+              _parse_remote_guard_receipt_comment,
+              classify_guard_transaction,
+          )
+
+          request = json.loads(Path("/tmp/turn-exit-request.json").read_text(encoding="utf-8"))
+          claim = json.loads(Path("/tmp/claim.json").read_text(encoding="utf-8"))
+          checkpoint = load_checkpoint(Path("/tmp/checkpoint.json"))
+          fingerprint = checkpoint_fingerprint(checkpoint)
+          if fingerprint != request["checkpoint_fingerprint"]:
+              raise SystemExit("checkpoint fingerprint mismatch")
+
+          raw_comments = json.loads(Path("/tmp/comments.json").read_text(encoding="utf-8"))
+          comments = []
+          for page in raw_comments:
+              comments.extend(page if isinstance(page, list) else [])
+          receipts = []
+          for comment in comments:
+              receipt = _parse_remote_guard_receipt_comment(comment)
+              if not receipt:
+                  continue
+              if (
+                  receipt.get("issue") == request["issue"]
+                  and str(receipt.get("worker") or "") == request["worker"]
+                  and str(receipt.get("branch") or "") == request["branch"]
+                  and str(receipt.get("claim_blob_sha") or "") == request["claim_blob_sha"]
+              ):
+                  receipts.append(receipt)
+
+          live_head = os.environ["LIVE_HEAD"]
+          durable_readbacks = []
+          for receipt in receipts:
+              if receipt.get("action") != "commit":
+                  continue
+              if live_head == str(receipt.get("head_sha") or ""):
+                  continue
+              raw = subprocess.check_output(
+                  ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/commits/{live_head}"],
+                  text=True,
+              )
+              commit = json.loads(raw)
+              parents = commit.get("parents") or []
+              if len(parents) == 1 and parents[0].get("sha") == receipt.get("head_sha"):
+                  durable_readbacks.append({
+                      "guard_run_id": receipt.get("run_id"),
+                      "action": "commit",
+                      "mutation_applied": True,
+                      "changed_files": [item["filename"] for item in commit.get("files", [])],
+                      "parent_sha": parents[0]["sha"],
+                      "post_head_sha": live_head,
+                      "committed_at": commit["commit"]["committer"]["date"],
+                      "reconciled": False,
+                  })
+
+          tx = classify_guard_transaction(
+              receipts=receipts,
+              current_issue=request["issue"],
+              current_worker=request["worker"],
+              current_executor_source=(
+                  "scheduler" if str(claim.get("executor_source") or "") == "scheduler"
+                  else "chat"
+              ),
+              current_branch=request["branch"],
+              current_claim_head_sha=str(claim.get("head_sha") or ""),
+              live_branch_head_sha=live_head,
+              current_claim_blob_sha=request["claim_blob_sha"],
+              now=datetime.now(timezone.utc),
+              durable_readbacks=durable_readbacks,
+          )
+
+          remote_run_active = False
+          remote = claim.get("remote_qa")
+          if isinstance(remote, dict) and remote.get("run_id"):
+              raw = subprocess.check_output(
+                  ["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{int(remote['run_id'])}"],
+                  text=True,
+              )
+              run = json.loads(raw)
+              remote_run_active = str(run.get("status") or "") != "completed"
+
+          delegated_state = str(claim.get("delegated_work_state") or "NONE").upper()
+          issue = json.loads(Path("/tmp/issue.json").read_text(encoding="utf-8"))
+          result = "TURN_EXIT_DENIED"
+          reason = "UNKNOWN"
+          try:
+              result = evaluate_remote_turn_exit_from_durable_state(
+                  checkpoint,
+                  issue_state=issue.get("state"),
+                  issue_state_reason=issue.get("state_reason"),
+                  claim_state=claim,
+                  transaction_state=tx,
+                  live_branch_head_sha=live_head,
+                  active_remote_run=remote_run_active,
+                  delegated_work_state=delegated_state,
+                  expected_issue=str(request["issue"]),
+                  expected_branch=request["branch"],
+                  expected_head_sha=request["head_sha"],
+              )
+              reason = result
+          except TurnExitBlocked as exc:
+              reason = str(exc)
+
+          receipt = {
+              "schema": "WHD_REMOTE_TURN_EXIT_RESULT_V1",
+              "request_comment_id": request["request_comment_id"],
+              "issue": request["issue"],
+              "worker": request["worker"],
+              "invocation_identity": request["invocation_identity"],
+              "claim_blob_sha": request["claim_blob_sha"],
+              "checkpoint_blob_sha": request["checkpoint_blob_sha"],
+              "checkpoint_fingerprint": fingerprint,
+              "branch": request["branch"],
+              "head_sha": request["head_sha"],
+              "closure_state": checkpoint.closure_state.value,
+              "pending_guard_state": tx.state.value,
+              "durable_mutation_state": tx.state.value,
+              "delegated_work_state": delegated_state,
+              "active_remote_run": remote_run_active,
+              "result": result,
+              "reason": reason,
+              "scheduler_end_allowed": result == "TURN_EXIT_PERMITTED",
+              "required_end_marker": "WHD_SCHEDULER_RUNTIME_END_V1",
+              "issued_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+          }
+          Path("/tmp/turn-exit-receipt.json").write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"result={result}\n")
+          PY
+
+      - name: Publish machine-readable turn-exit receipt
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('/tmp/turn-exit-receipt.json')) return;
+            const receipt = fs.readFileSync('/tmp/turn-exit-receipt.json', 'utf8').trim();
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: ['WHD_REMOTE_TURN_EXIT_RESULT_V1', '~~~json', receipt, '~~~'].join('\n'),
+            });
+
+      - name: Enforce TURN_EXIT_DENIED
+        if: steps.gate.outputs.result != 'TURN_EXIT_PERMITTED'
+        run: exit 1
