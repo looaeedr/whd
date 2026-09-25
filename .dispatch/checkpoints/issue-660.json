@@ -36,8 +36,11 @@
     "Cleanup commit Guard run 36133956949 GREEN authorized deletion of the sole temporary #660 workflow on governance/issue660-cleanup-20260925.",
     "Cleanup commit efe5b9c02b0458caf64ea373f97147afd7476e9d removed .github/workflows/qa-issue660-live-issue657-takeover-proof.yml.",
     "Post-cleanup claim/checkpoint reconciliation authorized by Remote Guard run 36134018006; #660 now enters CLOSING with exact cleaned head.",
-    "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36134321571."
+    "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36134321571.",
+    "Remote Finalization run 36134442235 GREEN / FINALIZATION_PROOF_VALID for exact checkpoint fingerprint 2390ffcc90fd10d01564e44fed9730194681dda387fbf4d57c7b3155269a5e04.",
+    "Issue #660 fresh-read closed/completed at 2026-09-25T12:22:18Z.",
+    "Release-handoff transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36134612806."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run authorize-finalization → verify-finalization-proof on this exact checkpoint; proof GREEN then close Issue #660 and fresh-read closed/completed."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically write checkpoint CLOSED + claim RELEASED + next_action=null; no parent handoff is required because #660 is a standalone proof/cleanup carrier."
 }

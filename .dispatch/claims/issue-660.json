@@ -8,19 +8,19 @@
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T12:20:20Z",
+  "last_update": "2026-09-25T12:23:20Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Run bound Remote Finalization on exact ISSUE_CLOSE_PENDING checkpoint; if GREEN close/readback #660, then advance RELEASE_HANDOFF_PENDING and atomically CLOSED + RELEASED.",
+  "next_action": "Perform final atomic #660 release: checkpoint CLOSED + claim RELEASED + next_action=null after one fresh exact write Guard.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36134321571,
-    "request_comment_id": 5832257209,
+    "run_id": 36134612806,
+    "request_comment_id": 5832295443,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
@@ -80,5 +80,13 @@
     "cleanup_commit_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
     "temporary_workflow_removed": true,
     "reconcile_guard_run_id": 36134018006
+  },
+  "finalization_evidence": {
+    "run_id": 36134442235,
+    "request_comment_id": 5832273358,
+    "result": "GREEN",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "checkpoint_fingerprint": "2390ffcc90fd10d01564e44fed9730194681dda387fbf4d57c7b3155269a5e04",
+    "issue_closed_completed": true
   }
 }
