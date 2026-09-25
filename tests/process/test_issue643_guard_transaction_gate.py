@@ -226,10 +226,7 @@ def test_issue651_equivalent_group_stays_pending_while_any_member_is_live():
 
     assert decision.state is state.PENDING
     assert decision.guard_run_ids == (1001, 1002)
-    assert decision.receipt["run_id"] == 1001
-
-
-def test_pr11_scheduler_resume_points_to_pending_transaction_first():
+    assert decision.receipt["run_id"] == 1002\n\n\ndef test_issue651_exact_pr_write_duplicate_shape_is_pending_not_ambiguous():\n    _, _, _, state = _api()\n    first = _receipt(run_id=36095688419, files=())\n    first.update({\n        "action": "pr-write",\n        "guard_authority_sha": H1,\n        "issued_at": "2026-09-25T04:45:02.245449Z",\n        "expires_at": "2026-09-25T05:25:02.245449Z",\n    })\n    second = dict(first)\n    second.update({\n        "run_id": 36095692365,\n        "request_comment_id": 5826889947,\n        "issued_at": "2026-09-25T04:45:05.265810Z",\n        "expires_at": "2026-09-25T05:25:05.265810Z",\n    })\n\n    decision = _classify(\n        receipts=[second, first],\n        now="2026-09-25T05:00:00Z",\n        expected_files=(),\n    )\n\n    assert decision.state is state.PENDING\n    assert decision.guard_run_ids == (36095688419, 36095692365)\n    assert decision.receipt["run_id"] == 36095688419\n\n\ndef test_pr11_scheduler_resume_points_to_pending_transaction_first():
     decision = _classify()
     assert decision.required_next_action == "CONSUME_GUARD_TRANSACTION"
 
