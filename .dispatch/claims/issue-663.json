@@ -3,17 +3,17 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/663",
   "worker": "chatgpt.sol260925.issue663.a1",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "governance/issue663-turn-exit-env-fix-20260925",
+  "work_branch": "governance/issue663-turn-exit-cleanup-20260925",
   "claimed_at": "2026-09-25T13:20:46Z",
-  "base_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
-  "head_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T14:09:00Z",
+  "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+  "head_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T14:12:00.888Z",
   "production_target": "cleanup/2d-3d-sync",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Open the one-file #663 turn-exit workflow PR to cleanup/2d-3d-sync under guarded pr-write, merge/readback, then wait for user-directed cleanup->main integration before rerunning the closed #640 trusted Turn Exit proof.",
+  "next_action": "Create the guarded cleanup-based #663 work branch, add only .github/workflows/whd-turn-exit-gate.yml with the verified GITHUB_ENV fix, then guarded PR to cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
@@ -49,5 +49,12 @@
     "requested_by_user": true,
     "target": "cleanup/2d-3d-sync",
     "reason": "land repair in cleanup first; user will merge cleanup to main"
+  },
+  "cleanup_rebase_recovery": {
+    "source_branch": "governance/issue663-turn-exit-env-fix-20260925",
+    "source_head": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+    "new_work_branch": "governance/issue663-turn-exit-cleanup-20260925",
+    "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+    "reason": "previous main-based branch diverged 39 ahead / 4136 behind cleanup; re-home ownership to cleanup base to preserve one-file PR scope"
   }
 }
