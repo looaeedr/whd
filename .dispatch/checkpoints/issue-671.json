@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
-  "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
+  "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
   "state": "RUNNING",
-  "next_action": "Fix one-shot QA visible naming only, rerun focused RED until pytest reaches missing legacy repair contract.",
+  "next_action": "Implement the accepted #671 RED without changing RED assertions; add strict legacy-checkpoint-repair candidate gate and trusted Claim Activation transport, update governance Skills/pitfall, then run focused GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,6 +19,9 @@
     "Subsequent RED commit Guard run 36167433982 correctly failed PENDING_GUARD_TRANSACTION before mutation; no test/implementation commit occurred.",
     "RED test commit Guard run 36167594134 GREEN consumed by commit 5fb26b2ac4afe7b73589c012da83fd2ee2975d56.",
     "Focused run 36167737729 failed before pytest only because workflow/run/job visible names lacked Traditional Chinese.",
-    "Post-commit reconciliation Guard run 36167804348 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
+    "Post-commit reconciliation Guard run 36167804348 GREEN consumed for exact claim+checkpoint HEAD reconciliation.",
+    "Workflow naming fix Guard run 36167947899 GREEN consumed by commit 08062378181d1244c9cfdc1747902696c9eec067.",
+    "Functional RED run 36168026213: Actions naming GREEN; 13 failed / 19 passed exactly on missing legacy repair gate, unsupported legacy transition, and missing trusted workflow prior identity.",
+    "Post-commit reconciliation Guard run 36168093324 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }

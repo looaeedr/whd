@@ -9,26 +9,31 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
-  "phase": "RED",
-  "last_update": "2026-09-25T17:33:10Z",
+  "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T17:35:55Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Fix one-shot QA visible naming only, rerun focused RED until pytest reaches missing legacy repair contract.",
+  "next_action": "Implement the accepted #671 RED without changing RED assertions; add strict legacy-checkpoint-repair candidate gate and trusted Claim Activation transport, update governance Skills/pitfall, then run focused GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36167804348,
-    "request_comment_id": 5836694353,
+    "run_id": 36168093324,
+    "request_comment_id": 5836730852,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
   },
   "red_evidence": {
-    "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
-    "run_id": 36167737729,
+    "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
+    "run_id": 36168026213,
     "conclusion": "failure",
-    "classification": "HARNESS_NAMING_RED"
+    "summary": "13 failed, 19 passed",
+    "expected_failures": [
+      "legacy repair gate missing",
+      "activation transition unsupported",
+      "trusted workflow prior identity missing"
+    ]
   }
 }
