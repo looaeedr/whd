@@ -21,9 +21,9 @@
     "PR #662 fresh-read closed/merged with merge_commit_sha 0243600da28f82566694c9bb3fff6d0a95b2a35e.",
     "Production fresh-read confirms cleanup/2d-3d-sync@0243600da28f82566694c9bb3fff6d0a95b2a35e.",
     "Verified work-order closing HEAD remains 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156.",
-    "Master #640 entered TERMINAL_SUCCESS + FINALIZATION_PENDING; no tests or helper creation were replayed."
+    "Master #640 entered TERMINAL_SUCCESS + FINALIZATION_PENDING; no tests or helper creation were replayed.",
+    "Narrow metadata recovery after closure prewrite Guard run 36139410910 failed closed: removed invalid Master checkpoint chain_state field only; #647 CHAIN_COMPLETE remains preserved in terminal-child evidence and checkpoint evidence."
   ],
   "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Obtain one fresh closure prewrite Guard and atomically advance #640 to ISSUE_CLOSE_PENDING; then execute bound Remote Finalization / FINALIZATION_PROOF_VALID, close and fresh-read #640 closed/completed, advance RELEASE_HANDOFF_PENDING, and finally atomically write checkpoint CLOSED + claim RELEASED before trusted turn-exit proof.",
-  "chain_state": "CHAIN_COMPLETE"
+  "closure_next_action": "Obtain one fresh closure prewrite Guard and atomically advance #640 to ISSUE_CLOSE_PENDING; then execute bound Remote Finalization / FINALIZATION_PROOF_VALID, close and fresh-read #640 closed/completed, advance RELEASE_HANDOFF_PENDING, and finally atomically write checkpoint CLOSED + claim RELEASED before trusted turn-exit proof."
 }
