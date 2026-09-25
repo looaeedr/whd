@@ -3,8 +3,8 @@
   "issue": "649",
   "branch": "main",
   "head_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
-  "state": "RUNNING",
-  "next_action": "Run exact coordination prewrite Guard using canonical authority 27e57fc... against guarded target main@d0eedaa2..., then enter TERMINAL_SUCCESS closure.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,6 +15,10 @@
     "Remote Guard run 36094632701 exposed redundant guard_authority==tested_target runtime equality.",
     "BOOTSTRAP_AUTHORITY_REPAIR_V1 comment 5826761012 authorized same-file closure compatibility repair only.",
     "Main commit d0eedaa2af69f3259953073b64f5ce0e9fac653f removed only the redundant runtime equality while preserving non-takeover tested_target_sha==head_sha parser enforcement.",
-    "Fresh workflow blob d1b0af492a41b80565f4e5fb890ee390bc50c75d confirms exact guarded target identity remains fail-closed."
-  ]
+    "Fresh workflow blob d1b0af492a41b80565f4e5fb890ee390bc50c75d confirms exact guarded target identity remains fail-closed.",
+    "Remote Guard run 36094854318 GREEN authorized terminal checkpoint entry for #649.",
+    "Acceptance complete: trusted workflow deployed on main; exact checkpoint fail-closed fallback, fractional takeover identity binding, independent canonical guard authority, and live #648 Guard smoke are all present."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance durable closure to ISSUE_CLOSE_PENDING, mint bound finalization proof, close/read back Issue #649, then atomically persist CLOSED + claim RELEASED and return to #648."
 }
