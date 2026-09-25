@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T07:03:13Z",
   "base_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
-  "head_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T07:03:13Z",
+  "head_sha": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T07:10:50.327309Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T6",
   "expected_parent_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
+  "chain_head": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read final accepted #641-#645 machine behavior plus current scheduler prompts/Skills/docs/AI Library; build the #646 writeback/readback matrix, then apply only governance-surface synchronization without changing cadence, automation IDs, lane owners, or machine ownership.",
+  "next_action": "Apply the #646 governance synchronization atomic patch using the persisted Phase6 Skill preflight evidence, then fresh-read and run focused contract/preflight validation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-646.json",
   "predecessor": {
@@ -36,5 +36,14 @@
     "accepted_head": "d254729ec20f0d5da8542cf778c7cc0115abb776",
     "finalization_run_id": 36103701082,
     "final_release_guard_run_id": 36105575802
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36106332745,
+    "request_comment_id": 5828413566,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+    "consumed": true
   }
 }
