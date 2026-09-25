@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+  "head_sha": "0fbbc02dd95066e8e302c9d944a96221a59f602c",
   "state": "RUNNING",
-  "next_action": "Implement #644 T4 trusted Remote Turn-Exit executor and TURN_EXIT_PERMITTED receipt contract from accepted #643 HEAD.",
+  "next_action": "Repair #644 RED QA harness by installing pytest, rerun C-R1..C-R12, and require exactly 12 intended failures before implementation.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,10 @@
   "evidence": [
     "Predecessor #643 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
     "#643 canonical handoff points to #644 at accepted work-order HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341.",
-    "#643 final release was authorized by Remote Guard run 36082598116."
+    "#643 final release was authorized by Remote Guard run 36082598116.",
+    "T4 RED test+runner commit 0fbbc02dd95066e8e302c9d944a96221a59f602c authorized by Remote Guard run 36083166526.",
+    "Post-RED atomic claim+checkpoint reconciliation authorized by Remote Guard run 36083279364.",
+    "Initial RED runner 36083251937 was HARNESS_FAILURE because pytest was not installed; no T4 acceptance assertion was evaluated."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
