@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T01:35:29Z",
   "base_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "head_sha": "63a3dc22739ee75ef54da2246e35951969708251",
-  "phase": "RED",
-  "last_update": "2026-09-25T02:03:39.882467Z",
+  "head_sha": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T02:10:25.789100Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T4",
   "expected_parent_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "63a3dc22739ee75ef54da2246e35951969708251",
+  "chain_head": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-03"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Implement #644 RED-CLOSE-03: canonical durable remote turn-exit evaluator plus trusted .github/workflows/whd-turn-exit-gate.yml; make C-R1..C-R12 GREEN without weakening #643 transaction gates.",
+  "next_action": "Add a focused #644 GREEN runner, prove C-R1..C-R12 plus #642/#643 regressions at exact implementation HEAD, then continue Task Acceptance/closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-644.json",
   "predecessor": {
@@ -52,5 +52,14 @@
     "expected_failures": 12,
     "marker": "ISSUE644_T4_REQUIREMENT_RED=GREEN",
     "isolated_runner_reconcile_guard_run_id": 36084668112
+  },
+  "implementation": {
+    "commit_sha": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
+    "guard_run_id": 36084842169,
+    "reconcile_guard_run_id": 36085139928,
+    "changed_files": [
+      "tools/continuity_controller.py",
+      ".github/workflows/whd-turn-exit-gate.yml"
+    ]
   }
 }

@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "644",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "63a3dc22739ee75ef54da2246e35951969708251",
+  "head_sha": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
   "state": "RUNNING",
-  "next_action": "Implement #644 RED-CLOSE-03 durable remote turn-exit evaluator + trusted workflow and drive exact C-R1..C-R12 GREEN.",
+  "next_action": "Add focused #644 GREEN runner and prove exact C-R1..C-R12 + T2/T3 regressions at implementation HEAD.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -22,7 +22,9 @@
     "Post-harness-repair atomic claim+checkpoint reconciliation to 0ccacde2808bca45a43a2dfc4a3681aa5d305ee7 authorized by Remote Guard run 36084537554.",
     "T4 isolated RED harness commit 63a3dc22739ee75ef54da2246e35951969708251 authorized by Remote Guard run 36084618510; pytest uses --confcutdir=tests/process to avoid unrelated GUI conftest dependencies.",
     "Exact T4 RED run 36084646762 completed success as a RED harness: exactly 12 approved C-R1..C-R12 tests failed as intended; marker ISSUE644_T4_REQUIREMENT_RED=GREEN.",
-    "Post-isolated-runner atomic claim+checkpoint reconciliation to 63a3dc22739ee75ef54da2246e35951969708251 authorized by Remote Guard run 36084668112."
+    "Post-isolated-runner atomic claim+checkpoint reconciliation to 63a3dc22739ee75ef54da2246e35951969708251 authorized by Remote Guard run 36084668112.",
+    "T4 implementation commit 19f4ed4b7ef91af3f1d71558ea872241d6bc9a89 authorized by Remote Guard run 36084842169; changed tools/continuity_controller.py + .github/workflows/whd-turn-exit-gate.yml.",
+    "Post-implementation atomic claim+checkpoint reconciliation to 19f4ed4b7ef91af3f1d71558ea872241d6bc9a89 authorized by Remote Guard run 36085139928."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
