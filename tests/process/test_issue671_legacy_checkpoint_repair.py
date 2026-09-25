@@ -376,3 +376,27 @@ def test_trusted_remote_guard_transports_legacy_postcommit_recovery_authority() 
     )
     missing = [token for token in required if token not in workflow]
     assert not missing, f"trusted Remote Guard lacks legacy postcommit recovery transport: {missing}"
+
+def test_expired_postcommit_recovery_rejects_wrong_prior_guard_run(
+    tmp_path: Path, monkeypatch
+) -> None:
+    guard = _load_guard()
+    claim_path = _write(tmp_path / "claim.json", _claim())
+    claim = guard.load_execution_claim(claim_path)
+    _install_expired_postcommit(monkeypatch, guard, claim_path)
+    recovery = _write_recovery_comment(
+        tmp_path / "recovery.json",
+        prior_guard_run_id=str(RECOVERY_RUN_ID + 1),
+    )
+    with pytest.raises(guard.ExecutionClaimError, match="recovery|authority|guard|run"):
+        guard._assert_post_commit_claim_head_reconciliation(
+            claim_path,
+            claim=claim,
+            raw_claim=_claim(),
+            issue=617,
+            worker=claim.worker,
+            branch=BRANCH,
+            expected_live_head_sha=LIVE_HEAD,
+            changed_files=(".dispatch/claims/issue-617.json",),
+            legacy_reconcile_recovery=recovery,
+        )
