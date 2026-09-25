@@ -11,7 +11,7 @@
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-25T23:28:30Z",
+  "last_update": "2026-09-25T23:30:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Lock expanded B2 acceptance run 36201114106 at head_sha d1e50fa365907a8c83935d1487be5a998875ec49 and poll to terminal. Require overlay interaction tests, existing Settings/Registry/Workspace owner regressions, and protected config invariant GREEN before finalization.",
+  "next_action": "Repair expanded acceptance harness only on exact head d1e50fa365907a8c83935d1487be5a998875ec49: use a visible footer control for Settings focus/hit-test, and run only the T22 resize/part-switch/lock-unlock scroll-owner regression rather than the obsolete mandatory-overflow assertion. Do not change overlay production code; rerun expanded acceptance.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -48,13 +48,18 @@
     "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818.",
     "Expanded B2 acceptance commit d1e50fa365907a8c83935d1487be5a998875ec49 authorized by Remote Guard run 36201058169.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36201131130.",
-    "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49."
+    "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49.",
+    "Expanded acceptance run 36201114106: 17 PASS / 2 FAIL; protected config.ini invariant GREEN.",
+    "Failure 1 is harness-only: focus_force targeted an Entry scrolled out of the visible Settings viewport; focus remained on the scroll Canvas.",
+    "Failure 2 is obsolete mandatory-overflow assumption in test_phase6_t22_settings_vertical_scroll: content=184, viewport=220 under the wider overlay; scroll owner itself remains present and the second T22 lifecycle test did not fail."
   ],
   "remote_qa": {
     "run_id": 36201114106,
     "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
-    "status": "in_progress",
-    "conclusion": null,
-    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml",
+    "job_id": 108287750694,
+    "artifact_id": 10891683517
   }
 }

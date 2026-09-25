@@ -3,10 +3,10 @@
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock expanded B2 acceptance run 36201114106 at head_sha d1e50fa365907a8c83935d1487be5a998875ec49 and poll to terminal. Require overlay interaction tests, existing Settings/Registry/Workspace owner regressions, and protected config invariant GREEN before finalization.",
+  "state": "RUNNING",
+  "next_action": "Repair expanded acceptance harness only on exact head d1e50fa365907a8c83935d1487be5a998875ec49: use a visible footer control for Settings focus/hit-test, and run only the T22 resize/part-switch/lock-unlock scroll-owner regression rather than the obsolete mandatory-overflow assertion. Do not change overlay production code; rerun expanded acceptance.",
   "run_id": 36201114106,
-  "job_id": null,
+  "job_id": 108287750694,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -27,7 +27,9 @@
     "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818.",
     "Expanded B2 acceptance commit d1e50fa365907a8c83935d1487be5a998875ec49 authorized by Remote Guard run 36201058169.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36201131130.",
-    "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49."
+    "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49.",
+    "Expanded acceptance run 36201114106: 17 PASS / 2 FAIL; protected config.ini invariant GREEN.",
+    "Failures isolated to acceptance harness assumptions; production overlay implementation remains unchanged."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
