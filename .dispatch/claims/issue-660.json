@@ -8,13 +8,36 @@
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T11:17:27Z",
+  "last_update": "2026-09-25T11:23:30Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard, create one-shot proof branch, commit the exact user-directed takeover proof workflow, run it to terminal, and use GREEN proof only for #657 optimistic claim CAS.",
+  "next_action": "Commit the one-shot #657 takeover proof workflow under a fresh commit Guard, run it to terminal, and require EXECUTOR_STUCK/actionable plus EXECUTION_CLAIM_GUARD_GREEN before #657 CAS takeover.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-660.json"
+  "checkpoint": ".dispatch/checkpoints/issue-660.json",
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36128821062,
+    "request_comment_id": 5831526517,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "consumed": true
+  },
+  "guard_transaction_recovery": {
+    "classification": "MUTATION_DONE_RECONCILE_ONLY",
+    "canonical_guard_run_id": 36128821062,
+    "durable_readback": {
+      "guard_run_id": 36128821062,
+      "action": "branch-create",
+      "mutation_applied": true,
+      "branch_exists": true,
+      "branch_head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+      "changed_files": [],
+      "reconciled": true
+    },
+    "reconciled": true
+  }
 }

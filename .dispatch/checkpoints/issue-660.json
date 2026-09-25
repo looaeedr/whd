@@ -4,7 +4,7 @@
   "branch": "governance/issue660-live-issue657-takeover-proof-20260925",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "state": "RUNNING",
-  "next_action": "Create guarded proof branch from accepted authority 3967da33e35e26ba3973e5565af0defe65fa7e12 and run read-only machine proof for #657 takeover.",
+  "next_action": "Commit the one-shot #657 takeover proof workflow under a fresh commit Guard and run the proof.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,6 +14,8 @@
     "User explicitly directed forced Skill takeover for #657.",
     "Owner-authored takeover authority comment is #5831428688.",
     "Proof target #657 branch/head is integration/issue657-main-remote-guard-20260925@53184c28ed1041558cd735817f4aae54f6c3af74.",
-    "Proof workflow must not mutate #657 before machine proof GREEN."
+    "Proof workflow must not mutate #657 before machine proof GREEN.",
+    "Branch-create Guard run 36128821062 GREEN was consumed after exact durable readback: governance/issue660-live-issue657-takeover-proof-20260925 exists at 3967da33e35e26ba3973e5565af0defe65fa7e12.",
+    "Canonical Guard transaction recovery classified the branch-create mutation as MUTATION_DONE_RECONCILE_ONLY and reconciled it before any next Guard."
   ]
 }
