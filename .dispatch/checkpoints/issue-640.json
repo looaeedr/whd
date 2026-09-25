@@ -26,8 +26,10 @@
     "Remote Guard run 36139558903 GREEN consumed exactly once to advance Master #640 FINALIZATION_PENDING → ISSUE_CLOSE_PENDING.",
     "Trusted Remote Finalization run 36139752437 completed SUCCESS with FINALIZATION_PROOF_VALID for canonical checkpoint fingerprint b40f896779bdbae92e2a4637223e0249ec8ade10d465bad418d9b6abbbfcb438; artifact 10866007312.",
     "Issue #640 fresh readback confirmed closed/completed at 2026-09-25T13:15:46Z.",
-    "Remote Guard run 36139897881 GREEN consumed exactly once to advance ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING."
+    "Remote Guard run 36139897881 GREEN consumed exactly once to advance ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING.",
+    "Remote Guard run 36140013008 GREEN consumed exactly once for final atomic Master #640 release.",
+    "Master #640 closure transaction complete: checkpoint CLOSED + claim RELEASED."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Obtain one fresh final release Guard and atomically write checkpoint CLOSED + claim RELEASED; then execute trusted turn-exit proof and require TURN_EXIT_PERMITTED."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
