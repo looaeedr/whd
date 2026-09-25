@@ -964,6 +964,67 @@ def evaluate_turn_exit_from_durable_state(
     return "TURN_EXIT_PERMITTED"
 
 
+def evaluate_remote_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+) -> str:
+    """Trusted remote turn-exit decision from fresh durable evidence."""
+
+    result = evaluate_turn_exit_from_durable_state(
+        checkpoint,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        expected_master_issue=expected_master_issue,
+    )
+    if checkpoint is None:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
+
+    try:
+        _assert_checkpoint_owner(
+            checkpoint,
+            expected_issue=expected_issue,
+            expected_branch=expected_branch,
+            expected_head_sha=expected_head_sha,
+        )
+    except CheckpointError as exc:
+        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: IDENTITY_DRIFT: {exc}") from exc
+
+    live_head = _require_text("live_branch_head_sha", live_branch_head_sha)
+    if live_head != _require_text("expected_head_sha", expected_head_sha):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: IDENTITY_DRIFT: live branch HEAD does not match expected HEAD"
+        )
+
+    if (
+        str(issue_state or "").lower() != "closed"
+        or str(issue_state_reason or "").lower() != "completed"
+    ):
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ISSUE_NOT_CLOSED_COMPLETED")
+
+    if _claim_phase_value(claim_state) != "RELEASED":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: CLAIM_NOT_RELEASED")
+
+    if active_remote_run:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ACTIVE_REMOTE_RUN")
+
+    delegated = str(delegated_work_state or "NONE").strip().upper() or "NONE"
+    if delegated != "NONE":
+        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
+
+    return result
+
+
 def _checkpoint_digest(path: Path) -> str:
     try:
         data = Path(path).read_bytes()
