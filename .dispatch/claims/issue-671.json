@@ -11,20 +11,20 @@
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T18:30:30Z",
+  "last_update": "2026-09-25T23:20:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Create a narrow deployment helper owned by the same A lane to sync accepted cleanup/2d-3d-sync governance (including #671) into default branch main; after main readback proves legacy-checkpoint-repair live, return to #617 repair.",
+  "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
-    "action": "pr-write",
-    "run_id": 36173783435,
-    "request_comment_id": 5837495524,
+    "action": "write",
+    "run_id": 36200231450,
+    "request_comment_id": 5840931021,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "merged PR #672"
+    "mutation": "terminalized helper #673 reservation and resumed #617 repair"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -105,12 +105,24 @@
     {
       "relationship": "helper",
       "helper_key": "main-governance-deploy-issue671",
-      "state": "ACTIVE",
+      "state": "TERMINAL",
       "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
       "reservation_token": "issue671-main-deploy-a-20260925",
       "reserved_at": "2026-09-25T22:17:00Z",
       "child_issue": 673,
       "child_claim_blob_sha": "a32910f64b0b453a0dc14846811517bfcf2b3a1a"
     }
-  ]
+  ],
+  "helper_terminal_evidence": {
+    "helper_issue": 673,
+    "helper_key": "main-governance-deploy-issue671",
+    "child_issue_closed_completed": true,
+    "child_claim_released": true,
+    "child_next_action_null": true,
+    "child_checkpoint_closed": true,
+    "child_claim_blob_sha": "6fa95cf3d3a892e699a00b127196ac59def67d5a",
+    "child_checkpoint_blob_sha": "fd1ca62fcb59c4b756c89fb4cc92a8334208fa87",
+    "main_legacy_checkpoint_repair_live": true,
+    "main_head": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb"
+  }
 }

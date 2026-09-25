@@ -4,7 +4,7 @@
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "state": "RUNNING",
-  "next_action": "Create a narrow deployment helper owned by the same A lane to sync accepted cleanup/2d-3d-sync governance (including #671) into default branch main; after main readback proves legacy-checkpoint-repair live, return to #617 repair.",
+  "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -36,6 +36,8 @@
     "Guard run 36173064563 GREEN was consumed exactly once by creation of PR #672; durable pr_readback recorded via trusted Claim Activation reconciliation because current Remote Guard transport does not yet feed action-specific durable readbacks into classifier.",
     "Merge Guard 36173783435 GREEN consumed exactly once by non-force merge of PR #672.",
     "PR #672 fresh-read merged/closed; cleanup/2d-3d-sync fresh-read HEAD=3b250e911fe728fa21507fe6b144b5add2abb7c1.",
-    "Default main still at 156bc20e7b7c331eae2a24d2c46bd984c5959720; trusted Claim Activation issue_comment transport is therefore not yet deployed for #617."
+    "Default main still at 156bc20e7b7c331eae2a24d2c46bd984c5959720; trusted Claim Activation issue_comment transport is therefore not yet deployed for #617.",
+    "Helper #673 is terminal: Issue closed/completed, claim RELEASED, checkpoint CLOSED; final child claim blob=6fa95cf3d3a892e699a00b127196ac59def67d5a and checkpoint blob=fd1ca62fcb59c4b756c89fb4cc92a8334208fa87.",
+    "Guard run 36200231450 GREEN consumed to terminalize helper reservation and resume #617 legacy checkpoint repair."
   ]
 }
