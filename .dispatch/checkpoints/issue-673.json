@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "673",
   "branch": "governance/issue673-main-deploy-issue671-20260926",
-  "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
   "state": "RUNNING",
-  "next_action": "Obtain exact commit Guard for six #671 accepted governance files; deploy four exact accepted blobs plus append-only #671 sections to two divergent main Skills; run focused main-deployment verification.",
+  "next_action": "Run focused verification on main-deployment candidate f6320c932da0d34d1b554da2cbee522085268c77; if GREEN, cleanup one-shot QA if created, audit drift, open guarded PR to main.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,6 +17,9 @@
     "Parent #671 helper reservation fresh-read ACTIVE and bound to child_issue=673 child_claim_blob_sha=a32910f64b0b453a0dc14846811517bfcf2b3a1a.",
     "Parent #671 helper reservation is ACTIVE and bound to child #673.",
     "Branch-create Guard run 36196730094 GREEN consumed exactly once; deployment branch fresh-read at default main HEAD 156bc20e7b7c331eae2a24d2c46bd984c5959720.",
-    "PR #672 accepted scope is exactly six files; main equals PR base for workflow/guard/test/pitfall surfaces, while two Skill files have independent main/base drift and require append-only #671 sections."
+    "PR #672 accepted scope is exactly six files; main equals PR base for workflow/guard/test/pitfall surfaces, while two Skill files have independent main/base drift and require append-only #671 sections.",
+    "Deployment commit Guard run 36196975147 GREEN consumed by direct-child commit f6320c932da0d34d1b554da2cbee522085268c77 with exact six-file scope.",
+    "Four machine/test/AI-library files use exact #672 accepted blobs; two Skill files preserve main-only drift and append only LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1.",
+    "Post-commit reconciliation Guard run 36197122157 GREEN consumed to bind claim/checkpoint to exact live deployment candidate HEAD."
   ]
 }
