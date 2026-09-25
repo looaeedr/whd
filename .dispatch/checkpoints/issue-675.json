@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "675",
   "branch": "governance/issue675-legacy-expired-postcommit-reconcile-20260926",
-  "head_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
+  "head_sha": "dd5d17d236fd7f12e425a55f9d47503e1ea95b94",
   "state": "RUNNING",
-  "next_action": "Commit the focused RED on the #675 governance branch proving expired post-commit reconciliation remains blocked without exact owner-authored recovery.",
+  "next_action": "Implement the narrow owner-authored legacy expired post-commit reconciliation recovery in the canonical guard + trusted Remote Guard transport, then run the focused #675 suite to GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,7 +14,9 @@
     "Fresh #675 governance repair created to unblock #671/#617 without replaying A2 implementation.",
     "Baseline main HEAD=ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
     "Scope is limited to owner-authorized recovery for legacy post-commit reconciliation where exact historical GREEN identity matches but commit timestamp is outside the historical receipt window.",
-    "Branch-create Guard run 36202475889 GREEN consumed; branch fresh-read exists at exact guarded head ff2783c5c8243f1bd777b43f8c1da5db0e7226cb."
+    "Branch-create Guard run 36202475889 GREEN consumed; branch fresh-read exists at exact guarded head ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
+    "Focused #675 RED committed at dd5d17d236fd7f12e425a55f9d47503e1ea95b94 under Guard run 36202784207; local focused pytest = 4 failed / 1 passed.",
+    "Post-commit pair reconciliation authorized by Guard run 36202961207."
   ],
   "chain_state": "NONE",
   "next_issue": null,
