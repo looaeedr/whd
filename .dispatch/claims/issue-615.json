@@ -11,7 +11,7 @@
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-25T23:24:00Z",
+  "last_update": "2026-09-25T23:26:15Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -25,7 +25,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Lock exact GitHub Actions run 36200796522 at head_sha b46d38f0f01f6d43aa3286356fffa7799d368818 and poll to terminal. On success, proceed to B2 acceptance/cleanup/finalization; on failure, inspect exact job log and repair only the failing UI-R2 seam.",
+  "next_action": "Expand B2 acceptance on the same exact work-order branch: add Xvfb assertions for overlay stacking/scroll/focus/hit-test, run existing Settings/Registry/Workspace owner regressions, and verify protected config.ini remains untouched. Then lock the exact expanded acceptance run to terminal.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -44,13 +44,15 @@
     "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: AssertionError `WorkspaceShell has no single viewport overlay host for Settings/Diagnostics`; setup and checkout were GREEN; artifact 10891527330.",
     "UI-R2 implementation committed at b46d38f0f01f6d43aa3286356fffa7799d368818 under Remote Guard run 36200439556.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36200815593.",
-    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818."
+    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818.",
+    "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818."
   ],
   "remote_qa": {
     "run_id": 36200796522,
     "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
-    "status": "in_progress",
-    "conclusion": null,
-    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml",
+    "job_id": 108286793137
   }
 }

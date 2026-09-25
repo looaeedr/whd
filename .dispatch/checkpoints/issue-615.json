@@ -3,10 +3,10 @@
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
-  "state": "WAITING_REMOTE",
-  "next_action": "Lock exact GitHub Actions run 36200796522 at head_sha b46d38f0f01f6d43aa3286356fffa7799d368818 and poll to terminal. On success, proceed to B2 acceptance/cleanup/finalization; on failure, inspect exact job log and repair only the failing UI-R2 seam.",
+  "state": "RUNNING",
+  "next_action": "Expand B2 acceptance on the same exact work-order branch: add Xvfb assertions for overlay stacking/scroll/focus/hit-test, run existing Settings/Registry/Workspace owner regressions, and verify protected config.ini remains untouched. Then lock the exact expanded acceptance run to terminal.",
   "run_id": 36200796522,
-  "job_id": null,
+  "job_id": 108286793137,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -23,7 +23,8 @@
     "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: missing single WorkspaceShell viewport overlay host; artifact 10891527330.",
     "UI-R2 implementation committed at b46d38f0f01f6d43aa3286356fffa7799d368818 under Remote Guard run 36200439556.",
     "Post-commit pair reconciliation authorized by Remote Guard run 36200815593.",
-    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818."
+    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818.",
+    "Focused UI-R2 implementation run 36200796522 completed SUCCESS on exact head b46d38f0f01f6d43aa3286356fffa7799d368818."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
