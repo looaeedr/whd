@@ -49,21 +49,27 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
             "UI-R2 RED: Diagnostics is not mounted in the same WorkspaceShell overlay host"
         )
 
-        canvas = app.renderer.canvas.get_tk_widget()
+        # Initial Phase6 presentation is Assembly. Enter a real part first so
+        # unlocking exercises Settings, then switch back to Assembly to exercise
+        # Diagnostics through the same overlay host.
+        app.activate_part("box_body")
         root.update_idletasks()
         root.update()
-        baseline_size = (canvas.winfo_width(), canvas.winfo_height())
 
         if bool(getattr(app, "_phase6_parameters_unlocked", False)):
             bridge._phase6_toggle_parameter_panel(app)
             root.update_idletasks()
             root.update()
 
+        canvas = app.renderer.canvas.get_tk_widget()
+        baseline_size = (canvas.winfo_width(), canvas.winfo_height())
+
         bridge._phase6_toggle_parameter_panel(app)
         root.update_idletasks()
         root.update()
         assert settings.winfo_manager()
         assert not diagnostics.winfo_manager()
+        assert overlay.winfo_manager() == "place"
         assert (canvas.winfo_width(), canvas.winfo_height()) == baseline_size, (
             "UI-R2 RED: opening Settings reduced the allocated renderer viewport"
         )
@@ -73,6 +79,7 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
         root.update()
         assert not settings.winfo_manager()
         assert diagnostics.winfo_manager()
+        assert overlay.winfo_manager() == "place"
         assert (canvas.winfo_width(), canvas.winfo_height()) == baseline_size, (
             "UI-R2 RED: switching to Diagnostics reduced the allocated renderer viewport"
         )

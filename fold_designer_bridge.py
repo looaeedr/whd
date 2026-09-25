@@ -3977,7 +3977,9 @@ _phase6_registry_rule_selected = lambda self, *_args: _phase6_registry_panel(sel
 _phase6_joint_form_refresh = lambda self: _phase6_registry_panel(self).refresh_joint_rows()
 _phase6_open_relief_registry_form = lambda self: _phase6_registry_panel(self).open_registry_editor()
 _phase6_refresh_joint_diagnostic_menu = lambda self, resolved=None: _phase6_registry_panel(self).refresh_joint_diagnostic_menu(resolved)
-_phase6_build_assembly_diagnostics = lambda self: _phase6_registry_panel(self).build_assembly_diagnostics(self.right)
+_phase6_build_assembly_diagnostics = lambda self: _phase6_registry_panel(self).build_assembly_diagnostics(
+    getattr(self, "viewport_overlay_host", self.right)
+)
 
 
 def _phase6_keyboard_save(self, _event=None):
@@ -4299,12 +4301,10 @@ def _phase6_update_assembly_diagnostic_status(self):
     status_var.set(status_text)
 
 def _phase6_build_settings_center(self):
-    renderer_widget = self.renderer.canvas.get_tk_widget()
-    renderer_widget.pack_forget()
+    overlay_host = getattr(self, "viewport_overlay_host", self.right)
     panel = _phase6_ensure_settings_panel(self)
-    panel.build_settings_center(self.right)
+    panel.build_settings_center(overlay_host)
     _phase6_build_assembly_diagnostics(self)
-    renderer_widget.pack(fill=original.tk.BOTH, expand=True)
     _phase6_sync_settings_panel_compat(self)
 
 
@@ -4331,20 +4331,35 @@ def _phase6_refresh_persistent_structure_controls(self):
 
 
 def _phase6_pack_right_panel_above_canvas(self, widget):
-    """Pack a right-side settings/diagnostic panel before the expanding 3D canvas.
+    """Show one shell-owned panel over the renderer without changing viewport size.
 
-    Tk pack order matters: if the canvas is already packed with fill=BOTH and
-    expand=True, packing a settings frame afterwards can leave the frame at
-    1x1 pixels even though winfo_manager() reports "pack".
+    #615 / UI-R2 keeps Settings and Assembly Diagnostics under one
+    viewport_overlay_host. The host uses place(in_=canvas), so it never
+    participates in the right-side pack allocation. Existing panels keep their
+    canonical Tk variables, callbacks, and state ownership; only presentation
+    parent/geometry changes.
     """
     if widget is None:
         return False
+    host = getattr(self, "viewport_overlay_host", None)
+    if host is None or widget.master is not host:
+        return False
+
+    for sibling in tuple(host.winfo_children()):
+        if sibling is widget:
+            continue
+        if sibling.winfo_manager():
+            sibling.pack_forget()
+
+    if not widget.winfo_manager():
+        widget.pack(fill=original.tk.X)
+
     canvas_widget = self.renderer.canvas.get_tk_widget()
-    options = dict(side=original.tk.TOP, fill=original.tk.X, pady=(0, 6))
-    if canvas_widget.winfo_manager() == "pack" and canvas_widget.master is widget.master:
-        widget.pack(before=canvas_widget, **options)
-    else:
-        widget.pack(**options)
+    host.place(in_=canvas_widget, x=0, y=0, relwidth=1.0, anchor="nw")
+    try:
+        host.lift()
+    except Exception:
+        pass
     return True
 
 

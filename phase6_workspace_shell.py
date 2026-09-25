@@ -93,6 +93,7 @@ class WorkspaceShellOwner:
         "right_controls_host",
         "right_global_host",
         "right_controls_primary",
+        "viewport_overlay_host",
         "visual_controls",
         "ui_text_size_combo",
         "fullscreen_button",
@@ -370,6 +371,12 @@ class WorkspaceShellOwner:
         self.fullscreen_button.pack(side=original.tk.LEFT, padx=(0, 4))
         self.right_global_host.pack(fill=original.tk.X, pady=(4, 0))
         self.actions.pack_right_panel(self.right_controls_host)
+
+        # #615 / UI-R2: Settings and Diagnostics share one shell-owned overlay
+        # host. It is intentionally not packed/grid-managed: presentation code
+        # places it over the renderer canvas so opening a panel never consumes
+        # renderer geometry.
+        self.viewport_overlay_host = original.ttk.Frame(right)
 
         self.left_scroll_canvas = original.tk.Canvas(
             root,
