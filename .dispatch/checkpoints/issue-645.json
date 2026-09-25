@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "645",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "head_sha": "b9b20a4b6fd985da2c850af10c86f053fbdc3749",
   "state": "RUNNING",
-  "next_action": "Lock #645 D-R9..D-R13 RED for atomic parent-claim helper reservation/cross-lane race recovery, then implement against the canonical stale/delegated owner.",
-  "run_id": null,
+  "next_action": "Poll exact T5 RED run 36086357033 to terminal; require exactly 5 intended D-R9..D-R13 failures with no collection/runtime errors before implementation.",
+  "run_id": 36086357033,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -13,7 +13,9 @@
   "evidence": [
     "Predecessor #644 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
     "#644 canonical handoff points to #645 at accepted closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
-    "#644 final release was authorized by Remote Guard run 36085903906."
+    "#644 final release was authorized by Remote Guard run 36085903906.",
+    "T5 D-R9..D-R13 RED test+runner commit b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086269462.",
+    "Post-RED atomic claim+checkpoint reconciliation to b9b20a4b6fd985da2c850af10c86f053fbdc3749 authorized by Remote Guard run 36086382498."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
