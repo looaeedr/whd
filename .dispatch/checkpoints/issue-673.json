@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "673",
   "branch": "governance/issue673-main-deploy-issue671-20260926",
-  "head_sha": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8",
+  "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
   "state": "RUNNING",
-  "next_action": "Delete one-shot qa-issue673-main-deploy-issue671.yml under exact Guard, reconcile cleaned HEAD, prove tested-to-cleaned delta is only QA workflow deletion, then open guarded PR to main.",
-  "run_id": 36197903649,
+  "next_action": "Fresh-read main; if main remains exact deployment base, obtain pr-write Guard, create PR from cleaned HEAD 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 to main, verify PR readback, then obtain merge Guard.",
+  "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -23,6 +23,9 @@
     "Post-commit reconciliation Guard run 36197122157 GREEN consumed to bind claim/checkpoint to exact live deployment candidate HEAD.",
     "One-shot QA commit Guard run 36197835966 GREEN consumed by commit 7d1ee7bf813768abe6f822ec64c49d21f8b731b8.",
     "Focused QA run 36197903649 completed/success on exact tested HEAD 7d1ee7bf813768abe6f822ec64c49d21f8b731b8; 13 passed; accepted blob invariants and both Skill markers GREEN.",
-    "Post-QA reconciliation Guard run 36197959302 GREEN consumed to bind claim/checkpoint to exact tested HEAD."
+    "Post-QA reconciliation Guard run 36197959302 GREEN consumed to bind claim/checkpoint to exact tested HEAD.",
+    "Cleanup Guard run 36198046842 GREEN consumed by direct-child cleanup commit 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9.",
+    "Tested-to-cleaned compare 7d1ee7bf813768abe6f822ec64c49d21f8b731b8...60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 shows exactly one removed file: .github/workflows/qa-issue673-main-deploy-issue671.yml.",
+    "Cleanup reconciliation Guard run 36198106467 GREEN consumed to bind claim/checkpoint to exact cleaned HEAD."
   ]
 }

@@ -9,12 +9,12 @@
   "work_branch": "governance/issue673-main-deploy-issue671-20260926",
   "claimed_at": "2026-09-25T22:24:00Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
-  "head_sha": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T22:42:40Z",
+  "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
+  "phase": "DRIFT_AUDIT",
+  "last_update": "2026-09-25T22:44:30Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Delete one-shot qa-issue673-main-deploy-issue671.yml under exact Guard, reconcile cleaned HEAD, prove tested-to-cleaned delta is only QA workflow deletion, then open guarded PR to main.",
+  "next_action": "Fresh-read main; if main remains exact deployment base, obtain pr-write Guard, create PR from cleaned HEAD 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 to main, verify PR readback, then obtain merge Guard.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
@@ -27,12 +27,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36197959302,
-    "request_comment_id": 5840660184,
+    "run_id": 36198106467,
+    "request_comment_id": 5840676911,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "reconciled tested QA head"
+    "mutation": "reconciled cleaned deployment head"
   },
   "deployment_candidate": {
     "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
@@ -53,5 +53,10 @@
     "workflow_path": ".github/workflows/qa-issue673-main-deploy-issue671.yml",
     "evidence": "13 passed; accepted blob invariants and Skill markers GREEN"
   },
-  "tested_head": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8"
+  "tested_head": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8",
+  "cleanup_audit": {
+    "tested_head": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8",
+    "cleaned_head": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
+    "only_delta": ".github/workflows/qa-issue673-main-deploy-issue671.yml deleted"
+  }
 }
