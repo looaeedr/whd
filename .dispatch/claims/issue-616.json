@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-25T23:46:10Z",
   "base_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
-  "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T23:46:10Z",
+  "head_sha": "469d4340461bd2ab4967590fdf669c6fbf219c99",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-25T23:52:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -19,13 +19,13 @@
   "parent_issue": 628,
   "expected_parent_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
   "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "chain_head": "952fb35d185530feea5fce81069e6a48d980f12d",
+  "chain_head": "469d4340461bd2ab4967590fdf669c6fbf219c99",
   "approved_red_ids": [
     "UI-R3"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read the authoritative visible scene-commit path and existing family live-switch callbacks on the shared work-order HEAD; add the approved UI-R3 diagnostic-only RED/instrumentation harness that records transition_id, sequence, scene fingerprint, cabinet family, physical inventory fingerprint, and transition stage, then run exact Xvfb reproduction from non-Receiving 3D-visible to Receiving without applying a production behavior fix.",
+  "next_action": "Lock exact GitHub Actions run 36202612565 at head_sha 469d4340461bd2ab4967590fdf669c6fbf219c99 to terminal. Accept RED only if the exact 金庫型→受電箱 path executes and fails on the UI-R3 visible-scene diagnostic contract, never on environment/setup; then instrument the authoritative Final Scene requested_draw commit seam without changing runtime behavior.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-616.json",
   "predecessor": {
@@ -38,6 +38,26 @@
   "evidence": [
     "Master #628 fresh-read lists #616 B3 open, dependency-unblocked, approved RED UI-R3.",
     "Predecessor #615 fresh-read closed/completed with claim RELEASED and checkpoint CLOSED.",
-    "Shared work-order branch accepted HEAD is 952fb35d185530feea5fce81069e6a48d980f12d; #616 must continue this lineage and must not restart from production."
-  ]
+    "Shared work-order branch accepted HEAD is 952fb35d185530feea5fce81069e6a48d980f12d; #616 must continue this lineage and must not restart from production.",
+    "UI-R3 diagnostic RED + focused workflow committed at 469d4340461bd2ab4967590fdf669c6fbf219c99 under Remote Guard run 36202552603.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36202629007.",
+    "Exact UI-R3 Xvfb run 36202612565 created for head 469d4340461bd2ab4967590fdf669c6fbf219c99."
+  ],
+  "remote_qa": {
+    "run_id": 36202612565,
+    "head_sha": "469d4340461bd2ab4967590fdf669c6fbf219c99",
+    "status": "in_progress",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue616-b3-visible-scene.yml"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36202629007,
+    "request_comment_id": 5841218510,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
+    "consumed": true,
+    "mutation": "post-commit claim/checkpoint reconciliation and exact QA run lock"
+  }
 }
