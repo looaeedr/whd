@@ -31,8 +31,9 @@
     "Merge Guard run 36156459802 GREEN consumed exactly once by non-force merge of PR #668.",
     "PR #668 fresh-read merged/closed; merge commit 68b920967c438679c0841123571230a66b013877.",
     "Production cleanup/2d-3d-sync fresh-read HEAD=68b920967c438679c0841123571230a66b013877.",
-    "Production readback: 強制接手 Skill present; 排程模擬 SCHEDULER_ENABLE_ESTABLISHED/is_enabled=true present; 派工 420 occurrences=0; scheduler END support present; trusted interactive takeover transport present."
+    "Production readback: 強制接手 Skill present; 排程模擬 SCHEDULER_ENABLE_ESTABLISHED/is_enabled=true present; 派工 420 occurrences=0; scheduler END support present; trusted interactive takeover transport present.",
+    "Guard run 36156672082 GREEN consumed for adjacent closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance exactly to ISSUE_CLOSE_PENDING, then run trusted authorize-finalization + verify-finalization-proof on the unchanged checkpoint."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted authorize-finalization + verify-finalization-proof on this exact checkpoint; if GREEN, close Issue #667 and fresh-read closed/completed without checkpoint mutation."
 }
