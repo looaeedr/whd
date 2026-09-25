@@ -3,10 +3,10 @@
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "cb3be0740424110dd5826e589f6d32e35023ee2c",
-  "state": "TERMINAL_SUCCESS",
-  "next_action": null,
-  "run_id": 36077678699,
-  "job_id": 107892460137,
+  "state": "RECOVERING",
+  "next_action": "Repair discovered T3 closure regression, prove RED→GREEN, then re-enter terminal closure and hand off #644.",
+  "run_id": null,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -31,13 +31,9 @@
     "Prior reconciliation Guard run 36077704140 became EXPIRED_UNCONSUMED before durable claim/checkpoint reconciliation; its receipt was not reused.",
     "Fresh recovery reconciliation authorized by Remote Guard run 36081325330 and consumed immediately to align claim+checkpoint with exact GREEN HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
     "Task Acceptance comment 5825054971 binds T3 acceptance to exact GREEN HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
-    "Terminal-entry Remote Guard run 36081455969 GREEN at exact accepted HEAD cb3be0740424110dd5826e589f6d32e35023ee2c."
+    "Terminal-entry Remote Guard run 36081455969 GREEN at exact accepted HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
+    "T3 acceptance was re-opened for canonical recovery after closure Guard run 36081509204 failed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT against the valid TERMINAL_SUCCESS checkpoint. No closure mutation was performed."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance #643 closure from FINALIZATION_PENDING to ISSUE_CLOSE_PENDING, then mint and verify an exact bound finalization proof before closing Issue #643.",
-  "master_issue": "640",
-  "chain_state": "NEXT_CHILD_EXECUTABLE",
-  "next_issue": 644,
-  "chain_next_action": "After #643 closure reaches CLOSED + RELEASED, atomically claim #644/T4 from accepted closing head cb3be0740424110dd5826e589f6d32e35023ee2c on the same work-order branch.",
-  "chain_reason": "T3 Guard transaction machine gate is Task Accepted at exact GREEN HEAD; #644 is the next canonical child."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
