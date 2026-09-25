@@ -11,13 +11,25 @@
   "base_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
   "head_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T23:44:32Z",
+  "last_update": "2026-09-25T23:50:30Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Obtain branch-create Guard, create the exact governance repair branch at main@ff2783c5, then commit focused RED for legacy expired post-commit reconciliation recovery.",
+  "next_action": "Commit the focused RED on the #675 governance branch proving expired post-commit reconciliation remains blocked without exact owner-authored recovery.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-675.json",
   "parent_issue": 671,
   "blocked_issue": 617,
-  "recovery_scope": "legacy-expired-postcommit-reconciliation"
+  "recovery_scope": "legacy-expired-postcommit-reconciliation",
+  "guard_readbacks": [
+    {
+      "guard_run_id": 36202475889,
+      "action": "branch-create",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [],
+      "branch_exists": true,
+      "branch_head_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
+      "observed_at": "2026-09-25T23:49:30Z"
+    }
+  ]
 }

@@ -4,7 +4,7 @@
   "branch": "governance/issue675-legacy-expired-postcommit-reconcile-20260926",
   "head_sha": "ff2783c5c8243f1bd777b43f8c1da5db0e7226cb",
   "state": "RUNNING",
-  "next_action": "Obtain branch-create Guard, create the exact governance repair branch at main@ff2783c5, then commit focused RED for legacy expired post-commit reconciliation recovery.",
+  "next_action": "Commit the focused RED on the #675 governance branch proving expired post-commit reconciliation remains blocked without exact owner-authored recovery.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -13,7 +13,8 @@
   "evidence": [
     "Fresh #675 governance repair created to unblock #671/#617 without replaying A2 implementation.",
     "Baseline main HEAD=ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
-    "Scope is limited to owner-authorized recovery for legacy post-commit reconciliation where exact historical GREEN identity matches but commit timestamp is outside the historical receipt window."
+    "Scope is limited to owner-authorized recovery for legacy post-commit reconciliation where exact historical GREEN identity matches but commit timestamp is outside the historical receipt window.",
+    "Branch-create Guard run 36202475889 GREEN consumed; branch fresh-read exists at exact guarded head ff2783c5c8243f1bd777b43f8c1da5db0e7226cb."
   ],
   "chain_state": "NONE",
   "next_issue": null,
