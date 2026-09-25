@@ -94,17 +94,14 @@ def test_ui_r2_settings_and_diagnostics_share_overlay_without_shrinking_viewport
                 result.extend(descendants(child))
             return result
 
-        settings_entry = next(
-            widget for widget in descendants(settings)
-            if widget.winfo_class() == "TEntry"
-        )
-        settings_entry.focus_force()
+        settings_focus = app.save_settings_button
+        settings_focus.focus_force()
         root.update_idletasks()
         root.update()
-        assert root.focus_get() is settings_entry
-        sx = settings_entry.winfo_rootx() + max(1, settings_entry.winfo_width() // 2)
-        sy = settings_entry.winfo_rooty() + max(1, settings_entry.winfo_height() // 2)
-        assert root.winfo_containing(sx, sy) is settings_entry, (
+        assert root.focus_get() is settings_focus
+        sx = settings_focus.winfo_rootx() + max(1, settings_focus.winfo_width() // 2)
+        sy = settings_focus.winfo_rooty() + max(1, settings_focus.winfo_height() // 2)
+        assert root.winfo_containing(sx, sy) is settings_focus, (
             "UI-R2: Settings overlay must receive hit-tests above the renderer"
         )
 

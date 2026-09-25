@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/issue615
-          xvfb-run -a python -m pytest -q             tests/test_issue615_workspace_overlay.py             tests/test_issue445_settings_presentation_owner.py             tests/test_issue446_registry_diagnostics_presentation_owner.py             tests/test_issue447_workspace_shell_owner.py             tests/test_phase6_t22_settings_vertical_scroll.py             --tb=short             --json-report --json-report-file=/tmp/issue615/report.json
+          xvfb-run -a python -m pytest -q             tests/test_issue615_workspace_overlay.py             tests/test_issue445_settings_presentation_owner.py             tests/test_issue446_registry_diagnostics_presentation_owner.py             tests/test_issue447_workspace_shell_owner.py             tests/test_phase6_t22_settings_vertical_scroll.py::test_settings_scroll_owner_survives_resize_part_switch_and_lock_unlock             --tb=short             --json-report --json-report-file=/tmp/issue615/report.json
 
       - name: "驗證受保護 config.ini 未被修改"
         if: always()
