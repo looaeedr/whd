@@ -4,14 +4,14 @@
   "worker": "scheduler.e58ea936e7d0b12bd0d475314709d6f1",
   "executor_source": "scheduler",
   "actual_invocation_source": "chatgpt_interactive",
-  "invocation_identity": "chat.scheduleB.20260925T2240Z",
+  "invocation_identity": "chat.b615.20260925T2308Z",
   "conversation_identity": "UNAVAILABLE",
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-25T22:57:00Z",
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T22:57:00Z",
+  "head_sha": "c68dc35074a12dcbaf1c75adcc248948142afe83",
+  "phase": "RED",
+  "last_update": "2026-09-25T23:10:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -19,13 +19,13 @@
   "parent_issue": 628,
   "expected_parent_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "chain_head": "c043e447afc0da533ef965fe82d175e75011d186",
+  "chain_head": "c68dc35074a12dcbaf1c75adcc248948142afe83",
   "approved_red_ids": [
     "UI-R2"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Fresh-read #615 B2 authority and existing WorkspaceShell/shared-content ownership, then add the approved UI-R2 RED proving Settings/Diagnostics share one overlay host without reducing allocated canvas size; run the focused RED through the GitHub-only canonical QA path.",
+  "next_action": "Run the focused UI-R2 RED on exact HEAD c68dc35074a12dcbaf1c75adcc248948142afe83 through the GitHub-only canonical QA path; capture terminal RED evidence, then implement the minimal WorkspaceShell-owned viewport overlay without changing canonical settings/diagnostics state ownership.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -34,5 +34,9 @@
     "claim_phase": "RELEASED",
     "accepted_head": "c043e447afc0da533ef965fe82d175e75011d186",
     "handoff_guard_run_id": 36198967224
-  }
+  },
+  "evidence": [
+    "UI-R2 requirement RED committed on work-order branch at c68dc35074a12dcbaf1c75adcc248948142afe83 under Remote Guard run 36199780292.",
+    "Post-commit canonical pair reconciliation authorized by Remote Guard run 36199926353."
+  ]
 }
