@@ -2,18 +2,17 @@
   "version": 1,
   "issue": "667",
   "branch": "governance/issue667-force-takeover-liveness-20260925",
-  "head_sha": "580e595a2ff608dd515cb4d5f4f31c9fc90e1b9f",
+  "head_sha": "49dd1a64e925cb6fb9fbc281ea27b60db3057678",
   "state": "RUNNING",
-  "next_action": "Fix temporary QA workflow naming-guard failure only, rerun exact focused RED, and require pytest to fail on missing END/force-takeover/scheduler-enable contracts before implementation.",
+  "next_action": "Obtain one exact implementation commit Guard for the full Skill/machine/workflow/writeback scope, implement the accepted RED contract without changing RED assertions, then run focused GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Branch-create Guard run 36152329350 GREEN consumed and branch created from exact base.",
-    "RED commit Guard run 36152817543 GREEN consumed by commit 580e595a2ff608dd515cb4d5f4f31c9fc90e1b9f.",
-    "Focused run 36152976518 terminal failure before pytest: actions_visible_naming_guard rejected job name '#667｜focused contract' because it lacked Traditional Chinese.",
-    "Post-commit reconciliation Guard run 36153051117 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
+    "RED harness naming fix commit 49dd1a64e925cb6fb9fbc281ea27b60db3057678.",
+    "Focused RED run 36153385727 terminal failure with 8 failed / 1 passed; failures map to END, interactive takeover, 強制接手 Skill/registry, and 排程模擬 enable contracts.",
+    "Post-commit reconciliation Guard run 36153474223 GREEN, request 5834851249, consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }
