@@ -398,3 +398,10 @@ Equivalent duplicate GREEN exact-equivalent 才 deterministic dedupe；shadow re
 Interactive user-directed takeover使用 WHD_USER_DIRECTED_TAKEOVER_V1 + canonical local evaluator/guard；trusted Remote Guard claim-takeover仍 scheduler-only，禁止把聊天室偽裝成 scheduler。
 
 Required follow-up：interactive heartbeat/liveness；chat conversation identity + invocation identity；scheduler lane + invocation identity。generic executor_source 不足以回答 exact executor。
+
+
+## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1
+
+Remote Guard 對 active claim missing checkpoint **維持 fail closed**。看到 legacy `claim exists + checkpoint missing` 時，不重送普通 Guard，也不人工補檔；改路由 trusted `.github/workflows/whd-remote-claim-activation.yml` 的 `legacy-checkpoint-repair`。
+
+該 repair 只允許 unchanged claim blob + 新 canonical checkpoint 的 atomic CAS。成功後普通 Remote Guard 才重新取得合法 checkpoint authority。任何 claim identity/head/phase 變更仍走既有 guarded reconciliation，不屬 legacy repair。
