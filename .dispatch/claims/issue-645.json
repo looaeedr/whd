@@ -1,0 +1,36 @@
+{
+  "issue": 645,
+  "issue_url": "https://github.com/looaeedr/whd/issues/645",
+  "worker": "chatgpt.sol260925.issue640t5.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-25T02:22:28Z",
+  "base_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T02:22:28Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "master_issue": 640,
+  "task_id": "T5",
+  "expected_parent_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "approved_red_ids": [
+    "RED-HELPER-01",
+    "RED-HELPER-02"
+  ],
+  "breakdown_approved": true,
+  "delegated_branches": [],
+  "next_action": "Implement #645 T5 parent-claim atomic CAS helper reservation and cross-lane dedupe/recovery; first lock D-R9..D-R13 RED from the approved v1.2 contract, preserving #638 ACTIVE_DELEGATED_WORK behavior.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-645.json",
+  "predecessor": {
+    "issue": 644,
+    "closure_state": "CLOSED",
+    "claim_phase": "RELEASED",
+    "accepted_head": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+    "handoff_guard_run_id": 36085903906
+  }
+}

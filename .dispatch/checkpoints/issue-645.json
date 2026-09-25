@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "645",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "73ba4f025296b56aacbefe3cb5b8946f8054b2f4",
+  "state": "RUNNING",
+  "next_action": "Lock #645 D-R9..D-R13 RED for atomic parent-claim helper reservation/cross-lane race recovery, then implement against the canonical stale/delegated owner.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Predecessor #644 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
+    "#644 canonical handoff points to #645 at accepted closing HEAD 73ba4f025296b56aacbefe3cb5b8946f8054b2f4.",
+    "#644 final release was authorized by Remote Guard run 36085903906."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
