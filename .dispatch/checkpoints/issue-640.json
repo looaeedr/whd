@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "640",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "state": "RUNNING",
+  "next_action": "Fresh-read #647 final terminal evidence and production integration, then enter Master TERMINAL_SUCCESS + FINALIZATION_PENDING under an exact closure coordination Guard.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "#647 fresh readback: Issue closed/completed, claim RELEASED, checkpoint CLOSED, chain_state CHAIN_COMPLETE.",
+    "#647 final claim blob 72ff47d7c9611fe7c8be14f7da819e59d47847ec; checkpoint blob 20283db9306f654d02867a9d1d8a3675080803de.",
+    "Final verified work-order closing HEAD is 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156.",
+    "Final production integration fresh-read is cleanup/2d-3d-sync@0243600da28f82566694c9bb3fff6d0a95b2a35e.",
+    "PR #662 closed/merged at integration commit 0243600da28f82566694c9bb3fff6d0a95b2a35e."
+  ]
+}

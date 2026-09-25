@@ -1,0 +1,30 @@
+{
+  "issue": 640,
+  "issue_url": "https://github.com/looaeedr/whd/issues/640",
+  "worker": "chatgpt.sol260925.issue640.close1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "claimed_at": "2026-09-25T12:59:00Z",
+  "base_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T12:59:00Z",
+  "production_target": "cleanup/2d-3d-sync",
+  "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "production_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+  "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "chain_head": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+  "delegated_branches": [],
+  "next_action": "Record Master #640 terminal completion after fresh-reading #647 closed/completed + claim RELEASED + checkpoint CLOSED/CHAIN_COMPLETE and production integration readback; then execute canonical finalization/closure and trusted turn-exit proof.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-640.json",
+  "terminal_child": {
+    "issue": 647,
+    "issue_state": "closed/completed",
+    "claim_blob_sha": "72ff47d7c9611fe7c8be14f7da819e59d47847ec",
+    "checkpoint_blob_sha": "20283db9306f654d02867a9d1d8a3675080803de",
+    "accepted_head": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+    "production_head": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+    "chain_state": "CHAIN_COMPLETE"
+  }
+}
