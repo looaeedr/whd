@@ -58,7 +58,6 @@ def _checkpoint(**overrides):
         "blocked_count": 0,
         "blocked_last_notified_at": None,
         "evidence": ["legacy checkpoint bootstrap"],
-        "master_issue": "627",
         "chain_state": "NONE",
         "next_issue": None,
         "chain_next_action": None,
