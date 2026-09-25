@@ -8,16 +8,16 @@
   "base_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "head_sha": "4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T10:42:20Z",
+  "last_update": "2026-09-25T10:44:47Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Run bound trusted finalization proof for ISSUE_CLOSE_PENDING, close/read back Issue #655, then release claim.",
+  "next_action": "Persist final atomic closure: checkpoint CLOSED + claim RELEASED after fresh close readback.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-655.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36125393479,
-    "request_comment_id": 5831066379,
+    "run_id": 36125610449,
+    "request_comment_id": 5831099805,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
@@ -28,6 +28,14 @@
     "integrated_target_head": "04281ff361117ba65c7c517dc7f78820f00127cf",
     "governance_run_id": 36125136459,
     "governance_result": "success",
-    "static_contract_result": "GREEN_STATIC_CONTRACT"
+    "static_contract_result": "GREEN_STATIC_CONTRACT",
+    "finalization_run_id": 36125493683,
+    "finalization_artifact_id": 10859653576,
+    "finalization_result": "success",
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-25T10:44:11Z"
+    }
   }
 }

@@ -21,8 +21,11 @@
     "PR #656 merge Guard run 36125215819 GREEN and PR merged cleanly.",
     "Production target cleanup/2d-3d-sync fresh-read HEAD=04281ff361117ba65c7c517dc7f78820f00127cf.",
     "Production target blobs for Skill, registry, and focused contract test exactly match accepted work blobs.",
-    "Guard run 36125393479 GREEN consumed for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Guard run 36125393479 GREEN consumed for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted remote finalization run 36125493683 SUCCESS with bound proof artifact 10859653576.",
+    "Owning Issue #655 fresh-read closed/completed at 2026-09-25T10:44:11Z.",
+    "Guard run 36125610449 GREEN consumed for ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run bound trusted finalization proof, close/read back Issue #655, then atomically persist checkpoint CLOSED + claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Persist final atomic checkpoint CLOSED + claim RELEASED, then fresh-read terminal state."
 }
