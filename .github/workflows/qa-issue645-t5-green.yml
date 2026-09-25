@@ -1,0 +1,26 @@
+name: QA Issue 645 T5 GREEN
+
+on:
+  push:
+    branches:
+      - workorder/issue640-guard-turn-exit-helper-hardening-20260925
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Run T5 helper reservation and takeover regressions
+        run: |
+          python -m pytest -q --confcutdir=tests/process             tests/process/test_issue645_helper_reservation_race.py             tests/process/test_issue641_helper_reservation_red.py             tests/process/test_issue540_stale_claim_takeover.py             tests/process/test_issue573_sibling_scheduler_takeover.py             tests/process/test_issue581_interactive_stale_takeover.py             tests/process/test_issue589_user_directed_interactive_owner_takeover.py
+          echo "ISSUE645_T5_GREEN=PASS"
