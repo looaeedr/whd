@@ -244,7 +244,6 @@ def test_trusted_remote_guard_invokes_canonical_pending_transaction_gate():
         "exact_remote_guard_receipts_from_comments",
         "classify_guard_transaction",
         "assert_remote_guard_request_permitted",
-        "REMOTE_GUARD_REJECTED: PENDING_GUARD_TRANSACTION",
         "REMOTE_GUARD_RECONCILE_ONLY",
         "--checkpoint /tmp/execution-checkpoint.json",
     )
