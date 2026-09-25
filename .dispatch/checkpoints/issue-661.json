@@ -24,8 +24,11 @@
     "Cleanup commit Guard run 36135263242 GREEN authorized deletion of .github/workflows/qa-issue661-final-release-executor.yml.",
     "Cleanup commit f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76 removed the one-shot #661 workflow.",
     "Post-cleanup claim/checkpoint reconciliation Guard run 36135343974 GREEN; #661 now enters canonical closure on the exact cleaned head.",
-    "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36135526399."
+    "Closure transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING authorized by Remote Guard run 36135526399.",
+    "Remote Finalization run 36135703657 GREEN / FINALIZATION_PROOF_VALID for exact checkpoint fingerprint 83bb09f789898e9107b7e03b6ea9ac0cbfbb6d4df03ccc35ef5cd09a5f45e278.",
+    "Issue #661 fresh-read closed/completed at 2026-09-25T12:35:53Z.",
+    "Release-handoff transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36135880152."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization for this exact immutable checkpoint; on FINALIZATION_PROOF_VALID close Issue #661 and fresh-read closed/completed before any further checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Run final release Guard on this exact closed-Issue coordination pair, then atomically write checkpoint CLOSED + claim RELEASED + next_action=null."
 }
