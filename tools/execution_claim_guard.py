@@ -15,8 +15,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path, PurePosixPath
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -57,6 +59,425 @@ FILE_MUTATION_ACTIONS = frozenset({"write", "commit"})
 
 class ExecutionClaimError(RuntimeError):
     """Raised when execution ownership cannot be proven exactly."""
+
+
+class GuardTransactionState(str, Enum):
+    """Canonical lifecycle for one Remote Guard transaction."""
+
+    NONE = "NONE"
+    PENDING = "PENDING"
+    MUTATION_DONE_RECONCILE_ONLY = "MUTATION_DONE_RECONCILE_ONLY"
+    EXPIRED_UNCONSUMED = "EXPIRED_UNCONSUMED"
+    CONSUMED = "CONSUMED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+@dataclass(frozen=True)
+class GuardTransactionDecision:
+    state: GuardTransactionState
+    receipt: dict[str, object] | None = None
+    guard_run_ids: tuple[int, ...] = ()
+    required_next_action: str | None = None
+    reason: str | None = None
+
+
+def _guard_tx_timestamp(value: object, label: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ExecutionClaimError(f"invalid Guard transaction {label} timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ExecutionClaimError(
+            f"Guard transaction {label} timestamp must be timezone-aware"
+        )
+    return parsed.astimezone(timezone.utc)
+
+
+def _guard_tx_run_id(receipt: Mapping[str, object]) -> int:
+    value = receipt.get("run_id")
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ExecutionClaimError("invalid Guard transaction run_id")
+    return value
+
+
+def _guard_tx_files(payload: Mapping[str, object]) -> tuple[str, ...]:
+    value = payload.get("changed_files", ())
+    if not isinstance(value, (list, tuple)):
+        raise ExecutionClaimError("invalid Guard transaction changed_files")
+    return _normalize_changed_files(str(item) for item in value)
+
+
+def _guard_tx_readback_for(
+    receipt: Mapping[str, object],
+    durable_readbacks: Iterable[Mapping[str, object]],
+) -> Mapping[str, object] | None:
+    run_id = _guard_tx_run_id(receipt)
+    matches = [
+        item
+        for item in durable_readbacks
+        if item.get("guard_run_id") == run_id
+        and str(item.get("action") or "") == str(receipt.get("action") or "")
+    ]
+    if len(matches) > 1:
+        raise ExecutionClaimError(
+            "ambiguous Guard transaction durable readback: multiple matches"
+        )
+    return matches[0] if matches else None
+
+
+def _guard_tx_readback_proves_mutation(
+    receipt: Mapping[str, object],
+    readback: Mapping[str, object],
+    *,
+    live_branch_head_sha: str,
+) -> bool:
+    if readback.get("mutation_applied") is not True:
+        return False
+    if _guard_tx_files(readback) != _guard_tx_files(receipt):
+        return False
+
+    action = str(receipt.get("action") or "")
+    if action == "commit":
+        if str(readback.get("parent_sha") or "") != str(receipt.get("head_sha") or ""):
+            return False
+        if str(readback.get("post_head_sha") or "") != live_branch_head_sha:
+            return False
+        committed_at = _guard_tx_timestamp(readback.get("committed_at"), "commit")
+        issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+        expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+        return issued_at <= committed_at <= expires_at
+    if action == "write":
+        return readback.get("target_changed") is True
+    if action == "branch-create":
+        return (
+            readback.get("branch_exists") is True
+            and str(readback.get("branch_head_sha") or "")
+            == str(receipt.get("head_sha") or "")
+        )
+    if action == "claim-takeover":
+        return readback.get("claim_cas_applied") is True
+    if action in {"qa-dispatch", "workflow-dispatch"}:
+        return (
+            readback.get("run_created") is True
+            and str(readback.get("run_head_sha") or "")
+            == str(receipt.get("tested_target_sha") or "")
+        )
+    if action == "pr-write":
+        return readback.get("pr_readback") is True
+    return False
+
+
+def _guard_tx_equivalence_key(
+    receipt: Mapping[str, object],
+) -> tuple[object, ...]:
+    """Return the mutation identity shared by truly equivalent GREEN receipts."""
+
+    takeover_evidence = receipt.get("takeover_evidence")
+    try:
+        takeover_identity = json.dumps(
+            takeover_evidence,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ExecutionClaimError(
+            "invalid Guard transaction takeover_evidence"
+        ) from exc
+
+    return (
+        receipt.get("issue"),
+        str(receipt.get("worker") or ""),
+        str(receipt.get("executor_source") or ""),
+        str(receipt.get("action") or ""),
+        str(receipt.get("branch") or ""),
+        str(receipt.get("base_sha") or ""),
+        str(receipt.get("head_sha") or ""),
+        str(receipt.get("claim_blob_sha") or ""),
+        str(receipt.get("guard_authority_sha") or ""),
+        str(receipt.get("tested_target_sha") or ""),
+        _guard_tx_files(receipt),
+        str(receipt.get("takeover_worker") or ""),
+        takeover_identity,
+    )
+
+
+def _guard_tx_identity_matches(
+    receipt: Mapping[str, object],
+    *,
+    current_issue: int,
+    current_worker: str,
+    current_executor_source: str,
+    current_branch: str,
+    current_claim_head_sha: str,
+    current_claim_blob_sha: str,
+    expected_changed_files: Iterable[str] | None,
+) -> bool:
+    fixed = (
+        receipt.get("issue") == current_issue,
+        str(receipt.get("worker") or "") == current_worker,
+        str(receipt.get("executor_source") or "") == current_executor_source,
+        str(receipt.get("branch") or "") == current_branch,
+        str(receipt.get("claim_blob_sha") or "") == current_claim_blob_sha,
+        str(receipt.get("head_sha") or "") == current_claim_head_sha,
+        str(receipt.get("tested_target_sha") or "") == current_claim_head_sha,
+    )
+    if not all(fixed):
+        return False
+    if expected_changed_files is not None:
+        expected = _normalize_changed_files(expected_changed_files)
+        if _guard_tx_files(receipt) != expected:
+            return False
+    return True
+
+
+def classify_guard_transaction(
+    *,
+    receipts: Iterable[Mapping[str, object]],
+    current_issue: int,
+    current_worker: str,
+    current_executor_source: str,
+    current_branch: str,
+    current_claim_head_sha: str,
+    live_branch_head_sha: str,
+    current_claim_blob_sha: str,
+    now: datetime,
+    durable_readbacks: Iterable[Mapping[str, object]] = (),
+    expected_changed_files: Iterable[str] | None = None,
+) -> GuardTransactionDecision:
+    """Classify one exact Remote Guard mutation, deduping equivalent GREEN receipts."""
+
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ExecutionClaimError("Guard transaction current time must be timezone-aware")
+    current_utc = now.astimezone(timezone.utc)
+    green = [
+        item
+        for item in receipts
+        if item.get("schema") == "WHD_REMOTE_GUARD_RECEIPT_V1"
+        and item.get("result") == "GREEN"
+    ]
+    if not green:
+        return GuardTransactionDecision(GuardTransactionState.NONE)
+
+    members: list[
+        tuple[Mapping[str, object], int, datetime, datetime, tuple[object, ...]]
+    ] = []
+    ambiguous_runs: list[int] = []
+    for receipt in green:
+        try:
+            run_id = _guard_tx_run_id(receipt)
+            issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+            expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+            if expires_at < issued_at:
+                raise ExecutionClaimError("Guard transaction validity window is inverted")
+            members.append(
+                (
+                    receipt,
+                    run_id,
+                    issued_at,
+                    expires_at,
+                    _guard_tx_equivalence_key(receipt),
+                )
+            )
+        except ExecutionClaimError:
+            try:
+                ambiguous_runs.append(_guard_tx_run_id(receipt))
+            except ExecutionClaimError:
+                pass
+
+    if ambiguous_runs or len(members) != len(green):
+        run_ids = tuple(
+            sorted(
+                set(
+                    ambiguous_runs
+                    + [run_id for _, run_id, _, _, _ in members]
+                )
+            )
+        )
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="Guard receipt is malformed or cannot be paired exactly",
+        )
+
+    identity_keys = {identity for _, _, _, _, identity in members}
+    run_ids = tuple(sorted(run_id for _, run_id, _, _, _ in members))
+    if len(identity_keys) != 1:
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="multiple GREEN Guard transactions have conflicting mutation identity",
+        )
+
+    canonical_all = min(members, key=lambda item: (item[2], item[1]))
+    canonical_receipt = canonical_all[0]
+    if not _guard_tx_identity_matches(
+        canonical_receipt,
+        current_issue=current_issue,
+        current_worker=current_worker,
+        current_executor_source=current_executor_source,
+        current_branch=current_branch,
+        current_claim_head_sha=current_claim_head_sha,
+        current_claim_blob_sha=current_claim_blob_sha,
+        expected_changed_files=expected_changed_files,
+    ):
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="Guard receipt/current ownership identity cannot be paired exactly",
+        )
+
+    readbacks = tuple(durable_readbacks)
+    proven: list[
+        tuple[Mapping[str, object], Mapping[str, object], datetime, int]
+    ] = []
+    try:
+        for receipt, run_id, issued_at, _, _ in members:
+            readback = _guard_tx_readback_for(receipt, readbacks)
+            if readback is not None and _guard_tx_readback_proves_mutation(
+                receipt,
+                readback,
+                live_branch_head_sha=live_branch_head_sha,
+            ):
+                proven.append((receipt, readback, issued_at, run_id))
+    except ExecutionClaimError:
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="Guard transaction durable readback is ambiguous",
+        )
+
+    if proven:
+        representative = min(proven, key=lambda item: (item[2], item[3]))
+        if any(readback.get("reconciled") is True for _, readback, _, _ in proven):
+            return GuardTransactionDecision(
+                GuardTransactionState.CONSUMED,
+                receipt=dict(representative[0]),
+                guard_run_ids=run_ids,
+                reason=(
+                    "equivalent GREEN group has action-specific durable readback "
+                    "+ reconciliation complete"
+                ),
+            )
+        return GuardTransactionDecision(
+            GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY,
+            receipt=dict(representative[0]),
+            guard_run_ids=run_ids,
+            required_next_action="RECONCILE_ONLY",
+            reason=(
+                "equivalent GREEN group has durable mutation proof while "
+                "coordination metadata is stale"
+            ),
+        )
+
+    if live_branch_head_sha != current_claim_head_sha:
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason=(
+                "live branch HEAD drifted without action-specific durable mutation proof"
+            ),
+        )
+
+    live_members = [
+        item for item in members if current_utc < item[3]
+    ]
+    if live_members:
+        canonical_live = min(live_members, key=lambda item: (item[2], item[1]))
+        return GuardTransactionDecision(
+            GuardTransactionState.PENDING,
+            receipt=dict(canonical_live[0]),
+            guard_run_ids=run_ids,
+            required_next_action="CONSUME_GUARD_TRANSACTION",
+            reason=(
+                "equivalent GREEN receipts collapse to one pending mutation; "
+                "only the earliest-issued currently-live receipt is consumable"
+            ),
+        )
+
+    return GuardTransactionDecision(
+        GuardTransactionState.EXPIRED_UNCONSUMED,
+        receipt=dict(canonical_receipt),
+        guard_run_ids=run_ids,
+        required_next_action="FRESH_RECONCILE_THEN_FRESH_GUARD",
+        reason="all equivalent GREEN receipts expired without durable mutation proof",
+    )
+
+
+def _guard_tx_evidence(decision: GuardTransactionDecision) -> str:
+    receipt = decision.receipt or {}
+    return (
+        f"issue={receipt.get('issue')} worker={receipt.get('worker')} "
+        f"guard_run_id={receipt.get('run_id')} action={receipt.get('action')} "
+        f"branch={receipt.get('branch')} head={receipt.get('head_sha')} "
+        f"changed_files={receipt.get('changed_files')} "
+        f"issued_at={receipt.get('issued_at')} expires_at={receipt.get('expires_at')} "
+        f"required_next_action={decision.required_next_action}"
+    )
+
+
+def assert_pending_guard_transaction_clear(
+    decision: GuardTransactionDecision,
+    *,
+    operation: str,
+) -> None:
+    """Block control-flow progress until the current Guard transaction is resolved."""
+
+    state = decision.state
+    if state is GuardTransactionState.PENDING:
+        raise ExecutionClaimError(
+            "PENDING_GUARD_TRANSACTION_NOT_CONSUMED: "
+            f"operation={operation} {_guard_tx_evidence(decision)}"
+        )
+    if state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        raise ExecutionClaimError(
+            "DURABLE_MUTATION_ALREADY_HAPPENED: "
+            f"operation={operation} required_next_action=RECONCILE_ONLY"
+        )
+    if state is GuardTransactionState.EXPIRED_UNCONSUMED:
+        raise ExecutionClaimError(
+            "EXPIRED_UNCONSUMED_GUARD: "
+            f"operation={operation} {_guard_tx_evidence(decision)}"
+        )
+    if state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError(
+            "AMBIGUOUS_GUARD_TRANSACTION: "
+            f"operation={operation} guard_run_ids={decision.guard_run_ids}"
+        )
+
+
+def assert_guard_receipt_consumable(
+    decision: GuardTransactionDecision,
+    *,
+    guard_run_id: int,
+) -> Mapping[str, object]:
+    """Allow a single-use consume only for the one exact current PENDING receipt."""
+
+    if decision.state is GuardTransactionState.PENDING:
+        receipt = decision.receipt or {}
+        if receipt.get("run_id") != guard_run_id:
+            raise ExecutionClaimError(
+                "GUARD_RECEIPT_IDENTITY_MISMATCH: requested receipt is not the exact pending transaction"
+            )
+        return receipt
+    if decision.state is GuardTransactionState.EXPIRED_UNCONSUMED:
+        raise ExecutionClaimError(
+            "EXPIRED_UNCONSUMED: expired GREEN receipt is permanently unconsumable"
+        )
+    if decision.state is GuardTransactionState.CONSUMED:
+        raise ExecutionClaimError("CONSUMED_REPLAY_BLOCKED: Guard receipt replay rejected")
+    if decision.state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        raise ExecutionClaimError(
+            "DURABLE_MUTATION_ALREADY_HAPPENED: Guard receipt replay rejected; reconcile only"
+        )
+    if decision.state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError("AMBIGUOUS_GUARD_TRANSACTION: fail closed")
+    raise ExecutionClaimError("NO_PENDING_GUARD_TRANSACTION: nothing is consumable")
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -501,6 +922,77 @@ def _parse_remote_guard_receipt_comment(
     return payload if isinstance(payload, dict) else None
 
 
+def exact_remote_guard_receipts_from_comments(
+    comments: Iterable[Mapping[str, object]],
+    *,
+    issue: int,
+    worker: str,
+    executor_source: str,
+    branch: str,
+    base_sha: str,
+    head_sha: str,
+    claim_blob_sha: str,
+) -> tuple[dict[str, object], ...]:
+    """Select only GREEN receipts bound to the current exact ownership identity."""
+
+    selected: list[dict[str, object]] = []
+    for raw in comments:
+        comment = dict(raw)
+        receipt = _parse_remote_guard_receipt_comment(comment)
+        if receipt is None or receipt.get("result") != "GREEN":
+            continue
+        fixed = (
+            receipt.get("issue") == issue,
+            str(receipt.get("worker") or "") == worker,
+            str(receipt.get("executor_source") or "") == executor_source,
+            str(receipt.get("branch") or "") == branch,
+            str(receipt.get("base_sha") or "") == base_sha,
+            str(receipt.get("head_sha") or "") == head_sha,
+            str(receipt.get("tested_target_sha") or "") == head_sha,
+            str(receipt.get("claim_blob_sha") or "") == claim_blob_sha,
+        )
+        if all(fixed):
+            selected.append(dict(receipt))
+    return tuple(selected)
+
+
+def assert_remote_guard_request_permitted(
+    decision: GuardTransactionDecision,
+    *,
+    reconciliation_request: bool = False,
+) -> None:
+    """Fail closed before minting a second Guard against unresolved current state."""
+
+    if decision.state is GuardTransactionState.PENDING:
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: PENDING_GUARD_TRANSACTION "
+            + _guard_tx_evidence(decision)
+        )
+    if decision.state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: AMBIGUOUS_GUARD_TRANSACTION "
+            f"guard_run_ids={decision.guard_run_ids}"
+        )
+    if decision.state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        if reconciliation_request:
+            return
+        raise ExecutionClaimError(
+            "REMOTE_GUARD_REJECTED: DURABLE_MUTATION_ALREADY_HAPPENED "
+            "required_next_action=RECONCILE_ONLY"
+        )
+    # EXPIRED_UNCONSUMED is permanently unconsumable, but after this workflow has
+    # fresh-read the exact current identity it may mint the one fresh recovery Guard.
+    if decision.state in {
+        GuardTransactionState.NONE,
+        GuardTransactionState.CONSUMED,
+        GuardTransactionState.EXPIRED_UNCONSUMED,
+    }:
+        return
+    raise ExecutionClaimError(
+        f"REMOTE_GUARD_REJECTED: unsupported transaction state {decision.state.value}"
+    )
+
+
 def _reconcile_timestamp_epoch(label: str, value: object) -> float:
     from datetime import datetime
 
@@ -542,9 +1034,16 @@ def _assert_post_commit_claim_head_reconciliation(
     changed_files: tuple[str, ...],
 ) -> None:
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
-    if changed_files != (expected_claim_path,):
+    expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
+    allowed_scopes = {
+        (expected_claim_path,),
+        (expected_claim_path, expected_checkpoint_path),
+        (expected_checkpoint_path, expected_claim_path),
+    }
+    if changed_files not in allowed_scopes:
         raise ExecutionClaimError(
-            "post-commit claim-head reconciliation may write only the exact shared claim path"
+            "post-commit claim-head reconciliation may write only the exact shared "
+            "claim path or exact claim+checkpoint pair"
         )
 
     commit = _github_commit(expected_live_head_sha)
@@ -984,6 +1483,156 @@ def load_execution_claim(
     )
 
 
+
+def _load_active_claim_checkpoint(path: Path):
+    try:
+        from tools.continuity_controller import CheckpointError, load_checkpoint
+    except ModuleNotFoundError:
+        from continuity_controller import CheckpointError, load_checkpoint  # type: ignore[no-redef]
+
+    try:
+        return load_checkpoint(Path(path))
+    except CheckpointError as exc:
+        raise ExecutionClaimError(
+            f"ACTIVE_CLAIM_REQUIRES_CHECKPOINT: {exc}"
+        ) from exc
+
+
+def _assert_claim_checkpoint_identity(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+):
+    """Validate exact issue/branch/head binding between one active claim and checkpoint."""
+
+    if claim.phase not in ACTIVE_PHASES:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: "
+            f"claim is not active: phase={claim.phase}"
+        )
+
+    checkpoint = _load_active_claim_checkpoint(checkpoint_path)
+    if str(checkpoint.issue) != str(claim.issue):
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint issue mismatch "
+            f"expected={claim.issue} actual={checkpoint.issue}"
+        )
+    if checkpoint.branch != claim.work_branch:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint branch mismatch "
+            f"expected={claim.work_branch!r} actual={checkpoint.branch!r}"
+        )
+    if checkpoint.head_sha != claim.head_sha:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint head mismatch "
+            f"expected={claim.head_sha} actual={checkpoint.head_sha}"
+        )
+    return checkpoint
+
+
+def assert_active_claim_requires_checkpoint(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+):
+    """Validate the exact non-terminal checkpoint paired with one active claim."""
+
+    checkpoint = _assert_claim_checkpoint_identity(claim, checkpoint_path)
+    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
+    if state_value in {"TERMINAL_SUCCESS", "TERMINAL_FAILURE"}:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: active claim cannot use "
+            f"terminal checkpoint state={state_value}"
+        )
+    return checkpoint
+
+
+def assert_execution_claim_checkpoint_prewrite(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+    *,
+    action: str,
+    changed_files: Iterable[str],
+):
+    """Validate checkpoint compatibility for one guarded prewrite action.
+
+    Normal repository actions still require a non-terminal checkpoint. The only
+    terminal-checkpoint exception is an exact canonical closure coordination write:
+    checkpoint-only or the atomic claim+checkpoint pair while closure is pending.
+    """
+
+    checkpoint = _assert_claim_checkpoint_identity(claim, checkpoint_path)
+    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
+    if state_value not in {"TERMINAL_SUCCESS", "TERMINAL_FAILURE"}:
+        return checkpoint
+
+    normalized = _normalize_changed_files(changed_files)
+    claim_path = f".dispatch/claims/issue-{claim.issue}.json"
+    checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
+    allowed_scopes = {
+        (checkpoint_repo_path,),
+        (claim_path, checkpoint_repo_path),
+        (checkpoint_repo_path, claim_path),
+    }
+    closure_state = getattr(
+        checkpoint.closure_state,
+        "value",
+        str(checkpoint.closure_state),
+    )
+    pending_closure_states = {
+        "FINALIZATION_PENDING",
+        "ISSUE_CLOSE_PENDING",
+        "RELEASE_HANDOFF_PENDING",
+    }
+    if (
+        action != "write"
+        or normalized not in allowed_scopes
+        or closure_state not in pending_closure_states
+    ):
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint permits only "
+            "an exact canonical closure coordination write"
+        )
+    return checkpoint
+
+
+def assert_active_claim_activation_transaction(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+    *,
+    transition: str,
+    changed_files: Iterable[str],
+):
+    """Validate one active-claim activation/re-activation transaction."""
+
+    transition = str(transition).strip()
+    allowed = {"fresh-create", "successor-create", "takeover", "reactivate"}
+    if transition not in allowed:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: unsupported activation transition "
+            f"{transition!r}"
+        )
+
+    checkpoint = assert_active_claim_requires_checkpoint(claim, checkpoint_path)
+    normalized = _normalize_changed_files(changed_files)
+    claim_path = f".dispatch/claims/issue-{claim.issue}.json"
+    checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
+
+    if transition in {"fresh-create", "successor-create"}:
+        if len(normalized) != 2 or set(normalized) != {
+            claim_path,
+            checkpoint_repo_path,
+        }:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: fresh/successor activation "
+                "must atomically create the exact claim+checkpoint pair"
+            )
+    elif claim_path not in normalized:
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: takeover/reactivation must "
+            "include the exact claim path and actively validate the checkpoint"
+        )
+
+    return checkpoint
+
 def assert_execution_claim(
     path: Path,
     *,
@@ -1022,9 +1671,15 @@ def assert_execution_claim(
         )
 
     expected_claim_path = f".dispatch/claims/issue-{issue}.json"
+    expected_checkpoint_path = f".dispatch/checkpoints/issue-{issue}.json"
     exact_claim_write = (
         action == "write" and normalized_changed_files == (expected_claim_path,)
     )
+    post_commit_reconcile_scopes = {
+        (expected_claim_path,),
+        (expected_claim_path, expected_checkpoint_path),
+        (expected_checkpoint_path, expected_claim_path),
+    }
     claim = load_execution_claim(
         path,
         allow_released_recovery=exact_claim_write,
@@ -1068,7 +1723,7 @@ def assert_execution_claim(
         )
 
     if action != "claim-takeover" and claim.head_sha != expected_head_sha:
-        if action == "write" and normalized_changed_files == (expected_claim_path,):
+        if action == "write" and normalized_changed_files in post_commit_reconcile_scopes:
             raw_claim = _load_raw_claim_payload(path)
             _assert_post_commit_claim_head_reconciliation(
                 path,
@@ -1122,6 +1777,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="repository-relative file mutated by write/commit; repeat for multiple files",
     )
     parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="exact continuity checkpoint required by ACTIVE_CLAIM_REQUIRES_CHECKPOINT",
+    )
+    parser.add_argument(
         "--preflight-evidence",
         action="append",
         default=[],
@@ -1155,6 +1815,33 @@ def main(argv: Iterable[str] | None = None) -> int:
             preflight_evidence=args.preflight_evidence,
             takeover_evidence=args.takeover_evidence,
             user_authority_evidence=args.user_authority_evidence,
+        )
+
+        normalized_changed_files = _normalize_changed_files(args.changed_file)
+        if claim.head_sha != args.expected_head_sha and args.action == "write":
+            expected_pair = {
+                f".dispatch/claims/issue-{args.issue}.json",
+                f".dispatch/checkpoints/issue-{args.issue}.json",
+            }
+            if (
+                len(normalized_changed_files) != 2
+                or set(normalized_changed_files) != expected_pair
+            ):
+                raise ExecutionClaimError(
+                    "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: post-commit reconciliation "
+                    "must atomically update the exact claim+checkpoint pair"
+                )
+
+        if args.checkpoint is None:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: --checkpoint is required "
+                "for every trusted prewrite action"
+            )
+        assert_execution_claim_checkpoint_prewrite(
+            claim,
+            args.checkpoint,
+            action=args.action,
+            changed_files=normalized_changed_files,
         )
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")

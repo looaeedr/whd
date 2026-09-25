@@ -15,6 +15,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -55,6 +56,8 @@ _ALLOWED_DELEGATED_RELATIONSHIPS = frozenset(
     {"proof", "blocking-repair", "helper", "dependency", "repair"}
 )
 _HELPER_KEY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
+_RESERVATION_TOKEN_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
+_HELPER_RESERVATION_STATES = frozenset({"RESERVING", "ACTIVE", "TERMINAL"})
 
 
 class StaleTakeoverError(RuntimeError):
@@ -237,6 +240,397 @@ class _DelegatedWorkObservation:
     active: bool
 
 
+@dataclass(frozen=True)
+class HelperReservationDecision:
+    """Pure candidate/result for one parent-claim helper reservation CAS."""
+
+    outcome: str
+    parent_claim: dict[str, object]
+    reservation: dict[str, object]
+    expected_parent_claim_blob_sha: str | None = None
+
+
+def _require_reservation_worker(value: object) -> str:
+    text = str(value or "").strip()
+    if not _WORKER_RE.fullmatch(text):
+        raise StaleTakeoverError(
+            "helper reservation reserved_by identity is missing or malformed"
+        )
+    return text
+
+
+def _require_reservation_token(value: object) -> str:
+    text = str(value or "").strip()
+    if not _RESERVATION_TOKEN_RE.fullmatch(text):
+        raise StaleTakeoverError("helper reservation token is missing or malformed")
+    return text
+
+
+def _helper_reservations(
+    parent_claim: Mapping[str, object],
+    *,
+    helper_key: str | None = None,
+) -> tuple[dict[str, object], ...]:
+    raw = parent_claim.get("delegated_work")
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise StaleTakeoverError("claim delegated_work must be a list")
+
+    wanted = None if helper_key is None else _require_helper_key(helper_key)
+    result: list[dict[str, object]] = []
+    active_keys: set[str] = set()
+    for index, item in enumerate(raw):
+        if not isinstance(item, Mapping):
+            raise StaleTakeoverError(
+                f"claim delegated_work[{index}] must be an object"
+            )
+        state_raw = item.get("state")
+        if state_raw is None:
+            continue
+        state = str(state_raw).strip().upper()
+        if state not in _HELPER_RESERVATION_STATES:
+            raise StaleTakeoverError(
+                f"claim delegated_work[{index}] helper reservation state is invalid"
+            )
+        relationship = str(item.get("relationship") or "").strip()
+        if relationship not in {"helper", "repair", "blocking-repair"}:
+            raise StaleTakeoverError(
+                f"claim delegated_work[{index}] reservation relationship is invalid"
+            )
+        key = _require_helper_key(item.get("helper_key"))
+        owner = _require_reservation_worker(item.get("reserved_by"))
+        token = _require_reservation_token(item.get("reservation_token"))
+        reserved_at = _as_utc(
+            f"claim delegated_work[{index}].reserved_at",
+            item.get("reserved_at"),
+        )
+
+        child_issue = item.get("child_issue")
+        child_blob = item.get("child_claim_blob_sha")
+        if state == "RESERVING":
+            if child_issue is not None or child_blob is not None:
+                raise StaleTakeoverError(
+                    "RESERVING helper reservation cannot already bind child durable identity"
+                )
+        else:
+            child_issue = _positive_int(
+                f"claim delegated_work[{index}].child_issue",
+                child_issue,
+            )
+            child_blob = _require_sha(
+                f"claim delegated_work[{index}].child_claim_blob_sha",
+                child_blob,
+            )
+
+        if state in {"RESERVING", "ACTIVE"}:
+            if key in active_keys:
+                raise StaleTakeoverError(
+                    f"AMBIGUOUS_HELPER_RESERVATION helper_key={key}"
+                )
+            active_keys.add(key)
+
+        normalized = dict(item)
+        normalized.update(
+            {
+                "relationship": relationship,
+                "helper_key": key,
+                "state": state,
+                "reserved_by": owner,
+                "reservation_token": token,
+                "reserved_at": _iso_utc(reserved_at),
+                "child_issue": child_issue,
+                "child_claim_blob_sha": child_blob,
+            }
+        )
+        if wanted is None or key == wanted:
+            result.append(normalized)
+    return tuple(result)
+
+
+def _find_live_helper_reservation(
+    parent_claim: Mapping[str, object],
+    helper_key: str,
+) -> dict[str, object] | None:
+    entries = [
+        item
+        for item in _helper_reservations(parent_claim, helper_key=helper_key)
+        if item["state"] in {"RESERVING", "ACTIVE"}
+    ]
+    if len(entries) > 1:
+        raise StaleTakeoverError(
+            f"AMBIGUOUS_HELPER_RESERVATION helper_key={helper_key}"
+        )
+    return entries[0] if entries else None
+
+
+def _legacy_same_key_helper_exists(
+    parent_claim: Mapping[str, object],
+    helper_key: str,
+) -> bool:
+    raw = parent_claim.get("delegated_work")
+    if not isinstance(raw, list):
+        return False
+    for item in raw:
+        if not isinstance(item, Mapping) or item.get("state") is not None:
+            continue
+        try:
+            key = _require_helper_key(item.get("helper_key"))
+        except StaleTakeoverError:
+            continue
+        if key == helper_key and item.get("child_issue") is not None:
+            return True
+    return False
+
+
+def reserve_helper_creation(
+    parent_claim: Mapping[str, object],
+    *,
+    parent_claim_blob_sha: str,
+    expected_parent_claim_blob_sha: str,
+    helper_key: str,
+    reserved_by: str,
+    reservation_token: str,
+    now: datetime,
+) -> HelperReservationDecision:
+    """Build one RESERVING parent-claim CAS candidate."""
+
+    current_blob = _require_sha("parent_claim_blob_sha", parent_claim_blob_sha)
+    expected_blob = _require_sha(
+        "expected_parent_claim_blob_sha", expected_parent_claim_blob_sha
+    )
+    if current_blob != expected_blob:
+        raise StaleTakeoverError(
+            "HELPER_RESERVATION_CAS_CONFLICT "
+            f"expected_parent_claim_blob_sha={expected_blob} "
+            f"current_parent_claim_blob_sha={current_blob}"
+        )
+
+    key = _require_helper_key(helper_key)
+    owner = _require_reservation_worker(reserved_by)
+    token = _require_reservation_token(reservation_token)
+    reserved_at = _as_utc("reservation now", now)
+
+    existing = _find_live_helper_reservation(parent_claim, key)
+    if existing is not None:
+        outcome = (
+            "ACTIVE_HELPER_ALREADY_RESERVED"
+            if existing["state"] == "RESERVING"
+            else "ACTIVE_HELPER_DUPLICATE"
+        )
+        return HelperReservationDecision(
+            outcome=outcome,
+            parent_claim=deepcopy(dict(parent_claim)),
+            reservation=deepcopy(existing),
+            expected_parent_claim_blob_sha=current_blob,
+        )
+    if _legacy_same_key_helper_exists(parent_claim, key):
+        return HelperReservationDecision(
+            outcome="ACTIVE_HELPER_DUPLICATE",
+            parent_claim=deepcopy(dict(parent_claim)),
+            reservation={
+                "relationship": "helper",
+                "helper_key": key,
+                "state": "ACTIVE",
+            },
+            expected_parent_claim_blob_sha=current_blob,
+        )
+
+    candidate = deepcopy(dict(parent_claim))
+    delegated = candidate.get("delegated_work")
+    if delegated is None:
+        delegated = []
+        candidate["delegated_work"] = delegated
+    if not isinstance(delegated, list):
+        raise StaleTakeoverError("claim delegated_work must be a list")
+
+    reservation = {
+        "relationship": "helper",
+        "helper_key": key,
+        "state": "RESERVING",
+        "reserved_by": owner,
+        "reservation_token": token,
+        "reserved_at": _iso_utc(reserved_at),
+        "child_issue": None,
+        "child_claim_blob_sha": None,
+    }
+    delegated.append(reservation)
+    return HelperReservationDecision(
+        outcome="RESERVED",
+        parent_claim=candidate,
+        reservation=deepcopy(reservation),
+        expected_parent_claim_blob_sha=current_blob,
+    )
+
+
+def _assert_helper_reservation_authority(
+    reservation: Mapping[str, object],
+    *,
+    reserved_by: str | None,
+    reservation_token: str | None,
+) -> None:
+    if reserved_by is None or reservation_token is None:
+        raise StaleTakeoverError("HELPER_RESERVATION_AUTHORITY_MISMATCH")
+    try:
+        owner = _require_reservation_worker(reserved_by)
+        token = _require_reservation_token(reservation_token)
+    except StaleTakeoverError as exc:
+        raise StaleTakeoverError(
+            "HELPER_RESERVATION_AUTHORITY_MISMATCH"
+        ) from exc
+    if (
+        owner != str(reservation.get("reserved_by") or "")
+        or token != str(reservation.get("reservation_token") or "")
+    ):
+        raise StaleTakeoverError("HELPER_RESERVATION_AUTHORITY_MISMATCH")
+
+
+def activate_helper_reservation(
+    parent_claim: Mapping[str, object],
+    *,
+    helper_key: str,
+    reserved_by: str,
+    reservation_token: str,
+    child_issue: int,
+    child_claim_blob_sha: str,
+) -> HelperReservationDecision:
+    key = _require_helper_key(helper_key)
+    existing = _find_live_helper_reservation(parent_claim, key)
+    if existing is None or existing["state"] != "RESERVING":
+        raise StaleTakeoverError(
+            f"HELPER_RESERVATION_NOT_RESERVING helper_key={key}"
+        )
+    _assert_helper_reservation_authority(
+        existing,
+        reserved_by=reserved_by,
+        reservation_token=reservation_token,
+    )
+    child = _positive_int("helper child_issue", child_issue)
+    child_blob = _require_sha("helper child_claim_blob_sha", child_claim_blob_sha)
+
+    candidate = deepcopy(dict(parent_claim))
+    for item in candidate.get("delegated_work", []):
+        if (
+            isinstance(item, dict)
+            and item.get("helper_key") == key
+            and str(item.get("state") or "").upper() == "RESERVING"
+            and item.get("reservation_token") == existing["reservation_token"]
+        ):
+            item["state"] = "ACTIVE"
+            item["child_issue"] = child
+            item["child_claim_blob_sha"] = child_blob
+            return HelperReservationDecision(
+                outcome="ACTIVE",
+                parent_claim=candidate,
+                reservation=deepcopy(item),
+            )
+    raise StaleTakeoverError("helper reservation changed during activation")
+
+
+def terminalize_helper_reservation(
+    parent_claim: Mapping[str, object],
+    *,
+    helper_key: str,
+    reserved_by: str,
+    reservation_token: str,
+    child_terminal_proof: Mapping[str, object] | None,
+) -> HelperReservationDecision:
+    key = _require_helper_key(helper_key)
+    existing = _find_live_helper_reservation(parent_claim, key)
+    if existing is None or existing["state"] != "ACTIVE":
+        raise StaleTakeoverError(
+            f"HELPER_RESERVATION_NOT_ACTIVE helper_key={key}"
+        )
+    _assert_helper_reservation_authority(
+        existing,
+        reserved_by=reserved_by,
+        reservation_token=reservation_token,
+    )
+    required_true = (
+        "issue_closed_completed",
+        "claim_released",
+        "next_action_null",
+        "no_active_run",
+        "checkpoint_closed",
+    )
+    if (
+        not isinstance(child_terminal_proof, Mapping)
+        or any(child_terminal_proof.get(name) is not True for name in required_true)
+    ):
+        raise StaleTakeoverError(
+            "HELPER_RESERVATION_TERMINAL_REQUIRES_COMPLETE_CHILD_TERMINAL_PROOF"
+        )
+
+    candidate = deepcopy(dict(parent_claim))
+    for item in candidate.get("delegated_work", []):
+        if (
+            isinstance(item, dict)
+            and item.get("helper_key") == key
+            and str(item.get("state") or "").upper() == "ACTIVE"
+            and item.get("reservation_token") == existing["reservation_token"]
+        ):
+            item["state"] = "TERMINAL"
+            return HelperReservationDecision(
+                outcome="TERMINAL",
+                parent_claim=candidate,
+                reservation=deepcopy(item),
+            )
+    raise StaleTakeoverError("helper reservation changed during terminalization")
+
+
+def reset_helper_reservation(
+    parent_claim: Mapping[str, object],
+    *,
+    helper_key: str,
+    reserved_by: str,
+    reservation_token: str,
+    durable_child_proof: Mapping[str, object] | None,
+) -> HelperReservationDecision:
+    key = _require_helper_key(helper_key)
+    existing = _find_live_helper_reservation(parent_claim, key)
+    if existing is None or existing["state"] != "RESERVING":
+        raise StaleTakeoverError(
+            f"HELPER_RESERVATION_NOT_RESERVING helper_key={key}"
+        )
+    _assert_helper_reservation_authority(
+        existing,
+        reserved_by=reserved_by,
+        reservation_token=reservation_token,
+    )
+    required_false = (
+        "child_issue_exists",
+        "child_claim_exists",
+        "helper_durable_mutation_exists",
+    )
+    if (
+        not isinstance(durable_child_proof, Mapping)
+        or any(durable_child_proof.get(name) is not False for name in required_false)
+    ):
+        raise StaleTakeoverError(
+            "HELPER_RESERVATION_RESET_REQUIRES_NO_DURABLE_CHILD_PROOF"
+        )
+
+    candidate = deepcopy(dict(parent_claim))
+    delegated = candidate.get("delegated_work")
+    if not isinstance(delegated, list):
+        raise StaleTakeoverError("claim delegated_work must be a list")
+    candidate["delegated_work"] = [
+        item
+        for item in delegated
+        if not (
+            isinstance(item, Mapping)
+            and item.get("helper_key") == key
+            and str(item.get("state") or "").upper() == "RESERVING"
+            and item.get("reservation_token") == existing["reservation_token"]
+        )
+    ]
+    return HelperReservationDecision(
+        outcome="RESET",
+        parent_claim=candidate,
+        reservation=deepcopy(existing),
+    )
+
+
 def _require_helper_key(value: object) -> str:
     text = str(value or "").strip()
     if not _HELPER_KEY_RE.fullmatch(text):
@@ -254,6 +648,21 @@ def _declared_delegations(claim: Mapping[str, object]) -> dict[int, dict[str, ob
         for index, item in enumerate(canonical):
             if not isinstance(item, Mapping):
                 raise StaleTakeoverError(f"claim delegated_work[{index}] must be an object")
+            reservation_state = str(item.get("state") or "").strip().upper()
+            if reservation_state:
+                if reservation_state not in _HELPER_RESERVATION_STATES:
+                    raise StaleTakeoverError(
+                        f"claim delegated_work[{index}] helper reservation state is invalid"
+                    )
+                if reservation_state == "RESERVING":
+                    if (
+                        item.get("child_issue") is not None
+                        or item.get("child_claim_blob_sha") is not None
+                    ):
+                        raise StaleTakeoverError(
+                            "RESERVING helper reservation cannot bind child durable identity"
+                        )
+                    continue
             child_issue = _positive_int(
                 f"claim delegated_work[{index}].child_issue", item.get("child_issue")
             )
@@ -472,10 +881,26 @@ def assert_helper_creation_allowed(
     delegated_work: Sequence[Mapping[str, object]] | None,
     now: datetime,
     stale_after_seconds: int = DEFAULT_STALE_AFTER_SECONDS,
+    reservation_owner: str | None = None,
+    reservation_token: str | None = None,
 ) -> None:
     _positive_int("stale_after_seconds", stale_after_seconds)
     now_utc = _as_utc("now", now)
     candidate_key = _require_helper_key(helper_key)
+
+    reservation = _find_live_helper_reservation(parent_claim, candidate_key)
+    if reservation is not None:
+        _assert_helper_reservation_authority(
+            reservation,
+            reserved_by=reservation_owner,
+            reservation_token=reservation_token,
+        )
+        if reservation["state"] == "ACTIVE":
+            raise StaleTakeoverError(
+                "ACTIVE_HELPER_DUPLICATE "
+                f"helper_key={candidate_key} child_issue={reservation['child_issue']}"
+            )
+
     observations = _normalize_delegated_work(
         parent_claim, delegated_work, now=now_utc
     )
@@ -485,6 +910,11 @@ def assert_helper_creation_allowed(
                 "ACTIVE_HELPER_DUPLICATE "
                 f"helper_key={candidate_key} child_issue={item.child_issue}"
             )
+
+    if reservation is None:
+        raise StaleTakeoverError(
+            f"HELPER_RESERVATION_REQUIRED helper_key={candidate_key}"
+        )
 
 
 def _github_api_json(path: str, *, allow_not_found: bool = False) -> object | None:

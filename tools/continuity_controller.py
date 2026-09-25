@@ -856,12 +856,42 @@ def assert_finalization_proof(
         )
 
 
+def _guard_transaction_state_value(transaction_state: object | None) -> str | None:
+    if transaction_state is None:
+        return None
+    state = getattr(transaction_state, "state", transaction_state)
+    value = getattr(state, "value", state)
+    return str(value) if value is not None else None
+
+
+def _claim_phase_value(claim_state: object | None) -> str | None:
+    if claim_state is None:
+        return None
+    if isinstance(claim_state, dict):
+        value = claim_state.get("phase")
+    else:
+        value = getattr(claim_state, "phase", None)
+    return str(value).upper() if value is not None else None
+
+
 def assert_turn_exitable(
     checkpoint: Checkpoint,
     *,
     expected_master_issue: str | None = None,
+    claim_state: object | None = None,
+    transaction_state: object | None = None,
 ) -> None:
     """Reject ending an assistant turn while autonomous work remains executable."""
+
+    tx_state = _guard_transaction_state_value(transaction_state)
+    if tx_state == "PENDING":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: UNCONSUMED_GREEN")
+    if tx_state == "MUTATION_DONE_RECONCILE_ONLY":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: DURABLE_MUTATION_ALREADY_HAPPENED")
+    if tx_state == "EXPIRED_UNCONSUMED":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: EXPIRED_UNCONSUMED_GUARD")
+    if tx_state == "AMBIGUOUS":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: AMBIGUOUS_GUARD_TRANSACTION")
 
     expected_master = _normalize_optional_text(expected_master_issue)
     if expected_master is not None and checkpoint.master_issue != expected_master:
@@ -895,6 +925,104 @@ def assert_turn_exitable(
             f"next_action={checkpoint.chain_next_action!r}"
         )
 
+
+
+def evaluate_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    claim_state: object | None = None,
+    transaction_state: object | None = None,
+    expected_master_issue: str | None = None,
+) -> str:
+    """Evaluate the turn boundary from current claim/checkpoint/Guard durable state."""
+
+    active_phases = {
+        "CLAIMED",
+        "RED",
+        "IMPLEMENTING",
+        "GREEN",
+        "REMOTE_QA",
+        "RECOVERING",
+        "CLEANUP",
+        "DRIFT_AUDIT",
+        "CLOSING",
+    }
+    claim_phase = _claim_phase_value(claim_state)
+    if checkpoint is None:
+        if claim_phase in active_phases:
+            raise TurnExitBlocked(
+                "TURN_EXIT_BLOCKED: ACTIVE_CLAIM_REQUIRES_CHECKPOINT"
+            )
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
+
+    assert_turn_exitable(
+        checkpoint,
+        expected_master_issue=expected_master_issue,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+    )
+    return "TURN_EXIT_PERMITTED"
+
+
+def evaluate_remote_turn_exit_from_durable_state(
+    checkpoint: Checkpoint | None,
+    *,
+    issue_state: str | None,
+    issue_state_reason: str | None,
+    claim_state: object | None,
+    transaction_state: object | None,
+    live_branch_head_sha: str,
+    active_remote_run: bool = False,
+    delegated_work_state: str = "NONE",
+    expected_issue: str,
+    expected_branch: str,
+    expected_head_sha: str,
+    expected_master_issue: str | None = None,
+) -> str:
+    """Trusted remote turn-exit decision from fresh durable evidence."""
+
+    result = evaluate_turn_exit_from_durable_state(
+        checkpoint,
+        claim_state=claim_state,
+        transaction_state=transaction_state,
+        expected_master_issue=expected_master_issue,
+    )
+    if checkpoint is None:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: CHECKPOINT_MISSING")
+
+    try:
+        _assert_checkpoint_owner(
+            checkpoint,
+            expected_issue=expected_issue,
+            expected_branch=expected_branch,
+            expected_head_sha=expected_head_sha,
+        )
+    except CheckpointError as exc:
+        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: IDENTITY_DRIFT: {exc}") from exc
+
+    live_head = _require_text("live_branch_head_sha", live_branch_head_sha)
+    if live_head != _require_text("expected_head_sha", expected_head_sha):
+        raise TurnExitBlocked(
+            "TURN_EXIT_BLOCKED: IDENTITY_DRIFT: live branch HEAD does not match expected HEAD"
+        )
+
+    if (
+        str(issue_state or "").lower() != "closed"
+        or str(issue_state_reason or "").lower() != "completed"
+    ):
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ISSUE_NOT_CLOSED_COMPLETED")
+
+    if _claim_phase_value(claim_state) != "RELEASED":
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: CLAIM_NOT_RELEASED")
+
+    if active_remote_run:
+        raise TurnExitBlocked("TURN_EXIT_BLOCKED: ACTIVE_REMOTE_RUN")
+
+    delegated = str(delegated_work_state or "NONE").strip().upper() or "NONE"
+    if delegated != "NONE":
+        raise TurnExitBlocked(f"TURN_EXIT_BLOCKED: {delegated}")
+
+    return result
 
 
 def _checkpoint_digest(path: Path) -> str:

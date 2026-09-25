@@ -244,3 +244,12 @@ active_run_head_sha=<optional>
 6. helper 建立後第一個 coordination write 必須把 `delegated_work=[{child_issue, relationship, helper_key}]` 寫回 parent claim。
 
 Trusted Remote Guard 執行同一 `tools/stale_claim_takeover.py`；CLI 會對 parent 已宣告 child pointer fresh-discover GitHub durable evidence，不建立第二套 stale parser。
+
+<!-- ISSUE646_SCHEDULER_ORDERING_V1 -->
+## ISSUE646_SCHEDULER_ORDERING_V1
+
+每次 wake 固定 decision order：fresh identity → Guard recovery → drift reconciliation → delegated/proof/helper traversal → helper reuse → stale evaluator → Guarded mutation → readback → turn-exit gate。不得先看 claim age 就判 stale。
+
+Guard recovery：PENDING consume canonical；MUTATION_DONE_RECONCILE_ONLY只 reconcile；EXPIRED_UNCONSUMED old receipt不可 consume、fresh reconcile後 mint fresh recovery Guard；equivalent duplicate GREEN deterministic dedupe；identity conflict fail closed。
+
+Provenance 必須保存 scheduler_lane + invocation_identity。Interactive 對稱需求為 conversation/chat identity + invocation identity 並補 heartbeat/liveness；不得因此修改 cadence、automation IDs、lane owner、recurring enabled policy。

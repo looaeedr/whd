@@ -143,3 +143,31 @@ Machine 防線：`tools/continuity_controller.py::authorize_finalization` 必須
 6. child terminal = Issue closed + claim terminal/released；half-terminal 先 reconciliation。
 
 Canonical machine owner：`tools/stale_claim_takeover.py`。
+
+
+## EQUIVALENT_DUPLICATE_GREEN_PITFALL_V1
+
+2026-09-25 #648 收尾時，同一個 `pr-write` mutation identity 被重複送出 Remote Guard，產生兩張仍有效且完全等價的 GREEN（runs `36095688419` / `36095692365`）。舊 classifier 只要看到兩張 matching GREEN 就一律 `AMBIGUOUS → FAIL_CLOSED`，導致合法收尾只能等 TTL 全數過期。
+
+永久規則：
+
+1. 只有 **mutation-relevant identity 完全相同**的 GREEN 才能折成 equivalent group；identity 包含 issue / worker / executor / action / branch / base / head / claim blob / guard authority / tested target / changed files，以及 takeover 專屬 identity。
+2. equivalent group 沒有 durable mutation readback、且仍有 live member 時，整組只代表**一個** `PENDING` mutation。
+3. 可 consume 的 canonical receipt 固定取「仍有效成員中 `issued_at` 最早者；同時則 `run_id` 最小者」。已過期 member 不得因另一張 duplicate 還活著而重新取得 mutation authority。
+4. shadow receipt 永遠不可獨立 consume；請求 shadow `run_id` 必須 identity-mismatch fail closed。
+5. 任一 equivalent member 的 action-specific durable readback 若證明 mutation 已發生，整組一起折成 `CONSUMED` 或 `MUTATION_DONE_RECONCILE_ONLY`，避免 shadow replay。
+6. 全組皆 expired 才是 `EXPIRED_UNCONSUMED`；TTL 語意不因 dedupe 改變。
+7. 只要任一 mutation-relevant identity 不同，仍維持真正的 `AMBIGUOUS → FAIL_CLOSED`，不得用 dedupe 掩蓋衝突。
+
+Canonical machine owner：`tools/execution_claim_guard.py`。Primary regression：`tests/process/test_issue643_guard_transaction_gate.py`。#651 focused acceptance：run `36097453177`，23 passed / 0 failed。
+
+<!-- ISSUE646_PITFALL_WRITEBACK_V1 -->
+## #641 fingerprint normalization pitfall
+
+#641 first finalization run 36051135751 因 raw JSON fingerprint 與 canonical Checkpoint normalization 不一致而 FAIL；改走 load_checkpoint + checkpoint_fingerprint 後 run 36051265277 GREEN。永久禁止自行 hash raw checkpoint JSON。
+
+## EXPIRED_UNCONSUMED recovery pitfall
+GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consume。正確恢復：fresh exact identity → EXPIRED_UNCONSUMED → mint fresh recovery Guard。不得因『以前 GREEN』直接 mutation。
+
+## Interactive liveness / provenance gap
+#646 暴露 scheduler 有 heartbeat、chatgpt_interactive 沒有對稱 runtime liveness，且 generic executor_source 無法指出哪個聊天室。Required follow-up：interactive heartbeat；conversation/chat identity + invocation identity；scheduler lane + invocation identity；heartbeat不得取代 ownership authority。

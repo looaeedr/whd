@@ -85,3 +85,16 @@ whd_schema: WHD_DOC_META_V1
 - Development execution bridge: `.agents/skills/engineering/執行開發任務/SKILL.md`
 - Primary wake/executor: hourly ChatGPT scheduled re-entry
 - GitHub Actions schedule role: watchdog / lease / remote-state safety net only
+
+<!-- ISSUE646_AUTHORITY_MAP_V1 -->
+## #646 authority map additions
+
+- Guard transaction / duplicate GREEN / expired recovery：tools/execution_claim_guard.py
+- stale/takeover + delegated/helper traversal：tools/stale_claim_takeover.py
+- checkpoint/turn-exit/closure/fingerprint：tools/continuity_controller.py
+- scheduler heartbeat selector：tools/scheduler_runtime_liveness.py
+- trusted remote turn-exit：.github/workflows/whd-turn-exit-gate.yml
+- trusted remote finalization：.github/workflows/whd-remote-finalization.yml
+- orchestration responsibility：.agents/skills/engineering/派工/SKILL.md
+
+Prompt/Skill/AI Library不得複製第二套 state machine。Capability gap：interactive heartbeat/liveness + exact provenance（chat conversation+invocation；scheduler lane+invocation）仍需 machine owner補齊；generic executor_source 不等於已解決。

@@ -119,3 +119,10 @@ Canonical executable owner：`.agents/skills/engineering/executable-continuity-c
 - terminal run 只代表觀測到結果；下一步仍必須由 executor 執行。
 - 反覆 poll 同一靜止狀態不算 progress。
 - 使用者不是 scheduler，不應靠「輪／繼續」來製造進度。
+
+<!-- ISSUE646_SCHEDULED_RESUME_V1 -->
+## #646 scheduled resume canonical usage
+
+Wake-up不是 owner。每輪 fresh reconstruct，依序處理 Guard transaction、drift、delegated/helper/proof、helper dedupe、stale evaluator、Guard single-use mutation、readback、turn-exit。EXPIRED_UNCONSUMED 不得重播舊 GREEN，只能 fresh recovery Guard。
+
+Scheduler provenance 必須 lane + invocation identity。Required follow-up：interactive ChatGPT 也要 heartbeat/liveness，並保存 specific conversation/chat identity + invocation identity，避免只看到模糊 chatgpt_interactive。

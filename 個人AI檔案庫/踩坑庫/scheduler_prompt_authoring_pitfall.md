@@ -61,3 +61,12 @@ whd_schema: WHD_DOC_META_V1
 因此禁止說：「prompt 補好了，所以排程不會再停。」
 
 正確說法只能是：prompt authoring contract 已補；是否持續施工要看下一輪的 durable mutation、exact run、turn-exit proof 與 END readback。
+
+<!-- ISSUE646_PROMPT_AUTHORING_V1 -->
+## #646 prompt authoring hard order
+
+Scheduler prompt 固定：Guard recovery → drift reconciliation → delegated/proof/helper traversal → helper dedupe → stale evaluator → guarded mutation → readback → turn-exit。不得把『10分鐘沒更新』放在第一判斷。
+
+必須明寫 active delegated child = parent liveness、same helper key reuse、equivalent duplicate GREEN dedupe、expired unconsumed GREEN不可 replay、cadence/IDs/lane owner/recurring enabled policy不得因 writeback改動。
+
+Prompt/status provenance 要顯示 exact scheduler lane + invocation identity；interactive counterpart後續必須保存 conversation/chat identity + invocation identity並補 heartbeat。

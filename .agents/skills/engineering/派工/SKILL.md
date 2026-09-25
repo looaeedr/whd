@@ -617,3 +617,14 @@ foreign scheduler ownership 仍由 `tools/scheduler_runtime_liveness.py` + `tool
 - helper Issue 建立後第一個 durable coordination write 必須把 canonical `delegated_work[]` 寫回 parent claim，pointer 未落盤不得開始 helper substantive work。
 
 禁止循環：parent 看似安靜 → 誤判 stale → takeover → 再開 helper → 無限 helper/takeover。
+
+<!-- ISSUE646_DISPATCH_WRITEBACK_V1 -->
+## ISSUE646_DISPATCH_WRITEBACK_V1
+
+Resume/takeover/helper-create/turn-exit 固定順序：fresh identity → unresolved Guard recovery → live drift reconciliation → structured delegated/proof/helper/dependency traversal → active child沿到 leaf → same helper key reuse/reservation → canonical stale evaluator → guarded mutation → fresh readback。
+
+EXPIRED_UNCONSUMED 的舊 GREEN 永久不可 consume；fresh reconcile後才可 mint one fresh recovery Guard。Equivalent duplicate GREEN exact-equivalent時 deterministic dedupe；真正 identity conflict仍 AMBIGUOUS → FAIL_CLOSED。
+
+Checkpoint fingerprint 禁止 raw JSON hash；只用 load_checkpoint + checkpoint_fingerprint 或 authorize-finalization。#641：36051135751 FAIL → 36051265277 GREEN。
+
+EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保存 exact conversation/chat identity + invocation identity；scheduler 保存 exact lane + invocation identity；另補 chatgpt_interactive heartbeat/liveness。此為 required follow-up，在 machine owner完成前不得宣稱已 enforcement。
