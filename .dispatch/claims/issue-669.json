@@ -8,16 +8,16 @@
   "base_sha": "68b920967c438679c0841123571230a66b013877",
   "head_sha": "863922638ea265d2913c95979c894b2794d97041",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T16:47:05Z",
+  "last_update": "2026-09-25T16:52:40Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Verify cleaned final diff contains only the Skill + contract test, monitor cleanup-head governance run to terminal, then obtain exact merge authority for PR #670.",
+  "next_action": "Obtain a fresh exact merge pr-write Guard for PR #670, merge non-force, then fresh-read production and continue canonical closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-669.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36162915592,
-    "request_comment_id": 5836061352,
+    "run_id": 36163085679,
+    "request_comment_id": 5836085117,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -26,10 +26,14 @@
     "pr": 670,
     "pr_state": "open",
     "merged": false,
-    "head_sha": "c55aa610edeb043038e409abccecd39eec834c8c",
+    "head_sha": "863922638ea265d2913c95979c894b2794d97041",
     "base_sha": "68b920967c438679c0841123571230a66b013877",
     "governance_run_id": 36162324786,
-    "governance_result": "success"
+    "governance_result": "success",
+    "mergeable": true,
+    "final_changed_files": 2,
+    "cleanup_head_governance_run_id": 36162899511,
+    "cleanup_head_governance_result": "success"
   },
   "qa": {
     "focused_run_id": 36162681958,
