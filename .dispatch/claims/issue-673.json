@@ -11,10 +11,10 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T22:55:10Z",
+  "last_update": "2026-09-25T23:00:20Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Run trusted finalization on the exact frozen ISSUE_CLOSE_PENDING checkpoint; if proof GREEN, close Issue #673 and fresh-read closed/completed without checkpoint mutation.",
+  "next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED; fresh-read child terminal proof and terminalize parent #671 helper reservation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
@@ -27,12 +27,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36198855811,
-    "request_comment_id": 5840763320,
+    "run_id": 36199194557,
+    "request_comment_id": 5840808525,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
-    "mutation": "advanced closure to ISSUE_CLOSE_PENDING"
+    "mutation": "advanced closure to RELEASE_HANDOFF_PENDING"
   },
   "deployment_candidate": {
     "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
@@ -101,5 +101,18 @@
     "dispatch_skill_blob": "cfc29a04bff59f5e746eec3831ad069126023e88",
     "remote_guard_skill_blob": "5a7e68948fcf09274975ebea0d1a4d13ef076c74",
     "legacy_checkpoint_repair_live": true
+  },
+  "finalization": {
+    "run_id": 36199023659,
+    "result": "success",
+    "reason": "FINALIZATION_PROOF_VALID",
+    "artifact_id": 10891730992,
+    "checkpoint_blob_sha": "fdd152a32741af419511b8da41c851b8a76c45a2",
+    "checkpoint_fingerprint": "abce5ecdb9349657d6497c7c8af23d2e13e9babe79f8785f99c6b55d90b22059",
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-25T22:59:17Z"
+    }
   }
 }

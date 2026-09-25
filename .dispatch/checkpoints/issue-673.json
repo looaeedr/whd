@@ -34,12 +34,15 @@
     "main trusted Claim Activation blob=757c04902e19b997ee3d4d3511793e19abba2e83 and execution_claim_guard.py blob=7a6f948c092e97f269f5af5473b3ab1a884d7cda; legacy-checkpoint-repair is live on default branch.",
     "Helper #673 acceptance complete: PR #674 merged into main at ff2783c5c8243f1bd777b43f8c1da5db0e7226cb; main trusted legacy-checkpoint-repair readback GREEN.",
     "Terminalization Guard run 36198685677 GREEN consumed exactly once to persist TERMINAL_SUCCESS / FINALIZATION_PENDING.",
-    "Closure advance Guard run 36198855811 GREEN consumed for adjacent transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
+    "Closure advance Guard run 36198855811 GREEN consumed for adjacent transition FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING.",
+    "Trusted finalization run 36199023659 completed/success; FINALIZATION_GUARD_PASS and FINALIZATION_PROOF_VALID on exact frozen checkpoint fingerprint abce5ecdb9349657d6497c7c8af23d2e13e9babe79f8785f99c6b55d90b22059; artifact 10891730992.",
+    "Owning Issue #673 fresh-read closed/completed at 2026-09-25T22:59:17Z; checkpoint blob remained exactly fdd152a32741af419511b8da41c851b8a76c45a2 across proof -> Issue close boundary.",
+    "Guard run 36199194557 GREEN consumed for adjacent closure transition ISSUE_CLOSE_PENDING -> RELEASE_HANDOFF_PENDING."
   ],
   "chain_state": "NONE",
   "next_issue": null,
   "chain_next_action": null,
   "chain_reason": null,
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted authorize-finalization + verify-finalization-proof on this exact checkpoint; if GREEN, close Issue #673 and fresh-read closed/completed without checkpoint mutation."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Obtain final coordination Guard, then atomically persist checkpoint CLOSED + claim RELEASED; fresh-read terminal proof for parent helper handoff."
 }
