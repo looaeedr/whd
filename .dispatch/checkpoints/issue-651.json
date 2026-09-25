@@ -22,8 +22,9 @@
     "Final tested-to-closing drift changes only one-shot workflow removal plus required AI pitfall writeback; production/test bytes remain the 23-pass GREEN version.",
     "Unique merge Guard run 36101526768 authorized PR #652 integration.",
     "PR #652 merged into workorder/issue640-guard-turn-exit-helper-hardening-20260925 at 0eee910cfe2f121c6074911d9c9414b877f7003a and target readback matched.",
-    "Remote Guard run 36101637181 authorized this terminal checkpoint transition."
+    "Remote Guard run 36101637181 authorized this terminal checkpoint transition.",
+    "Remote Guard run 36101733028 authorized closure transition to ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, mint bound finalization proof, close/read back Issue #651, then persist CLOSED plus claim RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Mint and verify the bound finalization proof on this frozen checkpoint, close/read back Issue #651, then persist CLOSED plus claim RELEASED."
 }
