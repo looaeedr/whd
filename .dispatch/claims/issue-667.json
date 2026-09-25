@@ -7,19 +7,20 @@
   "claimed_at": "2026-09-25T15:08:30Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T15:10:00Z",
+  "phase": "RED",
+  "last_update": "2026-09-25T15:14:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Re-run exact branch-create Guard after canonical checkpoint recovery; create work branch only on GREEN.",
+  "next_action": "Create focused RED contract test + one-shot QA workflow on the work branch, then observe expected RED before implementation.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-667.json",
   "last_guard": {
     "action": "branch-create",
-    "run_id": 36152171869,
-    "request_comment_id": 5834682448,
-    "result": "FAIL",
-    "reason": "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: unknown checkpoint fields: ['current_role']",
-    "consumed": false
+    "run_id": 36152329350,
+    "request_comment_id": 5834703101,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "created governance/issue667-force-takeover-liveness-20260925 at 156bc20e7b7c331eae2a24d2c46bd984c5959720"
   }
 }
