@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
+  "head_sha": "c3d597cb36bb10a688664d293f8b8536ddc3f18c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T00:25:00.180034Z",
+  "last_update": "2026-09-25T00:26:48.434499Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
+  "chain_head": "c3d597cb36bb10a688664d293f8b8536ddc3f18c",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Diagnose final focused GREEN run 36077387029 failure at exact HEAD 8be92323c111d32d02f68e8ad5308328f2cd0d80, repair only the failing T3 contract, then rerun.",
+  "next_action": "Diagnose final focused GREEN run 36077531240 failure at exact HEAD c3d597cb36bb10a688664d293f8b8536ddc3f18c; repair only the exact remaining T3 failure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -74,5 +74,11 @@
     "commit_sha": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
     "guard_run_id": 36077272254,
     "reconcile_guard_run_id": 36077414138
+  },
+  "harness_repair": {
+    "commit_sha": "c3d597cb36bb10a688664d293f8b8536ddc3f18c",
+    "guard_run_id": 36077491208,
+    "reconcile_guard_run_id": 36077553764,
+    "failed_green_run_id": 36077531240
   }
 }

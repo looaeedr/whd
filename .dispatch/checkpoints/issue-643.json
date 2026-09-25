@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
+  "head_sha": "c3d597cb36bb10a688664d293f8b8536ddc3f18c",
   "state": "RUNNING",
-  "next_action": "Diagnose final focused GREEN run 36077387029 failure at exact HEAD 8be92323c111d32d02f68e8ad5308328f2cd0d80 and repair the exact failing T3 contract.",
+  "next_action": "Diagnose final focused GREEN run 36077531240 failure at exact HEAD c3d597cb36bb10a688664d293f8b8536ddc3f18c and repair only the remaining T3 failure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -24,7 +24,9 @@
     "Focused T3 core GREEN run 36076909865 at exact HEAD 4e2658e75308e0ce8d40c3a3601d4d1010dc695e completed success: 75 passed / 0 failed; artifact 10840641005; marker ISSUE643_T3_CORE_GREEN=PASS.",
     "Core GREEN evidence writeback authorized by Remote Guard run 36077119827.",
     "Trusted Remote Guard second-request rejection commit 8be92323c111d32d02f68e8ad5308328f2cd0d80 authorized by Remote Guard run 36077272254.",
-    "Post-gate atomic claim+checkpoint reconciliation to 8be92323c111d32d02f68e8ad5308328f2cd0d80 authorized by Remote Guard run 36077414138."
+    "Post-gate atomic claim+checkpoint reconciliation to 8be92323c111d32d02f68e8ad5308328f2cd0d80 authorized by Remote Guard run 36077414138.",
+    "Harness import repair commit c3d597cb36bb10a688664d293f8b8536ddc3f18c authorized by Remote Guard run 36077491208.",
+    "Post-repair atomic claim+checkpoint reconciliation to c3d597cb36bb10a688664d293f8b8536ddc3f18c authorized by Remote Guard run 36077553764."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
