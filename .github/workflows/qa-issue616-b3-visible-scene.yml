@@ -1,0 +1,58 @@
+name: "WHD｜#616｜B3 可見場景診斷"
+run-name: "WHD｜#616｜B3 可見場景診斷"
+
+on:
+  push:
+    branches:
+      - work/issue628-receiving-rear-panel-overlay-live-switch-20260924
+    paths:
+      - 'tests/test_issue616_visible_scene_diagnostic.py'
+      - 'phase6_final_scene_renderer.py'
+      - 'gui_modules/application/fold_designer_adapter.py'
+      - 'gui_modules/application/fold_designer_settings_coordinator.py'
+      - '.github/workflows/qa-issue616-b3-visible-scene.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "UI-R3 金庫型→受電箱第一個錯誤可見畫面"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      WHD_UI_R3_ARTIFACT: /tmp/issue616/visible-scene-diagnostic.json
+    steps:
+      - name: "Checkout exact candidate"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Install Xvfb and Python dependencies"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb python3-tk
+          python -m pip install -q pytest pytest-json-report matplotlib numpy shapely ezdxf -r requirements.txt
+
+      - name: "Run #616 UI-R3 exact visible-scene diagnostic"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/issue616
+          xvfb-run -a python -m pytest -q \
+            tests/test_issue616_visible_scene_diagnostic.py \
+            --tb=short \
+            --json-report --json-report-file=/tmp/issue616/report.json
+
+      - name: "Upload UI-R3 diagnostic evidence"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue616-ui-r3-visible-scene
+          path: |
+            /tmp/issue616/visible-scene-diagnostic.json
+            /tmp/issue616/report.json
+          if-no-files-found: error
