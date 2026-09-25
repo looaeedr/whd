@@ -23,8 +23,11 @@
     "Verified work-order closing HEAD remains 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156.",
     "Master #640 entered TERMINAL_SUCCESS + FINALIZATION_PENDING; no tests or helper creation were replayed.",
     "Narrow metadata recovery after closure prewrite Guard run 36139410910 failed closed: removed invalid Master checkpoint chain_state field only; #647 CHAIN_COMPLETE remains preserved in terminal-child evidence and checkpoint evidence.",
-    "Remote Guard run 36139558903 GREEN consumed exactly once to advance Master #640 FINALIZATION_PENDING → ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36139558903 GREEN consumed exactly once to advance Master #640 FINALIZATION_PENDING → ISSUE_CLOSE_PENDING.",
+    "Trusted Remote Finalization run 36139752437 completed SUCCESS with FINALIZATION_PROOF_VALID for canonical checkpoint fingerprint b40f896779bdbae92e2a4637223e0249ec8ade10d465bad418d9b6abbbfcb438; artifact 10866007312.",
+    "Issue #640 fresh readback confirmed closed/completed at 2026-09-25T13:15:46Z.",
+    "Remote Guard run 36139897881 GREEN consumed exactly once to advance ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Execute bound Remote Finalization on this exact frozen checkpoint, require FINALIZATION_PROOF_VALID, close Issue #640, and immediately fresh-read closed/completed. No checkpoint mutation is allowed before Issue close readback."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Obtain one fresh final release Guard and atomically write checkpoint CLOSED + claim RELEASED; then execute trusted turn-exit proof and require TURN_EXIT_PERMITTED."
 }
