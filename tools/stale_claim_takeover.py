@@ -104,7 +104,7 @@ class StaleTakeoverEvaluation:
         payload["schema"] = "WHD_STALE_CLAIM_TAKEOVER_V1"
         payload["classification"] = self.classification.value
         payload["latest_progress_at"] = _iso_utc(self.latest_progress_at)
-        payload["claim_last_update"] = _iso_utc(self.claim_last_update)
+        payload["claim_last_update"] = _iso_utc_exact(self.claim_last_update)
         if self.runtime_liveness_emitted_at is not None:
             payload["runtime_liveness_emitted_at"] = _iso_utc(
                 self.runtime_liveness_emitted_at
@@ -127,6 +127,11 @@ def _iso_utc(value: datetime) -> str:
         .isoformat()
         .replace("+00:00", "Z")
     )
+
+
+def _iso_utc_exact(value: datetime) -> str:
+    """Serialize an identity-bound timestamp without discarding fractional seconds."""
+    return _as_utc("timestamp", value).isoformat().replace("+00:00", "Z")
 
 
 def _as_utc(label: str, value: object) -> datetime:
