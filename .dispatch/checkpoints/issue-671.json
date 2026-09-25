@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
-  "head_sha": "9e49b8b797415d561a661319e78d3d4029acf6b3",
+  "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "state": "RUNNING",
-  "next_action": "Delete only the one-shot .github/workflows/qa-issue671-legacy-checkpoint-repair.yml under exact commit Guard; then prove tested-head -> cleaned-head drift is workflow deletion only and proceed to integration/deployment.",
+  "next_action": "Open guarded PR from cleaned #671 head a8093a2b70f817c74491467a2fca7e05f99ea37a into cleanup/2d-3d-sync; verify/merge non-force; then deploy the trusted Claim Activation capability to default branch main before using it to repair #617.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,6 +28,9 @@
     "Reconciliation Guard 36171913340 GREEN consumed to advance exact claim+checkpoint pair to live implementation HEAD.",
     "Fixture-only commit 9e49b8b797415d561a661319e78d3d4029acf6b3 removed illegal master_issue metadata from RUNNING checkpoint fixture; no RED assertions or repair policy changed.",
     "Focused QA run 36172173175 completed success on exact HEAD 9e49b8b797415d561a661319e78d3d4029acf6b3; 32 passed.",
-    "Reconciliation Guard 36172211057 GREEN consumed to bind claim/checkpoint to exact tested HEAD."
+    "Reconciliation Guard 36172211057 GREEN consumed to bind claim/checkpoint to exact tested HEAD.",
+    "Cleanup commit a8093a2b70f817c74491467a2fca7e05f99ea37a is direct child of tested HEAD 9e49b8b797415d561a661319e78d3d4029acf6b3.",
+    "Tested-to-cleaned compare shows exactly one removed file: .github/workflows/qa-issue671-legacy-checkpoint-repair.yml; implementation/test/Skill blobs are unchanged.",
+    "Cleanup reconciliation Guard 36172518847 GREEN consumed to bind claim/checkpoint to cleaned HEAD."
   ]
 }

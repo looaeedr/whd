@@ -9,18 +9,18 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "9e49b8b797415d561a661319e78d3d4029acf6b3",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T18:15:40Z",
+  "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+  "phase": "INTEGRATION",
+  "last_update": "2026-09-25T18:18:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Delete only the one-shot .github/workflows/qa-issue671-legacy-checkpoint-repair.yml under exact commit Guard; then prove tested-head -> cleaned-head drift is workflow deletion only and proceed to integration/deployment.",
+  "next_action": "Open guarded PR from cleaned #671 head a8093a2b70f817c74491467a2fca7e05f99ea37a into cleanup/2d-3d-sync; verify/merge non-force; then deploy the trusted Claim Activation capability to default branch main before using it to repair #617.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36172211057,
-    "request_comment_id": 5837280816,
+    "run_id": 36172518847,
+    "request_comment_id": 5837320718,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -49,5 +49,10 @@
     "conclusion": "success",
     "workflow_path": ".github/workflows/qa-issue671-legacy-checkpoint-repair.yml",
     "evidence": "32 passed in focused contract suite"
+  },
+  "cleanup_audit": {
+    "tested_head": "9e49b8b797415d561a661319e78d3d4029acf6b3",
+    "cleaned_head": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+    "only_delta": ".github/workflows/qa-issue671-legacy-checkpoint-repair.yml deleted"
   }
 }
