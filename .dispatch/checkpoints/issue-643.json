@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "643",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "cb3be0740424110dd5826e589f6d32e35023ee2c",
+  "head_sha": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
   "state": "RECOVERING",
-  "next_action": "Repair discovered T3 closure regression, prove RED→GREEN, then re-enter terminal closure and hand off #644.",
+  "next_action": "Confirm closure-prewrite RED at HEAD 85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92, then repair only the canonical terminal-checkpoint closure exception.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,7 +32,9 @@
     "Fresh recovery reconciliation authorized by Remote Guard run 36081325330 and consumed immediately to align claim+checkpoint with exact GREEN HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
     "Task Acceptance comment 5825054971 binds T3 acceptance to exact GREEN HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
     "Terminal-entry Remote Guard run 36081455969 GREEN at exact accepted HEAD cb3be0740424110dd5826e589f6d32e35023ee2c.",
-    "T3 acceptance was re-opened for canonical recovery after closure Guard run 36081509204 failed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT against the valid TERMINAL_SUCCESS checkpoint. No closure mutation was performed."
+    "T3 acceptance was re-opened for canonical recovery after closure Guard run 36081509204 failed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT against the valid TERMINAL_SUCCESS checkpoint. No closure mutation was performed.",
+    "Closure-prewrite regression RED commit 85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92 authorized by Remote Guard run 36081763415.",
+    "Post-RED atomic claim+checkpoint reconciliation to 85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92 authorized by Remote Guard run 36081845751."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null

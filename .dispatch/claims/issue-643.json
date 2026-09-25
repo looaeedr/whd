@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "cb3be0740424110dd5826e589f6d32e35023ee2c",
+  "head_sha": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
   "phase": "RECOVERING",
-  "last_update": "2026-09-25T01:20:30Z",
+  "last_update": "2026-09-25T01:24:17.186097Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "cb3be0740424110dd5826e589f6d32e35023ee2c",
+  "chain_head": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Repair discovered T3 closure regression: trusted Remote Guard must allow exact canonical closure coordination writes against a terminal checkpoint without weakening normal ACTIVE_CLAIM_REQUIRES_CHECKPOINT prewrite enforcement.",
+  "next_action": "Confirm closure-prewrite RED at HEAD 85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92, then repair only the canonical terminal-checkpoint closure exception in tools/execution_claim_guard.py.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -107,6 +107,10 @@
     "reason": "T3 acceptance revoked after closure Guard run 36081509204 failed on valid TERMINAL_SUCCESS checkpoint",
     "failed_guard_run_id": 36081509204,
     "failed_guard_receipt_comment_id": 5825064165,
-    "recovery_transition": "reactivate"
+    "recovery_transition": "reactivate",
+    "red_commit_sha": "85e3519ebcf2c9558a3a04dcbaf8cd9506b31a92",
+    "red_commit_guard_run_id": 36081763415,
+    "red_reconcile_guard_run_id": 36081845751,
+    "red_green_run_id": 36081820820
   }
 }
