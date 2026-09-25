@@ -41,10 +41,13 @@
     "Post-fix atomic claim+checkpoint reconciliation to c7e1e6fa5664e8c877b411ab6dcac941c90c2341 authorized by Remote Guard run 36082039164 and consumed immediately.",
     "Recovered T3 Task Acceptance at exact HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341 after closure-prewrite regression fix; final GREEN run 36082023995: 80 passed / 0 failed.",
     "Recovered terminal-entry Remote Guard run 36082230445 GREEN at exact accepted HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341.",
-    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36082281766 after the terminal-checkpoint prewrite repair."
+    "Closure transition FINALIZATION_PENDING → ISSUE_CLOSE_PENDING authorized by Remote Guard run 36082281766 after the terminal-checkpoint prewrite repair.",
+    "Bound Remote Finalization run 36082398314 GREEN: FINALIZATION_PROOF_VALID; artifact 10842198471; fingerprint b17c0676368051571be3e08934b49cbe1bfe0b29dd8a3d07f8b79b8f3e8f76a3.",
+    "Owning Issue #643 fresh-read closed/completed at 2026-09-25T01:32:21Z.",
+    "Closure transition ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36082481001."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the exact bound Remote Finalization proof for #643 at HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341, then close Issue #643 and fresh-read closed/completed before advancing to RELEASE_HANDOFF_PENDING.",
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Final atomic closure: atomically persist checkpoint CLOSED + claim RELEASED while preserving the #644 successor handoff.",
   "master_issue": "640",
   "chain_state": "NEXT_CHILD_EXECUTABLE",
   "next_issue": 644,

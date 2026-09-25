@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T01:26:54.089430Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T01:32:52.022645Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -22,7 +22,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Re-enter canonical T3 terminal closure at exact GREEN HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341 and hand off #644.",
+  "next_action": "Issue #643 is closed/completed; complete final atomic closure by setting checkpoint CLOSED + claim RELEASED while preserving successor #644 handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -120,5 +120,22 @@
     "final_green_artifact_id": 10842098217,
     "final_green_pytest": "80 passed / 0 failed",
     "t2_regression_run_id": 36082023965
+  },
+  "evidence": {
+    "finalization": {
+      "request_comment_id": 5825190115,
+      "run_id": 36082398314,
+      "artifact_id": 10842198471,
+      "result": "GREEN",
+      "reason": "FINALIZATION_PROOF_VALID",
+      "checkpoint_blob_sha": "723132146b6d4dd4e216398841913566d31857b2",
+      "checkpoint_fingerprint": "b17c0676368051571be3e08934b49cbe1bfe0b29dd8a3d07f8b79b8f3e8f76a3"
+    },
+    "issue_close_readback": {
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-09-25T01:32:21Z"
+    },
+    "release_handoff_pending_guard_run_id": 36082481001
   }
 }
