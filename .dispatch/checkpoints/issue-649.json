@@ -18,8 +18,11 @@
     "Fresh workflow blob d1b0af492a41b80565f4e5fb890ee390bc50c75d confirms exact guarded target identity remains fail-closed.",
     "Remote Guard run 36094854318 GREEN authorized terminal checkpoint entry for #649.",
     "Acceptance complete: trusted workflow deployed on main; exact checkpoint fail-closed fallback, fractional takeover identity binding, independent canonical guard authority, and live #648 Guard smoke are all present.",
-    "Remote Guard run 36094950075 GREEN authorized closure transition to ISSUE_CLOSE_PENDING."
+    "Remote Guard run 36094950075 GREEN authorized closure transition to ISSUE_CLOSE_PENDING.",
+    "Remote Finalization run 36095055696 completed success with FINALIZATION_PROOF_VALID on frozen checkpoint fingerprint d33e042e714fb40b1cee42c150c7518713f0c4619ac2632c174339bf9f5333ad.",
+    "Issue #649 fresh readback confirmed closed/completed at 2026-09-25T04:36:10Z.",
+    "Remote Guard run 36095159942 GREEN authorized closure transition to RELEASE_HANDOFF_PENDING."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Mint and verify the bound finalization proof on this exact frozen checkpoint, close/read back Issue #649, then atomically persist RELEASE_HANDOFF_PENDING/CLOSED + claim RELEASED."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Atomically persist checkpoint closure_state=CLOSED and shared claim phase=RELEASED, then fresh-read both and return control to parent repair #648."
 }
