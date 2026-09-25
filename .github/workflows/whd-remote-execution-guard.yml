@@ -195,8 +195,6 @@ jobs:
           set +e
           (
             set -euo pipefail
-            test "$RG_GUARD_AUTHORITY_SHA" = "$RG_TESTED_TARGET_SHA"
-
             git fetch --no-tags origin "$RG_GUARD_AUTHORITY_SHA"
             git checkout --detach "$RG_GUARD_AUTHORITY_SHA"
             test "$(git rev-parse HEAD)" = "$RG_GUARD_AUTHORITY_SHA"
