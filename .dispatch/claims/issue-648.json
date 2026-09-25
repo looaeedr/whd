@@ -1,20 +1,28 @@
 {
   "issue": 648,
   "issue_url": "https://github.com/looaeedr/whd/issues/648",
-  "worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
-  "executor_source": "scheduler",
+  "worker": "chatgpt.sol260925.issue648.recovery1",
+  "executor_source": "chatgpt_interactive",
   "work_branch": "governance/issue648-takeover-timestamp-precision-20260925",
-  "claimed_at": "2026-09-25T03:07:30Z",
+  "claimed_at": "2026-09-25T04:01:14Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-  "head_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T03:07:30Z",
+  "head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T04:01:14Z",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-TAKEOVER-TIMESTAMP-PRECISION",
   "parent_issue": 645,
   "delegated_branches": [],
   "remote_qa": null,
-  "next_action": "Guard-create governance repair branch from exact production HEAD; add fractional-second takeover evidence regression, preserve exact claim timestamp precision, run focused GREEN, non-force integrate, then return to #645 stale takeover.",
+  "next_action": "Run focused #648 timestamp-precision takeover regressions at a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad; if GREEN, non-force integrate the single governance commit to cleanup/2d-3d-sync, then close/release #648 and return to #645 takeover.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-648.json"
+  "checkpoint": ".dispatch/checkpoints/issue-648.json",
+  "stale_takeover": {
+    "previous_worker": "scheduler.6ab13fa557fc8191935c671214b865e2",
+    "previous_executor_source": "scheduler",
+    "observed_live_head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
+    "user_authority_comment_id": 5826464871,
+    "taken_over_at": "2026-09-25T04:01:14Z",
+    "reason": "User directed #648 recovery after scheduler owner stalled and trusted Remote Guard branch-create transport remained capability-blocked."
+  }
 }

@@ -2,16 +2,18 @@
   "version": 1,
   "issue": "648",
   "branch": "governance/issue648-takeover-timestamp-precision-20260925",
-  "head_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
+  "head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
   "state": "RUNNING",
-  "next_action": "Guard-create governance repair branch from exact production HEAD; add fractional-second takeover evidence regression, preserve exact claim timestamp precision, run focused GREEN, non-force integrate, then return to #645 stale takeover.",
+  "next_action": "Run focused #648 timestamp-precision takeover regressions; on GREEN, non-force integrate one commit to cleanup/2d-3d-sync, close/release #648, and resume #645.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Blocking #645 stale takeover run 36088862272 classified EXECUTOR_STUCK/actionable=true but failed only because fractional claim last_update precision was truncated in evaluator evidence.",
-    "Issue #648 owns the narrow governance capability repair."
+    "Blocking #645 stale takeover run 36088862272 classified EXECUTOR_STUCK/actionable=true but failed because claim_last_update fractional precision was truncated.",
+    "Issue #648 owns the narrow governance capability repair.",
+    "Repair branch advanced from production base 2bf5969aba8c8aa033b314f0d6f92165239f67c0 to a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad with only tools/stale_claim_takeover.py and tests/process/test_issue540_stale_claim_takeover.py changed.",
+    "User-directed interactive takeover authority recorded in Issue #648 comment 5826464871 after scheduler durable progress stalled."
   ]
 }
