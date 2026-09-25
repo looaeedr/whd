@@ -49,20 +49,23 @@ jobs:
             tests/process/test_continuity_controller.py \
             tests/process/test_finalization_owner_guard.py
 
-      - name: Full process regression
+      - name: Governance and writeback readback
         run: |
-          python -m pytest -q --confcutdir=tests/process tests/process
-
-      - name: Governance combined-authority contract
-        run: |
-          python -m pytest -q --confcutdir=tests/knowledge \
-            tests/knowledge/test_combined_authority_acceptance_contract.py
+          python -m pytest -q \
+            tests/knowledge/test_combined_authority_acceptance_contract.py \
+            tests/knowledge/test_executable_continuity_routing_alignment.py \
+            tests/process/test_issue270_durable_governance_writeback.py \
+            tests/process/test_remote_execution_guard_skill_contract.py \
+            tests/process/test_write_scheduler_skill_contract.py \
+            tests/test_issue_closure_completion_skill_contract.py \
+            tests/test_remote_qa_monitoring_skill_contract.py
 
       - name: Trusted default-branch artifacts are exact accepted blobs
         run: |
           git fetch --no-tags origin main cleanup/2d-3d-sync
           test "$(git rev-parse refs/remotes/origin/main:.github/workflows/whd-remote-claim-activation.yml)" = "13d0b673a26a2912917df89234bd29428563cd10"
           test "$(git rev-parse refs/remotes/origin/main:.github/workflows/whd-turn-exit-gate.yml)" = "41bf76f78c9af8246947939660daf05f525989d8"
+          test "$(git rev-parse refs/remotes/origin/main:.github/workflows/whd-remote-execution-guard.yml)" = "c6e96581c47b4d46704f719877174f9248928f5e"
           git merge-base --is-ancestor 2bf5969aba8c8aa033b314f0d6f92165239f67c0 refs/remotes/origin/cleanup/2d-3d-sync
           echo "ISSUE647_TRUSTED_DEFAULT_BRANCH_READBACK=GREEN"
 
