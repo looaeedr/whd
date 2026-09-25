@@ -8,12 +8,12 @@
   "base_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
   "head_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
   "phase": "GREEN",
-  "last_update": "2026-09-25T14:08:08.851Z",
-  "production_target": "main",
+  "last_update": "2026-09-25T14:09:00Z",
+  "production_target": "cleanup/2d-3d-sync",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Open the one-file #663 turn-exit workflow PR to main under guarded pr-write, merge/readback, then rerun the closed #640 trusted Turn Exit proof.",
+  "next_action": "Open the one-file #663 turn-exit workflow PR to cleanup/2d-3d-sync under guarded pr-write, merge/readback, then wait for user-directed cleanup->main integration before rerunning the closed #640 trusted Turn Exit proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
@@ -44,5 +44,10 @@
     "commit_guard_run_id": 36145266678,
     "reconcile_guard_run_id": 36145388240,
     "fix": "source $GITHUB_ENV before same-step TE_* shell use"
+  },
+  "integration_target_change": {
+    "requested_by_user": true,
+    "target": "cleanup/2d-3d-sync",
+    "reason": "land repair in cleanup first; user will merge cleanup to main"
   }
 }
