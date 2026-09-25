@@ -2,20 +2,19 @@
   "version": 1,
   "issue": "649",
   "branch": "main",
-  "head_sha": "6db677665d0d83ab9ae1759ca433d93ff2af7505",
+  "head_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
   "state": "RUNNING",
-  "next_action": "Advance to TERMINAL_SUCCESS and canonical closure transaction; the main trusted workflow repair is deployed and live-smoked by #648 Guard run 36093545485.",
+  "next_action": "Run exact coordination prewrite Guard using canonical authority 27e57fc... against guarded target main@d0eedaa2..., then enter TERMINAL_SUCCESS closure.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "User-directed takeover authority comment 5826535484.",
-    "Claim Activation run 36093287791 GREEN transferred #649 ownership to chatgpt.sol260925.issue649.recovery1.",
-    "BOOTSTRAP_AUTHORITY_REPAIR_V1 comment 5826547408 restricted the repair to main:.github/workflows/whd-remote-execution-guard.yml.",
-    "Main commit 6db677665d0d83ab9ae1759ca433d93ff2af7505 deployed the trusted Remote Guard compatibility repair.",
-    "Fresh main readback: workflow blob 680bd7567fd558efde631325710ed6bc16c6ff0c contains checkpoint CLI fallback with exact issue/branch/head/non-terminal fail-closed checks and exact raw fractional claim_last_update binding.",
-    "Live smoke: #648 Remote Guard run 36093545485 completed success/GREEN against the repaired trusted transport."
+    "Claim Activation run 36094391205 reconciled #649 to main after the first bootstrap repair.",
+    "Remote Guard run 36094632701 exposed redundant guard_authority==tested_target runtime equality.",
+    "BOOTSTRAP_AUTHORITY_REPAIR_V1 comment 5826761012 authorized same-file closure compatibility repair only.",
+    "Main commit d0eedaa2af69f3259953073b64f5ce0e9fac653f removed only the redundant runtime equality while preserving non-takeover tested_target_sha==head_sha parser enforcement.",
+    "Fresh workflow blob d1b0af492a41b80565f4e5fb890ee390bc50c75d confirms exact guarded target identity remains fail-closed."
   ]
 }

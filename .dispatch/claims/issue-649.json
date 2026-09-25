@@ -6,13 +6,13 @@
   "work_branch": "main",
   "claimed_at": "2026-09-25T04:09:00Z",
   "base_sha": "bb60d580752b191d78d5d5c9d10fa2a4ad78f1c1",
-  "head_sha": "6db677665d0d83ab9ae1759ca433d93ff2af7505",
+  "head_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
   "phase": "GREEN",
-  "last_update": "2026-09-25T04:23:00Z",
+  "last_update": "2026-09-25T04:31:00Z",
   "production_target": "main",
   "parent_issue": 648,
   "delegated_branches": [],
-  "next_action": "Advance #649 to terminal acceptance/finalization after deployed main readback and #648 Remote Guard smoke prove the trusted transport repair is live.",
+  "next_action": "Advance #649 to terminal acceptance/finalization; trusted Remote Guard now supports separate canonical authority SHA while retaining exact guarded target identity.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-649.json",
   "stale_takeover": {
@@ -24,11 +24,12 @@
     "reason": "User directed completion of blocking #648; #649 scheduler owner was stale and Remote Guard self-bootstrap was unavailable."
   },
   "acceptance": {
-    "deployed_main_sha": "6db677665d0d83ab9ae1759ca433d93ff2af7505",
-    "deployed_workflow_blob_sha": "680bd7567fd558efde631325710ed6bc16c6ff0c",
+    "deployed_main_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
+    "deployed_workflow_blob_sha": "d1b0af492a41b80565f4e5fb890ee390bc50c75d",
     "checkpoint_backward_compatibility": true,
     "exact_checkpoint_identity_fail_closed": true,
     "fractional_takeover_raw_binding": true,
+    "independent_guard_authority": true,
     "live_smoke_issue": 648,
     "live_smoke_guard_run_id": 36093545485,
     "live_smoke_result": "GREEN"
