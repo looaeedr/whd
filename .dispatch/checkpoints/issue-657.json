@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "issue": "657",
+  "branch": "integration/issue657-main-remote-guard-20260925",
+  "head_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
+  "state": "RUNNING",
+  "next_action": "Create guarded helper branch from exact main base and deploy only accepted whd-remote-execution-guard.yml blob c6e96581c47b4d46704f719877174f9248928f5e.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #647 reservation helper_key default-branch-remote-guard-deploy is RESERVING at coord commit 60c1a7b55c7835de4ebc00111d346d517148e7c1.",
+    "Parent Combined Acceptance run 36126332602: focused 178 PASS and governance/writeback 26 PASS; only trusted default-branch Remote Guard exact-blob gate failed.",
+    "Accepted work-order Remote Guard blob is c6e96581c47b4d46704f719877174f9248928f5e at parent authority 3967da33e35e26ba3973e5565af0defe65fa7e12.",
+    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; no cleanup/2d-3d-sync integration is authorized."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
