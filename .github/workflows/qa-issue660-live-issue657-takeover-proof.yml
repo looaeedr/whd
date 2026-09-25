@@ -1,5 +1,5 @@
-name: WHD｜#660｜#657 release handoff guard
-run-name: "WHD｜#660｜#657 release handoff guard｜${{ github.sha }}"
+name: WHD｜#660｜#657 closure pair guard
+run-name: "WHD｜#660｜#657 closure pair｜${{ github.sha }}"
 
 on:
   push:
@@ -8,22 +8,23 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  issues: read
 
 jobs:
-  release_handoff_guard:
-    name: "#657｜canonical release-handoff prewrite"
+  guard:
+    name: "#657｜canonical closure pair prewrite"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout #660 execution branch
+      - name: Checkout execution branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fresh-read exact #657 closed state + durable pair
+      - name: Fresh-read #657 closed Issue and durable pair
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin coord/dispatch-claims
@@ -32,44 +33,34 @@ jobs:
           CHECKPOINT_PATH=".dispatch/checkpoints/issue-657.json"
           CLAIM_BLOB="$(git rev-parse "${COORD_SHA}:${CLAIM_PATH}")"
           CHECKPOINT_BLOB="$(git rev-parse "${COORD_SHA}:${CHECKPOINT_PATH}")"
-          test "$CLAIM_BLOB" = "1ae6453a201763a3c8c8788860b1b6489ebdf9b8"
-          test "$CHECKPOINT_BLOB" = "43bb2bc82c455d70384a29a4af1fee186c79424e"
           git show "${COORD_SHA}:${CLAIM_PATH}" > /tmp/claim657.json
           git show "${COORD_SHA}:${CHECKPOINT_PATH}" > /tmp/checkpoint657.json
-          gh api repos/${{ github.repository }}/issues/657 > /tmp/issue657.json
+          gh api "/repos/${REPO}/issues/657" > /tmp/issue657.json
+          printf '%s' "$CLAIM_BLOB" > /tmp/claim-blob.txt
+          printf '%s' "$CHECKPOINT_BLOB" > /tmp/checkpoint-blob.txt
 
           python - <<'PY'
           import json
           claim=json.load(open('/tmp/claim657.json', encoding='utf-8'))
           cp=json.load(open('/tmp/checkpoint657.json', encoding='utf-8'))
           issue=json.load(open('/tmp/issue657.json', encoding='utf-8'))
+          assert issue['state']=='closed'
+          assert issue.get('state_reason')=='completed'
           assert claim['worker']=='chatgpt.sol260925.issue657.force2'
           assert claim['phase']=='CLOSING'
           assert claim['head_sha']=='53184c28ed1041558cd735817f4aae54f6c3af74'
           assert cp['state']=='TERMINAL_SUCCESS'
-          assert cp['closure_state']=='ISSUE_CLOSE_PENDING'
           assert cp['head_sha']=='53184c28ed1041558cd735817f4aae54f6c3af74'
-          assert issue['state']=='closed'
-          assert issue.get('state_reason')=='completed'
+          assert cp['closure_state'] in {'ISSUE_CLOSE_PENDING','RELEASE_HANDOFF_PENDING'}
           PY
 
-      - name: Run canonical execution claim guard for release-handoff coordination write
+      - name: Run canonical execution claim guard
         shell: bash
         run: |
           set -euo pipefail
-          python tools/execution_claim_guard.py \
-            --claim /tmp/claim657.json \
-            --issue 657 \
-            --worker chatgpt.sol260925.issue657.force2 \
-            --branch integration/issue657-main-remote-guard-20260925 \
-            --action write \
-            --base-sha bdb3da203c898d43898b092ff37b7fa9e0c93061 \
-            --head-sha 53184c28ed1041558cd735817f4aae54f6c3af74 \
-            --checkpoint /tmp/checkpoint657.json \
-            --changed-file .dispatch/claims/issue-657.json \
-            --changed-file .dispatch/checkpoints/issue-657.json
+          python tools/execution_claim_guard.py             --claim /tmp/claim657.json             --issue 657             --worker chatgpt.sol260925.issue657.force2             --branch integration/issue657-main-remote-guard-20260925             --action write             --base-sha bdb3da203c898d43898b092ff37b7fa9e0c93061             --head-sha 53184c28ed1041558cd735817f4aae54f6c3af74             --checkpoint /tmp/checkpoint657.json             --changed-file .dispatch/claims/issue-657.json             --changed-file .dispatch/checkpoints/issue-657.json
 
-      - name: Emit release-handoff prewrite manifest
+      - name: Emit closure pair manifest
         shell: bash
         env:
           RUN_ID: ${{ github.run_id }}
@@ -78,52 +69,44 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import json, os
+          cp=json.load(open('/tmp/checkpoint657.json', encoding='utf-8'))
+          from_state=cp['closure_state']
+          to_state={
+              'ISSUE_CLOSE_PENDING':'RELEASE_HANDOFF_PENDING',
+              'RELEASE_HANDOFF_PENDING':'CLOSED',
+          }[from_state]
           manifest={
-              'schema':'WHD_ISSUE657_RELEASE_HANDOFF_PREWRITE_GUARD_V1',
+              'schema':'WHD_ISSUE657_CLOSURE_PAIR_GUARD_V1',
               'issue':657,
               'worker':'chatgpt.sol260925.issue657.force2',
-              'claim_blob_sha':'1ae6453a201763a3c8c8788860b1b6489ebdf9b8',
-              'checkpoint_blob_sha':'43bb2bc82c455d70384a29a4af1fee186c79424e',
+              'claim_blob_sha':open('/tmp/claim-blob.txt').read().strip(),
+              'checkpoint_blob_sha':open('/tmp/checkpoint-blob.txt').read().strip(),
               'head_sha':'53184c28ed1041558cd735817f4aae54f6c3af74',
-              'from_closure_state':'ISSUE_CLOSE_PENDING',
-              'to_closure_state':'RELEASE_HANDOFF_PENDING',
-              'finalization_run_id':36130911881,
-              'finalization_result':'FINALIZATION_PROOF_VALID',
-              'issue_closed_completed':True,
+              'from_closure_state':from_state,
+              'to_closure_state':to_state,
               'run_id':int(os.environ['RUN_ID']),
               'proof_head_sha':os.environ['PROOF_HEAD'],
               'claim_guard_result':'EXECUTION_CLAIM_GUARD_GREEN',
           }
-          json.dump(manifest,open('/tmp/release-handoff-guard-manifest.json','w',encoding='utf-8'),indent=2,sort_keys=True)
-          print('WHD_ISSUE657_RELEASE_HANDOFF_PREWRITE_GUARD_GREEN')
+          json.dump(manifest,open('/tmp/closure-pair-manifest.json','w',encoding='utf-8'),indent=2,sort_keys=True)
+          print('WHD_ISSUE657_CLOSURE_PAIR_GUARD_GREEN')
           print(json.dumps(manifest, sort_keys=True))
           PY
 
-      - name: Post machine result to #660
+      - name: Post result to #660
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           {
-            echo 'WHD_ISSUE657_RELEASE_HANDOFF_PREWRITE_GUARD_RESULT_V1'
+            echo 'WHD_ISSUE657_CLOSURE_PAIR_GUARD_RESULT_V1'
             echo 'target_issue=657'
             echo "run_id=${RUN_ID}"
             echo '~~~json'
-            cat /tmp/release-handoff-guard-manifest.json
+            cat /tmp/closure-pair-manifest.json
             echo '~~~'
           } > /tmp/result.md
-          gh issue comment 660 --repo ${{ github.repository }} --body-file /tmp/result.md
-
-      - name: Upload exact release-handoff guard proof
-        uses: actions/upload-artifact@v4
-        with:
-          name: issue660-issue657-release-handoff-guard-${{ github.run_id }}
-          path: |
-            /tmp/claim657.json
-            /tmp/checkpoint657.json
-            /tmp/issue657.json
-            /tmp/release-handoff-guard-manifest.json
-          if-no-files-found: error
-          retention-days: 30
+          gh issue comment 660 --repo "${REPO}" --body-file /tmp/result.md
