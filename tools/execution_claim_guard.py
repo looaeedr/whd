@@ -1419,11 +1419,11 @@ def _load_active_claim_checkpoint(path: Path):
         ) from exc
 
 
-def assert_active_claim_requires_checkpoint(
+def _assert_claim_checkpoint_identity(
     claim: "ExecutionClaim",
     checkpoint_path: Path,
 ):
-    """Validate the exact non-terminal checkpoint paired with one active claim."""
+    """Validate exact issue/branch/head binding between one active claim and checkpoint."""
 
     if claim.phase not in ACTIVE_PHASES:
         raise ExecutionClaimError(
@@ -1432,7 +1432,6 @@ def assert_active_claim_requires_checkpoint(
         )
 
     checkpoint = _load_active_claim_checkpoint(checkpoint_path)
-    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
     if str(checkpoint.issue) != str(claim.issue):
         raise ExecutionClaimError(
             "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint issue mismatch "
@@ -1448,10 +1447,70 @@ def assert_active_claim_requires_checkpoint(
             "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint head mismatch "
             f"expected={claim.head_sha} actual={checkpoint.head_sha}"
         )
+    return checkpoint
+
+
+def assert_active_claim_requires_checkpoint(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+):
+    """Validate the exact non-terminal checkpoint paired with one active claim."""
+
+    checkpoint = _assert_claim_checkpoint_identity(claim, checkpoint_path)
+    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
     if state_value in {"TERMINAL_SUCCESS", "TERMINAL_FAILURE"}:
         raise ExecutionClaimError(
             "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: active claim cannot use "
             f"terminal checkpoint state={state_value}"
+        )
+    return checkpoint
+
+
+def assert_execution_claim_checkpoint_prewrite(
+    claim: "ExecutionClaim",
+    checkpoint_path: Path,
+    *,
+    action: str,
+    changed_files: Iterable[str],
+):
+    """Validate checkpoint compatibility for one guarded prewrite action.
+
+    Normal repository actions still require a non-terminal checkpoint. The only
+    terminal-checkpoint exception is an exact canonical closure coordination write:
+    checkpoint-only or the atomic claim+checkpoint pair while closure is pending.
+    """
+
+    checkpoint = _assert_claim_checkpoint_identity(claim, checkpoint_path)
+    state_value = getattr(checkpoint.state, "value", str(checkpoint.state))
+    if state_value not in {"TERMINAL_SUCCESS", "TERMINAL_FAILURE"}:
+        return checkpoint
+
+    normalized = _normalize_changed_files(changed_files)
+    claim_path = f".dispatch/claims/issue-{claim.issue}.json"
+    checkpoint_repo_path = f".dispatch/checkpoints/issue-{claim.issue}.json"
+    allowed_scopes = {
+        (checkpoint_repo_path,),
+        (claim_path, checkpoint_repo_path),
+        (checkpoint_repo_path, claim_path),
+    }
+    closure_state = getattr(
+        checkpoint.closure_state,
+        "value",
+        str(checkpoint.closure_state),
+    )
+    pending_closure_states = {
+        "FINALIZATION_PENDING",
+        "ISSUE_CLOSE_PENDING",
+        "RELEASE_HANDOFF_PENDING",
+    }
+    if (
+        action != "write"
+        or normalized not in allowed_scopes
+        or closure_state not in pending_closure_states
+    ):
+        raise ExecutionClaimError(
+            "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint permits only "
+            "an exact canonical closure coordination write"
         )
     return checkpoint
 
@@ -1699,7 +1758,12 @@ def main(argv: Iterable[str] | None = None) -> int:
                 "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: --checkpoint is required "
                 "for every trusted prewrite action"
             )
-        assert_active_claim_requires_checkpoint(claim, args.checkpoint)
+        assert_execution_claim_checkpoint_prewrite(
+            claim,
+            args.checkpoint,
+            action=args.action,
+            changed_files=normalized_changed_files,
+        )
     except ExecutionClaimError as exc:
         print(f"EXECUTION_CLAIM_GUARD_ERROR: {exc}")
         return 2
