@@ -6,24 +6,24 @@
   "work_branch": "governance/issue660-cleanup-20260925",
   "claimed_at": "2026-09-25T11:17:27Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
-  "phase": "CLEANUP",
-  "last_update": "2026-09-25T12:15:00Z",
+  "head_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T12:17:10Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Delete only .github/workflows/qa-issue660-live-issue657-takeover-proof.yml from cleanup branch under a fresh commit Guard, then reconcile and terminalize #660.",
+  "next_action": "Run bound Remote Finalization on exact #660 TERMINAL_SUCCESS / FINALIZATION_PENDING checkpoint after temporary workflow cleanup; on GREEN close/readback Issue #660, then atomically CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-660.json",
   "last_guard": {
-    "action": "branch-create",
-    "run_id": 36133747601,
-    "request_comment_id": 5832177544,
+    "action": "write",
+    "run_id": 36134018006,
+    "request_comment_id": 5832215929,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
+    "guard_authority_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
     "consumed": true
   },
   "guard_transaction_recovery": {
@@ -75,6 +75,10 @@
     "contaminated_live_head": "48370003d620d024fb62a6e61b30e72367dc8a77",
     "invariant": "Do not adopt contaminated live head; restart cleanup from exact legal claim head.",
     "branch_create_guard_run_id": 36133747601,
-    "cleanup_branch_head": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323"
+    "cleanup_branch_head": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
+    "cleanup_commit_guard_run_id": 36133956949,
+    "cleanup_commit_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
+    "temporary_workflow_removed": true,
+    "reconcile_guard_run_id": 36134018006
   }
 }

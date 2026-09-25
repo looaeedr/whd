@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "660",
   "branch": "governance/issue660-cleanup-20260925",
-  "head_sha": "2f33ad01b3027b3bb882bbcd0423d5f645f6d323",
-  "state": "RUNNING",
-  "next_action": "Delete only the temporary #660 proof workflow from governance/issue660-cleanup-20260925 under a fresh commit Guard; then reconcile and terminalize #660.",
+  "head_sha": "efe5b9c02b0458caf64ea373f97147afd7476e9d",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -32,6 +32,11 @@
     "Run 36131547470 is not a logical RED; required runner repair is permissions issues:write before rerunning the final RELEASE_HANDOFF_PENDING→CLOSED pair.",
     "Cleanup reactivation intentionally does not adopt live temp-branch head 48370003d620d024fb62a6e61b30e72367dc8a77 because no exact prior GREEN commit Guard authorizes 2f33ad01 -> 48370003.",
     "Cleanup restarts from exact legal #660 claim head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323 on a fresh isolated cleanup branch.",
-    "Cleanup branch-create Guard run 36133747601 GREEN consumed after fresh readback: governance/issue660-cleanup-20260925 exists at exact legal head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323."
-  ]
+    "Cleanup branch-create Guard run 36133747601 GREEN consumed after fresh readback: governance/issue660-cleanup-20260925 exists at exact legal head 2f33ad01b3027b3bb882bbcd0423d5f645f6d323.",
+    "Cleanup commit Guard run 36133956949 GREEN authorized deletion of the sole temporary #660 workflow on governance/issue660-cleanup-20260925.",
+    "Cleanup commit efe5b9c02b0458caf64ea373f97147afd7476e9d removed .github/workflows/qa-issue660-live-issue657-takeover-proof.yml.",
+    "Post-cleanup claim/checkpoint reconciliation authorized by Remote Guard run 36134018006; #660 now enters CLOSING with exact cleaned head."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Run authorize-finalization → verify-finalization-proof on this exact cleaned checkpoint; then advance ISSUE_CLOSE_PENDING, close/readback, RELEASE_HANDOFF_PENDING, and atomically CLOSED + RELEASED."
 }
