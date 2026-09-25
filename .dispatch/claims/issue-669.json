@@ -8,18 +8,27 @@
   "base_sha": "68b920967c438679c0841123571230a66b013877",
   "head_sha": "c55aa610edeb043038e409abccecd39eec834c8c",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T16:39:15Z",
+  "last_update": "2026-09-25T16:43:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Validate the exit-time scheduler-enable contract on exact head c55aa610edeb043038e409abccecd39eec834c8c, then obtain guarded PR-write authority.",
+  "next_action": "Create and run a one-shot focused QA workflow for tests/process/test_issue667_force_takeover_liveness.py, then remove the temporary workflow after terminal GREEN.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-669.json",
   "last_guard": {
-    "action": "write",
-    "run_id": 36162090705,
-    "request_comment_id": 5835950805,
+    "action": "pr-write",
+    "run_id": 36162209135,
+    "request_comment_id": 5835965110,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
+  },
+  "integration": {
+    "pr": 670,
+    "pr_state": "open",
+    "merged": false,
+    "head_sha": "c55aa610edeb043038e409abccecd39eec834c8c",
+    "base_sha": "68b920967c438679c0841123571230a66b013877",
+    "governance_run_id": 36162324786,
+    "governance_result": "success"
   }
 }
