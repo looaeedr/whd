@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "646",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517",
+  "head_sha": "e117ae5581cdb74ab5c0189e8fc01785344eb1be",
   "state": "RUNNING",
-  "next_action": "Fresh-read all #646 patched governance surfaces and the five live scheduler prompts, verify cadence/automation IDs/lane owners/recurring-enabled policy are unchanged, then run focused contract/preflight validation and prepare #647 handoff.",
+  "next_action": "Run focused #646 governance/Skill/spec validation at e117ae5581cdb74ab5c0189e8fc01785344eb1be, confirm five live scheduler prompts preserve cadence/IDs/lane owners/enabled state, then prepare canonical #647 handoff and #646 closure transaction.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,6 +19,8 @@
     "Skill-authoring Preflight evidence commit 94bc4e5eb05ce991cc6797e423d0bb73894f87aa added only .scratch/issue646/preflight-evidence.md under Remote Guard run 36106214541.",
     "Post-commit atomic claim/checkpoint reconcile to 94bc4e5eb05ce991cc6797e423d0bb73894f87aa authorized by Remote Guard run 36106332745.",
     "#646 governance synchronization commit d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 atomically changed the eight guarded governance surfaces under Remote Guard run 36110185995.",
-    "Post-commit claim/checkpoint reconciliation to d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 authorized by Remote Guard run 36110667161."
+    "Post-commit claim/checkpoint reconciliation to d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 authorized by Remote Guard run 36110667161.",
+    "Canonical v1.2 spec published at docs/specs/WHD_排程_GuardTransaction_DelegatedHelper_StaleTakeover_硬閘門規格_2026-09-25.md in commit e117ae5581cdb74ab5c0189e8fc01785344eb1be under Guard run 36111311539; source was the original 1501-line Library artifact plus accepted implementation overlay for #651/PR #652 and exact executor provenance/interactive liveness follow-up.",
+    "Post-spec claim/checkpoint reconciliation to e117ae5581cdb74ab5c0189e8fc01785344eb1be authorized by Remote Guard run 36111424769."
   ]
 }
