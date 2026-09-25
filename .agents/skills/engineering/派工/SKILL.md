@@ -256,7 +256,7 @@ stale owner 接管的 canonical machine authority 是 `tools/stale_claim_takeove
 - **一般 foreign owner（非 scheduler）**仍維持 600 秒規則：最近 durable progress 未滿 600 秒為 `WAIT_ON_FOREIGN_RUNTIME`；到 600 秒且沒有 active exact run 才可 `EXECUTOR_STUCK/actionable=true`。
 - **foreign scheduler owner** 不得再用 claim freshness 冒充 runtime liveness：fresh-read exact claim blob 後，必須讀 owner-authored `WHD_SCHEDULER_RUNTIME_LIVENESS_V1` heartbeat/lease；有效 lease 固定 backoff。
 - foreign scheduler 在「無 active exact run + heartbeat missing/expired + exact claim/blob/branch/head identity 一致 + durable progress age >= 90 秒」時，可由 evaluator 分類 `ORPHANED_SCHEDULER_OWNER/actionable=true`，不必等滿一般 600 秒。
-- same-lane cross-cycle **ownership** resume 不做 takeover；但為避免 `:00 / :20 / :40` 等 sibling wake 同時進場，`claim.worker == current scheduler lane` 時仍必須先套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 same-lane invocation mutex。只有 matching END、或最後 heartbeat 已 stale > 420 秒，才可由新 invocation 進場 mutation；fresh heartbeat ≤ 420 秒時只讀退讓。
+- same-lane cross-cycle **ownership** resume 不做 takeover；但為避免 `:00 / :20 / :40` 等 sibling wake 同時進場，`claim.worker == current scheduler lane` 時仍必須先套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 same-lane invocation mutex。只有 matching END、或最後 heartbeat 已 stale > 300 秒，才可由新 invocation 進場 mutation；fresh heartbeat ≤ 300 秒時只讀退讓。
 - live branch 已前進時，以 **observed live HEAD** 作 resume/takeover identity；recent commit 會重置 stale age，舊 commit 超過 threshold 才可接。
 - evaluator malformed/missing evidence 必須 fail closed。
 - 真正 ownership 轉移使用 Remote Guard 單次 action `claim-takeover`，取得 fresh GREEN receipt 後才能 CAS 更新 shared claim；不得拿一般 `commit` receipt 或舊 receipt 代替。
@@ -499,7 +499,7 @@ Lock 期間允許：poll run/jobs/steps、terminal failure log classification、
 - [ ] `CLAIM_PROGRESS_STATE` 同步 phase/state、last_update、branch/HEAD、remote QA、next_action、blocker，重大 transition 即時更新。
 - [ ] 未完成工單可分成 `我持有` / `其他 AI 已鎖定` / `尚未認領`，且 claimed ticket 可看見進度與下一步。
 - [ ] `STALE_CLAIM_RECOVERY` 不直接搶鎖；先查 branch/QA/checkpoint/last_update，再用 compare-and-swap + recovery evidence 接管。
-- [ ] `SCHEDULER_RUNTIME_LIVENESS_V1`：same-lane 判活使用 parser-compatible V1 heartbeat（`emitted_at`）+ matching `WHD_SCHEDULER_RUNTIME_END_V1`；heartbeat ≤420 秒退讓，>420 秒 same-lane resume；600 秒 claim stale threshold 不得冒充 invocation liveness；V1 TTL 仍 ≤300 秒以保持 foreign takeover machine contract。
+- [ ] `SCHEDULER_RUNTIME_LIVENESS_V1`：same-lane 判活使用 parser-compatible V1 heartbeat（`emitted_at`）+ matching `WHD_SCHEDULER_RUNTIME_END_V1`；heartbeat ≤300 秒退讓，>300 秒 same-lane resume；600 秒 claim stale threshold 不得冒充 invocation liveness；V1 TTL 仍 ≤300 秒以保持 foreign takeover machine contract。
 - [ ] Issue terminal + cleanup + drift audit 前不提早 release claim。
 - [ ] 漏建 Issue 用 Retroactive provenance，不能偽造時序。
 - [ ] checkpoint / journal 能讓下一回合不靠聊天記憶續工。
@@ -557,7 +557,7 @@ Primary behavior guard：`tests/process/test_issue473_master_chain_turn_exit_gat
 Recurring WHD scheduler 的操作細節以 `docs/governance/whd_scheduler_takeover_usage.md` 為 durable 使用手冊；本 Skill 保留 canonical execution contract。scheduler 必須遵守：
 
 1. **wake-up trigger != execution owner**：每輪從 `coord/dispatch-claims`、Issue、checkpoint、branch、exact run fresh reconstruct，不得硬編 issue/branch/SHA/run_id。
-2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 420 秒時退讓；heartbeat age > 420 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
+2. `scheduler.<automation-id>` 是 durable lane identity；fresh claim 為同 lane 時不做 ownership takeover，但任何 substantive mutation 前仍必須套用 `SCHEDULER_RUNTIME_LIVENESS_V1` 的 **same-lane invocation mutex**：matching END 可立即續工；無 END 且 heartbeat age ≤ 300 秒時退讓；heartbeat age > 300 秒時視為前一 invocation stuck/gone，由本輪 same-lane resume。`ACTIVE_WITHIN_10M`／600 秒 claim stale threshold 不得拿來判斷同 lane 前一個 ChatGPT runtime 是否仍活著。
 3. foreign owner 只有「無 active exact run + newest durable progress >= 600 秒」才可申請 stale takeover；sibling scheduler 也視為 foreign owner。
 4. stale takeover 固定 `WHD_REMOTE_GUARD_REQUEST_V1 → exact Guard run → exact GREEN claim-takeover receipt → claim CAS → fresh readback → same-cycle next_action`。GREEN、CAS、status update 都不是 return condition。
 5. 每輪開始先檢查尚未 consume 的同 lane GREEN；identity 仍 exact match 時直接 consume，不 duplicate request。GREEN 是 single-use mutation authority。
@@ -585,8 +585,8 @@ Recurring lane 的 `:00 / :20 / :40` 只是 wake-up entrypoints，不是不同 o
 3. V1 的 `expires_at - emitted_at` 仍必須 **≤ 300 秒**，以保持 `stale_claim_takeover.py::MAX_RUNTIME_LIVENESS_SECONDS` 相容。這個 `expires_at` 是 foreign-scheduler machine lease ceiling，**不是** 20 分鐘 wake cadence 的主要 same-lane 判活依據。
 4. 正常 return 前必須留 owner-authored top-level `WHD_SCHEDULER_RUNTIME_END_V1`，至少帶 `issue / scheduler_lane / invocation_identity / ended_at / final_phase / final_next_action`。若 latest END 與 latest heartbeat 的 `invocation_identity` exact match，前一 invocation 已正常結束；下一 wake 可立即 same-lane 續工。
 5. 若 latest heartbeat 沒有 matching END，計算 `heartbeat_age = now - emitted_at`：
-   - `heartbeat_age <= 420 秒` → `SAME_LANE_PREVIOUS_INVOCATION_ACTIVE`：前一 runtime 視為仍活著，本輪只能 fresh-read／觀測後退讓，禁止 mutation、Guard、dispatch。
-   - `heartbeat_age > 420 秒` → `SAME_LANE_PREVIOUS_INVOCATION_STUCK_OR_GONE`：不論舊 `expires_at`、claim `last_update` 或 600 秒 stale threshold，新的 invocation 都可 **same-lane resume**；先以 live GitHub reconcile，再繼續 durable `next_action`。這不是 foreign takeover，不改 claim owner。
+   - `heartbeat_age <= 300 秒` → `SAME_LANE_PREVIOUS_INVOCATION_ACTIVE`：前一 runtime 視為仍活著，本輪只能 fresh-read／觀測後退讓，禁止 mutation、Guard、dispatch。
+   - `heartbeat_age > 300 秒` → `SAME_LANE_PREVIOUS_INVOCATION_STUCK_OR_GONE`：不論舊 `expires_at`、claim `last_update` 或 600 秒 stale threshold，新的 invocation 都可 **same-lane resume**；先以 live GitHub reconcile，再繼續 durable `next_action`。這不是 foreign takeover，不改 claim owner。
 6. exact GitHub Actions run 仍在 queued/in_progress/waiting/pending/requested，**只證明外部 run 還活著，不證明舊 ChatGPT invocation 還活著**。same-lane 接手者鎖同一 `run_id + head_sha` 繼續 poll，禁止 duplicate dispatch。
 7. PR／Issue／branch／claim／checkpoint 在舊 runtime 消失後已前進時，live GitHub wins：新 invocation 先 reconcile durable state，再續做；禁止重播已成功 mutation。
 8. claim blob、branch、HEAD 任一 identity drift 時，舊 heartbeat 不可作 mutation authority；先 fresh reconstruct。heartbeat 只證明 invocation liveness，不取代 claim/checkpoint/Remote Guard。
@@ -600,7 +600,7 @@ foreign scheduler ownership 仍由 `tools/scheduler_runtime_liveness.py` + `tool
 - V1 heartbeat TTL 最長 300 秒；canonical orphan grace 仍為 90 秒。
 - foreign scheduler 有有效 machine heartbeat → backoff；heartbeat missing/expired 且符合 exact claim/blob/branch/head、無 active run及 orphan/stale條件時，才可依 `ORPHANED_SCHEDULER_OWNER` / `EXECUTOR_STUCK` 走 guarded takeover。
 - same-lane stuck/gone resume 與 foreign scheduler claim-takeover 是兩條不同路徑；不得因 same-lane heartbeat stale 就 self-takeover。
-- platform hard boundary 若來不及寫 END，heartbeat 會停止刷新；下一 sibling wake 在 freshness > 420 秒後即可 same-lane 接續，不必等 600 秒 claim stale。
+- platform hard boundary 若來不及寫 END，heartbeat 會停止刷新；下一 sibling wake 在 freshness > 300 秒後即可 same-lane 接續，不必等 600 秒 claim stale。
 - durable comment parser/selector authority：`tools/scheduler_runtime_liveness.py`；foreign takeover decision authority：`tools/stale_claim_takeover.py`。
 
 

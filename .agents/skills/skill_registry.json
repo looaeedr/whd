@@ -1202,6 +1202,32 @@
         "MCP工具操作"
       ],
       "required_references": []
+    },
+    {
+      "id": "force-takeover",
+      "keywords": [
+        "強制接手",
+        "force takeover",
+        "user-directed takeover",
+        "WHD_USER_DIRECTED_TAKEOVER_V1"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/強制接手/**",
+        "tools/stale_claim_takeover.py",
+        ".github/workflows/whd-remote-execution-guard.yml"
+      ],
+      "required_skills": [
+        "強制接手",
+        "派工",
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
     }
   ]
 }

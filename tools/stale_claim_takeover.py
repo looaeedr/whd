@@ -1211,6 +1211,18 @@ def _scheduler_runtime_liveness(
                     "runtime liveness heartbeat active run head mismatch"
                 )
 
+    declared_status = str(runtime_liveness.get("runtime_status") or "").strip().upper()
+    if declared_status == "ENDED":
+        _positive_int("runtime liveness END source comment id", runtime_liveness.get("end_source_comment_id"))
+        ended_at = _as_utc("runtime liveness ended_at", runtime_liveness.get("ended_at"))
+        _positive_int("runtime liveness turn_exit_run_id", runtime_liveness.get("turn_exit_run_id"))
+        if ended_at < emitted_at:
+            raise StaleTakeoverError("runtime liveness END predates heartbeat emitted_at")
+        if ended_at > now:
+            raise StaleTakeoverError("runtime liveness END ended_at is in the future")
+        return "ENDED", invocation, emitted_at, expires_at
+    if declared_status not in {"", "ACTIVE"}:
+        raise StaleTakeoverError("runtime liveness heartbeat runtime_status is invalid")
     status = "ACTIVE" if now < expires_at else "EXPIRED"
     return status, invocation, emitted_at, expires_at
 
@@ -1441,7 +1453,7 @@ def evaluate_stale_claim_takeover(
 
         if (
             normalized_claim_blob is not None
-            and runtime_status in {"MISSING", "EXPIRED"}
+            and runtime_status in {"MISSING", "EXPIRED", "ENDED"}
             and stale_seconds >= orphan_grace
         ):
             return result(
