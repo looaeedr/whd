@@ -4,7 +4,7 @@
   "branch": "governance/issue673-main-deploy-issue671-20260926",
   "head_sha": "60cc72051f88a9ec5cd00aaabe1194aa01f77cf9",
   "state": "RUNNING",
-  "next_action": "Obtain fresh pr-write merge Guard for PR #674; merge exact head 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 into main; fresh-read main and trusted Claim Activation support, then close helper #673 and return parent #671 to #617 repair.",
+  "next_action": "Persist terminal success checkpoint for helper #673, complete trusted finalization/closure/release, then terminalize parent #671 helper reservation and return to #617 legacy checkpoint repair.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,6 +28,9 @@
     "Tested-to-cleaned compare 7d1ee7bf813768abe6f822ec64c49d21f8b731b8...60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 shows exactly one removed file: .github/workflows/qa-issue673-main-deploy-issue671.yml.",
     "Cleanup reconciliation Guard run 36198106467 GREEN consumed to bind claim/checkpoint to exact cleaned HEAD.",
     "Guard run 36198212584 GREEN consumed exactly once by creation of PR #674.",
-    "PR #674 fresh-read open on exact cleaned head 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 targeting main@156bc20e7b7c331eae2a24d2c46bd984c5959720."
+    "PR #674 fresh-read open on exact cleaned head 60cc72051f88a9ec5cd00aaabe1194aa01f77cf9 targeting main@156bc20e7b7c331eae2a24d2c46bd984c5959720.",
+    "Merge Guard run 36198478344 GREEN consumed exactly once by merge of PR #674.",
+    "PR #674 fresh-read merged/closed; main fresh-read HEAD=ff2783c5c8243f1bd777b43f8c1da5db0e7226cb.",
+    "main trusted Claim Activation blob=757c04902e19b997ee3d4d3511793e19abba2e83 and execution_claim_guard.py blob=7a6f948c092e97f269f5af5473b3ab1a884d7cda; legacy-checkpoint-repair is live on default branch."
   ]
 }
