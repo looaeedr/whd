@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
-  "head_sha": "4e2658e75308e0ce8d40c3a3601d4d1010dc695e",
+  "head_sha": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T00:21:04.958807Z",
+  "last_update": "2026-09-25T00:25:00.180034Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T3",
   "expected_parent_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "4e2658e75308e0ce8d40c3a3601d4d1010dc695e",
+  "chain_head": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-02"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Implement trusted Remote Guard second-request rejection using the canonical Guard transaction classifier, then run final T3 regression.",
+  "next_action": "Diagnose final focused GREEN run 36077387029 failure at exact HEAD 8be92323c111d32d02f68e8ad5308328f2cd0d80, repair only the failing T3 contract, then rerun.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -69,5 +69,10 @@
     "pytest": "75 passed / 0 failed",
     "marker": "ISSUE643_T3_CORE_GREEN=PASS",
     "evidence_writeback_guard_run_id": 36077119827
+  },
+  "second_guard_gate": {
+    "commit_sha": "8be92323c111d32d02f68e8ad5308328f2cd0d80",
+    "guard_run_id": 36077272254,
+    "reconcile_guard_run_id": 36077414138
   }
 }
