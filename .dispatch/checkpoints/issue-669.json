@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "669",
   "branch": "governance/issue669-scheduler-exit-enable-20260926",
-  "head_sha": "70a249b69f0f16721486b6b3f601559801f18990",
+  "head_sha": "863922638ea265d2913c95979c894b2794d97041",
   "state": "RUNNING",
-  "next_action": "Obtain exact guarded commit to remove .github/workflows/qa-issue669-scheduler-exit-enable.yml, then reconcile cleaned HEAD and verify final two-file diff.",
+  "next_action": "Verify cleaned final diff contains only the Skill + contract test, monitor cleanup-head governance run to terminal, then obtain exact merge authority for PR #670.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -26,7 +26,9 @@
     "Temporary focused-QA workflow commit Guard run 36162625845 GREEN consumed exactly once by commit 70a249b69f0f16721486b6b3f601559801f18990.",
     "Post-commit reconciliation Guard run 36162735755 GREEN consumed for exact claim+checkpoint HEAD reconciliation to 70a249b69f0f16721486b6b3f601559801f18990.",
     "Focused QA run 36162681958 completed SUCCESS on exact head 70a249b69f0f16721486b6b3f601559801f18990; pytest evidence: 9 passed in 0.10s; Actions visible naming guard also SUCCESS.",
-    "Knowledge Governance Bootstrap run 36162681813 completed SUCCESS on the same exact head."
+    "Knowledge Governance Bootstrap run 36162681813 completed SUCCESS on the same exact head.",
+    "Cleanup Guard run 36162852224 GREEN consumed exactly once by commit 863922638ea265d2913c95979c894b2794d97041 deleting only .github/workflows/qa-issue669-scheduler-exit-enable.yml.",
+    "Post-cleanup reconciliation Guard run 36162915592 GREEN consumed for exact claim+checkpoint HEAD reconciliation to 863922638ea265d2913c95979c894b2794d97041."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
