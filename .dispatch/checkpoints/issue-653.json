@@ -20,8 +20,9 @@
     "Remote Guard run 36118585271 GREEN authorized post-commit claim/checkpoint reconciliation to 19927fcb5529386fb57d2dcfea0fa6650f8786e9.",
     "PR #654 merged into main at bdb3da203c898d43898b092ff37b7fa9e0c93061 under single-use pr-write Guard run 36118790068.",
     "Fresh deployment readback: main:.github/workflows/whd-turn-exit-gate.yml blob is exact accepted 41bf76f78c9af8246947939660daf05f525989d8.",
-    "Remote Guard run 36118962667 GREEN authorized helper terminal acceptance entry."
+    "Remote Guard run 36118962667 GREEN authorized helper terminal acceptance entry.",
+    "Remote Guard run 36119084216 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING for helper #653."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance helper #653 to ISSUE_CLOSE_PENDING, mint and verify bound finalization proof, then close Issue #653 and fresh-read closed/completed."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run trusted Remote Finalization for helper #653 on this exact checkpoint, verify bound proof, then close/read back Issue #653 before RELEASE_HANDOFF_PENDING."
 }
