@@ -7,15 +7,15 @@
   "claimed_at": "2026-09-25T13:20:46Z",
   "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T14:41:10Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T14:42:30Z",
   "production_target": "cleanup/2d-3d-sync",
   "production_head_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
   "main_integration_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Atomically persist final checkpoint closure_state=CLOSED and claim phase=RELEASED; no successor handoff is required for this standalone repair issue.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
@@ -49,8 +49,8 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36149095228,
-    "request_comment_id": 5834256204,
+    "run_id": 36149240905,
+    "request_comment_id": 5834275570,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
@@ -68,11 +68,15 @@
     "main_merge_complete": true
   },
   "closure": {
-    "state": "RELEASE_HANDOFF_PENDING",
+    "state": "CLOSED",
     "finalization_run_id": 36148956569,
     "finalization_artifact_id": 10870404585,
     "checkpoint_fingerprint": "4cf99dfc9df1dcb4b36f177a45b21bf70a192edc41fcf533c5e140b13ec7f8e0",
     "finalization_reason": "FINALIZATION_PROOF_VALID",
-    "issue_closed_at": "2026-09-25T14:40:20Z"
+    "issue_closed_at": "2026-09-25T14:40:20Z",
+    "final_release_guard_run_id": 36149240905,
+    "final_release_request_comment_id": 5834275570,
+    "final_coordination_parent": "997c349d0b09fc6e4f4e3d62dc2fd221d52cacbd",
+    "successor_handoff": "NONE_REQUIRED"
   }
 }
