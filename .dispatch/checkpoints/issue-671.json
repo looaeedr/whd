@@ -4,7 +4,7 @@
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "head_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "state": "RUNNING",
-  "next_action": "Obtain exact branch-create Guard; create repair branch; establish RED for legacy half-pair repair transaction.",
+  "next_action": "Establish focused RED for legacy-checkpoint-repair trusted activation transaction, then implement minimal GREEN.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,6 +14,8 @@
     "Requirement Authority: user explicitly requested /排程A to repair the legacy active-claim/missing-checkpoint capability gap exposed by #617.",
     "Fresh production target cleanup/2d-3d-sync HEAD=6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
     "Logical owner is scheduler.6ab13fa557fc8191935c671214b865e2; physical invocation is chatgpt_interactive; no ownership takeover is performed.",
-    "Issue #671 is the blocking governance repair; #617 remains untouched until capability is accepted and deployed."
+    "Issue #671 is the blocking governance repair; #617 remains untouched until capability is accepted and deployed.",
+    "Branch-create Guard run 36167023821 GREEN consumed exactly once; branch fresh-read exists at guarded HEAD 6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
+    "Subsequent RED commit Guard run 36167433982 correctly failed PENDING_GUARD_TRANSACTION before mutation; no test/implementation commit occurred."
   ]
 }
