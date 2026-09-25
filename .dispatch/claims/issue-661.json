@@ -8,13 +8,36 @@
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T11:57:33Z",
+  "last_update": "2026-09-25T11:59:05Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Create guarded one-shot executor branch, run canonical write guards for exact #657 final release pair and #647 parent handoff pair, then consume GREEN in one atomic four-file coordination commit.",
+  "next_action": "Commit one-shot dual canonical guard workflow after fresh commit Guard; workflow must validate #657 final release pair and #647 parent handoff pair without mutating them.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-661.json"
+  "checkpoint": ".dispatch/checkpoints/issue-661.json",
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36132335468,
+    "request_comment_id": 5831993736,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+    "consumed": true
+  },
+  "guard_transaction_recovery": {
+    "classification": "MUTATION_DONE_RECONCILE_ONLY",
+    "canonical_guard_run_id": 36132335468,
+    "durable_readback": {
+      "guard_run_id": 36132335468,
+      "action": "branch-create",
+      "mutation_applied": true,
+      "branch_exists": true,
+      "branch_head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
+      "changed_files": [],
+      "reconciled": true
+    },
+    "reconciled": true
+  }
 }
