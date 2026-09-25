@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "651",
   "branch": "governance/issue651-equivalent-duplicate-green-20260925",
-  "head_sha": "02a71a468e22ba302d3f11417d16f3d7ff9a690e",
+  "head_sha": "f0ba26e00ed7c5da4d39f4c1419da4f4f9f3b6b5",
   "state": "RUNNING",
-  "next_action": "Implement #651 equivalent duplicate GREEN grouping, then rerun focused QA on the same branch.",
+  "next_action": "Fix only the #651 test syntax collection error, rerun focused QA, then evaluate classifier behavior.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,6 +16,9 @@
     "Guarded RED test commit c7fac09b136478c210eaf2205aa11cd569c58c64 modifies only tests/process/test_issue643_guard_transaction_gate.py.",
     "Post-commit coordination reconcile Guard run 36096745783 GREEN.",
     "RED run 36096916986 at 02a71a468e22ba302d3f11417d16f3d7ff9a690e: 3 failed / 19 passed; all three failures are the new #651 duplicate-GREEN requirements.",
-    "Post-workflow-commit coordination reconcile Guard run 36096942874 GREEN."
+    "Post-workflow-commit coordination reconcile Guard run 36096942874 GREEN.",
+    "Implementation commit f0ba26e00ed7c5da4d39f4c1419da4f4f9f3b6b5 atomically changes tools/execution_claim_guard.py and tests/process/test_issue643_guard_transaction_gate.py.",
+    "Focused run 36097327180 failed during test collection because the newly inserted exact-#648 test contained literal \\\\n text; no classifier assertion executed.",
+    "Post-implementation coordination reconcile Guard run 36097340537 GREEN."
   ]
 }
