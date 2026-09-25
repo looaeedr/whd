@@ -8,12 +8,12 @@
   "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "head_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "phase": "RECOVERING",
-  "last_update": "2026-09-25T14:12:00.888Z",
+  "last_update": "2026-09-25T14:14:00.598Z",
   "production_target": "cleanup/2d-3d-sync",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Create the guarded cleanup-based #663 work branch, add only .github/workflows/whd-turn-exit-gate.yml with the verified GITHUB_ENV fix, then guarded PR to cleanup/2d-3d-sync.",
+  "next_action": "Add exactly .github/workflows/whd-turn-exit-gate.yml with the verified same-step GITHUB_ENV fix under a fresh commit Guard, then reconcile HEAD and open the one-file PR to cleanup/2d-3d-sync.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
@@ -29,13 +29,13 @@
     "reason": "restore split guard_authority_sha/tested_target_sha bootstrap semantics"
   },
   "last_guard": {
-    "action": "write",
-    "run_id": 36145388240,
-    "request_comment_id": 5833768213,
+    "action": "branch-create",
+    "run_id": 36145961702,
+    "request_comment_id": 5833845780,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
-    "tested_target_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+    "tested_target_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
     "consumed": true
   },
   "turn_exit_fix": {
