@@ -160,3 +160,14 @@ Canonical machine owner：`tools/stale_claim_takeover.py`。
 7. 只要任一 mutation-relevant identity 不同，仍維持真正的 `AMBIGUOUS → FAIL_CLOSED`，不得用 dedupe 掩蓋衝突。
 
 Canonical machine owner：`tools/execution_claim_guard.py`。Primary regression：`tests/process/test_issue643_guard_transaction_gate.py`。#651 focused acceptance：run `36097453177`，23 passed / 0 failed。
+
+<!-- ISSUE646_PITFALL_WRITEBACK_V1 -->
+## #641 fingerprint normalization pitfall
+
+#641 first finalization run 36051135751 因 raw JSON fingerprint 與 canonical Checkpoint normalization 不一致而 FAIL；改走 load_checkpoint + checkpoint_fingerprint 後 run 36051265277 GREEN。永久禁止自行 hash raw checkpoint JSON。
+
+## EXPIRED_UNCONSUMED recovery pitfall
+GREEN 過期且沒有 durable mutation proof時，舊 receipt 永久不可 consume。正確恢復：fresh exact identity → EXPIRED_UNCONSUMED → mint fresh recovery Guard。不得因『以前 GREEN』直接 mutation。
+
+## Interactive liveness / provenance gap
+#646 暴露 scheduler 有 heartbeat、chatgpt_interactive 沒有對稱 runtime liveness，且 generic executor_source 無法指出哪個聊天室。Required follow-up：interactive heartbeat；conversation/chat identity + invocation identity；scheduler lane + invocation identity；heartbeat不得取代 ownership authority。

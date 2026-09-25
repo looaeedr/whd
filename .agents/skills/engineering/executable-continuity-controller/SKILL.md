@@ -288,7 +288,12 @@ Workflow finalization 與 assistant turn exit 是兩個不同 machine gate。Can
 from tools.continuity_controller import load_checkpoint, assert_turn_exitable
 
 checkpoint = load_checkpoint(path)
-assert_turn_exitable(checkpoint)
+assert_turn_exitable(
+    checkpoint,
+    expected_master_issue=expected_master_issue,
+    claim_state=fresh_claim,
+    transaction_state=fresh_guard_transaction,
+)
 ```
 
 CLI：
@@ -499,3 +504,16 @@ Scheduled wake每一輪都是 fresh AI execution runtime；`scheduler.<lane>`只
 - foreign sibling + valid lease：backoff；foreign sibling + active exact run：絕對 backoff。
 - foreign sibling + no active run + missing/expired lease + grace satisfied：交給 `tools/stale_claim_takeover.py`分類 `ORPHANED_SCHEDULER_OWNER`，仍須 Remote Guard GREEN → single-use CAS → same-invocation first substantive action。
 - platform runtime hard-cut時不得留下長達600秒的假 liveness；停止刷新即可讓 lease自然失效。
+
+<!-- ISSUE646_MACHINE_ALIGNMENT_V1 -->
+## ISSUE646_MACHINE_ALIGNMENT_V1
+
+Turn-exit 必須帶 fresh durable context：expected_master_issue（屬 Master 時）、fresh claim_state、fresh Guard transaction_state。PENDING / MUTATION_DONE_RECONCILE_ONLY / EXPIRED_UNCONSUMED / AMBIGUOUS 都必須 fail closed；expired receipt 永久不可 consume，只能 fresh reconcile 後 mint fresh recovery Guard；durable mutation 已發生時只允許 reconciliation-only。
+
+Equivalent duplicate GREEN 只有 mutation-relevant identity 完全一致才 dedupe；canonical representative 取最早 issued_at、同時取最小 run_id；shadow receipt 不得獨立 consume，任何 identity mismatch 仍 AMBIGUOUS → FAIL_CLOSED。
+
+### #641 checkpoint fingerprint normalization
+禁止 raw checkpoint JSON hash。只允許 load_checkpoint(path) → checkpoint_fingerprint(checkpoint)，或 authorize-finalization。#641 run 36051135751 因 raw JSON fingerprint 與 canonical normalization 不同而 FAIL；run 36051265277 使用 canonical fingerprint 後 GREEN；next_issue integer 642 會 normalize 成 string "642"。
+
+### INTERACTIVE_RUNTIME_LIVENESS_AND_PROVENANCE_REQUIREMENT_V1
+這是 required governance follow-up，不得假稱 machine 已完成：chatgpt_interactive active owner 必須補可機讀 heartbeat/liveness；durable provenance 必須辨識 interactive 的 specific conversation/chat identity + invocation identity，以及 scheduler 的 scheduler_lane + invocation_identity。generic executor_source 只能表示類型，不能取代 exact provenance；heartbeat 也不能取代 claim/checkpoint/Guard authority。

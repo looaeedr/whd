@@ -387,3 +387,14 @@ Active exact run仍是絕對鎖；有效 runtime lease仍 backoff；missing/expi
 - child stale → 對 child leaf 申請 guarded takeover。
 - child closed + terminal/released 後 parent 才回既有 RUN_LIVE / 600s / runtime-liveness 判定。
 - helper dedupe 由同一 module 的 `assert_helper_creation_allowed` / `--candidate-helper-key` 擁有。
+
+<!-- ISSUE646_REMOTE_GUARD_ALIGNMENT_V1 -->
+## ISSUE646_REMOTE_GUARD_ALIGNMENT_V1
+
+Guard recovery 固定順序：fresh exact identity → classify transaction → PENDING 只 consume canonical live receipt → durable mutation只 reconcile → EXPIRED_UNCONSUMED old receipt 不可 replay、fresh reconcile後才 mint fresh recovery Guard → AMBIGUOUS fail closed。
+
+Equivalent duplicate GREEN exact-equivalent 才 deterministic dedupe；shadow replay拒絕。Stale/takeover前先做 pending Guard recovery、live drift reconciliation、delegated/helper/proof traversal、same-key helper reuse，最後才交 canonical stale evaluator。
+
+Interactive user-directed takeover使用 WHD_USER_DIRECTED_TAKEOVER_V1 + canonical local evaluator/guard；trusted Remote Guard claim-takeover仍 scheduler-only，禁止把聊天室偽裝成 scheduler。
+
+Required follow-up：interactive heartbeat/liveness；chat conversation identity + invocation identity；scheduler lane + invocation identity。generic executor_source 不足以回答 exact executor。
