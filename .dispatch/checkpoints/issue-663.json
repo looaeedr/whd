@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "663",
   "branch": "governance/issue663-turn-exit-env-fix-20260925",
-  "head_sha": "ee4a91a5dc7084b8464af757c2def92d1d9f19b6",
-  "state": "RECOVERING",
-  "next_action": "Fresh-read the Remote Guard equality fix, then patch .github/workflows/whd-turn-exit-gate.yml and continue guarded PR/merge/readback.",
+  "head_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+  "state": "RUNNING",
+  "next_action": "Open guarded one-file PR for .github/workflows/whd-turn-exit-gate.yml to main; merge/readback; rerun #640 Turn Exit.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -15,6 +15,8 @@
     "Trusted turn-exit run 36140206897 failed before canonical gate because TE_GUARD_AUTHORITY_SHA was written to GITHUB_ENV and read in the same step.",
     "Repair scope is exactly .github/workflows/whd-turn-exit-gate.yml on default branch main.",
     "Local executable guard authorized the single #659 equality-regression repair commit.",
-    "Repair commit ee4a91a5dc7084b8464af757c2def92d1d9f19b6 removes only the global guard_authority_sha == tested_target_sha bootstrap regression."
+    "Repair commit ee4a91a5dc7084b8464af757c2def92d1d9f19b6 removes only the global guard_authority_sha == tested_target_sha bootstrap regression.",
+    "Turn-exit fix commit a72e74afe356405ea2b0fef46d8c02e256e56ba7 was authorized by Remote Guard run 36145266678.",
+    "Post-commit reconciliation Guard run 36145388240 GREEN with REMOTE_GUARD_RECONCILE_ONLY and is consumed by this atomic pair update."
   ]
 }

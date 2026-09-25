@@ -6,14 +6,14 @@
   "work_branch": "governance/issue663-turn-exit-env-fix-20260925",
   "claimed_at": "2026-09-25T13:20:46Z",
   "base_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
-  "head_sha": "ee4a91a5dc7084b8464af757c2def92d1d9f19b6",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T14:03:27.854Z",
+  "head_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T14:08:08.851Z",
   "production_target": "main",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Fresh-read #659 equality-regression fix at ee4a91a5..., then complete the #663 turn-exit GITHUB_ENV patch under the repaired trusted Guard path.",
+  "next_action": "Open the one-file #663 turn-exit workflow PR to main under guarded pr-write, merge/readback, then rerun the closed #640 trusted Turn Exit proof.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
@@ -27,5 +27,22 @@
       ".github/workflows/whd-remote-execution-guard.yml"
     ],
     "reason": "restore split guard_authority_sha/tested_target_sha bootstrap semantics"
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36145388240,
+    "request_comment_id": 5833768213,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+    "tested_target_sha": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+    "consumed": true
+  },
+  "turn_exit_fix": {
+    "commit": "a72e74afe356405ea2b0fef46d8c02e256e56ba7",
+    "changed_file": ".github/workflows/whd-turn-exit-gate.yml",
+    "commit_guard_run_id": 36145266678,
+    "reconcile_guard_run_id": 36145388240,
+    "fix": "source $GITHUB_ENV before same-step TE_* shell use"
   }
 }
