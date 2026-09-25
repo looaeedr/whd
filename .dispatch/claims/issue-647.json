@@ -8,7 +8,7 @@
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T09:21:33Z",
+  "last_update": "2026-09-25T09:24:25Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Create the reserved default-branch trusted turn-exit deployment helper, atomically activate its main-based claim/checkpoint, deploy and read back the exact accepted whd-turn-exit-gate.yml, then terminalize the helper reservation and resume #647 Combined Acceptance.",
+  "next_action": "Activate helper #653 claim/checkpoint atomically via fresh-create from current main, then Guard-create its dedicated branch before any helper repository write.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -41,18 +41,18 @@
     {
       "relationship": "helper",
       "helper_key": "default-branch-turn-exit-gate-deploy",
-      "state": "RESERVING",
+      "state": "ACTIVE",
       "reserved_by": "chatgpt.sol260925.issue647.a1",
       "reservation_token": "issue647-main-turn-exit-gate-deploy-a1",
       "reserved_at": "2026-09-25T09:21:33Z",
-      "child_issue": null,
-      "child_claim_blob_sha": null
+      "child_issue": 653,
+      "child_claim_blob_sha": "3f5fb4b93e3ec25a5ba82132db46dcfde6240bed"
     }
   ],
   "last_guard": {
     "action": "write",
-    "run_id": 36117966143,
-    "request_comment_id": 5830004214,
+    "run_id": 36118235171,
+    "request_comment_id": 5830039509,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",

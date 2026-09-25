@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "state": "RUNNING",
-  "next_action": "Create the reserved default-branch trusted turn-exit deployment helper, atomically activate its main-based claim/checkpoint, deploy and read back the exact accepted whd-turn-exit-gate.yml, then terminalize the helper reservation and resume #647 Combined Acceptance.",
+  "next_action": "Activate helper #653 claim/checkpoint atomically via fresh-create from current main, then Guard-create its dedicated branch before any helper repository write.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -20,6 +20,7 @@
     "#647 child readback: #641-#646 are all closed/completed with claim RELEASED and checkpoint closure_state CLOSED.",
     "Trusted workflow readback: main whd-remote-claim-activation.yml exactly matches accepted work-order artifact.",
     "Acceptance gap: main is missing .github/workflows/whd-turn-exit-gate.yml while accepted work-order blob is 41bf76f78c9af8246947939660daf05f525989d8.",
-    "Remote Guard run 36117966143 GREEN authorized the parent progress + helper reservation coordination write."
+    "Remote Guard run 36117966143 GREEN authorized the parent progress + helper reservation coordination write.",
+    "Helper #653 created under reserved helper_key default-branch-turn-exit-gate-deploy; Remote Guard run 36118235171 GREEN authorized binding the ACTIVE parent pointer to candidate claim blob 3f5fb4b93e3ec25a5ba82132db46dcfde6240bed."
   ]
 }
