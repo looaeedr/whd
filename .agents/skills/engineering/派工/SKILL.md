@@ -628,3 +628,19 @@ EXPIRED_UNCONSUMED 的舊 GREEN 永久不可 consume；fresh reconcile後才可 
 Checkpoint fingerprint 禁止 raw JSON hash；只用 load_checkpoint + checkpoint_fingerprint 或 authorize-finalization。#641：36051135751 FAIL → 36051265277 GREEN。
 
 EXECUTOR_PROVENANCE_AND_INTERACTIVE_LIVENESS_FOLLOWUP_V1：interactive 必須保存 exact conversation/chat identity + invocation identity；scheduler 保存 exact lane + invocation identity；另補 chatgpt_interactive heartbeat/liveness。此為 required follow-up，在 machine owner完成前不得宣稱已 enforcement。
+
+
+## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1
+
+若 fresh-read 發現歷史遺留 half-pair：shared active claim 存在，但 exact continuity checkpoint 從未建立，**不得**放寬 `ACTIVE_CLAIM_REQUIRES_CHECKPOINT`、不得手寫 checkpoint、不得用 ordinary Remote Guard 繞過。
+
+唯一合法 bootstrap 是 trusted Claim Activation 的 `transition=legacy-checkpoint-repair`：
+
+1. prior claim 必須存在、prior checkpoint 必須不存在；
+2. `prior_claim_blob_sha` 綁 exact current coordination parent；
+3. candidate claim blob 必須與 prior claim blob **byte-for-byte 相同**，所以 owner / executor_source / branch / base / head / phase / next_action / delegated scope 都不可順便改；
+4. candidate checkpoint 必須是 canonical non-terminal checkpoint，且 issue / branch / head exact match unchanged claim；
+5. transaction atomic 寫 exact claim+checkpoint pair；coord parent CAS drift 立即 FAIL；
+6. repair 完成後才回 ordinary Guard / post-commit reconciliation；work-branch HEAD drift不得塞進 bootstrap repair。
+
+此 transition 是 migration repair，不是 takeover、不是 stale-head bypass，也不改 ownership。

@@ -48,6 +48,8 @@ jobs:
               "candidate_claim_blob_sha", "candidate_checkpoint_blob_sha",
               "guard_authority_sha",
           }
+          optional = {"prior_claim_blob_sha"}
+          allowed = required | optional
           values = {}
           for raw in lines[1:]:
               if not raw.strip():
@@ -56,7 +58,7 @@ jobs:
                   raise SystemExit(f"malformed activation line: {raw!r}")
               key, value = raw.split("=", 1)
               key, value = key.strip(), value.strip()
-              if key not in required or key in values:
+              if key not in allowed or key in values:
                   raise SystemExit(f"unsupported/duplicate activation key: {key}")
               values[key] = value
 
@@ -72,9 +74,19 @@ jobs:
           if values["executor_source"] not in {"chat", "scheduler"}:
               raise SystemExit("invalid executor_source")
           if values["transition"] not in {
-              "fresh-create", "successor-create", "takeover", "reactivate"
+              "fresh-create", "successor-create", "takeover", "reactivate",
+              "legacy-checkpoint-repair",
           }:
               raise SystemExit("invalid transition")
+          if values["transition"] == "legacy-checkpoint-repair":
+              if "prior_claim_blob_sha" not in values:
+                  raise SystemExit(
+                      "legacy-checkpoint-repair requires prior_claim_blob_sha"
+                  )
+          elif "prior_claim_blob_sha" in values:
+              raise SystemExit(
+                  "prior_claim_blob_sha is reserved for legacy-checkpoint-repair"
+              )
           if not re.fullmatch(r"[A-Za-z0-9_.-]{1,64}", values["worker"]):
               raise SystemExit("invalid worker")
 
@@ -85,10 +97,13 @@ jobs:
           if values["checkpoint_path"] != expected_checkpoint:
               raise SystemExit("checkpoint_path is not exact")
 
-          for key in (
+          sha_keys = [
               "head_sha", "coord_parent_sha", "candidate_claim_blob_sha",
               "candidate_checkpoint_blob_sha", "guard_authority_sha",
-          ):
+          ]
+          if "prior_claim_blob_sha" in values:
+              sha_keys.append("prior_claim_blob_sha")
+          for key in sha_keys:
               if not re.fullmatch(r"[0-9a-f]{40}", values[key]):
                   raise SystemExit(f"invalid SHA: {key}")
 
@@ -164,6 +179,7 @@ jobs:
           from tools.execution_claim_guard import (
               ExecutionClaimError,
               assert_active_claim_activation_transaction,
+              assert_legacy_checkpoint_repair_transaction,
               load_execution_claim,
           )
 
@@ -202,6 +218,39 @@ jobs:
                   raise ExecutionClaimError(
                       "duplicate activation: prior coordination state exists"
                   )
+          elif request["transition"] == "legacy-checkpoint-repair":
+              if prior_claim is None:
+                  raise ExecutionClaimError(
+                      "LEGACY_CHECKPOINT_REPAIR: prior claim must exist"
+                  )
+              if prior_checkpoint is not None:
+                  raise ExecutionClaimError(
+                      "LEGACY_CHECKPOINT_REPAIR: prior checkpoint must be missing"
+                  )
+              if prior_claim != request["prior_claim_blob_sha"]:
+                  raise ExecutionClaimError(
+                      "LEGACY_CHECKPOINT_REPAIR: prior claim blob drift"
+                  )
+              if request["candidate_claim_blob_sha"] != prior_claim:
+                  raise ExecutionClaimError(
+                      "LEGACY_CHECKPOINT_REPAIR: candidate claim must remain unchanged"
+                  )
+              prior_bytes = subprocess.run(
+                  ["git", "show", f"{parent}:{request['claim_path']}"],
+                  capture_output=True,
+                  check=True,
+              ).stdout
+              Path("/tmp/prior-claim.json").write_bytes(prior_bytes)
+              assert_legacy_checkpoint_repair_transaction(
+                  Path("/tmp/prior-claim.json"),
+                  Path("/tmp/candidate-claim.json"),
+                  Path("/tmp/candidate-checkpoint.json"),
+                  prior_checkpoint_exists=False,
+                  changed_files=(
+                      request["claim_path"],
+                      request["checkpoint_path"],
+                  ),
+              )
           else:
               if prior_claim is None or prior_checkpoint is None:
                   raise ExecutionClaimError(
@@ -298,6 +347,7 @@ jobs:
               checkpoint_path: req.checkpoint_path,
               candidate_claim_blob_sha: req.candidate_claim_blob_sha,
               candidate_checkpoint_blob_sha: req.candidate_checkpoint_blob_sha,
+              prior_claim_blob_sha: req.prior_claim_blob_sha || null,
               guard_authority_sha: req.guard_authority_sha,
               commit_sha: commitSha || null,
               result,
