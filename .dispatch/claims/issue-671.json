@@ -11,19 +11,20 @@
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
   "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
   "phase": "DRIFT_AUDIT",
-  "last_update": "2026-09-25T18:21:30Z",
+  "last_update": "2026-09-25T18:24:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Open guarded PR from cleaned #671 head a8093a2b70f817c74491467a2fca7e05f99ea37a into cleanup/2d-3d-sync; verify/merge non-force; then deploy the trusted Claim Activation capability to default branch main before using it to repair #617.",
+  "next_action": "Obtain a fresh exact pr-write Guard against the reconciled claim blob and merge PR #672 non-force into cleanup/2d-3d-sync; fresh-read production, then deploy accepted cleanup to default branch main before repairing #617.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
-    "action": "write",
-    "run_id": 36172518847,
-    "request_comment_id": 5837320718,
+    "action": "pr-write",
+    "run_id": 36173064563,
+    "request_comment_id": 5837396489,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "consumed": true
+    "consumed": true,
+    "mutation": "created PR #672"
   },
   "red_evidence": {
     "head_sha": "08062378181d1244c9cfdc1747902696c9eec067",
@@ -62,5 +63,26 @@
       36172676362,
       36172768117
     ]
+  },
+  "guard_readbacks": [
+    {
+      "guard_run_id": 36173064563,
+      "action": "pr-write",
+      "mutation_applied": true,
+      "reconciled": true,
+      "changed_files": [],
+      "pr_readback": true,
+      "pr_number": 672,
+      "pr_state": "open",
+      "pr_head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+      "pr_base": "cleanup/2d-3d-sync",
+      "observed_at": "2026-09-25T18:24:45Z"
+    }
+  ],
+  "integration": {
+    "pr": 672,
+    "state": "open",
+    "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+    "base": "cleanup/2d-3d-sync"
   }
 }
