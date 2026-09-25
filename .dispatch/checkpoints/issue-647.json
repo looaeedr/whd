@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "f4720a1404e3c8685d7f2fdc4307045603ae9c23",
+  "head_sha": "1b6c19cff27a1ca22e8e7ff742669893c84f0bb3",
   "state": "RECOVERING",
-  "next_action": "Repair temporary #647 Combined Acceptance workflow dependency by installing matplotlib, rerun exact combined acceptance, then continue only when all acceptance gates are GREEN.",
-  "run_id": 36125098702,
-  "job_id": 108039273349,
-  "log_cursor": "Full process regression: 2 collection errors, ModuleNotFoundError: matplotlib",
+  "next_action": "Repair Combined Acceptance into correct headless/Xvfb and baseline-vs-closing regression lanes; classify the single source-contract failure as inherited or new before integration.",
+  "run_id": 36126066734,
+  "job_id": 108042359289,
+  "log_cursor": "Full process: 1 failed, 512 passed, 33 errors; 33 errors are TclError no $DISPLAY; single fail is test_issue423 source-contract project_box_body_piece_rows.",
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -31,6 +31,9 @@
     "Temporary #647 Combined Acceptance runner committed at f4720a1404e3c8685d7f2fdc4307045603ae9c23 under Remote Guard run 36125037933.",
     "Combined Acceptance run 36125098702: focused governance/process set GREEN with 178 passed.",
     "Run 36125098702 full tests/process step failed during collection only because matplotlib was not installed; test_issue425_phase5_t4_final_scene_visibility.py and test_issue426_phase5_t5_bridge_compression.py raised ModuleNotFoundError: matplotlib.",
-    "Post-commit reconciliation to f4720a1404e3c8685d7f2fdc4307045603ae9c23 authorized by Remote Guard run 36125945096."
+    "Post-commit reconciliation to f4720a1404e3c8685d7f2fdc4307045603ae9c23 authorized by Remote Guard run 36125945096.",
+    "Combined Acceptance harness dependency repair committed at 1b6c19cff27a1ca22e8e7ff742669893c84f0bb3 under Remote Guard run 36126033350.",
+    "Run 36126066734 focused set GREEN (178 passed); full tests/process reached 512 passed but produced 33 TclError no DISPLAY errors plus one source-contract failure in test_issue423_phase5_t2_assembly_panel.py.",
+    "Post-repair reconciliation to 1b6c19cff27a1ca22e8e7ff742669893c84f0bb3 authorized by Remote Guard run 36126094909."
   ]
 }
