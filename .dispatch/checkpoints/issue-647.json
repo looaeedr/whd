@@ -3,8 +3,8 @@
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
-  "state": "RUNNING",
-  "next_action": "Enter #647 terminal checkpoint FINALIZATION_PENDING with Integration Acceptance PASS; then run canonical Remote Finalization closure transaction.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -65,6 +65,12 @@
     "PR #662 fresh readback is closed/merged with merge_commit_sha 0243600da28f82566694c9bb3fff6d0a95b2a35e.",
     "Production fresh-read confirms cleanup/2d-3d-sync@0243600da28f82566694c9bb3fff6d0a95b2a35e.",
     "Conflict resolution preserved four X-only scheduler-simulation blobs and #648 exact claim_last_update timestamp precision fix while retaining all verified work-order content.",
-    "Integration pr-write transaction run 36136772741 reconciled as MUTATION_DONE_RECONCILE_ONLY; integration was not replayed."
-  ]
+    "Integration pr-write transaction run 36136772741 reconciled as MUTATION_DONE_RECONCILE_ONLY; integration was not replayed.",
+    "Remote Guard run 36137057903 GREEN authorized #647 terminal checkpoint entry after Combined Acceptance, cleanup drift audit, final non-force integration, and production readback all passed.",
+    "Master chain continuation set to CHAIN_COMPLETE because #647 is the final child of #640."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING under fresh Guard; then run bound Remote Finalization on this exact terminal checkpoint.",
+  "master_issue": 640,
+  "chain_state": "CHAIN_COMPLETE"
 }
