@@ -327,9 +327,10 @@ def test_evaluator_decision_out_is_bound_guard_evidence(tmp_path: Path):
     import sys
 
     module_path = Path(__file__).resolve().parents[2] / "tools" / "stale_claim_takeover.py"
+    claim_last_update = "2026-09-23T05:00:00.157943Z"
     claim_path = tmp_path / "claim.json"
     claim_path.write_text(
-        json.dumps(_claim(last_update="2026-09-23T05:00:00Z")),
+        json.dumps(_claim(last_update=claim_last_update)),
         encoding="utf-8",
     )
     evidence = tmp_path / "decision.json"
@@ -355,6 +356,7 @@ def test_evaluator_decision_out_is_bound_guard_evidence(tmp_path: Path):
     assert payload["claim_head_sha"] == CLAIM_HEAD
     assert payload["observed_live_head_sha"] == LIVE_HEAD
     assert payload["stale_after_seconds"] == 600
+    assert payload["claim_last_update"] == claim_last_update
 
     guard = importlib.import_module("tools.execution_claim_guard")
     claim = guard.assert_execution_claim(
@@ -368,6 +370,31 @@ def test_evaluator_decision_out_is_bound_guard_evidence(tmp_path: Path):
         takeover_evidence=evidence,
     )
     assert claim.head_sha == CLAIM_HEAD
+
+
+def test_fractional_claim_last_update_mismatch_fails_closed(tmp_path: Path):
+    guard = importlib.import_module("tools.execution_claim_guard")
+    claim_path = tmp_path / "claim.json"
+    claim_path.write_text(
+        json.dumps(_claim(last_update="2026-09-23T05:00:00.157943Z")),
+        encoding="utf-8",
+    )
+    evidence = _write_takeover_evidence(
+        tmp_path,
+        claim_last_update="2026-09-23T05:00:00.157944Z",
+    )
+
+    with pytest.raises(guard.ExecutionClaimError, match="last_update|timestamp|evidence"):
+        guard.assert_execution_claim(
+            claim_path,
+            issue=ISSUE,
+            worker="chatgpt",
+            branch=WORK_BRANCH,
+            action="claim-takeover",
+            expected_base_sha=BASE_SHA,
+            expected_head_sha=LIVE_HEAD,
+            takeover_evidence=evidence,
+        )
 
 
 def test_remote_run_head_mismatch_fails_closed():
