@@ -6,18 +6,18 @@
   "work_branch": "governance/issue669-scheduler-exit-enable-20260926",
   "claimed_at": "2026-09-25T16:31:30Z",
   "base_sha": "68b920967c438679c0841123571230a66b013877",
-  "head_sha": "70a249b69f0f16721486b6b3f601559801f18990",
+  "head_sha": "863922638ea265d2913c95979c894b2794d97041",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T16:45:35Z",
+  "last_update": "2026-09-25T16:47:05Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain exact guarded commit to remove .github/workflows/qa-issue669-scheduler-exit-enable.yml, then reconcile cleaned HEAD and verify final two-file diff.",
+  "next_action": "Verify cleaned final diff contains only the Skill + contract test, monitor cleanup-head governance run to terminal, then obtain exact merge authority for PR #670.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-669.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36162735755,
-    "request_comment_id": 5836035985,
+    "run_id": 36162915592,
+    "request_comment_id": 5836061352,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true
@@ -38,6 +38,8 @@
     "governance_run_id": 36162681813,
     "governance_result": "success",
     "tested_head": "70a249b69f0f16721486b6b3f601559801f18990",
-    "temporary_workflow": ".github/workflows/qa-issue669-scheduler-exit-enable.yml"
+    "temporary_workflow": ".github/workflows/qa-issue669-scheduler-exit-enable.yml",
+    "cleaned_head": "863922638ea265d2913c95979c894b2794d97041",
+    "temporary_workflow_removed": true
   }
 }
