@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-25T22:57:00Z",
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T23:16:30Z",
+  "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
+  "phase": "REMOTE_QA",
+  "last_update": "2026-09-25T23:24:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -19,13 +19,13 @@
   "parent_issue": 628,
   "expected_parent_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "chain_head": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
+  "chain_head": "b46d38f0f01f6d43aa3286356fffa7799d368818",
   "approved_red_ids": [
     "UI-R2"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Implement the minimal WorkspaceShell-owned viewport overlay on exact head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34. Settings and Assembly Diagnostics must share one overlay host positioned over the renderer without consuming pack geometry; retain existing Settings/Diagnostics state owners and callbacks, then run exact focused Xvfb GREEN.",
+  "next_action": "Lock exact GitHub Actions run 36200796522 at head_sha b46d38f0f01f6d43aa3286356fffa7799d368818 and poll to terminal. On success, proceed to B2 acceptance/cleanup/finalization; on failure, inspect exact job log and repair only the failing UI-R2 seam.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -41,15 +41,16 @@
     "Focused #615 UI-R2 Xvfb workflow committed at 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 under Remote Guard run 36200024852.",
     "Exact push QA run 36200056277 created for head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34.",
     "Post-commit pair reconciliation to QA head authorized by Remote Guard run 36200077895.",
-    "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: AssertionError `WorkspaceShell has no single viewport overlay host for Settings/Diagnostics`; setup and checkout were GREEN; artifact 10891527330."
+    "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: AssertionError `WorkspaceShell has no single viewport overlay host for Settings/Diagnostics`; setup and checkout were GREEN; artifact 10891527330.",
+    "UI-R2 implementation committed at b46d38f0f01f6d43aa3286356fffa7799d368818 under Remote Guard run 36200439556.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36200815593.",
+    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818."
   ],
   "remote_qa": {
-    "run_id": 36200056277,
-    "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
-    "status": "completed",
-    "conclusion": "failure",
-    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml",
-    "job_id": 108284554274,
-    "artifact_id": 10891527330
+    "run_id": 36200796522,
+    "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
+    "status": "in_progress",
+    "conclusion": null,
+    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
   }
 }

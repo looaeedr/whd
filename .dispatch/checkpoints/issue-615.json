@@ -2,11 +2,11 @@
   "version": 1,
   "issue": "615",
   "branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "head_sha": "57f2032e1d70ecc8d752e97b4305b4478d4b6d34",
-  "state": "RUNNING",
-  "next_action": "Implement the minimal WorkspaceShell-owned viewport overlay on exact head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34. Settings and Assembly Diagnostics must share one overlay host positioned over the renderer without consuming pack geometry; retain existing Settings/Diagnostics state owners and callbacks, then run exact focused Xvfb GREEN.",
-  "run_id": 36200056277,
-  "job_id": 108284554274,
+  "head_sha": "b46d38f0f01f6d43aa3286356fffa7799d368818",
+  "state": "WAITING_REMOTE",
+  "next_action": "Lock exact GitHub Actions run 36200796522 at head_sha b46d38f0f01f6d43aa3286356fffa7799d368818 and poll to terminal. On success, proceed to B2 acceptance/cleanup/finalization; on failure, inspect exact job log and repair only the failing UI-R2 seam.",
+  "run_id": 36200796522,
+  "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
@@ -20,7 +20,10 @@
     "Focused #615 UI-R2 Xvfb workflow committed at 57f2032e1d70ecc8d752e97b4305b4478d4b6d34 under Remote Guard run 36200024852.",
     "Exact push QA run 36200056277 created for head 57f2032e1d70ecc8d752e97b4305b4478d4b6d34.",
     "Post-commit pair reconciliation to QA head authorized by Remote Guard run 36200077895.",
-    "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: missing single WorkspaceShell viewport overlay host; artifact 10891527330."
+    "UI-R2 requirement RED terminal failure confirmed by exact run 36200056277 / job 108284554274: missing single WorkspaceShell viewport overlay host; artifact 10891527330.",
+    "UI-R2 implementation committed at b46d38f0f01f6d43aa3286356fffa7799d368818 under Remote Guard run 36200439556.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36200815593.",
+    "Exact focused Xvfb run 36200796522 created for implementation HEAD b46d38f0f01f6d43aa3286356fffa7799d368818."
   ],
   "closure_state": "CLOSED",
   "closure_next_action": null
