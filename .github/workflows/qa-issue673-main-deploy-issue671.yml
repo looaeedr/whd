@@ -1,0 +1,41 @@
+name: WHD #673 main 部署 focused QA
+run-name: "WHD｜#673｜main 部署 focused QA"
+
+on:
+  push:
+    branches:
+      - governance/issue673-main-deploy-issue671-20260926
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: "#673｜main 部署 focused contract"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出 exact branch
+        uses: actions/checkout@v4
+      - name: 設定 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 驗證 Actions 顯示名稱
+        run: python tools/actions_visible_naming_guard.py .github/workflows/qa-issue673-main-deploy-issue671.yml
+      - name: 安裝 focused pytest
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: 驗證 accepted blobs 與 Skill marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object .github/workflows/whd-remote-claim-activation.yml)" = "757c04902e19b997ee3d4d3511793e19abba2e83"
+          test "$(git hash-object tests/process/test_issue671_legacy_checkpoint_repair.py)" = "d0bd2279fd550090e9674703f02e099a484deb72"
+          test "$(git hash-object tools/execution_claim_guard.py)" = "7a6f948c092e97f269f5af5473b3ab1a884d7cda"
+          test "$(git hash-object 個人AI檔案庫/踩坑庫/execution_claim_hard_gate_pitfall.md)" = "2f6e7d74151b26532dd1859306f0d69e69198e64"
+          test "$(grep -c '^## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1$' .agents/skills/engineering/remote-execution-guard/SKILL.md)" = "1"
+          test "$(grep -c '^## LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1$' .agents/skills/engineering/派工/SKILL.md)" = "1"
+      - name: 執行 #671 legacy repair focused tests
+        run: >-
+          python -m pytest -q
+          tests/process/test_issue671_legacy_checkpoint_repair.py
