@@ -8,13 +8,14 @@
   "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
   "phase": "GREEN",
-  "last_update": "2026-09-25T14:19:20Z",
+  "last_update": "2026-09-25T14:21:00Z",
   "production_target": "cleanup/2d-3d-sync",
+  "production_head_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Obtain a fresh pr-write Guard and merge clean one-file PR #666 into cleanup/2d-3d-sync; fresh-read cleanup exact workflow blob; then preserve user-directed cleanup->main handoff.",
-  "blocker": null,
+  "next_action": "USER_HANDOFF: merge cleanup/2d-3d-sync@3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f into main. After main readback contains workflow blob 647e8d663625c7f2056315fc820ffd92f8db5aaf, rerun #640 trusted Turn Exit proof and continue #663 closure.",
+  "blocker": "WAITING_USER_CLEANUP_TO_MAIN",
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
   "blocked_master_issue": 640,
@@ -23,32 +24,29 @@
     "main_merge": "8597a08cb059ba235fc458e5ec7e4015d83df385"
   },
   "turn_exit_fix_cleanup": {
-    "commit": "f750d9d309bc947ae2195f0463b13c9abae94906",
-    "blob_sha": "647e8d663625c7f2056315fc820ffd92f8db5aaf",
+    "source_commit": "f750d9d309bc947ae2195f0463b13c9abae94906",
+    "cleanup_pr": 666,
+    "cleanup_merge_commit": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
+    "workflow_blob_sha": "647e8d663625c7f2056315fc820ffd92f8db5aaf",
     "changed_file": ".github/workflows/whd-turn-exit-gate.yml",
-    "commit_guard_run_id": 36146213163,
-    "reconcile_guard_run_id": 36146409082,
-    "equivalent_reconcile_guard_run_id": 36146418201
+    "verified_fix": true
   },
   "last_guard": {
     "action": "pr-write",
-    "run_id": 36146616435,
-    "request_comment_id": 5833932248,
+    "run_id": 36146801303,
+    "request_comment_id": 5833956289,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "consumed": true,
     "durable_readback": {
       "pr_number": 666,
       "pr_readback": true,
-      "state": "open",
+      "merged": true,
+      "merge_commit_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
       "base": "cleanup/2d-3d-sync",
-      "base_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
-      "head": "governance/issue663-turn-exit-cleanup-20260925",
       "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-      "mergeable": true,
-      "mergeable_state": "clean",
-      "commits": 1,
-      "changed_files": 1
+      "cleanup_head_sha": "3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f",
+      "workflow_blob_sha": "647e8d663625c7f2056315fc820ffd92f8db5aaf"
     }
   },
   "superseded_pr": {
@@ -57,6 +55,7 @@
   },
   "integration_target_change": {
     "requested_by_user": true,
-    "target": "cleanup/2d-3d-sync"
+    "target": "cleanup/2d-3d-sync",
+    "cleanup_merge_complete": true
   }
 }

@@ -3,20 +3,19 @@
   "issue": "663",
   "branch": "governance/issue663-turn-exit-cleanup-20260925",
   "head_sha": "f750d9d309bc947ae2195f0463b13c9abae94906",
-  "state": "RUNNING",
-  "next_action": "Obtain fresh pr-write Guard and merge clean one-file PR #666 into cleanup/2d-3d-sync; fresh-read cleanup workflow blob; then hand off cleanup->main merge to user.",
+  "state": "BLOCKED",
+  "next_action": "USER_HANDOFF: merge cleanup/2d-3d-sync@3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f into main; then fresh-read main workflow blob 647e8d663625c7f2056315fc820ffd92f8db5aaf and rerun #640 trusted Turn Exit proof.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
-  "blocked_count": 0,
-  "blocked_last_notified_at": null,
+  "blocked_count": 1,
+  "blocked_last_notified_at": "2026-09-25T14:21:00Z",
   "evidence": [
     "Master #640 remains closed/completed with claim RELEASED and checkpoint CLOSED.",
-    "Cleanup repair branch head f750d9d309bc947ae2195f0463b13c9abae94906 is exactly one commit / one file ahead of cleanup.",
-    "PR #666 fresh readback: open, mergeable=true, mergeable_state=clean, 1 commit, 1 changed file.",
-    "PR-create pr-write Guard run 36146616435 GREEN and consumed by this durable PR readback.",
-    "Turn-exit repaired workflow blob is 647e8d663625c7f2056315fc820ffd92f8db5aaf.",
+    "PR #666 merged into cleanup/2d-3d-sync at 3e33c1eb164246cd0c34576d94cc0ac4b02aaa2f.",
+    "cleanup/2d-3d-sync fresh-read workflow blob is 647e8d663625c7f2056315fc820ffd92f8db5aaf and contains the same-step GITHUB_ENV fix.",
+    "Merge pr-write Guard run 36146801303 GREEN and consumed by this durable merge readback.",
     "PR #665 is superseded and must not be merged.",
-    "User directed: merge repair into cleanup/2d-3d-sync first; user will merge cleanup to main."
+    "External dependency is now user-directed cleanup/2d-3d-sync -> main integration."
   ]
 }
