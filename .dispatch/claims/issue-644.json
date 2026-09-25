@@ -6,23 +6,23 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T01:35:29Z",
   "base_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "head_sha": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T02:10:25.789100Z",
+  "head_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T02:12:17.267534Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T4",
   "expected_parent_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "19f4ed4b7ef91af3f1d71558ea872241d6bc9a89",
+  "chain_head": "accba53d9a1695f0db8bb7add610648ad34d5e61",
   "production_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "approved_red_ids": [
     "RED-CLOSE-03"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Add a focused #644 GREEN runner, prove C-R1..C-R12 plus #642/#643 regressions at exact implementation HEAD, then continue Task Acceptance/closure.",
+  "next_action": "Clean up #644 one-shot RED/GREEN QA workflows, reconcile the closing HEAD, perform tested-head → closing-head drift audit, then enter canonical Task Acceptance closure.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-644.json",
   "predecessor": {
@@ -61,5 +61,18 @@
       "tools/continuity_controller.py",
       ".github/workflows/whd-turn-exit-gate.yml"
     ]
+  },
+  "green_evidence": {
+    "run_id": 36085249106,
+    "head_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+    "result": "success",
+    "passed": 54,
+    "failed": 0,
+    "marker": "ISSUE644_T4_GREEN=PASS",
+    "artifact_id": 10843368463,
+    "artifact_digest": "sha256:f50de74f38b73a2e82c0037dc36b6081b4e9f7eb15eaa79e61719312edc69eaf",
+    "runner_commit_sha": "accba53d9a1695f0db8bb7add610648ad34d5e61",
+    "runner_guard_run_id": 36085215489,
+    "runner_reconcile_guard_run_id": 36085269476
   }
 }
