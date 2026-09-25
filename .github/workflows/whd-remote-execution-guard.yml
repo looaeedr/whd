@@ -195,9 +195,7 @@ jobs:
           set +e
           (
             set -euo pipefail
-            remote_authority="$(git ls-remote origin refs/heads/cleanup/2d-3d-sync | awk '{print $1}')"
-            test -n "$remote_authority"
-            test "$remote_authority" = "$RG_GUARD_AUTHORITY_SHA"
+            test "$RG_GUARD_AUTHORITY_SHA" = "$RG_TESTED_TARGET_SHA"
 
             git fetch --no-tags origin "$RG_GUARD_AUTHORITY_SHA"
             git checkout --detach "$RG_GUARD_AUTHORITY_SHA"
@@ -208,6 +206,10 @@ jobs:
             actual_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${claim_path}")"
             test "$actual_blob" = "$RG_CLAIM_BLOB_SHA"
             git show "refs/remotes/origin/coord/dispatch-claims:${claim_path}" > /tmp/execution-claim.json
+            checkpoint_path=".dispatch/checkpoints/issue-${RG_ISSUE}.json"
+            checkpoint_blob="$(git rev-parse "refs/remotes/origin/coord/dispatch-claims:${checkpoint_path}")"
+            test -n "$checkpoint_blob"
+            git show "refs/remotes/origin/coord/dispatch-claims:${checkpoint_path}" > /tmp/execution-checkpoint.json
 
             git check-ref-format --branch "$RG_BRANCH" >/dev/null
             current_branch_sha="$(git ls-remote origin "refs/heads/${RG_BRANCH}" | awk '{print $1}')"
@@ -357,6 +359,7 @@ jobs:
               --branch "$RG_BRANCH"
               --action "$RG_ACTION"
               --base-sha "$RG_BASE_SHA"
+              --checkpoint /tmp/execution-checkpoint.json
             )
             if [ "$RG_ACTION" = "claim-takeover" ]; then
               guard_args+=(
