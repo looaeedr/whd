@@ -21,8 +21,9 @@
     "Remote Guard run 36094950075 GREEN authorized closure transition to ISSUE_CLOSE_PENDING.",
     "Remote Finalization run 36095055696 completed success with FINALIZATION_PROOF_VALID on frozen checkpoint fingerprint d33e042e714fb40b1cee42c150c7518713f0c4619ac2632c174339bf9f5333ad.",
     "Issue #649 fresh readback confirmed closed/completed at 2026-09-25T04:36:10Z.",
-    "Remote Guard run 36095159942 GREEN authorized closure transition to RELEASE_HANDOFF_PENDING."
+    "Remote Guard run 36095159942 GREEN authorized closure transition to RELEASE_HANDOFF_PENDING.",
+    "Remote Guard run 36095255261 GREEN authorized final atomic checkpoint CLOSED + claim RELEASED handoff."
   ],
-  "closure_state": "RELEASE_HANDOFF_PENDING",
-  "closure_next_action": "Atomically persist checkpoint closure_state=CLOSED and shared claim phase=RELEASED, then fresh-read both and return control to parent repair #648."
+  "closure_state": "CLOSED",
+  "closure_next_action": null
 }
