@@ -100,5 +100,17 @@
     "base": "cleanup/2d-3d-sync",
     "merge_commit_sha": "3b250e911fe728fa21507fe6b144b5add2abb7c1",
     "production_head": "3b250e911fe728fa21507fe6b144b5add2abb7c1"
-  }
+  },
+  "delegated_work": [
+    {
+      "relationship": "helper",
+      "helper_key": "main-governance-deploy-issue671",
+      "state": "RESERVING",
+      "reserved_by": "scheduler.6ab13fa557fc8191935c671214b865e2",
+      "reservation_token": "issue671-main-deploy-a-20260925",
+      "reserved_at": "2026-09-25T22:17:00Z",
+      "child_issue": null,
+      "child_claim_blob_sha": null
+    }
+  ]
 }
