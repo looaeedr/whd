@@ -1582,6 +1582,19 @@ def assert_execution_claim_checkpoint_prewrite(
         "ISSUE_CLOSE_PENDING",
         "RELEASE_HANDOFF_PENDING",
     }
+    if action == "claim-takeover":
+        if normalized:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint takeover "
+                "must not mutate repository files"
+            )
+        if closure_state not in pending_closure_states:
+            raise ExecutionClaimError(
+                "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: terminal checkpoint takeover "
+                "requires pending closure"
+            )
+        return checkpoint
+
     if (
         action != "write"
         or normalized not in allowed_scopes
