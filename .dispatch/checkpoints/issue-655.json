@@ -16,12 +16,13 @@
     "Branch-create Guard run 36124323004 GREEN; work branch created from exact frozen target HEAD 5822ab30360dfcf09e21408584c3da100baafd37.",
     "Skill-authoring commit Guard run 36124501488 GREEN with canonical Preflight evidence including 寫技能 and Python測試實務.",
     "Commit 4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31 adds 排程模擬 Skill, skill_registry route, and focused contract test.",
-    "Exact committed-content contract readback GREEN_STATIC_CONTRACT.",
+    "Exact committed-content contract readback GREEN_STATIC_CONTRACT (30/30 assertions).",
     "PR #656 exact HEAD 4c1a0f07eea50a57f9f8a714dc089c6d9a0b3a31 Knowledge Governance Bootstrap run 36125136459 SUCCESS.",
     "PR #656 merge Guard run 36125215819 GREEN and PR merged cleanly.",
     "Production target cleanup/2d-3d-sync fresh-read HEAD=04281ff361117ba65c7c517dc7f78820f00127cf.",
-    "Local pytest is not claimed because current execution container cannot resolve github.com; acceptance uses exact committed-content contract readback plus PR governance run."
+    "Production target blobs for Skill, registry, and focused contract test exactly match accepted work blobs.",
+    "Guard run 36125393479 GREEN consumed for FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING."
   ],
-  "closure_state": "FINALIZATION_PENDING",
-  "closure_next_action": "Advance to ISSUE_CLOSE_PENDING, run bound trusted finalization proof, close/read back Issue #655, then atomically persist checkpoint CLOSED + claim RELEASED."
+  "closure_state": "ISSUE_CLOSE_PENDING",
+  "closure_next_action": "Run bound trusted finalization proof, close/read back Issue #655, then atomically persist checkpoint CLOSED + claim RELEASED."
 }
