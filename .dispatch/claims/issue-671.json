@@ -9,21 +9,26 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
+  "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
   "phase": "RED",
-  "last_update": "2026-09-25T17:30:10Z",
+  "last_update": "2026-09-25T17:33:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Establish focused RED for legacy-checkpoint-repair trusted activation transaction, then implement minimal GREEN.",
+  "next_action": "Fix one-shot QA visible naming only, rerun focused RED until pytest reaches missing legacy repair contract.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-671.json",
   "last_guard": {
-    "action": "branch-create",
-    "run_id": 36167023821,
-    "request_comment_id": 5836598683,
+    "action": "write",
+    "run_id": 36167804348,
+    "request_comment_id": 5836694353,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "consumed": true,
-    "mutation": "created governance/issue671-legacy-half-pair-repair-20260926 at 6bd0e3c9ef540234a1f92eab7aaefc9c462f5554"
+    "consumed": true
+  },
+  "red_evidence": {
+    "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
+    "run_id": 36167737729,
+    "conclusion": "failure",
+    "classification": "HARNESS_NAMING_RED"
   }
 }

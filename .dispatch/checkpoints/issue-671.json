@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
-  "head_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
+  "head_sha": "5fb26b2ac4afe7b73589c012da83fd2ee2975d56",
   "state": "RUNNING",
-  "next_action": "Establish focused RED for legacy-checkpoint-repair trusted activation transaction, then implement minimal GREEN.",
+  "next_action": "Fix one-shot QA visible naming only, rerun focused RED until pytest reaches missing legacy repair contract.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -16,6 +16,9 @@
     "Logical owner is scheduler.6ab13fa557fc8191935c671214b865e2; physical invocation is chatgpt_interactive; no ownership takeover is performed.",
     "Issue #671 is the blocking governance repair; #617 remains untouched until capability is accepted and deployed.",
     "Branch-create Guard run 36167023821 GREEN consumed exactly once; branch fresh-read exists at guarded HEAD 6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
-    "Subsequent RED commit Guard run 36167433982 correctly failed PENDING_GUARD_TRANSACTION before mutation; no test/implementation commit occurred."
+    "Subsequent RED commit Guard run 36167433982 correctly failed PENDING_GUARD_TRANSACTION before mutation; no test/implementation commit occurred.",
+    "RED test commit Guard run 36167594134 GREEN consumed by commit 5fb26b2ac4afe7b73589c012da83fd2ee2975d56.",
+    "Focused run 36167737729 failed before pytest only because workflow/run/job visible names lacked Traditional Chinese.",
+    "Post-commit reconciliation Guard run 36167804348 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }
