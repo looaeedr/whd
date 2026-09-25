@@ -21,8 +21,11 @@
     "PR #654 merged into main at bdb3da203c898d43898b092ff37b7fa9e0c93061 under single-use pr-write Guard run 36118790068.",
     "Fresh deployment readback: main:.github/workflows/whd-turn-exit-gate.yml blob is exact accepted 41bf76f78c9af8246947939660daf05f525989d8.",
     "Remote Guard run 36118962667 GREEN authorized helper terminal acceptance entry.",
-    "Remote Guard run 36119084216 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING for helper #653."
+    "Remote Guard run 36119084216 GREEN authorized FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING for helper #653.",
+    "Bound Remote Finalization run 36123833115 GREEN: FINALIZATION_PROOF_VALID; artifact 10859615433; fingerprint 67bce04900e4af8ce80cc2ee150abc3b5804ff78f1637e449068f56cbf9a0d01.",
+    "Owning Issue #653 fresh-read closed/completed at 2026-09-25T10:25:46Z.",
+    "Closure transition ISSUE_CLOSE_PENDING → RELEASE_HANDOFF_PENDING authorized by Remote Guard run 36123998972."
   ],
-  "closure_state": "ISSUE_CLOSE_PENDING",
-  "closure_next_action": "Run trusted Remote Finalization for helper #653 on this exact checkpoint, verify bound proof, then close/read back Issue #653 before RELEASE_HANDOFF_PENDING."
+  "closure_state": "RELEASE_HANDOFF_PENDING",
+  "closure_next_action": "Final atomic child closure: persist checkpoint CLOSED + claim RELEASED; then terminalize parent #647 helper reservation with complete child terminal proof before #647 resumes."
 }
