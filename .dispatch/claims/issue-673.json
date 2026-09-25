@@ -10,11 +10,11 @@
   "claimed_at": "2026-09-25T22:24:00Z",
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T22:25:30Z",
+  "phase": "IMPLEMENTING",
+  "last_update": "2026-09-25T22:27:20Z",
   "production_target": "main",
   "delegated_branches": [],
-  "next_action": "Obtain exact branch-create Guard; create narrow main deployment branch; sync only #671 accepted governance files; verify main deployment; then release helper and return to #617 repair.",
+  "next_action": "Obtain exact commit Guard for six #671 accepted governance files; deploy four exact accepted blobs plus append-only #671 sections to two divergent main Skills; run focused main-deployment verification.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-673.json",
   "parent_issue": 671,
@@ -24,5 +24,14 @@
     "parent_claim_blob_sha": "cdd53bc4420d72d9a96b1b1b3d3833851447ba7c",
     "helper_key": "main-governance-deploy-issue671",
     "reservation_state": "ACTIVE"
+  },
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36196730094,
+    "request_comment_id": 5840512089,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "consumed": true,
+    "mutation": "created governance/issue673-main-deploy-issue671-20260926"
   }
 }
