@@ -6,16 +6,26 @@
   "work_branch": "governance/issue663-turn-exit-env-fix-20260925",
   "claimed_at": "2026-09-25T13:20:46Z",
   "base_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
-  "head_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
-  "phase": "CLAIMED",
-  "last_update": "2026-09-25T13:20:46Z",
+  "head_sha": "ee4a91a5dc7084b8464af757c2def92d1d9f19b6",
+  "phase": "RECOVERING",
+  "last_update": "2026-09-25T14:03:27.854Z",
   "production_target": "main",
   "master_issue": 640,
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Create guarded repair branch from current main, patch only .github/workflows/whd-turn-exit-gate.yml so same-step TE_* variables are available after writing GITHUB_ENV, merge through guarded PR to main, fresh-read exact fix, rerun #640 trusted turn-exit proof, then close/release #663.",
+  "next_action": "Fresh-read #659 equality-regression fix at ee4a91a5..., then complete the #663 turn-exit GITHUB_ENV patch under the repaired trusted Guard path.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-663.json",
   "root_cause_run_id": 36140206897,
-  "blocked_master_issue": 640
+  "blocked_master_issue": 640,
+  "local_guard_recovery": {
+    "action": "commit",
+    "authority_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+    "previous_head": "1cff61fc73e66e07bcb7364249402e2cd86db715",
+    "repaired_head": "ee4a91a5dc7084b8464af757c2def92d1d9f19b6",
+    "changed_files": [
+      ".github/workflows/whd-remote-execution-guard.yml"
+    ],
+    "reason": "restore split guard_authority_sha/tested_target_sha bootstrap semantics"
+  }
 }
