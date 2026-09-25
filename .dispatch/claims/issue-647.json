@@ -1,14 +1,14 @@
 {
   "issue": 647,
   "issue_url": "https://github.com/looaeedr/whd/issues/647",
-  "worker": "chatgpt.sol260925.issue647.a1",
+  "worker": "chatgpt.sol260925.issue647.force1",
   "executor_source": "chatgpt_interactive",
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T09:16:00Z",
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T09:24:25Z",
+  "last_update": "2026-09-25T10:31:20Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Activate helper #653 claim/checkpoint atomically via fresh-create from current main, then Guard-create its dedicated branch before any helper repository write.",
+  "next_action": "Terminalize helper reservation default-branch-turn-exit-gate-deploy using complete #653 terminal proof, refresh #647 checkpoint, then resume Combined Acceptance without treating helper deployment as work-order→cleanup integration.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -57,5 +57,35 @@
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
     "consumed": true
+  },
+  "stale_takeover": {
+    "schema": "WHD_STALE_CLAIM_TAKEOVER_V1",
+    "classification": "EXECUTOR_STUCK",
+    "actionable": true,
+    "stale_seconds": 4015,
+    "stale_after_seconds": 600,
+    "previous_worker": "chatgpt.sol260925.issue647.a1",
+    "requesting_worker": "chatgpt.sol260925.issue647.force1",
+    "requesting_executor_source": "chat",
+    "user_authority_comment_id": 5830932798,
+    "previous_executor_source": "chatgpt_interactive",
+    "observed_live_head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "claim_head_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "claim_last_update": "2026-09-25T09:24:25Z",
+    "claim_phase": "IMPLEMENTING",
+    "reason": "no active exact run, no active delegated child, and no durable parent progress for 4015s (threshold=600s)",
+    "taken_over_at": "2026-09-25T10:31:20Z",
+    "canonical_authority_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
+    "local_execution_claim_guard_result": "GREEN",
+    "delegated_child_terminal_proof": {
+      "child_issue": 653,
+      "issue_closed_completed": true,
+      "claim_released": true,
+      "next_action_null": true,
+      "no_active_run": true,
+      "checkpoint_closed": true,
+      "child_claim_blob_sha": "38f444b0c4f08937f14780a89b3720f3f74a9244",
+      "child_checkpoint_blob_sha": "939f08512beef038bc0eb00c8ae934257ea92533"
+    }
   }
 }
