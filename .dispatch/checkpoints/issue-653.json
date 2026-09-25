@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "653",
   "branch": "integration/issue653-main-turn-exit-gate-20260925",
-  "head_sha": "d0eedaa2af69f3259953073b64f5ce0e9fac653f",
+  "head_sha": "19927fcb5529386fb57d2dcfea0fa6650f8786e9",
   "state": "RUNNING",
-  "next_action": "Guard-create the dedicated helper branch from current main, commit only the exact accepted whd-turn-exit-gate.yml, then open/merge a guarded PR to main and fresh-read exact deployment.",
+  "next_action": "Fresh-read helper branch artifact exactness, then obtain pr-write Guard, open a one-file PR to main, fresh-read mergeability, and merge under a new single-use pr-write Guard.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -14,6 +14,9 @@
     "Parent #647 reserved helper_key default-branch-turn-exit-gate-deploy at coord commit be8fa35a18a96a1263fb896fa0f767f5d067249b.",
     "Parent Combined Acceptance fresh-read found main missing .github/workflows/whd-turn-exit-gate.yml.",
     "Accepted work-order artifact blob is 41bf76f78c9af8246947939660daf05f525989d8 at 8909143569bf1e23d3fd6ef563e57c3a20992638.",
-    "Helper base is current main d0eedaa2af69f3259953073b64f5ce0e9fac653f; no cleanup/2d-3d-sync integration is authorized."
+    "Helper base is current main d0eedaa2af69f3259953073b64f5ce0e9fac653f; no cleanup/2d-3d-sync integration is authorized.",
+    "Remote Guard run 36118495118 canonical GREEN authorized the exact accepted turn-exit workflow commit; equivalent shadow commit Guard was not used for mutation.",
+    "Helper commit 19927fcb5529386fb57d2dcfea0fa6650f8786e9 created only .github/workflows/whd-turn-exit-gate.yml with accepted blob 41bf76f78c9af8246947939660daf05f525989d8.",
+    "Remote Guard run 36118585271 GREEN authorized post-commit claim/checkpoint reconciliation to 19927fcb5529386fb57d2dcfea0fa6650f8786e9."
   ]
 }
