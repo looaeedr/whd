@@ -3,8 +3,8 @@
   "issue": "645",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
-  "state": "RUNNING",
-  "next_action": "Enter TERMINAL_SUCCESS + FINALIZATION_PENDING, then canonical finalization/Issue close/release and hand off #646.",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -23,6 +23,13 @@
     "Remote Guard run 36102883002 GREEN authorized one cleanup commit deleting exactly qa-issue645-t5-red.yml and qa-issue645-t5-green.yml.",
     "Cleanup commit d254729ec20f0d5da8542cf778c7cc0115abb776 removed exactly those two one-shot workflows.",
     "Tested-to-closing drift audit 2a05e159 -> d254729e contains only those two workflow deletions.",
-    "Post-cleanup reconcile Guard run 36103265908 GREEN authorized claim/checkpoint alignment to closing HEAD d254729ec20f0d5da8542cf778c7cc0115abb776."
-  ]
+    "Post-cleanup reconcile Guard run 36103265908 GREEN authorized claim/checkpoint alignment to closing HEAD d254729ec20f0d5da8542cf778c7cc0115abb776.",
+    "Remote Guard run 36103388833 GREEN authorized terminal checkpoint entry for #645."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance durable closure to ISSUE_CLOSE_PENDING, mint and verify bound finalization proof, close/read back Issue #645, then persist RELEASE_HANDOFF_PENDING and final CLOSED + claim RELEASED.",
+  "master_issue": 640,
+  "chain_state": "NEXT_CHILD_EXECUTABLE",
+  "next_issue": 646,
+  "chain_next_action": "After #645 reaches CLOSED + claim RELEASED, start #646 from accepted work-order HEAD d254729ec20f0d5da8542cf778c7cc0115abb776 using canonical successor claim/checkpoint activation."
 }
