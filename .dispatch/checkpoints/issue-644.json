@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "644",
+  "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+  "state": "RUNNING",
+  "next_action": "Implement #644 T4 trusted Remote Turn-Exit executor and TURN_EXIT_PERMITTED receipt contract from accepted #643 HEAD.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Predecessor #643 fresh-read closed/completed, claim RELEASED, checkpoint CLOSED.",
+    "#643 canonical handoff points to #644 at accepted work-order HEAD c7e1e6fa5664e8c877b411ab6dcac941c90c2341.",
+    "#643 final release was authorized by Remote Guard run 36082598116."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
