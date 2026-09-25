@@ -8,10 +8,18 @@
   "base_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
   "phase": "CLAIMED",
-  "last_update": "2026-09-25T15:08:30Z",
+  "last_update": "2026-09-25T15:10:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "delegated_branches": [],
-  "next_action": "Obtain exact branch-create Guard, create work branch from frozen cleanup/2d-3d-sync HEAD, then run Skill mutation Preflight for the full planned changed-file set and establish RED.",
+  "next_action": "Re-run exact branch-create Guard after canonical checkpoint recovery; create work branch only on GREEN.",
   "blocker": null,
-  "checkpoint": ".dispatch/checkpoints/issue-667.json"
+  "checkpoint": ".dispatch/checkpoints/issue-667.json",
+  "last_guard": {
+    "action": "branch-create",
+    "run_id": 36152171869,
+    "request_comment_id": 5834682448,
+    "result": "FAIL",
+    "reason": "ACTIVE_CLAIM_REQUIRES_CHECKPOINT: unknown checkpoint fields: ['current_role']",
+    "consumed": false
+  }
 }
