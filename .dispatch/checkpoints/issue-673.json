@@ -2,10 +2,10 @@
   "version": 1,
   "issue": "673",
   "branch": "governance/issue673-main-deploy-issue671-20260926",
-  "head_sha": "f6320c932da0d34d1b554da2cbee522085268c77",
+  "head_sha": "7d1ee7bf813768abe6f822ec64c49d21f8b731b8",
   "state": "RUNNING",
-  "next_action": "Run focused verification on main-deployment candidate f6320c932da0d34d1b554da2cbee522085268c77; if GREEN, cleanup one-shot QA if created, audit drift, open guarded PR to main.",
-  "run_id": null,
+  "next_action": "Delete one-shot qa-issue673-main-deploy-issue671.yml under exact Guard, reconcile cleaned HEAD, prove tested-to-cleaned delta is only QA workflow deletion, then open guarded PR to main.",
+  "run_id": 36197903649,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
@@ -20,6 +20,9 @@
     "PR #672 accepted scope is exactly six files; main equals PR base for workflow/guard/test/pitfall surfaces, while two Skill files have independent main/base drift and require append-only #671 sections.",
     "Deployment commit Guard run 36196975147 GREEN consumed by direct-child commit f6320c932da0d34d1b554da2cbee522085268c77 with exact six-file scope.",
     "Four machine/test/AI-library files use exact #672 accepted blobs; two Skill files preserve main-only drift and append only LEGACY_ACTIVE_CLAIM_CHECKPOINT_REPAIR_V1.",
-    "Post-commit reconciliation Guard run 36197122157 GREEN consumed to bind claim/checkpoint to exact live deployment candidate HEAD."
+    "Post-commit reconciliation Guard run 36197122157 GREEN consumed to bind claim/checkpoint to exact live deployment candidate HEAD.",
+    "One-shot QA commit Guard run 36197835966 GREEN consumed by commit 7d1ee7bf813768abe6f822ec64c49d21f8b731b8.",
+    "Focused QA run 36197903649 completed/success on exact tested HEAD 7d1ee7bf813768abe6f822ec64c49d21f8b731b8; 13 passed; accepted blob invariants and both Skill markers GREEN.",
+    "Post-QA reconciliation Guard run 36197959302 GREEN consumed to bind claim/checkpoint to exact tested HEAD."
   ]
 }
