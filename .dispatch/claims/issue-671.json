@@ -9,7 +9,7 @@
   "work_branch": "governance/issue671-legacy-half-pair-repair-20260926",
   "claimed_at": "2026-09-25T17:24:30Z",
   "base_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
-  "head_sha": "a8093a2b70f817c74491467a2fca7e05f99ea37a",
+  "head_sha": "4d284b12faa8093a9647f9050ec37fd56642a27f",
   "phase": "DRIFT_AUDIT",
   "last_update": "2026-09-25T23:20:00Z",
   "production_target": "cleanup/2d-3d-sync",
