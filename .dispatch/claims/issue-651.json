@@ -8,12 +8,12 @@
   "base_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
   "head_sha": "fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T05:14:50.730708Z",
+  "last_update": "2026-09-25T05:17:09Z",
   "production_target": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "task_id": "GOV-EQUIVALENT-DUPLICATE-GREEN",
   "parent_issue": 640,
   "delegated_branches": [],
-  "next_action": "Fresh-read the #640 work-order target, acquire one pr-write Guard, open the non-force integration PR for #651, then merge only after a fresh exact merge Guard.",
+  "next_action": "Fresh-read PR #652 mergeability/base/head, then acquire a fresh pr-write Guard under this reactivated claim and non-force merge only if exact identity still matches.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-651.json",
   "qa": {
@@ -41,5 +41,13 @@
     "writeback_guard_run_id": 36097689010,
     "closing_reconcile_guard_run_id": 36097743102,
     "final_drift_audit": "tested GREEN 6435ce37 -> closing fa2ec7ab changes only one-shot workflow removal + AI pitfall writeback"
+  },
+  "integration": {
+    "pr_number": 652,
+    "pr_url": "https://github.com/looaeedr/whd/pull/652",
+    "base_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+    "base_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
+    "head_sha": "fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35",
+    "create_guard_run_id": 36097886422
   }
 }

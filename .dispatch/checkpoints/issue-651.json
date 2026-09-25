@@ -4,7 +4,7 @@
   "branch": "governance/issue651-equivalent-duplicate-green-20260925",
   "head_sha": "fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35",
   "state": "RUNNING",
-  "next_action": "Open #651 non-force integration PR to the fresh #640 work-order target under pr-write Guard.",
+  "next_action": "Fresh-read PR #652; if exact base/head and mergeable, mint one fresh merge pr-write Guard and merge non-force.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -28,6 +28,7 @@
     "Cleanup coordination reconcile Guard run 36097585632 GREEN.",
     "AI Library writeback commit fa2ec7abbeef6d7c77a92cdd6569ec350bf1df35 adds EQUIVALENT_DUPLICATE_GREEN_PITFALL_V1.",
     "Final tested-to-closing drift: only one-shot workflow removal and AI pitfall writeback; production/test bytes remain the 23-pass GREEN version.",
-    "Closing-head coordination reconcile Guard run 36097743102 GREEN."
+    "Closing-head coordination reconcile Guard run 36097743102 GREEN.",
+    "PR #652 opened under pr-write Guard run 36097886422: base workorder/issue640-guard-turn-exit-helper-hardening-20260925@27e57fc1, head fa2ec7ab."
   ]
 }
