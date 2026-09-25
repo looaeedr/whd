@@ -15,8 +15,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path, PurePosixPath
-from typing import Iterable
+from typing import Iterable, Mapping
 
 
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -57,6 +59,346 @@ FILE_MUTATION_ACTIONS = frozenset({"write", "commit"})
 
 class ExecutionClaimError(RuntimeError):
     """Raised when execution ownership cannot be proven exactly."""
+
+
+class GuardTransactionState(str, Enum):
+    """Canonical lifecycle for one Remote Guard transaction."""
+
+    NONE = "NONE"
+    PENDING = "PENDING"
+    MUTATION_DONE_RECONCILE_ONLY = "MUTATION_DONE_RECONCILE_ONLY"
+    EXPIRED_UNCONSUMED = "EXPIRED_UNCONSUMED"
+    CONSUMED = "CONSUMED"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+@dataclass(frozen=True)
+class GuardTransactionDecision:
+    state: GuardTransactionState
+    receipt: dict[str, object] | None = None
+    guard_run_ids: tuple[int, ...] = ()
+    required_next_action: str | None = None
+    reason: str | None = None
+
+
+def _guard_tx_timestamp(value: object, label: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ExecutionClaimError(f"invalid Guard transaction {label} timestamp") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ExecutionClaimError(
+            f"Guard transaction {label} timestamp must be timezone-aware"
+        )
+    return parsed.astimezone(timezone.utc)
+
+
+def _guard_tx_run_id(receipt: Mapping[str, object]) -> int:
+    value = receipt.get("run_id")
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ExecutionClaimError("invalid Guard transaction run_id")
+    return value
+
+
+def _guard_tx_files(payload: Mapping[str, object]) -> tuple[str, ...]:
+    value = payload.get("changed_files", ())
+    if not isinstance(value, (list, tuple)):
+        raise ExecutionClaimError("invalid Guard transaction changed_files")
+    return _normalize_changed_files(str(item) for item in value)
+
+
+def _guard_tx_readback_for(
+    receipt: Mapping[str, object],
+    durable_readbacks: Iterable[Mapping[str, object]],
+) -> Mapping[str, object] | None:
+    run_id = _guard_tx_run_id(receipt)
+    matches = [
+        item
+        for item in durable_readbacks
+        if item.get("guard_run_id") == run_id
+        and str(item.get("action") or "") == str(receipt.get("action") or "")
+    ]
+    if len(matches) > 1:
+        raise ExecutionClaimError(
+            "ambiguous Guard transaction durable readback: multiple matches"
+        )
+    return matches[0] if matches else None
+
+
+def _guard_tx_readback_proves_mutation(
+    receipt: Mapping[str, object],
+    readback: Mapping[str, object],
+    *,
+    live_branch_head_sha: str,
+) -> bool:
+    if readback.get("mutation_applied") is not True:
+        return False
+    if _guard_tx_files(readback) != _guard_tx_files(receipt):
+        return False
+
+    action = str(receipt.get("action") or "")
+    if action == "commit":
+        if str(readback.get("parent_sha") or "") != str(receipt.get("head_sha") or ""):
+            return False
+        if str(readback.get("post_head_sha") or "") != live_branch_head_sha:
+            return False
+        committed_at = _guard_tx_timestamp(readback.get("committed_at"), "commit")
+        issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+        expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+        return issued_at <= committed_at <= expires_at
+    if action == "write":
+        return readback.get("target_changed") is True
+    if action == "branch-create":
+        return (
+            readback.get("branch_exists") is True
+            and str(readback.get("branch_head_sha") or "")
+            == str(receipt.get("head_sha") or "")
+        )
+    if action == "claim-takeover":
+        return readback.get("claim_cas_applied") is True
+    if action in {"qa-dispatch", "workflow-dispatch"}:
+        return (
+            readback.get("run_created") is True
+            and str(readback.get("run_head_sha") or "")
+            == str(receipt.get("tested_target_sha") or "")
+        )
+    if action == "pr-write":
+        return readback.get("pr_readback") is True
+    return False
+
+
+def _guard_tx_identity_matches(
+    receipt: Mapping[str, object],
+    *,
+    current_issue: int,
+    current_worker: str,
+    current_executor_source: str,
+    current_branch: str,
+    current_claim_head_sha: str,
+    live_branch_head_sha: str,
+    current_claim_blob_sha: str,
+    expected_changed_files: Iterable[str] | None,
+) -> bool:
+    fixed = (
+        receipt.get("issue") == current_issue,
+        str(receipt.get("worker") or "") == current_worker,
+        str(receipt.get("executor_source") or "") == current_executor_source,
+        str(receipt.get("branch") or "") == current_branch,
+        str(receipt.get("claim_blob_sha") or "") == current_claim_blob_sha,
+        str(receipt.get("head_sha") or "") == current_claim_head_sha,
+        str(receipt.get("tested_target_sha") or "") == current_claim_head_sha,
+        live_branch_head_sha == current_claim_head_sha,
+    )
+    if not all(fixed):
+        return False
+    if expected_changed_files is not None:
+        expected = _normalize_changed_files(expected_changed_files)
+        if _guard_tx_files(receipt) != expected:
+            return False
+    return True
+
+
+def classify_guard_transaction(
+    *,
+    receipts: Iterable[Mapping[str, object]],
+    current_issue: int,
+    current_worker: str,
+    current_executor_source: str,
+    current_branch: str,
+    current_claim_head_sha: str,
+    live_branch_head_sha: str,
+    current_claim_blob_sha: str,
+    now: datetime,
+    durable_readbacks: Iterable[Mapping[str, object]] = (),
+    expected_changed_files: Iterable[str] | None = None,
+) -> GuardTransactionDecision:
+    """Classify the current exact Remote Guard transaction from durable evidence."""
+
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ExecutionClaimError("Guard transaction current time must be timezone-aware")
+    current_utc = now.astimezone(timezone.utc)
+    green = [
+        item
+        for item in receipts
+        if item.get("schema") == "WHD_REMOTE_GUARD_RECEIPT_V1"
+        and item.get("result") == "GREEN"
+    ]
+    if not green:
+        return GuardTransactionDecision(GuardTransactionState.NONE)
+
+    decisions: list[GuardTransactionDecision] = []
+    ambiguous_runs: list[int] = []
+    readbacks = tuple(durable_readbacks)
+
+    for receipt in green:
+        try:
+            run_id = _guard_tx_run_id(receipt)
+            issued_at = _guard_tx_timestamp(receipt.get("issued_at"), "issued_at")
+            expires_at = _guard_tx_timestamp(receipt.get("expires_at"), "expires_at")
+            if expires_at < issued_at:
+                raise ExecutionClaimError("Guard transaction validity window is inverted")
+            readback = _guard_tx_readback_for(receipt, readbacks)
+            if readback is not None and _guard_tx_readback_proves_mutation(
+                receipt,
+                readback,
+                live_branch_head_sha=live_branch_head_sha,
+            ):
+                if readback.get("reconciled") is True:
+                    decisions.append(
+                        GuardTransactionDecision(
+                            GuardTransactionState.CONSUMED,
+                            receipt=dict(receipt),
+                            guard_run_ids=(run_id,),
+                            reason="action-specific durable readback + reconciliation complete",
+                        )
+                    )
+                else:
+                    decisions.append(
+                        GuardTransactionDecision(
+                            GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY,
+                            receipt=dict(receipt),
+                            guard_run_ids=(run_id,),
+                            required_next_action="RECONCILE_ONLY",
+                            reason="durable mutation proven while coordination metadata is stale",
+                        )
+                    )
+                continue
+
+            if not _guard_tx_identity_matches(
+                receipt,
+                current_issue=current_issue,
+                current_worker=current_worker,
+                current_executor_source=current_executor_source,
+                current_branch=current_branch,
+                current_claim_head_sha=current_claim_head_sha,
+                live_branch_head_sha=live_branch_head_sha,
+                current_claim_blob_sha=current_claim_blob_sha,
+                expected_changed_files=expected_changed_files,
+            ):
+                ambiguous_runs.append(run_id)
+                continue
+
+            if current_utc >= expires_at:
+                decisions.append(
+                    GuardTransactionDecision(
+                        GuardTransactionState.EXPIRED_UNCONSUMED,
+                        receipt=dict(receipt),
+                        guard_run_ids=(run_id,),
+                        required_next_action="FRESH_RECONCILE_THEN_FRESH_GUARD",
+                        reason="GREEN receipt expired without durable mutation proof",
+                    )
+                )
+            else:
+                decisions.append(
+                    GuardTransactionDecision(
+                        GuardTransactionState.PENDING,
+                        receipt=dict(receipt),
+                        guard_run_ids=(run_id,),
+                        required_next_action="CONSUME_GUARD_TRANSACTION",
+                        reason="valid exact GREEN receipt has no durable mutation readback",
+                    )
+                )
+        except ExecutionClaimError:
+            try:
+                ambiguous_runs.append(_guard_tx_run_id(receipt))
+            except ExecutionClaimError:
+                pass
+
+    if ambiguous_runs:
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=tuple(sorted(set(ambiguous_runs))),
+            required_next_action="FAIL_CLOSED",
+            reason="Guard receipt/current ownership identity cannot be paired exactly",
+        )
+    if len(decisions) != 1:
+        run_ids = tuple(
+            sorted(
+                {
+                    run_id
+                    for decision in decisions
+                    for run_id in decision.guard_run_ids
+                }
+            )
+        )
+        return GuardTransactionDecision(
+            GuardTransactionState.AMBIGUOUS,
+            guard_run_ids=run_ids,
+            required_next_action="FAIL_CLOSED",
+            reason="multiple GREEN Guard transactions match current durable state",
+        )
+    return decisions[0]
+
+
+def _guard_tx_evidence(decision: GuardTransactionDecision) -> str:
+    receipt = decision.receipt or {}
+    return (
+        f"issue={receipt.get('issue')} worker={receipt.get('worker')} "
+        f"guard_run_id={receipt.get('run_id')} action={receipt.get('action')} "
+        f"branch={receipt.get('branch')} head={receipt.get('head_sha')} "
+        f"changed_files={receipt.get('changed_files')} "
+        f"issued_at={receipt.get('issued_at')} expires_at={receipt.get('expires_at')} "
+        f"required_next_action={decision.required_next_action}"
+    )
+
+
+def assert_pending_guard_transaction_clear(
+    decision: GuardTransactionDecision,
+    *,
+    operation: str,
+) -> None:
+    """Block control-flow progress until the current Guard transaction is resolved."""
+
+    state = decision.state
+    if state is GuardTransactionState.PENDING:
+        raise ExecutionClaimError(
+            "PENDING_GUARD_TRANSACTION_NOT_CONSUMED: "
+            f"operation={operation} {_guard_tx_evidence(decision)}"
+        )
+    if state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        raise ExecutionClaimError(
+            "DURABLE_MUTATION_ALREADY_HAPPENED: "
+            f"operation={operation} required_next_action=RECONCILE_ONLY"
+        )
+    if state is GuardTransactionState.EXPIRED_UNCONSUMED:
+        raise ExecutionClaimError(
+            "EXPIRED_UNCONSUMED_GUARD: "
+            f"operation={operation} {_guard_tx_evidence(decision)}"
+        )
+    if state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError(
+            "AMBIGUOUS_GUARD_TRANSACTION: "
+            f"operation={operation} guard_run_ids={decision.guard_run_ids}"
+        )
+
+
+def assert_guard_receipt_consumable(
+    decision: GuardTransactionDecision,
+    *,
+    guard_run_id: int,
+) -> Mapping[str, object]:
+    """Allow a single-use consume only for the one exact current PENDING receipt."""
+
+    if decision.state is GuardTransactionState.PENDING:
+        receipt = decision.receipt or {}
+        if receipt.get("run_id") != guard_run_id:
+            raise ExecutionClaimError(
+                "GUARD_RECEIPT_IDENTITY_MISMATCH: requested receipt is not the exact pending transaction"
+            )
+        return receipt
+    if decision.state is GuardTransactionState.EXPIRED_UNCONSUMED:
+        raise ExecutionClaimError(
+            "EXPIRED_UNCONSUMED: expired GREEN receipt is permanently unconsumable"
+        )
+    if decision.state is GuardTransactionState.CONSUMED:
+        raise ExecutionClaimError("CONSUMED_REPLAY_BLOCKED: Guard receipt replay rejected")
+    if decision.state is GuardTransactionState.MUTATION_DONE_RECONCILE_ONLY:
+        raise ExecutionClaimError(
+            "DURABLE_MUTATION_ALREADY_HAPPENED: Guard receipt replay rejected; reconcile only"
+        )
+    if decision.state is GuardTransactionState.AMBIGUOUS:
+        raise ExecutionClaimError("AMBIGUOUS_GUARD_TRANSACTION: fail closed")
+    raise ExecutionClaimError("NO_PENDING_GUARD_TRANSACTION: nothing is consumable")
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
