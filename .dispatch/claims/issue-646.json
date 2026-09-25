@@ -6,16 +6,16 @@
   "work_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "claimed_at": "2026-09-25T07:03:13Z",
   "base_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
-  "head_sha": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+  "head_sha": "d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517",
   "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T07:10:50.327309Z",
+  "last_update": "2026-09-25T08:01:36.401414Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
   "task_id": "T6",
   "expected_parent_sha": "d254729ec20f0d5da8542cf778c7cc0115abb776",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "chain_head": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+  "chain_head": "d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517",
   "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
   "approved_red_ids": [
     "RED-CLOSE-01",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Apply the #646 governance synchronization atomic patch using the persisted Phase6 Skill preflight evidence, then fresh-read and run focused contract/preflight validation.",
+  "next_action": "Fresh-read all #646 patched governance surfaces and the five live scheduler prompts, verify cadence/automation IDs/lane owners/recurring-enabled policy are unchanged, then run focused contract/preflight validation and prepare #647 handoff.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-646.json",
   "predecessor": {
@@ -39,11 +39,11 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36106332745,
-    "request_comment_id": 5828413566,
+    "run_id": 36110667161,
+    "request_comment_id": 5829020165,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+    "guard_authority_sha": "d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517",
     "consumed": true
   }
 }

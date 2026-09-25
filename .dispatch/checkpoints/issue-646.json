@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "646",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
-  "head_sha": "94bc4e5eb05ce991cc6797e423d0bb73894f87aa",
+  "head_sha": "d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517",
   "state": "RUNNING",
-  "next_action": "Apply the #646 governance synchronization atomic patch using .scratch/issue646/preflight-evidence.md, then fresh-read patched surfaces and run focused contract/preflight validation.",
+  "next_action": "Fresh-read all #646 patched governance surfaces and the five live scheduler prompts, verify cadence/automation IDs/lane owners/recurring-enabled policy are unchanged, then run focused contract/preflight validation and prepare #647 handoff.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -17,6 +17,8 @@
     "Canonical successor handoff from #645 points to #646.",
     "Current X observation only: cleanup/2d-3d-sync@5822ab30360dfcf09e21408584c3da100baafd37; #646 base remains the work-order accepted HEAD and does not chase X.",
     "Skill-authoring Preflight evidence commit 94bc4e5eb05ce991cc6797e423d0bb73894f87aa added only .scratch/issue646/preflight-evidence.md under Remote Guard run 36106214541.",
-    "Post-commit atomic claim/checkpoint reconcile to 94bc4e5eb05ce991cc6797e423d0bb73894f87aa authorized by Remote Guard run 36106332745."
+    "Post-commit atomic claim/checkpoint reconcile to 94bc4e5eb05ce991cc6797e423d0bb73894f87aa authorized by Remote Guard run 36106332745.",
+    "#646 governance synchronization commit d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 atomically changed the eight guarded governance surfaces under Remote Guard run 36110185995.",
+    "Post-commit claim/checkpoint reconciliation to d11180dbec0ffa4e1c47c2c57cfb7a9a5a162517 authorized by Remote Guard run 36110667161."
   ]
 }
