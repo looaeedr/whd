@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "658",
+  "branch": "integration/issue658-main-remote-guard-20260925",
+  "head_sha": "bdb3da203c898d43898b092ff37b7fa9e0c93061",
+  "state": "RUNNING",
+  "next_action": "Create helper branch from exact main bdb3da203c898d43898b092ff37b7fa9e0c93061 under branch-create Guard; deploy exact accepted Remote Guard blob c6e96581c47b4d46704f719877174f9248928f5e only, then PR/merge/readback.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Parent #647 helper reservation default-branch-remote-execution-guard-deploy is RESERVING under token issue647-main-remote-guard-deploy-force1.",
+    "Accepted #647 work-order Remote Guard workflow blob is c6e96581c47b4d46704f719877174f9248928f5e.",
+    "Helper base is current main bdb3da203c898d43898b092ff37b7fa9e0c93061; cleanup/2d-3d-sync integration is explicitly out of scope."
+  ]
+}
