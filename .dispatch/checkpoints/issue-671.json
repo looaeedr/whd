@@ -2,7 +2,7 @@
   "version": 1,
   "issue": "671",
   "branch": "governance/issue671-legacy-half-pair-repair-20260926",
-  "head_sha": "417d6ea39282c570fbf161b2333f6a065e58a634",
+  "head_sha": "d5a749fc77ad0cb9459eef08907dc16fbcad11b4",
   "state": "RUNNING",
   "next_action": "Use deployed main legacy-checkpoint-repair transition to bootstrap the missing checkpoint for #617, then resume its accepted A2 drift-audit/finalization path without redoing implementation.",
   "run_id": null,
@@ -39,6 +39,8 @@
     "Default main still at 156bc20e7b7c331eae2a24d2c46bd984c5959720; trusted Claim Activation issue_comment transport is therefore not yet deployed for #617.",
     "Helper #673 is terminal: Issue closed/completed, claim RELEASED, checkpoint CLOSED; final child claim blob=6fa95cf3d3a892e699a00b127196ac59def67d5a and checkpoint blob=fd1ca62fcb59c4b756c89fb4cc92a8334208fa87.",
     "Guard run 36200231450 GREEN consumed to terminalize helper reservation and resume #617 legacy checkpoint repair.",
-    "Post-commit reconciliation Guard run 36202744087 GREEN consumed to bind claim/checkpoint to implementation HEAD 417d6ea39282c570fbf161b2333f6a065e58a634."
+    "Post-commit reconciliation Guard run 36202744087 GREEN consumed to bind claim/checkpoint to implementation HEAD 417d6ea39282c570fbf161b2333f6a065e58a634.",
+    "Focused QA run 36202879027 completed success on exact HEAD d5a749fc77ad0cb9459eef08907dc16fbcad11b4; 37 passed.",
+    "Post-commit reconciliation Guard run 36202919416 GREEN consumed to bind claim/checkpoint to exact tested HEAD."
   ]
 }
