@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "issue": "669",
+  "branch": "governance/issue669-scheduler-exit-enable-20260926",
+  "head_sha": "68b920967c438679c0841123571230a66b013877",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Remote Guard GREEN, create the work branch from cleanup/2d-3d-sync frozen base, then fresh-read and continue RED→GREEN Skill modification.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "User requested 排程模擬 activation-enable be moved to an exit-time final enable step.",
+    "Authoritative target cleanup/2d-3d-sync fresh-read HEAD=68b920967c438679c0841123571230a66b013877.",
+    "Owning Issue #669 created and fresh task scope recorded."
+  ],
+  "closure_state": "CLOSED",
+  "closure_next_action": null
+}
