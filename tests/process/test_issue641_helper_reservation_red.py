@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
-
 import tools.stale_claim_takeover as stale
 
 
@@ -34,24 +32,29 @@ def test_red_helper_01_parent_claim_atomic_reservation_api_exists():
     )
 
 
-def test_red_helper_02_check_then_create_snapshot_allows_two_lanes_today():
+def test_red_helper_02_same_snapshot_cannot_create_two_helpers_after_reservation():
     claim = _parent_claim()
     now = datetime(2026, 9, 25, 3, 10, 0, tzinfo=UTC)
 
-    stale.assert_helper_creation_allowed(
+    winner = stale.reserve_helper_creation(
         claim,
+        parent_claim_blob_sha="a" * 40,
+        expected_parent_claim_blob_sha="a" * 40,
         helper_key="finalization-proof",
-        delegated_work=[],
+        reserved_by="scheduler.example.a",
+        reservation_token="winner-token",
         now=now,
     )
-    stale.assert_helper_creation_allowed(
-        claim,
-        helper_key="finalization-proof",
-        delegated_work=[],
-        now=now,
-    )
+    assert winner.outcome == "RESERVED"
 
-    pytest.fail(
-        "RED-HELPER-02: two independent lanes can both pass helper check on the same "
-        "parent snapshot; atomic RESERVING/CAS winner is missing"
+    loser = stale.reserve_helper_creation(
+        winner.parent_claim,
+        parent_claim_blob_sha="b" * 40,
+        expected_parent_claim_blob_sha="b" * 40,
+        helper_key="finalization-proof",
+        reserved_by="scheduler.example.b",
+        reservation_token="loser-token",
+        now=now,
     )
+    assert loser.outcome == "ACTIVE_HELPER_ALREADY_RESERVED"
+    assert loser.reservation["reservation_token"] == "winner-token"
