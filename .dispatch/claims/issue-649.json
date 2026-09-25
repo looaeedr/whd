@@ -3,16 +3,16 @@
   "issue_url": "https://github.com/looaeedr/whd/issues/649",
   "worker": "chatgpt.sol260925.issue649.recovery1",
   "executor_source": "chatgpt_interactive",
-  "work_branch": "governance/issue649-remote-guard-compat-20260925",
+  "work_branch": "main",
   "claimed_at": "2026-09-25T04:09:00Z",
   "base_sha": "bb60d580752b191d78d5d5c9d10fa2a4ad78f1c1",
-  "head_sha": "bb60d580752b191d78d5d5c9d10fa2a4ad78f1c1",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T04:09:00Z",
+  "head_sha": "6db677665d0d83ab9ae1759ca433d93ff2af7505",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T04:23:00Z",
   "production_target": "main",
   "parent_issue": 648,
   "delegated_branches": [],
-  "next_action": "Perform the narrow trusted-workflow bootstrap compatibility repair on main only, fresh-read the deployed workflow, then return to #648 Guard/QA/integration.",
+  "next_action": "Advance #649 to terminal acceptance/finalization after deployed main readback and #648 Remote Guard smoke prove the trusted transport repair is live.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-649.json",
   "stale_takeover": {
@@ -22,5 +22,15 @@
     "user_authority_comment_id": 5826535484,
     "taken_over_at": "2026-09-25T04:09:00Z",
     "reason": "User directed completion of blocking #648; #649 scheduler owner was stale and Remote Guard self-bootstrap was unavailable."
+  },
+  "acceptance": {
+    "deployed_main_sha": "6db677665d0d83ab9ae1759ca433d93ff2af7505",
+    "deployed_workflow_blob_sha": "680bd7567fd558efde631325710ed6bc16c6ff0c",
+    "checkpoint_backward_compatibility": true,
+    "exact_checkpoint_identity_fail_closed": true,
+    "fractional_takeover_raw_binding": true,
+    "live_smoke_issue": 648,
+    "live_smoke_guard_run_id": 36093545485,
+    "live_smoke_result": "GREEN"
   }
 }
