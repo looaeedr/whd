@@ -7,8 +7,8 @@
   "claimed_at": "2026-09-25T00:02:23Z",
   "base_sha": "876311cc0091dc556f59cac6a4bd3572cca92f13",
   "head_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
-  "phase": "CLOSING",
-  "last_update": "2026-09-25T01:32:52.022645Z",
+  "phase": "RELEASED",
+  "last_update": "2026-09-25T01:34:26.136395Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -22,7 +22,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Issue #643 is closed/completed; complete final atomic closure by setting checkpoint CLOSED + claim RELEASED while preserving successor #644 handoff.",
+  "next_action": null,
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-643.json",
   "predecessor": {
@@ -136,6 +136,16 @@
       "state_reason": "completed",
       "closed_at": "2026-09-25T01:32:21Z"
     },
-    "release_handoff_pending_guard_run_id": 36082481001
+    "release_handoff_pending_guard_run_id": 36082481001,
+    "final_release_guard_run_id": 36082598116
+  },
+  "last_guard": {
+    "action": "write",
+    "run_id": 36082598116,
+    "request_comment_id": 5825215055,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
+    "guard_authority_sha": "c7e1e6fa5664e8c877b411ab6dcac941c90c2341",
+    "consumed": true
   }
 }
