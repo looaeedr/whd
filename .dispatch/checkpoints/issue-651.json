@@ -2,9 +2,9 @@
   "version": 1,
   "issue": "651",
   "branch": "governance/issue651-equivalent-duplicate-green-20260925",
-  "head_sha": "f0ba26e00ed7c5da4d39f4c1419da4f4f9f3b6b5",
+  "head_sha": "6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db",
   "state": "RUNNING",
-  "next_action": "Fix only the #651 test syntax collection error, rerun focused QA, then evaluate classifier behavior.",
+  "next_action": "Clean the one-shot #651 QA workflow, drift-audit tested→cleaned HEAD, then integrate to the #640 work-order branch.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -19,6 +19,9 @@
     "Post-workflow-commit coordination reconcile Guard run 36096942874 GREEN.",
     "Implementation commit f0ba26e00ed7c5da4d39f4c1419da4f4f9f3b6b5 atomically changes tools/execution_claim_guard.py and tests/process/test_issue643_guard_transaction_gate.py.",
     "Focused run 36097327180 failed during test collection because the newly inserted exact-#648 test contained literal \\\\n text; no classifier assertion executed.",
-    "Post-implementation coordination reconcile Guard run 36097340537 GREEN."
+    "Post-implementation coordination reconcile Guard run 36097340537 GREEN.",
+    "Syntax-only follow-up commit 6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db corrected the exact-#648 regression test formatting.",
+    "Focused GREEN run 36097453177 at 6435ce37e6a28d7797ba31ec0c5cca7cbb6e36db: 23 passed / 0 failed.",
+    "Post-fix coordination reconcile Guard run 36097476759 GREEN."
   ]
 }
