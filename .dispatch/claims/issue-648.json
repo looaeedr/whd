@@ -6,15 +6,24 @@
   "work_branch": "governance/issue648-takeover-timestamp-precision-20260925",
   "claimed_at": "2026-09-25T04:01:14Z",
   "base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
-  "head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
-  "phase": "IMPLEMENTING",
-  "last_update": "2026-09-25T04:01:14Z",
+  "head_sha": "88b53d6f1c302601b9b4d72dd879ea7bc9024d4a",
+  "phase": "GREEN",
+  "last_update": "2026-09-25T04:19:58Z",
   "production_target": "cleanup/2d-3d-sync",
   "task_id": "GOV-TAKEOVER-TIMESTAMP-PRECISION",
   "parent_issue": 645,
   "delegated_branches": [],
-  "remote_qa": null,
-  "next_action": "Run focused #648 timestamp-precision takeover regressions at a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad; if GREEN, non-force integrate the single governance commit to cleanup/2d-3d-sync, then close/release #648 and return to #645 takeover.",
+  "remote_qa": {
+    "run_id": 36093869015,
+    "job_id": 107941834502,
+    "head_sha": "88b53d6f1c302601b9b4d72dd879ea7bc9024d4a",
+    "status": "completed",
+    "conclusion": "success",
+    "passed": 30,
+    "failed": 0,
+    "marker": "ISSUE648_GOVERNANCE_GREEN=PASS"
+  },
+  "next_action": "Remove the one-shot #648 QA workflow, reconcile closing HEAD, drift-audit net diff back to the two governance repair files, then non-force integrate PR #650 to cleanup/2d-3d-sync and close/release #648.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-648.json",
   "stale_takeover": {
@@ -23,6 +32,16 @@
     "observed_live_head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
     "user_authority_comment_id": 5826464871,
     "taken_over_at": "2026-09-25T04:01:14Z",
-    "reason": "User directed #648 recovery after scheduler owner stalled and trusted Remote Guard branch-create transport remained capability-blocked."
+    "reason": "User directed #648 recovery after scheduler durable progress stalled and trusted Remote Guard branch-create transport remained capability-blocked."
+  },
+  "qa": {
+    "workflow_commit_sha": "88b53d6f1c302601b9b4d72dd879ea7bc9024d4a",
+    "workflow_guard_run_id": 36093829739,
+    "workflow_path": ".github/workflows/qa-issue648-governance-green.yml",
+    "run_id": 36093869015,
+    "result": "success",
+    "passed": 30,
+    "failed": 0,
+    "marker": "ISSUE648_GOVERNANCE_GREEN=PASS"
   }
 }

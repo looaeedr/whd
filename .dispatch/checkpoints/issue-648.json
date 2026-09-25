@@ -2,18 +2,20 @@
   "version": 1,
   "issue": "648",
   "branch": "governance/issue648-takeover-timestamp-precision-20260925",
-  "head_sha": "a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad",
+  "head_sha": "88b53d6f1c302601b9b4d72dd879ea7bc9024d4a",
   "state": "RUNNING",
-  "next_action": "Run focused #648 timestamp-precision takeover regressions; on GREEN, non-force integrate one commit to cleanup/2d-3d-sync, close/release #648, and resume #645.",
+  "next_action": "Remove one-shot QA workflow, reconcile closing HEAD, drift-audit net diff, integrate PR #650 to cleanup/2d-3d-sync, then close/release #648.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Blocking #645 stale takeover run 36088862272 classified EXECUTOR_STUCK/actionable=true but failed because claim_last_update fractional precision was truncated.",
-    "Issue #648 owns the narrow governance capability repair.",
-    "Repair branch advanced from production base 2bf5969aba8c8aa033b314f0d6f92165239f67c0 to a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad with only tools/stale_claim_takeover.py and tests/process/test_issue540_stale_claim_takeover.py changed.",
-    "User-directed interactive takeover authority recorded in Issue #648 comment 5826464871 after scheduler durable progress stalled."
+    "Blocking #645 takeover failed because claim_last_update fractional precision was truncated.",
+    "Repair commit a4c83553641633a2bcf11a6a9d7e3b6692c4f2ad changes only tools/stale_claim_takeover.py and tests/process/test_issue540_stale_claim_takeover.py.",
+    "Trusted Claim Activation run 36092807459 transferred #648 ownership to chatgpt.sol260925.issue648.recovery1.",
+    "Remote Guard run 36093545485 GREEN proved repaired trusted Guard compatibility.",
+    "Remote Guard run 36093829739 GREEN authorized one-shot QA workflow commit 88b53d6f1c302601b9b4d72dd879ea7bc9024d4a.",
+    "Exact focused run 36093869015 at 88b53d6f1c302601b9b4d72dd879ea7bc9024d4a: 30 passed / 0 failed; marker ISSUE648_GOVERNANCE_GREEN=PASS."
   ]
 }
