@@ -1,0 +1,19 @@
+{
+  "issue": 651,
+  "issue_url": "https://github.com/looaeedr/whd/issues/651",
+  "worker": "chatgpt.sol260925.issue651.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue651-equivalent-duplicate-green-20260925",
+  "claimed_at": "2026-09-25T04:56:03Z",
+  "base_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
+  "head_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T04:56:03Z",
+  "production_target": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
+  "task_id": "GOV-EQUIVALENT-DUPLICATE-GREEN",
+  "parent_issue": 640,
+  "delegated_branches": [],
+  "next_action": "Acquire branch-create Guard for the dedicated #651 repair branch, then add RED regressions before production change.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-651.json"
+}

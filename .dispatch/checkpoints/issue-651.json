@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "issue": "651",
+  "branch": "governance/issue651-equivalent-duplicate-green-20260925",
+  "head_sha": "27e57fc10e9d279f58b0a77047e9f4f207137650",
+  "state": "RUNNING",
+  "next_action": "Acquire branch-create Guard for the dedicated #651 repair branch, then add exact duplicate-GREEN RED regressions.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "RED-DUP-GREEN-01: #648 runs 36095688419 and 36095692365 are mutation-identity equivalent but current classifier returns AMBIGUOUS.",
+    "User explicitly directed immediate repair without touching #648 live duplicate receipts."
+  ]
+}
