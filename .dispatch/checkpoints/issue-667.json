@@ -2,20 +2,18 @@
   "version": 1,
   "issue": "667",
   "branch": "governance/issue667-force-takeover-liveness-20260925",
-  "head_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
+  "head_sha": "580e595a2ff608dd515cb4d5f4f31c9fc90e1b9f",
   "state": "RUNNING",
-  "next_action": "Create focused RED contract test + one-shot QA workflow on the work branch, then observe expected RED before implementation.",
+  "next_action": "Fix temporary QA workflow naming-guard failure only, rerun exact focused RED, and require pytest to fail on missing END/force-takeover/scheduler-enable contracts before implementation.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
-    "Requirement Authority: user requested standalone 強制接手 Skill, scheduler END machine support, unified <=300s liveness window, and 排程模擬 activation-time enable of matching recurring lane.",
-    "Owning Issue #667 fresh-read open.",
-    "Canonical checkpoint recovery removed unsupported current_role field after Guard run 36152171869 fail-closed.",
-    "Branch-create Guard run 36152329350 completed/success with exact GREEN receipt request_comment_id=5834703101.",
-    "GREEN consumed exactly once by creating governance/issue667-force-takeover-liveness-20260925 at exact target HEAD 156bc20e7b7c331eae2a24d2c46bd984c5959720.",
-    "Fresh branch readback exact matches guarded head."
+    "Branch-create Guard run 36152329350 GREEN consumed and branch created from exact base.",
+    "RED commit Guard run 36152817543 GREEN consumed by commit 580e595a2ff608dd515cb4d5f4f31c9fc90e1b9f.",
+    "Focused run 36152976518 terminal failure before pytest: actions_visible_naming_guard rejected job name '#667｜focused contract' because it lacked Traditional Chinese.",
+    "Post-commit reconciliation Guard run 36153051117 GREEN consumed for exact claim+checkpoint HEAD reconciliation."
   ]
 }
