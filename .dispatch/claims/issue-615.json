@@ -9,9 +9,9 @@
   "work_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
   "claimed_at": "2026-09-25T22:57:00Z",
   "base_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
+  "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
   "phase": "REMOTE_QA",
-  "last_update": "2026-09-25T23:30:20Z",
+  "last_update": "2026-09-25T23:33:45Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -19,13 +19,13 @@
   "parent_issue": 628,
   "expected_parent_sha": "c043e447afc0da533ef965fe82d175e75011d186",
   "work_order_branch": "work/issue628-receiving-rear-panel-overlay-live-switch-20260924",
-  "chain_head": "d1e50fa365907a8c83935d1487be5a998875ec49",
+  "chain_head": "952fb35d185530feea5fce81069e6a48d980f12d",
   "approved_red_ids": [
     "UI-R2"
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Repair expanded acceptance harness only on exact head d1e50fa365907a8c83935d1487be5a998875ec49: use a visible footer control for Settings focus/hit-test, and run only the T22 resize/part-switch/lock-unlock scroll-owner regression rather than the obsolete mandatory-overflow assertion. Do not change overlay production code; rerun expanded acceptance.",
+  "next_action": "Begin canonical B2 closure/finalization on accepted head 952fb35d185530feea5fce81069e6a48d980f12d. Fresh-read issue-closure/finalization authority, set exact terminal checkpoint/closure state required by trusted finalization, obtain FINALIZATION_PROOF_VALID, close/read back Issue #615, then release claim and continue any live executable successor.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-615.json",
   "predecessor": {
@@ -51,15 +51,16 @@
     "Expanded acceptance run 36201114106 created for exact head d1e50fa365907a8c83935d1487be5a998875ec49.",
     "Expanded acceptance run 36201114106: 17 PASS / 2 FAIL; protected config.ini invariant GREEN.",
     "Failure 1 is harness-only: focus_force targeted an Entry scrolled out of the visible Settings viewport; focus remained on the scroll Canvas.",
-    "Failure 2 is obsolete mandatory-overflow assumption in test_phase6_t22_settings_vertical_scroll: content=184, viewport=220 under the wider overlay; scroll owner itself remains present and the second T22 lifecycle test did not fail."
+    "Failure 2 is obsolete mandatory-overflow assumption in test_phase6_t22_settings_vertical_scroll: content=184, viewport=220 under the wider overlay; scroll owner itself remains present and the second T22 lifecycle test did not fail.",
+    "Acceptance harness-only repair committed at 952fb35d185530feea5fce81069e6a48d980f12d under Remote Guard run 36201315376; production overlay files unchanged.",
+    "Post-commit pair reconciliation authorized by Remote Guard run 36201468168.",
+    "Expanded B2 acceptance run 36201380480 completed SUCCESS on exact head 952fb35d185530feea5fce81069e6a48d980f12d; protected config.ini check GREEN."
   ],
   "remote_qa": {
-    "run_id": 36201114106,
-    "head_sha": "d1e50fa365907a8c83935d1487be5a998875ec49",
+    "run_id": 36201380480,
+    "head_sha": "952fb35d185530feea5fce81069e6a48d980f12d",
     "status": "completed",
-    "conclusion": "failure",
-    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml",
-    "job_id": 108287750694,
-    "artifact_id": 10891683517
+    "conclusion": "success",
+    "workflow": ".github/workflows/qa-issue615-b2-overlay.yml"
   }
 }
