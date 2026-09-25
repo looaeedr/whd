@@ -6,24 +6,24 @@
   "work_branch": "governance/issue661-final-release-executor-20260925",
   "claimed_at": "2026-09-25T11:57:33Z",
   "base_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
-  "phase": "GREEN",
-  "last_update": "2026-09-25T12:02:40.215793Z",
+  "head_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T12:30:55.765567Z",
   "production_target": "governance-proof",
   "master_issue": 640,
   "parent_issue": 647,
   "proof_target_issue": 657,
   "delegated_branches": [],
-  "next_action": "Consume dual canonical guard run 36132610537 in one atomic #657 final release + #647 parent helper terminal handoff coordination commit; then fresh-read both and resume #647 Combined Acceptance.",
+  "next_action": "Advance exact cleaned checkpoint FINALIZATION_PENDING -> ISSUE_CLOSE_PENDING, obtain trusted Remote Finalization proof, close/readback Issue #661, then atomically write checkpoint CLOSED + claim RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-661.json",
   "last_guard": {
     "action": "write",
-    "run_id": 36132683143,
-    "request_comment_id": 5832037362,
+    "run_id": 36135343974,
+    "request_comment_id": 5832392560,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
-    "guard_authority_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
+    "guard_authority_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
     "consumed": true
   },
   "guard_transaction_recovery": {
@@ -49,5 +49,13 @@
     "child_checkpoint_blob_sha": "92bb63cf3bb39ff74fcd73a8a0d1e44071b42b4f",
     "parent_claim_blob_sha": "a95306b8eaa2626009085dc284588860755ea711",
     "parent_checkpoint_blob_sha": "c8b9d2096ed1a9b0784cdc29122da36d7da675fa"
+  },
+  "cleanup_evidence": {
+    "invalid_checkpoint_recovery_commit": "2252d444b03271a04531a67f995576c585b9b819",
+    "failed_cleanup_guard_run_id": 36135191500,
+    "cleanup_guard_run_id": 36135263242,
+    "cleanup_commit_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
+    "temporary_workflow_removed": true,
+    "post_cleanup_reconcile_guard_run_id": 36135343974
   }
 }

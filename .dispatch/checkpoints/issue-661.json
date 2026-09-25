@@ -2,12 +2,12 @@
   "version": 1,
   "issue": "661",
   "branch": "governance/issue661-final-release-executor-20260925",
-  "head_sha": "f8cd8dab0df00299433d7076849bfd60d2bb8570",
-  "state": "RECOVERING",
-  "next_action": "Consume dual guard run 36132610537 to atomically close/release #657 and terminalize #647 helper reservation; then fresh-read and resume #647.",
-  "run_id": 36132610537,
-  "job_id": 108063127364,
-  "log_cursor": "dual child final-release + parent handoff canonical guards GREEN",
+  "head_sha": "f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76",
+  "state": "TERMINAL_SUCCESS",
+  "next_action": null,
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
   "blocked_count": 0,
   "blocked_last_notified_at": null,
   "evidence": [
@@ -17,6 +17,14 @@
     "Branch-create Guard run 36132335468 GREEN consumed after fresh readback of governance/issue661-final-release-executor-20260925@3967da33e35e26ba3973e5565af0defe65fa7e12.",
     "One-shot dual guard workflow commit f8cd8dab0df00299433d7076849bfd60d2bb8570 was authorized by Remote Guard run 36132514389.",
     "Dual canonical guard run 36132610537 GREEN: exact #657 RELEASE_HANDOFF_PENDING pair and exact #647 ACTIVE helper reservation pair both passed execution_claim_guard.py action=write.",
-    "Post-commit reconciliation to f8cd8dab0df00299433d7076849bfd60d2bb8570 authorized by Remote Guard run 36132683143."
-  ]
+    "Post-commit reconciliation to f8cd8dab0df00299433d7076849bfd60d2bb8570 authorized by Remote Guard run 36132683143.",
+    "Final #657→#647 handoff proof run 36132610537 was consumed: #657 is CLOSED+RELEASED, #647 helper reservation is TERMINAL, and #647 resumed Combined Acceptance.",
+    "Initial cleanup Guard run 36135191500 failed closed only because checkpoint state GREEN was invalid.",
+    "Narrow metadata recovery commit 2252d444b03271a04531a67f995576c585b9b819 corrected checkpoint state GREEN -> RECOVERING without changing owner, branch, head, acceptance, or work content.",
+    "Cleanup commit Guard run 36135263242 GREEN authorized deletion of .github/workflows/qa-issue661-final-release-executor.yml.",
+    "Cleanup commit f3a7eeaa97810f5f1853ff14731df9a9b0ba7a76 removed the one-shot #661 workflow.",
+    "Post-cleanup claim/checkpoint reconciliation Guard run 36135343974 GREEN; #661 now enters canonical closure on the exact cleaned head."
+  ],
+  "closure_state": "FINALIZATION_PENDING",
+  "closure_next_action": "Advance closure to ISSUE_CLOSE_PENDING on this exact cleaned terminal checkpoint; then obtain trusted Remote Finalization proof before closing Issue #661."
 }
