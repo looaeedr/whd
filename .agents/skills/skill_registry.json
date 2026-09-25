@@ -56,6 +56,32 @@
       ]
     },
     {
+      "id": "scheduler-simulation",
+      "keywords": [
+        "/排程A",
+        "/排程B",
+        "排程A",
+        "排程B",
+        "排程模擬",
+        "same-lane resume"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/排程模擬/**"
+      ],
+      "required_skills": [
+        "排程模擬",
+        "派工",
+        "遠端執行守門",
+        "monitoring-remote-qa",
+        "executable-continuity-controller"
+      ],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/踩坑庫/scheduler_prompt_authoring_pitfall.md",
+        "個人AI檔案庫/踩坑庫/executable_continuity_controller_pitfall.md"
+      ]
+    },
+    {
       "id": "deterministic-repo-migration",
       "keywords": [
         "deterministic repo migration",
