@@ -3,7 +3,7 @@
   "issue": "647",
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "3967da33e35e26ba3973e5565af0defe65fa7e12",
-  "state": "CLEANUP",
+  "state": "RECOVERING",
   "next_action": "Remove the five remaining temporary #640-chain QA/proof workflows in one guarded cleanup commit; then post-commit reconcile and perform tested-head→closing-head drift audit.",
   "run_id": 36126332602,
   "job_id": 108064668228,
@@ -48,6 +48,7 @@
     "Default-branch Remote Guard deployment is now exact accepted blob c6e96581c47b4d46704f719877174f9248928f5e; #647 Combined Acceptance may resume.",
     "Workflow-dispatch Guard run 36133042624 GREEN consumed by rerunning authoritative Combined Acceptance run 36126332602 at exact head 3967da33e35e26ba3973e5565af0defe65fa7e12.",
     "Combined Acceptance run 36126332602 attempt 2 completed SUCCESS: focused 178 PASS; governance/writeback 26 PASS; main claim-activation/turn-exit/Remote-Guard exact accepted blobs; canonical fingerprint and turn-exit SSOT GREEN.",
-    "Acceptance #9 cleanup census: remaining temporary workflows are qa-issue642-t2-red.yml, qa-issue642-t2-green.yml, qa-issue643-t3-red.yml, qa-issue643-t3-green.yml, qa-issue647-t7-combined.yml."
+    "Acceptance #9 cleanup census: remaining temporary workflows are qa-issue642-t2-red.yml, qa-issue642-t2-green.yml, qa-issue643-t3-red.yml, qa-issue643-t3-green.yml, qa-issue647-t7-combined.yml.",
+    "Narrow metadata recovery after Remote Guard run 36133346281 failed closed with ACTIVE_CLAIM_REQUIRES_CHECKPOINT: checkpoint contains invalid field values. Corrected checkpoint state CLEANUP -> RECOVERING only; claim phase remains CLEANUP and no work/head/ownership/acceptance data changed."
   ]
 }
