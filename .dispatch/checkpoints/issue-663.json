@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "issue": "663",
+  "branch": "governance/issue663-turn-exit-env-fix-20260925",
+  "head_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
+  "state": "RUNNING",
+  "next_action": "Create guarded repair branch and patch only .github/workflows/whd-turn-exit-gate.yml with minimal same-step env propagation fix; then guarded PR/merge/readback.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Master #640 is already closed/completed with claim RELEASED and checkpoint CLOSED.",
+    "Trusted turn-exit run 36140206897 failed before canonical gate because TE_GUARD_AUTHORITY_SHA was written to GITHUB_ENV and read in the same step.",
+    "Repair scope is exactly .github/workflows/whd-turn-exit-gate.yml on default branch main."
+  ]
+}

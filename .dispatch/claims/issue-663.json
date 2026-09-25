@@ -1,0 +1,21 @@
+{
+  "issue": 663,
+  "issue_url": "https://github.com/looaeedr/whd/issues/663",
+  "worker": "chatgpt.sol260925.issue663.a1",
+  "executor_source": "chatgpt_interactive",
+  "work_branch": "governance/issue663-turn-exit-env-fix-20260925",
+  "claimed_at": "2026-09-25T13:20:46Z",
+  "base_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
+  "head_sha": "1cff61fc73e66e07bcb7364249402e2cd86db715",
+  "phase": "CLAIMED",
+  "last_update": "2026-09-25T13:20:46Z",
+  "production_target": "main",
+  "master_issue": 640,
+  "parent_issue": 640,
+  "delegated_branches": [],
+  "next_action": "Create guarded repair branch from current main, patch only .github/workflows/whd-turn-exit-gate.yml so same-step TE_* variables are available after writing GITHUB_ENV, merge through guarded PR to main, fresh-read exact fix, rerun #640 trusted turn-exit proof, then close/release #663.",
+  "blocker": null,
+  "checkpoint": ".dispatch/checkpoints/issue-663.json",
+  "root_cause_run_id": 36140206897,
+  "blocked_master_issue": 640
+}
