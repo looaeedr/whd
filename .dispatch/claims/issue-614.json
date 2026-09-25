@@ -10,8 +10,8 @@
   "claimed_at": "2026-09-24T21:11:30+08:00",
   "base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "head_sha": "c043e447afc0da533ef965fe82d175e75011d186",
-  "phase": "RECOVERING",
-  "last_update": "2026-09-25T22:40:00Z",
+  "phase": "CLOSING",
+  "last_update": "2026-09-25T22:49:00Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "b61db24e4428100b7e7d627ae946a04f93ca0f8b",
   "master_issue": 628,
@@ -24,7 +24,7 @@
     "status": "completed",
     "conclusion": "success"
   },
-  "next_action": "Use trusted Remote Guard at live HEAD c043e447afc0da533ef965fe82d175e75011d186 to persist the canonical terminal closure checkpoint/claim pair with closure_state=FINALIZATION_PENDING, preserving accepted QA evidence from tested HEAD 920608d87de7d7ccb3a31eebb628cec2fc437c8c; then run trusted Remote Finalization, close/read back Issue #614, release the claim, and advance Master #628.",
+  "next_action": "Run trusted WHD Remote Finalization for the exact TERMINAL_SUCCESS checkpoint at live HEAD c043e447afc0da533ef965fe82d175e75011d186; on valid machine proof close/read back Issue #614, persist RELEASE_HANDOFF_PENDING then atomic CLOSED + claim RELEASED, and hand off Master #628 to #615.",
   "blocker": null,
   "red_evidence": {
     "test_commit": "259879ae35d0407a943697ba804d5c180ac5deb6",
@@ -47,7 +47,10 @@
       ],
       "failed_reconcile_guard_run": 36166349785,
       "failed_reconcile_reason": "matching prior GREEN mutation receipt was outside the commit receipt window",
-      "recovery_path": "trusted Claim Activation transition=reactivate"
+      "recovery_path": "trusted Claim Activation transition=reactivate",
+      "activation_request_comment_id": 5840699848,
+      "activation_result_comment_id": 5840702000,
+      "activation_coord_commit": "91f6db1f47ece546db4deae330f891ba0bacd239"
     }
   },
   "green_candidate": {
@@ -72,11 +75,12 @@
   },
   "last_guard": {
     "action": "write",
-    "run_id": 36166349785,
-    "request_comment_id": 5836508740,
-    "result": "FAIL",
-    "reason": "REMOTE_GUARD_FAILED",
+    "run_id": 36198390972,
+    "request_comment_id": 5840708943,
+    "result": "GREEN",
+    "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "156bc20e7b7c331eae2a24d2c46bd984c5959720",
-    "consumed": false
+    "consumed": true,
+    "mutation": "atomic claim+checkpoint transition to CLOSING / FINALIZATION_PENDING"
   }
 }
