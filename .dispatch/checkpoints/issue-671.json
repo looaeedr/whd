@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "issue": "671",
+  "branch": "governance/issue671-legacy-half-pair-repair-20260926",
+  "head_sha": "6bd0e3c9ef540234a1f92eab7aaefc9c462f5554",
+  "state": "RUNNING",
+  "next_action": "Obtain exact branch-create Guard; create repair branch; establish RED for legacy half-pair repair transaction.",
+  "run_id": null,
+  "job_id": null,
+  "log_cursor": null,
+  "blocked_count": 0,
+  "blocked_last_notified_at": null,
+  "evidence": [
+    "Requirement Authority: user explicitly requested /排程A to repair the legacy active-claim/missing-checkpoint capability gap exposed by #617.",
+    "Fresh production target cleanup/2d-3d-sync HEAD=6bd0e3c9ef540234a1f92eab7aaefc9c462f5554.",
+    "Logical owner is scheduler.6ab13fa557fc8191935c671214b865e2; physical invocation is chatgpt_interactive; no ownership takeover is performed.",
+    "Issue #671 is the blocking governance repair; #617 remains untouched until capability is accepted and deployed."
+  ]
+}
