@@ -4,7 +4,7 @@
   "branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
   "state": "RUNNING",
-  "next_action": "Resolve PR #662 single-file integration conflict using a two-parent non-force merge commit that preserves verified work-order HEAD as second parent and current cleanup/2d-3d-sync as first parent; fresh-read production after ref update.",
+  "next_action": "Enter #647 terminal checkpoint FINALIZATION_PENDING with Integration Acceptance PASS; then run canonical Remote Finalization closure transaction.",
   "run_id": null,
   "job_id": null,
   "log_cursor": null,
@@ -59,6 +59,12 @@
     "Integration PR #662 created under Remote Guard run 36136314508 from verified closing HEAD 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 to cleanup/2d-3d-sync@04281ff361117ba65c7c517dc7f78820f00127cf.",
     "PR #662 durable readback is open/mergeable=false; canonical transaction classification is MUTATION_DONE_RECONCILE_ONLY and PR creation was not replayed.",
     "Conflict analysis: X-only delta has five paths; four are disjoint from work-order and the only overlapping path is tools/stale_claim_takeover.py.",
-    "X overlap is #648 timestamp precision fix: claim_last_update uses _iso_utc_exact and helper preserves fractional seconds."
+    "X overlap is #648 timestamp precision fix: claim_last_update uses _iso_utc_exact and helper preserves fractional seconds.",
+    "Integration Acceptance PASS: non-force two-parent merge commit 0243600da28f82566694c9bb3fff6d0a95b2a35e integrated verified work-order closing HEAD 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 into cleanup/2d-3d-sync.",
+    "Merge first parent is prior production 04281ff361117ba65c7c517dc7f78820f00127cf; second parent is exact verified work-order closing HEAD.",
+    "PR #662 fresh readback is closed/merged with merge_commit_sha 0243600da28f82566694c9bb3fff6d0a95b2a35e.",
+    "Production fresh-read confirms cleanup/2d-3d-sync@0243600da28f82566694c9bb3fff6d0a95b2a35e.",
+    "Conflict resolution preserved four X-only scheduler-simulation blobs and #648 exact claim_last_update timestamp precision fix while retaining all verified work-order content.",
+    "Integration pr-write transaction run 36136772741 reconciled as MUTATION_DONE_RECONCILE_ONLY; integration was not replayed."
   ]
 }

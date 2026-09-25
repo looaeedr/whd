@@ -8,7 +8,7 @@
   "base_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
   "phase": "CLOSING",
-  "last_update": "2026-09-25T12:41:30Z",
+  "last_update": "2026-09-25T12:46:10Z",
   "production_target": "cleanup/2d-3d-sync",
   "frozen_x_base_sha": "2bf5969aba8c8aa033b314f0d6f92165239f67c0",
   "master_issue": 640,
@@ -16,7 +16,7 @@
   "expected_parent_sha": "8909143569bf1e23d3fd6ef563e57c3a20992638",
   "work_order_branch": "workorder/issue640-guard-turn-exit-helper-hardening-20260925",
   "chain_head": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
-  "production_sha": "5822ab30360dfcf09e21408584c3da100baafd37",
+  "production_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
   "approved_red_ids": [
     "RED-CLOSE-01",
     "RED-CLOSE-02",
@@ -26,7 +26,7 @@
   ],
   "breakdown_approved": true,
   "delegated_branches": [],
-  "next_action": "Resolve PR #662 integration conflict without modifying verified work-order HEAD: preserve all work-order content, carry forward X-only scheduler-simulation files, and retain #648 exact claim_last_update timestamp precision fix in tools/stale_claim_takeover.py; then create a two-parent non-force merge commit and fresh-read cleanup/2d-3d-sync.",
+  "next_action": "Enter #647 terminal checkpoint FINALIZATION_PENDING at verified closing head 8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156 with Integration Acceptance PASS and production readback 0243600da28f82566694c9bb3fff6d0a95b2a35e; then advance ISSUE_CLOSE_PENDING → bound Remote Finalization → close/readback → RELEASE_HANDOFF_PENDING → CLOSED + RELEASED.",
   "blocker": null,
   "checkpoint": ".dispatch/checkpoints/issue-647.json",
   "predecessor": {
@@ -61,8 +61,8 @@
   ],
   "last_guard": {
     "action": "pr-write",
-    "run_id": 36136314508,
-    "request_comment_id": 5832528722,
+    "run_id": 36136772741,
+    "request_comment_id": 5832588524,
     "result": "GREEN",
     "reason": "EXECUTION_CLAIM_GUARD_GREEN",
     "guard_authority_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
@@ -186,19 +186,19 @@
   },
   "guard_transaction_recovery": {
     "classification": "MUTATION_DONE_RECONCILE_ONLY",
-    "canonical_guard_run_id": 36136314508,
+    "canonical_guard_run_id": 36136772741,
     "durable_readback": {
       "mutation_applied": true,
       "action": "pr-write",
-      "guard_run_id": 36136314508,
+      "guard_run_id": 36136772741,
       "pr_readback": true,
       "pr_number": 662,
-      "pr_state": "open",
-      "merged": false,
-      "base_sha": "04281ff361117ba65c7c517dc7f78820f00127cf",
-      "head_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
-      "mergeable": true,
-      "changed_files": []
+      "pr_state": "closed",
+      "merged": true,
+      "merge_commit_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+      "production_head_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+      "changed_files": [],
+      "reconciled": true
     },
     "reconciled": true
   },
@@ -211,6 +211,18 @@
     "conflict_scope": [
       "tools/stale_claim_takeover.py"
     ],
-    "resolution_policy": "Preserve verified work-order tree; add four X-only files/blobs; apply #648 exact timestamp precision delta to stale_claim_takeover.py; create two-parent merge commit with production first parent and verified work-order second parent."
+    "resolution_policy": "Preserve verified work-order tree; add four X-only files/blobs; apply #648 exact timestamp precision delta to stale_claim_takeover.py; create two-parent merge commit with production first parent and verified work-order second parent.",
+    "status": "PASS",
+    "production_parent_sha": "04281ff361117ba65c7c517dc7f78820f00127cf",
+    "verified_workorder_parent_sha": "8cbe4b4b9b8a3d3bea28a3e5fbf0dc1c34382156",
+    "merge_commit_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+    "merged_tree_sha": "8a55ee46e5af137decf88750e7f075ccb79bbd96",
+    "production_readback_sha": "0243600da28f82566694c9bb3fff6d0a95b2a35e",
+    "conflict_resolution": {
+      "overlapping_path": "tools/stale_claim_takeover.py",
+      "preserved_workorder_changes": true,
+      "preserved_x_timestamp_precision_fix": true,
+      "x_only_files_preserved": true
+    }
   }
 }
